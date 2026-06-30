@@ -1,0 +1,23 @@
+# pdfmerge
+
+> 100% client-side, privacy-first PDF merging online. No file uploads, no server, completely free.
+
+pdfmerge is a static web application that allows users to combine multiple PDF files into one directly in their browser. Because all processing happens locally using WebAssembly/JavaScript, PDF files never leave the user's device.
+
+## Key Features
+- **Zero Uploads**: Merging is performed client-side using `@cantoo/pdf-lib`. Files are never sent to a server.
+- **Completely Free**: No limits on file size, page count, or number of merges. No signups, paywalls, or watermarks.
+- **Flexible Sorting**: Reorder files manually via drag-and-drop, or sort them automatically by file name (natural/numeric sorting) or modification date.
+- **Page Previews**: Lazy-loads page-1 thumbnails using `pdfjs-dist` to help verify sorting before merging.
+- **Offline Capable**: Serves as a Progressive Web App (PWA) with a custom service worker (`public/sw.js`) that caches all code for offline use.
+
+## Architecture & Security
+- **Built with**: Astro (static build mode) + Preact (for the client-side interactive island).
+- **Security**: Content-Security-Policy (CSP) is strictly configured to prevent execution of unbundled scripts and locks down `connect-src 'self'` to prevent any third-party network requests or telemetry leakage.
+- **Dependencies**: Uses MIT/Apache-2.0 open-source libraries only. No trackers, cookies, or analytics.
+
+## Links
+- **Homepage**: https://pdf-merge-online-free.vercel.app/
+- **Source Code**: https://github.com/shlomsh/pdfmerge
+- **Developer**: [Shlomi Shemesh](https://github.com/shlomsh)
+- **License**: MIT

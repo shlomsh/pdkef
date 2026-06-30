@@ -42,6 +42,13 @@ Drag-to-reorder uses **SortableJS**, wired directly to the DOM list in `PdfMerge
 - JSON-LD (`SeoSchema.astro`: `SoftwareApplication`, `HowTo`, `FAQPage`) must stay valid — verify with Google's Rich Results Test after edits.
 - Target Lighthouse SEO + Performance ≥ 95 — keep the island lean, lazy-load thumbnails, avoid layout shift.
 
+## UI & State Invariants
+
+- **FAQ disclosure**: The "How it works & FAQ" content resides below the app and acts as a details-summary element. The summary contains the hero text, and a click interceptor script prevents clicks on the text from toggling the panel. Only clicking the styled `.faq-toggle` link (anchor-like visual) triggers the toggle.
+- **Merge & Download Flow**:
+  - Once merging is complete, the "Merge PDFs" button turns grey (`.is-done` class) to step back, and focus is shifted to the "Download PDF" button (`ref` + `useEffect` on status change).
+  - Any subsequent mutation of files (adding, removing, reordering, or sorting) resets the state to `'idle'` and revokes/clears the generated `downloadUrl`.
+
 ## Privacy invariants
 
 - No `fetch`/`XHR` of file bytes, ever. No analytics, telemetry, or third-party scripts.

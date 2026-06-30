@@ -4,9 +4,9 @@ import SeoSchema from '../components/SeoSchema.astro';
 import PdfMergeTool from '../components/PdfMergeTool.jsx';
 import '../styles/global.css';
 
-const title = 'Merge PDF Online Free - Combine PDFs in Your Browser | pdfmerge';
+const title = 'Merge PDF Online Free - Combine PDFs in Your Browser';
 const description =
-  'Merge PDF files online for free. Drag, reorder by name or date, and combine PDFs into one file - instantly, in your browser. No upload, no signup, no watermark.';
+  'Merge PDF files online for free. Drag, reorder, and combine PDFs into one file instantly in your browser. No upload, no signup, no watermark.';
 ---
 
 <BaseLayout title={title} description={description}>
@@ -16,7 +16,6 @@ const description =
 
   <header>
     <h1>Merge PDF online, free</h1>
-    <p>Combine PDFs into one, right in your browser. No upload, no server - your files never leave your device.</p>
   </header>
 
   <main>
@@ -25,8 +24,11 @@ const description =
     </section>
 
     <div class="disclosures">
-      <details class="disclosure">
-        <summary>How it works &amp; FAQ</summary>
+      <details class="disclosure" id="faq-details">
+        <summary class="faq-summary">
+          Combine PDFs into one, right in your browser. No upload, no server. Your files never leave your device.
+          <span class="faq-toggle" role="button" tabindex="0">How it works &amp; FAQ</span>
+        </summary>
         <div class="disclosure-body">
           <section id="how-it-works">
             <h2>How to merge PDF files online for free</h2>
@@ -63,6 +65,17 @@ const description =
       </details>
     </div>
   </main>
+
+  <script>
+    const summary = document.querySelector('.faq-summary');
+    if (summary) {
+      summary.addEventListener('click', (e) => {
+        if (e.target instanceof Element && !e.target.closest('.faq-toggle')) {
+          e.preventDefault();
+        }
+      });
+    }
+  </script>
 
   <footer>
     <p>pdfmerge is free and open source under the MIT license. <a href="https://github.com/shlomsh/pdfmerge">View source on GitHub</a>. Built by <a href="https://github.com/shlomsh">Shlomi Shemesh</a>.</p>

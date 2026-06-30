@@ -10,7 +10,7 @@ import preact from '@astrojs/preact';
 // certify Astro 7. Instead, public/sw.js is a small hand-written service
 // worker (see CLAUDE.md) — fully auditable, zero extra build dependencies.
 export default defineConfig({
-  site: 'https://pdfmerge.example.com',
+  site: 'https://pdf-merge-online-free.vercel.app',
   output: 'static',
   integrations: [preact()],
   // Astro computes exact sha256 hashes for every inline script/style it

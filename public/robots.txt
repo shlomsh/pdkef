@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://pdfmerge.example.com/sitemap.xml
+Sitemap: https://pdf-merge-online-free.vercel.app/sitemap.xml

@@ -125,10 +125,11 @@ header h1 {
 
 header p {
   color: var(--color-muted);
-  font-size: clamp(1.05rem, 2.2vw, 1.2rem);
+  font-size: clamp(0.92rem, 1.6vw, 1rem);
   margin: 0 auto;
-  max-width: 44ch;
+  max-width: 48ch;
   letter-spacing: -0.01em;
+  line-height: 1.5;
 }
 
 main {
@@ -164,37 +165,34 @@ main {
 }
 
 .disclosure {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-xs);
-  overflow: hidden;
-  transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  border: none;
+  background: none;
+  box-shadow: none;
+  overflow: visible;
+  transition: none;
 }
 
 .disclosure:hover {
-  border-color: var(--color-border-strong);
+  border-color: transparent;
 }
 
 .disclosure[open] {
-  border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-sm);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .disclosure > summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: 1.05rem 1.25rem;
-  margin: 0;
-  font-size: 1.02rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--color-text);
-  cursor: pointer;
+  display: block;
+  text-align: center;
+  max-width: 52ch;
+  margin: 0 auto;
+  padding: 0;
+  font-size: clamp(0.92rem, 1.6vw, 1rem);
+  line-height: 1.6;
+  color: var(--color-muted);
+  cursor: default;
   list-style: none;
-  user-select: none;
+  user-select: text;
 }
 
 .disclosure > summary :is(h2, h3) {
@@ -209,27 +207,53 @@ main {
 }
 
 .disclosure > summary::after {
+  display: none;
+}
+
+.faq-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--color-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-pill);
+  font-weight: 500;
+  font-size: 0.82rem;
+  text-decoration: none;
+  cursor: pointer;
+  margin-left: 0.4rem;
+  white-space: nowrap;
+  transition: all 0.15s var(--ease-out);
+}
+
+.faq-toggle:hover {
+  color: var(--color-text);
+  background: var(--color-surface-sunken);
+  border-color: var(--color-border-strong);
+}
+
+.faq-toggle::after {
   content: '';
-  flex-shrink: 0;
-  width: 0.62rem;
-  height: 0.62rem;
-  border-right: 2px solid var(--color-muted-light);
-  border-bottom: 2px solid var(--color-muted-light);
-  transform: rotate(45deg);
-  transition: transform 0.25s var(--ease-out);
+  display: inline-block;
+  width: 0.32rem;
+  height: 0.32rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-1px) rotate(45deg);
+  transition: transform 0.2s var(--ease-out);
 }
 
-.disclosure[open] > summary::after {
-  transform: rotate(-135deg);
-}
-
-.disclosure > summary:hover::after {
-  border-color: var(--color-primary);
+.disclosure[open] .faq-toggle::after {
+  transform: translateY(1px) rotate(-135deg);
 }
 
 .disclosure-body {
-  padding: 0 1.25rem 1.25rem;
-  animation: disclosure-in 0.3s var(--ease-out);
+  margin-top: var(--space-6);
+  padding: 0;
+  text-align: left;
+  animation: disclosure-in 0.35s var(--ease-out);
 }
 
 .disclosure-body > :first-child {
@@ -237,7 +261,9 @@ main {
 }
 
 .disclosure-body > section + section {
-  margin-top: 1.75rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 2rem;
 }
 
 @keyframes disclosure-in {
@@ -288,9 +314,13 @@ main {
 
 footer {
   text-align: center;
-  padding: 2.5rem 1.5rem 3.5rem;
+  padding: 2.5rem 1.5rem 1.25rem;
   color: var(--color-muted-light);
   font-size: 0.85rem;
+}
+
+footer p {
+  margin: 0;
 }
 
 footer a {
@@ -764,6 +794,20 @@ footer a {
   color: #fff;
 }
 
+.merge-button.is-done {
+  background: var(--color-surface-sunken);
+  color: var(--color-muted);
+  box-shadow: none;
+  border: 1px solid var(--color-border);
+}
+
+.merge-button.is-done:hover:not(:disabled) {
+  background: var(--color-border);
+  color: var(--color-text);
+  box-shadow: none;
+  transform: none;
+}
+
 .merge-button-progress {
   display: inline-flex;
   align-items: center;
@@ -903,3 +947,45 @@ footer a {
   color: var(--color-text);
   background: var(--color-surface-sunken);
 }
+
+@media (min-width: 768px) {
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 3.5rem 1.5rem 1.5rem;
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 1.5rem 1.5rem;
+  }
+
+  #app {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 1.5rem 0;
+  }
+
+  .merge-tool {
+    width: 100%;
+    flex-shrink: 0;
+  }
+
+  .disclosures {
+    margin-top: auto;
+    margin-bottom: 1rem;
+  }
+
+  footer {
+    padding: 1.5rem 1.5rem 1.25rem;
+  }
+}
+

@@ -22,6 +22,13 @@ export default function PdfMergeTool() {
   const [announcement, setAnnouncement] = useState('');
   const listRef = useRef(null);
   const sortableRef = useRef(null);
+  const downloadRef = useRef(null);
+
+  useEffect(() => {
+    if (status === 'done' && downloadRef.current) {
+      downloadRef.current.focus();
+    }
+  }, [status]);
 
   // Drag-to-reorder: SortableJS owns the DOM order during a drag; on drop
   // we read its final order back into Preact state, which becomes the
@@ -44,6 +51,11 @@ export default function PdfMergeTool() {
           const [moved] = next.splice(evt.oldIndex, 1);
           next.splice(evt.newIndex, 0, moved);
           return next;
+        });
+        setStatus('idle');
+        setDownloadUrl((previous) => {
+          if (previous) URL.revokeObjectURL(previous);
+          return null;
         });
       },
     });
@@ -96,6 +108,11 @@ export default function PdfMergeTool() {
       if (removed) setAnnouncement(`${removed.file.name} removed.`);
       return current.filter((e) => e.id !== id);
     });
+    setStatus('idle');
+    setDownloadUrl((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return null;
+    });
   }, []);
 
   const reset = useCallback(() => {
@@ -121,6 +138,11 @@ export default function PdfMergeTool() {
       setAnnouncement(`${moved.file.name} moved to position ${newIndex + 1} of ${next.length}.`);
       return next;
     });
+    setStatus('idle');
+    setDownloadUrl((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return null;
+    });
   }, []);
 
   const onItemKeyDown = useCallback(
@@ -138,6 +160,11 @@ export default function PdfMergeTool() {
 
   const applySort = useCallback((sortFn, direction) => {
     setEntries((current) => sortFn(current, direction));
+    setStatus('idle');
+    setDownloadUrl((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return null;
+    });
     setAnnouncement('Files reordered.');
   }, []);
 
@@ -325,7 +352,7 @@ export default function PdfMergeTool() {
 
           <button
             type="button"
-            class={`merge-button${status === 'merging' ? ' is-merging' : ''}`}
+            class={`merge-button${status === 'merging' ? ' is-merging' : ''}${status === 'done' ? ' is-done' : ''}`}
             disabled={entries.length < 2 || status === 'merging'}
             onClick={handleMerge}
           >
@@ -367,7 +394,12 @@ export default function PdfMergeTool() {
 
           {status === 'done' && downloadUrl && (
             <>
-              <a class="download-button" href={downloadUrl} download="merged.pdf">
+              <a
+                ref={downloadRef}
+                class="download-button"
+                href={downloadUrl}
+                download="merged.pdf"
+              >
                 <svg class="download-check" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <circle cx="12" cy="12" r="10" class="check-circle" />
                   <path d="M7.5 12.5l3 3 6-6.5" class="check-mark" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
