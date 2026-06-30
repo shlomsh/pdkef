@@ -1,0 +1,180 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SeoSchema from '../components/SeoSchema.astro';
+import PdfEditPagesTool from '../components/PdfEditPagesTool.jsx';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+const title = 'Edit PDF Online Free - Rotate, Reorder & Remove Pages | PDkef';
+const description =
+  'Edit your PDF for free in your browser: remove unwanted pages, rotate pages, reorder pages by drag & drop, and add page numbers. 100% private — your file never leaves your device.';
+
+const faq = [
+  {
+    question: 'Are my PDF files uploaded to a server?',
+    answer:
+      'No. PDkef runs entirely in your browser. Your file is never uploaded, never sent over the network, and never stored anywhere outside your own device. Every operation — page removal, rotation, reordering, and numbering — happens locally using JavaScript.',
+  },
+  {
+    question: 'How do I remove pages from a PDF?',
+    answer:
+      'Load your PDF, then click any page thumbnail to mark it for removal (it turns red with an ✕). Click again to keep it. Once you have selected the pages you want to delete, click Apply Changes to generate the new PDF.',
+  },
+  {
+    question: 'How do I rotate pages in a PDF?',
+    answer:
+      'Use the rotate-left (↺) and rotate-right (↻) buttons below each page thumbnail. Each click rotates that page by 90 degrees. The live preview updates immediately so you can see the result before applying.',
+  },
+  {
+    question: 'How do I reorder pages in a PDF?',
+    answer:
+      'Grab the six-dot handle at the top of any page card and drag it to a new position. The grid updates in real time. The final order you see is exactly the order in the exported PDF.',
+  },
+  {
+    question: 'How do I add page numbers to a PDF?',
+    answer:
+      'Check the "Add page numbers" box below the page grid before clicking Apply Changes. Page numbers are printed at the bottom centre of each output page, numbered sequentially from 1.',
+  },
+  {
+    question: 'Can I do all edits at once — rotate, remove, and reorder?',
+    answer:
+      'Yes. All edits are applied together in a single pass when you click Apply Changes. You can freely mix removing pages, rotating individual pages, reordering, and adding page numbers before exporting.',
+  },
+  {
+    question: 'Is there a file size limit?',
+    answer:
+      'There are no artificial file size limits. The only constraint is your device\'s available memory, since all processing runs locally in the browser.',
+  },
+  {
+    question: 'Can I remove all pages from a PDF?',
+    answer:
+      'No. A valid PDF must contain at least one page. The Apply Changes button is disabled if every page is marked for removal.',
+  },
+];
+---
+
+<BaseLayout title={title} description={description}>
+  <Fragment slot="head">
+    <SeoSchema name="PDkef - Edit PDF Pages" description={description} faq={faq} />
+  </Fragment>
+
+  <header>
+    <h1>Edit PDF pages — free &amp; private</h1>
+    <p>
+      Remove pages, rotate pages, reorder by drag &amp; drop, and add page numbers.
+      Runs 100% locally in your browser — your file never leaves your device.
+    </p>
+  </header>
+
+  <main>
+    <section id="app" aria-label="Edit PDF pages tool">
+      <PdfEditPagesTool client:load />
+    </section>
+  </main>
+
+  <Footer summaryText="Edit, rotate, reorder, and delete pages from your PDF directly in your browser. No uploads, no servers, no tracking — absolute privacy.">
+    <section id="how-it-works">
+      <h2>How to edit a PDF online for free</h2>
+      <ol>
+        <li>
+          <strong>Open your PDF.</strong> Click "Choose file" or drag and drop any PDF into the tool.
+          Your file stays on your device — nothing is uploaded.
+        </li>
+        <li>
+          <strong>Make your edits.</strong>
+          <ul>
+            <li><strong>Remove pages:</strong> click a thumbnail to mark it for deletion (turns red).</li>
+            <li><strong>Rotate pages:</strong> use the ↺ / ↻ buttons under each thumbnail to turn a page 90° at a time.</li>
+            <li><strong>Reorder pages:</strong> drag the six-dot grip handle to move a page to a new position.</li>
+            <li><strong>Add page numbers:</strong> tick the "Add page numbers" checkbox to stamp sequential numbers at the bottom of each page.</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Apply &amp; download.</strong> Click Apply Changes. The new PDF is built instantly in your
+          browser and downloaded to your device.
+        </li>
+      </ol>
+    </section>
+
+    <section id="why-pdkef">
+      <h2>Why use PDkef to edit PDF pages</h2>
+      <ul>
+        <li>
+          <strong>100% private — your file never leaves your device.</strong>
+          Every operation runs in the browser with no server, no upload, and no third-party API. You can even use it offline.
+        </li>
+        <li>
+          <strong>Free forever, no limits.</strong>
+          No sign-up, no watermarks, no daily caps, no paywalls. Process PDFs of any size as many times as you like.
+        </li>
+        <li>
+          <strong>All edits in one pass.</strong>
+          Remove, rotate, reorder, and add page numbers simultaneously — then export once. No round-tripping through multiple tools.
+        </li>
+        <li>
+          <strong>Works on any device.</strong>
+          Runs in any modern browser on desktop, tablet, or phone — no app or plugin installation needed.
+        </li>
+        <li>
+          <strong>Open source.</strong>
+          Built with standard MIT-licensed libraries. Inspect the code on GitHub and confirm for yourself that no data is sent anywhere.
+        </li>
+      </ul>
+    </section>
+
+    <section id="faq">
+      <h2>Frequently asked questions</h2>
+
+      <h3>Are my PDF files uploaded to a server?</h3>
+      <p>
+        No. PDkef runs entirely in your browser. Your file is never uploaded, never sent over the
+        network, and never stored anywhere outside your own device. Every operation — page removal,
+        rotation, reordering, and numbering — happens locally using JavaScript.
+      </p>
+
+      <h3>How do I remove pages from a PDF?</h3>
+      <p>
+        Load your PDF, then click any page thumbnail to mark it for removal (it turns red with an ✕).
+        Click again to keep it. Once you have selected the pages you want to delete, click Apply Changes
+        to generate the new PDF.
+      </p>
+
+      <h3>How do I rotate pages in a PDF?</h3>
+      <p>
+        Use the rotate-left (↺) and rotate-right (↻) buttons below each page thumbnail. Each click
+        rotates that page by 90 degrees. The live preview updates immediately so you can see the result
+        before applying.
+      </p>
+
+      <h3>How do I reorder pages in a PDF?</h3>
+      <p>
+        Grab the six-dot handle at the top of any page card and drag it to a new position. The grid
+        updates in real time. The final order you see is exactly the order in the exported PDF.
+      </p>
+
+      <h3>How do I add page numbers to a PDF?</h3>
+      <p>
+        Check the "Add page numbers" box below the page grid before clicking Apply Changes. Page numbers
+        are printed at the bottom centre of each output page, numbered sequentially from 1.
+      </p>
+
+      <h3>Can I do all edits at once — rotate, remove, and reorder?</h3>
+      <p>
+        Yes. All edits are applied together in a single pass when you click Apply Changes. You can freely
+        mix removing pages, rotating individual pages, reordering, and adding page numbers before exporting.
+      </p>
+
+      <h3>Is there a file size limit?</h3>
+      <p>
+        There are no artificial file size limits. The only constraint is your device's available memory,
+        since all processing runs locally in the browser.
+      </p>
+
+      <h3>Can I remove all pages from a PDF?</h3>
+      <p>
+        No. A valid PDF must contain at least one page. The Apply Changes button is disabled if every
+        page is marked for removal.
+      </p>
+    </section>
+  </Footer>
+</BaseLayout>

@@ -12,5 +12,12 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/remove-pages",
+      "destination": "/edit-pdf",
+      "permanent": true
+    }
   ]
 }

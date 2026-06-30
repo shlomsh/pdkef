@@ -57,13 +57,12 @@ implements range parsing and page extraction. Promoted: de-noindexed, in the
 sitemap, has HowTo/FAQ + `<SeoSchema>`, and a component test
 (`PdfSplitTool.test.jsx`).
 
-## 3. Remove Pages — `/remove-pages`, `PdfRemovePagesTool.jsx` — done
+## 3. Edit PDF (Remove, Rotate, Page Numbers) — `/edit-pdf`, `PdfEditPagesTool.jsx` — done
 
-Keyword: "Remove Pages from PDF Online Free". `src/lib/removePages.js`
-removes selected page indices via a thumbnail grid (reuses
-`src/lib/thumbnails.js`). Promoted: de-noindexed, in the sitemap, has
+Keywords: "Edit PDF Online Free", "Remove Pages from PDF", "Rotate PDF", "Add Page Numbers". 
+`src/lib/editPages.js` removes selected pages, rotates pages, and adds page numbers via a thumbnail grid. Promoted: de-noindexed, in the sitemap, has
 HowTo/FAQ + `<SeoSchema>`, and a component test
-(`PdfRemovePagesTool.test.jsx`).
+(`PdfEditPagesTool.test.jsx`).
 
 ## 4. PDF to Image — `/pdf-to-image`, `PdfToImageTool.jsx` — done
 

@@ -2367,13 +2367,14 @@ footer a {
   color: var(--color-text);
 }
 
+/* Page card checkbox — now a real <button> */
 .page-card-checkbox {
   position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
+  top: 0.35rem;
+  right: 0.35rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
   border: 1.5px solid var(--color-border-strong);
   background: var(--color-surface);
   display: flex;
@@ -2382,35 +2383,174 @@ footer a {
   color: transparent;
   transition: all 0.15s var(--ease-out);
   z-index: 2;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.page-card-checkbox:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
 }
 
 .page-card.is-selected .page-card-checkbox {
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: #ffffff;
+  box-shadow: 0 1px 4px rgba(20, 99, 255, 0.3);
+}
+
+/* Drag handle — full-width top bar on each page card */
+.page-drag-handle {
+  width: calc(100% + 1rem);
+  margin: -0.75rem -0.5rem 0;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: var(--color-muted-light);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: color 0.15s, background 0.15s;
+  touch-action: none;
+  flex-shrink: 0;
+}
+
+.page-drag-handle:hover {
+  color: var(--color-muted);
+  background: var(--color-surface-sunken);
+}
+
+.page-drag-handle:active {
+  cursor: grabbing;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+/* Rotate buttons under each thumbnail */
+.page-card-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.1rem;
+}
+
+.rotate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  box-sizing: border-box;
+}
+
+.rotate-btn svg {
+  flex-shrink: 0;
+  display: block;
+}
+
+.rotate-btn:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+/* SortableJS states for the page grid */
+/* Ghost = the placeholder left behind while dragging — make it invisible
+   so the grid doesn't show a jarring empty hole */
+.pages-grid .is-ghost {
+  opacity: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+/* Chosen = the card being actively picked up */
+.pages-grid .is-chosen {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+  z-index: 10;
+}
+
+/* Dragging clone floating over the grid */
+.pages-grid .is-dragging {
+  opacity: 0.95;
+  transform: scale(1.04) rotate(-0.5deg);
+  box-shadow: 0 12px 28px -4px rgba(20, 99, 255, 0.25), var(--shadow-lg);
+  cursor: grabbing;
+  z-index: 100;
 }
 
 .grid-actions {
   display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
+  gap: 0.5rem;
+  align-items: center;
   margin-top: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .grid-actions button {
   background: transparent;
-  border: none;
+  border: 1px solid var(--color-border);
   color: var(--color-primary);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 500;
   cursor: pointer;
-  padding: 0.25rem 0.5rem;
+  padding: 0.3rem 0.7rem;
   border-radius: var(--radius-sm);
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
+  line-height: 1;
 }
 
 .grid-actions button:hover {
   background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+/* "Add page numbers" toggle sits in the toolbar row */
+.page-numbers-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s;
+  user-select: none;
+}
+
+.page-numbers-toggle:hover {
+  color: var(--color-text);
+}
+
+.page-numbers-toggle input[type="checkbox"] {
+  accent-color: var(--color-primary);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* hint label in toolbar */
+.grid-actions-hint {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--color-muted-light);
+  align-self: center;
 }
 
 /* --- PDF Remove Pages Specific Styles --- */
@@ -2438,6 +2578,7 @@ footer a {
   background: var(--color-danger);
   border-color: var(--color-danger);
   color: #ffffff;
+  box-shadow: 0 1px 4px rgba(216, 52, 43, 0.3);
 }
 
 /* --- PDF Unlock Specific Styles --- */

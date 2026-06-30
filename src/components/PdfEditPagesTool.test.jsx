@@ -1,8 +1,8 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import PdfRemovePagesTool from './PdfRemovePagesTool.jsx';
-import { removePages } from '../lib/removePages.js';
+import PdfEditPagesTool from './PdfEditPagesTool.jsx';
+import { editPages } from '../lib/editPages.js';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -33,14 +33,14 @@ vi.mock('../lib/thumbnails.js', () => {
   };
 });
 
-// Mock core page removal logic
-vi.mock('../lib/removePages.js', () => {
+// Mock core page editing logic
+vi.mock('../lib/editPages.js', () => {
   return {
-    removePages: vi.fn(() => Promise.resolve(new Blob(['modified-pdf-bytes'], { type: 'application/pdf' }))),
+    editPages: vi.fn(() => Promise.resolve(new Blob(['modified-pdf-bytes'], { type: 'application/pdf' }))),
   };
 });
 
-describe('PdfRemovePagesTool UI flow', () => {
+describe('PdfEditPagesTool UI flow', () => {
   let container;
 
   afterEach(() => {
@@ -57,7 +57,7 @@ describe('PdfRemovePagesTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfRemovePagesTool />, container);
+      render(<PdfEditPagesTool />, container);
     });
 
     const dropzone = container.querySelector('.dropzone');
@@ -69,7 +69,7 @@ describe('PdfRemovePagesTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfRemovePagesTool />, container);
+      render(<PdfEditPagesTool />, container);
     });
 
     const input = container.querySelector('input[type="file"]');
@@ -102,7 +102,7 @@ describe('PdfRemovePagesTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfRemovePagesTool />, container);
+      render(<PdfEditPagesTool />, container);
     });
 
     const input = container.querySelector('input[type="file"]');
@@ -120,8 +120,8 @@ describe('PdfRemovePagesTool UI flow', () => {
     const cards = container.querySelectorAll('.page-card');
     const actionButton = container.querySelector('.merge-button');
 
-    // Default: no pages selected for removal, button says "Select pages to remove"
-    expect(actionButton.textContent).toContain('Select pages to remove');
+    // Default: no pages selected for removal, button says "Make edits to apply"
+    expect(actionButton.textContent).toContain('Make edits to apply');
     expect(actionButton.disabled).toBe(true);
 
     // Click Page 2 to mark it for removal
@@ -132,7 +132,7 @@ describe('PdfRemovePagesTool UI flow', () => {
     // Page 2 should have is-removed class and button should be active
     expect(cards[1].className).toContain('is-removed');
     expect(actionButton.disabled).toBe(false);
-    expect(actionButton.textContent).toContain('Remove 1 Page');
+    expect(actionButton.textContent).toContain('Apply Changes');
 
     // Click Page 2 again to keep it
     await act(async () => {
@@ -147,7 +147,7 @@ describe('PdfRemovePagesTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfRemovePagesTool />, container);
+      render(<PdfEditPagesTool />, container);
     });
 
     const input = container.querySelector('input[type="file"]');
@@ -185,7 +185,7 @@ describe('PdfRemovePagesTool UI flow', () => {
     });
 
     expect(Array.from(cards).some(c => c.classList.contains('is-removed'))).toBe(false);
-    expect(actionButton.textContent).toContain('Select pages to remove');
+    expect(actionButton.textContent).toContain('Make edits to apply');
 
     // Click Page 1, then Invert
     await act(async () => {
@@ -200,7 +200,7 @@ describe('PdfRemovePagesTool UI flow', () => {
     expect(cards[0].className).not.toContain('is-removed');
     expect(cards[1].className).toContain('is-removed');
     expect(cards[2].className).toContain('is-removed');
-    expect(actionButton.textContent).toContain('Remove 2 Pages');
+    expect(actionButton.textContent).toContain('Apply Changes');
   });
 
   it('runs page removal and produces download URL', async () => {
@@ -212,7 +212,7 @@ describe('PdfRemovePagesTool UI flow', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
-      render(<PdfRemovePagesTool />, container);
+      render(<PdfEditPagesTool />, container);
     });
 
     const input = container.querySelector('input[type="file"]');
@@ -233,7 +233,7 @@ describe('PdfRemovePagesTool UI flow', () => {
     });
 
     const actionButton = container.querySelector('.merge-button');
-    expect(actionButton.textContent).toContain('Remove 1 Page');
+    expect(actionButton.textContent).toContain('Apply Changes');
 
     await act(async () => {
       actionButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));

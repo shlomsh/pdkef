@@ -17,6 +17,7 @@
     "@pdf-lib/fontkit": "^1.1.1",
     "@vercel/analytics": "^2.0.1",
     "astro": "^7.0.3",
+    "lucide-preact": "^1.22.0",
     "pdfjs-dist": "^6.1.200",
     "preact": "^10.29.3",
     "sortablejs": "^1.15.7"
