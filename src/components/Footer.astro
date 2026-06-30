@@ -31,13 +31,14 @@ const { summaryText = "Free, Open Source, and 100% Client-Side. Your files never
             <h3>Are my files uploaded to a server?</h3>
             <p>No. The tools run entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
           </section>
-
-          <section id="about">
-            <h2>Open Source</h2>
-            <p>This project is open source under the MIT license. You can <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">view the source code on GitHub</a>.</p>
-            <p>Built with ❤️ by <a href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi Shemesh</a>.</p>
-          </section>
         </slot>
+
+        <section id="about">
+          <h2>Open Source</h2>
+          <p>This project is open source under the MIT license. You can <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">view the source code on GitHub</a>.</p>
+          <p>Built with ❤️ by <a href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi Shemesh</a>.</p>
+          <slot name="about-extra" />
+        </section>
       </div>
     </details>
   </div>
