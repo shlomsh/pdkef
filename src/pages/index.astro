@@ -1,0 +1,63 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SeoSchema from '../components/SeoSchema.astro';
+import PdfMergeTool from '../components/PdfMergeTool.jsx';
+import '../styles/global.css';
+
+const title = 'Merge PDF Online Free — Combine PDFs in Your Browser | pdfmerge';
+const description =
+  'Merge PDF files online for free. Drag, reorder by name or date, and combine PDFs into one file — instantly, in your browser. No upload, no signup, no watermark.';
+---
+
+<BaseLayout title={title} description={description}>
+  <Fragment slot="head">
+    <SeoSchema />
+  </Fragment>
+
+  <header>
+    <h1>Merge PDF Online — Free &amp; Private</h1>
+    <p>Combine multiple PDF files into one. Reorder by name or date, or drag and drop. Nothing is ever uploaded.</p>
+  </header>
+
+  <main>
+    <section id="app" aria-label="PDF merge tool">
+      <PdfMergeTool client:load />
+    </section>
+
+    <section id="how-it-works">
+      <h2>How to merge PDF files online for free</h2>
+      <ol>
+        <li><strong>Add your PDFs.</strong> Select or drag-and-drop the files you want to combine.</li>
+        <li><strong>Reorder them.</strong> Sort by name or date, or drag files into the order you want.</li>
+        <li><strong>Merge and download.</strong> Click Merge PDFs and save your combined file.</li>
+      </ol>
+    </section>
+
+    <section id="why-pdfmerge">
+      <h2>Why use pdfmerge</h2>
+      <ul>
+        <li><strong>Free:</strong> no cost, no signup, no watermark, no limits.</li>
+        <li><strong>Private:</strong> your files never leave your device; nothing is uploaded.</li>
+        <li><strong>Fast:</strong> merging happens instantly in your browser.</li>
+        <li><strong>Works everywhere:</strong> Chrome on macOS, Windows, Android, and iOS.</li>
+        <li><strong>Open source:</strong> MIT licensed, inspect the code yourself.</li>
+      </ul>
+    </section>
+
+    <section id="faq">
+      <h2>Frequently asked questions</h2>
+      <h3>Is pdfmerge really free?</h3>
+      <p>Yes. pdfmerge is completely free, with no limits, no signup, and no watermark on your merged PDF.</p>
+      <h3>Are my files uploaded to a server?</h3>
+      <p>No. pdfmerge runs entirely in your browser. Your PDF files are never sent over the network — they stay on your device the entire time.</p>
+      <h3>Does pdfmerge work on mobile?</h3>
+      <p>Yes. pdfmerge works in Chrome on Android and iOS, as well as desktop browsers on macOS and Windows.</p>
+      <h3>Is there a file size or page limit?</h3>
+      <p>No artificial limit is imposed by pdfmerge. The only constraint is your device's available memory, since merging happens locally.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>pdfmerge is free and open source under the MIT license. <a href="https://github.com/shlomsh/pdfmerge">View source on GitHub</a>.</p>
+  </footer>
+</BaseLayout>

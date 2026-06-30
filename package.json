@@ -6,8 +6,19 @@
   "description": "Merge PDF files online, free and private — 100% client-side.",
   "license": "MIT",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/preact": "^6.0.0",
+    "@cantoo/pdf-lib": "^2.7.1",
+    "astro": "^7.0.3",
+    "pdfjs-dist": "^6.1.200",
+    "preact": "^10.29.3",
+    "sortablejs": "^1.15.7"
+  },
+  "devDependencies": {
+    "@types/sortablejs": "^1.15.8"
   }
 }

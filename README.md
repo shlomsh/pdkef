@@ -16,7 +16,7 @@ A free, open-source tool to **merge PDF files online** — entirely in your brow
 2. Reorder them — by filename (A–Z / Z–A), by date, or by dragging them manually.
 3. Click **Merge** and download the combined PDF.
 
-All processing happens locally using [pdf-lib](https://github.com/Hopding/pdf-lib); the app is a static site with no backend.
+All processing happens locally using [@cantoo/pdf-lib](https://github.com/cantoo-scribe/pdf-lib); the app is a static site with no backend.
 
 ## Local development
 
@@ -29,10 +29,14 @@ npm run preview  # preview the production build
 
 ## Tech stack
 
-- [pdf-lib](https://github.com/Hopding/pdf-lib) — client-side PDF merging
+- [Astro](https://astro.build/) — static site generation (islands architecture; zero JS for the SEO content)
+- [Preact](https://preactjs.com/) — the one interactive island (the merge tool itself)
+- [@cantoo/pdf-lib](https://github.com/cantoo-scribe/pdf-lib) — client-side PDF merging
 - [SortableJS](https://github.com/SortableJS/Sortable) — drag-and-drop reordering
-- [PDF.js](https://github.com/mozilla/pdf.js) — page thumbnails
-- [Vite](https://vitejs.dev/) + [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) — build & offline support
+- [pdfjs-dist (PDF.js)](https://github.com/mozilla/pdf.js) — page thumbnails
+- [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) — offline support / installable PWA
+
+All runtime dependencies are MIT or Apache-2.0 licensed and make no network calls of their own.
 
 See [CLAUDE.md](./CLAUDE.md) for architecture notes.
 

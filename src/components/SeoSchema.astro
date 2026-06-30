@@ -1,0 +1,81 @@
+---
+const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? '';
+
+const softwareApp = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'pdfmerge',
+  applicationCategory: 'Utility',
+  operatingSystem: 'Any (runs in browser)',
+  url: `${siteUrl}/`,
+  description:
+    'Merge PDF files online for free, entirely in your browser. No upload, no signup, no watermark.',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+};
+
+const howTo = {
+  '@context': 'https://schema.org',
+  '@type': 'HowTo',
+  name: 'How to merge PDF files online for free',
+  step: [
+    {
+      '@type': 'HowToStep',
+      name: 'Add your PDFs',
+      text: 'Select or drag-and-drop the PDF files you want to combine.',
+    },
+    {
+      '@type': 'HowToStep',
+      name: 'Reorder them',
+      text: 'Sort by name or date, or drag files into the order you want.',
+    },
+    {
+      '@type': 'HowToStep',
+      name: 'Merge and download',
+      text: 'Click Merge PDFs and download your single combined PDF file.',
+    },
+  ],
+};
+
+const faq = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'Is pdfmerge really free?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. pdfmerge is completely free, with no limits, no signup, and no watermark on your merged PDF.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Are my files uploaded to a server?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'No. pdfmerge runs entirely in your browser. Your PDF files are never sent over the network — they stay on your device the entire time.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Does pdfmerge work on mobile?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. pdfmerge works in Chrome on Android and iOS, as well as desktop browsers on macOS and Windows.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Is there a file size or page limit?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: "No artificial limit is imposed by pdfmerge. The only constraint is your device's available memory, since merging happens locally.",
+      },
+    },
+  ],
+};
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(softwareApp)} />
+<script type="application/ld+json" set:html={JSON.stringify(howTo)} />
+<script type="application/ld+json" set:html={JSON.stringify(faq)} />
