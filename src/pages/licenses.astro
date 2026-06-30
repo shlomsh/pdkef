@@ -1,0 +1,144 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+const title = 'Open Source Licenses - PDkef';
+const description =
+  'Third-party open source software used to build PDkef, and their license terms.';
+
+const packages = [
+  {
+    name: 'Astro',
+    version: '7.0.3',
+    license: 'MIT',
+    url: 'https://github.com/withastro/astro',
+    copyright: 'Copyright (c) 2021 Fred K. Schott',
+  },
+  {
+    name: '@astrojs/preact',
+    version: '6.0.0',
+    license: 'MIT',
+    url: 'https://github.com/withastro/astro/tree/main/packages/integrations/preact',
+    copyright: 'Copyright (c) 2021 Fred K. Schott',
+  },
+  {
+    name: 'Preact',
+    version: '10.29.3',
+    license: 'MIT',
+    url: 'https://github.com/preactjs/preact',
+    copyright: 'Copyright (c) 2015-present Jason Miller',
+  },
+  {
+    name: '@cantoo/pdf-lib',
+    version: '2.7.1',
+    license: 'MIT',
+    url: 'https://github.com/cantoo-scribe/pdf-lib',
+    copyright: 'Copyright (c) 2019 Andrew Dillon',
+  },
+  {
+    name: 'pdf.js (pdfjs-dist)',
+    version: '6.1.200',
+    license: 'Apache-2.0',
+    url: 'https://github.com/mozilla/pdf.js',
+    copyright: 'Copyright (c) Mozilla and individual contributors',
+  },
+  {
+    name: 'SortableJS',
+    version: '1.15.7',
+    license: 'MIT',
+    url: 'https://github.com/SortableJS/Sortable',
+    copyright: 'Copyright (c) 2019 All contributors to Sortable',
+  },
+  {
+    name: '@vercel/analytics',
+    version: '2.0.1',
+    license: 'MIT',
+    url: 'https://github.com/vercel/analytics',
+    copyright: 'Copyright (c) 2026 Vercel, Inc.',
+  },
+];
+---
+
+<BaseLayout title={title} description={description}>
+  <header>
+    <h1>Open Source Licenses</h1>
+  </header>
+
+  <main>
+    <section id="licenses" class="licenses-page">
+      <p>
+        PDkef is built with the following open source packages. We're grateful to their authors and
+        maintainers. Each package's full license text is linked below; the original notices are also
+        preserved in our <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">source repository</a>.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Package</th>
+            <th scope="col">Version</th>
+            <th scope="col">License</th>
+            <th scope="col">Copyright</th>
+          </tr>
+        </thead>
+        <tbody>
+          {packages.map((pkg) => (
+            <tr>
+              <td>
+                <a href={pkg.url} target="_blank" rel="noopener noreferrer">{pkg.name}</a>
+              </td>
+              <td>{pkg.version}</td>
+              <td>{pkg.license}</td>
+              <td>{pkg.copyright}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <p>
+        Full license texts are also available in this project's
+        <a href="https://github.com/shlomsh/pdkef/blob/main/THIRD_PARTY_LICENSES.md" target="_blank" rel="noopener noreferrer">THIRD_PARTY_LICENSES.md</a>.
+      </p>
+    </section>
+  </main>
+
+  <Footer summaryText="The open source software that powers PDkef, and their license terms." />
+</BaseLayout>
+
+<style>
+  .licenses-page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-4) var(--space-7);
+    color: var(--color-text);
+  }
+
+  .licenses-page p {
+    color: var(--color-muted);
+    line-height: 1.6;
+  }
+
+  .licenses-page a {
+    color: var(--color-primary);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: var(--space-5) 0;
+    font-size: 0.9rem;
+  }
+
+  th,
+  td {
+    text-align: left;
+    padding: var(--space-3) var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  th {
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+</style>

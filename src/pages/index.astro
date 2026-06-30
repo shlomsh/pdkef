@@ -4,13 +4,15 @@ import SeoSchema from '../components/SeoSchema.astro';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
 
-const title = 'PDkef - Free Online PDF Tools to Merge, Split & Compress';
-const description = 'A complete suite of PDF tools entirely in your browser. Fast, secure, and private. No upload, no signup, no watermark.';
+const title = 'PDkef - Free, Open Source PDF Tools. No Sign Up, No Server.';
+const description = 'A complete suite of PDF tools that run 100% locally in your browser - on desktop or mobile. Free and open source: no sign up, no paywalls, no limits.';
 
-// FAQ schema mirrors the two visible questions rendered in the footer below.
+// FAQ schema mirrors the visible questions rendered in the footer below.
 const faq = [
-  { question: 'Are the tools really free?', answer: 'Yes. All tools are completely free, with no limits, no signup, and no watermark on your exported PDFs.' },
-  { question: 'Are my files uploaded to a server?', answer: 'No. The tools run entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.' },
+  { question: 'Are the tools really free?', answer: 'Yes, completely and permanently - no paywalls, no premium tier, no limits, and no watermark on your exported PDFs.' },
+  { question: 'Do I need to sign up or create an account?', answer: 'No. There is no account, no email, and no trial period. Open a tool and use it immediately.' },
+  { question: 'Are my files uploaded to a server?', answer: 'No. The tools run 100% locally in your browser, on desktop or mobile. Your PDF files are never sent over the network - they stay on your device the entire time.' },
+  { question: 'Is PDkef open source?', answer: 'Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.' },
 ];
 
 const tools = [
@@ -100,7 +102,7 @@ const tools = [
 
   <header class="hub-header">
     <h1>PDkef - all the PDF tools you need</h1>
-    <p>A complete suite of PDF tools entirely in your browser. Fast, secure, and private.</p>
+    <p>100% open source and free, with no sign up and no paywalls - ever. Every tool runs locally in your browser, on your computer or your phone.</p>
   </header>
 
   <main>
@@ -144,20 +146,26 @@ const tools = [
   <Footer>
     <section id="why-us">
       <h2>Why yet another PDF tool?</h2>
+      <p>Most free PDF sites run your file through their own servers - which costs them money, so they claw it back with task limits, watermarks, or a forced signup. PDkef is different: it's 100% open source, runs entirely on your device, and is free to use forever - no sign up, no paywalls.</p>
       <ul>
-        <li><strong>Free:</strong> no cost, no signup, no watermark, no limits.</li>
-        <li><strong>Private:</strong> your files never leave your device; nothing is uploaded.</li>
-        <li><strong>Fast:</strong> processing happens instantly in your browser.</li>
-        <li><strong>Works everywhere:</strong> Chrome on macOS, Windows, Android, and iOS.</li>
+        <li><strong>Free, forever:</strong> no cost, no paywalls, no premium tier hiding the tools you actually need.</li>
+        <li><strong>No sign up:</strong> no account, no email, no trial period - open a tool and use it.</li>
+        <li><strong>No server:</strong> every tool runs locally, right in your browser, on a computer or a phone.</li>
+        <li><strong>No limits:</strong> no watermarks, no daily caps, no page restrictions.</li>
+        <li><strong>Open source:</strong> the entire codebase is public and MIT licensed - inspect exactly what runs on your device.</li>
       </ul>
     </section>
 
     <section id="faq">
       <h2>Frequently asked questions</h2>
       <h3>Are the tools really free?</h3>
-      <p>Yes. All tools are completely free, with no limits, no signup, and no watermark on your exported PDFs.</p>
+      <p>Yes, completely and permanently - no paywalls, no premium tier, no limits, and no watermark on your exported PDFs.</p>
+      <h3>Do I need to sign up or create an account?</h3>
+      <p>No. There is no account, no email, and no trial period. Open a tool and use it immediately.</p>
       <h3>Are my files uploaded to a server?</h3>
-      <p>No. The tools run entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
+      <p>No. The tools run 100% locally in your browser, on desktop or mobile. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
+      <h3>Is PDkef open source?</h3>
+      <p>Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.</p>
     </section>
 
     <button slot="about-extra" id="install-pwa" class="install-pwa-button" style="display: none; margin-top: 1.5rem;">

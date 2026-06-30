@@ -1220,7 +1220,6 @@ footer a {
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);
-  overflow: hidden;
   user-select: none;
 }
 
@@ -1229,6 +1228,7 @@ footer a {
   width: 100%;
   height: auto;
   pointer-events: none;
+  border-radius: var(--radius-sm);
 }
 
 .sign-page-overlay {
@@ -1265,7 +1265,7 @@ footer a {
 /* Edit controls for selected element */
 .sign-element-actions {
   position: absolute;
-  top: -38px;
+  top: -32px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -1273,19 +1273,29 @@ footer a {
   gap: 2px;
   background: var(--color-text);
   color: #fff;
-  padding: 3px 6px;
+  padding: 4px;
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);
   z-index: 10;
   pointer-events: auto;
 }
 
+/* Invisible bridge so the cursor doesn't lose the hit area crossing the gap to the toolbar */
+.sign-element-actions::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+
 .sign-element-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border: none;
   background: transparent;
   color: #fff;

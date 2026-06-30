@@ -656,6 +656,20 @@ export default function PdfSignTool() {
     setAnnouncement('Removed element.');
   };
 
+  // Delete the active element via Backspace/Delete, unless the user is typing in a text field
+  useEffect(() => {
+    if (!activeElementId) return;
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Backspace' && e.key !== 'Delete') return;
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      e.preventDefault();
+      deleteElement(activeElementId);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeElementId]);
+
   // Add elements from sticky buttons (places in viewport center)
   const quickAdd = (type) => {
     // Detect active page index (first page by default, or page closest to scroll)
@@ -1304,22 +1318,32 @@ function DraggableOverlayElement({
     window.addEventListener('touchend', handlePointerUp);
   };
 
-  // Resize handler for signature/checkmark elements
+  // Resize handler for signature/checkmark elements (width/height) and text elements (font size)
   const handleResizeStart = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const dragStartX = clientX;
     const startWidth = element.width || 20;
+    const startFontSize = element.fontSize || 12;
 
     const handleResizeMove = (moveEvent) => {
       const moveX = moveEvent.touches ? moveEvent.touches[0].clientX : moveEvent.clientX;
       const dx = moveX - dragStartX;
-      
+
+      if (element.type === 'text') {
+        const parentRect = pageWrapperRef.getBoundingClientRect();
+        // Scale font size in PDF points relative to drag distance in screen pixels
+        const deltaFontSize = (dx / parentRect.width) * pageWidthPoints;
+        const newFontSize = Math.max(6, Math.min(72, Math.round(startFontSize + deltaFontSize)));
+        onChange({ fontSize: newFontSize });
+        return;
+      }
+
       const parentRect = pageWrapperRef.getBoundingClientRect();
       const deltaWidthPercent = (dx / parentRect.width) * 100;
-      
+
       let newWidth = startWidth + deltaWidthPercent;
       newWidth = Math.max(3, Math.min(60, newWidth)); // constraints (3% to 60%)
 
@@ -1429,12 +1453,13 @@ function DraggableOverlayElement({
         />
       )}
 
-      {/* Resizer control for signatures/checkmarks */}
-      {isActive && element.type !== 'text' && (
+      {/* Resizer control: width/height for signatures/checkmarks, font size for text */}
+      {isActive && (
         <div
           className="sign-element-resizer"
           onMouseDown={handleResizeStart}
           onTouchStart={handleResizeStart}
+          title={element.type === 'text' ? 'Drag to resize font size' : 'Drag to resize'}
         />
       )}
     </div>

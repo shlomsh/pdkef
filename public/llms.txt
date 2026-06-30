@@ -1,10 +1,11 @@
 # PDkef
 
-> 100% client-side, privacy-first PDF tools online. No file uploads, no server, completely free.
+> 100% open source, privacy-first PDF tools that run locally in the browser. No file uploads, no server, no sign up, no paywalls, completely free.
 
-PDkef is a static web application offering a suite of PDF tools (merge, split, remove pages, compress, PDF to image, sign & fill, unlock) that run directly in the user's browser. Because all processing happens locally using WebAssembly/JavaScript, PDF files never leave the user's device.
+PDkef is a static web application offering a suite of PDF tools (merge, split, remove pages, compress, PDF to image, sign & fill, unlock) that run directly in the user's browser, on desktop or mobile. Because all processing happens locally using WebAssembly/JavaScript, PDF files never leave the user's device.
 
 ## Key Features
+- **Open Source**: The entire codebase is public under the MIT license - anyone can inspect exactly what runs on their device.
 - **Zero Uploads**: All processing is performed client-side using `@cantoo/pdf-lib`. Files are never sent to a server.
 - **Completely Free**: No limits on file size, page count, or number of merges. No signups, paywalls, or watermarks.
 - **Flexible Sorting**: Reorder files manually via drag-and-drop, or sort them automatically by file name (natural/numeric sorting) or modification date.

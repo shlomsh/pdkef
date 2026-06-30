@@ -21,8 +21,9 @@ const howTo = {
 const faq = [
   { question: 'Is the PDF compression secure?', answer: 'Yes. The compression is 100% client-side and runs entirely in your browser. Your files are never uploaded to any server, keeping your data private.' },
   { question: 'What is the difference between the compression levels?', answer: 'Extreme compression reduces file size by 60-80% using 72 DPI images. Recommended compression reduces size by 40-60% at 110 DPI. High Quality compression reduces size by 10-30% at 150 DPI.' },
+  { question: 'Can I compress a PDF to a specific size, like 100KB?', answer: 'Extreme compression (72 DPI) gets most scanned documents and form PDFs under the common 100KB-1MB limits used by government, academic, and job application portals. Try Extreme first, then step up to Recommended if the result looks too soft.' },
   { question: 'Does compressing a PDF affect text search or copying?', answer: 'Yes. To compress the document client-side safely, pages are rasterized into images. This means text selection, copy-pasting, and embedded links will be disabled in the output file.' },
-  { question: 'Is there a limit on the file size I can compress?', answer: "There is no artificial file size limit. The compression runs entirely on your device, so the only limitation is your device's system memory (RAM)." },
+  { question: 'Is there a limit on the file size I can compress?', answer: "There is no artificial file size limit, no daily task cap, and no watermark - the limits most free online compressors impose to ration server costs. Compression runs entirely on your device, so the only limitation is your device's system memory (RAM)." },
 ];
 ---
 
@@ -56,9 +57,11 @@ const faq = [
       <h2>Why use PDkef</h2>
       <ul>
         <li><strong>Free:</strong> no cost, no signup, no watermark, no limits.</li>
+        <li><strong>No server, no paywalls:</strong> most online compressors cap free use or hide features behind a paywall because every file costs them server time. This one runs 100% locally on your device, so there's nothing to ration.</li>
         <li><strong>Private:</strong> your files never leave your device; nothing is uploaded.</li>
         <li><strong>Fast:</strong> compression happens instantly in your browser.</li>
         <li><strong>Works everywhere:</strong> Chrome on macOS, Windows, Android, and iOS.</li>
+        <li><strong>Open source:</strong> the entire codebase is public and MIT licensed - inspect exactly what runs on your device.</li>
       </ul>
     </section>
 
@@ -68,10 +71,12 @@ const faq = [
       <p>Yes. The compression is 100% client-side and runs entirely in your browser. Your files are never uploaded to any server, keeping your data private.</p>
       <h3>What is the difference between the compression levels?</h3>
       <p>Extreme compression reduces file size by 60-80% using 72 DPI images. Recommended compression reduces size by 40-60% at 110 DPI. High Quality compression reduces size by 10-30% at 150 DPI.</p>
+      <h3>Can I compress a PDF to a specific size, like 100KB?</h3>
+      <p>Extreme compression (72 DPI) gets most scanned documents and form PDFs under the common 100KB-1MB limits used by government, academic, and job application portals. Try Extreme first, then step up to Recommended if the result looks too soft.</p>
       <h3>Does compressing a PDF affect text search or copying?</h3>
       <p>Yes. To compress the document client-side safely, pages are rasterized into images. This means text selection, copy-pasting, and embedded links will be disabled in the output file.</p>
       <h3>Is there a limit on the file size I can compress?</h3>
-      <p>There is no artificial file size limit. The compression runs entirely on your device, so the only limitation is your device's system memory (RAM).</p>
+      <p>There is no artificial file size limit, no daily task cap, and no watermark - the limits most free online compressors impose to ration server costs. Compression runs entirely on your device, so the only limitation is your device's system memory (RAM).</p>
     </section>
   </Footer>
 </BaseLayout>
