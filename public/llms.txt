@@ -2,7 +2,7 @@
 
 > 100% open source, privacy-first PDF tools that run locally in the browser. No file uploads, no server, no sign up, no paywalls, completely free.
 
-PDkef is a static web application offering a suite of PDF tools (merge, split, remove pages, compress, PDF to image, sign & fill, unlock, protect) that run directly in the user's browser, on desktop or mobile. Because all processing happens locally using WebAssembly/JavaScript, PDF files never leave the user's device.
+PDkef is a static web application offering a suite of PDF tools (merge, split, remove pages, compress, PDF to image, image to PDF, sign & fill, unlock, protect) that run directly in the user's browser, on desktop or mobile. Because all processing happens locally using WebAssembly/JavaScript, PDF files never leave the user's device.
 
 ## Key Features
 - **Open Source**: The entire codebase is public under the MIT license - anyone can inspect exactly what runs on their device.

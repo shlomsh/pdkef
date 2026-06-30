@@ -1,0 +1,76 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SeoSchema from '../components/SeoSchema.astro';
+import PdfImageToPdfTool from '../components/PdfImageToPdfTool.jsx';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+const title = 'Image to PDF Online Free - Combine JPG/PNG into One PDF | PDkef';
+const description = 'Combine multiple JPG or PNG images into a single PDF online for free. Reorder pages and download instantly. No upload, no signup, no watermark.';
+
+// FAQ schema mirrors the visible FAQ rendered below.
+const faq = [
+  { question: 'Is the image to PDF tool really free?', answer: 'Yes. Like all tools on PDkef, this is completely free with no limits, no signup, and no watermark on the resulting PDF.' },
+  { question: 'Are my images uploaded to a server?', answer: 'No. PDkef runs 100% on your device. Your images are processed locally in your browser and are never uploaded to any server.' },
+  { question: 'What image formats are supported?', answer: 'JPG and PNG. Each image becomes its own page in the final PDF, in the order you arrange them.' },
+  { question: 'Will my images be resized or compressed?', answer: 'No. Each image is embedded into its PDF page at full, original quality and at its native dimensions - no recompression or downscaling.' },
+  { question: 'Can I combine scanned documents or school presentations into one PDF?', answer: 'Yes. This is exactly the use case it was built for - add as many image pages as you like (scanned pages, photographed slides, screenshots), reorder them, and download a single combined PDF.' },
+  { question: 'Is there a limit on the number of images?', answer: "No artificial limit. The only constraint is your device's available memory, since everything runs locally." },
+];
+---
+
+<BaseLayout title={title} description={description}>
+  <Fragment slot="head">
+    <SeoSchema name="PDkef - Image to PDF" description={description} faq={faq} />
+  </Fragment>
+
+  <header>
+    <h1>Image to PDF online, free</h1>
+    <p>Combine JPG or PNG images into a single PDF, in any order - scanned pages, photographed slides, or screenshots. Runs entirely on your device.</p>
+  </header>
+
+  <main>
+    <section id="app" aria-label="Image to PDF tool">
+      <PdfImageToPdfTool client:load />
+    </section>
+  </main>
+
+  <Footer summaryText="Combine images into one PDF, right in your browser. No upload, no server. Your files never leave your device.">
+    <section id="how-it-works">
+      <h2>How to combine images into a PDF online for free</h2>
+      <ol>
+        <li><strong>Add your images.</strong> Select or drag-and-drop the JPG or PNG files you want to combine.</li>
+        <li><strong>Reorder them.</strong> Sort by name or date, or drag images into the order you want.</li>
+        <li><strong>Convert and download.</strong> Click Convert and download a single PDF with one image per page.</li>
+      </ol>
+    </section>
+
+    <section id="why-pdkef">
+      <h2>Why use PDkef</h2>
+      <ul>
+        <li><strong>Free:</strong> no cost, no signup, no watermark, no limits.</li>
+        <li><strong>No server, no paywalls:</strong> most online PDF tools cap free use or hide features behind a paywall because every file costs them server time. This one runs 100% locally on your device, so there's nothing to ration.</li>
+        <li><strong>Private:</strong> your images never leave your device; nothing is uploaded.</li>
+        <li><strong>Fast:</strong> conversion happens instantly in your browser.</li>
+        <li><strong>Works everywhere:</strong> Chrome on macOS, Windows, Android, and iOS.</li>
+        <li><strong>Open source:</strong> the entire codebase is public and MIT licensed - inspect exactly what runs on your device.</li>
+      </ul>
+    </section>
+
+    <section id="faq">
+      <h2>Frequently asked questions</h2>
+      <h3>Is the image to PDF tool really free?</h3>
+      <p>Yes. Like all tools on PDkef, this is completely free with no limits, no signup, and no watermark on the resulting PDF.</p>
+      <h3>Are my images uploaded to a server?</h3>
+      <p>No. PDkef runs 100% on your device. Your images are processed locally in your browser and are never uploaded to any server.</p>
+      <h3>What image formats are supported?</h3>
+      <p>JPG and PNG. Each image becomes its own page in the final PDF, in the order you arrange them.</p>
+      <h3>Will my images be resized or compressed?</h3>
+      <p>No. Each image is embedded into its PDF page at full, original quality and at its native dimensions - no recompression or downscaling.</p>
+      <h3>Can I combine scanned documents or school presentations into one PDF?</h3>
+      <p>Yes. This is exactly the use case it was built for - add as many image pages as you like (scanned pages, photographed slides, screenshots), reorder them, and download a single combined PDF.</p>
+      <h3>Is there a limit on the number of images?</h3>
+      <p>No artificial limit. The only constraint is your device's available memory, since everything runs locally.</p>
+    </section>
+  </Footer>
+</BaseLayout>
