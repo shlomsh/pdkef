@@ -23,20 +23,25 @@ const TARGET_WIDTH = 150;
 export async function renderThumbnail(file) {
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();
-  const pdf = await lib.getDocument({ data: bytes }).promise;
-  const page = await pdf.getPage(1);
+  const loadingTask = lib.getDocument({ data: bytes });
+  const pdf = await loadingTask.promise;
+  try {
+    const page = await pdf.getPage(1);
 
-  const nativeViewport = page.getViewport({ scale: 1 });
-  const scale = TARGET_WIDTH / nativeViewport.width;
-  const viewport = page.getViewport({ scale });
+    const nativeViewport = page.getViewport({ scale: 1 });
+    const scale = TARGET_WIDTH / nativeViewport.width;
+    const viewport = page.getViewport({ scale });
 
-  const canvas = document.createElement('canvas');
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-  const context = canvas.getContext('2d');
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const context = canvas.getContext('2d');
 
-  await page.render({ canvasContext: context, viewport }).promise;
-  await pdf.destroy();
+    await page.render({ canvasContext: context, viewport }).promise;
 
-  return canvas.toDataURL('image/png');
+    return canvas.toDataURL('image/png');
+  } finally {
+    // pdf.js v6 exposes teardown on the loading task, not the document proxy.
+    await loadingTask.destroy();
+  }
 }
