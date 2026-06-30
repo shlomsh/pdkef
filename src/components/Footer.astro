@@ -1,0 +1,55 @@
+---
+interface Props {
+  summaryText?: string;
+}
+
+const { summaryText = "Free, Open Source, and 100% Client-Side. Your files never leave your device." } = Astro.props;
+---
+<footer>
+  <div class="disclosures">
+    <details class="disclosure" id="faq-details">
+      <summary class="faq-summary">
+        {summaryText}
+        <span class="faq-toggle" role="button" tabindex="0">How it works &amp; FAQ</span>
+      </summary>
+      <div class="disclosure-body">
+        <slot>
+          <section id="why-us">
+            <h2>Why yet another PDF tool?</h2>
+            <ul>
+              <li><strong>Free:</strong> no cost, no signup, no watermark, no limits.</li>
+              <li><strong>Private:</strong> your files never leave your device; nothing is uploaded.</li>
+              <li><strong>Fast:</strong> processing happens instantly in your browser.</li>
+              <li><strong>Works everywhere:</strong> Chrome on macOS, Windows, Android, and iOS.</li>
+            </ul>
+          </section>
+
+          <section id="faq">
+            <h2>Frequently asked questions</h2>
+            <h3>Are the tools really free?</h3>
+            <p>Yes. All tools are completely free, with no limits, no signup, and no watermark on your exported PDFs.</p>
+            <h3>Are my files uploaded to a server?</h3>
+            <p>No. The tools run entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
+          </section>
+
+          <section id="about">
+            <h2>Open Source</h2>
+            <p>This project is open source under the MIT license. You can <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">view the source code on GitHub</a>.</p>
+            <p>Built with ❤️ by <a href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi Shemesh</a>.</p>
+          </section>
+        </slot>
+      </div>
+    </details>
+  </div>
+</footer>
+
+<script>
+  const summary = document.querySelector('.faq-summary');
+  if (summary) {
+    summary.addEventListener('click', (e) => {
+      if (e.target instanceof Element && !e.target.closest('.faq-toggle')) {
+        e.preventDefault();
+      }
+    });
+  }
+</script>

@@ -4,7 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A 100% client-side, no-backend static web app that merges PDF files in the browser, optimized to rank for the SEO keyword "pdf merge online free." There is no server component and never should be — files must never leave the user's device. This is the central product constraint; do not introduce any upload/API call that sends file contents off-device. Every runtime dependency is MIT or Apache-2.0 licensed (no AGPL/commercial libraries) and makes zero network calls of its own.
+A 100% client-side, no-backend static web app that provides a suite of PDF tools (Merge, Split, Remove Pages, Compress, PDF to Image) in the browser, optimized to rank for specific PDF manipulation SEO keywords. There is no server component and never should be — files must never leave the user's device. This is the central product constraint; do not introduce any upload/API call that sends file contents off-device. Every runtime dependency is MIT or Apache-2.0 licensed (no AGPL/commercial libraries) and makes zero network calls of its own.
+
+### Implementation status (Phase 1)
+
+**Only Merge is functionally complete.** Split, Remove Pages, Compress, and PDF to Image are currently **UI scaffolding only** — `PdfSplitTool.jsx`, `PdfCompressTool.jsx`, `PdfRemovePagesTool.jsx`, and `PdfToImageTool.jsx` are placeholder stubs that accept a file, run a `setTimeout` mock delay, and show "Done! (Mock Phase 1)" without processing anything. There is no `src/lib/split.js` / `compress.js` / `toImage.js` yet; full implementation is deliberately deferred.
+
+Because of this, before these four pages go live they must NOT be indexed: keep them out of `sitemap.xml` and don't link to them from the merge page's copy until the real `src/lib/` logic lands. Their `.astro` pages already carry production SEO copy and JSON-LD claiming the tools work ("No upload, no signup, no watermark") — that copy is written ahead of the functionality, so shipping/indexing the routes now would point users at tools that silently do nothing. Treat "wire up the real per-tool logic" and "add the route to the sitemap" as a single unit of work per tool.
 
 ## Commands
 
@@ -22,8 +28,8 @@ Deploy: push to `main` → Vercel auto-deploys (GitHub integration), custom doma
 Built with **Astro** in static output mode (`output: 'static'` in `astro.config.mjs`, no SSR adapter). Astro prerenders everything to flat HTML at build time — there is no server at runtime, only static files served by Vercel.
 
 The page follows an **islands architecture**:
-- `src/pages/index.astro` + `src/layouts/BaseLayout.astro` + `src/components/SeoSchema.astro` render the entire SEO surface (H1, how-it-works, FAQ, JSON-LD) as **static HTML with zero JS shipped**. This content must stay server-rendered at build time, not injected client-side, so crawlers see it without executing scripts.
-- `src/components/PdfMergeTool.jsx` is the one interactive **Preact island** (`client:load`), mounted into the `#app` section. All the actual file-handling logic lives here and in `src/lib/`.
+- `src/pages/` (e.g., `index.astro`, `merge.astro`) + `src/layouts/BaseLayout.astro` + `src/components/SeoSchema.astro` render the entire SEO surface (H1, how-it-works, FAQ, JSON-LD) as **static HTML with zero JS shipped**. This content must stay server-rendered at build time, not injected client-side, so crawlers see it without executing scripts.
+- The interactive PDF tools (`PdfMergeTool.jsx`, `PdfSplitTool.jsx`, etc.) are **Preact islands** (`client:load`), mounted into the `#app` section of their respective pages. They wrap around a common `BasePdfTool.jsx` which handles the drag-and-drop file picking layout (with `FileDropzone.jsx` for the dropzone UI). `Footer.astro` is the shared site footer. All the actual file-handling logic lives in these components and in `src/lib/`. (Only `PdfMergeTool.jsx` is functionally wired up — see "Implementation status" above.)
 
 Library logic:
 - `src/lib/merge.js` — `@cantoo/pdf-lib` glue: `mergePdfs(files, onProgress) -> Blob`, plus `resolvePdfCreationDate(file)` which reads a PDF's internal `/CreationDate` metadata.
@@ -34,7 +40,7 @@ Drag-to-reorder uses **SortableJS**, wired directly to the DOM list in `PdfMerge
 
 ## SEO invariants (don't regress these)
 
-- Primary keyword ("pdf merge online free" / "merge pdf online free") stays in `<title>`, the single `<h1>`, and meta description (`src/pages/index.astro`).
+- Primary keyword ("pdf merge online free", "split pdf", etc.) stays in `<title>`, the single `<h1>`, and meta description for each specific tool page.
 - Only one `<h1>` per page.
 - All marketing/how-to/FAQ content stays in `.astro` files (build-time rendered), never moved into the Preact island.
 - `robots.txt` and `sitemap.xml` in `public/` must stay reachable and accurate; `astro.config.mjs`'s `site` must match the real deployed domain (currently a placeholder — update before launch).

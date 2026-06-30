@@ -82,6 +82,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .sr-only {
@@ -108,7 +111,7 @@ a {
 
 /* --- Page header / hero --- */
 header {
-  max-width: 760px;
+  max-width: 1080px;
   margin: 0 auto;
   padding: 4.5rem 1.5rem 2.25rem;
   text-align: center;
@@ -127,22 +130,23 @@ header p {
   color: var(--color-muted);
   font-size: clamp(0.92rem, 1.6vw, 1rem);
   margin: 0 auto;
-  max-width: 48ch;
   letter-spacing: -0.01em;
   line-height: 1.5;
 }
 
 main {
-  max-width: 680px;
+  max-width: 1080px;
   margin: 0 auto;
   padding: 0 1.5rem 4rem;
+  flex: 1 0 auto;
+  width: 100%;
 }
 
 /* --- Reveal-on-click disclosures (how-to / why / FAQ) ---
    Content is real, server-rendered HTML so crawlers see it; it's just
    visually collapsed until the user wants it. */
 .disclosures {
-  margin-top: var(--space-7);
+  margin-bottom: var(--space-5);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -182,14 +186,15 @@ main {
 }
 
 .disclosure > summary {
-  display: block;
-  text-align: center;
-  max-width: 52ch;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
   margin: 0 auto;
   padding: 0;
-  font-size: clamp(0.92rem, 1.6vw, 1rem);
+  font-size: 0.85rem;
   line-height: 1.6;
-  color: var(--color-muted);
+  color: var(--color-muted-light);
   cursor: default;
   list-style: none;
   user-select: text;
@@ -217,10 +222,10 @@ main {
   color: var(--color-muted);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  padding: 0.25rem 0.65rem;
+  padding: 0.15rem 0.5rem;
   border-radius: var(--radius-pill);
   font-weight: 500;
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   text-decoration: none;
   cursor: pointer;
   margin-left: 0.4rem;
@@ -250,7 +255,10 @@ main {
 }
 
 .disclosure-body {
-  margin-top: var(--space-6);
+  margin-top: var(--space-5);
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 680px;
   padding: 0;
   text-align: left;
   animation: disclosure-in 0.35s var(--ease-out);
@@ -314,9 +322,16 @@ main {
 
 footer {
   text-align: center;
-  padding: 2.5rem 1.5rem 1.25rem;
+  padding: 1.5rem 1.5rem;
   color: var(--color-muted-light);
   font-size: 0.85rem;
+  border-top: 1px solid var(--color-border);
+  margin-top: auto;
+}
+
+footer .disclosures {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 footer p {
@@ -1016,4 +1031,443 @@ footer a {
     padding: 1.5rem 1.5rem 1.25rem;
   }
 }
+
+/* --- Sign PDF Tool Custom Styles --- */
+.sign-workspace {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  gap: var(--space-4);
+}
+
+.sign-toolbar-container {
+  position: sticky;
+  top: 1rem;
+  z-index: 100;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+  pointer-events: none; /* Let clicks pass through container */
+}
+
+.sign-toolbar {
+  pointer-events: auto; /* Re-enable clicks for the toolbar itself */
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(228, 228, 237, 0.8);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-lg), 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.sign-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease-out), color 0.15s var(--ease-out), transform 0.1s var(--ease-spring);
+}
+
+.sign-tool-btn:hover {
+  background: var(--color-surface-sunken);
+  color: var(--color-primary);
+}
+
+.sign-tool-btn:active {
+  transform: scale(0.96);
+}
+
+.sign-tool-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.sign-tool-separator {
+  width: 1px;
+  height: 20px;
+  background: var(--color-border);
+  margin: 0 2px;
+}
+
+.sign-pages-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.sign-page-wrapper {
+  position: relative;
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  user-select: none;
+}
+
+.sign-page-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+
+.sign-page-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+/* Draggable Items */
+.sign-element {
+  position: absolute;
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+  border: 1px dashed transparent;
+  padding: 4px;
+  border-radius: 4px;
+  transition: border-color 0.15s ease;
+}
+
+.sign-element:hover {
+  border-color: var(--color-muted-light);
+}
+
+.sign-element.active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary-ring);
+  background: rgba(244, 248, 255, 0.4);
+}
+
+/* Edit controls for selected element */
+.sign-element-actions {
+  position: absolute;
+  top: -38px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--color-text);
+  color: #fff;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.sign-element-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.sign-element-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.sign-element-btn-danger:hover {
+  background: var(--color-danger);
+}
+
+/* Text Element Input */
+.sign-text-display {
+  min-width: 40px;
+  min-height: 20px;
+  color: #000;
+  line-height: 1.2;
+  white-space: pre-wrap;
+  word-break: break-word;
+  outline: none;
+}
+
+.sign-text-input {
+  border: none;
+  background: transparent;
+  color: #000;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  outline: none;
+  width: 100%;
+}
+
+/* Signature Image Element */
+.sign-sig-image {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Resizer handle for signatures/checkmarks */
+.sign-element-resizer {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 10px;
+  height: 10px;
+  background: var(--color-primary);
+  border: 1px solid #fff;
+  border-radius: 50%;
+  cursor: se-resize;
+  z-index: 5;
+}
+
+/* Signature Dialog Modal */
+.sig-dialog {
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 0;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: var(--shadow-lg);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.sig-dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.sig-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sig-dialog-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.sig-dialog-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--color-surface-sunken);
+  color: var(--color-muted);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease-out);
+}
+
+.sig-dialog-close:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.sig-dialog-body {
+  padding: 1.5rem;
+}
+
+.sig-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 1.25rem;
+}
+
+.sig-tab-btn {
+  flex: 1;
+  padding: 0.6rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s var(--ease-out);
+}
+
+.sig-tab-btn:hover {
+  color: var(--color-text);
+}
+
+.sig-tab-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.sig-pad-wrapper {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+.sig-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sig-clear-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s var(--ease-out);
+}
+
+.sig-clear-btn:hover {
+  background: #fff;
+  color: var(--color-danger);
+  border-color: var(--color-danger-soft);
+}
+
+.sig-type-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sig-type-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font: inherit;
+  font-size: 1.05rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.sig-type-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.sig-type-preview {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-sunken);
+  font-size: 2.2rem;
+  color: #0c0c0e;
+  overflow: hidden;
+  text-align: center;
+  padding: 10px;
+  user-select: none;
+  font-family: 'Brush Script MT', 'Dancing Script', 'Caveat', 'Segoe Script', cursive;
+}
+
+.sig-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: 0.75rem 1.5rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.sig-btn {
+  padding: 0.6rem 1.25rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.12s var(--ease-out);
+}
+
+.sig-btn-secondary {
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.sig-btn-secondary:hover {
+  background: var(--color-border);
+}
+
+.sig-btn-primary {
+  background: var(--color-primary);
+  border: none;
+  color: #fff;
+}
+
+.sig-btn-primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.sig-btn-primary:disabled {
+  background: var(--color-surface-sunken);
+  color: var(--color-muted-light);
+  cursor: not-allowed;
+}
+
+/* Floating Helper Text */
+.sign-help-tip {
+  margin: var(--space-2) 0 0;
+  color: var(--color-muted);
+  font-size: 0.83rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 

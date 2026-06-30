@@ -10,7 +10,7 @@
 //     visit, every asset the app actually uses is available offline.
 //   - Cross-origin requests are never intercepted — this app makes none
 //     in normal operation; not touching them is a deliberate safeguard.
-const CACHE_VERSION = 'pdfmerge-v2';
+const CACHE_VERSION = 'pdkef-v1';
 
 const PRECACHE_URLS = ['/', '/favicon.svg', '/manifest.webmanifest'];
 

@@ -3,6 +3,7 @@ import Sortable from 'sortablejs';
 import { mergePdfs, resolvePdfCreationDate } from '../lib/merge.js';
 import { sortByDate, sortByName } from '../lib/sort.js';
 import { renderThumbnail } from '../lib/thumbnails.js';
+import BasePdfTool from './BasePdfTool.jsx';
 
 let nextId = 0;
 
@@ -14,13 +15,11 @@ const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 18;
 
 export default function PdfMergeTool() {
   const [entries, setEntries] = useState([]);
-  const [isDragOver, setIsDragOver] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | merging | done | error
   const [progress, setProgress] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const [announcement, setAnnouncement] = useState('');
-  const [installPrompt, setInstallPrompt] = useState(null);
   const listRef = useRef(null);
   const sortableRef = useRef(null);
   const downloadRef = useRef(null);
@@ -31,25 +30,7 @@ export default function PdfMergeTool() {
     }
   }, [status]);
 
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
 
-  const handleInstall = useCallback(async () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setInstallPrompt(null);
-    }
-  }, [installPrompt]);
 
   // Drag-to-reorder: SortableJS owns the DOM order during a drag; on drop
   // we read its final order back into Preact state, which becomes the
@@ -211,96 +192,12 @@ export default function PdfMergeTool() {
     }
   }, [entries]);
 
-  const onInputChange = (event) => {
-    addFiles(event.currentTarget.files);
-    event.currentTarget.value = '';
-  };
-
-  const onDrop = (event) => {
-    event.preventDefault();
-    setIsDragOver(false);
-    addFiles(event.dataTransfer.files);
-  };
-
   const hasFiles = entries.length > 0;
   const ringOffset =
     PROGRESS_RING_CIRCUMFERENCE - progress * PROGRESS_RING_CIRCUMFERENCE;
 
   return (
-    <div class="merge-tool">
-      <div
-        class={`dropzone${isDragOver ? ' is-dragover' : ''}${hasFiles ? ' has-files' : ''}`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setIsDragOver(true);
-        }}
-        onDragLeave={() => setIsDragOver(false)}
-        onDrop={onDrop}
-      >
-        <svg
-          class="dropzone-icon"
-          width="48"
-          height="48"
-          viewBox="0 0 48 48"
-          fill="none"
-          aria-hidden="true"
-        >
-          <rect x="9" y="4" width="24" height="32" rx="3" class="dz-page" />
-          <path d="M27 4v8h8" class="dz-fold" />
-          <rect x="16" y="26" width="22" height="16" rx="3" class="dz-page dz-page-front" />
-          <path d="M23 30v8M27 34h-8" class="dz-plus" />
-        </svg>
-
-        {!hasFiles && (
-          <p class="dropzone-text">
-            <strong>Drop PDFs here</strong>
-          </p>
-        )}
-
-        <label class="file-picker-button">
-          {hasFiles ? 'Add more' : 'Choose files'}
-          <input
-            type="file"
-            accept="application/pdf"
-            multiple
-            onChange={onInputChange}
-            hidden
-          />
-        </label>
-
-        {!hasFiles && (
-          <>
-            <p class="privacy-line">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path
-                  d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linejoin="round"
-                />
-                <path
-                  d="M9 12.5l2 2 4-4.5"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-              Private. Files never leave your device.
-            </p>
-            {installPrompt && (
-              <button type="button" class="install-pwa-button" onClick={handleInstall}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Install as local app
-              </button>
-            )}
-          </>
-        )}
-      </div>
+    <BasePdfTool hasFiles={hasFiles} onFilesAdded={addFiles}>
 
       {rejectedFiles.length > 0 && (
         <p class="hint-message" role="status">
@@ -450,6 +347,6 @@ export default function PdfMergeTool() {
       <p class="sr-only" role="status" aria-live="polite">
         {announcement}
       </p>
-    </div>
+    </BasePdfTool>
   );
 }

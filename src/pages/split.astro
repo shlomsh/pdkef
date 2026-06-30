@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PdfSplitTool from '../components/PdfSplitTool.jsx';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+const title = 'Split PDF Online Free - Extract Pages from PDF';
+const description = 'Split a PDF file online for free. Extract specific pages or separate into multiple documents in your browser. No upload, no signup, no watermark.';
+---
+
+<BaseLayout title={title} description={description} noindex>
+  <header>
+    <h1>Split PDF online, free</h1>
+    <p>Extract pages from your PDF file in seconds. Processing happens entirely on your device.</p>
+  </header>
+
+  <main>
+    <section id="app" aria-label="PDF split tool">
+      <PdfSplitTool client:load />
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>

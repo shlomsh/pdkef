@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PdfRemovePagesTool from '../components/PdfRemovePagesTool.jsx';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+const title = 'Remove Pages from PDF Online Free';
+const description = 'Delete pages from a PDF document online for free. Fast, secure, and private in-browser processing. No upload required.';
+---
+
+<BaseLayout title={title} description={description} noindex>
+  <header>
+    <h1>Remove pages from PDF</h1>
+    <p>Select and delete unwanted pages from your document instantly on your device.</p>
+  </header>
+
+  <main>
+    <section id="app" aria-label="Remove PDF pages tool">
+      <PdfRemovePagesTool client:load />
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>

@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PdfCompressTool from '../components/PdfCompressTool.jsx';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+const title = 'Compress PDF Online Free - Reduce PDF File Size';
+const description = 'Compress PDF files online for free. Reduce the file size of your documents without losing quality. 100% private, runs in your browser.';
+---
+
+<BaseLayout title={title} description={description} noindex>
+  <header>
+    <h1>Compress PDF online, free</h1>
+    <p>Reduce the size of your PDF files instantly. Secure, client-side compression.</p>
+  </header>
+
+  <main>
+    <section id="app" aria-label="PDF compress tool">
+      <PdfCompressTool client:load />
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>

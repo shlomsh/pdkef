@@ -1,0 +1,54 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PdfSignTool from '../components/PdfSignTool.jsx';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+const title = 'Sign PDF Online Free - Fill & Sign PDF Forms';
+const description = 'Sign PDF files online for free. Add signatures, fill forms, write text, and check boxes in your browser securely. Your files never leave your device.';
+---
+
+<BaseLayout title={title} description={description} noindex>
+  <header>
+    <h1>Sign & Fill PDF online, free</h1>
+    <p>Fill out forms, place checkmarks, and sign school agreements or other documents safely and privately.</p>
+  </header>
+
+  <main>
+    <section id="app" aria-label="PDF sign tool">
+      <PdfSignTool client:load />
+    </section>
+  </main>
+
+  <Footer summaryText="Fill out and sign PDFs securely in your browser. No upload, no servers. 100% private.">
+    <section id="how-it-works">
+      <h2>How to fill and sign PDF files</h2>
+      <ol>
+        <li><strong>Upload your form.</strong> Select or drag-and-drop the PDF document you want to fill and sign.</li>
+        <li><strong>Add text & signatures.</strong> Click to place text blocks, checkmarks, or signatures on the pages.</li>
+        <li><strong>Sign with ease.</strong> Draw your signature on screen, or type it out using a cursive font.</li>
+        <li><strong>Position & resize.</strong> Drag items to place them exactly where they belong in the agreement.</li>
+        <li><strong>Save & download.</strong> Click Sign PDF to generate and download your completed document.</li>
+      </ol>
+    </section>
+
+    <section id="why-privacy">
+      <h2>100% private and offline-first</h2>
+      <ul>
+        <li><strong>No uploads:</strong> Your documents are processed entirely in your browser. They never touch any servers.</li>
+        <li><strong>HIPAA & GDPR safe:</strong> Since files never cross the network, this is the most secure way to sign confidential parent forms, child health forms, or school agreements.</li>
+        <li><strong>No watermarks:</strong> Save your signed files for free without any watermarks or page limits.</li>
+      </ul>
+    </section>
+
+    <section id="faq">
+      <h2>Frequently asked questions</h2>
+      <h3>Can I sign school trip agreements?</h3>
+      <p>Yes. This tool is perfect for child school trip agreements, consent slips, and standard PDF forms. You can type the child's name, tick the consent checkboxes, and draw your parent signature.</p>
+      <h3>Is my signature safe here?</h3>
+      <p>Absolutely. Unlike standard PDF signing websites that upload your signature and PDF file to their servers, this tool runs entirely on your device. Your signature image is embedded in the PDF in-memory and never leaves your computer or phone.</p>
+      <h3>Can I type my signature instead of drawing?</h3>
+      <p>Yes. If you don't want to draw with a mouse or touch, you can select the "Type" option. It renders your name in a handwriting font and embeds it as a signature.</p>
+    </section>
+  </Footer>
+</BaseLayout>

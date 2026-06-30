@@ -1,7 +1,7 @@
 {
-  "name": "pdfmerge - Merge PDF Online Free",
-  "short_name": "pdfmerge",
-  "description": "Merge PDF files online for free, entirely in your browser. No upload, no signup, no watermark.",
+  "name": "PDkef - Free Online PDF Tools",
+  "short_name": "PDkef",
+  "description": "A suite of free PDF tools (merge, split, remove pages, compress, PDF to image) that run entirely in your browser. No upload, no signup, no watermark.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

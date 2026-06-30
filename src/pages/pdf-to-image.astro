@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PdfToImageTool from '../components/PdfToImageTool.jsx';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+const title = 'Convert PDF to Image Online Free - PDF to JPG/PNG';
+const description = 'Convert PDF pages to high-quality JPG or PNG images online for free. Secure, fast, and 100% private in-browser conversion.';
+---
+
+<BaseLayout title={title} description={description} noindex>
+  <header>
+    <h1>Convert PDF to Image</h1>
+    <p>Turn your PDF pages into high-quality images. Processing is done securely on your device.</p>
+  </header>
+
+  <main>
+    <section id="app" aria-label="PDF to Image tool">
+      <PdfToImageTool client:load />
+    </section>
+  </main>
+  <Footer />
+</BaseLayout>

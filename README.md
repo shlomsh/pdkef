@@ -1,8 +1,8 @@
-# pdfmerge — Merge PDF Online Free
+# PDkef — Free Online PDF Tools Suite
 
-I needed to merge a few PDFs one day and went looking for a tool to do it. Every result was the same story: upload your files to some server, wait, hope they get deleted, dodge three "download" buttons that were actually ads, and maybe hit a paywall on the third merge. For files that are often private — contracts, tax forms, ID scans — that's a bad trade. So I built the tool I actually wanted: one that merges PDFs entirely on your device and never sends a single byte anywhere.
+I needed to merge, split, and compress a few PDFs one day and went looking for a tool to do it. Every result was the same story: upload your files to some server, wait, hope they get deleted, dodge three "download" buttons that were actually ads, and maybe hit a paywall on the third edit. For files that are often private — contracts, tax forms, ID scans — that's a bad trade. So I built the tool suite I actually wanted: one that edits PDFs entirely on your device and never sends a single byte anywhere.
 
-That's the whole premise of pdfmerge. No server, no uploads, no accounts, no limits, no watermark, no catch.
+That's the whole premise of PDkef. No server, no uploads, no accounts, no limits, no watermark, no catch. It started as just a merger, but is now evolving into a full suite of client-side PDF tools (Merge, Split, Remove Pages, Compress, PDF to Image).
 
 ## Why it's built this way
 
@@ -18,11 +18,12 @@ That's the whole premise of pdfmerge. No server, no uploads, no accounts, no lim
 
 ## How it works
 
-1. Select or drag-and-drop your PDF files.
-2. Reorder them — by filename (A–Z / Z–A), by date, or by dragging them manually.
-3. Click **Merge** and download the combined PDF.
+1. Choose a tool from the Hub (Merge, Split, Compress, etc.).
+2. Select or drag-and-drop your PDF files.
+3. Configure your options (e.g., reorder pages, set compression level).
+4. Click the primary action button and download your processed files instantly.
 
-All processing happens locally using [@cantoo/pdf-lib](https://github.com/cantoo-scribe/pdf-lib); the app is a static site with no backend.
+All processing happens locally using browser-compatible PDF libraries (like [@cantoo/pdf-lib](https://github.com/cantoo-scribe/pdf-lib) and `pdfjs-dist`); the app is a static site with no backend.
 
 ## Local development
 
@@ -36,10 +37,10 @@ npm run preview  # preview the production build
 ## Tech stack
 
 - [Astro](https://astro.build/) — static site generation (islands architecture; zero JS for the SEO content)
-- [Preact](https://preactjs.com/) — the one interactive island (the merge tool itself)
-- [@cantoo/pdf-lib](https://github.com/cantoo-scribe/pdf-lib) — client-side PDF merging
+- [Preact](https://preactjs.com/) — interactive islands (the PDF tools themselves)
+- [@cantoo/pdf-lib](https://github.com/cantoo-scribe/pdf-lib) — client-side PDF manipulation
 - [SortableJS](https://github.com/SortableJS/Sortable) — drag-and-drop reordering
-- [pdfjs-dist (PDF.js)](https://github.com/mozilla/pdf.js) — page thumbnails
+- [pdfjs-dist (PDF.js)](https://github.com/mozilla/pdf.js) — page thumbnails and parsing
 - [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) — offline support / installable PWA
 
 All runtime dependencies are MIT or Apache-2.0 licensed and make no network calls of their own — I checked, on purpose, because that guarantee only holds if every dependency upholds it too.
@@ -52,4 +53,4 @@ MIT — see [LICENSE](./LICENSE).
 
 ## Credit
 
-Built by [Shlomi Shemesh](https://github.com/shlomsh). If pdfmerge saved you a trip to some sketchy upload site, that's the whole point — feel free to star the repo, file an issue, or send a PR.
+Built by [Shlomi Shemesh](https://github.com/shlomsh). If PDkef saved you a trip to some sketchy upload site, that's the whole point — feel free to star the repo, file an issue, or send a PR.

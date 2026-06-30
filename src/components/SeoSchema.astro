@@ -1,81 +1,66 @@
 ---
+// Per-page structured data. Only emit HowTo / FAQPage when the page actually
+// renders that content visibly — Google treats HowTo/FAQ JSON-LD that doesn't
+// match on-page content as a structured-data violation. Pass `howTo` / `faq`
+// from a page only when its visible markup mirrors them.
+interface HowToStep {
+  name: string;
+  text: string;
+}
+interface FaqItem {
+  question: string;
+  answer: string;
+}
+interface Props {
+  name?: string;
+  description: string;
+  howTo?: { name: string; steps: HowToStep[] };
+  faq?: FaqItem[];
+}
+
+const {
+  name = 'PDkef',
+  description,
+  howTo,
+  faq,
+} = Astro.props;
+
 const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? '';
+const pageUrl = new URL(Astro.url.pathname, Astro.site).toString();
 
 const softwareApp = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
-  name: 'pdfmerge',
+  name,
   applicationCategory: 'Utility',
   operatingSystem: 'Any (runs in browser)',
-  url: `${siteUrl}/`,
-  description:
-    'Merge PDF files online for free, entirely in your browser. No upload, no signup, no watermark.',
+  url: pageUrl,
+  description,
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
 };
 
-const howTo = {
+const howToSchema = howTo && {
   '@context': 'https://schema.org',
   '@type': 'HowTo',
-  name: 'How to merge PDF files online for free',
-  step: [
-    {
-      '@type': 'HowToStep',
-      name: 'Add your PDFs',
-      text: 'Select or drag-and-drop the PDF files you want to combine.',
-    },
-    {
-      '@type': 'HowToStep',
-      name: 'Reorder them',
-      text: 'Sort by name or date, or drag files into the order you want.',
-    },
-    {
-      '@type': 'HowToStep',
-      name: 'Merge and download',
-      text: 'Click Merge PDFs and download your single combined PDF file.',
-    },
-  ],
+  name: howTo.name,
+  step: howTo.steps.map((s) => ({
+    '@type': 'HowToStep',
+    name: s.name,
+    text: s.text,
+  })),
 };
 
-const faq = {
+const faqSchema = faq && {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'Is pdfmerge really free?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Yes. pdfmerge is completely free, with no limits, no signup, and no watermark on your merged PDF.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Are my files uploaded to a server?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'No. pdfmerge runs entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Does pdfmerge work on mobile?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: 'Yes. pdfmerge works in Chrome on Android and iOS, as well as desktop browsers on macOS and Windows.',
-      },
-    },
-    {
-      '@type': 'Question',
-      name: 'Is there a file size or page limit?',
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: "No artificial limit is imposed by pdfmerge. The only constraint is your device's available memory, since merging happens locally.",
-      },
-    },
-  ],
+  mainEntity: faq.map((item) => ({
+    '@type': 'Question',
+    name: item.question,
+    acceptedAnswer: { '@type': 'Answer', text: item.answer },
+  })),
 };
 ---
 
 <script type="application/ld+json" set:html={JSON.stringify(softwareApp)} />
-<script type="application/ld+json" set:html={JSON.stringify(howTo)} />
-<script type="application/ld+json" set:html={JSON.stringify(faq)} />
+{howToSchema && <script type="application/ld+json" set:html={JSON.stringify(howToSchema)} />}
+{faqSchema && <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}

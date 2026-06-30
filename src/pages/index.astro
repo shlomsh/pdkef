@@ -1,83 +1,239 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SeoSchema from '../components/SeoSchema.astro';
-import PdfMergeTool from '../components/PdfMergeTool.jsx';
+import Footer from '../components/Footer.astro';
 import '../styles/global.css';
 
-const title = 'Merge PDF Online Free - Combine PDFs in Your Browser';
-const description =
-  'Merge PDF files online for free. Drag, reorder, and combine PDFs in your browser instantly. No upload, no signup, no watermark.';
+const title = 'Free Online PDF Tools - Merge, Split, Compress, & More';
+const description = 'A complete suite of PDF tools entirely in your browser. Fast, secure, and private. No upload, no signup, no watermark.';
+
+// FAQ schema mirrors the two visible questions rendered in the footer below.
+const faq = [
+  { question: 'Are the tools really free?', answer: 'Yes. All tools are completely free, with no limits, no signup, and no watermark on your exported PDFs.' },
+  { question: 'Are my files uploaded to a server?', answer: 'No. The tools run entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.' },
+];
+
+const tools = [
+  {
+    title: 'Merge PDF',
+    description: 'Combine multiple PDFs into a single document in seconds.',
+    href: '/merge',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 20c0-4 4-8 8-8V4" />
+        <path d="M20 20c0-4-4-8-8-8" />
+        <path d="m9 7 3-3 3 3" />
+      </svg>`
+  },
+  {
+    title: 'Split PDF',
+    description: 'Extract specific pages or separate a PDF into multiple files.',
+    href: '/split',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 20v-8c0-4-4-8-8-8" />
+        <path d="M12 12c0-4 4-8 8-8" />
+        <path d="M4 8V4h4" />
+        <path d="M20 8V4h-4" />
+      </svg>`
+  },
+  {
+    title: 'Remove Pages',
+    description: 'Delete unwanted pages from your PDF file easily.',
+    href: '/remove-pages',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 6h18" />
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        <line x1="10" y1="11" x2="10" y2="17" />
+        <line x1="14" y1="11" x2="14" y2="17" />
+      </svg>`
+  },
+  {
+    title: 'Compress PDF',
+    description: 'Reduce the file size of your PDF without losing quality.',
+    href: '/compress',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="3" width="16" height="18" rx="2" />
+        <line x1="12" y1="3" x2="12" y2="21" />
+        <rect x="10" y="9" width="4" height="5" rx="1" fill="currentColor" />
+        <path d="M12 5h3" />
+        <path d="M9 7h3" />
+        <path d="M12 15h3" />
+        <path d="M9 17h3" />
+      </svg>`
+  },
+  {
+    title: 'PDF to Image',
+    description: 'Convert PDF pages into high-quality JPG or PNG images.',
+    href: '/pdf-to-image',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <circle cx="9" cy="9" r="2" />
+        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+      </svg>`
+  },
+  {
+    title: 'Sign PDF',
+    description: 'Fill out forms and sign agreements securely on your device.',
+    href: '/sign',
+    icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m21 17-2.156-1.868A2.521 2.521 0 0 0 15.2 15.2L11 19.38A2.437 2.437 0 0 1 9.3 20H4" />
+        <path d="M21 10.5c.5-.5.5-1.3 0-1.8l-2.2-2.2c-.5-.5-1.3-.5-1.8 0L9 14.2V17h2.8l8.2-8.2Z" />
+      </svg>`
+  }
+];
 ---
 
 <BaseLayout title={title} description={description}>
   <Fragment slot="head">
-    <SeoSchema />
+    <SeoSchema name="PDkef" description={description} faq={faq} />
   </Fragment>
 
-  <header>
-    <h1>Merge PDF online, free</h1>
+  <header class="hub-header">
+    <h1>All the PDF tools you need</h1>
+    <p>A complete suite of PDF tools entirely in your browser. Fast, secure, and private.</p>
   </header>
 
   <main>
-    <section id="app" aria-label="PDF merge tool">
-      <PdfMergeTool client:load />
-    </section>
-
-    <div class="disclosures">
-      <details class="disclosure" id="faq-details">
-        <summary class="faq-summary">
-          Combine PDFs into one, right in your browser. No upload, no server. Your files never leave your device.
-          <span class="faq-toggle" role="button" tabindex="0">How it works &amp; FAQ</span>
-        </summary>
-        <div class="disclosure-body">
-          <section id="how-it-works">
-            <h2>How to merge PDF files online for free</h2>
-            <ol>
-              <li><strong>Add your PDFs.</strong> Select or drag-and-drop the files you want to combine.</li>
-              <li><strong>Reorder them.</strong> Sort by name or date, or drag files into the order you want.</li>
-              <li><strong>Merge and download.</strong> Click Merge PDFs and save your combined file.</li>
-            </ol>
-          </section>
-
-          <section id="why-pdfmerge">
-            <h2>Why use pdfmerge</h2>
-            <ul>
-              <li><strong>Free:</strong> no cost, no signup, no watermark, no limits.</li>
-              <li><strong>Private:</strong> your files never leave your device; nothing is uploaded.</li>
-              <li><strong>Fast:</strong> merging happens instantly in your browser.</li>
-              <li><strong>Works everywhere:</strong> Chrome on macOS, Windows, Android, and iOS.</li>
-              <li><strong>Open source:</strong> MIT licensed, inspect the code yourself.</li>
-            </ul>
-          </section>
-
-          <section id="faq">
-            <h2>Frequently asked questions</h2>
-            <h3>Is pdfmerge really free?</h3>
-            <p>Yes. pdfmerge is completely free, with no limits, no signup, and no watermark on your merged PDF.</p>
-            <h3>Are my files uploaded to a server?</h3>
-            <p>No. pdfmerge runs entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
-            <h3>Does pdfmerge work on mobile?</h3>
-            <p>Yes. pdfmerge works in Chrome on Android and iOS, as well as desktop browsers on macOS and Windows.</p>
-            <h3>Is there a file size or page limit?</h3>
-            <p>No artificial limit is imposed by pdfmerge. The only constraint is your device's available memory, since merging happens locally.</p>
-          </section>
-        </div>
-      </details>
+    <div class="tool-grid">
+      {tools.map((tool) => (
+        <a href={tool.href} class="tool-card">
+          <div class="tool-icon" set:html={tool.icon} />
+          <div class="tool-content">
+            <h2>{tool.title}</h2>
+            <p>{tool.description}</p>
+          </div>
+        </a>
+      ))}
     </div>
   </main>
 
   <script>
-    const summary = document.querySelector('.faq-summary');
-    if (summary) {
-      summary.addEventListener('click', (e) => {
-        if (e.target instanceof Element && !e.target.closest('.faq-toggle')) {
-          e.preventDefault();
+    // PWA installation handling
+    let installPrompt = null;
+    const installBtn = document.getElementById('install-pwa');
+
+    if (installBtn) {
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        installPrompt = e;
+        installBtn.style.display = 'inline-flex';
+      });
+
+      installBtn.addEventListener('click', async () => {
+        if (!installPrompt) return;
+        installPrompt.prompt();
+        const { outcome } = await installPrompt.userChoice;
+        if (outcome === 'accepted') {
+          installPrompt = null;
+          installBtn.style.display = 'none';
         }
       });
     }
   </script>
 
-  <footer>
-    <p>pdfmerge is free and open source under the MIT license. <a href="https://github.com/shlomsh/pdfmerge">View source on GitHub</a>. Built by <a href="https://github.com/shlomsh">Shlomi Shemesh</a>.</p>
-  </footer>
+  <Footer>
+    <section id="why-us">
+      <h2>Why yet another PDF tool?</h2>
+      <ul>
+        <li><strong>Free:</strong> no cost, no signup, no watermark, no limits.</li>
+        <li><strong>Private:</strong> your files never leave your device; nothing is uploaded.</li>
+        <li><strong>Fast:</strong> processing happens instantly in your browser.</li>
+        <li><strong>Works everywhere:</strong> Chrome on macOS, Windows, Android, and iOS.</li>
+      </ul>
+    </section>
+
+    <section id="faq">
+      <h2>Frequently asked questions</h2>
+      <h3>Are the tools really free?</h3>
+      <p>Yes. All tools are completely free, with no limits, no signup, and no watermark on your exported PDFs.</p>
+      <h3>Are my files uploaded to a server?</h3>
+      <p>No. The tools run entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
+    </section>
+
+    <section id="about">
+      <h2>Open Source</h2>
+      <p>This project is open source under the MIT license. You can <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">view the source code on GitHub</a>.</p>
+      <p>Built with ❤️ by <a href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi Shemesh</a>.</p>
+      <button id="install-pwa" class="install-pwa-button" style="display: none; margin-top: 1.5rem;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Install as local app
+      </button>
+    </section>
+  </Footer>
 </BaseLayout>
+
+<style>
+  .hub-header {
+    padding: 3.5rem 1.5rem 2rem;
+  }
+  
+  .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  @media (max-width: 768px) {
+    .tool-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .tool-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 1.5rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    color: inherit;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-out), border-color 0.2s var(--ease-out);
+  }
+
+  .tool-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary);
+  }
+
+  .tool-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius);
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+    margin-bottom: 1.25rem;
+    transition: transform 0.2s var(--ease-spring), background-color 0.2s var(--ease-out);
+  }
+
+  .tool-card:hover .tool-icon {
+    background: var(--color-primary);
+    color: white;
+    transform: scale(1.05);
+  }
+
+  .tool-content h2 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+    color: var(--color-text);
+  }
+
+  .tool-content p {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+  }
+</style>
