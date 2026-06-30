@@ -238,13 +238,35 @@ const tools = [
     text-decoration: none;
     color: inherit;
     box-shadow: var(--shadow-sm);
-    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-out), border-color 0.2s var(--ease-out);
+    transition: transform 0.3s var(--ease-spring), box-shadow 0.3s var(--ease-out), border-color 0.3s var(--ease-out);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tool-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--color-primary-soft) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s var(--ease-out);
+    pointer-events: none;
+    z-index: 0;
   }
 
   .tool-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: var(--shadow-lg), 0 0 0 1px var(--color-primary-ring);
     border-color: var(--color-primary);
+  }
+
+  .tool-card:hover::before {
+    opacity: 0.6;
+  }
+
+  .tool-icon, .tool-content {
+    position: relative;
+    z-index: 1;
   }
 
   .tool-icon {

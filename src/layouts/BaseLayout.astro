@@ -26,6 +26,7 @@ const isHome = Astro.url.pathname === '/';
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalURL} />
+    <meta property="og:site_name" content="PDkef" />
     <meta property="og:image" content={new URL('/og-image.jpg', Astro.site)} />
 
     <!-- Twitter -->
@@ -36,7 +37,7 @@ const isHome = Astro.url.pathname === '/';
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#0071e3" />
+    <meta name="theme-color" content="#1463ff" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
@@ -45,7 +46,16 @@ const isHome = Astro.url.pathname === '/';
   <body>
     {!isHome && (
       <nav class="breadcrumb">
-        <a href="/">
+        <a href="/" class="brand-mark" aria-label="PDkef home">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect width="24" height="24" rx="6" fill="var(--color-primary)"/>
+            <path d="M7 5h7l3 3v9.5H7z" fill="#fff"/>
+            <path d="M14 5v3h3z" fill="#bcd9fb"/>
+            <circle cx="16.5" cy="16.5" r="4" fill="var(--color-primary)" stroke="#fff" stroke-width="1.2"/>
+          </svg>
+          <span>PDkef</span>
+        </a>
+        <a href="/" class="all-tools-link">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m15 18-6-6 6-6"/>
           </svg>

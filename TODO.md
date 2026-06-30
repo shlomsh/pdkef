@@ -101,10 +101,12 @@ PDF (both correct- and incorrect-password paths).
 
 ## Cross-cutting (after the tools, or alongside)
 
-- [x] PWA app icons (`public/icons/*.png`) and `og-image` are done — icons
-      depict a document + privacy-lock badge on the real brand blue
-      (`--color-primary: #0071e3`), generated via `sharp` from an inline SVG.
-- [ ] **`og:site_name` / visible header wordmark** — brand "PDkef" is in the
-      title/h1/schema but there's no site-wide header logo or `og:site_name`.
+- [x] PWA app icons (`public/icons/*.png`), `favicon.svg`, and `og-image` are
+      done — icons depict a document + privacy-lock badge on the brand
+      primary color (`--color-primary` in `global.css`), generated via
+      `sharp` from an inline SVG. Re-run the generator if `--color-primary`
+      changes again (it has once already, from `#0071e3` to `#1463ff`).
+- [x] `og:site_name` (`BaseLayout.astro`) and a visible header wordmark
+      (`.breadcrumb .brand-mark`, non-home pages) are done.
 - [ ] When all tools are promoted, revisit whether the homepage hub still needs
       any tool cards pointing at noindexed routes.

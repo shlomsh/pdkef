@@ -4,8 +4,8 @@
   "description": "A suite of free PDF tools (merge, split, remove pages, compress, PDF to image) that run entirely in your browser. No upload, no signup, no watermark.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0071e3",
+  "background_color": "#f9f7f7",
+  "theme_color": "#1463ff",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },

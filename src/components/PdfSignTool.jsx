@@ -1110,7 +1110,7 @@ export default function PdfSignTool() {
             <div style={{ textAlign: 'center', width: '100%', padding: '3rem 0' }}>
               <span className="merge-button-progress" style={{ color: 'var(--color-text)' }}>
                 <svg className="progress-ring" width="22" height="22" viewBox="0 0 40 40">
-                  <circle className="progress-ring-track" cx="20" cy="20" r="18" stroke="#d2d2d7" />
+                  <circle className="progress-ring-track" cx="20" cy="20" r="18" stroke="var(--color-border-strong)" />
                 </svg>
                 Saving document layers… {Math.round(progress * 100)}%
               </span>
