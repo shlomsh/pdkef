@@ -28,6 +28,7 @@ export default function PdfMergeTool() {
   // source of truth again for every subsequent render.
   useEffect(() => {
     if (!listRef.current) return undefined;
+    sortableRef.current?.destroy();
     sortableRef.current = Sortable.create(listRef.current, {
       animation: 220,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
@@ -47,7 +48,7 @@ export default function PdfMergeTool() {
       },
     });
     return () => sortableRef.current?.destroy();
-  }, []);
+  }, [entries.length > 0]);
 
   const addFiles = useCallback((fileList) => {
     const incoming = Array.from(fileList);

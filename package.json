@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@astrojs/preact": "^6.0.0",
@@ -19,6 +20,9 @@
     "sortablejs": "^1.15.7"
   },
   "devDependencies": {
-    "@types/sortablejs": "^1.15.8"
+    "@preact/preset-vite": "^2.10.5",
+    "@types/sortablejs": "^1.15.8",
+    "jsdom": "^29.1.1",
+    "vitest": "^4.1.9"
   }
 }
