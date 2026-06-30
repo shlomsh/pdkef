@@ -5,16 +5,17 @@ import PdfCompressTool from '../components/PdfCompressTool.jsx';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
 
-const title = 'Compress PDF Online Free - Reduce PDF File Size | PDkef';
+const title = 'Compress PDF to 100KB Free - Reduce PDF File Size Online | PDkef';
 const description =
-  'Compress PDF files online for free. Reduce the file size of your documents without losing quality. 100% private, runs in your browser.';
+  'Compress any PDF to an exact target size - 100KB, 200KB, or any portal limit - or choose a quality preset. Free, no upload, no watermark. Runs 100% in your browser.';
 
 const faq = [
-  { question: 'Is the PDF compression secure?', answer: 'Yes. The compression is 100% client-side and runs entirely in your browser. Your files are never uploaded to any server, keeping your data private.' },
-  { question: 'What is the difference between the compression levels?', answer: 'Extreme compression reduces file size by 60-80% using 72 DPI images. Recommended compression reduces size by 40-60% at 110 DPI. High Quality compression reduces size by 10-30% at 150 DPI.' },
-  { question: 'Can I compress a PDF to a specific size, like 100KB?', answer: 'Extreme compression (72 DPI) gets most scanned documents and form PDFs under the common 100KB-1MB limits used by government, academic, and job application portals. Try Extreme first, then step up to Recommended if the result looks too soft.' },
-  { question: 'Does compressing a PDF affect text search or copying?', answer: 'Yes. To compress the document client-side safely, pages are rasterized into images. This means text selection, copy-pasting, and embedded links will be disabled in the output file.' },
-  { question: 'Is there a limit on the file size I can compress?', answer: "There is no artificial file size limit, no daily task cap, and no watermark - the limits most free online compressors impose to ration server costs. Compression runs entirely on your device, so the only limitation is your device's system memory (RAM)." },
+  { question: 'Can I compress a PDF to exactly 100KB?', answer: 'Yes. Select the "Target Size" option, enter 100 in the KB field (or click the 100 KB quick-pick), and click Compress. The tool automatically searches for the highest image quality that fits the target, stepping down the resolution only as far as needed. Quick-pick presets for 100 KB, 200 KB, 500 KB, and 1 MB are provided for common portal limits.' },
+  { question: 'How does the target size compression work?', answer: 'The tool rasterizes each PDF page to a canvas, then binary-searches JPEG quality settings until the total output size fits your target. It tries the highest resolution first and only drops DPI if the minimum JPEG quality still exceeds the budget - so you always get the best possible quality that fits. Everything happens locally in your browser; no file is ever uploaded.' },
+  { question: 'Is the PDF compression secure?', answer: 'Yes. Compression is 100% client-side and runs entirely in your browser. Your files - and any sensitive content like tax records, scanned IDs, or contracts - are never uploaded to any server.' },
+  { question: 'What is the difference between the compression levels?', answer: 'Extreme compression reduces file size by 60-80% using 72 DPI images. Recommended compression reduces size by 40-60% at 110 DPI. High Quality compression reduces size by 10-30% at 150 DPI. The Target Size option lets you name a specific byte limit and the tool finds the best quality that fits.' },
+  { question: 'Does compressing a PDF affect text search or copying?', answer: 'Yes. To compress client-side, pages are rasterized into images. Text selection, copy-pasting, and embedded links will be disabled in the output. This trade-off is necessary for any browser-based compressor that achieves real file size reduction.' },
+  { question: 'Is there a limit on the file size I can compress?', answer: "No artificial limit - no daily task cap, no watermark, no paywall. Most online compressors impose limits because server processing costs them money. This tool runs entirely on your device, so the only constraint is your device's available memory." },
 ];
 ---
 
@@ -36,11 +37,11 @@ const faq = [
   
   <Footer summaryText="Reduce the file size of your PDFs, right in your browser. No upload, no server. Your files never leave your device.">
     <section id="how-it-works">
-      <h2>How to compress PDF files online for free</h2>
+      <h2>How to compress a PDF online for free</h2>
       <ol>
         <li><strong>Upload your PDF.</strong> Select or drag-and-drop the file you want to compress.</li>
-        <li><strong>Choose compression level.</strong> Select Extreme, Recommended, or High Quality compression depending on your size and resolution needs.</li>
-        <li><strong>Compress and download.</strong> Click Compress PDF, review the file size savings, and save your compressed document.</li>
+        <li><strong>Choose a mode.</strong> Pick a quality preset (Extreme, Recommended, or High Quality), or select <em>Target Size</em> and enter a specific limit like 100 KB, 200 KB, or 1 MB.</li>
+        <li><strong>Compress and download.</strong> Click Compress PDF, review the size savings shown, and save your compressed file.</li>
       </ol>
     </section>
 
@@ -58,16 +59,18 @@ const faq = [
 
     <section id="faq">
       <h2>Frequently asked questions</h2>
+      <h3>Can I compress a PDF to exactly 100KB?</h3>
+      <p>Yes. Select the "Target Size" option, enter 100 in the KB field (or click the 100 KB quick-pick), and click Compress. The tool automatically searches for the highest image quality that fits the target, stepping down the resolution only as far as needed. Quick-pick presets for 100 KB, 200 KB, 500 KB, and 1 MB are provided for common portal limits.</p>
+      <h3>How does the target size compression work?</h3>
+      <p>The tool rasterizes each PDF page to a canvas, then binary-searches JPEG quality settings until the total output size fits your target. It tries the highest resolution first and only drops DPI if the minimum JPEG quality still exceeds the budget - so you always get the best possible quality that fits. Everything happens locally in your browser; no file is ever uploaded.</p>
       <h3>Is the PDF compression secure?</h3>
-      <p>Yes. The compression is 100% client-side and runs entirely in your browser. Your files are never uploaded to any server, keeping your data private.</p>
+      <p>Yes. Compression is 100% client-side and runs entirely in your browser. Your files - and any sensitive content like tax records, scanned IDs, or contracts - are never uploaded to any server.</p>
       <h3>What is the difference between the compression levels?</h3>
-      <p>Extreme compression reduces file size by 60-80% using 72 DPI images. Recommended compression reduces size by 40-60% at 110 DPI. High Quality compression reduces size by 10-30% at 150 DPI.</p>
-      <h3>Can I compress a PDF to a specific size, like 100KB?</h3>
-      <p>Extreme compression (72 DPI) gets most scanned documents and form PDFs under the common 100KB-1MB limits used by government, academic, and job application portals. Try Extreme first, then step up to Recommended if the result looks too soft.</p>
+      <p>Extreme compression reduces file size by 60-80% using 72 DPI images. Recommended compression reduces size by 40-60% at 110 DPI. High Quality compression reduces size by 10-30% at 150 DPI. The Target Size option lets you name a specific byte limit and the tool finds the best quality that fits.</p>
       <h3>Does compressing a PDF affect text search or copying?</h3>
-      <p>Yes. To compress the document client-side safely, pages are rasterized into images. This means text selection, copy-pasting, and embedded links will be disabled in the output file.</p>
+      <p>Yes. To compress client-side, pages are rasterized into images. Text selection, copy-pasting, and embedded links will be disabled in the output. This trade-off is necessary for any browser-based compressor that achieves real file size reduction.</p>
       <h3>Is there a limit on the file size I can compress?</h3>
-      <p>There is no artificial file size limit, no daily task cap, and no watermark - the limits most free online compressors impose to ration server costs. Compression runs entirely on your device, so the only limitation is your device's system memory (RAM).</p>
+      <p>No artificial limit - no daily task cap, no watermark, no paywall. Most online compressors impose limits because server processing costs them money. This tool runs entirely on your device, so the only constraint is your device's available memory.</p>
     </section>
   </Footer>
 </BaseLayout>
