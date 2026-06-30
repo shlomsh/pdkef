@@ -963,6 +963,17 @@ export default function PdfSignTool() {
                   >
                     + Sign
                   </button>
+
+                  <div className="sign-tool-separator" />
+
+                  <button
+                    type="button"
+                    className="sign-tool-btn sign-tool-btn-download"
+                    onClick={handleSavePdf}
+                    title="Save your changes and download the signed PDF"
+                  >
+                    Download
+                  </button>
                 </div>
               </div>
 
@@ -1034,7 +1045,7 @@ export default function PdfSignTool() {
                 style={{ marginTop: '2rem' }}
                 onClick={handleSavePdf}
               >
-                Sign and Download PDF
+                Download
               </button>
             </>
           )}
@@ -1386,9 +1397,8 @@ function DraggableOverlayElement({
       onMouseDown={handlePointerDown}
       onTouchStart={handlePointerDown}
     >
-      {/* Floating element options bar */}
-      {isActive && (
-        <div className="sign-element-actions">
+      {/* Element options bar: anchored to the corner, revealed on hover or once selected */}
+      <div className="sign-element-actions">
           {element.type === 'text' && (
             <>
               <button
@@ -1420,8 +1430,7 @@ function DraggableOverlayElement({
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
             </svg>
           </button>
-        </div>
-      )}
+      </div>
 
       {/* Render element depending on type */}
       {element.type === 'text' && (

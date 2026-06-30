@@ -1199,6 +1199,16 @@ footer a {
   color: #fff;
 }
 
+.sign-tool-btn-download {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.sign-tool-btn-download:hover {
+  background: var(--color-primary-hover);
+  color: #fff;
+}
+
 .sign-tool-separator {
   width: 1px;
   height: 20px;
@@ -1262,12 +1272,24 @@ footer a {
   background: rgba(244, 248, 255, 0.4);
 }
 
-/* Edit controls for selected element */
+/* Invisible zone above the element that extends the hover hit area up to the
+   action badge, so the cursor never "loses" hover while crossing the gap. */
+.sign-element::before {
+  content: '';
+  position: absolute;
+  top: -44px;
+  left: -8px;
+  right: -8px;
+  height: 44px;
+}
+
+/* Edit controls: float fully above the element (never overlapping its content,
+   which would otherwise swallow clicks meant for e.g. editing a text field),
+   revealed on hover so no prior click is needed to find the delete button. */
 .sign-element-actions {
   position: absolute;
-  top: -32px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: -40px;
+  right: -4px;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -1277,17 +1299,15 @@ footer a {
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);
   z-index: 10;
-  pointer-events: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease;
 }
 
-/* Invisible bridge so the cursor doesn't lose the hit area crossing the gap to the toolbar */
-.sign-element-actions::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  height: 8px;
+.sign-element:hover .sign-element-actions,
+.sign-element.active .sign-element-actions {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .sign-element-btn {
