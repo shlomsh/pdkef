@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import { compressPdf } from '../lib/compress.js';
+import { compressPdf, compressPdfToTarget } from '../lib/compress.js';
 import BasePdfTool from './BasePdfTool.jsx';
 
 const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 18;
@@ -28,8 +28,18 @@ const COMPRESSION_LEVELS = [
     desc: 'Minimal compression. Keeps images crisp and clear at 150 DPI.',
     pros: 'Crisp images and clear text, close to original quality',
     cons: 'Minimal size reduction (10-30%)'
+  },
+  {
+    id: 'target',
+    name: 'Target Size',
+    tag: 'Choose KB',
+    desc: 'Compress down to a specific file size, e.g. for a 100KB upload limit.',
+    pros: 'Hits exact portal upload limits automatically',
+    cons: 'Quality adjusts as needed to reach the size'
   }
 ];
+
+const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 Bytes';
@@ -42,10 +52,12 @@ function formatBytes(bytes) {
 export default function PdfCompressTool() {
   const [file, setFile] = useState(null);
   const [level, setLevel] = useState('medium');
+  const [targetKB, setTargetKB] = useState(100);
   const [status, setStatus] = useState('idle'); // idle | processing | done | error
   const [progress, setProgress] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [compressedSize, setCompressedSize] = useState(null);
+  const [metTarget, setMetTarget] = useState(true);
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const [announcement, setAnnouncement] = useState('');
   
@@ -91,19 +103,37 @@ export default function PdfCompressTool() {
     resetOutput();
   };
 
+  const handleTargetKBChange = (nextTargetKB) => {
+    setTargetKB(Number.isFinite(nextTargetKB) && nextTargetKB > 0 ? nextTargetKB : 1);
+    resetOutput();
+  };
+
   const handleCompress = async () => {
     if (!file) return;
     setStatus('processing');
     setProgress(0);
     setAnnouncement('Starting PDF compression...');
-    
+
     try {
-      const compressedBlob = await compressPdf(file, {
-        level,
-        onProgress: setProgress
-      });
-      
+      let compressedBlob;
+      let didMeetTarget = true;
+
+      if (level === 'target') {
+        const result = await compressPdfToTarget(file, {
+          targetKB,
+          onProgress: setProgress,
+        });
+        compressedBlob = result.blob;
+        didMeetTarget = result.metTarget;
+      } else {
+        compressedBlob = await compressPdf(file, {
+          level,
+          onProgress: setProgress,
+        });
+      }
+
       setCompressedSize(compressedBlob.size);
+      setMetTarget(didMeetTarget);
       setDownloadUrl((previous) => {
         if (previous) URL.revokeObjectURL(previous);
         return URL.createObjectURL(compressedBlob);
@@ -191,6 +221,37 @@ export default function PdfCompressTool() {
             ))}
           </div>
 
+          {level === 'target' && (
+            <div class="target-size-panel">
+              <label class="target-size-label" for="target-size-input">
+                Target size
+              </label>
+              <div class="target-size-input-row">
+                <input
+                  id="target-size-input"
+                  type="number"
+                  min="10"
+                  step="10"
+                  value={targetKB}
+                  onInput={(e) => handleTargetKBChange(Number(e.currentTarget.value))}
+                />
+                <span class="target-size-unit">KB</span>
+              </div>
+              <div class="target-size-presets">
+                {TARGET_SIZE_PRESETS_KB.map((kb) => (
+                  <button
+                    key={kb}
+                    type="button"
+                    class={`target-size-preset${targetKB === kb ? ' is-selected' : ''}`}
+                    onClick={() => handleTargetKBChange(kb)}
+                  >
+                    {kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {status !== 'done' && (
             <button
               type="button"
@@ -252,6 +313,11 @@ export default function PdfCompressTool() {
                     </span>
                   </div>
                 </div>
+                {level === 'target' && !metTarget && (
+                  <p class="compress-warning">
+                    <strong>Closest achievable size:</strong> {formatBytes(targetKB * 1024)} couldn't be reached without making the document unreadable, so this is the smallest readable result.
+                  </p>
+                )}
                 <p class="compress-warning">
                   <strong>Notice:</strong> Compression rasterizes PDF pages into images to reduce file size. Embedded links and text selection/copying will be disabled on the compressed document.
                 </p>

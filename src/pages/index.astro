@@ -19,17 +19,12 @@ const faq = [
 // winnability x client-side fit) - highest-opportunity tools surface first.
 const tools = [
   {
-    title: 'Compress PDF',
-    description: 'Reduce the file size of your PDF without losing quality.',
-    href: '/compress/',
+    title: 'Sign PDF',
+    description: 'Fill out forms and sign agreements securely on your device.',
+    href: '/sign/',
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="4" y="3" width="16" height="18" rx="2" />
-        <line x1="12" y1="3" x2="12" y2="21" />
-        <rect x="10" y="9" width="4" height="5" rx="1" fill="currentColor" />
-        <path d="M12 5h3" />
-        <path d="M9 7h3" />
-        <path d="M12 15h3" />
-        <path d="M9 17h3" />
+        <path d="m21 17-2.156-1.868A2.521 2.521 0 0 0 15.2 15.2L11 19.38A2.437 2.437 0 0 1 9.3 20H4" />
+        <path d="M21 10.5c.5-.5.5-1.3 0-1.8l-2.2-2.2c-.5-.5-1.3-.5-1.8 0L9 14.2V17h2.8l8.2-8.2Z" />
       </svg>`
   },
   {
@@ -75,12 +70,17 @@ const tools = [
       </svg>`
   },
   {
-    title: 'Sign PDF',
-    description: 'Fill out forms and sign agreements securely on your device.',
-    href: '/sign/',
+    title: 'Compress PDF',
+    description: 'Reduce the file size of your PDF without losing quality.',
+    href: '/compress/',
     icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="m21 17-2.156-1.868A2.521 2.521 0 0 0 15.2 15.2L11 19.38A2.437 2.437 0 0 1 9.3 20H4" />
-        <path d="M21 10.5c.5-.5.5-1.3 0-1.8l-2.2-2.2c-.5-.5-1.3-.5-1.8 0L9 14.2V17h2.8l8.2-8.2Z" />
+        <rect x="4" y="3" width="16" height="18" rx="2" />
+        <line x1="12" y1="3" x2="12" y2="21" />
+        <rect x="10" y="9" width="4" height="5" rx="1" fill="currentColor" />
+        <path d="M12 5h3" />
+        <path d="M9 7h3" />
+        <path d="M12 15h3" />
+        <path d="M9 17h3" />
       </svg>`
   },
   {
@@ -114,7 +114,15 @@ const tools = [
   </Fragment>
 
   <header class="hub-header">
-    <h1>PDkef - all the PDF tools you need</h1>
+    <div class="title-row">
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="title-logo">
+        <rect width="24" height="24" rx="6" fill="var(--color-primary)"/>
+        <path d="M7 5h7l3 3v9.5H7z" fill="#fff"/>
+        <path d="M14 5v3h3z" fill="#bcd9fb"/>
+        <circle cx="16.5" cy="16.5" r="4" fill="var(--color-primary)" stroke="#fff" stroke-width="1.2"/>
+      </svg>
+      <h1>PDkef - all the PDF tools you need</h1>
+    </div>
     <p>100% open source and free, with no sign up and no paywalls - ever. Every tool runs locally in your browser, on your computer or your phone.</p>
   </header>
 
@@ -197,11 +205,29 @@ const tools = [
     padding: 3.5rem 1.5rem 2rem;
   }
   
+  .title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .title-logo {
+    flex-shrink: 0;
+  }
+
+  .hub-header h1 {
+    margin-bottom: 0;
+    text-align: left;
+  }
+
   .tool-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
     grid-auto-rows: 1fr;
     gap: 1.5rem;
+    margin-top: 2.5rem;
     margin-bottom: 2rem;
   }
 

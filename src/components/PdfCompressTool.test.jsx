@@ -1,7 +1,8 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfCompressTool from './PdfCompressTool.jsx';
+import * as compressLib from '../lib/compress.js';
 
 function makePdfFile(name, size = 1000) {
   const file = new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -28,12 +29,22 @@ vi.mock('pdfjs-dist', () => {
 
 vi.mock('../lib/compress.js', () => {
   return {
-    compressPdf: vi.fn(() => Promise.resolve(new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' })))
+    compressPdf: vi.fn(() => Promise.resolve(new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }))),
+    compressPdfToTarget: vi.fn(() =>
+      Promise.resolve({
+        blob: new Blob(['%PDF-1.4-target'], { type: 'application/pdf' }),
+        metTarget: true,
+      }),
+    ),
   };
 });
 
 describe('PdfCompressTool UI flow', () => {
   let container;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   afterEach(() => {
     if (container) {
@@ -145,6 +156,67 @@ describe('PdfCompressTool UI flow', () => {
     const downloadBtn = container.querySelector('.download-button');
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
+
+    window.URL.createObjectURL = originalCreateObjectURL;
+  });
+
+  it('switches to Target Size mode, edits the KB value, and compresses to target', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const file = makePdfFile('big_scan.pdf', 5_000_000);
+
+    await act(async () => {
+      Object.defineProperty(input, 'files', { value: [file], configurable: true });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const cards = container.querySelectorAll('.compress-card');
+    const targetCard = Array.from(cards).find((c) => c.textContent.includes('Target Size'));
+    expect(targetCard).not.toBeNull();
+
+    await act(async () => {
+      targetCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(targetCard.className).toContain('is-selected');
+
+    // Default target is 100 KB; pick the 500 KB preset chip instead.
+    const presets = container.querySelectorAll('.target-size-preset');
+    const preset500 = Array.from(presets).find((b) => b.textContent.includes('500 KB'));
+    expect(preset500).not.toBeNull();
+    await act(async () => {
+      preset500.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(preset500.className).toContain('is-selected');
+
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:targeturl');
+
+    const button = container.querySelector('.merge-button');
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(compressLib.compressPdfToTarget).toHaveBeenCalledWith(
+      file,
+      expect.objectContaining({ targetKB: 500 }),
+    );
+    expect(compressLib.compressPdf).not.toHaveBeenCalled();
+
+    const downloadBtn = container.querySelector('.download-button');
+    expect(downloadBtn).not.toBeNull();
+    expect(downloadBtn.getAttribute('href')).toBe('blob:targeturl');
 
     window.URL.createObjectURL = originalCreateObjectURL;
   });

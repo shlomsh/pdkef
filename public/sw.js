@@ -12,7 +12,7 @@
 //     in normal operation; not touching them is a deliberate safeguard.
 const CACHE_VERSION = 'pdkef-v1';
 
-const PRECACHE_URLS = ['/', '/favicon.svg', '/manifest.webmanifest'];
+const PRECACHE_URLS = ['/', '/favicon.png', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
