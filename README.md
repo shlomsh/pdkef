@@ -25,13 +25,34 @@ That's the whole premise of PDkef. No server, no uploads, no accounts, no limits
 
 All processing happens locally using browser-compatible PDF libraries (like [@cantoo/pdf-lib](https://github.com/cantoo-scribe/pdf-lib) and `pdfjs-dist`); the app is a static site with no backend.
 
-## Local development
+## Local Development
+
+Prerequisites:
+- [Node.js](https://nodejs.org/) (v18 or higher recommended)
+- `npm` (comes with Node.js)
+
+To run the project locally:
 
 ```bash
+# 1. Clone the repository
+git clone https://github.com/shlomsh/pdkef.git
+cd pdkef
+
+# 2. Install dependencies
 npm install
-npm run dev      # local dev server
-npm run build    # production build to dist/
-npm run preview  # preview the production build
+
+# 3. Start the development server
+npm run dev
+```
+
+The site will be available at `http://localhost:4321`.
+
+Additional commands:
+```bash
+npm run build    # Build the production site to dist/
+npm run preview  # Preview the production build locally
+npm run check    # Run TypeScript and Astro checks
+npm run lint     # Run ESLint to check for code issues
 ```
 
 ## Tech stack
@@ -46,6 +67,20 @@ npm run preview  # preview the production build
 All runtime dependencies are MIT or Apache-2.0 licensed and make no network calls of their own — I checked, on purpose, because that guarantee only holds if every dependency upholds it too.
 
 See [CLAUDE.md](./CLAUDE.md) for architecture notes.
+
+## Contributing
+
+Code contributions, bug reports, and feature requests are always welcome! Whether you're fixing a typo, adding a new tool, or improving performance, your help is appreciated. 
+
+If you'd like to contribute code:
+1. Fork the repository.
+2. Create a new branch for your feature or bug fix (`git checkout -b feature/my-new-feature`).
+3. Make your changes and test them locally.
+4. Commit your changes with clear messages (`git commit -am 'Add some feature'`).
+5. Push to the branch (`git push origin feature/my-new-feature`).
+6. Open a Pull Request.
+
+If you find a bug or have an idea for a new feature, please [open an issue](https://github.com/shlomsh/pdkef/issues).
 
 ## License
 

@@ -175,4 +175,149 @@ describe('PdfSignTool UI flow', () => {
     const dropzone = container.querySelector('.sig-upload-dropzone');
     expect(dropzone).not.toBeNull();
   });
+
+  it('supports copying and pasting an element to clone it', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSignTool />, container);
+    });
+
+    const file = makePdfFile('test.pdf');
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      Object.defineProperty(input, 'files', { value: [file], configurable: true });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    // Select text tool
+    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
+    await act(async () => {
+      textBtn.click();
+    });
+
+    // Click on page overlay to place text element
+    const overlay = container.querySelector('.sign-page-overlay');
+    await act(async () => {
+      overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+
+    // Verify element is placed
+    let elements = container.querySelectorAll('.sign-element');
+    expect(elements.length).toBe(1);
+
+    // Mock copy event
+    const copyEvent = new Event('copy', { bubbles: true });
+    copyEvent.clipboardData = {
+      setData: vi.fn()
+    };
+    await act(async () => {
+      window.dispatchEvent(copyEvent);
+    });
+
+    // Mock paste event
+    const pasteEvent = new Event('paste', { bubbles: true });
+    pasteEvent.preventDefault = vi.fn();
+    await act(async () => {
+      window.dispatchEvent(pasteEvent);
+    });
+
+    // Verify element is cloned (now should be 2 elements)
+    elements = container.querySelectorAll('.sign-element');
+    expect(elements.length).toBe(2);
+  });
+
+  it('supports placing a checkmark element', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSignTool />, container);
+    });
+
+    const file = makePdfFile('test.pdf');
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      Object.defineProperty(input, 'files', { value: [file], configurable: true });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    // Select checkmark tool
+    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const checkmarkBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Checkmark') || btn.querySelector('svg'));
+    // Fallback logic if the text is hidden: the checkmark button sets the tool to 'checkmark'
+    // Let's just find the button that has onClick setting 'checkmark' or has class active when we click it.
+    // Actually we can just find it by finding the second button in the toolbar (index 1 is Checkmark based on grep)
+    
+    await act(async () => {
+      // Index 0 is Text, Index 1 is Checkmark
+      toolbarButtons[1].click();
+    });
+
+    // Click on page overlay to place checkmark element
+    const overlay = container.querySelector('.sign-page-overlay');
+    await act(async () => {
+      overlay.dispatchEvent(new MouseEvent('click', { clientX: 200, clientY: 200, bubbles: true }));
+    });
+
+    // Verify element is placed
+    const elements = container.querySelectorAll('.sign-element');
+    expect(elements.length).toBe(1);
+    
+    // Check if it's a checkmark (contains an SVG or checkmark character)
+    expect(elements[0].innerHTML).toContain('svg');
+  });
+
+  it('supports deleting an element with the Delete key', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSignTool />, container);
+    });
+
+    const file = makePdfFile('test.pdf');
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      Object.defineProperty(input, 'files', { value: [file], configurable: true });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    // Select text tool
+    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
+    await act(async () => {
+      textBtn.click();
+    });
+
+    // Click on page overlay to place text element
+    const overlay = container.querySelector('.sign-page-overlay');
+    await act(async () => {
+      overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+
+    let elements = container.querySelectorAll('.sign-element');
+    expect(elements.length).toBe(1);
+
+    // Press Delete key
+    const deleteEvent = new KeyboardEvent('keydown', { key: 'Delete', bubbles: true });
+    await act(async () => {
+      window.dispatchEvent(deleteEvent);
+    });
+
+    // Verify element is deleted
+    elements = container.querySelectorAll('.sign-element');
+    expect(elements.length).toBe(0);
+  });
 });

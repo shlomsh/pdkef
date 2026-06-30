@@ -27,6 +27,7 @@ export default defineConfig({
         "connect-src 'self'",
         "worker-src 'self' blob:",
         "img-src 'self' data: blob:",
+        "font-src 'self' https://fonts.gstatic.com",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",

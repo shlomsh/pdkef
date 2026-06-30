@@ -68,6 +68,7 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  height: 100%;
 }
 
 body {
@@ -84,7 +85,7 @@ body {
   text-rendering: optimizeLegibility;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100%;
 }
 
 .sr-only {
@@ -1272,8 +1273,7 @@ footer a {
   background: rgba(244, 248, 255, 0.4);
 }
 
-/* Invisible zone above the element that extends the hover hit area up to the
-   action badge, so the cursor never "loses" hover while crossing the gap. */
+/* Invisible zone above the element */
 .sign-element::before {
   content: '';
   position: absolute;
@@ -1283,25 +1283,24 @@ footer a {
   height: 44px;
 }
 
-/* Edit controls: float fully above the element (never overlapping its content,
-   which would otherwise swallow clicks meant for e.g. editing a text field),
-   revealed on hover so no prior click is needed to find the delete button. */
+/* Edit controls: rich text toolbar */
 .sign-element-actions {
   position: absolute;
-  top: -40px;
-  right: -4px;
+  top: -44px;
+  left: 0;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   background: var(--color-text);
   color: #fff;
-  padding: 4px;
+  padding: 4px 6px;
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);
   z-index: 10;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.1s ease;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
 }
 
 .sign-element:hover .sign-element-actions,
@@ -1314,23 +1313,65 @@ footer a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
+  min-width: 28px;
   height: 28px;
   border: none;
   background: transparent;
   color: #fff;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.75rem;
-  font-weight: bold;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0 4px;
 }
 
 .sign-element-btn:hover {
   background: rgba(255, 255, 255, 0.15);
 }
 
+.sign-element-btn.active {
+  background: var(--color-primary);
+}
+
 .sign-element-btn-danger:hover {
   background: var(--color-danger);
+}
+
+.sign-toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 4px;
+}
+
+.sign-font-select {
+  background: transparent;
+  color: #fff;
+  border: none;
+  font-size: 0.8rem;
+  padding: 2px 4px;
+  outline: none;
+  cursor: pointer;
+}
+.sign-font-select option {
+  color: #000;
+}
+
+.sign-color-input {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+}
+.sign-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.sign-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
 }
 
 /* Text Element Input */
@@ -1347,12 +1388,13 @@ footer a {
 .sign-text-input {
   border: none;
   background: transparent;
-  color: #000;
+  color: inherit;
   padding: 0;
   margin: 0;
   font-family: inherit;
   font-size: inherit;
   font-weight: inherit;
+  font-style: inherit;
   line-height: inherit;
   outline: none;
   width: 100%;
@@ -1969,10 +2011,66 @@ footer a {
   gap: 2rem;
 }
 
-.metric-item {
+  .metric-item {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
+}
+
+/* Undo Modal */
+.undo-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 350px;
+  overflow-y: auto;
+  margin-top: 1rem;
+}
+
+.undo-history-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  cursor: pointer;
+}
+
+.undo-history-item:hover {
+  background: var(--color-surface-sunken);
+}
+
+.undo-history-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.undo-history-details {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.undo-history-desc {
+  flex: 1;
+}
+
+.undo-history-time {
+  color: var(--color-muted-light);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.undo-history-page {
+  color: var(--color-muted);
+  font-size: 0.85rem;
 }
 
 .metric-label {

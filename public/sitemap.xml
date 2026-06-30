@@ -36,13 +36,13 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://pdkef.vercel.app/sign</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
+    <loc>https://pdkef.vercel.app/unlock</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pdkef.vercel.app/unlock</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
+    <loc>https://pdkef.vercel.app/protect</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

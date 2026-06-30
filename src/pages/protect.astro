@@ -1,0 +1,79 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SeoSchema from '../components/SeoSchema.astro';
+import PdfProtectTool from '../components/PdfProtectTool.jsx';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+const title = 'Protect PDF Online Free - Add PDF Password | PDkef';
+const description =
+  'Add a password to a PDF file online for free. Protect your PDF document so only those with the password can open it. 100% private, runs in your browser.';
+
+const howTo = {
+  name: 'How to password-protect a PDF online for free',
+  steps: [
+    { name: 'Upload your PDF', text: 'Select or drag-and-drop the PDF file you want to protect.' },
+    { name: 'Set a password', text: 'Type the password you want to require to open the PDF.' },
+    { name: 'Protect and download', text: 'Click Protect PDF and download a copy with the password added.' },
+  ],
+};
+
+const faq = [
+  { question: 'Is protecting a PDF here secure?', answer: 'Yes. The password and the file are processed 100% client-side, entirely in your browser. Nothing is uploaded to any server.' },
+  { question: 'What happens if I forget the password?', answer: 'You will not be able to open the PDF without it. Keep a backup of the original PDF or safely store the password.' },
+  { question: 'Can I protect a PDF that is already encrypted?', answer: 'No. If a PDF is already encrypted, you must unlock it first before protecting it with a new password.' },
+  { question: 'Is there a limit on file size?', answer: 'No artificial limit. Protecting runs entirely on your device, so the only constraint is your device’s available memory.' },
+];
+---
+
+<BaseLayout title={title} description={description}>
+  <Fragment slot="head">
+    <SeoSchema name="PDkef - Protect PDF" description={description} howTo={howTo} faq={faq} />
+  </Fragment>
+
+  <header>
+    <h1>Protect PDF online, free</h1>
+    <p>Add a password to your PDF instantly. Secure, client-side encryption.</p>
+  </header>
+
+  <main>
+    <section id="app" aria-label="PDF protect tool">
+      <PdfProtectTool client:load />
+    </section>
+  </main>
+
+  <Footer summaryText="Add a password to your PDF, right in your browser. No upload, no server. Your file and its password never leave your device.">
+    <section id="how-it-works">
+      <h2>How to password-protect a PDF online for free</h2>
+      <ol>
+        <li><strong>Upload your PDF.</strong> Select or drag-and-drop the file you want to protect.</li>
+        <li><strong>Set a password.</strong> Type the password you want to require to open the PDF.</li>
+        <li><strong>Protect and download.</strong> Click Protect PDF and save an encrypted copy.</li>
+      </ol>
+    </section>
+
+    <section id="why-pdkef">
+      <h2>Why use PDkef</h2>
+      <ul>
+        <li><strong>Free:</strong> no cost, no signup, no watermark, no limits.</li>
+        <li><strong>No server, no paywalls:</strong> most online PDF tools cap free use or hide features behind a paywall because every file costs them server time. This one runs 100% locally on your device, so there's nothing to ration.</li>
+        <li><strong>Private:</strong> your file and its password never leave your device; nothing is uploaded.</li>
+        <li><strong>Fast:</strong> encryption happens instantly in your browser.</li>
+        <li><strong>Works everywhere:</strong> Chrome on macOS, Windows, Android, and iOS.</li>
+        <li><strong>Open source:</strong> the entire codebase is public and MIT licensed - inspect exactly what runs on your device.</li>
+      </ul>
+    </section>
+
+    <section id="faq">
+      <h2>Frequently asked questions</h2>
+      <h3>Is protecting a PDF here secure?</h3>
+      <p>Yes. The password and the file are processed 100% client-side, entirely in your browser. Nothing is uploaded to any server.</p>
+      <h3>What happens if I forget the password?</h3>
+      <p>You will not be able to open the PDF without it. Keep a backup of the original PDF or safely store the password.</p>
+      <h3>Can I protect a PDF that is already encrypted?</h3>
+      <p>No. If a PDF is already encrypted, you must unlock it first before protecting it with a new password.</p>
+      <h3>Is there a limit on file size?</h3>
+      <p>No artificial limit. Protecting runs entirely on your device, so the only constraint is your device's available memory.</p>
+    </section>
+  </Footer>
+</BaseLayout>

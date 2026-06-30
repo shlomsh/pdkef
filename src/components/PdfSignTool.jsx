@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'preact/hooks';
 import BasePdfTool from './BasePdfTool.jsx';
 import { PDFDocument, rgb, StandardFonts } from '@cantoo/pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 
 // Dynamic loader for PDFJS
 let pdfjsLib;
@@ -33,6 +34,10 @@ export default function PdfSignTool() {
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   
+  const [actionHistory, setActionHistory] = useState([]);
+  const [undoModalOpen, setUndoModalOpen] = useState(false);
+  const [undoSelection, setUndoSelection] = useState(new Set());
+  
   // Signature Dialog state
   const [signatureMode, setSignatureMode] = useState('draw'); // 'draw' | 'type' | 'upload'
   const [typedName, setTypedName] = useState('');
@@ -52,12 +57,32 @@ export default function PdfSignTool() {
 
   // Refs
   const pageWrapperRefs = useRef([]);
-  const canvasRefs = useRef([]);
   const dialogRef = useRef(null);
   const canvasPadRef = useRef(null);
   const isDrawingRef = useRef(false);
   const lastDrawingPos = useRef({ x: 0, y: 0 });
   const downloadRef = useRef(null);
+  const copiedElementRef = useRef(null);
+
+  const logAction = (type, elId, pageIndex, description) => {
+    setActionHistory((prev) => [
+      { id: uniqueId(), type, elementId: elId, pageIndex, description, timestamp: Date.now() },
+      ...prev
+    ]);
+  };
+
+  const handleRevertSelected = () => {
+    const idsToRevert = Array.from(undoSelection);
+    if (idsToRevert.length === 0) return;
+    const elementIdsToRemove = actionHistory
+      .filter(action => idsToRevert.includes(action.id))
+      .map(action => action.elementId);
+    setElements((prev) => prev.filter(el => !elementIdsToRemove.includes(el.id)));
+    setActionHistory((prev) => prev.filter(action => !idsToRevert.includes(action.id)));
+    setUndoSelection(new Set());
+    setUndoModalOpen(false);
+    setAnnouncement('Reverted selected actions.');
+  };
 
   // Focus download button on success
   useEffect(() => {
@@ -329,35 +354,12 @@ export default function PdfSignTool() {
     }
   };
 
-  // Render individual page canvas once doc is loaded
-  useEffect(() => {
-    if (status !== 'editing' || !pdfDocument) return;
 
-    const renderPages = async () => {
-      for (let i = 1; i <= numPages; i++) {
-        const canvas = canvasRefs.current[i - 1];
-        if (!canvas) continue;
-
-        try {
-          const page = await pdfDocument.getPage(i);
-          const viewport = page.getViewport({ scale: 1.5 }); // sharp rendering
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          
-          const context = canvas.getContext('2d');
-          await page.render({ canvasContext: context, viewport }).promise;
-        } catch (err) {
-          console.error(`Error rendering page ${i}:`, err);
-        }
-      }
-    };
-
-    renderPages();
-  }, [status, pdfDocument, numPages]);
 
   // Place element on current page click
   const handlePageClick = (e, pageIndex) => {
     if (!selectedTool) return;
+    e.stopPropagation();
     
     // Ignore clicks if clicking on a active element to edit it
     if (e.target.closest('.sign-element')) return;
@@ -377,11 +379,16 @@ export default function PdfSignTool() {
         pageIndex,
         left: leftPercent,
         top: topPercent,
-        text: 'Click to edit',
-        fontSize: 12 // in PDF points
+        text: '',
+        fontSize: 12, // in PDF points
+        fontFamily: 'Helvetica',
+        fontWeight: 'normal',
+        fontStyle: 'normal',
+        color: '#000000'
       };
       setElements((prev) => [...prev, newEl]);
       setActiveElementId(id);
+      logAction('ADD_TEXT', id, pageIndex, 'Added text box');
       setAnnouncement('Added text box. Click or double click to type.');
     } else if (selectedTool === 'checkmark') {
       const id = uniqueId();
@@ -396,6 +403,7 @@ export default function PdfSignTool() {
       };
       setElements((prev) => [...prev, newEl]);
       setActiveElementId(id);
+      logAction('ADD_CHECK', id, pageIndex, 'Added checkmark');
       setAnnouncement('Added checkmark.');
     } else if (selectedTool === 'signature') {
       if (activeSignature) {
@@ -445,6 +453,7 @@ export default function PdfSignTool() {
     
     setElements((prev) => [...prev, newEl]);
     setActiveElementId(id);
+    logAction('ADD_SIGNATURE', id, pageIdx, 'Added signature');
     setAnnouncement('Placed signature on page.');
   };
 
@@ -670,52 +679,64 @@ export default function PdfSignTool() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeElementId]);
 
-  // Add elements from sticky buttons (places in viewport center)
-  const quickAdd = (type) => {
-    // Detect active page index (first page by default, or page closest to scroll)
-    const pageIndex = 0;
-    
-    if (type === 'text') {
-      const id = uniqueId();
-      setElements((prev) => [
-        ...prev,
-        {
-          id,
-          type: 'text',
-          pageIndex,
-          left: 40,
-          top: 45,
-          text: 'Type text...',
-          fontSize: 12
+  // Handle element copy and paste actions
+  useEffect(() => {
+    const handleCopy = (e) => {
+      const activeTag = document.activeElement?.tagName;
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') {
+        const selStart = document.activeElement.selectionStart;
+        const selEnd = document.activeElement.selectionEnd;
+        if (selStart !== selEnd) {
+          return; // Let native text copy run if user has highlighted characters
         }
-      ]);
-      setActiveElementId(id);
-      setAnnouncement('Added text box.');
-    } else if (type === 'checkmark') {
-      const id = uniqueId();
-      setElements((prev) => [
-        ...prev,
-        {
-          id,
-          type: 'checkmark',
-          pageIndex,
-          left: 45,
-          top: 45,
-          width: 5,
-          height: 5
-        }
-      ]);
-      setActiveElementId(id);
-      setAnnouncement('Added checkmark.');
-    } else if (type === 'signature') {
-      if (activeSignature) {
-        placeSignatureAt(activeSignature.dataUrl, activeSignature.aspectRatio, pageIndex, 50, 50);
-      } else {
-        setTempPlacement({ pageIndex, left: 50, top: 50 });
-        setDialogOpen(true);
       }
-    }
-  };
+
+      if (!activeElementId) return;
+      const elToCopy = elements.find((el) => el.id === activeElementId);
+      if (elToCopy) {
+        copiedElementRef.current = elToCopy;
+        const textRepresentation = elToCopy.type === 'text' ? elToCopy.text : `[${elToCopy.type}]`;
+        if (e.clipboardData) {
+          e.clipboardData.setData('text/plain', textRepresentation);
+        }
+        e.preventDefault();
+        setAnnouncement('Copied annotation element.');
+      }
+    };
+
+    const handlePaste = (e) => {
+      const activeTag = document.activeElement?.tagName;
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') {
+        return; // Let native text paste run when focused in input box
+      }
+
+      if (!copiedElementRef.current) return;
+      e.preventDefault();
+
+      const id = uniqueId();
+      const original = copiedElementRef.current;
+      const clone = {
+        ...original,
+        id,
+        left: Math.min(90, original.left + 4),
+        top: Math.min(90, original.top + 4)
+      };
+
+      setElements((prev) => [...prev, clone]);
+      setActiveElementId(id);
+      logAction('DUPLICATE_ELEMENT', id, original.pageIndex, `Duplicated ${original.type}`);
+      setAnnouncement('Pasted cloned element.');
+    };
+
+    window.addEventListener('copy', handleCopy);
+    window.addEventListener('paste', handlePaste);
+    return () => {
+      window.removeEventListener('copy', handleCopy);
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [activeElementId, elements]);
+
+
 
   // Apply signing and export PDF
   const handleSavePdf = async () => {
@@ -727,6 +748,30 @@ export default function PdfSignTool() {
     try {
       const bytes = await file.arrayBuffer();
       const pdfDoc = await PDFDocument.load(bytes);
+      pdfDoc.registerFontkit(fontkit);
+      
+      const loadedFonts = {};
+      const loadCustomFont = async (fontFamily, fontWeight, fontStyle) => {
+        let styleStr = 'Regular';
+        if (fontWeight === 'bold' && fontStyle === 'italic') styleStr = 'BoldItalic';
+        else if (fontWeight === 'bold') styleStr = 'Bold';
+        else if (fontStyle === 'italic') styleStr = 'Italic';
+        const fileName = `${fontFamily}-${styleStr}.ttf`;
+        
+        if (loadedFonts[fileName]) return loadedFonts[fileName];
+        
+        try {
+          const res = await fetch(`/fonts/${fileName}`);
+          const fontBytes = await res.arrayBuffer();
+          const customFont = await pdfDoc.embedFont(fontBytes);
+          loadedFonts[fileName] = customFont;
+          return customFont;
+        } catch (e) {
+          console.warn(`Could not load custom font ${fileName}`, e);
+          return null;
+        }
+      };
+
       const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
       
       // Process elements
@@ -741,7 +786,27 @@ export default function PdfSignTool() {
 
         if (el.type === 'text') {
           const fontSizeInPoints = el.fontSize || 12;
-          const textValue = el.text || '';
+          const textValue = (el.text || '').trim();
+          if (!textValue) continue;
+          
+          let resolvedFont = helveticaFont;
+          if (el.fontFamily && ['Arimo', 'Heebo', 'Assistant'].includes(el.fontFamily)) {
+             const customFont = await loadCustomFont(el.fontFamily, el.fontWeight, el.fontStyle);
+             if (customFont) resolvedFont = customFont;
+          } else {
+             if (el.fontWeight === 'bold' && el.fontStyle === 'italic') {
+               resolvedFont = await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique);
+             } else if (el.fontWeight === 'bold') {
+               resolvedFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+             } else if (el.fontStyle === 'italic') {
+               resolvedFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+             }
+          }
+          
+          const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(el.color || '#000000');
+          const r = result ? parseInt(result[1], 16) / 255 : 0;
+          const g = result ? parseInt(result[2], 16) / 255 : 0;
+          const b = result ? parseInt(result[3], 16) / 255 : 0;
           
           // Helvetica baseline offset is roughly 85% of line height
           const baselineAdjustedY = pdfY - (fontSizeInPoints * 0.85);
@@ -750,8 +815,8 @@ export default function PdfSignTool() {
             x: pdfX,
             y: baselineAdjustedY,
             size: fontSizeInPoints,
-            font: helveticaFont,
-            color: rgb(0, 0, 0)
+            font: resolvedFont,
+            color: rgb(r, g, b)
           });
         } else if (el.type === 'checkmark') {
           const elWidthPoints = (el.width / 100) * pdfWidth;
@@ -934,34 +999,19 @@ export default function PdfSignTool() {
                   </div>
 
                   <div className="sign-tool-separator" />
-
-                  {/* Keyboard additions */}
+                  
                   <button
                     type="button"
                     className="sign-tool-btn"
-                    style={{ padding: '0.5rem 0.6rem' }}
-                    onClick={() => quickAdd('text')}
-                    title="Quick Add Text to Page 1"
+                    onClick={() => setUndoModalOpen(true)}
+                    title="Undo changes"
+                    disabled={actionHistory.length === 0}
                   >
-                    + Text
-                  </button>
-                  <button
-                    type="button"
-                    className="sign-tool-btn"
-                    style={{ padding: '0.5rem 0.6rem' }}
-                    onClick={() => quickAdd('checkmark')}
-                    title="Quick Add Checkmark to Page 1"
-                  >
-                    + Check
-                  </button>
-                  <button
-                    type="button"
-                    className="sign-tool-btn"
-                    style={{ padding: '0.5rem 0.6rem' }}
-                    onClick={() => quickAdd('signature')}
-                    title="Quick Add Signature to Page 1"
-                  >
-                    + Sign
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 7v6h6" />
+                      <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+                    </svg>
+                    Undo
                   </button>
 
                   <div className="sign-tool-separator" />
@@ -1005,9 +1055,9 @@ export default function PdfSignTool() {
                       className="sign-page-wrapper"
                       style={{ aspectRatio: `${size.width} / ${size.height}` }}
                     >
-                      <canvas
-                        ref={(el) => (canvasRefs.current[pageIdx] = el)}
-                        className="sign-page-canvas"
+                      <PdfPageCanvas
+                        pdfDocument={pdfDocument}
+                        pageNum={pageIdx + 1}
                       />
                       
                       <div
@@ -1027,6 +1077,11 @@ export default function PdfSignTool() {
                               }}
                               onChange={(fields) => updateElement(el.id, fields)}
                               onDelete={() => deleteElement(el.id)}
+                              onClone={(cloneInfo) => {
+                                 setElements((prev) => [...prev, cloneInfo]);
+                                 setActiveElementId(cloneInfo.id);
+                                 logAction('DUPLICATE_ELEMENT', cloneInfo.id, cloneInfo.pageIndex, `Duplicated ${cloneInfo.type}`);
+                              }}
                               pageWidthPoints={size.width}
                               pageHeightPoints={size.height}
                               pageWrapperRef={pageWrapperRefs.current[pageIdx]}
@@ -1240,6 +1295,63 @@ export default function PdfSignTool() {
         </div>
       </dialog>
 
+      {/* Undo History Modal */}
+      {undoModalOpen && (
+        <>
+          <div className="sign-dropdown-backdrop" style={{ zIndex: 999 }} onClick={() => setUndoModalOpen(false)} />
+          <dialog open className="sig-dialog" style={{ position: 'fixed', top: '15vh', zIndex: 1000, margin: '0 auto' }} aria-labelledby="undo-dialog-title">
+            <div className="sig-dialog-header">
+              <h3 id="undo-dialog-title">Undo changes</h3>
+              <button type="button" className="sig-dialog-close" onClick={() => setUndoModalOpen(false)} aria-label="Close dialog">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M4 4l8 8M12 4l-8 8" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="sig-dialog-body" style={{ padding: '0.75rem 1.5rem 1.5rem' }}>
+              <div className="undo-history-list">
+                {actionHistory.map((action) => {
+                   const time = new Date(action.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                   const isSelected = undoSelection.has(action.id);
+                   return (
+                     <label key={action.id} className="undo-history-item">
+                       <input 
+                         type="checkbox" 
+                         checked={isSelected}
+                         onChange={(e) => {
+                            const newSet = new Set(undoSelection);
+                            if (e.target.checked) newSet.add(action.id);
+                            else newSet.delete(action.id);
+                            setUndoSelection(newSet);
+                         }} 
+                       />
+                       <div className="undo-history-details">
+                         <span className="undo-history-desc">{action.description}</span>
+                         <span className="undo-history-time">{time}</span>
+                         <span className="undo-history-page">Page {action.pageIndex + 1}</span>
+                       </div>
+                     </label>
+                   );
+                })}
+              </div>
+            </div>
+            
+            <div className="sig-dialog-footer">
+              <button
+                type="button"
+                className="sig-btn sig-btn-primary"
+                style={{ background: 'var(--color-success)' }}
+                onClick={handleRevertSelected}
+                disabled={undoSelection.size === 0}
+              >
+                Revert selected
+              </button>
+            </div>
+          </dialog>
+        </>
+      )}
+
       <p className="sr-only" role="status" aria-live="polite">
         {announcement}
       </p>
@@ -1285,6 +1397,11 @@ function DraggableOverlayElement({
     }
     
     onSelect(e);
+    
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      return;
+    }
+    
     e.preventDefault();
     
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -1397,10 +1514,24 @@ function DraggableOverlayElement({
       onMouseDown={handlePointerDown}
       onTouchStart={handlePointerDown}
     >
-      {/* Element options bar: anchored to the corner, revealed on hover or once selected */}
+      {/* Element options bar */}
       <div className="sign-element-actions">
           {element.type === 'text' && (
             <>
+              <select 
+                className="sign-font-select"
+                value={element.fontFamily || 'Helvetica'}
+                onChange={(e) => onChange({ fontFamily: e.target.value })}
+                title="Font family"
+              >
+                <option value="Helvetica">Helvetica</option>
+                <option value="Arimo">Arial (Arimo)</option>
+                <option value="Assistant">Hebrew (Assistant)</option>
+                <option value="Heebo">Hebrew (Heebo)</option>
+                <option value="TimesRoman">Times Roman</option>
+                <option value="Courier">Courier</option>
+              </select>
+              <div className="sign-toolbar-divider" />
               <button
                 type="button"
                 className="sign-element-btn"
@@ -1417,15 +1548,62 @@ function DraggableOverlayElement({
               >
                 A+
               </button>
+              <div className="sign-toolbar-divider" />
+              <button
+                type="button"
+                className={`sign-element-btn ${element.fontWeight === 'bold' ? 'active' : ''}`}
+                onClick={() => onChange({ fontWeight: element.fontWeight === 'bold' ? 'normal' : 'bold' })}
+                title="Bold"
+              >
+                <b>B</b>
+              </button>
+              <button
+                type="button"
+                className={`sign-element-btn ${element.fontStyle === 'italic' ? 'active' : ''}`}
+                onClick={() => onChange({ fontStyle: element.fontStyle === 'italic' ? 'normal' : 'italic' })}
+                title="Italic"
+              >
+                <i>I</i>
+              </button>
+              <div className="sign-toolbar-divider" />
+              <input 
+                type="color" 
+                className="sign-color-input" 
+                value={element.color || '#000000'}
+                onChange={(e) => onChange({ color: e.target.value })}
+                title="Text color"
+              />
+              <div className="sign-toolbar-divider" />
             </>
           )}
+          <button
+            type="button"
+            className="sign-element-btn"
+            onClick={() => {
+              const newId = `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+              if (window.onCloneElementCallback) {
+                window.onCloneElementCallback({
+                  ...element,
+                  id: newId,
+                  left: Math.min(90, element.left + 4),
+                  top: Math.min(90, element.top + 4)
+                });
+              }
+            }}
+            title="Duplicate element"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+          </button>
           <button
             type="button"
             className="sign-element-btn sign-element-btn-danger"
             onClick={onDelete}
             title="Delete element"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
             </svg>
@@ -1439,9 +1617,16 @@ function DraggableOverlayElement({
             type="text"
             className="sign-text-input"
             value={element.text}
+            placeholder="Click to edit"
             onInput={(e) => onChange({ text: e.currentTarget.value })}
             onFocus={onSelect}
-            style={{ fontSize: `${textFontSize}px` }}
+            style={{ 
+              fontSize: `${textFontSize}px`,
+              fontFamily: element.fontFamily || 'Helvetica',
+              fontWeight: element.fontWeight || 'normal',
+              fontStyle: element.fontStyle || 'normal',
+              color: element.color || '#000000'
+            }}
           />
         </div>
       )}
@@ -1472,5 +1657,44 @@ function DraggableOverlayElement({
         />
       )}
     </div>
+  );
+}
+
+// Dedicated canvas rendering component for clean lifecycles and race-free layout paints
+function PdfPageCanvas({ pdfDocument, pageNum }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!pdfDocument || !canvasRef.current) return;
+
+    let active = true;
+    const renderPage = async () => {
+      try {
+        const page = await pdfDocument.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.5 }); // sharp rendering
+        const canvas = canvasRef.current;
+        if (!canvas || !active) return;
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        const context = canvas.getContext('2d');
+        await page.render({ canvasContext: context, viewport }).promise;
+      } catch (err) {
+        console.error(`Error rendering page ${pageNum}:`, err);
+      }
+    };
+
+    renderPage();
+    return () => {
+      active = false;
+    };
+  }, [pdfDocument, pageNum]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="sign-page-canvas"
+    />
   );
 }

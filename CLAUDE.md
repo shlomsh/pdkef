@@ -19,6 +19,7 @@ Per-tool status — **see [TODO.md](./TODO.md) for the actionable, picked-up-by-
 | Compress | `/compress` | `PdfCompressTool.jsx` | ✅ implemented (`src/lib/compress.js`, rasterizes + re-encodes pages) | ✅ in sitemap |
 | PDF to Image | `/pdf-to-image` | `PdfToImageTool.jsx` | ✅ implemented (`src/lib/toImage.js` + real downloads) | ✅ in sitemap |
 | Unlock | `/unlock` | `PdfUnlockTool.jsx` | ✅ implemented (`src/lib/unlock.js`, password removal via `@cantoo/pdf-lib`) | ✅ in sitemap |
+| Protect | `/protect` | `PdfProtectTool.jsx` | ✅ implemented (`src/lib/protect.js`, password addition via `@cantoo/pdf-lib`) | ✅ in sitemap |
 
 All Phase 1 tools are now functional and promoted (de-noindexed, in `public/sitemap.xml`, with HowTo/FAQ + `<SeoSchema>` on their pages). Unlock was added beyond the original Phase 1 scope per SEO research identifying it as a high client-side-fit, lower-competition keyword that reinforces the privacy-first positioning. Remaining open items (PWA icons, og-image, header wordmark) are tracked in [TODO.md](./TODO.md).
 
