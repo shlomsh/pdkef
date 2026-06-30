@@ -54,6 +54,18 @@ Library logic:
 
 Drag-to-reorder uses **SortableJS**, wired directly to the DOM list in `PdfMergeTool.jsx`; on drop, the final DOM order is read back into Preact state, which remains the single source of truth for every re-render.
 
+## Theme / color palette
+
+All color is driven by CSS custom properties defined once in `src/styles/global.css`'s `:root` block — never hardcode a hex/rgba color in a component or another stylesheet; reference the variable (e.g. `var(--color-primary)`) so the palette stays swappable from one place.
+
+Current palette ("navy + electric blue", sourced from Color Hunt, replacing an earlier Apple-blue theme):
+- `--color-bg: #f9f7f7`, `--color-surface: #ffffff`, `--color-surface-sunken: #dbe2ef` — cream/white surfaces.
+- `--color-text: #112d4e`, `--color-muted: #4f6488`, `--color-muted-light: #9aa7bd` — navy ink, fading to muted slate.
+- `--color-primary: #1463ff` (hover `#2d72ff`, active `#0d52e0`, soft tint `#e3ecff`) — the one accent color; used for primary buttons, links, focus rings, dropzone icon/border.
+- `--color-success` / `--color-danger` are unchanged from the prior theme (green `#1a8f54`, red `#d8342b`) and read fine against the new base — don't recolor these without a reason.
+
+When changing the theme in the future: update the `:root` block in `global.css`, then `grep -rn "rgba(0\|#[0-9a-f]\{6\}"` across `src/` and `public/` for any color literal that escaped the variable system (several button/dropzone shadows and the body background glow were historically hardcoded as `rgba(...)` rather than referencing a variable — re-check these). Also update `theme-color` in `BaseLayout.astro` and `theme_color`/`background_color` in `public/manifest.webmanifest` to match, since those aren't CSS and don't pick up the `:root` vars automatically. A pure color-only change doesn't touch scripts or CSP, so a `npm run dev` visual check is enough — full `build && preview` isn't required unless the change also touches scripts/`astro.config.mjs`.
+
 ## SEO invariants (don't regress these)
 
 - Primary keyword ("pdf merge online free", "split pdf", etc.) stays in `<title>`, the single `<h1>`, and meta description for each specific tool page.
