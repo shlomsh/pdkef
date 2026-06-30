@@ -51,7 +51,7 @@ Drag-to-reorder uses **SortableJS**, wired directly to the DOM list in `PdfMerge
 
 ## Privacy invariants
 
-- No `fetch`/`XHR` of file bytes, ever. No analytics, telemetry, or third-party scripts.
+- No `fetch`/`XHR` of file bytes, ever. No third-party scripts or tracking of PDF content. Only same-origin Vercel Web Analytics is enabled for basic page views.
 - No cookies, no accounts, no server-side logging — there is no server.
 - A strict CSP locks down `connect-src 'self'` (no external script/connect origins) as a browser-enforced backstop against an accidental external call being added later. See "Content-Security-Policy" below for how it's actually wired — it's split across two layers, not a single static header.
 

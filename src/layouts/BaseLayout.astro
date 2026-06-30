@@ -41,6 +41,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
   </head>
   <body>
     <slot />
+    <script>
+      import { inject } from '@vercel/analytics';
+      inject();
+    </script>
     {import.meta.env.PROD && (
       <script>
         if ('serviceWorker' in navigator) {
