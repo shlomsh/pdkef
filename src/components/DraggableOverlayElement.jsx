@@ -139,7 +139,9 @@ export default function DraggableOverlayElement({
     e.preventDefault();
 
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     const dragStartX = clientX;
+    const dragStartY = clientY;
     const startWidth = element.width || 20;
     const startFontSize = element.fontSize || 12;
     const startLeft = element.left;
@@ -151,7 +153,19 @@ export default function DraggableOverlayElement({
 
     const handleResizeMove = (moveEvent) => {
       const moveX = moveEvent.touches ? moveEvent.touches[0].clientX : moveEvent.clientX;
+      const moveY = moveEvent.touches ? moveEvent.touches[0].clientY : moveEvent.clientY;
       const dx = moveX - dragStartX;
+      const dy = moveY - dragStartY;
+
+      if (element.type === 'whiteout') {
+        const parentRect = pageWrapperRef.getBoundingClientRect();
+        const deltaWidthPercent = (dx / parentRect.width) * 100;
+        const deltaHeightPercent = (dy / parentRect.height) * 100;
+        let newWidth = Math.max(1, Math.min(90, startWidth + deltaWidthPercent));
+        let newHeight = Math.max(1, Math.min(90, startHeight + deltaHeightPercent));
+        onChange({ width: newWidth, height: newHeight });
+        return;
+      }
 
       if (element.type === 'text') {
         const parentRect = pageWrapperRef.getBoundingClientRect();
@@ -333,6 +347,17 @@ export default function DraggableOverlayElement({
               <div className="sign-toolbar-divider" />
             </>
           )}
+          {element.type === 'whiteout' && (
+            <>
+              <ColorPicker
+                value={element.color}
+                onChange={(color) => onChange({ color })}
+                title="Whiteout color"
+                defaultColor="#ffffff"
+              />
+              <div className="sign-toolbar-divider" />
+            </>
+          )}
           <button
             type="button"
             className="sign-element-btn"
@@ -434,6 +459,10 @@ export default function DraggableOverlayElement({
           alt="Signature"
           className="sign-sig-image"
         />
+      )}
+
+      {element.type === 'whiteout' && (
+        <div style={{ position: 'absolute', inset: 0, backgroundColor: element.color || '#ffffff' }} />
       )}
 
       {/* Resizer control: width/height for signatures/checkmarks, font size for text */}

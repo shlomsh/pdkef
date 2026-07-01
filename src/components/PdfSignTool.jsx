@@ -23,7 +23,7 @@ export default function PdfSignTool() {
   const [pageSizes, setPageSizes] = useState([]); // Array of { width, height } in PDF points
   const [elements, setElements] = useState([]);
   const [activeElementId, setActiveElementId] = useState(null);
-  const [selectedTool, setSelectedTool] = useState(null); // 'text' | 'signature' | 'checkmark'
+  const [selectedTool, setSelectedTool] = useState(null); // 'text' | 'signature' | 'checkmark' | 'whiteout'
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
   const [progress, setProgress] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState(null);
@@ -443,6 +443,7 @@ export default function PdfSignTool() {
   // Place element on current page click
   const handlePageClick = (e, pageIndex) => {
     if (!selectedTool) return;
+    if (selectedTool === 'whiteout') return; // Handled by pointer events
     e.stopPropagation();
     
     // Ignore clicks if clicking on a active element to edit it
@@ -502,6 +503,83 @@ export default function PdfSignTool() {
     
     setSelectedTool(null); // Reset active tool
   };
+
+  const handleOverlayPointerDown = (e, pageIndex) => {
+    if (selectedTool !== 'whiteout') return;
+    if (e.target.closest('.sign-element')) return;
+    e.stopPropagation();
+    
+    // Prevent default on mouse events to avoid selecting text, but let touch events be handled carefully
+    if (!e.touches) e.preventDefault();
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    const startLeftPercent = ((clientX - rect.left) / rect.width) * 100;
+    const startTopPercent = ((clientY - rect.top) / rect.height) * 100;
+
+    const id = uniqueId();
+    const newEl = {
+      id,
+      type: 'whiteout',
+      pageIndex,
+      left: startLeftPercent,
+      top: startTopPercent,
+      width: 0,
+      height: 0,
+      color: '#ffffff'
+    };
+    
+    setElements((prev) => [...prev, newEl]);
+    setActiveElementId(id);
+
+    const handlePointerMove = (moveEvent) => {
+      const moveX = moveEvent.touches ? moveEvent.touches[0].clientX : moveEvent.clientX;
+      const moveY = moveEvent.touches ? moveEvent.touches[0].clientY : moveEvent.clientY;
+      
+      const widthPercent = ((moveX - clientX) / rect.width) * 100;
+      const heightPercent = ((moveY - clientY) / rect.height) * 100;
+
+      setElements((prev) => prev.map(el => {
+        if (el.id === id) {
+           return {
+             ...el,
+             left: widthPercent < 0 ? startLeftPercent + widthPercent : startLeftPercent,
+             top: heightPercent < 0 ? startTopPercent + heightPercent : startTopPercent,
+             width: Math.abs(widthPercent),
+             height: Math.abs(heightPercent)
+           };
+        }
+        return el;
+      }));
+    };
+
+    const handlePointerUp = () => {
+      window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('mouseup', handlePointerUp);
+      window.removeEventListener('touchmove', handlePointerMove);
+      window.removeEventListener('touchend', handlePointerUp);
+      
+      setElements((prev) => {
+        const el = prev.find(e => e.id === id);
+        if (el && el.width < 0.5 && el.height < 0.5) {
+           return prev.map(e => e.id === id ? { ...e, left: startLeftPercent - 5, top: startTopPercent - 2, width: 10, height: 4 } : e);
+        }
+        return prev;
+      });
+      
+      logAction('ADD_WHITEOUT', id, pageIndex, 'Added whiteout box');
+      setAnnouncement('Added whiteout box.');
+      setSelectedTool(null);
+    };
+
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+    window.addEventListener('touchmove', handlePointerMove, { passive: false });
+    window.addEventListener('touchend', handlePointerUp);
+  };
+
 
   const [tempPlacement, setTempPlacement] = useState(null);
 
@@ -852,6 +930,22 @@ export default function PdfSignTool() {
                     Check
                   </button>
 
+                  <button
+                    type="button"
+                    className={`sign-tool-btn${selectedTool === 'whiteout' ? ' active' : ''}`}
+                    onClick={() => {
+                      setSelectedTool(selectedTool === 'whiteout' ? null : 'whiteout');
+                      setAnnouncement('Whiteout tool active. Click a page to place.');
+                    }}
+                    title="Click here, then click a page to hide text"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                      <line x1="3" y1="3" x2="21" y2="21" />
+                    </svg>
+                    Whiteout
+                  </button>
+
                   <div className="sign-tool-dropdown-container">
                     <button
                       type="button"
@@ -1002,6 +1096,8 @@ export default function PdfSignTool() {
                       <div
                         className="sign-page-overlay"
                         onClick={(e) => handlePageClick(e, pageIdx)}
+                        onMouseDown={(e) => handleOverlayPointerDown(e, pageIdx)}
+                        onTouchStart={(e) => handleOverlayPointerDown(e, pageIdx)}
                       >
                         {elements
                           .filter((el) => el.pageIndex === pageIdx)

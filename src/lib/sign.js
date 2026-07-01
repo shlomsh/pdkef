@@ -172,6 +172,18 @@ export async function signPdf(file, elements, onProgress) {
         width: elWidthPoints,
         height: elHeightPoints
       });
+    } else if (el.type === 'whiteout') {
+      const elWidthPoints = (el.width / 100) * pdfWidth;
+      const elHeightPoints = (el.height / 100) * pdfHeight;
+      const { r, g, b } = hexToRgbFractions(el.color, '#ffffff');
+
+      page.drawRectangle({
+        x: pdfX,
+        y: pdfY - elHeightPoints,
+        width: elWidthPoints,
+        height: elHeightPoints,
+        color: rgb(r, g, b)
+      });
     }
 
     onProgress?.((i + 1) / elements.length);

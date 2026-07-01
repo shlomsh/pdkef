@@ -7,7 +7,7 @@ import '../styles/global.css';
 const title = 'PDkef - Free, Open Source PDF Tools. No Sign Up, No Server.';
 const description = 'A complete suite of PDF tools that run 100% locally in your browser - on desktop or mobile. Free and open source: no sign up, no paywalls, no limits.';
 
-import { FileSignature, Merge, ImageUp, ImageDown, Split, Shrink, FileLock2, FileEdit } from 'lucide-preact';
+import { FileSignature, Merge, ImageUp, ImageDown, Split, Shrink, FileLock2, FileEdit, Eraser } from 'lucide-preact';
 
 // FAQ schema mirrors the visible questions rendered in the footer below.
 const faq = [
@@ -17,56 +17,76 @@ const faq = [
   { question: 'Is PDkef open source?', answer: 'Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.' },
 ];
 
-// Ordered by SEO priority score from the keyword research (search volume x
-// winnability x client-side fit) - highest-opportunity tools surface first.
-const tools = [
+// Categorized tools for better scannability and UX
+const toolCategories = [
   {
-    title: 'Sign PDF',
-    description: 'Fill out forms and sign agreements securely on your device.',
-    href: '/sign/',
-    icon: FileSignature
+    category: 'Organize & Optimize',
+    tools: [
+      {
+        title: 'Merge PDF',
+        description: 'Combine multiple PDFs into a single document in seconds.',
+        href: '/merge/',
+        icon: Merge
+      },
+      {
+        title: 'Split PDF',
+        description: 'Extract specific pages or separate a PDF into multiple files.',
+        href: '/split/',
+        icon: Split
+      },
+      {
+        title: 'Edit PDF Pages',
+        description: 'Remove, rotate, and add page numbers to your PDF file easily.',
+        href: '/edit-pdf/',
+        icon: FileEdit
+      },
+      {
+        title: 'Compress PDF',
+        description: 'Reduce the file size of your PDF without losing quality.',
+        href: '/compress/',
+        icon: Shrink
+      }
+    ]
   },
   {
-    title: 'Merge PDF',
-    description: 'Combine multiple PDFs into a single document in seconds.',
-    href: '/merge/',
-    icon: Merge
+    category: 'Sign & Secure',
+    tools: [
+      {
+        title: 'Sign PDF',
+        description: 'Fill out forms and sign agreements securely on your device.',
+        href: '/sign/',
+        icon: FileSignature
+      },
+      {
+        title: 'Protect & Unlock',
+        description: 'Add a password to secure your PDF or remove a known password.',
+        href: '/unlock/',
+        icon: FileLock2
+      },
+      {
+        title: 'Redact & Blur',
+        description: 'Securely hide, blur, or black out sensitive text and flatten the document.',
+        href: '/redact/',
+        icon: Eraser
+      }
+    ]
   },
   {
-    title: 'PDF to Image',
-    description: 'Convert PDF pages into high-quality JPG or PNG images.',
-    href: '/pdf-to-image/',
-    icon: ImageUp
-  },
-  {
-    title: 'Image to PDF',
-    description: 'Combine JPG or PNG images into a single PDF document.',
-    href: '/image-to-pdf/',
-    icon: ImageDown
-  },
-  {
-    title: 'Split PDF',
-    description: 'Extract specific pages or separate a PDF into multiple files.',
-    href: '/split/',
-    icon: Split
-  },
-  {
-    title: 'Compress PDF',
-    description: 'Reduce the file size of your PDF without losing quality.',
-    href: '/compress/',
-    icon: Shrink
-  },
-  {
-    title: 'Protect & Unlock',
-    description: 'Add a password to secure your PDF or remove a known password.',
-    href: '/unlock/',
-    icon: FileLock2
-  },
-  {
-    title: 'Edit PDF Pages',
-    description: 'Remove, rotate, and add page numbers to your PDF file easily.',
-    href: '/edit-pdf/',
-    icon: FileEdit
+    category: 'Convert',
+    tools: [
+      {
+        title: 'PDF to Image',
+        description: 'Convert PDF pages into high-quality JPG or PNG images.',
+        href: '/pdf-to-image/',
+        icon: ImageUp
+      },
+      {
+        title: 'Image to PDF',
+        description: 'Combine JPG or PNG images into a single PDF document.',
+        href: '/image-to-pdf/',
+        icon: ImageDown
+      }
+    ]
   }
 ];
 ---
@@ -85,19 +105,24 @@ const tools = [
   </header>
 
   <main>
-    <div class="tool-grid">
-      {tools.map((tool) => (
-        <a href={tool.href} class="tool-card">
-          <div class="tool-icon">
-            <tool.icon size={24} strokeWidth={2} />
-          </div>
-          <div class="tool-content">
-            <h2>{tool.title}</h2>
-            <p>{tool.description}</p>
-          </div>
-        </a>
-      ))}
-    </div>
+    {toolCategories.map((group) => (
+      <section class="tool-category">
+        <h2 class="category-title">{group.category}</h2>
+        <div class="tool-grid">
+          {group.tools.map((tool) => (
+            <a href={tool.href} class="tool-card">
+              <div class="tool-icon">
+                <tool.icon size={24} strokeWidth={2} />
+              </div>
+              <div class="tool-content">
+                <h3>{tool.title}</h3>
+                <p>{tool.description}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    ))}
   </main>
 
   <script>
@@ -201,36 +226,23 @@ const tools = [
     text-align: left;
   }
 
+  .tool-category {
+    margin-top: 1rem;
+    margin-bottom: 3.5rem;
+  }
+
+  .category-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    color: var(--color-text);
+  }
+
   .tool-grid {
     display: grid;
-    grid-template-columns: repeat(12, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     grid-auto-rows: 1fr;
     gap: 1.5rem;
-    margin-top: 1.5rem;
-    margin-bottom: 2rem;
-  }
-
-  .tool-card {
-    grid-column: span 3;
-  }
-
-  @media (max-width: 1024px) {
-    .tool-grid {
-      grid-template-columns: repeat(6, 1fr);
-    }
-    .tool-card {
-      grid-column: span 3;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .tool-grid {
-      grid-template-columns: 1fr;
-      grid-auto-rows: auto;
-    }
-    .tool-card {
-      grid-column: auto;
-    }
   }
 
   .tool-card {
@@ -294,7 +306,7 @@ const tools = [
     transform: scale(1.05);
   }
 
-  .tool-content h2 {
+  .tool-content h3 {
     font-size: 1.15rem;
     font-weight: 600;
     margin: 0 0 0.5rem;
