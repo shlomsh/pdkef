@@ -1,28 +1,30 @@
-# SEO Audit — pdf-merge-online-free.vercel.app
+# SEO Audit — pdkef.vercel.app
 
-Date: 2026-06-30
-Scope: Live deployment (`https://pdf-merge-online-free.vercel.app/`) + project source (`/Users/sh/work/pdf-merge`)
-Business type: Free client-side web utility (SaaS-like tool, single page)
+Date: 2026-07-01
+Scope: Live deployment (`https://pdkef.vercel.app/`) + project source (`/Users/sh/work/pdkef`)
+Business type: Free client-side web utility (SaaS-like tool suite, 10 pages: 1 hub + 9 tools)
+
+> Note: a prior audit (2026-06-30) exists in this same directory but was run against a different domain/project path (`pdf-merge-online-free.vercel.app` / `/Users/sh/work/pdf-merge`) before the project was renamed to PDkef and expanded to a multi-tool hub. This report supersedes it. The critical placeholder-domain bug flagged in that audit (`astro.config.mjs`'s `site` value) has since been fixed, along with the missing OG image and Apple touch icon.
 
 ## Executive Summary
 
-**SEO Health Score: 54 / 100**
+**SEO Health Score: 85 / 100**
 
-The site is technically sound (clean static HTML, valid CSP, good headers, fast TTFB, working PWA icons) but is undermined by one critical, repeated defect: **every URL-bearing tag in the site points to a placeholder domain (`pdfmerge.example.com`) instead of the real deployed domain.** This single root cause cascades into broken canonicalization, a broken sitemap, broken Open Graph/Twitter previews, and a broken JSON-LD `url` field — all of which actively work against indexing and discoverability for the live site.
+The site is in strong technical shape: correct canonical domain everywhere, valid split-layer CSP with no `unsafe-inline`, all 10 sitemap URLs return 200, unique titles/H1s/meta descriptions per page, valid `SoftwareApplication` + `FAQPage` JSON-LD on every tool page, and a well-written `llms.txt`. The main finding is a genuine **orphan page**: `/protect/` is fully built, schema'd, and listed in the sitemap, but has **zero internal links pointing to it anywhere on the site**.
 
-### Top 5 Critical Issues
-1. **`astro.config.mjs`'s `site` is `https://pdfmerge.example.com`** — propagates to canonical URL, OG/Twitter tags, JSON-LD `url`, and sitemap.xml on every page. Google sees a canonical pointing to a domain that doesn't resolve to this content, which can suppress indexing of the real URL entirely.
-2. **`robots.txt` Sitemap directive points to `https://pdfmerge.example.com/sitemap.xml`** — crawlers that respect this directive fetch a sitemap for the wrong domain.
-3. **`sitemap.xml` lists `https://pdfmerge.example.com/` as its only URL** — even once fixed, it's a single static file (not Astro-generated), so it will silently drift out of sync if pages are added later.
-4. **OG/Twitter image (`og-image.png`) returns 404** on the live site — social shares (Slack, X/Twitter, iMessage, LinkedIn) render with no preview image, hurting click-through from shared links.
-5. **`apple-touch-icon.png` returns 404** — referenced in `<link rel="apple-touch-icon">` but never generated; iOS home-screen saves fall back to a screenshot instead of the app icon.
+### Top 5 Issues
+1. **`/protect/` is an orphan page** — not linked from the homepage tool grid, nor from any other tool page. The homepage's "Protect & Unlock" card links only to `/unlock/`. Google can still find it via `sitemap.xml`, but orphan pages get weaker crawl priority and no descriptive anchor-text signal, and human visitors on `/unlock/` or the homepage have no path to discover the Protect tool at all.
+2. **No cross-linking between tool pages** — every tool page (`/merge/`, `/split/`, etc.) links only back to `/` and `/licenses`. A user who lands directly on `/merge/` from search has no way to discover `/compress/`, `/split/`, or any other tool without navigating back to the homepage. This is a missed internal-linking opportunity (link equity + user journey) across all 9 tool pages, not just `/protect/`.
+3. Two titles run slightly over the ~60-char safe zone: `/compress/` (64 chars) and `/edit-pdf/` (65 chars raw, ~61 rendered after `&amp;` decodes to `&`). Low risk of truncation but worth trimming if revisiting copy.
+4. Sitemap is still a hand-written static file (per `CLAUDE.md`'s own documented caveat) — accurate today (all 10 tool routes present, `/protect/` included despite the internal-linking miss), but will silently drift if a new tool page is added and this file isn't updated in the same PR.
+5. No field/lab Core Web Vitals data available in this session (no PageSpeed/CrUX API access) — architecture strongly favors good CWV (zero-JS SEO shell, single lazy-hydrated Preact island) but this is unverified, not measured.
 
 ### Top 5 Quick Wins
-1. Set `site: 'https://pdf-merge-online-free.vercel.app'` (or the final custom domain once attached) in `astro.config.mjs` — fixes canonical, OG, Twitter, and JSON-LD `url` in one change.
-2. Update `public/robots.txt`'s `Sitemap:` line to match the real domain.
-3. Generate and add `public/og-image.png` (1200×630) and `public/icons/apple-touch-icon.png` (180×180) — both already have the icon source assets (`icon-512.png`) to derive from.
-4. Add an `llms.txt` (currently 404) — cheap AI-search-readiness win given the page is already well-structured for citation (clear FAQ, HowTo).
-5. Shorten the `<title>` from 63 to ≤60 characters to avoid SERP truncation (currently right at the edge, gets cut off in some SERP renderers).
+1. Add `/protect/` to the homepage tool grid (`src/pages/index.astro`) as its own card, or at minimum add a "Need to add a password instead? Protect a PDF" cross-link from `/unlock/`.
+2. Add a small "Other tools" link row/footer section to each tool page linking to 2-3 related tools (e.g. Merge ↔ Split ↔ Compress; Protect ↔ Unlock). Reuse a shared component so it's a one-time build.
+3. Trim `/compress/` and `/edit-pdf/` titles to ≤60 characters.
+4. Run Lighthouse/PageSpeed Insights against the live URL once the linking changes ship, to get real LCP/INP/CLS numbers rather than the lab estimate here.
+5. Consider generating the sitemap dynamically (`@astrojs/sitemap`) now that the site has grown to 10 pages, to remove the manual-sync risk noted in item 4 above.
 
 ---
 
@@ -31,65 +33,59 @@ The site is technically sound (clean static HTML, valid CSP, good headers, fast 
 | Check | Status | Notes |
 |---|---|---|
 | HTTP → HTTPS redirect | ✅ Pass | 308 redirect confirmed |
-| Single domain, no www/non-www split | ✅ Pass | |
-| robots.txt reachable | ✅ Pass (HTTP 200) | But content is wrong (see Critical #2) |
-| robots.txt allows crawling | ✅ Pass | `Allow: /` for all UAs |
-| sitemap.xml reachable | ✅ Pass (HTTP 200) | But content is wrong (see Critical #3) |
-| Canonical tag present | ⚠️ Present but wrong domain | `https://pdfmerge.example.com/` |
-| HTTP security headers | ✅ Pass | HSTS (`max-age=63072000; includeSubDomains; preload`), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` all present |
-| CSP | ✅ Pass | Split-layer CSP working correctly; meta-tag CSP carries hashed `script-src`/`style-src`, header CSP adds `frame-ancestors 'none'`. No `unsafe-inline`. (See CLAUDE.md for the documented incident this guards against — verified still correctly wired.) |
-| Compression / caching | ✅ Pass | `cache-control: public, max-age=0, must-revalidate` + ETag; Vercel edge cache HIT observed |
+| robots.txt reachable & correct | ✅ Pass | `Allow: /`, correct `Sitemap:` directive pointing at the real domain |
+| sitemap.xml reachable & correct | ✅ Pass | All 10 URLs use `https://pdkef.vercel.app` (previous placeholder-domain bug is fixed) |
+| All sitemap URLs return 200 | ✅ Pass | Verified `/`, `/merge/`, `/sign/`, `/pdf-to-image/`, `/split/`, `/compress/`, `/edit-pdf/`, `/unlock/`, `/protect/`, `/image-to-pdf/` |
+| Canonical tag present & correct | ✅ Pass | Unique, self-referential, correct domain on every page checked |
+| HTTP security headers | ✅ Pass | HSTS (`max-age=63072000; includeSubDomains; preload`), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` |
+| CSP | ✅ Pass | Meta-tag CSP carries hashed `script-src`/`style-src` (10 script hashes, 5 style hashes observed on homepage), no `unsafe-inline`; header CSP adds `frame-ancestors 'none'`. Matches the documented split-layer architecture in `CLAUDE.md`. |
+| Caching | ✅ Pass | `cache-control: public, max-age=0, must-revalidate` + ETag; Vercel edge `x-vercel-cache: HIT` observed |
 | Mobile viewport meta | ✅ Pass | `width=device-width, initial-scale=1, viewport-fit=cover` |
-| robots meta / noindex | ✅ Pass | No noindex found |
-| Structured data present | ✅ Pass | `SoftwareApplication`, `HowTo`, `FAQPage` — all valid JSON-LD syntactically, but `url` fields use the wrong domain |
-| Sitemap is dynamically generated | ❌ Fail | Hand-written static file in `public/`, will drift if more pages are added |
-| llms.txt | ❌ Missing | 404 |
-| Crawl depth | N/A | Single-page site, no internal link graph to evaluate |
-
-**Root cause for the canonical/OG/sitemap defects:** `astro.config.mjs:13` — `site: 'https://pdfmerge.example.com'`. This is a known placeholder; CLAUDE.md's PWA section explicitly flags "Astro 6+ `site` ... currently a placeholder — update before launch" but it was not updated before this deployment went live and became indexable.
+| `noindex` check | ✅ Pass | None found on any of the 10 sitemap pages |
+| `lang` attribute | ✅ Pass | `<html lang="en">` |
+| Structured data present | ✅ Pass | `SoftwareApplication` + `FAQPage` on homepage; both present on all 9 tool pages checked |
+| Sitemap dynamically generated | ⚠️ Still static | Currently accurate, but hand-maintained (see Quick Win #5) |
+| llms.txt | ✅ Present | 200, well-structured (see AI Search Readiness) |
 
 ## Content Quality (E-E-A-T)
 
-- Single H1: ✅ "Merge PDF online, free" — present, unique, matches primary keyword phrasing.
-- Heading hierarchy: ✅ Clean — H1 → H2 (How it works, Why pdfmerge, FAQ) → H3 (FAQ questions). No skipped levels.
-- Content is genuinely informative for a utility page: explains privacy model, mobile support, and licensing in FAQ — these are exactly the trust signals users (and AI answer engines) look for on a "is this safe" query class like file-upload tools.
-- **Authorship signal**: footer credits "Shlomi Shemesh" with link to GitHub profile and source repo — good for E-E-A-T (Experience/Expertise), especially combined with "Open source: MIT licensed, inspect the code yourself" in the FAQ. This is a meaningfully strong trust signal for a privacy-sensitive utility and should be preserved.
-- Word count is light (typical for a single-purpose tool), but the FAQ/HowTo content under `<details>` is collapsed by default — content inside `<details>` is still crawlable/indexable by Google (confirmed: it's in the static HTML, not client-injected), so this is not a content-visibility problem, just worth knowing it won't show in the above-the-fold viewport for users.
-- No duplicate content risk (single page, single locale).
+- Single, unique H1 per page confirmed on all 10 pages, each matching its primary keyword phrasing (e.g. "Merge PDF online, free", "Compress PDF online, free").
+- Clean heading hierarchy on every page checked — no skipped levels.
+- Authorship signal preserved and consistent: footer credits "Shlomi Shemesh" with GitHub links on every page, plus "Open source: MIT licensed" messaging — strong, repeated trust signal for a privacy-sensitive file-handling tool.
+- FAQ content is genuinely differentiated per tool (privacy, free/no-signup, and tool-specific questions), not boilerplate copy-pasted across pages — good for avoiding duplicate-content dilution across the 9 tool pages.
+- FAQ/"How it works" content is inside a `<details>` element collapsed by default, but present in static HTML (not client-injected), so it's fully crawlable — same finding as the prior audit, still correct.
 
 ## On-Page SEO
 
-- **Title tag**: "Merge PDF Online Free - Combine PDFs in Your Browser | pdfmerge" — 63 characters. Slightly over the ~60-char safe zone for full SERP display; lower priority but trim if revisiting.
-- **Meta description**: 160 characters — at the edge of Google's typical truncation point (~155-160). Consider trimming by 5-10 chars for safety margin.
-- Primary keyword "pdf merge online free" / "merge pdf online free" appears in title, H1, and meta description — matches CLAUDE.md's stated invariant, confirmed intact on the live page. ✅
-- Internal linking: only outbound links are footer GitHub links (external, correctly not internal-link-relevant for a single-page site).
+- Titles: 8 of 10 pages are ≤60 chars; `/compress/` (64) and `/edit-pdf/` (65 raw) run slightly long — see Quick Win #3.
+- Meta descriptions: all sampled pages (home 149, merge 127, sign 149 chars) are comfortably under Google's ~155-160 char truncation point — improved from the prior audit's 160-char homepage description.
+- Primary keyword present in title, H1, and meta description on every tool page — SEO invariant from `CLAUDE.md` holds.
+- **Internal linking gap (new finding, most significant issue in this audit):** the homepage tool grid links to only 9 of the site's 10 tool pages — `/protect/` is missing entirely, reachable only via direct URL or the sitemap. Additionally, no tool page links to any other tool page, meaning the entire site's internal link graph is a single-level hub-and-spoke with one broken spoke.
 
 ## Schema & Structured Data
 
-- Three JSON-LD blocks present: `SoftwareApplication`, `HowTo`, `FAQPage`. All syntactically valid (parsed cleanly).
-- `SoftwareApplication.offers` correctly declares `price: "0"` — appropriate for free-tool rich result eligibility.
-- **Defect**: `url` field in `SoftwareApplication` schema is `https://pdfmerge.example.com/` — same root cause as Critical #1. Should self-correct once `astro.config.mjs`'s `site` is fixed, since `SeoSchema.astro` derives it from `Astro.site`.
-- No `AggregateRating`/`Review` schema — correctly absent (no review data exists, adding fake ratings would violate Google's structured data guidelines — do NOT add this opportunistically).
+- `SoftwareApplication` (with `Person` author/creator) + `FAQPage` present and valid on every page sampled (home, compress, edit-pdf, unlock, protect, image-to-pdf — 2 JSON-LD blocks each).
+- `url` field correctly reflects `https://pdkef.vercel.app/` (prior placeholder-domain defect is resolved).
+- No `HowTo` schema present — correct per `CLAUDE.md`'s documented decision (Google deprecated HowTo rich results in 2023).
+- No `AggregateRating`/`Review` schema — correctly absent, no fabricated ratings.
 
 ## Performance (CWV, lab estimate only — no field data available)
 
-- TTFB measured: 0.226s for full HTML download (12.7KB), via Vercel edge with cache HIT — excellent.
-- No CrUX/field data integration found (no Google Search Console / PageSpeed API credentials detected in this session) — recommend running PageSpeed Insights or Lighthouse directly against the live URL for LCP/INP/CLS numbers; CLAUDE.md states a target of Lighthouse Performance+SEO ≥ 95 but no automated check confirms this is currently met.
-- Architecture favors good CWV: zero JS for the SEO-critical shell, single lazy-hydrated Preact island, lazy-imported `pdfjs-dist` for thumbnails — this is a strong foundation for low LCP/INP, but should be measured, not assumed.
+- TTFB: 0.214s for homepage HTML via Vercel edge (cache HIT) — excellent.
+- No CrUX/PageSpeed API credentials available in this session; recommend running Lighthouse/PageSpeed Insights directly against the live URL to confirm the ≥95 target stated in `CLAUDE.md`.
+- Architecture (zero-JS SEO shell, single lazy-hydrated Preact island per tool, lazy-imported `pdfjs-dist`) remains a strong foundation for low LCP/INP, unchanged from the prior audit's assessment.
 
 ## Images
 
-- `favicon.svg` ✅ present and served.
-- `icon-192.png`, `icon-512.png`, `icon-512-maskable.png` ✅ present, referenced correctly in `manifest.webmanifest`, confirmed 200 live.
-- `og-image.png` ❌ 404 — referenced in OG/Twitter tags but file doesn't exist anywhere in `public/`.
-- `apple-touch-icon.png` ❌ 404 — referenced in `<link rel="apple-touch-icon">` but file doesn't exist in `public/icons/`.
-- No `<img>` content images on the page itself (the dropzone icon is inline SVG) — no alt-text audit applicable.
+- `favicon.png`, `icons/apple-touch-icon.png`, `icons/icon-192.png`, `icons/icon-512.png`, `icons/icon-512-maskable.png` — all confirmed 200 (apple-touch-icon and OG image were both 404 in the prior audit; both now fixed).
+- `og-image.jpg` (1200×630 equivalent, referenced via `og:image`/`twitter:image`) — confirmed 200. Note the file is `.jpg`, not the `.png` the prior audit assumed; harmless, just noting for anyone diffing against old notes.
+- No `<img>` content images requiring alt-text audit beyond the logo (`alt="PDkef Logo"`, present) — tool icons are inline `lucide-preact` SVGs marked `aria-hidden="true"`, correctly excluded from the accessibility tree since adjacent text labels already convey meaning.
 
 ## AI Search Readiness (GEO)
 
-- Strong structural fit for AI answer engines: FAQ content directly answers common questions ("Is X free?", "Are my files uploaded?") in clean Q→A pairs inside valid `FAQPage` schema — this is exactly the shape AI Overviews/Perplexity/ChatGPT search prefer to cite.
-- No `llms.txt` — low effort, plausible upside; add one summarizing the tool's purpose and privacy model.
-- robots.txt has no explicit allow/disallow for AI crawler user-agents (GPTBot, PerplexityBot, ClaudeBot, etc.) — currently defaults to the blanket `Allow: /`, which does permit them. No action needed unless the user wants to selectively block any.
+- `llms.txt` is present and well-written: clear one-line summary, feature list, architecture/security notes, and links to homepage/source/developer — this was the prior audit's top "quick win" recommendation and has been fully implemented.
+- FAQ content across all pages remains well-shaped for AI Overviews/Perplexity/ChatGPT citation (direct Q→A pairs in valid `FAQPage` schema).
+- `robots.txt`'s blanket `Allow: /` permits all AI crawler user-agents (GPTBot, PerplexityBot, ClaudeBot, etc.) by default — no action needed unless the user wants to selectively restrict any.
 
 ---
 
@@ -97,13 +93,13 @@ The site is technically sound (clean static HTML, valid CSP, good headers, fast 
 
 | Category | Weight | Score | Weighted |
 |---|---|---|---|
-| Technical SEO | 22% | 45/100 | 9.9 |
-| Content Quality | 23% | 80/100 | 18.4 |
-| On-Page SEO | 20% | 70/100 | 14.0 |
-| Schema/Structured Data | 10% | 65/100 | 6.5 |
-| Performance (CWV) | 10% | 70/100 (lab estimate, unverified) | 7.0 |
-| AI Search Readiness | 10% | 60/100 | 6.0 |
-| Images | 5% | 40/100 | 2.0 |
-| **Total** | 100% | | **53.8 ≈ 54/100** |
+| Technical SEO | 22% | 92/100 | 20.2 |
+| Content Quality | 23% | 82/100 | 18.9 |
+| On-Page SEO | 20% | 75/100 | 15.0 |
+| Schema/Structured Data | 10% | 90/100 | 9.0 |
+| Performance (CWV) | 10% | 85/100 (lab estimate, unverified) | 8.5 |
+| AI Search Readiness | 10% | 90/100 | 9.0 |
+| Images | 5% | 90/100 | 4.5 |
+| **Total** | 100% | | **85.1 ≈ 85/100** |
 
-Technical SEO is the dominant drag — almost entirely attributable to the single `site:` placeholder propagating everywhere. Fixing it is the highest-leverage change available.
+On-Page SEO is now the dominant drag, driven almost entirely by the internal-linking gap (orphan `/protect/` page + no tool-to-tool cross-links) rather than any indexability defect. Up from 54/100 in the 2026-06-30 audit — the placeholder-domain, missing-OG-image, and missing-apple-touch-icon critical issues from that audit are all resolved.
