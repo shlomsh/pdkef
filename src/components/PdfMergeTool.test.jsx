@@ -126,3 +126,66 @@ describe('PdfMergeTool UI flow', () => {
     expect(createSpy).toHaveBeenCalledWith(list, expect.any(Object));
   });
 });
+
+import fs from 'fs';
+import path from 'path';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+
+describe('merge.js library integration with real fixtures', () => {
+  function getFixtureFile(name) {
+    const filePath = path.resolve(__dirname, '../lib/__fixtures__', name);
+    const buffer = fs.readFileSync(filePath);
+    return new File([buffer], name, { type: 'application/pdf' });
+  }
+
+  async function extractTextFromPdfBlob(blob) {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const loadingTask = pdfjs.getDocument({
+      data: bytes,
+      useWorkerFetch: false,
+      isEvalSupported: false,
+    });
+    const pdf = await loadingTask.promise;
+    const pageTexts = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str).join('').trim();
+      pageTexts.push(pageText);
+    }
+    await loadingTask.destroy();
+    return pageTexts;
+  }
+
+  it('merges num-1, num-2, num-3, num-4 in order', async () => {
+    const { mergePdfs } = await vi.importActual('../lib/merge.js');
+    const files = [
+      getFixtureFile('num-1.pdf'),
+      getFixtureFile('num-2.pdf'),
+      getFixtureFile('num-3.pdf'),
+      getFixtureFile('num-4.pdf'),
+    ];
+    const progressCalls = [];
+    const mergedBlob = await mergePdfs(files, (p) => progressCalls.push(p));
+
+    expect(mergedBlob).toBeInstanceOf(Blob);
+    const texts = await extractTextFromPdfBlob(mergedBlob);
+    expect(texts).toEqual(['1', '2', '3', '4']);
+    expect(progressCalls).toEqual([0.25, 0.5, 0.75, 1]);
+  });
+
+  it('merges in a reordered input to preserve input order, not sorted order', async () => {
+    const { mergePdfs } = await vi.importActual('../lib/merge.js');
+    const files = [
+      getFixtureFile('num-3.pdf'),
+      getFixtureFile('num-1.pdf'),
+      getFixtureFile('num-4.pdf'),
+      getFixtureFile('num-2.pdf'),
+    ];
+    const mergedBlob = await mergePdfs(files);
+    expect(mergedBlob).toBeInstanceOf(Blob);
+    const texts = await extractTextFromPdfBlob(mergedBlob);
+    expect(texts).toEqual(['3', '1', '4', '2']);
+  });
+});
+

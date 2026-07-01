@@ -57,28 +57,6 @@ vi.mock('pdfjs-dist', () => {
   };
 });
 
-// Mock @cantoo/pdf-lib
-vi.mock('@cantoo/pdf-lib', () => {
-  return {
-    PDFDocument: {
-      create: vi.fn(() =>
-        Promise.resolve({
-          copyPages: vi.fn(() => Promise.resolve(['page1', 'page2'])),
-          addPage: vi.fn(),
-          save: vi.fn(() => Promise.resolve(new Uint8Array([1, 2, 3]))),
-        })
-      ),
-      load: vi.fn(() =>
-        Promise.resolve({
-          copyPages: vi.fn(() => Promise.resolve(['page1'])),
-          addPage: vi.fn(),
-          save: vi.fn(() => Promise.resolve(new Uint8Array([4, 5, 6]))),
-        })
-      ),
-    },
-  };
-});
-
 describe('PdfSplitTool UI flow', () => {
   let container;
 
@@ -140,3 +118,75 @@ describe('PdfSplitTool UI flow', () => {
     expect(cards.length).toBe(4);
   });
 });
+
+import fs from 'fs';
+import path from 'path';
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+
+describe('splitPdf library integration with real fixtures', () => {
+  function getFixtureFile(name) {
+    const filePath = path.resolve(__dirname, '../lib/__fixtures__', name);
+    const buffer = fs.readFileSync(filePath);
+    return new File([buffer], name, { type: 'application/pdf' });
+  }
+
+  async function extractTextFromPdfBlob(blob) {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const loadingTask = pdfjs.getDocument({
+      data: bytes,
+      useWorkerFetch: false,
+      isEvalSupported: false,
+    });
+    const pdf = await loadingTask.promise;
+    const pageTexts = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str).join('').trim();
+      pageTexts.push(pageText);
+    }
+    await loadingTask.destroy();
+    return pageTexts;
+  }
+
+  it('splits page range 2-4 from num-5.pdf to yield pages "12", "13", "14"', async () => {
+    const { splitPdf } = await vi.importActual('../lib/split.js');
+    const file = getFixtureFile('num-5.pdf');
+    const results = await splitPdf(file, { pageNumbers: [2, 3, 4], mode: 'combined' });
+
+    expect(results.length).toBe(1);
+    expect(results[0].filename).toBe('num-5-extracted.pdf');
+    
+    const texts = await extractTextFromPdfBlob(results[0].blob);
+    expect(texts).toEqual(['12', '13', '14']);
+  });
+
+  it('extracts single page 1 from num-5.pdf to yield page "11"', async () => {
+    const { splitPdf } = await vi.importActual('../lib/split.js');
+    const file = getFixtureFile('num-5.pdf');
+    const results = await splitPdf(file, { pageNumbers: [1], mode: 'combined' });
+
+    expect(results.length).toBe(1);
+    expect(results[0].filename).toBe('num-5-extracted.pdf');
+
+    const texts = await extractTextFromPdfBlob(results[0].blob);
+    expect(texts).toEqual(['11']);
+  });
+
+  it('extracts pages separately', async () => {
+    const { splitPdf } = await vi.importActual('../lib/split.js');
+    const file = getFixtureFile('num-5.pdf');
+    const results = await splitPdf(file, { pageNumbers: [2, 4], mode: 'separate' });
+
+    expect(results.length).toBe(2);
+    expect(results[0].filename).toBe('num-5-page-2.pdf');
+    expect(results[1].filename).toBe('num-5-page-4.pdf');
+
+    const texts1 = await extractTextFromPdfBlob(results[0].blob);
+    expect(texts1).toEqual(['12']);
+
+    const texts2 = await extractTextFromPdfBlob(results[1].blob);
+    expect(texts2).toEqual(['14']);
+  });
+});
+

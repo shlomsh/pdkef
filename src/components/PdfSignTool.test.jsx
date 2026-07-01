@@ -1,6 +1,8 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import PdfSignTool from './PdfSignTool.jsx';
 
 function makePdfFile(name) {
@@ -320,4 +322,93 @@ describe('PdfSignTool UI flow', () => {
     elements = container.querySelectorAll('.sign-element');
     expect(elements.length).toBe(0);
   });
+
+  it('applies text annotations to num-1.pdf and exports a valid signed PDF', async () => {
+    // Stub URL methods
+    let savedBlob = null;
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    window.URL.createObjectURL = vi.fn((blob) => {
+      savedBlob = blob;
+      return 'blob:signed-pdf-url';
+    });
+    
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSignTool />, container);
+    });
+    
+    // Load num-1.pdf
+    const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+    const bytes = fs.readFileSync(fixturePath);
+    const file = new File([bytes], 'num-1.pdf', { type: 'application/pdf' });
+    
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      Object.defineProperty(input, 'files', { value: [file], configurable: true });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    
+    // Select text tool
+    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
+    await act(async () => {
+      textBtn.click();
+    });
+
+    // Click on page overlay to place text element
+    const overlay = container.querySelector('.sign-page-overlay');
+    overlay.getBoundingClientRect = () => ({
+      left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
+    });
+    
+    await act(async () => {
+      overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+    
+    // Set text element content
+    const inputField = container.querySelector('.sign-text-input');
+    expect(inputField).not.toBeNull();
+    await act(async () => {
+      inputField.value = 'John Doe';
+      inputField.dispatchEvent(new Event('input', { bubbles: true }));
+      inputField.dispatchEvent(new Event('blur', { bubbles: true }));
+    });
+
+    // Click the save/download button to trigger handleSavePdf
+    const saveButton = container.querySelector('button[title*="Save"]');
+    expect(saveButton).not.toBeNull();
+    
+    await act(async () => {
+      saveButton.click();
+      await new Promise(resolve => setTimeout(resolve, 100)); // wait for saving to resolve
+    });
+    
+    expect(savedBlob).not.toBeNull();
+    
+    // Assert on the resulting PDF
+    const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const loadingTask = getDocument({
+      data: new Uint8Array(await savedBlob.arrayBuffer()),
+      useWorkerFetch: false,
+      isEvalSupported: false,
+    });
+    const pdf = await loadingTask.promise;
+    expect(pdf.numPages).toBe(1);
+    
+    const page = await pdf.getPage(1);
+    const textContent = await page.getTextContent();
+    const extractedText = textContent.items.map(item => item.str).join(' ');
+    
+    expect(extractedText).toContain('1');
+    expect(extractedText).toContain('John Doe');
+    
+    await loadingTask.destroy();
+    window.URL.createObjectURL = originalCreateObjectURL;
+  });
 });
+

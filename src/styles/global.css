@@ -355,7 +355,7 @@ main {
 footer {
   text-align: center;
   padding: 1rem 1.5rem;
-  color: var(--color-muted-light);
+  color: var(--color-muted);
   font-size: 0.85rem;
   border-top: 1px solid var(--color-border);
   margin-top: auto;
@@ -367,7 +367,7 @@ footer p {
 
 .credit-line {
   font-size: 0.72rem;
-  color: var(--color-muted-light);
+  color: var(--color-muted);
   white-space: nowrap;
 }
 
@@ -526,7 +526,7 @@ footer a {
   align-items: center;
   gap: 0.4rem;
   margin: var(--space-3) 0 0;
-  color: var(--color-muted);
+  color: var(--color-text);
   font-size: 0.85rem;
   letter-spacing: -0.005em;
 }
@@ -660,10 +660,10 @@ footer a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   margin-left: 0.1rem;
-  color: var(--color-muted-light);
+  color: var(--color-muted);
   border-radius: 50%;
   cursor: help;
   transition: color 0.15s var(--ease-out);
@@ -2145,7 +2145,6 @@ footer a {
   background: var(--color-surface-sunken);
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
-  border-left: 3px solid var(--color-muted-light);
   margin-top: 0.5rem;
 }
 
@@ -2174,6 +2173,10 @@ footer a {
   background: var(--color-surface-sunken);
   border-radius: var(--radius-sm);
   padding: 0.55rem 0.9rem;
+}
+
+.target-size-input-row:has(input:focus-visible) {
+  box-shadow: var(--shadow-focus);
 }
 
 .target-size-input-row input {
