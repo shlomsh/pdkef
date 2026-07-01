@@ -1295,6 +1295,7 @@ footer a {
 /* Draggable Items */
 .sign-element {
   position: absolute;
+  z-index: 1;
   cursor: move;
   user-select: none;
   touch-action: none;
@@ -1302,6 +1303,20 @@ footer a {
   padding: 4px;
   border-radius: 4px;
   transition: border-color 0.15s ease;
+}
+
+/* Without this, stacking order is just DOM order, so selecting/dragging an
+   earlier-created element never brings it above a later one it overlaps —
+   clicking that spot always re-grabs the newer element instead, making the
+   two look "stuck together" since you can never reach the one underneath. */
+.sign-element.active {
+  z-index: 50;
+}
+
+/* Checkmarks are small by default (min 3% page width) — fixed padding would eat
+   most of that box at small sizes, so the check icon fills the full box instead. */
+.sign-element--checkmark {
+  padding: 0;
 }
 
 .sign-element:hover {
@@ -1344,7 +1359,10 @@ footer a {
   white-space: nowrap;
 }
 
-.sign-element:hover .sign-element-actions,
+/* Toolbar visibility is tied only to true selection (.active), not :hover —
+   :hover fires independently per-element, so with two overlapping elements,
+   hovering the unselected one showed its toolbar too, alongside the genuinely
+   selected element's toolbar, looking like a "duplicated"/stuck pair. */
 .sign-element.active .sign-element-actions {
   opacity: 1;
   pointer-events: auto;
@@ -1415,8 +1433,32 @@ footer a {
   border-radius: 3px;
 }
 
+.sign-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sign-color-swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
+  transition: transform 0.1s ease;
+}
+.sign-color-swatch:hover {
+  transform: scale(1.12);
+}
+.sign-color-swatch.active {
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px #fff;
+}
+
 /* Text Element Input */
 .sign-text-display {
+  position: relative;
   min-width: 40px;
   min-height: 20px;
   color: #000;
@@ -1427,6 +1469,7 @@ footer a {
 }
 
 .sign-text-input {
+  display: block;
   border: none;
   background: transparent;
   color: inherit;
@@ -1438,14 +1481,28 @@ footer a {
   font-style: inherit;
   line-height: inherit;
   outline: none;
-  width: 100%;
+  resize: none;
+  overflow: hidden;
+  white-space: pre;
+}
+
+/* Off-screen clone of the input's text, used only to measure its rendered
+   width so the input can grow/shrink to fit (short words, RTL, long text). */
+.sign-text-measure {
+  position: absolute;
+  visibility: hidden;
+  white-space: pre;
+  pointer-events: none;
+  top: 0;
+  left: 0;
 }
 
 /* Signature Image Element */
 .sign-sig-image {
   display: block;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   pointer-events: none;
   user-select: none;
 }
@@ -1547,6 +1604,35 @@ footer a {
 .sig-tab-btn.active {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);
+}
+
+.sig-pen-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.sig-pen-controls .sign-color-swatch.active {
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-primary);
+}
+
+.sig-thickness-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sig-thickness-control label {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.sig-thickness-control input[type="range"] {
+  width: 90px;
+  accent-color: var(--color-primary);
 }
 
 .sig-pad-wrapper {
@@ -1715,7 +1801,9 @@ footer a {
   gap: 0.5rem;
   max-height: 180px;
   overflow-y: auto;
-  padding-right: 2px;
+  /* Room for .sign-dropdown-item-delete's negative top/right offset — without this,
+     overflow-y: auto clips the badge on the first row and on the right edge. */
+  padding: 8px 8px 2px 2px;
 }
 
 .sign-dropdown-item {

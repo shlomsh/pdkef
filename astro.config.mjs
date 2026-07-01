@@ -13,6 +13,21 @@ export default defineConfig({
   site: 'https://pdkef.vercel.app',
   output: 'static',
   integrations: [preact()],
+  // These are only reachable through dynamic import() inside the Preact
+  // islands (SortableJS in PdfMergeTool, pdfjs-dist/@pdf-lib/fontkit in
+  // several tools), so Vite's static startup crawl never finds them. Left
+  // unlisted, the *first* real page load after any node_modules/.vite cache
+  // clear has to discover and bundle them on the fly — that request 503s
+  // while bundling, and the astro-island dynamic import fails before Vite's
+  // resulting full-reload can rescue it, permanently breaking hydration
+  // (and the file input's onChange) until a manual page reload. Listing
+  // them here forces Vite to bundle them at server startup instead of
+  // racing discovery against the first real navigation.
+  vite: {
+    optimizeDeps: {
+      include: ['sortablejs', '@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist'],
+    },
+  },
   // Astro computes exact sha256 hashes for every inline script/style it
   // emits (the astro-island hydration bootstrap, JSON-LD blocks) and bakes
   // them into a <meta http-equiv="Content-Security-Policy"> tag on every
