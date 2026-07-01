@@ -4,6 +4,7 @@ import SeoSchema from '../components/SeoSchema.astro';
 import PdfMergeTool from '../components/PdfMergeTool.jsx';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
+import { Merge as MergeIcon } from 'lucide-preact';
 
 const title = 'Merge PDF Online Free - Combine PDFs in Your Browser | PDkef';
 const description =
@@ -24,7 +25,11 @@ const faq = [
   </Fragment>
 
   <header>
-    <h1>Merge PDF online, free</h1>
+    <div class="page-title-row">
+      <div class="page-icon"><MergeIcon size={28} strokeWidth={2} /></div>
+      <h1>Merge PDF online, free</h1>
+    </div>
+    <p>Combine PDFs into one, right in your browser. No upload, no server. Your files never leave your device.</p>
   </header>
 
   <main>
@@ -33,7 +38,7 @@ const faq = [
     </section>
   </main>
 
-  <Footer summaryText="Combine PDFs into one, right in your browser. No upload, no server. Your files never leave your device.">
+  <Footer>
     <section id="how-it-works">
       <h2>How to merge PDF files online for free</h2>
       <ol>

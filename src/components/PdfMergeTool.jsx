@@ -85,7 +85,7 @@ export default function PdfMergeTool() {
       `${newEntries.length} file${newEntries.length === 1 ? '' : 's'} added.`,
     );
 
-    // Thumbnails and PDF metadata are nice-to-have, not blocking — render
+    // Thumbnails and PDF metadata are nice-to-have, not blocking - render
     // them as they resolve instead of waiting before the file appears.
     for (const entry of newEntries) {
       renderThumbnail(entry.file)

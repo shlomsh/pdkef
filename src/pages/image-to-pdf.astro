@@ -4,6 +4,7 @@ import SeoSchema from '../components/SeoSchema.astro';
 import PdfImageToPdfTool from '../components/PdfImageToPdfTool.jsx';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
+import { ImageDown } from 'lucide-preact';
 
 const title = 'Image to PDF Online Free - Combine JPG/PNG into One PDF | PDkef';
 const description = 'Combine multiple JPG or PNG images into a single PDF online for free. Reorder pages and download instantly. No upload, no signup, no watermark.';
@@ -25,7 +26,10 @@ const faq = [
   </Fragment>
 
   <header>
-    <h1>Image to PDF online, free</h1>
+    <div class="page-title-row">
+      <div class="page-icon"><ImageDown size={28} strokeWidth={2} /></div>
+      <h1>Image to PDF online, free</h1>
+    </div>
     <p>Combine JPG or PNG images into a single PDF, in any order - scanned pages, photographed slides, or screenshots. Runs entirely on your device.</p>
   </header>
 

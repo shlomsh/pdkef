@@ -11,7 +11,7 @@ export class UnsupportedImageError extends Error {
 // Combines image files into a single PDF, one image per page. Each page is
 // sized to match its image's pixel dimensions exactly (1 image pixel = 1 PDF
 // point), so the image fills the page edge-to-edge with no distortion or
-// letterboxing. Runs entirely in-memory in the browser — no network I/O.
+// letterboxing. Runs entirely in-memory in the browser - no network I/O.
 export async function imagesToPdf(files, onProgress) {
   const pdf = await PDFDocument.create();
 

@@ -3,7 +3,7 @@
 // We improve on that with two optional, better signals, in priority order:
 //   1. A date encoded in the filename itself (e.g. "2024-03-01 invoice.pdf")
 //   2. The PDF's internal /CreationDate metadata (often present, sometimes not)
-//   3. File.lastModified — always available, the final fallback
+//   3. File.lastModified - always available, the final fallback
 const FILENAME_DATE_RE = /(\d{4})[-_.](\d{2})[-_.](\d{2})/;
 
 function dateFromFilename(name) {
@@ -21,7 +21,7 @@ export function sortByName(entries, direction = 'asc') {
   return direction === 'desc' ? sorted.reverse() : sorted;
 }
 
-// `entries` are { file, pdfCreationDate? } — pdfCreationDate is populated
+// `entries` are { file, pdfCreationDate? } - pdfCreationDate is populated
 // lazily (see resolvePdfCreationDate in merge.js) once a file has been
 // inspected; until then we fall back to filename / lastModified.
 export function sortByDate(entries, direction = 'asc') {

@@ -4,6 +4,7 @@ import SeoSchema from '../components/SeoSchema.astro';
 import PdfSplitTool from '../components/PdfSplitTool.jsx';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
+import { Split as SplitIcon } from 'lucide-preact';
 
 const title = 'Split PDF Online Free - Extract Pages from PDF | PDkef';
 const description = 'Split a PDF file online for free. Extract specific pages or separate into multiple documents in your browser. No upload, no signup, no watermark.';
@@ -24,7 +25,10 @@ const faq = [
   </Fragment>
 
   <header>
-    <h1>Split PDF online, free</h1>
+    <div class="page-title-row">
+      <div class="page-icon"><SplitIcon size={28} strokeWidth={2} /></div>
+      <h1>Split PDF online, free</h1>
+    </div>
     <p>Extract pages from your PDF file in seconds. Processing happens entirely on your device.</p>
   </header>
 

@@ -3,7 +3,7 @@
 // The worker URL uses Vite's native `new URL(..., import.meta.url)` asset
 // pattern (pdfjs-dist's documented Vite integration): Vite bundles and
 // content-hashes the worker as a same-origin asset automatically, so it's
-// never fetched from a CDN — required for both offline support and the
+// never fetched from a CDN - required for both offline support and the
 // no-third-party-network privacy guarantee.
 let pdfjsLib;
 

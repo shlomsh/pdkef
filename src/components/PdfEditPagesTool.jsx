@@ -9,11 +9,11 @@ const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 18;
 
 export default function PdfEditPagesTool() {
   const [file, setFile] = useState(null);
-  // pages: array of { pageNumber, thumbnail } — ORDER is the final page order
+  // pages: array of { pageNumber, thumbnail } - ORDER is the final page order
   const [pages, setPages] = useState([]);
   // removedPageNums: Set of original page numbers (1-indexed) marked for removal
   const [removedPageNums, setRemovedPageNums] = useState(new Set());
-  // rotations: { [pageNumber]: degrees } — keyed by original page number
+  // rotations: { [pageNumber]: degrees } - keyed by original page number
   const [rotations, setRotations] = useState({});
   const [addPageNumbers, setAddPageNumbers] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | loading-file | processing | done | error
@@ -275,7 +275,7 @@ export default function PdfEditPagesTool() {
                       onClick={() => togglePage(page.pageNumber)}
                       style={{ cursor: 'pointer' }}
                     >
-                      {/* Drag handle — full-width top bar */}
+                      {/* Drag handle - full-width top bar */}
                       <span
                         class="page-drag-handle"
                         title="Drag to reorder"

@@ -4,6 +4,7 @@ import SeoSchema from '../components/SeoSchema.astro';
 import PdfToImageTool from '../components/PdfToImageTool.jsx';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
+import { ImageUp } from 'lucide-preact';
 
 const title = 'Convert PDF to Image Online Free - No Watermark | PDkef';
 const description = 'Convert PDF pages to high-quality JPG or PNG images online for free, with no watermark. Secure, fast, and 100% private in-browser conversion.';
@@ -24,7 +25,10 @@ const faq = [
   </Fragment>
 
   <header>
-    <h1>Convert PDF to Image</h1>
+    <div class="page-title-row">
+      <div class="page-icon"><ImageUp size={28} strokeWidth={2} /></div>
+      <h1>Convert PDF to Image</h1>
+    </div>
     <p>Turn your PDF pages into high-quality JPG or PNG images - no watermark, ever. Scanned IDs, contracts, and medical records are converted entirely on your device, so nothing is ever transmitted to a third-party server.</p>
   </header>
 

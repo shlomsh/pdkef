@@ -14,7 +14,7 @@ export async function resolvePdfCreationDate(file) {
 }
 
 // Merges PDF files in the given order into a single PDF Blob.
-// Runs entirely in-memory in the browser — no network I/O.
+// Runs entirely in-memory in the browser - no network I/O.
 export async function mergePdfs(files, onProgress) {
   const merged = await PDFDocument.create();
 

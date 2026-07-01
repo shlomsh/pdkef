@@ -4,6 +4,7 @@ import SeoSchema from '../components/SeoSchema.astro';
 import PdfSignTool from '../components/PdfSignTool.jsx';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
+import { FileSignature } from 'lucide-preact';
 
 const title = 'Sign PDF Online Free - Fill & Sign PDF Forms | PDkef';
 const description = 'Sign PDF files online for free. Add signatures, fill forms, write text, and check boxes in your browser securely. Your files never leave your device.';
@@ -35,7 +36,10 @@ const faq = [
   </Fragment>
 
   <header>
-    <h1>Sign & Fill PDF online, free</h1>
+    <div class="page-title-row">
+      <div class="page-icon"><FileSignature size={28} strokeWidth={2} /></div>
+      <h1>Sign & Fill PDF online, free</h1>
+    </div>
     <p>Fill out forms, place checkmarks, and sign school agreements or other documents safely and privately - no account, no signup, ever.</p>
   </header>
 

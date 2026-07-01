@@ -3,16 +3,19 @@ interface Props {
   summaryText?: string;
 }
 
-const { summaryText = "Free, Open Source, and 100% Client-Side. Your files never leave your device." } = Astro.props;
+const { summaryText } = Astro.props;
 ---
 <footer>
-  <div class="disclosures">
-    <details class="disclosure" id="faq-details">
-      <summary class="faq-summary">
-        {summaryText}
-        <span class="faq-toggle" role="button" tabindex="0">How it works &amp; FAQ</span>
+  <div class="footer-columns">
+    <details class="disclosure footer-disclosure" id="how-it-works-details">
+      <summary class="disclosure-summary">
+        <span>How it works &amp; FAQ</span>
+        <svg class="disclosure-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path d="M1 3l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
       </summary>
       <div class="disclosure-body">
+        {summaryText && <p class="footer-intro">{summaryText}</p>}
         <slot>
           <section id="why-us">
             <h2>Why yet another PDF tool?</h2>
@@ -32,25 +35,30 @@ const { summaryText = "Free, Open Source, and 100% Client-Side. Your files never
             <p>No. The tools run entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
           </section>
         </slot>
+        <slot name="how-it-works-extra" />
+      </div>
+    </details>
+
+    <p class="credit-line">Built with ❤️ by <a href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi Shemesh</a>.</p>
+
+    <details class="disclosure footer-disclosure" id="open-source-details">
+      <summary class="disclosure-summary">
+        <span>Open source &amp; privacy</span>
+        <svg class="disclosure-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path d="M1 3l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </summary>
+      <div class="disclosure-body">
+        <section id="privacy">
+          <h2>Privacy</h2>
+          <p>Every tool runs 100% locally in your browser. Your files are never uploaded - PDkef has no server to send them to.</p>
+        </section>
 
         <section id="about">
-          <h2>Open Source</h2>
+          <h2>Open source</h2>
           <p>This project is open source under the MIT license. You can <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">view the source code on GitHub</a>. PDkef is built on other open source projects too - see the <a href="/licenses">open source licenses</a> page for the full list.</p>
-          <slot name="about-extra" />
         </section>
       </div>
     </details>
-    <p class="credit-line">Built with ❤️ by <a href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi Shemesh</a>.</p>
   </div>
 </footer>
-
-<script>
-  const summary = document.querySelector('.faq-summary');
-  if (summary) {
-    summary.addEventListener('click', (e) => {
-      if (e.target instanceof Element && !e.target.closest('.faq-toggle')) {
-        e.preventDefault();
-      }
-    });
-  }
-</script>

@@ -4,6 +4,7 @@ import SeoSchema from '../components/SeoSchema.astro';
 import PdfSecurityTool from '../components/PdfSecurityTool.jsx';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
+import { FileLock2 } from 'lucide-preact';
 
 const title = 'Protect PDF Online Free - Add PDF Password | PDkef';
 const description =
@@ -23,7 +24,10 @@ const faq = [
   </Fragment>
 
   <header>
-    <h1>Protect PDF online, free</h1>
+    <div class="page-title-row">
+      <div class="page-icon"><FileLock2 size={28} strokeWidth={2} /></div>
+      <h1>Protect PDF online, free</h1>
+    </div>
     <p>Add a password to your PDF instantly. Secure, client-side encryption.</p>
   </header>
 

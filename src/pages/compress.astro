@@ -4,6 +4,7 @@ import SeoSchema from '../components/SeoSchema.astro';
 import PdfCompressTool from '../components/PdfCompressTool.jsx';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
+import { Shrink } from 'lucide-preact';
 
 const title = 'Compress PDF to 100KB Free - Reduce PDF File Size Online | PDkef';
 const description =
@@ -25,7 +26,10 @@ const faq = [
   </Fragment>
 
   <header>
-    <h1>Compress PDF online, free</h1>
+    <div class="page-title-row">
+      <div class="page-icon"><Shrink size={28} strokeWidth={2} /></div>
+      <h1>Compress PDF online, free</h1>
+    </div>
     <p>Reduce the size of your PDF files instantly - even down to a specific target like 100KB for strict portal upload limits. Tax records, applications, and scanned IDs are compressed entirely on your device, never uploaded to a server.</p>
   </header>
 

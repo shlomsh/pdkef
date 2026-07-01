@@ -1,5 +1,5 @@
 :root {
-  /* Palette — navy ink on warm-cream surfaces, one electric-blue accent.
+  /* Palette - navy ink on warm-cream surfaces, one electric-blue accent.
      A deeper, more distinctive evolution of the prior Apple-blue theme. */
   --color-bg: #f9f7f7;
   --color-surface: #ffffff;
@@ -26,7 +26,7 @@
   --radius-lg: 22px;
   --radius-pill: 999px;
 
-  /* Soft, layered shadows — light and diffuse rather than dark and hard. */
+  /* Soft, layered shadows - light and diffuse rather than dark and hard. */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-md: 0 10px 30px rgba(15, 23, 42, 0.07), 0 2px 6px rgba(15, 23, 42, 0.04);
@@ -35,7 +35,7 @@
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-emphasized: cubic-bezier(0.19, 1, 0.22, 1);
-  /* Crisp, fast-settling ease-out for press/hover micro-interactions —
+  /* Crisp, fast-settling ease-out for press/hover micro-interactions -
      smooth deceleration, no elastic overshoot. */
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
 
@@ -174,6 +174,34 @@ header h1 {
   color: var(--color-text);
 }
 
+.page-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+}
+
+.page-title-row h1 {
+  margin: 0;
+}
+
+.page-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: clamp(40px, 8vw, 56px);
+  height: clamp(40px, 8vw, 56px);
+  border-radius: var(--radius);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.page-icon svg {
+  width: 55%;
+  height: 55%;
+}
+
 header p {
   color: var(--color-muted);
   font-size: clamp(0.92rem, 1.6vw, 1rem);
@@ -193,30 +221,32 @@ main {
 /* --- Reveal-on-click disclosures (how-to / why / FAQ) ---
    Content is real, server-rendered HTML so crawlers see it; it's just
    visually collapsed until the user wants it. */
-.disclosures {
-  margin-bottom: var(--space-5);
-  display: flex;
-  flex-direction: column;
+.footer-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-items: start;
   gap: var(--space-3);
+  max-width: 1080px;
+  margin: 0 auto;
 }
 
-.disclosures > section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+@media (min-width: 768px) {
+  .footer-columns {
+    grid-template-columns: 1fr auto 1fr;
+    gap: var(--space-3) var(--space-5);
+  }
+
+  .footer-disclosure:first-child {
+    justify-self: start;
+  }
+
+  .footer-disclosure:last-child {
+    justify-self: end;
+  }
 }
 
-.disclosures-heading {
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-muted-light);
-  margin: 0 0 var(--space-1);
-  padding-left: 0.2rem;
-}
-
-.disclosure {
+.footer-disclosure {
   border: none;
   background: none;
   box-shadow: none;
@@ -224,82 +254,36 @@ main {
   transition: none;
 }
 
-.disclosure:hover {
-  border-color: transparent;
-}
-
-.disclosure[open] {
-  border-color: transparent;
-  box-shadow: none;
-}
-
-.disclosure > summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-  padding: 0;
-  font-size: 0.85rem;
-  line-height: 1.6;
-  color: var(--color-muted-light);
-  cursor: default;
-  list-style: none;
-  user-select: text;
-}
-
-.disclosure > summary :is(h2, h3) {
-  margin: 0;
-  font: inherit;
-  font-weight: 600;
-  letter-spacing: inherit;
-}
-
-.disclosure > summary::-webkit-details-marker {
-  display: none;
-}
-
-.disclosure > summary::after {
-  display: none;
-}
-
-.faq-toggle {
+.disclosure-summary {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  color: var(--color-muted);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  padding: 0.15rem 0.5rem;
-  border-radius: var(--radius-pill);
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  font-size: 0.85rem;
   font-weight: 500;
-  font-size: 0.75rem;
-  text-decoration: none;
+  line-height: 1.45;
+  color: var(--color-muted);
   cursor: pointer;
-  margin-left: 0.4rem;
-  white-space: nowrap;
-  transition: all 0.15s var(--ease-out);
+  list-style: none;
+  transition: color 0.15s var(--ease-out);
 }
 
-.faq-toggle:hover {
+.disclosure-summary:hover {
   color: var(--color-text);
-  background: var(--color-surface-sunken);
-  border-color: var(--color-border-strong);
 }
 
-.faq-toggle::after {
-  content: '';
-  display: inline-block;
-  width: 0.32rem;
-  height: 0.32rem;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: translateY(-1px) rotate(45deg);
+.disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure-chevron {
+  flex-shrink: 0;
   transition: transform 0.2s var(--ease-out);
 }
 
-.disclosure[open] .faq-toggle::after {
-  transform: translateY(1px) rotate(-135deg);
+.footer-disclosure[open] .disclosure-chevron {
+  transform: rotate(180deg);
 }
 
 .disclosure-body {
@@ -370,16 +354,11 @@ main {
 
 footer {
   text-align: center;
-  padding: 1.5rem 1.5rem;
+  padding: 1rem 1.5rem;
   color: var(--color-muted-light);
   font-size: 0.85rem;
   border-top: 1px solid var(--color-border);
   margin-top: auto;
-}
-
-footer .disclosures {
-  margin-top: 0;
-  margin-bottom: 0;
 }
 
 footer p {
@@ -387,7 +366,18 @@ footer p {
 }
 
 .credit-line {
-  margin-top: 0.6rem !important;
+  font-size: 0.72rem;
+  color: var(--color-muted-light);
+  white-space: nowrap;
+}
+
+.credit-line a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.credit-line a:hover {
+  text-decoration: underline;
 }
 
 footer a {
@@ -2371,7 +2361,7 @@ footer a {
   color: var(--color-text);
 }
 
-/* Page card checkbox — now a real <button> */
+/* Page card checkbox - now a real <button> */
 .page-card-checkbox {
   position: absolute;
   top: 0.35rem;
@@ -2406,7 +2396,7 @@ footer a {
   box-shadow: 0 1px 4px rgba(20, 99, 255, 0.3);
 }
 
-/* Drag handle — full-width top bar on each page card */
+/* Drag handle - full-width top bar on each page card */
 .page-drag-handle {
   width: calc(100% + 1rem);
   margin: -0.75rem -0.5rem 0;
@@ -2469,7 +2459,7 @@ footer a {
 }
 
 /* SortableJS states for the page grid */
-/* Ghost = the placeholder left behind while dragging — make it invisible
+/* Ghost = the placeholder left behind while dragging - make it invisible
    so the grid doesn't show a jarring empty hole */
 .pages-grid .is-ghost {
   opacity: 0;

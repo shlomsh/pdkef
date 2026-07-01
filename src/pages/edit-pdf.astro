@@ -4,16 +4,17 @@ import SeoSchema from '../components/SeoSchema.astro';
 import PdfEditPagesTool from '../components/PdfEditPagesTool.jsx';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
+import { FileEdit } from 'lucide-preact';
 
 const title = 'Edit PDF Online Free - Rotate, Reorder & Remove Pages | PDkef';
 const description =
-  'Edit your PDF for free in your browser: remove unwanted pages, rotate pages, reorder pages by drag & drop, and add page numbers. 100% private — your file never leaves your device.';
+  'Edit your PDF for free in your browser: remove unwanted pages, rotate pages, reorder pages by drag & drop, and add page numbers. 100% private - your file never leaves your device.';
 
 const faq = [
   {
     question: 'Are my PDF files uploaded to a server?',
     answer:
-      'No. PDkef runs entirely in your browser. Your file is never uploaded, never sent over the network, and never stored anywhere outside your own device. Every operation — page removal, rotation, reordering, and numbering — happens locally using JavaScript.',
+      'No. PDkef runs entirely in your browser. Your file is never uploaded, never sent over the network, and never stored anywhere outside your own device. Every operation - page removal, rotation, reordering, and numbering - happens locally using JavaScript.',
   },
   {
     question: 'How do I remove pages from a PDF?',
@@ -36,7 +37,7 @@ const faq = [
       'Check the "Add page numbers" box below the page grid before clicking Apply Changes. Page numbers are printed at the bottom centre of each output page, numbered sequentially from 1.',
   },
   {
-    question: 'Can I do all edits at once — rotate, remove, and reorder?',
+    question: 'Can I do all edits at once - rotate, remove, and reorder?',
     answer:
       'Yes. All edits are applied together in a single pass when you click Apply Changes. You can freely mix removing pages, rotating individual pages, reordering, and adding page numbers before exporting.',
   },
@@ -59,10 +60,13 @@ const faq = [
   </Fragment>
 
   <header>
-    <h1>Edit PDF pages — free &amp; private</h1>
+    <div class="page-title-row">
+      <div class="page-icon"><FileEdit size={28} strokeWidth={2} /></div>
+      <h1>Edit PDF pages - free &amp; private</h1>
+    </div>
     <p>
       Remove pages, rotate pages, reorder by drag &amp; drop, and add page numbers.
-      Runs 100% locally in your browser — your file never leaves your device.
+      Runs 100% locally in your browser - your file never leaves your device.
     </p>
   </header>
 
@@ -72,13 +76,13 @@ const faq = [
     </section>
   </main>
 
-  <Footer summaryText="Edit, rotate, reorder, and delete pages from your PDF directly in your browser. No uploads, no servers, no tracking — absolute privacy.">
+  <Footer summaryText="Edit, rotate, reorder, and delete pages from your PDF directly in your browser. No uploads, no servers, no tracking - absolute privacy.">
     <section id="how-it-works">
       <h2>How to edit a PDF online for free</h2>
       <ol>
         <li>
           <strong>Open your PDF.</strong> Click "Choose file" or drag and drop any PDF into the tool.
-          Your file stays on your device — nothing is uploaded.
+          Your file stays on your device - nothing is uploaded.
         </li>
         <li>
           <strong>Make your edits.</strong>
@@ -100,7 +104,7 @@ const faq = [
       <h2>Why use PDkef to edit PDF pages</h2>
       <ul>
         <li>
-          <strong>100% private — your file never leaves your device.</strong>
+          <strong>100% private - your file never leaves your device.</strong>
           Every operation runs in the browser with no server, no upload, and no third-party API. You can even use it offline.
         </li>
         <li>
@@ -109,11 +113,11 @@ const faq = [
         </li>
         <li>
           <strong>All edits in one pass.</strong>
-          Remove, rotate, reorder, and add page numbers simultaneously — then export once. No round-tripping through multiple tools.
+          Remove, rotate, reorder, and add page numbers simultaneously - then export once. No round-tripping through multiple tools.
         </li>
         <li>
           <strong>Works on any device.</strong>
-          Runs in any modern browser on desktop, tablet, or phone — no app or plugin installation needed.
+          Runs in any modern browser on desktop, tablet, or phone - no app or plugin installation needed.
         </li>
         <li>
           <strong>Open source.</strong>
@@ -128,8 +132,8 @@ const faq = [
       <h3>Are my PDF files uploaded to a server?</h3>
       <p>
         No. PDkef runs entirely in your browser. Your file is never uploaded, never sent over the
-        network, and never stored anywhere outside your own device. Every operation — page removal,
-        rotation, reordering, and numbering — happens locally using JavaScript.
+        network, and never stored anywhere outside your own device. Every operation - page removal,
+        rotation, reordering, and numbering - happens locally using JavaScript.
       </p>
 
       <h3>How do I remove pages from a PDF?</h3>
@@ -158,7 +162,7 @@ const faq = [
         are printed at the bottom centre of each output page, numbered sequentially from 1.
       </p>
 
-      <h3>Can I do all edits at once — rotate, remove, and reorder?</h3>
+      <h3>Can I do all edits at once - rotate, remove, and reorder?</h3>
       <p>
         Yes. All edits are applied together in a single pass when you click Apply Changes. You can freely
         mix removing pages, rotating individual pages, reordering, and adding page numbers before exporting.
