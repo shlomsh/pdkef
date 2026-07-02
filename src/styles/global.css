@@ -42,6 +42,56 @@
   src: url('/fonts/Sacramento-Regular.ttf') format('truetype');
 }
 
+/* --- Text tool fonts --- */
+@font-face {
+  font-family: 'Arimo';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Arimo-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Arimo';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Arimo-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Arimo';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/Arimo-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Arimo';
+  font-style: italic;
+  font-weight: 700;
+  src: url('/fonts/Arimo-BoldItalic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Assistant';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Assistant-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Assistant';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Assistant-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Heebo';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Heebo-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Heebo';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Heebo-Bold.ttf') format('truetype');
+}
+
 :root {
   /* Palette - navy ink on warm-cream surfaces, one electric-blue accent.
      A deeper, more distinctive evolution of the prior Apple-blue theme. */
@@ -592,43 +642,6 @@ footer a {
 .privacy-line svg {
   color: var(--color-success);
   flex-shrink: 0;
-}
-
-.install-pwa-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: var(--space-3);
-  padding: 0.45rem 1.1rem;
-  background: var(--color-surface);
-  color: var(--color-primary);
-  border: 1.5px solid var(--color-primary);
-  border-radius: var(--radius-pill);
-  font-weight: 600;
-  font-size: 0.84rem;
-  cursor: pointer;
-  transition: background-color 0.18s var(--ease-out), transform 0.18s var(--ease-spring),
-    border-color 0.18s var(--ease-out), color 0.18s var(--ease-out);
-}
-
-.install-pwa-button:hover {
-  background: var(--color-primary-soft);
-  color: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-  transform: translateY(-1px);
-}
-
-.install-pwa-button:active {
-  transform: translateY(0) scale(0.98);
-}
-
-.hint-message {
-  margin: var(--space-3) 0 0;
-  padding: 0.65rem 0.9rem;
-  background: var(--color-primary-soft);
-  color: var(--color-text);
-  border-radius: var(--radius-sm);
-  font-size: 0.88rem;
 }
 
 /* --- List header (count + clear) --- */
@@ -1248,12 +1261,19 @@ footer a {
    so give it its own background/scroll/padding rather than inheriting the
    page's — the UA default fullscreen backdrop is plain black otherwise. */
 .sign-workspace:fullscreen,
-.sign-workspace:-webkit-full-screen {
+.sign-workspace:-webkit-full-screen,
+.sign-workspace.pseudo-fullscreen {
   max-width: none;
   height: 100%;
   background: var(--color-bg);
   overflow-y: auto;
   padding: var(--space-4);
+}
+
+.sign-workspace.pseudo-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
 }
 
 .sign-toolbar-container {
@@ -1263,7 +1283,6 @@ footer a {
   width: 100%;
   display: flex;
   justify-content: center;
-  margin-bottom: var(--space-4);
   pointer-events: none; /* Let clicks pass through container */
 }
 
@@ -1452,7 +1471,6 @@ footer a {
   user-select: none;
   touch-action: none;
   border: 1px dashed transparent;
-  padding: 4px;
   border-radius: 4px;
   transition: border-color 0.15s ease;
 }
@@ -1469,7 +1487,6 @@ footer a {
    most of that box at small sizes, so the check icon fills the full box instead. */
 .sign-element--checkmark {
   padding: 0;
-  overflow: hidden;
 }
 
 .sign-element:hover {
@@ -1482,7 +1499,7 @@ footer a {
   background: rgba(238, 243, 255, 0.4);
 }
 
-/* Invisible zone above the element */
+/* Invisible zone above the element for toolbar */
 .sign-element::before {
   content: '';
   position: absolute;
@@ -1490,6 +1507,14 @@ footer a {
   left: -8px;
   right: -8px;
   height: 44px;
+}
+
+/* Expanded hit area for easier dragging/hovering */
+.sign-element::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  z-index: -1;
 }
 
 /* Edit controls: rich text toolbar. Vertical position (top) is set inline by
@@ -1581,6 +1606,13 @@ footer a {
   width: max-content;
   padding: 0.35rem;
   gap: 2px;
+  /* Cap the height so the full font list scrolls instead of rendering as one
+     tall column. Beyond keeping the list compact, this is what lets Floating UI
+     anchor the menu right under the "Aa" trigger: an over-tall menu can't fit
+     below the trigger, so flip()/shift() shove it far away (out over the
+     sidebar, off the PDF) trying to fit it on-screen. */
+  max-height: 15rem;
+  overflow-y: auto;
 }
 
 .sign-font-menu-item {
@@ -1600,6 +1632,15 @@ footer a {
   background: var(--color-primary-soft);
   color: var(--color-primary);
   font-weight: 600;
+}
+
+.sign-font-menu-group-label {
+  padding: 0.4rem 0.6rem 0.15rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-muted-light);
 }
 
 .sign-color-input {
@@ -1682,14 +1723,31 @@ footer a {
 
 /* Text Element Input */
 .sign-text-display {
+  display: grid;
   position: relative;
-  min-width: 40px;
-  min-height: 20px;
+  align-items: start;
+  justify-items: start;
   color: #000;
   line-height: 1.2;
+}
+
+.sign-text-input,
+.sign-text-measure {
+  grid-area: 1 / 1;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  font-style: inherit;
+  line-height: inherit;
+  padding: 0 4px;
+  margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  outline: none;
+}
+
+.sign-text-measure {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .sign-text-input {
@@ -1697,28 +1755,12 @@ footer a {
   border: none;
   background: transparent;
   color: inherit;
-  padding: 0;
-  margin: 0;
-  font-family: inherit;
-  font-size: inherit;
-  font-weight: inherit;
-  font-style: inherit;
-  line-height: inherit;
   outline: none;
   resize: none;
   overflow: hidden;
-  white-space: pre;
-}
-
-/* Off-screen clone of the input's text, used only to measure its rendered
-   width so the input can grow/shrink to fit (short words, RTL, long text). */
-.sign-text-measure {
-  position: absolute;
-  visibility: hidden;
-  white-space: pre;
-  pointer-events: none;
-  top: 0;
-  left: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
 }
 
 /* Signature Image Element */
@@ -1735,14 +1777,41 @@ footer a {
 .sign-element-resizer {
   position: absolute;
   bottom: -4px;
-  right: -4px;
   width: 10px;
   height: 10px;
   background: var(--color-primary);
   border: 1px solid #fff;
   border-radius: 50%;
-  cursor: se-resize;
   z-index: 5;
+}
+
+.sign-element-resizer.right {
+  right: -4px;
+  cursor: se-resize;
+}
+
+.sign-element-resizer.left {
+  left: -4px;
+  cursor: sw-resize;
+}
+
+/* Redact box delete/resize controls stay hidden until the box is hovered
+   (desktop) or actively touched/dragged (mobile, via the .active class set
+   in PdfRedactTool.jsx's activeBoxId state) — otherwise a page with several
+   redaction boxes is cluttered with ✕ buttons and resize handles at rest. */
+.redact-box .redact-element-btn,
+.redact-box .redact-box-resizer {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.redact-box:hover .redact-element-btn,
+.redact-box:hover .redact-box-resizer,
+.redact-box.active .redact-element-btn,
+.redact-box.active .redact-box-resizer {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* Signature Dialog Modal */
@@ -1986,7 +2055,7 @@ footer a {
 
 /* Floating Helper Text */
 .sign-help-tip {
-  margin: var(--space-2) 0 0;
+  margin: 0;
   color: var(--color-muted);
   font-size: 0.83rem;
   display: flex;

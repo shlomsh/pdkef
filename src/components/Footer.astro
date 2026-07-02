@@ -17,16 +17,6 @@ const { summaryText } = Astro.props;
       <div class="disclosure-body">
         {summaryText && <p class="footer-intro">{summaryText}</p>}
         <slot>
-          <section id="why-us">
-            <h2>Why yet another PDF tool?</h2>
-            <ul>
-              <li><strong>Free:</strong> no cost, no signup, no watermark, no limits.</li>
-              <li><strong>Private:</strong> your files never leave your device; nothing is uploaded.</li>
-              <li><strong>Fast:</strong> processing happens instantly in your browser.</li>
-              <li><strong>Works everywhere:</strong> Chrome on macOS, Windows, Android, and iOS.</li>
-            </ul>
-          </section>
-
           <section id="faq">
             <h2>Frequently asked questions</h2>
             <h3>Are the tools really free?</h3>

@@ -4,6 +4,7 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import PdfSignTool from './PdfSignTool.jsx';
+import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -539,6 +540,121 @@ describe('PdfSignTool UI flow', () => {
     } finally {
       HTMLCanvasElement.prototype.getContext = originalGetContext;
     }
+  });
+
+  it('placeSignatureAt sizes/positions a placed signature using widthPercentToHeightPercent against the page wrapper (not the overlay)', async () => {
+    // aspectRatio: 1 comes from the saved signature record; the page wrapper is
+    // deliberately given a non-square rect (600x900) so a bug that used the overlay's
+    // rect instead, or dropped the wrapper's own aspect ratio, would produce a
+    // different height% than this test's independently-computed expectation.
+    const mockSignature = {
+      id: 'sig-geom',
+      dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      aspectRatio: 1
+    };
+    localStorage.setItem('pdf-toolkit:signatures', JSON.stringify([mockSignature]));
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSignTool />, container);
+    });
+
+    const file = makePdfFile('test.pdf');
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      Object.defineProperty(input, 'files', { value: [file], configurable: true });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    // Select the saved signature from the dropdown, arming `activeSignature`.
+    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Signature'));
+    await act(async () => { sigBtn.click(); });
+    const dropdownItem = container.querySelector('.sign-dropdown-item');
+    await act(async () => { dropdownItem.click(); });
+
+    const overlay = container.querySelector('.sign-page-overlay');
+    const wrapper = container.querySelector('.sign-page-wrapper');
+    overlay.getBoundingClientRect = () => ({
+      left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
+    });
+    wrapper.getBoundingClientRect = () => ({
+      left: 0, top: 0, width: 600, height: 900, right: 600, bottom: 900, x: 0, y: 0, toJSON: () => {}
+    });
+
+    await act(async () => {
+      overlay.dispatchEvent(new MouseEvent('click', { clientX: 120, clientY: 160, bubbles: true }));
+    });
+
+    const placed = container.querySelector('.sign-element');
+    expect(placed).not.toBeNull();
+
+    // Independently-derived expectation (mirrors placeSignatureAt's own math, but
+    // computed here rather than copy-pasted from the component).
+    const clickLeftPercent = pxToPercent(120, 600); // handlePageClick's own math, out of scope for this refactor
+    const clickTopPercent = pxToPercent(160, 800);
+    const widthPercent = 20; // placeSignatureAt's fixed default
+    const heightPercent = widthPercentToHeightPercent(widthPercent, 1, 600, 900);
+    const expectedLeft = clickLeftPercent - widthPercent / 2;
+    const expectedTop = clickTopPercent - heightPercent / 2;
+
+    expect(parseFloat(placed.style.left)).toBeCloseTo(expectedLeft);
+    expect(parseFloat(placed.style.top)).toBeCloseTo(expectedTop);
+    expect(parseFloat(placed.style.width)).toBeCloseTo(widthPercent);
+    expect(parseFloat(placed.style.height)).toBeCloseTo(heightPercent);
+    // Sanity: the 600x900 wrapper is not square, so height% must differ from width%
+    // — otherwise this test wouldn't actually exercise widthPercentToHeightPercent.
+    expect(heightPercent).not.toBeCloseTo(widthPercent);
+  });
+
+  it('whiteout draw converts pointer deltas to width/height percent via pxToPercent/pxDeltaToPercent', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSignTool />, container);
+    });
+
+    const file = makePdfFile('test.pdf');
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      Object.defineProperty(input, 'files', { value: [file], configurable: true });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const whiteoutBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Whiteout'));
+    await act(async () => { whiteoutBtn.click(); });
+
+    const overlay = container.querySelector('.sign-page-overlay');
+    overlay.getBoundingClientRect = () => ({
+      left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
+    });
+
+    await act(async () => {
+      overlay.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 200, clientY: 400 })); // dx=100 dy=300
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    const box = container.querySelector('.sign-element');
+    expect(box).not.toBeNull();
+
+    const startLeftPercent = pxToPercent(100, 500);
+    const startTopPercent = pxToPercent(100, 1000);
+    const widthPercent = pxDeltaToPercent(100, 500); // dragged right -> width grows from the start point
+    const heightPercent = pxDeltaToPercent(300, 1000);
+
+    expect(parseFloat(box.style.left)).toBeCloseTo(startLeftPercent);
+    expect(parseFloat(box.style.top)).toBeCloseTo(startTopPercent);
+    expect(parseFloat(box.style.width)).toBeCloseTo(widthPercent);
+    expect(parseFloat(box.style.height)).toBeCloseTo(heightPercent);
   });
 });
 

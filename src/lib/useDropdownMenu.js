@@ -30,8 +30,10 @@ export function useDropdownMenu({ placement = 'bottom-start' } = {}) {
       middleware: [offset(8), flip(), shift({ padding: 8 })]
     }).then(({ x, y }) => {
       if (cancelled) return;
+      menuRef.current.style.position = 'fixed';
       menuRef.current.style.left = `${x}px`;
       menuRef.current.style.top = `${y}px`;
+      menuRef.current.style.transform = 'none';
     });
     return () => { cancelled = true; };
   }, [open, placement]);

@@ -1,29 +1,17 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'preact/hooks';
 import { computePosition, offset, flip } from '@floating-ui/dom';
 import { PilcrowLeft, PilcrowRight } from 'lucide-preact';
-import { tintImageDataUrl } from '../lib/sign.js';
+import { tintImageDataUrl, getEffectiveTextDirection } from '../lib/sign.js';
+import {
+  pxToPercent,
+  pxDeltaToPercent,
+  pxToPoints,
+  scaleFactorFromPx,
+  widthPercentToHeightPercent
+} from '../lib/coords.js';
 import ColorPickerMenu from './ColorPickerMenu.jsx';
 import FontPickerMenu from './FontPickerMenu.jsx';
 
-// First strong-directional character wins (matches the Unicode bidi
-// algorithm's approach, and what dir="auto" does under the hood) —
-// covers the Hebrew and Arabic script blocks, including presentation forms.
-const RTL_CHAR = /[\u0591-\u07FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
-function detectTextDirection(text) {
-  return RTL_CHAR.test(text || '') ? 'rtl' : 'ltr';
-}
-
-// `element.textDirection` is a manual override (set via the toolbar's
-// direction toggle) for when the user wants RTL layout — right-anchored
-// growth, right-aligned text — before typing anything, since there's no
-// reliable way to read the OS/IME keyboard language from the browser (see
-// detectTextDirection above, which only works once RTL characters exist).
-// Falls back to content-based auto-detection when no override is set.
-function getEffectiveTextDirection(element) {
-  return element.textDirection || detectTextDirection(element.text);
-}
-
-// Draggable Overlay Element Component
 export default function DraggableOverlayElement({
   element,
   isActive,
@@ -47,11 +35,7 @@ export default function DraggableOverlayElement({
   const dragStartPos = useRef({ x: 0, y: 0, left: 0, top: 0 });
   const [scaleFactor, setScaleFactor] = useState(1);
   const [tintedSigUrl, setTintedSigUrl] = useState(null);
-  const textMeasureRef = useRef(null);
-  const [textInputWidth, setTextInputWidth] = useState(60);
-  const [textInputHeight, setTextInputHeight] = useState(24);
   const actionsRef = useRef(null);
-  const prevTextWidthRef = useRef(null);
 
   // Keep the floating toolbar on-screen vertically: its default position
   // (above, flush with the top of the element) clips off the top edge for
@@ -93,37 +77,7 @@ export default function DraggableOverlayElement({
     return () => { cancelled = true; };
   }, [isActive, element.top]);
 
-  // Grow/shrink the text box to fit its content in both directions — width for
-  // the widest line (RTL and long/short text otherwise sit inside a leftover
-  // fixed-width box), height for however many lines Enter has introduced.
-  //
-  // For RTL content, growth must come out of the *left* edge, not the right:
-  // typing Hebrew/Arabic starts at the right and adds characters leftward, so
-  // the right edge (where typing began) has to stay put while `left` shifts
-  // left to make room — the opposite of the LTR case, where the box is
-  // anchored by its left edge and simply widens rightward as you type.
-  useEffect(() => {
-    if (element.type !== 'text' || !textMeasureRef.current) return;
-    const newWidth = Math.max(20, textMeasureRef.current.scrollWidth + 4);
-    const newHeight = Math.max(20, textMeasureRef.current.scrollHeight + 4);
-
-    const pageWrapper = getPageWrapper();
-    if (
-      getEffectiveTextDirection(element) === 'rtl' &&
-      pageWrapper &&
-      prevTextWidthRef.current != null
-    ) {
-      const deltaPx = newWidth - prevTextWidthRef.current;
-      const parentWidth = pageWrapper.getBoundingClientRect().width;
-      if (deltaPx !== 0 && parentWidth > 0) {
-        onChange({ left: element.left - (deltaPx / parentWidth) * 100 });
-      }
-    }
-    prevTextWidthRef.current = newWidth;
-
-    setTextInputWidth(newWidth);
-    setTextInputHeight(newHeight);
-  }, [element.type, element.text, element.fontFamily, element.fontWeight, element.fontStyle, element.fontSize, scaleFactor]);
+  // Removed JS measuring effect in favor of CSS grid auto-growing.
 
   // Recolor the signature preview to match the chosen ink color
   useEffect(() => {
@@ -151,7 +105,7 @@ export default function DraggableOverlayElement({
     if (!pageWrapper) return;
 
     const updateScale = () => {
-      setScaleFactor(pageWrapper.getBoundingClientRect().width / pageWidthPoints);
+      setScaleFactor(scaleFactorFromPx(pageWrapper.getBoundingClientRect().width, pageWidthPoints));
     };
 
     updateScale();
@@ -188,6 +142,17 @@ export default function DraggableOverlayElement({
       top: element.top
     };
 
+    // Text boxes are CSS auto-sized (no stored `element.width`), so the only
+    // accurate width comes from measuring the actual rendered box — captured
+    // once here, since it can't change over the course of a drag. (Read-only,
+    // gesture-time measurement, same pattern as `textStartRect` in the resize
+    // handler below — not a render effect, so it can't reintroduce the
+    // measure-then-mutate-position drift bug.)
+    const parentRectAtStart = pageWrapper.getBoundingClientRect();
+    const textWidthPercentAtStart = element.type === 'text' && elementRef.current
+      ? pxToPercent(elementRef.current.getBoundingClientRect().width, parentRectAtStart.width)
+      : null;
+
     const handlePointerMove = (moveEvent) => {
       const moveX = moveEvent.touches ? moveEvent.touches[0].clientX : moveEvent.clientX;
       const moveY = moveEvent.touches ? moveEvent.touches[0].clientY : moveEvent.clientY;
@@ -197,11 +162,20 @@ export default function DraggableOverlayElement({
 
       const parentRect = pageWrapper.getBoundingClientRect();
 
-      let newLeft = dragStartPos.current.left + (dx / parentRect.width) * 100;
-      let newTop = dragStartPos.current.top + (dy / parentRect.height) * 100;
+      let newLeft = dragStartPos.current.left + pxDeltaToPercent(dx, parentRect.width);
+      let newTop = dragStartPos.current.top + pxDeltaToPercent(dy, parentRect.height);
 
-      // Keep within bounds
-      newLeft = Math.max(0, Math.min(100 - (element.width || 4), newLeft));
+      // Keep within bounds. `element.left` anchors the box's left edge normally,
+      // but for RTL text it anchors the *right* edge (see the `style` block
+      // below), so the valid range is flipped: the anchor can't go below the
+      // box's own width (or the left edge would run off-page) and can't exceed
+      // 100 (or the right edge would run off-page).
+      const widthPercent = element.type === 'text' ? (textWidthPercentAtStart ?? 4) : (element.width || 4);
+      if (element.type === 'text' && getEffectiveTextDirection(element) === 'rtl') {
+        newLeft = Math.max(widthPercent, Math.min(100, newLeft));
+      } else {
+        newLeft = Math.max(0, Math.min(100 - widthPercent, newLeft));
+      }
       newTop = Math.max(0, Math.min(100 - (element.height || 2), newTop));
 
       onChange({ left: newLeft, top: newTop });
@@ -221,7 +195,7 @@ export default function DraggableOverlayElement({
   };
 
   // Resize handler for signature/checkmark elements (width/height) and text elements (font size)
-  const handleResizeStart = (e) => {
+  const handleResizeStart = (e, handle = 'right') => {
     e.stopPropagation();
     e.preventDefault();
 
@@ -240,18 +214,22 @@ export default function DraggableOverlayElement({
     const startParentRect = pageWrapper.getBoundingClientRect();
     const defaultRatio = element.type === 'checkmark' ? 1 : 0.4;
     const ratioAtStart = element.aspectRatio || defaultRatio;
-    const startHeight = element.height || (startWidth * ratioAtStart * (startParentRect.width / startParentRect.height));
+    const startHeight = element.height || widthPercentToHeightPercent(startWidth, ratioAtStart, startParentRect.width, startParentRect.height);
+
+    // Capture the initial bounds of the text element so resize math doesn't compound against dynamic grid updates
+    const textStartRect = element.type === 'text' && elementRef.current ? elementRef.current.getBoundingClientRect() : null;
 
     const handleResizeMove = (moveEvent) => {
       const moveX = moveEvent.touches ? moveEvent.touches[0].clientX : moveEvent.clientX;
       const moveY = moveEvent.touches ? moveEvent.touches[0].clientY : moveEvent.clientY;
-      const dx = moveX - dragStartX;
+      const rawDx = moveX - dragStartX;
       const dy = moveY - dragStartY;
+      const dx = handle === 'left' ? -rawDx : rawDx;
 
       if (element.type === 'whiteout') {
         const parentRect = pageWrapper.getBoundingClientRect();
-        const deltaWidthPercent = (dx / parentRect.width) * 100;
-        const deltaHeightPercent = (dy / parentRect.height) * 100;
+        const deltaWidthPercent = pxDeltaToPercent(dx, parentRect.width);
+        const deltaHeightPercent = pxDeltaToPercent(dy, parentRect.height);
         let newWidth = Math.max(1, Math.min(90, startWidth + deltaWidthPercent));
         let newHeight = Math.max(1, Math.min(90, startHeight + deltaHeightPercent));
         onChange({ width: newWidth, height: newHeight });
@@ -259,30 +237,40 @@ export default function DraggableOverlayElement({
       }
 
       if (element.type === 'text') {
-        const parentRect = pageWrapper.getBoundingClientRect();
-        // Scale font size in PDF points relative to drag distance in screen pixels
-        const deltaFontSize = (dx / parentRect.width) * pageWidthPoints;
-        const newFontSize = Math.max(6, Math.min(72, Math.round(startFontSize + deltaFontSize)));
-        onChange({ fontSize: newFontSize });
+        let newFontSize = startFontSize;
+        if (textStartRect && textStartRect.width > 0 && textStartRect.height > 0) {
+          const startW = textStartRect.width;
+          const startH = textStartRect.height;
+          // Scale font size proportionally to the mouse drag projected along the box's diagonal.
+          // This keeps the resizer handle exactly under the mouse, preventing the hypersensitivity
+          // caused by raw pixel->point mapping.
+          const scale = 1 + (dx * startW + dy * startH) / (startW * startW + startH * startH);
+          newFontSize = Math.round(startFontSize * scale);
+        } else {
+          const parentRect = pageWrapper.getBoundingClientRect();
+          const deltaFontSize = pxToPoints(dx, scaleFactorFromPx(parentRect.width, pageWidthPoints)) * 0.2;
+          newFontSize = Math.round(startFontSize + deltaFontSize);
+        }
+        onChange({ fontSize: Math.max(6, Math.min(72, newFontSize)) });
         return;
       }
 
       const parentRect = pageWrapper.getBoundingClientRect();
-      const deltaWidthPercent = (dx / parentRect.width) * 100;
+      const deltaWidthPercent = pxDeltaToPercent(dx, parentRect.width);
 
       // Checkmarks use an absolute pixel floor (not a fixed %) so the box never
       // shrinks past what its border/padding chrome needs to render the icon —
       // a flat % floor collapses to a couple of screen pixels on a large page,
       // leaving no content area for the SVG and making it vanish, not shrink.
       const minWidth = element.type === 'checkmark'
-        ? (14 / parentRect.width) * 100
+        ? pxToPercent(14, parentRect.width)
         : 3;
       let newWidth = startWidth + deltaWidthPercent;
       newWidth = Math.max(minWidth, Math.min(60, newWidth)); // constraints (min% to 60%)
 
       const ratio = element.aspectRatio || defaultRatio;
       // Convert width percent to correct height percent using responsive page dimensions
-      const newHeight = newWidth * ratio * (parentRect.width / parentRect.height);
+      const newHeight = widthPercentToHeightPercent(newWidth, ratio, parentRect.width, parentRect.height);
 
       if (element.type === 'checkmark' || element.type === 'signature') {
         // Grow/shrink around the box's center instead of its top-left corner
@@ -310,17 +298,28 @@ export default function DraggableOverlayElement({
     window.addEventListener('touchend', handleResizeUp);
   };
 
-  // Styles for responsive placing
-  const style = {
-    left: `${element.left}%`,
-    top: `${element.top}%`,
-    width: element.width ? `${element.width}%` : 'auto',
-    height: element.height ? `${element.height}%` : 'auto',
-  };
-
   // Font size responsive scaling for text elements
   const textFontSize = (element.fontSize || 12) * scaleFactor;
   const textDirection = element.type === 'text' ? getEffectiveTextDirection(element) : 'ltr';
+
+  // Styles for responsive placing. `element.left` is always the anchored edge's
+  // distance from the page wrapper's left edge — which physical edge that is
+  // depends on direction. LTR (and every non-text element) anchors its own left
+  // edge there, via CSS `left`, and grows/shrinks rightward. RTL text anchors
+  // its *right* edge there instead, via CSS `right`, so it grows leftward as
+  // `width` increases with no JS repositioning (see the width-growth effect
+  // above). Dragging (handlePointerDown) adds the same pixel delta to
+  // `element.left` regardless of direction, which is correct either way since
+  // it's just moving whichever edge is anchored.
+  const isRtlText = element.type === 'text' && textDirection === 'rtl';
+  const style = {
+    top: `${element.top}%`,
+    width: element.width && element.type !== 'text' ? `${element.width}%` : 'auto',
+    height: element.height && element.type !== 'text' ? `${element.height}%` : 'auto',
+    ...(isRtlText
+      ? { right: `${100 - element.left}%` }
+      : { left: `${element.left}%` }),
+  };
 
   return (
     <div
@@ -494,10 +493,10 @@ export default function DraggableOverlayElement({
       {element.type === 'text' && (
         <div className="sign-text-display" style={{ fontSize: `${textFontSize}px` }}>
           <div
-            ref={textMeasureRef}
             className="sign-text-measure"
             dir={textDirection}
             style={{
+              padding: '0 4px',
               fontSize: `${textFontSize}px`,
               fontFamily: element.fontFamily || 'Helvetica',
               fontWeight: element.fontWeight || 'normal',
@@ -513,16 +512,16 @@ export default function DraggableOverlayElement({
           </div>
           <textarea
             dir={textDirection}
-            wrap="off"
             rows={1}
             className="sign-text-input"
             value={element.text}
             placeholder="Click to edit"
-            onInput={(e) => onChange({ text: e.currentTarget.value })}
+            onInput={(e) => {
+              onChange({ text: e.currentTarget.value });
+            }}
             onFocus={onSelect}
             style={{
-              width: `${textInputWidth}px`,
-              height: `${textInputHeight}px`,
+              padding: '0 4px',
               textAlign: textDirection === 'rtl' ? 'right' : 'left',
               fontSize: `${textFontSize}px`,
               fontFamily: element.fontFamily || 'Helvetica',
@@ -569,12 +568,20 @@ export default function DraggableOverlayElement({
 
       {/* Resizer control: width/height for signatures/checkmarks, font size for text */}
       {isActive && (
-        <div
-          className="sign-element-resizer"
-          onMouseDown={handleResizeStart}
-          onTouchStart={handleResizeStart}
-          title={element.type === 'text' ? 'Drag to resize font size' : 'Drag to resize'}
-        />
+        <>
+          <div
+            className="sign-element-resizer left"
+            onMouseDown={(e) => handleResizeStart(e, 'left')}
+            onTouchStart={(e) => handleResizeStart(e, 'left')}
+            title={element.type === 'text' ? 'Drag to resize font size' : 'Drag to resize'}
+          />
+          <div
+            className="sign-element-resizer right"
+            onMouseDown={(e) => handleResizeStart(e, 'right')}
+            onTouchStart={(e) => handleResizeStart(e, 'right')}
+            title={element.type === 'text' ? 'Drag to resize font size' : 'Drag to resize'}
+          />
+        </>
       )}
     </div>
   );

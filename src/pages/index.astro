@@ -7,7 +7,7 @@ import '../styles/global.css';
 const title = 'Sign & Fill PDF Free - No Sign-Up Local PDF Editor | PDkef';
 const description = 'Sign PDFs and fill interactive forms instantly with this 100% free, open-source online PDF editor that requires no account or software installation. With secure browser-local processing, files are never uploaded to an external server, providing a completely private, offline-capable workflow.';
 
-import { FileSignature, Merge, ImageUp, ImageDown, Split, Shrink, FileLock2, FileEdit, Eraser } from 'lucide-preact';
+import { FileSignature, Merge, ImageUp, ImageDown, Split, Shrink, FileLock2, FileEdit, Eraser, Monitor, Smartphone, Compass } from 'lucide-preact';
 
 // FAQ schema mirrors the visible questions rendered in the footer below.
 const faq = [
@@ -84,7 +84,8 @@ const HeroIcon = tools[0].icon;
     <SeoSchema name="PDkef" description={description} faq={faq} />
   </Fragment>
 
-  <header class="hub-header">
+  <div class="first-fold-wrapper">
+    <header class="hub-header">
     <div class="title-row">
       <img src="/favicon.png" width="42" height="42" aria-hidden="true" class="title-logo" alt="PDkef Logo" style="border-radius: 8px;" />
       <h1>PDkef - all the PDF tools you need</h1>
@@ -150,59 +151,166 @@ const HeroIcon = tools[0].icon;
       ))}
     </div>
   </main>
+</div>
+
+    <section class="whypdkef-section">
+      <div class="whypdkef-content">
+        <span class="whypdkef-tag">Our Philosophy</span>
+        <h2>Why yet another PDF tool?</h2>
+        <p>
+          Most free PDF sites run your files through their own servers—which is expensive, so they restrict your usage with paywalls, daily caps, or forced accounts.
+        </p>
+        <p class="whypdkef-detail">
+          PDkef is built differently. By running every tool 100% client-side inside your browser, it costs next to nothing to host. That is why it is completely free, runs offline, has no limits, and never asks for a signup.
+        </p>
+        <div class="whypdkef-features">
+          <div class="whypdkef-feat">
+            <strong>Free Forever</strong>
+            <span>No limits, no catch</span>
+          </div>
+          <div class="whypdkef-feat">
+            <strong>100% Private</strong>
+            <span>Files never leave device</span>
+          </div>
+          <div class="whypdkef-feat">
+            <strong>Open Source</strong>
+            <span>Audit the code yourself</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="autosave-section">
+      <div class="autosave-visual" aria-hidden="true">
+        <div class="autosave-doc">
+          <div class="doc-line short"></div>
+          <div class="doc-line"></div>
+          <div class="doc-line medium"></div>
+          <div class="autosave-badge">
+            <span class="pulse-dot"></span>
+            Autosaved to device
+          </div>
+        </div>
+      </div>
+      <div class="autosave-content">
+        <span class="autosave-tag">Privacy & Convenience</span>
+        <h2>Work survives restarts and crashes</h2>
+        <p>
+          PDkef auto-saves your in-progress work locally to your browser's secure database. If you close the tab, restart your computer, or experience a crash, your PDF and edits are restored exactly where you left off.
+        </p>
+        <p class="autosave-subtext">
+          Because it runs 100% on your device, we get "pick up where you left off" without sending a single byte of your file to a server. Available now in <strong>Sign & Fill</strong> and <strong>Redact & Blur</strong>.
+        </p>
+      </div>
+    </section>
+
+    <section class="offline-section">
+      <div class="offline-header">
+        <h2>Run PDkef offline as an app</h2>
+        <p>Because PDkef runs entirely in your web browser with zero server uploads, you can install it on your device and use it just like a native desktop or mobile application—even when you don't have internet access.</p>
+      </div>
+
+      <div class="offline-tabs-container">
+        <div class="offline-tab-buttons" role="tablist" aria-label="Device installation guides">
+          <button class="offline-tab-btn active" role="tab" aria-selected="true" aria-controls="guide-chrome" id="tab-chrome">
+            <Monitor size={16} style="margin-right: 0.5rem;" />
+            Chrome & Edge
+          </button>
+          <button class="offline-tab-btn" role="tab" aria-selected="false" aria-controls="guide-ios" id="tab-ios">
+            <Smartphone size={16} style="margin-right: 0.5rem;" />
+            Safari (iOS)
+          </button>
+          <button class="offline-tab-btn" role="tab" aria-selected="false" aria-controls="guide-safari" id="tab-safari">
+            <Compass size={16} style="margin-right: 0.5rem;" />
+            Safari (macOS)
+          </button>
+        </div>
+
+        <div class="offline-tab-content">
+          <div class="offline-tab-panel active" id="guide-chrome" role="tabpanel" aria-labelledby="tab-chrome">
+            <ol class="step-list">
+              <li>
+                <span class="step-num">1</span>
+                <span class="step-text">Navigate to the site in Chrome or Edge.</span>
+              </li>
+              <li>
+                <span class="step-num">2</span>
+                <span class="step-text">Click the <strong>Install</strong> icon (the screen with a down arrow) at the right of the address bar.</span>
+              </li>
+              <li>
+                <span class="step-num">3</span>
+                <span class="step-text">Alternatively, click the browser menu (three dots), select <strong>Save and share</strong>, and click <strong>Install PDkef</strong>.</span>
+              </li>
+            </ol>
+          </div>
+
+          <div class="offline-tab-panel" id="guide-ios" role="tabpanel" aria-labelledby="tab-ios" style="display: none;">
+            <ol class="step-list">
+              <li>
+                <span class="step-num">1</span>
+                <span class="step-text">Open the site in <strong>Safari</strong> on your iPhone or iPad.</span>
+              </li>
+              <li>
+                <span class="step-num">2</span>
+                <span class="step-text">Tap the <strong>Share</strong> button (square with an up arrow) in the toolbar.</span>
+              </li>
+              <li>
+                <span class="step-num">3</span>
+                <span class="step-text">Scroll down the options list and select <strong>Add to Home Screen</strong>.</span>
+              </li>
+            </ol>
+          </div>
+
+          <div class="offline-tab-panel" id="guide-safari" role="tabpanel" aria-labelledby="tab-safari" style="display: none;">
+            <ol class="step-list">
+              <li>
+                <span class="step-num">1</span>
+                <span class="step-text">Open the site in <strong>Safari</strong> on your Mac.</span>
+              </li>
+              <li>
+                <span class="step-num">2</span>
+                <span class="step-text">Click the <strong>Share</strong> button in the top-right Safari toolbar.</span>
+              </li>
+              <li>
+                <span class="step-num">3</span>
+                <span class="step-text">Select <strong>Add to Dock...</strong> from the dropdown menu and click <strong>Add</strong>.</span>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
 
   <script>
-    // PWA installation handling
-    let installPrompt = null;
-    const installBtn = document.getElementById('install-pwa');
-    const installHint = document.getElementById('install-pwa-hint');
+    const tabs = document.querySelectorAll('.offline-tab-btn');
+    const panels = document.querySelectorAll('.offline-tab-panel');
 
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Deactivate current active tab & panel
+        tabs.forEach(t => {
+          t.classList.remove('active');
+          t.setAttribute('aria-selected', 'false');
+        });
+        panels.forEach(p => {
+          p.classList.remove('active');
+          p.style.display = 'none';
+        });
 
-    if (installBtn && !isStandalone) {
-      installBtn.style.display = 'inline-flex';
-
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        installPrompt = e;
-      });
-
-      installBtn.addEventListener('click', async () => {
-        if (installPrompt) {
-          installPrompt.prompt();
-          const { outcome } = await installPrompt.userChoice;
-          if (outcome === 'accepted') {
-            installPrompt = null;
-            installBtn.style.display = 'none';
-          }
-          return;
+        // Activate clicked tab & panel
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        const panelId = tab.getAttribute('aria-controls');
+        const targetPanel = document.getElementById(panelId);
+        if (targetPanel) {
+          targetPanel.classList.add('active');
+          targetPanel.style.display = 'block';
         }
-        // No native install prompt available on this browser (e.g. any
-        // browser on iOS, which is WebKit-only and never fires
-        // beforeinstallprompt) - point the user at the manual flow instead.
-        // Always (re-)show rather than toggle, so a second tap still gives
-        // visible feedback instead of silently hiding the hint.
-        installHint.style.display = 'block';
-        installHint.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
-    }
+    });
   </script>
 
   <Footer>
-    <section id="why-us">
-      <h2>Why yet another PDF tool?</h2>
-      <p>Most free PDF sites run your file through their own servers - which costs them money, so they claw it back with task limits, watermarks, or a forced signup. PDkef is different: it's 100% open source, runs entirely on your device, and is free to use forever - no sign up, no paywalls.</p>
-      <ul>
-        <li><strong>Free, forever:</strong> no cost, no paywalls, no premium tier hiding the tools you actually need.</li>
-        <li><strong>No sign up:</strong> no account, no email, no trial period - open a tool and use it.</li>
-        <li><strong>No server:</strong> every tool runs locally, right in your browser, on a computer or a phone.</li>
-        <li><strong>No limits:</strong> no watermarks, no daily caps, no page restrictions.</li>
-        <li><strong>Never lose your work:</strong> the Sign and Redact editors auto-save your progress locally and restore it after a crash or reload - crash recovery that server-free tools normally can't offer, with nothing ever uploaded.</li>
-        <li><strong>Open source:</strong> the entire codebase is public and MIT licensed - inspect exactly what runs on your device.</li>
-      </ul>
-    </section>
-
     <section id="faq">
       <h2>Frequently asked questions</h2>
       <h3>Are the tools really free?</h3>
@@ -214,20 +322,6 @@ const HeroIcon = tools[0].icon;
       <h3>Is PDkef open source?</h3>
       <p>Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.</p>
     </section>
-
-    <div slot="how-it-works-extra" style="margin-top: 1.5rem;">
-      <button id="install-pwa" class="install-pwa-button" style="display: none;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="7 10 12 15 17 10" />
-          <line x1="12" y1="15" x2="12" y2="3" />
-        </svg>
-        Install as local app
-      </button>
-      <p id="install-pwa-hint" class="hint-message" role="status" style="display: none;">
-        Open your browser's menu and choose "Add to Home Screen" (iOS Safari/Chrome) or "Install app" (Android) to install PDkef.
-      </p>
-    </div>
   </Footer>
 </BaseLayout>
 
@@ -532,5 +626,467 @@ const HeroIcon = tools[0].icon;
     font-size: 0.92rem;
     line-height: 1.5;
     color: var(--color-muted);
+  }
+
+  .whypdkef-section {
+    margin-top: 4rem;
+    padding: 3.5rem 2.5rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    max-width: 1032px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .whypdkef-tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .whypdkef-content h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+    color: var(--color-text);
+  }
+
+  .whypdkef-content p {
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: var(--color-text);
+    margin: 0 0 1rem;
+    max-width: 800px;
+  }
+
+  .whypdkef-detail {
+    font-size: 0.92rem;
+    color: var(--color-muted);
+  }
+
+  .whypdkef-features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  @media (max-width: 640px) {
+    .whypdkef-features {
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+    
+    .whypdkef-section {
+      padding: 2.5rem 1.5rem;
+    }
+  }
+
+  .whypdkef-feat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .whypdkef-feat strong {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .whypdkef-feat span {
+    font-size: 0.88rem;
+    color: var(--color-muted);
+  }
+
+  .autosave-section {
+    margin-top: 4rem;
+    padding: 3rem 2.5rem;
+    background: linear-gradient(135deg, var(--color-primary-soft) 0%, rgba(20, 99, 255, 0.01) 100%);
+    border: 1px solid var(--color-primary-soft);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    gap: 3rem;
+    max-width: 1032px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: 768px) {
+    .autosave-section {
+      flex-direction: column-reverse;
+      gap: 2rem;
+      padding: 2rem 1.5rem;
+    }
+  }
+
+  .autosave-content {
+    flex: 1.2;
+  }
+
+  .autosave-tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .autosave-content h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+    color: var(--color-text);
+  }
+
+  .autosave-content p {
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: var(--color-text);
+    margin: 0 0 1rem;
+  }
+
+  .autosave-content p:last-child {
+    margin-bottom: 0;
+  }
+
+  .autosave-subtext {
+    font-size: 0.9rem;
+    color: var(--color-muted);
+  }
+
+  .autosave-visual {
+    flex: 0.8;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    width: 100%;
+    min-height: 150px;
+  }
+
+  .autosave-doc {
+    width: 160px;
+    height: 120px;
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-primary-soft);
+    border-radius: var(--radius-sm);
+    padding: 1.25rem 1rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+  }
+
+  .autosave-badge {
+    position: absolute;
+    bottom: -10px;
+    right: -10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    background: var(--color-surface);
+    border: 1px solid color-mix(in srgb, var(--color-success) 35%, transparent);
+    border-radius: var(--radius-pill);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-success);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-success);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 70%, transparent);
+    }
+    70% {
+      transform: scale(1);
+      box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-success) 0%, transparent);
+    }
+    100% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-success) 0%, transparent);
+    }
+  }
+
+  .offline-section {
+    margin-top: 4rem;
+    margin-bottom: 4rem;
+    padding: 3rem 2.5rem;
+    background: var(--color-surface-soft, rgba(20, 99, 255, 0.02));
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    max-width: 1032px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .offline-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    max-width: 750px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .offline-header h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0 0 0.75rem;
+    color: var(--color-text);
+  }
+
+  .offline-header p {
+    font-size: 0.96rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+    margin: 0;
+  }
+
+  .offline-tabs-container {
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .offline-tab-buttons {
+    display: flex;
+    background: var(--color-surface-soft, rgba(0, 0, 0, 0.02));
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .offline-tab-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--color-muted);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s var(--ease-out);
+  }
+
+  .offline-tab-btn:hover {
+    color: var(--color-text);
+    background: rgba(20, 99, 255, 0.02);
+  }
+
+  .offline-tab-btn.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    background: var(--color-surface);
+  }
+
+  .offline-tab-content {
+    padding: 2rem;
+  }
+
+  .step-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .step-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .step-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+
+  .step-text {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--color-text);
+  }
+
+  .step-text strong {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  @media (max-width: 640px) {
+    .offline-section {
+      padding: 2rem 1.25rem;
+    }
+    
+    .offline-tab-buttons {
+      flex-direction: column;
+    }
+    
+    .offline-tab-btn {
+      border-bottom: none;
+      border-left: 3px solid transparent;
+      justify-content: flex-start;
+      padding: 0.75rem 1.25rem;
+    }
+    
+    .offline-tab-btn.active {
+      border-left-color: var(--color-primary);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .first-fold-wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-sizing: border-box;
+      padding: 1.5rem 0;
+    }
+
+    .hub-header {
+      padding: 0.5rem 0 1rem 0;
+    }
+
+    .hub-header h1 {
+      font-size: 2.2rem;
+    }
+
+    .hub-header p {
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
+    }
+
+    .hero-card {
+      padding: 1.25rem 2rem;
+      margin-bottom: 1.25rem;
+      gap: 2rem;
+    }
+
+    .hero-info h2 {
+      font-size: 1.5rem;
+    }
+
+    .hero-info p {
+      font-size: 0.88rem;
+    }
+
+    .hero-visual {
+      width: 160px;
+      height: 90px;
+    }
+
+    .doc-mockup {
+      width: 120px;
+      height: 80px;
+      padding: 0.75rem;
+    }
+
+    .pen-mockup {
+      width: 24px;
+      height: 24px;
+    }
+
+    .tool-grid {
+      gap: 1rem;
+    }
+
+    .tool-card {
+      padding: 1rem 1.25rem;
+    }
+
+    .tool-icon {
+      width: 40px;
+      height: 40px;
+      margin-bottom: 0.75rem;
+    }
+
+    .tool-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .tool-content h3 {
+      font-size: 1.05rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .tool-content p {
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+  }
+
+  @media (max-width: 1080px) {
+    .whypdkef-section,
+    .autosave-section,
+    .offline-section {
+      margin-left: 1.5rem;
+      margin-right: 1.5rem;
+      width: auto;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .whypdkef-section,
+    .autosave-section,
+    .offline-section {
+      min-height: calc(100vh - 6rem);
+      box-sizing: border-box;
+      margin-top: 6rem;
+    }
+    
+    .whypdkef-section,
+    .offline-section {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
   }
 </style>

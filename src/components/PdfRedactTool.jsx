@@ -3,6 +3,7 @@ import BasePdfTool from './BasePdfTool.jsx';
 import PdfPageCanvas from './PdfPageCanvas.jsx';
 import { getPdfjs, uniqueId, seedUniqueId } from '../lib/sign.js';
 import { redactPdf } from '../lib/redact.js';
+import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 import { useDraftPersistence } from '../lib/useDraftPersistence.js';
 
 export default function PdfRedactTool() {
@@ -18,8 +19,13 @@ export default function PdfRedactTool() {
   const [activeStyle, setActiveStyle] = useState('blackout'); // 'blackout' | 'blur'
   const [drawingState, setDrawingState] = useState(null); // { pageIndex, startX, startY, currentX, currentY }
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  // Which existing box shows its delete/resize controls — set on hover (desktop) or
+  // on touch/drag interaction (mobile has no hover), so the controls stay hidden
+  // otherwise and don't clutter pages full of redaction boxes.
+  const [activeBoxId, setActiveBoxId] = useState(null);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const workspaceRef = useRef(null);
 
   useEffect(() => {
@@ -31,10 +37,20 @@ export default function PdfRedactTool() {
   }, []);
 
   const toggleFullscreen = () => {
+    if (isPseudoFullscreen) {
+      setIsPseudoFullscreen(false);
+      return;
+    }
+
     if (document.fullscreenElement) {
       document.exitFullscreen();
-    } else if (workspaceRef.current?.requestFullscreen) {
-      workspaceRef.current.requestFullscreen();
+    } else if (workspaceRef.current?.requestFullscreen && document.fullscreenEnabled !== false) {
+      const promise = workspaceRef.current.requestFullscreen();
+      if (promise) {
+        promise.catch(() => setIsPseudoFullscreen(true));
+      }
+    } else {
+      setIsPseudoFullscreen(true);
     }
   };
 
@@ -159,14 +175,15 @@ export default function PdfRedactTool() {
     if (e.target.closest('.redact-element-btn') || e.target.closest('.redact-box')) {
       return; // Ignore clicks on existing boxes or buttons
     }
-    
+
+    setActiveBoxId(null); // clicking blank page area deselects/hides any box's controls
     e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     
-    const leftPercent = ((clientX - rect.left) / rect.width) * 100;
-    const topPercent = ((clientY - rect.top) / rect.height) * 100;
+    const leftPercent = pxToPercent(clientX - rect.left, rect.width);
+    const topPercent = pxToPercent(clientY - rect.top, rect.height);
     
     setDrawingState({
       pageIndex,
@@ -187,8 +204,8 @@ export default function PdfRedactTool() {
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     
-    const leftPercent = ((clientX - rect.left) / rect.width) * 100;
-    const topPercent = ((clientY - rect.top) / rect.height) * 100;
+    const leftPercent = pxToPercent(clientX - rect.left, rect.width);
+    const topPercent = pxToPercent(clientY - rect.top, rect.height);
     
     setDrawingState(prev => ({
       ...prev,
@@ -235,6 +252,85 @@ export default function PdfRedactTool() {
 
   const deleteElement = (id) => {
     setElements(prev => prev.filter(el => el.id !== id));
+  };
+
+  const updateElement = (id, changes) => {
+    setElements(prev => prev.map(el => (el.id === id ? { ...el, ...changes } : el)));
+  };
+
+  // Drag an existing box to reposition it. Percentages are relative to the box's own
+  // page wrapper, captured once at gesture start (it can't change mid-drag). We
+  // stopPropagation so the page-level draw handler never starts a new box underneath.
+  const handleBoxDragStart = (e, el) => {
+    if (e.target.closest('.redact-element-btn') || e.target.closest('.redact-box-resizer')) return;
+    e.stopPropagation();
+    e.preventDefault();
+    setActiveBoxId(el.id); // reveal controls on touch/click, where there's no hover
+
+    const wrapper = pageWrapperRefs.current[el.pageIndex];
+    if (!wrapper) return;
+
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const start = { x: clientX, y: clientY, left: el.left, top: el.top };
+
+    const onMove = (ev) => {
+      const mx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+      const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
+      const rect = wrapper.getBoundingClientRect();
+      let newLeft = start.left + pxDeltaToPercent(mx - start.x, rect.width);
+      let newTop = start.top + pxDeltaToPercent(my - start.y, rect.height);
+      newLeft = Math.max(0, Math.min(100 - el.width, newLeft));
+      newTop = Math.max(0, Math.min(100 - el.height, newTop));
+      updateElement(el.id, { left: newLeft, top: newTop });
+      if (ev.cancelable) ev.preventDefault();
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
+  };
+
+  // Drag the corner handle to resize an existing box (bottom-right corner anchored to
+  // the box's top-left, so left/top stay put and only width/height change).
+  const handleBoxResizeStart = (e, el) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const wrapper = pageWrapperRefs.current[el.pageIndex];
+    if (!wrapper) return;
+
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const start = { x: clientX, y: clientY, width: el.width, height: el.height };
+
+    const onMove = (ev) => {
+      const mx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+      const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
+      const rect = wrapper.getBoundingClientRect();
+      let newWidth = start.width + pxDeltaToPercent(mx - start.x, rect.width);
+      let newHeight = start.height + pxDeltaToPercent(my - start.y, rect.height);
+      newWidth = Math.max(1, Math.min(100 - el.left, newWidth));
+      newHeight = Math.max(1, Math.min(100 - el.top, newHeight));
+      updateElement(el.id, { width: newWidth, height: newHeight });
+      if (ev.cancelable) ev.preventDefault();
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onUp);
   };
   
   const clearPage = (pageIndex) => {
@@ -296,8 +392,8 @@ export default function PdfRedactTool() {
       </div>
 
       {status === 'editing' && pdfDocument && (
-        <div className="sign-workspace" ref={workspaceRef}>
-          <div className="sign-toolbar-container">
+        <div className={`sign-workspace ${isPseudoFullscreen ? 'pseudo-fullscreen' : ''}`} ref={workspaceRef}>
+          <div className="sign-toolbar-container" style={{ marginTop: 'var(--space-5)' }}>
           <div className="sign-toolbar" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--color-surface-hover)', padding: '4px', borderRadius: 'var(--radius)' }}>
               <button
@@ -324,9 +420,9 @@ export default function PdfRedactTool() {
               type="button"
               className="sign-tool-btn"
               onClick={toggleFullscreen}
-              title={isFullscreen ? 'Exit full screen' : 'Full screen'}
+              title={(isFullscreen || isPseudoFullscreen) ? 'Exit full screen' : 'Full screen'}
             >
-              {isFullscreen ? (
+              {(isFullscreen || isPseudoFullscreen) ? (
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M8 3v3a2 2 0 0 1-2 2H3" />
                   <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
@@ -387,10 +483,15 @@ export default function PdfRedactTool() {
                   {elements.some(el => el.pageIndex === i) && (
                     <button
                       type="button"
-                      className="sign-tool-btn"
-                      style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem', height: 'auto', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '4px' }}
+                      className="clear-all"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                      title="Clear all redactions on this page"
                       onClick={() => clearPage(i)}
                     >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
                       Clear page
                     </button>
                   )}
@@ -410,7 +511,11 @@ export default function PdfRedactTool() {
                   {elements.filter(el => el.pageIndex === i).map(el => (
                     <div
                       key={el.id}
-                      className="redact-box"
+                      className={`redact-box${el.id === activeBoxId ? ' active' : ''}`}
+                      onMouseDown={(e) => handleBoxDragStart(e, el)}
+                      onTouchStart={(e) => handleBoxDragStart(e, el)}
+                      onMouseEnter={() => setActiveBoxId(el.id)}
+                      onMouseLeave={() => setActiveBoxId((prev) => (prev === el.id ? null : prev))}
                       style={{
                         position: 'absolute',
                         left: `${el.left}%`,
@@ -421,6 +526,8 @@ export default function PdfRedactTool() {
                         backdropFilter: el.style === 'blur' ? 'blur(8px)' : 'none',
                         WebkitBackdropFilter: el.style === 'blur' ? 'blur(8px)' : 'none',
                         border: el.style === 'blur' ? '1px solid rgba(0,0,0,0.2)' : '1px solid #333',
+                        cursor: 'move',
+                        touchAction: 'none',
                         zIndex: 10
                       }}
                     >
@@ -453,6 +560,26 @@ export default function PdfRedactTool() {
                       >
                         ✕
                       </button>
+                      <div
+                        className="redact-box-resizer"
+                        onMouseDown={(e) => handleBoxResizeStart(e, el)}
+                        onTouchStart={(e) => handleBoxResizeStart(e, el)}
+                        title="Drag to resize"
+                        style={{
+                          position: 'absolute',
+                          bottom: '-6px',
+                          right: '-6px',
+                          width: '14px',
+                          height: '14px',
+                          background: 'var(--color-primary)',
+                          border: '2px solid var(--color-surface)',
+                          borderRadius: '50%',
+                          cursor: 'se-resize',
+                          touchAction: 'none',
+                          boxShadow: 'var(--shadow-sm)',
+                          zIndex: 11
+                        }}
+                      />
                     </div>
                   ))}
                   

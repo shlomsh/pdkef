@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfRedactTool from './PdfRedactTool.jsx';
+import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -79,5 +80,117 @@ describe('PdfRedactTool UI flow', () => {
     expect(toolbar).not.toBeNull();
     expect(toolbar.textContent).toContain('Blackout');
     expect(toolbar.textContent).toContain('Blur');
+  });
+
+  async function loadFileAndGetDrawArea() {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfRedactTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const file = makePdfFile('test_secret.pdf');
+    await act(async () => {
+      Object.defineProperty(input, 'files', { value: [file], configurable: true });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const drawArea = container.querySelector('.redact-draw-area');
+    drawArea.getBoundingClientRect = () => ({
+      left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
+    });
+    return drawArea;
+  }
+
+  // Each dispatch is its own act() so the state update it triggers (e.g. setDrawingState
+  // in handlePointerDown) flushes and re-renders before the next event is handled —
+  // batching them in one act() left drawingState still null when handlePointerMove ran.
+  async function drawBox(drawArea, downX, downY, moveX, moveY) {
+    await act(async () => {
+      drawArea.dispatchEvent(new MouseEvent('mousedown', { clientX: downX, clientY: downY, bubbles: true }));
+    });
+    await act(async () => {
+      drawArea.dispatchEvent(new MouseEvent('mousemove', { clientX: moveX, clientY: moveY, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+  }
+
+  it('draws a box whose left/top/width/height are pxToPercent of the draw area, not raw px/rect.width math', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+
+    await drawBox(drawArea, 50, 200, 200, 500);
+
+    const box = container.querySelector('.redact-box');
+    expect(box).not.toBeNull();
+
+    const startLeft = pxToPercent(50, 500);
+    const startTop = pxToPercent(200, 1000);
+    const endLeft = pxToPercent(200, 500);
+    const endTop = pxToPercent(500, 1000);
+
+    expect(parseFloat(box.style.left)).toBeCloseTo(Math.min(startLeft, endLeft));
+    expect(parseFloat(box.style.top)).toBeCloseTo(Math.min(startTop, endTop));
+    expect(parseFloat(box.style.width)).toBeCloseTo(Math.abs(endLeft - startLeft));
+    expect(parseFloat(box.style.height)).toBeCloseTo(Math.abs(endTop - startTop));
+  });
+
+  it('drags an existing box by a percent delta computed via pxDeltaToPercent against the wrapper', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+
+    // Draw a box first so there's something to drag.
+    await drawBox(drawArea, 50, 200, 200, 500);
+
+    const box = container.querySelector('.redact-box');
+    const startLeftPercent = parseFloat(box.style.left);
+    const startTopPercent = parseFloat(box.style.top);
+
+    await act(async () => {
+      box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 300 })); // dx=50 dy=200
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    const expectedLeft = startLeftPercent + pxDeltaToPercent(50, 500);
+    const expectedTop = startTopPercent + pxDeltaToPercent(200, 1000);
+
+    expect(parseFloat(box.style.left)).toBeCloseTo(expectedLeft);
+    expect(parseFloat(box.style.top)).toBeCloseTo(expectedTop);
+  });
+
+  it('resizes an existing box by a percent delta computed via pxDeltaToPercent against the wrapper', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+
+    await drawBox(drawArea, 50, 200, 200, 500);
+
+    const box = container.querySelector('.redact-box');
+    const startWidthPercent = parseFloat(box.style.width);
+    const startHeightPercent = parseFloat(box.style.height);
+    const resizer = box.querySelector('.redact-box-resizer');
+
+    await act(async () => {
+      resizer.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 130, clientY: 180 })); // dx=30 dy=80
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    const expectedWidth = startWidthPercent + pxDeltaToPercent(30, 500);
+    const expectedHeight = startHeightPercent + pxDeltaToPercent(80, 1000);
+
+    expect(parseFloat(box.style.width)).toBeCloseTo(expectedWidth);
+    expect(parseFloat(box.style.height)).toBeCloseTo(expectedHeight);
   });
 });

@@ -1,5 +1,24 @@
 import { PDFDocument, rgb, StandardFonts } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
+import { percentToPoints } from './coords.js';
+
+// First strong-directional character wins (matches the Unicode bidi
+// algorithm's approach, and what dir="auto" does under the hood) —
+// covers the Hebrew and Arabic script blocks, including presentation forms.
+const RTL_CHAR = /[\u0591-\u07FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
+function detectTextDirection(text) {
+  return RTL_CHAR.test(text || '') ? 'rtl' : 'ltr';
+}
+
+// `element.textDirection` is a manual override (set via the toolbar's direction
+// toggle) for when the user wants RTL layout before typing anything. Falls back
+// to content-based auto-detection when no override is set. Shared between the
+// editor (DraggableOverlayElement.jsx, for right-edge CSS anchoring) and signPdf
+// below (for right-aligning baked text against that same edge) so the two never
+// disagree about which elements are RTL.
+export function getEffectiveTextDirection(element) {
+  return element.textDirection || detectTextDirection(element.text);
+}
 
 // Dynamic loader for PDFJS, shared across the Sign tool's page rendering and file loading.
 let pdfjsLib;
@@ -13,6 +32,19 @@ export async function getPdfjs() {
   }
   return pdfjsLib;
 }
+
+// Handwriting fonts bundled for the signature "type" mode; also selectable as
+// text-element fonts (FontPickerMenu.jsx), so this is the single source of truth
+// for both the font-picker options and signPdf's custom-font embedding below.
+export const HANDWRITING_FONTS = [
+  'Caveat',
+  'Dancing Script',
+  'Great Vibes',
+  'Gveret Levin',
+  'Pacifico',
+  'Playpen Sans Hebrew',
+  'Sacramento'
+];
 
 let nextId = 0;
 export function uniqueId() {
@@ -69,24 +101,44 @@ export async function signPdf(file, elements, onProgress) {
   pdfDoc.registerFontkit(fontkit);
 
   const loadedFonts = {};
+  const fetchFont = async (fileName) => {
+    if (loadedFonts[fileName]) return loadedFonts[fileName];
+    const res = await fetch(`/fonts/${fileName}`);
+    if (!res.ok) throw new Error(`${fileName}: ${res.status}`);
+    const fontBytes = await res.arrayBuffer();
+    const customFont = await pdfDoc.embedFont(fontBytes);
+    loadedFonts[fileName] = customFont;
+    return customFont;
+  };
+
+  // Not every bundled font family ships Bold/Italic variants (the handwriting
+  // fonts only have a Regular file) — fall back to that family's own Regular
+  // weight rather than jumping all the way to Helvetica, so a bolded/italicized
+  // handwriting-font text element still renders in the right typeface, just
+  // without the weight/style the file doesn't have.
   const loadCustomFont = async (fontFamily, fontWeight, fontStyle) => {
     let styleStr = 'Regular';
     if (fontWeight === 'bold' && fontStyle === 'italic') styleStr = 'BoldItalic';
     else if (fontWeight === 'bold') styleStr = 'Bold';
     else if (fontStyle === 'italic') styleStr = 'Italic';
-    const fileName = `${fontFamily}-${styleStr}.ttf`;
-
-    if (loadedFonts[fileName]) return loadedFonts[fileName];
+    // Font files are named without spaces (e.g. "Dancing Script" -> DancingScript-Regular.ttf).
+    const baseName = fontFamily.replace(/\s+/g, '');
+    const fileName = `${baseName}-${styleStr}.ttf`;
 
     try {
-      const res = await fetch(`/fonts/${fileName}`);
-      const fontBytes = await res.arrayBuffer();
-      const customFont = await pdfDoc.embedFont(fontBytes);
-      loadedFonts[fileName] = customFont;
-      return customFont;
+      return await fetchFont(fileName);
     } catch (e) {
-      console.warn(`Could not load custom font ${fileName}`, e);
-      return null;
+      if (styleStr === 'Regular') {
+        console.warn(`Could not load custom font ${fileName}`, e);
+        return null;
+      }
+      console.warn(`Could not load ${fileName}, falling back to ${baseName}-Regular.ttf`, e);
+      try {
+        return await fetchFont(`${baseName}-Regular.ttf`);
+      } catch (e2) {
+        console.warn(`Could not load ${baseName}-Regular.ttf either`, e2);
+        return null;
+      }
     }
   };
 
@@ -98,8 +150,8 @@ export async function signPdf(file, elements, onProgress) {
     const { width: pdfWidth, height: pdfHeight } = page.getSize();
 
     // Map screen percentages to PDF points
-    const pdfX = (el.left / 100) * pdfWidth;
-    const pdfY = pdfHeight - ((el.top / 100) * pdfHeight);
+    const pdfX = percentToPoints(el.left, pdfWidth);
+    const pdfY = pdfHeight - percentToPoints(el.top, pdfHeight);
 
     if (el.type === 'text') {
       const fontSizeInPoints = el.fontSize || 12;
@@ -107,7 +159,7 @@ export async function signPdf(file, elements, onProgress) {
       if (!textValue) continue;
 
       let resolvedFont = helveticaFont;
-      if (el.fontFamily && ['Arimo', 'Heebo', 'Assistant'].includes(el.fontFamily)) {
+      if (el.fontFamily && ['Arimo', 'Heebo', 'Assistant', ...HANDWRITING_FONTS].includes(el.fontFamily)) {
         const customFont = await loadCustomFont(el.fontFamily, el.fontWeight, el.fontStyle);
         if (customFont) resolvedFont = customFont;
       } else {
@@ -124,18 +176,32 @@ export async function signPdf(file, elements, onProgress) {
 
       // Helvetica baseline offset is roughly 85% of line height
       const baselineAdjustedY = pdfY - (fontSizeInPoints * 0.85);
+      const lineHeight = fontSizeInPoints * 1.2; // matches the editor's CSS line-height
 
-      page.drawText(textValue, {
-        x: pdfX,
-        y: baselineAdjustedY,
-        size: fontSizeInPoints,
-        lineHeight: fontSizeInPoints * 1.2, // matches the editor's CSS line-height
-        font: resolvedFont,
-        color: rgb(r, g, b)
+      // The editor anchors RTL text boxes by their *right* edge (see
+      // DraggableOverlayElement.jsx's `style` block: `right: 100 - element.left`),
+      // so for RTL elements `el.left` is the right edge's x, not the left-start x
+      // drawText expects. Draw each line separately, right-aligning it against
+      // that edge using the font's own metrics — measuring in the DOM isn't an
+      // option here (this runs with no page rendered), and per-line alignment
+      // also fixes lines of differing length collapsing to one shared left x.
+      const isRtl = getEffectiveTextDirection(el) === 'rtl';
+      const lines = textValue.split(/\r?\n/);
+      lines.forEach((line, lineIndex) => {
+        const y = baselineAdjustedY - lineIndex * lineHeight;
+        const lineWidth = resolvedFont.widthOfTextAtSize(line, fontSizeInPoints);
+        const x = isRtl ? pdfX - lineWidth : pdfX;
+        page.drawText(line, {
+          x,
+          y,
+          size: fontSizeInPoints,
+          font: resolvedFont,
+          color: rgb(r, g, b)
+        });
       });
     } else if (el.type === 'checkmark') {
-      const elWidthPoints = (el.width / 100) * pdfWidth;
-      const elHeightPoints = (el.height / 100) * pdfHeight;
+      const elWidthPoints = percentToPoints(el.width, pdfWidth);
+      const elHeightPoints = percentToPoints(el.height, pdfHeight);
       const { r: cr, g: cg, b: cb } = hexToRgbFractions(el.color, '#1463ff');
 
       if (el.mark === 'x') {
@@ -170,8 +236,8 @@ export async function signPdf(file, elements, onProgress) {
         });
       }
     } else if (el.type === 'signature' && el.dataUrl) {
-      const elWidthPoints = (el.width / 100) * pdfWidth;
-      const elHeightPoints = (el.height / 100) * pdfHeight;
+      const elWidthPoints = percentToPoints(el.width, pdfWidth);
+      const elHeightPoints = percentToPoints(el.height, pdfHeight);
       const sourceDataUrl = el.color && el.color !== '#000000'
         ? await tintImageDataUrl(el.dataUrl, el.color)
         : el.dataUrl;
@@ -185,8 +251,8 @@ export async function signPdf(file, elements, onProgress) {
         height: elHeightPoints
       });
     } else if (el.type === 'whiteout') {
-      const elWidthPoints = (el.width / 100) * pdfWidth;
-      const elHeightPoints = (el.height / 100) * pdfHeight;
+      const elWidthPoints = percentToPoints(el.width, pdfWidth);
+      const elHeightPoints = percentToPoints(el.height, pdfHeight);
       const { r, g, b } = hexToRgbFractions(el.color, '#ffffff');
 
       page.drawRectangle({
