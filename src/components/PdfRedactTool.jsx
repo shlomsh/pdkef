@@ -5,6 +5,7 @@ import { getPdfjs, uniqueId, seedUniqueId } from '../lib/sign.js';
 import { redactPdf } from '../lib/redact.js';
 import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 import { useDraftPersistence } from '../lib/useDraftPersistence.js';
+import RedactToolbar from './RedactToolbar.jsx';
 
 export default function PdfRedactTool() {
   const [file, setFile] = useState(null);
@@ -393,83 +394,15 @@ export default function PdfRedactTool() {
 
       {status === 'editing' && pdfDocument && (
         <div className={`sign-workspace ${isPseudoFullscreen ? 'pseudo-fullscreen' : ''}`} ref={workspaceRef}>
-          <div className="sign-toolbar-container" style={{ marginTop: 'var(--space-5)' }}>
-          <div className="sign-toolbar" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--color-surface-hover)', padding: '4px', borderRadius: 'var(--radius)' }}>
-              <button
-                type="button"
-                className={`sign-element-btn ${activeStyle === 'blackout' ? 'active' : ''}`}
-                onClick={() => setActiveStyle('blackout')}
-                style={{ width: 'auto', padding: '0 12px', fontSize: '0.9rem', fontWeight: 500, color: activeStyle === 'blackout' ? '#fff' : 'var(--color-text)' }}
-              >
-                <span style={{ display: 'inline-block', width: '12px', height: '12px', background: '#000', marginRight: '6px', borderRadius: '2px' }}></span>
-                Blackout
-              </button>
-              <button
-                type="button"
-                className={`sign-element-btn ${activeStyle === 'blur' ? 'active' : ''}`}
-                onClick={() => setActiveStyle('blur')}
-                style={{ width: 'auto', padding: '0 12px', fontSize: '0.9rem', fontWeight: 500, color: activeStyle === 'blur' ? '#fff' : 'var(--color-text)' }}
-              >
-                <span style={{ display: 'inline-block', width: '12px', height: '12px', background: 'rgba(255,255,255,0.8)', border: '1px solid #ccc', backdropFilter: 'blur(2px)', marginRight: '6px', borderRadius: '2px' }}></span>
-                Blur
-              </button>
-            </div>
-            <div className="sign-tool-separator" />
-            <button
-              type="button"
-              className="sign-tool-btn"
-              onClick={toggleFullscreen}
-              title={(isFullscreen || isPseudoFullscreen) ? 'Exit full screen' : 'Full screen'}
-            >
-              {(isFullscreen || isPseudoFullscreen) ? (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 3v3a2 2 0 0 1-2 2H3" />
-                  <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
-                  <path d="M3 16h3a2 2 0 0 1 2 2v3" />
-                  <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
-                </svg>
-              ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3" />
-                  <path d="M16 3h3a2 2 0 0 1 2 2v3" />
-                  <path d="M21 16v3a2 2 0 0 1-2 2h-3" />
-                  <path d="M3 16v3a2 2 0 0 0 2 2h3" />
-                </svg>
-              )}
-            </button>
-
-            <div className="sign-tool-separator" />
-
-            <button
-              type="button"
-              className="sign-tool-btn sign-tool-btn-reset"
-              onClick={() => setConfirmResetOpen(true)}
-              title="Discard your work and start over"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 2v6h6" />
-                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L3 8" />
-              </svg>
-              Start over
-            </button>
-
-            <button
-              type="button"
-              className="sign-tool-btn sign-tool-btn-download"
-              onClick={handleSavePdf}
-              disabled={elements.length === 0}
-              title={elements.length === 0 ? 'Add at least one redaction box first' : 'Apply redactions and download'}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              <span className="sign-tool-btn-text">Download</span>
-            </button>
-          </div>
-          </div>
+          <RedactToolbar
+            activeStyle={activeStyle}
+            setActiveStyle={setActiveStyle}
+            toggleFullscreen={toggleFullscreen}
+            isFullscreen={isFullscreen || isPseudoFullscreen}
+            setConfirmResetOpen={setConfirmResetOpen}
+            handleSavePdf={handleSavePdf}
+            elementsCount={elements.length}
+          />
 
           <div className="sign-help-tip" style={{ color: 'var(--color-muted-light)' }}>
             <span>Click and drag on any page to hide sensitive text.</span>
@@ -636,7 +569,7 @@ export default function PdfRedactTool() {
             Download Redacted PDF
           </a>
           <button type="button" className="start-over" onClick={() => setConfirmResetOpen(true)}>
-            Start over
+            <span className="sign-tool-btn-text">Start over</span>
           </button>
         </div>
       )}

@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SeoSchema from '../components/SeoSchema.astro';
 import Footer from '../components/Footer.astro';
+import FeatureCard from '../components/FeatureCard.astro';
 import '../styles/global.css';
 
 const title = 'Sign & Fill PDF Free - No Sign-Up Local PDF Editor | PDkef';
@@ -153,7 +154,7 @@ const HeroIcon = tools[0].icon;
   </main>
 </div>
 
-    <section class="whypdkef-section">
+    <FeatureCard>
       <div class="whypdkef-content">
         <span class="whypdkef-tag">Our Philosophy</span>
         <h2>Why yet another PDF tool?</h2>
@@ -178,33 +179,35 @@ const HeroIcon = tools[0].icon;
           </div>
         </div>
       </div>
-    </section>
+    </FeatureCard>
 
-    <section class="autosave-section">
-      <div class="autosave-visual" aria-hidden="true">
-        <div class="autosave-doc">
-          <div class="doc-line short"></div>
-          <div class="doc-line"></div>
-          <div class="doc-line medium"></div>
-          <div class="autosave-badge">
-            <span class="pulse-dot"></span>
-            Autosaved to device
+    <FeatureCard variant="highlight">
+      <div class="autosave-layout">
+        <div class="autosave-visual" aria-hidden="true">
+          <div class="autosave-doc">
+            <div class="doc-line short"></div>
+            <div class="doc-line"></div>
+            <div class="doc-line medium"></div>
+            <div class="autosave-badge">
+              <span class="pulse-dot"></span>
+              Autosaved to device
+            </div>
           </div>
         </div>
+        <div class="autosave-content">
+          <span class="autosave-tag">Privacy & Convenience</span>
+          <h2>Work survives restarts and crashes</h2>
+          <p>
+            PDkef auto-saves your in-progress work locally to your browser's secure database. If you close the tab, restart your computer, or experience a crash, your PDF and edits are restored exactly where you left off.
+          </p>
+          <p class="autosave-subtext">
+            Because it runs 100% on your device, we get "pick up where you left off" without sending a single byte of your file to a server. Available now in <strong>Sign & Fill</strong> and <strong>Redact & Blur</strong>.
+          </p>
+        </div>
       </div>
-      <div class="autosave-content">
-        <span class="autosave-tag">Privacy & Convenience</span>
-        <h2>Work survives restarts and crashes</h2>
-        <p>
-          PDkef auto-saves your in-progress work locally to your browser's secure database. If you close the tab, restart your computer, or experience a crash, your PDF and edits are restored exactly where you left off.
-        </p>
-        <p class="autosave-subtext">
-          Because it runs 100% on your device, we get "pick up where you left off" without sending a single byte of your file to a server. Available now in <strong>Sign & Fill</strong> and <strong>Redact & Blur</strong>.
-        </p>
-      </div>
-    </section>
+    </FeatureCard>
 
-    <section class="offline-section">
+    <FeatureCard class="offline-section-custom">
       <div class="offline-header">
         <h2>Run PDkef offline as an app</h2>
         <p>Because PDkef runs entirely in your web browser with zero server uploads, you can install it on your device and use it just like a native desktop or mobile application—even when you don't have internet access.</p>
@@ -279,7 +282,7 @@ const HeroIcon = tools[0].icon;
           </div>
         </div>
       </div>
-    </section>
+    </FeatureCard>
 
   <script>
     const tabs = document.querySelectorAll('.offline-tab-btn');
@@ -310,19 +313,49 @@ const HeroIcon = tools[0].icon;
     });
   </script>
 
-  <Footer>
-    <section id="faq">
+  <FeatureCard>
+    <div class="faq-header">
+      <span class="faq-tag">Got Questions?</span>
       <h2>Frequently asked questions</h2>
-      <h3>Are the tools really free?</h3>
-      <p>Yes, completely and permanently - no paywalls, no premium tier, no limits, and no watermark on your exported PDFs.</p>
-      <h3>Do I need to sign up or create an account?</h3>
-      <p>No. There is no account, no email, and no trial period. Open a tool and use it immediately.</p>
-      <h3>Are my files uploaded to a server?</h3>
-      <p>No. The tools run 100% locally in your browser, on desktop or mobile. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
-      <h3>Is PDkef open source?</h3>
-      <p>Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.</p>
-    </section>
-  </Footer>
+    </div>
+    <div class="faq-grid">
+      <div class="faq-card">
+        <h3>Are the tools really free?</h3>
+        <p>Yes, completely and permanently - no paywalls, no premium tier, no limits, and no watermark on your exported PDFs.</p>
+      </div>
+      <div class="faq-card">
+        <h3>Do I need to sign up or create an account?</h3>
+        <p>No. There is no account, no email, and no trial period. Open a tool and use it immediately.</p>
+      </div>
+      <div class="faq-card">
+        <h3>Are my files uploaded to a server?</h3>
+        <p>No. The tools run 100% locally in your browser, on desktop or mobile. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
+      </div>
+      <div class="faq-card">
+        <h3>Is PDkef open source?</h3>
+        <p>Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.</p>
+      </div>
+    </div>
+  </FeatureCard>
+
+  <FeatureCard variant="highlight">
+    <div class="osp-content">
+      <span class="osp-tag">Transparent & Secure</span>
+      <h2>Open source & privacy</h2>
+      <div class="osp-blocks">
+        <div class="osp-block">
+          <h3>Privacy</h3>
+          <p>Every tool runs 100% locally in your browser. Your files are never uploaded - PDkef has no server to send them to.</p>
+        </div>
+        <div class="osp-block">
+          <h3>Open source</h3>
+          <p>This project is open source under the MIT license. You can <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">view the source code on GitHub</a>. PDkef is built on other open source projects too - see the <a href="/licenses">open source licenses</a> page for the full list.</p>
+        </div>
+      </div>
+    </div>
+  </FeatureCard>
+
+  <Footer />
 </BaseLayout>
 
 <style>
@@ -628,18 +661,7 @@ const HeroIcon = tools[0].icon;
     color: var(--color-muted);
   }
 
-  .whypdkef-section {
-    margin-top: 4rem;
-    padding: 3.5rem 2.5rem;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    max-width: 1032px;
-    margin-left: auto;
-    margin-right: auto;
-    width: 100%;
-    box-sizing: border-box;
-  }
+
 
   .whypdkef-tag {
     display: inline-block;
@@ -685,10 +707,6 @@ const HeroIcon = tools[0].icon;
       grid-template-columns: 1fr;
       gap: 1.25rem;
     }
-    
-    .whypdkef-section {
-      padding: 2.5rem 1.5rem;
-    }
   }
 
   .whypdkef-feat {
@@ -708,27 +726,16 @@ const HeroIcon = tools[0].icon;
     color: var(--color-muted);
   }
 
-  .autosave-section {
-    margin-top: 4rem;
-    padding: 3rem 2.5rem;
-    background: linear-gradient(135deg, var(--color-primary-soft) 0%, rgba(20, 99, 255, 0.01) 100%);
-    border: 1px solid var(--color-primary-soft);
-    border-radius: var(--radius-lg);
+  .autosave-layout {
     display: flex;
     align-items: center;
     gap: 3rem;
-    max-width: 1032px;
-    margin-left: auto;
-    margin-right: auto;
-    width: 100%;
-    box-sizing: border-box;
   }
 
   @media (max-width: 768px) {
-    .autosave-section {
+    .autosave-layout {
       flex-direction: column-reverse;
       gap: 2rem;
-      padding: 2rem 1.5rem;
     }
   }
 
@@ -833,19 +840,7 @@ const HeroIcon = tools[0].icon;
     }
   }
 
-  .offline-section {
-    margin-top: 4rem;
-    margin-bottom: 4rem;
-    padding: 3rem 2.5rem;
-    background: var(--color-surface-soft, rgba(20, 99, 255, 0.02));
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    max-width: 1032px;
-    margin-left: auto;
-    margin-right: auto;
-    width: 100%;
-    box-sizing: border-box;
-  }
+
 
   .offline-header {
     text-align: center;
@@ -960,10 +955,6 @@ const HeroIcon = tools[0].icon;
   }
 
   @media (max-width: 640px) {
-    .offline-section {
-      padding: 2rem 1.25rem;
-    }
-    
     .offline-tab-buttons {
       flex-direction: column;
     }
@@ -1083,10 +1074,125 @@ const HeroIcon = tools[0].icon;
     }
     
     .whypdkef-section,
-    .offline-section {
+    .offline-section,
+    .faq-section,
+    .osp-section {
       display: flex;
       flex-direction: column;
       justify-content: center;
     }
+  }
+
+
+
+  .faq-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .faq-tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .faq-header h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--color-text);
+  }
+
+  .faq-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem 3rem;
+  }
+
+  .faq-card h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+    color: var(--color-text);
+  }
+
+  .faq-card p {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .faq-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+  }
+
+
+
+  .osp-content {
+    width: 100%;
+  }
+
+  .osp-tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .osp-content h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0 0 2rem;
+    color: var(--color-text);
+  }
+
+  .osp-blocks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+  }
+
+  .osp-block h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+    color: var(--color-text);
+  }
+
+  .osp-block p {
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .osp-block a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .osp-block a:hover {
+    color: var(--color-primary-hover);
+  }
+
+  @media (max-width: 768px) {
+    .osp-blocks {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
   }
 </style>

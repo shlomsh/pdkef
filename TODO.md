@@ -42,6 +42,45 @@ From the 2026-07 technical audit ([seo-audit-output/TECHNICAL-AUDIT-2026-07.md](
 - [ ] **Register Google Search Console** and submit the sitemap once the domain is final; monitor Core Web Vitals (prioritize INP for signature-drawing).
 - [ ] **Homepage Hub Link Check**: Confirm no tool cards on the homepage point at any noindexed route (currently only 404 is noindex, so just re-check if any tool is ever un-promoted).
 
+## Sign/Redact tool polish (from 2026-07 hands-on session)
+
+Done this session (shipped): text-box padding consolidated to shared CSS + `cols=1`
+short-text fix, symmetric descender padding with matching `TEXT_BOX_PADDING_EM`
+export offset, reverted the `isDragging` toolbar/resizer hiding, removed the
+duplicate `.sign-element::after` rule, tuned the drag halo, full-width mobile
+toolbar, new signature icon, and made the mobile toolbar rule structure-agnostic
+so it covers the Redact toolbar too.
+
+Remaining:
+
+- [ ] **Verify Redact mobile toolbar** on a real narrow viewport. Code is updated
+      (inline `.sign-toolbar` style removed so shared CSS governs; mobile flex rule
+      now targets `.sign-toolbar > *:not(.sign-tool-separator)`), but it was not
+      visually confirmed. Check the blackout/blur mode-toggle group + fullscreen +
+      Start over + Download stretch cleanly full-width and the swatches still read.
+- [ ] **Desktop fullscreen button has no text label** (`FloatingToolbar.jsx`, and the
+      same in `PdfRedactTool.jsx`): it's a lone icon between labelled buttons in the
+      desktop pill. Give it a "Full screen" label or intentionally group it.
+- [ ] **State-based drag halo.** The `.sign-element::after` grab halo is one
+      compromise value (`-10px` desktop / `-16px` touch) that trades selection
+      precision against drag ease for all elements. Better: small resting halo +
+      larger halo only on `.active` (which is `z-index:50`, so it won't steal clicks
+      from neighbours). Resolves the tension instead of splitting it.
+- [ ] **PDF export baseline assumes Helvetica metrics.** `sign.js` uses a hardcoded
+      `0.85` ascent ratio for every font; handwriting/custom fonts have different
+      metrics, so their vertical position in the exported PDF can drift from the
+      preview. Derive the offset from the resolved font's actual metrics.
+
+## Code health (tech debt — do only when already working in these files)
+
+- [ ] **Split `DraggableOverlayElement.jsx`** (596 lines, 4 element types in one
+      component) into per-type render pieces sharing the drag/resize core. Risky
+      refactor, low user-facing payoff — don't chase it standalone.
+- [ ] **`PdfSignTool.jsx` is 941 lines** — candidate for extracting sub-components.
+- [ ] **Colocate the `.sign-*` styles** out of the 3,070-line flat `global.css`.
+      That monolith is what let a duplicate `.sign-element::after` rule slip in
+      silently this session; locality would make that class of bug much harder.
+
 ## Content authority (post-launch, from the search-positioning strategy)
 
 - [ ] Dedicated long-tail landing pages: `/sign-pdf-no-signup`, `/offline-pdf-form-filler`, `/open-source-pdf-editor`.

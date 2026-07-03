@@ -103,12 +103,12 @@
   --color-muted-light: #9aa7bd;
   --color-border: #e4e8f1;
   --color-border-strong: #c7d2e6;
-  --color-primary: #1463ff;
-  --color-primary-hover: #2d72ff;
-  --color-primary-active: #0d52e0;
-  --color-primary-soft: #e3ecff;
-  --color-primary-tint: #eef3ff;
-  --color-primary-ring: rgba(20, 99, 255, 0.32);
+  --color-primary: #3b82f6; /* Lighter, vibrant blue */
+  --color-primary-hover: #2563eb; /* Stronger hover contrast */
+  --color-primary-active: #1d4ed8;
+  --color-primary-soft: #dbeafe;
+  --color-primary-tint: #eff6ff;
+  --color-primary-ring: rgba(59, 130, 246, 0.35);
   --color-success: #1a8f54;
   --color-success-hover: #157a47;
   --color-success-soft: #e9f7ef;
@@ -326,157 +326,117 @@ main {
   width: 100%;
 }
 
-/* --- Reveal-on-click disclosures (how-to / why / FAQ) ---
-   Content is real, server-rendered HTML so crawlers see it; it's just
-   visually collapsed until the user wants it. */
-.footer-columns {
-  display: grid;
-  grid-template-columns: 1fr;
-  justify-items: center;
-  align-items: start;
-  gap: var(--space-3);
+/* --- Tool pages FAQ block --- */
+.tool-faq-section {
   max-width: 1080px;
+  margin: 2rem auto 4rem;
+  padding: 0 1.5rem;
+}
+
+.tool-faq-content {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem;
+  max-width: 800px;
   margin: 0 auto;
 }
 
-@media (min-width: 768px) {
-  .footer-columns {
-    grid-template-columns: 1fr auto 1fr;
-    gap: var(--space-3) var(--space-5);
-  }
-
-  .footer-disclosure:first-child {
-    justify-self: start;
-  }
-
-  .footer-disclosure:last-child {
-    justify-self: end;
-  }
-}
-
-.footer-disclosure {
-  border: none;
-  background: none;
-  box-shadow: none;
-  overflow: visible;
-  transition: none;
-}
-
-.disclosure-summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  margin: 0;
-  padding: 0;
-  font-size: 0.85rem;
-  font-weight: 500;
-  line-height: 1.45;
-  color: var(--color-muted);
-  cursor: pointer;
-  list-style: none;
-  transition: color 0.15s var(--ease-out);
-}
-
-.disclosure-summary:hover {
-  color: var(--color-text);
-}
-
-.disclosure-summary::-webkit-details-marker {
-  display: none;
-}
-
-.disclosure-chevron {
-  flex-shrink: 0;
-  transition: transform 0.2s var(--ease-out);
-}
-
-.footer-disclosure[open] .disclosure-chevron {
-  transform: rotate(180deg);
-}
-
-.disclosure-body {
-  margin-top: var(--space-5);
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 680px;
-  padding: 0;
-  text-align: left;
-  animation: disclosure-in 0.35s var(--ease-out);
-}
-
-.disclosure-body > :first-child {
+.tool-faq-content > :first-child {
   margin-top: 0;
 }
 
-.disclosure-body > section + section {
+.tool-faq-content h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 1rem;
+  color: var(--color-text);
+}
+
+.tool-faq-content h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.5rem;
+  color: var(--color-text);
+}
+
+.tool-faq-content p,
+.tool-faq-content li {
+  color: var(--color-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.tool-faq-content ol,
+.tool-faq-content ul {
+  padding-left: 1.2rem;
+  margin: 0.5rem 0 0;
+}
+
+.tool-faq-content li + li {
+  margin-top: 0.5rem;
+}
+
+.tool-faq-content strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.tool-faq-content section + section {
   margin-top: 2rem;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px dashed var(--color-border);
   padding-top: 2rem;
 }
 
-@keyframes disclosure-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.faq-intro {
+  font-size: 1.05rem !important;
+  color: var(--color-text) !important;
+  margin-bottom: 2rem !important;
 }
 
-.disclosure-body h2 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0 0 0.5rem;
-  color: var(--color-text);
-}
-
-.disclosure-body h3 {
-  font-size: 0.96rem;
-  font-weight: 600;
-  margin: 1.1rem 0 0.25rem;
-  color: var(--color-text);
-}
-
-.disclosure-body p,
-.disclosure-body li {
-  color: var(--color-muted);
-  font-size: 0.95rem;
-}
-
-.disclosure-body ol,
-.disclosure-body ul {
-  padding-left: 1.2rem;
-  margin: 0.25rem 0 0;
-}
-
-.disclosure-body li + li {
-  margin-top: 0.4rem;
-}
-
-.disclosure-body strong {
-  color: var(--color-text);
-  font-weight: 600;
-}
-
-footer {
+/* --- Global Footer --- */
+.site-footer {
   text-align: center;
-  padding: 1rem 1.5rem;
-  color: var(--color-muted);
-  font-size: 0.85rem;
+  padding: 1.5rem;
   border-top: 1px solid var(--color-border);
+  background: var(--color-background);
   margin-top: auto;
 }
 
-footer p {
-  margin: 0;
+.site-footer-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .credit-line {
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   color: var(--color-muted);
-  white-space: nowrap;
+  margin: 0;
+}
+
+.credit-line a {
+  color: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--color-border-strong);
+  text-underline-offset: 3px;
+  transition: color 0.15s var(--ease-out), text-decoration-color 0.15s var(--ease-out);
+}
+
+.credit-line a:hover {
+  color: var(--color-text);
+  text-decoration-color: var(--color-text);
+}
+
+.footer-links-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: 0.5rem;
 }
 
 .credit-line a {
@@ -505,7 +465,7 @@ footer a {
 
 @media (min-width: 560px) {
   .merge-tool {
-    padding: 2rem;
+    padding: 1.5rem;
   }
 }
 
@@ -604,7 +564,7 @@ footer a {
   padding: 0.72rem 1.6rem;
   background: var(--color-primary);
   color: #fff;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   font-weight: 600;
   font-size: 0.97rem;
   letter-spacing: -0.01em;
@@ -1021,7 +981,7 @@ footer a {
   color: #fff;
   background: var(--color-primary);
   border: none;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(20, 99, 255, 0.28);
   transition: background-color 0.18s var(--ease-out), transform 0.15s var(--ease-spring),
@@ -1131,7 +1091,7 @@ footer a {
   letter-spacing: -0.01em;
   color: #fff;
   background: var(--color-success);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   text-decoration: none;
   box-shadow: 0 2px 8px rgba(26, 143, 84, 0.26);
   animation: success-in 0.5s var(--ease-emphasized);
@@ -1252,7 +1212,7 @@ footer a {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 900px;
+  max-width: 100%;
   margin: 0 auto;
   gap: var(--space-4);
 }
@@ -1290,34 +1250,53 @@ footer a {
   pointer-events: auto; /* Re-enable clicks for the toolbar itself */
   display: flex;
   align-items: center;
-  /* Wrap onto multiple rows instead of overflowing the viewport on narrow
-     screens — the toolbar has too many buttons to ever fit one row on mobile.
-     max-width keeps it inside the sticky container; row-gap spaces wrapped rows. */
-  flex-wrap: wrap;
-  justify-content: center;
-  max-width: 100%;
-  gap: var(--space-2);
-  row-gap: var(--space-2);
-  padding: 0.5rem 0.75rem;
+  flex-wrap: nowrap;
+  /* Full-width at every breakpoint: the toolbar spans the same width as the
+     dropzone and the PDF pages (all sit in the .merge-tool card), so their edges
+     line up. A moderate rounded-rectangle radius reads better than a full pill on
+     a wide bar — the pill looked over-rounded once the bar went edge-to-edge. */
+  --toolbar-gap: var(--space-2);
+  --toolbar-padding: 0.5rem 0.75rem;
+  --btn-padding: 0.6rem 0.6rem;
+
+  width: 100%;
+  gap: var(--toolbar-gap);
+  padding: var(--toolbar-padding);
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px) saturate(180%);
   -webkit-backdrop-filter: blur(12px) saturate(180%);
   border: 1px solid rgba(228, 228, 237, 0.8);
-  /* Rounded-card radius reads well both as a single row and when the buttons
-     wrap to multiple rows on narrow screens (a full pill radius turns a tall
-     wrapped box into an ugly circle). The pill is restored at >=920px below,
-     where the whole toolbar (~890px with separators) fits on one row. */
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius);
   box-shadow: var(--shadow-lg), 0 4px 20px rgba(0, 0, 0, 0.03);
 }
 
-/* Wide enough for the full toolbar on one row: keep the original floating-pill
-   look and prevent wrapping. */
-@media (min-width: 920px) {
-  .sign-toolbar {
-    flex-wrap: nowrap;
-    border-radius: var(--radius-pill);
-  }
+/* Every visible control takes an equal share so the row fills the width and each
+   button is as large as the space allows — Sign's buttons + signature dropdown,
+   Redact's mode-toggle group + buttons. Separators stay natural 1px dividers. */
+.sign-toolbar > *:not(.sign-tool-separator) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.sign-toolbar-group {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.sign-toolbar-group.center {
+  justify-content: center;
+}
+
+.sign-toolbar-group.right {
+  justify-content: flex-end;
+}
+
+.sign-toolbar .sign-tool-dropdown-container > .sign-tool-btn {
+  width: 100%;
+  flex: 1 1 0;
 }
 
 /* On narrow screens the toolbar wraps to a rounded card (see base rule). The
@@ -1327,67 +1306,77 @@ footer a {
    deliberately avoided — overflow-x:auto forces overflow-y to clip, which would
    cut off the signature dropdown that opens below its toolbar button. */
 @media (max-width: 919px) {
-  .sign-toolbar-container {
-    padding: 0 var(--space-3);
+  /* Below the full labelled row: collapse buttons to icons only and tighten
+     spacing so every control fits on one line without wrapping (nowrap + fitting
+     width means nothing is clipped, so the signature dropdown stays visible).
+     Width, radius, and edge alignment are inherited from the base rule. */
+  .sign-toolbar {
+    --toolbar-gap: 0.35rem;
+    --toolbar-padding: 0.35rem;
+    --btn-padding: 0.15rem 0;
   }
 
-  /* Keep the whole toolbar on ONE line even on an iPhone: collapse the buttons
-     to icons only and tighten spacing so every control fits without wrapping.
-     nowrap + a fitting width means no overflow, so nothing is clipped (the
-     signature dropdown stays visible). */
-  .sign-toolbar {
-    flex-wrap: nowrap;
-    gap: 0.15rem;
-    padding: 0.35rem 0.4rem;
-    border-radius: var(--radius-pill);
+  .sign-toolbar-group {
+    display: contents;
   }
 
   .sign-tool-separator {
     display: none;
   }
 
-  /* Collapse the tool buttons to icons only. font-size:0 hides the text labels
-     (bare text nodes and the .sign-tool-btn-text span alike) while the fixed-px
-     SVG icons are unaffected; the labels remain in the accessibility tree
-     (unlike display:none), and every button also has a title tooltip. gap:0
-     removes the space the now-empty label left behind. Scoped under
-     .sign-toolbar to out-specify the base .sign-tool-btn font-size, which is
-     defined later in this file. */
+  /* Collapse the tool buttons to icons only. Instead of font-size: 0, we use an 
+     accessible hidden class on the span so that text nodes don't retain residual width.
+     gap:0 removes the space the now-empty label left behind. */
   .sign-toolbar .sign-tool-btn {
-    font-size: 0;
     gap: 0;
-    padding: 0.4rem;
+    flex: 1;
   }
 
-  /* Redact's Blackout/Blur mode toggles also collapse to their colour swatch
-     only, so the redact toolbar fits one line too. !important overrides the
-     inline font-size/padding set on these buttons in the component. */
-  .sign-toolbar .sign-element-btn {
-    font-size: 0 !important;
-    padding: 0.4rem !important;
+  .sign-toolbar .sign-tool-btn .sign-tool-btn-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .sign-toolbar .sign-tool-dropdown-container {
+    flex: 1;
+    display: flex;
   }
 }
 
 .sign-tool-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
-  padding: 0.5rem 1rem;
+  padding: var(--btn-padding);
   font: inherit;
   font-size: 0.88rem;
   font-weight: 600;
   white-space: nowrap;
   color: var(--color-text);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background-color 0.15s var(--ease-out), color 0.15s var(--ease-out), transform 0.1s var(--ease-spring);
+  box-shadow: var(--shadow-xs);
+  transition: background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out), color 0.15s var(--ease-out), transform 0.1s var(--ease-spring);
+}
+
+.sign-tool-btn svg {
+  flex-shrink: 0;
 }
 
 .sign-tool-btn:hover {
   background: var(--color-surface-sunken);
-  color: var(--color-primary);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
 }
 
 .sign-tool-btn:active {
@@ -1396,16 +1385,19 @@ footer a {
 
 .sign-tool-btn.active {
   background: var(--color-primary);
+  border-color: var(--color-primary);
   color: #fff;
 }
 
 .sign-tool-btn-download {
   background: var(--color-primary);
+  border-color: var(--color-primary);
   color: #fff;
 }
 
 .sign-tool-btn-download:hover {
   background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
   color: #fff;
 }
 
@@ -2085,7 +2077,9 @@ footer a {
 /* Signature Dropdown & List Styles */
 .sign-tool-dropdown-container {
   position: relative;
-  display: inline-block;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .sign-dropdown-menu {
@@ -3020,33 +3014,44 @@ footer a {
    .sign-tool-dropdown-container, so it's sized as a cell alongside the bare
    buttons and its inner button fills it. */
 @media (max-width: 560px) {
+  /* Phone tuning layered on top of the shared full-width paradigm — width, flex,
+     radius, and edge alignment now live in the base .sign-toolbar rule. Here we
+     only tighten spacing, enlarge tap targets, and apply a few Redact tweaks. */
   .sign-toolbar {
-    /* Fill the screen so the 8 flex:1 cells stretch edge-to-edge and each button
-       gets a bigger tap target — without width:100% the toolbar shrink-wraps its
-       content and stays a small centered pill, leaving flex:1 nothing to spread. */
-    width: 100%;
-    gap: 0.15rem;
-    padding: 0.4rem 0.4rem;
+    --toolbar-gap: 0.15rem;
+    --toolbar-padding: 0.4rem 0.4rem;
+    --btn-padding: 0.5rem;
   }
 
-  .sign-toolbar > .sign-tool-btn,
-  .sign-toolbar > .sign-tool-dropdown-container {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  .sign-toolbar .sign-tool-dropdown-container > .sign-tool-btn {
-    width: 100%;
-  }
-
+  /* Finger-sized tap targets; all-side padding so the icon centers in each cell. */
   .sign-toolbar .sign-tool-btn {
     justify-content: center;
     min-height: 46px;
-    padding: 0.5rem 0;
+    border-radius: var(--radius-sm);
   }
 
   .sign-tool-separator {
     display: none;
+  }
+
+  /* Align the toolbar with the dropzone and the PDF pages: those sit flush inside
+     the .merge-tool card's padding, but the toolbar container adds an extra
+     horizontal inset (the max-width:919px rule) that makes it narrower. Drop it so
+     all three share one left/right edge. */
+  .sign-toolbar-container {
+    padding: 0;
+  }
+
+  /* Reclaim screen width on phones: trim the outer page gutter and the card's own
+     padding so the whole tool (dropzone, toolbar, pages) runs wider. All three move
+     together since they share the card, so they stay aligned. */
+  main {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .merge-tool {
+    padding: 1rem;
   }
 }
 

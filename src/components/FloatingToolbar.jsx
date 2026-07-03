@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'preact/hooks';
+import FullscreenButton from './FullscreenButton';
 
 export default function FloatingToolbar({
   selectedTool,
@@ -22,7 +23,7 @@ export default function FloatingToolbar({
   useEffect(() => {
     if (!showSigDropdown) return;
     const handleOutsideClick = (e) => {
-      if (!e.target.closest('.sign-tool-dropdown-container')) {
+      if (!e.target.closest('.sign-dropdown-trigger') && !e.target.closest('.sign-dropdown-menu')) {
         setShowSigDropdown(false);
       }
     };
@@ -57,13 +58,14 @@ export default function FloatingToolbar({
               setAnnouncement('Text tool active. Click anywhere on a page to place.');
             }}
             title="Click here, then click a page to add text"
+            aria-pressed={selectedTool === 'text'}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="4 7 4 4 20 4 20 7" />
               <line x1="9" y1="20" x2="15" y2="20" />
               <line x1="12" y1="4" x2="12" y2="20" />
             </svg>
-            Text
+            <span className="sign-tool-btn-text">Text</span>
           </button>
 
           <button
@@ -74,11 +76,12 @@ export default function FloatingToolbar({
               setAnnouncement('Checkmark tool active. Click a page to place.');
             }}
             title="Click here, then click a page to tick checkboxes"
+            aria-pressed={selectedTool === 'checkmark'}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            Check
+            <span className="sign-tool-btn-text">Check</span>
           </button>
 
           <button
@@ -90,27 +93,27 @@ export default function FloatingToolbar({
             }}
             title="Click here, then click a page to hide text"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <line x1="3" y1="3" x2="21" y2="21" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="4" y1="5" x2="15" y2="5" />
+              <rect x="3" y="9.5" width="18" height="5" rx="1" fill="currentColor" stroke="none" />
+              <line x1="4" y1="19" x2="12" y2="19" />
             </svg>
-            Whiteout
+            <span className="sign-tool-btn-text">Whiteout</span>
           </button>
 
           <div className="sign-tool-dropdown-container">
             <button
               type="button"
-              className={`sign-tool-btn${selectedTool === 'signature' ? ' active' : ''}`}
+              className={`sign-tool-btn sign-dropdown-trigger${selectedTool === 'signature' ? ' active' : ''}`}
               onClick={handleSignatureBtnClick}
               title="Click here to select or create a signature"
+              aria-pressed={selectedTool === 'signature'}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                {/* Cursive flourish over a signing line — reads as "sign", unlike
-                    the angled pencil it replaced, which looked like a highlighter. */}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
                 <path d="M3 21h18" />
               </svg>
-              Signature
+              <span className="sign-tool-btn-text">Sign</span>
             </button>
 
             {showSigDropdown && (
@@ -152,15 +155,13 @@ export default function FloatingToolbar({
                       <line x1="12" y1="5" x2="12" y2="19" />
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
-                    New Signature
+                    <span className="sign-tool-btn-text">New Signature</span>
                   </button>
                 </div>
               </>
             )}
           </div>
 
-          <div className="sign-tool-separator" />
-          
           <button
             type="button"
             className="sign-tool-btn"
@@ -168,39 +169,14 @@ export default function FloatingToolbar({
             title="Undo changes"
             disabled={actionHistory.length === 0}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 7v6h6" />
               <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
             </svg>
-            Undo
+            <span className="sign-tool-btn-text">Undo</span>
           </button>
 
-          <div className="sign-tool-separator" />
-
-          <button
-            type="button"
-            className="sign-tool-btn"
-            onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit full screen' : 'Full screen'}
-          >
-            {isFullscreen ? (
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M8 3v3a2 2 0 0 1-2 2H3" />
-                <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
-                <path d="M3 16h3a2 2 0 0 1 2 2v3" />
-                <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
-              </svg>
-            ) : (
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M8 3H5a2 2 0 0 0-2 2v3" />
-                <path d="M16 3h3a2 2 0 0 1 2 2v3" />
-                <path d="M21 16v3a2 2 0 0 1-2 2h-3" />
-                <path d="M3 16v3a2 2 0 0 0 2 2h3" />
-              </svg>
-            )}
-          </button>
-
-          <div className="sign-tool-separator" />
+          <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
 
           <button
             type="button"
@@ -208,11 +184,11 @@ export default function FloatingToolbar({
             onClick={() => setConfirmResetOpen(true)}
             title="Discard your work and start over"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 2v6h6" />
               <path d="M3.51 15a9 9 0 1 0 2.13-9.36L3 8" />
             </svg>
-            Start over
+            <span className="sign-tool-btn-text">Start over</span>
           </button>
 
           <button
@@ -221,7 +197,7 @@ export default function FloatingToolbar({
             onClick={onSavePdf}
             title="Save your changes and download the signed PDF"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />

@@ -218,17 +218,17 @@ export default function PdfMergeTool() {
             </button>
           </div>
 
-          <div class="toolbar" role="toolbar" aria-label="Sort files">
-            <button type="button" onClick={() => applySort(sortByName, 'asc')}>
+          <div class="sign-toolbar" role="toolbar" aria-label="Sort files">
+            <button type="button" class="sign-tool-btn" onClick={() => applySort(sortByName, 'asc')}>
               A–Z
             </button>
-            <button type="button" onClick={() => applySort(sortByName, 'desc')}>
+            <button type="button" class="sign-tool-btn" onClick={() => applySort(sortByName, 'desc')}>
               Z–A
             </button>
-            <button type="button" onClick={() => applySort(sortByDate, 'asc')}>
+            <button type="button" class="sign-tool-btn" onClick={() => applySort(sortByDate, 'asc')}>
               Oldest
             </button>
-            <button type="button" onClick={() => applySort(sortByDate, 'desc')}>
+            <button type="button" class="sign-tool-btn" onClick={() => applySort(sortByDate, 'desc')}>
               Newest
             </button>
           </div>

@@ -1,0 +1,73 @@
+---
+interface Props {
+  id?: string;
+  class?: string;
+  variant?: 'default' | 'highlight';
+}
+
+const { id, class: className = '', variant = 'default' } = Astro.props;
+---
+<section id={id} class:list={['feature-card', `variant-${variant}`, className]}>
+  <div class="feature-card-inner">
+    <slot />
+  </div>
+</section>
+
+<style>
+  .feature-card {
+    margin-top: 4rem;
+    padding: 3.5rem 2.5rem;
+    border-radius: var(--radius-lg);
+    max-width: 1032px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .variant-default {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+  }
+
+  .variant-highlight {
+    background: linear-gradient(135deg, var(--color-primary-soft) 0%, rgba(20, 99, 255, 0.01) 100%);
+    border: 1px solid var(--color-primary-soft);
+  }
+
+  .feature-card-inner {
+    width: 100%;
+  }
+
+  .feature-card:last-of-type {
+    margin-bottom: 4rem;
+  }
+
+  @media (max-width: 1080px) {
+    .feature-card {
+      margin-left: 1.5rem;
+      margin-right: 1.5rem;
+      width: auto;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .feature-card {
+      padding: 2.5rem 1.5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .feature-card {
+      min-height: calc(100vh - 6rem);
+      margin-top: 6rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    
+    .feature-card:last-of-type {
+      margin-bottom: 6rem;
+    }
+  }
+</style>

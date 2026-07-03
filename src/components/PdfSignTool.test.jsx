@@ -105,7 +105,7 @@ describe('PdfSignTool UI flow', () => {
 
     // Locate the signature tool button in the toolbar
     const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
-    const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Signature'));
+    const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
     expect(sigBtn).not.toBeNull();
 
     // Clicking signature button when saved signatures exist should toggle the dropdown
@@ -149,7 +149,7 @@ describe('PdfSignTool UI flow', () => {
     // Clicking Signature when local storage is empty opens the dialog directly
     localStorage.removeItem('pdf-toolkit:signatures');
     const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
-    const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Signature'));
+    const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
     
     await act(async () => {
       sigBtn.click();
@@ -496,7 +496,7 @@ describe('PdfSignTool UI flow', () => {
 
       localStorage.removeItem('pdf-toolkit:signatures');
       const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
-      const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Signature'));
+      const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
       
       await act(async () => {
         sigBtn.click();
@@ -572,7 +572,7 @@ describe('PdfSignTool UI flow', () => {
 
     // Select the saved signature from the dropdown, arming `activeSignature`.
     const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
-    const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Signature'));
+    const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
     await act(async () => { sigBtn.click(); });
     const dropdownItem = container.querySelector('.sign-dropdown-item');
     await act(async () => { dropdownItem.click(); });

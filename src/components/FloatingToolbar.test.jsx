@@ -93,7 +93,7 @@ describe('FloatingToolbar Component', () => {
       );
     });
 
-    const sigBtn = Array.from(container.querySelectorAll('.sign-tool-btn')).find(b => b.textContent.includes('Signature'));
+    const sigBtn = Array.from(container.querySelectorAll('.sign-tool-btn')).find(b => b.textContent.includes('Sign'));
     expect(sigBtn).not.toBeUndefined();
 
     // Clicking signature button toggles dropdown
@@ -128,5 +128,47 @@ describe('FloatingToolbar Component', () => {
     });
 
     expect(onDeleteSavedSignature).toHaveBeenCalledWith(mockSignature.id, expect.any(Object));
+  });
+
+  it('contains properly structured tool buttons with .sign-tool-btn-text spans to protect flexbox sizing', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    act(() => {
+      render(
+        <FloatingToolbar
+          selectedTool="text"
+          setSelectedTool={() => {}}
+          setAnnouncement={() => {}}
+          savedSignatures={[]}
+          actionHistory={[]}
+          toggleFullscreen={() => {}}
+          isFullscreen={false}
+          setConfirmResetOpen={() => {}}
+          onSavePdf={() => {}}
+        />,
+        container
+      );
+    });
+
+    const buttons = container.querySelectorAll('.sign-tool-btn');
+    expect(buttons.length).toBeGreaterThan(0);
+    
+    // Every single tool button must have its text wrapped in a .sign-tool-btn-text span.
+    // If a developer accidentally adds a raw text node, it breaks flexbox pixel-perfect division on mobile.
+    buttons.forEach(btn => {
+      const textSpan = btn.querySelector('.sign-tool-btn-text');
+      expect(textSpan).not.toBeNull();
+      expect(textSpan.textContent.trim().length).toBeGreaterThan(0);
+      
+      // Ensure the button is a direct child of .sign-toolbar to avoid flexbox wrapper issues
+      if (!btn.closest('.sign-dropdown-menu')) {
+        const parentClassList = btn.parentElement.classList;
+        expect(
+          parentClassList.contains('sign-toolbar') || 
+          parentClassList.contains('sign-tool-dropdown-container')
+        ).toBe(true);
+      }
+    });
   });
 });
