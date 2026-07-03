@@ -1,80 +1,11 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import SeoSchema from '../components/SeoSchema.astro';
+import ToolPageLayout from '../layouts/ToolPageLayout.astro';
 import PdfSecurityTool from '../components/PdfSecurityTool.jsx';
-import Footer from '../components/Footer.astro';
-import BrandBack from '../components/BrandBack.astro';
-import '../styles/global.css';
-import { FileLock2 } from 'lucide-preact';
+import { toolsBySlug } from '../data/tools.js';
 
-const title = 'Unlock PDF Online Free - Remove PDF Password | PDkef';
-const description =
-  'Remove a password from a PDF file online for free. Enter the password once and download an unlocked copy. 100% private, runs in your browser.';
-
-const faq = [
-  { question: 'Is unlocking a PDF here secure?', answer: 'Yes. The password and the file are processed 100% client-side, entirely in your browser. Nothing is uploaded to any server.' },
-  { question: 'Do I need to know the PDF’s password?', answer: 'Yes. This tool removes a password you already know from a PDF - it does not crack, guess, or recover unknown passwords.' },
-  { question: 'What if I enter the wrong password?', answer: 'You’ll see an error and can try again. No file data is sent anywhere when this happens, so there’s no risk in retrying.' },
-  { question: 'Is there a limit on file size?', answer: 'No artificial limit. Unlocking runs entirely on your device, so the only constraint is your device’s available memory.' },
-];
+const tool = toolsBySlug['unlock'];
 ---
 
-<BaseLayout title={title} description={description}>
-  <Fragment slot="head">
-    <SeoSchema name="PDkef - Unlock PDF" description={description} faq={faq} />
-  </Fragment>
-
-  <header>
-    <div class="page-header-row">
-      <div class="page-title-block">
-        <div class="page-title-row">
-          <div class="page-icon"><FileLock2 size={28} strokeWidth={2} /></div>
-          <h1>Unlock PDF Free: No Sign-Up, Runs Locally</h1>
-        </div>
-        <p>Remove a known password from a PDF, or add one to protect a file - the tool detects which you need.</p>
-      </div>
-      <BrandBack />
-    </div>
-  </header>
-
-  <main>
-    <section id="app" aria-label="PDF unlock tool">
-      <PdfSecurityTool client:load intent="unlock" />
-    </section>
-  </main>
-
-  <Footer summaryText="Remove a password from your PDF, right in your browser. No upload, no server. Your file and its password never leave your device.">
-    <section id="how-it-works">
-      <h2>How to unlock a password-protected PDF online for free</h2>
-      <ol>
-        <li><strong>Upload your PDF.</strong> Select or drag-and-drop the password-protected file.</li>
-        <li><strong>Enter the password.</strong> Type the password currently required to open the PDF.</li>
-        <li><strong>Unlock and download.</strong> Click Unlock PDF and save a copy with the password removed.</li>
-      </ol>
-    </section>
-
-    <section id="why-pdkef">
-      <h2>Why use PDkef</h2>
-      <ul>
-        <li><strong>Free:</strong> no cost, no signup, no watermark, no limits.</li>
-        <li><strong>No server, no paywalls:</strong> most online PDF tools cap free use or hide features behind a paywall because every file costs them server time. This one runs 100% locally on your device, so there's nothing to ration.</li>
-        <li><strong>Private:</strong> your file and its password never leave your device; nothing is uploaded.</li>
-        <li><strong>Fast:</strong> unlocking happens instantly in your browser.</li>
-        <li><strong>Works everywhere:</strong> Chrome on macOS, Windows, Android, and iOS.</li>
-        <li><strong>Open source:</strong> the entire codebase is public and MIT licensed - inspect exactly what runs on your device.</li>
-      </ul>
-    </section>
-
-    <section id="faq">
-      <h2>Frequently asked questions</h2>
-      <h3>Is unlocking a PDF here secure?</h3>
-      <p>Yes. The password and the file are processed 100% client-side, entirely in your browser. Nothing is uploaded to any server.</p>
-      <h3>Do I need to know the PDF's password?</h3>
-      <p>Yes. This tool removes a password you already know from a PDF - it does not crack, guess, or recover unknown passwords.</p>
-      <h3>What if I enter the wrong password?</h3>
-      <p>You'll see an error and can try again. No file data is sent anywhere when this happens, so there's no risk in retrying.</p>
-      <h3>Is there a limit on file size?</h3>
-      <p>No artificial limit. Unlocking runs entirely on your device, so the only constraint is your device's available memory.</p>
-    </section>
-  </Footer>
-</BaseLayout>
+<ToolPageLayout tool={tool}>
+  <PdfSecurityTool client:load intent="unlock" />
+</ToolPageLayout>

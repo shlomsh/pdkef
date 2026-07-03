@@ -1,0 +1,47 @@
+---
+// Reusable FAQ content card for tool pages. Takes the same `faq` array a
+// page already passes to <SeoSchema faq={...} />, so the visible FAQ and the
+// FAQPage JSON-LD are always the same source - no separate copy to drift.
+import FeatureCard from './FeatureCard.astro';
+import CardDecor from './CardDecor.astro';
+import { HelpCircle } from 'lucide-preact';
+
+interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+interface Props {
+  faq: FaqItem[];
+  icon?: any;
+  tag?: string;
+  heading?: string;
+  sketch?: 'arcs' | 'waves' | 'rings' | 'grid';
+  iconPos?: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl';
+}
+
+const {
+  faq,
+  icon = HelpCircle,
+  tag = 'Got questions?',
+  heading = 'Frequently asked questions',
+  sketch = 'rings',
+  iconPos = 'br',
+} = Astro.props;
+---
+
+<FeatureCard class="tool-content-card">
+  <CardDecor sketch={sketch} icon={icon} iconPos={iconPos} iconSize={240} />
+  <div class="tool-faq-head">
+    <span class="faq-tag">{tag}</span>
+    <h2>{heading}</h2>
+  </div>
+  <div class="tool-faq-grid">
+    {faq.map((item) => (
+      <div class="faq-item">
+        <h3>{item.question}</h3>
+        <p>{item.answer}</p>
+      </div>
+    ))}
+  </div>
+</FeatureCard>

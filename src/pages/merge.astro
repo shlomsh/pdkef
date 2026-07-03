@@ -1,81 +1,11 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import SeoSchema from '../components/SeoSchema.astro';
+import ToolPageLayout from '../layouts/ToolPageLayout.astro';
 import PdfMergeTool from '../components/PdfMergeTool.jsx';
-import Footer from '../components/Footer.astro';
-import BrandBack from '../components/BrandBack.astro';
-import '../styles/global.css';
-import { Merge as MergeIcon } from 'lucide-preact';
+import { toolsBySlug } from '../data/tools.js';
 
-const title = 'Merge PDF Online Free - Combine PDFs in Your Browser | PDkef';
-const description =
-  'Merge PDF files online for free. Drag, reorder, and combine PDFs in your browser instantly. No upload, no signup, no watermark.';
-
-// FAQ schema mirrors the visible FAQ rendered below.
-const faq = [
-  { question: 'Is PDkef really free?', answer: 'Yes. PDkef is completely free, with no limits, no signup, and no watermark on your merged PDF.' },
-  { question: 'Are my files uploaded to a server?', answer: 'No. PDkef runs entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.' },
-  { question: 'Does PDkef work on mobile?', answer: 'Yes. PDkef works in Chrome on Android and iOS, as well as desktop browsers on macOS and Windows.' },
-  { question: 'Is there a file size or page limit?', answer: "No artificial limit is imposed by PDkef. The only constraint is your device's available memory, since merging happens locally." },
-];
+const tool = toolsBySlug['merge'];
 ---
 
-<BaseLayout title={title} description={description}>
-  <Fragment slot="head">
-    <SeoSchema name="PDkef - Merge PDF" description={description} faq={faq} />
-  </Fragment>
-
-  <header>
-    <div class="page-header-row">
-      <div class="page-title-block">
-        <div class="page-title-row">
-          <div class="page-icon"><MergeIcon size={28} strokeWidth={2} /></div>
-          <h1>Merge PDF Free: No Sign-Up, Runs Locally</h1>
-        </div>
-        <p>Combine multiple PDFs into a single document and reorder pages by drag-and-drop before you export.</p>
-      </div>
-      <BrandBack />
-    </div>
-  </header>
-
-  <main>
-    <section id="app" aria-label="PDF merge tool">
-      <PdfMergeTool client:load />
-    </section>
-  </main>
-
-  <Footer>
-    <section id="how-it-works">
-      <h2>How to merge PDF files online for free</h2>
-      <ol>
-        <li><strong>Add your PDFs.</strong> Select or drag-and-drop the files you want to combine.</li>
-        <li><strong>Reorder them.</strong> Sort by name or date, or drag files into the order you want.</li>
-        <li><strong>Merge and download.</strong> Click Merge PDFs and save your combined file.</li>
-      </ol>
-    </section>
-
-    <section id="why-pdkef">
-      <h2>Why use PDkef</h2>
-      <ul>
-        <li><strong>Free:</strong> no cost, no signup, no watermark, no limits.</li>
-        <li><strong>No server, no paywalls:</strong> most online PDF tools cap free use or hide features behind a paywall because every file costs them server time. This one runs 100% locally on your device, so there's nothing to ration.</li>
-        <li><strong>Private:</strong> your files never leave your device; nothing is uploaded.</li>
-        <li><strong>Fast:</strong> merging happens instantly in your browser.</li>
-        <li><strong>Works everywhere:</strong> Chrome on macOS, Windows, Android, and iOS.</li>
-        <li><strong>Open source:</strong> MIT licensed, inspect the code yourself.</li>
-      </ul>
-    </section>
-
-    <section id="faq">
-      <h2>Frequently asked questions</h2>
-      <h3>Is PDkef really free?</h3>
-      <p>Yes. PDkef is completely free, with no limits, no signup, and no watermark on your merged PDF.</p>
-      <h3>Are my files uploaded to a server?</h3>
-      <p>No. PDkef runs entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
-      <h3>Does PDkef work on mobile?</h3>
-      <p>Yes. PDkef works in Chrome on Android and iOS, as well as desktop browsers on macOS and Windows.</p>
-      <h3>Is there a file size or page limit?</h3>
-      <p>No artificial limit is imposed by PDkef. The only constraint is your device's available memory, since merging happens locally.</p>
-    </section>
-  </Footer>
-</BaseLayout>
+<ToolPageLayout tool={tool}>
+  <PdfMergeTool client:load />
+</ToolPageLayout>

@@ -3,12 +3,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import SeoSchema from '../components/SeoSchema.astro';
 import Footer from '../components/Footer.astro';
 import FeatureCard from '../components/FeatureCard.astro';
+import CardDecor from '../components/CardDecor.astro';
 import '../styles/global.css';
 
 const title = 'Sign & Fill PDF Free - No Sign-Up Local PDF Editor | PDkef';
 const description = 'Sign PDFs and fill interactive forms instantly with this 100% free, open-source online PDF editor that requires no account or software installation. With secure browser-local processing, files are never uploaded to an external server, providing a completely private, offline-capable workflow.';
 
-import { FileSignature, Merge, ImageUp, ImageDown, Split, Shrink, FileLock2, FileEdit, Eraser, Monitor, Smartphone, Compass } from 'lucide-preact';
+import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, HelpCircle, ShieldCheck, Infinity, Lock, Code2 } from 'lucide-preact';
+import { tools } from '../data/tools.js';
 
 // FAQ schema mirrors the visible questions rendered in the footer below.
 const faq = [
@@ -18,65 +20,8 @@ const faq = [
   { question: 'Is PDkef open source?', answer: 'Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.' },
 ];
 
-// Ordered by SEO priority score from the keyword research (search volume x
-// winnability x client-side fit) - highest-opportunity tools surface first.
-const tools = [
-  {
-    title: 'Sign & Fill PDF',
-    description: 'Fill interactive PDF forms and draw secure digital signatures instantly in your browser with zero registration, zero limits, and no watermarks. Your progress auto-saves locally so a crash never loses your work.',
-    href: '/sign/',
-    icon: FileSignature
-  },
-  {
-    title: 'Merge PDF',
-    description: 'Combine multiple PDFs into a single document in seconds.',
-    href: '/merge/',
-    icon: Merge
-  },
-  {
-    title: 'PDF to Image',
-    description: 'Convert PDF pages into high-quality JPG or PNG images.',
-    href: '/pdf-to-image/',
-    icon: ImageUp
-  },
-  {
-    title: 'Image to PDF',
-    description: 'Combine JPG or PNG images into a single PDF document.',
-    href: '/image-to-pdf/',
-    icon: ImageDown
-  },
-  {
-    title: 'Split PDF',
-    description: 'Extract specific pages or separate a PDF into multiple files.',
-    href: '/split/',
-    icon: Split
-  },
-  {
-    title: 'Compress PDF',
-    description: 'Reduce the file size of your PDF without losing quality.',
-    href: '/compress/',
-    icon: Shrink
-  },
-  {
-    title: 'Protect & Unlock',
-    description: 'Add a password to secure your PDF or remove a known password.',
-    href: '/unlock/',
-    icon: FileLock2
-  },
-  {
-    title: 'Edit PDF Pages',
-    description: 'Remove, rotate, and add page numbers to your PDF file easily.',
-    href: '/edit-pdf/',
-    icon: FileEdit
-  },
-  {
-    title: 'Redact & Blur',
-    description: 'Securely hide, blur, or black out sensitive text and flatten the document.',
-    href: '/redact/',
-    icon: Eraser
-  }
-];
-
+// The tool list (home grid + hero card) comes from the shared registry, so it
+// stays in sync with the tool pages and the sitemap. Ordered by SEO priority.
 const HeroIcon = tools[0].icon;
 ---
 
@@ -102,9 +47,9 @@ const HeroIcon = tools[0].icon;
           <span class="hero-badge">Local & Private</span>
           <h2>
             <HeroIcon size={24} strokeWidth={2.5} style="display: inline-block; vertical-align: text-bottom; margin-right: 0.5rem; color: var(--color-primary);" />
-            {tools[0].title}
+            {tools[0].gridTitle}
           </h2>
-          <p>{tools[0].description}</p>
+          <p>{tools[0].gridDescription}</p>
           <span class="hero-cta">
             Open tool
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -145,8 +90,8 @@ const HeroIcon = tools[0].icon;
             <tool.icon size={24} strokeWidth={2} />
           </div>
           <div class="tool-content">
-            <h3>{tool.title}</h3>
-            <p>{tool.description}</p>
+            <h3>{tool.gridTitle}</h3>
+            <p>{tool.gridDescription}</p>
           </div>
         </a>
       ))}
@@ -154,34 +99,47 @@ const HeroIcon = tools[0].icon;
   </main>
 </div>
 
-    <FeatureCard>
-      <div class="whypdkef-content">
-        <span class="whypdkef-tag">Our Philosophy</span>
-        <h2>Why yet another PDF tool?</h2>
-        <p>
-          Most free PDF sites run your files through their own servers—which is expensive, so they restrict your usage with paywalls, daily caps, or forced accounts.
-        </p>
-        <p class="whypdkef-detail">
-          PDkef is built differently. By running every tool 100% client-side inside your browser, it costs next to nothing to host. That is why it is completely free, runs offline, has no limits, and never asks for a signup.
-        </p>
-        <div class="whypdkef-features">
+    <FeatureCard class="tool-content-card">
+      <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} />
+      <div class="whypdkef-layout">
+        <div class="whypdkef-copy">
+          <span class="whypdkef-tag">Our Philosophy</span>
+          <h2>Why yet another PDF tool?</h2>
+          <p>
+            Most free PDF sites run your files through their own servers, which is expensive, so they restrict your usage with paywalls, daily caps, or forced accounts.
+          </p>
+          <p class="whypdkef-detail">
+            PDkef is built differently. By running every tool 100% client-side inside your browser, it costs next to nothing to host. That is why it is completely free, runs offline, has no limits, and never asks for a signup.
+          </p>
+        </div>
+        <div class="whypdkef-proof">
           <div class="whypdkef-feat">
-            <strong>Free Forever</strong>
-            <span>No limits, no catch</span>
+            <div class="whypdkef-feat-icon"><Infinity size={20} strokeWidth={2} /></div>
+            <div class="whypdkef-feat-text">
+              <strong>Free Forever</strong>
+              <span>No limits, no catch</span>
+            </div>
           </div>
           <div class="whypdkef-feat">
-            <strong>100% Private</strong>
-            <span>Files never leave device</span>
+            <div class="whypdkef-feat-icon"><Lock size={20} strokeWidth={2} /></div>
+            <div class="whypdkef-feat-text">
+              <strong>100% Private</strong>
+              <span>Files never leave your device</span>
+            </div>
           </div>
           <div class="whypdkef-feat">
-            <strong>Open Source</strong>
-            <span>Audit the code yourself</span>
+            <div class="whypdkef-feat-icon"><Code2 size={20} strokeWidth={2} /></div>
+            <div class="whypdkef-feat-text">
+              <strong>Open Source</strong>
+              <span>Audit the code yourself</span>
+            </div>
           </div>
         </div>
       </div>
     </FeatureCard>
 
-    <FeatureCard variant="highlight">
+    <FeatureCard variant="highlight" class="tool-content-card">
+      <CardDecor sketch="waves" icon={HardDriveDownload} iconPos="cr" iconSize={300} />
       <div class="autosave-layout">
         <div class="autosave-visual" aria-hidden="true">
           <div class="autosave-doc">
@@ -207,10 +165,11 @@ const HeroIcon = tools[0].icon;
       </div>
     </FeatureCard>
 
-    <FeatureCard class="offline-section-custom">
+    <FeatureCard class="offline-section-custom tool-content-card">
+      <CardDecor sketch="grid" icon={WifiOff} iconPos="br" iconSize={300} />
       <div class="offline-header">
         <h2>Run PDkef offline as an app</h2>
-        <p>Because PDkef runs entirely in your web browser with zero server uploads, you can install it on your device and use it just like a native desktop or mobile application—even when you don't have internet access.</p>
+        <p>Because PDkef runs entirely in your web browser with zero server uploads, you can install it on your device and use it just like a native desktop or mobile application, even when you don't have internet access.</p>
       </div>
 
       <div class="offline-tabs-container">
@@ -313,7 +272,8 @@ const HeroIcon = tools[0].icon;
     });
   </script>
 
-  <FeatureCard>
+  <FeatureCard class="tool-content-card">
+    <CardDecor sketch="rings" icon={HelpCircle} iconPos="bl" iconSize={300} />
     <div class="faq-header">
       <span class="faq-tag">Got Questions?</span>
       <h2>Frequently asked questions</h2>
@@ -338,18 +298,22 @@ const HeroIcon = tools[0].icon;
     </div>
   </FeatureCard>
 
-  <FeatureCard variant="highlight">
+  <FeatureCard variant="highlight" class="tool-content-card">
+    <CardDecor sketch="arcs" icon={ShieldCheck} iconPos="cl" iconSize={300} />
     <div class="osp-content">
       <span class="osp-tag">Transparent & Secure</span>
       <h2>Open source & privacy</h2>
       <div class="osp-blocks">
         <div class="osp-block">
+          <div class="osp-block-icon"><Lock size={22} strokeWidth={2} /></div>
           <h3>Privacy</h3>
           <p>Every tool runs 100% locally in your browser. Your files are never uploaded - PDkef has no server to send them to.</p>
         </div>
         <div class="osp-block">
+          <div class="osp-block-icon"><Code2 size={22} strokeWidth={2} /></div>
           <h3>Open source</h3>
           <p>This project is open source under the MIT license. You can <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">view the source code on GitHub</a>. PDkef is built on other open source projects too - see the <a href="/licenses">open source licenses</a> page for the full list.</p>
+          <span class="osp-badge">MIT Licensed</span>
         </div>
       </div>
     </div>
@@ -673,14 +637,14 @@ const HeroIcon = tools[0].icon;
     margin-bottom: 0.5rem;
   }
 
-  .whypdkef-content h2 {
+  .whypdkef-copy h2 {
     font-size: 1.6rem;
     font-weight: 700;
     margin: 0 0 1rem;
     color: var(--color-text);
   }
 
-  .whypdkef-content p {
+  .whypdkef-copy p {
     font-size: 0.98rem;
     line-height: 1.6;
     color: var(--color-text);
@@ -693,37 +657,92 @@ const HeroIcon = tools[0].icon;
     color: var(--color-muted);
   }
 
-  .whypdkef-features {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    margin-top: 2rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--color-border);
+  .whypdkef-layout {
+    display: flex;
+    align-items: stretch;
+    gap: 3rem;
   }
 
-  @media (max-width: 640px) {
-    .whypdkef-features {
-      grid-template-columns: 1fr;
-      gap: 1.25rem;
-    }
+  .whypdkef-copy {
+    flex: 1.2;
+    min-width: 0;
+  }
+
+  .whypdkef-copy p:last-child {
+    margin-bottom: 0;
+  }
+
+  .whypdkef-proof {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
   }
 
   .whypdkef-feat {
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    transition: background-color 0.25s var(--ease-out);
   }
 
-  .whypdkef-feat strong {
+  .whypdkef-feat + .whypdkef-feat {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .whypdkef-feat:hover {
+    background: var(--color-primary-tint);
+  }
+
+  .whypdkef-feat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+    transition: transform 0.25s var(--ease-spring), background-color 0.25s var(--ease-out),
+      color 0.25s var(--ease-out);
+  }
+
+  .whypdkef-feat:hover .whypdkef-feat-icon {
+    background: var(--color-primary);
+    color: #fff;
+    transform: scale(1.08);
+  }
+
+  .whypdkef-feat-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+
+  .whypdkef-feat-text strong {
     font-size: 0.95rem;
     font-weight: 600;
     color: var(--color-text);
   }
 
-  .whypdkef-feat span {
-    font-size: 0.88rem;
+  .whypdkef-feat-text span {
+    font-size: 0.85rem;
     color: var(--color-muted);
+  }
+
+  @media (max-width: 768px) {
+    .whypdkef-layout {
+      flex-direction: column;
+      gap: 2rem;
+    }
   }
 
   .autosave-layout {
@@ -1161,7 +1180,35 @@ const HeroIcon = tools[0].icon;
   .osp-blocks {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 3rem;
+    gap: 1.75rem;
+  }
+
+  .osp-block {
+    padding: 1.75rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-xs);
+    transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out),
+      border-color 0.3s var(--ease-out);
+  }
+
+  .osp-block:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border-strong);
+  }
+
+  .osp-block-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 1.1rem;
+    border-radius: var(--radius-sm);
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
   }
 
   .osp-block h3 {
@@ -1176,6 +1223,18 @@ const HeroIcon = tools[0].icon;
     line-height: 1.6;
     color: var(--color-text);
     margin: 0;
+  }
+
+  .osp-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 1.1rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-success-soft);
+    color: var(--color-success);
+    font-size: 0.78rem;
+    font-weight: 700;
   }
 
   .osp-block a {

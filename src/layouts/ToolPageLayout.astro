@@ -1,0 +1,46 @@
+---
+// Renders a complete tool page from a single registry entry (see
+// src/data/tools.js). The interactive island is passed in via the default slot
+// so each page keeps its own explicit `client:load` import (and any per-tool
+// props, e.g. unlock's intent). Everything else - SEO head, hero, content
+// cards, footer - is driven by the `tool` object, so a page file is just:
+//   const tool = toolsBySlug['merge'];
+//   <ToolPageLayout tool={tool}><PdfMergeTool client:load /></ToolPageLayout>
+import BaseLayout from './BaseLayout.astro';
+import SeoSchema from '../components/SeoSchema.astro';
+import ToolHero from '../components/ToolHero.astro';
+import ToolAboutCard from '../components/ToolAboutCard.astro';
+import ToolFaqCard from '../components/ToolFaqCard.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+const { tool } = Astro.props;
+---
+
+<BaseLayout title={tool.seoTitle} description={tool.seoDescription}>
+  <Fragment slot="head">
+    <SeoSchema name={tool.schemaName} description={tool.seoDescription} faq={tool.faq} />
+  </Fragment>
+
+  <ToolHero icon={tool.icon} toolName={tool.toolName} title={tool.h1} subhead={tool.subhead} />
+
+  <main>
+    <section id="app" aria-label={tool.ariaLabel}>
+      <slot />
+    </section>
+  </main>
+
+  <ToolAboutCard
+    icon={tool.icon}
+    heading={tool.aboutHeading}
+    lead={tool.aboutLead}
+    steps={tool.steps}
+    freeNoteLead={tool.freeNoteLead}
+    sketch={tool.aboutSketch}
+    iconPos={tool.aboutIconPos}
+  />
+
+  <ToolFaqCard faq={tool.faq} sketch={tool.faqSketch} iconPos={tool.faqIconPos} />
+
+  <Footer />
+</BaseLayout>

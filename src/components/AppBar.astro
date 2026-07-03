@@ -1,0 +1,160 @@
+---
+// Shared suite app bar for tool pages. The brand pill is a back-to-home link
+// (reveals a back arrow on hover) that signals "part of a suite"; the optional
+// breadcrumb is a nav label, NOT the page <h1>. Right side carries a quiet
+// "on-device" privacy badge. Pure inline SVG, no script, so it adds no CSP
+// surface. Uses a favicon square + wordmark for the brand pill.
+interface Props {
+  toolName?: string;
+}
+const { toolName } = Astro.props;
+---
+
+<div class="appbar">
+  <div class="appbar-inner">
+    <a href="/" class="appbar-brand" aria-label="PDkef home, all tools">
+      <span class="appbar-back" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+        </svg>
+      </span>
+      <img src="/favicon.png" width="24" height="24" alt="" aria-hidden="true" class="appbar-logo" />
+      <span class="appbar-wordmark">PDkef</span>
+    </a>
+
+    {toolName && (
+      <span class="appbar-crumb">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+        <span>{toolName}</span>
+      </span>
+    )}
+
+    <span class="appbar-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" />
+        <path d="M9 12.5l2 2 4-4.5" />
+      </svg>
+      On-device
+    </span>
+  </div>
+</div>
+
+<style>
+  .appbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+    backdrop-filter: saturate(1.2) blur(10px);
+    -webkit-backdrop-filter: saturate(1.2) blur(10px);
+    border-bottom: 0.5px solid var(--color-border);
+  }
+
+  .appbar-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .appbar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.3rem 0.75rem 0.3rem 0.4rem;
+    border: 0.5px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-text);
+    text-decoration: none;
+    transition: border-color 0.15s var(--ease-out), transform 0.15s var(--ease-out);
+  }
+
+  .appbar-brand:hover {
+    border-color: var(--color-border-strong);
+    transform: translateX(-1px);
+  }
+
+  .appbar-back {
+    display: inline-flex;
+    align-items: center;
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+    color: var(--color-muted-light);
+    transition: width 0.18s var(--ease-out), opacity 0.18s var(--ease-out);
+  }
+
+  .appbar-brand:hover .appbar-back {
+    width: 16px;
+    opacity: 1;
+  }
+
+  .appbar-logo {
+    border-radius: 6px;
+    flex-shrink: 0;
+    display: block;
+  }
+
+  .appbar-wordmark {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .appbar-crumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-muted);
+  }
+
+  .appbar-crumb svg {
+    color: var(--color-muted-light);
+    flex-shrink: 0;
+  }
+
+  .appbar-crumb span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .appbar-badge {
+    margin-left: auto;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--radius-pill);
+    background: var(--color-success-soft);
+    color: var(--color-success);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  @media (max-width: 560px) {
+    .appbar-inner {
+      padding: 0 1rem;
+      gap: 0.55rem;
+    }
+    .appbar-badge {
+      font-size: 0;
+      gap: 0;
+      padding: 0.4rem;
+    }
+    .appbar-badge svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+</style>

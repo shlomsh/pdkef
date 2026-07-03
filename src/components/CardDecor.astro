@@ -1,0 +1,52 @@
+---
+// Decorative, theme-colored geometric line sketch + an oversized watermark
+// icon, both tucked behind card content (z-index:-1 inside a .tool-content-card
+// which sets `isolation:isolate`). Swap `sketch` and `iconPos` per card to keep
+// pages visually distinct while sharing one implementation.
+//   sketch: 'arcs' | 'waves' | 'rings' | 'grid'
+//   iconPos: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl'
+interface Props {
+  sketch?: 'arcs' | 'waves' | 'rings' | 'grid';
+  icon?: any;
+  iconPos?: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl';
+  iconSize?: number;
+}
+const { sketch = 'arcs', icon: Icon, iconPos = 'tr', iconSize = 260 } = Astro.props;
+
+// Geometry for each sketch, drawn in a 0..480 x 0..360 viewBox and slice-scaled
+// to cover the whole card. Shapes intentionally bleed past the edges.
+const arcRadii = [90, 160, 230, 300, 370, 440, 510];
+const waveYs = [30, 90, 150, 210, 270, 330];
+const ringRadii = [50, 105, 160, 215, 270, 325];
+const gridStep = 48;
+const gridX = Array.from({ length: Math.floor(480 / gridStep) + 1 }, (_, i) => i * gridStep);
+const gridY = Array.from({ length: Math.floor(360 / gridStep) + 1 }, (_, i) => i * gridStep);
+---
+
+<div class:list={['card-decor', `sketch-${sketch}`]} aria-hidden="true">
+  <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice">
+    {sketch === 'arcs' &&
+      arcRadii.map((r) => <path d={`M ${480 - r} 0 A ${r} ${r} 0 0 1 480 ${r}`} />)}
+
+    {sketch === 'waves' &&
+      waveYs.map((y) => <path d={`M -20 ${y} C 120 ${y - 30}, 360 ${y + 30}, 500 ${y}`} />)}
+
+    {sketch === 'rings' && ringRadii.map((r) => <circle cx="34" cy="332" r={r} />)}
+
+    {sketch === 'grid' && (
+      <g>
+        {gridX.map((x) => <line x1={x} y1="0" x2={x} y2="360" />)}
+        {gridY.map((y) => <line x1="0" y1={y} x2="480" y2={y} />)}
+      </g>
+    )}
+  </svg>
+</div>
+
+{Icon && (
+  <Icon
+    class:list={['card-decor-icon', `pos-${iconPos}`]}
+    size={iconSize}
+    strokeWidth={1}
+    aria-hidden="true"
+  />
+)}

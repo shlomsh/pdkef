@@ -1,20 +1,7 @@
 ---
-interface Props {
-  summaryText?: string;
-}
-
-const { summaryText } = Astro.props;
+// Shared site footer. Tool pages render their how-it-works + FAQ above this in
+// ToolAboutCard / ToolFaqCard, so the footer itself is just the credit line.
 ---
-{Astro.slots.has('default') && (
-  <div class="tool-faq-section">
-    <div class="tool-faq-content">
-      {summaryText && <p class="faq-intro">{summaryText}</p>}
-      <slot />
-      <slot name="how-it-works-extra" />
-    </div>
-  </div>
-)}
-
 <footer class="site-footer">
   <div class="site-footer-inner">
     <p class="credit-line">

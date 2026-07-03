@@ -1,0 +1,64 @@
+---
+// Reusable "How it works" + "Free for everyone" content card for tool pages.
+// Pairs with ToolFaqCard.astro; both share the .tool-content-card decorative
+// treatment (geometric sketch + icon watermark) via CardDecor.astro.
+import FeatureCard from './FeatureCard.astro';
+import CardDecor from './CardDecor.astro';
+
+interface Step {
+  title: string;
+  text: string;
+}
+
+interface Props {
+  icon: any;
+  tag?: string;
+  heading: string;
+  lead: string;
+  steps: Step[];
+  // Tool-specific opening line of the "Free for everyone" note (may contain
+  // inline HTML). Keep the modest, on-device, no-us-vs-them voice. The shared
+  // open-source paragraph below is appended automatically, so pages never
+  // repeat it.
+  freeNoteLead?: string;
+  sketch?: 'arcs' | 'waves' | 'rings' | 'grid';
+  iconPos?: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl';
+}
+
+// Defined once for the whole suite so the open-source message can never drift.
+const sharedOpenSource =
+  'It\'s open source under the MIT license, so anyone can read the code, <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">fork it on GitHub</a>, or share it. Simple PDF tools should be free for everyone.';
+
+const defaultLead =
+  "PDkef runs entirely in your browser, so there's no server to pay for and no reason to charge you, add a watermark, show ads, or ask you to sign up. Use it as much as you like.";
+
+const {
+  icon,
+  tag = 'How it works',
+  heading,
+  lead,
+  steps,
+  freeNoteLead = defaultLead,
+  sketch = 'arcs',
+  iconPos = 'tr',
+} = Astro.props;
+---
+
+<FeatureCard variant="highlight" class="tool-content-card">
+  <CardDecor sketch={sketch} icon={icon} iconPos={iconPos} iconSize={280} />
+  <div class="tool-about">
+    <span class="tool-tag">{tag}</span>
+    <h2>{heading}</h2>
+    <p class="tool-lead">{lead}</p>
+    <ol>
+      {steps.map((step) => (
+        <li><strong>{step.title}.</strong> {step.text}</li>
+      ))}
+    </ol>
+    <section class="free-note">
+      <h2>Free for everyone</h2>
+      <p set:html={freeNoteLead} />
+      <p set:html={sharedOpenSource} />
+    </section>
+  </div>
+</FeatureCard>
