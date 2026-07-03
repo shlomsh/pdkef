@@ -1272,26 +1272,10 @@ footer a {
 
 /* Every visible control takes an equal share so the row fills the width and each
    button is as large as the space allows — Sign's buttons + signature dropdown,
-   Redact's mode-toggle group + buttons. Separators stay natural 1px dividers. */
-.sign-toolbar > *:not(.sign-tool-separator) {
+   Redact's mode-toggle group + buttons. */
+.sign-toolbar > * {
   flex: 1 1 0;
   min-width: 0;
-}
-
-.sign-toolbar-group {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.sign-toolbar-group.center {
-  justify-content: center;
-}
-
-.sign-toolbar-group.right {
-  justify-content: flex-end;
 }
 
 .sign-toolbar .sign-tool-dropdown-container > .sign-tool-btn {
@@ -1316,15 +1300,7 @@ footer a {
     --btn-padding: 0.15rem 0;
   }
 
-  .sign-toolbar-group {
-    display: contents;
-  }
-
-  .sign-tool-separator {
-    display: none;
-  }
-
-  /* Collapse the tool buttons to icons only. Instead of font-size: 0, we use an 
+  /* Collapse the tool buttons to icons only. Instead of font-size: 0, we use an
      accessible hidden class on the span so that text nodes don't retain residual width.
      gap:0 removes the space the now-empty label left behind. */
   .sign-toolbar .sign-tool-btn {
@@ -1412,13 +1388,6 @@ footer a {
 .sign-tool-btn-reset:hover {
   color: #fff;
   background: var(--color-danger);
-}
-
-.sign-tool-separator {
-  width: 1px;
-  height: 20px;
-  background: var(--color-border);
-  margin: 0 2px;
 }
 
 .sign-pages-container {
@@ -3028,10 +2997,6 @@ footer a {
     justify-content: center;
     min-height: 46px;
     border-radius: var(--radius-sm);
-  }
-
-  .sign-tool-separator {
-    display: none;
   }
 
   /* Align the toolbar with the dropzone and the PDF pages: those sit flush inside

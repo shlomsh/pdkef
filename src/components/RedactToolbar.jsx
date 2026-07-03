@@ -10,7 +10,7 @@ export default function RedactToolbar({
   elementsCount
 }) {
   return (
-    <div className="sign-toolbar-container">
+    <div className="sign-toolbar-container" style={{ marginTop: 'var(--space-5)' }}>
       <div className="sign-toolbar" role="toolbar" aria-label="PDF redaction">
         <button
           type="button"
