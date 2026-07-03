@@ -174,8 +174,15 @@ export async function signPdf(file, elements, onProgress) {
 
       const { r, g, b } = hexToRgbFractions(el.color);
 
-      // Helvetica baseline offset is roughly 85% of line height
-      const baselineAdjustedY = pdfY - (fontSizeInPoints * 0.85);
+      // Baseline placement. `pdfY` is the box top (from el.top). Two offsets drop
+      // to the first baseline:
+      //   - ~0.85em: Helvetica baseline offset, roughly 85% of line height.
+      //   - TEXT_BOX_PADDING_EM: the editor renders text with this much top padding
+      //     (see `.sign-text-input, .sign-text-measure` in global.css), which pushes
+      //     the on-screen baseline down by the same amount. The export must match it
+      //     or preview and output drift. Keep this constant in sync with the CSS.
+      const TEXT_BOX_PADDING_EM = 0.3;
+      const baselineAdjustedY = pdfY - fontSizeInPoints * (0.85 + TEXT_BOX_PADDING_EM);
       const lineHeight = fontSizeInPoints * 1.2; // matches the editor's CSS line-height
 
       // The editor anchors RTL text boxes by their *right* edge (see

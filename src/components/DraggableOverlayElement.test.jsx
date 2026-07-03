@@ -170,7 +170,7 @@ describe('DraggableOverlayElement RTL text positioning', () => {
     expect(onChangeCalls.some((patch) => 'left' in patch)).toBe(false);
   });
 
-  it('applies matching horizontal padding to both the text input and measure div to prevent right-edge clipping', () => {
+  it('owns text-box padding in shared CSS, not inline, so the two overlays cannot diverge', () => {
     const element = {
       id: 'el-3',
       type: 'text',
@@ -184,12 +184,17 @@ describe('DraggableOverlayElement RTL text positioning', () => {
     const measure = wrapper.querySelector('.sign-text-measure');
     const input = wrapper.querySelector('.sign-text-input');
 
-    // Both must have identical padding so their measured widths perfectly align
-    expect(measure.style.padding).toBe('0px 4px');
-    expect(input.style.padding).toBe('0px 4px');
+    // Padding is owned by the single `.sign-text-input, .sign-text-measure` rule
+    // in global.css, not by inline styles. Both elements carrying those classes
+    // with NO inline padding is what guarantees identical box metrics — a stronger
+    // guarantee than two copies of an inline value that could drift out of sync.
+    expect(measure.className).toContain('sign-text-measure');
+    expect(input.className).toContain('sign-text-input');
+    expect(measure.style.padding).toBe('');
+    expect(input.style.padding).toBe('');
   });
 
-  it('does not constrain the textarea width with cols=1 to prevent vertical text wrapping regression', () => {
+  it('sets cols=1 with the measure div in layout so short text does not leave a too-wide box', () => {
     const element = {
       id: 'el-4',
       type: 'text',
@@ -201,7 +206,17 @@ describe('DraggableOverlayElement RTL text positioning', () => {
 
     const wrapper = mountWithPageWrapper(element, 612, () => {});
     const input = wrapper.querySelector('textarea.sign-text-input');
+    const measure = wrapper.querySelector('.sign-text-measure');
 
-    expect(input.getAttribute('cols')).not.toBe('1');
+    // A bare textarea defaults to ~20 cols and forces that intrinsic width onto the
+    // grid track, stranding short text in a wide box. cols=1 removes that so the
+    // hidden measure div is the sole width driver. This is only safe because the
+    // measure div stays IN LAYOUT (CSS visibility:hidden, not display:none) and so
+    // sizes the shared grid cell; if it were ever pulled out of layout, cols=1 would
+    // collapse the textarea to ~1ch and wrap every character vertically (the original
+    // regression this test now guards against from the other direction).
+    expect(input.getAttribute('cols')).toBe('1');
+    expect(measure).toBeTruthy();
+    expect(measure.style.display).not.toBe('none');
   });
 });

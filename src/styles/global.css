@@ -1509,11 +1509,21 @@ footer a {
   height: 44px;
 }
 
-/* Expanded hit area for easier dragging/hovering */
+/* Expanded hit area for easier dragging/hovering. The textarea itself is
+   reserved for editing (pointer-down over it doesn't drag), so this invisible
+   halo around the box is the real grab zone for moving an element — a stingy
+   margin makes it fiddly to catch with a mouse. z-index:-1 keeps it behind the
+   content so it never covers the text or toolbar; it still receives edge clicks
+   and bubbles them to .sign-element's drag handler. Bumped on touch via the
+   pointer:coarse rule near the end of this file.
+   The value is a deliberate compromise: two elements stacked closer than 2x this
+   have overlapping halos, and because equal-z-index elements resolve by DOM
+   order, the later one's halo would win over the earlier one's box (grabbing the
+   wrong element). Keep it modest so that only very close neighbors overlap. */
 .sign-element::after {
   content: '';
   position: absolute;
-  inset: -8px;
+  inset: -10px;
   z-index: -1;
 }
 
@@ -1739,7 +1749,16 @@ footer a {
   font-weight: inherit;
   font-style: inherit;
   line-height: inherit;
-  padding: 0 4px;
+  /* Vertical padding in em (tracks font size); 4px is horizontal breathing room.
+     Bottom slack gives script/handwriting fonts (esp. Hebrew cursive) room for
+     long descenders that overshoot the em box, which the textarea's
+     overflow:hidden was clipping. It is mirrored on top purely so the selection
+     box looks balanced. Because top padding shifts the on-screen baseline down,
+     the PDF export must compensate by the SAME em fraction: keep this value in
+     sync with TEXT_BOX_PADDING_EM in src/lib/sign.js, or preview and output
+     drift apart. Both overlaid elements share this rule so their measured box
+     stays identical (the auto-size invariant). */
+  padding: 0.3em 4px;
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
@@ -2990,6 +3009,62 @@ footer a {
   box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 
+/* --- Phone: compact single-row icon toolbar --------------------------------
+   The >=920px rule shows the full labelled pill; 561-919px already collapses to
+   a single icon-only row (see the max-width:919px block far above). On a phone we
+   keep that single row and just give each control a finger-sized target, letting
+   the 8 controls share the width evenly with flex:1 so the row always fits (never
+   overflows) without wrapping. Labels stay hidden (font-size:0 from the 919px
+   rule): a labelled layout left the label-less fullscreen control as an empty
+   cell, so icon-only is both cleaner and avoids that gap. Signature is wrapped in
+   .sign-tool-dropdown-container, so it's sized as a cell alongside the bare
+   buttons and its inner button fills it. */
+@media (max-width: 560px) {
+  .sign-toolbar {
+    /* Fill the screen so the 8 flex:1 cells stretch edge-to-edge and each button
+       gets a bigger tap target — without width:100% the toolbar shrink-wraps its
+       content and stays a small centered pill, leaving flex:1 nothing to spread. */
+    width: 100%;
+    gap: 0.15rem;
+    padding: 0.4rem 0.4rem;
+  }
 
+  .sign-toolbar > .sign-tool-btn,
+  .sign-toolbar > .sign-tool-dropdown-container {
+    flex: 1 1 0;
+    min-width: 0;
+  }
 
+  .sign-toolbar .sign-tool-dropdown-container > .sign-tool-btn {
+    width: 100%;
+  }
 
+  .sign-toolbar .sign-tool-btn {
+    justify-content: center;
+    min-height: 46px;
+    padding: 0.5rem 0;
+  }
+
+  .sign-tool-separator {
+    display: none;
+  }
+}
+
+/* --- Touch: finger-friendly move & resize hit areas --------------------------
+   Coarse pointers (touch) can't grab the 10px resize dots or the thin draggable
+   band around a text box that work fine with a mouse. Enlarge the invisible hit
+   zones only — the visible chrome stays the same size. The element's drag halo
+   keeps z-index:-1 from the base .sign-element::after rule (behind content, so it
+   never covers the text or toolbar); the resizer's ::before sits within the
+   handle's own stacking context, so a corner touch still resizes, not drags. */
+@media (pointer: coarse) {
+  .sign-element::after {
+    inset: -16px;
+  }
+
+  .sign-element-resizer::before {
+    content: '';
+    position: absolute;
+    inset: -14px;
+  }
+}

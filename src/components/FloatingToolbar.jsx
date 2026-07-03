@@ -104,9 +104,11 @@ export default function FloatingToolbar({
               onClick={handleSignatureBtnClick}
               title="Click here to select or create a signature"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                {/* Cursive flourish over a signing line — reads as "sign", unlike
+                    the angled pencil it replaced, which looked like a highlighter. */}
+                <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
+                <path d="M3 21h18" />
               </svg>
               Signature
             </button>

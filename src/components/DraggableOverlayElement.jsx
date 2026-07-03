@@ -496,7 +496,6 @@ export default function DraggableOverlayElement({
             className="sign-text-measure"
             dir={textDirection}
             style={{
-              padding: '0 4px',
               fontSize: `${textFontSize}px`,
               fontFamily: element.fontFamily || 'Helvetica',
               fontWeight: element.fontWeight || 'normal',
@@ -510,9 +509,16 @@ export default function DraggableOverlayElement({
                 the first line since overflow is hidden. */}
             {(element.text || 'Click to edit') + '\u200B'}
           </div>
+          {/* cols={1} zeroes out the textarea's default ~20-column intrinsic
+              width so it never inflates the grid track. Width is driven solely
+              by the hidden .sign-text-measure sibling above (single source of
+              truth); the textarea just fills that track via width:100%. Without
+              this, short text (e.g. one or two characters) left a wide box with
+              the text stranded against one edge. */}
           <textarea
             dir={textDirection}
             rows={1}
+            cols={1}
             className="sign-text-input"
             value={element.text}
             placeholder="Click to edit"
@@ -521,7 +527,6 @@ export default function DraggableOverlayElement({
             }}
             onFocus={onSelect}
             style={{
-              padding: '0 4px',
               textAlign: textDirection === 'rtl' ? 'right' : 'left',
               fontSize: `${textFontSize}px`,
               fontFamily: element.fontFamily || 'Helvetica',
@@ -566,7 +571,10 @@ export default function DraggableOverlayElement({
         <div style={{ position: 'absolute', inset: 0, backgroundColor: element.color || '#ffffff' }} />
       )}
 
-      {/* Resizer control: width/height for signatures/checkmarks, font size for text */}
+      {/* Resizer control: width/height for signatures/checkmarks, font size for text.
+          Kept mounted during an active gesture — the resize handles are children of
+          the element, so they travel with it while dragging, and hiding the one
+          you're actively dragging on touch can drop the gesture mid-resize. */}
       {isActive && (
         <>
           <div
