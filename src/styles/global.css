@@ -2033,7 +2033,7 @@ footer a {
   font: inherit;
   font-size: 0.9rem;
   font-weight: 600;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.12s var(--ease-out);
 }
