@@ -46,7 +46,9 @@ const HeroIcon = tools[0].icon;
         <div class="hero-info">
           <span class="hero-badge">Local & Private</span>
           <h2>
-            <HeroIcon size={24} strokeWidth={2.5} style="display: inline-block; vertical-align: text-bottom; margin-right: 0.5rem; color: var(--color-primary);" />
+            <span class="hero-icon">
+              <HeroIcon size={24} strokeWidth={2} />
+            </span>
             {tools[0].gridTitle}
           </h2>
           <p>{tools[0].gridDescription}</p>
@@ -414,6 +416,26 @@ const HeroIcon = tools[0].icon;
     letter-spacing: -0.02em;
     display: flex;
     align-items: center;
+    gap: 0.75rem;
+  }
+
+  .hero-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: var(--radius);
+    background: #d4e2fc; /* matches .tool-icon */
+    color: var(--color-primary);
+    transition: transform 0.2s var(--ease-spring), background-color 0.2s var(--ease-out);
+  }
+
+  .hero-card:hover .hero-icon {
+    background: var(--color-primary);
+    color: white;
+    transform: scale(1.05);
   }
 
   .hero-info p {

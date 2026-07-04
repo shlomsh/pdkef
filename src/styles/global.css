@@ -271,14 +271,23 @@ header p {
   text-wrap: balance;
 }
 
+/* Subhead fills the hero's full width (which the parent <header> already caps
+   at 1080px, aligned with the app card below), rather than a narrow measure —
+   long subheads (e.g. Sign) then wrap to ~2 lines instead of stranding text in
+   a skinny column, and short ones still sit centered on one line. On phones the
+   68ch cap keeps line length readable once the full width is only ~1 column. */
 .tool-hero > p {
   margin: 1.1rem auto 0;
-  max-width: 54ch;
+  max-width: 100%;
 }
 
-/* On desktop the keyword <h1> sits on a single row (tool H1s are short). The
-   subhead keeps its bounded max-width and wraps normally: short subheads still
-   fall on one line, long ones wrap instead of forcing horizontal overflow. */
+@media (max-width: 767px) {
+  .tool-hero > p {
+    max-width: 68ch;
+  }
+}
+
+/* On desktop the keyword <h1> sits on a single row (tool H1s are short). */
 @media (min-width: 768px) {
   .tool-hero h1 {
     white-space: nowrap;
@@ -1805,13 +1814,9 @@ footer a {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
 }
 
-/* Positioned via Floating UI (computePosition, fixed strategy) in
-   ColorPickerMenu.jsx rather than the centered-under-trigger CSS the other
-   .sign-dropdown-menu use sites rely on — it needs to stay on-screen
-   regardless of where its trigger ends up inside the already-repositioned
-   floating toolbar. */
+/* Position/top/left/transform are owned entirely by useDropdownMenu.js (see
+   the header comment there) — do NOT set them here. This rule is visual-only. */
 .sign-dropdown-menu.sign-color-menu {
-  position: fixed;
   min-width: 0;
   width: max-content;
   padding: 0.5rem;
