@@ -92,6 +92,37 @@ export function tintImageDataUrl(dataUrl, hexColor) {
   });
 }
 
+// Distance from the top of a text line box down to its first baseline, as a
+// fraction of font size. Mirrors how the browser places the baseline: the
+// font's ascent plus half the line-height leading. A fixed 0.85 (Helvetica's
+// value) used to be applied to every font, which drifted for the embedded
+// Heebo/Assistant/Arimo and cursive handwriting fonts, since each has different
+// ascent/descent metrics - so a typed cursive signature landed slightly off in
+// the exported PDF versus the editor preview. We now derive it per font.
+//
+// Reads metrics off the embedder's underlying fontkit font. That's an internal
+// pdf-lib field, so it's guarded: if the shape ever changes, we fall back to
+// 0.85 and behave exactly as before (no throw, no regression). Standard fonts
+// (Helvetica) expose no fontkit unitsPerEm here and so keep the 0.85 default,
+// which already matches this formula for Helvetica (~0.855).
+const HELVETICA_BASELINE_OFFSET_EM = 0.85;
+function baselineOffsetEm(pdfFont, lineHeightEm = 1.2) {
+  try {
+    const fk = pdfFont?.embedder?.font;
+    const unitsPerEm = fk?.unitsPerEm;
+    const ascent = fk?.ascent;
+    const descent = fk?.descent;
+    if (unitsPerEm && Number.isFinite(ascent) && Number.isFinite(descent)) {
+      const ascentEm = ascent / unitsPerEm;
+      const descentEm = Math.abs(descent) / unitsPerEm;
+      return lineHeightEm / 2 + (ascentEm - descentEm) / 2;
+    }
+  } catch {
+    // fall through to the Helvetica default
+  }
+  return HELVETICA_BASELINE_OFFSET_EM;
+}
+
 // Bakes placed text/checkmark/signature elements into the PDF and returns the
 // signed result as a Blob. Runs entirely in-memory in the browser - no network
 // I/O except fetching bundled custom fonts from same-origin /fonts/.
@@ -176,13 +207,16 @@ export async function signPdf(file, elements, onProgress) {
 
       // Baseline placement. `pdfY` is the box top (from el.top). Two offsets drop
       // to the first baseline:
-      //   - ~0.85em: Helvetica baseline offset, roughly 85% of line height.
+      //   - baselineOffsetEm(resolvedFont): the font's ascent + half-leading,
+      //     derived per font so custom/handwriting fonts match the editor preview
+      //     (falls back to Helvetica's ~0.85 when metrics aren't readable).
       //   - TEXT_BOX_PADDING_EM: the editor renders text with this much top padding
       //     (see `.sign-text-input, .sign-text-measure` in global.css), which pushes
       //     the on-screen baseline down by the same amount. The export must match it
       //     or preview and output drift. Keep this constant in sync with the CSS.
       const TEXT_BOX_PADDING_EM = 0.3;
-      const baselineAdjustedY = pdfY - fontSizeInPoints * (0.85 + TEXT_BOX_PADDING_EM);
+      const baselineAdjustedY =
+        pdfY - fontSizeInPoints * (baselineOffsetEm(resolvedFont) + TEXT_BOX_PADDING_EM);
       const lineHeight = fontSizeInPoints * 1.2; // matches the editor's CSS line-height
 
       // The editor anchors RTL text boxes by their *right* edge (see

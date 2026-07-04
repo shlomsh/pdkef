@@ -35,7 +35,6 @@ From the 2026-07 technical audit ([seo-audit-output/TECHNICAL-AUDIT-2026-07.md](
 
 - [ ] **Header Wordmark**: Add or finalize the header wordmark/logo (open item from `CLAUDE.md`).
 - [ ] **Add HSTS header** to `vercel.json` (`Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`) — only once the final domain is confirmed HTTPS-only.
-- [ ] **Add `browserRequirements`** to `SeoSchema.astro`'s `softwareApp` object (`"Requires JavaScript. Requires HTML5 Canvas or WebAssembly..."`).
 - [ ] **IndexNow** (low priority) — drop a `public/<key>.txt` and ping on deploy for faster Bing/Yandex indexing.
 - [ ] **Pre-launch: real domain.** `astro.config.mjs`'s `site` and the sitemap/canonical URLs currently use the `pdkef.vercel.app` placeholder — update to the real custom domain before launch, and re-verify canonical/OG tags.
 - [ ] **Register Google Search Console** and submit the sitemap once the domain is final; monitor Core Web Vitals (prioritize INP for signature-drawing).
@@ -65,20 +64,28 @@ Remaining:
       precision against drag ease for all elements. Better: small resting halo +
       larger halo only on `.active` (which is `z-index:50`, so it won't steal clicks
       from neighbours). Resolves the tension instead of splitting it.
-- [ ] **PDF export baseline assumes Helvetica metrics.** `sign.js` uses a hardcoded
-      `0.85` ascent ratio for every font; handwriting/custom fonts have different
-      metrics, so their vertical position in the exported PDF can drift from the
-      preview. Derive the offset from the resolved font's actual metrics.
 
-## Code health (tech debt — do only when already working in these files)
+## Code health (tech debt — low priority by design, do only opportunistically)
 
-- [ ] **Split `DraggableOverlayElement.jsx`** (596 lines, 4 element types in one
-      component) into per-type render pieces sharing the drag/resize core. Risky
-      refactor, low user-facing payoff — don't chase it standalone.
-- [ ] **`PdfSignTool.jsx` is 941 lines** — candidate for extracting sub-components.
-- [ ] **Colocate the `.sign-*` styles** out of the 3,070-line flat `global.css`.
-      That monolith is what let a duplicate `.sign-element::after` rule slip in
-      silently this session; locality would make that class of bug much harder.
+These are size smells, not bugs. Nothing here is broken or user-facing; the file
+sizes are large but the code is cohesive. **Do NOT pick these up standalone** —
+only touch them when you are already editing the file for another reason. Listed
+worst-first, but even the worst is optional.
+
+- [ ] **Colocate the `.sign-*` styles** out of `global.css` (currently ~3,190 lines,
+      ~97 `.sign-*` rules). The one with a real rationale: the monolith once hid a
+      duplicate `.sign-element::after` rule. That duplicate has NOT recurred (the two
+      current occurrences are a base rule + a legit `@media (pointer: coarse)`
+      override, not a dup), so the pain is latent, not active. Best done incrementally
+      — move sign styles into a co-located file next time you edit them.
+- [ ] **`PdfSignTool.jsx` is 941 lines.** Already partially modularized (a40a937
+      extracted FloatingToolbar / FontPickerMenu / SignatureDialog /
+      DraggableOverlayElement into their own files); the main file just stayed big.
+      Extract more sub-components only if a feature takes you back in there.
+- [ ] **`DraggableOverlayElement.jsx` (596 lines, 4 element types in one component).**
+      Could split into per-type render pieces sharing the drag/resize core, but it's
+      cohesive and the pointer/resize geometry is easy to break. Lowest payoff of the
+      three; leave it unless a change forces it.
 
 ## Messaging & voice polish (postponed)
 
