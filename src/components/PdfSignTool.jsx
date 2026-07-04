@@ -18,12 +18,12 @@ export default function PdfSignTool() {
   const [selectedTool, setSelectedTool] = useState(null); // 'text' | 'signature' | 'checkmark' | 'whiteout'
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
   const [progress, setProgress] = useState(0);
-  const [downloadUrl, setDownloadUrl] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   
   const [actionHistory, setActionHistory] = useState([]);
   const [undoModalOpen, setUndoModalOpen] = useState(false);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);
   const [undoSelection, setUndoSelection] = useState(new Set());
   const [announcement, setAnnouncement] = useState('');
 
@@ -53,7 +53,6 @@ export default function PdfSignTool() {
   // own container via the DOM instead (see DraggableOverlayElement), so there's no
   // render-time dependency on this array being populated yet.
   const pageWrapperRefs = useRef([]);
-  const downloadRef = useRef(null);
   const copiedElementRef = useRef(null);
   const workspaceRef = useRef(null);
   const fileBytesRef = useRef(null);
@@ -115,21 +114,6 @@ export default function PdfSignTool() {
     setAnnouncement('Reverted selected actions.');
   };
 
-  // Focus download button on success
-  useEffect(() => {
-    if (status === 'done' && downloadRef.current) {
-      downloadRef.current.focus();
-    }
-  }, [status]);
-
-  // Clean up download URL when file changes or resetting
-  useEffect(() => {
-    return () => {
-      if (downloadUrl) {
-        URL.revokeObjectURL(downloadUrl);
-      }
-    };
-  }, [downloadUrl]);
 
   // Load saved signatures from localStorage on mount
   useEffect(() => {
@@ -333,9 +317,15 @@ export default function PdfSignTool() {
       return;
     }
 
-    loadStartedRef.current = true;
-
     const selected = pdfs[0];
+
+    if (file) {
+      setPendingFile(selected);
+      setConfirmResetOpen(true);
+      return;
+    }
+
+    loadStartedRef.current = true;
     const bytes = await selected.arrayBuffer();
     await loadPdf(selected, bytes, {});
   };
@@ -640,12 +630,17 @@ export default function PdfSignTool() {
     try {
       const signedBlob = await signPdf(file, elements, (p) => setProgress(p));
 
-      setDownloadUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return URL.createObjectURL(signedBlob);
-      });
-      setStatus('done');
-      setAnnouncement('PDF signed successfully! Ready for download.');
+      const url = URL.createObjectURL(signedBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `signed_${file.name}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setStatus('editing');
+      setAnnouncement('PDF signed successfully! Download started.');
     } catch (err) {
       console.error(err);
       setStatus('error');
@@ -663,10 +658,6 @@ export default function PdfSignTool() {
     setActiveElementId(null);
     setStatus('idle');
     setProgress(0);
-    setDownloadUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
     setAnnouncement('Cleared workspace.');
   };
 
@@ -784,26 +775,6 @@ export default function PdfSignTool() {
             </div>
           )}
 
-          {/* Success Download button */}
-          {status === 'done' && downloadUrl && (
-            <div style={{ width: '100%', marginTop: '1rem' }}>
-              <a
-                ref={downloadRef}
-                className="download-button"
-                href={downloadUrl}
-                download={`signed_${file.name}`}
-              >
-                <svg className="download-check" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" className="check-circle" stroke="#fff" />
-                  <path d="M7.5 12.5l3 3 6-6.5" className="check-mark" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                </svg>
-                Download Signed PDF
-              </a>
-              <button type="button" className="start-over" onClick={reset}>
-                Start over
-              </button>
-            </div>
-          )}
 
           {/* Error Message */}
           {status === 'error' && (
@@ -914,16 +885,26 @@ export default function PdfSignTool() {
               </p>
             </div>
             <div className="sig-dialog-footer">
-              <button type="button" className="sig-btn sig-btn-secondary" onClick={() => setConfirmResetOpen(false)}>
+              <button type="button" className="sig-btn sig-btn-secondary" onClick={() => {
+                setConfirmResetOpen(false);
+                setPendingFile(null);
+              }}>
                 Cancel
               </button>
               <button
                 type="button"
                 className="sig-btn sig-btn-primary"
                 style={{ background: 'var(--color-danger)' }}
-                onClick={() => {
+                onClick={async () => {
                   setConfirmResetOpen(false);
-                  reset();
+                  if (pendingFile) {
+                    const bytes = await pendingFile.arrayBuffer();
+                    loadStartedRef.current = true;
+                    await loadPdf(pendingFile, bytes, {});
+                    setPendingFile(null);
+                  } else {
+                    reset();
+                  }
                 }}
               >
                 Discard &amp; start over
