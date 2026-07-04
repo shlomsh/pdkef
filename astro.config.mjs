@@ -10,7 +10,7 @@ import preact from '@astrojs/preact';
 // certify Astro 7. Instead, public/sw.js is a small hand-written service
 // worker (see CLAUDE.md) — fully auditable, zero extra build dependencies.
 export default defineConfig({
-  site: 'https://pdkef.vercel.app',
+  site: 'https://pdkef.com',
   output: 'static',
   integrations: [preact()],
   // These are only reachable through dynamic import() inside the Preact

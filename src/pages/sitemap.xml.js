@@ -4,7 +4,7 @@
 // from the registry with its per-tool priority/changefreq.
 import { tools } from '../data/tools.js';
 
-const FALLBACK_SITE = 'https://pdkef.vercel.app';
+const FALLBACK_SITE = 'https://pdkef.com';
 
 export function GET({ site }) {
   const base = (site ? site.href : FALLBACK_SITE).replace(/\/$/, '');
