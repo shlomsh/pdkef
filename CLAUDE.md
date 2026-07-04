@@ -69,6 +69,18 @@ Current palette ("navy + electric blue", sourced from Color Hunt, replacing an e
 
 When changing the theme in the future: update the `:root` block in `global.css`, then `grep -rn "rgba(0\|#[0-9a-f]\{6\}"` across `src/` and `public/` for any color literal that escaped the variable system (several button/dropzone shadows and the body background glow were historically hardcoded as `rgba(...)` rather than referencing a variable — re-check these). Also update `theme-color` in `BaseLayout.astro` and `theme_color`/`background_color` in `public/manifest.webmanifest` to match, since those aren't CSS and don't pick up the `:root` vars automatically. A pure color-only change doesn't touch scripts or CSP, so a `npm run dev` visual check is enough — full `build && preview` isn't required unless the change also touches scripts/`astro.config.mjs`.
 
+## Voice & copy (read before writing or editing any user-facing text)
+
+The full brand voice, origin story, and messaging principles live in [PRODUCT.md](./PRODUCT.md) - read it before touching copy. PDkef is a personal project shared generously, not a company; the copy should sound like that. The short version for anyone editing marketing/tool/FAQ text:
+
+- **Explain, don't compete.** Never argue against named competitors or use an us-vs-them tone. State why the tool exists and how it works; the facts carry themselves. (There are legacy "Unlike DocuSign / Adobe Sign" and "Unlike many free online converters" lines in `src/data/tools.js` FAQs - soften these to plain statements, and do not add new ones.)
+- **Lead with discovery, not fear.** The best hook is something genuinely useful the reader may not know ("you can fill and sign a PDF without printing and scanning"). Privacy is a reason to trust, not the headline.
+- **Plain facts over intensifiers.** Prefer "Runs on your device. Free. Open source." to stacked "100% / instant / secure / zero." Pick the one honest word.
+- **Founder voice is welcome.** First person ("I built this for myself, then wanted to share it...") is a differentiator here, not a liability. Do NOT frame it as "a weekend project" or emphasize how little time it took; that minimizes the work and ages badly. The incentive is the belief that these tools should be free and accessible to everyone.
+- **Free because it should be, not as a funnel.** No "free tier" framing that implies an upsell.
+- **No em dashes** in copy or prose (use spaced hyphens, commas, or split the sentence).
+- All copy still lives in `.astro` / `src/data/tools.js`, rendered at build time and never injected client-side (see SEO invariants below).
+
 ## SEO invariants (don't regress these)
 
 - Primary keyword ("pdf merge online free", "split pdf", etc.) stays in `<title>`, the single `<h1>`, and meta description for each specific tool page.

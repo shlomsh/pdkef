@@ -38,7 +38,7 @@ export const tools = [
     toolName: 'Sign & Fill PDF',
     h1: 'Sign & Fill PDF Free: No Sign-Up, Runs Locally',
     subhead:
-      'Fill out forms, tick checkboxes, type text, and add your signature to any PDF - school consent slips, contracts, and applications. Your progress is auto-saved on your device, so a crash or accidental refresh never loses your work.',
+      'You can fill out and sign a PDF here without ever printing or scanning it. Tick checkboxes, type text, and add your signature to any PDF, from school consent slips to contracts and applications. Your progress auto-saves on your device, so a crash or accidental refresh never loses your work.',
     ariaLabel: 'PDF sign tool',
     aboutHeading: 'How to fill and sign PDF files',
     aboutLead:
@@ -59,7 +59,7 @@ export const tools = [
     faq: [
       {
         question: 'Do I need to create an account to sign a PDF?',
-        answer: 'No. Unlike DocuSign, Adobe Sign, or other e-signature platforms, there is no signup, no email verification, and no trial period. Open the tool and start signing immediately.',
+        answer: 'No. There is no signup, no email verification, and no trial period. Open the tool and start signing immediately.',
       },
       {
         question: 'Can I sign school trip agreements?',
@@ -67,7 +67,7 @@ export const tools = [
       },
       {
         question: 'Is my signature safe here?',
-        answer: 'Absolutely. Unlike standard PDF signing websites that upload your signature and PDF file to their servers, this tool runs entirely on your device. There is no account and no server-side copy of your document to retain or breach - your signature image is embedded in the PDF in-memory and never leaves your computer or phone.',
+        answer: 'Yes. This tool runs entirely on your device, so there is no account and no server-side copy of your document. Your signature image is embedded in the PDF in-memory and never leaves your computer or phone.',
       },
       {
         question: 'Can I type my signature instead of drawing?',
@@ -155,7 +155,7 @@ export const tools = [
     ],
     faq: [
       { question: 'Is PDkef really free?', answer: 'Yes. PDkef is completely free, with no limits, no signup, and no watermark on your converted images.' },
-      { question: 'Does PDkef add a watermark to converted images?', answer: 'No. Unlike many free online converters, JPG and PNG exports here have zero watermarks and no forced resolution downgrade on the free tier - because the conversion runs on your device, there is no server cost to recoup by limiting the free tier.' },
+      { question: 'Does PDkef add a watermark to converted images?', answer: 'No. JPG and PNG exports here have no watermark and no forced resolution downgrade. Because the conversion runs on your device, there is no server cost to recoup by limiting quality.' },
       { question: 'Are my files uploaded to a server?', answer: 'No. PDkef runs entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.' },
       { question: 'What is the difference between PNG and JPG?', answer: 'PNG keeps a transparent background and is lossless, which is best for text-heavy or graphic pages. JPG uses a white background and smaller file sizes, which works well for photos and scans.' },
       { question: 'What happens with a multi-page PDF?', answer: 'By default each page is converted to its own image file, downloadable individually or all at once. You can also choose "Single combined image" to stack every page into one tall image instead.' },

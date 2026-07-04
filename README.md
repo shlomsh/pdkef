@@ -1,8 +1,8 @@
 # PDkef - Free Online PDF Tools Suite
 
-I needed to merge, split, and compress a few PDFs one day and went looking for a tool to do it. Every result was the same story: upload your files to some server, wait, hope they get deleted, dodge three "download" buttons that were actually ads, and maybe hit a paywall on the third edit. For files that are often private - contracts, tax forms, ID scans - that's a bad trade. So I built the tool suite I actually wanted: one that edits PDFs entirely on your device and never sends a single byte anywhere.
+PDkef began with a real errand. My partner needed to download all her course slides into a single PDF before an exam, and separately to sign a summer-camp consent form that had arrived over WhatsApp. We went looking for tools. One capped the number of pages. One wanted a paid subscription plus a Windows install. One just felt like a place you would not want to send personal documents. So I built the tool I wanted for myself, and named it PDF + *kef* ("fun" in Hebrew) = PDkef.
 
-That's the whole premise of PDkef. No server, no uploads, no accounts, no limits, no watermark, no catch. It started as just a merger, but is now evolving into a full suite of client-side PDF tools (Merge, Split, Remove Pages, Compress, PDF to Image, Sign, Unlock).
+Then I wanted to share it. I believe simple tools like these should be free and accessible to everyone, so nobody has to hunt for a decent one or hand personal documents to a sketchy site. That's the whole premise. No server, no uploads, no accounts, no limits, no watermark, no catch. Your files never leave your device. It's free and open source, and stays that way because a tool like this is cheap to build and nearly free to run. It started as a merger and is now a full suite of client-side PDF tools (Merge, Split, Edit Pages, Compress, PDF to Image, Image to PDF, Sign, Protect & Unlock, Redact).
 
 ## Why it's built this way
 

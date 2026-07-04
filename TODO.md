@@ -35,7 +35,6 @@ From the 2026-07 technical audit ([seo-audit-output/TECHNICAL-AUDIT-2026-07.md](
 
 - [ ] **Header Wordmark**: Add or finalize the header wordmark/logo (open item from `CLAUDE.md`).
 - [ ] **Add HSTS header** to `vercel.json` (`Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`) — only once the final domain is confirmed HTTPS-only.
-- [ ] **Homepage FAQ schema** — `index.astro` shows a visible FAQ but passes no `faq=` to `<SeoSchema>`; wire the visible FAQ into the schema for rich-result eligibility.
 - [ ] **Add `browserRequirements`** to `SeoSchema.astro`'s `softwareApp` object (`"Requires JavaScript. Requires HTML5 Canvas or WebAssembly..."`).
 - [ ] **IndexNow** (low priority) — drop a `public/<key>.txt` and ping on deploy for faster Bing/Yandex indexing.
 - [ ] **Pre-launch: real domain.** `astro.config.mjs`'s `site` and the sitemap/canonical URLs currently use the `pdkef.vercel.app` placeholder — update to the real custom domain before launch, and re-verify canonical/OG tags.
@@ -80,6 +79,18 @@ Remaining:
 - [ ] **Colocate the `.sign-*` styles** out of the 3,070-line flat `global.css`.
       That monolith is what let a duplicate `.sign-element::after` rule slip in
       silently this session; locality would make that class of bug much harder.
+
+## Messaging & voice polish (postponed)
+
+- [ ] **Give the founder story card its own real estate.** The first-person "Why I made this" story on `index.astro` (the `whypdkef` card) currently reuses the standard FeatureCard slot. Elevate it: distinct styling and/or higher placement so the personal voice reads as a signed note, not just another section. Keep it modest (see [PRODUCT.md](./PRODUCT.md) voice principles), not a splashy hero.
+
+## Community & contribution
+
+- [ ] **User feedback / suggestion channel.** Add a lightweight way for people to send feedback, report a bug, or suggest an improvement, so the tools keep getting better at saving people time and more folks are invited to contribute. This directly serves the project's reason for existing (free, open, shared, see [PRODUCT.md](./PRODUCT.md)). Constraints and options:
+      - **Privacy first, no regressions.** A feedback tool must never transmit any PDF/file bytes, and must not violate the CSP `connect-src 'self'` backstop. Prefer a solution that sends **no** off-device request from the app itself.
+      - **Simplest fit:** a prominent "Feedback / contribute" link to GitHub Issues + Discussions (zero new network surface, reinforces the open-source ethos). Good default.
+      - **If an in-app form is wanted:** it would need an allowed external endpoint (e.g. a form service), which means loosening CSP `connect-src` for that one origin, only for feedback text, never file content, and documenting it in the CSP section of `CLAUDE.md`. Weigh against the privacy-purity positioning before doing this.
+      - Surface it in the footer and/or the founder-voice section, in the modest "help make this better for everyone" tone, not a nagging feedback popup.
 
 ## Content authority (post-launch, from the search-positioning strategy)
 

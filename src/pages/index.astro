@@ -6,8 +6,8 @@ import FeatureCard from '../components/FeatureCard.astro';
 import CardDecor from '../components/CardDecor.astro';
 import '../styles/global.css';
 
-const title = 'Sign & Fill PDF Free - No Sign-Up Local PDF Editor | PDkef';
-const description = 'Sign PDFs and fill interactive forms instantly with this 100% free, open-source online PDF editor that requires no account or software installation. With secure browser-local processing, files are never uploaded to an external server, providing a completely private, offline-capable workflow.';
+const title = 'Free PDF Tools - Private, Local, No Sign-Up | PDkef';
+const description = 'A free, open-source suite of PDF tools that run entirely in your browser. Merge, sign, split, compress, and convert PDFs with nothing uploaded, no account, and no watermark. Your files never leave your device.';
 
 import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, HelpCircle, ShieldCheck, InfinityIcon, Lock, Code2 } from 'lucide-preact';
 import { tools } from '../data/tools.js';
@@ -34,9 +34,9 @@ const HeroIcon = tools[0].icon;
     <header class="hub-header">
     <div class="title-row">
       <img src="/favicon.png" width="42" height="42" aria-hidden="true" class="title-logo" alt="PDkef Logo" style="border-radius: 8px;" />
-      <h1>PDkef - all the PDF tools you need</h1>
+      <h1>Free PDF tools that run on your device</h1>
     </div>
-    <p>100% open source and free, with no sign up and no paywalls - ever. Every tool runs locally in your browser, on your computer or your phone.</p>
+    <p>Merge, sign, split, and compress PDFs without signing up, installing anything, or uploading a single file. Everything runs in your browser, on your phone or computer, so your files never leave your device.</p>
   </header>
 
   <main>
@@ -103,13 +103,19 @@ const HeroIcon = tools[0].icon;
       <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} />
       <div class="whypdkef-layout">
         <div class="whypdkef-copy">
-          <span class="whypdkef-tag">Our Philosophy</span>
-          <h2>Why yet another PDF tool?</h2>
+          <span class="whypdkef-tag">Why I made this</span>
+          <h2>The tools I wanted, shared with everyone</h2>
           <p>
-            Most free PDF sites run your files through their own servers, which is expensive, so they restrict your usage with paywalls, daily caps, or forced accounts.
+            It started with a couple of ordinary errands. Someone close to me needed to combine a stack of course slides into one PDF before an exam, and to sign a summer-camp form that had arrived over WhatsApp. Simple things. But every tool we tried either capped the pages, wanted a subscription and a Windows install, or looked like the last place you would want to send a personal document.
+          </p>
+          <p>
+            So I built the PDF tools I wanted for myself. Then I realised I wanted to share them. I believe simple, everyday tools like these should just be free and available to everyone, with no account, no paywall, and nothing uploaded to anyone's server.
           </p>
           <p class="whypdkef-detail">
-            PDkef is built differently. By running every tool 100% client-side inside your browser, it costs next to nothing to host. That is why it is completely free, runs offline, has no limits, and never asks for a signup.
+            That is why PDkef runs entirely in your browser. There is no server to send your files to, which is what keeps it private and cheap enough to stay free for good. And it is open source, so you never have to take my word for any of it.
+          </p>
+          <p class="whypdkef-signature">
+            <a href="https://shlomsh.github.io/readme/" target="_blank" rel="noopener noreferrer">Shlomi</a>
           </p>
         </div>
         <div class="whypdkef-proof">
@@ -123,7 +129,7 @@ const HeroIcon = tools[0].icon;
           <div class="whypdkef-feat">
             <div class="whypdkef-feat-icon"><Lock size={20} strokeWidth={2} /></div>
             <div class="whypdkef-feat-text">
-              <strong>100% Private</strong>
+              <strong>Private</strong>
               <span>Files never leave your device</span>
             </div>
           </div>
@@ -655,6 +661,25 @@ const HeroIcon = tools[0].icon;
   .whypdkef-detail {
     font-size: 0.92rem;
     color: var(--color-muted);
+  }
+
+  .whypdkef-signature {
+    font-size: 0.9rem;
+    font-style: italic;
+    color: var(--color-muted);
+    margin-top: 1.25rem;
+  }
+
+  .whypdkef-signature a {
+    font-style: normal;
+    font-weight: 600;
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .whypdkef-signature a:hover {
+    color: var(--color-primary-hover);
   }
 
   .whypdkef-layout {
