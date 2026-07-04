@@ -123,7 +123,7 @@ function baselineOffsetEm(pdfFont, lineHeightEm = 1.2) {
   return HELVETICA_BASELINE_OFFSET_EM;
 }
 
-// Bakes placed text/checkmark/signature elements into the PDF and returns the
+// Bakes placed text/symbol/signature elements into the PDF and returns the
 // signed result as a Blob. Runs entirely in-memory in the browser - no network
 // I/O except fetching bundled custom fonts from same-origin /fonts/.
 export async function signPdf(file, elements, onProgress) {
@@ -240,7 +240,7 @@ export async function signPdf(file, elements, onProgress) {
           color: rgb(r, g, b)
         });
       });
-    } else if (el.type === 'checkmark') {
+    } else if (el.type === 'symbol') {
       const elWidthPoints = percentToPoints(el.width, pdfWidth);
       const elHeightPoints = percentToPoints(el.height, pdfHeight);
       const { r: cr, g: cg, b: cb } = hexToRgbFractions(el.color, '#1463ff');
@@ -258,6 +258,16 @@ export async function signPdf(file, elements, onProgress) {
           end: { x: pdfX, y: pdfY - elHeightPoints },
           thickness: 2.2,
           color: rgb(cr, cg, cb)
+        });
+      } else if (el.mark === 'dot') {
+        // Draw vector dot (filled circle)
+        page.drawEllipse({
+          x: pdfX + elWidthPoints / 2,
+          y: pdfY - elHeightPoints / 2,
+          xScale: elWidthPoints * 0.35,
+          yScale: elHeightPoints * 0.35,
+          color: rgb(cr, cg, cb),
+          borderWidth: 0,
         });
       } else {
         // Draw vector checkmark
@@ -303,6 +313,47 @@ export async function signPdf(file, elements, onProgress) {
         height: elHeightPoints,
         color: rgb(r, g, b)
       });
+    } else if (el.type === 'ellipse' || el.type === 'rectangle' || el.type === 'line') {
+      // el.type is the geometry discriminator directly (no shape/shapeType wrapper).
+      const actualType = el.type;
+      const { r: cr, g: cg, b: cb } = hexToRgbFractions(el.color, '#1463ff');
+      const thickness = el.strokeWidth || 3;
+      
+      if (actualType === 'ellipse') {
+        const elWidthPoints = percentToPoints(el.width, pdfWidth);
+        const elHeightPoints = percentToPoints(el.height, pdfHeight);
+        page.drawEllipse({
+          x: pdfX + elWidthPoints / 2,
+          y: pdfY - elHeightPoints / 2,
+          xScale: elWidthPoints / 2,
+          yScale: elHeightPoints / 2,
+          borderColor: rgb(cr, cg, cb),
+          borderWidth: thickness,
+        });
+      } else if (actualType === 'rectangle') {
+        const elWidthPoints = percentToPoints(el.width, pdfWidth);
+        const elHeightPoints = percentToPoints(el.height, pdfHeight);
+        page.drawRectangle({
+          x: pdfX,
+          y: pdfY - elHeightPoints,
+          width: elWidthPoints,
+          height: elHeightPoints,
+          borderColor: rgb(cr, cg, cb),
+          borderWidth: thickness,
+        });
+      } else if (actualType === 'line') {
+        const x1Points = percentToPoints(el.x1, pdfWidth);
+        const y1Points = percentToPoints(el.y1, pdfHeight);
+        const x2Points = percentToPoints(el.x2, pdfWidth);
+        const y2Points = percentToPoints(el.y2, pdfHeight);
+        
+        page.drawLine({
+          start: { x: x1Points, y: pdfHeight - y1Points },
+          end: { x: x2Points, y: pdfHeight - y2Points },
+          color: rgb(cr, cg, cb),
+          thickness: thickness,
+        });
+      }
     }
 
     onProgress?.((i + 1) / elements.length);

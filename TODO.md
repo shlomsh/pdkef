@@ -82,10 +82,23 @@ worst-first, but even the worst is optional.
       extracted FloatingToolbar / FontPickerMenu / SignatureDialog /
       DraggableOverlayElement into their own files); the main file just stayed big.
       Extract more sub-components only if a feature takes you back in there.
-- [ ] **`DraggableOverlayElement.jsx` (596 lines, 4 element types in one component).**
+- [ ] **`DraggableOverlayElement.jsx` (~470 lines, branches on concrete element type).**
       Could split into per-type render pieces sharing the drag/resize core, but it's
-      cohesive and the pointer/resize geometry is easy to break. Lowest payoff of the
-      three; leave it unless a change forces it.
+      cohesive and the pointer/resize geometry is easy to break. Two concrete cleanups
+      identified in the 2026-07 session (do when a change takes you back in here):
+      - **Collapse the triplicated pointer-drag plumbing.** `handlePointerDown`,
+        `handleResizeStart`, and `PdfSignTool.jsx`'s `handleOverlayPointerDown` each
+        hand-roll the same dance: normalize `e.touches ? e.touches[0].clientX : e.clientX`,
+        add `mousemove/mouseup/touchmove/touchend`, tear them down on end. Extract one
+        `startPointerDrag(e, { onMove, onEnd })` helper — removes ~40 lines and the risk
+        of one path mishandling touch or leaking a listener.
+      - **Branch on a `geometryKind(el) → 'endpoints' | 'box'` helper, not concrete
+        types.** The real axis of variation is endpoint-based (line, future arrow;
+        `{x1,y1,x2,y2}`) vs box-based (ellipse/rectangle/whiteout/symbol/signature/text;
+        `{left,top,width,height}`). Deriving that once removes the scattered
+        `type === 'line'` / `!isLine` checks in `handleResizeMove`, the `style` block,
+        and the drag-commit. This is the principled fix for the negative-check smell;
+        lighter than a full per-type strategy registry.
 
 ## Messaging & voice polish (postponed)
 

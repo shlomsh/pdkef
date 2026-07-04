@@ -18,13 +18,15 @@ export default function FloatingToolbar({
   onSavePdf
 }) {
   const [showSigDropdown, setShowSigDropdown] = useState(false);
+  const [showShapesDropdown, setShowShapesDropdown] = useState(false);
 
   // Handle outside clicks to close the signature dropdown
   useEffect(() => {
-    if (!showSigDropdown) return;
+    if (!showSigDropdown && !showShapesDropdown) return;
     const handleOutsideClick = (e) => {
       if (!e.target.closest('.sign-dropdown-trigger') && !e.target.closest('.sign-dropdown-menu')) {
         setShowSigDropdown(false);
+        setShowShapesDropdown(false);
       }
     };
     document.addEventListener('click', handleOutsideClick);
@@ -70,19 +72,97 @@ export default function FloatingToolbar({
 
           <button
             type="button"
-            className={`sign-tool-btn${selectedTool === 'checkmark' ? ' active' : ''}`}
+            className={`sign-tool-btn${selectedTool === 'symbol' ? ' active' : ''}`}
             onClick={() => {
-              setSelectedTool(selectedTool === 'checkmark' ? null : 'checkmark');
-              setAnnouncement('Checkmark tool active. Click a page to place.');
+              setSelectedTool(selectedTool === 'symbol' ? null : 'symbol');
+              setAnnouncement('Symbols tool active. Click a page to place.');
             }}
-            title="Click here, then click a page to tick checkboxes"
-            aria-pressed={selectedTool === 'checkmark'}
+            title="Click here, then click a page to place symbols"
+            aria-pressed={selectedTool === 'symbol'}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            <span className="sign-tool-btn-text">Check</span>
+            <span className="sign-tool-btn-text">Symbols</span>
           </button>
+
+          <div
+            className="sign-tool-dropdown-container"
+            onMouseEnter={() => setShowShapesDropdown(true)}
+            onMouseLeave={() => setShowShapesDropdown(false)}
+          >
+            <button
+              type="button"
+              className={`sign-tool-btn sign-dropdown-trigger${['ellipse', 'rectangle', 'line'].includes(selectedTool) ? ' active' : ''}`}
+              onClick={() => setShowShapesDropdown(!showShapesDropdown)}
+              title="Click here to select a shape"
+              aria-pressed={['ellipse', 'rectangle', 'line'].includes(selectedTool)}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 3l4 7H8z" />
+                <circle cx="7" cy="17" r="4" />
+                <rect x="13" y="13" width="8" height="8" rx="1" />
+              </svg>
+              <span className="sign-tool-btn-text" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                Shapes
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </span>
+            </button>
+
+            {showShapesDropdown && (
+              <>
+                <div className="sign-dropdown-backdrop" onClick={() => setShowShapesDropdown(false)} />
+                <div className="sign-dropdown-menu" role="menu" style={{ minWidth: '140px', borderRadius: '12px', padding: '0.25rem' }}>
+                  <div className="sign-dropdown-list sign-dropdown-list--clean">
+                    <button
+                      type="button"
+                      className="sign-menu-item"
+                      onClick={() => {
+                        setSelectedTool('ellipse');
+                        setShowShapesDropdown(false);
+                        setAnnouncement('Ellipse tool active. Click a page to place.');
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <ellipse cx="12" cy="12" rx="10" ry="7" />
+                      </svg>
+                      Ellipse
+                    </button>
+                    <button
+                      type="button"
+                      className="sign-menu-item"
+                      onClick={() => {
+                        setSelectedTool('rectangle');
+                        setShowShapesDropdown(false);
+                        setAnnouncement('Rectangle tool active. Click a page to place.');
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <rect x="3" y="6" width="18" height="12" rx="2" />
+                      </svg>
+                      Rectangle
+                    </button>
+                    <button
+                      type="button"
+                      className="sign-menu-item"
+                      onClick={() => {
+                        setSelectedTool('line');
+                        setShowShapesDropdown(false);
+                        setAnnouncement('Line tool active. Click a page to place.');
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="4" y1="20" x2="20" y2="4" />
+                      </svg>
+                      Line
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
           <button
             type="button"
@@ -93,10 +173,10 @@ export default function FloatingToolbar({
             }}
             title="Click here, then click a page to hide text"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <line x1="4" y1="5" x2="15" y2="5" />
-              <rect x="3" y="9.5" width="18" height="5" rx="1" fill="currentColor" stroke="none" />
-              <line x1="4" y1="19" x2="12" y2="19" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+              <path d="M22 21H7" />
+              <path d="m13.3 4 5.3 5.3" />
             </svg>
             <span className="sign-tool-btn-text">Whiteout</span>
           </button>
@@ -215,11 +295,16 @@ export default function FloatingToolbar({
             <line x1="12" y1="16" x2="12" y2="12" />
             <line x1="12" y1="8" x2="12.01" y2="8" />
           </svg>
-          <span>Click anywhere on the PDF pages below to place your <strong>{selectedTool}</strong> layer.</span>
+          <span>
+            {['whiteout', 'line', 'ellipse', 'rectangle'].includes(selectedTool)
+              ? <>Click and drag on a PDF page below to draw your <strong>{selectedTool}</strong>.</>
+              : <>Click anywhere on the PDF pages below to place your <strong>{selectedTool}</strong> layer.</>}
+            {' '}Press <strong>Esc</strong> to stop adding.
+          </span>
         </div>
       ) : (
         <div className="sign-help-tip" style={{ color: 'var(--color-muted-light)' }}>
-          <span>Tip: Select a tool above and click on the PDF to place, or drag existing items. Click outside item to deselect.</span>
+          <span>Tip: Select a tool above and click on the PDF to place, or drag existing items. Hover a line to adjust it.</span>
         </div>
       )}
     </>

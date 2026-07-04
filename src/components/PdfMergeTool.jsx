@@ -20,6 +20,7 @@ export default function PdfMergeTool() {
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const [announcement, setAnnouncement] = useState('');
+  const [addPageNumbers, setAddPageNumbers] = useState(false);
   const listRef = useRef(null);
   const sortableRef = useRef(null);
   const downloadRef = useRef(null);
@@ -122,6 +123,7 @@ export default function PdfMergeTool() {
     setStatus('idle');
     setProgress(0);
     setRejectedFiles([]);
+    setAddPageNumbers(false);
     setDownloadUrl((previous) => {
       if (previous) URL.revokeObjectURL(previous);
       return null;
@@ -177,6 +179,7 @@ export default function PdfMergeTool() {
     try {
       const blob = await mergePdfs(
         entries.map((e) => e.file),
+        { addPageNumbers },
         setProgress,
       );
       setDownloadUrl((previous) => {
@@ -231,6 +234,21 @@ export default function PdfMergeTool() {
             <button type="button" class="sign-tool-btn" onClick={() => applySort(sortByDate, 'desc')}>
               Newest
             </button>
+            <label class="page-numbers-toggle">
+              <input
+                type="checkbox"
+                checked={addPageNumbers}
+                onChange={(e) => {
+                  setAddPageNumbers(e.target.checked);
+                  setStatus('idle');
+                  setDownloadUrl((previous) => {
+                    if (previous) URL.revokeObjectURL(previous);
+                    return null;
+                  });
+                }}
+              />
+              <span>Add page numbers</span>
+            </label>
           </div>
 
           <p class="sr-only" id="reorder-hint">

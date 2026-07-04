@@ -51,7 +51,7 @@ export const tools = [
     faqIconPos: 'bl',
     steps: [
       { title: 'Upload your form', text: 'Select or drag-and-drop the PDF document you want to fill and sign.' },
-      { title: 'Add text & signatures', text: 'Click to place text blocks, checkmarks, or signatures on the pages.' },
+      { title: 'Add text & signatures', text: 'Click to place text blocks, symbols, or signatures on the pages.' },
       { title: 'Sign with ease', text: 'Draw your signature on screen, type it out using a cursive font, or upload a signature image.' },
       { title: 'Position & resize', text: 'Drag items to place them exactly where they belong in the agreement.' },
       { title: 'Save & download', text: 'Click Sign and Download PDF to generate and download your completed document.' },
@@ -75,7 +75,7 @@ export const tools = [
       },
       {
         question: 'What happens if my browser crashes while filling out a form?',
-        answer: 'Your work is not lost. As you add text, checkmarks, and signatures, the tool auto-saves your progress to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. Because this happens on your device, your file is still never uploaded, and your saved draft is only cleared when you click Start over.',
+        answer: 'Your work is not lost. As you add text, symbols, and signatures, the tool auto-saves your progress to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. Because this happens on your device, your file is still never uploaded, and your saved draft is only cleared when you click Start over.',
       },
     ],
   },
@@ -96,7 +96,7 @@ export const tools = [
     toolName: 'Merge PDF',
     h1: 'Merge PDF Free: No Sign-Up, Runs Locally',
     subhead:
-      'Combine multiple PDFs into a single document and reorder pages by drag-and-drop before you export.',
+      'Combine multiple PDFs into a single document, reorder pages by drag-and-drop, and optionally add page numbers before you export.',
     ariaLabel: 'PDF merge tool',
     aboutHeading: 'How to merge PDF files online for free',
     aboutLead:
@@ -110,7 +110,7 @@ export const tools = [
     steps: [
       { title: 'Add your PDFs', text: 'Select or drag-and-drop the files you want to combine.' },
       { title: 'Reorder them', text: 'Sort by name or date, or drag files into the order you want.' },
-      { title: 'Merge and download', text: 'Click Merge PDFs and save your combined file.' },
+      { title: 'Merge and download', text: 'Check "Add page numbers" if you want sequential numbers, then click Merge PDFs and save your combined file.' },
     ],
     faq: [
       { question: 'Is PDkef really free?', answer: 'Yes. PDkef is completely free, with no limits, no signup, and no watermark on your merged PDF.' },

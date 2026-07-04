@@ -235,7 +235,7 @@ describe('PdfSignTool UI flow', () => {
     expect(elements.length).toBe(2);
   });
 
-  it('supports placing a checkmark element', async () => {
+  it('supports placing a symbol element', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
@@ -253,19 +253,16 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    // Select checkmark tool
+    // Select symbol tool
     const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
-    const checkmarkBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Checkmark') || btn.querySelector('svg'));
-    // Fallback logic if the text is hidden: the checkmark button sets the tool to 'checkmark'
-    // Let's just find the button that has onClick setting 'checkmark' or has class active when we click it.
-    // Actually we can just find it by finding the second button in the toolbar (index 1 is Checkmark based on grep)
+    const symbolBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Symbol') || btn.querySelector('svg'));
     
     await act(async () => {
-      // Index 0 is Text, Index 1 is Checkmark
+      // Index 0 is Text, Index 1 is Symbol
       toolbarButtons[1].click();
     });
 
-    // Click on page overlay to place checkmark element
+    // Click on page overlay to place symbol element
     const overlay = container.querySelector('.sign-page-overlay');
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 200, clientY: 200, bubbles: true }));
@@ -275,7 +272,7 @@ describe('PdfSignTool UI flow', () => {
     const elements = container.querySelectorAll('.sign-element');
     expect(elements.length).toBe(1);
     
-    // Check if it's a checkmark (contains an SVG or checkmark character)
+    // Check if it's a symbol (contains an SVG or symbol character)
     expect(elements[0].innerHTML).toContain('svg');
   });
 

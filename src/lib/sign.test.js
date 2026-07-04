@@ -1,7 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { signPdf } from './sign.js';
+import { 
+  signPdf,
+  hexToRgbFractions,
+  getEffectiveTextDirection,
+  uniqueId,
+  seedUniqueId
+} from './sign.js';
 import { percentToPoints } from './coords.js';
 
 function getFixtureFile(name = 'num-1.pdf') {
@@ -147,5 +153,65 @@ describe('sign.js signPdf', () => {
     const requestedFiles = global.fetch.mock.calls.map(([url]) => String(url));
     expect(requestedFiles.some((u) => u.includes('Caveat-Bold.ttf'))).toBe(true);
     expect(requestedFiles.some((u) => u.includes('Caveat-Regular.ttf'))).toBe(true);
+  });
+});
+
+describe('sign.js pure functions', () => {
+  describe('hexToRgbFractions', () => {
+    it('should convert standard hex colors correctly', () => {
+      expect(hexToRgbFractions('#000000')).toEqual({ r: 0, g: 0, b: 0 });
+      expect(hexToRgbFractions('#ffffff')).toEqual({ r: 1, g: 1, b: 1 });
+      expect(hexToRgbFractions('#ff0000')).toEqual({ r: 1, g: 0, b: 0 });
+    });
+
+    it('should handle hex colors without the # prefix', () => {
+      expect(hexToRgbFractions('00ff00')).toEqual({ r: 0, g: 1, b: 0 });
+    });
+
+    it('should return black for invalid or undefined input if fallback is not provided', () => {
+      expect(hexToRgbFractions(undefined)).toEqual({ r: 0, g: 0, b: 0 });
+      expect(hexToRgbFractions(null)).toEqual({ r: 0, g: 0, b: 0 });
+      expect(hexToRgbFractions('invalid')).toEqual({ r: 0, g: 0, b: 0 });
+    });
+
+    it('should use the provided fallback color', () => {
+      expect(hexToRgbFractions(null, '#0000ff')).toEqual({ r: 0, g: 0, b: 1 });
+    });
+  });
+
+  describe('getEffectiveTextDirection', () => {
+    it('should return ltr by default for empty or latin text', () => {
+      expect(getEffectiveTextDirection({ type: 'text', text: '' })).toBe('ltr');
+      expect(getEffectiveTextDirection({ type: 'text', text: 'Hello world' })).toBe('ltr');
+    });
+
+    it('should return rtl for hebrew or arabic text', () => {
+      expect(getEffectiveTextDirection({ type: 'text', text: 'שלום' })).toBe('rtl');
+      expect(getEffectiveTextDirection({ type: 'text', text: 'مرحبا' })).toBe('rtl');
+    });
+
+    it('should respect the textDirection override property', () => {
+      expect(getEffectiveTextDirection({ type: 'text', text: 'Hello', textDirection: 'rtl' })).toBe('rtl');
+      expect(getEffectiveTextDirection({ type: 'text', text: 'שלום', textDirection: 'ltr' })).toBe('ltr');
+    });
+  });
+
+  describe('uniqueId', () => {
+    it('should generate sequential string IDs', () => {
+      seedUniqueId([]); // reset max
+      const id1 = uniqueId();
+      const id2 = uniqueId();
+      expect(id1).toMatch(/^el-\d+$/);
+      expect(id2).toMatch(/^el-\d+$/);
+      expect(id1).not.toBe(id2);
+    });
+
+    it('should respect seedUniqueId to prevent collisions', () => {
+      seedUniqueId([{ id: 'el-10' }, { id: 'el-5' }]);
+      const newId = uniqueId();
+      expect(newId).toBe('el-11');
+      const nextId = uniqueId();
+      expect(nextId).toBe('el-12');
+    });
   });
 });
