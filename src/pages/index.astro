@@ -348,6 +348,17 @@ const HeroIcon = tools[0].icon;
   .hub-header h1 {
     margin-bottom: 0;
     text-align: left;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  /* Center the intro under the wordmark and cap it just short of the container
+     width, so it lands on ~2 lines on wide desktops rather than stretching fully
+     edge-to-edge. */
+  .hub-header p {
+    max-width: 54rem;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .hero-card {
@@ -1026,16 +1037,16 @@ const HeroIcon = tools[0].icon;
     }
 
     .hub-header {
-      padding: 0.5rem 0 1rem 0;
+      padding: 0.5rem 0 1.75rem 0;
     }
 
     .hub-header h1 {
-      font-size: 2.2rem;
+      font-size: 2.5rem;
     }
 
     .hub-header p {
-      font-size: 0.95rem;
-      margin-top: 0.25rem;
+      font-size: 1rem;
+      margin-top: 0.6rem;
     }
 
     .hero-card {
