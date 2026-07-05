@@ -86,11 +86,7 @@ export default function FloatingToolbar({
             <span className="sign-tool-btn-text">Symbols</span>
           </button>
 
-          <div
-            className="sign-tool-dropdown-container"
-            onMouseEnter={() => setShowShapesDropdown(true)}
-            onMouseLeave={() => setShowShapesDropdown(false)}
-          >
+          <div className="sign-tool-dropdown-container">
             <button
               type="button"
               className={`sign-tool-btn sign-dropdown-trigger${['ellipse', 'rectangle', 'line'].includes(selectedTool) ? ' active' : ''}`}
