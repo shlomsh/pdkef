@@ -1,4 +1,4 @@
-import { PDFDocument, rgb } from '@cantoo/pdf-lib';
+import { PDFDocument, rgb, LineCapStyle } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { percentToPoints } from './coords.js';
 
@@ -248,44 +248,58 @@ export async function signPdf(file, elements, onProgress) {
       const { r: cr, g: cg, b: cb } = hexToRgbFractions(el.color, '#1463ff');
 
       if (el.mark === 'x') {
-        // Draw vector X: corner-to-corner diagonals
+        // Mirrors SVG: two lines x1="4" y1="4" x2="20" y2="20" and x1="20" y1="4" x2="4" y2="20"
+        // on a 24×24 viewBox, stroke-linecap="round", stroke-width="3".
+        // Thickness scales with element size the same way SVG stroke-width="3" does on 24px.
+        const thickness = (elWidthPoints / 24) * 3;
         page.drawLine({
-          start: { x: pdfX, y: pdfY },
-          end: { x: pdfX + elWidthPoints, y: pdfY - elHeightPoints },
-          thickness: 2.2,
-          color: rgb(cr, cg, cb)
+          start: { x: pdfX + elWidthPoints * (4 / 24),  y: pdfY - elHeightPoints * (4 / 24) },
+          end:   { x: pdfX + elWidthPoints * (20 / 24), y: pdfY - elHeightPoints * (20 / 24) },
+          thickness,
+          color: rgb(cr, cg, cb),
+          lineCap: LineCapStyle.Round,
         });
         page.drawLine({
-          start: { x: pdfX + elWidthPoints, y: pdfY },
-          end: { x: pdfX, y: pdfY - elHeightPoints },
-          thickness: 2.2,
-          color: rgb(cr, cg, cb)
+          start: { x: pdfX + elWidthPoints * (20 / 24), y: pdfY - elHeightPoints * (4 / 24) },
+          end:   { x: pdfX + elWidthPoints * (4 / 24),  y: pdfY - elHeightPoints * (20 / 24) },
+          thickness,
+          color: rgb(cr, cg, cb),
+          lineCap: LineCapStyle.Round,
         });
       } else if (el.mark === 'dot') {
-        // Draw vector dot (filled circle)
+        // Mirrors SVG: circle cx="12" cy="12" r="8" on a 24×24 viewBox, fill="currentColor".
         page.drawEllipse({
           x: pdfX + elWidthPoints / 2,
           y: pdfY - elHeightPoints / 2,
-          xScale: elWidthPoints * 0.35,
-          yScale: elHeightPoints * 0.35,
+          xScale: elWidthPoints * (8 / 24),
+          yScale: elHeightPoints * (8 / 24),
           color: rgb(cr, cg, cb),
           borderWidth: 0,
         });
       } else {
-        // Draw vector checkmark
-        // Start: Left edge, 40% height up from bottom
+        // Mirrors SVG: polyline points="20 6 9 17 4 12" on a 24×24 viewBox,
+        // stroke-linecap="round", stroke-linejoin="round", stroke-width="3".
+        // SVG Y is top-down; PDF Y is bottom-up — flip: pdfY = pdfY_top - svgY%*height.
+        // Normalized coords from the viewBox:
+        //   start  (4,12)/24  → left edge, mid-height
+        //   elbow  (9,17)/24  → inner bottom of the tick
+        //   end   (20,6)/24   → far right, near top
+        const thickness = (elWidthPoints / 24) * 3;
+        // Segment 1: left-mid → elbow
         page.drawLine({
-          start: { x: pdfX, y: pdfY - elHeightPoints * 0.6 },
-          end: { x: pdfX + elWidthPoints * 0.35, y: pdfY - elHeightPoints },
-          thickness: 2.2,
-          color: rgb(cr, cg, cb)
+          start: { x: pdfX + elWidthPoints * (4 / 24),  y: pdfY - elHeightPoints * (12 / 24) },
+          end:   { x: pdfX + elWidthPoints * (9 / 24),  y: pdfY - elHeightPoints * (17 / 24) },
+          thickness,
+          color: rgb(cr, cg, cb),
+          lineCap: LineCapStyle.Round,
         });
-        // End: Top-right edge
+        // Segment 2: elbow → top-right
         page.drawLine({
-          start: { x: pdfX + elWidthPoints * 0.35, y: pdfY - elHeightPoints },
-          end: { x: pdfX + elWidthPoints, y: pdfY },
-          thickness: 2.2,
-          color: rgb(cr, cg, cb)
+          start: { x: pdfX + elWidthPoints * (9 / 24),  y: pdfY - elHeightPoints * (17 / 24) },
+          end:   { x: pdfX + elWidthPoints * (20 / 24), y: pdfY - elHeightPoints * (6 / 24) },
+          thickness,
+          color: rgb(cr, cg, cb),
+          lineCap: LineCapStyle.Round,
         });
       }
     } else if (el.type === 'signature' && el.dataUrl) {

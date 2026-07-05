@@ -14,7 +14,9 @@ export default function ElementToolbar({
   // element.type is the geometry discriminator directly (no shape/shapeType wrapper).
   const actualType = element.type;
   const isLine = actualType === 'line';
-  const isShape = actualType === 'ellipse' || actualType === 'rectangle';
+  // Gates the shape-type-switcher toolbar (ellipse / rectangle / line only — not whiteout,
+  // which has its own separate tool and toolbar section).
+  const isDrawnShape = actualType === 'ellipse' || actualType === 'rectangle';
 
   return (
     <>
@@ -128,7 +130,7 @@ export default function ElementToolbar({
           <div className="sign-toolbar-divider" />
         </>
       )}
-      {(isShape || isLine) && (
+      {(isDrawnShape || isLine) && (
         <>
           <button
             type="button"

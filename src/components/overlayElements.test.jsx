@@ -96,4 +96,58 @@ describe('DraggableOverlayElement dragging', () => {
     expect(committed).toHaveProperty('left');
     expect(committed).toHaveProperty('top');
   });
+
+  it('whiteout mounts with 8 resize handles (4 edge + 4 corner)', () => {
+    const page = renderInPage(
+      { type: 'whiteout', left: 10, top: 10, width: 20, height: 10, color: '#ffffff' },
+      () => {}
+    );
+    // 4 edge handles + 4 corner handles
+    const resizers = page.querySelectorAll('.sign-element-resizer');
+    expect(resizers.length).toBe(8);
+    expect(page.querySelector('.sign-element-resizer.corner.top-left')).not.toBeNull();
+    expect(page.querySelector('.sign-element-resizer.corner.bottom-right')).not.toBeNull();
+  });
+
+  it('whiteout height resize fires onChange with updated height via bottom handle', () => {
+    const onChange = vi.fn();
+    const page = renderInPage(
+      { type: 'whiteout', left: 10, top: 10, width: 20, height: 10, color: '#ffffff' },
+      onChange
+    );
+    const bottomHandle = page.querySelector('.sign-element-resizer.bottom');
+    expect(bottomHandle).not.toBeNull();
+
+    act(() => {
+      bottomHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100, clientY: 100 }));
+      window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 100, clientY: 140 }));
+      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    });
+
+    expect(onChange).toHaveBeenCalled();
+    const committed = onChange.mock.calls.at(-1)[0];
+    expect(committed).toHaveProperty('height');
+    expect(committed).toHaveProperty('width');
+  });
+
+  it('rectangle corner (bottom-right) resize fires onChange with both width and height', () => {
+    const onChange = vi.fn();
+    const page = renderInPage(
+      { type: 'rectangle', left: 10, top: 10, width: 20, height: 15, strokeWidth: 2 },
+      onChange
+    );
+    const cornerHandle = page.querySelector('.sign-element-resizer.corner.bottom-right');
+    expect(cornerHandle).not.toBeNull();
+
+    act(() => {
+      cornerHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100, clientY: 100 }));
+      window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 130, clientY: 125 }));
+      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    });
+
+    expect(onChange).toHaveBeenCalled();
+    const committed = onChange.mock.calls.at(-1)[0];
+    expect(committed).toHaveProperty('width');
+    expect(committed).toHaveProperty('height');
+  });
 });

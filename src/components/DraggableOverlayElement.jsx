@@ -305,6 +305,22 @@ export default function DraggableOverlayElement({
         } else if (handle === 'top') {
           newHeight = Math.max(1, Math.min(90, startHeight - pxDeltaToPercent(dy, parentRect.height)));
           newTop = startTop - (newHeight - startHeight);
+        } else if (handle === 'bottom-right') {
+          newWidth = Math.max(1, Math.min(90, startWidth + pxDeltaToPercent(rawDx, parentRect.width)));
+          newHeight = Math.max(1, Math.min(90, startHeight + pxDeltaToPercent(dy, parentRect.height)));
+        } else if (handle === 'bottom-left') {
+          newWidth = Math.max(1, Math.min(90, startWidth - pxDeltaToPercent(rawDx, parentRect.width)));
+          newLeft = startLeft - (newWidth - startWidth);
+          newHeight = Math.max(1, Math.min(90, startHeight + pxDeltaToPercent(dy, parentRect.height)));
+        } else if (handle === 'top-right') {
+          newWidth = Math.max(1, Math.min(90, startWidth + pxDeltaToPercent(rawDx, parentRect.width)));
+          newHeight = Math.max(1, Math.min(90, startHeight - pxDeltaToPercent(dy, parentRect.height)));
+          newTop = startTop - (newHeight - startHeight);
+        } else if (handle === 'top-left') {
+          newWidth = Math.max(1, Math.min(90, startWidth - pxDeltaToPercent(rawDx, parentRect.width)));
+          newLeft = startLeft - (newWidth - startWidth);
+          newHeight = Math.max(1, Math.min(90, startHeight - pxDeltaToPercent(dy, parentRect.height)));
+          newTop = startTop - (newHeight - startHeight);
         }
         
         onChange({ width: newWidth, height: newHeight, left: newLeft, top: newTop });
@@ -392,7 +408,9 @@ export default function DraggableOverlayElement({
   const actualType = element.type;
   const isRtlText = element.type === 'text' && textDirection === 'rtl';
   const isLine = actualType === 'line';
-  const isShape = actualType === 'ellipse' || actualType === 'rectangle';
+  const isWhiteout = actualType === 'whiteout';
+  // isShape controls 4-handle resizing and box-style CSS — includes whiteout
+  const isShape = actualType === 'ellipse' || actualType === 'rectangle' || isWhiteout;
   const style = isLine ? {
     left: 0,
     top: 0,
@@ -452,7 +470,7 @@ export default function DraggableOverlayElement({
       {element.type === 'symbol' && (
         <SymbolElement element={element} />
       )}
-      {isShape && (
+      {isShape && !isWhiteout && (
         <ShapeElement element={element} actualType={actualType} />
       )}
       {isLine && (
