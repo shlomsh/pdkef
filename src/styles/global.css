@@ -68,6 +68,54 @@
   src: url('/fonts/Arimo-BoldItalic.ttf') format('truetype');
 }
 @font-face {
+  font-family: 'Tinos';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Tinos-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Tinos';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Tinos-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Tinos';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/Tinos-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Tinos';
+  font-style: italic;
+  font-weight: 700;
+  src: url('/fonts/Tinos-BoldItalic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Cousine';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Cousine-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Cousine';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Cousine-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Cousine';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/Cousine-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Cousine';
+  font-style: italic;
+  font-weight: 700;
+  src: url('/fonts/Cousine-BoldItalic.ttf') format('truetype');
+}
+@font-face {
   font-family: 'Assistant';
   font-style: normal;
   font-weight: 400;

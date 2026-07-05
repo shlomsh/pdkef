@@ -69,7 +69,7 @@ describe('useDropdownMenu popover positioning', () => {
 
   it('opens the font menu as position:fixed, not absolute (no CSS override needed)', async () => {
     await mountAndOpen(
-      <FontPickerMenu value="Helvetica" onChange={() => {}} />,
+      <FontPickerMenu value="Arimo" onChange={() => {}} />,
       '.sign-font-trigger'
     );
 
@@ -84,7 +84,7 @@ describe('useDropdownMenu popover positioning', () => {
 
   it('sets position:fixed BEFORE Floating UI measures the menu', async () => {
     await mountAndOpen(
-      <FontPickerMenu value="Helvetica" onChange={() => {}} />,
+      <FontPickerMenu value="Arimo" onChange={() => {}} />,
       '.sign-font-trigger'
     );
 
@@ -96,7 +96,7 @@ describe('useDropdownMenu popover positioning', () => {
 
   it('anchors to the trigger with the fixed strategy', async () => {
     const trigger = await mountAndOpen(
-      <FontPickerMenu value="Helvetica" onChange={() => {}} />,
+      <FontPickerMenu value="Arimo" onChange={() => {}} />,
       '.sign-font-trigger'
     );
 
@@ -108,7 +108,7 @@ describe('useDropdownMenu popover positioning', () => {
 
   it('applies the resolved coordinates and reveals the menu', async () => {
     await mountAndOpen(
-      <FontPickerMenu value="Helvetica" onChange={() => {}} />,
+      <FontPickerMenu value="Arimo" onChange={() => {}} />,
       '.sign-font-trigger'
     );
 
@@ -122,7 +122,7 @@ describe('useDropdownMenu popover positioning', () => {
 
   it('registers autoUpdate so the menu tracks scroll/resize', async () => {
     await mountAndOpen(
-      <FontPickerMenu value="Helvetica" onChange={() => {}} />,
+      <FontPickerMenu value="Arimo" onChange={() => {}} />,
       '.sign-font-trigger'
     );
 

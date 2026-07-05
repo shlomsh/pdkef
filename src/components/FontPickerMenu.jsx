@@ -1,16 +1,19 @@
 import { useDropdownMenu } from '../lib/useDropdownMenu.js';
 import { HANDWRITING_FONTS } from '../lib/sign.js';
 
-// CSS font-family value to preview each option in its own font. Standard-font
-// values (Helvetica/TimesRoman/Courier) are pdf-lib StandardFont names, not
-// real CSS families, so they're mapped to their common cross-platform stacks.
+// CSS font-family value to preview each option in its own font. All values
+// are real bundled TTFs (see sign.js's FONT_FILES / global.css's @font-face
+// rules) — every option is embedded verbatim into the exported PDF, so there's
+// no separate "standard font" code path with different glyph coverage than
+// what's shown on screen (Arimo/Tinos/Cousine are metric-compatible with
+// Helvetica/Times New Roman/Courier New but, unlike pdf-lib's StandardFonts,
+// also carry Hebrew glyphs).
 const STANDARD_FONTS = [
-  { value: 'Helvetica', label: 'Helvetica', css: 'Helvetica, Arial, sans-serif' },
-  { value: 'Arimo', label: 'Arial (Arimo)', css: "'Arimo', Arial, sans-serif" },
+  { value: 'Arimo', label: 'Arimo (Helvetica)', css: "'Arimo', Helvetica, Arial, sans-serif" },
   { value: 'Assistant', label: 'Hebrew (Assistant)', css: "'Assistant', sans-serif" },
   { value: 'Heebo', label: 'Hebrew (Heebo)', css: "'Heebo', sans-serif" },
-  { value: 'TimesRoman', label: 'Times Roman', css: "'Times New Roman', Times, serif" },
-  { value: 'Courier', label: 'Courier', css: "'Courier New', Courier, monospace" }
+  { value: 'Tinos', label: 'Tinos (Times Roman)', css: "'Tinos', 'Times New Roman', Times, serif" },
+  { value: 'Cousine', label: 'Cousine (Courier)', css: "'Cousine', 'Courier New', Courier, monospace" }
 ];
 
 // Same fonts bundled for the signature "type" mode (PdfSignTool.jsx), offered

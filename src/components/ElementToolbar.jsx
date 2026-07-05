@@ -21,7 +21,7 @@ export default function ElementToolbar({
       {element.type === 'text' && (
         <>
           <FontPickerMenu
-            value={element.fontFamily || 'Helvetica'}
+            value={element.fontFamily || 'Arimo'}
             onChange={(fontFamily) => onChange({ fontFamily })}
           />
           <div className="sign-toolbar-divider" />

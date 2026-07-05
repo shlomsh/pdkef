@@ -35,7 +35,7 @@ export default function PdfSignTool() {
   const [lastColor, setLastColor] = useState('#000000');
 
   // Last font family picked for a text element, remembered across new placements
-  const [lastFont, setLastFont] = useState('Helvetica');
+  const [lastFont, setLastFont] = useState('Arimo');
 
   // Last font size picked for a text element, remembered across new placements
   const [lastFontSize, setLastFontSize] = useState(12);

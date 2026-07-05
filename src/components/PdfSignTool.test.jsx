@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import PdfSignTool from './PdfSignTool.jsx';
@@ -8,6 +8,25 @@ import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../l
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
+}
+
+// signPdf fetches bundled fonts from same-origin `/fonts/<name>.ttf` at runtime
+// (every text-element font, including the default Arimo, is an embedded TTF —
+// see sign.js). jsdom has no server, so serve the real files straight off disk,
+// same approach as sign.test.js's mockFontFetch.
+function mockFontFetch() {
+  const originalFetch = global.fetch;
+  global.fetch = vi.fn(async (url) => {
+    const match = /\/fonts\/(.+)$/.exec(String(url));
+    if (!match) return originalFetch ? originalFetch(url) : Promise.reject(new Error('unexpected fetch'));
+    const filePath = path.resolve(__dirname, '../../public/fonts', match[1]);
+    if (!fs.existsSync(filePath)) {
+      return { ok: false, status: 404, arrayBuffer: async () => new ArrayBuffer(0) };
+    }
+    const buffer = fs.readFileSync(filePath);
+    return { ok: true, status: 200, arrayBuffer: async () => new Uint8Array(buffer).buffer };
+  });
+  return () => { global.fetch = originalFetch; };
 }
 
 // Mock getDocument because we don't want to load actual pdf.js workers in jsdom environment
@@ -30,6 +49,11 @@ vi.mock('pdfjs-dist', () => {
 
 describe('PdfSignTool UI flow', () => {
   let container;
+  let restoreFetch;
+
+  beforeEach(() => {
+    restoreFetch = mockFontFetch();
+  });
 
   afterEach(() => {
     if (container) {
@@ -37,6 +61,7 @@ describe('PdfSignTool UI flow', () => {
       container.remove();
       container = null;
     }
+    restoreFetch();
     vi.restoreAllMocks();
   });
 

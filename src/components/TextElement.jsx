@@ -12,7 +12,7 @@ export default function TextElement({
         dir={textDirection}
         style={{
           fontSize: `${textFontSize}px`,
-          fontFamily: element.fontFamily || 'Helvetica',
+          fontFamily: element.fontFamily || 'Arimo',
           fontWeight: element.fontWeight || 'normal',
           fontStyle: element.fontStyle || 'normal'
         }}
@@ -31,7 +31,7 @@ export default function TextElement({
         style={{
           textAlign: textDirection === 'rtl' ? 'right' : 'left',
           fontSize: `${textFontSize}px`,
-          fontFamily: element.fontFamily || 'Helvetica',
+          fontFamily: element.fontFamily || 'Arimo',
           fontWeight: element.fontWeight || 'normal',
           fontStyle: element.fontStyle || 'normal',
           color: element.color || '#000000'

@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, StandardFonts } from '@cantoo/pdf-lib';
+import { PDFDocument, rgb } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { percentToPoints } from './coords.js';
 
@@ -45,6 +45,18 @@ export const HANDWRITING_FONTS = [
   'Playpen Sans Hebrew',
   'Sacramento'
 ];
+
+// Sans/serif/mono text-element fonts (FontPickerMenu.jsx's STANDARD_FONTS).
+// Arimo/Tinos/Cousine are the Croscore family: metric-compatible with
+// Helvetica/Times New Roman/Courier New, but — unlike pdf-lib's built-in
+// StandardFonts — bundled here as real embedded TTFs that also carry Hebrew
+// glyphs. Every option in the picker is one of these embedded families; there
+// is intentionally no separate "standard PDF font" code path in signPdf below,
+// since that path only supported Latin glyphs and silently baked non-Latin
+// text (e.g. Hebrew) as "?" on export while looking fine in the browser
+// preview (the browser silently font-substitutes for missing glyphs; pdf-lib's
+// WinAnsi-encoded StandardFonts do not).
+export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo'];
 
 let nextId = 0;
 export function uniqueId() {
@@ -102,9 +114,8 @@ export function tintImageDataUrl(dataUrl, hexColor) {
 //
 // Reads metrics off the embedder's underlying fontkit font. That's an internal
 // pdf-lib field, so it's guarded: if the shape ever changes, we fall back to
-// 0.85 and behave exactly as before (no throw, no regression). Standard fonts
-// (Helvetica) expose no fontkit unitsPerEm here and so keep the 0.85 default,
-// which already matches this formula for Helvetica (~0.855).
+// 0.85 (Helvetica's own value) and behave exactly as before (no throw, no
+// regression) rather than mis-placing every line of text.
 const HELVETICA_BASELINE_OFFSET_EM = 0.85;
 function baselineOffsetEm(pdfFont, lineHeightEm = 1.2) {
   try {
@@ -173,8 +184,6 @@ export async function signPdf(file, elements, onProgress) {
     }
   };
 
-  const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-
   for (let i = 0; i < elements.length; i++) {
     const el = elements[i];
     const page = pdfDoc.getPage(el.pageIndex);
@@ -189,19 +198,12 @@ export async function signPdf(file, elements, onProgress) {
       const textValue = (el.text || '').trim();
       if (!textValue) continue;
 
-      let resolvedFont = helveticaFont;
-      if (el.fontFamily && ['Arimo', 'Heebo', 'Assistant', ...HANDWRITING_FONTS].includes(el.fontFamily)) {
-        const customFont = await loadCustomFont(el.fontFamily, el.fontWeight, el.fontStyle);
-        if (customFont) resolvedFont = customFont;
-      } else {
-        if (el.fontWeight === 'bold' && el.fontStyle === 'italic') {
-          resolvedFont = await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique);
-        } else if (el.fontWeight === 'bold') {
-          resolvedFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-        } else if (el.fontStyle === 'italic') {
-          resolvedFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
-        }
-      }
+      // Every selectable font (TEXT_FONTS + HANDWRITING_FONTS) is a bundled TTF,
+      // embedded here the same way it's rendered in the editor preview via
+      // @font-face — one code path, so glyph coverage (and thus what does or
+      // doesn't render) can never differ between screen and export.
+      const resolvedFont = (await loadCustomFont(el.fontFamily || 'Arimo', el.fontWeight, el.fontStyle))
+        || (await loadCustomFont('Arimo', el.fontWeight, el.fontStyle));
 
       const { r, g, b } = hexToRgbFractions(el.color);
 
