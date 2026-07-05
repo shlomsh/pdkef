@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useRef } from 'preact/hooks';
 import FullscreenButton from './FullscreenButton';
 
 export default function FloatingToolbar({
@@ -32,6 +32,24 @@ export default function FloatingToolbar({
     document.addEventListener('click', handleOutsideClick);
     return () => document.removeEventListener('click', handleOutsideClick);
   }, [showSigDropdown]);
+
+  // Hover-open the Shapes menu with a short close delay ("hover intent"). The menu
+  // sits a few px below the trigger, so moving the pointer from button to menu
+  // crosses a small gap; closing immediately on mouseleave would shut the menu
+  // before the pointer arrives. The grace delay bridges that gap (the same idea as
+  // Floating UI's safePolygon, which is React-only so unavailable in this Preact
+  // island). Re-entering the trigger or the menu within the delay cancels the close.
+  // Click still toggles it, for touch and keyboard users.
+  const shapesCloseTimer = useRef(null);
+  const openShapes = () => {
+    clearTimeout(shapesCloseTimer.current);
+    setShowShapesDropdown(true);
+  };
+  const scheduleCloseShapes = () => {
+    clearTimeout(shapesCloseTimer.current);
+    shapesCloseTimer.current = setTimeout(() => setShowShapesDropdown(false), 180);
+  };
+  useEffect(() => () => clearTimeout(shapesCloseTimer.current), []);
 
   const handleSignatureBtnClick = () => {
     if (savedSignatures.length > 0) {
@@ -86,7 +104,11 @@ export default function FloatingToolbar({
             <span className="sign-tool-btn-text">Symbols</span>
           </button>
 
-          <div className="sign-tool-dropdown-container">
+          <div
+            className="sign-tool-dropdown-container"
+            onMouseEnter={openShapes}
+            onMouseLeave={scheduleCloseShapes}
+          >
             <button
               type="button"
               className={`sign-tool-btn sign-dropdown-trigger${['ellipse', 'rectangle', 'line'].includes(selectedTool) ? ' active' : ''}`}
@@ -110,7 +132,7 @@ export default function FloatingToolbar({
             {showShapesDropdown && (
               <>
                 <div className="sign-dropdown-backdrop" onClick={() => setShowShapesDropdown(false)} />
-                <div className="sign-dropdown-menu" role="menu" style={{ minWidth: '140px', borderRadius: '12px', padding: '0.25rem' }}>
+                <div className="sign-dropdown-menu" role="menu" style={{ minWidth: '140px', borderRadius: '12px', padding: '0.25rem', left: 0, transform: 'none' }}>
                   <div className="sign-dropdown-list sign-dropdown-list--clean">
                     <button
                       type="button"
