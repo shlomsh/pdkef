@@ -7,6 +7,10 @@ interface Props {
 
 const { title, description, noindex = false } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+
+// Google Analytics — injected via Vercel environment variable.
+// Set PUBLIC_GA_MEASUREMENT_ID in Vercel project settings (not in source).
+const gaMeasurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID;
 ---
 
 <!doctype html>
@@ -41,6 +45,23 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
     <slot name="head" />
+
+    <!-- Google Analytics (production only, env-var gated) -->
+    {import.meta.env.PROD && gaMeasurementId && (
+      <>
+        <script
+          is:inline
+          async
+          src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}
+        />
+        <script is:inline define:vars={{ gaMeasurementId }}>
+          window.dataLayer = window.dataLayer || [];
+          function gtag() { dataLayer.push(arguments); }
+          gtag('js', new Date());
+          gtag('config', gaMeasurementId);
+        </script>
+      </>
+    )}
   </head>
   <body>
     <slot />

@@ -1,5 +1,10 @@
 import { PDFDocument, rgb, LineCapStyle } from '@cantoo/pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
+// Note: @pdf-lib/fontkit is intentionally not imported. Text is rendered via
+// the browser's native shaping engine (canvas API / HarfBuzz) and embedded as
+// a PNG image, which correctly applies OpenType GPOS/GSUB features for complex
+// scripts like Hebrew and Arabic. pdf-lib's page.drawText() ignores those
+// tables and places glyphs at raw advance widths, causing the inter-letter gaps
+// visible in RTL/complex-script fonts.
 import { percentToPoints } from './coords.js';
 
 // First strong-directional character wins (matches the Unicode bidi
@@ -104,34 +109,56 @@ export function tintImageDataUrl(dataUrl, hexColor) {
   });
 }
 
-// Distance from the top of a text line box down to its first baseline, as a
-// fraction of font size. Mirrors how the browser places the baseline: the
-// font's ascent plus half the line-height leading. A fixed 0.85 (Helvetica's
-// value) used to be applied to every font, which drifted for the embedded
-// Heebo/Assistant/Arimo and cursive handwriting fonts, since each has different
-// ascent/descent metrics - so a typed cursive signature landed slightly off in
-// the exported PDF versus the editor preview. We now derive it per font.
+// Renders a text element to an offscreen canvas using the browser's native text
+// shaping engine (HarfBuzz in Chrome/Firefox/Safari), then returns a PNG data URL
+// and the image dimensions in PDF points.
 //
-// Reads metrics off the embedder's underlying fontkit font. That's an internal
-// pdf-lib field, so it's guarded: if the shape ever changes, we fall back to
-// 0.85 (Helvetica's own value) and behave exactly as before (no throw, no
-// regression) rather than mis-placing every line of text.
-const HELVETICA_BASELINE_OFFSET_EM = 0.85;
-function baselineOffsetEm(pdfFont, lineHeightEm = 1.2) {
-  try {
-    const fk = pdfFont?.embedder?.font;
-    const unitsPerEm = fk?.unitsPerEm;
-    const ascent = fk?.ascent;
-    const descent = fk?.descent;
-    if (unitsPerEm && Number.isFinite(ascent) && Number.isFinite(descent)) {
-      const ascentEm = ascent / unitsPerEm;
-      const descentEm = Math.abs(descent) / unitsPerEm;
-      return lineHeightEm / 2 + (ascentEm - descentEm) / 2;
-    }
-  } catch {
-    // fall through to the Helvetica default
-  }
-  return HELVETICA_BASELINE_OFFSET_EM;
+// Super-sampling at 3× means the rasterized text is still crisp at the zoom
+// levels (100–400%) used in most PDF viewers. The padding values mirror the
+// editor's CSS so vertical placement in the PDF matches the editor preview.
+async function renderTextToImage(el, fontSizeInPoints) {
+  const SCALE = 3;
+  const lines = (el.text || '').trim().split(/\r?\n/);
+  const isRtl = getEffectiveTextDirection(el) === 'rtl';
+  const fontFamily = el.fontFamily || 'Arimo';
+  const fontWeight = el.fontWeight || 'normal';
+  const fontStyle = el.fontStyle || 'normal';
+
+  const fontPx = fontSizeInPoints * SCALE;
+  const fontStr = `${fontStyle} ${fontWeight} ${fontPx}px "${fontFamily}"`;
+
+  // Ensure the @font-face font is fully loaded before the canvas measures it.
+  try { await document.fonts.load(fontStr); } catch { /* fall through to system font */ }
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.font = fontStr;
+
+  const lineHeightPx = fontPx * 1.2;           // matches CSS line-height: 1.2
+  const paddingTopPx = Math.round(fontPx * 0.3); // matches TEXT_BOX_PADDING_EM = 0.3
+
+  const maxLineWidthPx = Math.max(1, ...lines.map(l => ctx.measureText(l).width));
+  // +2px so right-edge glyphs (e.g. italic f, j) don't clip against the canvas edge.
+  canvas.width  = Math.ceil(maxLineWidthPx) + 2;
+  canvas.height = Math.ceil(paddingTopPx + lineHeightPx * lines.length);
+
+  // Canvas state resets on resize — re-apply everything.
+  ctx.font        = fontStr;
+  ctx.fillStyle   = el.color || '#000000';
+  ctx.textBaseline = 'top';
+  ctx.direction   = isRtl ? 'rtl' : 'ltr';
+
+  lines.forEach((line, i) => {
+    // RTL: anchor text against the right edge so it aligns correctly.
+    const x = isRtl ? canvas.width - 1 : 1;
+    ctx.fillText(line, x, paddingTopPx + i * lineHeightPx);
+  });
+
+  return {
+    dataUrl:      canvas.toDataURL('image/png'),
+    widthPoints:  canvas.width  / SCALE,  // canvas was rendered at SCALE px/pt
+    heightPoints: canvas.height / SCALE,
+  };
 }
 
 // Bakes placed text/symbol/signature elements into the PDF and returns the
@@ -140,49 +167,6 @@ function baselineOffsetEm(pdfFont, lineHeightEm = 1.2) {
 export async function signPdf(file, elements, onProgress) {
   const bytes = await file.arrayBuffer();
   const pdfDoc = await PDFDocument.load(bytes);
-  pdfDoc.registerFontkit(fontkit);
-
-  const loadedFonts = {};
-  const fetchFont = async (fileName) => {
-    if (loadedFonts[fileName]) return loadedFonts[fileName];
-    const res = await fetch(`/fonts/${fileName}`);
-    if (!res.ok) throw new Error(`${fileName}: ${res.status}`);
-    const fontBytes = await res.arrayBuffer();
-    const customFont = await pdfDoc.embedFont(fontBytes);
-    loadedFonts[fileName] = customFont;
-    return customFont;
-  };
-
-  // Not every bundled font family ships Bold/Italic variants (the handwriting
-  // fonts only have a Regular file) — fall back to that family's own Regular
-  // weight rather than jumping all the way to Helvetica, so a bolded/italicized
-  // handwriting-font text element still renders in the right typeface, just
-  // without the weight/style the file doesn't have.
-  const loadCustomFont = async (fontFamily, fontWeight, fontStyle) => {
-    let styleStr = 'Regular';
-    if (fontWeight === 'bold' && fontStyle === 'italic') styleStr = 'BoldItalic';
-    else if (fontWeight === 'bold') styleStr = 'Bold';
-    else if (fontStyle === 'italic') styleStr = 'Italic';
-    // Font files are named without spaces (e.g. "Dancing Script" -> DancingScript-Regular.ttf).
-    const baseName = fontFamily.replace(/\s+/g, '');
-    const fileName = `${baseName}-${styleStr}.ttf`;
-
-    try {
-      return await fetchFont(fileName);
-    } catch (e) {
-      if (styleStr === 'Regular') {
-        console.warn(`Could not load custom font ${fileName}`, e);
-        return null;
-      }
-      console.warn(`Could not load ${fileName}, falling back to ${baseName}-Regular.ttf`, e);
-      try {
-        return await fetchFont(`${baseName}-Regular.ttf`);
-      } catch (e2) {
-        console.warn(`Could not load ${baseName}-Regular.ttf either`, e2);
-        return null;
-      }
-    }
-  };
 
   for (let i = 0; i < elements.length; i++) {
     const el = elements[i];
@@ -194,53 +178,27 @@ export async function signPdf(file, elements, onProgress) {
     const pdfY = pdfHeight - percentToPoints(el.top, pdfHeight);
 
     if (el.type === 'text') {
-      const fontSizeInPoints = el.fontSize || 12;
       const textValue = (el.text || '').trim();
       if (!textValue) continue;
 
-      // Every selectable font (TEXT_FONTS + HANDWRITING_FONTS) is a bundled TTF,
-      // embedded here the same way it's rendered in the editor preview via
-      // @font-face — one code path, so glyph coverage (and thus what does or
-      // doesn't render) can never differ between screen and export.
-      const resolvedFont = (await loadCustomFont(el.fontFamily || 'Arimo', el.fontWeight, el.fontStyle))
-        || (await loadCustomFont('Arimo', el.fontWeight, el.fontStyle));
+      // Render via the browser's native shaping engine (HarfBuzz) so that
+      // OpenType GPOS/GSUB features — kerning, contextual alternates, etc. —
+      // are applied correctly for any script. page.drawText() ignores those
+      // tables and produces visible gaps in Hebrew/Arabic fonts.
+      const rendered = await renderTextToImage(el, el.fontSize || 12);
+      const base64Data = rendered.dataUrl.split(',')[1];
+      const embeddedImage = await pdfDoc.embedPng(base64Data);
 
-      const { r, g, b } = hexToRgbFractions(el.color);
-
-      // Baseline placement. `pdfY` is the box top (from el.top). Two offsets drop
-      // to the first baseline:
-      //   - baselineOffsetEm(resolvedFont): the font's ascent + half-leading,
-      //     derived per font so custom/handwriting fonts match the editor preview
-      //     (falls back to Helvetica's ~0.85 when metrics aren't readable).
-      //   - TEXT_BOX_PADDING_EM: the editor renders text with this much top padding
-      //     (see `.sign-text-input, .sign-text-measure` in global.css), which pushes
-      //     the on-screen baseline down by the same amount. The export must match it
-      //     or preview and output drift. Keep this constant in sync with the CSS.
-      const TEXT_BOX_PADDING_EM = 0.3;
-      const baselineAdjustedY =
-        pdfY - fontSizeInPoints * (baselineOffsetEm(resolvedFont) + TEXT_BOX_PADDING_EM);
-      const lineHeight = fontSizeInPoints * 1.2; // matches the editor's CSS line-height
-
-      // The editor anchors RTL text boxes by their *right* edge (see
-      // DraggableOverlayElement.jsx's `style` block: `right: 100 - element.left`),
-      // so for RTL elements `el.left` is the right edge's x, not the left-start x
-      // drawText expects. Draw each line separately, right-aligning it against
-      // that edge using the font's own metrics — measuring in the DOM isn't an
-      // option here (this runs with no page rendered), and per-line alignment
-      // also fixes lines of differing length collapsing to one shared left x.
+      // el.left is the RIGHT edge for RTL text (the editor anchors RTL boxes by
+      // their right edge; see DraggableOverlayElement.jsx). Adjust x accordingly.
       const isRtl = getEffectiveTextDirection(el) === 'rtl';
-      const lines = textValue.split(/\r?\n/);
-      lines.forEach((line, lineIndex) => {
-        const y = baselineAdjustedY - lineIndex * lineHeight;
-        const lineWidth = resolvedFont.widthOfTextAtSize(line, fontSizeInPoints);
-        const x = isRtl ? pdfX - lineWidth : pdfX;
-        page.drawText(line, {
-          x,
-          y,
-          size: fontSizeInPoints,
-          font: resolvedFont,
-          color: rgb(r, g, b)
-        });
+      const imgX = isRtl ? pdfX - rendered.widthPoints : pdfX;
+      // pdfY is the element's top edge; pdf-lib drawImage y is the bottom-left corner.
+      page.drawImage(embeddedImage, {
+        x: imgX,
+        y: pdfY - rendered.heightPoints,
+        width:  rendered.widthPoints,
+        height: rendered.heightPoints,
       });
     } else if (el.type === 'symbol') {
       const elWidthPoints = percentToPoints(el.width, pdfWidth);

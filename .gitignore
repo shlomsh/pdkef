@@ -5,3 +5,5 @@ dist/
 *.log
 .vercel
 .claude/
+.env
+.env.local
