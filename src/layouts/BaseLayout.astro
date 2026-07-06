@@ -48,18 +48,18 @@ const gtTagId = import.meta.env.PUBLIC_GT_TAG_ID;                  // GT-XXXXXXX
 
     <slot name="head" />
 
-    <!-- Google Analytics (production only, requires env vars) -->
+    <!-- Google Analytics (production only, requires env vars set in Vercel) -->
     {import.meta.env.PROD && gtTagId && gaMeasurementId && (
-      <>
-        <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gtTagId}`} />
-        <script is:inline define:vars={{ gtTagId, gaMeasurementId }}>
+      <Fragment set:html={`
+        <script async src="https://www.googletagmanager.com/gtag/js?id=${gtTagId}"></script>
+        <script>
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', gtTagId);
-          gtag('config', gaMeasurementId);
+          gtag('config', '${gtTagId}');
+          gtag('config', '${gaMeasurementId}');
         </script>
-      </>
+      `} />
     )}
   </head>
   <body>
