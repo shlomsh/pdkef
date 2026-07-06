@@ -28,27 +28,11 @@ export default defineConfig({
       include: ['sortablejs', '@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist'],
     },
   },
-  // Astro computes exact sha256 hashes for every inline script/style it
-  // emits (the astro-island hydration bootstrap, JSON-LD blocks) and bakes
-  // them into a <meta http-equiv="Content-Security-Policy"> tag on every
-  // build. This is what lets us run a strict CSP (no 'unsafe-inline')
-  // without the hashes going stale on the next Astro upgrade or content
-  // edit — vercel.json's header CSP only adds frame-ancestors, which
-  // <meta> CSP can't express. Only active in `build`/`preview`, not `dev`.
-  security: {
-    csp: {
-      directives: [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
-        "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com",
-        "worker-src 'self' blob:",
-        "img-src 'self' data: blob: https://www.google-analytics.com",
-        "font-src 'self'",
-        "object-src 'none'",
-        "base-uri 'self'",
-        "form-action 'self'",
-        "manifest-src 'self'",
-      ],
-    },
-  },
+  // CSP is managed entirely via vercel.json HTTP headers rather than
+  // Astro's <meta> CSP. Two reasons: (1) Google Analytics requires
+  // external domains and 'unsafe-inline' which Astro's undocumented
+  // scriptDirective API fights; (2) dual CSPs (meta + header) are
+  // cumulative, so we can't split responsibilities. The vercel.json
+  // header is the single source of truth. Only active in production;
+  // dev has no CSP.
 });
