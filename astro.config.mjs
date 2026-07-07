@@ -13,6 +13,9 @@ export default defineConfig({
   site: 'https://pdkef.com',
   output: 'static',
   integrations: [preact()],
+  build: {
+    inlineStylesheets: 'always',
+  },
   // These are only reachable through dynamic import() inside the Preact
   // islands (SortableJS in PdfMergeTool, pdfjs-dist/@pdf-lib/fontkit in
   // several tools), so Vite's static startup crawl never finds them. Left
