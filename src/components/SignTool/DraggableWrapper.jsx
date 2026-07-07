@@ -3,7 +3,24 @@ import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react
 import usePdfCoordinates from '../../lib/usePdfCoordinates.js';
 import useDraggableElement from '../../lib/useDraggableElement.js';
 import { getEffectiveTextDirection } from '../../lib/sign.js';
+import {
+  TOOLBAR_FLOATING_OFFSET,
+  DEFAULT_START_WIDTH_PCT,
+  DEFAULT_FONT_SIZE_PT,
+  ASPECT_RATIO_SYMBOL,
+  ASPECT_RATIO_TEXT,
+  MIN_SHAPE_SIZE_PCT,
+  MAX_SHAPE_SIZE_PCT,
+  TEXT_RESIZE_SCALE_FACTOR,
+  MIN_FONT_SIZE_PT,
+  MAX_FONT_SIZE_PT,
+  MIN_SYMBOL_WIDTH_PX,
+  MIN_STANDARD_WIDTH_PCT,
+  MAX_SYMBOL_SIGNATURE_WIDTH_PCT,
+  LINE_TOOLBAR_MARGIN_TOP_PX
+} from '../../constants/signGeometry.js';
 import ElementToolbar from '../ElementToolbar.jsx';
+
 import { cloneElement, toChildArray } from 'preact';
 
 export default function DraggableWrapper({
@@ -79,9 +96,9 @@ export default function DraggableWrapper({
     placement: textDirection === 'rtl' ? 'top-end' : 'top-start',
     whileElementsMounted: autoUpdate,
     middleware: [
-      offset(8),
+      offset(TOOLBAR_FLOATING_OFFSET),
       flip({ fallbackPlacements: ['bottom'] }),
-      shift({ padding: 8 })
+      shift({ padding: TOOLBAR_FLOATING_OFFSET })
     ]
   });
 
@@ -106,15 +123,15 @@ export default function DraggableWrapper({
     const { x: clientX, y: clientY } = getPointerCoords(e);
     const dragStartX = clientX;
     const dragStartY = clientY;
-    const startWidth = element.width || 20;
-    const startFontSize = element.fontSize || 12;
+    const startWidth = element.width || DEFAULT_START_WIDTH_PCT;
+    const startFontSize = element.fontSize || DEFAULT_FONT_SIZE_PT;
     const startLeft = element.left;
     const startTop = element.top;
     const startX1 = element.x1;
     const startY1 = element.y1;
     const startX2 = element.x2;
     const startY2 = element.y2;
-    const defaultRatio = element.type === 'symbol' ? 1 : 0.4;
+    const defaultRatio = element.type === 'symbol' ? ASPECT_RATIO_SYMBOL : ASPECT_RATIO_TEXT;
     const ratioAtStart = element.aspectRatio || defaultRatio;
     const startHeight = element.height || getWidthPercentToHeightPercent(startWidth, ratioAtStart, pageWrapper);
 
@@ -159,30 +176,30 @@ export default function DraggableWrapper({
         let newTop = startTop;
 
         if (handle === 'right') {
-          newWidth = Math.max(1, Math.min(90, startWidth + dxPercent));
+          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startWidth + dxPercent));
         } else if (handle === 'left') {
-          newWidth = Math.max(1, Math.min(90, startWidth - dxPercent));
+          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startWidth - dxPercent));
           newLeft = startLeft - (newWidth - startWidth);
         } else if (handle === 'bottom') {
-          newHeight = Math.max(1, Math.min(90, startHeight + dyPercent));
+          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startHeight + dyPercent));
         } else if (handle === 'top') {
-          newHeight = Math.max(1, Math.min(90, startHeight - dyPercent));
+          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startHeight - dyPercent));
           newTop = startTop - (newHeight - startHeight);
         } else if (handle === 'bottom-right') {
-          newWidth = Math.max(1, Math.min(90, startWidth + dxPercent));
-          newHeight = Math.max(1, Math.min(90, startHeight + dyPercent));
+          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startWidth + dxPercent));
+          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startHeight + dyPercent));
         } else if (handle === 'bottom-left') {
-          newWidth = Math.max(1, Math.min(90, startWidth - dxPercent));
+          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startWidth - dxPercent));
           newLeft = startLeft - (newWidth - startWidth);
-          newHeight = Math.max(1, Math.min(90, startHeight + dyPercent));
+          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startHeight + dyPercent));
         } else if (handle === 'top-right') {
-          newWidth = Math.max(1, Math.min(90, startWidth + dxPercent));
-          newHeight = Math.max(1, Math.min(90, startHeight - dyPercent));
+          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startWidth + dxPercent));
+          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startHeight - dyPercent));
           newTop = startTop - (newHeight - startHeight);
         } else if (handle === 'top-left') {
-          newWidth = Math.max(1, Math.min(90, startWidth - dxPercent));
+          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startWidth - dxPercent));
           newLeft = startLeft - (newWidth - startWidth);
-          newHeight = Math.max(1, Math.min(90, startHeight - dyPercent));
+          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startHeight - dyPercent));
           newTop = startTop - (newHeight - startHeight);
         }
         
@@ -202,10 +219,10 @@ export default function DraggableWrapper({
           newFontSize = Math.round(startFontSize * scale);
         } else {
           const scale = getScaleFactor(pageWrapper, pageWidthPoints);
-          const deltaFontSize = pxToPoints(normalizedDx, scale) * 0.2;
+          const deltaFontSize = pxToPoints(normalizedDx, scale) * TEXT_RESIZE_SCALE_FACTOR;
           newFontSize = Math.round(startFontSize + deltaFontSize);
         }
-        onChange({ fontSize: Math.max(6, Math.min(72, newFontSize)) });
+        onChange({ fontSize: Math.max(MIN_FONT_SIZE_PT, Math.min(MAX_FONT_SIZE_PT, newFontSize)) });
         return;
       }
 
@@ -216,10 +233,10 @@ export default function DraggableWrapper({
       // a flat % floor collapses to a couple of screen pixels on a large page,
       // leaving no content area for the SVG and making it vanish, not shrink.
       const minWidth = element.type === 'symbol'
-        ? getWidthPercent(14, pageWrapper)
-        : 3;
+        ? getWidthPercent(MIN_SYMBOL_WIDTH_PX, pageWrapper)
+        : MIN_STANDARD_WIDTH_PCT;
       let newWidth = startWidth + deltaWidthPercent;
-      newWidth = Math.max(minWidth, Math.min(60, newWidth)); // constraints (min% to 60%)
+      newWidth = Math.max(minWidth, Math.min(MAX_SYMBOL_SIGNATURE_WIDTH_PCT, newWidth)); // constraints (min% to max%)
 
       const ratio = element.aspectRatio || defaultRatio;
       // Convert width percent to correct height percent using responsive page dimensions
@@ -291,7 +308,9 @@ export default function DraggableWrapper({
     <div
       ref={(node) => {
         elementRef.current = node;
-        refs.setReference(node);
+        if (node && refs.reference !== node) {
+          refs.setReference(node);
+        }
       }}
       className={`sign-element${isActive ? ' active' : ''}${element.type === 'symbol' ? ' sign-element--symbol' : ''}${isShape ? ' sign-element--shape' : ''}${isLine ? ' sign-element--line' : ''}`}
       style={style}
@@ -303,7 +322,9 @@ export default function DraggableWrapper({
       <div
         ref={(node) => {
           actionsRef.current = node;
-          refs.setFloating(node);
+          if (node && refs.floating !== node) {
+            refs.setFloating(node);
+          }
         }}
         className="sign-element-actions"
         style={isLine ? {
@@ -311,7 +332,7 @@ export default function DraggableWrapper({
           left: `${Math.min(element.x1, element.x2) + Math.abs(element.x1 - element.x2) / 2}%`,
           top: `${Math.min(element.y1, element.y2)}%`,
           transform: 'translate(-50%, -100%)',
-          marginTop: '-10px',
+          marginTop: `${LINE_TOOLBAR_MARGIN_TOP_PX}px`,
           pointerEvents: 'auto'
         } : { ...floatingStyles }}
       >

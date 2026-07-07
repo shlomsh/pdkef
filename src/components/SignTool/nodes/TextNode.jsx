@@ -2,6 +2,8 @@ import { useState, useLayoutEffect, useRef, useEffect } from 'preact/hooks';
 import ElementResizers from '../../ElementResizers.jsx';
 import usePdfCoordinates from '../../../lib/usePdfCoordinates.js';
 import { getEffectiveTextDirection } from '../../../lib/sign.js';
+import { DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
+
 
 export default function TextNode({ element, isActive, onChange, onSelect, onResizeStart, pageWidthPoints }) {
   const [scaleFactor, setScaleFactor] = useState(1);
@@ -19,7 +21,7 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
     const observer = new ResizeObserver(updateScale);
     observer.observe(pageWrapper);
     return () => observer.disconnect();
-  }, [pageWidthPoints, getScaleFactor]);
+  }, [pageWidthPoints]);
 
   useEffect(() => {
     if (!isActive || !textareaRef.current) return;
@@ -50,7 +52,7 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
     onChange
   ]);
 
-  const textFontSize = (element.fontSize || 12) * scaleFactor;
+  const textFontSize = (element.fontSize || DEFAULT_FONT_SIZE_PT) * scaleFactor;
   const textDirection = getEffectiveTextDirection(element);
 
   return (

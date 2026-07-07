@@ -1,4 +1,13 @@
 import usePdfCoordinates from './usePdfCoordinates.js';
+import {
+  DEFAULT_COLOR_BLUE,
+  DEFAULT_STROKE_WIDTH,
+  DEFAULT_FONT_FAMILY,
+  DEFAULT_FONT_SIZE_PT,
+  DEFAULT_SYMBOL_WIDTH_PCT,
+  ASPECT_RATIO_SYMBOL,
+  DEFAULT_WHITEOUT_COLOR
+} from '../constants/signGeometry.js';
 
 const DRAG_DRAWN_TOOLS = ['whiteout', 'line', 'ellipse', 'rectangle'];
 
@@ -33,10 +42,10 @@ export default function useWorkspaceGestures({
   placeSignatureAt,
   logAction,
   setAnnouncement,
-  initialColor = '#1463ff',
-  initialStrokeWidth = 3,
-  initialFont = 'Arimo',
-  initialFontSize = 12,
+  initialColor = DEFAULT_COLOR_BLUE,
+  initialStrokeWidth = DEFAULT_STROKE_WIDTH,
+  initialFont = DEFAULT_FONT_FAMILY,
+  initialFontSize = DEFAULT_FONT_SIZE_PT,
   initialDirection = null,
 }) {
   const {
@@ -90,8 +99,8 @@ export default function useWorkspaceGestures({
       const id = crypto.randomUUID
         ? crypto.randomUUID()
         : `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const widthPercent = 5;
-      const heightPercent = getWidthPercentToHeightPercent(widthPercent, 1, container);
+      const widthPercent = DEFAULT_SYMBOL_WIDTH_PCT;
+      const heightPercent = getWidthPercentToHeightPercent(widthPercent, ASPECT_RATIO_SYMBOL, container);
       const newEl = {
         id,
         type: 'symbol',
@@ -164,7 +173,7 @@ export default function useWorkspaceGestures({
           width: 0,
           height: 0,
           ...(tool === 'whiteout'
-            ? { color: '#ffffff' }
+            ? { color: DEFAULT_WHITEOUT_COLOR }
             : { color: initialColor, strokeWidth: initialStrokeWidth }),
         };
 

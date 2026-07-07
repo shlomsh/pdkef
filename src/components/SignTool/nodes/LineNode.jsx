@@ -1,4 +1,8 @@
 import ElementResizers from '../../ElementResizers.jsx';
+import {
+  DEFAULT_STROKE_WIDTH,
+  LINE_HIT_TARGET_STOKE_WIDTH
+} from '../../../constants/signGeometry.js';
 
 export default function LineNode({ element, isActive, onResizeStart, handlePointerDown }) {
   return (
@@ -10,7 +14,7 @@ export default function LineNode({ element, isActive, onResizeStart, handlePoint
           x2={`${element.x2}%`}
           y2={`${element.y2}%`}
           stroke={element.color || 'var(--color-primary)'}
-          stroke-width={element.strokeWidth || 3}
+          stroke-width={element.strokeWidth || DEFAULT_STROKE_WIDTH}
           stroke-linecap="round"
         />
         {/* Fat invisible line for easier hitting */}
@@ -20,7 +24,7 @@ export default function LineNode({ element, isActive, onResizeStart, handlePoint
           x2={`${element.x2}%`}
           y2={`${element.y2}%`}
           stroke="transparent"
-          stroke-width="20"
+          stroke-width={LINE_HIT_TARGET_STOKE_WIDTH}
           stroke-linecap="round"
           style={{ pointerEvents: 'auto', cursor: 'pointer' }}
           onMouseDown={handlePointerDown}

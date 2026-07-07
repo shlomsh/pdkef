@@ -1,4 +1,5 @@
 import ElementResizers from '../../ElementResizers.jsx';
+import { DEFAULT_STROKE_WIDTH } from '../../../constants/signGeometry.js';
 
 export default function ShapeNode({ element, isActive, onResizeStart }) {
   const actualType = element.type;
@@ -11,7 +12,7 @@ export default function ShapeNode({ element, isActive, onResizeStart }) {
             rx="49" ry="49"
             fill="none"
             stroke={element.color || 'var(--color-primary)'}
-            stroke-width={element.strokeWidth || 3}
+            stroke-width={element.strokeWidth || DEFAULT_STROKE_WIDTH}
             vector-effect="non-scaling-stroke"
           />
         )}
@@ -22,7 +23,7 @@ export default function ShapeNode({ element, isActive, onResizeStart }) {
             rx="4"
             fill="none"
             stroke={element.color || 'var(--color-primary)'}
-            stroke-width={element.strokeWidth || 3}
+            stroke-width={element.strokeWidth || DEFAULT_STROKE_WIDTH}
             vector-effect="non-scaling-stroke"
           />
         )}

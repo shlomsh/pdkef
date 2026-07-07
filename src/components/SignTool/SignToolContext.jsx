@@ -1,6 +1,18 @@
 import { createContext } from 'preact';
 import { useReducer, useContext, useMemo } from 'preact/hooks';
 import { widthPercentToHeightPercent } from '../../lib/coords.js';
+import {
+  MIN_LINE_LENGTH_PCT,
+  LINE_RESET_SPREAD_PCT,
+  MIN_SHAPE_THRESHOLD_PCT,
+  DEFAULT_WHITEOUT_WIDTH_PCT,
+  DEFAULT_WHITEOUT_HEIGHT_PCT,
+  DEFAULT_WHITEOUT_LEFT_OFFSET_PCT,
+  DEFAULT_WHITEOUT_TOP_OFFSET_PCT,
+  DEFAULT_SHAPE_FALLBACK_WIDTH_PCT,
+  DEFAULT_SHAPE_FALLBACK_ASPECT_RATIO
+} from '../../constants/signGeometry.js';
+
 
 export const SignToolContext = createContext(null);
 
@@ -63,22 +75,28 @@ export function reducer(state, action) {
         elements: state.elements.map(el => {
           if (el.id !== id) return el;
           if (isLineTool) {
-            const tiny = Math.hypot(el.x2 - el.x1, el.y2 - el.y1) < 1;
+            const tiny = Math.hypot(el.x2 - el.x1, el.y2 - el.y1) < MIN_LINE_LENGTH_PCT;
             if (tiny) {
               return {
                 ...el,
-                x1: Math.max(0, startLeftPercent - 6), y1: startTopPercent,
-                x2: Math.min(100, startLeftPercent + 6), y2: startTopPercent
+                x1: Math.max(0, startLeftPercent - LINE_RESET_SPREAD_PCT), y1: startTopPercent,
+                x2: Math.min(100, startLeftPercent + LINE_RESET_SPREAD_PCT), y2: startTopPercent
               };
             }
             return el;
           }
-          if (el.width < 0.5 && el.height < 0.5) {
+          if (el.width < MIN_SHAPE_THRESHOLD_PCT && el.height < MIN_SHAPE_THRESHOLD_PCT) {
             if (tool === 'whiteout') {
-              return { ...el, left: startLeftPercent - 5, top: startTopPercent - 2, width: 10, height: 4 };
+              return {
+                ...el,
+                left: startLeftPercent - DEFAULT_WHITEOUT_LEFT_OFFSET_PCT,
+                top: startTopPercent - DEFAULT_WHITEOUT_TOP_OFFSET_PCT,
+                width: DEFAULT_WHITEOUT_WIDTH_PCT,
+                height: DEFAULT_WHITEOUT_HEIGHT_PCT
+              };
             }
-            const defW = 8;
-            const defH = widthPercentToHeightPercent(defW, 1, rectWidth, rectHeight);
+            const defW = DEFAULT_SHAPE_FALLBACK_WIDTH_PCT;
+            const defH = widthPercentToHeightPercent(defW, DEFAULT_SHAPE_FALLBACK_ASPECT_RATIO, rectWidth, rectHeight);
             return { ...el, left: startLeftPercent - defW / 2, top: startTopPercent - defH / 2, width: defW, height: defH };
           }
           return el;

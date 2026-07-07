@@ -1,8 +1,17 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, afterEach, beforeEach } from 'vitest';
+import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import DraggableWrapper from './DraggableWrapper.jsx';
 import TextNode from './nodes/TextNode.jsx';
+
+vi.mock('@floating-ui/react', async () => {
+  const actual = await vi.importActual('@floating-ui/react');
+  return {
+    ...actual,
+    autoUpdate: vi.fn().mockReturnValue(() => {}),
+  };
+});
+
 
 // Regression test for the "RTL text box drifts on reload" bug: `left` used to be
 // derived state, recomputed from a DOM pixel measurement inside the width-growth
@@ -32,11 +41,21 @@ describe('DraggableWrapper RTL text positioning', () => {
     originalScrollHeight = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight');
     Object.defineProperty(Element.prototype, 'scrollWidth', {
       configurable: true,
-      get() { return mockScrollWidth; }
+      get() {
+        if (this.classList?.contains('sign-text-measure') || this.classList?.contains('sign-text-input')) {
+          return mockScrollWidth;
+        }
+        return originalScrollWidth?.get ? originalScrollWidth.get.call(this) : 0;
+      }
     });
     Object.defineProperty(Element.prototype, 'scrollHeight', {
       configurable: true,
-      get() { return mockScrollHeight; }
+      get() {
+        if (this.classList?.contains('sign-text-measure') || this.classList?.contains('sign-text-input')) {
+          return mockScrollHeight;
+        }
+        return originalScrollHeight?.get ? originalScrollHeight.get.call(this) : 0;
+      }
     });
   });
 

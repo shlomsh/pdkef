@@ -1,4 +1,12 @@
 import { useRef, useCallback } from 'preact/hooks';
+import {
+  DEFAULT_COLOR_BLUE,
+  DEFAULT_STROKE_WIDTH,
+  DEFAULT_FONT_FAMILY,
+  DEFAULT_FONT_SIZE_PT,
+  PAGE_WIDTH_DEFAULT_PTS,
+  PAGE_HEIGHT_DEFAULT_PTS
+} from '../../constants/signGeometry.js';
 import PdfPageCanvas from '../PdfPageCanvas.jsx';
 import DraggableWrapper from './DraggableWrapper.jsx';
 import TextNode from './nodes/TextNode.jsx';
@@ -27,10 +35,10 @@ export default function PdfWorkspace({
   rememberFont,
   rememberFontSize,
   rememberDirection,
-  lastColor = '#1463ff',
-  lastThickness = 3,
-  lastFont = 'Arimo',
-  lastFontSize = 12,
+  lastColor = DEFAULT_COLOR_BLUE,
+  lastThickness = DEFAULT_STROKE_WIDTH,
+  lastFont = DEFAULT_FONT_FAMILY,
+  lastFontSize = DEFAULT_FONT_SIZE_PT,
   lastDirection = null,
   logAction,
   handleSavePdf,
@@ -136,7 +144,7 @@ export default function PdfWorkspace({
           {/* PDF Pages rendering container */}
           <div className="sign-pages-container" onClick={deactivateAll}>
             {Array.from({ length: numPages }).map((_, pageIdx) => {
-              const size = pageSizes[pageIdx] || { width: 612, height: 792 };
+              const size = pageSizes[pageIdx] || { width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS };
 
               return (
                 <div

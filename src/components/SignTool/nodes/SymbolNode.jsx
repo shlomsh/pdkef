@@ -1,4 +1,5 @@
 import ElementResizers from '../../ElementResizers.jsx';
+import { DEFAULT_COLOR_BLUE } from '../../../constants/signGeometry.js';
 
 export default function SymbolNode({ element, isActive, onResizeStart }) {
   const renderSymbol = () => {
@@ -14,7 +15,7 @@ export default function SymbolNode({ element, isActive, onResizeStart }) {
 
   return (
     <>
-      <div style={{ width: '100%', height: '100%', color: element.color || '#1463ff' }}>
+      <div style={{ width: '100%', height: '100%', color: element.color || DEFAULT_COLOR_BLUE }}>
         <svg viewBox="0 0 24 24" style={{ width: '100%', height: '100%', display: 'block' }}>
           {renderSymbol()}
         </svg>

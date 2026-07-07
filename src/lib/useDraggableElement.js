@@ -1,6 +1,10 @@
 import { useRef } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { getEffectiveTextDirection } from './sign.js';
+import {
+  DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT,
+  DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT
+} from '../constants/signGeometry.js';
 
 /**
  * Encapsulates the complex drag-to-move gesture for a single element inside
@@ -115,8 +119,8 @@ export default function useDraggableElement({
 
         const widthPercent =
           element.type === 'text'
-            ? (textWidthPercentAtStart ?? 4)
-            : (element.width || 4);
+            ? (textWidthPercentAtStart ?? DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT)
+            : (element.width || DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT);
 
         if (
           element.type === 'text' &&
@@ -126,7 +130,7 @@ export default function useDraggableElement({
         } else {
           newLeft = Math.max(0, Math.min(100 - widthPercent, newLeft));
         }
-        newTop = Math.max(0, Math.min(100 - (element.height || 2), newTop));
+        newTop = Math.max(0, Math.min(100 - (element.height || DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT), newTop));
         onChange({ left: newLeft, top: newTop });
       }
 

@@ -1,6 +1,14 @@
 import { PDFDocument, rgb, LineCapStyle } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { percentToPoints } from './coords.js';
+import {
+  HELVETICA_BASELINE_OFFSET_EM,
+  DEFAULT_LINE_HEIGHT_EM,
+  DEFAULT_FONT_SIZE_PT,
+  TEXT_BOX_PADDING_EM,
+  DEFAULT_COLOR_BLUE
+} from '../constants/signGeometry.js';
+
 
 // First strong-directional character wins (matches the Unicode bidi
 // algorithm's approach, and what dir="auto" does under the hood) —
@@ -116,8 +124,7 @@ export function tintImageDataUrl(dataUrl, hexColor) {
 // pdf-lib field, so it's guarded: if the shape ever changes, we fall back to
 // 0.85 (Helvetica's own value) and behave exactly as before (no throw, no
 // regression) rather than mis-placing every line of text.
-const HELVETICA_BASELINE_OFFSET_EM = 0.85;
-function baselineOffsetEm(pdfFont, lineHeightEm = 1.2) {
+function baselineOffsetEm(pdfFont, lineHeightEm = DEFAULT_LINE_HEIGHT_EM) {
   try {
     const fk = pdfFont?.embedder?.font;
     const unitsPerEm = fk?.unitsPerEm;
@@ -194,7 +201,7 @@ export async function signPdf(file, elements, onProgress) {
     const pdfY = pdfHeight - percentToPoints(el.top, pdfHeight);
 
     if (el.type === 'text') {
-      const fontSizeInPoints = el.fontSize || 12;
+      const fontSizeInPoints = el.fontSize || DEFAULT_FONT_SIZE_PT;
       const textValue = (el.text || '').trim();
       if (!textValue) continue;
 
@@ -216,10 +223,9 @@ export async function signPdf(file, elements, onProgress) {
       //     (see `.sign-text-input, .sign-text-measure` in global.css), which pushes
       //     the on-screen baseline down by the same amount. The export must match it
       //     or preview and output drift. Keep this constant in sync with the CSS.
-      const TEXT_BOX_PADDING_EM = 0.3;
       const baselineAdjustedY =
         pdfY - fontSizeInPoints * (baselineOffsetEm(resolvedFont) + TEXT_BOX_PADDING_EM);
-      const lineHeight = fontSizeInPoints * 1.2; // matches the editor's CSS line-height
+      const lineHeight = fontSizeInPoints * DEFAULT_LINE_HEIGHT_EM; // matches the editor's CSS line-height
 
       // The editor anchors RTL text boxes by their *right* edge (see
       // DraggableOverlayElement.jsx's `style` block: `right: 100 - element.left`),
