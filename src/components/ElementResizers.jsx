@@ -40,15 +40,27 @@ export default function ElementResizers({
       {isActive && !isShape && !isLine && (
         <>
           <div
-            className="sign-element-resizer left"
-            onMouseDown={(e) => onResizeStart(e, 'left')}
-            onTouchStart={(e) => onResizeStart(e, 'left')}
+            className="sign-element-resizer corner top-left"
+            onMouseDown={(e) => onResizeStart(e, 'top-left')}
+            onTouchStart={(e) => onResizeStart(e, 'top-left')}
             title={element.type === 'text' ? 'Drag to resize font size' : 'Drag to resize'}
           />
           <div
-            className="sign-element-resizer right"
-            onMouseDown={(e) => onResizeStart(e, 'right')}
-            onTouchStart={(e) => onResizeStart(e, 'right')}
+            className="sign-element-resizer corner top-right"
+            onMouseDown={(e) => onResizeStart(e, 'top-right')}
+            onTouchStart={(e) => onResizeStart(e, 'top-right')}
+            title={element.type === 'text' ? 'Drag to resize font size' : 'Drag to resize'}
+          />
+          <div
+            className="sign-element-resizer corner bottom-left"
+            onMouseDown={(e) => onResizeStart(e, 'bottom-left')}
+            onTouchStart={(e) => onResizeStart(e, 'bottom-left')}
+            title={element.type === 'text' ? 'Drag to resize font size' : 'Drag to resize'}
+          />
+          <div
+            className="sign-element-resizer corner bottom-right"
+            onMouseDown={(e) => onResizeStart(e, 'bottom-right')}
+            onTouchStart={(e) => onResizeStart(e, 'bottom-right')}
             title={element.type === 'text' ? 'Drag to resize font size' : 'Drag to resize'}
           />
         </>

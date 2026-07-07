@@ -240,6 +240,11 @@ describe('PdfSignTool UI flow', () => {
     let elements = container.querySelectorAll('.sign-element');
     expect(elements.length).toBe(1);
 
+    // Blur textarea to select the wrapper element instead for copy/paste
+    await act(async () => {
+      container.querySelector('.sign-text-input')?.blur();
+    });
+
     // Mock copy event
     const copyEvent = new Event('copy', { bubbles: true });
     copyEvent.clipboardData = {
@@ -335,6 +340,11 @@ describe('PdfSignTool UI flow', () => {
 
     let elements = container.querySelectorAll('.sign-element');
     expect(elements.length).toBe(1);
+
+    // Blur textarea to select the wrapper element instead for deletion
+    await act(async () => {
+      container.querySelector('.sign-text-input')?.blur();
+    });
 
     // Press Delete key
     const deleteEvent = new KeyboardEvent('keydown', { key: 'Delete', bubbles: true });

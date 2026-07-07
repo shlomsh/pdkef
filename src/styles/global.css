@@ -2019,37 +2019,40 @@ footer a {
 }
 
 /* Corner handles — circular dots at each corner */
+.sign-element-resizer.corner {
+  bottom: auto;
+  right: auto;
+}
+
 .sign-element--shape .sign-element-resizer.corner {
   border-radius: 50%;
   width: 9px;
   height: 9px;
   background: var(--color-primary);
   border: 1.5px solid #fff;
-  bottom: auto;
-  right: auto;
 }
 
-.sign-element--shape .sign-element-resizer.corner.top-left {
+.sign-element-resizer.corner.top-left {
   top: -4px;
   left: -4px;
   cursor: nwse-resize;
 }
 
-.sign-element--shape .sign-element-resizer.corner.top-right {
+.sign-element-resizer.corner.top-right {
   top: -4px;
   right: -4px;
   left: auto;
   cursor: nesw-resize;
 }
 
-.sign-element--shape .sign-element-resizer.corner.bottom-left {
+.sign-element-resizer.corner.bottom-left {
   bottom: -4px;
   top: auto;
   left: -4px;
   cursor: nesw-resize;
 }
 
-.sign-element--shape .sign-element-resizer.corner.bottom-right {
+.sign-element-resizer.corner.bottom-right {
   bottom: -4px;
   top: auto;
   right: -4px;

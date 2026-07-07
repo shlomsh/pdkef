@@ -77,6 +77,7 @@ export default function useWorkspaceGestures({
         fontStyle: 'normal',
         fontFamily: initialFont,
         color: initialColor,
+        autoFocus: true,
         // Only set textDirection when the user has explicitly chosen one previously;
         // null lets the auto-detector run on fresh elements (content-based detection).
         ...(initialDirection != null ? { textDirection: initialDirection } : {}),

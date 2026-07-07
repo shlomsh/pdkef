@@ -124,7 +124,11 @@ export default function DraggableWrapper({
       const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
       const rawDx = moveX - dragStartX;
       const dy = moveY - dragStartY;
-      const dx = handle === 'left' ? -rawDx : rawDx;
+      
+      const isLeft = ['left', 'top-left', 'bottom-left'].includes(handle);
+      const isTop = ['top', 'top-left', 'top-right'].includes(handle);
+      const normalizedDx = isLeft ? -rawDx : rawDx;
+      const normalizedDy = isTop ? -dy : dy;
       
       if (handle === 'line-start') {
         const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
@@ -194,18 +198,18 @@ export default function DraggableWrapper({
           // Scale font size proportionally to the mouse drag projected along the box's diagonal.
           // This keeps the resizer handle exactly under the mouse, preventing the hypersensitivity
           // caused by raw pixel->point mapping.
-          const scale = 1 + (dx * startW + dy * startH) / (startW * startW + startH * startH);
+          const scale = 1 + (normalizedDx * startW + normalizedDy * startH) / (startW * startW + startH * startH);
           newFontSize = Math.round(startFontSize * scale);
         } else {
           const scale = getScaleFactor(pageWrapper, pageWidthPoints);
-          const deltaFontSize = pxToPoints(dx, scale) * 0.2;
+          const deltaFontSize = pxToPoints(normalizedDx, scale) * 0.2;
           newFontSize = Math.round(startFontSize + deltaFontSize);
         }
         onChange({ fontSize: Math.max(6, Math.min(72, newFontSize)) });
         return;
       }
 
-      const { x: deltaWidthPercent } = getDeltaPercent(dx, 0, pageWrapper);
+      const { x: deltaWidthPercent } = getDeltaPercent(normalizedDx, 0, pageWrapper);
 
       // Symbols use an absolute pixel floor (not a fixed %) so the box never
       // shrinks past what its border/padding chrome needs to render the icon —

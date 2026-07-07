@@ -22,21 +22,32 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
   }, [pageWidthPoints, getScaleFactor]);
 
   useEffect(() => {
-    if (isActive && textareaRef.current) {
-      if (document.activeElement !== textareaRef.current) {
+    if (!isActive || !textareaRef.current) return;
+
+    const activeEl = document.activeElement;
+    const isToolbarFocused = activeEl && (activeEl.closest('.sign-element-actions') || activeEl.closest('.sign-popover'));
+    const isTextareaFocused = activeEl === textareaRef.current;
+
+    if (element.autoFocus || isToolbarFocused) {
+      if (!isTextareaFocused) {
         textareaRef.current.focus();
         const len = textareaRef.current.value.length;
         textareaRef.current.setSelectionRange(len, len);
       }
+      if (element.autoFocus) {
+        onChange({ autoFocus: undefined });
+      }
     }
   }, [
     isActive,
+    element.autoFocus,
     element.fontFamily,
     element.fontSize,
     element.color,
     element.fontWeight,
     element.fontStyle,
-    element.textDirection
+    element.textDirection,
+    onChange
   ]);
 
   const textFontSize = (element.fontSize || 12) * scaleFactor;

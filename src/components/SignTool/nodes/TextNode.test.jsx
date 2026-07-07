@@ -89,7 +89,7 @@ describe('TextNode component', () => {
     host = mount(
       <TextNode
         element={element}
-        isActive={true}
+        isActive={false}
         onChange={() => {}}
         onSelect={onSelect}
         onResizeStart={() => {}}
@@ -105,13 +105,14 @@ describe('TextNode component', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
-  it('focuses textarea automatically when isActive is true', () => {
-    const element = { text: 'Hello', fontSize: 12 };
+  it('focuses textarea automatically when isActive is true and autoFocus is set', () => {
+    const element = { text: 'Hello', fontSize: 12, autoFocus: true };
+    const onChange = vi.fn();
     host = mount(
       <TextNode
         element={element}
         isActive={true}
-        onChange={() => {}}
+        onChange={onChange}
         onSelect={() => {}}
         onResizeStart={() => {}}
         pageWidthPoints={600}
@@ -122,16 +123,18 @@ describe('TextNode component', () => {
     expect(document.activeElement).toBe(textarea);
     expect(textarea.selectionStart).toBe(5);
     expect(textarea.selectionEnd).toBe(5);
+    expect(onChange).toHaveBeenCalledWith({ autoFocus: undefined });
   });
 
-  it('focuses textarea when style properties change while isActive is true', () => {
+  it('focuses textarea when style properties change while a toolbar element is focused', () => {
     const element = { text: 'Style focus', fontSize: 12, color: '#000000' };
+    const onChange = vi.fn();
     
     host = mount(
       <TextNode
         element={element}
         isActive={true}
-        onChange={() => {}}
+        onChange={onChange}
         onSelect={() => {}}
         onResizeStart={() => {}}
         pageWidthPoints={600}
@@ -139,11 +142,16 @@ describe('TextNode component', () => {
     );
     
     const textarea = host.querySelector('textarea');
-    expect(document.activeElement).toBe(textarea);
-    
-    // Blur manually to simulate losing focus
-    textarea.blur();
     expect(document.activeElement).not.toBe(textarea);
+    
+    // Create a mock toolbar element and focus it
+    const toolbar = document.createElement('div');
+    toolbar.className = 'sign-element-actions';
+    const button = document.createElement('button');
+    toolbar.appendChild(button);
+    host.appendChild(toolbar);
+    button.focus();
+    expect(document.activeElement).toBe(button);
     
     // Now trigger a re-render with a different style (color change)
     act(() => {
@@ -151,7 +159,7 @@ describe('TextNode component', () => {
         <TextNode
           element={{ ...element, color: '#ff0000' }}
           isActive={true}
-          onChange={() => {}}
+          onChange={onChange}
           onSelect={() => {}}
           onResizeStart={() => {}}
           pageWidthPoints={600}
@@ -162,5 +170,8 @@ describe('TextNode component', () => {
     
     // Verify it automatically refocused due to the style change
     expect(document.activeElement).toBe(textarea);
+    
+    // Clean up
+    host.removeChild(toolbar);
   });
 });
