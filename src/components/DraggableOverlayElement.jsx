@@ -2,13 +2,7 @@ import { useState, useRef, useEffect, useLayoutEffect } from 'preact/hooks';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 import { PilcrowLeft, PilcrowRight } from 'lucide-preact';
 import { tintImageDataUrl, getEffectiveTextDirection } from '../lib/sign.js';
-import {
-  pxToPercent,
-  pxDeltaToPercent,
-  pxToPoints,
-  scaleFactorFromPx,
-  widthPercentToHeightPercent
-} from '../lib/coords.js';
+import usePdfCoordinates from '../lib/usePdfCoordinates.js';
 import ColorPickerMenu from './ColorPickerMenu.jsx';
 import FontPickerMenu from './FontPickerMenu.jsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.jsx';
@@ -31,6 +25,16 @@ export default function DraggableOverlayElement({
   pageWidthPoints
 }) {
   const elementRef = useRef(null);
+  const {
+    getPointerCoords,
+    getDeltaPercent,
+    getElementPercentSize,
+    getWidthPercentToHeightPercent,
+    getScaleFactor,
+    getWidthPercent,
+    getDimensions,
+    pxToPoints
+  } = usePdfCoordinates();
 
   // The element measures and positions itself relative to the page wrapper it lives
   // inside, found via the DOM rather than passed down as a prop. Passing the wrapper
@@ -121,7 +125,7 @@ export default function DraggableOverlayElement({
     if (!pageWrapper) return;
 
     const updateScale = () => {
-      setScaleFactor(scaleFactorFromPx(pageWrapper.getBoundingClientRect().width, pageWidthPoints));
+      setScaleFactor(getScaleFactor(pageWrapper, pageWidthPoints));
     };
 
     updateScale();
@@ -148,8 +152,7 @@ export default function DraggableOverlayElement({
     const pageWrapper = getPageWrapper();
     if (!pageWrapper) return;
 
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const { x: clientX, y: clientY } = getPointerCoords(e);
 
     dragStartPos.current = {
       x: clientX,
@@ -164,16 +167,14 @@ export default function DraggableOverlayElement({
     // gesture-time measurement, same pattern as `textStartRect` in the resize
     // handler below — not a render effect, so it can't reintroduce the
     // measure-then-mutate-position drift bug.)
-    const parentRectAtStart = pageWrapper.getBoundingClientRect();
     const textWidthPercentAtStart = element.type === 'text' && elementRef.current
-      ? pxToPercent(elementRef.current.getBoundingClientRect().width, parentRectAtStart.width)
+      ? getElementPercentSize(elementRef.current, pageWrapper).width
       : null;
 
     isDragging.current = true;
 
     const handlePointerMove = (moveEvent) => {
-      const moveX = moveEvent.touches ? moveEvent.touches[0].clientX : moveEvent.clientX;
-      const moveY = moveEvent.touches ? moveEvent.touches[0].clientY : moveEvent.clientY;
+      const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
 
       const dx = moveX - dragStartPos.current.x;
       const dy = moveY - dragStartPos.current.y;
@@ -188,9 +189,7 @@ export default function DraggableOverlayElement({
       if (elementRef.current) elementRef.current.style.transform = 'none';
 
       const pageWrapper = getPageWrapper();
-      const parentRect = pageWrapper.getBoundingClientRect();
-      const dxPercent = pxDeltaToPercent(dragOffset.current.x, parentRect.width);
-      const dyPercent = pxDeltaToPercent(dragOffset.current.y, parentRect.height);
+      const { x: dxPercent, y: dyPercent } = getDeltaPercent(dragOffset.current.x, dragOffset.current.y, pageWrapper);
       
       if (element.type === 'line') {
         onChange({
@@ -234,8 +233,7 @@ export default function DraggableOverlayElement({
     const pageWrapper = getPageWrapper();
     if (!pageWrapper) return;
 
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const { x: clientX, y: clientY } = getPointerCoords(e);
     const dragStartX = clientX;
     const dragStartY = clientY;
     const startWidth = element.width || 20;
@@ -246,33 +244,31 @@ export default function DraggableOverlayElement({
     const startY1 = element.y1;
     const startX2 = element.x2;
     const startY2 = element.y2;
-    const startParentRect = pageWrapper.getBoundingClientRect();
     const defaultRatio = element.type === 'symbol' ? 1 : 0.4;
     const ratioAtStart = element.aspectRatio || defaultRatio;
-    const startHeight = element.height || widthPercentToHeightPercent(startWidth, ratioAtStart, startParentRect.width, startParentRect.height);
+    const startHeight = element.height || getWidthPercentToHeightPercent(startWidth, ratioAtStart, pageWrapper);
 
-    const textStartRect = element.type === 'text' && elementRef.current ? elementRef.current.getBoundingClientRect() : null;
+    const textStartRect = element.type === 'text' && elementRef.current ? getDimensions(elementRef.current) : null;
 
     const handleResizeMove = (moveEvent) => {
-      const moveX = moveEvent.touches ? moveEvent.touches[0].clientX : moveEvent.clientX;
-      const moveY = moveEvent.touches ? moveEvent.touches[0].clientY : moveEvent.clientY;
+      const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
       const rawDx = moveX - dragStartX;
       const dy = moveY - dragStartY;
       const dx = handle === 'left' ? -rawDx : rawDx;
       
       if (handle === 'line-start') {
-        const parentRect = pageWrapper.getBoundingClientRect();
+        const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
         onChange({
-          x1: startX1 + pxDeltaToPercent(rawDx, parentRect.width),
-          y1: startY1 + pxDeltaToPercent(dy, parentRect.height)
+          x1: startX1 + dxPercent,
+          y1: startY1 + dyPercent
         });
         return;
       }
       if (handle === 'line-end') {
-        const parentRect = pageWrapper.getBoundingClientRect();
+        const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
         onChange({
-          x2: startX2 + pxDeltaToPercent(rawDx, parentRect.width),
-          y2: startY2 + pxDeltaToPercent(dy, parentRect.height)
+          x2: startX2 + dxPercent,
+          y2: startY2 + dyPercent
         });
         return;
       }
@@ -282,37 +278,37 @@ export default function DraggableOverlayElement({
       const actualType = element.type;
 
       if (element.type === 'whiteout' || actualType === 'ellipse' || actualType === 'rectangle') {
-        const parentRect = pageWrapper.getBoundingClientRect();
+        const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
         let newWidth = startWidth;
         let newHeight = startHeight;
         let newLeft = startLeft;
         let newTop = startTop;
 
         if (handle === 'right') {
-          newWidth = Math.max(1, Math.min(90, startWidth + pxDeltaToPercent(rawDx, parentRect.width)));
+          newWidth = Math.max(1, Math.min(90, startWidth + dxPercent));
         } else if (handle === 'left') {
-          newWidth = Math.max(1, Math.min(90, startWidth - pxDeltaToPercent(rawDx, parentRect.width)));
+          newWidth = Math.max(1, Math.min(90, startWidth - dxPercent));
           newLeft = startLeft - (newWidth - startWidth);
         } else if (handle === 'bottom') {
-          newHeight = Math.max(1, Math.min(90, startHeight + pxDeltaToPercent(dy, parentRect.height)));
+          newHeight = Math.max(1, Math.min(90, startHeight + dyPercent));
         } else if (handle === 'top') {
-          newHeight = Math.max(1, Math.min(90, startHeight - pxDeltaToPercent(dy, parentRect.height)));
+          newHeight = Math.max(1, Math.min(90, startHeight - dyPercent));
           newTop = startTop - (newHeight - startHeight);
         } else if (handle === 'bottom-right') {
-          newWidth = Math.max(1, Math.min(90, startWidth + pxDeltaToPercent(rawDx, parentRect.width)));
-          newHeight = Math.max(1, Math.min(90, startHeight + pxDeltaToPercent(dy, parentRect.height)));
+          newWidth = Math.max(1, Math.min(90, startWidth + dxPercent));
+          newHeight = Math.max(1, Math.min(90, startHeight + dyPercent));
         } else if (handle === 'bottom-left') {
-          newWidth = Math.max(1, Math.min(90, startWidth - pxDeltaToPercent(rawDx, parentRect.width)));
+          newWidth = Math.max(1, Math.min(90, startWidth - dxPercent));
           newLeft = startLeft - (newWidth - startWidth);
-          newHeight = Math.max(1, Math.min(90, startHeight + pxDeltaToPercent(dy, parentRect.height)));
+          newHeight = Math.max(1, Math.min(90, startHeight + dyPercent));
         } else if (handle === 'top-right') {
-          newWidth = Math.max(1, Math.min(90, startWidth + pxDeltaToPercent(rawDx, parentRect.width)));
-          newHeight = Math.max(1, Math.min(90, startHeight - pxDeltaToPercent(dy, parentRect.height)));
+          newWidth = Math.max(1, Math.min(90, startWidth + dxPercent));
+          newHeight = Math.max(1, Math.min(90, startHeight - dyPercent));
           newTop = startTop - (newHeight - startHeight);
         } else if (handle === 'top-left') {
-          newWidth = Math.max(1, Math.min(90, startWidth - pxDeltaToPercent(rawDx, parentRect.width)));
+          newWidth = Math.max(1, Math.min(90, startWidth - dxPercent));
           newLeft = startLeft - (newWidth - startWidth);
-          newHeight = Math.max(1, Math.min(90, startHeight - pxDeltaToPercent(dy, parentRect.height)));
+          newHeight = Math.max(1, Math.min(90, startHeight - dyPercent));
           newTop = startTop - (newHeight - startHeight);
         }
         
@@ -331,30 +327,29 @@ export default function DraggableOverlayElement({
           const scale = 1 + (dx * startW + dy * startH) / (startW * startW + startH * startH);
           newFontSize = Math.round(startFontSize * scale);
         } else {
-          const parentRect = pageWrapper.getBoundingClientRect();
-          const deltaFontSize = pxToPoints(dx, scaleFactorFromPx(parentRect.width, pageWidthPoints)) * 0.2;
+          const scale = getScaleFactor(pageWrapper, pageWidthPoints);
+          const deltaFontSize = pxToPoints(dx, scale) * 0.2;
           newFontSize = Math.round(startFontSize + deltaFontSize);
         }
         onChange({ fontSize: Math.max(6, Math.min(72, newFontSize)) });
         return;
       }
 
-      const parentRect = pageWrapper.getBoundingClientRect();
-      const deltaWidthPercent = pxDeltaToPercent(dx, parentRect.width);
+      const { x: deltaWidthPercent } = getDeltaPercent(dx, 0, pageWrapper);
 
       // Symbols use an absolute pixel floor (not a fixed %) so the box never
       // shrinks past what its border/padding chrome needs to render the icon —
       // a flat % floor collapses to a couple of screen pixels on a large page,
       // leaving no content area for the SVG and making it vanish, not shrink.
       const minWidth = element.type === 'symbol'
-        ? pxToPercent(14, parentRect.width)
+        ? getWidthPercent(14, pageWrapper)
         : 3;
       let newWidth = startWidth + deltaWidthPercent;
       newWidth = Math.max(minWidth, Math.min(60, newWidth)); // constraints (min% to 60%)
 
       const ratio = element.aspectRatio || defaultRatio;
       // Convert width percent to correct height percent using responsive page dimensions
-      const newHeight = widthPercentToHeightPercent(newWidth, ratio, parentRect.width, parentRect.height);
+      const newHeight = getWidthPercentToHeightPercent(newWidth, ratio, pageWrapper);
 
       // Symbols and signatures grow/shrink around the box's center instead of its
       // top-left corner. (Lines never reach here — they only render line-start /

@@ -3,7 +3,7 @@ import PdfPageCanvas from '../PdfPageCanvas.jsx';
 import DraggableOverlayElement from '../DraggableOverlayElement.jsx';
 import { useSignTool } from './SignToolContext.jsx';
 import SignToolbar from './SignToolbar.jsx';
-import { pxToPercent, pxDeltaToPercent, widthPercentToHeightPercent } from '../../lib/coords.js';
+import usePdfCoordinates from '../../lib/usePdfCoordinates.js';
 
 const DRAG_DRAWN_TOOLS = ['whiteout', 'line', 'ellipse', 'rectangle'];
 
@@ -36,6 +36,7 @@ export default function PdfWorkspace({
   placeSignatureAt
 }) {
   const { state: { selectedTool, elements, activeElementId }, dispatch } = useSignTool();
+  const { getPointerCoords, getPointerPercent, getDeltaPercent, getWidthPercentToHeightPercent, getDimensions } = usePdfCoordinates();
 
   // Place element on current page click
   const handlePageClick = (e, pageIndex) => {
@@ -45,9 +46,8 @@ export default function PdfWorkspace({
     
     if (e.target.closest('.sign-element')) return;
     
-    const rect = e.currentTarget.getBoundingClientRect();
-    const leftPercent = pxToPercent(e.clientX - rect.left, rect.width);
-    const topPercent = pxToPercent(e.clientY - rect.top, rect.height);
+    const container = e.currentTarget;
+    const { x: leftPercent, y: topPercent } = getPointerPercent(e, container);
     
     if (selectedTool === 'text') {
       const id = crypto.randomUUID ? crypto.randomUUID() : `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -72,7 +72,7 @@ export default function PdfWorkspace({
     } else if (selectedTool === 'symbol') {
       const id = crypto.randomUUID ? crypto.randomUUID() : `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const widthPercent = 5;
-      const heightPercent = widthPercentToHeightPercent(widthPercent, 1, rect.width, rect.height);
+      const heightPercent = getWidthPercentToHeightPercent(widthPercent, 1, container);
       const newEl = {
         id,
         type: 'symbol',
@@ -105,12 +105,9 @@ export default function PdfWorkspace({
 
     const tool = selectedTool;
     const isLineTool = tool === 'line';
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-    const startLeftPercent = pxToPercent(clientX - rect.left, rect.width);
-    const startTopPercent = pxToPercent(clientY - rect.top, rect.height);
+    const container = e.currentTarget;
+    const { x: startLeftPercent, y: startTopPercent } = getPointerPercent(e, container);
+    const { x: clientX, y: clientY } = getPointerCoords(e);
 
     const id = crypto.randomUUID ? crypto.randomUUID() : `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newEl = isLineTool
@@ -134,18 +131,17 @@ export default function PdfWorkspace({
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
 
     const handlePointerMove = (moveEvent) => {
-      const moveX = moveEvent.touches ? moveEvent.touches[0].clientX : moveEvent.clientX;
-      const moveY = moveEvent.touches ? moveEvent.touches[0].clientY : moveEvent.clientY;
+      const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
 
       if (isLineTool) {
-        const x2 = Math.max(0, Math.min(100, pxToPercent(moveX - rect.left, rect.width)));
-        const y2 = Math.max(0, Math.min(100, pxToPercent(moveY - rect.top, rect.height)));
+        const { x, y } = getPointerPercent(moveEvent, container);
+        const x2 = Math.max(0, Math.min(100, x));
+        const y2 = Math.max(0, Math.min(100, y));
         dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes: { x2, y2 } } });
         return;
       }
 
-      const widthPercent = pxDeltaToPercent(moveX - clientX, rect.width);
-      const heightPercent = pxDeltaToPercent(moveY - clientY, rect.height);
+      const { x: widthPercent, y: heightPercent } = getDeltaPercent(moveX - clientX, moveY - clientY, container);
 
       dispatch({
         type: 'UPDATE_ELEMENT',
@@ -167,13 +163,14 @@ export default function PdfWorkspace({
       window.removeEventListener('touchmove', handlePointerMove);
       window.removeEventListener('touchend', handlePointerUp);
 
+      const dimensions = getDimensions(container);
       dispatch({
         type: 'ENSURE_MINIMUM_SIZE',
         payload: {
           id,
           tool,
-          rectWidth: rect.width,
-          rectHeight: rect.height,
+          rectWidth: dimensions.width,
+          rectHeight: dimensions.height,
           startLeftPercent,
           startTopPercent
         }
