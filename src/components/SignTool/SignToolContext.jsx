@@ -1,8 +1,8 @@
 import { createContext } from 'preact';
-import { useReducer, useContext } from 'preact/hooks';
+import { useReducer, useContext, useMemo } from 'preact/hooks';
 import { widthPercentToHeightPercent } from '../../lib/coords.js';
 
-const SignToolContext = createContext(null);
+export const SignToolContext = createContext(null);
 
 const initialState = {
   selectedTool: null,
@@ -11,7 +11,7 @@ const initialState = {
   actionHistory: []
 };
 
-function reducer(state, action) {
+export function reducer(state, action) {
   switch (action.type) {
     case 'SET_TOOL':
       return {
@@ -103,8 +103,10 @@ function reducer(state, action) {
 export function SignToolProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  const contextValue = useMemo(() => ({ state, dispatch }), [state]);
+
   return (
-    <SignToolContext.Provider value={{ state, dispatch }}>
+    <SignToolContext.Provider value={contextValue}>
       {children}
     </SignToolContext.Provider>
   );

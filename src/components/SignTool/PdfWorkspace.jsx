@@ -1,11 +1,15 @@
-import { useRef } from 'preact/hooks';
+import { useRef, useCallback } from 'preact/hooks';
 import PdfPageCanvas from '../PdfPageCanvas.jsx';
-import DraggableOverlayElement from '../DraggableOverlayElement.jsx';
+import DraggableWrapper from './DraggableWrapper.jsx';
+import TextNode from './nodes/TextNode.jsx';
+import ShapeNode from './nodes/ShapeNode.jsx';
+import SymbolNode from './nodes/SymbolNode.jsx';
+import SignatureNode from './nodes/SignatureNode.jsx';
+import WhiteoutNode from './nodes/WhiteoutNode.jsx';
+import LineNode from './nodes/LineNode.jsx';
 import { useSignTool } from './SignToolContext.jsx';
 import SignToolbar from './SignToolbar.jsx';
-import usePdfCoordinates from '../../lib/usePdfCoordinates.js';
-
-const DRAG_DRAWN_TOOLS = ['whiteout', 'line', 'ellipse', 'rectangle'];
+import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
 
 export default function PdfWorkspace({
   file,
@@ -36,170 +40,61 @@ export default function PdfWorkspace({
   placeSignatureAt
 }) {
   const { state: { selectedTool, elements, activeElementId }, dispatch } = useSignTool();
-  const { getPointerCoords, getPointerPercent, getDeltaPercent, getWidthPercentToHeightPercent, getDimensions } = usePdfCoordinates();
 
-  // Place element on current page click
-  const handlePageClick = (e, pageIndex) => {
-    if (!selectedTool) return;
-    if (DRAG_DRAWN_TOOLS.includes(selectedTool)) return;
-    e.stopPropagation();
-    
-    if (e.target.closest('.sign-element')) return;
-    
-    const container = e.currentTarget;
-    const { x: leftPercent, y: topPercent } = getPointerPercent(e, container);
-    
-    if (selectedTool === 'text') {
-      const id = crypto.randomUUID ? crypto.randomUUID() : `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const newEl = {
-        id,
-        type: 'text',
-        pageIndex,
-        left: leftPercent,
-        top: topPercent,
-        text: '',
-        fontSize: 12, // in PDF points (will fall back to last used size)
-        fontWeight: 'normal',
-        fontStyle: 'normal',
-        color: '#000000'
-      };
-      // Note: in PdfSignTool, we had rememberColor / rememberFont / rememberFontSize, 
-      // but those are handled when a DraggableOverlayElement triggers onChange.
-      dispatch({ type: 'ADD_ELEMENT', payload: newEl });
-      dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
-      logAction('ADD_TEXT', id, pageIndex, 'Added text box');
-      setAnnouncement('Added text box. Click or double click to type.');
-    } else if (selectedTool === 'symbol') {
-      const id = crypto.randomUUID ? crypto.randomUUID() : `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const widthPercent = 5;
-      const heightPercent = getWidthPercentToHeightPercent(widthPercent, 1, container);
-      const newEl = {
-        id,
-        type: 'symbol',
-        pageIndex,
-        left: leftPercent - widthPercent / 2,
-        top: topPercent - heightPercent / 2,
-        width: widthPercent,
-        height: heightPercent
-      };
-      dispatch({ type: 'ADD_ELEMENT', payload: newEl });
-      dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
-      logAction('ADD_SYMBOL', id, pageIndex, 'Added symbol');
-      setAnnouncement('Added symbol.');
-    } else if (selectedTool === 'signature') {
-      if (activeSignature) {
-        placeSignatureAt(activeSignature.dataUrl, activeSignature.aspectRatio, pageIndex, leftPercent, topPercent);
-      } else {
-        setTempPlacement({ pageIndex, left: leftPercent, top: topPercent });
-        setDialogOpen(true);
-      }
-    }
-  };
+  // --- Gesture handlers (extracted) ---
+  const { handlePageClick, handleOverlayPointerDown } = useWorkspaceGestures({
+    selectedTool,
+    dispatch,
+    activeSignature,
+    setTempPlacement,
+    setDialogOpen,
+    placeSignatureAt,
+    logAction,
+    setAnnouncement,
+  });
 
-  const handleOverlayPointerDown = (e, pageIndex) => {
-    if (!DRAG_DRAWN_TOOLS.includes(selectedTool)) return;
-    if (e.target.closest('.sign-element')) return;
-    e.stopPropagation();
+  // --- Stable element mutation callbacks (hoisted out of the map loop) ---
+  // These are keyed on dispatch/remember* which are stable across renders, so
+  // useCallback gives us referential stability without the per-element closure
+  // allocation that was happening inside the .map() call.
 
-    if (!e.touches) e.preventDefault();
-
-    const tool = selectedTool;
-    const isLineTool = tool === 'line';
-    const container = e.currentTarget;
-    const { x: startLeftPercent, y: startTopPercent } = getPointerPercent(e, container);
-    const { x: clientX, y: clientY } = getPointerCoords(e);
-
-    const id = crypto.randomUUID ? crypto.randomUUID() : `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const newEl = isLineTool
-      ? {
-          id, type: 'line', pageIndex,
-          x1: startLeftPercent, y1: startTopPercent,
-          x2: startLeftPercent, y2: startTopPercent,
-          color: '#1463ff',
-          strokeWidth: 3
-        }
-      : {
-          id, type: tool, pageIndex,
-          left: startLeftPercent, top: startTopPercent,
-          width: 0, height: 0,
-          ...(tool === 'whiteout'
-            ? { color: '#ffffff' }
-            : { color: '#1463ff', strokeWidth: 3 })
-        };
-
-    dispatch({ type: 'ADD_ELEMENT', payload: newEl });
-    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
-
-    const handlePointerMove = (moveEvent) => {
-      const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
-
-      if (isLineTool) {
-        const { x, y } = getPointerPercent(moveEvent, container);
-        const x2 = Math.max(0, Math.min(100, x));
-        const y2 = Math.max(0, Math.min(100, y));
-        dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes: { x2, y2 } } });
-        return;
-      }
-
-      const { x: widthPercent, y: heightPercent } = getDeltaPercent(moveX - clientX, moveY - clientY, container);
-
-      dispatch({
-        type: 'UPDATE_ELEMENT',
-        payload: {
-          id,
-          changes: {
-            left: widthPercent < 0 ? startLeftPercent + widthPercent : startLeftPercent,
-            top: heightPercent < 0 ? startTopPercent + heightPercent : startTopPercent,
-            width: Math.abs(widthPercent),
-            height: Math.abs(heightPercent)
-          }
-        }
-      });
-    };
-
-    const handlePointerUp = () => {
-      window.removeEventListener('mousemove', handlePointerMove);
-      window.removeEventListener('mouseup', handlePointerUp);
-      window.removeEventListener('touchmove', handlePointerMove);
-      window.removeEventListener('touchend', handlePointerUp);
-
-      const dimensions = getDimensions(container);
-      dispatch({
-        type: 'ENSURE_MINIMUM_SIZE',
-        payload: {
-          id,
-          tool,
-          rectWidth: dimensions.width,
-          rectHeight: dimensions.height,
-          startLeftPercent,
-          startTopPercent
-        }
-      });
-
-      if (tool === 'whiteout') {
-        logAction('ADD_WHITEOUT', id, pageIndex, 'Added whiteout box');
-        setAnnouncement('Added whiteout box.');
-      } else {
-        logAction('ADD_SHAPE', id, pageIndex, `Added ${tool}`);
-        setAnnouncement(`Added ${tool}.`);
-      }
-    };
-
-    window.addEventListener('mousemove', handlePointerMove);
-    window.addEventListener('mouseup', handlePointerUp);
-    window.addEventListener('touchmove', handlePointerMove, { passive: false });
-    window.addEventListener('touchend', handlePointerUp);
-  };
-
-  const updateElement = (id, changes) => {
+  const updateElement = useCallback((id, changes) => {
     dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes } });
-  };
+  }, [dispatch]);
 
-  const deleteElement = (id) => {
+  const deleteElement = useCallback((id) => {
     dispatch({ type: 'DELETE_ELEMENT', payload: id });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
     setAnnouncement('Removed element.');
-  };
+  }, [dispatch, setAnnouncement]);
+
+  // Factory: returns a stable onChange handler for DraggableWrapper / TextNode.
+  // Defined with useCallback so the factory reference is stable; the returned
+  // function closes over the element id captured at call time.
+  const makeOnChange = useCallback((id) => (fields) => {
+    updateElement(id, fields);
+    if (fields.color) rememberColor(fields.color);
+    if (fields.fontFamily) rememberFont(fields.fontFamily);
+    if (fields.fontSize) rememberFontSize(fields.fontSize);
+    if (fields.textDirection) rememberDirection(fields.textDirection);
+  }, [updateElement, rememberColor, rememberFont, rememberFontSize, rememberDirection]);
+
+  const makeOnSelect = useCallback((id) => (e) => {
+    e.stopPropagation();
+    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
+  }, [dispatch]);
+
+  const makeOnDelete = useCallback((id) => () => deleteElement(id), [deleteElement]);
+
+  const makeOnClone = useCallback((id, pageIndex, type) => (cloneInfo) => {
+    dispatch({ type: 'ADD_ELEMENT', payload: cloneInfo });
+    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: cloneInfo.id });
+    logAction('DUPLICATE_ELEMENT', cloneInfo.id, cloneInfo.pageIndex, `Duplicated ${cloneInfo.type}`);
+  }, [dispatch, logAction]);
+
+  const deactivateAll = useCallback(() => {
+    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+  }, [dispatch]);
 
   return (
     <div className={`sign-workspace ${isPseudoFullscreen ? 'pseudo-fullscreen' : ''}`} ref={workspaceRef}>
@@ -229,10 +124,10 @@ export default function PdfWorkspace({
           />
 
           {/* PDF Pages rendering container */}
-          <div className="sign-pages-container" onClick={() => dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null })}>
+          <div className="sign-pages-container" onClick={deactivateAll}>
             {Array.from({ length: numPages }).map((_, pageIdx) => {
               const size = pageSizes[pageIdx] || { width: 612, height: 792 };
-              
+
               return (
                 <div
                   key={pageIdx}
@@ -244,7 +139,7 @@ export default function PdfWorkspace({
                     pdfDocument={pdfDocument}
                     pageNum={pageIdx + 1}
                   />
-                  
+
                   <div
                     className="sign-page-overlay"
                     onClick={(e) => handlePageClick(e, pageIdx)}
@@ -254,29 +149,32 @@ export default function PdfWorkspace({
                     {elements
                       .filter((el) => el.pageIndex === pageIdx)
                       .map((el) => (
-                        <DraggableOverlayElement
+                        <DraggableWrapper
                           key={el.id}
                           element={el}
                           isActive={activeElementId === el.id}
-                          onSelect={(e) => {
-                            e.stopPropagation();
-                            dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: el.id });
-                          }}
-                          onChange={(fields) => {
-                            updateElement(el.id, fields);
-                            if (fields.color) rememberColor(fields.color);
-                            if (fields.fontFamily) rememberFont(fields.fontFamily);
-                            if (fields.fontSize) rememberFontSize(fields.fontSize);
-                            if (fields.textDirection) rememberDirection(fields.textDirection);
-                          }}
-                          onDelete={() => deleteElement(el.id)}
-                          onClone={(cloneInfo) => {
-                             dispatch({ type: 'ADD_ELEMENT', payload: cloneInfo });
-                             dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: cloneInfo.id });
-                             logAction('DUPLICATE_ELEMENT', cloneInfo.id, cloneInfo.pageIndex, `Duplicated ${cloneInfo.type}`);
-                          }}
+                          onSelect={makeOnSelect(el.id)}
+                          onChange={makeOnChange(el.id)}
+                          onDelete={makeOnDelete(el.id)}
+                          onClone={makeOnClone(el.id, el.pageIndex, el.type)}
                           pageWidthPoints={size.width}
-                        />
+                        >
+                          {el.type === 'text' && (
+                            <TextNode
+                              element={el}
+                              onChange={makeOnChange(el.id)}
+                              onSelect={makeOnSelect(el.id)}
+                              pageWidthPoints={size.width}
+                            />
+                          )}
+                          {el.type === 'symbol' && <SymbolNode element={el} />}
+                          {(el.type === 'ellipse' || el.type === 'rectangle') && (
+                            <ShapeNode element={el} />
+                          )}
+                          {el.type === 'line' && <LineNode element={el} />}
+                          {el.type === 'signature' && <SignatureNode element={el} />}
+                          {el.type === 'whiteout' && <WhiteoutNode element={el} />}
+                        </DraggableWrapper>
                       ))}
                   </div>
                 </div>
