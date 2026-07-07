@@ -1,9 +1,10 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import FloatingToolbar from './FloatingToolbar.jsx';
+import SignToolbar from './SignToolbar.jsx';
+import { SignToolProvider, useSignTool } from './SignToolContext.jsx';
 
-describe('FloatingToolbar Component', () => {
+describe('SignToolbar Component', () => {
   let container;
 
   afterEach(() => {
@@ -15,38 +16,43 @@ describe('FloatingToolbar Component', () => {
     document.body.innerHTML = '';
   });
 
-  it('renders all tool buttons and propagates selection', async () => {
+  it('renders all tool buttons and propagates selection via context', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
 
-    const setSelectedTool = vi.fn();
     const setAnnouncement = vi.fn();
+
+    let contextValue;
+    const TestConsumer = () => {
+      const { state } = useSignTool();
+      contextValue = state;
+      return null;
+    };
 
     act(() => {
       render(
-        <FloatingToolbar
-          selectedTool={null}
-          setSelectedTool={setSelectedTool}
-          setAnnouncement={setAnnouncement}
-          savedSignatures={[]}
-          activeSignature={null}
-          setActiveSignature={() => {}}
-          onDeleteSavedSignature={() => {}}
-          setDialogOpen={() => {}}
-          setUndoModalOpen={() => {}}
-          actionHistory={[]}
-          toggleFullscreen={() => {}}
-          isFullscreen={false}
-          setConfirmResetOpen={() => {}}
-          onSavePdf={() => {}}
-        />,
+        <SignToolProvider>
+          <SignToolbar
+            setAnnouncement={setAnnouncement}
+            savedSignatures={[]}
+            activeSignature={null}
+            setActiveSignature={() => {}}
+            onDeleteSavedSignature={() => {}}
+            setDialogOpen={() => {}}
+            setUndoModalOpen={() => {}}
+            actionHistory={[]}
+            toggleFullscreen={() => {}}
+            isFullscreen={false}
+            setConfirmResetOpen={() => {}}
+            onSavePdf={() => {}}
+          />
+          <TestConsumer />
+        </SignToolProvider>,
         container
       );
     });
 
     const buttons = container.querySelectorAll('.sign-tool-btn');
-    // Expected buttons: Text, Check, Shapes, Line, Whiteout, Signature, Undo, Redo, Zoom Out, Zoom In...
-    // Wait, let's just assert it is greater than 0 since the toolset changes often
     expect(buttons.length).toBeGreaterThan(0);
 
     const textBtn = Array.from(buttons).find(b => b.textContent.includes('Text') || b.querySelector('svg'));
@@ -56,7 +62,7 @@ describe('FloatingToolbar Component', () => {
       textBtn.click();
     });
 
-    expect(setSelectedTool).toHaveBeenCalledWith('text');
+    expect(contextValue.selectedTool).toBe('text');
   });
 
   it('shows signature dropdown and allows choosing or deleting a saved signature', async () => {
@@ -69,28 +75,35 @@ describe('FloatingToolbar Component', () => {
       aspectRatio: 1
     };
 
-    const setSelectedTool = vi.fn();
     const setActiveSignature = vi.fn();
     const onDeleteSavedSignature = vi.fn();
 
+    let contextValue;
+    const TestConsumer = () => {
+      const { state } = useSignTool();
+      contextValue = state;
+      return null;
+    };
+
     act(() => {
       render(
-        <FloatingToolbar
-          selectedTool={null}
-          setSelectedTool={setSelectedTool}
-          setAnnouncement={() => {}}
-          savedSignatures={[mockSignature]}
-          activeSignature={mockSignature}
-          setActiveSignature={setActiveSignature}
-          onDeleteSavedSignature={onDeleteSavedSignature}
-          setDialogOpen={() => {}}
-          setUndoModalOpen={() => {}}
-          actionHistory={[]}
-          toggleFullscreen={() => {}}
-          isFullscreen={false}
-          setConfirmResetOpen={() => {}}
-          onSavePdf={() => {}}
-        />,
+        <SignToolProvider>
+          <SignToolbar
+            setAnnouncement={() => {}}
+            savedSignatures={[mockSignature]}
+            activeSignature={mockSignature}
+            setActiveSignature={setActiveSignature}
+            onDeleteSavedSignature={onDeleteSavedSignature}
+            setDialogOpen={() => {}}
+            setUndoModalOpen={() => {}}
+            actionHistory={[]}
+            toggleFullscreen={() => {}}
+            isFullscreen={false}
+            setConfirmResetOpen={() => {}}
+            onSavePdf={() => {}}
+          />
+          <TestConsumer />
+        </SignToolProvider>,
         container
       );
     });
@@ -115,7 +128,7 @@ describe('FloatingToolbar Component', () => {
     });
 
     expect(setActiveSignature).toHaveBeenCalledWith(mockSignature);
-    expect(setSelectedTool).toHaveBeenCalledWith('signature');
+    expect(contextValue.selectedTool).toBe('signature');
 
     // Click delete signature button
     await act(async () => {
@@ -138,17 +151,17 @@ describe('FloatingToolbar Component', () => {
 
     act(() => {
       render(
-        <FloatingToolbar
-          selectedTool="text"
-          setSelectedTool={() => {}}
-          setAnnouncement={() => {}}
-          savedSignatures={[]}
-          actionHistory={[]}
-          toggleFullscreen={() => {}}
-          isFullscreen={false}
-          setConfirmResetOpen={() => {}}
-          onSavePdf={() => {}}
-        />,
+        <SignToolProvider>
+          <SignToolbar
+            setAnnouncement={() => {}}
+            savedSignatures={[]}
+            actionHistory={[]}
+            toggleFullscreen={() => {}}
+            isFullscreen={false}
+            setConfirmResetOpen={() => {}}
+            onSavePdf={() => {}}
+          />
+        </SignToolProvider>,
         container
       );
     });

@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
-import FullscreenButton from './FullscreenButton';
-import Popover from './Popover.jsx';
+import { useSignTool } from './SignToolContext.jsx';
+import FullscreenButton from '../FullscreenButton';
+import Popover from '../Popover.jsx';
 
-export default function FloatingToolbar({
-  selectedTool,
-  setSelectedTool,
+export default function SignToolbar({
   setAnnouncement,
   savedSignatures,
   activeSignature,
@@ -18,18 +17,12 @@ export default function FloatingToolbar({
   setConfirmResetOpen,
   onSavePdf
 }) {
+  const { state, dispatch } = useSignTool();
+  const selectedTool = state.selectedTool;
+
   const [showSigDropdown, setShowSigDropdown] = useState(false);
   const [showShapesDropdown, setShowShapesDropdown] = useState(false);
 
-
-
-  // Hover-open the Shapes menu with a short close delay ("hover intent"). The menu
-  // sits a few px below the trigger, so moving the pointer from button to menu
-  // crosses a small gap; closing immediately on mouseleave would shut the menu
-  // before the pointer arrives. The grace delay bridges that gap (the same idea as
-  // Floating UI's safePolygon, which is React-only so unavailable in this Preact
-  // island). Re-entering the trigger or the menu within the delay cancels the close.
-  // Click still toggles it, for touch and keyboard users.
   const shapesCloseTimer = useRef(null);
   const openShapes = () => {
     clearTimeout(shapesCloseTimer.current);
@@ -51,9 +44,13 @@ export default function FloatingToolbar({
 
   const handleSelectSavedSignature = (sig) => {
     setActiveSignature(sig);
-    setSelectedTool('signature');
+    dispatch({ type: 'SET_TOOL', payload: 'signature' });
     setShowSigDropdown(false);
     setAnnouncement('Signature tool active. Click anywhere on a page to place.');
+  };
+
+  const setSelectedTool = (tool) => {
+    dispatch({ type: 'SET_TOOL', payload: tool });
   };
 
   return (

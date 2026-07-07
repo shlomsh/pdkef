@@ -1,30 +1,30 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import BasePdfTool from './BasePdfTool.jsx';
-import DraggableOverlayElement from './DraggableOverlayElement.jsx';
-import PdfPageCanvas from './PdfPageCanvas.jsx';
-import FloatingToolbar from './FloatingToolbar.jsx';
+import { SignToolProvider, useSignTool } from './SignTool/SignToolContext.jsx';
+import PdfWorkspace from './SignTool/PdfWorkspace.jsx';
 import SignatureDialog from './SignatureDialog.jsx';
 import { getPdfjs, uniqueId, seedUniqueId, signPdf } from '../lib/sign.js';
-import { pxToPercent, pxDeltaToPercent, widthPercentToHeightPercent } from '../lib/coords.js';
+import { widthPercentToHeightPercent } from '../lib/coords.js';
 import { useSignDraftPersistence } from './useSignDraftPersistence.js';
 
-// Tools created by a press-drag-release gesture (draw the element out under the
-// cursor) rather than a single click-to-place. Handled by handleOverlayPointerDown.
-const DRAG_DRAWN_TOOLS = ['whiteout', 'line', 'ellipse', 'rectangle'];
-
 export default function PdfSignTool() {
+  return (
+    <SignToolProvider>
+      <PdfSignToolInner />
+    </SignToolProvider>
+  );
+}
+
+function PdfSignToolInner() {
   const [file, setFile] = useState(null);
   const [numPages, setNumPages] = useState(0);
   const [pdfDocument, setPdfDocument] = useState(null);
   const [pageSizes, setPageSizes] = useState([]); // Array of { width, height } in PDF points
-  const [elements, setElements] = useState([]);
-  const [activeElementId, setActiveElementId] = useState(null);
-  const [selectedTool, setSelectedTool] = useState(null); // 'select' | 'text' | 'signature' | 'symbol' | 'whiteout' | 'line' | 'ellipse' | 'rectangle'
+  const { state: { selectedTool, elements, activeElementId, actionHistory }, dispatch } = useSignTool();
+  const setSelectedTool = (tool) => dispatch({ type: 'SET_TOOL', payload: tool });
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
   const [progress, setProgress] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
-  
-  const [actionHistory, setActionHistory] = useState([]);
   const [undoModalOpen, setUndoModalOpen] = useState(false);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState(null);
@@ -143,10 +143,10 @@ export default function PdfSignTool() {
   };
 
   const logAction = (type, elId, pageIndex, description) => {
-    setActionHistory((prev) => [
-      { id: uniqueId(), type, elementId: elId, pageIndex, description, timestamp: Date.now() },
-      ...prev
-    ]);
+    dispatch({
+      type: 'ADD_ACTION_HISTORY',
+      payload: { id: uniqueId(), type, elementId: elId, pageIndex, description, timestamp: Date.now() }
+    });
   };
 
   const handleRevertSelected = () => {
@@ -155,8 +155,14 @@ export default function PdfSignTool() {
     const elementIdsToRemove = actionHistory
       .filter(action => idsToRevert.includes(action.id))
       .map(action => action.elementId);
-    setElements((prev) => prev.filter(el => !elementIdsToRemove.includes(el.id)));
-    setActionHistory((prev) => prev.filter(action => !idsToRevert.includes(action.id)));
+    dispatch({
+      type: 'SET_ELEMENTS',
+      payload: elements.filter(el => !elementIdsToRemove.includes(el.id))
+    });
+    dispatch({
+      type: 'SET_ACTION_HISTORY',
+      payload: actionHistory.filter(action => !idsToRevert.includes(action.id))
+    });
     setUndoSelection(new Set());
     setUndoModalOpen(false);
     setAnnouncement('Reverted selected actions.');
@@ -303,10 +309,10 @@ export default function PdfSignTool() {
     setFile(selected);
     setStatus('loading');
     setProgress(0);
-    setElements(presetElements);
-    setActionHistory(preset.actionHistory || []);
-    setActiveElementId(null);
-    setSelectedTool(null);
+    dispatch({ type: 'SET_ELEMENTS', payload: presetElements });
+    dispatch({ type: 'SET_ACTION_HISTORY', payload: preset.actionHistory || [] });
+    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+    dispatch({ type: 'SET_TOOL', payload: null });
     seedUniqueId(presetElements);
     fileBytesRef.current = bytes;
 
@@ -389,196 +395,6 @@ export default function PdfSignTool() {
     loadPdf
   });
 
-  // Place element on current page click
-  const handlePageClick = (e, pageIndex) => {
-    if (!selectedTool) return;
-    // Whiteout, line, and shapes are draw-by-drag gestures handled in
-    // handleOverlayPointerDown, not click-to-place.
-    if (DRAG_DRAWN_TOOLS.includes(selectedTool)) return;
-    e.stopPropagation();
-    
-    // Ignore clicks if clicking on a active element to edit it
-    if (e.target.closest('.sign-element')) return;
-    
-    const rect = e.currentTarget.getBoundingClientRect();
-    const leftPercent = pxToPercent(e.clientX - rect.left, rect.width);
-    const topPercent = pxToPercent(e.clientY - rect.top, rect.height);
-    
-    if (selectedTool === 'text') {
-      const id = uniqueId();
-      const newEl = {
-        id,
-        type: 'text',
-        pageIndex,
-        left: leftPercent,
-        top: topPercent,
-        text: '',
-        fontSize: lastFontSize, // in PDF points
-        fontFamily: lastFont,
-        fontWeight: 'normal',
-        fontStyle: 'normal',
-        color: lastColor,
-        textDirection: lastDirection
-      };
-      setElements((prev) => [...prev, newEl]);
-      setActiveElementId(id);
-      logAction('ADD_TEXT', id, pageIndex, 'Added text box');
-      setAnnouncement('Added text box. Click or double click to type.');
-    } else if (selectedTool === 'symbol') {
-      const id = uniqueId();
-      const widthPercent = 5;
-      // Height% and width% are relative to different page dimensions (height vs.
-      // width px), so a naive height: 5 makes the box a tall rectangle on a
-      // portrait page — the square symbol icon then centers inside it, leaving a
-      // vertical margin. Derive height from width with aspectRatio 1 (square in
-      // px), the same conversion the resizer uses for symbols.
-      const heightPercent = widthPercentToHeightPercent(widthPercent, 1, rect.width, rect.height);
-      const newEl = {
-        id,
-        type: 'symbol',
-        pageIndex,
-        left: leftPercent - widthPercent / 2,
-        top: topPercent - heightPercent / 2,
-        width: widthPercent, // percentage
-        height: heightPercent, // percentage
-        color: lastColor
-      };
-      setElements((prev) => [...prev, newEl]);
-      setActiveElementId(id);
-      logAction('ADD_SYMBOL', id, pageIndex, 'Added symbol');
-      setAnnouncement('Added symbol.');
-    } else if (selectedTool === 'signature') {
-      if (activeSignature) {
-        placeSignatureAt(activeSignature.dataUrl, activeSignature.aspectRatio, pageIndex, leftPercent, topPercent);
-      } else {
-        // Save click location temporarily to place signature once generated
-        setTempPlacement({ pageIndex, left: leftPercent, top: topPercent });
-        setDialogOpen(true);
-      }
-    }
-  };
-
-  // Draw-by-drag creation for whiteout, line, ellipse, and rectangle: press to set
-  // the first point, drag to the second point, release to commit. Line stores the
-  // two points as ordered endpoints (x1,y1 -> x2,y2); box shapes store a normalized
-  // bounding box (left/top + positive width/height). A click without a real drag
-  // falls back to a sensible default size so the tool never leaves a zero-size element.
-  const handleOverlayPointerDown = (e, pageIndex) => {
-    if (!DRAG_DRAWN_TOOLS.includes(selectedTool)) return;
-    if (e.target.closest('.sign-element')) return;
-    e.stopPropagation();
-
-    // Prevent default on mouse events to avoid selecting text
-    if (!e.touches) e.preventDefault();
-
-    const tool = selectedTool;
-    const isLineTool = tool === 'line';
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-    const startLeftPercent = pxToPercent(clientX - rect.left, rect.width);
-    const startTopPercent = pxToPercent(clientY - rect.top, rect.height);
-
-    const id = uniqueId();
-    const newEl = isLineTool
-      ? {
-          id, type: 'line', pageIndex,
-          x1: startLeftPercent, y1: startTopPercent,
-          x2: startLeftPercent, y2: startTopPercent,
-          color: lastColor || '#1463ff',
-          strokeWidth: lastThickness
-        }
-      : {
-          id, type: tool, pageIndex,
-          left: startLeftPercent, top: startTopPercent,
-          width: 0, height: 0,
-          ...(tool === 'whiteout'
-            ? { color: '#ffffff' }
-            : { color: lastColor || '#1463ff', strokeWidth: lastThickness })
-        };
-
-    setElements((prev) => [...prev, newEl]);
-    setActiveElementId(id);
-
-    const handlePointerMove = (moveEvent) => {
-      const moveX = moveEvent.touches ? moveEvent.touches[0].clientX : moveEvent.clientX;
-      const moveY = moveEvent.touches ? moveEvent.touches[0].clientY : moveEvent.clientY;
-
-      if (isLineTool) {
-        const x2 = Math.max(0, Math.min(100, pxToPercent(moveX - rect.left, rect.width)));
-        const y2 = Math.max(0, Math.min(100, pxToPercent(moveY - rect.top, rect.height)));
-        setElements((prev) => prev.map(el => el.id === id ? { ...el, x2, y2 } : el));
-        return;
-      }
-
-      const widthPercent = pxDeltaToPercent(moveX - clientX, rect.width);
-      const heightPercent = pxDeltaToPercent(moveY - clientY, rect.height);
-
-      setElements((prev) => prev.map(el => {
-        if (el.id === id) {
-           return {
-             ...el,
-             left: widthPercent < 0 ? startLeftPercent + widthPercent : startLeftPercent,
-             top: heightPercent < 0 ? startTopPercent + heightPercent : startTopPercent,
-             width: Math.abs(widthPercent),
-             height: Math.abs(heightPercent)
-           };
-        }
-        return el;
-      }));
-    };
-
-    const handlePointerUp = () => {
-      window.removeEventListener('mousemove', handlePointerMove);
-      window.removeEventListener('mouseup', handlePointerUp);
-      window.removeEventListener('touchmove', handlePointerMove);
-      window.removeEventListener('touchend', handlePointerUp);
-
-      // Fall back to a default footprint when the gesture was effectively a click
-      // (no meaningful drag), so the tool never leaves a zero-size element behind.
-      setElements((prev) => {
-        const el = prev.find(e => e.id === id);
-        if (!el) return prev;
-        if (isLineTool) {
-          const tiny = Math.hypot(el.x2 - el.x1, el.y2 - el.y1) < 1;
-          if (tiny) {
-            return prev.map(e => e.id === id ? {
-              ...e,
-              x1: Math.max(0, startLeftPercent - 6), y1: startTopPercent,
-              x2: Math.min(100, startLeftPercent + 6), y2: startTopPercent
-            } : e);
-          }
-          return prev;
-        }
-        if (el.width < 0.5 && el.height < 0.5) {
-          if (tool === 'whiteout') {
-            return prev.map(e => e.id === id ? { ...e, left: startLeftPercent - 5, top: startTopPercent - 2, width: 10, height: 4 } : e);
-          }
-          const defW = 8;
-          const defH = widthPercentToHeightPercent(defW, 1, rect.width, rect.height);
-          return prev.map(e => e.id === id ? { ...e, left: startLeftPercent - defW / 2, top: startTopPercent - defH / 2, width: defW, height: defH } : e);
-        }
-        return prev;
-      });
-
-      if (tool === 'whiteout') {
-        logAction('ADD_WHITEOUT', id, pageIndex, 'Added whiteout box');
-        setAnnouncement('Added whiteout box.');
-      } else {
-        logAction('ADD_SHAPE', id, pageIndex, `Added ${tool}`);
-        setAnnouncement(`Added ${tool}.`);
-        // Tool stays armed (like Text/Symbols/Whiteout) so you can draw several
-        // shapes/lines in a row without reopening the Shapes menu each time.
-      }
-    };
-
-    window.addEventListener('mousemove', handlePointerMove);
-    window.addEventListener('mouseup', handlePointerUp);
-    window.addEventListener('touchmove', handlePointerMove, { passive: false });
-    window.addEventListener('touchend', handlePointerUp);
-  };
-
   // Helper to place a signature at a specific location
   const placeSignatureAt = (dataUrl, aspectRatio, pageIdx, leftPercent, topPercent) => {
     const id = uniqueId();
@@ -610,8 +426,8 @@ export default function PdfSignTool() {
       dataUrl
     };
     
-    setElements((prev) => [...prev, newEl]);
-    setActiveElementId(id);
+    dispatch({ type: 'ADD_ELEMENT', payload: newEl });
+    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
     logAction('ADD_SIGNATURE', id, pageIdx, 'Added signature');
     setAnnouncement('Placed signature on page.');
   };
@@ -620,7 +436,7 @@ export default function PdfSignTool() {
   const handleAddSignatureElement = (dataUrl, aspectRatio) => {
     const newSig = saveNewSignature(dataUrl, aspectRatio);
     setActiveSignature(newSig);
-    setSelectedTool('signature');
+    dispatch({ type: 'SET_TOOL', payload: 'signature' });
     
     const placement = tempPlacement || { pageIndex: 0, left: 40, top: 40 };
     placeSignatureAt(dataUrl, aspectRatio, placement.pageIndex, placement.left, placement.top);
@@ -630,9 +446,7 @@ export default function PdfSignTool() {
 
   // Update element position or content
   const updateElement = (id, changes) => {
-    setElements((prev) =>
-      prev.map((el) => (el.id === id ? { ...el, ...changes } : el))
-    );
+    dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes } });
     if (changes.color) setLastColor(changes.color);
     if (changes.fontFamily) setLastFont(changes.fontFamily);
     if (changes.fontSize) setLastFontSize(changes.fontSize);
@@ -642,8 +456,8 @@ export default function PdfSignTool() {
 
   // Delete placed element
   const deleteElement = (id) => {
-    setElements((prev) => prev.filter((el) => el.id !== id));
-    setActiveElementId(null);
+    dispatch({ type: 'DELETE_ELEMENT', payload: id });
+    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
     setAnnouncement('Removed element.');
   };
 
@@ -652,8 +466,8 @@ export default function PdfSignTool() {
     const handleKeyDown = (e) => {
       // Clear selected tool and active element on Escape
       if (e.key === 'Escape') {
-        setSelectedTool(null);
-        setActiveElementId(null);
+        dispatch({ type: 'SET_TOOL', payload: null });
+        dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
         document.activeElement?.blur();
         return;
       }
@@ -666,24 +480,17 @@ export default function PdfSignTool() {
         if (isInput) return; // Let native undo handle text input editing
         e.preventDefault();
         
-        setActionHistory((currentHistory) => {
-          if (currentHistory.length === 0) return currentHistory;
-          const lastAction = currentHistory[0];
-          
-          setElements((prevEls) => prevEls.filter(el => el.id !== lastAction.elementId));
-          setActiveElementId((currentActive) => 
-            currentActive === lastAction.elementId ? null : currentActive
-          );
-          setUndoSelection((currentSelection) => {
-            if (!currentSelection.has(lastAction.id)) return currentSelection;
-            const newSet = new Set(currentSelection);
-            newSet.delete(lastAction.id);
-            return newSet;
-          });
-          setAnnouncement(`Undid: ${lastAction.description}`);
-          
-          return currentHistory.slice(1);
+        if (actionHistory.length === 0) return;
+        const lastAction = actionHistory[0];
+        
+        dispatch({ type: 'UNDO' });
+        setUndoSelection((currentSelection) => {
+          if (!currentSelection.has(lastAction.id)) return currentSelection;
+          const newSet = new Set(currentSelection);
+          newSet.delete(lastAction.id);
+          return newSet;
         });
+        setAnnouncement(`Undid: ${lastAction.description}`);
         return;
       }
 
@@ -742,8 +549,8 @@ export default function PdfSignTool() {
         top: Math.min(90, original.top + 4)
       };
 
-      setElements((prev) => [...prev, clone]);
-      setActiveElementId(id);
+      dispatch({ type: 'ADD_ELEMENT', payload: clone });
+      dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
       logAction('DUPLICATE_ELEMENT', id, original.pageIndex, `Duplicated ${original.type}`);
       setAnnouncement('Pasted cloned element.');
     };
@@ -789,9 +596,9 @@ export default function PdfSignTool() {
     fileBytesRef.current = null;
     setFile(null);
     setPdfDocument(null);
-    setElements([]);
-    setActionHistory([]);
-    setActiveElementId(null);
+    dispatch({ type: 'SET_ELEMENTS', payload: [] });
+    dispatch({ type: 'SET_ACTION_HISTORY', payload: [] });
+    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
     setStatus('idle');
     setProgress(0);
     setAnnouncement('Cleared workspace.');
@@ -802,130 +609,34 @@ export default function PdfSignTool() {
   return (
     <BasePdfTool hasFiles={hasFiles} onFilesAdded={handleFilesAdded} multiple={false}>
       {hasFiles && status !== 'loading' && (
-        <div className={`sign-workspace ${isPseudoFullscreen ? 'pseudo-fullscreen' : ''}`} ref={workspaceRef}>
-          
-          {/* Header Controls */}
-          <div className="list-header" style={{ width: '100%' }}>
-            <span className="list-count" style={{ fontWeight: '600' }}>
-              Signing: {file.name}
-            </span>
-          </div>
-
-          {status === 'editing' && (
-            <>
-              {/* Floating Toolbar Component */}
-              <FloatingToolbar
-                selectedTool={selectedTool}
-                setSelectedTool={setSelectedTool}
-                setAnnouncement={setAnnouncement}
-                savedSignatures={savedSignatures}
-                activeSignature={activeSignature}
-                setActiveSignature={setActiveSignature}
-                onDeleteSavedSignature={deleteSavedSignature}
-                setDialogOpen={setDialogOpen}
-                setUndoModalOpen={setUndoModalOpen}
-                actionHistory={actionHistory}
-                toggleFullscreen={toggleFullscreen}
-                isFullscreen={isFullscreen || isPseudoFullscreen}
-                setConfirmResetOpen={setConfirmResetOpen}
-                onSavePdf={handleSavePdf}
-              />
-
-              {/* PDF Pages rendering container */}
-              <div className="sign-pages-container" onClick={() => setActiveElementId(null)}>
-                {Array.from({ length: numPages }).map((_, pageIdx) => {
-                  const size = pageSizes[pageIdx] || { width: 612, height: 792 };
-                  
-                  return (
-                    <div
-                      key={pageIdx}
-                      ref={(el) => (pageWrapperRefs.current[pageIdx] = el)}
-                      className="sign-page-wrapper"
-                      style={{ aspectRatio: `${size.width} / ${size.height}` }}
-                    >
-                      <PdfPageCanvas
-                        pdfDocument={pdfDocument}
-                        pageNum={pageIdx + 1}
-                      />
-                      
-                      <div
-                        className="sign-page-overlay"
-                        onClick={(e) => handlePageClick(e, pageIdx)}
-                        onMouseDown={(e) => handleOverlayPointerDown(e, pageIdx)}
-                        onTouchStart={(e) => handleOverlayPointerDown(e, pageIdx)}
-                      >
-                        {elements
-                          .filter((el) => el.pageIndex === pageIdx)
-                          .map((el) => (
-                            <DraggableOverlayElement
-                              key={el.id}
-                              element={el}
-                              isActive={activeElementId === el.id}
-                              onSelect={(e) => {
-                                e.stopPropagation();
-                                setActiveElementId(el.id);
-                              }}
-                              onChange={(fields) => {
-                                updateElement(el.id, fields);
-                                if (fields.color) rememberColor(fields.color);
-                                if (fields.fontFamily) rememberFont(fields.fontFamily);
-                                if (fields.fontSize) rememberFontSize(fields.fontSize);
-                                if (fields.textDirection) rememberDirection(fields.textDirection);
-                              }}
-                              onDelete={() => deleteElement(el.id)}
-                              onClone={(cloneInfo) => {
-                                 setElements((prev) => [...prev, cloneInfo]);
-                                 setActiveElementId(cloneInfo.id);
-                                 logAction('DUPLICATE_ELEMENT', cloneInfo.id, cloneInfo.pageIndex, `Duplicated ${cloneInfo.type}`);
-                              }}
-                              pageWidthPoints={size.width}
-                            />
-                          ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Complete signing button */}
-              <button
-                type="button"
-                className="merge-button"
-                style={{ marginTop: '2rem' }}
-                onClick={handleSavePdf}
-              >
-                Download
-              </button>
-            </>
-          )}
-
-          {/* Signing state */}
-          {status === 'signing' && (
-            <div style={{ textAlign: 'center', width: '100%', padding: '3rem 0' }}>
-              <span className="merge-button-progress" style={{ color: 'var(--color-text)' }}>
-                <svg className="progress-ring" width="22" height="22" viewBox="0 0 40 40">
-                  <circle className="progress-ring-track" cx="20" cy="20" r="18" stroke="var(--color-border-strong)" />
-                </svg>
-                Saving document layers… {Math.round(progress * 100)}%
-              </span>
-            </div>
-          )}
-
-
-          {/* Error Message */}
-          {status === 'error' && (
-            <div className="error-message" role="alert" style={{ width: '100%' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-                <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                <circle cx="12" cy="16" r="1" fill="currentColor" />
-              </svg>
-              <span>
-                <strong>Signing failed.</strong> The PDF may be password-protected or encrypted.
-              </span>
-            </div>
-          )}
-        </div>
+        <PdfWorkspace
+          file={file}
+          status={status}
+          isPseudoFullscreen={isPseudoFullscreen}
+          workspaceRef={workspaceRef}
+          numPages={numPages}
+          pageSizes={pageSizes}
+          pdfDocument={pdfDocument}
+          pageWrapperRefs={pageWrapperRefs}
+          activeSignature={activeSignature}
+          setTempPlacement={setTempPlacement}
+          setDialogOpen={setDialogOpen}
+          rememberColor={rememberColor}
+          rememberFont={rememberFont}
+          rememberFontSize={rememberFontSize}
+          rememberDirection={rememberDirection}
+          logAction={logAction}
+          handleSavePdf={handleSavePdf}
+          setAnnouncement={setAnnouncement}
+          savedSignatures={savedSignatures}
+          setActiveSignature={setActiveSignature}
+          onDeleteSavedSignature={deleteSavedSignature}
+          setUndoModalOpen={setUndoModalOpen}
+          toggleFullscreen={toggleFullscreen}
+          isFullscreen={isFullscreen}
+          setConfirmResetOpen={setConfirmResetOpen}
+          placeSignatureAt={placeSignatureAt}
+        />
       )}
 
       {/* Loading state */}
