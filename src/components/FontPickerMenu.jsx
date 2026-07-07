@@ -1,4 +1,5 @@
-import { useDropdownMenu } from '../lib/useDropdownMenu.js';
+import { useState } from 'preact/hooks';
+import Popover from './Popover.jsx';
 import { HANDWRITING_FONTS } from '../lib/sign.js';
 
 // CSS font-family value to preview each option in its own font. All values
@@ -30,61 +31,61 @@ const FONT_OPTIONS = [...STANDARD_FONTS, ...HANDWRITING_OPTIONS];
 // selected-option text (e.g. "Hebrew (Assistant)") was long enough to force
 // the whole per-element floating toolbar wide on its own.
 export default function FontPickerMenu({ value, onChange }) {
-  const { open, setOpen, containerRef, triggerRef, menuRef } = useDropdownMenu();
+  const [open, setOpen] = useState(false);
 
   const current = FONT_OPTIONS.find((f) => f.value === value) || FONT_OPTIONS[0];
 
   return (
-    <div className="sign-tool-dropdown-container" ref={containerRef}>
-      <button
-        type="button"
-        ref={triggerRef}
-        className="sign-element-btn sign-font-trigger"
-        onClick={() => setOpen((o) => !o)}
-        title={`Font: ${current.label}`}
-        aria-haspopup="true"
-        aria-expanded={open}
-      >
-        Aa
-      </button>
-      {open && (
-        <>
-          <div className="sign-dropdown-backdrop" onClick={() => setOpen(false)} />
-          <div ref={menuRef} className="sign-dropdown-menu sign-font-menu" role="menu">
-            {STANDARD_FONTS.map((f) => (
-              <button
-                key={f.value}
-                type="button"
-                role="menuitem"
-                className={`sign-font-menu-item${f.value === current.value ? ' active' : ''}`}
-                style={{ fontFamily: f.css }}
-                onClick={() => {
-                  onChange(f.value);
-                  setOpen(false);
-                }}
-              >
-                {f.label}
-              </button>
-            ))}
-            <div className="sign-font-menu-group-label">Handwriting</div>
-            {HANDWRITING_OPTIONS.map((f) => (
-              <button
-                key={f.value}
-                type="button"
-                role="menuitem"
-                className={`sign-font-menu-item${f.value === current.value ? ' active' : ''}`}
-                style={{ fontFamily: f.css }}
-                onClick={() => {
-                  onChange(f.value);
-                  setOpen(false);
-                }}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      placement="bottom"
+      trigger={
+        <button
+          type="button"
+          className="sign-element-btn sign-font-trigger"
+          title={`Font: ${current.label}`}
+          aria-haspopup="true"
+          aria-expanded={open}
+        >
+          Aa
+        </button>
+      }
+      content={
+        <div className="sign-popover sign-font-menu" role="menu">
+          {STANDARD_FONTS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              role="menuitem"
+              className={`sign-font-menu-item${f.value === current.value ? ' active' : ''}`}
+              style={{ fontFamily: f.css }}
+              onClick={() => {
+                onChange(f.value);
+                setOpen(false);
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+          <div className="sign-font-menu-group-label">Handwriting</div>
+          {HANDWRITING_OPTIONS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              role="menuitem"
+              className={`sign-font-menu-item${f.value === current.value ? ' active' : ''}`}
+              style={{ fontFamily: f.css }}
+              onClick={() => {
+                onChange(f.value);
+                setOpen(false);
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      }
+    />
   );
 }

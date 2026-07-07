@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'preact/hooks';
-import { computePosition, offset, flip } from '@floating-ui/dom';
+import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 import { PilcrowLeft, PilcrowRight } from 'lucide-preact';
 import { tintImageDataUrl, getEffectiveTextDirection } from '../lib/sign.js';
 import {
@@ -75,29 +75,22 @@ export default function DraggableOverlayElement({
   // async Promise-resolved catch-up is what caused the toolbar to visibly
   // flicker while typing RTL text. Vertical position never depends on
   // `element.left`, so it doesn't have this problem.
+  const textDirection = element.type === 'text' ? getEffectiveTextDirection(element) : 'ltr';
+
+  const { refs, floatingStyles } = useFloating({
+    placement: textDirection === 'rtl' ? 'top-end' : 'top-start',
+    whileElementsMounted: autoUpdate,
+    middleware: [
+      offset(8),
+      flip({ fallbackPlacements: ['bottom'] }),
+      shift({ padding: 8 })
+    ]
+  });
+
   useEffect(() => {
     if (elementRef.current && isDragging.current) {
       elementRef.current.style.transform = `translate(${dragOffset.current.x}px, ${dragOffset.current.y}px)`;
     }
-
-    if (!isActive || !actionsRef.current || !elementRef.current) return;
-    const anchorEl = elementRef.current;
-    const toolbarEl = actionsRef.current;
-    let cancelled = false;
-    computePosition(anchorEl, toolbarEl, {
-      placement: 'top',
-      middleware: [offset(8), flip({ fallbackPlacements: ['bottom'] })]
-    }).then(({ y }) => {
-      if (cancelled) return;
-      if (element.type === 'line') {
-         // The line container covers the whole page, so floating-ui will throw the toolbar
-         // to the very top edge of the document. We override it here (positioned in the
-         // `style` block on the actions div below).
-         return;
-      }
-      toolbarEl.style.top = `${y}px`;
-    });
-    return () => { cancelled = true; };
   }, [isActive, element.top, element.type]);
 
   // Removed JS measuring effect in favor of CSS grid auto-growing.
@@ -393,7 +386,7 @@ export default function DraggableOverlayElement({
 
   // Font size responsive scaling for text elements
   const textFontSize = (element.fontSize || 12) * scaleFactor;
-  const textDirection = element.type === 'text' ? getEffectiveTextDirection(element) : 'ltr';
+
 
   // Styles for responsive placing. `element.left` is always the anchored edge's
   // distance from the page wrapper's left edge — which physical edge that is
@@ -429,7 +422,10 @@ export default function DraggableOverlayElement({
 
   return (
     <div
-      ref={elementRef}
+      ref={(node) => {
+        elementRef.current = node;
+        refs.setReference(node);
+      }}
       className={`sign-element${isActive ? ' active' : ''}${element.type === 'symbol' ? ' sign-element--symbol' : ''}${isShape ? ' sign-element--shape' : ''}${isLine ? ' sign-element--line' : ''}`}
       style={style}
       onMouseDown={!isLine ? handlePointerDown : undefined}
@@ -438,8 +434,11 @@ export default function DraggableOverlayElement({
     >
       {/* Element options bar */}
       <div
-        ref={actionsRef}
-        className={`sign-element-actions${textDirection === 'rtl' ? ' sign-element-actions--rtl' : ''}`}
+        ref={(node) => {
+          actionsRef.current = node;
+          refs.setFloating(node);
+        }}
+        className="sign-element-actions"
         style={isLine ? {
           position: 'absolute',
           left: `${Math.min(element.x1, element.x2) + Math.abs(element.x1 - element.x2) / 2}%`,
@@ -447,7 +446,7 @@ export default function DraggableOverlayElement({
           transform: 'translate(-50%, -100%)',
           marginTop: '-10px',
           pointerEvents: 'auto'
-        } : {}}
+        } : { ...floatingStyles }}
       >
         <ElementToolbar 
           element={element}

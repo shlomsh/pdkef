@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
 import FullscreenButton from './FullscreenButton';
+import Popover from './Popover.jsx';
 
 export default function FloatingToolbar({
   selectedTool,
@@ -20,18 +21,7 @@ export default function FloatingToolbar({
   const [showSigDropdown, setShowSigDropdown] = useState(false);
   const [showShapesDropdown, setShowShapesDropdown] = useState(false);
 
-  // Handle outside clicks to close the signature dropdown
-  useEffect(() => {
-    if (!showSigDropdown && !showShapesDropdown) return;
-    const handleOutsideClick = (e) => {
-      if (!e.target.closest('.sign-dropdown-trigger') && !e.target.closest('.sign-dropdown-menu')) {
-        setShowSigDropdown(false);
-        setShowShapesDropdown(false);
-      }
-    };
-    document.addEventListener('click', handleOutsideClick);
-    return () => document.removeEventListener('click', handleOutsideClick);
-  }, [showSigDropdown]);
+
 
   // Hover-open the Shapes menu with a short close delay ("hover intent"). The menu
   // sits a few px below the trigger, so moving the pointer from button to menu
@@ -109,30 +99,38 @@ export default function FloatingToolbar({
             onMouseEnter={openShapes}
             onMouseLeave={scheduleCloseShapes}
           >
-            <button
-              type="button"
-              className={`sign-tool-btn sign-dropdown-trigger${['ellipse', 'rectangle', 'line'].includes(selectedTool) ? ' active' : ''}`}
-              onClick={() => setShowShapesDropdown(!showShapesDropdown)}
-              title="Click here to select a shape"
-              aria-pressed={['ellipse', 'rectangle', 'line'].includes(selectedTool)}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 3l4 7H8z" />
-                <circle cx="7" cy="17" r="4" />
-                <rect x="13" y="13" width="8" height="8" rx="1" />
-              </svg>
-              <span className="sign-tool-btn-text" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                Shapes
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </span>
-            </button>
-
-            {showShapesDropdown && (
-              <>
-                <div className="sign-dropdown-backdrop" onClick={() => setShowShapesDropdown(false)} />
-                <div className="sign-dropdown-menu" role="menu" style={{ minWidth: '140px', borderRadius: '12px', padding: '0.25rem', left: 0, transform: 'none' }}>
+            <Popover
+              open={showShapesDropdown}
+              onOpenChange={setShowShapesDropdown}
+              placement="bottom"
+              trigger={
+                <button
+                  type="button"
+                  className={`sign-tool-btn sign-dropdown-trigger${['ellipse', 'rectangle', 'line'].includes(selectedTool) ? ' active' : ''}`}
+                  title="Click here to select a shape"
+                  aria-pressed={['ellipse', 'rectangle', 'line'].includes(selectedTool)}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 3l4 7H8z" />
+                    <circle cx="7" cy="17" r="4" />
+                    <rect x="13" y="13" width="8" height="8" rx="1" />
+                  </svg>
+                  <span className="sign-tool-btn-text" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    Shapes
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </span>
+                </button>
+              }
+              content={
+                <div 
+                  className="sign-popover" 
+                  role="menu" 
+                  style={{ minWidth: '140px', borderRadius: '12px', padding: '0.25rem' }}
+                  onMouseEnter={openShapes}
+                  onMouseLeave={scheduleCloseShapes}
+                >
                   <div className="sign-dropdown-list sign-dropdown-list--clean">
                     <button
                       type="button"
@@ -178,8 +176,8 @@ export default function FloatingToolbar({
                     </button>
                   </div>
                 </div>
-              </>
-            )}
+              }
+            />
           </div>
 
           <button
@@ -200,24 +198,27 @@ export default function FloatingToolbar({
           </button>
 
           <div className="sign-tool-dropdown-container">
-            <button
-              type="button"
-              className={`sign-tool-btn sign-dropdown-trigger${selectedTool === 'signature' ? ' active' : ''}`}
-              onClick={handleSignatureBtnClick}
-              title="Click here to select or create a signature"
-              aria-pressed={selectedTool === 'signature'}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
-                <path d="M3 21h18" />
-              </svg>
-              <span className="sign-tool-btn-text">Sign</span>
-            </button>
-
-            {showSigDropdown && (
-              <>
-                <div className="sign-dropdown-backdrop" onClick={() => setShowSigDropdown(false)} />
-                <div className="sign-dropdown-menu" role="menu">
+            <Popover
+              open={showSigDropdown}
+              onOpenChange={setShowSigDropdown}
+              placement="bottom"
+              trigger={
+                <button
+                  type="button"
+                  className={`sign-tool-btn sign-dropdown-trigger${selectedTool === 'signature' ? ' active' : ''}`}
+                  onClick={handleSignatureBtnClick}
+                  title="Click here to select or create a signature"
+                  aria-pressed={selectedTool === 'signature'}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
+                    <path d="M3 21h18" />
+                  </svg>
+                  <span className="sign-tool-btn-text">Sign</span>
+                </button>
+              }
+              content={
+                <div className="sign-popover" role="menu">
                   <div className="sign-dropdown-list">
                     {savedSignatures.map((sig) => (
                       <div
@@ -230,7 +231,10 @@ export default function FloatingToolbar({
                         <button
                           type="button"
                           className="sign-dropdown-item-delete"
-                          onClick={(e) => onDeleteSavedSignature(sig.id, e)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteSavedSignature(sig.id, e);
+                          }}
                           title="Delete signature"
                           aria-label="Delete signature"
                         >
@@ -256,8 +260,8 @@ export default function FloatingToolbar({
                     <span className="sign-tool-btn-text">New Signature</span>
                   </button>
                 </div>
-              </>
-            )}
+              }
+            />
           </div>
 
           <button

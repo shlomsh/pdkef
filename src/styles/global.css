@@ -1872,13 +1872,6 @@ footer a {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
 }
 
-/* Position/top/left/transform are owned entirely by useDropdownMenu.js (see
-   the header comment there) — do NOT set them here. This rule is visual-only. */
-.sign-dropdown-menu.sign-color-menu {
-  min-width: 0;
-  width: max-content;
-  padding: 0.5rem;
-}
 
 .sign-color-swatch {
   width: 18px;
@@ -2359,11 +2352,7 @@ footer a {
   min-width: 0;
 }
 
-.sign-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+.sign-popover {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -2376,6 +2365,13 @@ footer a {
   gap: 0.75rem;
   z-index: 110;
   pointer-events: auto;
+}
+
+.sign-popover.sign-color-menu,
+.sign-popover.sign-font-menu {
+  min-width: 0;
+  width: max-content;
+  padding: 0.5rem;
 }
 
 .sign-dropdown-list {
@@ -2598,34 +2594,6 @@ footer a {
 }
 
 /* Mobile responsive adjustments */
-@media (max-width: 600px) {
-  .sign-dropdown-menu {
-    position: fixed;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    transform: none;
-    width: 100%;
-    max-width: 100%;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    border-bottom: none;
-    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.15);
-    animation: sigSlideUp 0.22s var(--ease-out);
-  }
-
-  .sign-dropdown-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.25);
-    z-index: 105;
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
-  }
-}
 
 @keyframes sigSlideUp {
   from {

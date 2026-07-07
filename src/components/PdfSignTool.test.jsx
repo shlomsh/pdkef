@@ -61,6 +61,7 @@ describe('PdfSignTool UI flow', () => {
       container.remove();
       container = null;
     }
+    document.body.innerHTML = '';
     restoreFetch();
     vi.restoreAllMocks();
   });
@@ -138,10 +139,10 @@ describe('PdfSignTool UI flow', () => {
       sigBtn.click();
     });
 
-    const dropdown = container.querySelector('.sign-dropdown-menu');
+    const dropdown = document.body.querySelector('.sign-popover');
     expect(dropdown).not.toBeNull();
 
-    const dropdownItems = container.querySelectorAll('.sign-dropdown-item');
+    const dropdownItems = document.body.querySelectorAll('.sign-dropdown-item');
     expect(dropdownItems.length).toBe(1);
 
     // Clicking the item should close dropdown and select tool
@@ -149,7 +150,7 @@ describe('PdfSignTool UI flow', () => {
       dropdownItems[0].click();
     });
 
-    const dropdownAfter = container.querySelector('.sign-dropdown-menu');
+    const dropdownAfter = document.body.querySelector('.sign-popover');
     expect(dropdownAfter).toBeNull();
   });
 
@@ -596,7 +597,7 @@ describe('PdfSignTool UI flow', () => {
     const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
     const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
     await act(async () => { sigBtn.click(); });
-    const dropdownItem = container.querySelector('.sign-dropdown-item');
+    const dropdownItem = document.body.querySelector('.sign-dropdown-item');
     await act(async () => { dropdownItem.click(); });
 
     const overlay = container.querySelector('.sign-page-overlay');

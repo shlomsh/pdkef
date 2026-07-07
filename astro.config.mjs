@@ -12,7 +12,7 @@ import preact from '@astrojs/preact';
 export default defineConfig({
   site: 'https://pdkef.com',
   output: 'static',
-  integrations: [preact()],
+  integrations: [preact({ compat: true })],
   build: {
     inlineStylesheets: 'always',
   },
@@ -28,7 +28,7 @@ export default defineConfig({
   // racing discovery against the first real navigation.
   vite: {
     optimizeDeps: {
-      include: ['sortablejs', '@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist'],
+      include: ['sortablejs', '@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist', '@floating-ui/react'],
     },
   },
   // CSP is managed entirely via vercel.json HTTP headers rather than
