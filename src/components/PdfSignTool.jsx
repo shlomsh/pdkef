@@ -625,6 +625,11 @@ function PdfSignToolInner() {
           rememberFont={rememberFont}
           rememberFontSize={rememberFontSize}
           rememberDirection={rememberDirection}
+          lastColor={lastColor}
+          lastThickness={lastThickness}
+          lastFont={lastFont}
+          lastFontSize={lastFontSize}
+          lastDirection={lastDirection}
           logAction={logAction}
           handleSavePdf={handleSavePdf}
           setAnnouncement={setAnnouncement}

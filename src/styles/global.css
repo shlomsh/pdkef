@@ -1941,6 +1941,11 @@ footer a {
   min-width: 0;
 }
 
+.sign-text-input::placeholder {
+  color: inherit;
+  opacity: 0.45;
+}
+
 /* Signature Image Element */
 .sign-sig-image {
   display: block;

@@ -1,9 +1,10 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi } from 'vitest';
-import ShapeElement from './ShapeElement.jsx';
-import LineElement from './LineElement.jsx';
-import DraggableOverlayElement from './DraggableOverlayElement.jsx';
+import ShapeNode from './SignTool/nodes/ShapeNode.jsx';
+import LineNode from './SignTool/nodes/LineNode.jsx';
+import DraggableWrapper from './SignTool/DraggableWrapper.jsx';
+import WhiteoutNode from './SignTool/nodes/WhiteoutNode.jsx';
 
 function mount(vnode) {
   const host = document.createElement('div');
@@ -21,7 +22,7 @@ function mount(vnode) {
 // tool's thickness picker do nothing. Assert the real kebab-case attributes land.
 describe('SVG stroke attributes render as kebab-case', () => {
   it('ShapeElement ellipse carries stroke-width + vector-effect', () => {
-    const host = mount(<ShapeElement element={{ strokeWidth: 16, color: '#000' }} actualType="ellipse" />);
+    const host = mount(<ShapeNode element={{ type: 'ellipse', strokeWidth: 16, color: '#000' }} />);
     const el = host.querySelector('ellipse');
     expect(el.getAttribute('stroke-width')).toBe('16');
     expect(el.getAttribute('vector-effect')).toBe('non-scaling-stroke');
@@ -30,13 +31,13 @@ describe('SVG stroke attributes render as kebab-case', () => {
   });
 
   it('ShapeElement rectangle carries stroke-width', () => {
-    const host = mount(<ShapeElement element={{ strokeWidth: 8, color: '#000' }} actualType="rectangle" />);
+    const host = mount(<ShapeNode element={{ type: 'rectangle', strokeWidth: 8, color: '#000' }} />);
     expect(host.querySelector('rect').getAttribute('stroke-width')).toBe('8');
   });
 
   it('LineElement renders a visible stroke and a fat invisible hit-area', () => {
     const host = mount(
-      <LineElement element={{ x1: 10, y1: 10, x2: 80, y2: 80, strokeWidth: 12, color: '#000' }} handlePointerDown={() => {}} />
+      <LineNode element={{ x1: 10, y1: 10, x2: 80, y2: 80, strokeWidth: 12, color: '#000' }} handlePointerDown={() => {}} />
     );
     const lines = host.querySelectorAll('line');
     // Visible line reflects the chosen thickness...
@@ -51,14 +52,14 @@ describe('SVG stroke attributes render as kebab-case', () => {
 // dragOffset refs that were never declared, so a per-element ReferenceError threw
 // on mount and broke dragging for every element type. Mounting it (its effect
 // reads isDragging.current) and running a full drag exercises that path.
-describe('DraggableOverlayElement dragging', () => {
+describe('DraggableWrapper dragging', () => {
   function renderInPage(element, onChange) {
     const page = document.createElement('div');
     page.className = 'sign-page-wrapper';
     document.body.appendChild(page);
     act(() => {
       render(
-        <DraggableOverlayElement
+        <DraggableWrapper
           element={element}
           isActive={true}
           onSelect={() => {}}
@@ -66,7 +67,11 @@ describe('DraggableOverlayElement dragging', () => {
           onDelete={() => {}}
           onClone={() => {}}
           pageWidthPoints={600}
-        />,
+        >
+          {element.type === 'whiteout' && <WhiteoutNode element={element} />}
+          {(element.type === 'ellipse' || element.type === 'rectangle') && <ShapeNode element={element} />}
+          {element.type === 'line' && <LineNode element={element} />}
+        </DraggableWrapper>,
         page
       );
     });

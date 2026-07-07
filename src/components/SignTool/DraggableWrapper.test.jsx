@@ -1,7 +1,8 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, beforeEach } from 'vitest';
-import DraggableOverlayElement from './DraggableOverlayElement.jsx';
+import DraggableWrapper from './DraggableWrapper.jsx';
+import TextNode from './nodes/TextNode.jsx';
 
 // Regression test for the "RTL text box drifts on reload" bug: `left` used to be
 // derived state, recomputed from a DOM pixel measurement inside the width-growth
@@ -11,7 +12,7 @@ import DraggableOverlayElement from './DraggableOverlayElement.jsx';
 // the autosaved source of truth, every reload nudged the box further sideways.
 // Position must now be pure source state: the width-growth effect may only
 // report a measured `width`, never `left`.
-describe('DraggableOverlayElement RTL text positioning', () => {
+describe('DraggableWrapper RTL text positioning', () => {
   let container;
   let originalScrollWidth;
   let originalScrollHeight;
@@ -56,7 +57,7 @@ describe('DraggableOverlayElement RTL text positioning', () => {
 
     act(() => {
       render(
-        <DraggableOverlayElement
+        <DraggableWrapper
           element={element}
           isActive={false}
           onSelect={() => {}}
@@ -64,7 +65,9 @@ describe('DraggableOverlayElement RTL text positioning', () => {
           onDelete={() => {}}
           onClone={() => {}}
           pageWidthPoints={pageWidthPoints}
-        />,
+        >
+          <TextNode element={element} />
+        </DraggableWrapper>,
         wrapper
       );
     });
@@ -114,7 +117,7 @@ describe('DraggableOverlayElement RTL text positioning', () => {
     // or a second layout pass on restore) without any change to `left`.
     act(() => {
       render(
-        <DraggableOverlayElement
+        <DraggableWrapper
           element={element}
           isActive={false}
           onSelect={() => {}}
@@ -122,7 +125,9 @@ describe('DraggableOverlayElement RTL text positioning', () => {
           onDelete={() => {}}
           onClone={() => {}}
           pageWidthPoints={792}
-        />,
+        >
+          <TextNode element={element} />
+        </DraggableWrapper>,
         wrapper
       );
     });
@@ -134,7 +139,7 @@ describe('DraggableOverlayElement RTL text positioning', () => {
     mockScrollWidth = 400;
     act(() => {
       render(
-        <DraggableOverlayElement
+        <DraggableWrapper
           element={{ ...element, text: 'שלום עולם, זה טקסט ארוך יותר' }}
           isActive={false}
           onSelect={() => {}}
@@ -142,7 +147,9 @@ describe('DraggableOverlayElement RTL text positioning', () => {
           onDelete={() => {}}
           onClone={() => {}}
           pageWidthPoints={792}
-        />,
+        >
+          <TextNode element={{ ...element, text: 'שלום עולם, זה טקסט ארוך יותר' }} />
+        </DraggableWrapper>,
         wrapper
       );
     });

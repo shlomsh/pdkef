@@ -27,6 +27,11 @@ export default function PdfWorkspace({
   rememberFont,
   rememberFontSize,
   rememberDirection,
+  lastColor = '#1463ff',
+  lastThickness = 3,
+  lastFont = 'Arimo',
+  lastFontSize = 12,
+  lastDirection = null,
   logAction,
   handleSavePdf,
   setAnnouncement,
@@ -51,6 +56,11 @@ export default function PdfWorkspace({
     placeSignatureAt,
     logAction,
     setAnnouncement,
+    initialColor: lastColor,
+    initialStrokeWidth: lastThickness,
+    initialFont: lastFont,
+    initialFontSize: lastFontSize,
+    initialDirection: lastDirection,
   });
 
   // --- Stable element mutation callbacks (hoisted out of the map loop) ---

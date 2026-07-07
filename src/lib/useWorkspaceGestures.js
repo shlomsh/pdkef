@@ -18,6 +18,11 @@ const DRAG_DRAWN_TOOLS = ['whiteout', 'line', 'ellipse', 'rectangle'];
  * @param {function}     params.placeSignatureAt    - places an existing signature
  * @param {function}     params.logAction           - action history logger
  * @param {function}     params.setAnnouncement     - a11y live-region setter
+ * @param {string}       params.initialColor        - last remembered element color for new placements
+ * @param {number}       params.initialStrokeWidth  - last remembered stroke width for new placements
+ * @param {string}       params.initialFont         - last remembered font family for new text elements
+ * @param {number}       params.initialFontSize     - last remembered font size for new text elements
+ * @param {string|null}  params.initialDirection    - last remembered text direction ('ltr'|'rtl'|null)
  */
 export default function useWorkspaceGestures({
   selectedTool,
@@ -28,6 +33,11 @@ export default function useWorkspaceGestures({
   placeSignatureAt,
   logAction,
   setAnnouncement,
+  initialColor = '#1463ff',
+  initialStrokeWidth = 3,
+  initialFont = 'Arimo',
+  initialFontSize = 12,
+  initialDirection = null,
 }) {
   const {
     getPointerCoords,
@@ -62,10 +72,14 @@ export default function useWorkspaceGestures({
         left: leftPercent,
         top: topPercent,
         text: '',
-        fontSize: 12,
+        fontSize: initialFontSize,
         fontWeight: 'normal',
         fontStyle: 'normal',
-        color: '#000000',
+        fontFamily: initialFont,
+        color: initialColor,
+        // Only set textDirection when the user has explicitly chosen one previously;
+        // null lets the auto-detector run on fresh elements (content-based detection).
+        ...(initialDirection != null ? { textDirection: initialDirection } : {}),
       };
       dispatch({ type: 'ADD_ELEMENT', payload: newEl });
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
@@ -137,8 +151,8 @@ export default function useWorkspaceGestures({
           y1: startTopPercent,
           x2: startLeftPercent,
           y2: startTopPercent,
-          color: '#1463ff',
-          strokeWidth: 3,
+          color: initialColor,
+          strokeWidth: initialStrokeWidth,
         }
       : {
           id,
@@ -150,7 +164,7 @@ export default function useWorkspaceGestures({
           height: 0,
           ...(tool === 'whiteout'
             ? { color: '#ffffff' }
-            : { color: '#1463ff', strokeWidth: 3 }),
+            : { color: initialColor, strokeWidth: initialStrokeWidth }),
         };
 
     dispatch({ type: 'ADD_ELEMENT', payload: newEl });
