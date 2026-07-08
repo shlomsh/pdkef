@@ -27,15 +27,30 @@ export default function RedactToolbar({
             <rect x="3" y="9.5" width="18" height="5" rx="1" fill="currentColor" stroke="none" />
             <line x1="4" y1="19" x2="12" y2="19" />
           </svg>
-          <span className="sign-tool-btn-text">Solid Box</span>
+          <span className="sign-tool-btn-text">Blackout</span>
         </button>
 
-        {activeStyle === 'blackout' && (
+        <button
+          type="button"
+          className={`sign-tool-btn${activeStyle === 'whiteout' ? ' active' : ''}`}
+          onClick={() => setActiveStyle('whiteout')}
+          title="Draw whiteout boxes to erase content"
+          aria-pressed={activeStyle === 'whiteout'}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <line x1="3" y1="9" x2="21" y2="9" />
+            <line x1="9" y1="21" x2="9" y2="9" />
+          </svg>
+          <span className="sign-tool-btn-text">Whiteout</span>
+        </button>
+
+        {activeStyle === 'whiteout' && (
           <ColorPickerMenu
             value={activeColor}
             onChange={setActiveColor}
-            title="Box color"
-            defaultColor="#000000"
+            title="Whiteout color"
+            defaultColor="#ffffff"
           />
         )}
 

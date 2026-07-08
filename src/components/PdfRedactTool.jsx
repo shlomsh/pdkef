@@ -17,13 +17,13 @@ export default function PdfRedactTool() {
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [announcement, setAnnouncement] = useState('');
 
-  const [activeStyle, setActiveStyle] = useState('blackout'); // 'blackout' | 'blur'
-  const [activeColor, setActiveColor] = useState('#000000');
+  const [activeStyle, setActiveStyle] = useState('blackout'); // 'blackout' | 'blur' | 'whiteout'
+  const [activeColor, setActiveColor] = useState('#ffffff');
   const [drawingState, setDrawingState] = useState(null); // { pageIndex, startX, startY, currentX, currentY }
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('pdf-toolkit:lastRedactColor');
+      const stored = localStorage.getItem('pdf-toolkit:lastWhiteoutColor');
       if (stored) setActiveColor(stored);
     } catch (e) {}
   }, []);
@@ -31,7 +31,7 @@ export default function PdfRedactTool() {
   const rememberColor = (color) => {
     setActiveColor(color);
     try {
-      localStorage.setItem('pdf-toolkit:lastRedactColor', color);
+      localStorage.setItem('pdf-toolkit:lastWhiteoutColor', color);
     } catch (e) {}
   };
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
@@ -248,7 +248,7 @@ export default function PdfRedactTool() {
         width,
         height,
         style: activeStyle,
-        color: activeStyle === 'blackout' ? activeColor : undefined
+        color: activeStyle === 'whiteout' ? activeColor : (activeStyle === 'blackout' ? '#000000' : undefined)
       }]);
       setAnnouncement(`Added ${activeStyle} box.`);
     }
@@ -473,10 +473,10 @@ export default function PdfRedactTool() {
                         top: `${el.top}%`,
                         width: `${el.width}%`,
                         height: `${el.height}%`,
-                        backgroundColor: el.style === 'blur' ? 'rgba(255,255,255,0.1)' : (el.color || '#000000'),
+                        backgroundColor: el.style === 'blur' ? 'rgba(255,255,255,0.1)' : (el.style === 'whiteout' ? el.color || '#ffffff' : '#000000'),
                         backdropFilter: el.style === 'blur' ? 'blur(8px)' : 'none',
                         WebkitBackdropFilter: el.style === 'blur' ? 'blur(8px)' : 'none',
-                        border: el.style === 'blur' ? '1px solid rgba(0,0,0,0.2)' : '1px solid #333',
+                        border: el.style === 'blur' ? '1px solid rgba(0,0,0,0.2)' : (el.style === 'whiteout' ? '1px solid rgba(0,0,0,0.15)' : '1px solid #333'),
                         cursor: 'move',
                         touchAction: 'none',
                         zIndex: 10
@@ -543,11 +543,11 @@ export default function PdfRedactTool() {
                         top: `${Math.min(drawingState.startY, drawingState.currentY)}%`,
                         width: `${Math.abs(drawingState.currentX - drawingState.startX)}%`,
                         height: `${Math.abs(drawingState.currentY - drawingState.startY)}%`,
-                        backgroundColor: activeStyle === 'blur' ? 'rgba(255,255,255,0.1)' : (activeColor === '#000000' ? 'rgba(0, 0, 0, 0.7)' : activeColor),
-                        opacity: activeStyle === 'blackout' && activeColor !== '#000000' ? 0.7 : 1,
+                        backgroundColor: activeStyle === 'blur' ? 'rgba(255,255,255,0.1)' : (activeStyle === 'whiteout' ? activeColor : 'rgba(0, 0, 0, 0.7)'),
+                        opacity: activeStyle === 'whiteout' && activeColor !== '#000000' ? 0.7 : 1,
                         backdropFilter: activeStyle === 'blur' ? 'blur(8px)' : 'none',
                         WebkitBackdropFilter: activeStyle === 'blur' ? 'blur(8px)' : 'none',
-                        border: activeStyle === 'blur' ? '2px dashed #000' : '2px dashed #ff4757',
+                        border: activeStyle === 'blur' ? '2px dashed #000' : (activeStyle === 'whiteout' ? '2px dashed #000' : '2px dashed #ff4757'),
                         zIndex: 20,
                         pointerEvents: 'none'
                       }}
