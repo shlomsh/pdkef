@@ -533,7 +533,13 @@ export default function PdfRedactTool() {
                         }}
                       />
                       {el.id === activeBoxId && el.style === 'whiteout' && (
-                        <div className="sign-element-toolbar" onPointerDown={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
+                        <div
+                          className="sign-element-actions"
+                          style={{ opacity: 1, pointerEvents: 'auto', top: '-44px', left: 0 }}
+                          onPointerDown={e => e.stopPropagation()}
+                          onMouseDown={e => e.stopPropagation()}
+                          onTouchStart={e => e.stopPropagation()}
+                        >
                           <ColorPickerMenu
                             value={el.color || '#ffffff'}
                             onChange={(color) => {
