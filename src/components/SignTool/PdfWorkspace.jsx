@@ -32,10 +32,12 @@ export default function PdfWorkspace({
   setTempPlacement,
   setDialogOpen,
   rememberColor,
+  rememberWhiteoutColor,
   rememberFont,
   rememberFontSize,
   rememberDirection,
   lastColor = DEFAULT_COLOR_BLUE,
+  lastWhiteoutColor = '#ffffff',
   lastThickness = DEFAULT_STROKE_WIDTH,
   lastFont = DEFAULT_FONT_FAMILY,
   lastFontSize = DEFAULT_FONT_SIZE_PT,
@@ -65,6 +67,7 @@ export default function PdfWorkspace({
     logAction,
     setAnnouncement,
     initialColor: lastColor,
+    initialWhiteoutColor: lastWhiteoutColor,
     initialStrokeWidth: lastThickness,
     initialFont: lastFont,
     initialFontSize: lastFontSize,
@@ -91,11 +94,18 @@ export default function PdfWorkspace({
   // function closes over the element id captured at call time.
   const makeOnChange = useCallback((id) => (fields) => {
     updateElement(id, fields);
-    if (fields.color) rememberColor(fields.color);
+    const element = elements.find(e => e.id === id);
+    if (fields.color) {
+      if (element?.type === 'whiteout') {
+        rememberWhiteoutColor(fields.color);
+      } else {
+        rememberColor(fields.color);
+      }
+    }
     if (fields.fontFamily) rememberFont(fields.fontFamily);
     if (fields.fontSize) rememberFontSize(fields.fontSize);
     if (fields.textDirection) rememberDirection(fields.textDirection);
-  }, [updateElement, rememberColor, rememberFont, rememberFontSize, rememberDirection]);
+  }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection]);
 
   const makeOnSelect = useCallback((id) => (e) => {
     e.stopPropagation();

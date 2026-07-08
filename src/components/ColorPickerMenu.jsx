@@ -30,10 +30,8 @@ export default function ColorPickerMenu({ value, onChange, title, defaultColor =
         <div className="sign-popover sign-color-menu" role="menu">
           <ColorPicker
             value={value}
-            onChange={(color) => {
-              onChange(color);
-              setOpen(false);
-            }}
+            onChange={onChange}
+            onClose={() => setOpen(false)}
             title={title}
             defaultColor={defaultColor}
           />

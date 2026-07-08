@@ -1838,10 +1838,11 @@ footer a {
   width: 24px;
   height: 24px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: none;
   border-radius: 4px;
   cursor: pointer;
   background: transparent;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
 }
 .sign-color-input::-webkit-color-swatch-wrapper {
   padding: 0;
@@ -1849,6 +1850,7 @@ footer a {
 .sign-color-input::-webkit-color-swatch {
   border: none;
   border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
 }
 
 .sign-color-picker {
@@ -1880,7 +1882,7 @@ footer a {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
 }
 
 

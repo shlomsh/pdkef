@@ -34,6 +34,9 @@ function PdfSignToolInner() {
   // Last color picked for any element, remembered across new placements
   const [lastColor, setLastColor] = useState('#000000');
 
+  // Last whiteout color picked, remembered across new placements
+  const [lastWhiteoutColor, setLastWhiteoutColor] = useState('#ffffff');
+
   // Last font family picked for a text element, remembered across new placements
   const [lastFont, setLastFont] = useState('Arimo');
 
@@ -195,6 +198,16 @@ function PdfSignToolInner() {
     }
   }, []);
 
+  // Load last-used whiteout color from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('pdf-toolkit:lastWhiteoutColor');
+      if (stored) setLastWhiteoutColor(stored);
+    } catch (e) {
+      console.error('Failed to load last whiteout color from localStorage:', e);
+    }
+  }, []);
+
   // Load last-used text font from localStorage on mount
   useEffect(() => {
     try {
@@ -232,6 +245,16 @@ function PdfSignToolInner() {
       localStorage.setItem('pdf-toolkit:lastColor', color);
     } catch (e) {
       console.error('Failed to persist last color to localStorage:', e);
+    }
+  };
+
+  // Remember the whiteout color last picked for future placements
+  const rememberWhiteoutColor = (color) => {
+    setLastWhiteoutColor(color);
+    try {
+      localStorage.setItem('pdf-toolkit:lastWhiteoutColor', color);
+    } catch (e) {
+      console.error('Failed to persist last whiteout color to localStorage:', e);
     }
   };
 
@@ -622,10 +645,12 @@ function PdfSignToolInner() {
           setTempPlacement={setTempPlacement}
           setDialogOpen={setDialogOpen}
           rememberColor={rememberColor}
+          rememberWhiteoutColor={rememberWhiteoutColor}
           rememberFont={rememberFont}
           rememberFontSize={rememberFontSize}
           rememberDirection={rememberDirection}
           lastColor={lastColor}
+          lastWhiteoutColor={lastWhiteoutColor}
           lastThickness={lastThickness}
           lastFont={lastFont}
           lastFontSize={lastFontSize}

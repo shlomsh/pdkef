@@ -43,6 +43,7 @@ export default function useWorkspaceGestures({
   logAction,
   setAnnouncement,
   initialColor = DEFAULT_COLOR_BLUE,
+  initialWhiteoutColor = '#ffffff',
   initialStrokeWidth = DEFAULT_STROKE_WIDTH,
   initialFont = DEFAULT_FONT_FAMILY,
   initialFontSize = DEFAULT_FONT_SIZE_PT,
@@ -173,7 +174,7 @@ export default function useWorkspaceGestures({
           width: 0,
           height: 0,
           ...(tool === 'whiteout'
-            ? { color: DEFAULT_WHITEOUT_COLOR }
+            ? { color: initialWhiteoutColor }
             : { color: initialColor, strokeWidth: initialStrokeWidth }),
         };
 
