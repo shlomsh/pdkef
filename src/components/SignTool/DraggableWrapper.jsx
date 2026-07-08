@@ -136,6 +136,7 @@ export default function DraggableWrapper({
     const startHeight = element.height || getWidthPercentToHeightPercent(startWidth, ratioAtStart, pageWrapper);
 
     const textStartRect = element.type === 'text' && elementRef.current ? getDimensions(elementRef.current) : null;
+    let pendingResize = null;
 
     const handleResizeMove = (moveEvent) => {
       const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
@@ -149,18 +150,32 @@ export default function DraggableWrapper({
       
       if (handle === 'line-start') {
         const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
-        onChange({
+        pendingResize = {
           x1: startX1 + dxPercent,
           y1: startY1 + dyPercent
-        });
+        };
+        const lines = elementRef.current?.querySelectorAll('line');
+        if (lines) {
+          lines.forEach(l => {
+            l.setAttribute('x1', `${pendingResize.x1}%`);
+            l.setAttribute('y1', `${pendingResize.y1}%`);
+          });
+        }
         return;
       }
       if (handle === 'line-end') {
         const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
-        onChange({
+        pendingResize = {
           x2: startX2 + dxPercent,
           y2: startY2 + dyPercent
-        });
+        };
+        const lines = elementRef.current?.querySelectorAll('line');
+        if (lines) {
+          lines.forEach(l => {
+            l.setAttribute('x2', `${pendingResize.x2}%`);
+            l.setAttribute('y2', `${pendingResize.y2}%`);
+          });
+        }
         return;
       }
 
@@ -203,7 +218,13 @@ export default function DraggableWrapper({
           newTop = startTop - (newHeight - startHeight);
         }
         
-        onChange({ width: newWidth, height: newHeight, left: newLeft, top: newTop });
+        pendingResize = { width: newWidth, height: newHeight, left: newLeft, top: newTop };
+        if (elementRef.current) {
+          elementRef.current.style.width = `${newWidth}%`;
+          elementRef.current.style.height = `${newHeight}%`;
+          elementRef.current.style.left = `${newLeft}%`;
+          elementRef.current.style.top = `${newTop}%`;
+        }
         return;
       }
 
@@ -222,7 +243,11 @@ export default function DraggableWrapper({
           const deltaFontSize = pxToPoints(normalizedDx, scale) * TEXT_RESIZE_SCALE_FACTOR;
           newFontSize = Math.round(startFontSize + deltaFontSize);
         }
-        onChange({ fontSize: Math.max(MIN_FONT_SIZE_PT, Math.min(MAX_FONT_SIZE_PT, newFontSize)) });
+        
+        pendingResize = { fontSize: Math.max(MIN_FONT_SIZE_PT, Math.min(MAX_FONT_SIZE_PT, newFontSize)) };
+        if (elementRef.current) {
+          elementRef.current.style.fontSize = `${pendingResize.fontSize}pt`;
+        }
         return;
       }
 
@@ -250,11 +275,22 @@ export default function DraggableWrapper({
         let newTop = startTop + (startHeight - newHeight) / 2;
         newLeft = Math.max(0, Math.min(100 - newWidth, newLeft));
         newTop = Math.max(0, Math.min(100 - newHeight, newTop));
-        onChange({ width: newWidth, height: newHeight, left: newLeft, top: newTop });
+        
+        pendingResize = { width: newWidth, height: newHeight, left: newLeft, top: newTop };
+        if (elementRef.current) {
+          elementRef.current.style.width = `${newWidth}%`;
+          elementRef.current.style.height = `${newHeight}%`;
+          elementRef.current.style.left = `${newLeft}%`;
+          elementRef.current.style.top = `${newTop}%`;
+        }
         return;
       }
 
-      onChange({ width: newWidth, height: newHeight });
+      pendingResize = { width: newWidth, height: newHeight };
+      if (elementRef.current) {
+        elementRef.current.style.width = `${newWidth}%`;
+        elementRef.current.style.height = `${newHeight}%`;
+      }
     };
 
     const handleResizeUp = () => {
@@ -262,6 +298,29 @@ export default function DraggableWrapper({
       window.removeEventListener('mouseup', handleResizeUp);
       window.removeEventListener('touchmove', handleResizeMove);
       window.removeEventListener('touchend', handleResizeUp);
+      
+      if (pendingResize) {
+        onChange(pendingResize);
+        pendingResize = null;
+        
+        if (elementRef.current) {
+          elementRef.current.style.width = '';
+          elementRef.current.style.height = '';
+          elementRef.current.style.left = '';
+          elementRef.current.style.top = '';
+          elementRef.current.style.fontSize = '';
+          
+          const lines = elementRef.current.querySelectorAll('line');
+          if (lines) {
+            lines.forEach(l => {
+              l.removeAttribute('x1');
+              l.removeAttribute('y1');
+              l.removeAttribute('x2');
+              l.removeAttribute('y2');
+            });
+          }
+        }
+      }
     };
 
     window.addEventListener('mousemove', handleResizeMove);
@@ -288,7 +347,18 @@ export default function DraggableWrapper({
   const isWhiteout = actualType === 'whiteout';
   // isShape controls 4-handle resizing and box-style CSS — includes whiteout
   const isShape = actualType === 'ellipse' || actualType === 'rectangle' || isWhiteout;
+  
+  let defaultWidth = 'auto';
+  let defaultHeight = 'auto';
+  if (element.type === 'symbol' || element.type === 'signature') {
+    defaultWidth = `${DEFAULT_START_WIDTH_PCT}%`;
+  } else if (isShape) {
+    defaultWidth = `${DEFAULT_START_WIDTH_PCT}%`;
+    defaultHeight = `${DEFAULT_START_WIDTH_PCT}%`;
+  }
+
   const style = isLine ? {
+    position: 'absolute',
     left: 0,
     top: 0,
     width: '100%',
@@ -296,9 +366,10 @@ export default function DraggableWrapper({
     pointerEvents: 'none',
     transform: 'none',
   } : {
+    position: 'absolute',
     top: `${element.top}%`,
-    width: element.width && element.type !== 'text' ? `${element.width}%` : 'auto',
-    height: element.height && element.type !== 'text' ? `${element.height}%` : 'auto',
+    width: element.type === 'text' ? 'auto' : (element.width ? `${element.width}%` : defaultWidth),
+    height: element.type === 'text' ? 'auto' : (element.height ? `${element.height}%` : defaultHeight),
     ...(isRtlText
       ? { right: `${100 - element.left}%` }
       : { left: `${element.left}%` }),
@@ -312,7 +383,7 @@ export default function DraggableWrapper({
           refs.setReference(node);
         }
       }}
-      className={`sign-element absolute cursor-move select-none touch-none ${isActive ? ' active z-50' : ' z-[1]'}${element.type === 'symbol' ? ' sign-element--symbol' : ''}${isShape ? ' sign-element--shape' : ''}${isLine ? ' sign-element--line' : ''}`}
+      className={`sign-element absolute cursor-move select-none touch-none ${isActive ? ' active z-50 outline outline-1 outline-dashed outline-primary' : ' z-[1]'}${element.type === 'symbol' ? ' sign-element--symbol' : ''}${isShape ? ' sign-element--shape' : ''}${isLine ? ' sign-element--line' : ''}`}
       style={style}
       onMouseDown={!isLine ? handlePointerDown : undefined}
       onTouchStart={!isLine ? handlePointerDown : undefined}

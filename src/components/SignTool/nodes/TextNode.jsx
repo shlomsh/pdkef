@@ -57,9 +57,13 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
 
   return (
     <>
-      <div ref={textRef} className="sign-text-display" style={{ fontSize: `${textFontSize}px` }}>
+      <div 
+        ref={textRef} 
+        className="sign-text-display grid relative items-start justify-items-start text-black leading-[1.2]" 
+        style={{ fontSize: `${textFontSize}px` }}
+      >
         <div
-          className="sign-text-measure"
+          className="sign-text-measure col-start-1 row-start-1 px-[4px] py-[0.3em] m-0 whitespace-pre-wrap break-words invisible pointer-events-none"
           dir={textDirection}
           style={{
             fontSize: `${textFontSize}px`,
@@ -75,7 +79,7 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
           dir={textDirection}
           rows={1}
           cols={1}
-          className="sign-text-input"
+          className="sign-text-input col-start-1 row-start-1 px-[4px] py-[0.3em] m-0 whitespace-pre-wrap break-words block border-none bg-transparent outline-none resize-none overflow-hidden w-full h-full min-w-0 placeholder:text-inherit placeholder:opacity-45"
           value={element.text}
           placeholder="Click to edit"
           onInput={(e) => onChange({ text: e.currentTarget.value })}

@@ -151,7 +151,7 @@ export default function PdfWorkspace({
                   key={pageIdx}
                   ref={(el) => (pageWrapperRefs.current[pageIdx] = el)}
                   className="sign-page-wrapper relative w-full bg-white border rounded-sm shadow-md select-none"
-                  style={{ aspectRatio: `${size.width} / ${size.height}` }}
+                  style={{ position: 'relative', aspectRatio: `${size.width} / ${size.height}` }}
                 >
                   <PdfPageCanvas
                     pdfDocument={pdfDocument}
@@ -160,6 +160,7 @@ export default function PdfWorkspace({
 
                   <div
                     className="sign-page-overlay absolute inset-0 w-full h-full pointer-events-auto"
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
                     onClick={(e) => handlePageClick(e, pageIdx)}
                     onMouseDown={(e) => handleOverlayPointerDown(e, pageIdx)}
                     onTouchStart={(e) => handleOverlayPointerDown(e, pageIdx)}
