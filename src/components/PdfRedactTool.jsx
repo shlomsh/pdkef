@@ -569,7 +569,7 @@ export default function PdfRedactTool() {
             Download Redacted PDF
           </a>
           <button type="button" className="start-over" onClick={() => setConfirmResetOpen(true)}>
-            <span className="sign-tool-btn-text">Start over</span>
+            <span className="max-[919px]:sr-only">Start over</span>
           </button>
         </div>
       )}

@@ -68,4 +68,29 @@ describe('ColorPickerMenu (Popover Refactor)', () => {
     expect(menu.classList.contains('sign-dropdown-menu')).toBe(false);
     expect(menu.classList.contains('sign-popover')).toBe(true);
   });
+
+  it('computes correct layout styles for the popover (CSS validation)', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    act(() => {
+      render(
+        <ColorPickerMenu value="#000000" onChange={() => {}} title="Test Color" />,
+        container
+      );
+    });
+
+    await act(async () => {
+      container.querySelector('button').click();
+    });
+
+    const menu = document.body.querySelector('.sign-popover');
+    expect(menu).not.toBeNull();
+    
+    const computed = window.getComputedStyle(menu);
+    // .sign-popover CSS sets these
+    expect(computed.display).toBe('flex');
+    expect(computed.flexDirection).toBe('column');
+    expect(computed.zIndex).toBe('110');
+  });
 });

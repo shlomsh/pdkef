@@ -312,7 +312,7 @@ export default function DraggableWrapper({
           refs.setReference(node);
         }
       }}
-      className={`sign-element${isActive ? ' active' : ''}${element.type === 'symbol' ? ' sign-element--symbol' : ''}${isShape ? ' sign-element--shape' : ''}${isLine ? ' sign-element--line' : ''}`}
+      className={`sign-element absolute cursor-move select-none touch-none ${isActive ? ' active z-50' : ' z-[1]'}${element.type === 'symbol' ? ' sign-element--symbol' : ''}${isShape ? ' sign-element--shape' : ''}${isLine ? ' sign-element--line' : ''}`}
       style={style}
       onMouseDown={!isLine ? handlePointerDown : undefined}
       onTouchStart={!isLine ? handlePointerDown : undefined}
@@ -326,7 +326,7 @@ export default function DraggableWrapper({
             refs.setFloating(node);
           }
         }}
-        className="sign-element-actions"
+        className={`sign-element-actions${isRtlText ? ' sign-element-actions--rtl' : ''}`}
         style={isLine ? {
           position: 'absolute',
           left: `${Math.min(element.x1, element.x2) + Math.abs(element.x1 - element.x2) / 2}%`,

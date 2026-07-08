@@ -115,9 +115,9 @@ export default function PdfWorkspace({
   }, [dispatch]);
 
   return (
-    <div className={`sign-workspace ${isPseudoFullscreen ? 'pseudo-fullscreen' : ''}`} ref={workspaceRef}>
+    <div className={`sign-workspace flex flex-col items-center w-full max-w-full mx-auto gap-4 ${isPseudoFullscreen ? 'pseudo-fullscreen' : ''}`} ref={workspaceRef}>
       {/* Header Controls */}
-      <div className="list-header" style={{ width: '100%' }}>
+      <div className="list-header w-full">
         <span className="list-count" style={{ fontWeight: '600' }}>
           Signing: {file.name}
         </span>
@@ -142,7 +142,7 @@ export default function PdfWorkspace({
           />
 
           {/* PDF Pages rendering container */}
-          <div className="sign-pages-container" onClick={deactivateAll}>
+          <div className="sign-pages-container flex flex-col w-full gap-8" onClick={deactivateAll}>
             {Array.from({ length: numPages }).map((_, pageIdx) => {
               const size = pageSizes[pageIdx] || { width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS };
 
@@ -150,7 +150,7 @@ export default function PdfWorkspace({
                 <div
                   key={pageIdx}
                   ref={(el) => (pageWrapperRefs.current[pageIdx] = el)}
-                  className="sign-page-wrapper"
+                  className="sign-page-wrapper relative w-full bg-white border rounded-sm shadow-md select-none"
                   style={{ aspectRatio: `${size.width} / ${size.height}` }}
                 >
                   <PdfPageCanvas
@@ -159,7 +159,7 @@ export default function PdfWorkspace({
                   />
 
                   <div
-                    className="sign-page-overlay"
+                    className="sign-page-overlay absolute inset-0 w-full h-full pointer-events-auto"
                     onClick={(e) => handlePageClick(e, pageIdx)}
                     onMouseDown={(e) => handleOverlayPointerDown(e, pageIdx)}
                     onTouchStart={(e) => handleOverlayPointerDown(e, pageIdx)}

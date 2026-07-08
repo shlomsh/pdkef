@@ -27,7 +27,7 @@ export default function ColorPickerMenu({ value, onChange, title, defaultColor =
         </button>
       }
       content={
-        <div className="sign-popover sign-color-menu" role="menu">
+        <div className="flex flex-col p-2 bg-surface border border-border rounded-md shadow-lg w-max min-w-0 z-[110] pointer-events-auto" role="menu">
           <ColorPicker
             value={value}
             onChange={(color) => {

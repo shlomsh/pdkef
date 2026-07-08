@@ -161,4 +161,57 @@ describe('PdfWorkspace Component', () => {
       })
     );
   });
+
+  it('computes correct layout styles for workspace containers (CSS validation)', () => {
+    const dispatch = vi.fn();
+    const state = {
+      selectedTool: null,
+      elements: [],
+      activeElementId: null,
+      actionHistory: []
+    };
+
+    const mockProps = {
+      file: { name: 'sample.pdf' },
+      status: 'editing',
+      isPseudoFullscreen: false,
+      workspaceRef: { current: null },
+      numPages: 1,
+      pageSizes: [{ width: 600, height: 800 }],
+      pdfDocument: null,
+      pageWrapperRefs: { current: [] },
+      activeSignature: null,
+      setTempPlacement: vi.fn(),
+      setDialogOpen: vi.fn(),
+      rememberColor: vi.fn(),
+      rememberFont: vi.fn(),
+      rememberFontSize: vi.fn(),
+      rememberDirection: vi.fn(),
+      logAction: vi.fn(),
+      handleSavePdf: vi.fn(),
+      setAnnouncement: vi.fn(),
+      savedSignatures: [],
+      setActiveSignature: vi.fn(),
+      onDeleteSavedSignature: vi.fn(),
+      setUndoModalOpen: vi.fn(),
+      toggleFullscreen: vi.fn(),
+      isFullscreen: false,
+      setConfirmResetOpen: vi.fn(),
+      placeSignatureAt: vi.fn()
+    };
+
+    host = mount(
+      <SignToolContext.Provider value={{ state, dispatch }}>
+        <PdfWorkspace {...mockProps} />
+      </SignToolContext.Provider>
+    );
+
+    const workspace = host.querySelector('.sign-workspace');
+    expect(workspace).not.toBeNull();
+    const computed = window.getComputedStyle(workspace);
+    expect(computed.display).toBe('flex');
+    expect(computed.flexDirection).toBe('column');
+    expect(computed.alignItems).toBe('center');
+  });
 });
+

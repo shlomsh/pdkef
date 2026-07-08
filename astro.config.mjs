@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import preact from '@astrojs/preact';
+import tailwind from '@astrojs/tailwind';
 
 // Static output only — no SSR, no adapter. The app is a flat set of
 // files served by Vercel; all PDF processing happens in the browser.
@@ -12,7 +13,10 @@ import preact from '@astrojs/preact';
 export default defineConfig({
   site: 'https://pdkef.com',
   output: 'static',
-  integrations: [preact({ compat: true })],
+  integrations: [
+    preact({ compat: true }),
+    tailwind({ applyBaseStyles: false })
+  ],
   build: {
     inlineStylesheets: 'always',
   },

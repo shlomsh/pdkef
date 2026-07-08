@@ -26,8 +26,8 @@ export default function ThicknessPickerMenu({ value, onChange, title }) {
         </button>
       }
       content={
-        <div className="sign-popover" role="menu" style={{ minWidth: '100px', padding: '0.15rem', cursor: 'default' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.05rem' }}>
+        <div className="flex flex-col bg-surface border border-border rounded-md shadow-lg pointer-events-auto z-[110]" role="menu" style={{ minWidth: '100px', padding: '0.15rem', cursor: 'default' }}>
+          <div className="flex flex-col gap-[0.05rem]">
             {THICKNESS_OPTIONS.map(thickness => (
               <button
                 key={thickness}

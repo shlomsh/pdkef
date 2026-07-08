@@ -52,7 +52,7 @@ export default function FontPickerMenu({ value, onChange }) {
         </button>
       }
       content={
-        <div className="sign-popover sign-font-menu" role="menu">
+        <div className="flex flex-col p-2 bg-surface border border-border rounded-md shadow-lg w-max min-w-0 max-h-[15rem] overflow-y-auto z-[110] pointer-events-auto" role="menu">
           {STANDARD_FONTS.map((f) => (
             <button
               key={f.value}

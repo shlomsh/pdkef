@@ -13,3 +13,29 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
     disconnect() {}
   };
 }
+
+import fs from 'fs';
+import path from 'path';
+
+try {
+  const htmlPath = path.resolve(process.cwd(), 'dist/index.html');
+  if (fs.existsSync(htmlPath)) {
+    const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+    const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/g;
+    let cssContent = '';
+    let match;
+    while ((match = styleRegex.exec(htmlContent)) !== null) {
+      cssContent += match[1] + '\n';
+    }
+    
+    if (cssContent && typeof document !== 'undefined') {
+      const styleEl = document.createElement('style');
+      styleEl.textContent = cssContent;
+      document.head.appendChild(styleEl);
+    }
+  } else {
+    console.warn('⚠️ dist/index.html not found. Run `npm run build` before tests for CSS assertions.');
+  }
+} catch (e) {
+  console.error('Failed to inject CSS into jsdom:', e);
+}
