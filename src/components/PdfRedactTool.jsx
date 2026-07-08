@@ -6,6 +6,7 @@ import { redactPdf } from '../lib/redact.js';
 import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 import { useDraftPersistence } from '../lib/useDraftPersistence.js';
 import RedactToolbar from './RedactToolbar.jsx';
+import ColorPickerMenu from './ColorPickerMenu.jsx';
 
 export default function PdfRedactTool() {
   const [file, setFile] = useState(null);
@@ -531,6 +532,18 @@ export default function PdfRedactTool() {
                           zIndex: 11
                         }}
                       />
+                      {el.id === activeBoxId && el.style === 'whiteout' && (
+                        <div className="sign-element-toolbar" onPointerDown={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
+                          <ColorPickerMenu
+                            value={el.color || '#ffffff'}
+                            onChange={(color) => {
+                              updateElement(el.id, { color });
+                              rememberColor(color);
+                            }}
+                            title="Whiteout color"
+                          />
+                        </div>
+                      )}
                     </div>
                   ))}
                   

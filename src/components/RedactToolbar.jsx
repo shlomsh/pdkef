@@ -1,5 +1,4 @@
 import FullscreenButton from './FullscreenButton';
-import ColorPickerMenu from './ColorPickerMenu';
 
 export default function RedactToolbar({
   activeStyle,
@@ -44,15 +43,6 @@ export default function RedactToolbar({
           </svg>
           <span className="sign-tool-btn-text">Whiteout</span>
         </button>
-
-        {activeStyle === 'whiteout' && (
-          <ColorPickerMenu
-            value={activeColor}
-            onChange={setActiveColor}
-            title="Whiteout color"
-            defaultColor="#ffffff"
-          />
-        )}
 
         <button
           type="button"
