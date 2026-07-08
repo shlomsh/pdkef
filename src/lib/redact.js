@@ -71,8 +71,8 @@ export async function redactPdf(file, elements, onProgress) {
           // Paste the blurred section over the original
           ctx.drawImage(blurredCanvas, x, y, w, h, x, y, w, h);
         } else {
-          // Default to pure black blackout
-          ctx.fillStyle = '#000000';
+          // Solid color redact box (defaults to black)
+          ctx.fillStyle = el.color || '#000000';
           ctx.fillRect(x, y, w, h);
         }
       }

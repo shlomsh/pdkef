@@ -1,8 +1,11 @@
 import FullscreenButton from './FullscreenButton';
+import ColorPickerMenu from './ColorPickerMenu';
 
 export default function RedactToolbar({
   activeStyle,
   setActiveStyle,
+  activeColor,
+  setActiveColor,
   toggleFullscreen,
   isFullscreen,
   setConfirmResetOpen,
@@ -24,8 +27,17 @@ export default function RedactToolbar({
             <rect x="3" y="9.5" width="18" height="5" rx="1" fill="currentColor" stroke="none" />
             <line x1="4" y1="19" x2="12" y2="19" />
           </svg>
-          <span className="sign-tool-btn-text">Blackout</span>
+          <span className="sign-tool-btn-text">Solid Box</span>
         </button>
+
+        {activeStyle === 'blackout' && (
+          <ColorPickerMenu
+            value={activeColor}
+            onChange={setActiveColor}
+            title="Box color"
+            defaultColor="#000000"
+          />
+        )}
 
         <button
           type="button"

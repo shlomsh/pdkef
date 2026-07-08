@@ -18,7 +18,22 @@ export default function PdfRedactTool() {
   const [announcement, setAnnouncement] = useState('');
 
   const [activeStyle, setActiveStyle] = useState('blackout'); // 'blackout' | 'blur'
+  const [activeColor, setActiveColor] = useState('#000000');
   const [drawingState, setDrawingState] = useState(null); // { pageIndex, startX, startY, currentX, currentY }
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('pdf-toolkit:lastRedactColor');
+      if (stored) setActiveColor(stored);
+    } catch (e) {}
+  }, []);
+
+  const rememberColor = (color) => {
+    setActiveColor(color);
+    try {
+      localStorage.setItem('pdf-toolkit:lastRedactColor', color);
+    } catch (e) {}
+  };
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   // Which existing box shows its delete/resize controls — set on hover (desktop) or
   // on touch/drag interaction (mobile has no hover), so the controls stay hidden
@@ -232,7 +247,8 @@ export default function PdfRedactTool() {
         top,
         width,
         height,
-        style: activeStyle
+        style: activeStyle,
+        color: activeStyle === 'blackout' ? activeColor : undefined
       }]);
       setAnnouncement(`Added ${activeStyle} box.`);
     }
@@ -397,6 +413,8 @@ export default function PdfRedactTool() {
           <RedactToolbar
             activeStyle={activeStyle}
             setActiveStyle={setActiveStyle}
+            activeColor={activeColor}
+            setActiveColor={rememberColor}
             toggleFullscreen={toggleFullscreen}
             isFullscreen={isFullscreen || isPseudoFullscreen}
             setConfirmResetOpen={setConfirmResetOpen}
@@ -455,7 +473,7 @@ export default function PdfRedactTool() {
                         top: `${el.top}%`,
                         width: `${el.width}%`,
                         height: `${el.height}%`,
-                        backgroundColor: el.style === 'blur' ? 'rgba(255,255,255,0.1)' : '#000000',
+                        backgroundColor: el.style === 'blur' ? 'rgba(255,255,255,0.1)' : (el.color || '#000000'),
                         backdropFilter: el.style === 'blur' ? 'blur(8px)' : 'none',
                         WebkitBackdropFilter: el.style === 'blur' ? 'blur(8px)' : 'none',
                         border: el.style === 'blur' ? '1px solid rgba(0,0,0,0.2)' : '1px solid #333',
@@ -525,7 +543,8 @@ export default function PdfRedactTool() {
                         top: `${Math.min(drawingState.startY, drawingState.currentY)}%`,
                         width: `${Math.abs(drawingState.currentX - drawingState.startX)}%`,
                         height: `${Math.abs(drawingState.currentY - drawingState.startY)}%`,
-                        backgroundColor: activeStyle === 'blur' ? 'rgba(255,255,255,0.1)' : 'rgba(0, 0, 0, 0.7)',
+                        backgroundColor: activeStyle === 'blur' ? 'rgba(255,255,255,0.1)' : (activeColor === '#000000' ? 'rgba(0, 0, 0, 0.7)' : activeColor),
+                        opacity: activeStyle === 'blackout' && activeColor !== '#000000' ? 0.7 : 1,
                         backdropFilter: activeStyle === 'blur' ? 'blur(8px)' : 'none',
                         WebkitBackdropFilter: activeStyle === 'blur' ? 'blur(8px)' : 'none',
                         border: activeStyle === 'blur' ? '2px dashed #000' : '2px dashed #ff4757',
