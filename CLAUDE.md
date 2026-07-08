@@ -129,3 +129,9 @@ Icons referenced in the manifest (`public/icons/*.png`) still need to be generat
 ## Astro/Vercel version pinning — don't casually upgrade
 
 Astro is pinned to `^7.0.3`, not the `@vite-pwa/astro`-certified `^5.x` line, **on purpose**: `npm audit` showed Astro's own published security advisories (XSS via `define:vars`, slot names, spread props; SSRF) cover every version through `7.0.0-beta`, including all of 5.x. Downgrading to satisfy some other package's peer range would mean shipping a known-vulnerable Astro. If a future dependency wants an older Astro, re-verify with `npm audit` before downgrading — don't assume an older major is safer just because more tooling has caught up to it.
+
+## Tailwind Refactor Status
+
+A migration to Tailwind CSS was attempted and is currently paused in the `tailwind-refactor-wip` branch. 
+
+**WARNING:** Before resuming this work, you MUST read [TAILWIND_MIGRATION_LEARNINGS.md](./TAILWIND_MIGRATION_LEARNINGS.md). The PDF elements rely on highly specific real-time coordinate math and DOM event handling. The migration introduced severe state thrashing bugs (reconciliation overload) by binding `pointermove` events to React state instead of raw DOM transforms. The learnings document explicitly details this fatal flaw and provides instructions on how to handle the PDF editor math.
