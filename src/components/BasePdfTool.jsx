@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useState, useRef, useEffect } from 'preact/hooks';
 
 export default function BasePdfTool({ 
   hasFiles, 
@@ -9,6 +9,19 @@ export default function BasePdfTool({
   emptyStateMessage
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !hasFiles && fileInputRef.current) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('action') === 'open') {
+        url.searchParams.delete('action');
+        window.history.replaceState({}, '', url.toString());
+        // Attempt to auto-open the file dialog. Some browsers may block this without a direct user gesture.
+        fileInputRef.current.click();
+      }
+    }
+  }, [hasFiles]);
 
   const onInputChange = (event) => {
     onFilesAdded(event.currentTarget.files);
@@ -55,6 +68,7 @@ export default function BasePdfTool({
         <label class="file-picker-button">
           {hasFiles ? (multiple ? 'Add more' : 'Choose a different file') : `Choose file${multiple ? 's' : ''}`}
           <input
+            ref={fileInputRef}
             type="file"
             accept={accept}
             multiple={multiple}

@@ -1,17 +1,27 @@
 import { useState } from 'preact/hooks';
+import { saveDraft } from '../lib/draftStore.js';
 
-export default function FileDropzone({ onFiles, multiple = true, accept = "application/pdf" }) {
+export default function FileDropzone({ onFiles, multiple = true, accept = "application/pdf", href, toolTarget }) {
   const [isDragOver, setIsDragOver] = useState(false);
 
+  const handleFiles = async (files) => {
+    if (toolTarget) {
+      await saveDraft(toolTarget, { files: Array.from(files) });
+      window.location.href = `/${toolTarget}`;
+    } else if (onFiles) {
+      onFiles(files);
+    }
+  };
+
   const onInputChange = (event) => {
-    onFiles(event.currentTarget.files);
+    handleFiles(event.currentTarget.files);
     event.currentTarget.value = '';
   };
 
   const onDrop = (event) => {
     event.preventDefault();
     setIsDragOver(false);
-    onFiles(event.dataTransfer.files);
+    handleFiles(event.dataTransfer.files);
   };
 
   return (
@@ -42,16 +52,22 @@ export default function FileDropzone({ onFiles, multiple = true, accept = "appli
         <strong>Drop PDF{multiple ? 's' : ''} here</strong>
       </p>
 
-      <label class="file-picker-button">
-        Choose file{multiple ? 's' : ''}
-        <input
-          type="file"
-          accept={accept}
-          multiple={multiple}
-          onChange={onInputChange}
-          hidden
-        />
-      </label>
+      {href ? (
+        <a class="file-picker-button" href={href} style={{ textDecoration: 'none' }}>
+          Choose file{multiple ? 's' : ''}
+        </a>
+      ) : (
+        <label class="file-picker-button">
+          Choose file{multiple ? 's' : ''}
+          <input
+            type="file"
+            accept={accept}
+            multiple={multiple}
+            onChange={onInputChange}
+            hidden
+          />
+        </label>
+      )}
 
       <p class="privacy-line">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">

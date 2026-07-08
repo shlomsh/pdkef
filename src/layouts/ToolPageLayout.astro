@@ -22,7 +22,7 @@ const { tool } = Astro.props;
     <SeoSchema name={tool.schemaName} description={tool.seoDescription} faq={tool.faq} />
   </Fragment>
 
-  <ToolHero icon={tool.icon} toolName={tool.toolName} title={tool.h1} subhead={tool.subhead} />
+  <ToolHero icon={tool.icon} toolName={tool.toolName} title={tool.h1} subhead={tool.subhead} slug={tool.slug} />
 
   <main>
     <section id="app" aria-label={tool.ariaLabel}>

@@ -9,15 +9,16 @@ interface Props {
   toolName: string;
   title: string;
   subhead: string;
+  slug: string;
 }
-const { icon: Icon, toolName, title, subhead } = Astro.props;
+const { icon: Icon, toolName, title, subhead, slug } = Astro.props;
 ---
 
 <AppBar toolName={toolName} />
 
 <header class="tool-hero">
   <div class="tool-hero-head">
-    <div class="tool-hero-icon"><Icon size={28} strokeWidth={2} /></div>
+    <div class="tool-hero-icon" data-slug={slug}><Icon size={28} strokeWidth={1.5} /></div>
     <h1>{title}</h1>
   </div>
   <p>{subhead}</p>

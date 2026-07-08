@@ -6,21 +6,29 @@
 // surface. Uses a favicon square + wordmark for the brand pill.
 interface Props {
   toolName?: string;
+  isHome?: boolean;
 }
-const { toolName } = Astro.props;
+const { toolName, isHome = false } = Astro.props;
 ---
 
 <div class="appbar">
   <div class="appbar-inner">
-    <a href="/" class="appbar-brand" aria-label="PDkef home, all tools">
-      <span class="appbar-back" aria-hidden="true">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
-        </svg>
-      </span>
-      <img src="/favicon.png" width="24" height="24" alt="" aria-hidden="true" class="appbar-logo" />
-      <span class="appbar-wordmark">PDkef</span>
-    </a>
+    {isHome ? (
+      <div class="appbar-brand is-home" aria-label="PDkef logo">
+        <img src="/favicon.png" width="24" height="24" alt="" aria-hidden="true" class="appbar-logo" />
+        <span class="appbar-wordmark">PDkef</span>
+      </div>
+    ) : (
+      <a href="/" class="appbar-brand" aria-label="PDkef home, all tools">
+        <span class="appbar-back" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
+          </svg>
+        </span>
+        <img src="/favicon.png" width="24" height="24" alt="" aria-hidden="true" class="appbar-logo" />
+        <span class="appbar-wordmark">PDkef</span>
+      </a>
+    )}
 
     {toolName && (
       <span class="appbar-crumb">
@@ -75,7 +83,7 @@ const { toolName } = Astro.props;
     transition: border-color 0.15s var(--ease-out), transform 0.15s var(--ease-out);
   }
 
-  .appbar-brand:hover {
+  .appbar-brand:not(.is-home):hover {
     border-color: var(--color-border-strong);
     transform: translateX(-1px);
   }
@@ -90,7 +98,7 @@ const { toolName } = Astro.props;
     transition: width 0.18s var(--ease-out), opacity 0.18s var(--ease-out);
   }
 
-  .appbar-brand:hover .appbar-back {
+  .appbar-brand:not(.is-home):hover .appbar-back {
     width: 16px;
     opacity: 1;
   }

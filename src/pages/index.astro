@@ -4,6 +4,7 @@ import SeoSchema from '../components/SeoSchema.astro';
 import Footer from '../components/Footer.astro';
 import FeatureCard from '../components/FeatureCard.astro';
 import CardDecor from '../components/CardDecor.astro';
+import AppBar from '../components/AppBar.astro';
 import '../styles/global.css';
 
 const title = 'Free PDF Tools - Private, Local, No Sign-Up | PDkef';
@@ -11,6 +12,7 @@ const description = 'A free, open-source suite of PDF tools that run entirely in
 
 import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, HelpCircle, ShieldCheck, InfinityIcon, Lock, Code2 } from 'lucide-preact';
 import { tools } from '../data/tools.js';
+import FileDropzone from '../components/FileDropzone.jsx';
 
 // FAQ schema mirrors the visible questions rendered in the footer below.
 const faq = [
@@ -30,71 +32,52 @@ const HeroIcon = tools[0].icon;
     <SeoSchema name="PDkef" description={description} faq={faq} />
   </Fragment>
 
+  <AppBar isHome />
   <div class="first-fold-wrapper">
     <header class="hub-header">
-    <div class="title-row">
-      <img src="/favicon.png" width="42" height="42" aria-hidden="true" class="title-logo" alt="PDkef Logo" style="border-radius: 8px;" />
-      <h1>Free PDF tools that run on your device</h1>
-    </div>
-    <p>Merge, sign, split, and compress PDFs without signing up, installing anything, or uploading a single file. Everything runs in your browser, on your phone or computer, so your files never leave your device.</p>
-  </header>
+      <h1>Free PDF tools that run <span style="color: var(--color-primary)">on your device</span></h1>
+      <p>Merge, sign, split, and compress PDFs without signing up, installing anything, or uploading a single file. Everything runs in your browser, on your phone or computer, so your files never leave your device.</p>
+      
+      <div class="os-chips">
+        <a class="os-chip os-chip-gh" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" />
+          </svg>
+          Star us on GitHub
+          <svg class="os-star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 7.1-1.01L12 2z" />
+          </svg>
+        </a>
+        <span class="os-chip">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v18" /><path d="M7 7l-4 6a4 4 0 0 0 8 0l-4-6z" /><path d="M17 7l-4 6a4 4 0 0 0 8 0l-4-6z" /><path d="M6 21h12" /><path d="M8 5h8" />
+          </svg>
+          MIT licensed
+        </span>
+        <span class="os-chip">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" /><path d="M9 12.5l2 2 4-4.5" />
+          </svg>
+          Runs in your browser
+        </span>
+      </div>
+    </header>
 
   <main>
-    {/* Hero Card for the first tool */}
-    {tools.length > 0 && (
-      <a href={tools[0].href} class="hero-card">
-        <div class="hero-info">
-          <span class="hero-badge">Local & Private</span>
-          <h2>
-            <span class="hero-icon">
-              <HeroIcon size={24} strokeWidth={2} />
-            </span>
-            {tools[0].gridTitle}
-          </h2>
-          <p>{tools[0].gridDescription}</p>
-          <span class="hero-cta">
-            Open tool
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-              <polyline points="12 5 19 12 12 19"></polyline>
-            </svg>
-          </span>
-        </div>
-        <div class="hero-visual" aria-hidden="true">
-          <div class="doc-mockup">
-            <div class="doc-line short"></div>
-            <div class="doc-line"></div>
-            <div class="doc-line medium"></div>
-            <div class="doc-sig-row">
-              <div class="doc-sig-label">Sign here:</div>
-              <div class="doc-sig-line">
-                <svg class="cursive-signature" viewBox="0 0 100 30" fill="none" stroke="var(--color-primary)" stroke-width="2.2" stroke-linecap="round">
-                  <path d="M10,20 Q25,5 35,22 T55,12 T75,25 T90,10" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div class="pen-mockup">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-            </svg>
-          </div>
-        </div>
-      </a>
-    )}
+    {/* Large Dropzone CTA */}
+    <div class="merge-tool" style="max-width: 1032px; margin: 0 auto 4rem auto; padding: 1.5rem; box-sizing: border-box;">
+      <FileDropzone client:load href="/sign?action=open" toolTarget="sign" />
+    </div>
 
-    {/* 4x2 Grid for the remaining 8 tools */}
-    <div class="tool-grid">
-      {tools.slice(1).map((tool) => (
-        <a href={tool.href} class="tool-card">
-          <div class="tool-icon">
-            <tool.icon size={24} strokeWidth={2} />
+    {/* App Grid for all tools */}
+    <div class="appgrid">
+      {tools.map((tool) => (
+        <a href={tool.href} class="app-card">
+          <div class="app-tile">
+            <tool.icon strokeWidth={1.5} />
           </div>
-          <div class="tool-content">
-            <h3>{tool.gridTitle}</h3>
-            <p>{tool.gridDescription}</p>
-          </div>
+          <div class="app-lbl">{tool.gridTitle}</div>
+          <span class="app-tooltip">{tool.gridDescription}</span>
         </a>
       ))}
     </div>
@@ -363,305 +346,143 @@ const HeroIcon = tools[0].icon;
     margin-right: auto;
   }
 
-  .hero-card {
+  .hero-chips {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 3rem;
-    padding: 2rem 2.5rem;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    text-decoration: none;
-    color: inherit;
-    margin-bottom: 2rem;
-    box-shadow: var(--shadow-sm);
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.4s var(--ease-out), box-shadow 0.4s var(--ease-out), border-color 0.4s var(--ease-out);
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
   }
-
-  .hero-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md), 0 12px 24px -8px var(--color-primary-ring);
-    border-color: var(--color-primary-soft);
-  }
-
-  .hero-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.65rem;
-  }
-
-  .hero-badge {
+  
+  .hero-chip {
     display: inline-flex;
     align-items: center;
-    padding: 0.25rem 0.75rem;
-    background: var(--color-primary-soft);
-    color: var(--color-primary);
+    gap: 0.35rem;
+    padding: 0.45rem 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-pill);
-    font-size: 0.72rem;
+    font-size: 0.82rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .hero-info h2 {
-    font-size: 1.75rem;
-    font-weight: 800;
-    margin: 0;
-    color: var(--color-text);
-    letter-spacing: -0.02em;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .hero-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    flex-shrink: 0;
-    border-radius: var(--radius);
-    background: #d4e2fc; /* matches .tool-icon */
-    color: var(--color-primary);
-    transition: transform 0.2s var(--ease-spring), background-color 0.2s var(--ease-out);
-  }
-
-  .hero-card:hover .hero-icon {
-    background: var(--color-primary);
-    color: white;
-    transform: scale(1.05);
-  }
-
-  .hero-info p {
-    font-size: 0.95rem;
-    line-height: 1.5;
-    margin: 0;
     color: var(--color-muted);
-    max-width: 560px;
+    text-decoration: none;
+    box-shadow: var(--shadow-xs);
+    transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), border-color 0.2s var(--ease-out), color 0.2s var(--ease-out);
+  }
+  
+  .hero-chip:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+    border-color: var(--color-border-strong);
+    color: var(--color-text);
   }
 
-  .hero-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: var(--color-primary);
-    margin-top: 0.25rem;
-    transition: gap 0.2s var(--ease-out);
+  .appgrid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 24px;
+    max-width: 1080px;
+    margin: 0 auto 3rem;
+    padding: 1.5rem 1.5rem 1.5rem;
   }
 
-  .hero-card:hover .hero-cta {
-    gap: 0.75rem;
-  }
-
-  .hero-visual {
+  .app-card {
     position: relative;
-    width: 200px;
-    height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 80px;
     flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .doc-mockup {
-    width: 150px;
-    height: 105px;
-    background: var(--color-surface);
-    border: 1.5px solid var(--color-border-strong);
-    border-radius: var(--radius-sm);
-    padding: 1rem;
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    transition: border-color 0.3s var(--ease-out), transform 0.3s var(--ease-out);
-  }
-
-  .hero-card:hover .doc-mockup {
-    border-color: var(--color-primary-soft);
-    transform: scale(1.02);
-  }
-
-  .doc-line {
-    height: 5px;
-    background: var(--color-border-strong);
-    border-radius: 3px;
-    width: 100%;
-  }
-
-  .doc-line.short { width: 40%; }
-  .doc-line.medium { width: 75%; }
-
-  .doc-sig-row {
-    margin-top: auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-
-  .doc-sig-label {
-    font-size: 0.65rem;
-    color: var(--color-muted-light);
-    font-weight: 500;
-  }
-
-  .doc-sig-line {
-    flex: 1;
-    border-bottom: 1px dashed var(--color-muted-light);
-    height: 14px;
-    position: relative;
-  }
-
-  .cursive-signature {
-    position: absolute;
-    bottom: -2px;
-    left: 4px;
-    width: 60px;
-    height: 20px;
-    color: var(--color-primary);
-  }
-
-  .pen-mockup {
-    position: absolute;
-    right: 15px;
-    bottom: 5px;
-    width: 28px;
-    height: 28px;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border-strong);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-primary);
-    box-shadow: var(--shadow-sm);
-    transform: rotate(-15deg);
-    transition: transform 0.3s var(--ease-spring), border-color 0.3s var(--ease-out);
-  }
-
-  .hero-card:hover .pen-mockup {
-    transform: rotate(0deg) translate(-2px, -2px);
-    border-color: var(--color-primary);
-  }
-
-  .pen-mockup svg {
-    width: 14px;
-    height: 14px;
-  }
-
-  .tool-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: 1fr;
-    gap: 1.5rem;
-  }
-
-  @media (max-width: 1024px) {
-    .tool-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  @media (max-width: 768px) {
-    .hero-card {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 1.5rem;
-      padding: 1.5rem;
-    }
-    .hero-visual {
-      display: none;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .tool-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .tool-card {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    padding: 1.5rem;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    cursor: pointer;
     text-decoration: none;
     color: inherit;
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.4s var(--ease-out), box-shadow 0.4s var(--ease-out), border-color 0.4s var(--ease-out);
-    position: relative;
-    overflow: hidden;
+    outline: none;
   }
 
-  .tool-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, var(--color-primary-tint) 0%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.4s var(--ease-out);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .tool-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md), 0 12px 24px -8px var(--color-primary-ring);
-    border-color: var(--color-border-strong);
-  }
-
-  .tool-card:hover::before {
-    opacity: 1;
-  }
-
-  .tool-icon, .tool-content {
-    position: relative;
-    z-index: 1;
-  }
-
-  .tool-icon {
+  .app-tile {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius);
-    background: #d4e2fc; /* A tone darker than primary-soft */
-    color: var(--color-primary);
-    margin-bottom: 1.25rem;
-    transition: transform 0.2s var(--ease-spring), background-color 0.2s var(--ease-out);
+    background: linear-gradient(150deg, var(--color-muted-light), var(--color-border-strong));
+    box-shadow: 0 8px 18px -8px var(--color-primary-ring), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    transition: transform 0.4s var(--ease-spring), box-shadow 0.4s var(--ease-out), background-color 0.2s var(--ease-out);
+    color: #fff;
   }
 
-  .tool-card:hover .tool-icon {
+  .app-card:first-child .app-tile {
+    background: linear-gradient(150deg, var(--color-primary-hover), var(--color-primary));
+  }
+
+  .app-card:last-child .app-tile {
+    background: linear-gradient(150deg, #fff, var(--color-success-soft));
+    color: var(--color-success);
+  }
+
+  .app-card:hover .app-tile, .app-card:focus-visible .app-tile {
     background: var(--color-primary);
     color: white;
-    transform: scale(1.05);
+    transform: translateY(-3px) scale(1.04) rotate(1deg);
+    box-shadow: 0 12px 20px -8px var(--color-primary-ring), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+  
+  .app-tile svg {
+    display: block;
+    width: 55%;
+    height: 55%;
+    transition: transform 0.4s var(--ease-spring);
   }
 
-  .tool-content h3 {
-    font-size: 1.15rem;
+  .app-card:hover .app-tile svg, .app-card:focus-visible .app-tile svg {
+    transform: scale(1.08) rotate(-1deg);
+  }
+
+  .app-card:active .app-tile {
+    transform: translateY(0) scale(0.95);
+    box-shadow: 0 4px 10px -4px var(--color-primary-ring);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+
+  .app-lbl {
+    font-size: 0.8rem;
     font-weight: 600;
-    margin: 0 0 0.5rem;
-    color: var(--color-text);
+    color: var(--color-muted);
+    text-align: center;
+    line-height: 1.25;
   }
 
-  .tool-content p {
-    margin: 0;
-    font-size: 0.92rem;
-    line-height: 1.5;
-    color: var(--color-muted);
+  /* SEO Tooltip */
+  .app-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(0) scale(0.95);
+    opacity: 0;
+    visibility: hidden;
+    background: var(--color-text);
+    color: #fff;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 400;
+    width: max-content;
+    max-width: 200px;
+    text-align: center;
+    transition: opacity 0.2s ease 0s, visibility 0.2s ease 0s, transform 0.2s ease 0s;
+    z-index: 10;
+    pointer-events: none;
+    line-height: 1.4;
+    box-shadow: var(--shadow-md);
+  }
+  .app-card:hover .app-tooltip, .app-card:focus-visible .app-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-8px) scale(1);
+    transition: opacity 0.5s ease-out 0.4s, visibility 0.5s ease-out 0.4s, transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.4s;
   }
 
 
@@ -885,8 +706,8 @@ const HeroIcon = tools[0].icon;
     align-items: center;
     gap: 0.35rem;
     padding: 0.3rem 0.6rem;
-    background: var(--color-surface);
-    border: 1px solid color-mix(in srgb, var(--color-success) 35%, transparent);
+    background: var(--color-success-soft);
+    border: 1px solid color-mix(in srgb, var(--color-success) 20%, transparent);
     border-radius: var(--radius-pill);
     font-size: 0.7rem;
     font-weight: 600;
@@ -1046,6 +867,11 @@ const HeroIcon = tools[0].icon;
     .offline-tab-btn.active {
       border-left-color: var(--color-primary);
     }
+  }
+
+  .first-fold-wrapper {
+    background: linear-gradient(180deg, var(--color-bg), var(--color-primary-tint));
+    padding-bottom: 3rem;
   }
 
   @media (min-width: 1024px) {

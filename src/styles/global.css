@@ -141,27 +141,26 @@
 }
 
 :root {
-  /* Palette - navy ink on warm-cream surfaces, one electric-blue accent.
-     A deeper, more distinctive evolution of the prior Apple-blue theme. */
-  --color-bg: #f9f7f7;
+  /* Palette - Sea Glass: A deeper, more distinctive theme based on teal and cool grays. */
+  --color-bg: #f4f9fa;
   --color-surface: #ffffff;
-  --color-surface-sunken: #dbe2ef;
-  --color-text: #112d4e;
-  --color-muted: #4f6488;
-  --color-muted-light: #9aa7bd;
-  --color-border: #e4e8f1;
-  --color-border-strong: #c7d2e6;
-  --color-primary: #3b82f6; /* Lighter, vibrant blue */
-  --color-primary-hover: #2563eb; /* Stronger hover contrast */
-  --color-primary-active: #1d4ed8;
-  --color-primary-soft: #dbeafe;
-  --color-primary-tint: #eff6ff;
-  --color-primary-ring: rgba(59, 130, 246, 0.35);
-  --color-success: #1a8f54;
-  --color-success-hover: #157a47;
-  --color-success-soft: #e9f7ef;
-  --color-danger: #d8342b;
-  --color-danger-soft: #fdeceb;
+  --color-surface-sunken: #c4e1e6;
+  --color-text: #23404a;
+  --color-muted: #54707c;
+  --color-muted-light: #a4ccd9;
+  --color-border: #d8e8ec;
+  --color-border-strong: #8dbcc7;
+  --color-primary: #3e7c8d; /* Deeper teal for button and headline contrast */
+  --color-primary-hover: #4a8ea0; 
+  --color-primary-active: #356d7d;
+  --color-primary-soft: #eef6f8;
+  --color-primary-tint: #e6f1f3;
+  --color-primary-ring: rgba(62, 124, 141, 0.35);
+  --color-success: #5c7a3a;
+  --color-success-hover: #4a632f;
+  --color-success-soft: #ebffd8; /* Trust color for pill and privacy caption */
+  --color-danger: #c96f2e; /* Muted terracotta to fit the Sea Glass theme */
+  --color-danger-soft: #fcf1ea;
 
   --radius-sm: 10px;
   --radius: 16px;
@@ -218,9 +217,6 @@ body {
   font-family: var(--font-sans);
   color: var(--color-text);
   background: var(--color-bg);
-  background-image:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(20, 99, 255, 0.07), transparent 60%);
-  background-repeat: no-repeat;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -300,9 +296,20 @@ header p {
   width: clamp(44px, 8vw, 52px);
   height: clamp(44px, 8vw, 52px);
   flex: 0 0 auto;
-  border-radius: 14px;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
+  border-radius: 16px;
+  background: linear-gradient(150deg, var(--color-muted-light), var(--color-border-strong));
+  box-shadow: 0 8px 18px -8px var(--color-primary-ring), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  color: #fff;
+  border: none;
+}
+
+.tool-hero-icon[data-slug="sign"] {
+  background: linear-gradient(150deg, var(--color-primary-hover), var(--color-primary));
+}
+
+.tool-hero-icon[data-slug="redact"] {
+  background: linear-gradient(150deg, #fff, var(--color-success-soft));
+  color: var(--color-success);
 }
 
 .tool-hero-icon svg {
@@ -685,11 +692,11 @@ footer a {
 }
 
 .dropzone.is-dragover {
-  border-color: var(--color-primary);
+  border-color: var(--color-success);
   border-style: solid;
-  background: var(--color-primary-soft);
+  background: var(--color-success-soft);
   transform: scale(1.01);
-  box-shadow: var(--shadow-focus);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-success) 30%, transparent);
 }
 
 .dropzone-icon {
@@ -759,7 +766,7 @@ footer a {
   font-size: 0.97rem;
   letter-spacing: -0.01em;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(20, 99, 255, 0.25);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-success) 25%, transparent);
   transition: background-color 0.18s var(--ease-out), transform 0.18s var(--ease-spring),
     box-shadow 0.18s var(--ease-out);
 }
@@ -767,7 +774,7 @@ footer a {
 .file-picker-button:hover {
   background: var(--color-primary-hover);
   transform: translateY(-1px) scale(1.02);
-  box-shadow: 0 6px 18px rgba(20, 99, 255, 0.32);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-success) 32%, transparent);
 }
 
 .file-picker-button:active {
@@ -784,13 +791,17 @@ footer a {
   align-items: center;
   gap: 0.4rem;
   margin: var(--space-3) 0 0;
-  color: var(--color-text);
+  padding: 0.45rem 1rem;
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  border-radius: var(--radius-pill);
   font-size: 0.85rem;
+  font-weight: 600;
   letter-spacing: -0.005em;
 }
 
 .privacy-line svg {
-  color: var(--color-success);
+  color: inherit;
   flex-shrink: 0;
 }
 
@@ -1173,14 +1184,14 @@ footer a {
   border: none;
   border-radius: var(--radius);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(20, 99, 255, 0.28);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-success) 28%, transparent);
   transition: background-color 0.18s var(--ease-out), transform 0.15s var(--ease-spring),
     box-shadow 0.18s var(--ease-out);
 }
 
 .merge-button:hover:not(:disabled) {
   background: var(--color-primary-hover);
-  box-shadow: 0 8px 22px rgba(20, 99, 255, 0.34);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--color-success) 34%, transparent);
   transform: translateY(-1px);
 }
 
@@ -1283,7 +1294,7 @@ footer a {
   background: var(--color-success);
   border-radius: var(--radius);
   text-decoration: none;
-  box-shadow: 0 2px 8px rgba(26, 143, 84, 0.26);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-success) 26%, transparent);
   animation: success-in 0.5s var(--ease-emphasized);
   transition: background-color 0.18s var(--ease-out), transform 0.15s var(--ease-spring),
     box-shadow 0.18s var(--ease-out);
@@ -1292,7 +1303,7 @@ footer a {
 .download-button:hover {
   background: var(--color-success-hover);
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(26, 143, 84, 0.32);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--color-success) 32%, transparent);
 }
 
 .download-button:active {
@@ -1579,17 +1590,17 @@ footer a {
   color: #fff;
 }
 
-/* Start over: persistent danger-tinted affordance, fills on hover. Sits left of
+/* Start over: persistent lemon-tinted affordance, fills on hover. Sits left of
    the primary Download button without competing with it. */
 .sign-tool-btn-reset {
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 35%, transparent);
+  color: var(--color-success);
+  background: var(--color-success-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-success) 35%, transparent);
 }
 
 .sign-tool-btn-reset:hover {
   color: #fff;
-  background: var(--color-danger);
+  background: var(--color-success);
 }
 
 .sign-pages-container {
@@ -2683,7 +2694,7 @@ footer a {
 
 .compress-card.is-selected .compress-card-tag {
   color: var(--color-primary);
-  background: rgba(20, 99, 255, 0.15);
+  background: var(--color-primary-soft);
 }
 
 .compress-card-desc {
@@ -2703,7 +2714,7 @@ footer a {
 }
 
 .compress-card.is-selected .compress-pro-con {
-  border-color: rgba(20, 99, 255, 0.15);
+  border-color: var(--color-primary-soft);
 }
 
 .pro-item, .con-item {
@@ -3088,7 +3099,7 @@ footer a {
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: #ffffff;
-  box-shadow: 0 1px 4px rgba(20, 99, 255, 0.3);
+  box-shadow: 0 1px 4px var(--color-primary-ring);
 }
 
 /* Drag handle - full-width top bar on each page card */
@@ -3176,7 +3187,7 @@ footer a {
 .pages-grid .is-dragging {
   opacity: 0.95;
   transform: scale(1.04) rotate(-0.5deg);
-  box-shadow: 0 12px 28px -4px rgba(20, 99, 255, 0.25), var(--shadow-lg);
+  box-shadow: 0 12px 28px -4px var(--color-primary-ring), var(--shadow-lg);
   cursor: grabbing;
   z-index: 100;
 }
