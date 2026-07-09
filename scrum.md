@@ -91,15 +91,40 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   - *Acceptance:* CI runs `npm test`, `npm run build`, installs the Chromium browser needed by Playwright,
     and runs `npm run test:e2e` on pushes/PRs; upload Playwright traces/report on failure if the CI
     provider makes that straightforward.
-- **E1.7 Runtime CSP style-attribute guard.** Playwright preview surfaced CSP violations for runtime
-  `style=""` attributes, which matter because editor geometry and Floating UI placement are currently
-  expressed as inline styles. `scripts/verify-csp.js` only verifies generated `<script>`/`<style>` hash
-  coverage; it cannot catch browser-enforced style-attribute violations.
+- **E1.7 Runtime CSP style-attribute guard - done (posture decided, source fixed, e2e wired).**
+  Playwright preview surfaced CSP `style-src` violations for runtime `style=""` attributes. Investigation
+  corrected the original premise: editor gesture geometry (`DraggableWrapper.jsx`'s drag/resize) was
+  **never** the culprit - it writes per-property CSSOM (`el.style.width = ...`, `.style.transform = ...`),
+  which CSP's `style-src` does not govern (only literal `style="..."` markup, `setAttribute('style', ...)`,
+  and `.style.cssText =` are checked; verified against Preact's own `setProperty` in
+  `node_modules/preact/src/diff/props.js` - object `style={{}}` props go through per-key `setStyle`,
+  string `style="..."` props go through `cssText`). The real violations were a finite, static set of
+  SSR-serialized chrome: 22 literal `style=` attributes across `dist/**/*.html` (6 color swatches, 2
+  danger/success buttons, a dialog `max-width`, dialog-body paddings, `index.astro`'s `<h1>` accent span
+  and `.merge-tool` CTA wrapper, 3 tab-icon margins, and one `text-decoration`).
+  - **Posture:** keep `style-src` strict (no `unsafe-inline`, no `style-src-attr`) - no
+    `astro.config.mjs`/`vercel.json` change needed. Converted every finite SSR'd value to a class in
+    `global.css` or the page's scoped `<style>`; the two dynamic swatch colors
+    (`ColorPicker.jsx`/`ColorPickerMenu.jsx`) use a `ref` callback writing `el.style.background` (CSSOM,
+    exempt) instead of an object `style={{}}` prop. `dist/**/*.html` now has 0 literal `style=` attributes.
+  - **Incidental bug fixed:** `index.astro`'s inactive OS-install-guide tab panels used static
+    `style="display:none"`, which CSP blocked at parse time - all three panels rendered stacked until
+    first click. Now class-driven (`.offline-tab-panel` / `.offline-tab-panel.active`); confirmed fixed
+    in manual QA.
+  - **e2e guard landed:** both `e2e/sign/sign-editor.spec.js` and `e2e/redact/redact-editor.spec.js`
+    install a `securitypolicyviolation` listener via `addInitScript` (structured, spec-defined,
+    cross-engine signal - not console-text scraping) and assert zero violations in `afterEach`. All 4
+    e2e tests pass against the real build with zero violations. No Vercel-Analytics-404 allowlist was
+    needed - that's a network error, not a CSP violation, so it never fires the event.
   - *Depends on:* E1.6 · *Lane:* B
-  - *Acceptance:* decide and document the intended CSP posture for runtime geometry styles (explicitly
-    allow style attributes, or migrate geometry to CSS custom properties/classes first); then make e2e
-    fail on unexpected CSP violations while ignoring known local-only noise such as the Vercel Analytics
-    404 in preview.
+- **E1.7a Build-time "no literal `style=` in dist" guard - todo, postponed.** Extend
+  `scripts/verify-csp.js` (already parses `dist/**/*.html` with JSDOM for hash verification) to also
+  fail the build if any element carries a literal `style="..."` attribute, converting "someone adds
+  `style={{}}` to SSR'd markup and prod silently blocks it" into a loud build failure instead of relying
+  on e2e coverage of every code path. Deferred: the e2e `securitypolicyviolation` guard (E1.7) already
+  catches regressions in the two editor tools' hydrated flows; this ticket is the stronger,
+  path-independent guarantee for the whole site (including any future static page), not an immediate gap.
+  - *Depends on:* E1.7 · *Lane:* B
 
 ## E2 - Kill the global CSS monolith  ·  *Lane C, parallel with E3*
 
@@ -202,9 +227,10 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 - **Text defaults vs whiteout defaults** - **fixed.** New text inherits the active/last edited text
   size, color, font, and direction; direction is typed-language first, then remembered fallback. Whiteout
   keeps an independent color default and must not inherit text/shape color.
-- **Runtime CSP style-attribute violations** - **found by Playwright.** Production preview logs
-  `style-src` violations for runtime style attributes. This does not show up in jsdom and is not covered
-  by the current hash-only CSP script. Treat as E1.7 before tightening CSP or migrating editor geometry.
+- **Runtime CSP style-attribute violations** - **fixed, see E1.7.** Turned out to be a finite set of
+  SSR'd static chrome, not the editor's gesture geometry (which was already CSP-exempt). Converted to
+  classes/CSSOM; `dist/**/*.html` now has 0 literal `style=` attributes; e2e asserts zero
+  `securitypolicyviolation` events. The build-time guard is split out as E1.7a (postponed).
 
 **Editor / UX polish:**
 - **Verify Redact mobile toolbar** on a real narrow viewport - code updated (shared `.sign-toolbar`
@@ -218,7 +244,8 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 
 ```
 Lane A (now):   E0.1 ──► E0.2
-Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓ E1.5✓ E1.6✓ E1.6a✓  E1.7(todo)  ── gate ──► E2.*, E3.2, E4 verification
+Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓ E1.5✓ E1.6✓ E1.6a✓ E1.7✓  ── gate ──► E2.*, E3.2, E4 verification
+                (E1.7a build-time guard postponed - non-blocking, e2e already covers regressions)
 Lane C:         E2.1 ──► E2.2, E2.3            (E2.3 also needs E1.4)
 Lane D:         E3.1 ──► E3.2                  (E3.2 also needs E1.1, E1.2)
 Lane E:         E4.1 ──► E4.2 ──► E4.3 ──► E4.4   (E4.2 also needs E0.1)

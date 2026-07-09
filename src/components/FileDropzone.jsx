@@ -53,7 +53,7 @@ export default function FileDropzone({ onFiles, multiple = true, accept = "appli
       </p>
 
       {href ? (
-        <a class="file-picker-button" href={href} style={{ textDecoration: 'none' }}>
+        <a class="file-picker-button" href={href}>
           Choose file{multiple ? 's' : ''}
         </a>
       ) : (

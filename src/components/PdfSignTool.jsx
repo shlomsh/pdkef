@@ -694,8 +694,7 @@ function PdfSignToolInner() {
       {/* Start-over confirmation */}
       <dialog
         ref={resetDialogRef}
-        className="sig-dialog"
-        style={{ maxWidth: '26rem' }}
+        className="sig-dialog sig-dialog--narrow"
         onClose={() => setConfirmResetOpen(false)}
         onClick={(e) => { if (e.target === e.currentTarget) setConfirmResetOpen(false); }}
         aria-labelledby="confirm-reset-title"
@@ -708,8 +707,8 @@ function PdfSignToolInner() {
                 </svg>
               </button>
             </div>
-            <div className="sig-dialog-body" style={{ padding: '0.5rem 1.5rem 1.25rem' }}>
-              <p style={{ margin: 0, color: 'var(--color-muted)', lineHeight: 1.5 }}>
+            <div className="sig-dialog-body sig-dialog-body--tight">
+              <p className="sig-confirm-text">
                 This clears the current document and removes your saved draft. Your annotations can’t be recovered afterwards.
               </p>
             </div>
@@ -722,8 +721,7 @@ function PdfSignToolInner() {
               </button>
               <button
                 type="button"
-                className="sig-btn sig-btn-primary"
-                style={{ background: 'var(--color-danger)' }}
+                className="sig-btn sig-btn-primary sig-btn-danger"
                 onClick={async () => {
                   setConfirmResetOpen(false);
                   if (pendingFile) {

@@ -765,6 +765,7 @@ footer a {
   font-weight: 600;
   font-size: 0.97rem;
   letter-spacing: -0.01em;
+  text-decoration: none;
   cursor: pointer;
   box-shadow: 0 1px 2px color-mix(in srgb, var(--color-success) 25%, transparent);
   transition: background-color 0.18s var(--ease-out), transform 0.18s var(--ease-spring),
@@ -2409,6 +2410,35 @@ footer a {
   background: var(--color-surface-sunken);
   color: var(--color-muted-light);
   cursor: not-allowed;
+}
+
+/* Semantic button colors and dialog paddings. These replace inline style=""
+   attributes that a strict CSP style-src (no unsafe-inline) blocks at parse
+   time; the values are finite chrome, so they belong in classes anyway. */
+.sig-btn-danger {
+  background: var(--color-danger);
+}
+
+.sig-btn-success {
+  background: var(--color-success);
+}
+
+.sig-dialog--narrow {
+  max-width: 26rem;
+}
+
+.sig-dialog-body--tight {
+  padding: 0.5rem 1.5rem 1.25rem;
+}
+
+.sig-dialog-body--list {
+  padding: 0.75rem 1.5rem 1.5rem;
+}
+
+.sig-confirm-text {
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.5;
 }
 
 /* Floating Helper Text */

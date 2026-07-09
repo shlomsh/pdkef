@@ -29,6 +29,24 @@ async function makePdfBuffer() {
   return Buffer.from(await doc.save());
 }
 
+// Collects the browser's own securitypolicyviolation events (structured,
+// spec-defined, cross-engine) rather than scraping console text — see E1.7
+// in scrum.md. Installed via addInitScript so it's listening before any
+// script on the page runs, including the astro-island hydration bootstrap.
+async function collectCspViolations(page) {
+  await page.addInitScript(() => {
+    window.__cspViolations = [];
+    window.addEventListener('securitypolicyviolation', (e) => {
+      window.__cspViolations.push(`${e.effectiveDirective}: ${e.blockedURI || e.sourceFile}`);
+    });
+  });
+}
+
+async function assertNoCspViolations(page) {
+  const violations = await page.evaluate(() => window.__cspViolations || []);
+  expect(violations, `Unexpected CSP violations:\n${violations.join('\n')}`).toEqual([]);
+}
+
 async function openRedactTool(page) {
   const browserMessages = [];
   page.on('console', (message) => {
@@ -37,6 +55,8 @@ async function openRedactTool(page) {
   page.on('pageerror', (error) => {
     browserMessages.push(`[pageerror] ${error.message}`);
   });
+
+  await collectCspViolations(page);
 
   await page.addInitScript(() => {
     localStorage.clear();
@@ -129,6 +149,10 @@ async function dragBy(page, locator, dx, dy) {
 }
 
 test.describe('Redact editor browser guardrails', () => {
+  test.afterEach(async ({ page }) => {
+    await assertNoCspViolations(page);
+  });
+
   test('keeps blackout controls reachable, resizable, and page-bound in the real browser', async ({ page }) => {
     await openRedactTool(page);
 

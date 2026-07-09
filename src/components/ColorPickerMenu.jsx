@@ -23,7 +23,12 @@ export default function ColorPickerMenu({ value, onChange, title, defaultColor =
           aria-haspopup="true"
           aria-expanded={open}
         >
-          <span className="sign-color-trigger-swatch" style={{ background: swatchColor }} />
+          <span
+            className="sign-color-trigger-swatch"
+            // Per-property CSSOM write, not a style="" attribute: dynamic color,
+            // and element.style.* is exempt from a strict CSP style-src.
+            ref={(el) => { if (el) el.style.background = swatchColor; }}
+          />
         </button>
       }
       content={

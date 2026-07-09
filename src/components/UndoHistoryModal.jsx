@@ -44,7 +44,7 @@ export default function UndoHistoryModal({
         </button>
       </div>
 
-      <div className="sig-dialog-body" style={{ padding: '0.75rem 1.5rem 1.5rem' }}>
+      <div className="sig-dialog-body sig-dialog-body--list">
         <div className="undo-history-list">
           {actionHistory.map((action) => {
             const time = new Date(action.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -75,8 +75,7 @@ export default function UndoHistoryModal({
       <div className="sig-dialog-footer">
         <button
           type="button"
-          className="sig-btn sig-btn-primary"
-          style={{ background: 'var(--color-success)' }}
+          className="sig-btn sig-btn-primary sig-btn-success"
           onClick={onRevertSelected}
           disabled={undoSelection.size === 0}
         >

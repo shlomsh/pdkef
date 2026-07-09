@@ -37,7 +37,7 @@ const HeroIcon = tools[0].icon;
     <header class="hub-header">
       <div class="title-row">
         <img src="/favicon.png" width="56" height="56" alt="" aria-hidden="true" class="title-logo" />
-        <h1>Free PDF tools that run <span style="color: var(--color-primary)">on your device</span></h1>
+        <h1>Free PDF tools that run <span class="h1-accent">on your device</span></h1>
       </div>
       <p>Merge, sign, split, and compress PDFs without signing up, installing anything, or uploading a single file. Everything runs in your browser, on your phone or computer, so your files never leave your device.</p>
       
@@ -68,7 +68,7 @@ const HeroIcon = tools[0].icon;
 
   <main>
     {/* Large Dropzone CTA */}
-    <div class="merge-tool" style="max-width: 1032px; margin: 0 auto 4rem auto; padding: 1.5rem; box-sizing: border-box;">
+    <div class="merge-tool merge-tool-cta">
       <FileDropzone client:load href="/sign?action=open" toolTarget="sign" />
     </div>
 
@@ -169,15 +169,15 @@ const HeroIcon = tools[0].icon;
       <div class="offline-tabs-container">
         <div class="offline-tab-buttons" role="tablist" aria-label="Device installation guides">
           <button class="offline-tab-btn active" role="tab" aria-selected="true" aria-controls="guide-chrome" id="tab-chrome">
-            <Monitor size={16} style="margin-right: 0.5rem;" />
+            <Monitor size={16} class="tab-btn-icon" />
             Chrome & Edge
           </button>
           <button class="offline-tab-btn" role="tab" aria-selected="false" aria-controls="guide-ios" id="tab-ios">
-            <Smartphone size={16} style="margin-right: 0.5rem;" />
+            <Smartphone size={16} class="tab-btn-icon" />
             Safari (iOS)
           </button>
           <button class="offline-tab-btn" role="tab" aria-selected="false" aria-controls="guide-safari" id="tab-safari">
-            <Compass size={16} style="margin-right: 0.5rem;" />
+            <Compass size={16} class="tab-btn-icon" />
             Safari (macOS)
           </button>
         </div>
@@ -200,7 +200,7 @@ const HeroIcon = tools[0].icon;
             </ol>
           </div>
 
-          <div class="offline-tab-panel" id="guide-ios" role="tabpanel" aria-labelledby="tab-ios" style="display: none;">
+          <div class="offline-tab-panel" id="guide-ios" role="tabpanel" aria-labelledby="tab-ios">
             <ol class="step-list">
               <li>
                 <span class="step-num">1</span>
@@ -217,7 +217,7 @@ const HeroIcon = tools[0].icon;
             </ol>
           </div>
 
-          <div class="offline-tab-panel" id="guide-safari" role="tabpanel" aria-labelledby="tab-safari" style="display: none;">
+          <div class="offline-tab-panel" id="guide-safari" role="tabpanel" aria-labelledby="tab-safari">
             <ol class="step-list">
               <li>
                 <span class="step-num">1</span>
@@ -248,19 +248,15 @@ const HeroIcon = tools[0].icon;
           t.classList.remove('active');
           t.setAttribute('aria-selected', 'false');
         });
-        panels.forEach(p => {
-          p.classList.remove('active');
-          p.style.display = 'none';
-        });
+        panels.forEach(p => p.classList.remove('active'));
 
-        // Activate clicked tab & panel
+        // Activate clicked tab & panel (visibility is handled by CSS on .active)
         tab.classList.add('active');
         tab.setAttribute('aria-selected', 'true');
         const panelId = tab.getAttribute('aria-controls');
         const targetPanel = document.getElementById(panelId);
         if (targetPanel) {
           targetPanel.classList.add('active');
-          targetPanel.style.display = 'block';
         }
       });
     });
@@ -317,6 +313,23 @@ const HeroIcon = tools[0].icon;
 </BaseLayout>
 
 <style>
+  /* These were inline style="" attributes; moved to scoped classes so a strict
+     CSP style-src (no unsafe-inline) does not block them at parse time. */
+  .h1-accent {
+    color: var(--color-primary);
+  }
+
+  .merge-tool-cta {
+    max-width: 1032px;
+    margin: 0 auto 4rem auto;
+    padding: 1.5rem;
+    box-sizing: border-box;
+  }
+
+  .tab-btn-icon {
+    margin-right: 0.5rem;
+  }
+
   .hub-header {
     padding: 3.5rem 1.5rem 2rem;
   }
@@ -824,6 +837,17 @@ const HeroIcon = tools[0].icon;
 
   .offline-tab-content {
     padding: 2rem;
+  }
+
+  /* Panel visibility is class-driven, not an inline style attribute: a strict
+     CSP style-src blocks inline style="" at parse time, so relying on inline
+     display:none left every inactive panel visible until first interaction. */
+  .offline-tab-panel {
+    display: none;
+  }
+
+  .offline-tab-panel.active {
+    display: block;
   }
 
   .step-list {

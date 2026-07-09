@@ -9,7 +9,10 @@ export default function ColorPicker({ value, onChange, onClose, title, defaultCo
           key={c}
           type="button"
           className={`sign-color-swatch${(value || defaultColor) === c ? ' active' : ''}`}
-          style={{ background: c }}
+          // Per-property CSSOM write (not an inline style="" attribute): the
+          // color is dynamic so it can't be a static class, and a strict CSP
+          // style-src blocks style attributes but not element.style.* writes.
+          ref={(el) => { if (el) el.style.background = c; }}
           onClick={() => {
             onChange(c);
             if (onClose) onClose();
