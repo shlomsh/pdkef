@@ -62,8 +62,8 @@ export default function PdfRedactTool() {
   const [undoSelection, setUndoSelection] = useState(new Set());
   const [undoModalOpen, setUndoModalOpen] = useState(false);
 
-  const logAction = (type, elementId, pageIndex, description) => {
-    setActionHistory(prev => [createActionEntry(type, elementId, pageIndex, description), ...prev]);
+  const logAction = (type, elementId, pageIndex, description, snapshot = null) => {
+    setActionHistory(prev => [createActionEntry(type, elementId, pageIndex, description, snapshot), ...prev]);
   };
 
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -168,7 +168,7 @@ export default function PdfRedactTool() {
       loadIdRef.current++; // invalidate this attempt so a late resolve/reject is ignored
       if (restored) clearDraft();
       setStatus('error');
-      setAnnouncement('This PDF is taking too long to load — it may be corrupted. Please try a different file.');
+      setAnnouncement('This PDF is taking too long to load - it may be corrupted. Please try a different file.');
     }, 20000);
 
     try {

@@ -14,7 +14,7 @@ export default function ColorPickerMenu({ value, onChange, title, defaultColor =
     <Popover
       open={open}
       onOpenChange={setOpen}
-      placement="bottom"
+      placement="bottom-start"
       trigger={
         <button
           type="button"
