@@ -433,4 +433,108 @@ describe('PdfRedactTool UI flow', () => {
       expect(parseFloat(box.style.height)).toBeCloseTo(startHeight);
     });
   });
+
+  // E1.5: blackout and blur became resizable in commit 274b293 — previously a
+  // single corner dot, now the full 8-handle ElementResizers on the same
+  // handleBoxResizeStart path as whiteout. The regression block above exercises
+  // that math through whiteout, but E1.5 mandates the three gesture invariants
+  // for EVERY resizable type. handleBoxResizeStart does not branch on el.style,
+  // so a failure here would mean the render layer forked the resize path per
+  // style. Same realistic 500x1000 mocked wrapper (via loadFileAndGetDrawArea).
+  describe('blackout/blur resize invariants (E1.5)', () => {
+    async function setupSelectedBox(styleLabel) {
+      const drawArea = await loadFileAndGetDrawArea();
+      if (styleLabel) {
+        const btn = Array.from(container.querySelectorAll('.sign-toolbar .sign-tool-btn'))
+          .find((b) => b.textContent.includes(styleLabel));
+        await act(async () => {
+          btn.click();
+        });
+      }
+      // left=20%, top=30%, width=30%, height=20% on the 500x1000 wrapper.
+      await drawBox(drawArea, 100, 300, 250, 500);
+      const box = container.querySelector('.redact-box');
+      expect(box).not.toBeNull();
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+      return box;
+    }
+
+    async function dragHandle(box, handleClass, downX, downY, moveX, moveY) {
+      const handle = box.querySelector(`.sign-element-resizer.${handleClass}`);
+      expect(handle).not.toBeNull();
+      await act(async () => {
+        handle.dispatchEvent(new MouseEvent('mousedown', { clientX: downX, clientY: downY, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: moveX, clientY: moveY, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+    }
+
+    // blackout is the default mode (no button click); blur is selected via its toolbar button.
+    for (const { label, styleLabel } of [
+      { label: 'blackout', styleLabel: null },
+      { label: 'blur', styleLabel: 'Blur' },
+    ]) {
+      describe(label, () => {
+        it('anchor: left-handle outward drag keeps left >= 0 and preserves the anchored right edge', async () => {
+          const box = await setupSelectedBox(styleLabel);
+          // -200px on the left handle from clientX 300 = a large outward drag.
+          await dragHandle(box, 'left', 300, 0, -200, 0);
+          const left = parseFloat(box.style.left);
+          const width = parseFloat(box.style.width);
+          expect(left).toBeGreaterThanOrEqual(0);
+          expect(left + width).toBeCloseTo(50, 5); // startLeft(20) + startWidth(30)
+        });
+
+        it('anchor: top-handle outward drag keeps top >= 0 and preserves the anchored bottom edge', async () => {
+          const box = await setupSelectedBox(styleLabel);
+          await dragHandle(box, 'top', 0, 300, 0, -600);
+          const top = parseFloat(box.style.top);
+          const height = parseFloat(box.style.height);
+          expect(top).toBeGreaterThanOrEqual(0);
+          expect(top + height).toBeCloseTo(50, 5); // startTop(30) + startHeight(20)
+        });
+
+        it('move: dragging the box body leaves width/height untouched', async () => {
+          const box = await setupSelectedBox(styleLabel);
+          const startWidth = parseFloat(box.style.width);
+          const startHeight = parseFloat(box.style.height);
+          await act(async () => {
+            box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+          });
+          await act(async () => {
+            window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 100, bubbles: true })); // +10% / +10%
+          });
+          await act(async () => {
+            window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+          });
+          expect(parseFloat(box.style.left)).toBeCloseTo(30); // 20 + 10
+          expect(parseFloat(box.style.top)).toBeCloseTo(40); // 30 + 10
+          expect(parseFloat(box.style.width)).toBeCloseTo(startWidth);
+          expect(parseFloat(box.style.height)).toBeCloseTo(startHeight);
+        });
+
+        it('zero-delta resize commits exactly the start geometry', async () => {
+          const box = await setupSelectedBox(styleLabel);
+          const startLeft = parseFloat(box.style.left);
+          const startTop = parseFloat(box.style.top);
+          const startWidth = parseFloat(box.style.width);
+          const startHeight = parseFloat(box.style.height);
+          await dragHandle(box, 'bottom-right', 200, 200, 200, 200);
+          expect(parseFloat(box.style.left)).toBeCloseTo(startLeft);
+          expect(parseFloat(box.style.top)).toBeCloseTo(startTop);
+          expect(parseFloat(box.style.width)).toBeCloseTo(startWidth);
+          expect(parseFloat(box.style.height)).toBeCloseTo(startHeight);
+        });
+      });
+    }
+  });
 });

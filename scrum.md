@@ -45,16 +45,26 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   config, not resolved pixels); the mobile/outline states assert the CSS contract + real DOM shape.
   Full suite green (441 tests). No source components modified.
   - *Depends on (all E1):* - · *Lane:* B (parallel with A)
-- **E1.5 Per-type gesture invariants + non-vacuous geometry harness.** *(Added from the whiteout-resize
-  post-mortem.)* Generalize the three whiteout regression tests into invariants asserted for **every**
-  resizable element type, on a **mandated realistic mocked page-wrapper rect**: (a) a move changes only
-  position, never size; (b) a resize preserves the opposite/anchor edge for every handle; (c) a
-  zero-delta resize is a no-op. Ban the unmocked 0x0-rect test pattern (it saturates every clamp to
+- **E1.5 Per-type gesture invariants + non-vacuous geometry harness.** - **done.** *(Added from the
+  whiteout-resize post-mortem.)* Generalize the three whiteout regression tests into invariants asserted
+  for **every** resizable element type, on a **mandated realistic mocked page-wrapper rect**: (a) a move
+  changes only position, never size; (b) a resize preserves the opposite/anchor edge for every handle;
+  (c) a zero-delta resize is a no-op. Ban the unmocked 0x0-rect test pattern (it saturates every clamp to
   ±Infinity and made the prior whiteout tests vacuous - the exact reason the regression shipped). If a
   type other than shape/whiteout fails an invariant, report it as a found bug, do not silently fix.
   - *Depends on:* - · *Lane:* B (parallel with A)
   - *Acceptance:* new tests fail against a deliberately reintroduced blanket-clamp and pass against the
     landed per-handle fix; full suite green; no source components modified.
+  - *Landed:* Sign side in `DraggableWrapper.gestureInvariants.test.jsx` (shape/rectangle+ellipse, line,
+    text, symbol, signature; 600x800 mocked wrapper) with a built-in **non-vacuity meta-guard** that
+    fires only when a blanket left/top clamp is reintroduced. Redact side (its own duplicate
+    `handleBoxResizeStart` math - the E4.3 convergence target) in `PdfRedactTool.test.jsx` on a 500x1000
+    mocked wrapper: whiteout regression block **plus** the three invariants parametrized across the
+    newly-resizable **blackout and blur** styles (they gained the 8-handle path in `274b293`).
+    Non-vacuity was verified by transiently reintroducing the `Infinity`-cap + blanket-clamp bug in both
+    `DraggableWrapper.jsx` and `PdfRedactTool.jsx` and confirming the meta-guard / anchor tests go red,
+    then reverting. No type outside shape/whiteout failed an invariant. Full suite green (284); no source
+    components modified.
 - **E1.6 Playwright browser guardrails for editor layout.** - **done.** Add a small
   browser-level e2e harness for the cases jsdom cannot prove. Keep files under `e2e/<module>/` and keep
   the suite intentionally sparse - no more than roughly one e2e test per ten unit/component tests. These
@@ -208,7 +218,7 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 
 ```
 Lane A (now):   E0.1 ──► E0.2
-Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓ E1.6✓ E1.6a✓  E1.5(todo) E1.7(todo)  ── gate ──► E2.*, E3.2, E4 verification
+Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓ E1.5✓ E1.6✓ E1.6a✓  E1.7(todo)  ── gate ──► E2.*, E3.2, E4 verification
 Lane C:         E2.1 ──► E2.2, E2.3            (E2.3 also needs E1.4)
 Lane D:         E3.1 ──► E3.2                  (E3.2 also needs E1.1, E1.2)
 Lane E:         E4.1 ──► E4.2 ──► E4.3 ──► E4.4   (E4.2 also needs E0.1)
