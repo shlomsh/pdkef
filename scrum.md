@@ -72,12 +72,20 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
 
 ## E3 - Tailwind on the static surface  ·  *Lane D, parallel with E2*
 
-- **E3.1 Clean Tailwind install.** Re-audit the `legacy-peer-deps` need against the Astro `^7.0.3`
-  security pin (`npm audit`) before adopting any Tailwind version that forces it.
+- **E3.1 Clean Tailwind install (audit).** - **done (audit; landing deferred to E3.2).** Validated in a
+  worktree: `tailwindcss` + `@tailwindcss/vite@^4.3.2` install **clean** against the Astro `^7.0.3` pin -
+  no `legacy-peer-deps`, 0 new `npm audit` vulns, vite peer satisfied. Recipe: add the `@tailwindcss/vite`
+  plugin to `astro.config` `vite.plugins`; CSS-first import of the **theme + utilities layers only**
+  (skip Preflight - it resets margins site-wide and blew the CSS budget). Not landed on `main` yet, so
+  the theme layer doesn't consume the CSS budget before it's used.
   - *Depends on:* - · *Lane:* D
 - **E3.2 Migrate the marketing `.astro` surface to utilities** (`index.astro`, tool pages, `FeatureCard`,
   `ToolHero`, `AppBar`, `Footer`). No editor components.
   - *Depends on:* E3.1, E1.1, E1.2 · *Lane:* D
+  - *First step + caveat (from E3.1):* land the E3.1 recipe, then **trim Tailwind's default color scales**
+    (the project uses its own `:root` tokens, so the default palette must not be used anyway) - the theme
+    layer alone left only ~862 bytes of CSS-budget headroom (79,138 / 80,000). Watch `npm run test:css`
+    from the first page migrated.
 
 ## E4 - Headless TS editor core  ·  *Lane E, internally serial, parallel to E2/E3*
 
@@ -154,7 +162,7 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 
 ```
 Lane A (now):   E0.1 ──► E0.2
-Lane B (now):   E1.1  E1.2  E1.3  E1.4        ── gate ──► E2.*, E3.2, E4 verification
+Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓  E1.5(todo)  ── gate ──► E2.*, E3.2, E4 verification
 Lane C:         E2.1 ──► E2.2, E2.3            (E2.3 also needs E1.4)
 Lane D:         E3.1 ──► E3.2                  (E3.2 also needs E1.1, E1.2)
 Lane E:         E4.1 ──► E4.2 ──► E4.3 ──► E4.4   (E4.2 also needs E0.1)
@@ -166,6 +174,15 @@ up opportunistically (its launch items cluster around the domain cutover).
 ---
 
 ## Done (historical log)
+
+Bug fixes landed this session (test-first, on the clean baseline):
+- **Redact whiteout resize disappearing off-page** (`ea10349`) - `PdfRedactTool.jsx`'s
+  `handleBoxResizeStart` was a stale copy of the Sign tool's pre-`ca411be` shape math; left/top/corner
+  drags drove `left`/`top` negative and the box flew off-page. Ported the per-handle anchor caps; 4
+  regression tests on a realistic mocked rect. **Live evidence for E4.3** (duplicated resize math meant
+  the Sign fix never reached Redact).
+- **Sign whiteout resize jump** (`ca411be`) - blanket cross-handle clamp moved the un-dragged anchor
+  edge; replaced with per-handle dimension caps. (Post-mortem → E1.5, E4.3, ARCHITECTURE §5.)
 
 Verified done this session (were open in the old `TODO.md`, confirmed against code):
 - **Header wordmark** - `AppBar.astro` renders the `PDkef` wordmark + logo; live in the header.

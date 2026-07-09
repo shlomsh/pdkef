@@ -486,7 +486,7 @@ const TICKETS = [
     title: "Editor interaction/visual test harness",
     dependsOn: [],
     acceptance: "Cover the states unit tests miss: active outline, floating-toolbar visibility + top-edge flip, RTL toolbar alignment + leftward growth, dark mode, mobile full-width toolbar, whiteout bounds." },
-  { id: "E1.5", epic: "E1", lane: "B", status: "in-progress", priority: "high",
+  { id: "E1.5", epic: "E1", lane: "B", status: "todo", priority: "high",
     title: "Per-type gesture invariants + non-vacuous geometry harness",
     dependsOn: [],
     acceptance: "From the whiteout-resize post-mortem. For EVERY resizable element type, on a mandated realistic mocked page-wrapper rect: (a) move changes only position not size; (b) resize preserves the opposite/anchor edge for every handle; (c) zero-delta resize is a no-op. Ban the unmocked 0x0-rect pattern that made the prior whiteout tests vacuous. Report (don't silently fix) any other type that fails an invariant." },
@@ -506,14 +506,14 @@ const TICKETS = [
     acceptance: "~121 sign-* references in a ~3,400-line global.css, preserving descendant cascades (.sign-element.active .sign-element-actions) as real CSS inside module scope. Every conditional state (active, RTL, dark, mobile, whiteout) verified in a running editor." },
 
   // ----- E3 -----
-  { id: "E3.1", epic: "E3", lane: "D", status: "in-progress", priority: "normal",
-    title: "Clean Tailwind install",
+  { id: "E3.1", epic: "E3", lane: "D", status: "done", priority: "normal",
+    title: "Clean Tailwind install (audit)",
     dependsOn: [],
-    acceptance: "Re-audit the legacy-peer-deps need against the Astro ^7.0.3 security pin (npm audit) before adopting any Tailwind version that forces it." },
+    acceptance: "AUDIT COMPLETE (validated in a worktree, not yet landed on main): tailwindcss + @tailwindcss/vite@^4.3.2 install CLEAN against Astro ^7.0.3 — no legacy-peer-deps, 0 new npm-audit vulns, vite peer satisfied. Recipe: @tailwindcss/vite plugin in astro.config vite.plugins; CSS-first import of theme+utilities layers ONLY (skip Preflight, which resets margins site-wide and blew the CSS budget). Landing deferred to E3.2 so the theme layer doesn't eat the CSS budget mid-flight." },
   { id: "E3.2", epic: "E3", lane: "D", status: "todo", priority: "normal",
     title: "Migrate the marketing .astro surface to utilities",
     dependsOn: ["E3.1", "E1.1", "E1.2"],
-    acceptance: "index.astro, tool pages, FeatureCard, ToolHero, AppBar, Footer. No editor components." },
+    acceptance: "index.astro, tool pages, FeatureCard, ToolHero, AppBar, Footer. No editor components. FIRST land the E3.1 recipe (plugin + theme/utilities import), then trim Tailwind's default color scales — the project uses its own :root tokens, so Tailwind's default palette must not be used anyway — because the theme layer alone left only ~862 bytes of CSS-budget headroom (79,138/80,000). Watch npm run test:css from the first page migrated." },
 
   // ----- E4 -----
   { id: "E4.1", epic: "E4", lane: "E", status: "todo", priority: "normal",
