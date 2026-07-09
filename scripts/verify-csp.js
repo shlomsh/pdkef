@@ -67,11 +67,19 @@ for (const file of htmlFiles) {
   for (const style of styles) {
     const text = style.textContent;
     const hash = 'sha256-' + crypto.createHash('sha256').update(text).digest('base64');
-    
+
     if (!allowedStyleHashes.has(hash)) {
       console.error(`[ERROR] ${path.relative(process.cwd(), file)}: Inline style hash ${hash} is missing from CSP style-src!`);
       hasError = true;
     }
+  }
+
+  // verify no literal style="..." attributes (CSP style-src has no 'unsafe-inline'/style-src-attr)
+  const styledElements = Array.from(document.querySelectorAll('[style]'));
+  for (const el of styledElements) {
+    const snippet = el.outerHTML.slice(0, 150);
+    console.error(`[ERROR] ${path.relative(process.cwd(), file)}: <${el.tagName.toLowerCase()}> has a literal style="..." attribute, which CSP style-src blocks at parse time: ${snippet}`);
+    hasError = true;
   }
 }
 

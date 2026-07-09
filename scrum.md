@@ -117,19 +117,32 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
     e2e tests pass against the real build with zero violations. No Vercel-Analytics-404 allowlist was
     needed - that's a network error, not a CSP violation, so it never fires the event.
   - *Depends on:* E1.6 · *Lane:* B
-- **E1.7a Build-time "no literal `style=` in dist" guard - todo, postponed.** Extend
+- **E1.7a Build-time "no literal `style=` in dist" guard - done.** Extended
   `scripts/verify-csp.js` (already parses `dist/**/*.html` with JSDOM for hash verification) to also
   fail the build if any element carries a literal `style="..."` attribute, converting "someone adds
   `style={{}}` to SSR'd markup and prod silently blocks it" into a loud build failure instead of relying
-  on e2e coverage of every code path. Deferred: the e2e `securitypolicyviolation` guard (E1.7) already
-  catches regressions in the two editor tools' hydrated flows; this ticket is the stronger,
-  path-independent guarantee for the whole site (including any future static page), not an immediate gap.
+  on e2e coverage of every code path. Now a path-independent guarantee for the whole site (including any
+  future static page), complementing the e2e `securitypolicyviolation` guard (E1.7) which only covers the
+  two editor tools' hydrated flows.
+  - *Landed:* after the existing style-hash loop, a `document.querySelectorAll('[style]')` pass per file
+    logs `[ERROR] <file>: <tag> has a literal style="..." attribute ...: <snippet>` and sets `hasError`,
+    matching the existing error format; no allowlist (dist has 0 literal `style=` post-E1.7). No wiring
+    change needed - `npm run test:csp` (`node scripts/verify-csp.js`) already runs in CI after
+    `npm run build`. Non-vacuity verified by injecting a `style="display:none"` div into `dist/index.html`
+    (verifier exits 1 with the new message), then restoring (clean pass). Full suite green (284); only
+    `scripts/verify-csp.js` touched.
   - *Depends on:* E1.7 · *Lane:* B
 
 ## E2 - Kill the global CSS monolith  ·  *Lane C, parallel with E3*
 
-- **E2.1 Tokens as the only global CSS.** Keep `:root` design tokens global; audit for escaped color
-  literals (`grep -rn "rgba(0\|#[0-9a-f]\{6\}"` across `src/` and `public/`) and route them through vars.
+- **E2.1 Tokens as the only global CSS. - done.** Audited `src/` + `public/` for escaped color literals;
+  routed the theme-chrome ones (`#fff`/`#ffffff` in `global.css`, `index.astro`, `404.astro`) through
+  `var(--color-surface)`, and formalized `--color-surface-soft` as a real token (it was previously a
+  `var(--x, rgba(...))` fallback that never resolved to an actual token). Left user-facing annotation/pen
+  color defaults (`signGeometry.js`, `ColorPicker.jsx`, redact/sign toolbars) as literals on purpose -
+  those are tool data, not site theme. A handful of shadow/near-black literals in `global.css` have no
+  matching token and were left as reported gaps (see git history of this ticket's commit for the list) -
+  candidates for new tokens, not folded into existing ones without human sign-off.
   - *Depends on:* - · *Lane:* C
 - **E2.2 Colocate non-editor CSS into CSS Modules,** component by component. **Full execution plan:
   [docs/E2.2-css-modules-scoping-plan.md](./docs/E2.2-css-modules-scoping-plan.md)** (inventory with line
@@ -196,7 +209,22 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
 
 ## E4 - Headless TS editor core  ·  *Lane E, internally serial, parallel to E2/E3*
 
-- **E4.1 Introduce TypeScript** to the element model, geometry math, and core (UI can stay JSX initially).
+- **E4.1 Introduce TypeScript. - done.** Installed `typescript@6.0.3` + `@astrojs/check@0.9.9` (dev deps,
+  0 new `npm audit` vulns); pinned TS to `^6` since npm's default `typescript@7.0.2` falls outside
+  `@astrojs/check@0.9.9`'s peer range (`^5.0.0 || ^6.0.0`) - Astro itself was never a factor, still pinned
+  `^7.0.3`. Landed a discriminated element-type union in `src/lib/editorModel.ts` (flat `type` field as
+  the discriminant, no nested "shape" wrapper - `TextElement | RectangleElement | EllipseElement |
+  LineElement | SymbolElement | SignatureElement | WhiteoutElement`, shared `ElementBase` +
+  `BoxGeometry`), read from the real field shapes in `useWorkspaceGestures.js`, `PdfSignTool.jsx`,
+  `nodes/*.jsx`, `sign.js`, and `DraggableWrapper.jsx` rather than invented. `src/lib/coords.js` →
+  `coords.ts` via `git mv` (tracked rename, zero logic change, call sites still `import './coords.js'`
+  and resolve fine). `npm run typecheck` (`astro check`) added as a script; `coords.ts` +
+  `editorModel.ts` are 100% clean. `npm test` (284/284) and `npm run build` (12 pages) both green.
+  **Follow-up surfaced, not fixed here (island shell is off-limits for this ticket):** running `astro
+  check` project-wide for the first time surfaced 2 pre-existing errors in `src/pages/index.astro` -
+  `<FileDropzone>` missing its required `onFiles` prop (line 72), and a `getElementById` result
+  (`string | null`) passed where non-null is expected (line 257). Both predate this ticket and are
+  unrelated to the editor core; worth a small follow-up ticket so `typecheck` is green project-wide.
   - *Depends on:* - · *Lane:* E
 - **E4.2 Extract a framework-agnostic `editor/` core** (document model + geometry + gesture
   controllers) with **one** "imperative-during, commit-on-release" controller unifying drag **and**
@@ -243,6 +271,15 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 - **OS-specific how-to guides** internally linking into the tools (no outbound promo links).
 - **Public GitHub repo + iframe embed model** for contextual backlinks.
 
+**Bugs / hardening surfaced by E4.1 typecheck:**
+- **`index.astro` typecheck errors** - running `astro check` project-wide for the first time (E4.1)
+  surfaced 2 pre-existing errors, both predating and unrelated to the TS work: `<FileDropzone>` used
+  without its required `onFiles` prop (line 72), and a `getElementById(panelId)` result (`string | null`)
+  passed where non-null is expected (line 257). Small, isolated fixes; needed to get `npm run typecheck`
+  green project-wide. `index.astro` is the SEO/privacy island shell - low risk color/type-only fix, but
+  still verify with a full `build && preview` per the CSP section in CLAUDE.md since it's a script-adjacent
+  change, not a pure color change.
+
 **Bugs / hardening surfaced by E1.4 test coverage:**
 - **Off-page shape resize** - **fixed.** `DraggableWrapper.jsx` `handleResizeMove` now clamps the
   derived `left`/`top` to `[0, 100 - width]` / `[0, 100 - height]` on left/top-handle drags, applied to
@@ -281,8 +318,7 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 
 ```
 Lane A (now):   E0.1 ──► E0.2
-Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓ E1.5✓ E1.6✓ E1.6a✓ E1.7✓  ── gate ──► E2.*, E3.2, E4 verification
-                (E1.7a build-time guard postponed - non-blocking, e2e already covers regressions)
+Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓ E1.5✓ E1.6✓ E1.6a✓ E1.7✓ E1.7a✓  ── gate ──► E2.*, E3.2, E4 verification
 Lane C:         E2.1 ──► E2.2, E2.3            (E2.3 also needs E1.4)
 Lane D:         E3.1 ──► E3.2                  (E3.2 also needs E1.1, E1.2)
 Lane E:         E4.1 ──► E4.2 ──► E4.3 ──► E4.4   (E4.2 also needs E0.1)

@@ -9,6 +9,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "typecheck": "astro check",
     "test": "vitest run",
     "test:e2e": "npm run build && playwright test",
     "test:csp": "node scripts/verify-csp.js",
@@ -30,10 +31,12 @@
     "sortablejs": "^1.15.7"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.9",
     "@playwright/test": "^1.61.1",
     "@preact/preset-vite": "^2.10.5",
     "@types/sortablejs": "^1.15.8",
     "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   },
   "engines": {

@@ -77,11 +77,11 @@ Drag-to-reorder uses **SortableJS**, wired directly to the DOM list in `PdfMerge
 
 All color is driven by CSS custom properties defined once in `src/styles/global.css`'s `:root` block — never hardcode a hex/rgba color in a component or another stylesheet; reference the variable (e.g. `var(--color-primary)`) so the palette stays swappable from one place.
 
-Current palette ("navy + electric blue", sourced from Color Hunt, replacing an earlier Apple-blue theme):
-- `--color-bg: #f9f7f7`, `--color-surface: #ffffff`, `--color-surface-sunken: #dbe2ef` — cream/white surfaces.
-- `--color-text: #112d4e`, `--color-muted: #4f6488`, `--color-muted-light: #9aa7bd` — navy ink, fading to muted slate.
-- `--color-primary: #1463ff` (hover `#2d72ff`, active `#0d52e0`, soft tint `#e3ecff`) — the one accent color; used for primary buttons, links, focus rings, dropzone icon/border.
-- `--color-success` / `--color-danger` are unchanged from the prior theme (green `#1a8f54`, red `#d8342b`) and read fine against the new base — don't recolor these without a reason.
+Current palette ("Sea Glass" — teal and cool grays, replacing the earlier navy + electric blue theme):
+- `--color-bg: #f4f9fa`, `--color-surface: #ffffff`, `--color-surface-sunken: #c4e1e6` — cool white/glass surfaces.
+- `--color-text: #23404a`, `--color-muted: #54707c`, `--color-muted-light: #a4ccd9` — deep teal ink, fading to muted slate.
+- `--color-primary: #3e7c8d` (hover `#4a8ea0`, active `#356d7d`, soft tint `#eef6f8`, tint `#e6f1f3`) — the one accent color; used for primary buttons, links, focus rings, dropzone icon/border.
+- `--color-success: #5c7a3a` (hover `#4a632f`, soft `#ebffd8`), `--color-danger: #b84c58` (soft `#fcf1f3`) — both were retuned alongside the retheme to read well against the cool teal base; don't recolor these without a reason.
 
 When changing the theme in the future: update the `:root` block in `global.css`, then `grep -rn "rgba(0\|#[0-9a-f]\{6\}"` across `src/` and `public/` for any color literal that escaped the variable system (several button/dropzone shadows and the body background glow were historically hardcoded as `rgba(...)` rather than referencing a variable — re-check these). Also update `theme-color` in `BaseLayout.astro` and `theme_color`/`background_color` in `public/manifest.webmanifest` to match, since those aren't CSS and don't pick up the `:root` vars automatically. A pure color-only change doesn't touch scripts or CSP, so a `npm run dev` visual check is enough — full `build && preview` isn't required unless the change also touches scripts/`astro.config.mjs`.
 
