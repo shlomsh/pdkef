@@ -36,3 +36,19 @@ jobs:
 
     - name: Check CSS bundle size
       run: npm run test:css
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+
+    - name: Run Playwright e2e tests
+      run: npm run test:e2e
+
+    - name: Upload Playwright artifacts
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-artifacts
+        path: |
+          playwright-report/
+          test-results/
+        if-no-files-found: ignore

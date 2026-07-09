@@ -32,6 +32,11 @@ async function openSignTool(page) {
   });
 
   await page.goto('/sign');
+  // Wait for the client:load island to finish hydrating before touching the file
+  // input. The <input type=file> opens the OS picker even unhydrated, but its
+  // Preact onChange only attaches after hydration — an early setFiles is silently
+  // dropped and the workspace never renders (the intermittent 10s timeout).
+  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   const fileChooser = await fileChooserPromise;

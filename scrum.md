@@ -38,9 +38,9 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
 - **E1.3 CSS budget guard.** - **done.** Port `check-css-bundle.js` from the archived branch into CI so the
   global stylesheet can't silently regrow past a threshold.
 - **E1.4 Editor interaction/visual test harness.** - **done.** Covers the six states unit tests miss
-  (active outline, floating-toolbar visibility + top-edge flip, RTL toolbar alignment + leftward
+  (active outline, floating-toolbar visibility + stable top placement, RTL toolbar alignment + leftward
   growth, dark mode, mobile full-width toolbar, whiteout bounds) in `DraggableWrapper.interaction.test.jsx`
-  + an appended `SignToolbar.test.jsx` case. jsdom has no layout engine, so the flip/RTL states assert
+  + an appended `SignToolbar.test.jsx` case. jsdom has no layout engine, so the placement/RTL states assert
   the exact Floating UI `middleware`/`placement` config passed to `useFloating` (real check of the
   config, not resolved pixels); the mobile/outline states assert the CSS contract + real DOM shape.
   Full suite green (441 tests). No source components modified.
@@ -55,17 +55,32 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   - *Depends on:* - · *Lane:* B (parallel with A)
   - *Acceptance:* new tests fail against a deliberately reintroduced blanket-clamp and pass against the
     landed per-handle fix; full suite green; no source components modified.
-- **E1.6 Playwright browser guardrails for editor layout.** Add a small browser-level e2e harness for
-  the cases jsdom cannot prove. Keep files under `e2e/<module>/` (start with `e2e/sign/`) and keep the
-  suite intentionally sparse - no more than roughly one e2e test per ten unit/component tests. These are
-  guardrails for refactoring, not a second copy of the unit suite.
+- **E1.6 Playwright browser guardrails for editor layout.** - **done.** Add a small
+  browser-level e2e harness for the cases jsdom cannot prove. Keep files under `e2e/<module>/` and keep
+  the suite intentionally sparse - no more than roughly one e2e test per ten unit/component tests. These
+  are guardrails for refactoring, not a second copy of the unit suite. The Sign guardrail landed in
+  `e2e/sign/` with Playwright config + `npm run test:e2e`; the Redact guardrail landed in
+  `e2e/redact/redact-editor.spec.js`. **Flake fix:** both open-helpers now wait for the `client:load`
+  island to hydrate (`astro-island[client="load"]:not([ssr])`) before `setFiles` - the plain-HTML
+  `<input type=file>` accepts a file even unhydrated, so an early file-set was silently dropped and the
+  workspace never rendered (intermittent 10s timeout). Full e2e suite green and stable across repeated runs.
   - *Depends on:* E1.4, E1.5 · *Lane:* B
-  - *Acceptance:* install/configure Playwright; add `npm run test:e2e`; Sign e2e covers at least:
+  - *Acceptance:* Sign e2e covers at least:
     (1) selected text toolbar renders above the element and aligns left/right according to typed LTR/RTL
     language; (2) while dragging an active element, the toolbar follows the live DOM-mutated position
     before `pointerup`, not only after drop; (3) whiteout creation keeps its own color/default separate
-    from edited text/shape color. Tests run against a production build/preview path when touching CSP,
-    hydration, or Astro island behavior.
+    from edited text/shape color. Redact e2e covers at least: (1) blackout/blur/whiteout all expose the
+    expected 8 resize handles; (2) blackout/blur red delete controls stay reachable inside the box; (3)
+    whiteout uses toolbar delete and keeps its own white default; (4) drag/resize near page edges remains
+    page-bound. Tests run against a production build/preview path when touching CSP, hydration, or Astro
+    island behavior.
+- **E1.6a Wire Playwright e2e into CI.** - **done.** CI installs Chromium (`npx playwright install
+  --with-deps chromium`), runs `npm run test:e2e`, and uploads the Playwright report/traces on failure.
+  The browser guardrails only protect refactors if CI runs them.
+  - *Depends on:* E1.6 · *Lane:* B
+  - *Acceptance:* CI runs `npm test`, `npm run build`, installs the Chromium browser needed by Playwright,
+    and runs `npm run test:e2e` on pushes/PRs; upload Playwright traces/report on failure if the CI
+    provider makes that straightforward.
 - **E1.7 Runtime CSP style-attribute guard.** Playwright preview surfaced CSP violations for runtime
   `style=""` attributes, which matter because editor geometry and Floating UI placement are currently
   expressed as inline styles. `scripts/verify-csp.js` only verifies generated `<script>`/`<style>` hash
@@ -193,7 +208,7 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 
 ```
 Lane A (now):   E0.1 ──► E0.2
-Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓  E1.5(todo) E1.6(todo) E1.7(todo)  ── gate ──► E2.*, E3.2, E4 verification
+Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓ E1.6✓ E1.6a✓  E1.5(todo) E1.7(todo)  ── gate ──► E2.*, E3.2, E4 verification
 Lane C:         E2.1 ──► E2.2, E2.3            (E2.3 also needs E1.4)
 Lane D:         E3.1 ──► E3.2                  (E3.2 also needs E1.1, E1.2)
 Lane E:         E4.1 ──► E4.2 ──► E4.3 ──► E4.4   (E4.2 also needs E0.1)
