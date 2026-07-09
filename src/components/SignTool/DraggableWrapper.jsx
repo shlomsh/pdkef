@@ -191,40 +191,49 @@ export default function DraggableWrapper({
         let newLeft = startLeft;
         let newTop = startTop;
 
+        // On-page bounds, expressed per fixed edge rather than as a single
+        // post-hoc left/top clamp. A right/bottom-edge drag never moves
+        // left/top at all (they stay pinned at startLeft/startTop above), so
+        // the only thing that can push the box off-page on that side is
+        // width/height growing past what's left of the page from the
+        // *anchored* (opposite) edge — cap the dimension itself, in the same
+        // percent-of-page-wrapper units width/height already use, instead of
+        // moving the anchor. A left/top-edge drag derives its new left/top
+        // from newWidth/newHeight (below), so capping the dimension there
+        // keeps the derived left/top >= 0 for free, without ever touching
+        // the true anchor (the opposite, un-dragged edge).
+        const maxWidthFromRightGrowth = 100 - startLeft;   // right edge anchored at startLeft
+        const maxWidthFromLeftGrowth = startLeft + startWidth; // left-edge drag: right edge anchored
+        const maxHeightFromBottomGrowth = 100 - startTop;  // bottom edge anchored at startTop
+        const maxHeightFromTopGrowth = startTop + startHeight; // top-edge drag: bottom edge anchored
+
         if (handle === 'right') {
-          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startWidth + dxPercent));
+          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromRightGrowth, startWidth + dxPercent)));
         } else if (handle === 'left') {
-          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startWidth - dxPercent));
+          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromLeftGrowth, startWidth - dxPercent)));
           newLeft = startLeft - (newWidth - startWidth);
         } else if (handle === 'bottom') {
-          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startHeight + dyPercent));
+          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromBottomGrowth, startHeight + dyPercent)));
         } else if (handle === 'top') {
-          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startHeight - dyPercent));
+          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromTopGrowth, startHeight - dyPercent)));
           newTop = startTop - (newHeight - startHeight);
         } else if (handle === 'bottom-right') {
-          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startWidth + dxPercent));
-          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startHeight + dyPercent));
+          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromRightGrowth, startWidth + dxPercent)));
+          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromBottomGrowth, startHeight + dyPercent)));
         } else if (handle === 'bottom-left') {
-          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startWidth - dxPercent));
+          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromLeftGrowth, startWidth - dxPercent)));
           newLeft = startLeft - (newWidth - startWidth);
-          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startHeight + dyPercent));
+          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromBottomGrowth, startHeight + dyPercent)));
         } else if (handle === 'top-right') {
-          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startWidth + dxPercent));
-          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startHeight - dyPercent));
+          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromRightGrowth, startWidth + dxPercent)));
+          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromTopGrowth, startHeight - dyPercent)));
           newTop = startTop - (newHeight - startHeight);
         } else if (handle === 'top-left') {
-          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startWidth - dxPercent));
+          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromLeftGrowth, startWidth - dxPercent)));
           newLeft = startLeft - (newWidth - startWidth);
-          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startHeight - dyPercent));
+          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromTopGrowth, startHeight - dyPercent)));
           newTop = startTop - (newHeight - startHeight);
         }
-
-        // Keep the box fully on the page: left/top-handle drags derive left/top
-        // from the (already clamped) width/height, but that derivation alone can
-        // still push the box partly off-page on a large drag. Clamp using the
-        // same percentage coordinate system as width/height above.
-        newLeft = Math.max(0, Math.min(100 - newWidth, newLeft));
-        newTop = Math.max(0, Math.min(100 - newHeight, newTop));
 
         pendingResize = { width: newWidth, height: newHeight, left: newLeft, top: newTop };
         if (elementRef.current) {

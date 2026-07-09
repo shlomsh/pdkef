@@ -77,7 +77,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
     container.remove();
   });
 
-  function mountInPageWrapper(element, { isActive = true, pageWidthPoints = 612 } = {}) {
+  function mountInPageWrapper(element, { isActive = true, pageWidthPoints = 612, onChange = () => {} } = {}) {
     const wrapper = document.createElement('div');
     wrapper.className = 'sign-page-wrapper';
     wrapper.getBoundingClientRect = () => ({
@@ -91,7 +91,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
           element={element}
           isActive={isActive}
           onSelect={() => {}}
-          onChange={() => {}}
+          onChange={onChange}
           onDelete={() => {}}
           onClone={() => {}}
           pageWidthPoints={pageWidthPoints}
@@ -317,10 +317,10 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
 
     it('clamps the left/top position when resizing from the left/top handle so the box stays fully on the page', () => {
       // DraggableWrapper.jsx's handleResizeMove clamps WIDTH/HEIGHT to
-      // [MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT] for shapes/whiteouts, and the
-      // LEFT/TOP derived for left/top-handle drags is now clamped too (to
-      // [0, 100 - width] / [0, 100 - height]), so a large left-handle drag can
-      // no longer push the box partly off the page.
+      // [MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT] for shapes/whiteouts, and a
+      // left/top-handle drag that would otherwise derive a negative left/top
+      // instead has its width/height capped against the *anchored* (opposite,
+      // un-dragged) edge, so the derived left/top can never go negative.
       const onChange = vi.fn();
       const page = renderWhiteout(
         { id: 'w-4', type: 'whiteout', left: 5, top: 5, width: 10, height: 10, color: '#ffffff' },
@@ -344,6 +344,91 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       // and never exceeds 100 - width either.
       expect(committed.left).toBeGreaterThanOrEqual(0);
       expect(committed.left).toBeLessThanOrEqual(100 - committed.width);
+    });
+
+    // --- Regression coverage for the 434e844 "clamp shape resize on-page"
+    // regression: that commit clamped `newLeft`/`newTop` post-hoc with
+    // `Math.max(0, Math.min(100 - newWidth, newLeft))` for EVERY handle,
+    // including 'right'/'bottom'/'bottom-right', which never derive a new
+    // left/top of their own (their branches never assign newLeft/newTop, so
+    // it stays pinned at startLeft/startTop). Once a right-handle grow made
+    // startLeft + newWidth exceed 100, that blanket clamp silently dragged
+    // newLeft backward to `100 - newWidth` — moving the un-dragged left edge
+    // even though the user only touched the right handle. Visually: create a
+    // whiteout away from the left edge, grow it from the right, and it jumps
+    // leftward. These tests use a *realistic, non-degenerate* page-wrapper
+    // rect (via mountInPageWrapper's 600x800 mock, unlike renderWhiteout's
+    // unmocked 0x0 jsdom rect above, which turns every pixel delta into
+    // +/-Infinity and would saturate the same MIN/MAX either way, masking
+    // this exact class of bug) so the drag distances below map to real,
+    // finite percentages and actually exercise the anchor-preserving math.
+    it('resizing via the right handle past the page edge never moves the un-dragged left edge', () => {
+      const onChange = vi.fn();
+      const element = { id: 'w-5', type: 'whiteout', left: 50, top: 30, width: 20, height: 15, color: '#ffffff' };
+      const { wrapper } = mountInPageWrapper(element, { isActive: true, onChange });
+      const rightHandle = wrapper.querySelector('.sign-element-resizer.right');
+      expect(rightHandle).not.toBeNull();
+
+      act(() => {
+        // Page wrapper is mocked at 600px wide (see mountInPageWrapper), so a
+        // 300px rightward drag is a +50% width request: 20% -> 70%, which
+        // together with left=50% would overshoot the page (50+70=120 > 100).
+        rightHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 300, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      const committed = onChange.mock.calls.at(-1)[0];
+      // The left edge the user never touched must stay exactly where it was.
+      expect(committed.left).toBe(50);
+      // Width is capped so the box still ends exactly on (not past) the page.
+      expect(committed.left + committed.width).toBeLessThanOrEqual(100);
+    });
+
+    it('resizing via the left handle far past the page edge keeps the un-dragged right edge fixed instead of shifting it', () => {
+      const onChange = vi.fn();
+      const element = { id: 'w-6', type: 'whiteout', left: 20, top: 30, width: 10, height: 15, color: '#ffffff' };
+      const { wrapper } = mountInPageWrapper(element, { isActive: true, onChange });
+      const leftHandle = wrapper.querySelector('.sign-element-resizer.left');
+      expect(leftHandle).not.toBeNull();
+
+      act(() => {
+        // Huge leftward drag on the left handle: the right edge (anchored at
+        // left+width = 30%) must stay put, not translate along with the drag.
+        leftHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 300, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: -900, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      const committed = onChange.mock.calls.at(-1)[0];
+      expect(committed.left).toBeGreaterThanOrEqual(0);
+      expect(committed.left + committed.width).toBeCloseTo(30, 5);
+    });
+
+    // The bug report also named plain MOVE (drag, not resize) as broken.
+    // MOVE goes through a separate code path (useDraggableElement.js's
+    // handlePointerUp), which was NOT touched by the 434e844 clamp commit
+    // and clamps left/top by the element's *actual, unchanged* width/height
+    // (correct for a translate, since both edges move together by the same
+    // delta). This test pins that it moves a normally-placed whiteout by
+    // exactly the drag delta, with no jump — i.e. confirms MOVE was not
+    // independently broken, rather than just asserting it by inspection.
+    it('moving a normally-placed whiteout by a small delta commits exactly that delta, not a jump', () => {
+      const onChange = vi.fn();
+      const element = { id: 'w-7', type: 'whiteout', left: 30, top: 30, width: 20, height: 15, color: '#ffffff' };
+      const { wrapper } = mountInPageWrapper(element, { isActive: true, onChange });
+      const box = wrapper.querySelector('.sign-element');
+
+      act(() => {
+        // 600x800 mocked page: dx=30px -> 5%, dy=16px -> 2%.
+        box.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100, clientY: 100 }));
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 130, clientY: 116 }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      const committed = onChange.mock.calls.at(-1)[0];
+      expect(committed.left).toBeCloseTo(35, 1);
+      expect(committed.top).toBeCloseTo(32, 1);
     });
   });
 });
