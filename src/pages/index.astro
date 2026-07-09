@@ -458,17 +458,17 @@ const HeroIcon = tools[0].icon;
   /* SEO Tooltip */
   .app-tooltip {
     position: absolute;
-    bottom: 100%;
+    bottom: calc(100% + 14px);
     left: 50%;
-    transform: translateX(-50%) translateY(0) scale(0.95);
+    transform: translateX(-50%) translateY(4px) scale(0.95);
     opacity: 0;
     visibility: hidden;
     background: var(--color-text);
-    color: #fff;
-    padding: 0.5rem 0.75rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.8rem;
-    font-weight: 400;
+    color: var(--color-surface);
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    font-weight: 500;
     width: max-content;
     max-width: 200px;
     text-align: center;
@@ -478,10 +478,22 @@ const HeroIcon = tools[0].icon;
     line-height: 1.4;
     box-shadow: var(--shadow-md);
   }
+  
+  .app-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: var(--color-text) transparent transparent transparent;
+  }
+
   .app-card:hover .app-tooltip, .app-card:focus-visible .app-tooltip {
     opacity: 1;
     visibility: visible;
-    transform: translateX(-50%) translateY(-8px) scale(1);
+    transform: translateX(-50%) translateY(0) scale(1);
     transition: opacity 0.5s ease-out 0.4s, visibility 0.5s ease-out 0.4s, transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.4s;
   }
 
