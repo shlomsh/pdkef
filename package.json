@@ -9,7 +9,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:csp": "node scripts/verify-csp.js"
   },
   "dependencies": {
     "@astrojs/preact": "^6.0.0",

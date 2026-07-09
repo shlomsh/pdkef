@@ -30,7 +30,7 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
 
 ## E1 - Guardrails  ·  *parallel; these gate the risky work in E2–E4*
 
-- **E1.1 CSP hash-verification CI gate.** On `build && preview`, diff the generated `<meta>` CSP hash
+- **E1.1 CSP hash-verification CI gate.** - **done.** On `build && preview`, diff the generated `<meta>` CSP hash
   list against every emitted inline script/style (sha256+base64), per CLAUDE.md's method. Fail CI on mismatch.
 - **E1.2 SEO invariants test.** Assert exactly one `<h1>` per page; `<title>`, meta description,
   canonical, OG/Twitter present; JSON-LD (`SoftwareApplication` + `FAQPage`) validates; FAQ schema

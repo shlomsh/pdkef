@@ -31,11 +31,21 @@ export default defineConfig({
       include: ['sortablejs', '@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist', '@floating-ui/react'],
     },
   },
-  // CSP is managed entirely via vercel.json HTTP headers rather than
-  // Astro's <meta> CSP. Two reasons: (1) Google Analytics requires
-  // external domains and 'unsafe-inline' which Astro's undocumented
-  // scriptDirective API fights; (2) dual CSPs (meta + header) are
-  // cumulative, so we can't split responsibilities. The vercel.json
-  // header is the single source of truth. Only active in production;
-  // dev has no CSP.
+  security: {
+    csp: {
+      directives: [
+        "default-src 'self'",
+        "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com",
+        "worker-src 'self' blob:",
+        "img-src 'self' data: blob: https://www.google-analytics.com",
+        "font-src 'self'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "manifest-src 'self'"
+      ],
+      scriptDirective: { src: ["'self'", "https://www.googletagmanager.com"] },
+      styleDirective: { src: ["'self'"] }
+    }
+  }
 });
