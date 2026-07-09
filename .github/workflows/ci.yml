@@ -30,3 +30,9 @@ jobs:
 
     - name: Verify CSP hashes
       run: npm run test:csp
+
+    - name: Verify SEO invariants
+      run: npm run test:seo
+
+    - name: Check CSS bundle size
+      run: npm run test:css

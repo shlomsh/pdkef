@@ -32,11 +32,11 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
 
 - **E1.1 CSP hash-verification CI gate.** - **done.** On `build && preview`, diff the generated `<meta>` CSP hash
   list against every emitted inline script/style (sha256+base64), per CLAUDE.md's method. Fail CI on mismatch.
-- **E1.2 SEO invariants test.** Assert exactly one `<h1>` per page; `<title>`, meta description,
+- **E1.2 SEO invariants test.** - **done.** Assert exactly one `<h1>` per page; `<title>`, meta description,
   canonical, OG/Twitter present; JSON-LD (`SoftwareApplication` + `FAQPage`) validates; FAQ schema
   matches on-page FAQ.
-- **E1.3 CSS budget guard.** Port `check-css-bundle.js` from the archived branch into CI so the global
-  stylesheet can't silently regrow past a threshold.
+- **E1.3 CSS budget guard.** - **done.** Port `check-css-bundle.js` from the archived branch into CI so the
+  global stylesheet can't silently regrow past a threshold.
 - **E1.4 Editor interaction/visual test harness.** Cover the states unit tests miss: active outline,
   floating-toolbar visibility + top-edge flip, RTL toolbar alignment + leftward growth, dark mode,
   mobile full-width toolbar, whiteout bounds.
