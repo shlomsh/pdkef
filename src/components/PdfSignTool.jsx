@@ -6,6 +6,9 @@ import SignatureDialog from './SignatureDialog.jsx';
 import { getPdfjs, uniqueId, seedUniqueId, signPdf } from '../lib/sign.js';
 import { widthPercentToHeightPercent } from '../lib/coords.js';
 import { useSignDraftPersistence } from './useSignDraftPersistence.js';
+import { createActionEntry } from '../lib/actionHistory.js';
+import { useUndoShortcut } from '../lib/useUndoShortcut.js';
+import UndoHistoryModal from './UndoHistoryModal.jsx';
 
 export default function PdfSignTool() {
   return (
@@ -65,7 +68,6 @@ function PdfSignToolInner() {
   const pageWrapperRefs = useRef([]);
   const copiedElementRef = useRef(null);
   const workspaceRef = useRef(null);
-  const undoDialogRef = useRef(null);
   const resetDialogRef = useRef(null);
   const fileBytesRef = useRef(null);
   const loadIdRef = useRef(0);
@@ -88,18 +90,12 @@ function PdfSignToolInner() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Open the Undo / Start-over dialogs with showModal() rather than the `open`
-  // attribute. showModal() promotes the dialog into the browser's top layer, which
-  // paints above the Fullscreen API element — a plain <dialog open> renders in
-  // normal stacking and is invisible while the workspace is in real full screen
-  // (that's why the modal SignatureDialog showed but these didn't).
-  useEffect(() => {
-    const d = undoDialogRef.current;
-    if (!d) return;
-    if (undoModalOpen && !d.open) d.showModal();
-    else if (!undoModalOpen && d.open) d.close();
-  }, [undoModalOpen]);
-
+  // Open the Start-over dialog with showModal() rather than the `open` attribute.
+  // showModal() promotes the dialog into the browser's top layer, which paints
+  // above the Fullscreen API element — a plain <dialog open> renders in normal
+  // stacking and is invisible while the workspace is in real full screen (that's
+  // why the modal SignatureDialog showed but this didn't). UndoHistoryModal
+  // handles the same lifecycle for itself.
   useEffect(() => {
     const d = resetDialogRef.current;
     if (!d) return;
@@ -145,22 +141,24 @@ function PdfSignToolInner() {
     }
   };
 
-  const logAction = (type, elId, pageIndex, description) => {
+  const logAction = (type, elId, pageIndex, description, snapshot = null) => {
     dispatch({
       type: 'ADD_ACTION_HISTORY',
-      payload: { id: uniqueId(), type, elementId: elId, pageIndex, description, timestamp: Date.now() }
+      payload: createActionEntry(type, elId, pageIndex, description, snapshot)
     });
   };
 
   const handleRevertSelected = () => {
     const idsToRevert = Array.from(undoSelection);
     if (idsToRevert.length === 0) return;
-    const elementIdsToRemove = actionHistory
-      .filter(action => idsToRevert.includes(action.id))
-      .map(action => action.elementId);
+    const revertedActions = actionHistory.filter(action => idsToRevert.includes(action.id));
+    // Creation entries revert by removing the element they added; deletion
+    // entries (snapshot set — see actionHistory.js) revert by restoring it.
+    const idsToRemove = revertedActions.filter(a => !a.snapshot).map(a => a.elementId);
+    const elementsToRestore = revertedActions.filter(a => a.snapshot).flatMap(a => a.snapshot);
     dispatch({
       type: 'SET_ELEMENTS',
-      payload: elements.filter(el => !elementIdsToRemove.includes(el.id))
+      payload: elements.filter(el => !idsToRemove.includes(el.id)).concat(elementsToRestore)
     });
     dispatch({
       type: 'SET_ACTION_HISTORY',
@@ -170,6 +168,21 @@ function PdfSignToolInner() {
     setUndoModalOpen(false);
     setAnnouncement('Reverted selected actions.');
   };
+
+  // Cmd/Ctrl+Z: undo the single most recently logged action (see actionHistory.js).
+  const undoLast = () => {
+    if (actionHistory.length === 0) return;
+    const lastAction = actionHistory[0];
+    dispatch({ type: 'UNDO' });
+    setUndoSelection((currentSelection) => {
+      if (!currentSelection.has(lastAction.id)) return currentSelection;
+      const newSet = new Set(currentSelection);
+      newSet.delete(lastAction.id);
+      return newSet;
+    });
+    setAnnouncement(`Undid: ${lastAction.description}`);
+  };
+  useUndoShortcut(undoLast);
 
 
   // Load saved signatures from localStorage on mount
@@ -479,8 +492,10 @@ function PdfSignToolInner() {
 
   // Delete placed element
   const deleteElement = (id) => {
+    const el = elements.find(e => e.id === id);
     dispatch({ type: 'DELETE_ELEMENT', payload: id });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+    if (el) logAction('DELETE_ELEMENT', id, el.pageIndex, `Deleted ${el.type}`, [el]);
     setAnnouncement('Removed element.');
   };
 
@@ -497,25 +512,6 @@ function PdfSignToolInner() {
 
       const tag = document.activeElement?.tagName;
       const isInput = tag === 'INPUT' || tag === 'TEXTAREA';
-
-      // Undo (Cmd+Z or Ctrl+Z)
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
-        if (isInput) return; // Let native undo handle text input editing
-        e.preventDefault();
-        
-        if (actionHistory.length === 0) return;
-        const lastAction = actionHistory[0];
-        
-        dispatch({ type: 'UNDO' });
-        setUndoSelection((currentSelection) => {
-          if (!currentSelection.has(lastAction.id)) return currentSelection;
-          const newSet = new Set(currentSelection);
-          newSet.delete(lastAction.id);
-          return newSet;
-        });
-        setAnnouncement(`Undid: ${lastAction.description}`);
-        return;
-      }
 
       // Delete the active element via Backspace/Delete
       if (activeElementId && (e.key === 'Backspace' || e.key === 'Delete')) {
@@ -686,63 +682,14 @@ function PdfSignToolInner() {
         onSaveSignature={handleAddSignatureElement}
       />
 
-      {/* Undo History Modal */}
-      <dialog
-        ref={undoDialogRef}
-        className="sig-dialog"
+      <UndoHistoryModal
+        open={undoModalOpen}
         onClose={() => setUndoModalOpen(false)}
-        onClick={(e) => { if (e.target === e.currentTarget) setUndoModalOpen(false); }}
-        aria-labelledby="undo-dialog-title"
-      >
-            <div className="sig-dialog-header">
-              <h3 id="undo-dialog-title">Undo changes</h3>
-              <button type="button" className="sig-dialog-close" onClick={() => setUndoModalOpen(false)} aria-label="Close dialog">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <path d="M4 4l8 8M12 4l-8 8" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="sig-dialog-body" style={{ padding: '0.75rem 1.5rem 1.5rem' }}>
-              <div className="undo-history-list">
-                {actionHistory.map((action) => {
-                   const time = new Date(action.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                   const isSelected = undoSelection.has(action.id);
-                   return (
-                     <label key={action.id} className="undo-history-item">
-                       <input 
-                         type="checkbox" 
-                         checked={isSelected}
-                         onChange={(e) => {
-                            const newSet = new Set(undoSelection);
-                            if (e.target.checked) newSet.add(action.id);
-                            else newSet.delete(action.id);
-                            setUndoSelection(newSet);
-                         }} 
-                       />
-                       <div className="undo-history-details">
-                         <span className="undo-history-desc">{action.description}</span>
-                         <span className="undo-history-time">{time}</span>
-                         <span className="undo-history-page">Page {action.pageIndex + 1}</span>
-                       </div>
-                     </label>
-                   );
-                })}
-              </div>
-            </div>
-            
-            <div className="sig-dialog-footer">
-              <button
-                type="button"
-                className="sig-btn sig-btn-primary"
-                style={{ background: 'var(--color-success)' }}
-                onClick={handleRevertSelected}
-                disabled={undoSelection.size === 0}
-              >
-                Revert selected
-              </button>
-            </div>
-      </dialog>
+        actionHistory={actionHistory}
+        undoSelection={undoSelection}
+        setUndoSelection={setUndoSelection}
+        onRevertSelected={handleRevertSelected}
+      />
 
       {/* Start-over confirmation */}
       <dialog

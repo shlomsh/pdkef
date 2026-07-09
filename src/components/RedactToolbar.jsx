@@ -9,7 +9,9 @@ export default function RedactToolbar({
   isFullscreen,
   setConfirmResetOpen,
   handleSavePdf,
-  elementsCount
+  elementsCount,
+  actionHistory,
+  setUndoModalOpen
 }) {
   return (
     <div className="sign-toolbar-container" style={{ marginTop: 'var(--space-5)' }}>
@@ -57,6 +59,20 @@ export default function RedactToolbar({
             <line x1="4" y1="19" x2="12" y2="19" />
           </svg>
           <span className="sign-tool-btn-text">Blur</span>
+        </button>
+
+        <button
+          type="button"
+          className="sign-tool-btn"
+          onClick={() => setUndoModalOpen(true)}
+          title="Undo changes"
+          disabled={actionHistory.length === 0}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7v6h6" />
+            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+          </svg>
+          <span className="sign-tool-btn-text">Undo</span>
         </button>
 
         <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />

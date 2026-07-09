@@ -6,7 +6,11 @@ import { redactPdf } from '../lib/redact.js';
 import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 import { useDraftPersistence } from '../lib/useDraftPersistence.js';
 import RedactToolbar from './RedactToolbar.jsx';
-import ColorPickerMenu from './ColorPickerMenu.jsx';
+import RedactBox from './RedactBox.jsx';
+import UndoHistoryModal from './UndoHistoryModal.jsx';
+import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../constants/signGeometry.js';
+import { createActionEntry } from '../lib/actionHistory.js';
+import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 
 export default function PdfRedactTool() {
   const [file, setFile] = useState(null);
@@ -40,6 +44,27 @@ export default function PdfRedactTool() {
   // on touch/drag interaction (mobile has no hover), so the controls stay hidden
   // otherwise and don't clutter pages full of redaction boxes.
   const [activeBoxId, setActiveBoxId] = useState(null);
+  // Which box shows its whiteout color-picker toolbar. Deliberately a separate,
+  // click-driven *sticky* selection (cleared only by clicking elsewhere), not tied to
+  // hover like activeBoxId above. ColorPickerMenu's Popover portals its open dropdown
+  // to document.body, which is outside the box's DOM subtree — if this were hover-based,
+  // moving the mouse from the swatch trigger into the portaled color grid would fire the
+  // box's mouseleave and unmount the toolbar (and the open popover with it) before a
+  // color could be picked. Mirrors the Sign tool's activeElementId, which is click-set
+  // and never cleared on mouseleave for the same reason.
+  const [selectedBoxId, setSelectedBoxId] = useState(null);
+
+  // Undo history — mirrors the Sign tool's model exactly (see actionHistory.js,
+  // useUndoShortcut.js, UndoHistoryModal.jsx): a log of creation events only
+  // (drawing a box, duplicating a whiteout box). Undoing one just removes the
+  // element it created; edits (color, move, resize) aren't logged or undoable.
+  const [actionHistory, setActionHistory] = useState([]);
+  const [undoSelection, setUndoSelection] = useState(new Set());
+  const [undoModalOpen, setUndoModalOpen] = useState(false);
+
+  const logAction = (type, elementId, pageIndex, description) => {
+    setActionHistory(prev => [createActionEntry(type, elementId, pageIndex, description), ...prev]);
+  };
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
@@ -52,6 +77,23 @@ export default function PdfRedactTool() {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  // Escape precedence while the Undo modal is open in full screen: close the modal
+  // FIRST, and only let a subsequent Escape exit full screen. Without this the
+  // browser's default Escape (exit fullscreen) races the dialog's own Escape, and
+  // full screen tends to win, leaving the dialog orphaned open behind it. Mirrors
+  // PdfSignTool.jsx's identical handling for its own Undo/Start-over dialogs.
+  useEffect(() => {
+    if (!undoModalOpen) return;
+    const onEsc = (e) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      setUndoModalOpen(false);
+    };
+    window.addEventListener('keydown', onEsc, { capture: true });
+    return () => window.removeEventListener('keydown', onEsc, { capture: true });
+  }, [undoModalOpen]);
 
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
@@ -103,12 +145,15 @@ export default function PdfRedactTool() {
   // otherwise race, and whichever's awaits happened to resolve last would silently
   // clobber the other's state. Tag each call with an id and ignore any state updates
   // from a call that's been superseded by a newer one.
-  const loadPdf = async (selected, bytes, presetElements = [], restored = false) => {
+  const loadPdf = async (selected, bytes, preset = {}, restored = false) => {
     const loadId = ++loadIdRef.current;
+    const presetElements = preset.elements || [];
     setFile(selected);
     setStatus('loading');
     setProgress(0);
     setElements(presetElements);
+    setActionHistory(preset.actionHistory || []);
+    setUndoSelection(new Set());
     seedUniqueId(presetElements);
     fileBytesRef.current = bytes;
 
@@ -166,7 +211,7 @@ export default function PdfRedactTool() {
 
     const selected = pdfs[0];
     const bytes = await selected.arrayBuffer();
-    await loadPdf(selected, bytes, []);
+    await loadPdf(selected, bytes, {});
   };
 
   const { clearDraft } = useDraftPersistence({
@@ -174,7 +219,7 @@ export default function PdfRedactTool() {
     file,
     fileBytes: fileBytesRef.current,
     elements,
-    extra: {},
+    extra: { actionHistory },
     status,
     onRestore: (record) => {
       // A manual pick already claimed the load slot (even if it hasn't finished loading
@@ -184,7 +229,12 @@ export default function PdfRedactTool() {
       const restoredFile = new File([record.fileBytes], record.fileName, {
         type: record.fileType || 'application/pdf'
       });
-      loadPdf(restoredFile, record.fileBytes, record.elements || [], true);
+      loadPdf(
+        restoredFile,
+        record.fileBytes,
+        { elements: record.elements || [], actionHistory: record.extra?.actionHistory || [] },
+        true
+      );
     }
   });
 
@@ -194,6 +244,7 @@ export default function PdfRedactTool() {
     }
 
     setActiveBoxId(null); // clicking blank page area deselects/hides any box's controls
+    setSelectedBoxId(null);
     e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -241,8 +292,9 @@ export default function PdfRedactTool() {
     
     // Only create a box if it has some minimum size (e.g., > 1% of page width/height)
     if (width > 1 && height > 1) {
+      const id = uniqueId();
       setElements(prev => [...prev, {
-        id: uniqueId(),
+        id,
         pageIndex: drawingState.pageIndex,
         left,
         top,
@@ -251,6 +303,7 @@ export default function PdfRedactTool() {
         style: activeStyle,
         color: activeStyle === 'whiteout' ? activeColor : (activeStyle === 'blackout' ? '#000000' : undefined)
       }]);
+      logAction(`ADD_${activeStyle.toUpperCase()}`, id, drawingState.pageIndex, `Added ${activeStyle} box`);
       setAnnouncement(`Added ${activeStyle} box.`);
     }
     
@@ -269,21 +322,86 @@ export default function PdfRedactTool() {
   }, [drawingState]);
 
   const deleteElement = (id) => {
+    const el = elements.find(e => e.id === id);
     setElements(prev => prev.filter(el => el.id !== id));
+    setActiveBoxId(prev => (prev === id ? null : prev));
+    setSelectedBoxId(prev => (prev === id ? null : prev));
+    if (el) logAction('DELETE_ELEMENT', id, el.pageIndex, `Deleted ${el.style} box`, [el]);
   };
 
   const updateElement = (id, changes) => {
     setElements(prev => prev.map(el => (el.id === id ? { ...el, ...changes } : el)));
   };
 
+  // Cmd/Ctrl+Z: undo the single most recently logged action. Deletion entries
+  // carry a snapshot of what was removed (see actionHistory.js) — undo restores
+  // it instead of removing by id.
+  const undoLast = () => {
+    if (actionHistory.length === 0) return;
+    const lastAction = actionHistory[0];
+    if (lastAction.snapshot) {
+      setElements(prev => [...prev, ...lastAction.snapshot]);
+    } else {
+      setElements(prev => prev.filter(el => el.id !== lastAction.elementId));
+      setActiveBoxId(prev => (prev === lastAction.elementId ? null : prev));
+      setSelectedBoxId(prev => (prev === lastAction.elementId ? null : prev));
+    }
+    setActionHistory(prev => prev.slice(1));
+    setUndoSelection((currentSelection) => {
+      if (!currentSelection.has(lastAction.id)) return currentSelection;
+      const newSet = new Set(currentSelection);
+      newSet.delete(lastAction.id);
+      return newSet;
+    });
+    setAnnouncement(`Undid: ${lastAction.description}`);
+  };
+  useUndoShortcut(undoLast);
+
+  // "Undo changes" modal: revert several checked actions at once. Creation
+  // entries revert by removing the element they added; deletion entries
+  // (snapshot set) revert by restoring it.
+  const handleRevertSelected = () => {
+    const idsToRevert = Array.from(undoSelection);
+    if (idsToRevert.length === 0) return;
+    const revertedActions = actionHistory.filter(action => idsToRevert.includes(action.id));
+    const idsToRemove = revertedActions.filter(a => !a.snapshot).map(a => a.elementId);
+    const elementsToRestore = revertedActions.filter(a => a.snapshot).flatMap(a => a.snapshot);
+    setElements(prev => prev.filter(el => !idsToRemove.includes(el.id)).concat(elementsToRestore));
+    setActiveBoxId(prev => (idsToRemove.includes(prev) ? null : prev));
+    setSelectedBoxId(prev => (idsToRemove.includes(prev) ? null : prev));
+    setActionHistory(prev => prev.filter(action => !idsToRevert.includes(action.id)));
+    setUndoSelection(new Set());
+    setUndoModalOpen(false);
+    setAnnouncement('Reverted selected actions.');
+  };
+
+  // Passed to ElementToolbar's onChange for whiteout boxes: applies the color and
+  // remembers it, same as the Sign tool's whiteout tool.
+  const changeElementColor = (id, color) => {
+    updateElement(id, { color });
+    rememberColor(color);
+  };
+
+  // Passed to ElementToolbar's onClone (whiteout only). ElementToolbar builds the new
+  // element object itself (new id, nudged position) and tags it with the rendering-only
+  // `type: 'whiteout'` shim RedactBox passes in — strip that back out since Redact's
+  // element model uses `style`, not `type`.
+  const cloneWhiteoutElement = ({ type, ...cloned }) => {
+    setElements(prev => [...prev, { ...cloned, style: 'whiteout' }]);
+    setSelectedBoxId(cloned.id);
+    setActiveBoxId(cloned.id);
+    logAction('DUPLICATE_ELEMENT', cloned.id, cloned.pageIndex, 'Duplicated whiteout box');
+  };
+
   // Drag an existing box to reposition it. Percentages are relative to the box's own
   // page wrapper, captured once at gesture start (it can't change mid-drag). We
   // stopPropagation so the page-level draw handler never starts a new box underneath.
   const handleBoxDragStart = (e, el) => {
-    if (e.target.closest('.redact-element-btn') || e.target.closest('.redact-box-resizer')) return;
+    if (e.target.closest('.redact-element-btn') || e.target.closest('.redact-box-resizer') || e.target.closest('.sign-element-actions')) return;
     e.stopPropagation();
     e.preventDefault();
     setActiveBoxId(el.id); // reveal controls on touch/click, where there's no hover
+    setSelectedBoxId(el.id); // pin the whiteout toolbar open (see selectedBoxId comment above)
 
     const wrapper = pageWrapperRefs.current[el.pageIndex];
     if (!wrapper) return;
@@ -315,9 +433,12 @@ export default function PdfRedactTool() {
     window.addEventListener('touchend', onUp);
   };
 
-  // Drag the corner handle to resize an existing box (bottom-right corner anchored to
-  // the box's top-left, so left/top stay put and only width/height change).
-  const handleBoxResizeStart = (e, el) => {
+  // Drag a resize handle to resize an existing box. `handle` defaults to the single
+  // bottom-right corner used by blackout/blur boxes (anchored top-left, only
+  // width/height change). Whiteout boxes pass one of the 8 directions ElementResizers
+  // emits (top/right/bottom/left + 4 corners), mirroring the shape-resize math in
+  // SignTool/DraggableWrapper.jsx's handleResizeStart so the two behave identically.
+  const handleBoxResizeStart = (e, el, handle = 'bottom-right') => {
     e.stopPropagation();
     e.preventDefault();
 
@@ -326,17 +447,49 @@ export default function PdfRedactTool() {
 
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const start = { x: clientX, y: clientY, width: el.width, height: el.height };
+    const start = { x: clientX, y: clientY, width: el.width, height: el.height, left: el.left, top: el.top };
 
     const onMove = (ev) => {
       const mx = ev.touches ? ev.touches[0].clientX : ev.clientX;
       const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
       const rect = wrapper.getBoundingClientRect();
-      let newWidth = start.width + pxDeltaToPercent(mx - start.x, rect.width);
-      let newHeight = start.height + pxDeltaToPercent(my - start.y, rect.height);
-      newWidth = Math.max(1, Math.min(100 - el.left, newWidth));
-      newHeight = Math.max(1, Math.min(100 - el.top, newHeight));
-      updateElement(el.id, { width: newWidth, height: newHeight });
+      const dxPercent = pxDeltaToPercent(mx - start.x, rect.width);
+      const dyPercent = pxDeltaToPercent(my - start.y, rect.height);
+
+      let newWidth = start.width;
+      let newHeight = start.height;
+      let newLeft = start.left;
+      let newTop = start.top;
+
+      if (handle === 'right') {
+        newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, start.width + dxPercent));
+      } else if (handle === 'left') {
+        newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, start.width - dxPercent));
+        newLeft = start.left - (newWidth - start.width);
+      } else if (handle === 'bottom') {
+        newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, start.height + dyPercent));
+      } else if (handle === 'top') {
+        newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, start.height - dyPercent));
+        newTop = start.top - (newHeight - start.height);
+      } else if (handle === 'bottom-right') {
+        newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, start.width + dxPercent));
+        newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, start.height + dyPercent));
+      } else if (handle === 'bottom-left') {
+        newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, start.width - dxPercent));
+        newLeft = start.left - (newWidth - start.width);
+        newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, start.height + dyPercent));
+      } else if (handle === 'top-right') {
+        newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, start.width + dxPercent));
+        newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, start.height - dyPercent));
+        newTop = start.top - (newHeight - start.height);
+      } else if (handle === 'top-left') {
+        newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, start.width - dxPercent));
+        newLeft = start.left - (newWidth - start.width);
+        newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, start.height - dyPercent));
+        newTop = start.top - (newHeight - start.height);
+      }
+
+      updateElement(el.id, { width: newWidth, height: newHeight, left: newLeft, top: newTop });
       if (ev.cancelable) ev.preventDefault();
     };
     const onUp = () => {
@@ -352,7 +505,19 @@ export default function PdfRedactTool() {
   };
   
   const clearPage = (pageIndex) => {
+    const removed = elements.filter(el => el.pageIndex === pageIndex);
+    if (removed.length === 0) return;
+    const removedIds = removed.map(el => el.id);
     setElements(prev => prev.filter(el => el.pageIndex !== pageIndex));
+    setActiveBoxId(prev => (removedIds.includes(prev) ? null : prev));
+    setSelectedBoxId(prev => (removedIds.includes(prev) ? null : prev));
+    logAction(
+      'CLEAR_PAGE',
+      null,
+      pageIndex,
+      `Cleared ${removed.length} box${removed.length === 1 ? '' : 'es'} on page ${pageIndex + 1}`,
+      removed
+    );
   };
 
   const handleSavePdf = async () => {
@@ -388,6 +553,11 @@ export default function PdfRedactTool() {
     setFile(null);
     setPdfDocument(null);
     setElements([]);
+    setActiveBoxId(null);
+    setSelectedBoxId(null);
+    setActionHistory([]);
+    setUndoSelection(new Set());
+    setUndoModalOpen(false);
     setStatus('idle');
     setProgress(0);
     setDownloadUrl((prev) => {
@@ -421,6 +591,8 @@ export default function PdfRedactTool() {
             setConfirmResetOpen={setConfirmResetOpen}
             handleSavePdf={handleSavePdf}
             elementsCount={elements.length}
+            actionHistory={actionHistory}
+            setUndoModalOpen={setUndoModalOpen}
           />
 
           <div className="sign-help-tip" style={{ color: 'var(--color-muted-light)' }}>
@@ -461,96 +633,19 @@ export default function PdfRedactTool() {
                   
                   {/* Render existing redaction boxes */}
                   {elements.filter(el => el.pageIndex === i).map(el => (
-                    <div
+                    <RedactBox
                       key={el.id}
-                      className={`redact-box${el.id === activeBoxId ? ' active' : ''}`}
-                      onMouseDown={(e) => handleBoxDragStart(e, el)}
-                      onTouchStart={(e) => handleBoxDragStart(e, el)}
-                      onMouseEnter={() => setActiveBoxId(el.id)}
-                      onMouseLeave={() => setActiveBoxId((prev) => (prev === el.id ? null : prev))}
-                      style={{
-                        position: 'absolute',
-                        left: `${el.left}%`,
-                        top: `${el.top}%`,
-                        width: `${el.width}%`,
-                        height: `${el.height}%`,
-                        backgroundColor: el.style === 'blur' ? 'rgba(255,255,255,0.1)' : (el.style === 'whiteout' ? el.color || '#ffffff' : '#000000'),
-                        backdropFilter: el.style === 'blur' ? 'blur(8px)' : 'none',
-                        WebkitBackdropFilter: el.style === 'blur' ? 'blur(8px)' : 'none',
-                        border: el.style === 'blur' ? '1px solid rgba(0,0,0,0.2)' : (el.style === 'whiteout' ? '1px solid rgba(0,0,0,0.15)' : '1px solid #333'),
-                        cursor: 'move',
-                        touchAction: 'none',
-                        zIndex: 10
-                      }}
-                    >
-                      <button
-                        className="redact-element-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteElement(el.id);
-                        }}
-                        title="Remove redaction"
-                        style={{
-                          position: 'absolute',
-                          top: '-10px',
-                          right: '-10px',
-                          background: 'var(--color-danger)',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '50%',
-                          width: '24px',
-                          height: '24px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          lineHeight: '1',
-                          padding: 0,
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                        }}
-                      >
-                        ✕
-                      </button>
-                      <div
-                        className="redact-box-resizer"
-                        onMouseDown={(e) => handleBoxResizeStart(e, el)}
-                        onTouchStart={(e) => handleBoxResizeStart(e, el)}
-                        title="Drag to resize"
-                        style={{
-                          position: 'absolute',
-                          bottom: '-6px',
-                          right: '-6px',
-                          width: '14px',
-                          height: '14px',
-                          background: 'var(--color-primary)',
-                          border: '2px solid var(--color-surface)',
-                          borderRadius: '50%',
-                          cursor: 'se-resize',
-                          touchAction: 'none',
-                          boxShadow: 'var(--shadow-sm)',
-                          zIndex: 11
-                        }}
-                      />
-                      {el.id === activeBoxId && el.style === 'whiteout' && (
-                        <div
-                          className="sign-element-actions"
-                          style={{ opacity: 1, pointerEvents: 'auto', top: '-44px', left: 0 }}
-                          onPointerDown={e => e.stopPropagation()}
-                          onMouseDown={e => e.stopPropagation()}
-                          onTouchStart={e => e.stopPropagation()}
-                        >
-                          <ColorPickerMenu
-                            value={el.color || '#ffffff'}
-                            onChange={(color) => {
-                              updateElement(el.id, { color });
-                              rememberColor(color);
-                            }}
-                            title="Whiteout color"
-                          />
-                        </div>
-                      )}
-                    </div>
+                      el={el}
+                      isSelected={el.id === selectedBoxId}
+                      isActiveHover={el.id === activeBoxId}
+                      onDragStart={handleBoxDragStart}
+                      onResizeStart={handleBoxResizeStart}
+                      onHoverEnter={() => setActiveBoxId(el.id)}
+                      onHoverLeave={() => setActiveBoxId((prev) => (prev === el.id ? null : prev))}
+                      onDelete={deleteElement}
+                      onChangeColor={changeElementColor}
+                      onClone={cloneWhiteoutElement}
+                    />
                   ))}
                   
                   {/* Render active drawing box */}
@@ -625,6 +720,15 @@ export default function PdfRedactTool() {
           </span>
         </div>
       )}
+
+      <UndoHistoryModal
+        open={undoModalOpen}
+        onClose={() => setUndoModalOpen(false)}
+        actionHistory={actionHistory}
+        undoSelection={undoSelection}
+        setUndoSelection={setUndoSelection}
+        onRevertSelected={handleRevertSelected}
+      />
 
       {/* Start-over confirmation */}
       {confirmResetOpen && (

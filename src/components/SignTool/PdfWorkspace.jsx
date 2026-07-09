@@ -54,7 +54,7 @@ export default function PdfWorkspace({
   setConfirmResetOpen,
   placeSignatureAt
 }) {
-  const { state: { selectedTool, elements, activeElementId }, dispatch } = useSignTool();
+  const { state: { selectedTool, elements, activeElementId, actionHistory }, dispatch } = useSignTool();
 
   // --- Gesture handlers (extracted) ---
   const { handlePageClick, handleOverlayPointerDown } = useWorkspaceGestures({
@@ -84,10 +84,12 @@ export default function PdfWorkspace({
   }, [dispatch]);
 
   const deleteElement = useCallback((id) => {
+    const el = elements.find(e => e.id === id);
     dispatch({ type: 'DELETE_ELEMENT', payload: id });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+    if (el) logAction('DELETE_ELEMENT', id, el.pageIndex, `Deleted ${el.type}`, [el]);
     setAnnouncement('Removed element.');
-  }, [dispatch, setAnnouncement]);
+  }, [dispatch, setAnnouncement, elements, logAction]);
 
   // Factory: returns a stable onChange handler for DraggableWrapper / TextNode.
   // Defined with useCallback so the factory reference is stable; the returned
@@ -144,7 +146,7 @@ export default function PdfWorkspace({
             onDeleteSavedSignature={onDeleteSavedSignature}
             setDialogOpen={setDialogOpen}
             setUndoModalOpen={setUndoModalOpen}
-            actionHistory={[]} // standard props or context logic
+            actionHistory={actionHistory}
             toggleFullscreen={toggleFullscreen}
             isFullscreen={isFullscreen || isPseudoFullscreen}
             setConfirmResetOpen={setConfirmResetOpen}

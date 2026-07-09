@@ -106,6 +106,15 @@ export function reducer(state, action) {
     case 'UNDO': {
       if (state.actionHistory.length === 0) return state;
       const lastAction = state.actionHistory[0];
+      // Deletion entries carry a snapshot of what was removed — undo restores it
+      // instead of removing by id (see actionHistory.js).
+      if (lastAction.snapshot) {
+        return {
+          ...state,
+          elements: [...state.elements, ...lastAction.snapshot],
+          actionHistory: state.actionHistory.slice(1)
+        };
+      }
       return {
         ...state,
         elements: state.elements.filter(el => el.id !== lastAction.elementId),
