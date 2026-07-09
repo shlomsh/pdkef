@@ -3,11 +3,14 @@ import { DEFAULT_COLOR_BLUE } from '../../../constants/signGeometry.js';
 
 export default function SymbolNode({ element, isActive, onResizeStart }) {
   const renderSymbol = () => {
-    switch (element.symbolType) {
+    const mark = element.mark || (element.symbolType === 'cross' ? 'x' : element.symbolType) || 'check';
+    switch (mark) {
       case 'check':
         return <path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />;
-      case 'cross':
+      case 'x':
         return <path d="M18 6L6 18M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />;
+      case 'dot':
+        return <circle cx="12" cy="12" r="8" fill="currentColor" />;
       default:
         return null;
     }

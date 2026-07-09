@@ -1972,7 +1972,7 @@ footer a {
   align-items: start;
   justify-items: start;
   color: #000;
-  line-height: 1.2;
+  line-height: 1.05;
 }
 
 .sign-text-input,
@@ -1984,15 +1984,13 @@ footer a {
   font-style: inherit;
   line-height: inherit;
   /* Vertical padding in em (tracks font size); 4px is horizontal breathing room.
-     Bottom slack gives script/handwriting fonts (esp. Hebrew cursive) room for
-     long descenders that overshoot the em box, which the textarea's
-     overflow:hidden was clipping. It is mirrored on top purely so the selection
-     box looks balanced. Because top padding shifts the on-screen baseline down,
-     the PDF export must compensate by the SAME em fraction: keep this value in
-     sync with TEXT_BOX_PADDING_EM in src/lib/sign.js, or preview and output
-     drift apart. Both overlaid elements share this rule so their measured box
-     stays identical (the auto-size invariant). */
-  padding: 0.3em 4px;
+     Keep this small: the selection box should hug the actual text, while still
+     leaving a little descender slack for handwriting fonts. Because top padding
+     shifts the on-screen baseline down, the PDF export must compensate by the
+     SAME em fraction: keep this value in sync with TEXT_BOX_PADDING_EM in
+     src/lib/sign.js, or preview and output drift apart. Both overlaid elements
+     share this rule so their measured box stays identical. */
+  padding: 0.12em 4px;
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;

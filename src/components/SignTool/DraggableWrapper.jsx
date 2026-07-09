@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'preact/hooks';
+import { useRef, useEffect } from 'preact/hooks';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 import usePdfCoordinates from '../../lib/usePdfCoordinates.js';
 import useDraggableElement from '../../lib/useDraggableElement.js';
@@ -54,7 +54,8 @@ export default function DraggableWrapper({
   // our own position in the DOM (at layout/event time, when it's always attached)
   // removes that timing dependency entirely.
   const getPageWrapper = () => elementRef.current?.closest('.sign-page-wrapper') || null;
-      const actionsRef = useRef(null);
+  const actionsRef = useRef(null);
+  const textDirection = element.type === 'text' ? getEffectiveTextDirection(element) : 'ltr';
 
   // Drag-to-move gesture logic (extracted into useDraggableElement).
   const { handlePointerDown, isDragging, dragOffset } = useDraggableElement({
@@ -77,22 +78,10 @@ export default function DraggableWrapper({
   // top edge). `flip()` swaps to below the element when there's no room
   // above.
   //
-  // Only `top` is applied from the computed result — horizontal alignment
-  // (which edge of the element the toolbar hugs) is driven by Floating UI's
-  // `placement` ('top-end' for RTL text, 'top-start' otherwise, set below),
-  // not by CSS or JS positioning of our own. The toolbar is a DOM
-  // child of the element it's anchored to, so CSS `left`/`right` already
-  // track the element's edge on every reflow for free. This matters for RTL
-  // text boxes, which grow leftward from a fixed right edge and shift
-  // `element.left` on every keystroke (see the width-growth effect below):
-  // if horizontal position were also JS-computed, it would depend on
-  // `element.left` and re-run computePosition() every keystroke, and the
-  // one-frame lag between the box's synchronous DOM move and the toolbar's
-  // async Promise-resolved catch-up is what caused the toolbar to visibly
-  // flicker while typing RTL text. Vertical position never depends on
-  // `element.left`, so it doesn't have this problem.
-  const textDirection = element.type === 'text' ? getEffectiveTextDirection(element) : 'ltr';
-
+  // Horizontal alignment is driven by Floating UI's `placement` ('top-end'
+  // for RTL text, 'top-start' otherwise), not by page-clamp math in this
+  // component. That preserves the fundamental anchor: LTR toolbars begin at
+  // the element's left edge, RTL toolbars end at its right edge.
   const { refs, floatingStyles } = useFloating({
     placement: textDirection === 'rtl' ? 'top-end' : 'top-start',
     whileElementsMounted: autoUpdate,
@@ -137,7 +126,19 @@ export default function DraggableWrapper({
     const startHeight = element.height || getWidthPercentToHeightPercent(startWidth, ratioAtStart, pageWrapper);
 
     const textStartRect = element.type === 'text' && elementRef.current ? getDimensions(elementRef.current) : null;
+    const textStartSizePercent = element.type === 'text' && elementRef.current
+      ? getElementPercentSize(elementRef.current, pageWrapper)
+      : null;
     let pendingResize = null;
+
+    const setTextResizeFontSize = (fontSize) => {
+      if (!elementRef.current) return;
+      elementRef.current
+        .querySelectorAll('.sign-text-display, .sign-text-input, .sign-text-measure')
+        .forEach((node) => {
+          node.style.fontSize = fontSize ? `${fontSize}px` : '';
+        });
+    };
 
     const handleResizeMove = (moveEvent) => {
       const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
@@ -261,8 +262,33 @@ export default function DraggableWrapper({
           newFontSize = Math.round(startFontSize + deltaFontSize);
         }
         pendingResize = { fontSize: Math.max(MIN_FONT_SIZE_PT, Math.min(MAX_FONT_SIZE_PT, newFontSize)) };
-        if (elementRef.current) {
-          elementRef.current.style.fontSize = `${pendingResize.fontSize}pt`;
+        setTextResizeFontSize(pendingResize.fontSize * getScaleFactor(pageWrapper, pageWidthPoints));
+
+        if (elementRef.current && textStartSizePercent) {
+          const newSize = getElementPercentSize(elementRef.current, pageWrapper);
+          const isRtl = getEffectiveTextDirection(element) === 'rtl';
+          let newLeft = startLeft;
+          let newTop = startTop;
+
+          if (newSize.width > 0 && textStartSizePercent.width > 0) {
+            if (isLeft && !isRtl) {
+              newLeft = startLeft + textStartSizePercent.width - newSize.width;
+            } else if (!isLeft && isRtl) {
+              newLeft = startLeft - textStartSizePercent.width + newSize.width;
+            }
+          }
+
+          if (newSize.height > 0 && textStartSizePercent.height > 0 && isTop) {
+            newTop = startTop + textStartSizePercent.height - newSize.height;
+          }
+
+          pendingResize = { ...pendingResize, left: newLeft, top: newTop };
+          elementRef.current.style.top = `${newTop}%`;
+          if (isRtl) {
+            elementRef.current.style.right = `${100 - newLeft}%`;
+          } else {
+            elementRef.current.style.left = `${newLeft}%`;
+          }
         }
         return;
       }
@@ -317,24 +343,6 @@ export default function DraggableWrapper({
       if (pendingResize) {
         onChange(pendingResize);
         pendingResize = null;
-
-        if (elementRef.current) {
-          elementRef.current.style.width = '';
-          elementRef.current.style.height = '';
-          elementRef.current.style.left = '';
-          elementRef.current.style.top = '';
-          elementRef.current.style.fontSize = '';
-
-          const lines = elementRef.current.querySelectorAll('line');
-          if (lines) {
-            lines.forEach(l => {
-              l.removeAttribute('x1');
-              l.removeAttribute('y1');
-              l.removeAttribute('x2');
-              l.removeAttribute('y2');
-            });
-          }
-        }
       }
     };
 

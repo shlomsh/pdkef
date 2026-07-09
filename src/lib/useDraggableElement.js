@@ -77,10 +77,19 @@ export default function useDraggableElement({
     // gesture-time measurement, same pattern as `textStartRect` in the resize
     // handler — not a render effect, so it can't reintroduce the
     // measure-then-mutate-position drift bug.)
-    const textWidthPercentAtStart =
+    const measuredSizePercentAtStart =
       element.type === 'text' && elementRef.current
-        ? getElementPercentSize(elementRef.current, pageWrapper).width
+        ? getElementPercentSize(elementRef.current, pageWrapper)
         : null;
+    const widthPercent =
+      element.type === 'text'
+        ? (measuredSizePercentAtStart?.width ?? DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT)
+        : (element.width || DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT);
+    const heightPercent =
+      element.type === 'text'
+        ? (measuredSizePercentAtStart?.height ?? DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT)
+        : (element.height || DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT);
+    const pageRect = pageWrapper.getBoundingClientRect();
 
     isDragging.current = true;
 
@@ -89,9 +98,32 @@ export default function useDraggableElement({
 
       const dx = moveX - dragStartPos.current.x;
       const dy = moveY - dragStartPos.current.y;
-      dragOffset.current = { x: dx, y: dy };
+      if (element.type === 'line') {
+        dragOffset.current = { x: dx, y: dy };
+        return;
+      }
+
+      const rawDxPercent = pageRect.width ? (dx / pageRect.width) * 100 : 0;
+      const rawDyPercent = pageRect.height ? (dy / pageRect.height) * 100 : 0;
+
+      const minDxPercent =
+        element.type === 'text' && getEffectiveTextDirection(element) === 'rtl'
+          ? widthPercent - dragStartPos.current.left
+          : -dragStartPos.current.left;
+      const maxDxPercent =
+        element.type === 'text' && getEffectiveTextDirection(element) === 'rtl'
+          ? 100 - dragStartPos.current.left
+          : 100 - widthPercent - dragStartPos.current.left;
+      const minDyPercent = -dragStartPos.current.top;
+      const maxDyPercent = 100 - heightPercent - dragStartPos.current.top;
+      const clampedDxPercent = Math.max(minDxPercent, Math.min(maxDxPercent, rawDxPercent));
+      const clampedDyPercent = Math.max(minDyPercent, Math.min(maxDyPercent, rawDyPercent));
+      const clampedDx = (clampedDxPercent / 100) * pageRect.width;
+      const clampedDy = (clampedDyPercent / 100) * pageRect.height;
+
+      dragOffset.current = { x: clampedDx, y: clampedDy };
       if (elementRef.current) {
-        elementRef.current.style.transform = `translate(${dx}px, ${dy}px)`;
+        elementRef.current.style.transform = `translate(${clampedDx}px, ${clampedDy}px)`;
       }
     };
 
@@ -117,11 +149,6 @@ export default function useDraggableElement({
         let newLeft = dragStartPos.current.left + dxPercent;
         let newTop = dragStartPos.current.top + dyPercent;
 
-        const widthPercent =
-          element.type === 'text'
-            ? (textWidthPercentAtStart ?? DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT)
-            : (element.width || DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT);
-
         if (
           element.type === 'text' &&
           getEffectiveTextDirection(element) === 'rtl'
@@ -130,7 +157,7 @@ export default function useDraggableElement({
         } else {
           newLeft = Math.max(0, Math.min(100 - widthPercent, newLeft));
         }
-        newTop = Math.max(0, Math.min(100 - (element.height || DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT), newTop));
+        newTop = Math.max(0, Math.min(100 - heightPercent, newTop));
         onChange({ left: newLeft, top: newTop });
       }
 

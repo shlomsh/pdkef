@@ -486,7 +486,7 @@ const TICKETS = [
     title: "Editor interaction/visual test harness",
     dependsOn: [],
     acceptance: "Cover the states unit tests miss: active outline, floating-toolbar visibility + top-edge flip, RTL toolbar alignment + leftward growth, dark mode, mobile full-width toolbar, whiteout bounds." },
-  { id: "E1.5", epic: "E1", lane: "B", status: "todo", priority: "high",
+  { id: "E1.5", epic: "E1", lane: "B", status: "in-progress", priority: "high",
     title: "Per-type gesture invariants + non-vacuous geometry harness",
     dependsOn: [],
     acceptance: "From the whiteout-resize post-mortem. For EVERY resizable element type, on a mandated realistic mocked page-wrapper rect: (a) move changes only position not size; (b) resize preserves the opposite/anchor edge for every handle; (c) zero-delta resize is a no-op. Ban the unmocked 0x0-rect pattern that made the prior whiteout tests vacuous. Report (don't silently fix) any other type that fails an invariant." },

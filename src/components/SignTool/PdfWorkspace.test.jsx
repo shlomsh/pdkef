@@ -18,21 +18,16 @@ describe('PdfWorkspace Component', () => {
 
   afterEach(() => {
     if (host) {
+      act(() => {
+        render(null, host);
+      });
       document.body.removeChild(host);
       host = null;
     }
   });
 
-  it('correctly dispatches ADD_ELEMENT, UPDATE_ELEMENT, and ENSURE_MINIMUM_SIZE on drag-drawing', () => {
-    const dispatch = vi.fn();
-    const state = {
-      selectedTool: 'rectangle', // select a drag-drawn tool
-      elements: [],
-      activeElementId: null,
-      actionHistory: []
-    };
-
-    const mockProps = {
+  function defaultProps(overrides = {}) {
+    return {
       file: { name: 'sample.pdf' },
       status: 'editing',
       isPseudoFullscreen: false,
@@ -45,6 +40,7 @@ describe('PdfWorkspace Component', () => {
       setTempPlacement: vi.fn(),
       setDialogOpen: vi.fn(),
       rememberColor: vi.fn(),
+      rememberWhiteoutColor: vi.fn(),
       rememberFont: vi.fn(),
       rememberFontSize: vi.fn(),
       rememberDirection: vi.fn(),
@@ -58,8 +54,21 @@ describe('PdfWorkspace Component', () => {
       toggleFullscreen: vi.fn(),
       isFullscreen: false,
       setConfirmResetOpen: vi.fn(),
-      placeSignatureAt: vi.fn()
+      placeSignatureAt: vi.fn(),
+      ...overrides
     };
+  }
+
+  it('correctly dispatches ADD_ELEMENT, UPDATE_ELEMENT, and ENSURE_MINIMUM_SIZE on drag-drawing', () => {
+    const dispatch = vi.fn();
+    const state = {
+      selectedTool: 'rectangle', // select a drag-drawn tool
+      elements: [],
+      activeElementId: null,
+      actionHistory: []
+    };
+
+    const mockProps = defaultProps();
 
     host = mount(
       <SignToolContext.Provider value={{ state, dispatch }}>
@@ -160,5 +169,115 @@ describe('PdfWorkspace Component', () => {
         })
       })
     );
+  });
+
+  it('renders a selected symbol with its chosen mark and color in the editor', () => {
+    const dispatch = vi.fn();
+    const state = {
+      selectedTool: null,
+      elements: [{
+        id: 'symbol-1',
+        type: 'symbol',
+        pageIndex: 0,
+        left: 20,
+        top: 20,
+        width: 8,
+        height: 6,
+        mark: 'x',
+        color: '#000000'
+      }],
+      activeElementId: 'symbol-1',
+      actionHistory: []
+    };
+
+    host = mount(
+      <SignToolContext.Provider value={{ state, dispatch }}>
+        <PdfWorkspace {...defaultProps()} />
+      </SignToolContext.Provider>
+    );
+
+    const symbol = host.querySelector('.sign-element');
+    const colorHost = symbol.querySelector('div[style*="color"]');
+    const path = symbol.querySelector('path[d*="M18 6L6 18"]');
+
+    expect(symbol.classList.contains('active')).toBe(true);
+    expect(colorHost.style.color).toBe('rgb(0, 0, 0)');
+    expect(path).not.toBeNull();
+  });
+
+  it('remembers edited text size, color, and typed direction for the next text element', () => {
+    const dispatch = vi.fn();
+    const rememberColor = vi.fn();
+    const rememberFontSize = vi.fn();
+    const rememberDirection = vi.fn();
+    const state = {
+      selectedTool: null,
+      elements: [{
+        id: 'text-1',
+        type: 'text',
+        pageIndex: 0,
+        left: 20,
+        top: 20,
+        text: 'hey',
+        fontSize: 16,
+        fontFamily: 'Arimo',
+        color: '#000000',
+        textDirection: 'ltr'
+      }],
+      activeElementId: 'text-1',
+      actionHistory: []
+    };
+
+    host = mount(
+      <SignToolContext.Provider value={{ state, dispatch }}>
+        <PdfWorkspace
+          {...defaultProps({ rememberColor, rememberFontSize, rememberDirection })}
+        />
+      </SignToolContext.Provider>
+    );
+
+    const increaseFont = host.querySelector('button[title="Increase font size"]');
+    expect(increaseFont).not.toBeNull();
+    act(() => {
+      increaseFont.click();
+    });
+
+    expect(rememberFontSize).toHaveBeenCalledWith(17);
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_ELEMENT',
+      payload: { id: 'text-1', changes: { fontSize: 17 } }
+    });
+
+    const colorTrigger = host.querySelector('button[title="Text color"]');
+    expect(colorTrigger).not.toBeNull();
+    act(() => {
+      colorTrigger.click();
+    });
+
+    const redSwatch = document.body.querySelector('.sign-color-swatch[title="#d8342b"]');
+    expect(redSwatch).not.toBeNull();
+    act(() => {
+      redSwatch.click();
+    });
+
+    expect(rememberColor).toHaveBeenCalledWith('#d8342b');
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_ELEMENT',
+      payload: { id: 'text-1', changes: { color: '#d8342b' } }
+    });
+
+    const textarea = host.querySelector('textarea.sign-text-input');
+    expect(textarea).not.toBeNull();
+    act(() => {
+      textarea.value = 'שלום';
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(rememberDirection).toHaveBeenCalledWith('rtl');
+
+    act(() => {
+      textarea.value = 'hello';
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(rememberDirection).toHaveBeenCalledWith('ltr');
   });
 });

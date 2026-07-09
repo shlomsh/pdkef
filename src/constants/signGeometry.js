@@ -41,8 +41,8 @@ export const DEFAULT_SHAPE_FALLBACK_ASPECT_RATIO = 1;
 
 // Text Rendering & Padding Multipliers
 export const HELVETICA_BASELINE_OFFSET_EM = 0.85;      // Fallback Helvetica baseline offset (em)
-export const DEFAULT_LINE_HEIGHT_EM = 1.2;              // Default text line height multiplier (em)
-export const TEXT_BOX_PADDING_EM = 0.3;                // Text box padding (em) matching editor styles
+export const DEFAULT_LINE_HEIGHT_EM = 1.05;             // Default text line height multiplier (em)
+export const TEXT_BOX_PADDING_EM = 0.12;                // Text box padding (em) matching editor styles
 
 // Miscellaneous UI Sizing/Offsets
 export const TOOLBAR_FLOATING_OFFSET = 8;             // Offset in pixels for Floating UI positioning

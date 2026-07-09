@@ -190,9 +190,16 @@ describe('sign.js pure functions', () => {
       expect(getEffectiveTextDirection({ type: 'text', text: 'مرحبا' })).toBe('rtl');
     });
 
-    it('should respect the textDirection override property', () => {
-      expect(getEffectiveTextDirection({ type: 'text', text: 'Hello', textDirection: 'rtl' })).toBe('rtl');
-      expect(getEffectiveTextDirection({ type: 'text', text: 'שלום', textDirection: 'ltr' })).toBe('ltr');
+    it('should use textDirection only as a fallback before text has a strong language direction', () => {
+      expect(getEffectiveTextDirection({ type: 'text', text: '', textDirection: 'rtl' })).toBe('rtl');
+      expect(getEffectiveTextDirection({ type: 'text', text: '123', textDirection: 'rtl' })).toBe('rtl');
+    });
+
+    it('should let typed language direction override the fallback direction', () => {
+      expect(getEffectiveTextDirection({ type: 'text', text: 'Hello', textDirection: 'rtl' })).toBe('ltr');
+      expect(getEffectiveTextDirection({ type: 'text', text: 'שלום', textDirection: 'ltr' })).toBe('rtl');
+      expect(getEffectiveTextDirection({ type: 'text', text: 'Hello שלום' })).toBe('ltr');
+      expect(getEffectiveTextDirection({ type: 'text', text: 'שלום Hello' })).toBe('rtl');
     });
   });
 

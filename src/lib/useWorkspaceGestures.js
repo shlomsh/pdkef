@@ -110,6 +110,8 @@ export default function useWorkspaceGestures({
         top: topPercent - heightPercent / 2,
         width: widthPercent,
         height: heightPercent,
+        mark: 'check',
+        color: initialColor,
       };
       dispatch({ type: 'ADD_ELEMENT', payload: newEl });
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });

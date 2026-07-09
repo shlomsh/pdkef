@@ -316,5 +316,50 @@ describe('PdfRedactTool UI flow', () => {
       expect(parseFloat(box.style.width)).toBeCloseTo(40);
       expect(parseFloat(box.style.height)).toBeCloseTo(20);
     });
+
+    // --- E1.5: generalize the whiteout-resize post-mortem's three gesture
+    // invariants (scrum.md) to this second, independent implementation of the
+    // same math (handleBoxResizeStart/handleBoxDragStart in PdfRedactTool.jsx
+    // — see its own comment there noting it mirrors DraggableWrapper.jsx's
+    // handleResizeMove; ARCHITECTURE.md's E4.3 backlog item is to converge
+    // these two copies, which is exactly why this file needs its own
+    // coverage rather than relying on the Sign tool's tests). Move already
+    // has basic coverage above ("drags an existing box..."); these add the
+    // move width/height-untouched invariant plus the zero-delta no-op. ---
+    it('move: dragging the box body by a delta leaves width/height untouched (E1.5 move invariant)', async () => {
+      const box = await setupSelectedWhiteoutBox();
+      const startWidth = parseFloat(box.style.width);
+      const startHeight = parseFloat(box.style.height);
+
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 100, bubbles: true })); // +10% / +10%
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      expect(parseFloat(box.style.left)).toBeCloseTo(30); // 20 + 10
+      expect(parseFloat(box.style.top)).toBeCloseTo(40); // 30 + 10
+      expect(parseFloat(box.style.width)).toBeCloseTo(startWidth);
+      expect(parseFloat(box.style.height)).toBeCloseTo(startHeight);
+    });
+
+    it('a zero-delta resize commits exactly the start geometry, with no drift (E1.5 zero-delta invariant)', async () => {
+      const box = await setupSelectedWhiteoutBox();
+      const startLeft = parseFloat(box.style.left);
+      const startTop = parseFloat(box.style.top);
+      const startWidth = parseFloat(box.style.width);
+      const startHeight = parseFloat(box.style.height);
+
+      await dragHandle(box, 'bottom-right', 200, 200, 200, 200);
+
+      expect(parseFloat(box.style.left)).toBeCloseTo(startLeft);
+      expect(parseFloat(box.style.top)).toBeCloseTo(startTop);
+      expect(parseFloat(box.style.width)).toBeCloseTo(startWidth);
+      expect(parseFloat(box.style.height)).toBeCloseTo(startHeight);
+    });
   });
 });

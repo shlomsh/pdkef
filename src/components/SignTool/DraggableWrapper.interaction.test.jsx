@@ -161,6 +161,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       // the left/right edges too.
       expect(firstCall.hasShift).toBe(true);
     });
+
   });
 
   // --- 3. RTL toolbar alignment + leftward growth ---------------------------
@@ -179,6 +180,23 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const ltrElement = { id: 'el-ltr', type: 'text', left: 20, top: 40, text: 'Hello', textDirection: 'ltr', fontSize: 12 };
       mountInPageWrapper(ltrElement, { isActive: true });
       expect(useFloatingCalls[0].placement).toBe('top-start');
+    });
+
+    it('uses typed language direction for toolbar placement, even when the fallback direction is stale', () => {
+      const ltrTextWithRtlFallback = { id: 'el-ltr-fallback', type: 'text', left: 20, top: 40, text: 'hey', textDirection: 'rtl', fontSize: 12 };
+      mountInPageWrapper(ltrTextWithRtlFallback, { isActive: true });
+      expect(useFloatingCalls[0].placement).toBe('top-start');
+
+      useFloatingCalls = [];
+      const rtlTextWithLtrFallback = { id: 'el-rtl-fallback', type: 'text', left: 70, top: 40, text: 'שלום', textDirection: 'ltr', fontSize: 12 };
+      mountInPageWrapper(rtlTextWithLtrFallback, { isActive: true });
+      expect(useFloatingCalls[0].placement).toBe('top-end');
+    });
+
+    it('uses the remembered direction only while the text has no strong language direction yet', () => {
+      const emptyRtlElement = { id: 'el-empty-rtl', type: 'text', left: 70, top: 40, text: '', textDirection: 'rtl', fontSize: 12 };
+      mountInPageWrapper(emptyRtlElement, { isActive: true });
+      expect(useFloatingCalls[0].placement).toBe('top-end');
     });
 
     it('keeps the RTL text box itself anchored to a fixed right edge (grows leftward) via `right`, not `left`', () => {
@@ -202,7 +220,147 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
     });
   });
 
-  // --- 4. Dark mode (no runtime dark theme exists yet in this codebase; see
+  // --- 4. Text resize live feedback ----------------------------------------
+  describe('text resize live feedback', () => {
+    it('writes the temporary font size to the rendered text nodes during resize, and commits only on release', () => {
+      const onChange = vi.fn();
+      const element = { id: 'txt-resize-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' };
+      const { box } = mountInPageWrapper(element, { isActive: true, pageWidthPoints: 600, onChange });
+      const corner = box.querySelector('.sign-element-resizer.corner.top-right');
+      const display = box.querySelector('.sign-text-display');
+      const input = box.querySelector('.sign-text-input');
+      const measure = box.querySelector('.sign-text-measure');
+
+      expect(corner).not.toBeNull();
+      expect(display.style.fontSize).toBe('12px');
+      expect(input.style.fontSize).toBe('12px');
+      expect(measure.style.fontSize).toBe('12px');
+
+      act(() => {
+        corner.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 50, clientY: 0 }));
+      });
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(box.style.fontSize).toBe('');
+      expect(display.style.fontSize).toBe('22px');
+      expect(input.style.fontSize).toBe('22px');
+      expect(measure.style.fontSize).toBe('22px');
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange.mock.calls[0][0]).toEqual({ fontSize: 22, left: 20, top: 10 });
+    });
+
+    it('preserves the opposite corner when a text resize changes the auto-sized box dimensions', () => {
+      const onChange = vi.fn();
+      const element = { id: 'txt-resize-2', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' };
+      const { box } = mountInPageWrapper(element, { isActive: true, pageWidthPoints: 600, onChange });
+      const corner = box.querySelector('.sign-element-resizer.corner.top-left');
+      const startWidthPx = 120;
+      const startHeightPx = 24;
+
+      box.getBoundingClientRect = () => {
+        const fontPx = parseFloat(box.querySelector('.sign-text-display').style.fontSize) || 12;
+        const scale = fontPx / 12;
+        const width = startWidthPx * scale;
+        const height = startHeightPx * scale;
+        return {
+          left: 120,
+          top: 80,
+          width,
+          height,
+          right: 120 + width,
+          bottom: 80 + height,
+          x: 120,
+          y: 80,
+          toJSON: () => {},
+        };
+      };
+
+      act(() => {
+        corner.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100, clientY: 100 }));
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: -4, clientY: -4 }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      const committed = onChange.mock.calls.at(-1)[0];
+      expect(committed.fontSize).toBe(24);
+      // Start dimensions: 120x24px on a 600x800 wrapper = 20% x 3%.
+      // New dimensions at 24px font: 240x48px = 40% x 6%.
+      // Top-left handle means the opposite bottom-right corner stays fixed:
+      // left + width remains 40%, top + height remains 13%.
+      expect(committed.left).toBeCloseTo(0, 5);
+      expect(committed.top).toBeCloseTo(7, 5);
+      expect(committed.left + 40).toBeCloseTo(40, 5);
+      expect(committed.top + 6).toBeCloseTo(13, 5);
+    });
+
+    it('dragging an auto-sized text element uses measured height to keep it inside the page', () => {
+      const onChange = vi.fn();
+      const element = { id: 'txt-drag-1', type: 'text', left: 20, top: 40, text: 'Tall text', fontSize: 24, textDirection: 'ltr' };
+      const { box } = mountInPageWrapper(element, { isActive: true, pageWidthPoints: 600, onChange });
+      box.getBoundingClientRect = () => ({
+        left: 120,
+        top: 320,
+        width: 180,
+        height: 160,
+        right: 300,
+        bottom: 480,
+        x: 120,
+        y: 320,
+        toJSON: () => {},
+      });
+
+      act(() => {
+        box.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100, clientY: 100 }));
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 100, clientY: 1000 }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      const committed = onChange.mock.calls.at(-1)[0];
+      // 160px on an 800px page is 20%, so top must clamp at 80%, not the old
+      // fallback-height clamp around 98%.
+      expect(committed.top).toBeCloseTo(80, 5);
+    });
+
+    it('clamps the live drag transform so a text element cannot be dragged outside the page', () => {
+      const onChange = vi.fn();
+      const element = { id: 'txt-drag-2', type: 'text', left: 20, top: 20, text: 'word', fontSize: 24, textDirection: 'ltr' };
+      const { box } = mountInPageWrapper(element, { isActive: true, pageWidthPoints: 600, onChange });
+      box.getBoundingClientRect = () => ({
+        left: 120,
+        top: 160,
+        width: 180,
+        height: 160,
+        right: 300,
+        bottom: 320,
+        x: 120,
+        y: 160,
+        toJSON: () => {},
+      });
+
+      act(() => {
+        box.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 300, clientY: 300 }));
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: -1000, clientY: -1000 }));
+      });
+
+      // Page wrapper is 600x800. From left/top 20%, the farthest legal live
+      // movement to the top-left is -20% = -120px / -160px.
+      expect(box.style.transform).toBe('translate(-120px, -160px)');
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      expect(onChange.mock.calls.at(-1)[0]).toEqual({ left: 0, top: 0 });
+    });
+  });
+
+  // --- 5. Dark mode (no runtime dark theme exists yet in this codebase; see
   // report) — structural guard against the exact hazard ARCHITECTURE.md §5
   // documents ("Invisible floating toolbars... white text on a transparent
   // background") by proving the editor chrome never hardcodes a color/background
@@ -429,6 +587,52 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const committed = onChange.mock.calls.at(-1)[0];
       expect(committed.left).toBeCloseTo(35, 1);
       expect(committed.top).toBeCloseTo(32, 1);
+    });
+
+    // --- E1.5: zero-delta resize is a no-op (generalizes the whiteout
+    // regression coverage above with the third invariant from the E1.5
+    // post-mortem — see DraggableWrapper.gestureInvariants.test.jsx for the
+    // same invariant on every other resizable element type). ---
+    it('a zero-delta resize commits exactly the start geometry, with no drift', () => {
+      const onChange = vi.fn();
+      const element = { id: 'w-8', type: 'whiteout', left: 25, top: 35, width: 15, height: 10, color: '#ffffff' };
+      const { wrapper } = mountInPageWrapper(element, { isActive: true, onChange });
+      const bottomRightHandle = wrapper.querySelector('.sign-element-resizer.corner.bottom-right');
+      expect(bottomRightHandle).not.toBeNull();
+
+      act(() => {
+        bottomRightHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 200, clientY: 200 }));
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 200, clientY: 200 }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      const committed = onChange.mock.calls.at(-1)[0];
+      expect(committed).toEqual({ width: 15, height: 10, left: 25, top: 35 });
+    });
+
+    it('keeps the final in-gesture geometry on the DOM after mouseup until state renders it, preventing a snap-back jump', () => {
+      const onChange = vi.fn();
+      const element = { id: 'w-9', type: 'whiteout', left: 50, top: 30, width: 20, height: 15, color: '#ffffff' };
+      const { wrapper, box } = mountInPageWrapper(element, { isActive: true, onChange });
+      const rightHandle = wrapper.querySelector('.sign-element-resizer.right');
+      expect(rightHandle).not.toBeNull();
+
+      act(() => {
+        rightHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 120, clientY: 0 }));
+      });
+
+      expect(box.style.left).toBe('50%');
+      expect(box.style.width).toBe('40%');
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange.mock.calls[0][0]).toEqual({ width: 40, height: 15, left: 50, top: 30 });
+      expect(box.style.left).toBe('50%');
+      expect(box.style.width).toBe('40%');
     });
   });
 });

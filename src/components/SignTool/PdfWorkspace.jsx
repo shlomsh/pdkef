@@ -18,6 +18,7 @@ import LineNode from './nodes/LineNode.jsx';
 import { useSignTool } from './SignToolContext.jsx';
 import SignToolbar from './SignToolbar.jsx';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
+import { detectTextDirection } from '../../lib/sign.js';
 
 export default function PdfWorkspace({
   file,
@@ -106,7 +107,14 @@ export default function PdfWorkspace({
     }
     if (fields.fontFamily) rememberFont(fields.fontFamily);
     if (fields.fontSize) rememberFontSize(fields.fontSize);
-    if (fields.textDirection) rememberDirection(fields.textDirection);
+    if (element?.type === 'text') {
+      if (fields.textDirection) {
+        rememberDirection(fields.textDirection);
+      } else if (fields.text !== undefined) {
+        const typedDirection = detectTextDirection(fields.text);
+        if (typedDirection) rememberDirection(typedDirection);
+      }
+    }
   }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection]);
 
   const makeOnSelect = useCallback((id) => (e) => {

@@ -11,21 +11,21 @@ import {
 
 
 // First strong-directional character wins (matches the Unicode bidi
-// algorithm's approach, and what dir="auto" does under the hood) —
-// covers the Hebrew and Arabic script blocks, including presentation forms.
+// algorithm's approach, and what dir="auto" does under the hood).
+const STRONG_DIRECTION_CHAR = /[A-Za-z\u0591-\u07FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
 const RTL_CHAR = /[\u0591-\u07FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
-function detectTextDirection(text) {
-  return RTL_CHAR.test(text || '') ? 'rtl' : 'ltr';
+export function detectTextDirection(text) {
+  const firstStrong = (text || '').match(STRONG_DIRECTION_CHAR)?.[0];
+  if (!firstStrong) return null;
+  return RTL_CHAR.test(firstStrong) ? 'rtl' : 'ltr';
 }
 
-// `element.textDirection` is a manual override (set via the toolbar's direction
-// toggle) for when the user wants RTL layout before typing anything. Falls back
-// to content-based auto-detection when no override is set. Shared between the
-// editor (DraggableOverlayElement.jsx, for right-edge CSS anchoring) and signPdf
-// below (for right-aligning baked text against that same edge) so the two never
-// disagree about which elements are RTL.
+// Typed content is the source of truth. `element.textDirection` is only a
+// fallback seed for an empty/non-strong-direction text box, usually copied from
+// the last direction the user chose when creating a new box. Shared between the
+// editor and signPdf below so preview and export never disagree.
 export function getEffectiveTextDirection(element) {
-  return element.textDirection || detectTextDirection(element.text);
+  return detectTextDirection(element.text) || element.textDirection || 'ltr';
 }
 
 // Dynamic loader for PDFJS, shared across the Sign tool's page rendering and file loading.

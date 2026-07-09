@@ -181,6 +181,27 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Symbol element — click-placement
+// ---------------------------------------------------------------------------
+
+describe('useWorkspaceGestures – symbol remembered settings', () => {
+  const overlay = makeOverlay();
+
+  it('applies the current remembered color and default check mark to new symbols', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'symbol',
+      initialColor: '#111111',
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch)).toMatchObject({
+      type: 'symbol',
+      mark: 'check',
+      color: '#111111',
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Drag-drawn shapes — pointer-down placement
 // ---------------------------------------------------------------------------
 
