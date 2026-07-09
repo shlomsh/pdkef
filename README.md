@@ -64,11 +64,12 @@ npm run lint     # Run ESLint to check for code issues
 - [@cantoo/pdf-lib](https://github.com/cantoo-scribe/pdf-lib) - client-side PDF manipulation
 - [SortableJS](https://github.com/SortableJS/Sortable) - drag-and-drop reordering
 - [pdfjs-dist (PDF.js)](https://github.com/mozilla/pdf.js) - page thumbnails and parsing
-- [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) - offline support / installable PWA
+
+Offline support and installability come from a hand-written service worker (`public/sw.js`) and a static `public/manifest.webmanifest`, not a build plugin - no PWA plugin is used (see CLAUDE.md for why).
 
 All runtime dependencies are MIT or Apache-2.0 licensed and make no network calls of their own - I checked, on purpose, because that guarantee only holds if every dependency upholds it too.
 
-See [CLAUDE.md](./CLAUDE.md) for architecture notes.
+See [CLAUDE.md](./CLAUDE.md) for architecture notes and [ARCHITECTURE.md](./ARCHITECTURE.md) for the forward-looking design standard.
 
 ## Contributing
 

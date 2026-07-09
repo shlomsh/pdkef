@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDkef - Maintainability Migration Board</title>
+<style>
+  :root {
+    /* Light palette (CLAUDE.md "navy + electric blue") */
+    --bg: #f9f7f7;
+    --surface: #ffffff;
+    --surface-sunken: #dbe2ef;
+    --text: #112d4e;
+    --muted: #4f6488;
+    --muted-light: #9aa7bd;
+    --primary: #1463ff;
+    --primary-hover: #2d72ff;
+    --primary-active: #0d52e0;
+    --primary-tint: #e3ecff;
+    --success: #1a8f54;
+    --danger: #d8342b;
+
+    --border: #e4e8f0;
+    --shadow: 0 1px 2px rgba(17, 45, 78, .06), 0 4px 16px rgba(17, 45, 78, .05);
+    --shadow-soft: 0 1px 2px rgba(17, 45, 78, .05);
+    --ring: rgba(20, 99, 255, .35);
+
+    /* Lane accents (small swatches only) */
+    --lane-A: #1463ff;
+    --lane-B: #7a5af0;
+    --lane-C: #1a8f54;
+    --lane-D: #c9741a;
+    --lane-E: #0e8fa8;
+    --lane-X: #9aa7bd;
+
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1728;
+      --surface: #12233c;
+      --surface-sunken: #1a3153;
+      --text: #eaf1fb;
+      --muted: #a9b8d4;
+      --muted-light: #6d7f9e;
+      --primary: #4f88ff;
+      --primary-hover: #6a9bff;
+      --primary-active: #3d76ee;
+      --primary-tint: #17325c;
+      --success: #35b673;
+      --danger: #f0655c;
+      --border: #24395a;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .28);
+      --shadow-soft: 0 1px 2px rgba(0, 0, 0, .25);
+      --ring: rgba(79, 136, 255, .45);
+      --lane-A: #5b90ff;
+      --lane-B: #9d84f5;
+      --lane-C: #35b673;
+      --lane-D: #e0954a;
+      --lane-E: #34b6cf;
+      --lane-X: #6d7f9e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b1728;
+    --surface: #12233c;
+    --surface-sunken: #1a3153;
+    --text: #eaf1fb;
+    --muted: #a9b8d4;
+    --muted-light: #6d7f9e;
+    --primary: #4f88ff;
+    --primary-hover: #6a9bff;
+    --primary-active: #3d76ee;
+    --primary-tint: #17325c;
+    --success: #35b673;
+    --danger: #f0655c;
+    --border: #24395a;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .28);
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, .25);
+    --ring: rgba(79, 136, 255, .45);
+    --lane-A: #5b90ff;
+    --lane-B: #9d84f5;
+    --lane-C: #35b673;
+    --lane-D: #e0954a;
+    --lane-E: #34b6cf;
+    --lane-X: #6d7f9e;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); }
+
+  a { color: var(--primary); }
+
+  /* ---------- Header ---------- */
+  header.site {
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .head-inner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 26px 0 22px;
+    flex-wrap: wrap;
+  }
+  h1 {
+    font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+    font-weight: 700;
+  }
+  h1 .mark { color: var(--primary); }
+  .subtitle { color: var(--muted); margin: 0; font-size: .95rem; max-width: 60ch; }
+
+  .theme-toggle {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--surface-sunken);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font: inherit;
+    font-size: .85rem;
+    cursor: pointer;
+  }
+  .theme-toggle:hover { border-color: var(--muted-light); }
+  .theme-toggle:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  /* ---------- Invariants banner ---------- */
+  .invariants {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 22px 0 6px;
+  }
+  .inv-card {
+    background: color-mix(in srgb, var(--danger) 5%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--danger) 30%, var(--border));
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-soft);
+  }
+  .inv-card .kicker {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: .72rem; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--danger); margin-bottom: 4px;
+  }
+  .inv-card h3 { margin: 0 0 4px; font-size: .98rem; }
+  .inv-card p { margin: 0; color: var(--muted); font-size: .86rem; }
+
+  /* ---------- Controls ---------- */
+  .controls {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: saturate(1.4) blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 0;
+    margin-top: 22px;
+  }
+  .controls-inner { display: flex; flex-wrap: wrap; gap: 18px 26px; align-items: center; }
+  .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .filter-group > .label {
+    font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted-light); margin-right: 2px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 5px 12px; font: inherit; font-size: .82rem; cursor: pointer;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .chip:hover { border-color: var(--muted-light); }
+  .chip:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  .chip .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .chip[aria-pressed="true"] {
+    background: var(--primary-tint); color: var(--text); border-color: var(--primary);
+    font-weight: 600;
+  }
+  .chip.status[aria-pressed="true"] { border-color: currentColor; }
+  .btn-plain {
+    background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--muted); font: inherit; font-size: .82rem; padding: 6px 12px; cursor: pointer;
+  }
+  .btn-plain:hover { border-color: var(--muted-light); color: var(--text); }
+  .btn-plain:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  /* ---------- Lane / critical-path strip ---------- */
+  section.lanemap { margin: 30px 0 8px; }
+  .section-title {
+    font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted-light); margin: 0 0 14px;
+  }
+  .lanes {
+    display: grid; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow-soft);
+    overflow-x: auto;
+  }
+  .lane-row { display: grid; grid-template-columns: 210px 1fr; gap: 16px; align-items: center; min-width: 620px; }
+  .lane-head { display: flex; gap: 10px; align-items: flex-start; }
+  .lane-swatch { width: 10px; height: 34px; border-radius: 4px; flex: none; margin-top: 2px; }
+  .lane-name { font-weight: 700; font-size: .9rem; }
+  .lane-desc { font-size: .78rem; color: var(--muted); }
+  .lane-flow { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .flow-node {
+    font-family: var(--mono); font-size: .78rem; font-weight: 600;
+    background: var(--surface-sunken); color: var(--text);
+    border-radius: 6px; padding: 4px 9px; border: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .flow-node:hover { border-color: var(--primary); }
+  .flow-node.first { box-shadow: 0 0 0 2px var(--primary-tint) inset; border-color: var(--primary); }
+  .flow-arrow { color: var(--muted-light); font-size: .9rem; }
+  .flow-gate {
+    font-size: .72rem; color: var(--muted); font-style: italic; margin-left: 4px;
+    border-left: 2px dashed var(--muted-light); padding-left: 8px;
+  }
+
+  /* ---------- Board ---------- */
+  .board { padding: 8px 0 40px; }
+  .epic { margin-bottom: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .epic.hidden-epic { display: none; }
+  .epic-head {
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    background: none; border: 0; text-align: left; cursor: pointer;
+    padding: 16px 18px; font: inherit; color: var(--text);
+  }
+  .epic-head:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+  .epic-caret { transition: transform .18s; color: var(--muted-light); font-size: .8rem; flex: none; }
+  .epic.collapsed .epic-caret { transform: rotate(-90deg); }
+  .epic-id {
+    font-family: var(--mono); font-weight: 700; font-size: .82rem;
+    background: var(--surface-sunken); color: var(--text);
+    border-radius: 6px; padding: 3px 8px; flex: none;
+  }
+  .epic-title { font-weight: 700; font-size: 1rem; }
+  .epic-goal { color: var(--muted); font-size: .85rem; font-weight: 400; margin-left: 4px; }
+  .epic-count { margin-left: auto; color: var(--muted-light); font-size: .8rem; flex: none; }
+  .epic-body { padding: 4px 18px 20px; }
+  .epic.collapsed .epic-body { display: none; }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 14px;
+  }
+
+  .card {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); padding: 14px; position: relative;
+    display: flex; flex-direction: column; gap: 9px;
+    transition: box-shadow .15s, border-color .15s, transform .15s;
+  }
+  .card:hover { box-shadow: var(--shadow); }
+  .card.hidden-card { display: none; }
+  .card.flash { animation: flash 1.3s ease; }
+  @keyframes flash {
+    0%, 40% { box-shadow: 0 0 0 3px var(--primary), var(--shadow); border-color: var(--primary); }
+    100% { box-shadow: none; }
+  }
+  .card.first-item { border-color: var(--primary); }
+  .card-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card-id {
+    font-family: var(--mono); font-weight: 700; font-size: .78rem;
+    color: var(--primary); background: var(--primary-tint);
+    border-radius: 6px; padding: 2px 7px;
+  }
+  .flag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: .68rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+    color: var(--primary); border: 1px solid var(--primary); border-radius: 999px; padding: 1px 7px;
+  }
+  .lane-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: .72rem; font-weight: 600; color: var(--muted);
+    margin-left: auto;
+  }
+  .lane-tag .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .card-title { font-weight: 600; font-size: .94rem; line-height: 1.35; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: .72rem; font-weight: 600; border-radius: 999px;
+    padding: 3px 9px; align-self: flex-start;
+  }
+  .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.done { color: var(--success); background: color-mix(in srgb, var(--success) 14%, transparent); }
+  .pill.in-progress { color: var(--primary); background: var(--primary-tint); }
+  .pill.todo { color: var(--muted); background: var(--surface-sunken); }
+
+  .deps { font-size: .78rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: baseline; }
+  .deps .deps-label { color: var(--muted-light); font-weight: 600; }
+  .dep-chip {
+    font-family: var(--mono); font-size: .74rem; font-weight: 600;
+    background: var(--surface-sunken); color: var(--text);
+    border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; cursor: pointer;
+  }
+  .dep-chip:hover { border-color: var(--primary); color: var(--primary); }
+  .dep-chip:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+  .ready { font-size: .76rem; color: var(--success); font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+
+  details.acc { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 2px; }
+  details.acc summary {
+    cursor: pointer; font-size: .76rem; color: var(--muted); font-weight: 600;
+    list-style: none; display: flex; align-items: center; gap: 6px;
+  }
+  details.acc summary::-webkit-details-marker { display: none; }
+  details.acc summary::before { content: "▸"; font-size: .7rem; color: var(--muted-light); transition: transform .15s; }
+  details.acc[open] summary::before { transform: rotate(90deg); }
+  details.acc summary:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
+  .acc-body { font-size: .8rem; color: var(--muted); margin-top: 7px; line-height: 1.5; }
+
+  .empty-note { color: var(--muted-light); font-size: .85rem; padding: 8px 2px; }
+
+  /* ---------- Done section ---------- */
+  section.done-section { padding: 8px 0 60px; }
+  .done-wrap { opacity: .82; }
+  details.done-block {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); margin-bottom: 12px;
+  }
+  details.done-block > summary {
+    cursor: pointer; padding: 14px 18px; font-weight: 700; font-size: .92rem;
+    list-style: none; display: flex; align-items: center; gap: 10px;
+  }
+  details.done-block > summary::-webkit-details-marker { display: none; }
+  details.done-block > summary::before { content: "▸"; color: var(--muted-light); transition: transform .15s; }
+  details.done-block[open] > summary::before { transform: rotate(90deg); }
+  details.done-block > summary:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+  .done-sub { color: var(--muted); font-weight: 400; font-size: .82rem; }
+  .done-list { padding: 0 18px 16px 18px; margin: 0; list-style: none; display: grid; gap: 8px; }
+  .done-list li {
+    display: flex; gap: 10px; align-items: flex-start;
+    font-size: .84rem; color: var(--muted); padding-left: 2px;
+  }
+  .done-list li .check { color: var(--success); flex: none; font-weight: 700; }
+  .done-list li b { color: var(--text); font-weight: 600; }
+
+  /* ---------- Footer ---------- */
+  footer.site {
+    border-top: 1px solid var(--border); padding: 22px 0 40px;
+    color: var(--muted-light); font-size: .8rem; text-align: center;
+  }
+  footer.site code { font-family: var(--mono); color: var(--muted); }
+
+  @media (max-width: 720px) {
+    .invariants { grid-template-columns: 1fr; }
+    .controls { position: static; }
+    .epic-goal { display: none; }
+  }
+</style>
+</head>
+<body>
+  <header class="site">
+    <div class="wrap head-inner">
+      <div>
+        <h1><span class="mark">PDkef</span> - Maintainability Migration Board</h1>
+        <p class="subtitle">A team-facing view of the migration backlog: epics, tickets, dependencies, and parallel lanes toward the layered target architecture. Filter by lane or status, and open a card for its acceptance summary.</p>
+      </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light or dark theme">
+        <span id="themeIcon">◐</span><span id="themeLabel">Theme</span>
+      </button>
+    </div>
+    <div class="wrap">
+      <div class="invariants" role="region" aria-label="Non-negotiable invariants">
+        <div class="inv-card">
+          <span class="kicker">⛔ Invariant 1 - never violate</span>
+          <h3>The SEO / privacy island shell is sacred</h3>
+          <p>Marketing, how-it-works, FAQ, and JSON-LD render at build time as static HTML with zero JS shipped. No file bytes ever leave the device - no fetch/XHR of PDF contents, no server, CSP <code>connect-src 'self'</code>. Off the table: SSR, moving marketing into JS, any external connect-src.</p>
+        </div>
+        <div class="inv-card">
+          <span class="kicker">⛔ Invariant 2 - never violate</span>
+          <h3>The gesture hot path stays as it is</h3>
+          <p>During drag/resize, mutate the DOM directly for 60fps feedback; commit React state exactly once on <code>pointerup</code>. Never route continuous pointer events through reactive state or a store - that is the reconciliation thrash. Applies equally to drag and resize.</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="controls" aria-label="Board filters">
+    <div class="wrap controls-inner">
+      <div class="filter-group" id="laneFilters" role="group" aria-label="Filter by lane">
+        <span class="label">Lane</span>
+      </div>
+      <div class="filter-group" id="statusFilters" role="group" aria-label="Filter by status">
+        <span class="label">Status</span>
+      </div>
+      <div class="filter-group">
+        <button class="btn-plain" id="expandAll" type="button">Expand all</button>
+        <button class="btn-plain" id="collapseAll" type="button">Collapse all</button>
+        <button class="btn-plain" id="resetFilters" type="button">Reset filters</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <section class="lanemap" aria-label="Lanes and critical path">
+      <h2 class="section-title">Lanes &amp; critical path</h2>
+      <div class="lanes" id="laneMap"></div>
+    </section>
+
+    <section class="board" aria-label="Backlog board grouped by epic">
+      <h2 class="section-title" style="margin-top:26px">Backlog by epic</h2>
+      <div id="boardRoot"></div>
+    </section>
+
+    <section class="done-section" aria-label="Completed work">
+      <h2 class="section-title">Done log</h2>
+      <div class="done-wrap" id="doneRoot"></div>
+    </section>
+  </main>
+
+  <footer class="site">
+    <div class="wrap">
+      Generated view of <code>scrum.md</code> - scrum.md is the source of truth. Regenerate when the backlog changes. · 2026-07-09
+    </div>
+  </footer>
+
+<script>
+/* =========================================================================
+   DATA MODEL - edit this to update the board. Everything below renders from it.
+   ========================================================================= */
+
+const LANES = {
+  A: { name: "Lane A - Now",            color: "var(--lane-A)", desc: "Stabilize & de-risk; start immediately, no deps." },
+  B: { name: "Lane B - Guardrails gate", color: "var(--lane-B)", desc: "Parallel; these gate the risky work in E2–E4." },
+  C: { name: "Lane C - Styling",         color: "var(--lane-C)", desc: "Kill the global CSS monolith (parallel with D, E)." },
+  D: { name: "Lane D - Tailwind static", color: "var(--lane-D)", desc: "Tailwind on the static/marketing surface." },
+  E: { name: "Lane E - Editor core",     color: "var(--lane-E)", desc: "Headless TS editor core; internally serial." },
+  X: { name: "Postponed",                color: "var(--lane-X)", desc: "Off the migration critical path (E6)." }
+};
+
+const EPICS = [
+  { id: "E0", name: "Stabilize & de-risk", goal: "Start immediately, no deps." },
+  { id: "E1", name: "Guardrails",          goal: "Parallel; these gate the risky work in E2–E4." },
+  { id: "E2", name: "Kill the global CSS monolith", goal: "Lane C, parallel with E3." },
+  { id: "E3", name: "Tailwind on the static surface", goal: "Lane D, parallel with E2." },
+  { id: "E4", name: "Headless TS editor core", goal: "Lane E, internally serial, parallel to E2/E3." },
+  { id: "E5", name: "Documentation",       goal: "Mostly done this session." },
+  { id: "E6", name: "Carried-over backlog", goal: "Postponed, off the migration critical path." }
+];
+
+const TICKETS = [
+  // ----- E0 -----
+  { id: "E0.1", epic: "E0", lane: "A", status: "todo", priority: "high", first: true,
+    title: "Land the resize perf fix on main",
+    dependsOn: [],
+    acceptance: "Re-apply the gesture portions of commit c4583df (pendingResize accumulator + direct DOM mutation during move, single onChange on pointerup) into DraggableWrapper/ElementResizers/TextNode, excluding the Tailwind className edits. Acceptance: drag AND resize stay smooth; a temp console.count in onChange ticks once per gesture, not per frame; draft autosave/restore still correct; build && preview CSP pass." },
+  { id: "E0.2", epic: "E0", lane: "A", status: "todo", priority: "normal",
+    title: "Retire tailwind-refactor-wip",
+    dependsOn: ["E0.1"],
+    acceptance: "First rescue reusable pieces (index.astro utility patterns, tailwind.config.mjs, check-css-bundle.js scaffolding) by tagging the branch archive/tailwind-wip-2026-07, then delete it so no one resumes the tangled branch in place." },
+
+  // ----- E1 -----
+  { id: "E1.1", epic: "E1", lane: "B", status: "todo", priority: "normal",
+    title: "CSP hash-verification CI gate",
+    dependsOn: [],
+    acceptance: "On build && preview, diff the generated <meta> CSP hash list against every emitted inline script/style (sha256+base64), per CLAUDE.md's method. Fail CI on mismatch." },
+  { id: "E1.2", epic: "E1", lane: "B", status: "todo", priority: "normal",
+    title: "SEO invariants test",
+    dependsOn: [],
+    acceptance: "Assert exactly one <h1> per page; <title>, meta description, canonical, OG/Twitter present; JSON-LD (SoftwareApplication + FAQPage) validates; FAQ schema matches on-page FAQ." },
+  { id: "E1.3", epic: "E1", lane: "B", status: "todo", priority: "normal",
+    title: "CSS budget guard",
+    dependsOn: [],
+    acceptance: "Port check-css-bundle.js from the archived branch into CI so the global stylesheet can't silently regrow past a threshold." },
+  { id: "E1.4", epic: "E1", lane: "B", status: "todo", priority: "normal",
+    title: "Editor interaction/visual test harness",
+    dependsOn: [],
+    acceptance: "Cover the states unit tests miss: active outline, floating-toolbar visibility + top-edge flip, RTL toolbar alignment + leftward growth, dark mode, mobile full-width toolbar, whiteout bounds." },
+
+  // ----- E2 -----
+  { id: "E2.1", epic: "E2", lane: "C", status: "todo", priority: "normal",
+    title: "Tokens as the only global CSS",
+    dependsOn: [],
+    acceptance: "Keep :root design tokens global; audit for escaped color literals (grep -rn \"rgba(0\\|#[0-9a-f]{6}\" across src/ and public/) and route them through vars." },
+  { id: "E2.2", epic: "E2", lane: "C", status: "todo", priority: "normal",
+    title: "Colocate non-editor CSS into CSS Modules",
+    dependsOn: ["E2.1"],
+    acceptance: "Component by component (cards, hero, footer, dropzone, tool chrome)." },
+  { id: "E2.3", epic: "E2", lane: "C", status: "todo", priority: "normal",
+    title: "Migrate editor .sign-* styles into scoped CSS Modules",
+    dependsOn: ["E2.1", "E1.4"],
+    acceptance: "~121 sign-* references in a ~3,400-line global.css, preserving descendant cascades (.sign-element.active .sign-element-actions) as real CSS inside module scope. Every conditional state (active, RTL, dark, mobile, whiteout) verified in a running editor." },
+
+  // ----- E3 -----
+  { id: "E3.1", epic: "E3", lane: "D", status: "todo", priority: "normal",
+    title: "Clean Tailwind install",
+    dependsOn: [],
+    acceptance: "Re-audit the legacy-peer-deps need against the Astro ^7.0.3 security pin (npm audit) before adopting any Tailwind version that forces it." },
+  { id: "E3.2", epic: "E3", lane: "D", status: "todo", priority: "normal",
+    title: "Migrate the marketing .astro surface to utilities",
+    dependsOn: ["E3.1", "E1.1", "E1.2"],
+    acceptance: "index.astro, tool pages, FeatureCard, ToolHero, AppBar, Footer. No editor components." },
+
+  // ----- E4 -----
+  { id: "E4.1", epic: "E4", lane: "E", status: "todo", priority: "normal",
+    title: "Introduce TypeScript",
+    dependsOn: [],
+    acceptance: "To the element model, geometry math, and core (UI can stay JSX initially)." },
+  { id: "E4.2", epic: "E4", lane: "E", status: "todo", priority: "normal",
+    title: "Extract a framework-agnostic editor/ core",
+    dependsOn: ["E4.1", "E0.1"],
+    acceptance: "Document model + geometry + gesture controllers, with one 'imperative-during, commit-on-release' controller unifying drag AND resize so they can't diverge again (ARCHITECTURE §3.2, §4). Preact becomes a thin render/event shell." },
+  { id: "E4.3", epic: "E4", lane: "E", status: "todo", priority: "normal",
+    title: "Per-element-type registry",
+    dependsOn: ["E4.2"],
+    acceptance: "Each type a module { render, resizeBehavior, serialize, schema }; removes the type === 'line' / !isLine branching in handleResizeMove. Per-type nodes/ already exist as the seam." },
+  { id: "E4.4", epic: "E4", lane: "E", status: "todo", priority: "normal",
+    title: "Converge Sign and Redact",
+    dependsOn: ["E4.2", "E4.3"],
+    acceptance: "Onto the shared core + a common PDF-workspace substrate (load, page render, draft persistence), removing duplication." },
+
+  // ----- E5 -----
+  { id: "E5.1", epic: "E5", lane: "X", status: "done", priority: "normal",
+    title: "ARCHITECTURE.md design standard",
+    dependsOn: [],
+    acceptance: "The forward-looking design standard / north star. Done." },
+  { id: "E5.2", epic: "E5", lane: "X", status: "done", priority: "normal",
+    title: "Realign CLAUDE.md + README.md; delete stale TAILWIND_MIGRATION_LEARNINGS.md",
+    dependsOn: [],
+    acceptance: "Docs realigned; stale learnings doc folded into ARCHITECTURE.md and deleted. Done." },
+  { id: "E5.3", epic: "E5", lane: "X", status: "done", priority: "normal",
+    title: "This backlog",
+    dependsOn: [],
+    acceptance: "scrum.md authored. Done." },
+  { id: "E5.4", epic: "E5", lane: "X", status: "in-progress", priority: "normal",
+    title: "Keep docs in sync as epics land",
+    dependsOn: [],
+    acceptance: "Update CLAUDE.md status + this backlog per ticket. Ongoing." },
+
+  // ----- E6 (carried-over; no source IDs - grouped, not renamed) -----
+  { id: "E6", epic: "E6", lane: "X", status: "todo", priority: "low", group: "Operational / SEO-launch",
+    title: "Pre-launch real domain swap",
+    dependsOn: [],
+    acceptance: "astro.config.mjs site + sitemap/canonical still on the pdkef.vercel.app placeholder; re-verify canonical/OG after." },
+  { id: "E6", epic: "E6", lane: "X", status: "todo", priority: "low", group: "Operational / SEO-launch",
+    title: "HSTS header in vercel.json",
+    dependsOn: [],
+    acceptance: "max-age=63072000; includeSubDomains; preload - only once the final domain is confirmed HTTPS-only." },
+  { id: "E6", epic: "E6", lane: "X", status: "todo", priority: "low", group: "Operational / SEO-launch",
+    title: "Register Google Search Console + submit sitemap",
+    dependsOn: [],
+    acceptance: "Once the domain is final; monitor Core Web Vitals (prioritize INP for signature drawing)." },
+  { id: "E6", epic: "E6", lane: "X", status: "todo", priority: "low", group: "Operational / SEO-launch",
+    title: "IndexNow (low priority)",
+    dependsOn: [],
+    acceptance: "public/<key>.txt + deploy ping for faster Bing/Yandex indexing." },
+  { id: "E6", epic: "E6", lane: "X", status: "todo", priority: "low", group: "Operational / SEO-launch",
+    title: "Homepage hub link check",
+    dependsOn: [],
+    acceptance: "Recurring guard: confirm no tool card points at a noindex route." },
+  { id: "E6", epic: "E6", lane: "X", status: "todo", priority: "low", group: "Operational / SEO-launch",
+    title: "User feedback / suggestion channel",
+    dependsOn: [],
+    acceptance: "Prefer a GitHub Issues/Discussions link (zero new network surface, respects CSP connect-src 'self'); an in-app form would require documented CSP loosening for text only, never file bytes - weigh against the privacy positioning first." },
+  { id: "E6", epic: "E6", lane: "X", status: "todo", priority: "low", group: "Operational / SEO-launch",
+    title: "Long-tail landing pages",
+    dependsOn: [],
+    acceptance: "/sign-pdf-no-signup, /offline-pdf-form-filler, /open-source-pdf-editor." },
+  { id: "E6", epic: "E6", lane: "X", status: "todo", priority: "low", group: "Operational / SEO-launch",
+    title: "OS-specific how-to guides",
+    dependsOn: [],
+    acceptance: "Internally linking into the tools (no outbound promo links)." },
+  { id: "E6", epic: "E6", lane: "X", status: "todo", priority: "low", group: "Operational / SEO-launch",
+    title: "Public GitHub repo + iframe embed model",
+    dependsOn: [],
+    acceptance: "For contextual backlinks." },
+  { id: "E6", epic: "E6", lane: "X", status: "todo", priority: "low", group: "Editor / UX polish",
+    title: "Verify Redact mobile toolbar on a real narrow viewport",
+    dependsOn: [],
+    acceptance: "Code updated (shared .sign-toolbar CSS, structure-agnostic mobile flex rule) but never visually confirmed." },
+  { id: "E6", epic: "E6", lane: "X", status: "todo", priority: "low", group: "Editor / UX polish",
+    title: "State-based drag halo",
+    dependsOn: [],
+    acceptance: "Replace the single-value .sign-element::after grab halo with a small resting halo + a larger halo only on .active (which is z-index:50, so it won't steal neighbor clicks)." }
+];
+
+const LANE_FLOW = [
+  { lane: "A", flow: ["E0.1", "→", "E0.2"], gate: "" },
+  { lane: "B", flow: ["E1.1", "E1.2", "E1.3", "E1.4"], gate: "gate → E2.*, E3.2, E4 verification" },
+  { lane: "C", flow: ["E2.1", "→", "E2.2", "E2.3"], gate: "E2.3 also needs E1.4" },
+  { lane: "D", flow: ["E3.1", "→", "E3.2"], gate: "E3.2 also needs E1.1, E1.2" },
+  { lane: "E", flow: ["E4.1", "→", "E4.2", "→", "E4.3", "→", "E4.4"], gate: "E4.2 also needs E0.1" }
+];
+
+const DONE_LOG = [
+  { title: "Verified done this session", sub: "Were open in the old TODO.md, confirmed against code",
+    items: [
+      ["Header wordmark", "AppBar.astro renders the PDkef wordmark + logo; live in the header."],
+      ["Desktop fullscreen button label", "FullscreenButton.jsx renders a \"Full screen\" / \"Exit full screen\" text label, used by both the Sign and Redact toolbars."],
+      ["Founder story card real estate", "index.astro's whypdkef card has distinct layout/styling (tag, signature, proof panel), reading as a signed note."]
+    ]},
+  { title: "Earlier (pre-session) completed work", sub: "Editor / text-element hardening",
+    items: [
+      ["Add regression test for textarea cols constraint", ""],
+      ["Fix vertical text wrapping regression", ""],
+      ["Refine Text Element UX & Bounds", ""],
+      ["Fix fullscreen button behavior on iOS", ""],
+      ["Improve Redact PDF UI spacing and layout", ""],
+      ["Fix text element minimum size and alignment", ""],
+      ["Fix font list dropdown positioning", ""],
+      ["Fix text element resizing sensitivity", "Proportional drag-vector projection replacing 1:1 pixel-to-point delta."],
+      ["Write JS tests for text element padding", ""],
+      ["Fix text element bug 1: excess side growth", "min-width: 0 on .sign-text-input."],
+      ["Fix text element bug 2: Hebrew RTL right-side clipping", "padding: 0 4px."],
+      ["Fix signature padding bug", "Fixed padding: 4px distorting percentage aspect ratio."],
+      ["Verify Whiteout bounds after padding removal", ""],
+      ["Fix text element padding/wrapping (multiline) regression", ""]
+    ]}
+];
+
+/* =========================================================================
+   RENDERING
+   ========================================================================= */
+
+const STATUSES = [
+  { id: "todo", label: "To do" },
+  { id: "in-progress", label: "In progress" },
+  { id: "done", label: "Done" }
+];
+
+const state = {
+  lanes: new Set(Object.keys(LANES)),
+  statuses: new Set(STATUSES.map(s => s.id))
+};
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const el = (tag, cls, txt) => { const n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
+
+/* ---- Lane + status filter chips ---- */
+function buildFilters() {
+  const laneBox = $("#laneFilters");
+  Object.entries(LANES).forEach(([id, l]) => {
+    const c = el("button", "chip lane");
+    c.type = "button";
+    c.setAttribute("aria-pressed", "true");
+    c.dataset.lane = id;
+    const dot = el("span", "dot"); dot.style.background = l.color;
+    c.append(dot, document.createTextNode(id === "X" ? "Postponed" : "Lane " + id));
+    c.addEventListener("click", () => {
+      const on = c.getAttribute("aria-pressed") === "true";
+      c.setAttribute("aria-pressed", String(!on));
+      if (on) state.lanes.delete(id); else state.lanes.add(id);
+      applyFilters();
+    });
+    laneBox.append(c);
+  });
+
+  const statusBox = $("#statusFilters");
+  STATUSES.forEach(s => {
+    const c = el("button", "chip status");
+    c.type = "button";
+    c.setAttribute("aria-pressed", "true");
+    c.dataset.status = s.id;
+    const dot = el("span", "dot");
+    dot.style.background = s.id === "done" ? "var(--success)" : s.id === "in-progress" ? "var(--primary)" : "var(--muted-light)";
+    c.append(dot, document.createTextNode(s.label));
+    c.addEventListener("click", () => {
+      const on = c.getAttribute("aria-pressed") === "true";
+      c.setAttribute("aria-pressed", String(!on));
+      if (on) state.statuses.delete(s.id); else state.statuses.add(s.id);
+      applyFilters();
+    });
+    statusBox.append(c);
+  });
+}
+
+/* ---- Lane / critical path strip ---- */
+function buildLaneMap() {
+  const root = $("#laneMap");
+  LANE_FLOW.forEach(row => {
+    const l = LANES[row.lane];
+    const wrap = el("div", "lane-row");
+
+    const head = el("div", "lane-head");
+    const sw = el("div", "lane-swatch"); sw.style.background = l.color;
+    const meta = el("div");
+    meta.append(el("div", "lane-name", l.name), el("div", "lane-desc", l.desc));
+    head.append(sw, meta);
+
+    const flow = el("div", "lane-flow");
+    row.flow.forEach(tok => {
+      if (tok === "→") { flow.append(el("span", "flow-arrow", "→")); return; }
+      const node = el("button", "flow-node", tok);
+      node.type = "button";
+      if (tok === "E0.1") node.classList.add("first");
+      node.title = "Jump to " + tok;
+      node.addEventListener("click", () => jumpToCard(tok));
+      flow.append(node);
+    });
+    if (row.gate) flow.append(el("span", "flow-gate", row.gate));
+
+    wrap.append(head, flow);
+    root.append(wrap);
+  });
+}
+
+/* ---- Board ---- */
+function ticketTitleMap() {
+  const m = {};
+  TICKETS.forEach(t => { if (t.id && !m[t.id]) m[t.id] = t.title; });
+  return m;
+}
+const TITLES = ticketTitleMap();
+
+function statusLabel(s) { return STATUSES.find(x => x.id === s).label; }
+
+function makeCard(t, idx) {
+  const card = el("div", "card");
+  card.dataset.lane = t.lane;
+  card.dataset.status = t.status;
+  const anchorId = t.epic === "E6" ? "card-E6-" + idx : "card-" + t.id;
+  card.id = anchorId;
+  if (t.first) card.classList.add("first-item");
+
+  // top row
+  const top = el("div", "card-top");
+  const idBadge = el("span", "card-id", t.epic === "E6" ? "E6" : t.id);
+  top.append(idBadge);
+  if (t.first) {
+    const flag = el("span", "flag");
+    flag.append(document.createTextNode("★ Start here"));
+    top.append(flag);
+  }
+  const laneTag = el("span", "lane-tag");
+  const ldot = el("span", "dot"); ldot.style.background = LANES[t.lane].color;
+  laneTag.append(ldot, document.createTextNode(t.lane === "X" ? "Postponed" : "Lane " + t.lane));
+  top.append(laneTag);
+  card.append(top);
+
+  // title
+  card.append(el("div", "card-title", t.title));
+
+  // status pill
+  const pill = el("span", "pill " + t.status);
+  pill.append(el("span", "dot"), document.createTextNode(statusLabel(t.status)));
+  card.append(pill);
+
+  // deps
+  const deps = el("div", "deps");
+  if (t.dependsOn.length === 0) {
+    if (t.lane === "X") {
+      const r = el("span", "deps");
+      const lbl = el("span", "deps-label", "Depends on:");
+      deps.append(lbl, document.createTextNode(" none"));
+    } else {
+      const ready = el("span", "ready");
+      ready.append(document.createTextNode("● Ready - no dependencies"));
+      deps.append(ready);
+    }
+  } else {
+    deps.append(el("span", "deps-label", "Depends on:"));
+    t.dependsOn.forEach(d => {
+      const chip = el("button", "dep-chip", d);
+      chip.type = "button";
+      chip.title = TITLES[d] ? d + " - " + TITLES[d] : d;
+      chip.addEventListener("click", () => jumpToCard(d));
+      deps.append(chip);
+    });
+  }
+  card.append(deps);
+
+  // acceptance (collapsible)
+  const acc = el("details", "acc");
+  const sum = el("summary");
+  sum.textContent = "Acceptance summary";
+  const body = el("div", "acc-body", t.acceptance);
+  acc.append(sum, body);
+  card.append(acc);
+
+  return card;
+}
+
+function buildBoard() {
+  const root = $("#boardRoot");
+  EPICS.forEach(ep => {
+    const section = el("section", "epic");
+    section.id = "epic-" + ep.id;
+    section.dataset.epic = ep.id;
+
+    const head = el("button", "epic-head");
+    head.type = "button";
+    head.setAttribute("aria-expanded", "true");
+    head.append(el("span", "epic-caret", "▾"));
+    head.append(el("span", "epic-id", ep.id));
+    const titleSpan = el("span", "epic-title", ep.name);
+    const goalSpan = el("span", "epic-goal", ep.goal);
+    titleSpan.append(goalSpan);
+    head.append(titleSpan);
+    const tickets = TICKETS.filter(t => t.epic === ep.id);
+    head.append(el("span", "epic-count", tickets.length + (tickets.length === 1 ? " ticket" : " tickets")));
+    head.addEventListener("click", () => {
+      const collapsed = section.classList.toggle("collapsed");
+      head.setAttribute("aria-expanded", String(!collapsed));
+    });
+    section.append(head);
+
+    const bodyWrap = el("div", "epic-body");
+
+    if (ep.id === "E6") {
+      // group E6 by subgroup
+      const groups = {};
+      tickets.forEach((t, i) => {
+        (groups[t.group] = groups[t.group] || []).push([t, i]);
+      });
+      Object.entries(groups).forEach(([gname, arr]) => {
+        bodyWrap.append(el("h3", "section-title", gname));
+        const cards = el("div", "cards");
+        arr.forEach(([t, i]) => cards.append(makeCard(t, i)));
+        bodyWrap.append(cards);
+      });
+    } else {
+      const cards = el("div", "cards");
+      tickets.forEach((t, i) => cards.append(makeCard(t, i)));
+      bodyWrap.append(cards);
+    }
+    section.append(bodyWrap);
+    root.append(section);
+  });
+}
+
+/* ---- Done log ---- */
+function buildDone() {
+  const root = $("#doneRoot");
+  DONE_LOG.forEach((block, bi) => {
+    const d = el("details", "done-block");
+    if (bi === 0) d.open = true;
+    const sum = el("summary");
+    sum.append(document.createTextNode(block.title));
+    sum.append(el("span", "done-sub", " -  " + block.sub));
+    d.append(sum);
+    const list = el("ul", "done-list");
+    block.items.forEach(([title, note]) => {
+      const li = el("li");
+      li.append(el("span", "check", "✓"));
+      const span = el("span");
+      const b = el("b", null, title);
+      span.append(b);
+      if (note) span.append(document.createTextNode(" - " + note));
+      li.append(span);
+      list.append(li);
+    });
+    d.append(list);
+    root.append(d);
+  });
+}
+
+/* ---- Filtering ---- */
+function applyFilters() {
+  document.querySelectorAll(".epic").forEach(section => {
+    let visible = 0;
+    section.querySelectorAll(".card").forEach(card => {
+      const match = state.lanes.has(card.dataset.lane) && state.statuses.has(card.dataset.status);
+      card.classList.toggle("hidden-card", !match);
+      if (match) visible++;
+    });
+    section.classList.toggle("hidden-epic", visible === 0);
+  });
+}
+
+/* ---- Jump to a card by ticket id ---- */
+function jumpToCard(id) {
+  let target = document.getElementById("card-" + id);
+  if (!target) {
+    // fallback (e.g. epic-only ids); scroll to epic
+    target = document.getElementById("epic-" + id.split(".")[0]);
+  }
+  if (!target) return;
+  const epic = target.closest(".epic");
+  if (epic && epic.classList.contains("collapsed")) {
+    epic.classList.remove("collapsed");
+    epic.querySelector(".epic-head").setAttribute("aria-expanded", "true");
+  }
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (target.classList.contains("card")) {
+    target.classList.remove("flash");
+    void target.offsetWidth;
+    target.classList.add("flash");
+  }
+}
+
+/* ---- Controls ---- */
+function wireControls() {
+  $("#expandAll").addEventListener("click", () => {
+    document.querySelectorAll(".epic").forEach(s => {
+      s.classList.remove("collapsed");
+      s.querySelector(".epic-head").setAttribute("aria-expanded", "true");
+    });
+  });
+  $("#collapseAll").addEventListener("click", () => {
+    document.querySelectorAll(".epic").forEach(s => {
+      s.classList.add("collapsed");
+      s.querySelector(".epic-head").setAttribute("aria-expanded", "false");
+    });
+  });
+  $("#resetFilters").addEventListener("click", () => {
+    state.lanes = new Set(Object.keys(LANES));
+    state.statuses = new Set(STATUSES.map(s => s.id));
+    document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", "true"));
+    applyFilters();
+  });
+}
+
+/* ---- Theme toggle ---- */
+function wireTheme() {
+  const btn = $("#themeToggle");
+  const icon = $("#themeIcon");
+  const label = $("#themeLabel");
+  function reflect() {
+    const explicit = document.documentElement.getAttribute("data-theme");
+    const isDark = explicit ? explicit === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    icon.textContent = isDark ? "☀" : "☾";
+    label.textContent = isDark ? "Light" : "Dark";
+  }
+  btn.addEventListener("click", () => {
+    const explicit = document.documentElement.getAttribute("data-theme");
+    const isDark = explicit ? explicit === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme", isDark ? "light" : "dark");
+    reflect();
+  });
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", reflect);
+  reflect();
+}
+
+/* ---- Init ---- */
+buildFilters();
+buildLaneMap();
+buildBoard();
+buildDone();
+wireControls();
+wireTheme();
+applyFilters();
+</script>
+</body>
+</html>

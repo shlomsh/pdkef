@@ -2,6 +2,21 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Design standard:** [ARCHITECTURE.md](./ARCHITECTURE.md) is the forward-looking architecture "north star" (styling boundary, headless editor core, invariants-as-guardrails); the sequenced backlog toward it lives in [scrum.md](./scrum.md). This file is the day-to-day working reference for the repo as it exists now.
+
+> **RESUME HERE (handoff, end of 2026-07-09 session). Nothing is committed or pushed yet - run `git status` first.** The working tree holds three logically separate change sets; commit them as three commits, do not squash:
+> 1. **Resize perf fix (backlog E0.1)** - `src/components/SignTool/DraggableWrapper.jsx` only. Defers resize `onChange` to pointer-up (DOM-mutate during the gesture), fixing a per-frame React reconciliation thrash. `npm run build` green + `DraggableWrapper.test.jsx` passing. The `c4583df` companion edits to `ElementResizers.jsx`/`TextNode.jsx`/`PdfWorkspace.jsx` were deliberately NOT ported (Tailwind-compensation for classes that still exist in `main`'s `global.css`).
+> 2. **Docs realignment** - new `ARCHITECTURE.md` + `scrum-board.html` (a self-contained visual board), rewritten `scrum.md`, realigned `CLAUDE.md`/`README.md`, `TODO.md` reduced to a pointer, `TAILWIND_MIGRATION_LEARNINGS.md` deleted.
+> 3. **Undo-history feature (the user's own WIP, untouched by the agent)** - new `RedactBox.jsx`, `UndoHistoryModal.jsx`, `src/lib/actionHistory.js`, `src/lib/useUndoShortcut.js`; edits to `PdfSignTool.jsx`, `PdfRedactTool.jsx`, `RedactToolbar.jsx`, `SignTool/PdfWorkspace.jsx`, `SignTool/SignToolContext.jsx`. A simple "undo my last add/delete" (Cmd/Ctrl+Z) for both editors.
+>
+> **Branch state:** local `tailwind-refactor-wip` is deleted; its tip is archived as local tag `archive/tailwind-refactor-wip` (preserves `tailwind.config.mjs`, `check-css-bundle.js`, and the `index.astro` utility patterns for future epics E1.3/E3). **Remote `origin/tailwind-refactor-wip` still exists, and the archive tag is NOT pushed.**
+>
+> **Next actions (user approved committing + pushing all of this; re-confirm before pushing, since `main` -> Vercel = production deploy):**
+> 1. Commit the three sets above as separate commits, then `git push origin main`.
+> 2. Finish retiring the branch: `git push origin --delete tailwind-refactor-wip` then `git push origin archive/tailwind-refactor-wip`.
+> 3. Small doc touch-up: mark **E0.1** and **E0.2** done in `scrum.md`'s E0 section and flip both `status: "todo"` -> `"done"` in `scrum-board.html` (both are complete; E0.2 completes when step 2 runs).
+> 4. Delete this RESUME HERE block once the above is done.
+
 ## What this is
 
 A 100% client-side, no-backend static web app that provides a suite of PDF tools (Merge, Split, Remove Pages, Compress, PDF to Image, Sign, Unlock) in the browser, optimized to rank for specific PDF manipulation SEO keywords. There is no server component and never should be — files must never leave the user's device. This is the central product constraint; do not introduce any upload/API call that sends file contents off-device. Every runtime dependency is MIT or Apache-2.0 licensed (no AGPL/commercial libraries) and makes zero network calls of its own.
@@ -130,8 +145,14 @@ Icons referenced in the manifest (`public/icons/*.png`) still need to be generat
 
 Astro is pinned to `^7.0.3`, not the `@vite-pwa/astro`-certified `^5.x` line, **on purpose**: `npm audit` showed Astro's own published security advisories (XSS via `define:vars`, slot names, spread props; SSRF) cover every version through `7.0.0-beta`, including all of 5.x. Downgrading to satisfy some other package's peer range would mean shipping a known-vulnerable Astro. If a future dependency wants an older Astro, re-verify with `npm audit` before downgrading — don't assume an older major is safer just because more tooling has caught up to it.
 
-## Tailwind Refactor Status
+## Styling direction (scoped hybrid, not a wholesale Tailwind migration)
 
-A migration to Tailwind CSS was attempted and is currently paused in the `tailwind-refactor-wip` branch. 
+The decided direction is a **scoped hybrid**, documented in full in [ARCHITECTURE.md](./ARCHITECTURE.md) and sequenced in [scrum.md](./scrum.md):
 
-**WARNING:** Before resuming this work, you MUST read [TAILWIND_MIGRATION_LEARNINGS.md](./TAILWIND_MIGRATION_LEARNINGS.md). The PDF elements rely on highly specific real-time coordinate math and DOM event handling. The migration introduced severe state thrashing bugs (reconciliation overload) by binding `pointermove` events to React state instead of raw DOM transforms. The learnings document explicitly details this fatal flaw and provides instructions on how to handle the PDF editor math.
+- **Tailwind** for the static/SEO `.astro` surface only (pages, heroes, cards, footer, dropzones, static buttons) - no runtime state, no cascades.
+- **CSS Modules** (scoped, colocated per component) for the canvas editor (`SignTool/*`, `RedactTool`, `ElementToolbar`, resizers, element nodes). Keep semantic class names so the descendant-combinator state cascades (e.g. `.sign-element.active .sign-element-actions`) survive as real CSS inside module scope.
+- **Inline styles / CSS custom properties** for per-element runtime geometry (`top/left/width/height/fontSize` percentages) - these are continuous floats the Tailwind JIT cannot emit classes for.
+
+This is explicitly **not** "finish the wholesale Tailwind migration." The goal is to kill the single global CSS monolith by scoping styles, not to Tailwind-ify the editor.
+
+**The old "the branch broke the PDF math" framing is stale - do not act on it.** That warning described one snapshot: an early wip commit that (wrongly) routed `pointermove` through React state and thrashed reconciliation. The **resize perf fix already landed on the same wip branch** with the correct deferred-DOM pattern. That per-frame `onChange` on resize in `src/components/SignTool/DraggableWrapper.jsx` `handleResizeMove` was itself fixed this session (backlog E0.1, uncommitted - see the RESUME HERE block above), so `main`'s drag and resize now both follow the golden rule. The gesture golden rule (mutate the DOM during a gesture, commit React state once on `pointerup`, for **both** drag and resize) is non-negotiable and is now captured in ARCHITECTURE.md §1.2 / §4 along with the other still-true lessons from the retired learnings doc (invisible-toolbar cascade hazard, CSP-invisible-in-dev hazard). Read ARCHITECTURE.md before touching editor styling or the gesture path.
