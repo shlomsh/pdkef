@@ -1711,12 +1711,13 @@ footer a {
 /* Edit controls: rich text toolbar. Vertical position (top) is set inline by
    Floating UI in DraggableOverlayElement.jsx, not here — the -44px below is
    only the pre-hydration fallback so the toolbar starts roughly in place
-   before the first computePosition() resolves. Horizontal position is pure
-   CSS (left here, right via .sign-element-actions--rtl below), not JS: the
-   toolbar is a DOM child of the element it's anchored to, so it already
-   tracks the element's edge for free on every reflow, with no per-keystroke
-   recompute and no async lag — see the comment in DraggableOverlayElement.jsx
-   on why that matters for RTL text boxes, which shift `left` every keystroke. */
+   before the first computePosition() resolves. Horizontal alignment (which
+   edge the toolbar hugs) is driven by Floating UI's `placement` option, not
+   CSS: the toolbar is a DOM child of the element it's anchored to, so it
+   already tracks the element's edge for free on every reflow, with no
+   per-keystroke recompute and no async lag — see the comment in
+   DraggableWrapper.jsx on why that matters for RTL text boxes, which shift
+   `left` every keystroke. */
 .sign-element-actions {
   position: absolute;
   top: -44px;
@@ -1734,11 +1735,6 @@ footer a {
   pointer-events: none;
   transition: opacity 0.15s ease;
   white-space: nowrap;
-}
-
-.sign-element-actions--rtl {
-  left: auto;
-  right: 0;
 }
 
 /* Toolbar visibility is tied only to true selection (.active), not :hover —
@@ -1781,12 +1777,13 @@ footer a {
 /* Edit controls: rich text toolbar. Vertical position (top) is set inline by
    Floating UI in DraggableOverlayElement.jsx, not here — the -44px below is
    only the pre-hydration fallback so the toolbar starts roughly in place
-   before the first computePosition() resolves. Horizontal position is pure
-   CSS (left here, right via .sign-element-actions--rtl below), not JS: the
-   toolbar is a DOM child of the element it's anchored to, so it already
-   tracks the element's edge for free on every reflow, with no per-keystroke
-   recompute and no async lag — see the comment in DraggableOverlayElement.jsx
-   on why that matters for RTL text boxes, which shift `left` every keystroke. */
+   before the first computePosition() resolves. Horizontal alignment (which
+   edge the toolbar hugs) is driven by Floating UI's `placement` option, not
+   CSS: the toolbar is a DOM child of the element it's anchored to, so it
+   already tracks the element's edge for free on every reflow, with no
+   per-keystroke recompute and no async lag — see the comment in
+   DraggableWrapper.jsx on why that matters for RTL text boxes, which shift
+   `left` every keystroke. */
 .sign-element-actions {
   position: absolute;
   top: -44px;
@@ -1804,11 +1801,6 @@ footer a {
   pointer-events: none;
   transition: opacity 0.15s ease;
   white-space: nowrap;
-}
-
-.sign-element-actions--rtl {
-  left: auto;
-  right: 0;
 }
 
 /* Toolbar visibility is tied only to true selection (.active), not :hover —

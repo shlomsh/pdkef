@@ -78,8 +78,9 @@ export default function DraggableWrapper({
   // above.
   //
   // Only `top` is applied from the computed result — horizontal alignment
-  // (which edge of the element the toolbar hugs) is pure CSS, via the
-  // `sign-element-actions--rtl` class below, not JS. The toolbar is a DOM
+  // (which edge of the element the toolbar hugs) is driven by Floating UI's
+  // `placement` ('top-end' for RTL text, 'top-start' otherwise, set below),
+  // not by CSS or JS positioning of our own. The toolbar is a DOM
   // child of the element it's anchored to, so CSS `left`/`right` already
   // track the element's edge on every reflow for free. This matters for RTL
   // text boxes, which grow leftward from a fixed right edge and shift
@@ -217,7 +218,14 @@ export default function DraggableWrapper({
           newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, startHeight - dyPercent));
           newTop = startTop - (newHeight - startHeight);
         }
-        
+
+        // Keep the box fully on the page: left/top-handle drags derive left/top
+        // from the (already clamped) width/height, but that derivation alone can
+        // still push the box partly off-page on a large drag. Clamp using the
+        // same percentage coordinate system as width/height above.
+        newLeft = Math.max(0, Math.min(100 - newWidth, newLeft));
+        newTop = Math.max(0, Math.min(100 - newHeight, newTop));
+
         pendingResize = { width: newWidth, height: newHeight, left: newLeft, top: newTop };
         if (elementRef.current) {
           elementRef.current.style.width = `${newWidth}%`;
