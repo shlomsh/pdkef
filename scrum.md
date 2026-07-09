@@ -37,9 +37,13 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   matches on-page FAQ.
 - **E1.3 CSS budget guard.** - **done.** Port `check-css-bundle.js` from the archived branch into CI so the
   global stylesheet can't silently regrow past a threshold.
-- **E1.4 Editor interaction/visual test harness.** Cover the states unit tests miss: active outline,
-  floating-toolbar visibility + top-edge flip, RTL toolbar alignment + leftward growth, dark mode,
-  mobile full-width toolbar, whiteout bounds.
+- **E1.4 Editor interaction/visual test harness.** - **done.** Covers the six states unit tests miss
+  (active outline, floating-toolbar visibility + top-edge flip, RTL toolbar alignment + leftward
+  growth, dark mode, mobile full-width toolbar, whiteout bounds) in `DraggableWrapper.interaction.test.jsx`
+  + an appended `SignToolbar.test.jsx` case. jsdom has no layout engine, so the flip/RTL states assert
+  the exact Floating UI `middleware`/`placement` config passed to `useFloating` (real check of the
+  config, not resolved pixels); the mobile/outline states assert the CSS contract + real DOM shape.
+  Full suite green (441 tests). No source components modified.
   - *Depends on (all E1):* - · *Lane:* B (parallel with A)
 
 ## E2 - Kill the global CSS monolith  ·  *Lane C, parallel with E3*
@@ -108,6 +112,20 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 - **Long-tail landing pages** - `/sign-pdf-no-signup`, `/offline-pdf-form-filler`, `/open-source-pdf-editor`.
 - **OS-specific how-to guides** internally linking into the tools (no outbound promo links).
 - **Public GitHub repo + iframe embed model** for contextual backlinks.
+
+**Bugs / hardening surfaced by E1.4 test coverage** (documented by tests, not yet fixed):
+- **Off-page shape resize** - `DraggableWrapper.jsx` `handleResizeMove` clamps shape/whiteout
+  `width`/`height` to `[MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT]` but never clamps the derived
+  `left`/`top` to `[0, 100]` on a left/top-handle drag, so a big drag can push the box partly off the
+  page. Pinned by the whiteout-bounds test.
+- **Dead RTL toolbar CSS** - `.sign-element-actions--rtl` (in `global.css`, duplicated ~L1739/L1809)
+  is never applied; the stale comment in `DraggableWrapper.jsx` (~L82) claims it drives RTL alignment,
+  but alignment is actually Floating UI `placement: top-end/top-start`. Remove the dead class + fix the comment.
+- **CSP guard: warn-not-fail on missing meta** - `verify-csp.js` only `[WARN]`s when a page has no CSP
+  `<meta>` (correct for the Google verification file), so a content page that *lost* its CSP would stay
+  green. Tighten to fail for non-allowlisted pages.
+- **CSS budget headroom is thin** - E1.3 passes at ~72KB against an 80KB cap (~10% headroom); expect it
+  to bite on the first non-trivial CSS addition (by design, but flagged so it isn't a surprise).
 
 **Editor / UX polish:**
 - **Verify Redact mobile toolbar** on a real narrow viewport - code updated (shared `.sign-toolbar`

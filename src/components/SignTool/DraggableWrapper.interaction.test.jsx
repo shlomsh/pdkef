@@ -1,0 +1,357 @@
+import { render } from 'preact';
+import { act } from 'preact/test-utils';
+import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
+import TextNode from './nodes/TextNode.jsx';
+import WhiteoutNode from './nodes/WhiteoutNode.jsx';
+import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../../constants/signGeometry.js';
+
+// This file covers ARCHITECTURE.md §6 guardrail #4 / scrum.md ticket E1.4: the
+// interaction/visual states existing unit tests miss — active outline,
+// floating-toolbar visibility + top-edge flip, RTL toolbar alignment + leftward
+// growth, dark mode, mobile full-width toolbar (see SignToolbar.test.jsx for
+// that last one), and whiteout bounds.
+//
+// jsdom has no layout engine and does not apply cascaded CSS from stylesheets
+// (only inline styles), so several of these are necessarily asserted as
+// structural contracts (class presence, inline style values, middleware
+// config actually passed to Floating UI) rather than real rendered
+// pixels/colors. Each test says which it is and why.
+//
+// One specific dead end worth recording: an earlier version of this file tried
+// to get *real* computed floating-ui pixel positions out of jsdom by stubbing
+// getBoundingClientRect on the reference/floating elements and awaiting
+// computePosition()'s promise. That does not work reliably here — floating-ui's
+// shift()/flip() middleware also consult getComputedStyle() and the
+// document's clientWidth/clientHeight (via floating-ui's "platform") to find
+// the containing block and viewport boundary, and jsdom reports those as
+// degenerate/zero without a loaded stylesheet and real layout, so the
+// resolved x/y silently collapse toward 0 regardless of the input rects —
+// they don't reflect the middleware's real decision. Spying on the
+// `placement`/middleware config actually handed to `useFloating` (below) is
+// the reliable way to verify this logic in jsdom.
+
+let useFloatingCalls;
+vi.mock('@floating-ui/react', async () => {
+  const actual = await vi.importActual('@floating-ui/react');
+  return {
+    ...actual,
+    autoUpdate: vi.fn().mockReturnValue(() => {}),
+    useFloating: (config) => {
+      // Snapshot only the primitive facts we need RIGHT NOW, synchronously.
+      // The real @floating-ui/react implementation mutates the `middleware`
+      // entries' `.options` (and, indirectly, the caller's placement bookkeeping)
+      // in place as positioning resolves across re-renders, so storing the raw
+      // `config`/`middleware` object references and reading them later returns
+      // whatever they were mutated to by the time of the read, not what was
+      // actually passed in on this call.
+      const flipMw = config.middleware?.find((m) => m.name === 'flip');
+      // @floating-ui/react-dom internally represents each middleware's options
+      // as a `[options, depsKey]` tuple (for its own memoization), not the bare
+      // options object flip()/shift() were called with — index [0] to unwrap it.
+      const flipOptions = Array.isArray(flipMw?.options) ? flipMw.options[0] : flipMw?.options;
+      useFloatingCalls.push({
+        placement: config.placement,
+        flipFallbackPlacements: flipOptions?.fallbackPlacements,
+        hasShift: !!config.middleware?.find((m) => m.name === 'shift'),
+      });
+      return actual.useFloating(config);
+    },
+  };
+});
+
+// Vitest hoists vi.mock calls above imports, so this plain top-level import
+// already resolves to the mocked module.
+import DraggableWrapper from './DraggableWrapper.jsx';
+
+describe('DraggableWrapper interaction/visual states (E1.4)', () => {
+  let container;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    useFloatingCalls = [];
+  });
+
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+  });
+
+  function mountInPageWrapper(element, { isActive = true, pageWidthPoints = 612 } = {}) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'sign-page-wrapper';
+    wrapper.getBoundingClientRect = () => ({
+      left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {},
+    });
+    container.appendChild(wrapper);
+
+    act(() => {
+      render(
+        <DraggableWrapper
+          element={element}
+          isActive={isActive}
+          onSelect={() => {}}
+          onChange={() => {}}
+          onDelete={() => {}}
+          onClone={() => {}}
+          pageWidthPoints={pageWidthPoints}
+        >
+          {element.type === 'whiteout' ? <WhiteoutNode element={element} /> : <TextNode element={element} />}
+        </DraggableWrapper>,
+        wrapper
+      );
+    });
+
+    const box = wrapper.querySelector('.sign-element');
+    return { wrapper, box };
+  }
+
+  // --- 1. Active outline on selected element -------------------------------
+  describe('active outline', () => {
+    it('applies the `active` class (which owns the outline/border-color in CSS) only when isActive is true', () => {
+      const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12 };
+
+      const { box: activeBox } = mountInPageWrapper(element, { isActive: true });
+      expect(activeBox.classList.contains('active')).toBe(true);
+
+      const { box: inactiveBox } = mountInPageWrapper({ ...element, id: 'el-2' }, { isActive: false });
+      expect(inactiveBox.classList.contains('active')).toBe(false);
+
+      // Structural contract, not a real rendered check: jsdom does not load
+      // global.css, so `.sign-element.active { border-color: var(--color-primary) }`
+      // never actually paints here. The class is the load-bearing contract —
+      // CSS keys the visible outline off it (see global.css `.sign-element.active`).
+      expect(activeBox.style.borderColor).toBe('');
+    });
+  });
+
+  // --- 2. Floating-toolbar visibility + top-edge flip -----------------------
+  describe('floating toolbar visibility + top-edge flip', () => {
+    it("keeps the toolbar node present but its visibility gated purely by the `active` class, not JS (CSS opacity/pointer-events can't be observed in jsdom)", () => {
+      const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12 };
+      const { box } = mountInPageWrapper(element, { isActive: false });
+      const actions = box.querySelector('.sign-element-actions');
+      // The toolbar node always exists in the DOM (so Floating UI can anchor to
+      // it); *visibility* is a pure-CSS opacity/pointer-events toggle keyed off
+      // `.sign-element.active .sign-element-actions` (global.css). We can't
+      // observe computed opacity in jsdom, so we assert the structural half of
+      // that contract: the box lacks `.active`, which is the only thing that
+      // contract keys off.
+      expect(actions).not.toBeNull();
+      expect(box.classList.contains('active')).toBe(false);
+    });
+
+    it('configures Floating UI with a `flip` middleware falling back to `bottom`, the actual mechanism behind the top-edge flip', () => {
+      // Real check on real component logic: this reads the exact middleware
+      // array DraggableWrapper.jsx builds and hands to useFloating (captured
+      // via the mock above, which still delegates to the real implementation —
+      // only the call arguments are intercepted). It is not a text/source grep;
+      // it is the literal runtime config Floating UI receives and would act on
+      // in a real browser (jsdom just can't resolve the resulting pixels — see
+      // file-level comment).
+      const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12 };
+      mountInPageWrapper(element, { isActive: true });
+
+      expect(useFloatingCalls.length).toBeGreaterThan(0);
+      // The FIRST call reflects what DraggableWrapper.jsx actually asked
+      // for before any internal repositioning mutation could happen.
+      const firstCall = useFloatingCalls[0];
+      expect(firstCall.flipFallbackPlacements).toEqual(['bottom']);
+      // shift() is what keeps the flipped/unflipped toolbar from clipping off
+      // the left/right edges too.
+      expect(firstCall.hasShift).toBe(true);
+    });
+  });
+
+  // --- 3. RTL toolbar alignment + leftward growth ---------------------------
+  describe('RTL toolbar alignment + leftward growth', () => {
+    it('requests placement `top-end` (right-aligned) for RTL text and `top-start` (left-aligned) for LTR text', () => {
+      // Real check on real component logic (see note on the flip test above):
+      // this is the literal `placement` value DraggableWrapper.jsx computes
+      // from `getEffectiveTextDirection(element)` and passes to useFloating.
+      const rtlElement = { id: 'el-rtl', type: 'text', left: 70, top: 40, text: 'שלום', textDirection: 'rtl', fontSize: 12 };
+      mountInPageWrapper(rtlElement, { isActive: true });
+      // The FIRST call for each mount is the one that reflects what
+      // DraggableWrapper.jsx actually requested (see the mock's comment above).
+      expect(useFloatingCalls[0].placement).toBe('top-end');
+
+      useFloatingCalls = [];
+      const ltrElement = { id: 'el-ltr', type: 'text', left: 20, top: 40, text: 'Hello', textDirection: 'ltr', fontSize: 12 };
+      mountInPageWrapper(ltrElement, { isActive: true });
+      expect(useFloatingCalls[0].placement).toBe('top-start');
+    });
+
+    it('keeps the RTL text box itself anchored to a fixed right edge (grows leftward) via `right`, not `left`', () => {
+      const element = { id: 'el-1', type: 'text', left: 70, top: 10, text: 'שלום עולם', textDirection: 'rtl', fontSize: 12 };
+      const { box } = mountInPageWrapper(element, { isActive: false });
+      expect(box.style.right).toBe('30%');
+      expect(box.style.left).toBe('');
+    });
+
+    it('note: `.sign-element-actions--rtl` (global.css) is dead CSS — DraggableWrapper.jsx never applies that class', () => {
+      // Documented here rather than "fixed": per this ticket's scope, we only
+      // add tests, we do not touch production logic. DraggableWrapper.jsx's
+      // own comments (around the useFloating call) say horizontal toolbar
+      // alignment is "pure CSS, via the `sign-element-actions--rtl` class
+      // below, not JS" — but the className on the actual `.sign-element-actions`
+      // div is always the literal string "sign-element-actions", with no RTL
+      // variant ever appended. Alignment is actually driven entirely by the
+      // `top-end`/`top-start` placement asserted above (a newer mechanism);
+      // the CSS class and the comment describing it are stale. See this
+      // session's final report for the file:line reference.
+      const element = { id: 'el-1', type: 'text', left: 70, top: 10, text: 'שלום', textDirection: 'rtl', fontSize: 12 };
+      const { box } = mountInPageWrapper(element, { isActive: true });
+      const actions = box.querySelector('.sign-element-actions');
+      expect(actions.className).toBe('sign-element-actions');
+      expect(actions.classList.contains('sign-element-actions--rtl')).toBe(false);
+    });
+  });
+
+  // --- 4. Dark mode (no runtime dark theme exists yet in this codebase; see
+  // report) — structural guard against the exact hazard ARCHITECTURE.md §5
+  // documents ("Invisible floating toolbars... white text on a transparent
+  // background") by proving the editor chrome never hardcodes a color/background
+  // inline, which is what would make it immune to any future theme (dark or
+  // otherwise) applied purely via CSS custom properties. -------------------
+  describe('theming (no inline color/background escapes the CSS variable system)', () => {
+    it('the floating toolbar and its buttons carry no inline color/background — visibility and contrast stay 100% CSS-driven', () => {
+      const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12, color: '#000000' };
+      const { box } = mountInPageWrapper(element, { isActive: true });
+      const actions = box.querySelector('.sign-element-actions');
+      const buttons = box.querySelectorAll('.sign-element-btn');
+
+      // This is the exact class of bug ARCHITECTURE.md §5 warns about: an
+      // inline color/background on the toolbar chrome would fight (or silently
+      // win over) any theme CSS applied later, potentially reproducing the
+      // "white text on white background" incident. Structural contract: no
+      // inline color/background anywhere on the toolbar or its buttons.
+      expect(actions.style.color).toBe('');
+      expect(actions.style.backgroundColor).toBe('');
+      expect(actions.style.background).toBe('');
+      buttons.forEach((btn) => {
+        expect(btn.style.color).toBe('');
+        expect(btn.style.backgroundColor).toBe('');
+      });
+    });
+  });
+
+  // --- 6. Whiteout bounds ---------------------------------------------------
+  describe('whiteout bounds', () => {
+    function renderWhiteout(element, onChange) {
+      const page = document.createElement('div');
+      page.className = 'sign-page-wrapper';
+      document.body.appendChild(page);
+      act(() => {
+        render(
+          <DraggableWrapper
+            element={element}
+            isActive={true}
+            onSelect={() => {}}
+            onChange={onChange}
+            onDelete={() => {}}
+            onClone={() => {}}
+            pageWidthPoints={600}
+          >
+            <WhiteoutNode element={element} />
+          </DraggableWrapper>,
+          page
+        );
+      });
+      return page;
+    }
+
+    it('clamps whiteout width growth at MAX_SHAPE_SIZE_PCT even when the drag distance implies a larger box', () => {
+      const onChange = vi.fn();
+      const page = renderWhiteout(
+        { id: 'w-1', type: 'whiteout', left: 5, top: 5, width: 20, height: 10, color: '#ffffff' },
+        onChange
+      );
+      const rightHandle = page.querySelector('.sign-element-resizer.right');
+      expect(rightHandle).not.toBeNull();
+
+      act(() => {
+        // A huge rightward drag (way more than 100% of the mocked page width)
+        // should still clamp, not run away past the page.
+        rightHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 5000, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      expect(onChange).toHaveBeenCalled();
+      const committed = onChange.mock.calls.at(-1)[0];
+      expect(committed.width).toBeLessThanOrEqual(MAX_SHAPE_SIZE_PCT);
+    });
+
+    it('clamps whiteout width shrink at MIN_SHAPE_SIZE_PCT so it can never collapse to (or past) zero', () => {
+      const onChange = vi.fn();
+      const page = renderWhiteout(
+        { id: 'w-2', type: 'whiteout', left: 5, top: 5, width: 20, height: 10, color: '#ffffff' },
+        onChange
+      );
+      const rightHandle = page.querySelector('.sign-element-resizer.right');
+
+      act(() => {
+        // A huge leftward drag on the right handle (shrinking width past 0).
+        rightHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 500, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: -5000, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      expect(onChange).toHaveBeenCalled();
+      const committed = onChange.mock.calls.at(-1)[0];
+      expect(committed.width).toBeGreaterThanOrEqual(MIN_SHAPE_SIZE_PCT);
+    });
+
+    it('renders the whiteout fill at the full box size (100% x 100% of its own bounds), the actual "hide text" contract', () => {
+      const page = renderWhiteout(
+        { id: 'w-3', type: 'whiteout', left: 5, top: 5, width: 20, height: 10, color: '#ffffff' },
+        () => {}
+      );
+      // `.sign-element-actions` (the floating toolbar) is also a direct `div`
+      // child and renders first in DOM order, so it must be excluded here —
+      // the fill div is the other one.
+      const fill = page.querySelector('.sign-element > div:not(.sign-element-actions)');
+      // Real rendered check: the fill div is the element that must fully cover
+      // the box's bounds (that's what makes it "whiteout" and not a border) —
+      // it always sizes to 100%/100% of its parent `.sign-element`, whose own
+      // width/height come from `element.width`/`element.height`.
+      expect(fill.style.width).toBe('100%');
+      expect(fill.style.height).toBe('100%');
+      expect(fill.style.backgroundColor).toBe('rgb(255, 255, 255)');
+    });
+
+    it('does NOT clamp the left/top position when resizing from the left/top handle — a box can be pushed to a negative left (off the page edge)', () => {
+      // This test documents current behavior rather than asserting a "correct"
+      // bound — see this session's final report: DraggableWrapper.jsx's
+      // handleResizeMove clamps WIDTH/HEIGHT to [MIN_SHAPE_SIZE_PCT,
+      // MAX_SHAPE_SIZE_PCT] for shapes/whiteouts, but the LEFT/TOP it derives
+      // for left/top-handle drags (`newLeft = startLeft - (newWidth - startWidth)`)
+      // is never clamped to the page's [0, 100] bounds. A large enough
+      // left-handle drag pushes `left` negative, i.e. partly off the page. Not
+      // fixed here per this ticket's "tests only" scope.
+      const onChange = vi.fn();
+      const page = renderWhiteout(
+        { id: 'w-4', type: 'whiteout', left: 5, top: 5, width: 10, height: 10, color: '#ffffff' },
+        onChange
+      );
+      const leftHandle = page.querySelector('.sign-element-resizer.left');
+      expect(leftHandle).not.toBeNull();
+
+      act(() => {
+        // Drag the left handle far to the left: width grows (clamped at 90),
+        // and left is pushed correspondingly negative with no floor at 0.
+        leftHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 300, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: -900, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      expect(onChange).toHaveBeenCalled();
+      const committed = onChange.mock.calls.at(-1)[0];
+      expect(committed.width).toBeLessThanOrEqual(MAX_SHAPE_SIZE_PCT);
+      // Current (unclamped) behavior: left goes negative. This assertion pins
+      // down the existing behavior so a future clamp fix shows up as an
+      // intentional, visible test change rather than a silent regression.
+      expect(committed.left).toBeLessThan(0);
+    });
+  });
+});

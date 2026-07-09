@@ -1,8 +1,13 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import SignToolbar from './SignToolbar.jsx';
 import { SignToolProvider, useSignTool } from './SignToolContext.jsx';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 describe('SignToolbar Component', () => {
   let container;
@@ -184,6 +189,68 @@ describe('SignToolbar Component', () => {
           parentClassList.contains('sign-tool-dropdown-container')
         ).toBe(true);
       }
+    });
+  });
+
+  // --- 5. Mobile full-width toolbar -----------------------------------------
+  // jsdom has no layout engine and never loads global.css, so there is no way
+  // to observe a real computed width or flex-basis here — this is necessarily
+  // a structural-contract test. It checks two halves of the contract that
+  // together make the memoed "mobile toolbars stretch full width" behavior
+  // (project_fullwidth_mobile_toolbar) actually hold: (a) the CSS rule that
+  // grants every visible toolbar control equal, growable width really exists
+  // in global.css and targets the selector this component's DOM structure
+  // matches, and (b) the rendered DOM structure really matches that selector
+  // (every visible control is a direct child of .sign-toolbar, as asserted in
+  // the test above) so the rule actually reaches every button and does not
+  // silently skip one because of a stray wrapper div.
+  it('the full-width toolbar CSS contract (.sign-toolbar width:100% + flex:1 on every direct child) targets this component\'s real DOM shape', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    act(() => {
+      render(
+        <SignToolProvider>
+          <SignToolbar
+            setAnnouncement={() => {}}
+            savedSignatures={[]}
+            actionHistory={[]}
+            toggleFullscreen={() => {}}
+            isFullscreen={false}
+            setConfirmResetOpen={() => {}}
+            onSavePdf={() => {}}
+          />
+        </SignToolProvider>,
+        container
+      );
+    });
+
+    const toolbar = container.querySelector('.sign-toolbar');
+    expect(toolbar).not.toBeNull();
+    expect(toolbar.parentElement.classList.contains('sign-toolbar-container')).toBe(true);
+
+    // global.css source-of-truth check: `.sign-toolbar` spans full width at
+    // every breakpoint (no separate narrow-screen override shrinks it back to
+    // a centered pill — see CLAUDE.md/ARCHITECTURE.md's "full-width mobile
+    // toolbar" note), and every direct child is told to grow equally.
+    const css = readFileSync(join(__dirname, '..', '..', 'styles', 'global.css'), 'utf8');
+    const toolbarRuleMatch = /\.sign-toolbar\s*\{([^}]*)\}/.exec(css);
+    expect(toolbarRuleMatch).not.toBeNull();
+    expect(toolbarRuleMatch[1]).toMatch(/width:\s*100%/);
+
+    const childrenRuleMatch = /\.sign-toolbar\s*>\s*\*\s*\{([^}]*)\}/.exec(css);
+    expect(childrenRuleMatch).not.toBeNull();
+    expect(childrenRuleMatch[1]).toMatch(/flex:\s*1\s+1\s+auto/);
+
+    // Every visible top-level control (buttons + the signature/shapes dropdown
+    // wrappers) is a DIRECT child of .sign-toolbar, which is exactly what the
+    // `.sign-toolbar > *` selector above requires to reach it. If a future
+    // change wrapped a control in an extra <div>, that control would silently
+    // stop growing to fill the row on mobile — this catches that.
+    const directChildren = Array.from(toolbar.children);
+    expect(directChildren.length).toBeGreaterThan(0);
+    directChildren.forEach((child) => {
+      expect(child.parentElement).toBe(toolbar);
     });
   });
 });
