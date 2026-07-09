@@ -18,6 +18,6 @@ describe('Homepage Tooltips', () => {
 
     // Assert that the tooltip has a downward pointing arrow via ::after
     expect(css).toMatch(/\.app-tooltip::after\s*{[^}]*border-width:\s*6px/);
-    expect(css).toMatch(/\.app-tooltip::after\s*{[^}]*border-color:\s*var\(--color-text\)\s*transparent\s*transparent\s*transparent/);
+    expect(css).toMatch(/\.app-tooltip::after\s*{[^}]*border-color:\s*var\(--color-surface\)\s*transparent\s*transparent\s*transparent/);
   });
 });
