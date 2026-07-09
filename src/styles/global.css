@@ -1778,6 +1778,76 @@ footer a {
   background: var(--color-danger);
 }
 
+/* Edit controls: rich text toolbar. Vertical position (top) is set inline by
+   Floating UI in DraggableOverlayElement.jsx, not here — the -44px below is
+   only the pre-hydration fallback so the toolbar starts roughly in place
+   before the first computePosition() resolves. Horizontal position is pure
+   CSS (left here, right via .sign-element-actions--rtl below), not JS: the
+   toolbar is a DOM child of the element it's anchored to, so it already
+   tracks the element's edge for free on every reflow, with no per-keystroke
+   recompute and no async lag — see the comment in DraggableOverlayElement.jsx
+   on why that matters for RTL text boxes, which shift `left` every keystroke. */
+.sign-element-actions {
+  position: absolute;
+  top: -44px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-text);
+  color: #fff;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.sign-element-actions--rtl {
+  left: auto;
+  right: 0;
+}
+
+/* Toolbar visibility is tied only to true selection (.active), not :hover —
+   :hover fires independently per-element, so with two overlapping elements,
+   hovering the unselected one showed its toolbar too, alongside the genuinely
+   selected element's toolbar, looking like a "duplicated"/stuck pair. */
+.sign-element.active .sign-element-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sign-element-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0 4px;
+}
+
+.sign-element-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.sign-element-btn.active {
+  background: var(--color-primary);
+}
+
+.sign-element-btn-danger:hover {
+  background: var(--color-danger);
+}
+
 .sign-toolbar-divider {
   width: 1px;
   height: 20px;
@@ -2365,10 +2435,13 @@ footer a {
 .sign-tool-dropdown-container {
   position: relative;
   display: flex;
-  /* Match the content-based basis of the plain toolbar buttons (.sign-toolbar > *
-     uses flex: 1 1 auto). With flex-basis: 0 the Shapes/Sign wrappers started from
-     zero width and ended up narrower than the content-sized buttons, cramping and
-     clipping their labels. */
+}
+
+/* Inside the CSS-based .sign-toolbar, dropdown wrappers stretch to match
+   the plain buttons (.sign-toolbar > * uses flex: 1 1 auto). Scoped here
+   so it doesn't fight the Tailwind toolbars (Sign/Redact) which use
+   [&>*]:shrink-0 and want content-sized children. */
+.sign-toolbar .sign-tool-dropdown-container {
   flex: 1 1 auto;
   min-width: 0;
 }
