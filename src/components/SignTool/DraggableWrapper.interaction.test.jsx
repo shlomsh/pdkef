@@ -188,17 +188,12 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       expect(box.style.left).toBe('');
     });
 
-    it('note: `.sign-element-actions--rtl` (global.css) is dead CSS — DraggableWrapper.jsx never applies that class', () => {
-      // Documented here rather than "fixed": per this ticket's scope, we only
-      // add tests, we do not touch production logic. DraggableWrapper.jsx's
-      // own comments (around the useFloating call) say horizontal toolbar
-      // alignment is "pure CSS, via the `sign-element-actions--rtl` class
-      // below, not JS" — but the className on the actual `.sign-element-actions`
-      // div is always the literal string "sign-element-actions", with no RTL
-      // variant ever appended. Alignment is actually driven entirely by the
-      // `top-end`/`top-start` placement asserted above (a newer mechanism);
-      // the CSS class and the comment describing it are stale. See this
-      // session's final report for the file:line reference.
+    it('never applies a `--rtl` toolbar class — horizontal alignment is driven entirely by Floating UI placement', () => {
+      // `.sign-element-actions--rtl` was dead CSS (removed from global.css) and
+      // DraggableWrapper.jsx's comment claiming it drove horizontal alignment
+      // was stale; both have been corrected. Horizontal alignment is driven
+      // entirely by the `top-end`/`top-start` placement asserted above. This
+      // guards against either regressing back in.
       const element = { id: 'el-1', type: 'text', left: 70, top: 10, text: 'שלום', textDirection: 'rtl', fontSize: 12 };
       const { box } = mountInPageWrapper(element, { isActive: true });
       const actions = box.querySelector('.sign-element-actions');
@@ -320,15 +315,12 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       expect(fill.style.backgroundColor).toBe('rgb(255, 255, 255)');
     });
 
-    it('does NOT clamp the left/top position when resizing from the left/top handle — a box can be pushed to a negative left (off the page edge)', () => {
-      // This test documents current behavior rather than asserting a "correct"
-      // bound — see this session's final report: DraggableWrapper.jsx's
-      // handleResizeMove clamps WIDTH/HEIGHT to [MIN_SHAPE_SIZE_PCT,
-      // MAX_SHAPE_SIZE_PCT] for shapes/whiteouts, but the LEFT/TOP it derives
-      // for left/top-handle drags (`newLeft = startLeft - (newWidth - startWidth)`)
-      // is never clamped to the page's [0, 100] bounds. A large enough
-      // left-handle drag pushes `left` negative, i.e. partly off the page. Not
-      // fixed here per this ticket's "tests only" scope.
+    it('clamps the left/top position when resizing from the left/top handle so the box stays fully on the page', () => {
+      // DraggableWrapper.jsx's handleResizeMove clamps WIDTH/HEIGHT to
+      // [MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT] for shapes/whiteouts, and the
+      // LEFT/TOP derived for left/top-handle drags is now clamped too (to
+      // [0, 100 - width] / [0, 100 - height]), so a large left-handle drag can
+      // no longer push the box partly off the page.
       const onChange = vi.fn();
       const page = renderWhiteout(
         { id: 'w-4', type: 'whiteout', left: 5, top: 5, width: 10, height: 10, color: '#ffffff' },
@@ -339,7 +331,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
 
       act(() => {
         // Drag the left handle far to the left: width grows (clamped at 90),
-        // and left is pushed correspondingly negative with no floor at 0.
+        // and left must now be floored at 0 instead of going negative.
         leftHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 300, clientY: 0 }));
         window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: -900, clientY: 0 }));
         window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
@@ -348,10 +340,10 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       expect(onChange).toHaveBeenCalled();
       const committed = onChange.mock.calls.at(-1)[0];
       expect(committed.width).toBeLessThanOrEqual(MAX_SHAPE_SIZE_PCT);
-      // Current (unclamped) behavior: left goes negative. This assertion pins
-      // down the existing behavior so a future clamp fix shows up as an
-      // intentional, visible test change rather than a silent regression.
-      expect(committed.left).toBeLessThan(0);
+      // Fixed behavior: left is floored at 0, keeping the box on the page,
+      // and never exceeds 100 - width either.
+      expect(committed.left).toBeGreaterThanOrEqual(0);
+      expect(committed.left).toBeLessThanOrEqual(100 - committed.width);
     });
   });
 });
