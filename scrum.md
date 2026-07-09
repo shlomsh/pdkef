@@ -15,7 +15,7 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
 
 ## E0 - Stabilize & de-risk  ·  *start immediately, no deps*
 
-- **E0.1 Land the resize perf fix on `main`.** Re-apply the gesture portions of commit `c4583df`
+- **E0.1 Land the resize perf fix on `main`.** - **done.** Re-apply the gesture portions of commit `c4583df`
   (the `pendingResize` accumulator + direct DOM mutation during move, single `onChange` on
   `pointerup`) into `DraggableWrapper.jsx` `handleResizeMove`/`handleResizeUp` (and companions
   `ElementResizers.jsx`, `TextNode.jsx`), **excluding** the Tailwind className edits. `main` currently
@@ -23,7 +23,7 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   - *Depends on:* - · *Lane:* A (start now)
   - *Acceptance:* drag **and** resize stay smooth; a temporary `console.count` in `onChange` ticks
     **once per gesture**, not per frame; draft autosave/restore still correct; `build && preview` CSP pass.
-- **E0.2 Retire `tailwind-refactor-wip`.** First rescue its reusable pieces (the `index.astro` utility
+- **E0.2 Retire `tailwind-refactor-wip`.** - **done.** First rescue its reusable pieces (the `index.astro` utility
   patterns, `tailwind.config.mjs`, `check-css-bundle.js` scaffolding) by tagging the branch
   (`archive/tailwind-wip-2026-07`), then delete it so no one resumes the tangled branch in place.
   - *Depends on:* E0.1 · *Lane:* A

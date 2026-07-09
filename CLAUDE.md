@@ -4,18 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > **Design standard:** [ARCHITECTURE.md](./ARCHITECTURE.md) is the forward-looking architecture "north star" (styling boundary, headless editor core, invariants-as-guardrails); the sequenced backlog toward it lives in [scrum.md](./scrum.md). This file is the day-to-day working reference for the repo as it exists now.
 
-> **RESUME HERE (handoff, end of 2026-07-09 session). Nothing is committed or pushed yet - run `git status` first.** The working tree holds three logically separate change sets; commit them as three commits, do not squash:
-> 1. **Resize perf fix (backlog E0.1)** - `src/components/SignTool/DraggableWrapper.jsx` only. Defers resize `onChange` to pointer-up (DOM-mutate during the gesture), fixing a per-frame React reconciliation thrash. `npm run build` green + `DraggableWrapper.test.jsx` passing. The `c4583df` companion edits to `ElementResizers.jsx`/`TextNode.jsx`/`PdfWorkspace.jsx` were deliberately NOT ported (Tailwind-compensation for classes that still exist in `main`'s `global.css`).
-> 2. **Docs realignment** - new `ARCHITECTURE.md` + `scrum-board.html` (a self-contained visual board), rewritten `scrum.md`, realigned `CLAUDE.md`/`README.md`, `TODO.md` reduced to a pointer, `TAILWIND_MIGRATION_LEARNINGS.md` deleted.
-> 3. **Undo-history feature (the user's own WIP, untouched by the agent)** - new `RedactBox.jsx`, `UndoHistoryModal.jsx`, `src/lib/actionHistory.js`, `src/lib/useUndoShortcut.js`; edits to `PdfSignTool.jsx`, `PdfRedactTool.jsx`, `RedactToolbar.jsx`, `SignTool/PdfWorkspace.jsx`, `SignTool/SignToolContext.jsx`. A simple "undo my last add/delete" (Cmd/Ctrl+Z) for both editors.
->
-> **Branch state:** local `tailwind-refactor-wip` is deleted; its tip is archived as local tag `archive/tailwind-refactor-wip` (preserves `tailwind.config.mjs`, `check-css-bundle.js`, and the `index.astro` utility patterns for future epics E1.3/E3). **Remote `origin/tailwind-refactor-wip` still exists, and the archive tag is NOT pushed.**
->
-> **Next actions (user approved committing + pushing all of this; re-confirm before pushing, since `main` -> Vercel = production deploy):**
-> 1. Commit the three sets above as separate commits, then `git push origin main`.
-> 2. Finish retiring the branch: `git push origin --delete tailwind-refactor-wip` then `git push origin archive/tailwind-refactor-wip`.
-> 3. Small doc touch-up: mark **E0.1** and **E0.2** done in `scrum.md`'s E0 section and flip both `status: "todo"` -> `"done"` in `scrum-board.html` (both are complete; E0.2 completes when step 2 runs).
-> 4. Delete this RESUME HERE block once the above is done.
+
 
 ## What this is
 

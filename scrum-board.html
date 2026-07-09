@@ -460,11 +460,11 @@ const EPICS = [
 
 const TICKETS = [
   // ----- E0 -----
-  { id: "E0.1", epic: "E0", lane: "A", status: "todo", priority: "high", first: true,
+  { id: "E0.1", epic: "E0", lane: "A", status: "done", priority: "high", first: true,
     title: "Land the resize perf fix on main",
     dependsOn: [],
     acceptance: "Re-apply the gesture portions of commit c4583df (pendingResize accumulator + direct DOM mutation during move, single onChange on pointerup) into DraggableWrapper/ElementResizers/TextNode, excluding the Tailwind className edits. Acceptance: drag AND resize stay smooth; a temp console.count in onChange ticks once per gesture, not per frame; draft autosave/restore still correct; build && preview CSP pass." },
-  { id: "E0.2", epic: "E0", lane: "A", status: "todo", priority: "normal",
+  { id: "E0.2", epic: "E0", lane: "A", status: "done", priority: "normal",
     title: "Retire tailwind-refactor-wip",
     dependsOn: ["E0.1"],
     acceptance: "First rescue reusable pieces (index.astro utility patterns, tailwind.config.mjs, check-css-bundle.js scaffolding) by tagging the branch archive/tailwind-wip-2026-07, then delete it so no one resumes the tangled branch in place." },
