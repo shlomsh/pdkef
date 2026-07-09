@@ -159,8 +159,8 @@
   --color-success: #5c7a3a;
   --color-success-hover: #4a632f;
   --color-success-soft: #ebffd8; /* Trust color for pill and privacy caption */
-  --color-danger: #c96f2e; /* Muted terracotta to fit the Sea Glass theme */
-  --color-danger-soft: #fcf1ea;
+  --color-danger: #b84c58; /* Muted berry red to complement the cool teal theme */
+  --color-danger-soft: #fcf1f3;
 
   --radius-sm: 10px;
   --radius: 16px;
