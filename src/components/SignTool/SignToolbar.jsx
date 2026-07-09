@@ -99,7 +99,7 @@ export default function SignToolbar({
             <Popover
               open={showShapesDropdown}
               onOpenChange={setShowShapesDropdown}
-              placement="bottom"
+              placement="bottom-start"
               trigger={
                 <button
                   type="button"
@@ -198,7 +198,7 @@ export default function SignToolbar({
             <Popover
               open={showSigDropdown}
               onOpenChange={setShowSigDropdown}
-              placement="bottom"
+              placement="bottom-start"
               trigger={
                 <button
                   type="button"
