@@ -280,4 +280,55 @@ describe('PdfWorkspace Component', () => {
     });
     expect(rememberDirection).toHaveBeenCalledWith('ltr');
   });
+
+  it('keeps whiteout color independent from the active text/shape color defaults', () => {
+    const dispatch = vi.fn();
+    const state = {
+      selectedTool: 'whiteout',
+      elements: [{
+        id: 'text-1',
+        type: 'text',
+        pageIndex: 0,
+        left: 20,
+        top: 20,
+        text: 'red text',
+        fontSize: 16,
+        fontFamily: 'Arimo',
+        color: '#d8342b',
+        textDirection: 'ltr'
+      }],
+      activeElementId: 'text-1',
+      actionHistory: []
+    };
+
+    host = mount(
+      <SignToolContext.Provider value={{ state, dispatch }}>
+        <PdfWorkspace {...defaultProps({ lastColor: '#1463ff', lastWhiteoutColor: '#ffffff' })} />
+      </SignToolContext.Provider>
+    );
+
+    const overlay = host.querySelector('.sign-page-overlay');
+    expect(overlay).not.toBeNull();
+    overlay.getBoundingClientRect = () => ({
+      left: 0,
+      top: 0,
+      width: 600,
+      height: 800,
+      right: 600,
+      bottom: 800,
+      x: 0,
+      y: 0,
+      toJSON: () => {}
+    });
+
+    act(() => {
+      overlay.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 120, clientY: 160 }));
+    });
+
+    const added = dispatch.mock.calls.find(([action]) => action.type === 'ADD_ELEMENT')?.[0].payload;
+    expect(added).toMatchObject({
+      type: 'whiteout',
+      color: '#ffffff'
+    });
+  });
 });

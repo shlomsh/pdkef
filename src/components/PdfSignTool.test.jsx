@@ -501,6 +501,100 @@ describe('PdfSignTool UI flow', () => {
     expect(textInput.style.textAlign).toBe('left');
   });
 
+  it('uses edited text size, color, and typed direction when creating the next text element', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSignTool />, container);
+    });
+
+    const file = makePdfFile('test.pdf');
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      Object.defineProperty(input, 'files', { value: [file], configurable: true });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const wrapper = container.querySelector('.sign-page-wrapper');
+    const overlay = container.querySelector('.sign-page-overlay');
+    const pageRect = {
+      left: 0,
+      top: 0,
+      width: 600,
+      height: 800,
+      right: 600,
+      bottom: 800,
+      x: 0,
+      y: 0,
+      toJSON: () => {}
+    };
+    wrapper.getBoundingClientRect = () => pageRect;
+    overlay.getBoundingClientRect = () => pageRect;
+
+    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
+    await act(async () => {
+      textBtn.click();
+    });
+
+    await act(async () => {
+      overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+
+    const firstTextInput = container.querySelector('.sign-text-input');
+    expect(firstTextInput).not.toBeNull();
+
+    const increaseFont = container.querySelector('button[title="Increase font size"]');
+    expect(increaseFont).not.toBeNull();
+    await act(async () => {
+      increaseFont.click();
+    });
+
+    const colorTrigger = container.querySelector('button[title="Text color"]');
+    expect(colorTrigger).not.toBeNull();
+    await act(async () => {
+      colorTrigger.click();
+    });
+
+    const colorMenu = document.body.querySelector('.sign-color-menu');
+    expect(colorMenu).not.toBeNull();
+    const redSwatch = colorMenu.querySelector('.sign-color-swatch[title="#d8342b"]');
+    expect(redSwatch).not.toBeNull();
+    await act(async () => {
+      redSwatch.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(localStorage.getItem('pdf-toolkit:lastColor')).toBe('#d8342b');
+    expect(localStorage.getItem('pdf-toolkit:lastFontSize')).toBe('13');
+    expect(container.querySelector('.sign-text-input').style.color).toBe('rgb(216, 52, 43)');
+
+    await act(async () => {
+      firstTextInput.value = 'שלום';
+      firstTextInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    await act(async () => {
+      overlay.dispatchEvent(new MouseEvent('click', { clientX: 260, clientY: 220, bubbles: true }));
+    });
+
+    const textInputs = container.querySelectorAll('.sign-text-input');
+    expect(textInputs.length).toBe(2);
+    const editedTextInput = textInputs[0];
+    const nextTextInput = textInputs[1];
+
+    expect(nextTextInput.getAttribute('dir')).toBe('rtl');
+    expect(nextTextInput.style.textAlign).toBe('right');
+    expect(nextTextInput.style.color).toBe('rgb(216, 52, 43)');
+    expect(nextTextInput.style.fontSize).toBe(editedTextInput.style.fontSize);
+  });
+
   it('updates font selection and enables Save button when typing a signature', async () => {
     // Safely mock canvas context to prevent the live-preview useEffect from throwing
     const originalGetContext = HTMLCanvasElement.prototype.getContext;
@@ -690,4 +784,3 @@ describe('PdfSignTool UI flow', () => {
     expect(parseFloat(box.style.height)).toBeCloseTo(heightPercent);
   });
 });
-

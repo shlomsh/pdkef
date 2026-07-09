@@ -55,6 +55,26 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   - *Depends on:* - · *Lane:* B (parallel with A)
   - *Acceptance:* new tests fail against a deliberately reintroduced blanket-clamp and pass against the
     landed per-handle fix; full suite green; no source components modified.
+- **E1.6 Playwright browser guardrails for editor layout.** Add a small browser-level e2e harness for
+  the cases jsdom cannot prove. Keep files under `e2e/<module>/` (start with `e2e/sign/`) and keep the
+  suite intentionally sparse - no more than roughly one e2e test per ten unit/component tests. These are
+  guardrails for refactoring, not a second copy of the unit suite.
+  - *Depends on:* E1.4, E1.5 · *Lane:* B
+  - *Acceptance:* install/configure Playwright; add `npm run test:e2e`; Sign e2e covers at least:
+    (1) selected text toolbar renders above the element and aligns left/right according to typed LTR/RTL
+    language; (2) while dragging an active element, the toolbar follows the live DOM-mutated position
+    before `pointerup`, not only after drop; (3) whiteout creation keeps its own color/default separate
+    from edited text/shape color. Tests run against a production build/preview path when touching CSP,
+    hydration, or Astro island behavior.
+- **E1.7 Runtime CSP style-attribute guard.** Playwright preview surfaced CSP violations for runtime
+  `style=""` attributes, which matter because editor geometry and Floating UI placement are currently
+  expressed as inline styles. `scripts/verify-csp.js` only verifies generated `<script>`/`<style>` hash
+  coverage; it cannot catch browser-enforced style-attribute violations.
+  - *Depends on:* E1.6 · *Lane:* B
+  - *Acceptance:* decide and document the intended CSP posture for runtime geometry styles (explicitly
+    allow style attributes, or migrate geometry to CSS custom properties/classes first); then make e2e
+    fail on unexpected CSP violations while ignoring known local-only noise such as the Vercel Analytics
+    404 in preview.
 
 ## E2 - Kill the global CSS monolith  ·  *Lane C, parallel with E3*
 
@@ -149,6 +169,17 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
   green. Tighten to fail for non-allowlisted pages.
 - **CSS budget headroom is thin** - E1.3 passes at ~72KB against an 80KB cap (~10% headroom); expect it
   to bite on the first non-trivial CSS addition (by design, but flagged so it isn't a surprise).
+- **Sign toolbar bottom-jump regression** - **fixed.** The toolbar was allowed to use Floating UI
+  `flip()` and could fall back from `top-start`/`top-end` to `bottom-*`, which placed it underneath the
+  selected text. The editor contract is now stable top placement: use `top-start` for LTR and `top-end`
+  for RTL, with `shift()` for page-bounded horizontal overflow only. Browser e2e should assert actual
+  toolbar rects because jsdom can only see middleware config.
+- **Text defaults vs whiteout defaults** - **fixed.** New text inherits the active/last edited text
+  size, color, font, and direction; direction is typed-language first, then remembered fallback. Whiteout
+  keeps an independent color default and must not inherit text/shape color.
+- **Runtime CSP style-attribute violations** - **found by Playwright.** Production preview logs
+  `style-src` violations for runtime style attributes. This does not show up in jsdom and is not covered
+  by the current hash-only CSP script. Treat as E1.7 before tightening CSP or migrating editor geometry.
 
 **Editor / UX polish:**
 - **Verify Redact mobile toolbar** on a real narrow viewport - code updated (shared `.sign-toolbar`
@@ -162,7 +193,7 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 
 ```
 Lane A (now):   E0.1 ──► E0.2
-Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓  E1.5(todo)  ── gate ──► E2.*, E3.2, E4 verification
+Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓  E1.5(todo) E1.6(todo) E1.7(todo)  ── gate ──► E2.*, E3.2, E4 verification
 Lane C:         E2.1 ──► E2.2, E2.3            (E2.3 also needs E1.4)
 Lane D:         E3.1 ──► E3.2                  (E3.2 also needs E1.1, E1.2)
 Lane E:         E4.1 ──► E4.2 ──► E4.3 ──► E4.4   (E4.2 also needs E0.1)

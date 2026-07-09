@@ -158,6 +158,31 @@ a common PDF-workspace substrate (load, page render, draft persistence), removin
   and gesture-time measurement is read-only at pointer-down (never in a render effect). These
   prevent the "toolbar freaking out near the top edge" and the draft-restore sizing drift. Preserve
   the pattern when refactoring `DraggableWrapper` / the toolbar.
+- **Toolbar vertical flip is not a harmless overflow fix.** In the Sign editor, the expected mental
+  model is stable: the element toolbar stays above the selected element; LTR text aligns the toolbar
+  to the element's left edge, RTL text aligns it to the right edge. Letting Floating UI `flip()` to a
+  `bottom-*` placement made the toolbar jump underneath text in real use, especially near page/viewport
+  boundaries. Keep vertical placement stable (`top-start` / `top-end`) and use `shift()` only to keep
+  the toolbar inside the PDF page horizontally. Real browser tests must assert rendered toolbar rects,
+  because jsdom can only inspect the Floating UI config, not actual pixels.
+- **Creation defaults are per tool family, not one global color bucket.** Text, symbols, lines, and
+  shapes use the remembered drawing/text color. Whiteout uses its own remembered whiteout color and
+  must not inherit the active text or shape color. New text elements should inherit the last edited
+  text size/color/font/direction; the direction is determined from the typed language first, then falls
+  back to the element's remembered direction, then the last direction.
+- **Some editor bugs require a browser, not jsdom.** Unit/component tests are the first guardrail for
+  pure math (gesture payloads, anchors, zero-delta no-ops), but jsdom cannot verify rendered toolbar
+  overlap, actual `getBoundingClientRect()` relationships after CSS/Floating UI, or whether the
+  toolbar follows a DOM-mutated drag before `pointerup`. Add Playwright e2e tests for those cases
+  before major editor refactors.
+- **CSP style attributes are a separate risk from hashed `<style>` tags.** The editor intentionally
+  uses inline style attributes for runtime geometry (`top`/`left`/`width`/`height`/`transform`,
+  Floating UI coordinates, swatches, text color/font size). Astro's CSP hash generation covers emitted
+  `<style>` tags, but browser CSP does not apply those hashes to runtime `style=""` attributes unless
+  the policy explicitly allows that class of inline style. Playwright preview currently surfaces
+  `style-src` violations for style attributes, so the CSP guardrail must evolve beyond hash checking:
+  either allow the specific runtime style pattern deliberately, or migrate geometry to CSS custom
+  properties/classes before tightening CSP. Do not assume `npm run test:csp` catches this.
 
 ---
 
@@ -171,8 +196,14 @@ a common PDF-workspace substrate (load, page render, draft persistence), removin
 3. **CSS budget guard** - a bundle-size check (reuse the `check-css-bundle.js` scaffolding from the
    paused branch) so the monolith can't silently regrow.
 4. **Editor interaction tests** - the states unit tests miss: active outline, floating-toolbar
-   visibility + top-edge flip, RTL toolbar alignment + leftward growth, dark mode, mobile full-width
-   toolbar, whiteout bounds.
+   visibility + stable top placement, RTL toolbar alignment + leftward growth, dark mode, mobile
+   full-width toolbar, whiteout bounds.
+5. **Playwright e2e guardrails** - keep browser tests under `e2e/<module>/` (for example
+   `e2e/sign/`) and reserve them for bugs jsdom cannot prove: rendered toolbar rects, drag-time
+   toolbar following, viewport/page-edge behavior, and hydration/CSP-visible workflows. Keep the
+   suite small: no more than roughly one e2e test for every ten unit/component tests.
+6. **Runtime CSP smoke** - e2e/preview should fail on unexpected CSP violations once the existing
+   style-attribute policy is resolved; the current hash-only script does not cover runtime style attrs.
 
 ---
 

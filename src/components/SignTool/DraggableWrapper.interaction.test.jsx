@@ -7,7 +7,7 @@ import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../../constants/signGeom
 
 // This file covers ARCHITECTURE.md §6 guardrail #4 / scrum.md ticket E1.4: the
 // interaction/visual states existing unit tests miss — active outline,
-// floating-toolbar visibility + top-edge flip, RTL toolbar alignment + leftward
+// floating-toolbar visibility + stable top placement, RTL toolbar alignment + leftward
 // growth, dark mode, mobile full-width toolbar (see SignToolbar.test.jsx for
 // that last one), and whiteout bounds.
 //
@@ -48,10 +48,14 @@ vi.mock('@floating-ui/react', async () => {
       // @floating-ui/react-dom internally represents each middleware's options
       // as a `[options, depsKey]` tuple (for its own memoization), not the bare
       // options object flip()/shift() were called with — index [0] to unwrap it.
-      const flipOptions = Array.isArray(flipMw?.options) ? flipMw.options[0] : flipMw?.options;
+      let flipOptions = Array.isArray(flipMw?.options) ? flipMw.options[0] : flipMw?.options;
+      if (typeof flipOptions === 'function') {
+        flipOptions = flipOptions({ elements: { reference: { closest: () => null } } });
+      }
       useFloatingCalls.push({
         placement: config.placement,
         flipFallbackPlacements: flipOptions?.fallbackPlacements,
+        hasFlip: !!flipMw,
         hasShift: !!config.middleware?.find((m) => m.name === 'shift'),
       });
       return actual.useFloating(config);
@@ -125,8 +129,8 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
     });
   });
 
-  // --- 2. Floating-toolbar visibility + top-edge flip -----------------------
-  describe('floating toolbar visibility + top-edge flip', () => {
+  // --- 2. Floating-toolbar visibility + stable top placement ----------------
+  describe('floating toolbar visibility + stable top placement', () => {
     it("keeps the toolbar node present but its visibility gated purely by the `active` class, not JS (CSS opacity/pointer-events can't be observed in jsdom)", () => {
       const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12 };
       const { box } = mountInPageWrapper(element, { isActive: false });
@@ -141,7 +145,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       expect(box.classList.contains('active')).toBe(false);
     });
 
-    it('configures Floating UI with a `flip` middleware falling back to `bottom`, the actual mechanism behind the top-edge flip', () => {
+    it('keeps Floating UI placement stable above the element and does not configure a bottom fallback', () => {
       // Real check on real component logic: this reads the exact middleware
       // array DraggableWrapper.jsx builds and hands to useFloating (captured
       // via the mock above, which still delegates to the real implementation —
@@ -156,9 +160,11 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       // The FIRST call reflects what DraggableWrapper.jsx actually asked
       // for before any internal repositioning mutation could happen.
       const firstCall = useFloatingCalls[0];
-      expect(firstCall.flipFallbackPlacements).toEqual(['bottom']);
-      // shift() is what keeps the flipped/unflipped toolbar from clipping off
-      // the left/right edges too.
+      expect(firstCall.placement).toBe('top-start');
+      expect(firstCall.hasFlip).toBe(false);
+      expect(firstCall.flipFallbackPlacements).toBeUndefined();
+      // shift() is what keeps the toolbar from clipping off the left/right
+      // page edges while preserving the top-start/top-end placement.
       expect(firstCall.hasShift).toBe(true);
     });
 
@@ -197,6 +203,19 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const emptyRtlElement = { id: 'el-empty-rtl', type: 'text', left: 70, top: 40, text: '', textDirection: 'rtl', fontSize: 12 };
       mountInPageWrapper(emptyRtlElement, { isActive: true });
       expect(useFloatingCalls[0].placement).toBe('top-end');
+    });
+
+    it('keeps the toolbar above the element for both text directions instead of falling underneath it', () => {
+      const rtlElement = { id: 'el-rtl-fallback-placement', type: 'text', left: 70, top: 40, text: 'שלום', fontSize: 12 };
+      mountInPageWrapper(rtlElement, { isActive: true });
+      expect(useFloatingCalls[0].placement).toBe('top-end');
+      expect(useFloatingCalls[0].hasFlip).toBe(false);
+
+      useFloatingCalls = [];
+      const ltrElement = { id: 'el-ltr-fallback-placement', type: 'text', left: 20, top: 40, text: 'Hello', fontSize: 12 };
+      mountInPageWrapper(ltrElement, { isActive: true });
+      expect(useFloatingCalls[0].placement).toBe('top-start');
+      expect(useFloatingCalls[0].hasFlip).toBe(false);
     });
 
     it('keeps the RTL text box itself anchored to a fixed right edge (grows leftward) via `right`, not `left`', () => {

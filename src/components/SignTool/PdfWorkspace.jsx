@@ -56,6 +56,12 @@ export default function PdfWorkspace({
   placeSignatureAt
 }) {
   const { state: { selectedTool, elements, activeElementId, actionHistory }, dispatch } = useSignTool();
+  const activeElement = elements.find((el) => el.id === activeElementId);
+  const activeTextElement = activeElement?.type === 'text' ? activeElement : null;
+  const initialTextDirection =
+    activeTextElement
+      ? detectTextDirection(activeTextElement.text) || activeTextElement.textDirection || lastDirection
+      : lastDirection;
 
   // --- Gesture handlers (extracted) ---
   const { handlePageClick, handleOverlayPointerDown } = useWorkspaceGestures({
@@ -67,12 +73,12 @@ export default function PdfWorkspace({
     placeSignatureAt,
     logAction,
     setAnnouncement,
-    initialColor: lastColor,
+    initialColor: activeTextElement?.color || lastColor,
     initialWhiteoutColor: lastWhiteoutColor,
     initialStrokeWidth: lastThickness,
-    initialFont: lastFont,
-    initialFontSize: lastFontSize,
-    initialDirection: lastDirection,
+    initialFont: activeTextElement?.fontFamily || lastFont,
+    initialFontSize: activeTextElement?.fontSize || lastFontSize,
+    initialDirection: initialTextDirection,
   });
 
   // --- Stable element mutation callbacks (hoisted out of the map loop) ---

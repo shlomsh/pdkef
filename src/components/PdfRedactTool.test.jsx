@@ -175,7 +175,16 @@ describe('PdfRedactTool UI flow', () => {
     const box = container.querySelector('.redact-box');
     const startWidthPercent = parseFloat(box.style.width);
     const startHeightPercent = parseFloat(box.style.height);
-    const resizer = box.querySelector('.redact-box-resizer');
+
+    await act(async () => {
+      box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    const resizer = box.querySelector('.sign-element-resizer.corner.bottom-right');
+    expect(resizer).not.toBeNull();
 
     await act(async () => {
       resizer.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
@@ -219,9 +228,8 @@ describe('PdfRedactTool UI flow', () => {
     async function setupSelectedWhiteoutBox() {
       const drawArea = await loadFileAndGetDrawArea();
 
-      // Switch to whiteout mode — only whiteout boxes get the 8-direction
-      // ElementResizers handles; blackout/blur only expose a single
-      // bottom-right corner dot, which was never affected by this bug.
+      // Switch to whiteout mode — all redaction box styles now get the
+      // 8-direction ElementResizers handles.
       const whiteoutBtn = Array.from(container.querySelectorAll('.sign-toolbar .sign-tool-btn'))
         .find((btn) => btn.textContent.includes('Whiteout'));
       await act(async () => {
@@ -315,6 +323,69 @@ describe('PdfRedactTool UI flow', () => {
       expect(parseFloat(box.style.top)).toBeCloseTo(30);
       expect(parseFloat(box.style.width)).toBeCloseTo(40);
       expect(parseFloat(box.style.height)).toBeCloseTo(20);
+    });
+
+    it('whiteout uses the floating toolbar delete control instead of the overlapping red corner delete button', async () => {
+      const box = await setupSelectedWhiteoutBox();
+
+      expect(box.classList.contains('sign-element--shape')).toBe(true);
+      expect(box.querySelector('.redact-element-btn')).toBeNull();
+      expect(box.querySelector('.sign-element-resizer.corner.top-right')).not.toBeNull();
+
+      const toolbarDelete = box.querySelector('.sign-element-actions button[title="Delete element"]');
+      expect(toolbarDelete).not.toBeNull();
+    });
+
+    it('blackout boxes render the 8 resize handles and keep the remove button reachable inside the box', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      const box = container.querySelector('.redact-box');
+      expect(box).not.toBeNull();
+
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+
+      expect(box.classList.contains('sign-element--shape')).toBe(true);
+      expect(box.querySelector('.redact-element-btn')).not.toBeNull();
+      expect(box.querySelector('.redact-box-resizer')).toBeNull();
+      expect(box.querySelectorAll('.sign-element-resizer').length).toBe(8);
+      expect(box.querySelector('.redact-element-btn').style.top).toBe('8px');
+      expect(box.querySelector('.redact-element-btn').style.right).toBe('8px');
+    });
+
+    it('blur boxes also render the 8 resize handles and keep the remove button reachable inside the box', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+
+      const blurBtn = Array.from(container.querySelectorAll('.sign-toolbar .sign-tool-btn'))
+        .find((btn) => btn.textContent.includes('Blur'));
+      await act(async () => {
+        blurBtn.click();
+      });
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      const box = container.querySelector('.redact-box');
+      expect(box).not.toBeNull();
+      expect(box.querySelector('.redact-element-btn')).not.toBeNull();
+      expect(box.querySelector('.redact-box-resizer')).toBeNull();
+
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+
+      expect(box.classList.contains('sign-element--shape')).toBe(true);
+      expect(box.querySelectorAll('.sign-element-resizer').length).toBe(8);
+      expect(box.querySelector('.redact-element-btn').style.top).toBe('8px');
+      expect(box.querySelector('.redact-element-btn').style.right).toBe('8px');
     });
 
     // --- E1.5: generalize the whiteout-resize post-mortem's three gesture

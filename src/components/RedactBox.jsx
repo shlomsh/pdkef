@@ -14,7 +14,7 @@ import ElementResizers from './ElementResizers.jsx';
 // shapes (`.sign-element--shape .sign-element-resizer` in global.css); and a border that
 // stays transparent at rest so the box reads as a true erase, only appearing on hover/
 // selection (mirrors `.sign-element` / `.sign-element.active` in global.css). Blackout/
-// blur boxes are unaffected: always-visible border, single corner resize dot, no toolbar.
+// blur boxes share the same resize handles, but keep their red in-box delete control.
 export default function RedactBox({
   el,
   isSelected,
@@ -38,6 +38,7 @@ export default function RedactBox({
   });
 
   const isWhiteout = el.style === 'whiteout';
+  const hasShapeHandles = isWhiteout || el.style === 'blackout' || el.style === 'blur';
   const whiteoutBorderColor = isSelected
     ? 'var(--color-primary)'
     : (isActiveHover ? 'var(--color-muted-light)' : 'transparent');
@@ -45,7 +46,7 @@ export default function RedactBox({
   return (
     <div
       ref={refs.setReference}
-      className={`redact-box${isActiveHover ? ' active' : ''}${isWhiteout ? ' sign-element--shape' : ''}`}
+      className={`redact-box${isActiveHover ? ' active' : ''}${hasShapeHandles ? ' sign-element--shape' : ''}`}
       onMouseDown={(e) => onDragStart(e, el)}
       onTouchStart={(e) => onDragStart(e, el)}
       onMouseEnter={onHoverEnter}
@@ -68,36 +69,38 @@ export default function RedactBox({
         zIndex: 10
       }}
     >
-      <button
-        className="redact-element-btn"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(el.id);
-        }}
-        title="Remove redaction"
-        style={{
-          position: 'absolute',
-          top: '-10px',
-          right: '-10px',
-          background: 'var(--color-danger)',
-          color: '#fff',
-          border: 'none',
-          borderRadius: '50%',
-          width: '24px',
-          height: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          fontSize: '14px',
-          lineHeight: '1',
-          padding: 0,
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-        }}
-      >
-        ✕
-      </button>
-      {isWhiteout ? (
+      {!isWhiteout && (
+        <button
+          className="redact-element-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(el.id);
+          }}
+          title="Remove redaction"
+          style={{
+            position: 'absolute',
+            top: hasShapeHandles ? '8px' : '-10px',
+            right: hasShapeHandles ? '8px' : '-10px',
+            background: 'var(--color-danger)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '50%',
+            width: '24px',
+            height: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontSize: '14px',
+            lineHeight: '1',
+            padding: 0,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+          }}
+        >
+          ✕
+        </button>
+      )}
+      {hasShapeHandles ? (
         <ElementResizers
           element={el}
           isActive={isSelected}

@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'preact/hooks';
-import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
+import { useFloating, offset, shift, autoUpdate } from '@floating-ui/react';
 import usePdfCoordinates from '../../lib/usePdfCoordinates.js';
 import useDraggableElement from '../../lib/useDraggableElement.js';
 import { getEffectiveTextDirection } from '../../lib/sign.js';
@@ -66,29 +66,30 @@ export default function DraggableWrapper({
     onChange,
   });
 
-  // Keep the floating toolbar on-screen vertically: its default position
-  // (above, flush with the top of the element) clips off the top edge for
-  // elements placed near the top of the page. Positioning is delegated to
-  // Floating UI (@floating-ui/dom) rather than hand-rolled — it derives the
-  // toolbar's placement purely from the anchor's (elementRef) rect plus the
-  // toolbar's own size, never from the toolbar's own already-positioned
-  // rect, so it can't create the feedback loop a naive "measure my own
-  // rect, then flip" approach does (flip down → rect moves on-screen → flip
-  // back up → off-screen again → ... — the toolbar "freaking out" near the
-  // top edge). `flip()` swaps to below the element when there's no room
-  // above.
+  // Keep the toolbar anchored above the selected element. Earlier versions used
+  // Floating UI's vertical `flip()`, but a slightly over-eager overflow reading
+  // could move the toolbar to `bottom-*`, visually jumping it under the text.
+  // We still delegate measurement to Floating UI and still use `shift()` so the
+  // toolbar is constrained to the PDF page horizontally, but vertical placement
+  // stays stable. This preserves the editor's old mental model: select an
+  // element, toolbar appears above it; LTR hugs the left edge, RTL hugs the
+  // right edge.
   //
   // Horizontal alignment is driven by Floating UI's `placement` ('top-end'
   // for RTL text, 'top-start' otherwise), not by page-clamp math in this
   // component. That preserves the fundamental anchor: LTR toolbars begin at
   // the element's left edge, RTL toolbars end at its right edge.
+  const getFloatingBoundary = (reference) =>
+    reference?.closest?.('.sign-page-wrapper') || 'clippingAncestors';
   const { refs, floatingStyles } = useFloating({
     placement: textDirection === 'rtl' ? 'top-end' : 'top-start',
     whileElementsMounted: autoUpdate,
     middleware: [
       offset(TOOLBAR_FLOATING_OFFSET),
-      flip({ fallbackPlacements: ['bottom'] }),
-      shift({ padding: TOOLBAR_FLOATING_OFFSET })
+      shift(({ elements }) => ({
+        boundary: getFloatingBoundary(elements.reference),
+        padding: TOOLBAR_FLOATING_OFFSET,
+      }))
     ]
   });
 

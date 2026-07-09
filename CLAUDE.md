@@ -37,7 +37,19 @@ npm install
 npm run dev       # local dev server (astro dev)
 npm run build     # production build to dist/ (astro build)
 npm run preview   # preview the production build locally
+npm test          # unit/component tests (Vitest + jsdom)
+npm run test:e2e  # browser guardrails (Playwright; keep under e2e/<module>/)
 ```
+
+E2E tests are intentionally sparse guardrails, not a duplicate unit suite. Keep them under
+`e2e/<module>/` (for example `e2e/sign/`) and maintain roughly a 1:10 e2e-to-unit/component ratio.
+Use Playwright only where jsdom cannot prove the behavior: rendered toolbar rects, drag-time toolbar
+following before `pointerup`, page/viewport edge behavior, hydration/CSP-visible flows.
+
+Playwright preview currently exposes CSP `style-src` violations for runtime `style=""` attributes.
+This is separate from the existing hash verifier, which only checks generated `<script>` and `<style>`
+tags. The editor intentionally uses runtime inline styles for geometry/Floating UI, so do not "fix"
+those warnings casually; resolve the CSP posture deliberately (see ARCHITECTURE.md / scrum.md E1.7).
 
 Deploy: push to `main` → Vercel auto-deploys (GitHub integration), custom domain attached in Vercel dashboard.
 
@@ -145,3 +157,13 @@ The decided direction is a **scoped hybrid**, documented in full in [ARCHITECTUR
 This is explicitly **not** "finish the wholesale Tailwind migration." The goal is to kill the single global CSS monolith by scoping styles, not to Tailwind-ify the editor.
 
 **The old "the branch broke the PDF math" framing is stale - do not act on it.** That warning described one snapshot: an early wip commit that (wrongly) routed `pointermove` through React state and thrashed reconciliation. The **resize perf fix already landed on the same wip branch** with the correct deferred-DOM pattern. That per-frame `onChange` on resize in `src/components/SignTool/DraggableWrapper.jsx` `handleResizeMove` was itself fixed this session (backlog E0.1, uncommitted - see the RESUME HERE block above), so `main`'s drag and resize now both follow the golden rule. The gesture golden rule (mutate the DOM during a gesture, commit React state once on `pointerup`, for **both** drag and resize) is non-negotiable and is now captured in ARCHITECTURE.md §1.2 / §4 along with the other still-true lessons from the retired learnings doc (invisible-toolbar cascade hazard, CSP-invisible-in-dev hazard). Read ARCHITECTURE.md before touching editor styling or the gesture path.
+
+**Sign editor positioning/color pitfalls (current guardrail work):**
+- Text toolbar placement must stay stable above the element: LTR uses `top-start`, RTL uses
+  `top-end`. Do not reintroduce Floating UI vertical `flip()` to `bottom-*`; that made the toolbar
+  jump underneath selected text. Use horizontal `shift()` within the PDF page boundary instead.
+- The toolbar should be validated in a real browser for actual rects and during live drag; jsdom can
+  only assert middleware config and committed state.
+- Text defaults and whiteout defaults are separate. New text may inherit the active/last edited text
+  size, color, font, and typed-language direction; whiteout must use its own remembered whiteout color,
+  not text/shape color.

@@ -14,6 +14,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],
+    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
+    exclude: ['node_modules/**', '**/node_modules/**', 'dist/**', 'e2e/**', '.claude/**'],
     server: {
       deps: {
         inline: [/@floating-ui/]
