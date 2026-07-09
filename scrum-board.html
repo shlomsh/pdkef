@@ -486,6 +486,10 @@ const TICKETS = [
     title: "Editor interaction/visual test harness",
     dependsOn: [],
     acceptance: "Cover the states unit tests miss: active outline, floating-toolbar visibility + top-edge flip, RTL toolbar alignment + leftward growth, dark mode, mobile full-width toolbar, whiteout bounds." },
+  { id: "E1.5", epic: "E1", lane: "B", status: "in-progress", priority: "high",
+    title: "Per-type gesture invariants + non-vacuous geometry harness",
+    dependsOn: [],
+    acceptance: "From the whiteout-resize post-mortem. For EVERY resizable element type, on a mandated realistic mocked page-wrapper rect: (a) move changes only position not size; (b) resize preserves the opposite/anchor edge for every handle; (c) zero-delta resize is a no-op. Ban the unmocked 0x0-rect pattern that made the prior whiteout tests vacuous. Report (don't silently fix) any other type that fails an invariant." },
 
   // ----- E2 -----
   { id: "E2.1", epic: "E2", lane: "C", status: "todo", priority: "normal",
@@ -502,7 +506,7 @@ const TICKETS = [
     acceptance: "~121 sign-* references in a ~3,400-line global.css, preserving descendant cascades (.sign-element.active .sign-element-actions) as real CSS inside module scope. Every conditional state (active, RTL, dark, mobile, whiteout) verified in a running editor." },
 
   // ----- E3 -----
-  { id: "E3.1", epic: "E3", lane: "D", status: "todo", priority: "normal",
+  { id: "E3.1", epic: "E3", lane: "D", status: "in-progress", priority: "normal",
     title: "Clean Tailwind install",
     dependsOn: [],
     acceptance: "Re-audit the legacy-peer-deps need against the Astro ^7.0.3 security pin (npm audit) before adopting any Tailwind version that forces it." },
@@ -523,7 +527,7 @@ const TICKETS = [
   { id: "E4.3", epic: "E4", lane: "E", status: "todo", priority: "normal",
     title: "Per-element-type registry",
     dependsOn: ["E4.2"],
-    acceptance: "Each type a module { render, resizeBehavior, serialize, schema }; removes the type === 'line' / !isLine branching in handleResizeMove. Per-type nodes/ already exist as the seam." },
+    acceptance: "Each type a module { render, resizeBehavior, serialize, schema }; removes the type === 'line' / !isLine branching in handleResizeMove. Per-type nodes/ already exist as the seam. Sharpened by the whiteout-resize post-mortem: NO shared function post-processes geometry across handles/types — each resizeBehavior owns its per-handle bounds against that handle's true anchor edge (the failure mode of 434e844), and every type's resizeBehavior is covered by the E1.5 invariants." },
   { id: "E4.4", epic: "E4", lane: "E", status: "todo", priority: "normal",
     title: "Converge Sign and Redact",
     dependsOn: ["E4.2", "E4.3"],
@@ -596,7 +600,7 @@ const TICKETS = [
 
 const LANE_FLOW = [
   { lane: "A", flow: ["E0.1", "→", "E0.2"], gate: "" },
-  { lane: "B", flow: ["E1.1", "E1.2", "E1.3", "E1.4"], gate: "gate → E2.*, E3.2, E4 verification" },
+  { lane: "B", flow: ["E1.1", "E1.2", "E1.3", "E1.4", "E1.5"], gate: "gate → E2.*, E3.2, E4 verification" },
   { lane: "C", flow: ["E2.1", "→", "E2.2", "E2.3"], gate: "E2.3 also needs E1.4" },
   { lane: "D", flow: ["E3.1", "→", "E3.2"], gate: "E3.2 also needs E1.1, E1.2" },
   { lane: "E", flow: ["E4.1", "→", "E4.2", "→", "E4.3", "→", "E4.4"], gate: "E4.2 also needs E0.1" }

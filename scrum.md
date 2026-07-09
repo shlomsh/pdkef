@@ -45,6 +45,16 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   config, not resolved pixels); the mobile/outline states assert the CSS contract + real DOM shape.
   Full suite green (441 tests). No source components modified.
   - *Depends on (all E1):* - · *Lane:* B (parallel with A)
+- **E1.5 Per-type gesture invariants + non-vacuous geometry harness.** *(Added from the whiteout-resize
+  post-mortem.)* Generalize the three whiteout regression tests into invariants asserted for **every**
+  resizable element type, on a **mandated realistic mocked page-wrapper rect**: (a) a move changes only
+  position, never size; (b) a resize preserves the opposite/anchor edge for every handle; (c) a
+  zero-delta resize is a no-op. Ban the unmocked 0x0-rect test pattern (it saturates every clamp to
+  ±Infinity and made the prior whiteout tests vacuous - the exact reason the regression shipped). If a
+  type other than shape/whiteout fails an invariant, report it as a found bug, do not silently fix.
+  - *Depends on:* - · *Lane:* B (parallel with A)
+  - *Acceptance:* new tests fail against a deliberately reintroduced blanket-clamp and pass against the
+    landed per-handle fix; full suite green; no source components modified.
 
 ## E2 - Kill the global CSS monolith  ·  *Lane C, parallel with E3*
 
@@ -82,6 +92,11 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   lighter `geometryKind` half-measure - the registry is the chosen fix; per-type `nodes/` already exist
   as the seam.)*
   - *Depends on:* E4.2 · *Lane:* E
+  - *Acceptance (sharpened by the whiteout-resize post-mortem):* **no shared function post-processes
+    geometry across handles or types** - each type's `resizeBehavior` owns its own per-handle bounds,
+    expressed against that handle's true anchor edge, so a clamp change to one type cannot corrupt
+    another (the exact failure mode of `434e844`). Every type's `resizeBehavior` is covered by the E1.5
+    invariants.
 - **E4.4 Converge Sign and Redact** onto the shared core + a common PDF-workspace substrate
   (load, page render, draft persistence), removing duplication.
   - *Depends on:* E4.2, E4.3 · *Lane:* E

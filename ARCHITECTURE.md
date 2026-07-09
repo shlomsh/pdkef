@@ -139,6 +139,20 @@ a common PDF-workspace substrate (load, page render, draft persistence), removin
 - **`legacy-peer-deps` is a smell, not a fix.** Astro is pinned to `^7.0.3` on purpose (security
   advisories cover every version through 7.0-beta). Any tool that forces `legacy-peer-deps` to
   install must be re-audited against that pin before adoption - don't silence peer resolution.
+- **Shared geometry post-processing across handles/types (the whiteout-resize regression).** A single
+  clamp added to the end of the shared `handleResizeMove` (`newLeft = min(100 - width, newLeft)`) was
+  applied to **every** handle, including right/bottom handles that never move `left`/`top` - so growing
+  a box's right edge past the page silently yanked the un-dragged left edge inward. The lesson: on-page
+  bounds must be expressed **per handle, against that handle's true anchor edge** (cap the dragged
+  *dimension*, never post-process another edge). This is a direct argument for the per-type
+  `resizeBehavior` registry (§3.2, backlog E4.3): geometry math scoped to one type's module cannot
+  blanket-corrupt the others.
+- **Vacuous geometry tests from unmocked 0x0 rects.** The whiteout tests that *should* have caught the
+  above were hollow: they rendered against jsdom's default 0x0 element rect, which turns every pixel
+  delta into ±Infinity and saturates both the MIN and MAX clamp identically, so the position math is
+  never actually exercised. **Geometry/gesture tests must assert against a realistic mocked
+  page-wrapper rect** (e.g. 600x800); a test that passes with a 0x0 rect is proving nothing. Enforced
+  by backlog E1.5.
 - **Floating UI feedback loops & measure-then-mutate drift.** Toolbar placement is delegated to
   Floating UI deriving position from the anchor rect only (never its own already-positioned rect),
   and gesture-time measurement is read-only at pointer-down (never in a render effect). These
