@@ -113,14 +113,14 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 - **OS-specific how-to guides** internally linking into the tools (no outbound promo links).
 - **Public GitHub repo + iframe embed model** for contextual backlinks.
 
-**Bugs / hardening surfaced by E1.4 test coverage** (documented by tests, not yet fixed):
-- **Off-page shape resize** - `DraggableWrapper.jsx` `handleResizeMove` clamps shape/whiteout
-  `width`/`height` to `[MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT]` but never clamps the derived
-  `left`/`top` to `[0, 100]` on a left/top-handle drag, so a big drag can push the box partly off the
-  page. Pinned by the whiteout-bounds test.
-- **Dead RTL toolbar CSS** - `.sign-element-actions--rtl` (in `global.css`, duplicated ~L1739/L1809)
-  is never applied; the stale comment in `DraggableWrapper.jsx` (~L82) claims it drives RTL alignment,
-  but alignment is actually Floating UI `placement: top-end/top-start`. Remove the dead class + fix the comment.
+**Bugs / hardening surfaced by E1.4 test coverage:**
+- **Off-page shape resize** - **fixed.** `DraggableWrapper.jsx` `handleResizeMove` now clamps the
+  derived `left`/`top` to `[0, 100 - width]` / `[0, 100 - height]` on left/top-handle drags, applied to
+  both the in-gesture DOM write and the single committed `onChange` (golden rule preserved). E1.4
+  whiteout-bounds test flipped to assert the box stays on-page.
+- **Dead RTL toolbar CSS** - **fixed.** Removed both `.sign-element-actions--rtl` blocks from
+  `global.css` and corrected the stale `DraggableWrapper.jsx` comment to say alignment is driven by
+  Floating UI `placement` (`top-end`/`top-start`). E1.4 documenting test updated. CSP gate re-verified.
 - **CSP guard: warn-not-fail on missing meta** - `verify-csp.js` only `[WARN]`s when a page has no CSP
   `<meta>` (correct for the Google verification file), so a content page that *lost* its CSP would stay
   green. Tighten to fail for non-allowlisted pages.
