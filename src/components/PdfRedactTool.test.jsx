@@ -193,4 +193,128 @@ describe('PdfRedactTool UI flow', () => {
     expect(parseFloat(box.style.width)).toBeCloseTo(expectedWidth);
     expect(parseFloat(box.style.height)).toBeCloseTo(expectedHeight);
   });
+
+  // --- Regression: whiteout box resize flying off-page (handleBoxResizeStart) ---
+  //
+  // Root cause: handleBoxResizeStart's left/top/top-left/bottom-left/top-right
+  // branches derived newLeft/newTop as `start.left - (newWidth - start.width)`
+  // where newWidth/newHeight were only clamped against MIN/MAX_SHAPE_SIZE_PCT,
+  // never against the box's own anchored (opposite) edge. A large outward drag
+  // on e.g. the left handle drives newWidth up to MAX_SHAPE_SIZE_PCT (90) with
+  // no regard for how much room is actually left between the anchored right
+  // edge and the page edge, so newLeft goes negative and the box renders off
+  // the left/top of the page (effectively "disappears").
+  //
+  // These tests use the SAME realistic, non-degenerate mocked wrapper rect
+  // (500x1000, via loadFileAndGetDrawArea's drawArea.getBoundingClientRect
+  // override — that draw area IS the resize handler's `wrapper`, since both
+  // `sign-page-wrapper` and `redact-draw-area` are classes on one DOM node) as
+  // the existing tests above, per ARCHITECTURE.md §5's "vacuous 0x0-rect
+  // geometry tests" hazard: an unmocked jsdom rect is 0x0, which turns every
+  // pixel delta into +/-Infinity and saturates the MIN/MAX clamp either way,
+  // masking exactly this class of bug. With a real 500x1000 rect, the drag
+  // distances below map to finite, checkable percentages and genuinely
+  // exercise the anchor math.
+  describe('whiteout box resize stays on-page (regression)', () => {
+    async function setupSelectedWhiteoutBox() {
+      const drawArea = await loadFileAndGetDrawArea();
+
+      // Switch to whiteout mode — only whiteout boxes get the 8-direction
+      // ElementResizers handles; blackout/blur only expose a single
+      // bottom-right corner dot, which was never affected by this bug.
+      const whiteoutBtn = Array.from(container.querySelectorAll('.sign-toolbar .sign-tool-btn'))
+        .find((btn) => btn.textContent.includes('Whiteout'));
+      await act(async () => {
+        whiteoutBtn.click();
+      });
+
+      // Draw a box at left=20%, top=30%, width=30%, height=20% on the 500x1000
+      // wrapper (100,300) -> (250,500) in px. Mirrors the diagnosed repro
+      // (left:20, width:30).
+      await drawBox(drawArea, 100, 300, 250, 500);
+      const box = container.querySelector('.redact-box');
+      expect(parseFloat(box.style.left)).toBeCloseTo(20);
+      expect(parseFloat(box.style.top)).toBeCloseTo(30);
+      expect(parseFloat(box.style.width)).toBeCloseTo(30);
+      expect(parseFloat(box.style.height)).toBeCloseTo(20);
+
+      // Select it (mousedown + immediate mouseup, zero delta) so ElementResizers
+      // renders its handles — they're gated on isSelected/isActive.
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+
+      return box;
+    }
+
+    async function dragHandle(box, handleClass, downX, downY, moveX, moveY) {
+      const handle = box.querySelector(`.sign-element-resizer.${handleClass}`);
+      expect(handle).not.toBeNull();
+      await act(async () => {
+        handle.dispatchEvent(new MouseEvent('mousedown', { clientX: downX, clientY: downY, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: moveX, clientY: moveY, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+    }
+
+    it('left-handle resize with a large outward drag keeps left >= 0 and preserves the anchored right edge', async () => {
+      const box = await setupSelectedWhiteoutBox();
+
+      // dx = -500px on a 500px-wide wrapper = -100% — a huge outward drag on
+      // the left handle. Anchored right edge is at left+width = 20+30 = 50%.
+      await dragHandle(box, 'left', 300, 0, -200, 0);
+
+      const committedLeft = parseFloat(box.style.left);
+      const committedWidth = parseFloat(box.style.width);
+
+      expect(committedLeft).toBeGreaterThanOrEqual(0);
+      expect(committedLeft + committedWidth).toBeCloseTo(50, 5);
+    });
+
+    it('top-handle resize with a large outward drag keeps top >= 0 and preserves the anchored bottom edge', async () => {
+      const box = await setupSelectedWhiteoutBox();
+
+      // dy = -900px on a 1000px-tall wrapper = -90% — a huge outward drag on
+      // the top handle. Anchored bottom edge is at top+height = 30+20 = 50%.
+      await dragHandle(box, 'top', 0, 300, 0, -600);
+
+      const committedTop = parseFloat(box.style.top);
+      const committedHeight = parseFloat(box.style.height);
+
+      expect(committedTop).toBeGreaterThanOrEqual(0);
+      expect(committedTop + committedHeight).toBeCloseTo(50, 5);
+    });
+
+    it('top-left corner resize with a large outward drag keeps both left >= 0 and top >= 0 (box stays on page)', async () => {
+      const box = await setupSelectedWhiteoutBox();
+
+      await dragHandle(box, 'top-left', 300, 300, -200, -600);
+
+      const committedLeft = parseFloat(box.style.left);
+      const committedTop = parseFloat(box.style.top);
+
+      expect(committedLeft).toBeGreaterThanOrEqual(0);
+      expect(committedTop).toBeGreaterThanOrEqual(0);
+    });
+
+    it('sanity: right-handle resize still grows the box normally and never moves left/top', async () => {
+      const box = await setupSelectedWhiteoutBox();
+
+      // Modest +50px (10%) growth, well within bounds — no clamp should
+      // engage at all, on either the old or fixed code path.
+      await dragHandle(box, 'right', 0, 0, 50, 0);
+
+      expect(parseFloat(box.style.left)).toBeCloseTo(20);
+      expect(parseFloat(box.style.top)).toBeCloseTo(30);
+      expect(parseFloat(box.style.width)).toBeCloseTo(40);
+      expect(parseFloat(box.style.height)).toBeCloseTo(20);
+    });
+  });
 });
