@@ -3,6 +3,9 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.jsx';
 import { editPages } from '../lib/editPages.js';
+import dropzoneStyles from './Dropzone.module.css';
+import pageGridStyles from './PageGrid.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 function makePdfFile(name) {
@@ -61,7 +64,7 @@ describe('PdfEditPagesTool UI flow', () => {
       render(<PdfEditPagesTool />, container);
     });
 
-    const dropzone = container.querySelector('.dropzone');
+    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
@@ -87,12 +90,12 @@ describe('PdfEditPagesTool UI flow', () => {
     });
 
     // Check that it shows files and count
-    const countSpan = container.querySelector('.list-count');
+    const countSpan = container.querySelector(`.${pdfToolStyles['list-count']}`);
     expect(countSpan).not.toBeNull();
     expect(countSpan.textContent).toContain('document.pdf (3 pages)');
 
     // Check that we have 3 page cards
-    const cards = container.querySelectorAll('.page-card');
+    const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
     expect(cards.length).toBe(3);
     expect(cards[0].textContent).toContain('Page 1');
     expect(cards[1].textContent).toContain('Page 2');
@@ -118,8 +121,8 @@ describe('PdfEditPagesTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const cards = container.querySelectorAll('.page-card');
-    const actionButton = container.querySelector('.merge-button');
+    const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
+    const actionButton = container.querySelector(`.${pdfToolStyles['merge-button']}`);
 
     // Default: no pages selected for removal, button says "Make edits to apply"
     expect(actionButton.textContent).toContain('Make edits to apply');
@@ -131,7 +134,7 @@ describe('PdfEditPagesTool UI flow', () => {
     });
 
     // Page 2 should have is-removed class and button should be active
-    expect(cards[1].className).toContain('is-removed');
+    expect(cards[1].className).toContain(pageGridStyles['is-removed']);
     expect(actionButton.disabled).toBe(false);
     expect(actionButton.textContent).toContain('Apply Changes');
 
@@ -140,7 +143,7 @@ describe('PdfEditPagesTool UI flow', () => {
       cards[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(cards[1].className).not.toContain('is-removed');
+    expect(cards[1].className).not.toContain(pageGridStyles['is-removed']);
     expect(actionButton.disabled).toBe(true);
   });
 
@@ -163,7 +166,7 @@ describe('PdfEditPagesTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const buttons = container.querySelectorAll('.grid-actions button');
+    const buttons = container.querySelectorAll(`.${pageGridStyles['grid-actions']} button`);
     const keepAllBtn = Array.from(buttons).find(b => b.textContent === 'Keep all');
     const removeAllBtn = Array.from(buttons).find(b => b.textContent === 'Remove all');
     const invertBtn = Array.from(buttons).find(b => b.textContent === 'Invert');
@@ -173,10 +176,10 @@ describe('PdfEditPagesTool UI flow', () => {
       removeAllBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    const cards = container.querySelectorAll('.page-card');
-    expect(Array.from(cards).every(c => c.classList.contains('is-removed'))).toBe(true);
+    const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
+    expect(Array.from(cards).every(c => c.classList.contains(pageGridStyles['is-removed']))).toBe(true);
 
-    const actionButton = container.querySelector('.merge-button');
+    const actionButton = container.querySelector(`.${pdfToolStyles['merge-button']}`);
     expect(actionButton.textContent).toContain('Cannot remove all pages');
     expect(actionButton.disabled).toBe(true);
 
@@ -185,22 +188,22 @@ describe('PdfEditPagesTool UI flow', () => {
       keepAllBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(Array.from(cards).some(c => c.classList.contains('is-removed'))).toBe(false);
+    expect(Array.from(cards).some(c => c.classList.contains(pageGridStyles['is-removed']))).toBe(false);
     expect(actionButton.textContent).toContain('Make edits to apply');
 
     // Click Page 1, then Invert
     await act(async () => {
       cards[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    expect(cards[0].className).toContain('is-removed');
+    expect(cards[0].className).toContain(pageGridStyles['is-removed']);
 
     await act(async () => {
       invertBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(cards[0].className).not.toContain('is-removed');
-    expect(cards[1].className).toContain('is-removed');
-    expect(cards[2].className).toContain('is-removed');
+    expect(cards[0].className).not.toContain(pageGridStyles['is-removed']);
+    expect(cards[1].className).toContain(pageGridStyles['is-removed']);
+    expect(cards[2].className).toContain(pageGridStyles['is-removed']);
     expect(actionButton.textContent).toContain('Apply Changes');
   });
 
@@ -229,12 +232,12 @@ describe('PdfEditPagesTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const cards = container.querySelectorAll('.page-card');
+    const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
     await act(async () => {
       cards[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    const actionButton = container.querySelector('.merge-button');
+    const actionButton = container.querySelector(`.${pdfToolStyles['merge-button']}`);
     expect(actionButton.textContent).toContain('Apply Changes');
 
     await act(async () => {
@@ -246,7 +249,7 @@ describe('PdfEditPagesTool UI flow', () => {
     });
 
     // Check download button is present
-    const downloadBtn = container.querySelector('.download-button');
+    const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
     expect(downloadBtn.getAttribute('download')).toBe('document_modified.pdf');
@@ -257,13 +260,15 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('document_modified.pdf');
 
     // Click start over
-    const startOverBtn = container.querySelector('.start-over');
+    const startOverBtn = container.querySelector(`.${pdfToolStyles['start-over']}`);
     expect(startOverBtn).not.toBeNull();
     await act(async () => {
       startOverBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(container.querySelector('.dropzone')).not.toBeNull();
+    const dropzoneAfterReset = container.querySelector(`.${dropzoneStyles.dropzone}`);
+    expect(dropzoneAfterReset).not.toBeNull();
+    expect(dropzoneAfterReset.textContent).toContain('Drop PDF here');
 
     window.URL.createObjectURL = originalCreateObjectURL;
     window.URL.revokeObjectURL = originalRevokeObjectURL;

@@ -4,6 +4,8 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import { editPages } from '../lib/editPages.js';
 import { renderPdfThumbnails } from '../lib/thumbnails.js';
 import BasePdfTool from './BasePdfTool.jsx';
+import styles from './PageGrid.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 
@@ -40,11 +42,11 @@ export default function PdfEditPagesTool() {
     sortableRef.current = Sortable.create(gridRef.current, {
       animation: 200,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-      ghostClass: 'is-ghost',
-      chosenClass: 'is-chosen',
-      dragClass: 'is-dragging',
+      ghostClass: styles['is-ghost'],
+      chosenClass: styles['is-chosen'],
+      dragClass: styles['is-dragging'],
       // Use the drag handle so rotate/remove clicks don't start drags
-      handle: '.page-drag-handle',
+      handle: `.${styles['page-drag-handle']}`,
       onEnd(evt) {
         if (evt.oldIndex === evt.newIndex) return;
         setPages((current) => {
@@ -238,11 +240,11 @@ export default function PdfEditPagesTool() {
     <BasePdfTool hasFiles={hasFiles} onFilesAdded={handleFilesAdded} multiple={false}>
       {hasFiles && (
         <div class="tool-workspace">
-          <div class="list-header">
-            <span class="list-count">
+          <div class={pdfToolStyles['list-header']}>
+            <span class={pdfToolStyles['list-count']}>
               {file.name} ({pages.length} page{pages.length === 1 ? '' : 's'})
             </span>
-            <button type="button" class="clear-all" onClick={reset}>
+            <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
               Start over
             </button>
           </div>
@@ -253,7 +255,7 @@ export default function PdfEditPagesTool() {
             </div>
           ) : (
             <>
-              <div class="grid-actions" role="toolbar" aria-label="Selection toolbar">
+              <div class={styles['grid-actions']} role="toolbar" aria-label="Selection toolbar">
                 <button type="button" onClick={keepAll}>
                   Keep all
                 </button>
@@ -263,7 +265,7 @@ export default function PdfEditPagesTool() {
                 <button type="button" onClick={invertSelection}>
                   Invert
                 </button>
-                <label class="page-numbers-toggle">
+                <label class={pdfToolStyles['page-numbers-toggle']}>
                   <input
                     type="checkbox"
                     checked={addPageNumbers}
@@ -274,24 +276,24 @@ export default function PdfEditPagesTool() {
                   />
                   <span>Add page numbers</span>
                 </label>
-                <span class="grid-actions-hint" aria-hidden="true">Drag to reorder</span>
+                <span class={styles['grid-actions-hint']} aria-hidden="true">Drag to reorder</span>
               </div>
 
-              <div class="pages-grid" role="group" aria-label="PDF Pages Grid" ref={gridRef}>
+              <div class={styles['pages-grid']} role="group" aria-label="PDF Pages Grid" ref={gridRef}>
                 {pages.map((page) => {
                   const isRemoved = removedPageNums.has(page.pageNumber);
                   const rotation = rotations[page.pageNumber] || 0;
                   return (
                     <div
                       key={page.pageNumber}
-                      class={`page-card${isRemoved ? ' is-removed' : ' is-selected'}`}
+                      class={`${styles['page-card']}${isRemoved ? ` ${styles['is-removed']}` : ` ${styles['is-selected']}`}`}
                       data-page={page.pageNumber}
                       onClick={() => togglePage(page.pageNumber)}
                       style={{ cursor: 'pointer' }}
                     >
                       {/* Drag handle - full-width top bar */}
                       <span
-                        class="page-drag-handle"
+                        class={styles['page-drag-handle']}
                         title="Drag to reorder"
                         aria-hidden="true"
                         onClick={(e) => e.stopPropagation()}
@@ -306,7 +308,7 @@ export default function PdfEditPagesTool() {
                       {/* Toggle remove / keep by clicking the checkbox badge */}
                       <button
                         type="button"
-                        class="page-card-checkbox"
+                        class={styles['page-card-checkbox']}
                         onClick={(e) => { e.stopPropagation(); togglePage(page.pageNumber); }}
                         aria-label={`Page ${page.pageNumber}${isRemoved ? ', marked for removal' : ', kept'}. Click to toggle.`}
                         aria-pressed={isRemoved}
@@ -323,25 +325,25 @@ export default function PdfEditPagesTool() {
                         )}
                       </button>
 
-                      <div class="page-card-thumb-container" style={{ cursor: 'pointer' }}>
+                      <div class={styles['page-card-thumb-container']} style={{ cursor: 'pointer' }}>
                         {page.thumbnail ? (
                           <img
-                            class="page-card-thumb"
+                            class={styles['page-card-thumb']}
                             src={page.thumbnail}
                             alt=""
                             style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.2s ease' }}
                           />
                         ) : (
-                          <span class="thumb-placeholder" style={{ width: '100%', height: '100%' }} />
+                          <span class={pdfToolStyles['thumb-placeholder']} style={{ width: '100%', height: '100%' }} />
                         )}
                       </div>
 
-                      <span class="page-card-number">Page {page.pageNumber}</span>
+                      <span class={styles['page-card-number']}>Page {page.pageNumber}</span>
 
-                      <div class="page-card-actions" onClick={(e) => e.stopPropagation()}>
+                      <div class={styles['page-card-actions']} onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
-                          class="rotate-btn"
+                          class={styles['rotate-btn']}
                           onClick={(e) => { e.stopPropagation(); rotatePage(page.pageNumber, 'left'); }}
                           aria-label={`Rotate page ${page.pageNumber} left`}
                         >
@@ -349,7 +351,7 @@ export default function PdfEditPagesTool() {
                         </button>
                         <button
                           type="button"
-                          class="rotate-btn"
+                          class={styles['rotate-btn']}
                           onClick={(e) => { e.stopPropagation(); rotatePage(page.pageNumber, 'right'); }}
                           aria-label={`Rotate page ${page.pageNumber} right`}
                         >
@@ -376,16 +378,16 @@ export default function PdfEditPagesTool() {
 
               <button
                 type="button"
-                class={`merge-button${status === 'processing' ? ' is-merging' : ''}${status === 'done' ? ' is-done' : ''}`}
+                class={`${pdfToolStyles['merge-button']}${status === 'processing' ? ` ${pdfToolStyles['is-merging']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
                 disabled={actionButtonDisabled}
                 onClick={handleApplyChanges}
               >
                 {status === 'processing' ? (
-                  <span class="merge-button-progress">
-                    <svg class="progress-ring" width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
-                      <circle class="progress-ring-track" cx="20" cy="20" r="18" />
+                  <span class={pdfToolStyles['merge-button-progress']}>
+                    <svg class={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
+                      <circle class={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" />
                       <circle
-                        class="progress-ring-fill"
+                        class={pdfToolStyles['progress-ring-fill']}
                         cx="20"
                         cy="20"
                         r="18"
@@ -401,7 +403,7 @@ export default function PdfEditPagesTool() {
               </button>
 
               {status === 'error' && (
-                <div class="error-message" role="alert">
+                <div class={pdfToolStyles['error-message']} role="alert">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
                     <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
@@ -418,18 +420,18 @@ export default function PdfEditPagesTool() {
                 <>
                   <a
                     ref={downloadRef}
-                    class="download-button"
+                    class={pdfToolStyles['download-button']}
                     href={downloadUrl}
                     download={`${file.name.replace(/\.pdf$/i, '')}_modified.pdf`}
                   >
-                    <svg class="download-check" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <circle cx="12" cy="12" r="10" class="check-circle" />
-                      <path d="M7.5 12.5l3 3 6-6.5" class="check-mark" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
+                      <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
                     </svg>
                     Download PDF
                   </a>
                   <PdfShareButton visible={canSharePdf && shareReady} onShare={handleShare} />
-                  <button type="button" class="start-over" onClick={reset}>
+                  <button type="button" class={pdfToolStyles['start-over']} onClick={reset}>
                     Start over
                   </button>
                 </>

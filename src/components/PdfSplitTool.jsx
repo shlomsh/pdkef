@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import BasePdfTool from './BasePdfTool.jsx';
 import { parsePageSelector, pageNumbersToRangeString, splitPdf } from '../lib/split.js';
+import styles from './PdfSplitTool.module.css';
+import fileListStyles from './FileList.module.css';
+import pageGridStyles from './PageGrid.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 
@@ -280,11 +284,11 @@ export default function PdfSplitTool() {
 
       {hasFiles && (
         <div class="tool-workspace">
-          <div class="list-header">
-            <span class="list-count">
+          <div class={pdfToolStyles['list-header']}>
+            <span class={pdfToolStyles['list-count']}>
               File: {file.name} ({numPages} page{numPages === 1 ? '' : 's'})
             </span>
-            <button type="button" class="clear-all" onClick={reset}>
+            <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
               Start over
             </button>
           </div>
@@ -295,12 +299,12 @@ export default function PdfSplitTool() {
             </div>
           ) : (
             <>
-              <div class="split-options">
+              <div class={styles['split-options']}>
                 <h3>1. Select split mode</h3>
-                <div class="split-modes" role="radiogroup" aria-label="Split mode">
+                <div class={styles['split-modes']} role="radiogroup" aria-label="Split mode">
                   <button
                     type="button"
-                    class={`split-card${mode === 'combined' ? ' is-selected' : ''}`}
+                    class={`${styles['split-card']}${mode === 'combined' ? ` ${styles['is-selected']}` : ''}`}
                     onClick={() => {
                       setMode('combined');
                       resetOutput();
@@ -308,15 +312,15 @@ export default function PdfSplitTool() {
                     role="radio"
                     aria-checked={mode === 'combined'}
                   >
-                    <span class="split-card-title">Extract Pages</span>
-                    <span class="split-card-desc">
+                    <span class={styles['split-card-title']}>Extract Pages</span>
+                    <span class={styles['split-card-desc']}>
                       Combine selected pages into a single new PDF document.
                     </span>
                   </button>
 
                   <button
                     type="button"
-                    class={`split-card${mode === 'separate' ? ' is-selected' : ''}`}
+                    class={`${styles['split-card']}${mode === 'separate' ? ` ${styles['is-selected']}` : ''}`}
                     onClick={() => {
                       setMode('separate');
                       resetOutput();
@@ -324,8 +328,8 @@ export default function PdfSplitTool() {
                     role="radio"
                     aria-checked={mode === 'separate'}
                   >
-                    <span class="split-card-title">Split into Individual Pages</span>
-                    <span class="split-card-desc">
+                    <span class={styles['split-card-title']}>Split into Individual Pages</span>
+                    <span class={styles['split-card-desc']}>
                       Extract each selected page as its own separate PDF file.
                     </span>
                   </button>
@@ -333,14 +337,14 @@ export default function PdfSplitTool() {
 
                 <h3>2. Choose pages to extract</h3>
 
-                <div class="page-selector-field">
-                  <label class="page-selector-label" for="page-selector-input">
+                <div class={pdfToolStyles['page-selector-field']}>
+                  <label class={pdfToolStyles['page-selector-label']} for="page-selector-input">
                     Page range
                   </label>
                   <input
                     id="page-selector-input"
                     type="text"
-                    class={`page-selector-input${pageSelectorError ? ' has-error' : ''}`}
+                    class={`${pdfToolStyles['page-selector-input']}${pageSelectorError ? ` ${pdfToolStyles['has-error']}` : ''}`}
                     placeholder="e.g. 1-3, 5, 8-"
                     value={pageSelector}
                     onInput={(e) => handlePageSelectorChange(e.currentTarget.value)}
@@ -353,12 +357,12 @@ export default function PdfSplitTool() {
                 </div>
 
                 {pageSelectorError && (
-                  <p id="page-selector-error" class="page-selector-error" role="alert">
+                  <p id="page-selector-error" class={pdfToolStyles['page-selector-error']} role="alert">
                     {pageSelectorError}
                   </p>
                 )}
 
-                <div class="grid-actions">
+                <div class={pageGridStyles['grid-actions']}>
                   <button type="button" onClick={selectAll}>
                     Select All
                   </button>
@@ -367,11 +371,11 @@ export default function PdfSplitTool() {
                   </button>
                 </div>
 
-                <div class="pages-grid" role="group" aria-label="Visual page grid">
+                <div class={pageGridStyles['pages-grid']} role="group" aria-label="Visual page grid">
                   {pages.map((p) => (
                     <div
                       key={p.pageNumber}
-                      class={`page-card${p.selected ? ' is-selected' : ''}`}
+                      class={`${pageGridStyles['page-card']}${p.selected ? ` ${pageGridStyles['is-selected']}` : ''}`}
                       onClick={() => togglePageSelection(p.pageNumber)}
                       role="checkbox"
                       aria-checked={p.selected}
@@ -383,20 +387,20 @@ export default function PdfSplitTool() {
                         }
                       }}
                     >
-                      <div class="page-card-checkbox">
+                      <div class={pageGridStyles['page-card-checkbox']}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       </div>
 
-                      <div class="page-card-thumb-container">
+                      <div class={pageGridStyles['page-card-thumb-container']}>
                         {p.thumbnail ? (
-                          <img class="page-card-thumb" src={p.thumbnail} alt="" />
+                          <img class={pageGridStyles['page-card-thumb']} src={p.thumbnail} alt="" />
                         ) : (
-                          <div class="thumb-placeholder" style={{ width: '100%', height: '100%' }} />
+                          <div class={pdfToolStyles['thumb-placeholder']} style={{ width: '100%', height: '100%' }} />
                         )}
                       </div>
-                      <span class="page-card-number">Page {p.pageNumber}</span>
+                      <span class={pageGridStyles['page-card-number']}>Page {p.pageNumber}</span>
                     </div>
                   ))}
                 </div>
@@ -404,16 +408,16 @@ export default function PdfSplitTool() {
 
               <button
                 type="button"
-                class={`merge-button${status === 'processing' ? ' is-merging' : ''}${status === 'done' ? ' is-done' : ''}`}
+                class={`${pdfToolStyles['merge-button']}${status === 'processing' ? ` ${pdfToolStyles['is-merging']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
                 disabled={status === 'processing' || selectedCount === 0}
                 onClick={handleSplit}
               >
                 {status === 'processing' ? (
-                  <span class="merge-button-progress">
-                    <svg class="progress-ring" width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
-                      <circle class="progress-ring-track" cx="20" cy="20" r="18" />
+                  <span class={pdfToolStyles['merge-button-progress']}>
+                    <svg class={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
+                      <circle class={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" />
                       <circle
-                        class="progress-ring-fill"
+                        class={pdfToolStyles['progress-ring-fill']}
                         cx="20"
                         cy="20"
                         r="18"
@@ -433,7 +437,7 @@ export default function PdfSplitTool() {
               </button>
 
               {status === 'error' && (
-                <div class="error-message" role="alert">
+                <div class={pdfToolStyles['error-message']} role="alert">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
                     <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
@@ -450,13 +454,13 @@ export default function PdfSplitTool() {
                   {mode === 'combined' ? (
                     <a
                       ref={downloadRef}
-                      class="download-button"
+                      class={pdfToolStyles['download-button']}
                       href={downloadFiles[0].url}
                       download={downloadFiles[0].filename}
                     >
-                      <svg class="download-check" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <circle cx="12" cy="12" r="10" class="check-circle" />
-                        <path d="M7.5 12.5l3 3 6-6.5" class="check-mark" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                      <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
+                        <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
                       </svg>
                       Download PDF
                     </a>
@@ -465,15 +469,15 @@ export default function PdfSplitTool() {
                       <button
                         ref={downloadRef}
                         type="button"
-                        class="download-button"
+                        class={pdfToolStyles['download-button']}
                         onClick={downloadAll}
                       >
                         Download all {downloadFiles.length} PDFs
                       </button>
-                      <ul class="file-list" style={{ width: '100%', maxWidth: '400px', margin: '0.5rem 0' }}>
+                      <ul class={fileListStyles['file-list']} style={{ width: '100%', maxWidth: '400px', margin: '0.5rem 0' }}>
                         {downloadFiles.map((f) => (
-                          <li key={f.pageNumber} class="file-item">
-                            <span class="file-name">Page {f.pageNumber} PDF</span>
+                          <li key={f.pageNumber} class={fileListStyles['file-item']}>
+                            <span class={fileListStyles['file-name']}>Page {f.pageNumber} PDF</span>
                             <a href={f.url} download={f.filename}>
                               Download
                             </a>
@@ -487,7 +491,7 @@ export default function PdfSplitTool() {
                     onShare={handleShare}
                     label={downloadFiles.length === 1 ? 'Share PDF' : `Share ${downloadFiles.length} PDFs`}
                   />
-                  <button type="button" class="start-over" onClick={reset}>
+                  <button type="button" class={pdfToolStyles['start-over']} onClick={reset}>
                     Start over
                   </button>
                 </div>

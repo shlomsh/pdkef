@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
+import styles from './Dropzone.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 
 export default function BasePdfTool({ 
   hasFiles, 
@@ -35,9 +37,9 @@ export default function BasePdfTool({
   };
 
   return (
-    <div class="merge-tool">
+    <div class={pdfToolStyles['merge-tool']}>
       <div
-        class={`dropzone${isDragOver ? ' is-dragover' : ''}${hasFiles ? ' has-files' : ''}`}
+        class={`${styles.dropzone}${isDragOver ? ` ${styles['is-dragover']}` : ''}${hasFiles ? ` ${styles['has-files']}` : ''}`}
         onDragOver={(e) => {
           e.preventDefault();
           setIsDragOver(true);
@@ -46,26 +48,26 @@ export default function BasePdfTool({
         onDrop={onDrop}
       >
         <svg
-          class="dropzone-icon"
+          class={styles['dropzone-icon']}
           width="48"
           height="48"
           viewBox="0 0 48 48"
           fill="none"
           aria-hidden="true"
         >
-          <rect x="9" y="4" width="24" height="32" rx="3" class="dz-page" />
-          <path d="M27 4v8h8" class="dz-fold" />
-          <rect x="16" y="26" width="22" height="16" rx="3" class="dz-page dz-page-front" />
-          <path d="M23 30v8M27 34h-8" class="dz-plus" />
+          <rect x="9" y="4" width="24" height="32" rx="3" class={styles['dz-page']} />
+          <path d="M27 4v8h8" class={styles['dz-fold']} />
+          <rect x="16" y="26" width="22" height="16" rx="3" class={`${styles['dz-page']} ${styles['dz-page-front']}`} />
+          <path d="M23 30v8M27 34h-8" class={styles['dz-plus']} />
         </svg>
 
         {!hasFiles && (
-          <p class="dropzone-text">
+          <p class={styles['dropzone-text']}>
             <strong>{emptyStateMessage || `Drop PDF${multiple ? 's' : ''} here`}</strong>
           </p>
         )}
 
-        <label class="file-picker-button">
+        <label class={styles['file-picker-button']}>
           {hasFiles ? (multiple ? 'Add more' : 'Choose a different file') : `Choose file${multiple ? 's' : ''}`}
           <input
             ref={fileInputRef}
@@ -78,7 +80,7 @@ export default function BasePdfTool({
         </label>
 
         {!hasFiles && (
-          <p class="privacy-line">
+          <p class={styles['privacy-line']}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z"

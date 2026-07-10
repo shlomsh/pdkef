@@ -5,6 +5,9 @@ import Sortable from 'sortablejs';
 import PdfMergeTool from './PdfMergeTool.jsx';
 import * as mergeLib from '../lib/merge.js';
 import * as thumbnailsLib from '../lib/thumbnails.js';
+import styles from './FileList.module.css';
+import dropzoneStyles from './Dropzone.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 function makePdfFile(name) {
@@ -52,7 +55,7 @@ describe('PdfMergeTool UI flow', () => {
 
   it('renders the initial file dropper zone', () => {
     mount();
-    const dropzone = container.querySelector('.dropzone');
+    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDFs here');
   });
@@ -61,13 +64,13 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['one.pdf']);
 
-    const header = container.querySelector('.list-count');
+    const header = container.querySelector(`.${pdfToolStyles['list-count']}`);
     expect(header.textContent).toContain('1 PDF');
 
-    const fileNames = Array.from(container.querySelectorAll('.file-name')).map(el => el.textContent);
+    const fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map(el => el.textContent);
     expect(fileNames).toEqual(['one.pdf']);
 
-    const mergeBtn = container.querySelector('.merge-button');
+    const mergeBtn = container.querySelector(`.${pdfToolStyles['merge-button']}`);
     expect(mergeBtn.disabled).toBe(true);
     expect(mergeBtn.textContent).toContain('Add 1 more to merge');
   });
@@ -77,7 +80,7 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['doc1.pdf', 'doc2.pdf']);
 
-    const mergeBtn = container.querySelector('.merge-button');
+    const mergeBtn = container.querySelector(`.${pdfToolStyles['merge-button']}`);
     expect(mergeBtn.disabled).toBe(false);
     expect(mergeBtn.textContent).toContain('Merge 2 PDFs');
 
@@ -90,7 +93,7 @@ describe('PdfMergeTool UI flow', () => {
     });
 
     expect(mergeLib.mergePdfs).toHaveBeenCalled();
-    const downloadBtn = container.querySelector('.download-button');
+    const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
     expect(downloadBtn.getAttribute('download')).toBe('merged.pdf');
@@ -109,15 +112,15 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['one.pdf', 'two.pdf']);
 
-    let fileNames = Array.from(container.querySelectorAll('.file-name')).map(el => el.textContent);
+    let fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map(el => el.textContent);
     expect(fileNames).toEqual(['one.pdf', 'two.pdf']);
 
-    const removeBtns = container.querySelectorAll('.remove-button');
+    const removeBtns = container.querySelectorAll(`.${styles['remove-button']}`);
     await act(async () => {
       removeBtns[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    fileNames = Array.from(container.querySelectorAll('.file-name')).map(el => el.textContent);
+    fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map(el => el.textContent);
     expect(fileNames).toEqual(['two.pdf']);
   });
 
@@ -129,7 +132,7 @@ describe('PdfMergeTool UI flow', () => {
     
     await loadFiles(['a.pdf', 'b.pdf']);
 
-    const list = container.querySelector('ul.file-list');
+    const list = container.querySelector(`ul.${styles['file-list']}`);
     expect(list).not.toBeNull();
     expect(createSpy).toHaveBeenCalledTimes(1);
     expect(createSpy).toHaveBeenCalledWith(list, expect.any(Object));

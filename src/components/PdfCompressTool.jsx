@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { compressPdf, compressPdfToTarget } from '../lib/compress.js';
 import BasePdfTool from './BasePdfTool.jsx';
+import styles from './PdfCompressTool.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 
@@ -186,18 +188,18 @@ export default function PdfCompressTool() {
 
       {hasFiles && (
         <div class="tool-workspace">
-          <div class="list-header">
-            <span class="list-count">File: {file.name} ({formatBytes(file.size)})</span>
-            <button type="button" class="clear-all" onClick={reset}>
+          <div class={pdfToolStyles['list-header']}>
+            <span class={pdfToolStyles['list-count']}>File: {file.name} ({formatBytes(file.size)})</span>
+            <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
               Start over
             </button>
           </div>
 
-          <div class="compress-options" role="radiogroup" aria-label="Compression Options">
+          <div class={styles['compress-options']} role="radiogroup" aria-label="Compression Options">
             {COMPRESSION_LEVELS.map((opt) => (
               <div
                 key={opt.id}
-                class={`compress-card${level === opt.id ? ' is-selected' : ''}`}
+                class={`${styles['compress-card']}${level === opt.id ? ` ${styles['is-selected']}` : ''}`}
                 role="radio"
                 aria-checked={level === opt.id}
                 tabIndex="0"
@@ -209,19 +211,19 @@ export default function PdfCompressTool() {
                   }
                 }}
               >
-                <div class="compress-card-header">
-                  <span class="compress-card-title">{opt.name}</span>
-                  <span class="compress-card-tag">{opt.tag}</span>
+                <div class={styles['compress-card-header']}>
+                  <span class={styles['compress-card-title']}>{opt.name}</span>
+                  <span class={styles['compress-card-tag']}>{opt.tag}</span>
                 </div>
-                <p class="compress-card-desc">{opt.desc}</p>
-                <div class="compress-pro-con">
-                  <div class="pro-item">
+                <p class={styles['compress-card-desc']}>{opt.desc}</p>
+                <div class={styles['compress-pro-con']}>
+                  <div class={styles['pro-item']}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
                     <span>{opt.pros}</span>
                   </div>
-                  <div class="con-item">
+                  <div class={styles['con-item']}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                       <line x1="18" y1="6" x2="6" y2="18"></line>
                       <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -234,11 +236,11 @@ export default function PdfCompressTool() {
           </div>
 
           {level === 'target' && (
-            <div class="target-size-panel">
-              <label class="target-size-label" for="target-size-input">
+            <div class={styles['target-size-panel']}>
+              <label class={styles['target-size-label']} for="target-size-input">
                 Target size
               </label>
-              <div class="target-size-input-row">
+              <div class={styles['target-size-input-row']}>
                 <input
                   id="target-size-input"
                   type="number"
@@ -247,14 +249,14 @@ export default function PdfCompressTool() {
                   value={targetKB}
                   onInput={(e) => handleTargetKBChange(Number(e.currentTarget.value))}
                 />
-                <span class="target-size-unit">KB</span>
+                <span class={styles['target-size-unit']}>KB</span>
               </div>
-              <div class="target-size-presets">
+              <div class={styles['target-size-presets']}>
                 {TARGET_SIZE_PRESETS_KB.map((kb) => (
                   <button
                     key={kb}
                     type="button"
-                    class={`target-size-preset${targetKB === kb ? ' is-selected' : ''}`}
+                    class={`${styles['target-size-preset']}${targetKB === kb ? ` ${styles['is-selected']}` : ''}`}
                     onClick={() => handleTargetKBChange(kb)}
                   >
                     {kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB`}
@@ -267,16 +269,16 @@ export default function PdfCompressTool() {
           {status !== 'done' && (
             <button
               type="button"
-              class={`merge-button${status === 'processing' ? ' is-merging' : ''}`}
+              class={`${pdfToolStyles['merge-button']}${status === 'processing' ? ` ${pdfToolStyles['is-merging']}` : ''}`}
               disabled={status === 'processing'}
               onClick={handleCompress}
             >
               {status === 'processing' ? (
-                <span class="merge-button-progress">
-                  <svg class="progress-ring" width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
-                    <circle class="progress-ring-track" cx="20" cy="20" r="18" />
+                <span class={pdfToolStyles['merge-button-progress']}>
+                  <svg class={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
+                    <circle class={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" />
                     <circle
-                      class="progress-ring-fill"
+                      class={pdfToolStyles['progress-ring-fill']}
                       cx="20"
                       cy="20"
                       r="18"
@@ -293,7 +295,7 @@ export default function PdfCompressTool() {
           )}
 
           {status === 'error' && (
-            <div class="error-message" role="alert">
+            <div class={pdfToolStyles['error-message']} role="alert">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
                 <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
@@ -307,48 +309,48 @@ export default function PdfCompressTool() {
 
           {status === 'done' && downloadUrl && (
             <>
-              <div class="compression-stats">
-                <p class="stats-title">PDF Successfully Compressed!</p>
-                <div class="stats-grid">
-                  <div class="metric-item">
-                    <span class="metric-label">Original Size</span>
-                    <span class="metric-val">{formatBytes(file.size)}</span>
+              <div class={styles['compression-stats']}>
+                <p class={styles['stats-title']}>PDF Successfully Compressed!</p>
+                <div class={styles['stats-grid']}>
+                  <div class={styles['metric-item']}>
+                    <span class={styles['metric-label']}>Original Size</span>
+                    <span class={styles['metric-val']}>{formatBytes(file.size)}</span>
                   </div>
-                  <div class="metric-item">
-                    <span class="metric-label">Compressed Size</span>
-                    <span class="metric-val">{formatBytes(compressedSize)}</span>
+                  <div class={styles['metric-item']}>
+                    <span class={styles['metric-label']}>Compressed Size</span>
+                    <span class={styles['metric-val']}>{formatBytes(compressedSize)}</span>
                   </div>
-                  <div class="metric-item">
-                    <span class="metric-label">Space Saved</span>
-                    <span class="metric-saving">
+                  <div class={styles['metric-item']}>
+                    <span class={styles['metric-label']}>Space Saved</span>
+                    <span class={styles['metric-saving']}>
                       {savingsPercent > 0 ? `Saved ${savingsPercent}%` : 'No size reduction'}
                     </span>
                   </div>
                 </div>
                 {level === 'target' && !metTarget && (
-                  <p class="compress-warning">
+                  <p class={styles['compress-warning']}>
                     <strong>Closest achievable size:</strong> {formatBytes(targetKB * 1024)} couldn't be reached without making the document unreadable, so this is the smallest readable result.
                   </p>
                 )}
-                <p class="compress-warning">
+                <p class={styles['compress-warning']}>
                   <strong>Notice:</strong> Compression rasterizes PDF pages into images to reduce file size. Embedded links and text selection/copying will be disabled on the compressed document.
                 </p>
               </div>
 
               <a
                 ref={downloadRef}
-                class="download-button"
+                class={pdfToolStyles['download-button']}
                 href={downloadUrl}
                 download={file.name.replace(/\.pdf$/i, '') + '-compressed.pdf'}
               >
-                <svg class="download-check" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" class="check-circle" />
-                  <path d="M7.5 12.5l3 3 6-6.5" class="check-mark" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
+                  <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
                 </svg>
                 Download Compressed PDF
               </a>
               <PdfShareButton visible={canSharePdf && shareReady} onShare={handleShare} label="Share Compressed PDF" />
-              <button type="button" class="start-over" onClick={reset}>
+              <button type="button" class={pdfToolStyles['start-over']} onClick={reset}>
                 Start over
               </button>
             </>

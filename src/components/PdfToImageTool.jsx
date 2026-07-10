@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { convertPdfToImages, parsePageSelector } from '../lib/toImage.js';
 import BasePdfTool from './BasePdfTool.jsx';
+import styles from './PdfToImageTool.module.css';
+import fileListStyles from './FileList.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 
@@ -147,15 +150,15 @@ export default function PdfToImageTool() {
     <BasePdfTool hasFiles={hasFiles} onFilesAdded={handleFilesAdded} multiple={false}>
       {hasFiles && (
         <div class="tool-workspace">
-          <div class="list-header">
-            <span class="list-count">Converting: {file.name}</span>
-            <button type="button" class="clear-all" onClick={reset}>
+          <div class={pdfToolStyles['list-header']}>
+            <span class={pdfToolStyles['list-count']}>Converting: {file.name}</span>
+            <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
               Start over
             </button>
           </div>
 
-          <div class="toolbar" role="group" aria-label="Image format">
-            <span class="toolbar-label">Format</span>
+          <div class={styles.toolbar} role="group" aria-label="Image format">
+            <span class={styles['toolbar-label']}>Format</span>
             <button
               type="button"
               aria-pressed={format === 'image/png'}
@@ -172,8 +175,8 @@ export default function PdfToImageTool() {
             </button>
           </div>
 
-          <div class="toolbar" role="group" aria-label="Image quality">
-            <span class="toolbar-label">Quality</span>
+          <div class={styles.toolbar} role="group" aria-label="Image quality">
+            <span class={styles['toolbar-label']}>Quality</span>
             {SCALE_OPTIONS.map((option) => (
               <button
                 key={option.value}
@@ -200,8 +203,8 @@ export default function PdfToImageTool() {
             </span>
           </div>
 
-          <div class="toolbar" role="group" aria-label="Output layout">
-            <span class="toolbar-label">Output</span>
+          <div class={styles.toolbar} role="group" aria-label="Output layout">
+            <span class={styles['toolbar-label']}>Output</span>
             {LAYOUT_OPTIONS.map((option) => (
               <button
                 key={option.value}
@@ -214,14 +217,14 @@ export default function PdfToImageTool() {
             ))}
           </div>
 
-          <div class="page-selector-field">
-            <label class="page-selector-label" for="page-selector-input">
+          <div class={pdfToolStyles['page-selector-field']}>
+            <label class={pdfToolStyles['page-selector-label']} for="page-selector-input">
               Pages
             </label>
             <input
               id="page-selector-input"
               type="text"
-              class={`page-selector-input${pageSelectorError ? ' has-error' : ''}`}
+              class={`${pdfToolStyles['page-selector-input']}${pageSelectorError ? ` ${pdfToolStyles['has-error']}` : ''}`}
               placeholder="All pages, or e.g. 1-3,5,8"
               value={pageSelector}
               onInput={(e) => handlePageSelectorChange(e.currentTarget.value)}
@@ -230,23 +233,23 @@ export default function PdfToImageTool() {
             />
           </div>
           {pageSelectorError && (
-            <p id="page-selector-error" class="page-selector-error" role="alert">
+            <p id="page-selector-error" class={pdfToolStyles['page-selector-error']} role="alert">
               {pageSelectorError}
             </p>
           )}
 
           <button
             type="button"
-            class={`merge-button${status === 'converting' ? ' is-merging' : ''}${status === 'done' ? ' is-done' : ''}`}
+            class={`${pdfToolStyles['merge-button']}${status === 'converting' ? ` ${pdfToolStyles['is-merging']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
             disabled={status === 'converting'}
             onClick={handleConvert}
           >
             {status === 'converting' ? (
-              <span class="merge-button-progress">
-                <svg class="progress-ring" width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
-                  <circle class="progress-ring-track" cx="20" cy="20" r="18" />
+              <span class={pdfToolStyles['merge-button-progress']}>
+                <svg class={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
+                  <circle class={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" />
                   <circle
-                    class="progress-ring-fill"
+                    class={pdfToolStyles['progress-ring-fill']}
                     cx="20"
                     cy="20"
                     r="18"
@@ -262,7 +265,7 @@ export default function PdfToImageTool() {
           </button>
 
           {status === 'error' && (
-            <div class="error-message" role="alert">
+            <div class={pdfToolStyles['error-message']} role="alert">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
                 <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
@@ -280,25 +283,25 @@ export default function PdfToImageTool() {
               {images.length === 1 ? (
                 <a
                   ref={downloadRef}
-                  class="download-button"
+                  class={pdfToolStyles['download-button']}
                   href={images[0].url}
                   download={images[0].filename}
                 >
-                  <svg class="download-check" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" class="check-circle" />
-                    <path d="M7.5 12.5l3 3 6-6.5" class="check-mark" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                  <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
+                    <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
                   </svg>
                   Download {formatLabel}
                 </a>
               ) : (
                 <>
-                  <button ref={downloadRef} type="button" class="download-button" onClick={downloadAll}>
+                  <button ref={downloadRef} type="button" class={pdfToolStyles['download-button']} onClick={downloadAll}>
                     Download all {images.length} images
                   </button>
-                  <ul class="file-list">
+                  <ul class={fileListStyles['file-list']}>
                     {images.map((image) => (
-                      <li key={image.pageNumber} class="file-item">
-                        <span class="file-name">Page {image.pageNumber}</span>
+                      <li key={image.pageNumber} class={fileListStyles['file-item']}>
+                        <span class={fileListStyles['file-name']}>Page {image.pageNumber}</span>
                         <a href={image.url} download={image.filename}>
                           Download
                         </a>
@@ -312,7 +315,7 @@ export default function PdfToImageTool() {
                 onShare={handleShare}
                 label={images.length === 1 ? `Share ${formatLabel}` : `Share ${images.length} images`}
               />
-              <button type="button" class="start-over" onClick={reset}>
+              <button type="button" class={pdfToolStyles['start-over']} onClick={reset}>
                 Start over
               </button>
             </>

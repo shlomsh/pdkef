@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import BasePdfTool from './BasePdfTool.jsx';
+import styles from './Dropzone.module.css';
 
 describe('BasePdfTool', () => {
   let container;
@@ -32,8 +33,8 @@ describe('BasePdfTool', () => {
     expect(container.textContent).toContain('Drop PDFs here');
     expect(container.textContent).toContain('Choose files');
     expect(container.textContent).toContain('Private. Files never leave your device.');
-    const dropzone = container.querySelector('.dropzone');
-    expect(dropzone.classList.contains('has-files')).toBe(false);
+    const dropzone = container.querySelector(`.${styles['dropzone']}`);
+    expect(dropzone.classList.contains(styles['has-files'])).toBe(false);
   });
 
   it('renders state with files', () => {
@@ -42,8 +43,8 @@ describe('BasePdfTool', () => {
     expect(container.textContent).not.toContain('Private. Files never leave your device.');
     expect(container.textContent).toContain('Add more');
     
-    const dropzone = container.querySelector('.dropzone');
-    expect(dropzone.classList.contains('has-files')).toBe(true);
+    const dropzone = container.querySelector(`.${styles['dropzone']}`);
+    expect(dropzone.classList.contains(styles['has-files'])).toBe(true);
   });
 
   it('renders state with files and multiple=false', () => {
@@ -82,12 +83,12 @@ describe('BasePdfTool', () => {
   it('handles drag and drop events', () => {
     const onFilesAddedSpy = vi.fn();
     mount({ hasFiles: false, onFilesAdded: onFilesAddedSpy });
-    const dropzone = container.querySelector('.dropzone');
+    const dropzone = container.querySelector(`.${styles['dropzone']}`);
 
     act(() => {
       dropzone.dispatchEvent(new Event('dragover', { bubbles: true }));
     });
-    expect(dropzone.classList.contains('is-dragover')).toBe(true);
+    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(true);
 
     const file = new File([''], 'test.pdf', { type: 'application/pdf' });
     const dropEvent = new Event('drop', { bubbles: true, cancelable: true });
@@ -97,7 +98,7 @@ describe('BasePdfTool', () => {
       dropzone.dispatchEvent(dropEvent);
     });
 
-    expect(dropzone.classList.contains('is-dragover')).toBe(false);
+    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(false);
     expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
     expect(onFilesAddedSpy.mock.calls[0][0][0]).toBe(file);
   });

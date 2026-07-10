@@ -3,6 +3,9 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfCompressTool from './PdfCompressTool.jsx';
 import * as compressLib from '../lib/compress.js';
+import styles from './PdfCompressTool.module.css';
+import dropzoneStyles from './Dropzone.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 function makePdfFile(name, size = 1000) {
@@ -63,7 +66,7 @@ describe('PdfCompressTool UI flow', () => {
       render(<PdfCompressTool />, container);
     });
 
-    const dropzone = container.querySelector('.dropzone');
+    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
@@ -89,17 +92,17 @@ describe('PdfCompressTool UI flow', () => {
     });
 
     // Check header
-    const header = container.querySelector('.list-count');
+    const header = container.querySelector(`.${pdfToolStyles['list-count']}`);
     expect(header).not.toBeNull();
     expect(header.textContent).toContain('test_doc.pdf');
 
     // Default level should be 'medium' (Recommended)
-    const recommendedCard = container.querySelector('.compress-card.is-selected');
+    const recommendedCard = container.querySelector(`.${styles['compress-card']}.${styles['is-selected']}`);
     expect(recommendedCard).not.toBeNull();
     expect(recommendedCard.textContent).toContain('Recommended');
 
     // Click 'Extreme Compression' card
-    const cards = container.querySelectorAll('.compress-card');
+    const cards = container.querySelectorAll(`.${styles['compress-card']}`);
     const extremeCard = Array.from(cards).find(c => c.textContent.includes('Extreme Compression'));
     expect(extremeCard).not.toBeNull();
 
@@ -108,7 +111,7 @@ describe('PdfCompressTool UI flow', () => {
     });
 
     // Extreme card should now be selected
-    expect(extremeCard.className).toContain('is-selected');
+    expect(extremeCard.className).toContain(styles['is-selected']);
   });
 
   it('runs compression and displays results', async () => {
@@ -137,7 +140,7 @@ describe('PdfCompressTool UI flow', () => {
     window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
 
     // Click compression button
-    const button = container.querySelector('.merge-button');
+    const button = container.querySelector(`.${pdfToolStyles['merge-button']}`);
     expect(button).not.toBeNull();
     expect(button.textContent).toContain('Compress PDF');
 
@@ -151,11 +154,11 @@ describe('PdfCompressTool UI flow', () => {
     });
 
     // Verify completion states
-    const stats = container.querySelector('.compression-stats');
+    const stats = container.querySelector(`.${styles['compression-stats']}`);
     expect(stats).not.toBeNull();
     expect(stats.textContent).toContain('PDF Successfully Compressed!');
 
-    const downloadBtn = container.querySelector('.download-button');
+    const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
 
@@ -186,7 +189,7 @@ describe('PdfCompressTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const cards = container.querySelectorAll('.compress-card');
+    const cards = container.querySelectorAll(`.${styles['compress-card']}`);
     const targetCard = Array.from(cards).find((c) => c.textContent.includes('Target Size'));
     expect(targetCard).not.toBeNull();
 
@@ -194,21 +197,21 @@ describe('PdfCompressTool UI flow', () => {
       targetCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(targetCard.className).toContain('is-selected');
+    expect(targetCard.className).toContain(styles['is-selected']);
 
     // Default target is 100 KB; pick the 500 KB preset chip instead.
-    const presets = container.querySelectorAll('.target-size-preset');
+    const presets = container.querySelectorAll(`.${styles['target-size-preset']}`);
     const preset500 = Array.from(presets).find((b) => b.textContent.includes('500 KB'));
     expect(preset500).not.toBeNull();
     await act(async () => {
       preset500.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    expect(preset500.className).toContain('is-selected');
+    expect(preset500.className).toContain(styles['is-selected']);
 
     const originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:targeturl');
 
-    const button = container.querySelector('.merge-button');
+    const button = container.querySelector(`.${pdfToolStyles['merge-button']}`);
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
@@ -222,7 +225,7 @@ describe('PdfCompressTool UI flow', () => {
     );
     expect(compressLib.compressPdf).not.toHaveBeenCalled();
 
-    const downloadBtn = container.querySelector('.download-button');
+    const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('href')).toBe('blob:targeturl');
 
