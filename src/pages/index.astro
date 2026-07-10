@@ -41,24 +41,24 @@ const HeroIcon = tools[0].icon;
       </div>
       <p>Merge, sign, split, and compress PDFs without signing up, installing anything, or uploading a single file. Everything runs in your browser, on your phone or computer, so your files never leave your device.</p>
       
-      <div class="os-chips">
-        <a class="os-chip os-chip-gh" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <div class="mt-6 flex flex-wrap justify-center gap-[0.6rem]">
+        <a class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-text)] no-underline transition-[border-color,transform,color] duration-150 ease-[var(--ease-out)] hover:-translate-y-px hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">
+          <svg class="shrink-0 text-[var(--color-text)]" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" />
           </svg>
           Star us on GitHub
-          <svg class="os-star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <svg class="shrink-0 text-[var(--color-primary)]" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 7.1-1.01L12 2z" />
           </svg>
         </a>
-        <span class="os-chip">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <span class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-muted)]">
+          <svg class="shrink-0 text-[var(--color-muted-light)]" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 3v18" /><path d="M7 7l-4 6a4 4 0 0 0 8 0l-4-6z" /><path d="M17 7l-4 6a4 4 0 0 0 8 0l-4-6z" /><path d="M6 21h12" /><path d="M8 5h8" />
           </svg>
           MIT licensed
         </span>
-        <span class="os-chip">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <span class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-muted)]">
+          <svg class="shrink-0 text-[var(--color-muted-light)]" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" /><path d="M9 12.5l2 2 4-4.5" />
           </svg>
           Runs in your browser
@@ -87,7 +87,7 @@ const HeroIcon = tools[0].icon;
   </main>
 </div>
 
-    <FeatureCard class="tool-content-card">
+    <FeatureCard class="relative isolate overflow-hidden">
       <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} />
       <div class="whypdkef-layout">
         <div class="whypdkef-copy">
@@ -132,7 +132,7 @@ const HeroIcon = tools[0].icon;
       </div>
     </FeatureCard>
 
-    <FeatureCard variant="highlight" class="tool-content-card">
+    <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
       <CardDecor sketch="waves" icon={HardDriveDownload} iconPos="cr" iconSize={300} />
       <div class="autosave-layout">
         <div class="autosave-visual" aria-hidden="true">
@@ -159,7 +159,7 @@ const HeroIcon = tools[0].icon;
       </div>
     </FeatureCard>
 
-    <FeatureCard class="offline-section-custom tool-content-card">
+    <FeatureCard class="offline-section-custom relative isolate overflow-hidden">
       <CardDecor sketch="grid" icon={WifiOff} iconPos="br" iconSize={300} />
       <div class="offline-header">
         <h2>Run PDkef offline as an app</h2>
@@ -262,33 +262,33 @@ const HeroIcon = tools[0].icon;
     });
   </script>
 
-  <FeatureCard class="tool-content-card">
+  <FeatureCard class="relative isolate overflow-hidden">
     <CardDecor sketch="rings" icon={HelpCircle} iconPos="bl" iconSize={300} />
-    <div class="faq-header">
-      <span class="faq-tag">Got Questions?</span>
-      <h2>Frequently asked questions</h2>
+    <div class="mb-12 text-center">
+      <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase tracking-normal text-[var(--color-primary)]">Got Questions?</span>
+      <h2 class="m-0 text-[1.6rem] font-bold tracking-normal text-[var(--color-text)]">Frequently asked questions</h2>
     </div>
-    <div class="faq-grid">
+    <div class="grid grid-cols-2 gap-x-12 gap-y-8 max-[768px]:grid-cols-1 max-[768px]:gap-6">
       <div class="faq-card">
-        <h3>Are the tools really free?</h3>
-        <p>Yes, completely and permanently - no paywalls, no premium tier, no limits, and no watermark on your exported PDFs.</p>
+        <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold tracking-normal text-[var(--color-text)]">Are the tools really free?</h3>
+        <p class="m-0 text-[0.95rem] leading-[1.5] text-[var(--color-muted)]">Yes, completely and permanently - no paywalls, no premium tier, no limits, and no watermark on your exported PDFs.</p>
       </div>
       <div class="faq-card">
-        <h3>Do I need to sign up or create an account?</h3>
-        <p>No. There is no account, no email, and no trial period. Open a tool and use it immediately.</p>
+        <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold tracking-normal text-[var(--color-text)]">Do I need to sign up or create an account?</h3>
+        <p class="m-0 text-[0.95rem] leading-[1.5] text-[var(--color-muted)]">No. There is no account, no email, and no trial period. Open a tool and use it immediately.</p>
       </div>
       <div class="faq-card">
-        <h3>Are my files uploaded to a server?</h3>
-        <p>No. The tools run 100% locally in your browser, on desktop or mobile. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
+        <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold tracking-normal text-[var(--color-text)]">Are my files uploaded to a server?</h3>
+        <p class="m-0 text-[0.95rem] leading-[1.5] text-[var(--color-muted)]">No. The tools run 100% locally in your browser, on desktop or mobile. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
       </div>
       <div class="faq-card">
-        <h3>Is PDkef open source?</h3>
-        <p>Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.</p>
+        <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold tracking-normal text-[var(--color-text)]">Is PDkef open source?</h3>
+        <p class="m-0 text-[0.95rem] leading-[1.5] text-[var(--color-muted)]">Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.</p>
       </div>
     </div>
   </FeatureCard>
 
-  <FeatureCard variant="highlight" class="tool-content-card">
+  <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
     <CardDecor sketch="arcs" icon={ShieldCheck} iconPos="cl" iconSize={300} />
     <div class="osp-content">
       <span class="osp-tag">Transparent & Secure</span>
@@ -1024,61 +1024,6 @@ const HeroIcon = tools[0].icon;
       justify-content: center;
     }
   }
-
-
-
-  .faq-header {
-    text-align: center;
-    margin-bottom: 3rem;
-  }
-
-  .faq-tag {
-    display: inline-block;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-primary);
-    margin-bottom: 0.5rem;
-  }
-
-  .faq-header h2 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin: 0;
-    color: var(--color-text);
-  }
-
-  .faq-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2rem 3rem;
-  }
-
-  .faq-card h3 {
-    font-size: 1.05rem;
-    font-weight: 600;
-    margin: 0 0 0.5rem;
-    color: var(--color-text);
-  }
-
-  .faq-card p {
-    font-size: 0.95rem;
-    line-height: 1.5;
-    color: var(--color-muted);
-    margin: 0;
-  }
-
-  @media (max-width: 768px) {
-    .faq-grid {
-      grid-template-columns: 1fr;
-      gap: 1.5rem;
-    }
-
-  }
-
-
-
   .osp-content {
     width: 100%;
   }

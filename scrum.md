@@ -206,8 +206,8 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   - *Progress:* E3.1 scaffold, `FeatureCard`, and `Footer` landed. A direct `ToolHero` utility conversion
     exceeded the 80 KB CSS gate by about 1.8 KB, so establish a budget-neutral strategy before retrying it,
     `AppBar`, tool pages, or `index.astro`. The CSS-first setup imports utilities only and defines the
-    project spacing/font tokens, avoiding Tailwind's unused default palette and Preflight. Keep
-    `npm run test:css` as a per-slice gate.
+    project spacing/font tokens, avoiding Tailwind's unused default palette and Preflight. The CSS gate is
+    temporarily 82 KB during E3.2; return it to 80 KB once the shared static surface is fully migrated.
 
 ## E4 - Headless TS editor core  ·  *Lane E, internally serial, parallel to E2/E3*
 

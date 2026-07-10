@@ -30,17 +30,17 @@ const {
 } = Astro.props;
 ---
 
-<FeatureCard class="tool-content-card">
+<FeatureCard class="relative isolate overflow-hidden">
   <CardDecor sketch={sketch} icon={icon} iconPos={iconPos} iconSize={240} />
-  <div class="tool-faq-head">
-    <span class="faq-tag">{tag}</span>
-    <h2>{heading}</h2>
+  <div class="mb-12 text-center">
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase tracking-normal text-[var(--color-primary)]">{tag}</span>
+    <h2 class="m-0 text-[1.6rem] font-bold tracking-normal text-[var(--color-text)]">{heading}</h2>
   </div>
-  <div class="tool-faq-grid">
+  <div class="grid grid-cols-2 gap-x-12 gap-y-8 max-[768px]:grid-cols-1 max-[768px]:gap-6">
     {faq.map((item) => (
       <div class="faq-item">
-        <h3>{item.question}</h3>
-        <p>{item.answer}</p>
+        <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold tracking-normal text-[var(--color-text)]">{item.question}</h3>
+        <p class="m-0 text-[0.95rem] leading-[1.5] text-[var(--color-muted)]">{item.answer}</p>
       </div>
     ))}
   </div>
