@@ -184,6 +184,52 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
       `.page-selector-*` (942–984), `.error-message` (1255–1280), `.download-button`/`.download-check`/
       `.check-*`/`.start-over` + keyframes (1281–1409), `.merge-tool` wrapper (654–668, verify owner).
       Imported by every tool — do this **last**.
+
+- **E2.2a Integrate the E2.2 branch with `main` (share-feature divergence).** The E2.2 work lives on
+  `claude/e2.2-css-modules-wave-a` (forked at `f917c9e`; E2.2.1–.9 + E2.2.10 sub-commit 1 landed there).
+  `main` has since advanced ~13 commits, including a **native-sharing feature** (`PdfShareButton.jsx`,
+  `src/lib/usePdfShare.js`, `src/test/mockFileShare.js`) wired into **every** `Pdf*Tool.jsx`, plus the
+  Lane D E3.2 Tailwind marketing migration. The two must be reconciled before E2.2 can land.
+  - *Depends on:* E2.2 (branch), E3.2 (landed on `main`) · *Lane:* C
+  - **Complexity: moderate. Risk: moderate. → Assign a mid-level engineer** comfortable with git
+    conflict resolution and the CSP/hydration gate; **not** a junior (17-file conflict pass + the
+    build-only CSP hazard bite silently), but no architectural judgment required — the lane split was
+    designed disjoint and mostly held.
+  - **Verified conflict surface** (`git merge-tree`, main untouched): **17 files** — every `Pdf*Tool.jsx`
+    and its `.test.jsx`. **`global.css` and `scrum.md` auto-merge cleanly** (Lane C gutted tool-chrome
+    CSS, Lane D trimmed marketing CSS — disjoint regions; confirmed main's `.pdf-share-button` + 8
+    `.sig-btn*` rules survive the auto-merge). Conflicts are mechanical-but-semantic: both sides edit the
+    import block and the same button rows in render — resolution is **keep both** (share wiring +
+    className swaps), never pick-a-side.
+  - **Do NOT `git rebase main` the 12 commits individually** — each className-swap commit re-collides
+    with the share wiring against a moving module scheme, so you resolve the same conflict ~12×. Prefer
+    **`git merge main` into the branch (one resolution pass)**, or squash the branch to one commit first.
+  - **Sub-task E2.2a.1 — align new share code to the module scheme (do not skip).** The merged
+    `<PdfShareButton>` renders `class="sig-btn sig-btn-secondary pdf-share-button"`. Move
+    `.pdf-share-button` (generic multi-tool state) into the shared `PdfTool.module.css`; **leave
+    `.sig-btn`/`.sig-btn-secondary` in `global.css`** — they are E2.3-owned (`.sig-*`/`.sign-*`) and
+    pulling them into a module collides with the sibling lane. Apply the branch's className treatment to
+    every share button and any button `main` re-rendered, so each file is internally consistent.
+  - *Acceptance:* `npm test` + `npm run test:css` green (main's share tests **and** the branch's
+    `styles[...]` assertions both retained); **`npm run build && npm run preview` CSP/hydration pass is
+    mandatory** — this touches every island's imports/render and dev cannot catch a CSP regression; land
+    via a reviewed merge to `main`, not a direct push.
+- **E2.2.10 sub-commit 2 — `.merge-button*`/`.progress-ring*`/`.merge-button-progress` → `PdfTool.module.css`.**
+  Not started on the branch. Shared by ~9 tools (reclassified from the old `PdfMergeTool`-only E2.2.4).
+  - *Depends on:* E2.2a (rebase first, so the class swaps don't re-conflict) · *Lane:* C
+  - **Complexity: low. Risk: low. → Junior-friendly**, once E2.2a has landed. Pure selector-move + class
+    swap over a known consumer set; the only trap is the E2.2.7 orphaned-`@keyframes` gotcha — audit every
+    `.module.css` + `global.css` for an `animation:` with no matching same-scope `@keyframes`, and verify
+    against the actual `dist/` build. Standard E2.2 guardrail gates apply.
+- **E2.2.10 sub-commit 3 — cross-boundary generics: `.page-numbers-toggle` + `.thumb-placeholder`/`@keyframes shimmer` → `PdfTool.module.css`.**
+  Not started. `.page-numbers-toggle` is a generic pill-toggle used by `PdfEditPagesTool.jsx` +
+  `PdfMergeTool.jsx` for unrelated features; `.thumb-placeholder` + `shimmer` straddle
+  `FileList.module.css` and `PageGrid.module.css` consumers with no combinator tying it to either.
+  - *Depends on:* E2.2.10 sub-commit 2 · *Lane:* C
+  - **Complexity: low–moderate. Risk: low. → Mid-level (or a careful junior with review).** Low mechanics,
+    but requires a **judgment call on ownership** (which shared module truly owns each generic) — that
+    boundary decision, plus the same keyframe-orphaning audit, is why it's not purely junior. Closing this
+    sub-commit **completes E2.2** — flip E2.2 to *done* and drop the "in progress" note.
 - **E2.3 Migrate editor `.sign-*` styles into scoped CSS Modules** (currently ~121 `sign-*` references
   in a ~3,400-line `global.css`), **preserving descendant cascades** (`.sign-element.active
   .sign-element-actions`) as real CSS inside module scope. *(Absorbs the old "colocate `.sign-*`
