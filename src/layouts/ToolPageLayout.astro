@@ -29,7 +29,7 @@ const { tool } = Astro.props;
     <ToolHero icon={tool.icon} title={tool.h1} subhead={tool.subhead} slug={tool.slug} />
 
     <main class="!flex !min-h-0 !flex-1 !flex-col !px-4 !pb-4 min-[560px]:!px-6 min-[768px]:!pb-5">
-      <section id="app" class="!my-0 !flex !min-h-0 !w-full !flex-1 !items-center !justify-center min-[1024px]:!justify-start min-[1024px]:[&_.merge-tool]:!p-4 min-[1024px]:[&_.dropzone]:!py-6" aria-label={tool.ariaLabel}>
+      <section id="app" class="!my-0 !flex !min-h-0 !w-full !flex-1 !items-center !justify-center min-[1024px]:!items-start min-[1024px]:!justify-start min-[1024px]:[&_.merge-tool]:!p-4 min-[1024px]:[&_.dropzone]:!py-6" aria-label={tool.ariaLabel}>
         <slot />
       </section>
     </main>
