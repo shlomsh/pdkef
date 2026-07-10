@@ -103,12 +103,31 @@ async function drawRedaction(page, styleName, startRatio, endRatio) {
   const beforeCount = await page.locator('.redact-box').count();
   const overlay = page.locator('.redact-draw-area').first();
   await overlay.scrollIntoViewIfNeeded();
+  // The PDF page is taller than the viewport. scrollIntoViewIfNeeded() only
+  // exposes part of an oversized element, so explicitly center the requested
+  // fractional Y position before using viewport-relative mouse coordinates.
+  await overlay.evaluate((element, yRatio) => {
+    const rect = element.getBoundingClientRect();
+    window.scrollBy(0, rect.top + rect.height * yRatio - window.innerHeight / 2);
+  }, startRatio.y);
   const box = await overlay.boundingBox();
   if (!box) throw new Error('PDF redaction overlay has no bounding box');
 
-  await page.mouse.move(box.x + box.width * startRatio.x, box.y + box.height * startRatio.y);
+  const startPoint = { x: box.x + box.width * startRatio.x, y: box.y + box.height * startRatio.y };
+  const hitTarget = await page.evaluate(({ x, y }) => {
+    const element = document.elementFromPoint(x, y);
+    return {
+      tag: element?.tagName,
+      className: element?.className,
+      insideOverlay: !!element?.closest('.redact-draw-area'),
+    };
+  }, startPoint);
+  expect(hitTarget.insideOverlay, `Drag start missed overlay: ${JSON.stringify(hitTarget)}`).toBe(true);
+  await page.mouse.move(startPoint.x, startPoint.y);
   await page.mouse.down();
+  await expect(page.locator('.redact-drawing-preview')).toHaveCount(1);
   await page.mouse.move(box.x + box.width * endRatio.x, box.y + box.height * endRatio.y, { steps: 6 });
+  await expect(page.locator('.redact-drawing-preview')).toBeVisible();
   await page.waitForTimeout(50);
   await page.mouse.up();
 

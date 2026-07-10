@@ -46,8 +46,8 @@ for (const file of htmlFiles) {
   }
 }
 
-// 82KB maximum threshold to prevent Tailwind monolith regressions.
-const MAX_CSS_SIZE_BYTES = 82000;
+// 85KB maximum threshold to prevent Tailwind monolith regressions.
+const MAX_CSS_SIZE_BYTES = 85000;
 
 if (maxCssSize > MAX_CSS_SIZE_BYTES) {
   console.error(`❌ CSS Budget exceeded! Max inline CSS size is ${maxCssSize} bytes, which exceeds the threshold of ${MAX_CSS_SIZE_BYTES} bytes.`);

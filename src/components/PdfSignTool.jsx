@@ -8,6 +8,7 @@ import { widthPercentToHeightPercent } from '../lib/coords.js';
 import { useSignDraftPersistence } from './useSignDraftPersistence.js';
 import { createActionEntry } from '../lib/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
+import { usePdfShare } from '../lib/usePdfShare.js';
 import UndoHistoryModal from './UndoHistoryModal.jsx';
 
 export default function PdfSignTool() {
@@ -33,6 +34,7 @@ function PdfSignToolInner() {
   const [pendingFile, setPendingFile] = useState(null);
   const [undoSelection, setUndoSelection] = useState(new Set());
   const [announcement, setAnnouncement] = useState('');
+  const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
 
   // Last color picked for any element, remembered across new placements
   const [lastColor, setLastColor] = useState('#000000');
@@ -89,6 +91,12 @@ function PdfSignToolInner() {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  // A prepared export is only valid for the current annotation state. Any edit
+  // requires a fresh PDF before it can be shared.
+  useEffect(() => {
+    clearPrepared();
+  }, [file, elements, clearPrepared]);
 
   // Open the Start-over dialog with showModal() rather than the `open` attribute.
   // showModal() promotes the dialog into the browser's top layer, which paints
@@ -577,7 +585,7 @@ function PdfSignToolInner() {
     };
   }, [activeElementId, elements]);
 
-  // Apply signing and export PDF
+  // Apply signing and prepare the PDF for sharing or downloading.
   const handleSavePdf = async () => {
     if (!file) return;
     setStatus('signing');
@@ -586,22 +594,59 @@ function PdfSignToolInner() {
 
     try {
       const signedBlob = await signPdf(file, elements, (p) => setProgress(p));
+      const filename = `signed_${file.name}`;
+      if (prepare(signedBlob, filename)) {
+        // navigator.share() needs a fresh user activation. PDF generation is
+        // asynchronous, so retain the File and let the next tap open the
+        // native share sheet instead of risking a browser-blocked request.
+        setStatus('editing');
+        setAnnouncement('Your signed PDF is ready to share.');
+        return;
+      }
 
-      const url = URL.createObjectURL(signedBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `signed_${file.name}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      download(signedBlob, filename);
 
       setStatus('editing');
-      setAnnouncement('PDF signed successfully! Download started.');
+      setAnnouncement('PDF signed successfully. Download started.');
     } catch (err) {
       console.error(err);
       setStatus('error');
       setAnnouncement('Failed to write and export PDF document.');
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (downloadPrepared()) {
+      setAnnouncement('Download started.');
+      return;
+    }
+
+    if (!file) return;
+    setStatus('signing');
+    setProgress(0);
+    setAnnouncement('Writing signatures and text layers into PDF...');
+
+    try {
+      const signedBlob = await signPdf(file, elements, (p) => setProgress(p));
+      download(signedBlob, `signed_${file.name}`);
+      setStatus('editing');
+      setAnnouncement('PDF signed successfully. Download started.');
+    } catch (err) {
+      console.error(err);
+      setStatus('error');
+      setAnnouncement('Failed to write and export PDF document.');
+    }
+  };
+
+  const handleSharePdf = async () => {
+    const result = await sharePrepared();
+    if (result.status === 'shared') {
+      setAnnouncement('PDF signed successfully.');
+    } else if (result.status === 'canceled') {
+      setAnnouncement('Sharing canceled. Your signed PDF is still ready to share.');
+    } else if (result.status === 'error') {
+      console.error(result.error);
+      setAnnouncement('Could not open the share sheet. Please try again.');
     }
   };
 
@@ -649,6 +694,8 @@ function PdfSignToolInner() {
           lastDirection={lastDirection}
           logAction={logAction}
           handleSavePdf={handleSavePdf}
+          handleDownloadPdf={handleDownloadPdf}
+          handleSharePdf={handleSharePdf}
           setAnnouncement={setAnnouncement}
           savedSignatures={savedSignatures}
           setActiveSignature={setActiveSignature}
@@ -658,6 +705,8 @@ function PdfSignToolInner() {
           isFullscreen={isFullscreen}
           setConfirmResetOpen={setConfirmResetOpen}
           placeSignatureAt={placeSignatureAt}
+          canSharePdf={canSharePdf}
+          shareReady={shareReady}
         />
       )}
 

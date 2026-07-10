@@ -46,6 +46,8 @@ export default function PdfWorkspace({
   lastDirection = null,
   logAction,
   handleSavePdf,
+  handleDownloadPdf,
+  handleSharePdf,
   setAnnouncement,
   savedSignatures,
   setActiveSignature,
@@ -54,7 +56,9 @@ export default function PdfWorkspace({
   toggleFullscreen,
   isFullscreen,
   setConfirmResetOpen,
-  placeSignatureAt
+  placeSignatureAt,
+  canSharePdf = false,
+  shareReady = false
 }) {
   const { state: { selectedTool, elements, activeElementId, actionHistory }, dispatch } = useSignTool();
   const activeElement = elements.find((el) => el.id === activeElementId);
@@ -143,7 +147,11 @@ export default function PdfWorkspace({
   }, [dispatch]);
 
   return (
-    <div className={`sign-workspace ${isPseudoFullscreen ? 'pseudo-fullscreen' : ''}`} ref={workspaceRef}>
+    <div
+      className={`sign-workspace${isPseudoFullscreen ? ' pseudo-fullscreen' : ''}${status === 'signing' ? ' is-processing' : ''}`}
+      ref={workspaceRef}
+      aria-busy={status === 'signing'}
+    >
       {/* Header Controls */}
       <div className="list-header" style={{ width: '100%' }}>
         <span className="list-count" style={{ fontWeight: '600' }}>
@@ -151,7 +159,7 @@ export default function PdfWorkspace({
         </span>
       </div>
 
-      {status === 'editing' && (
+      {(status === 'editing' || status === 'signing') && (
         <>
           {/* Floating Toolbar Component */}
           <SignToolbar
@@ -167,6 +175,10 @@ export default function PdfWorkspace({
             isFullscreen={isFullscreen || isPseudoFullscreen}
             setConfirmResetOpen={setConfirmResetOpen}
             onSavePdf={handleSavePdf}
+            onDownloadPdf={handleDownloadPdf}
+            onSharePdf={handleSharePdf}
+            canSharePdf={canSharePdf}
+            shareReady={shareReady}
           />
 
           {/* PDF Pages rendering container */}
@@ -229,14 +241,16 @@ export default function PdfWorkspace({
           </div>
 
           {/* Complete signing button */}
-          <button
-            type="button"
-            className="merge-button"
-            style={{ marginTop: '2rem' }}
-            onClick={handleSavePdf}
-          >
-            Download
-          </button>
+          <div className="sign-export-actions" style={{ marginTop: '2rem' }}>
+            <button type="button" className="merge-button" onClick={handleDownloadPdf}>
+              Download
+            </button>
+            {canSharePdf && (
+              <button type="button" className="merge-button sign-export-share" onClick={shareReady ? handleSharePdf : handleSavePdf}>
+                {shareReady ? 'Share now' : 'Share'}
+              </button>
+            )}
+          </div>
         </>
       )}
 

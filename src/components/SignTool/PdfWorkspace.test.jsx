@@ -60,6 +60,32 @@ describe('PdfWorkspace Component', () => {
     };
   }
 
+  it('keeps the same rendered page mounted while signing', () => {
+    const dispatch = vi.fn();
+    const state = { selectedTool: null, elements: [], activeElementId: null, actionHistory: [] };
+    const props = defaultProps();
+
+    host = mount(
+      <SignToolContext.Provider value={{ state, dispatch }}>
+        <PdfWorkspace {...props} />
+      </SignToolContext.Provider>
+    );
+    const pageBefore = host.querySelector('.sign-page-wrapper');
+
+    act(() => {
+      render(
+        <SignToolContext.Provider value={{ state, dispatch }}>
+          <PdfWorkspace {...props} status="signing" />
+        </SignToolContext.Provider>,
+        host
+      );
+    });
+
+    expect(host.querySelector('.sign-page-wrapper')).toBe(pageBefore);
+    expect(host.querySelector('.sign-workspace').classList.contains('is-processing')).toBe(true);
+    expect(host.querySelector('.sign-workspace').getAttribute('aria-busy')).toBe('true');
+  });
+
   it('correctly dispatches ADD_ELEMENT, UPDATE_ELEMENT, and ENSURE_MINIMUM_SIZE on drag-drawing', () => {
     const dispatch = vi.fn();
     const state = {

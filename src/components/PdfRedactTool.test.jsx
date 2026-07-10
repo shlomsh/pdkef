@@ -1,7 +1,10 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import PdfRedactTool from './PdfRedactTool.jsx';
+import { redactPdf } from '../lib/redact.js';
 import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 
 function makePdfFile(name) {
@@ -86,7 +89,7 @@ describe('PdfRedactTool UI flow', () => {
     expect(toolbar.textContent).toContain('Blur');
   });
 
-  it('returns to the existing draft when continuing to edit after generating a download', async () => {
+  it('keeps the redaction editor open after downloading', async () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
@@ -103,16 +106,6 @@ describe('PdfRedactTool UI flow', () => {
         generateButton.click();
       });
 
-      expect(container.querySelector('.download-button')).not.toBeNull();
-      expect(container.querySelector('.sign-workspace')).toBeNull();
-
-      const continueButton = Array.from(container.querySelectorAll('button'))
-        .find((button) => button.textContent.includes('Continue editing'));
-
-      await act(async () => {
-        continueButton.click();
-      });
-
       expect(container.querySelector('.sign-workspace')).not.toBeNull();
       expect(container.querySelector('.redact-box')).not.toBeNull();
       expect(container.querySelector('.download-button')).toBeNull();
@@ -123,7 +116,89 @@ describe('PdfRedactTool UI flow', () => {
     }
   });
 
-  async function loadFileAndGetDrawArea() {
+  it('keeps the same PDF page mounted while redacting', async () => {
+    let finishRedaction;
+    redactPdf.mockImplementationOnce(() => new Promise((resolve) => {
+      finishRedaction = resolve;
+    }));
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    const originalRevokeObjectURL = window.URL.revokeObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+    window.URL.revokeObjectURL = vi.fn();
+
+    try {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const pageBefore = container.querySelector('.redact-draw-area');
+      const downloadButton = Array.from(container.querySelectorAll('.sign-toolbar button'))
+        .find((button) => button.textContent.includes('Download'));
+
+      await act(async () => {
+        downloadButton.click();
+      });
+
+      expect(container.querySelector('.redact-draw-area')).toBe(pageBefore);
+      expect(container.querySelector('.sign-workspace').classList.contains('is-processing')).toBe(true);
+      expect(container.querySelector('.sign-workspace').getAttribute('aria-busy')).toBe('true');
+
+      await act(async () => {
+        finishRedaction(new Blob(['redacted'], { type: 'application/pdf' }));
+      });
+    } finally {
+      window.URL.createObjectURL = originalCreateObjectURL;
+      window.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+  });
+
+  it('shares a valid PDF prepared from the real num-1.pdf fixture', async () => {
+    const originalShare = navigator.share;
+    const originalCanShare = navigator.canShare;
+    const share = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'share', { configurable: true, value: share });
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => true) });
+
+    try {
+      const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+      const fixtureBytes = fs.readFileSync(fixturePath);
+      redactPdf.mockResolvedValueOnce(new Blob([fixtureBytes], { type: 'application/pdf' }));
+
+      const drawArea = await loadFileAndGetDrawArea(
+        new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
+      );
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      const prepareButton = container.querySelector('button[title="Apply redactions and prepare the PDF for sharing"]');
+      expect(prepareButton).not.toBeNull();
+      await act(async () => {
+        prepareButton.click();
+      });
+
+      expect(container.querySelector('.sign-workspace')).not.toBeNull();
+      const shareButton = Array.from(container.querySelectorAll('button'))
+        .find((button) => button.textContent.includes('Share now'));
+      expect(shareButton).toBeDefined();
+      await act(async () => {
+        shareButton.click();
+      });
+
+      expect(share).toHaveBeenCalledOnce();
+      const sharedFile = share.mock.calls[0][0].files[0];
+      expect(sharedFile.name).toBe('redacted_num-1.pdf');
+
+      const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      const loadingTask = getDocument({ data: new Uint8Array(await sharedFile.arrayBuffer()) });
+      const pdf = await loadingTask.promise;
+      expect(pdf.numPages).toBe(1);
+      await loadingTask.destroy();
+    } finally {
+      if (originalShare === undefined) delete navigator.share;
+      else Object.defineProperty(navigator, 'share', { configurable: true, value: originalShare });
+      if (originalCanShare === undefined) delete navigator.canShare;
+      else Object.defineProperty(navigator, 'canShare', { configurable: true, value: originalCanShare });
+    }
+  });
+
+  async function loadFileAndGetDrawArea(file = makePdfFile('test_secret.pdf')) {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
@@ -131,7 +206,6 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     const input = container.querySelector('input[type="file"]');
-    const file = makePdfFile('test_secret.pdf');
     await act(async () => {
       Object.defineProperty(input, 'files', { value: [file], configurable: true });
       input.dispatchEvent(new Event('change', { bubbles: true }));

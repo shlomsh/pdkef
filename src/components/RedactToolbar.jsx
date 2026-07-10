@@ -8,7 +8,11 @@ export default function RedactToolbar({
   toggleFullscreen,
   isFullscreen,
   setConfirmResetOpen,
-  handleSavePdf,
+  handleDownloadPdf,
+  handlePrepareShare,
+  handleSharePdf,
+  canSharePdf = false,
+  shareReady = false,
   elementsCount,
   actionHistory,
   setUndoModalOpen
@@ -92,8 +96,8 @@ export default function RedactToolbar({
 
         <button
           type="button"
-          className="sign-tool-btn sign-tool-btn-download"
-          onClick={handleSavePdf}
+          className={`sign-tool-btn sign-tool-btn-download${canSharePdf ? ' sign-tool-btn-desktop-download' : ''}`}
+          onClick={handleDownloadPdf}
           disabled={elementsCount === 0}
           title={elementsCount === 0 ? 'Add at least one redaction box first' : 'Apply redactions and download'}
         >
@@ -104,6 +108,27 @@ export default function RedactToolbar({
           </svg>
           <span className="sign-tool-btn-text">Download</span>
         </button>
+
+        {canSharePdf && (
+          <button
+            type="button"
+            className="sign-tool-btn sign-tool-btn-share"
+            onClick={shareReady ? handleSharePdf : handlePrepareShare}
+            disabled={elementsCount === 0}
+            title={elementsCount === 0
+              ? 'Add at least one redaction box first'
+              : (shareReady ? 'Share the redacted PDF' : 'Apply redactions and prepare the PDF for sharing')}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" />
+              <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+            </svg>
+            <span className="sign-tool-btn-text">{shareReady ? 'Share now' : 'Share'}</span>
+          </button>
+        )}
       </div>
     </div>
   );

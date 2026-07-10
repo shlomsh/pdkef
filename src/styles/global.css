@@ -1084,6 +1084,12 @@ main {
   z-index: 9999;
 }
 
+/* Keep the editor mounted during export so canvases and scroll position do not
+   flash, while preventing edits from racing the generated file. */
+.sign-workspace.is-processing {
+  pointer-events: none;
+}
+
 .sign-toolbar-container {
   position: sticky;
   top: 1rem;
@@ -1184,6 +1190,16 @@ main {
     flex: 1;
     display: flex;
   }
+
+  .sign-toolbar .sign-tool-btn-desktop-download {
+    display: none;
+  }
+
+  .sign-toolbar .sign-tool-btn-share {
+    color: var(--color-surface);
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+  }
 }
 
 .sign-tool-btn {
@@ -1236,6 +1252,43 @@ main {
   border-color: var(--color-primary-hover);
   color: var(--color-surface);
 }
+
+/* Desktop has room for both export paths. On compact toolbars the native share
+   control takes this slot, while Download remains the fallback where sharing is
+   not available. */
+.sign-tool-btn-share {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.sign-tool-btn-share:hover {
+  color: var(--color-surface);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.sign-export-actions {
+  display: flex;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.sign-export-actions .merge-button {
+  flex: 1;
+}
+
+.sign-export-share {
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+}
+
+.sign-export-share:hover {
+  color: var(--color-surface);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
 
 /* Start over: persistent lemon-tinted affordance, fills on hover. Sits left of
    the primary Download button without competing with it. */

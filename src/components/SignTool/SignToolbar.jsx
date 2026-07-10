@@ -15,7 +15,11 @@ export default function SignToolbar({
   toggleFullscreen,
   isFullscreen,
   setConfirmResetOpen,
-  onSavePdf
+  onSavePdf,
+  onDownloadPdf,
+  onSharePdf,
+  canSharePdf = false,
+  shareReady = false
 }) {
   const { state, dispatch } = useSignTool();
   const selectedTool = state.selectedTool;
@@ -292,17 +296,35 @@ export default function SignToolbar({
 
           <button
             type="button"
-            className="sign-tool-btn sign-tool-btn-download"
-            onClick={onSavePdf}
+            className={`sign-tool-btn sign-tool-btn-download${canSharePdf ? ' sign-tool-btn-desktop-download' : ''}`}
+            onClick={onDownloadPdf}
             title="Save your changes and download the signed PDF"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
             <span className="sign-tool-btn-text">Download</span>
           </button>
+
+          {canSharePdf && (
+            <button
+              type="button"
+              className="sign-tool-btn sign-tool-btn-share"
+              onClick={shareReady ? onSharePdf : onSavePdf}
+              title={shareReady ? 'Share the signed PDF' : 'Save your changes to share the signed PDF'}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="18" cy="5" r="3" />
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="19" r="3" />
+                <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" />
+                <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+              </svg>
+              <span className="sign-tool-btn-text">{shareReady ? 'Share now' : 'Share'}</span>
+            </button>
+          )}
         </div>
       </div>
 

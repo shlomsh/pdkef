@@ -11,16 +11,17 @@ import UndoHistoryModal from './UndoHistoryModal.jsx';
 import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../constants/signGeometry.js';
 import { createActionEntry } from '../lib/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
+import { usePdfShare } from '../lib/usePdfShare.js';
 
 export default function PdfRedactTool() {
   const [file, setFile] = useState(null);
   const [numPages, setNumPages] = useState(0);
   const [pdfDocument, setPdfDocument] = useState(null);
   const [elements, setElements] = useState([]); // Array of { id, pageIndex, left, top, width, height }
-  const [status, setStatus] = useState('idle'); // idle | loading | editing | redacting | done | error
+  const [status, setStatus] = useState('idle'); // idle | loading | editing | redacting | error
   const [progress, setProgress] = useState(0);
-  const [downloadUrl, setDownloadUrl] = useState(null);
   const [announcement, setAnnouncement] = useState('');
+  const { canSharePdf, shareReady, prepare, clearPrepared, download, sharePrepared } = usePdfShare();
 
   const [activeStyle, setActiveStyle] = useState('blackout'); // 'blackout' | 'blur' | 'whiteout'
   const [activeColor, setActiveColor] = useState('#ffffff');
@@ -114,7 +115,6 @@ export default function PdfRedactTool() {
   };
 
   const pageWrapperRefs = useRef([]);
-  const downloadRef = useRef(null);
   const fileBytesRef = useRef(null);
   const loadIdRef = useRef(0);
   // Whichever of {manual file pick, draft restore} happens first (in call order) wins
@@ -123,19 +123,10 @@ export default function PdfRedactTool() {
   // already finished editing would otherwise still be "the newer call" and clobber it.
   const loadStartedRef = useRef(false);
 
-  // Focus download button on success
+  // A generated PDF must match the current source and redaction boxes.
   useEffect(() => {
-    if (status === 'done' && downloadRef.current) {
-      downloadRef.current.focus();
-    }
-  }, [status]);
-
-  // Clean up download URL
-  useEffect(() => {
-    return () => {
-      if (downloadUrl) URL.revokeObjectURL(downloadUrl);
-    };
-  }, [downloadUrl]);
+    clearPrepared();
+  }, [file, elements, clearPrepared]);
 
   // Core loader shared by fresh file picks and draft restore. `bytes` is the source
   // PDF's ArrayBuffer; `presetElements` seeds restored redaction boxes.
@@ -536,7 +527,7 @@ export default function PdfRedactTool() {
     );
   };
 
-  const handleSavePdf = async () => {
+  const handleSavePdf = async (exportAction = 'download') => {
     if (!file) return;
     if (elements.length === 0) {
       setAnnouncement('Please add at least one redaction box.');
@@ -549,13 +540,16 @@ export default function PdfRedactTool() {
 
     try {
       const redactedBlob = await redactPdf(file, elements, (p) => setProgress(p));
+      const filename = `redacted_${file.name}`;
 
-      setDownloadUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return URL.createObjectURL(redactedBlob);
-      });
-      setStatus('done');
-      setAnnouncement('PDF redacted successfully! Ready for download.');
+      if (exportAction === 'share' && prepare(redactedBlob, filename)) {
+        setStatus('editing');
+        setAnnouncement('Your redacted PDF is ready to share.');
+      } else {
+        download(redactedBlob, filename);
+        setStatus('editing');
+        setAnnouncement('PDF redacted successfully. Download started.');
+      }
     } catch (err) {
       console.error(err);
       setStatus('error');
@@ -563,14 +557,21 @@ export default function PdfRedactTool() {
     }
   };
 
-  const handleContinueEditing = () => {
-    setDownloadUrl(null);
-    setStatus('editing');
-    setAnnouncement('Returned to editing. Your redactions are unchanged.');
+  const handleSharePdf = async () => {
+    const result = await sharePrepared();
+    if (result.status === 'shared') {
+      setAnnouncement('PDF shared successfully.');
+    } else if (result.status === 'canceled') {
+      setAnnouncement('Sharing canceled. Your redacted PDF is still ready to share.');
+    } else if (result.status === 'error') {
+      console.error(result.error);
+      setAnnouncement('Could not open the share sheet. Please try again.');
+    }
   };
 
   const reset = () => {
     clearDraft();
+    clearPrepared();
     fileBytesRef.current = null;
     setFile(null);
     setPdfDocument(null);
@@ -582,10 +583,6 @@ export default function PdfRedactTool() {
     setUndoModalOpen(false);
     setStatus('idle');
     setProgress(0);
-    setDownloadUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
     setAnnouncement('Cleared workspace.');
   };
 
@@ -601,8 +598,12 @@ export default function PdfRedactTool() {
         {announcement}
       </div>
 
-      {status === 'editing' && pdfDocument && (
-        <div className={`sign-workspace ${isPseudoFullscreen ? 'pseudo-fullscreen' : ''}`} ref={workspaceRef}>
+      {(status === 'editing' || status === 'redacting') && pdfDocument && (
+        <div
+          className={`sign-workspace${isPseudoFullscreen ? ' pseudo-fullscreen' : ''}${status === 'redacting' ? ' is-processing' : ''}`}
+          ref={workspaceRef}
+          aria-busy={status === 'redacting'}
+        >
           <RedactToolbar
             activeStyle={activeStyle}
             setActiveStyle={setActiveStyle}
@@ -611,7 +612,11 @@ export default function PdfRedactTool() {
             toggleFullscreen={toggleFullscreen}
             isFullscreen={isFullscreen || isPseudoFullscreen}
             setConfirmResetOpen={setConfirmResetOpen}
-            handleSavePdf={handleSavePdf}
+            handleDownloadPdf={() => handleSavePdf('download')}
+            handlePrepareShare={() => handleSavePdf('share')}
+            handleSharePdf={handleSharePdf}
+            canSharePdf={canSharePdf}
+            shareReady={shareReady}
             elementsCount={elements.length}
             actionHistory={actionHistory}
             setUndoModalOpen={setUndoModalOpen}
@@ -673,6 +678,7 @@ export default function PdfRedactTool() {
                   {/* Render active drawing box */}
                   {drawingState && drawingState.pageIndex === i && (
                     <div
+                      className="redact-drawing-preview"
                       style={{
                         position: 'absolute',
                         left: `${Math.min(drawingState.startX, drawingState.currentX)}%`,
@@ -705,35 +711,6 @@ export default function PdfRedactTool() {
             </svg>
             Applying redactions… {Math.round(progress * 100)}%
           </span>
-        </div>
-      )}
-
-      {/* Success download */}
-      {status === 'done' && downloadUrl && (
-        <div style={{ width: '100%', marginTop: '1rem' }}>
-          <a
-            ref={downloadRef}
-            className="download-button"
-            href={downloadUrl}
-            download={`redacted_${file.name}`}
-          >
-            <svg className="download-check" width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" className="check-circle" stroke="#fff" />
-              <path d="M7.5 12.5l3 3 6-6.5" className="check-mark" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-            </svg>
-            Download Redacted PDF
-          </a>
-          <button
-            type="button"
-            className="sig-btn sig-btn-secondary"
-            style={{ width: '100%', marginTop: 'var(--space-3)' }}
-            onClick={handleContinueEditing}
-          >
-            Continue editing
-          </button>
-          <button type="button" className="start-over" onClick={() => setConfirmResetOpen(true)}>
-            <span className="sign-tool-btn-text">Start over</span>
-          </button>
         </div>
       )}
 

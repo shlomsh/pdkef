@@ -70,6 +70,76 @@ describe('SignToolbar Component', () => {
     expect(contextValue.selectedTool).toBe('text');
   });
 
+  it('uses the existing export control for sharing when file sharing is supported', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    act(() => {
+      render(
+        <SignToolProvider>
+          <SignToolbar
+            setAnnouncement={() => {}}
+            savedSignatures={[]}
+            activeSignature={null}
+            setActiveSignature={() => {}}
+            onDeleteSavedSignature={() => {}}
+            setDialogOpen={() => {}}
+            setUndoModalOpen={() => {}}
+            actionHistory={[]}
+            toggleFullscreen={() => {}}
+            isFullscreen={false}
+            setConfirmResetOpen={() => {}}
+            onSavePdf={() => {}}
+            onSharePdf={() => {}}
+            canSharePdf
+          />
+        </SignToolProvider>,
+        container
+      );
+    });
+
+    const exportButton = container.querySelector('button[title*="share"]');
+    expect(exportButton).not.toBeNull();
+    expect(exportButton.textContent).toContain('Share');
+    expect(container.querySelectorAll('.sign-tool-btn-download')).toHaveLength(1);
+  });
+
+  it('changes the export control to share the prepared file', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    const onSharePdf = vi.fn();
+
+    act(() => {
+      render(
+        <SignToolProvider>
+          <SignToolbar
+            setAnnouncement={() => {}}
+            savedSignatures={[]}
+            activeSignature={null}
+            setActiveSignature={() => {}}
+            onDeleteSavedSignature={() => {}}
+            setDialogOpen={() => {}}
+            setUndoModalOpen={() => {}}
+            actionHistory={[]}
+            toggleFullscreen={() => {}}
+            isFullscreen={false}
+            setConfirmResetOpen={() => {}}
+            onSavePdf={() => {}}
+            onSharePdf={onSharePdf}
+            canSharePdf
+            shareReady
+          />
+        </SignToolProvider>,
+        container
+      );
+    });
+
+    const exportButton = container.querySelector('button[title="Share the signed PDF"]');
+    expect(exportButton.textContent).toContain('Share now');
+    exportButton.click();
+    expect(onSharePdf).toHaveBeenCalledOnce();
+  });
+
   it('shows signature dropdown and allows choosing or deleting a saved signature', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

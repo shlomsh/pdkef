@@ -445,6 +445,59 @@ describe('PdfSignTool UI flow', () => {
     window.URL.createObjectURL = originalCreateObjectURL;
   });
 
+  it('prepares and shares a valid signed PDF from the real num-1.pdf fixture', async () => {
+    const originalShare = navigator.share;
+    const originalCanShare = navigator.canShare;
+    const share = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'share', { configurable: true, value: share });
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => true) });
+
+    try {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => render(<PdfSignTool />, container));
+
+      const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+      const file = new File([fs.readFileSync(fixturePath)], 'num-1.pdf', { type: 'application/pdf' });
+      const input = container.querySelector('input[type="file"]');
+      await act(async () => {
+        Object.defineProperty(input, 'files', { value: [file], configurable: true });
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        await new Promise(resolve => setTimeout(resolve, 50));
+      });
+
+      const prepareButton = container.querySelector('button[title="Save your changes to share the signed PDF"]');
+      expect(prepareButton).not.toBeNull();
+      await act(async () => {
+        prepareButton.click();
+        await new Promise(resolve => setTimeout(resolve, 100));
+      });
+
+      const shareButton = container.querySelector('button[title="Share the signed PDF"]');
+      expect(shareButton).not.toBeNull();
+      expect(shareButton.textContent).toContain('Share now');
+      await act(async () => {
+        shareButton.click();
+      });
+
+      expect(share).toHaveBeenCalledOnce();
+      const sharedFile = share.mock.calls[0][0].files[0];
+      expect(sharedFile).toBeInstanceOf(File);
+      expect(sharedFile.name).toBe('signed_num-1.pdf');
+
+      const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      const loadingTask = getDocument({ data: new Uint8Array(await sharedFile.arrayBuffer()) });
+      const pdf = await loadingTask.promise;
+      expect(pdf.numPages).toBe(1);
+      await loadingTask.destroy();
+    } finally {
+      if (originalShare === undefined) delete navigator.share;
+      else Object.defineProperty(navigator, 'share', { configurable: true, value: originalShare });
+      if (originalCanShare === undefined) delete navigator.canShare;
+      else Object.defineProperty(navigator, 'canShare', { configurable: true, value: originalCanShare });
+    }
+  });
+
   it('auto-detects RTL content in a text element and aligns it right, reverting when content becomes LTR again', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
