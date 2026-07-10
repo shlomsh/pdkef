@@ -153,12 +153,18 @@ test.describe('Redact editor browser guardrails', () => {
     await assertNoCspViolations(page);
   });
 
-  test('keeps blackout controls reachable, resizable, and page-bound in the real browser', async ({ page }) => {
+  test('keeps redaction controls type-specific, resizable, and page-bound in the real browser', async ({ page }) => {
     await openRedactTool(page);
 
     const overlay = page.locator('.redact-draw-area').first();
 
-    const blackout = await drawRedaction(page, 'Blackout', { x: 0.18, y: 0.22 }, { x: 0.38, y: 0.31 });
+    // Keep all three boxes in the viewport-reachable upper band (a full PDF page
+    // renders taller than the viewport, so drags below ~0.5 land off-screen) and
+    // non-overlapping — leaving room below blackout for it to grow on resize.
+    const whiteout = await drawRedaction(page, 'Whiteout', { x: 0.18, y: 0.16 }, { x: 0.38, y: 0.22 });
+    const blackout = await drawRedaction(page, 'Blackout', { x: 0.18, y: 0.28 }, { x: 0.38, y: 0.34 });
+    const blur = await drawRedaction(page, 'Blur', { x: 0.2, y: 0.42 }, { x: 0.36, y: 0.48 });
+
     await selectRedaction(blackout);
     await expect(blackout.locator('.sign-element-resizer')).toHaveCount(8);
 
@@ -185,26 +191,12 @@ test.describe('Redact editor browser guardrails', () => {
     expect(afterResize.height).toBeGreaterThan(beforeResize.height + 20);
     await expectWithinPage(blackout, overlay);
 
-    await dragBy(page, blackout, 2000, -2000);
-    await expectWithinPage(blackout, overlay);
-  });
-
-  test('gives blur redactions the same eight page-bounded resize handles', async ({ page }) => {
-    await openRedactTool(page);
-
-    const overlay = page.locator('.redact-draw-area').first();
-    const blur = await drawRedaction(page, 'Blur', { x: 0.2, y: 0.39 }, { x: 0.36, y: 0.48 });
     await selectRedaction(blur);
     await expect(blur.locator('.sign-element-resizer')).toHaveCount(8);
 
     await dragBy(page, blur, 2000, -2000);
     await expectWithinPage(blur, overlay);
-  });
 
-  test('uses the floating toolbar and independent white fill for whiteout redactions', async ({ page }) => {
-    await openRedactTool(page);
-
-    const whiteout = await drawRedaction(page, 'Whiteout', { x: 0.18, y: 0.22 }, { x: 0.38, y: 0.31 });
     await selectRedaction(whiteout);
     await expect(whiteout.locator('.sign-element-resizer')).toHaveCount(8);
     await expect(whiteout.locator('.redact-element-btn')).toHaveCount(0);

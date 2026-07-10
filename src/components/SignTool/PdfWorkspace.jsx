@@ -37,6 +37,7 @@ export default function PdfWorkspace({
   rememberFont,
   rememberFontSize,
   rememberDirection,
+  rememberThickness,
   lastColor = DEFAULT_COLOR_BLUE,
   lastWhiteoutColor = '#ffffff',
   lastThickness = DEFAULT_STROKE_WIDTH,
@@ -113,6 +114,7 @@ export default function PdfWorkspace({
     }
     if (fields.fontFamily) rememberFont(fields.fontFamily);
     if (fields.fontSize) rememberFontSize(fields.fontSize);
+    if (fields.strokeWidth) rememberThickness(fields.strokeWidth);
     if (element?.type === 'text') {
       if (fields.textDirection) {
         rememberDirection(fields.textDirection);
@@ -121,7 +123,7 @@ export default function PdfWorkspace({
         if (typedDirection) rememberDirection(typedDirection);
       }
     }
-  }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection]);
+  }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness]);
 
   const makeOnSelect = useCallback((id) => (e) => {
     e.stopPropagation();

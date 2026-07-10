@@ -44,6 +44,7 @@ describe('PdfWorkspace Component', () => {
       rememberFont: vi.fn(),
       rememberFontSize: vi.fn(),
       rememberDirection: vi.fn(),
+      rememberThickness: vi.fn(),
       logAction: vi.fn(),
       handleSavePdf: vi.fn(),
       setAnnouncement: vi.fn(),
@@ -279,6 +280,53 @@ describe('PdfWorkspace Component', () => {
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
     });
     expect(rememberDirection).toHaveBeenCalledWith('ltr');
+  });
+
+  it('remembers edited shape thickness for the next placed shape', () => {
+    const dispatch = vi.fn();
+    const rememberThickness = vi.fn();
+    const state = {
+      selectedTool: null,
+      elements: [{
+        id: 'rect-1',
+        type: 'rectangle',
+        pageIndex: 0,
+        left: 20,
+        top: 20,
+        width: 12,
+        height: 6,
+        color: '#1463ff',
+        strokeWidth: 3
+      }],
+      activeElementId: 'rect-1',
+      actionHistory: []
+    };
+
+    host = mount(
+      <SignToolContext.Provider value={{ state, dispatch }}>
+        <PdfWorkspace {...defaultProps({ rememberThickness })} />
+      </SignToolContext.Provider>
+    );
+
+    const thicknessTrigger = host.querySelector('button[title="Line thickness"]');
+    expect(thicknessTrigger).not.toBeNull();
+    act(() => {
+      thicknessTrigger.click();
+    });
+
+    const thickOption = document.body.querySelector('.sign-thickness-item[title="12px thickness"]');
+    expect(thickOption).not.toBeNull();
+    act(() => {
+      thickOption.click();
+    });
+
+    // Bug: editing an existing shape's thickness must be remembered for the
+    // next shape placement, same as color/font/direction already are.
+    expect(rememberThickness).toHaveBeenCalledWith(12);
+    expect(dispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_ELEMENT',
+      payload: { id: 'rect-1', changes: { strokeWidth: 12 } }
+    });
   });
 
   it('keeps whiteout color independent from the active text/shape color defaults', () => {

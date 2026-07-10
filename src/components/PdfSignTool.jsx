@@ -291,6 +291,11 @@ function PdfSignToolInner() {
     }
   };
 
+  // Remember the stroke thickness last picked for a shape, for future placements
+  const rememberThickness = (strokeWidth) => {
+    setLastThickness(strokeWidth);
+  };
+
   // Remember the text direction last manually toggled, for future placements
   const rememberDirection = (textDirection) => {
     setLastDirection(textDirection);
@@ -480,16 +485,6 @@ function PdfSignToolInner() {
     setTempPlacement(null);
   };
 
-  // Update element position or content
-  const updateElement = (id, changes) => {
-    dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes } });
-    if (changes.color) setLastColor(changes.color);
-    if (changes.fontFamily) setLastFont(changes.fontFamily);
-    if (changes.fontSize) setLastFontSize(changes.fontSize);
-    if (changes.textDirection !== undefined) setLastDirection(changes.textDirection);
-    if (changes.strokeWidth) setLastThickness(changes.strokeWidth);
-  };
-
   // Delete placed element
   const deleteElement = (id) => {
     const el = elements.find(e => e.id === id);
@@ -645,6 +640,7 @@ function PdfSignToolInner() {
           rememberFont={rememberFont}
           rememberFontSize={rememberFontSize}
           rememberDirection={rememberDirection}
+          rememberThickness={rememberThickness}
           lastColor={lastColor}
           lastWhiteoutColor={lastWhiteoutColor}
           lastThickness={lastThickness}
