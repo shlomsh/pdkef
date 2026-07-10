@@ -75,8 +75,8 @@ const HeroIcon = tools[0].icon;
     {/* App Grid for all tools */}
     <div class="mx-auto mb-12 flex max-w-[1080px] flex-wrap justify-center gap-6 p-6">
       {tools.map((tool) => (
-        <a href={tool.href} class="app-card relative flex w-20 shrink-0 cursor-pointer flex-col items-center gap-3 text-inherit no-underline outline-none">
-          <div class="app-tile">
+        <a href={tool.href} class="app-card group relative flex w-20 shrink-0 cursor-pointer flex-col items-center gap-3 text-inherit no-underline outline-none first:[&_.app-tile]:bg-[linear-gradient(150deg,var(--color-primary-hover),var(--color-primary))] last:[&_.app-tile]:bg-[linear-gradient(150deg,var(--color-surface),var(--color-success-soft))] last:[&_.app-tile]:text-[var(--color-success)]">
+          <div class="app-tile flex size-16 items-center justify-center rounded-[18px] bg-[linear-gradient(150deg,var(--color-muted-light),var(--color-border-strong))] text-[var(--color-surface)] shadow-[0_8px_18px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)] transition-[transform_0.4s_var(--ease-spring),box-shadow_0.4s_var(--ease-out),background-color_0.2s_var(--ease-out)] group-hover:rotate-1 group-hover:scale-[1.04] group-hover:-translate-y-[3px] group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)] group-hover:shadow-[0_12px_20px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)] group-focus-visible:rotate-1 group-focus-visible:scale-[1.04] group-focus-visible:-translate-y-[3px] group-focus-visible:bg-[var(--color-primary)] group-focus-visible:text-[var(--color-surface)] group-focus-visible:shadow-[0_12px_20px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)] group-active:scale-95 group-active:translate-y-0 group-active:shadow-[0_4px_10px_-4px_var(--color-primary-ring)] group-active:transition-[transform_0.1s_ease,box-shadow_0.1s_ease] [&_svg]:block [&_svg]:size-[55%] [&_svg]:transition-transform [&_svg]:duration-[400ms] [&_svg]:ease-[var(--ease-spring)] group-hover:[&_svg]:-rotate-1 group-hover:[&_svg]:scale-[1.08] group-focus-visible:[&_svg]:-rotate-1 group-focus-visible:[&_svg]:scale-[1.08]">
             <tool.icon strokeWidth={1.5} />
           </div>
           <div class="text-center text-[0.8rem] font-semibold leading-[1.25] text-[var(--color-muted)]">{tool.gridTitle}</div>
@@ -313,54 +313,6 @@ const HeroIcon = tools[0].icon;
 </BaseLayout>
 
 <style>
-  .app-tile {
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(150deg, var(--color-muted-light), var(--color-border-strong));
-    box-shadow: 0 8px 18px -8px var(--color-primary-ring), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    transition: transform 0.4s var(--ease-spring), box-shadow 0.4s var(--ease-out), background-color 0.2s var(--ease-out);
-    color: var(--color-surface);
-  }
-
-  .app-card:first-child .app-tile {
-    background: linear-gradient(150deg, var(--color-primary-hover), var(--color-primary));
-  }
-
-  .app-card:last-child .app-tile {
-    background: linear-gradient(150deg, var(--color-surface), var(--color-success-soft));
-    color: var(--color-success);
-  }
-
-  .app-card:hover .app-tile,
-  .app-card:focus-visible .app-tile {
-    background: var(--color-primary);
-    color: var(--color-surface);
-    transform: translateY(-3px) scale(1.04) rotate(1deg);
-    box-shadow: 0 12px 20px -8px var(--color-primary-ring), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  }
-
-  .app-tile svg {
-    display: block;
-    width: 55%;
-    height: 55%;
-    transition: transform 0.4s var(--ease-spring);
-  }
-
-  .app-card:hover .app-tile svg,
-  .app-card:focus-visible .app-tile svg {
-    transform: scale(1.08) rotate(-1deg);
-  }
-
-  .app-card:active .app-tile {
-    transform: translateY(0) scale(0.95);
-    box-shadow: 0 4px 10px -4px var(--color-primary-ring);
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
-  }
-
   .app-tooltip {
     position: absolute;
     bottom: calc(100% + 14px);
