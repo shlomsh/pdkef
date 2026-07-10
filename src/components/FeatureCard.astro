@@ -6,68 +6,21 @@ interface Props {
 }
 
 const { id, class: className = '', variant = 'default' } = Astro.props;
+
+const baseClasses = [
+  'mt-16 box-border w-full max-w-[1032px] mx-auto rounded-[var(--radius-lg)] px-10 py-14',
+  'last:mb-16',
+  'max-[1080px]:mx-6 max-[1080px]:w-auto',
+  'max-[640px]:px-6 max-[640px]:py-10',
+  'min-[768px]:mt-24 min-[768px]:flex min-[768px]:min-h-[calc(100vh-6rem)] min-[768px]:flex-col min-[768px]:justify-center min-[768px]:last:mb-24',
+];
+
+const variantClasses = variant === 'highlight'
+  ? 'border border-[var(--color-primary-tint)] bg-[linear-gradient(135deg,var(--color-primary-soft)_0%,var(--color-bg)_100%)]'
+  : 'border border-[var(--color-border)] bg-[var(--color-surface)]';
 ---
-<section id={id} class:list={['feature-card', `variant-${variant}`, className]}>
-  <div class="feature-card-inner">
+<section id={id} class:list={[baseClasses, variantClasses, className]}>
+  <div class="w-full">
     <slot />
   </div>
 </section>
-
-<style>
-  .feature-card {
-    margin-top: 4rem;
-    padding: 3.5rem 2.5rem;
-    border-radius: var(--radius-lg);
-    max-width: 1032px;
-    margin-left: auto;
-    margin-right: auto;
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  .variant-default {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-  }
-
-  .variant-highlight {
-    background: linear-gradient(135deg, var(--color-primary-soft) 0%, var(--color-bg) 100%);
-    border: 1px solid var(--color-primary-tint);
-  }
-
-  .feature-card-inner {
-    width: 100%;
-  }
-
-  .feature-card:last-of-type {
-    margin-bottom: 4rem;
-  }
-
-  @media (max-width: 1080px) {
-    .feature-card {
-      margin-left: 1.5rem;
-      margin-right: 1.5rem;
-      width: auto;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .feature-card {
-      padding: 2.5rem 1.5rem;
-    }
-  }
-
-  @media (min-width: 768px) {
-    .feature-card {
-      min-height: calc(100vh - 6rem);
-      margin-top: 6rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-    
-    .feature-card:last-of-type {
-      margin-bottom: 6rem;
-    }
-  }
-</style>
