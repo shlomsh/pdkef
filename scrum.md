@@ -378,6 +378,13 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
 
 ## E4 - Headless TS editor core  ·  *Lane E, internally serial, parallel to E2/E3*
 
+> **Full low-level design for this epic (E4.2–E4.4):
+> [docs/E4-headless-editor-core-plan.md](./docs/E4-headless-editor-core-plan.md)** — grounded in the
+> current gesture/registry/substrate code (target `src/editor/` layout, per-type behavior inventory, the
+> Sign/Redact model reconciliation, and the golden-rule fix). Read it before starting E4.2. Key finding
+> it surfaces: the golden rule is violated today by Sign's *creation* path **and all three** Redact
+> gesture paths (not just "resize was inline"), so the unified controller must cover create as well.
+
 - **E4.1 Introduce TypeScript. - done.** Installed `typescript@6.0.3` + `@astrojs/check@0.9.9` (dev deps,
   0 new `npm audit` vulns); pinned TS to `^6` since npm's default `typescript@7.0.2` falls outside
   `@astrojs/check@0.9.9`'s peer range (`^5.0.0 || ^6.0.0`) - Astro itself was never a factor, still pinned
@@ -395,22 +402,39 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   `npm run typecheck` is now project-wide error-free (hints only).
   - *Depends on:* - · *Lane:* E
 - **E4.2 Extract a framework-agnostic `editor/` core** (document model + geometry + gesture
-  controllers) with **one** "imperative-during, commit-on-release" controller unifying drag **and**
-  resize, so they can't diverge again (ARCHITECTURE §3.2, §4). Preact becomes a thin render/event shell.
+  controllers) with **one** "imperative-during, commit-on-release" controller unifying drag, resize
+  **and create**, so they can't diverge again (ARCHITECTURE §3.2, §4). Preact becomes a thin
+  render/event shell. **Low-level design: [plan §2, §3](./docs/E4-headless-editor-core-plan.md).**
   - *Depends on:* E4.1, E0.1 · *Lane:* E
-- **E4.3 Per-element-type registry** - each type a module `{ render, resizeBehavior, serialize, schema }`;
-  removes the `type === 'line'` / `!isLine` branching in `handleResizeMove`. *(Supersedes the old
-  lighter `geometryKind` half-measure - the registry is the chosen fix; per-type `nodes/` already exist
-  as the seam.)*
+  - *Acceptance:* drag, resize **and create** each commit **once per gesture** (`console.count` proof —
+    create fails today); E1.5 invariants + Sign e2e green with no source math rewritten (moved, not
+    changed); `build && preview` CSP pass, zero `securitypolicyviolation`.
+- **E4.3 Per-element-type registry** - each type a module `{ create, render, resizeBehavior, serialize,
+  schema }`; removes the `type === 'line'` / `!isLine` / `isShape` branching in `handleResizeMove` and
+  the `DRAG_DRAWN_TOOLS` list. *(Supersedes the old lighter `geometryKind` half-measure - the registry
+  is the chosen fix; per-type `nodes/` already exist as the seam.)* **Low-level design + full per-type
+  behavior inventory: [plan §1c, §4](./docs/E4-headless-editor-core-plan.md).**
   - *Depends on:* E4.2 · *Lane:* E
   - *Acceptance (sharpened by the whiteout-resize post-mortem):* **no shared function post-processes
     geometry across handles or types** - each type's `resizeBehavior` owns its own per-handle bounds,
     expressed against that handle's true anchor edge, so a clamp change to one type cannot corrupt
     another (the exact failure mode of `434e844`). Every type's `resizeBehavior` is covered by the E1.5
-    invariants.
+    invariants. **Duplication proof:** `git grep -l "maxWidthFromRightGrowth\|maxHeightFromBottomGrowth"
+    -- 'src/**'` (baseline **2 files**) must no longer list `DraggableWrapper.jsx` — the Sign shape
+    branch is deleted in favor of a registry lookup (Redact's copy is retired in E4.4).
 - **E4.4 Converge Sign and Redact** onto the shared core + a common PDF-workspace substrate
-  (load, page render, draft persistence), removing duplication.
+  (load, page render, draft persistence), removing duplication. Reconcile the two element models
+  (Redact's `style` field vs the `type` union - fold `blackout`/`blur`/`whiteout` into the registry)
+  and move Redact's per-move-dispatch gestures onto the golden-rule controller. **Low-level design +
+  model reconciliation + bake-out seam: [plan §1d, §1e, §5](./docs/E4-headless-editor-core-plan.md).**
   - *Depends on:* E4.2, E4.3 · *Lane:* E
+  - *Acceptance:* Redact drag/resize/create each commit **once per gesture** (`console.count` proof — all
+    three fail today); the shape-resize math has **exactly one owner** — `git grep -l
+    "maxWidthFromRightGrowth\|maxHeightFromBottomGrowth" -- 'src/**'` returns **1 file** (down from 2),
+    in `src/editor/`, not the tools (wire as a one-line CI guard, ARCHITECTURE §6); `blackout`/`blur`/
+    `whiteout` are registry types (the `style` field + `type:'whiteout'` shim are gone); redaction stays
+    destructively flattened (not a cosmetic overlay); Sign+Redact e2e + `build && preview` CSP pass;
+    draft autosave/restore + `draftRestoreRace.test.jsx` still green.
 
 ## E5 - Documentation  ·  *mostly done this session*
 

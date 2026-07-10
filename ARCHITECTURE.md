@@ -94,34 +94,71 @@ as inline conditional utility strings. State lives once (a class on the parent);
 Today the editor is already well-decomposed on the JS side - extracted hooks
 (`useDraggableElement.js`, `usePdfCoordinates.js`, `useWorkspaceGestures.js`), a context
 (`SignToolContext.jsx`), per-type node components (`SignTool/nodes/*`), and centralized geometry
-constants (`constants/signGeometry.js`). The gap is that these are Preact-coupled and the **drag path
-is extracted into a hook while the resize path is still inline** in `DraggableWrapper.jsx` - the very
-asymmetry that let the two diverge in performance.
+constants (`constants/signGeometry.js`). But that decomposition is **cosmetic, not structural** - the
+same behavior is implemented several times, and nothing forces the copies to agree. Three concrete
+symptoms, all verified in the current code (see the full audit in
+[docs/E4-headless-editor-core-plan.md](./docs/E4-headless-editor-core-plan.md) §1):
 
-Target: consolidate into a headless `editor/` core (plain TS) that owns:
+1. **The golden rule is obeyed by only *some* gesture paths.** It is not simply "drag was extracted, resize
+   stayed inline." Sign's **drag** (`useDraggableElement.js`) and **resize** (`DraggableWrapper.jsx`)
+   obey it; but Sign's **creation** path (`useWorkspaceGestures.js` dispatches `UPDATE_ELEMENT` per
+   `pointermove`) and **all three** Redact gesture paths (`PdfRedactTool.jsx` drag/resize/create commit
+   state per move) do **not**. The rule lives as a convention each of six code paths can break
+   independently - and half of them do.
+2. **The resize math is physically duplicated.** The per-handle, anchor-preserving shape-resize
+   arithmetic exists near-verbatim in two files - `DraggableWrapper.jsx` (Sign) and `PdfRedactTool.jsx`
+   (`handleBoxResizeStart`, Redact). It has already drifted once: the whiteout-off-page regression
+   (`ea10349`) was the Redact copy lagging the Sign fix (`ca411be`). Two copies of a clamp is one copy
+   too many. (Fingerprint: `git grep -l maxWidthFromRightGrowth` returns 2 files today; the target is 1.)
+3. **Two element models with different discriminants.** Sign keys on `type` (`editorModel.ts`); Redact
+   keys on a separate `style` field (`blackout|blur|whiteout`) and smuggles a `type:'whiteout'` shim
+   through `RedactBox` to reuse shared UI. The two editors can't share code until they share a model.
 
-- **Document model** - elements as typed data; one schema per element type.
-- **Geometry math** - pure functions, seeded from `usePdfCoordinates` + `signGeometry` constants.
-- **Gesture controllers** - drag, resize, and create behind **one** "imperative-during,
-  commit-on-release" abstraction, so both paths follow the golden rule and can never drift again.
+**Why a headless core is the fix, not just tidier files.** Extracting hooks moved code around but left
+every invariant as prose the next path can ignore. A framework-agnostic `editor/` core (plain TS) makes
+each invariant *structural*:
+
+- **Document model** - elements as one typed union; one schema per type. Sign and Redact converge on it,
+  so the model divergence (symptom 3) becomes a compile error, not a runtime shim.
+- **Geometry math** - pure functions, seeded from `usePdfCoordinates` + `signGeometry` constants, with
+  **one owner per element type** (the registry). Duplicated math (symptom 2) becomes impossible: there
+  is nowhere to put a second copy, and a clamp scoped to one type's module cannot corrupt another (the
+  exact failure mode of the whiteout regression - see §5).
+- **Gesture controllers** - drag, resize, **and create** behind **one** "imperative-during,
+  commit-on-release" abstraction. The golden rule stops being a convention and becomes the *only* path a
+  gesture can take (symptom 1): every gesture commits exactly once, on release, because the single
+  controller is what commits.
 
 Preact then only renders from state and binds events to the core. Sign and Redact share the core and
 a common PDF-workspace substrate (load, page render, draft persistence), removing today's duplication.
+This is the step-function change: the editor can be re-architected freely behind the island wall
+(§1.1), so the payoff - "a new element type or a bounds fix can no longer break an unrelated one" -
+comes at no risk to SEO or privacy.
 
 ---
 
 ## 4. Gesture golden rule (folded from the retired learnings doc)
 
 > During a gesture, mutate the DOM directly for real-time feedback. Commit React state **once**, on
-> release. Never route continuous drag/resize through reactive state.
+> release. Never route continuous drag/resize/**create** through reactive state.
+
+The rule governs **three** gesture kinds, not two: **drag** (move), **resize** (all handles), and
+**create** (click-place or drag-draw a new element). All three are continuous pointer interactions;
+all three must mutate the DOM live and commit once.
 
 - ✅ `handlePointerMove` writes `element.style.transform` (drag) or `.width/.height/.left/.top`
   and SVG `x1/y1/x2/y2` (resize) directly; accumulates the final value in a local.
 - ✅ `handlePointerUp` calls `onChange(final)` exactly once, then clears inline overrides.
-- ❌ Calling `onChange(...)` inside `pointermove` (per-pixel state dispatch) - this is the
-  reconciliation thrash. Historically the **drag** path obeyed the rule but the **resize** path did
-  not; unifying them under one controller (§3.2) is what makes the rule structural rather than
-  a convention two code paths can violate independently.
+- ❌ Calling `onChange(...)`/`dispatch(...)`/`setState(...)` inside `pointermove` (per-pixel state
+  dispatch) - this is the reconciliation thrash.
+- **Current reality (the thing E4 fixes):** only Sign's **drag** and **resize** obey the rule. Sign's
+  **create** path (`useWorkspaceGestures.handleOverlayPointerDown` dispatches `UPDATE_ELEMENT` per
+  move) and **all three** Redact gesture paths (`PdfRedactTool.jsx` commits `updateElement` /
+  `setDrawingState` per move) violate it. So the rule is not a two-path convention - it is a
+  *six-path* convention that half the paths already break. Unifying every path under **one** controller
+  (§3.2) is what makes the rule structural: a gesture commits once because the single controller is the
+  only thing that commits. A per-gesture `console.count` on the commit is the acceptance proof (it ticks
+  once per gesture only after E4.2/E4.4; it ticks per frame on the four violating paths today).
 
 ---
 
