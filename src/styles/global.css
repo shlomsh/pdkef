@@ -7,6 +7,9 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 @import "tailwindcss/utilities.css" layer(utilities);
+@source not "../**/*.jsx";
+@source not "../**/*.test.js";
+@source not "../../e2e/**/*.js";
 
 /* --- Handwriting Fonts --- */
 @font-face {

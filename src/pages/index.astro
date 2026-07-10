@@ -33,13 +33,13 @@ const HeroIcon = tools[0].icon;
   </Fragment>
 
   <AppBar isHome />
-  <div class="first-fold-wrapper">
-    <header class="hub-header">
-      <div class="title-row">
-        <img src="/favicon.png" width="56" height="56" alt="" aria-hidden="true" class="title-logo" />
-        <h1>Free PDF tools that run <span class="h1-accent">on your device</span></h1>
+  <div class="bg-[linear-gradient(180deg,var(--color-bg),var(--color-primary-tint))] pb-12 min-[1024px]:flex min-[1024px]:min-h-screen min-[1024px]:flex-col min-[1024px]:justify-center min-[1024px]:box-border min-[1024px]:py-6">
+    <header class="px-6 pb-8 pt-14 min-[1024px]:px-0 min-[1024px]:pb-7 min-[1024px]:pt-2">
+      <div class="mb-3 flex items-center justify-center gap-4">
+        <img src="/favicon.png" width="56" height="56" alt="" aria-hidden="true" class="shrink-0" />
+        <h1 class="mb-0 text-left leading-[1.1] tracking-normal min-[1024px]:text-[2.5rem]">Free PDF tools that run <span class="text-[var(--color-primary)]">on your device</span></h1>
       </div>
-      <p>Merge, sign, split, and compress PDFs without signing up, installing anything, or uploading a single file. Everything runs in your browser, on your phone or computer, so your files never leave your device.</p>
+      <p class="mx-auto max-w-[54rem] min-[1024px]:mt-[0.6rem] min-[1024px]:text-[1rem]">Merge, sign, split, and compress PDFs without signing up, installing anything, or uploading a single file. Everything runs in your browser, on your phone or computer, so your files never leave your device.</p>
       
       <div class="mt-6 flex flex-wrap justify-center gap-[0.6rem]">
         <a class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-text)] no-underline transition-[border-color,transform,color] duration-150 ease-[var(--ease-out)] hover:-translate-y-px hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">
@@ -68,18 +68,18 @@ const HeroIcon = tools[0].icon;
 
   <main>
     {/* Large Dropzone CTA */}
-    <div class="merge-tool merge-tool-cta">
+    <div class="merge-tool mx-auto mb-16 box-border max-w-[1032px] p-6">
       <FileDropzone client:load href="/sign?action=open" toolTarget="sign" />
     </div>
 
     {/* App Grid for all tools */}
-    <div class="appgrid">
+    <div class="mx-auto mb-12 flex max-w-[1080px] flex-wrap justify-center gap-6 p-6">
       {tools.map((tool) => (
-        <a href={tool.href} class="app-card">
+        <a href={tool.href} class="app-card relative flex w-20 shrink-0 cursor-pointer flex-col items-center gap-3 text-inherit no-underline outline-none">
           <div class="app-tile">
             <tool.icon strokeWidth={1.5} />
           </div>
-          <div class="app-lbl">{tool.gridTitle}</div>
+          <div class="text-center text-[0.8rem] font-semibold leading-[1.25] text-[var(--color-muted)]">{tool.gridTitle}</div>
           <span class="app-tooltip">{tool.gridDescription}</span>
         </a>
       ))}
@@ -313,64 +313,6 @@ const HeroIcon = tools[0].icon;
 </BaseLayout>
 
 <style>
-  .h1-accent { color: var(--color-primary); }
-
-  .merge-tool-cta {
-    max-width: 1032px;
-    margin: 0 auto 4rem;
-    padding: 1.5rem;
-    box-sizing: border-box;
-  }
-
-  .hub-header { padding: 3.5rem 1.5rem 2rem; }
-
-  .title-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .title-logo { flex-shrink: 0; }
-
-  .hub-header h1 {
-    margin-bottom: 0;
-    text-align: left;
-    line-height: 1.1;
-    letter-spacing: 0;
-  }
-
-  .hub-header p {
-    max-width: 54rem;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .appgrid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 24px;
-    max-width: 1080px;
-    margin: 0 auto 3rem;
-    padding: 1.5rem;
-  }
-
-  .app-card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    width: 80px;
-    flex-shrink: 0;
-    cursor: pointer;
-    text-decoration: none;
-    color: inherit;
-    outline: none;
-  }
-
   .app-tile {
     width: 64px;
     height: 64px;
@@ -417,14 +359,6 @@ const HeroIcon = tools[0].icon;
     transform: translateY(0) scale(0.95);
     box-shadow: 0 4px 10px -4px var(--color-primary-ring);
     transition: transform 0.1s ease, box-shadow 0.1s ease;
-  }
-
-  .app-lbl {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--color-muted);
-    text-align: center;
-    line-height: 1.25;
   }
 
   .app-tooltip {
@@ -484,25 +418,4 @@ const HeroIcon = tools[0].icon;
     }
   }
 
-
-
-  .first-fold-wrapper {
-    background: linear-gradient(180deg, var(--color-bg), var(--color-primary-tint));
-    padding-bottom: 3rem;
-  }
-
-  @media (min-width: 1024px) {
-    .first-fold-wrapper {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      box-sizing: border-box;
-      padding: 1.5rem 0;
-    }
-
-    .hub-header { padding: 0.5rem 0 1.75rem; }
-    .hub-header h1 { font-size: 2.5rem; }
-    .hub-header p { font-size: 1rem; margin-top: 0.6rem; }
-  }
 </style>

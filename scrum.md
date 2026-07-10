@@ -204,11 +204,12 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   `FeatureCard`, `ToolHero`, `AppBar`, `Footer`). No editor components.
   - *Depends on:* E3.1, E1.1, E1.2 · *Lane:* D
   - *Progress:* E3.1 scaffold, `FeatureCard`, `Footer`, `ToolHero`, `AppBar`, tool-page content cards,
-    and the home Why/Autosave/offline/open-source sections plus `licenses` and `404` now use utilities.
-    The generated maximum is `79,180 / 80,000` bytes. The animation-heavy home first-fold/tool grid
-    remains scoped for now because its direct utility conversion exceeded the budget. The CSS-first setup
-    imports utilities only and defines the project spacing/font tokens, avoiding Tailwind's unused default
-    palette and Preflight.
+    and the home first-fold layout/grid structure, Why/Autosave/offline/open-source sections plus `licenses`
+    and `404` now use utilities. The generated maximum is `78,268 / 80,000` bytes. The home grid's
+    tile/tooltip animation rules remain scoped because their direct utility conversion exceeded the budget.
+    The CSS-first setup imports utilities only, excludes JSX and test sources from scanning because the
+    editor has no Tailwind surface, and defines the project spacing/font tokens, avoiding Tailwind's unused
+    default palette and Preflight.
 
 ## E4 - Headless TS editor core  ·  *Lane E, internally serial, parallel to E2/E3*
 
