@@ -6,6 +6,7 @@ import path from 'path';
 import PdfRedactTool from './PdfRedactTool.jsx';
 import { redactPdf } from '../lib/redact.js';
 import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
+import dropzoneStyles from './Dropzone.module.css';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -52,7 +53,7 @@ describe('PdfRedactTool UI flow', () => {
       render(<PdfRedactTool />, container);
     });
 
-    const dropzone = container.querySelector('.dropzone');
+    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Select or drop a PDF to redact');
   });
