@@ -89,43 +89,43 @@ const HeroIcon = tools[0].icon;
 
     <FeatureCard class="relative isolate overflow-hidden">
       <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} />
-      <div class="whypdkef-layout">
-        <div class="whypdkef-copy">
-          <span class="whypdkef-tag">Why I made this</span>
-          <h2>The tools I wanted, shared with everyone</h2>
-          <p>
+      <div class="flex items-stretch gap-12 max-[768px]:flex-col max-[768px]:gap-8">
+        <div class="min-w-0 flex-[1.2]">
+          <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase tracking-normal text-[var(--color-primary)]">Why I made this</span>
+          <h2 class="mb-4 mt-0 text-[1.6rem] font-bold tracking-normal text-[var(--color-text)]">The tools I wanted, shared with everyone</h2>
+          <p class="mb-4 mt-0 max-w-[800px] text-[0.98rem] leading-[1.6] text-[var(--color-text)]">
             It started with a couple of ordinary errands. Someone close to me needed to combine a stack of course slides into one PDF before an exam, and to sign a summer-camp form that had arrived over WhatsApp. Simple things. But every tool we tried either capped the pages, wanted a subscription and a Windows install, or looked like the last place you would want to send a personal document.
           </p>
-          <p>
+          <p class="mb-4 mt-0 max-w-[800px] text-[0.98rem] leading-[1.6] text-[var(--color-text)]">
             So I built the PDF tools I wanted for myself. Then I realised I wanted to share them. I believe simple, everyday tools like these should just be free and available to everyone, with no account, no paywall, and nothing uploaded to anyone's server.
           </p>
-          <p class="whypdkef-detail">
+          <p class="mb-4 mt-0 max-w-[800px] text-[0.92rem] leading-[1.6] text-[var(--color-muted)]">
             That is why PDkef runs entirely in your browser. There is no server to send your files to, which is what keeps it private and cheap enough to stay free for good. And it is open source, so you never have to take my word for any of it.
           </p>
-          <p class="whypdkef-signature">
-            <a href="https://shlomsh.github.io/readme/" target="_blank" rel="noopener noreferrer">Shlomi</a>
+          <p class="mb-0 mt-5 text-[0.9rem] italic text-[var(--color-muted)]">
+            <a class="font-semibold not-italic text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://shlomsh.github.io/readme/" target="_blank" rel="noopener noreferrer">Shlomi</a>
           </p>
         </div>
-        <div class="whypdkef-proof">
-          <div class="whypdkef-feat">
-            <div class="whypdkef-feat-icon"><InfinityIcon size={20} strokeWidth={2} /></div>
-            <div class="whypdkef-feat-text">
-              <strong>Free Forever</strong>
-              <span>No limits, no catch</span>
+        <div class="flex flex-1 flex-col justify-center overflow-hidden rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+          <div class="group flex items-center gap-4 px-6 py-5 transition-colors duration-[250ms] ease-[var(--ease-out)] hover:bg-[var(--color-primary-tint)]">
+            <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-[var(--ease-out)] group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><InfinityIcon size={20} strokeWidth={2} /></div>
+            <div class="flex min-w-0 flex-col gap-[0.2rem]">
+              <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Free Forever</strong>
+              <span class="text-[0.85rem] text-[var(--color-muted)]">No limits, no catch</span>
             </div>
           </div>
-          <div class="whypdkef-feat">
-            <div class="whypdkef-feat-icon"><Lock size={20} strokeWidth={2} /></div>
-            <div class="whypdkef-feat-text">
-              <strong>Private</strong>
-              <span>Files never leave your device</span>
+          <div class="group flex items-center gap-4 border-t border-[var(--color-border)] px-6 py-5 transition-colors duration-[250ms] ease-[var(--ease-out)] hover:bg-[var(--color-primary-tint)]">
+            <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-[var(--ease-out)] group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><Lock size={20} strokeWidth={2} /></div>
+            <div class="flex min-w-0 flex-col gap-[0.2rem]">
+              <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Private</strong>
+              <span class="text-[0.85rem] text-[var(--color-muted)]">Files never leave your device</span>
             </div>
           </div>
-          <div class="whypdkef-feat">
-            <div class="whypdkef-feat-icon"><Code2 size={20} strokeWidth={2} /></div>
-            <div class="whypdkef-feat-text">
-              <strong>Open Source</strong>
-              <span>Audit the code yourself</span>
+          <div class="group flex items-center gap-4 border-t border-[var(--color-border)] px-6 py-5 transition-colors duration-[250ms] ease-[var(--ease-out)] hover:bg-[var(--color-primary-tint)]">
+            <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-[var(--ease-out)] group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><Code2 size={20} strokeWidth={2} /></div>
+            <div class="flex min-w-0 flex-col gap-[0.2rem]">
+              <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Open Source</strong>
+              <span class="text-[0.85rem] text-[var(--color-muted)]">Audit the code yourself</span>
             </div>
           </div>
         </div>
@@ -134,25 +134,25 @@ const HeroIcon = tools[0].icon;
 
     <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
       <CardDecor sketch="waves" icon={HardDriveDownload} iconPos="cr" iconSize={300} />
-      <div class="autosave-layout">
-        <div class="autosave-visual" aria-hidden="true">
-          <div class="autosave-doc">
+      <div class="flex items-center gap-12 max-[768px]:flex-col-reverse max-[768px]:gap-8">
+        <div class="relative flex min-h-[150px] w-full flex-[0.8] items-center justify-center" aria-hidden="true">
+          <div class="relative flex h-[120px] w-[160px] flex-col gap-2 rounded-[var(--radius-sm)] border-[1.5px] border-[var(--color-primary-soft)] bg-[var(--color-surface)] px-4 py-5 shadow-[var(--shadow-sm)]">
             <div class="doc-line short"></div>
             <div class="doc-line"></div>
             <div class="doc-line medium"></div>
-            <div class="autosave-badge">
-              <span class="pulse-dot"></span>
+            <div class="absolute -bottom-2.5 -right-2.5 inline-flex items-center gap-[0.35rem] rounded-[var(--radius-pill)] border border-[color-mix(in_srgb,var(--color-success)_20%,transparent)] bg-[var(--color-success-soft)] px-[0.6rem] py-[0.3rem] text-[0.7rem] font-semibold text-[var(--color-success)] shadow-[var(--shadow-sm)]">
+              <span class="size-1.5 rounded-full bg-[var(--color-success)] animate-[pulse_2s_infinite]"></span>
               Autosaved to device
             </div>
           </div>
         </div>
-        <div class="autosave-content">
-          <span class="autosave-tag">Privacy & Convenience</span>
-          <h2>Work survives restarts and crashes</h2>
-          <p>
+        <div class="flex-[1.2]">
+          <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase tracking-normal text-[var(--color-primary)]">Privacy & Convenience</span>
+          <h2 class="mb-4 mt-0 text-[1.6rem] font-bold tracking-normal text-[var(--color-text)]">Work survives restarts and crashes</h2>
+          <p class="mb-4 mt-0 text-[0.98rem] leading-[1.6] text-[var(--color-text)]">
             PDkef auto-saves your in-progress work locally to your browser's secure database. If you close the tab, restart your computer, or experience a crash, your PDF and edits are restored exactly where you left off.
           </p>
-          <p class="autosave-subtext">
+          <p class="mb-0 mt-0 text-[0.9rem] leading-[1.6] text-[var(--color-muted)]">
             Because it runs 100% on your device, we get "pick up where you left off" without sending a single byte of your file to a server. Available now in <strong>Sign & Fill</strong> and <strong>Redact & Blur</strong>.
           </p>
         </div>
@@ -515,242 +515,6 @@ const HeroIcon = tools[0].icon;
 
 
 
-  .whypdkef-tag {
-    display: inline-block;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-primary);
-    margin-bottom: 0.5rem;
-  }
-
-  .whypdkef-copy h2 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin: 0 0 1rem;
-    color: var(--color-text);
-  }
-
-  .whypdkef-copy p {
-    font-size: 0.98rem;
-    line-height: 1.6;
-    color: var(--color-text);
-    margin: 0 0 1rem;
-    max-width: 800px;
-  }
-
-  .whypdkef-detail {
-    font-size: 0.92rem;
-    color: var(--color-muted);
-  }
-
-  .whypdkef-signature {
-    font-size: 0.9rem;
-    font-style: italic;
-    color: var(--color-muted);
-    margin-top: 1.25rem;
-  }
-
-  .whypdkef-signature a {
-    font-style: normal;
-    font-weight: 600;
-    color: var(--color-primary);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  .whypdkef-signature a:hover {
-    color: var(--color-primary-hover);
-  }
-
-  .whypdkef-layout {
-    display: flex;
-    align-items: stretch;
-    gap: 3rem;
-  }
-
-  .whypdkef-copy {
-    flex: 1.2;
-    min-width: 0;
-  }
-
-  .whypdkef-copy p:last-child {
-    margin-bottom: 0;
-  }
-
-  .whypdkef-proof {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-  }
-
-  .whypdkef-feat {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.25rem 1.5rem;
-    transition: background-color 0.25s var(--ease-out);
-  }
-
-  .whypdkef-feat + .whypdkef-feat {
-    border-top: 1px solid var(--color-border);
-  }
-
-  .whypdkef-feat:hover {
-    background: var(--color-primary-tint);
-  }
-
-  .whypdkef-feat-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    flex-shrink: 0;
-    border-radius: var(--radius-sm);
-    background: var(--color-primary-soft);
-    color: var(--color-primary);
-    transition: transform 0.25s var(--ease-spring), background-color 0.25s var(--ease-out),
-      color 0.25s var(--ease-out);
-  }
-
-  .whypdkef-feat:hover .whypdkef-feat-icon {
-    background: var(--color-primary);
-    color: var(--color-surface);
-    transform: scale(1.08);
-  }
-
-  .whypdkef-feat-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    min-width: 0;
-  }
-
-  .whypdkef-feat-text strong {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--color-text);
-  }
-
-  .whypdkef-feat-text span {
-    font-size: 0.85rem;
-    color: var(--color-muted);
-  }
-
-  @media (max-width: 768px) {
-    .whypdkef-layout {
-      flex-direction: column;
-      gap: 2rem;
-    }
-  }
-
-  .autosave-layout {
-    display: flex;
-    align-items: center;
-    gap: 3rem;
-  }
-
-  @media (max-width: 768px) {
-    .autosave-layout {
-      flex-direction: column-reverse;
-      gap: 2rem;
-    }
-  }
-
-  .autosave-content {
-    flex: 1.2;
-  }
-
-  .autosave-tag {
-    display: inline-block;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-primary);
-    margin-bottom: 0.5rem;
-  }
-
-  .autosave-content h2 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin: 0 0 1rem;
-    color: var(--color-text);
-  }
-
-  .autosave-content p {
-    font-size: 0.98rem;
-    line-height: 1.6;
-    color: var(--color-text);
-    margin: 0 0 1rem;
-  }
-
-  .autosave-content p:last-child {
-    margin-bottom: 0;
-  }
-
-  .autosave-subtext {
-    font-size: 0.9rem;
-    color: var(--color-muted);
-  }
-
-  .autosave-visual {
-    flex: 0.8;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    width: 100%;
-    min-height: 150px;
-  }
-
-  .autosave-doc {
-    width: 160px;
-    height: 120px;
-    background: var(--color-surface);
-    border: 1.5px solid var(--color-primary-soft);
-    border-radius: var(--radius-sm);
-    padding: 1.25rem 1rem;
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    position: relative;
-  }
-
-  .autosave-badge {
-    position: absolute;
-    bottom: -10px;
-    right: -10px;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.3rem 0.6rem;
-    background: var(--color-success-soft);
-    border: 1px solid color-mix(in srgb, var(--color-success) 20%, transparent);
-    border-radius: var(--radius-pill);
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--color-success);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .pulse-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--color-success);
-    animation: pulse 2s infinite;
-  }
-
   @keyframes pulse {
     0% {
       transform: scale(0.95);
@@ -936,93 +700,6 @@ const HeroIcon = tools[0].icon;
       margin-top: 0.6rem;
     }
 
-    .hero-card {
-      padding: 1.25rem 2rem;
-      margin-bottom: 1.25rem;
-      gap: 2rem;
-    }
-
-    .hero-info h2 {
-      font-size: 1.5rem;
-    }
-
-    .hero-info p {
-      font-size: 0.88rem;
-    }
-
-    .hero-visual {
-      width: 160px;
-      height: 90px;
-    }
-
-    .doc-mockup {
-      width: 120px;
-      height: 80px;
-      padding: 0.75rem;
-    }
-
-    .pen-mockup {
-      width: 24px;
-      height: 24px;
-    }
-
-    .tool-grid {
-      gap: 1rem;
-    }
-
-    .tool-card {
-      padding: 1rem 1.25rem;
-    }
-
-    .tool-icon {
-      width: 40px;
-      height: 40px;
-      margin-bottom: 0.75rem;
-    }
-
-    .tool-icon svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    .tool-content h3 {
-      font-size: 1.05rem;
-      margin-bottom: 0.25rem;
-    }
-
-    .tool-content p {
-      font-size: 0.85rem;
-      line-height: 1.4;
-    }
-  }
-
-  @media (max-width: 1080px) {
-    .whypdkef-section,
-    .autosave-section,
-    .offline-section {
-      margin-left: 1.5rem;
-      margin-right: 1.5rem;
-      width: auto;
-    }
-  }
-
-  @media (min-width: 768px) {
-    .whypdkef-section,
-    .autosave-section,
-    .offline-section {
-      min-height: calc(100vh - 6rem);
-      box-sizing: border-box;
-      margin-top: 6rem;
-    }
-    
-    .whypdkef-section,
-    .offline-section,
-    .faq-section,
-    .osp-section {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
   }
   .osp-content {
     width: 100%;

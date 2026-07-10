@@ -205,9 +205,10 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   - *Depends on:* E3.1, E1.1, E1.2 · *Lane:* D
   - *Progress:* E3.1 scaffold, `FeatureCard`, and `Footer` landed. A direct `ToolHero` utility conversion
     exceeded the 80 KB CSS gate by about 1.8 KB, so establish a budget-neutral strategy before retrying it,
-    `AppBar`, tool pages, or `index.astro`. The CSS-first setup imports utilities only and defines the
-    project spacing/font tokens, avoiding Tailwind's unused default palette and Preflight. The CSS gate is
-    temporarily 82 KB during E3.2; return it to 80 KB once the shared static surface is fully migrated.
+    `AppBar`, tool pages, or the remaining `index.astro` sections. The shared hero/content-card batch and
+    home Why/Autosave sections now use utilities, and the generated maximum is back under the 80 KB gate.
+    The CSS-first setup imports utilities only and defines the project spacing/font tokens, avoiding
+    Tailwind's unused default palette and Preflight.
 
 ## E4 - Headless TS editor core  ·  *Lane E, internally serial, parallel to E2/E3*
 

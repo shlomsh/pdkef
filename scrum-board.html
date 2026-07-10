@@ -529,7 +529,7 @@ const TICKETS = [
   { id: "E3.2", epic: "E3", lane: "D", status: "in-progress", priority: "normal",
     title: "Migrate the marketing .astro surface to utilities",
     dependsOn: ["E3.1", "E1.1", "E1.2"],
-    acceptance: "IN PROGRESS: the E3.1 scaffold, FeatureCard, and Footer are on main. The shared hero/content-card batch is using a temporary 82 KB CSS ceiling while global CSS is retired; return the gate to 80 KB once E3.2 has its final utility footprint. No editor components. Keep npm run test:css as a per-slice gate." },
+    acceptance: "IN PROGRESS: the E3.1 scaffold, FeatureCard, Footer, shared hero/content-card batch, and home Why/Autosave sections are migrated. Generated CSS is back under the 80 KB gate. Remaining scope: AppBar, tool pages, and the remaining index.astro sections. No editor components. Keep npm run test:css as a per-slice gate." },
 
   // ----- E4 -----
   { id: "E4.1", epic: "E4", lane: "E", status: "done", priority: "normal",

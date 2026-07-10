@@ -46,9 +46,8 @@ for (const file of htmlFiles) {
   }
 }
 
-// Temporary E3.2 ceiling while the shared static surface moves out of global CSS.
-// Return this to 80KB once the migration has its final utility footprint.
-const MAX_CSS_SIZE_BYTES = 82000;
+// 80KB maximum threshold to prevent Tailwind monolith regressions.
+const MAX_CSS_SIZE_BYTES = 80000;
 
 if (maxCssSize > MAX_CSS_SIZE_BYTES) {
   console.error(`❌ CSS Budget exceeded! Max inline CSS size is ${maxCssSize} bytes, which exceeds the threshold of ${MAX_CSS_SIZE_BYTES} bytes.`);
