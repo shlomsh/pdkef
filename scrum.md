@@ -214,6 +214,60 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
     `styles[...]` assertions both retained); **`npm run build && npm run preview` CSP/hydration pass is
     mandatory** — this touches every island's imports/render and dev cannot catch a CSP regression; land
     via a reviewed merge to `main`, not a direct push.
+
+- **E2.2b Re-implement the E2.2 class-swaps on top of `main` (SUPERSEDES E2.2a's merge approach).**
+  A trial `git merge main` into the branch was run in a throwaway worktree and **rejected**: `main`
+  restructured `PdfRedactTool.jsx` (RedactToolbar extraction + continue-after-export/share) so heavily
+  that a "keep both" merge produced a **Frankenstein Redact file** — the branch's old inline success
+  block merged *alongside* main's new structure, leaving duplicated/orphaned download+start-over UI. The
+  branch's per-`.jsx` class-swaps are the "lost work" to redo; the CSS itself is fine. **Do E2.2b instead
+  of E2.2a**; ignore E2.2a's "merge/rebase the branch" mechanics (keep only its E2.2a.1 alignment rule).
+  - *Depends on:* E2.2 (branch `claude/e2.2-css-modules-wave-a`, head `9655073`, concluded) · *Lane:* C
+  - **Complexity: moderate. Risk: moderate. → Mid-level engineer.** ~90% is mechanical string-swapping
+    with a scripted resolver; the judgment sits in the Redact re-do and the FileDropzone prop reconcile.
+    Not junior (the Redact restructure + the build-only CSP gate bite silently); no architecture needed.
+  - **Base = `main`. Reuse the branch's durable artifacts verbatim (no conflicts):**
+    - The **9 new `.module.css` files** are additive — `git checkout <branch> -- <the *.module.css files>`
+      (Dropzone, FileList, PageGrid, PdfTool, PdfCompressTool, PdfSecurityTool, PdfSplitTool,
+      PdfToImageTool, UndoHistoryModal). Confirmed clean.
+    - **`global.css`:** apply the branch's tool-chrome deletions onto main's already-marketing-trimmed
+      file: `git diff f917c9e..<branch> -- src/styles/global.css | git apply --3way`. **Verified applies
+      cleanly** (disjoint regions); result ~1839 lines and still contains `.pdf-share-button` + the 8
+      `.sig-btn*` rules. Do **not** take the branch's whole `global.css` (it would re-add the marketing CSS
+      main deleted).
+  - **Re-do the class-swaps on main's `.jsx` (the actual work):**
+    - **7 standard tools** (Merge, Compress, EditPages, ImageToPdf, Split, ToImage, Security): main's file
+      == branch's file + the share feature, so invert the conflict — `git checkout <branch> -- <file>`
+      then `git diff f917c9e..main -- <file> | git apply --3way`. That leaves **exactly 2 conflict hunks
+      per file**: (1) imports → union all four lines; (2) the render row → keep main's `<PdfShareButton>`
+      **before** the branch's `class={pdfToolStyles['start-over']}` button. A ~15-line perl resolver keyed
+      on "block contains `^import`? union : drop theirs' `class="start-over"` dup, emit PdfShareButton then
+      ours" clears all 14 hunks (validated in the trial worktree).
+    - **`FileDropzone.jsx`:** reconcile the branch's `class={styles.dropzone …}` (module) against main's
+      `class={\`dropzone ${className}…\`}` — check whether any caller still passes a `className` prop and
+      preserve that seam if so.
+    - **`SignTool/PdfWorkspace.jsx`:** take **main's** Download+Share structure
+      (`<div className="sign-export-actions">` with Download + conditional Share), and swap only its two
+      `merge-button` strings to `pdfToolStyles['merge-button']`; leave `sign-export-*` as global strings
+      (E2.3-owned).
+    - **`PdfRedactTool.jsx` — take MAIN wholesale, re-apply swaps on its structure.** Do **not** reuse the
+      branch's Redact render. Main's version keeps ~5 shared-class strings inline (`clear-all`,
+      `download-button`/`start-over`/`error-message`/`merge-button`+`progress-ring*` depending on final
+      layout) — swap those to `styles[...]`/`pdfToolStyles[...]` and add the module import. Verify against
+      the running editor after (continue-after-export, share, and the redact download path all render).
+    - **Tests:** union main's share-flow assertions (via `src/test/mockFileShare.js`) with the branch's
+      `styles[...]` class-lookup assertions; re-derive Redact's test expectations from main's structure.
+  - **E2.2a.1 still applies:** move `.pdf-share-button` into `PdfTool.module.css` and reference it from
+    `PdfShareButton.jsx`; keep `.sig-btn`/`.sig-btn-secondary` as global strings.
+  - **Note:** the E2.2.10 sub-commit 2 & 3 tickets below are **already implemented on the branch** — they
+    arrive for free via the `.module.css` + `global.css` reuse above; do not treat them as pending code.
+    The branch's follow-up notes (**E2.4** leftovers, the **`.field-hint` unstyled** pre-existing bug, the
+    **worktree `node_modules`/CSS-Modules-resolution** gotcha in CLAUDE.md) must be carried onto `main` as
+    part of this ticket's doc reconciliation, since the branch merge that would have brought them is dropped.
+  - *Acceptance:* fresh `npm install` **inside the worktree** (a stray/absent `node_modules` makes CSS
+    Modules resolve to `{}` silently under Vitest); `npm test` + `npm run test:css` green; **mandatory
+    `npm run build && npm run preview` CSP/hydration pass** (rewrites every island's imports/render, dev
+    cannot catch it); land via reviewed merge to `main`, not a direct push.
 - **E2.2.10 sub-commit 2 — `.merge-button*`/`.progress-ring*`/`.merge-button-progress` → `PdfTool.module.css`.**
   Not started on the branch. Shared by ~9 tools (reclassified from the old `PdfMergeTool`-only E2.2.4).
   - *Depends on:* E2.2a (rebase first, so the class swaps don't re-conflict) · *Lane:* C
