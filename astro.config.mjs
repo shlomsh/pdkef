@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import preact from '@astrojs/preact';
+import tailwindcss from '@tailwindcss/vite';
 
 // Static output only — no SSR, no adapter. The app is a flat set of
 // files served by Vercel; all PDF processing happens in the browser.
@@ -27,6 +28,14 @@ export default defineConfig({
   // them here forces Vite to bundle them at server startup instead of
   // racing discovery against the first real navigation.
   vite: {
+    // Tailwind v4 is CSS-first: this plugin compiles the `@import`s in
+    // src/styles/global.css (theme + utilities layers only — Preflight/base
+    // is intentionally NOT imported, since it would reset margin/padding/
+    // border on every element site-wide, a restyle out of scope for E3.1).
+    // Utilities are available now but nothing in src/**/*.astro consumes
+    // them yet — that migration is a separate ticket (E3.2), scoped to the
+    // static/marketing surface only, per ARCHITECTURE.md §3.1.
+    plugins: [tailwindcss()],
     optimizeDeps: {
       include: ['sortablejs', '@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist', '@floating-ui/react'],
     },
