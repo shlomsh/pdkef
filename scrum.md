@@ -307,6 +307,15 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
   classes/CSSOM; `dist/**/*.html` now has 0 literal `style=` attributes; e2e asserts zero
   `securitypolicyviolation` events. The build-time guard is split out as E1.7a (postponed).
 
+**Deferred spikes (explicitly out of scope for the maintainability migration):**
+- **Hebrew/RTL PDF text shaping** (`fix/hebrew-pdf-shaping`, head `d47ca5f`, branched from `5246161c`,
+  ~59 behind `main`). A `wip` spike exploring canvas-based text rendering to fix Hebrew/RTL glyph shaping
+  in the exported PDF, explicitly marked "not production-ready" and untouched since 2026-07-06. This is a
+  **rendering-correctness feature**, not a maintainability refactor - it does not belong to any E0–E4 lane
+  and must not block them. Keep the branch parked (no worktree). Revisit as its own feature ticket after
+  the migration lands, ideally rebased onto the E4 headless core so the shaping logic has a stable seam;
+  do not resurrect the stale branch in place against the current editor.
+
 **Editor / UX polish:**
 - **Verify Redact mobile toolbar** on a real narrow viewport - code updated (shared `.sign-toolbar`
   CSS, structure-agnostic mobile flex rule) but never visually confirmed.
