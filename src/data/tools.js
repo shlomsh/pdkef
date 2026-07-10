@@ -31,12 +31,12 @@ export const tools = [
       'Fill interactive PDF forms and draw secure digital signatures instantly in your browser with zero registration, zero limits, and no watermarks. Your progress auto-saves locally so a crash never loses your work.',
     sitemapPriority: '0.9',
     sitemapChangefreq: 'monthly',
-    seoTitle: 'Sign PDF Free - Fill Forms, No Sign-Up, Runs Locally | PDkef',
+    seoTitle: 'Sign PDF Free - Fill Forms in Your Browser | PDkef',
     seoDescription:
       'Sign PDF files online for free. Add signatures, fill forms, write text, and check boxes in your browser securely. Your files never leave your device.',
     schemaName: 'PDkef - Sign PDF',
     toolName: 'Sign & Fill PDF',
-    h1: 'Sign & Fill PDF Free: No Sign-Up, Runs Locally',
+    h1: 'Sign PDF Free: Fill & Sign Forms in Your Browser',
     subhead:
       'You can fill out and sign a PDF here without ever printing or scanning it. Tick checkboxes, type text, and add your signature to any PDF, from school consent slips to contracts and applications. Your progress auto-saves on your device, so a crash or accidental refresh never loses your work.',
     ariaLabel: 'PDF sign tool',
@@ -94,7 +94,7 @@ export const tools = [
       'Merge PDF files online for free. Drag, reorder, and combine PDFs in your browser instantly. No upload, no signup, no watermark.',
     schemaName: 'PDkef - Merge PDF',
     toolName: 'Merge PDF',
-    h1: 'Merge PDF Free: No Sign-Up, Runs Locally',
+    h1: 'Merge PDF Online Free: Combine Files in Your Browser',
     subhead:
       'Combine multiple PDFs into a single document, reorder pages by drag-and-drop, and optionally add page numbers before you export.',
     ariaLabel: 'PDF merge tool',
@@ -135,7 +135,7 @@ export const tools = [
       'Convert PDF pages to high-quality JPG or PNG images online for free, with no watermark. Secure, fast, and 100% private in-browser conversion.',
     schemaName: 'PDkef - PDF to Image',
     toolName: 'PDF to Image',
-    h1: 'PDF to Image Free: No Watermark, Runs Locally',
+    h1: 'Convert PDF to Image Online Free',
     subhead:
       'Turn each PDF page into a high-quality JPG or PNG, with no watermark and nothing uploaded.',
     ariaLabel: 'PDF to Image tool',
@@ -177,7 +177,7 @@ export const tools = [
       'Combine multiple JPG or PNG images into a single PDF online for free. Reorder pages and download instantly. No upload, no signup, no watermark.',
     schemaName: 'PDkef - Image to PDF',
     toolName: 'Image to PDF',
-    h1: 'Image to PDF Free: No Watermark, Runs Locally',
+    h1: 'Image to PDF Online Free: Combine JPG & PNG',
     subhead:
       'Combine JPG or PNG images into a single PDF in any order - scanned pages, photographed slides, or screenshots.',
     ariaLabel: 'Image to PDF tool',
@@ -219,7 +219,7 @@ export const tools = [
       'Split a PDF file online for free. Extract specific pages or separate into multiple documents in your browser. No upload, no signup, no watermark.',
     schemaName: 'PDkef - Split PDF',
     toolName: 'Split PDF',
-    h1: 'Split PDF Free: No Sign-Up, Runs Locally',
+    h1: 'Split PDF Online Free: Extract Pages in Your Browser',
     subhead:
       'Extract a page range, pull out single pages, or break one PDF into several separate files.',
     ariaLabel: 'PDF split tool',
@@ -262,7 +262,7 @@ export const tools = [
       'Compress any PDF to an exact target size - 100KB, 200KB, or any portal limit - or choose a quality preset. Free, no upload, no watermark. Runs 100% in your browser.',
     schemaName: 'PDkef - Compress PDF',
     toolName: 'Compress PDF',
-    h1: 'Compress PDF Free: No Limits, Runs Locally',
+    h1: 'Compress PDF to 100KB Free: Reduce File Size',
     subhead:
       "Shrink your PDF's file size instantly, even down to a target like 100KB for strict portal upload limits on tax records, applications, and scanned IDs.",
     ariaLabel: 'PDF compress tool',
@@ -303,7 +303,7 @@ export const tools = [
       'Add a password to protect a PDF, or remove one you already know, free and online. 100% private - runs entirely in your browser, nothing uploaded.',
     schemaName: 'PDkef - Protect & Unlock PDF',
     toolName: 'Protect & Unlock PDF',
-    h1: 'Unlock or Protect PDF Free: No Sign-Up, Runs Locally',
+    h1: 'Unlock or Protect a PDF Free',
     subhead:
       'Add a password to protect a PDF, or remove one you already know - the tool detects which you need.',
     ariaLabel: 'PDF unlock tool',
@@ -344,7 +344,7 @@ export const tools = [
       'Edit your PDF for free in your browser: remove unwanted pages, rotate pages, reorder pages by drag & drop, and add page numbers. 100% private - your file never leaves your device.',
     schemaName: 'PDkef - Edit PDF Pages',
     toolName: 'Edit PDF',
-    h1: 'Edit PDF Free: No Sign-Up, Runs Locally',
+    h1: 'Edit PDF Online Free: Rotate, Reorder, Remove Pages',
     subhead:
       'Remove pages, rotate them, reorder by drag-and-drop, and add page numbers to any PDF.',
     ariaLabel: 'Edit PDF pages tool',
@@ -388,7 +388,7 @@ export const tools = [
       'Securely hide text in your PDF files. Black out or blur sensitive information, and we permanently flatten the page so the data cannot be extracted. 100% private.',
     schemaName: 'PDkef - Redact PDF',
     toolName: 'Redact PDF',
-    h1: 'Redact PDF Free: No Sign-Up, Runs Locally',
+    h1: 'Redact PDF Online Free: Blackout or Blur Text',
     subhead:
       "Black out or blur sensitive text like SSNs and addresses, then flatten the file so it can't be copied or extracted. Your redaction boxes are auto-saved on your device as you work, so a crash or accidental refresh never loses your progress.",
     ariaLabel: 'Redact PDF tool',

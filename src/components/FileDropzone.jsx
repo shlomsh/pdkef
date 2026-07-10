@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { saveDraft } from '../lib/draftStore.js';
 
-export default function FileDropzone({ onFiles, multiple = true, accept = "application/pdf", href, toolTarget }) {
+export default function FileDropzone({ onFiles, multiple = true, accept = "application/pdf", href, toolTarget, className = '' }) {
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleFiles = async (files) => {
@@ -26,7 +26,7 @@ export default function FileDropzone({ onFiles, multiple = true, accept = "appli
 
   return (
     <div
-      class={`dropzone${isDragOver ? ' is-dragover' : ''}`}
+      class={`dropzone ${className}${isDragOver ? ' is-dragover' : ''}`}
       onDragOver={(e) => {
         e.preventDefault();
         setIsDragOver(true);
