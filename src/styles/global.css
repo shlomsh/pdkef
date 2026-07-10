@@ -1289,6 +1289,11 @@ main {
   border-color: var(--color-primary);
 }
 
+.pdf-share-button {
+  width: 100%;
+  margin-top: var(--space-3);
+}
+
 
 /* Start over: persistent lemon-tinted affordance, fills on hover. Sits left of
    the primary Download button without competing with it. */

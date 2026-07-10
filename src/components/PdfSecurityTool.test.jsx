@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfSecurityTool from './PdfSecurityTool.jsx';
 import * as securityLib from '../lib/security.js';
+import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 vi.mock('../lib/security.js', () => ({
   isPdfEncrypted: vi.fn(),
@@ -70,6 +71,7 @@ describe('PdfSecurityTool', () => {
   });
 
   it('performs unlocking successfully', async () => {
+    const nativeShare = mockNativeFileShare();
     securityLib.isPdfEncrypted.mockResolvedValue(true);
     securityLib.unlockPdf.mockResolvedValue(new Blob(['unlocked'], { type: 'application/pdf' }));
     mount();
@@ -90,6 +92,11 @@ describe('PdfSecurityTool', () => {
 
     expect(securityLib.unlockPdf).toHaveBeenCalledWith(expect.any(File), 'secret');
     expect(container.querySelector('.download-button').getAttribute('download')).toBe('test_unlocked.pdf');
+    const shareButton = container.querySelector('.pdf-share-button');
+    expect(shareButton).not.toBeNull();
+    await act(async () => shareButton.click());
+    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('test_unlocked.pdf');
+    nativeShare.restore();
   });
 
   it('performs protecting successfully', async () => {

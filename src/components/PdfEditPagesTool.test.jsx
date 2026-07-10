@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.jsx';
 import { editPages } from '../lib/editPages.js';
+import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -204,6 +205,7 @@ describe('PdfEditPagesTool UI flow', () => {
   });
 
   it('runs page removal and produces download URL', async () => {
+    const nativeShare = mockNativeFileShare();
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
@@ -249,6 +251,11 @@ describe('PdfEditPagesTool UI flow', () => {
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
     expect(downloadBtn.getAttribute('download')).toBe('document_modified.pdf');
 
+    const shareButton = container.querySelector('.pdf-share-button');
+    expect(shareButton).not.toBeNull();
+    await act(async () => shareButton.click());
+    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('document_modified.pdf');
+
     // Click start over
     const startOverBtn = container.querySelector('.start-over');
     expect(startOverBtn).not.toBeNull();
@@ -260,5 +267,6 @@ describe('PdfEditPagesTool UI flow', () => {
 
     window.URL.createObjectURL = originalCreateObjectURL;
     window.URL.revokeObjectURL = originalRevokeObjectURL;
+    nativeShare.restore();
   });
 });

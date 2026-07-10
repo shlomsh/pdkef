@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { compressPdf, compressPdfToTarget } from '../lib/compress.js';
 import BasePdfTool from './BasePdfTool.jsx';
+import PdfShareButton from './PdfShareButton.jsx';
+import { usePdfShare } from '../lib/usePdfShare.js';
 
 const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 18;
 
@@ -60,6 +62,7 @@ export default function PdfCompressTool() {
   const [metTarget, setMetTarget] = useState(true);
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const [announcement, setAnnouncement] = useState('');
+  const { canSharePdf, shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   
   const downloadRef = useRef(null);
 
@@ -70,6 +73,7 @@ export default function PdfCompressTool() {
   }, [status]);
 
   const resetOutput = () => {
+    clearPrepared();
     setStatus('idle');
     setProgress(0);
     setCompressedSize(null);
@@ -138,13 +142,21 @@ export default function PdfCompressTool() {
         if (previous) URL.revokeObjectURL(previous);
         return URL.createObjectURL(compressedBlob);
       });
+      prepare(compressedBlob, file.name.replace(/\.pdf$/i, '') + '-compressed.pdf');
       setStatus('done');
-      setAnnouncement('PDF compression complete. Your file is ready to download.');
+      setAnnouncement('PDF compression complete. Your file is ready.');
     } catch (err) {
       console.error(err);
       setStatus('error');
       setAnnouncement('PDF compression failed.');
     }
+  };
+
+  const handleShare = async () => {
+    const result = await sharePrepared();
+    if (result.status === 'shared') setAnnouncement('Compressed PDF shared successfully.');
+    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your compressed PDF is still ready.');
+    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
   };
 
   const reset = () => {
@@ -335,6 +347,7 @@ export default function PdfCompressTool() {
                 </svg>
                 Download Compressed PDF
               </a>
+              <PdfShareButton visible={canSharePdf && shareReady} onShare={handleShare} label="Share Compressed PDF" />
               <button type="button" class="start-over" onClick={reset}>
                 Start over
               </button>

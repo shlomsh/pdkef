@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { isPdfEncrypted, protectPdf, unlockPdf, WrongPasswordError, SecurityError } from '../lib/security.js';
 import BasePdfTool from './BasePdfTool.jsx';
+import PdfShareButton from './PdfShareButton.jsx';
+import { usePdfShare } from '../lib/usePdfShare.js';
 
 export default function PdfSecurityTool({ intent = 'unlock' }) {
   const [file, setFile] = useState(null);
@@ -9,6 +11,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
   const [mode, setMode] = useState(null); // 'unlock' | 'protect' | null
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [announcement, setAnnouncement] = useState('');
+  const { canSharePdf, shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const downloadRef = useRef(null);
   const passwordRef = useRef(null);
 
@@ -19,6 +22,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
   }, [status]);
 
   const resetOutput = () => {
+    clearPrepared();
     setStatus('idle');
     setDownloadUrl((previous) => {
       if (previous) URL.revokeObjectURL(previous);
@@ -69,10 +73,11 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
         if (previous) URL.revokeObjectURL(previous);
         return URL.createObjectURL(blob);
       });
+      prepare(blob, `${file.name.replace(/\.pdf$/i, '')}_${mode}ed.pdf`);
       setStatus('done');
       setAnnouncement(mode === 'unlock' 
-        ? 'Your unlocked PDF is ready to download.' 
-        : 'Your protected PDF is ready to download.'
+        ? 'Your unlocked PDF is ready.'
+        : 'Your protected PDF is ready.'
       );
     } catch (err) {
       console.error(err);
@@ -85,6 +90,13 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
       passwordRef.current?.focus();
       passwordRef.current?.select();
     }
+  };
+
+  const handleShare = async () => {
+    const result = await sharePrepared();
+    if (result.status === 'shared') setAnnouncement(`${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF shared successfully.`);
+    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your PDF is still ready.');
+    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
   };
 
   const reset = () => {
@@ -167,6 +179,11 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
                 </svg>
                 Download {mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF
               </a>
+              <PdfShareButton
+                visible={canSharePdf && shareReady}
+                onShare={handleShare}
+                label={`Share ${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF`}
+              />
               <button type="button" class="start-over" onClick={reset}>
                 Start over
               </button>

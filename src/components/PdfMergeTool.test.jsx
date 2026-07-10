@@ -5,6 +5,7 @@ import Sortable from 'sortablejs';
 import PdfMergeTool from './PdfMergeTool.jsx';
 import * as mergeLib from '../lib/merge.js';
 import * as thumbnailsLib from '../lib/thumbnails.js';
+import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -72,6 +73,7 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('enables merge button with 2 or more files and merges them', async () => {
+    const nativeShare = mockNativeFileShare();
     mount();
     await loadFiles(['doc1.pdf', 'doc2.pdf']);
 
@@ -93,7 +95,14 @@ describe('PdfMergeTool UI flow', () => {
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
     expect(downloadBtn.getAttribute('download')).toBe('merged.pdf');
 
+    const shareButton = container.querySelector('.pdf-share-button');
+    expect(shareButton).not.toBeNull();
+    await act(async () => shareButton.click());
+    expect(nativeShare.share).toHaveBeenCalledOnce();
+    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('merged.pdf');
+
     window.URL.createObjectURL = originalCreateObjectURL;
+    nativeShare.restore();
   });
 
   it('removes a file when the remove button is clicked', async () => {
@@ -188,4 +197,3 @@ describe('merge.js library integration with real fixtures', () => {
     expect(texts).toEqual(['3', '1', '4', '2']);
   });
 });
-

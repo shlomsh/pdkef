@@ -4,6 +4,8 @@ import { mergePdfs, resolvePdfCreationDate } from '../lib/merge.js';
 import { sortByDate, sortByName } from '../lib/sort.js';
 import { renderThumbnail } from '../lib/thumbnails.js';
 import BasePdfTool from './BasePdfTool.jsx';
+import PdfShareButton from './PdfShareButton.jsx';
+import { usePdfShare } from '../lib/usePdfShare.js';
 
 let nextId = 0;
 
@@ -21,6 +23,7 @@ export default function PdfMergeTool() {
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const [announcement, setAnnouncement] = useState('');
   const [addPageNumbers, setAddPageNumbers] = useState(false);
+  const { canSharePdf, shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const listRef = useRef(null);
   const sortableRef = useRef(null);
   const downloadRef = useRef(null);
@@ -56,6 +59,7 @@ export default function PdfMergeTool() {
           return next;
         });
         setStatus('idle');
+        clearPrepared();
         setDownloadUrl((previous) => {
           if (previous) URL.revokeObjectURL(previous);
           return null;
@@ -81,6 +85,7 @@ export default function PdfMergeTool() {
     const newEntries = pdfFiles.map(toEntry);
     setEntries((current) => [...current, ...newEntries]);
     setStatus('idle');
+    clearPrepared();
     setDownloadUrl(null);
     setAnnouncement(
       `${newEntries.length} file${newEntries.length === 1 ? '' : 's'} added.`,
@@ -112,6 +117,7 @@ export default function PdfMergeTool() {
       return current.filter((e) => e.id !== id);
     });
     setStatus('idle');
+    clearPrepared();
     setDownloadUrl((previous) => {
       if (previous) URL.revokeObjectURL(previous);
       return null;
@@ -121,6 +127,7 @@ export default function PdfMergeTool() {
   const reset = useCallback(() => {
     setEntries([]);
     setStatus('idle');
+    clearPrepared();
     setProgress(0);
     setRejectedFiles([]);
     setAddPageNumbers(false);
@@ -143,6 +150,7 @@ export default function PdfMergeTool() {
       return next;
     });
     setStatus('idle');
+    clearPrepared();
     setDownloadUrl((previous) => {
       if (previous) URL.revokeObjectURL(previous);
       return null;
@@ -165,6 +173,7 @@ export default function PdfMergeTool() {
   const applySort = useCallback((sortFn, direction) => {
     setEntries((current) => sortFn(current, direction));
     setStatus('idle');
+    clearPrepared();
     setDownloadUrl((previous) => {
       if (previous) URL.revokeObjectURL(previous);
       return null;
@@ -186,14 +195,22 @@ export default function PdfMergeTool() {
         if (previous) URL.revokeObjectURL(previous);
         return URL.createObjectURL(blob);
       });
+      prepare(blob, 'merged.pdf');
       setStatus('done');
-      setAnnouncement('Your merged PDF is ready to download.');
+      setAnnouncement('Your merged PDF is ready.');
     } catch (err) {
       console.error(err);
       setStatus('error');
       setAnnouncement('Merging failed.');
     }
   }, [entries]);
+
+  const handleShare = async () => {
+    const result = await sharePrepared();
+    if (result.status === 'shared') setAnnouncement('Merged PDF shared successfully.');
+    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your merged PDF is still ready.');
+    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
+  };
 
   const hasFiles = entries.length > 0;
   const ringOffset =
@@ -241,6 +258,7 @@ export default function PdfMergeTool() {
                 onChange={(e) => {
                   setAddPageNumbers(e.target.checked);
                   setStatus('idle');
+                  clearPrepared();
                   setDownloadUrl((previous) => {
                     if (previous) URL.revokeObjectURL(previous);
                     return null;
@@ -354,6 +372,7 @@ export default function PdfMergeTool() {
                 </svg>
                 Download PDF
               </a>
+              <PdfShareButton visible={canSharePdf && shareReady} onShare={handleShare} />
               <button type="button" class="start-over" onClick={reset}>
                 Start over
               </button>

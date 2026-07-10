@@ -4,6 +4,8 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import { editPages } from '../lib/editPages.js';
 import { renderPdfThumbnails } from '../lib/thumbnails.js';
 import BasePdfTool from './BasePdfTool.jsx';
+import PdfShareButton from './PdfShareButton.jsx';
+import { usePdfShare } from '../lib/usePdfShare.js';
 
 const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 18;
 
@@ -20,6 +22,7 @@ export default function PdfEditPagesTool() {
   const [progress, setProgress] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [announcement, setAnnouncement] = useState('');
+  const { canSharePdf, shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const gridRef = useRef(null);
   const sortableRef = useRef(null);
   const downloadRef = useRef(null);
@@ -58,6 +61,7 @@ export default function PdfEditPagesTool() {
   }, [pages.length > 0]);
 
   const resetOutput = () => {
+    clearPrepared();
     setStatus('idle');
     setProgress(0);
     setDownloadUrl((previous) => {
@@ -78,6 +82,7 @@ export default function PdfEditPagesTool() {
     setRotations({});
     setAddPageNumbers(false);
     setDownloadUrl(null);
+    clearPrepared();
     setPages([]);
 
     try {
@@ -118,6 +123,7 @@ export default function PdfEditPagesTool() {
     setAddPageNumbers(false);
     setStatus('idle');
     setProgress(0);
+    clearPrepared();
     setDownloadUrl((previous) => {
       if (previous) URL.revokeObjectURL(previous);
       return null;
@@ -194,13 +200,21 @@ export default function PdfEditPagesTool() {
         if (previous) URL.revokeObjectURL(previous);
         return URL.createObjectURL(blob);
       });
+      prepare(blob, `${file.name.replace(/\.pdf$/i, '')}_modified.pdf`);
       setStatus('done');
-      setAnnouncement('Your modified PDF is ready to download.');
+      setAnnouncement('Your modified PDF is ready.');
     } catch (err) {
       console.error(err);
       setStatus('error');
       setAnnouncement('Failed to edit PDF.');
     }
+  };
+
+  const handleShare = async () => {
+    const result = await sharePrepared();
+    if (result.status === 'shared') setAnnouncement('Modified PDF shared successfully.');
+    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your modified PDF is still ready.');
+    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
   };
 
   const hasFiles = !!file;
@@ -414,6 +428,7 @@ export default function PdfEditPagesTool() {
                     </svg>
                     Download PDF
                   </a>
+                  <PdfShareButton visible={canSharePdf && shareReady} onShare={handleShare} />
                   <button type="button" class="start-over" onClick={reset}>
                     Start over
                   </button>

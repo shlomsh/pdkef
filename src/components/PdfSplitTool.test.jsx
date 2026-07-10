@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfSplitTool from './PdfSplitTool.jsx';
 import { parsePageSelector, pageNumbersToRangeString } from '../lib/split.js';
+import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 // Test split.js library
 describe('split.js library helpers', () => {
@@ -117,6 +118,50 @@ describe('PdfSplitTool UI flow', () => {
     const cards = container.querySelectorAll('.page-card');
     expect(cards.length).toBe(4);
   });
+
+  it('shares separately split PDFs as multiple native files', async () => {
+    const nativeShare = mockNativeFileShare();
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+    mockState.numPages = 5;
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfSplitTool />, container));
+
+    const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-5.pdf');
+    const file = new File([fs.readFileSync(fixturePath)], 'num-5.pdf', { type: 'application/pdf' });
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      Object.defineProperty(input, 'files', { value: [file], configurable: true });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const separateButton = Array.from(container.querySelectorAll('.split-card'))
+      .find((button) => button.textContent.includes('Individual Pages'));
+    await act(async () => separateButton.click());
+
+    const splitButton = container.querySelector('.merge-button');
+    await act(async () => {
+      splitButton.click();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const shareButton = container.querySelector('.pdf-share-button');
+    expect(shareButton).not.toBeNull();
+    await act(async () => shareButton.click());
+    const files = nativeShare.share.mock.calls[0][0].files;
+    expect(files).toHaveLength(5);
+    expect(files.map((sharedFile) => sharedFile.name)).toEqual([
+      'num-5-page-1.pdf',
+      'num-5-page-2.pdf',
+      'num-5-page-3.pdf',
+      'num-5-page-4.pdf',
+      'num-5-page-5.pdf',
+    ]);
+    nativeShare.restore();
+  });
 });
 
 import fs from 'fs';
@@ -189,4 +234,3 @@ describe('splitPdf library integration with real fixtures', () => {
     expect(texts2).toEqual(['14']);
   });
 });
-

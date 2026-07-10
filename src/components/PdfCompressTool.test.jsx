@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfCompressTool from './PdfCompressTool.jsx';
 import * as compressLib from '../lib/compress.js';
+import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 function makePdfFile(name, size = 1000) {
   const file = new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -111,6 +112,7 @@ describe('PdfCompressTool UI flow', () => {
   });
 
   it('runs compression and displays results', async () => {
+    const nativeShare = mockNativeFileShare();
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
@@ -157,7 +159,13 @@ describe('PdfCompressTool UI flow', () => {
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
 
+    const shareButton = container.querySelector('.pdf-share-button');
+    expect(shareButton).not.toBeNull();
+    await act(async () => shareButton.click());
+    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('test_doc-compressed.pdf');
+
     window.URL.createObjectURL = originalCreateObjectURL;
+    nativeShare.restore();
   });
 
   it('switches to Target Size mode, edits the KB value, and compresses to target', async () => {

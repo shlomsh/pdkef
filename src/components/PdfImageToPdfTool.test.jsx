@@ -4,6 +4,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfImageToPdfTool from './PdfImageToPdfTool.jsx';
 import * as imageToPdfLib from '../lib/imageToPdf.js';
+import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 function makeImageFile(name, type = 'image/png') {
   return new File(['fake-image-bytes'], name, { type });
@@ -90,6 +91,7 @@ describe('PdfImageToPdfTool UI flow', () => {
   });
 
   it('converts images and produces a download link', async () => {
+    const nativeShare = mockNativeFileShare();
     mount();
     await loadFiles(['doc1.png', 'doc2.jpg']);
 
@@ -106,6 +108,12 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
     expect(downloadBtn.getAttribute('download')).toBe('images.pdf');
+
+    const shareButton = container.querySelector('.pdf-share-button');
+    expect(shareButton).not.toBeNull();
+    await act(async () => shareButton.click());
+    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('images.pdf');
+    nativeShare.restore();
   });
 
   it('removes an image when the remove button is clicked', async () => {

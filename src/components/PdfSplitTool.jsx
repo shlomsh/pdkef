@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import BasePdfTool from './BasePdfTool.jsx';
 import { parsePageSelector, pageNumbersToRangeString, splitPdf } from '../lib/split.js';
+import PdfShareButton from './PdfShareButton.jsx';
+import { usePdfShare } from '../lib/usePdfShare.js';
 
 let pdfjsLib;
 async function getPdfjs() {
@@ -28,6 +30,7 @@ export default function PdfSplitTool() {
   const [downloadFiles, setDownloadFiles] = useState([]); // Array of { url, filename, pageNumber }
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const [announcement, setAnnouncement] = useState('');
+  const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
 
   const downloadRef = useRef(null);
 
@@ -48,6 +51,7 @@ export default function PdfSplitTool() {
   }, []);
 
   const resetOutput = () => {
+    clearPrepared();
     setStatus('idle');
     setProgress(0);
     setDownloadFiles((prev) => {
@@ -125,6 +129,7 @@ export default function PdfSplitTool() {
       setStatus('loading');
       setProgress(0);
       setDownloadFiles([]);
+      clearPrepared();
       setPageSelector('');
       setPageSelectorError('');
       loadDocumentAndThumbnails(selected);
@@ -229,13 +234,21 @@ export default function PdfSplitTool() {
           url: URL.createObjectURL(r.blob),
         })),
       );
+      prepareFiles(results.map(({ blob, filename }) => ({ blob, filename, type: 'application/pdf' })));
       setStatus('done');
-      setAnnouncement('PDF split complete. Ready to download.');
+      setAnnouncement('PDF split complete. Files are ready.');
     } catch (err) {
       console.error(err);
       setStatus('error');
       setAnnouncement('PDF split failed.');
     }
+  };
+
+  const handleShare = async () => {
+    const result = await sharePrepared();
+    if (result.status === 'shared') setAnnouncement('Split PDF files shared successfully.');
+    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your PDF files are still ready.');
+    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
   };
 
   const downloadAll = () => {
@@ -469,6 +482,11 @@ export default function PdfSplitTool() {
                       </ul>
                     </>
                   )}
+                  <PdfShareButton
+                    visible={shareReady}
+                    onShare={handleShare}
+                    label={downloadFiles.length === 1 ? 'Share PDF' : `Share ${downloadFiles.length} PDFs`}
+                  />
                   <button type="button" class="start-over" onClick={reset}>
                     Start over
                   </button>

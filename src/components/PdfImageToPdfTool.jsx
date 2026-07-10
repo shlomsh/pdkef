@@ -3,6 +3,8 @@ import Sortable from 'sortablejs';
 import { imagesToPdf } from '../lib/imageToPdf.js';
 import { sortByDate, sortByName } from '../lib/sort.js';
 import BasePdfTool from './BasePdfTool.jsx';
+import PdfShareButton from './PdfShareButton.jsx';
+import { usePdfShare } from '../lib/usePdfShare.js';
 
 let nextId = 0;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
@@ -20,6 +22,7 @@ export default function PdfImageToPdfTool() {
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const [announcement, setAnnouncement] = useState('');
+  const { canSharePdf, shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const listRef = useRef(null);
   const sortableRef = useRef(null);
   const downloadRef = useRef(null);
@@ -29,6 +32,10 @@ export default function PdfImageToPdfTool() {
       downloadRef.current.focus();
     }
   }, [status]);
+
+  useEffect(() => {
+    clearPrepared();
+  }, [entries, clearPrepared]);
 
   useEffect(() => {
     // Revoke every thumbnail object URL on unmount.
@@ -172,14 +179,22 @@ export default function PdfImageToPdfTool() {
         if (previous) URL.revokeObjectURL(previous);
         return URL.createObjectURL(blob);
       });
+      prepare(blob, 'images.pdf');
       setStatus('done');
-      setAnnouncement('Your PDF is ready to download.');
+      setAnnouncement('Your PDF is ready.');
     } catch (err) {
       console.error(err);
       setStatus('error');
       setAnnouncement('Conversion failed.');
     }
   }, [entries]);
+
+  const handleShare = async () => {
+    const result = await sharePrepared();
+    if (result.status === 'shared') setAnnouncement('PDF shared successfully.');
+    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your PDF is still ready.');
+    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
+  };
 
   const hasFiles = entries.length > 0;
   const ringOffset =
@@ -323,6 +338,7 @@ export default function PdfImageToPdfTool() {
                 </svg>
                 Download PDF
               </a>
+              <PdfShareButton visible={canSharePdf && shareReady} onShare={handleShare} />
               <button type="button" class="start-over" onClick={reset}>
                 Start over
               </button>

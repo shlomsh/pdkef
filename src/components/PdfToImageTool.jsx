@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { convertPdfToImages, parsePageSelector } from '../lib/toImage.js';
 import BasePdfTool from './BasePdfTool.jsx';
+import PdfShareButton from './PdfShareButton.jsx';
+import { usePdfShare } from '../lib/usePdfShare.js';
 
 const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 18;
 const SCALE_OPTIONS = [
@@ -27,6 +29,8 @@ export default function PdfToImageTool() {
   const [status, setStatus] = useState('idle'); // idle | converting | done | error
   const [progress, setProgress] = useState(0);
   const [images, setImages] = useState([]);
+  const [announcement, setAnnouncement] = useState('');
+  const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
   const downloadRef = useRef(null);
 
   useEffect(() => {
@@ -36,6 +40,7 @@ export default function PdfToImageTool() {
   }, [status]);
 
   const resetOutput = () => {
+    clearPrepared();
     setStatus('idle');
     setProgress(0);
     setImages((previous) => {
@@ -98,7 +103,9 @@ export default function PdfToImageTool() {
         onProgress: setProgress,
       });
       setImages(rendered.map((image) => ({ ...image, url: URL.createObjectURL(image.blob) })));
+      prepareFiles(rendered.map(({ blob, filename }) => ({ blob, filename, type: blob.type })));
       setStatus('done');
+      setAnnouncement('Your images are ready.');
     } catch (err) {
       console.error(err);
       if (err.message?.startsWith('Invalid page selector') || err.message === 'No valid pages in range') {
@@ -108,6 +115,13 @@ export default function PdfToImageTool() {
         setStatus('error');
       }
     }
+  };
+
+  const handleShare = async () => {
+    const result = await sharePrepared();
+    if (result.status === 'shared') setAnnouncement('Images shared successfully.');
+    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your images are still ready.');
+    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
   };
 
   // No zip dependency is used (keeps the MIT/Apache + zero-network constraint
@@ -293,6 +307,11 @@ export default function PdfToImageTool() {
                   </ul>
                 </>
               )}
+              <PdfShareButton
+                visible={shareReady}
+                onShare={handleShare}
+                label={images.length === 1 ? `Share ${formatLabel}` : `Share ${images.length} images`}
+              />
               <button type="button" class="start-over" onClick={reset}>
                 Start over
               </button>
@@ -300,6 +319,7 @@ export default function PdfToImageTool() {
           )}
         </div>
       )}
+      <p class="sr-only" role="status" aria-live="polite">{announcement}</p>
     </BasePdfTool>
   );
 }

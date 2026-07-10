@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfToImageTool from './PdfToImageTool.jsx';
+import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -56,6 +57,7 @@ describe('PdfToImageTool UI flow', () => {
   });
 
   it('converts a single-page PDF and produces a downloadable image', async () => {
+    const nativeShare = mockNativeFileShare();
     // jsdom has no canvas backend - stub toBlob so convertPdfToImages resolves.
     HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
       callback(new Blob(['fake-image-bytes'], { type: type || 'image/png' }));
@@ -91,6 +93,12 @@ describe('PdfToImageTool UI flow', () => {
     expect(downloadLink).not.toBeNull();
     expect(downloadLink.getAttribute('download')).toBe('report.png');
     expect(downloadLink.getAttribute('href')).toBe('blob:fake-url');
+
+    const shareButton = container.querySelector('.pdf-share-button');
+    expect(shareButton).not.toBeNull();
+    await act(async () => shareButton.click());
+    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('report.png');
+    nativeShare.restore();
   });
 
   it('combines a multi-page PDF into a single image when that layout is chosen', async () => {

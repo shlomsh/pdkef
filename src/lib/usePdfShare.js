@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'preact/hooks';
 
-function canShareFile(file) {
+function canShareFiles(files) {
   if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') return false;
 
   try {
-    return typeof navigator.canShare !== 'function' || navigator.canShare({ files: [file] });
+    return typeof navigator.canShare !== 'function' || navigator.canShare({ files });
   } catch {
     return false;
   }
@@ -19,23 +19,28 @@ function canShareFile(file) {
  */
 export function usePdfShare() {
   const [canSharePdf, setCanSharePdf] = useState(false);
-  const [preparedFile, setPreparedFile] = useState(null);
+  const [preparedFiles, setPreparedFiles] = useState([]);
 
   useEffect(() => {
     if (typeof File === 'undefined') return;
     const probe = new File([''], 'document.pdf', { type: 'application/pdf' });
-    setCanSharePdf(canShareFile(probe));
+    setCanSharePdf(canShareFiles([probe]));
   }, []);
 
-  const prepare = useCallback((blob, filename) => {
+  const prepareFiles = useCallback((items) => {
     if (typeof File === 'undefined') return false;
-    const file = new File([blob], filename, { type: 'application/pdf' });
-    if (!canShareFile(file)) return false;
-    setPreparedFile(file);
+    const files = items.map(({ blob, filename, type = blob.type || 'application/octet-stream' }) =>
+      new File([blob], filename, { type }),
+    );
+    if (files.length === 0 || !canShareFiles(files)) return false;
+    setPreparedFiles(files);
     return true;
   }, []);
 
-  const clearPrepared = useCallback(() => setPreparedFile(null), []);
+  const prepare = useCallback((blob, filename) =>
+    prepareFiles([{ blob, filename, type: 'application/pdf' }]), [prepareFiles]);
+
+  const clearPrepared = useCallback(() => setPreparedFiles([]), []);
 
   const download = useCallback((blob, filename) => {
     const url = URL.createObjectURL(blob);
@@ -49,26 +54,30 @@ export function usePdfShare() {
   }, []);
 
   const downloadPrepared = useCallback(() => {
-    if (!preparedFile) return false;
-    download(preparedFile, preparedFile.name);
+    if (preparedFiles.length !== 1) return false;
+    download(preparedFiles[0], preparedFiles[0].name);
     return true;
-  }, [download, preparedFile]);
+  }, [download, preparedFiles]);
 
   const sharePrepared = useCallback(async () => {
-    if (!preparedFile) return { status: 'unavailable' };
+    if (preparedFiles.length === 0) return { status: 'unavailable' };
 
     try {
-      await navigator.share({ title: preparedFile.name, files: [preparedFile] });
+      await navigator.share({
+        title: preparedFiles.length === 1 ? preparedFiles[0].name : `${preparedFiles.length} files`,
+        files: preparedFiles,
+      });
       return { status: 'shared' };
     } catch (error) {
       return { status: error?.name === 'AbortError' ? 'canceled' : 'error', error };
     }
-  }, [preparedFile]);
+  }, [preparedFiles]);
 
   return {
     canSharePdf,
-    shareReady: !!preparedFile,
+    shareReady: preparedFiles.length > 0,
     prepare,
+    prepareFiles,
     clearPrepared,
     download,
     downloadPrepared,
