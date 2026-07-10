@@ -525,11 +525,11 @@ const TICKETS = [
   { id: "E3.1", epic: "E3", lane: "D", status: "done", priority: "normal",
     title: "Clean Tailwind install (audit)",
     dependsOn: [],
-    acceptance: "AUDIT COMPLETE (validated in a worktree, not yet landed on main): tailwindcss + @tailwindcss/vite@^4.3.2 install CLEAN against Astro ^7.0.3 — no legacy-peer-deps, 0 new npm-audit vulns, vite peer satisfied. Recipe: @tailwindcss/vite plugin in astro.config vite.plugins; CSS-first import of theme+utilities layers ONLY (skip Preflight, which resets margins site-wide and blew the CSS budget). Landing deferred to E3.2 so the theme layer doesn't eat the CSS budget mid-flight." },
-  { id: "E3.2", epic: "E3", lane: "D", status: "todo", priority: "normal",
+    acceptance: "DONE: tailwindcss + @tailwindcss/vite@^4.3.2 installed cleanly against Astro ^7.0.3 with no legacy-peer-deps or new npm-audit vulnerabilities. Landed on the E3.2 branch using the Vite plugin plus a project-scoped CSS-first theme and utilities-only import; Preflight and Tailwind's unused default palette remain excluded." },
+  { id: "E3.2", epic: "E3", lane: "D", status: "in-progress", priority: "normal",
     title: "Migrate the marketing .astro surface to utilities",
     dependsOn: ["E3.1", "E1.1", "E1.2"],
-    acceptance: "index.astro, tool pages, FeatureCard, ToolHero, AppBar, Footer. No editor components. FIRST land the E3.1 recipe (plugin + theme/utilities import), then trim Tailwind's default color scales — the project uses its own :root tokens, so Tailwind's default palette must not be used anyway — because the theme layer alone left only ~862 bytes of CSS-budget headroom (79,138/80,000). Watch npm run test:css from the first page migrated." },
+    acceptance: "IN PROGRESS: E3.1 scaffold and FeatureCard landed; Footer is migrated in the next small slice. Remaining scope: index.astro, tool pages, ToolHero, and AppBar. No editor components. Keep npm run test:css as a per-slice gate because the budget remains tight." },
 
   // ----- E4 -----
   { id: "E4.1", epic: "E4", lane: "E", status: "done", priority: "normal",

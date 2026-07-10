@@ -193,20 +193,20 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
 
 ## E3 - Tailwind on the static surface  ·  *Lane D, parallel with E2*
 
-- **E3.1 Clean Tailwind install (audit).** - **done (audit; landing deferred to E3.2).** Validated in a
+- **E3.1 Clean Tailwind install (audit).** - **done.** Validated in a
   worktree: `tailwindcss` + `@tailwindcss/vite@^4.3.2` install **clean** against the Astro `^7.0.3` pin -
   no `legacy-peer-deps`, 0 new `npm audit` vulns, vite peer satisfied. Recipe: add the `@tailwindcss/vite`
   plugin to `astro.config` `vite.plugins`; CSS-first import of the **theme + utilities layers only**
-  (skip Preflight - it resets margins site-wide and blew the CSS budget). Not landed on `main` yet, so
-  the theme layer doesn't consume the CSS budget before it's used.
+  (skip Preflight - it resets margins site-wide and blew the CSS budget). Landed on the E3.2 branch
+  with a project-scoped theme and utilities-only import.
   - *Depends on:* - · *Lane:* D
-- **E3.2 Migrate the marketing `.astro` surface to utilities** (`index.astro`, tool pages, `FeatureCard`,
-  `ToolHero`, `AppBar`, `Footer`). No editor components.
+- **E3.2 Migrate the marketing `.astro` surface to utilities - in progress.** (`index.astro`, tool pages,
+  `FeatureCard`, `ToolHero`, `AppBar`, `Footer`). No editor components.
   - *Depends on:* E3.1, E1.1, E1.2 · *Lane:* D
-  - *First step + caveat (from E3.1):* land the E3.1 recipe, then **trim Tailwind's default color scales**
-    (the project uses its own `:root` tokens, so the default palette must not be used anyway) - the theme
-    layer alone left only ~862 bytes of CSS-budget headroom (79,138 / 80,000). Watch `npm run test:css`
-    from the first page migrated.
+  - *Progress:* E3.1 scaffold and `FeatureCard` landed; `Footer` is migrated in the next small slice.
+    The CSS-first setup imports utilities only and defines the project spacing/font tokens, avoiding
+    Tailwind's unused default palette and Preflight. Keep `npm run test:css` as a per-slice gate because
+    the budget remains tight.
 
 ## E4 - Headless TS editor core  ·  *Lane E, internally serial, parallel to E2/E3*
 

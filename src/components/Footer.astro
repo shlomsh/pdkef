@@ -2,15 +2,14 @@
 // Shared site footer. Tool pages render their how-it-works + FAQ above this in
 // ToolAboutCard / ToolFaqCard, so the footer itself is just the credit line.
 ---
-<footer class="site-footer">
-  <div class="site-footer-inner">
-    <p class="credit-line">
-      Built with ❤️ by <a href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi Shemesh</a>. 
-      <span class="footer-links-inline">
-        <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">GitHub</a> &bull;
-        <a href="/licenses">Licenses</a>
+<footer class="mt-auto border-t border-[var(--color-border)] bg-[var(--color-background)] p-6 text-center">
+  <div class="mx-auto flex max-w-[1080px] flex-col items-center gap-2">
+    <p class="m-0 text-[0.85rem] text-[var(--color-muted)]">
+      Built with ❤️ by <a class="font-medium text-inherit no-underline hover:text-[var(--color-text)] hover:underline" href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi Shemesh</a>.
+      <span class="ml-2 inline-flex items-center gap-[0.4rem]">
+        <a class="font-medium text-inherit no-underline hover:text-[var(--color-text)] hover:underline" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">GitHub</a> &bull;
+        <a class="font-medium text-inherit no-underline hover:text-[var(--color-text)] hover:underline" href="/licenses">Licenses</a>
       </span>
     </p>
   </div>
 </footer>
-
