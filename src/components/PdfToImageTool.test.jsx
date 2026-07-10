@@ -5,6 +5,7 @@ import PdfToImageTool from './PdfToImageTool.jsx';
 import styles from './FileList.module.css';
 import dropzoneStyles from './Dropzone.module.css';
 import pdfToolStyles from './PdfTool.module.css';
+import toolStyles from './PdfToImageTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 function makePdfFile(name) {
@@ -57,6 +58,32 @@ describe('PdfToImageTool UI flow', () => {
     const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
+  });
+
+  it('renders the quality-preset info tooltip with scoped module classes', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfToImageTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const file = makePdfFile('report.pdf');
+
+    await act(async () => {
+      Object.defineProperty(input, 'files', { value: [file], configurable: true });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    const infoIcon = container.querySelector(`.${toolStyles['info-icon']}`);
+    expect(infoIcon).not.toBeNull();
+
+    const tooltipBubble = infoIcon.querySelector(`.${toolStyles['tooltip-bubble']}`);
+    expect(tooltipBubble).not.toBeNull();
+
+    const tooltipRows = tooltipBubble.querySelectorAll(`.${toolStyles['tooltip-row']}`);
+    expect(tooltipRows.length).toBe(3);
+    expect(tooltipRows[0].textContent).toContain('Standard');
   });
 
   it('converts a single-page PDF and produces a downloadable image', async () => {

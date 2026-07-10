@@ -49,3 +49,55 @@
   background: var(--color-primary-soft);
   color: var(--color-primary);
 }
+
+/* --- Quality-preset info tooltip (E2.4) --- */
+.info-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-left: 0.1rem;
+  color: var(--color-muted);
+  border-radius: 50%;
+  cursor: help;
+  transition: color 0.15s var(--ease-out);
+}
+
+.info-icon:hover,
+.info-icon:focus-visible {
+  color: var(--color-primary);
+  outline: none;
+}
+
+.tooltip-bubble {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 260px;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  z-index: 10;
+}
+
+.info-icon:hover .tooltip-bubble,
+.info-icon:focus-visible .tooltip-bubble {
+  display: flex;
+}
+
+.tooltip-row strong {
+  color: var(--color-surface);
+}

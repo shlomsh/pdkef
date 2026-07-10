@@ -187,15 +187,15 @@ export default function PdfToImageTool() {
                 {option.label}
               </button>
             ))}
-            <span class="info-icon" tabIndex={0} aria-describedby="quality-tooltip">
+            <span class={styles['info-icon']} tabIndex={0} aria-describedby="quality-tooltip">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="12" cy="12" r="9.25" stroke="currentColor" stroke-width="1.6" />
                 <path d="M12 11v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
                 <circle cx="12" cy="7.75" r="1.05" fill="currentColor" />
               </svg>
-              <span class="tooltip-bubble" role="tooltip" id="quality-tooltip">
+              <span class={styles['tooltip-bubble']} role="tooltip" id="quality-tooltip">
                 {SCALE_OPTIONS.map((option) => (
-                  <span key={option.value} class="tooltip-row">
+                  <span key={option.value} class={styles['tooltip-row']}>
                     <strong>{option.label}</strong> {option.hint}
                   </span>
                 ))}
