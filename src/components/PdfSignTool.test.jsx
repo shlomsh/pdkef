@@ -5,6 +5,8 @@ import fs from 'fs';
 import path from 'path';
 import PdfSignTool from './PdfSignTool.jsx';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
+import dropzoneStyles from './Dropzone.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -73,7 +75,7 @@ describe('PdfSignTool UI flow', () => {
       render(<PdfSignTool />, container);
     });
 
-    const dropzone = container.querySelector('.dropzone');
+    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
@@ -99,7 +101,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // It should now show "Signing: test_agreement.pdf"
-    const header = container.querySelector('.list-count');
+    const header = container.querySelector(`.${pdfToolStyles['list-count']}`);
     expect(header).not.toBeNull();
     expect(header.textContent).toContain('Signing: test_agreement.pdf');
   });
