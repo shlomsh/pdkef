@@ -203,12 +203,12 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
 - **E3.2 Migrate the marketing `.astro` surface to utilities - in progress.** (`index.astro`, tool pages,
   `FeatureCard`, `ToolHero`, `AppBar`, `Footer`). No editor components.
   - *Depends on:* E3.1, E1.1, E1.2 · *Lane:* D
-  - *Progress:* E3.1 scaffold, `FeatureCard`, and `Footer` landed. A direct `ToolHero` utility conversion
-    exceeded the 80 KB CSS gate by about 1.8 KB, so establish a budget-neutral strategy before retrying it,
-    `AppBar`, tool pages, or the remaining `index.astro` sections. The shared hero/content-card batch and
-    home Why/Autosave sections now use utilities, and the generated maximum is back under the 80 KB gate.
-    The CSS-first setup imports utilities only and defines the project spacing/font tokens, avoiding
-    Tailwind's unused default palette and Preflight.
+  - *Progress:* E3.1 scaffold, `FeatureCard`, `Footer`, `ToolHero`, `AppBar`, tool-page content cards,
+    and the home Why/Autosave/offline/open-source sections now use utilities. The generated maximum is
+    `77,570 / 80,000` bytes. The animation-heavy home tool grid remains scoped for now because its direct
+    utility conversion exceeded the budget; remaining static cleanup is the home first-fold/grid and the
+    small `licenses`/`404` page styles. The CSS-first setup imports utilities only and defines the project
+    spacing/font tokens, avoiding Tailwind's unused default palette and Preflight.
 
 ## E4 - Headless TS editor core  ·  *Lane E, internally serial, parallel to E2/E3*
 
