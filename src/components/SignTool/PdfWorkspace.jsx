@@ -19,6 +19,7 @@ import { useSignTool } from './SignToolContext.jsx';
 import SignToolbar from './SignToolbar.jsx';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
 import { detectTextDirection } from '../../lib/sign.js';
+import pdfToolStyles from '../PdfTool.module.css';
 
 export default function PdfWorkspace({
   file,
@@ -153,8 +154,8 @@ export default function PdfWorkspace({
       aria-busy={status === 'signing'}
     >
       {/* Header Controls */}
-      <div className="list-header" style={{ width: '100%' }}>
-        <span className="list-count" style={{ fontWeight: '600' }}>
+      <div className={pdfToolStyles['list-header']} style={{ width: '100%' }}>
+        <span className={pdfToolStyles['list-count']} style={{ fontWeight: '600' }}>
           Signing: {file.name}
         </span>
       </div>
@@ -242,11 +243,11 @@ export default function PdfWorkspace({
 
           {/* Complete signing button */}
           <div className="sign-export-actions" style={{ marginTop: '2rem' }}>
-            <button type="button" className="merge-button" onClick={handleDownloadPdf}>
+            <button type="button" className={pdfToolStyles['merge-button']} onClick={handleDownloadPdf}>
               Download
             </button>
             {canSharePdf && (
-              <button type="button" className="merge-button sign-export-share" onClick={shareReady ? handleSharePdf : handleSavePdf}>
+              <button type="button" className={`${pdfToolStyles['merge-button']} sign-export-share`} onClick={shareReady ? handleSharePdf : handleSavePdf}>
                 {shareReady ? 'Share now' : 'Share'}
               </button>
             )}
@@ -257,9 +258,9 @@ export default function PdfWorkspace({
       {/* Signing state */}
       {status === 'signing' && (
         <div style={{ textAlign: 'center', width: '100%', padding: '3rem 0' }}>
-          <span className="merge-button-progress" style={{ color: 'var(--color-text)' }}>
-            <svg className="progress-ring" width="22" height="22" viewBox="0 0 40 40">
-              <circle className="progress-ring-track" cx="20" cy="20" r="18" stroke="var(--color-border-strong)" />
+          <span className={pdfToolStyles['merge-button-progress']} style={{ color: 'var(--color-text)' }}>
+            <svg className={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40">
+              <circle className={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" stroke="var(--color-border-strong)" />
             </svg>
             Saving document layers…
           </span>
@@ -268,7 +269,7 @@ export default function PdfWorkspace({
 
       {/* Error Message */}
       {status === 'error' && (
-        <div className="error-message" role="alert" style={{ width: '100%' }}>
+        <div className={pdfToolStyles['error-message']} role="alert" style={{ width: '100%' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
             <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />

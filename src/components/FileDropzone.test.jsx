@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import FileDropzone from './FileDropzone.jsx';
+import styles from './Dropzone.module.css';
 
 describe('FileDropzone', () => {
   let container;
@@ -39,6 +40,18 @@ describe('FileDropzone', () => {
     expect(input.multiple).toBe(false);
   });
 
+  // The homepage CTA (`index.astro`) mounts FileDropzone with an `href`, which
+  // renders the picker as a navigating anchor instead of a file <input> label.
+  it('renders the picker as an anchor (no file input) when href is set', () => {
+    mount({ onFiles: vi.fn(), href: '/sign?action=open' });
+    const link = container.querySelector(`a.${styles['file-picker-button']}`);
+    expect(link).not.toBeNull();
+    expect(link.getAttribute('href')).toBe('/sign?action=open');
+    expect(link.textContent).toContain('Choose files');
+    // In href mode there is no hidden file input.
+    expect(container.querySelector('input[type="file"]')).toBeNull();
+  });
+
   it('calls onFiles when a file is selected via input', () => {
     const onFilesSpy = vi.fn();
     mount({ onFiles: onFilesSpy });
@@ -58,29 +71,29 @@ describe('FileDropzone', () => {
 
   it('adds and removes is-dragover class on drag events', () => {
     mount({ onFiles: vi.fn() });
-    const dropzone = container.querySelector('.dropzone');
-    expect(dropzone.classList.contains('is-dragover')).toBe(false);
+    const dropzone = container.querySelector(`.${styles['dropzone']}`);
+    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(false);
 
     act(() => {
       dropzone.dispatchEvent(new Event('dragover', { bubbles: true }));
     });
-    expect(dropzone.classList.contains('is-dragover')).toBe(true);
+    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(true);
 
     act(() => {
       dropzone.dispatchEvent(new Event('dragleave', { bubbles: true }));
     });
-    expect(dropzone.classList.contains('is-dragover')).toBe(false);
+    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(false);
   });
 
   it('calls onFiles when files are dropped', () => {
     const onFilesSpy = vi.fn();
     mount({ onFiles: onFilesSpy });
-    const dropzone = container.querySelector('.dropzone');
+    const dropzone = container.querySelector(`.${styles['dropzone']}`);
 
     act(() => {
       dropzone.dispatchEvent(new Event('dragover', { bubbles: true }));
     });
-    expect(dropzone.classList.contains('is-dragover')).toBe(true);
+    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(true);
 
     const file = new File([''], 'test.pdf', { type: 'application/pdf' });
     const dropEvent = new Event('drop', { bubbles: true, cancelable: true });
@@ -90,7 +103,7 @@ describe('FileDropzone', () => {
       dropzone.dispatchEvent(dropEvent);
     });
 
-    expect(dropzone.classList.contains('is-dragover')).toBe(false);
+    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(false);
     expect(onFilesSpy).toHaveBeenCalledTimes(1);
     expect(onFilesSpy.mock.calls[0][0][0]).toBe(file);
   });

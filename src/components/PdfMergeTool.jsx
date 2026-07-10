@@ -4,6 +4,8 @@ import { mergePdfs, resolvePdfCreationDate } from '../lib/merge.js';
 import { sortByDate, sortByName } from '../lib/sort.js';
 import { renderThumbnail } from '../lib/thumbnails.js';
 import BasePdfTool from './BasePdfTool.jsx';
+import styles from './FileList.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 
@@ -45,10 +47,10 @@ export default function PdfMergeTool() {
     sortableRef.current = Sortable.create(listRef.current, {
       animation: 220,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-      handle: '.drag-handle',
-      ghostClass: 'is-ghost',
-      chosenClass: 'is-chosen',
-      dragClass: 'is-dragging',
+      handle: `.${styles['drag-handle']}`,
+      ghostClass: styles['is-ghost'],
+      chosenClass: styles['is-chosen'],
+      dragClass: styles['is-dragging'],
       forceFallback: false,
       onEnd(evt) {
         if (evt.oldIndex === evt.newIndex) return;
@@ -229,11 +231,11 @@ export default function PdfMergeTool() {
 
       {hasFiles && (
         <>
-          <div class="list-header">
-            <span class="list-count">
+          <div class={pdfToolStyles['list-header']}>
+            <span class={pdfToolStyles['list-count']}>
               {entries.length} PDF{entries.length === 1 ? '' : 's'}
             </span>
-            <button type="button" class="clear-all" onClick={reset}>
+            <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
               Clear all
             </button>
           </div>
@@ -251,7 +253,7 @@ export default function PdfMergeTool() {
             <button type="button" class="sign-tool-btn" onClick={() => applySort(sortByDate, 'desc')}>
               Newest
             </button>
-            <label class="page-numbers-toggle">
+            <label class={pdfToolStyles['page-numbers-toggle']}>
               <input
                 type="checkbox"
                 checked={addPageNumbers}
@@ -274,11 +276,11 @@ export default function PdfMergeTool() {
             arrow up or down keys to move it.
           </p>
 
-          <ul class="file-list" ref={listRef} aria-describedby="reorder-hint">
+          <ul class={styles['file-list']} ref={listRef} aria-describedby="reorder-hint">
             {entries.map((entry, index) => (
-              <li key={entry.id} class="file-item" data-id={entry.id}>
+              <li key={entry.id} class={styles['file-item']} data-id={entry.id}>
                 <span
-                  class="drag-handle"
+                  class={styles['drag-handle']}
                   tabIndex="0"
                   role="button"
                   aria-label={`${entry.file.name}, position ${index + 1} of ${entries.length}. Drag, or press arrow up or down to move.`}
@@ -295,16 +297,16 @@ export default function PdfMergeTool() {
                 </span>
 
                 {entry.thumbnail ? (
-                  <img class="thumb is-loaded" src={entry.thumbnail} alt="" width="40" />
+                  <img class={`${styles.thumb} ${styles['is-loaded']}`} src={entry.thumbnail} alt="" width="40" />
                 ) : (
-                  <span class="thumb thumb-placeholder" aria-hidden="true" />
+                  <span class={`${styles.thumb} ${pdfToolStyles['thumb-placeholder']}`} aria-hidden="true" />
                 )}
 
-                <span class="file-name">{entry.file.name}</span>
+                <span class={styles['file-name']}>{entry.file.name}</span>
 
                 <button
                   type="button"
-                  class="remove-button"
+                  class={styles['remove-button']}
                   aria-label={`Remove ${entry.file.name}`}
                   onClick={() => removeEntry(entry.id)}
                 >
@@ -318,16 +320,16 @@ export default function PdfMergeTool() {
 
           <button
             type="button"
-            class={`merge-button${status === 'merging' ? ' is-merging' : ''}${status === 'done' ? ' is-done' : ''}`}
+            class={`${pdfToolStyles['merge-button']}${status === 'merging' ? ` ${pdfToolStyles['is-merging']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
             disabled={entries.length < 2 || status === 'merging'}
             onClick={handleMerge}
           >
             {status === 'merging' ? (
-              <span class="merge-button-progress">
-                <svg class="progress-ring" width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
-                  <circle class="progress-ring-track" cx="20" cy="20" r="18" />
+              <span class={pdfToolStyles['merge-button-progress']}>
+                <svg class={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
+                  <circle class={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" />
                   <circle
-                    class="progress-ring-fill"
+                    class={pdfToolStyles['progress-ring-fill']}
                     cx="20"
                     cy="20"
                     r="18"
@@ -345,7 +347,7 @@ export default function PdfMergeTool() {
           </button>
 
           {status === 'error' && (
-            <div class="error-message" role="alert">
+            <div class={pdfToolStyles['error-message']} role="alert">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
                 <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
@@ -362,18 +364,18 @@ export default function PdfMergeTool() {
             <>
               <a
                 ref={downloadRef}
-                class="download-button"
+                class={pdfToolStyles['download-button']}
                 href={downloadUrl}
                 download="merged.pdf"
               >
-                <svg class="download-check" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" class="check-circle" />
-                  <path d="M7.5 12.5l3 3 6-6.5" class="check-mark" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
+                  <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
                 </svg>
                 Download PDF
               </a>
               <PdfShareButton visible={canSharePdf && shareReady} onShare={handleShare} />
-              <button type="button" class="start-over" onClick={reset}>
+              <button type="button" class={pdfToolStyles['start-over']} onClick={reset}>
                 Start over
               </button>
             </>

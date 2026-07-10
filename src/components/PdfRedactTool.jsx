@@ -12,6 +12,7 @@ import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../constants/signGeometr
 import { createActionEntry } from '../lib/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
+import pdfToolStyles from './PdfTool.module.css';
 
 export default function PdfRedactTool() {
   const [file, setFile] = useState(null);
@@ -634,7 +635,7 @@ export default function PdfRedactTool() {
                   {elements.some(el => el.pageIndex === i) && (
                     <button
                       type="button"
-                      className="clear-all"
+                      className={pdfToolStyles['clear-all']}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                       title="Clear all redactions on this page"
                       onClick={() => clearPage(i)}
@@ -705,9 +706,9 @@ export default function PdfRedactTool() {
       {/* Redacting progress */}
       {status === 'redacting' && (
         <div style={{ textAlign: 'center', width: '100%', padding: '3rem 0' }}>
-          <span className="merge-button-progress" style={{ color: 'var(--color-text)' }}>
-            <svg className="progress-ring" width="22" height="22" viewBox="0 0 40 40">
-              <circle className="progress-ring-track" cx="20" cy="20" r="18" stroke="var(--color-border-strong)" />
+          <span className={pdfToolStyles['merge-button-progress']} style={{ color: 'var(--color-text)' }}>
+            <svg className={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40">
+              <circle className={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" stroke="var(--color-border-strong)" />
             </svg>
             Applying redactions… {Math.round(progress * 100)}%
           </span>
@@ -716,7 +717,7 @@ export default function PdfRedactTool() {
 
       {/* Error */}
       {status === 'error' && (
-        <div className="error-message" role="alert" style={{ width: '100%' }}>
+        <div className={pdfToolStyles['error-message']} role="alert" style={{ width: '100%' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
             <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />

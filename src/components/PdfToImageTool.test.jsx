@@ -2,6 +2,9 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfToImageTool from './PdfToImageTool.jsx';
+import styles from './FileList.module.css';
+import dropzoneStyles from './Dropzone.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 function makePdfFile(name) {
@@ -51,7 +54,7 @@ describe('PdfToImageTool UI flow', () => {
       render(<PdfToImageTool />, container);
     });
 
-    const dropzone = container.querySelector('.dropzone');
+    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
@@ -89,12 +92,12 @@ describe('PdfToImageTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const downloadLink = container.querySelector('a.download-button');
+    const downloadLink = container.querySelector(`a.${pdfToolStyles['download-button']}`);
     expect(downloadLink).not.toBeNull();
     expect(downloadLink.getAttribute('download')).toBe('report.png');
     expect(downloadLink.getAttribute('href')).toBe('blob:fake-url');
 
-    const shareButton = container.querySelector('.pdf-share-button');
+    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('report.png');
@@ -147,10 +150,10 @@ describe('PdfToImageTool UI flow', () => {
     });
 
     // Three pages combined into one image: a single download link, no per-page list.
-    const downloadLink = container.querySelector('a.download-button');
+    const downloadLink = container.querySelector(`a.${pdfToolStyles['download-button']}`);
     expect(downloadLink).not.toBeNull();
     expect(downloadLink.getAttribute('download')).toBe('report.png');
-    expect(container.querySelector('.file-list')).toBeNull();
+    expect(container.querySelector(`.${styles['file-list']}`)).toBeNull();
   });
 
   it('converts only the selected pages from a custom page range', async () => {
@@ -191,7 +194,7 @@ describe('PdfToImageTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const fileNames = Array.from(container.querySelectorAll('.file-name')).map((el) => el.textContent);
+    const fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map((el) => el.textContent);
     expect(fileNames).toEqual(['Page 2', 'Page 4']);
   });
 
@@ -225,6 +228,6 @@ describe('PdfToImageTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    expect(container.querySelector('.page-selector-error')).not.toBeNull();
+    expect(container.querySelector(`.${pdfToolStyles['page-selector-error']}`)).not.toBeNull();
   });
 });

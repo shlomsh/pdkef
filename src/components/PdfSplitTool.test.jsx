@@ -3,6 +3,10 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfSplitTool from './PdfSplitTool.jsx';
 import { parsePageSelector, pageNumbersToRangeString } from '../lib/split.js';
+import dropzoneStyles from './Dropzone.module.css';
+import pageGridStyles from './PageGrid.module.css';
+import styles from './PdfSplitTool.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 // Test split.js library
@@ -78,7 +82,7 @@ describe('PdfSplitTool UI flow', () => {
       render(<PdfSplitTool />, container);
     });
 
-    const dropzone = container.querySelector('.dropzone');
+    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
@@ -115,7 +119,7 @@ describe('PdfSplitTool UI flow', () => {
     expect(selectorInput.value).toBe('1-4');
 
     // Should render 4 page cards
-    const cards = container.querySelectorAll('.page-card');
+    const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
     expect(cards.length).toBe(4);
   });
 
@@ -138,17 +142,17 @@ describe('PdfSplitTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const separateButton = Array.from(container.querySelectorAll('.split-card'))
+    const separateButton = Array.from(container.querySelectorAll(`.${styles['split-card']}`))
       .find((button) => button.textContent.includes('Individual Pages'));
     await act(async () => separateButton.click());
 
-    const splitButton = container.querySelector('.merge-button');
+    const splitButton = container.querySelector(`.${pdfToolStyles['merge-button']}`);
     await act(async () => {
       splitButton.click();
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const shareButton = container.querySelector('.pdf-share-button');
+    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     const files = nativeShare.share.mock.calls[0][0].files;

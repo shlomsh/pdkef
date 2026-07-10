@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfSecurityTool from './PdfSecurityTool.jsx';
 import * as securityLib from '../lib/security.js';
+import pdfToolStyles from './PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 vi.mock('../lib/security.js', () => ({
@@ -91,8 +92,8 @@ describe('PdfSecurityTool', () => {
     });
 
     expect(securityLib.unlockPdf).toHaveBeenCalledWith(expect.any(File), 'secret');
-    expect(container.querySelector('.download-button').getAttribute('download')).toBe('test_unlocked.pdf');
-    const shareButton = container.querySelector('.pdf-share-button');
+    expect(container.querySelector(`.${pdfToolStyles['download-button']}`).getAttribute('download')).toBe('test_unlocked.pdf');
+    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('test_unlocked.pdf');
@@ -119,7 +120,7 @@ describe('PdfSecurityTool', () => {
     });
 
     expect(securityLib.protectPdf).toHaveBeenCalledWith(expect.any(File), 'secret');
-    expect(container.querySelector('.download-button').getAttribute('download')).toBe('test_protected.pdf');
+    expect(container.querySelector(`.${pdfToolStyles['download-button']}`).getAttribute('download')).toBe('test_protected.pdf');
   });
 
   it('handles wrong password during unlock', async () => {

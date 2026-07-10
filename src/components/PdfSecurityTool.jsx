@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { isPdfEncrypted, protectPdf, unlockPdf, WrongPasswordError, SecurityError } from '../lib/security.js';
 import BasePdfTool from './BasePdfTool.jsx';
+import styles from './PdfSecurityTool.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 
@@ -118,21 +120,21 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
     >
       {hasFiles && mode && (
         <div class="tool-workspace">
-          <div class="list-header">
-            <span class="list-count">{file.name}</span>
-            <button type="button" class="clear-all" onClick={reset}>
+          <div class={pdfToolStyles['list-header']}>
+            <span class={pdfToolStyles['list-count']}>{file.name}</span>
+            <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
               Start over
             </button>
           </div>
 
-          <form class="unlock-form" onSubmit={handleSubmit}>
-            <label class="unlock-label" htmlFor="security-password">
+          <form class={styles['unlock-form']} onSubmit={handleSubmit}>
+            <label class={styles['unlock-label']} htmlFor="security-password">
               {mode === 'unlock' ? 'PDF password' : 'Set Password'}
             </label>
             <input
               ref={passwordRef}
               id="security-password"
-              class="unlock-password-input"
+              class={styles['unlock-password-input']}
               type="password"
               value={password}
               onInput={handlePasswordChange}
@@ -143,7 +145,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
 
             <button
               type="submit"
-              class={`merge-button${status === 'processing' ? ' is-merging' : ''}${status === 'done' ? ' is-done' : ''}`}
+              class={`${pdfToolStyles['merge-button']}${status === 'processing' ? ` ${pdfToolStyles['is-merging']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
               disabled={!password || status === 'processing'}
             >
               {status === 'processing' 
@@ -153,7 +155,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
           </form>
 
           {status === 'error' && (
-            <div class="error-message" role="alert">
+            <div class={pdfToolStyles['error-message']} role="alert">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
                 <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
@@ -169,13 +171,13 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
             <>
               <a
                 ref={downloadRef}
-                class="download-button"
+                class={pdfToolStyles['download-button']}
                 href={downloadUrl}
                 download={`${file.name.replace(/\.pdf$/i, '')}_${mode}ed.pdf`}
               >
-                <svg class="download-check" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" class="check-circle" />
-                  <path d="M7.5 12.5l3 3 6-6.5" class="check-mark" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
+                  <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
                 </svg>
                 Download {mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF
               </a>
@@ -184,7 +186,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
                 onShare={handleShare}
                 label={`Share ${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF`}
               />
-              <button type="button" class="start-over" onClick={reset}>
+              <button type="button" class={pdfToolStyles['start-over']} onClick={reset}>
                 Start over
               </button>
             </>

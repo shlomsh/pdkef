@@ -4,6 +4,9 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfImageToPdfTool from './PdfImageToPdfTool.jsx';
 import * as imageToPdfLib from '../lib/imageToPdf.js';
+import styles from './FileList.module.css';
+import dropzoneStyles from './Dropzone.module.css';
+import pdfToolStyles from './PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 function makeImageFile(name, type = 'image/png') {
@@ -57,7 +60,7 @@ describe('PdfImageToPdfTool UI flow', () => {
 
   it('renders the initial file dropper zone', () => {
     mount();
-    const dropzone = container.querySelector('.dropzone');
+    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop images here');
   });
@@ -66,13 +69,13 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['one.png']);
 
-    const header = container.querySelector('.list-count');
+    const header = container.querySelector(`.${pdfToolStyles['list-count']}`);
     expect(header.textContent).toContain('1 image');
 
-    const fileNames = Array.from(container.querySelectorAll('.file-name')).map((el) => el.textContent);
+    const fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map((el) => el.textContent);
     expect(fileNames).toEqual(['one.png']);
 
-    const convertBtn = container.querySelector('.merge-button');
+    const convertBtn = container.querySelector(`.${pdfToolStyles['merge-button']}`);
     expect(convertBtn.disabled).toBe(false);
     expect(convertBtn.textContent).toContain('Convert 1 image to PDF');
   });
@@ -95,7 +98,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['doc1.png', 'doc2.jpg']);
 
-    const convertBtn = container.querySelector('.merge-button');
+    const convertBtn = container.querySelector(`.${pdfToolStyles['merge-button']}`);
     expect(convertBtn.textContent).toContain('Convert 2 images to PDF');
 
     await act(async () => {
@@ -104,12 +107,12 @@ describe('PdfImageToPdfTool UI flow', () => {
     });
 
     expect(imageToPdfLib.imagesToPdf).toHaveBeenCalled();
-    const downloadBtn = container.querySelector('.download-button');
+    const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
     expect(downloadBtn.getAttribute('download')).toBe('images.pdf');
 
-    const shareButton = container.querySelector('.pdf-share-button');
+    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('images.pdf');
@@ -120,15 +123,15 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['one.png', 'two.png']);
 
-    let fileNames = Array.from(container.querySelectorAll('.file-name')).map((el) => el.textContent);
+    let fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map((el) => el.textContent);
     expect(fileNames).toEqual(['one.png', 'two.png']);
 
-    const removeBtns = container.querySelectorAll('.remove-button');
+    const removeBtns = container.querySelectorAll(`.${styles['remove-button']}`);
     await act(async () => {
       removeBtns[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    fileNames = Array.from(container.querySelectorAll('.file-name')).map((el) => el.textContent);
+    fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map((el) => el.textContent);
     expect(fileNames).toEqual(['two.png']);
   });
 
@@ -140,7 +143,7 @@ describe('PdfImageToPdfTool UI flow', () => {
 
     await loadFiles(['a.png', 'b.png']);
 
-    const list = container.querySelector('ul.file-list');
+    const list = container.querySelector(`ul.${styles['file-list']}`);
     expect(list).not.toBeNull();
     expect(createSpy).toHaveBeenCalledTimes(1);
     expect(createSpy).toHaveBeenCalledWith(list, expect.any(Object));

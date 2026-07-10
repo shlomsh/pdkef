@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { saveDraft } from '../lib/draftStore.js';
+import styles from './Dropzone.module.css';
 
 export default function FileDropzone({ onFiles, multiple = true, accept = "application/pdf", href, toolTarget, className = '' }) {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -26,7 +27,7 @@ export default function FileDropzone({ onFiles, multiple = true, accept = "appli
 
   return (
     <div
-      class={`dropzone ${className}${isDragOver ? ' is-dragover' : ''}`}
+      class={`${styles.dropzone} ${className}${isDragOver ? ` ${styles['is-dragover']}` : ''}`}
       onDragOver={(e) => {
         e.preventDefault();
         setIsDragOver(true);
@@ -35,29 +36,29 @@ export default function FileDropzone({ onFiles, multiple = true, accept = "appli
       onDrop={onDrop}
     >
       <svg
-        class="dropzone-icon"
+        class={styles['dropzone-icon']}
         width="48"
         height="48"
         viewBox="0 0 48 48"
         fill="none"
         aria-hidden="true"
       >
-        <rect x="9" y="4" width="24" height="32" rx="3" class="dz-page" />
-        <path d="M27 4v8h8" class="dz-fold" />
-        <rect x="16" y="26" width="22" height="16" rx="3" class="dz-page dz-page-front" />
-        <path d="M23 30v8M27 34h-8" class="dz-plus" />
+        <rect x="9" y="4" width="24" height="32" rx="3" class={styles['dz-page']} />
+        <path d="M27 4v8h8" class={styles['dz-fold']} />
+        <rect x="16" y="26" width="22" height="16" rx="3" class={`${styles['dz-page']} ${styles['dz-page-front']}`} />
+        <path d="M23 30v8M27 34h-8" class={styles['dz-plus']} />
       </svg>
 
-      <p class="dropzone-text">
+      <p class={styles['dropzone-text']}>
         <strong>Drop PDF{multiple ? 's' : ''} here</strong>
       </p>
 
       {href ? (
-        <a class="file-picker-button" href={href}>
+        <a class={styles['file-picker-button']} href={href}>
           Choose file{multiple ? 's' : ''}
         </a>
       ) : (
-        <label class="file-picker-button">
+        <label class={styles['file-picker-button']}>
           Choose file{multiple ? 's' : ''}
           <input
             type="file"
@@ -69,7 +70,7 @@ export default function FileDropzone({ onFiles, multiple = true, accept = "appli
         </label>
       )}
 
-      <p class="privacy-line">
+      <p class={styles['privacy-line']}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
             d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z"
