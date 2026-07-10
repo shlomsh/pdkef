@@ -1,0 +1,61 @@
+.split-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.split-modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.split-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s var(--ease-out), background-color 0.2s var(--ease-out),
+    transform 0.15s var(--ease-spring), box-shadow 0.2s var(--ease-out);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+  outline: none;
+}
+
+.split-card:hover {
+  border-color: var(--color-border-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.split-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.split-card.is-selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-sm);
+}
+
+.split-card-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.split-card-desc {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  line-height: 1.4;
+  margin: 0;
+}

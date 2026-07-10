@@ -1,0 +1,51 @@
+/* Colocated from global.css in E2.2.8. The E2.2 plan expected `.toolbar`/
+   `.toolbar-label` to be shared across Merge/ImageToPdf/ToImage/EditPages
+   (a "ToolToolbar.module.css"), but the real consumers turned out to be only
+   PdfToImageTool.jsx (its Format/Quality/Output option groups) — Merge and
+   ImageToPdf render their own sort row with `.sign-toolbar` (a different,
+   editor-territory class), not this one. Genuinely single-consumer, so this
+   is a per-component module rather than a shared one. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: var(--space-3);
+}
+
+.toolbar-label {
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-right: 0.2rem;
+}
+
+.toolbar button {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease-out), background-color 0.15s var(--ease-out),
+    color 0.15s var(--ease-out), transform 0.12s var(--ease-spring);
+}
+
+.toolbar button:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.toolbar button:active {
+  transform: scale(0.95);
+}
+
+.toolbar button[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}

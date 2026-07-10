@@ -1,0 +1,169 @@
+/* Shared file-list chrome — colocated from global.css in E2.2.7.
+   Consumers: PdfMergeTool, PdfImageToPdfTool, PdfToImageTool, PdfSplitTool
+   (all render a reorderable/plain <ul class="file-list">). PdfEditPagesTool
+   does NOT import this module — its only touchpoint with this group is the
+   deferred `.thumb-placeholder` below, still in global.css.
+   One shared module so 4 tools can't diverge (the §5.4 shared-class trap).
+
+   NOT moved here (left in global.css, deliberately deferred):
+   - `.thumb-placeholder` + `@keyframes shimmer` — also used by PdfEditPagesTool's
+     page-grid loading skeleton (`.page-card-thumb-container`), which is E2.2.9
+     (PageGrid) territory. Cross-boundary; resolve ownership when PageGrid lands,
+     same pattern as E2.2.3's `.metric-*` resolution.
+   - `.list-hint` — currently unused by any consumer (dead CSS); left alone
+     rather than silently dropped in a CSS-scoping ticket. */
+.file-list {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 60px;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+  animation: item-in 0.3s var(--ease-out);
+  transition: box-shadow 0.18s var(--ease-out), border-color 0.18s var(--ease-out),
+    transform 0.18s var(--ease-out);
+}
+
+.file-item:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+@keyframes item-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.file-item.is-chosen {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.file-item.is-dragging {
+  cursor: grabbing;
+  transform: scale(1.02) rotate(-0.4deg);
+}
+
+.file-item.is-ghost {
+  opacity: 0.35;
+  background: var(--color-primary-soft);
+  border: 1px dashed var(--color-primary);
+}
+
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  margin: -0.25rem -0.15rem;
+  cursor: grab;
+  color: var(--color-muted-light);
+  border-radius: var(--radius-sm);
+  touch-action: none;
+  transition: color 0.15s var(--ease-out), background-color 0.15s var(--ease-out);
+}
+
+.drag-handle:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle:focus-visible {
+  outline: none;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow: var(--shadow-focus);
+}
+
+.thumb {
+  width: 40px;
+  height: 52px;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: 5px;
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+  background: var(--color-surface-sunken);
+  box-shadow: var(--shadow-xs);
+}
+
+.thumb.is-loaded {
+  opacity: 0;
+  animation: thumb-in 0.4s var(--ease-out) forwards;
+}
+
+@keyframes thumb-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.93rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  padding: 0.4rem;
+  margin: -0.4rem;
+  border-radius: var(--radius-sm);
+  cursor: default;
+}
+
+.remove-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: var(--color-muted-light);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s var(--ease-out), background-color 0.15s var(--ease-out),
+    transform 0.12s var(--ease-spring);
+}
+
+.remove-button:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.remove-button:active {
+  transform: scale(0.92);
+}

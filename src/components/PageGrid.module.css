@@ -1,0 +1,271 @@
+/* Page thumbnail selection grid — colocated from global.css in E2.2.9.
+   Consumers: PdfSplitTool.jsx (page-based split mode: click-to-select grid,
+   no drag reorder) and PdfEditPagesTool.jsx (full drag-reorder + rotate +
+   remove-page grid). Split doesn't render the drag-handle/rotate/grid-actions
+   elements, but there's no harm sharing one module — CSS Modules don't force
+   a consumer to use every class.
+
+   NOT here (verified, contra the original E2.2 plan which listed Redact as a
+   third consumer): PdfRedactTool.jsx does NOT use any of these classes — its
+   page picker is `.sign-page-card`, a distinct editor-territory (E2.3) class.
+
+   Also NOT here (deliberately deferred to E2.2.10 `PdfTool.module.css`):
+   `.page-numbers-toggle` — despite living in this CSS block, it's actually a
+   generic pill-toggle reused by PdfMergeTool.jsx for an unrelated "add page
+   numbers to output" checkbox, not a page-grid-specific control. Its real
+   character is "generic multi-tool shared state," which fits E2.2.10 better
+   than a page-grid-named module. */
+.pages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 1.25rem;
+  margin: 1.5rem 0 0.5rem;
+  max-height: 440px;
+  overflow-y: auto;
+  padding: 1rem;
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+}
+
+.page-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.5rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s var(--ease-out);
+  user-select: none;
+}
+
+.page-card:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.page-card.is-selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.page-card-thumb-container {
+  position: relative;
+  width: 80px;
+  height: 104px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-sunken);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+}
+
+.page-card-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  border: 1px solid var(--color-border);
+  transition: opacity 0.3s;
+}
+
+.page-card-number {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Page card checkbox - now a real <button> */
+.page-card-checkbox {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  transition: all 0.15s var(--ease-out);
+  z-index: 2;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.page-card-checkbox:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.page-card.is-selected .page-card-checkbox {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-surface);
+  box-shadow: 0 1px 4px var(--color-primary-ring);
+}
+
+/* Drag handle - full-width top bar on each page card */
+.page-drag-handle {
+  width: calc(100% + 1rem);
+  margin: -0.75rem -0.5rem 0;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: var(--color-muted-light);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: color 0.15s, background 0.15s;
+  touch-action: none;
+  flex-shrink: 0;
+}
+
+.page-drag-handle:hover {
+  color: var(--color-muted);
+  background: var(--color-surface-sunken);
+}
+
+.page-drag-handle:active {
+  cursor: grabbing;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+/* Rotate buttons under each thumbnail */
+.page-card-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.1rem;
+}
+
+.rotate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  box-sizing: border-box;
+}
+
+.rotate-btn svg {
+  flex-shrink: 0;
+  display: block;
+}
+
+.rotate-btn:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+/* SortableJS states for the page grid */
+/* Ghost = the placeholder left behind while dragging - make it invisible
+   so the grid doesn't show a jarring empty hole */
+.pages-grid .is-ghost {
+  opacity: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+/* Chosen = the card being actively picked up */
+.pages-grid .is-chosen {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+  z-index: 10;
+}
+
+/* Dragging clone floating over the grid */
+.pages-grid .is-dragging {
+  opacity: 0.95;
+  transform: scale(1.04) rotate(-0.5deg);
+  box-shadow: 0 12px 28px -4px var(--color-primary-ring), var(--shadow-lg);
+  cursor: grabbing;
+  z-index: 100;
+}
+
+.grid-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.grid-actions button {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, border-color 0.15s;
+  line-height: 1;
+}
+
+.grid-actions button:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+/* hint label in toolbar */
+.grid-actions-hint {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--color-muted-light);
+  align-self: center;
+}
+
+/* --- PDF Remove Pages Specific Styles --- */
+.page-card.is-removed {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+  opacity: 0.6;
+}
+
+.page-card.is-removed:hover {
+  border-color: var(--color-danger);
+  transform: none;
+}
+
+.page-card.is-removed .page-card-thumb {
+  filter: grayscale(100%) opacity(0.7);
+}
+
+.page-card.is-removed .page-card-number {
+  color: var(--color-danger);
+  text-decoration: line-through;
+}
+
+.page-card.is-removed .page-card-checkbox {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: var(--color-surface);
+  box-shadow: 0 1px 4px rgba(216, 52, 43, 0.3);
+}
