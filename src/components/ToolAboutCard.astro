@@ -1,7 +1,7 @@
 ---
 // Reusable "How it works" + "Free for everyone" content card for tool pages.
-// Pairs with ToolFaqCard.astro; both share the .tool-content-card decorative
-// treatment (geometric sketch + icon watermark) via CardDecor.astro.
+// Pairs with ToolFaqCard.astro; both share CardDecor's geometric sketch + icon
+// watermark treatment inside their Tailwind-positioned card surface.
 import FeatureCard from './FeatureCard.astro';
 import CardDecor from './CardDecor.astro';
 
@@ -27,7 +27,7 @@ interface Props {
 
 // Defined once for the whole suite so the open-source message can never drift.
 const sharedOpenSource =
-  'It\'s open source under the MIT license, so anyone can read the code, <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">fork it on GitHub</a>, or share it. Simple PDF tools should be free for everyone.';
+  'It\'s open source under the MIT license, so anyone can read the code, <a class="font-medium text-[var(--color-primary)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">fork it on GitHub</a>, or share it. Simple PDF tools should be free for everyone.';
 
 const defaultLead =
   "PDkef runs entirely in your browser, so there's no server to pay for and no reason to charge you, add a watermark, show ads, or ask you to sign up. Use it as much as you like.";
@@ -44,21 +44,21 @@ const {
 } = Astro.props;
 ---
 
-<FeatureCard variant="highlight" class="tool-content-card">
+<FeatureCard variant="highlight" class="relative isolate overflow-hidden">
   <CardDecor sketch={sketch} icon={icon} iconPos={iconPos} iconSize={280} />
-  <div class="tool-about">
-    <span class="tool-tag">{tag}</span>
-    <h2>{heading}</h2>
-    <p class="tool-lead">{lead}</p>
-    <ol>
+  <div>
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase tracking-normal text-[var(--color-primary)]">{tag}</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold tracking-normal text-[var(--color-text)]">{heading}</h2>
+    <p class="mb-6 mt-0 max-w-[68ch] text-[1.05rem] leading-[1.6] tracking-normal text-[var(--color-text)]">{lead}</p>
+    <ol class="mb-7 mt-0 flex list-decimal flex-col gap-[0.6rem] pl-5">
       {steps.map((step) => (
-        <li><strong>{step.title}.</strong> {step.text}</li>
+        <li class="text-[0.98rem] leading-[1.6] text-[var(--color-muted)]"><strong class="font-semibold text-[var(--color-text)]">{step.title}.</strong> {step.text}</li>
       ))}
     </ol>
-    <section class="free-note">
-      <h2>Free for everyone</h2>
-      <p set:html={freeNoteLead} />
-      <p set:html={sharedOpenSource} />
+    <section class="mt-7 border-t border-[var(--color-border)] pt-7">
+      <h2 class="mb-3 mt-0 text-[1.15rem] font-bold tracking-normal text-[var(--color-text)]">Free for everyone</h2>
+      <p class="mb-[0.9rem] mt-0 max-w-[64ch] text-base leading-[1.7] text-[var(--color-muted)]" set:html={freeNoteLead} />
+      <p class="m-0 max-w-[64ch] text-base leading-[1.7] text-[var(--color-muted)]" set:html={sharedOpenSource} />
     </section>
   </div>
 </FeatureCard>

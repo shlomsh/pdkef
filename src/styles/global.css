@@ -7,6 +7,9 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 @import "tailwindcss/utilities.css" layer(utilities);
+@source not "../**/*.jsx";
+@source not "../**/*.test.js";
+@source not "../../e2e/**/*.js";
 
 /* --- Handwriting Fonts --- */
 @font-face {
@@ -260,14 +263,14 @@ a {
 }
 
 /* --- Page header / hero --- */
-header {
+header:not(.tool-hero):not(.not-found-header) {
   max-width: 1080px;
   margin: 0 auto;
   padding: 4.5rem 1.5rem 2.25rem;
   text-align: center;
 }
 
-header h1 {
+header:not(.tool-hero):not(.not-found-header) h1 {
   font-size: clamp(2rem, 5.2vw, 3.25rem);
   font-weight: 700;
   margin: 0 0 0.75rem;
@@ -276,322 +279,12 @@ header h1 {
   color: var(--color-text);
 }
 
-header p {
+header:not(.tool-hero):not(.not-found-header) p {
   color: var(--color-muted);
   font-size: clamp(0.92rem, 1.6vw, 1rem);
   margin: 0 auto;
   letter-spacing: -0.01em;
   line-height: 1.5;
-}
-
-/* --- Suite app-bar tool hero (see ToolHero.astro / AppBar.astro) ----------
-   Header treatment shared by every tool page: icon inline-left of a single
-   keyword <h1>, a value-prop subhead, and a quiet open-source chip row. */
-.tool-hero {
-  padding-top: 3.5rem;
-  padding-bottom: 1.75rem;
-}
-
-.tool-hero-head {
-  display: inline-flex;
-  align-items: center;
-  gap: 1.1rem;
-  text-align: left;
-  max-width: 100%;
-}
-
-.tool-hero-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: clamp(44px, 8vw, 52px);
-  height: clamp(44px, 8vw, 52px);
-  flex: 0 0 auto;
-  border-radius: 16px;
-  background: linear-gradient(150deg, var(--color-muted-light), var(--color-border-strong));
-  box-shadow: 0 8px 18px -8px var(--color-primary-ring), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  color: var(--color-surface);
-  border: none;
-}
-
-.tool-hero-icon[data-slug="sign"] {
-  background: linear-gradient(150deg, var(--color-primary-hover), var(--color-primary));
-}
-
-.tool-hero-icon[data-slug="redact"] {
-  background: linear-gradient(150deg, var(--color-surface), var(--color-success-soft));
-  color: var(--color-success);
-}
-
-.tool-hero-icon svg {
-  width: 55%;
-  height: 55%;
-}
-
-.tool-hero h1 {
-  margin: 0;
-  font-size: clamp(1.7rem, 3.4vw, 2.5rem);
-  line-height: 1.08;
-  letter-spacing: -0.035em;
-  font-weight: 700;
-  text-wrap: balance;
-}
-
-/* Subhead fills the hero's full width (which the parent <header> already caps
-   at 1080px, aligned with the app card below), rather than a narrow measure —
-   long subheads (e.g. Sign) then wrap to ~2 lines instead of stranding text in
-   a skinny column, and short ones still sit centered on one line. On phones the
-   68ch cap keeps line length readable once the full width is only ~1 column. */
-.tool-hero > p {
-  margin: 1.1rem auto 0;
-  max-width: 100%;
-}
-
-@media (max-width: 767px) {
-  .tool-hero > p {
-    max-width: 68ch;
-  }
-}
-
-/* On desktop the keyword <h1> sits on a single row (tool H1s are short). */
-@media (min-width: 768px) {
-  .tool-hero h1 {
-    white-space: nowrap;
-  }
-}
-
-.os-chips {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.6rem;
-  margin-top: 1.5rem;
-}
-
-.os-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.45rem 0.8rem;
-  border: 0.5px solid var(--color-border);
-  border-radius: 10px;
-  background: var(--color-surface);
-  color: var(--color-muted);
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: border-color 0.15s var(--ease-out), transform 0.15s var(--ease-out),
-    color 0.15s var(--ease-out);
-}
-
-a.os-chip:hover {
-  border-color: var(--color-border-strong);
-  color: var(--color-text);
-  transform: translateY(-1px);
-}
-
-.os-chip svg {
-  color: var(--color-muted-light);
-  flex-shrink: 0;
-}
-
-.os-chip-gh {
-  color: var(--color-text);
-}
-
-.os-chip-gh svg {
-  color: var(--color-text);
-}
-
-.os-chip-gh .os-star {
-  color: var(--color-primary);
-}
-
-/* Modest "Free for everyone" note: prose, not a competitor comparison. */
-.free-note p {
-  max-width: 64ch;
-  font-size: 1rem;
-  line-height: 1.7;
-  color: var(--color-muted);
-  margin: 0 0 0.9rem;
-}
-
-.free-note p:last-child {
-  margin: 0;
-}
-
-.free-note a {
-  color: var(--color-primary);
-  font-weight: 500;
-}
-
-/* --- Tool-page content cards (match the home-page FeatureCard look) -------
-   Used inside <FeatureCard> below the tool island so each tool page's
-   how-it-works + FAQ read like the home page. */
-.tool-tag,
-.tool-faq-head .faq-tag {
-  display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-primary);
-  margin-bottom: 0.5rem;
-}
-
-.tool-about h2 {
-  font-size: 1.6rem;
-  font-weight: 700;
-  margin: 0 0 1rem;
-  color: var(--color-text);
-}
-
-.tool-lead {
-  font-size: 1.05rem;
-  line-height: 1.6;
-  color: var(--color-text);
-  margin: 0 0 1.5rem;
-  max-width: 68ch;
-}
-
-.tool-about ol {
-  margin: 0 0 1.75rem;
-  padding-left: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.tool-about ol li {
-  font-size: 0.98rem;
-  line-height: 1.6;
-  color: var(--color-muted);
-}
-
-.tool-about ol li strong {
-  color: var(--color-text);
-  font-weight: 600;
-}
-
-.tool-about .free-note {
-  margin-top: 1.75rem;
-  padding-top: 1.75rem;
-  border-top: 1px solid var(--color-border);
-}
-
-.tool-about .free-note h2 {
-  font-size: 1.15rem;
-  margin-bottom: 0.75rem;
-}
-
-.tool-faq-head {
-  text-align: center;
-  margin-bottom: 3rem;
-}
-
-.tool-faq-head h2 {
-  font-size: 1.6rem;
-  font-weight: 700;
-  margin: 0;
-  color: var(--color-text);
-}
-
-.tool-faq-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 2rem 3rem;
-}
-
-.tool-faq-grid .faq-item h3 {
-  font-size: 1.05rem;
-  font-weight: 600;
-  margin: 0 0 0.5rem;
-  color: var(--color-text);
-}
-
-.tool-faq-grid .faq-item p {
-  font-size: 0.95rem;
-  line-height: 1.5;
-  color: var(--color-muted);
-  margin: 0;
-}
-
-@media (max-width: 768px) {
-  .tool-faq-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-}
-
-/* Decorative treatment for content cards (see CardDecor.astro): a faint
-   theme-colored geometric line sketch plus an oversized watermark icon, both
-   clipped to the card and tucked behind the copy. */
-.tool-content-card {
-  position: relative;
-  overflow: hidden;
-  /* Establish a stacking context so the negative-z decoration below tucks
-     behind the card's own content but never behind the card background. This
-     is layout-agnostic: any card content sits above without extra rules. */
-  isolation: isolate;
-}
-
-.card-decor {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  color: var(--color-primary);
-}
-
-.card-decor svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.card-decor svg :is(path, line, circle) {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.25;
-  stroke-opacity: 0.11;
-}
-
-/* Ease the sketch off toward the opposite corner so copy stays legible. */
-.card-decor.sketch-arcs,
-.card-decor.sketch-grid {
-  -webkit-mask-image: radial-gradient(135% 135% at 90% 8%, #000 34%, transparent 100%);
-  mask-image: radial-gradient(135% 135% at 90% 8%, #000 34%, transparent 100%);
-}
-
-.card-decor.sketch-rings {
-  -webkit-mask-image: radial-gradient(120% 120% at 6% 96%, #000 30%, transparent 100%);
-  mask-image: radial-gradient(120% 120% at 6% 96%, #000 30%, transparent 100%);
-}
-
-.card-decor.sketch-waves {
-  -webkit-mask-image: linear-gradient(180deg, #000, transparent 88%);
-  mask-image: linear-gradient(180deg, #000, transparent 88%);
-}
-
-.card-decor-icon {
-  position: absolute;
-  z-index: -1;
-  color: var(--color-primary);
-  opacity: 0.07;
-  pointer-events: none;
-}
-
-.card-decor-icon.pos-tr { top: -8%; right: -5%; }
-.card-decor-icon.pos-tl { top: -8%; left: -5%; }
-.card-decor-icon.pos-br { bottom: -8%; right: -5%; }
-.card-decor-icon.pos-bl { bottom: -8%; left: -5%; }
-.card-decor-icon.pos-cr { top: 50%; right: -6%; transform: translateY(-50%); }
-.card-decor-icon.pos-cl { top: 50%; left: -6%; transform: translateY(-50%); }
-
-@media (max-width: 640px) {
-  .card-decor-icon {
-    display: none;
-  }
 }
 
 main {

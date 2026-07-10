@@ -33,32 +33,32 @@ const HeroIcon = tools[0].icon;
   </Fragment>
 
   <AppBar isHome />
-  <div class="first-fold-wrapper">
-    <header class="hub-header">
-      <div class="title-row">
-        <img src="/favicon.png" width="56" height="56" alt="" aria-hidden="true" class="title-logo" />
-        <h1>Free PDF tools that run <span class="h1-accent">on your device</span></h1>
+  <div class="bg-[linear-gradient(180deg,var(--color-bg),var(--color-primary-tint))] pb-12 min-[1024px]:flex min-[1024px]:min-h-screen min-[1024px]:flex-col min-[1024px]:justify-center min-[1024px]:box-border min-[1024px]:py-6">
+    <header class="px-6 pb-8 pt-14 min-[1024px]:px-0 min-[1024px]:pb-7 min-[1024px]:pt-2">
+      <div class="mb-3 flex items-center justify-center gap-4">
+        <img src="/favicon.png" width="56" height="56" alt="" aria-hidden="true" class="shrink-0" />
+        <h1 class="mb-0 text-left leading-[1.1] tracking-normal min-[1024px]:text-[2.5rem]">Free PDF tools that run <span class="text-[var(--color-primary)]">on your device</span></h1>
       </div>
-      <p>Merge, sign, split, and compress PDFs without signing up, installing anything, or uploading a single file. Everything runs in your browser, on your phone or computer, so your files never leave your device.</p>
+      <p class="mx-auto max-w-[54rem] min-[1024px]:mt-[0.6rem] min-[1024px]:text-[1rem]">Merge, sign, split, and compress PDFs without signing up, installing anything, or uploading a single file. Everything runs in your browser, on your phone or computer, so your files never leave your device.</p>
       
-      <div class="os-chips">
-        <a class="os-chip os-chip-gh" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <div class="mt-6 flex flex-wrap justify-center gap-[0.6rem]">
+        <a class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-text)] no-underline transition-[border-color,transform,color] duration-150 ease-[var(--ease-out)] hover:-translate-y-px hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">
+          <svg class="shrink-0 text-[var(--color-text)]" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" />
           </svg>
           Star us on GitHub
-          <svg class="os-star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <svg class="shrink-0 text-[var(--color-primary)]" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 7.1-1.01L12 2z" />
           </svg>
         </a>
-        <span class="os-chip">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <span class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-muted)]">
+          <svg class="shrink-0 text-[var(--color-muted-light)]" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 3v18" /><path d="M7 7l-4 6a4 4 0 0 0 8 0l-4-6z" /><path d="M17 7l-4 6a4 4 0 0 0 8 0l-4-6z" /><path d="M6 21h12" /><path d="M8 5h8" />
           </svg>
           MIT licensed
         </span>
-        <span class="os-chip">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <span class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-muted)]">
+          <svg class="shrink-0 text-[var(--color-muted-light)]" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" /><path d="M9 12.5l2 2 4-4.5" />
           </svg>
           Runs in your browser
@@ -68,18 +68,18 @@ const HeroIcon = tools[0].icon;
 
   <main>
     {/* Large Dropzone CTA */}
-    <div class="merge-tool merge-tool-cta">
+    <div class="merge-tool mx-auto mb-16 box-border max-w-[1032px] p-6">
       <FileDropzone client:load href="/sign?action=open" toolTarget="sign" />
     </div>
 
     {/* App Grid for all tools */}
-    <div class="appgrid">
+    <div class="mx-auto mb-12 flex max-w-[1080px] flex-wrap justify-center gap-6 p-6">
       {tools.map((tool) => (
-        <a href={tool.href} class="app-card">
-          <div class="app-tile">
+        <a href={tool.href} class="app-card group relative flex w-20 shrink-0 cursor-pointer flex-col items-center gap-3 text-inherit no-underline outline-none first:[&_.app-tile]:bg-[linear-gradient(150deg,var(--color-primary-hover),var(--color-primary))] last:[&_.app-tile]:bg-[linear-gradient(150deg,var(--color-surface),var(--color-success-soft))] last:[&_.app-tile]:text-[var(--color-success)]">
+          <div class="app-tile flex size-16 items-center justify-center rounded-[18px] bg-[linear-gradient(150deg,var(--color-muted-light),var(--color-border-strong))] text-[var(--color-surface)] shadow-[0_8px_18px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)] transition-[transform_0.4s_var(--ease-spring),box-shadow_0.4s_var(--ease-out),background-color_0.2s_var(--ease-out)] group-hover:rotate-1 group-hover:scale-[1.04] group-hover:-translate-y-[3px] group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)] group-hover:shadow-[0_12px_20px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)] group-focus-visible:rotate-1 group-focus-visible:scale-[1.04] group-focus-visible:-translate-y-[3px] group-focus-visible:bg-[var(--color-primary)] group-focus-visible:text-[var(--color-surface)] group-focus-visible:shadow-[0_12px_20px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)] group-active:scale-95 group-active:translate-y-0 group-active:shadow-[0_4px_10px_-4px_var(--color-primary-ring)] group-active:transition-[transform_0.1s_ease,box-shadow_0.1s_ease] [&_svg]:block [&_svg]:size-[55%] [&_svg]:transition-transform [&_svg]:duration-[400ms] [&_svg]:ease-[var(--ease-spring)] group-hover:[&_svg]:-rotate-1 group-hover:[&_svg]:scale-[1.08] group-focus-visible:[&_svg]:-rotate-1 group-focus-visible:[&_svg]:scale-[1.08]">
             <tool.icon strokeWidth={1.5} />
           </div>
-          <div class="app-lbl">{tool.gridTitle}</div>
+          <div class="text-center text-[0.8rem] font-semibold leading-[1.25] text-[var(--color-muted)]">{tool.gridTitle}</div>
           <span class="app-tooltip">{tool.gridDescription}</span>
         </a>
       ))}
@@ -87,149 +87,149 @@ const HeroIcon = tools[0].icon;
   </main>
 </div>
 
-    <FeatureCard class="tool-content-card">
+    <FeatureCard class="relative isolate overflow-hidden">
       <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} />
-      <div class="whypdkef-layout">
-        <div class="whypdkef-copy">
-          <span class="whypdkef-tag">Why I made this</span>
-          <h2>The tools I wanted, shared with everyone</h2>
-          <p>
+      <div class="flex items-stretch gap-12 max-[768px]:flex-col max-[768px]:gap-8">
+        <div class="min-w-0 flex-[1.2]">
+          <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase tracking-normal text-[var(--color-primary)]">Why I made this</span>
+          <h2 class="mb-4 mt-0 text-[1.6rem] font-bold tracking-normal text-[var(--color-text)]">The tools I wanted, shared with everyone</h2>
+          <p class="mb-4 mt-0 max-w-[800px] text-[0.98rem] leading-[1.6] text-[var(--color-text)]">
             It started with a couple of ordinary errands. Someone close to me needed to combine a stack of course slides into one PDF before an exam, and to sign a summer-camp form that had arrived over WhatsApp. Simple things. But every tool we tried either capped the pages, wanted a subscription and a Windows install, or looked like the last place you would want to send a personal document.
           </p>
-          <p>
+          <p class="mb-4 mt-0 max-w-[800px] text-[0.98rem] leading-[1.6] text-[var(--color-text)]">
             So I built the PDF tools I wanted for myself. Then I realised I wanted to share them. I believe simple, everyday tools like these should just be free and available to everyone, with no account, no paywall, and nothing uploaded to anyone's server.
           </p>
-          <p class="whypdkef-detail">
+          <p class="mb-4 mt-0 max-w-[800px] text-[0.92rem] leading-[1.6] text-[var(--color-muted)]">
             That is why PDkef runs entirely in your browser. There is no server to send your files to, which is what keeps it private and cheap enough to stay free for good. And it is open source, so you never have to take my word for any of it.
           </p>
-          <p class="whypdkef-signature">
-            <a href="https://shlomsh.github.io/readme/" target="_blank" rel="noopener noreferrer">Shlomi</a>
+          <p class="mb-0 mt-5 text-[0.9rem] italic text-[var(--color-muted)]">
+            <a class="font-semibold not-italic text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://shlomsh.github.io/readme/" target="_blank" rel="noopener noreferrer">Shlomi</a>
           </p>
         </div>
-        <div class="whypdkef-proof">
-          <div class="whypdkef-feat">
-            <div class="whypdkef-feat-icon"><InfinityIcon size={20} strokeWidth={2} /></div>
-            <div class="whypdkef-feat-text">
-              <strong>Free Forever</strong>
-              <span>No limits, no catch</span>
+        <div class="flex flex-1 flex-col justify-center overflow-hidden rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+          <div class="group flex items-center gap-4 px-6 py-5 transition-colors duration-[250ms] ease-[var(--ease-out)] hover:bg-[var(--color-primary-tint)]">
+            <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-[var(--ease-out)] group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><InfinityIcon size={20} strokeWidth={2} /></div>
+            <div class="flex min-w-0 flex-col gap-[0.2rem]">
+              <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Free Forever</strong>
+              <span class="text-[0.85rem] text-[var(--color-muted)]">No limits, no catch</span>
             </div>
           </div>
-          <div class="whypdkef-feat">
-            <div class="whypdkef-feat-icon"><Lock size={20} strokeWidth={2} /></div>
-            <div class="whypdkef-feat-text">
-              <strong>Private</strong>
-              <span>Files never leave your device</span>
+          <div class="group flex items-center gap-4 border-t border-[var(--color-border)] px-6 py-5 transition-colors duration-[250ms] ease-[var(--ease-out)] hover:bg-[var(--color-primary-tint)]">
+            <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-[var(--ease-out)] group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><Lock size={20} strokeWidth={2} /></div>
+            <div class="flex min-w-0 flex-col gap-[0.2rem]">
+              <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Private</strong>
+              <span class="text-[0.85rem] text-[var(--color-muted)]">Files never leave your device</span>
             </div>
           </div>
-          <div class="whypdkef-feat">
-            <div class="whypdkef-feat-icon"><Code2 size={20} strokeWidth={2} /></div>
-            <div class="whypdkef-feat-text">
-              <strong>Open Source</strong>
-              <span>Audit the code yourself</span>
+          <div class="group flex items-center gap-4 border-t border-[var(--color-border)] px-6 py-5 transition-colors duration-[250ms] ease-[var(--ease-out)] hover:bg-[var(--color-primary-tint)]">
+            <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-[var(--ease-out)] group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><Code2 size={20} strokeWidth={2} /></div>
+            <div class="flex min-w-0 flex-col gap-[0.2rem]">
+              <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Open Source</strong>
+              <span class="text-[0.85rem] text-[var(--color-muted)]">Audit the code yourself</span>
             </div>
           </div>
         </div>
       </div>
     </FeatureCard>
 
-    <FeatureCard variant="highlight" class="tool-content-card">
+    <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
       <CardDecor sketch="waves" icon={HardDriveDownload} iconPos="cr" iconSize={300} />
-      <div class="autosave-layout">
-        <div class="autosave-visual" aria-hidden="true">
-          <div class="autosave-doc">
+      <div class="flex items-center gap-12 max-[768px]:flex-col-reverse max-[768px]:gap-8">
+        <div class="relative flex min-h-[150px] w-full flex-[0.8] items-center justify-center" aria-hidden="true">
+          <div class="relative flex h-[120px] w-[160px] flex-col gap-2 rounded-[var(--radius-sm)] border-[1.5px] border-[var(--color-primary-soft)] bg-[var(--color-surface)] px-4 py-5 shadow-[var(--shadow-sm)]">
             <div class="doc-line short"></div>
             <div class="doc-line"></div>
             <div class="doc-line medium"></div>
-            <div class="autosave-badge">
-              <span class="pulse-dot"></span>
+            <div class="absolute -bottom-2.5 -right-2.5 inline-flex items-center gap-[0.35rem] rounded-[var(--radius-pill)] border border-[color-mix(in_srgb,var(--color-success)_20%,transparent)] bg-[var(--color-success-soft)] px-[0.6rem] py-[0.3rem] text-[0.7rem] font-semibold text-[var(--color-success)] shadow-[var(--shadow-sm)]">
+              <span class="size-1.5 rounded-full bg-[var(--color-success)] animate-[pulse_2s_infinite]"></span>
               Autosaved to device
             </div>
           </div>
         </div>
-        <div class="autosave-content">
-          <span class="autosave-tag">Privacy & Convenience</span>
-          <h2>Work survives restarts and crashes</h2>
-          <p>
+        <div class="flex-[1.2]">
+          <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase tracking-normal text-[var(--color-primary)]">Privacy & Convenience</span>
+          <h2 class="mb-4 mt-0 text-[1.6rem] font-bold tracking-normal text-[var(--color-text)]">Work survives restarts and crashes</h2>
+          <p class="mb-4 mt-0 text-[0.98rem] leading-[1.6] text-[var(--color-text)]">
             PDkef auto-saves your in-progress work locally to your browser's secure database. If you close the tab, restart your computer, or experience a crash, your PDF and edits are restored exactly where you left off.
           </p>
-          <p class="autosave-subtext">
+          <p class="mb-0 mt-0 text-[0.9rem] leading-[1.6] text-[var(--color-muted)]">
             Because it runs 100% on your device, we get "pick up where you left off" without sending a single byte of your file to a server. Available now in <strong>Sign & Fill</strong> and <strong>Redact & Blur</strong>.
           </p>
         </div>
       </div>
     </FeatureCard>
 
-    <FeatureCard class="offline-section-custom tool-content-card">
+    <FeatureCard class="relative isolate overflow-hidden">
       <CardDecor sketch="grid" icon={WifiOff} iconPos="br" iconSize={300} />
-      <div class="offline-header">
-        <h2>Run PDkef offline as an app</h2>
-        <p>Because PDkef runs entirely in your web browser with zero server uploads, you can install it on your device and use it just like a native desktop or mobile application, even when you don't have internet access.</p>
+      <div class="mx-auto mb-8 max-w-[750px] text-center">
+        <h2 class="mb-3 mt-0 text-[1.6rem] font-bold tracking-normal text-[var(--color-text)]">Run PDkef offline as an app</h2>
+        <p class="m-0 text-[0.96rem] leading-[1.6] text-[var(--color-muted)]">Because PDkef runs entirely in your web browser with zero server uploads, you can install it on your device and use it just like a native desktop or mobile application, even when you don't have internet access.</p>
       </div>
 
-      <div class="offline-tabs-container">
-        <div class="offline-tab-buttons" role="tablist" aria-label="Device installation guides">
-          <button class="offline-tab-btn active" role="tab" aria-selected="true" aria-controls="guide-chrome" id="tab-chrome">
-            <Monitor size={16} class="tab-btn-icon" />
+      <div class="box-border mx-auto w-full max-w-[680px] overflow-hidden rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+        <div class="flex border-b border-[var(--color-border)] bg-[var(--color-surface-soft)] max-[640px]:flex-col" role="tablist" aria-label="Device installation guides">
+          <button class="offline-tab-btn active flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-[color,background-color,border-color] duration-200 ease-[var(--ease-out)] hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="true" aria-controls="guide-chrome" id="tab-chrome">
+            <Monitor size={16} class="mr-2" />
             Chrome & Edge
           </button>
-          <button class="offline-tab-btn" role="tab" aria-selected="false" aria-controls="guide-ios" id="tab-ios">
-            <Smartphone size={16} class="tab-btn-icon" />
+          <button class="offline-tab-btn flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-[color,background-color,border-color] duration-200 ease-[var(--ease-out)] hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="false" aria-controls="guide-ios" id="tab-ios">
+            <Smartphone size={16} class="mr-2" />
             Safari (iOS)
           </button>
-          <button class="offline-tab-btn" role="tab" aria-selected="false" aria-controls="guide-safari" id="tab-safari">
-            <Compass size={16} class="tab-btn-icon" />
+          <button class="offline-tab-btn flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-[color,background-color,border-color] duration-200 ease-[var(--ease-out)] hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="false" aria-controls="guide-safari" id="tab-safari">
+            <Compass size={16} class="mr-2" />
             Safari (macOS)
           </button>
         </div>
 
-        <div class="offline-tab-content">
-          <div class="offline-tab-panel active" id="guide-chrome" role="tabpanel" aria-labelledby="tab-chrome">
-            <ol class="step-list">
-              <li>
-                <span class="step-num">1</span>
-                <span class="step-text">Navigate to the site in Chrome or Edge.</span>
+        <div class="p-8">
+          <div class="offline-tab-panel active hidden [&.active]:block" id="guide-chrome" role="tabpanel" aria-labelledby="tab-chrome">
+            <ol class="m-0 flex list-none flex-col gap-5 p-0">
+              <li class="flex items-start gap-4">
+                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Navigate to the site in Chrome or Edge.</span>
               </li>
-              <li>
-                <span class="step-num">2</span>
-                <span class="step-text">Click the <strong>Install</strong> icon (the screen with a down arrow) at the right of the address bar.</span>
+              <li class="flex items-start gap-4">
+                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Click the <strong class="font-semibold">Install</strong> icon (the screen with a down arrow) at the right of the address bar.</span>
               </li>
-              <li>
-                <span class="step-num">3</span>
-                <span class="step-text">Alternatively, click the browser menu (three dots), select <strong>Save and share</strong>, and click <strong>Install PDkef</strong>.</span>
-              </li>
-            </ol>
-          </div>
-
-          <div class="offline-tab-panel" id="guide-ios" role="tabpanel" aria-labelledby="tab-ios">
-            <ol class="step-list">
-              <li>
-                <span class="step-num">1</span>
-                <span class="step-text">Open the site in <strong>Safari</strong> on your iPhone or iPad.</span>
-              </li>
-              <li>
-                <span class="step-num">2</span>
-                <span class="step-text">Tap the <strong>Share</strong> button (square with an up arrow) in the toolbar.</span>
-              </li>
-              <li>
-                <span class="step-num">3</span>
-                <span class="step-text">Scroll down the options list and select <strong>Add to Home Screen</strong>.</span>
+              <li class="flex items-start gap-4">
+                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Alternatively, click the browser menu (three dots), select <strong class="font-semibold">Save and share</strong>, and click <strong class="font-semibold">Install PDkef</strong>.</span>
               </li>
             </ol>
           </div>
 
-          <div class="offline-tab-panel" id="guide-safari" role="tabpanel" aria-labelledby="tab-safari">
-            <ol class="step-list">
-              <li>
-                <span class="step-num">1</span>
-                <span class="step-text">Open the site in <strong>Safari</strong> on your Mac.</span>
+          <div class="offline-tab-panel hidden [&.active]:block" id="guide-ios" role="tabpanel" aria-labelledby="tab-ios">
+            <ol class="m-0 flex list-none flex-col gap-5 p-0">
+              <li class="flex items-start gap-4">
+                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Open the site in <strong class="font-semibold">Safari</strong> on your iPhone or iPad.</span>
               </li>
-              <li>
-                <span class="step-num">2</span>
-                <span class="step-text">Click the <strong>Share</strong> button in the top-right Safari toolbar.</span>
+              <li class="flex items-start gap-4">
+                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Tap the <strong class="font-semibold">Share</strong> button (square with an up arrow) in the toolbar.</span>
               </li>
-              <li>
-                <span class="step-num">3</span>
-                <span class="step-text">Select <strong>Add to Dock...</strong> from the dropdown menu and click <strong>Add</strong>.</span>
+              <li class="flex items-start gap-4">
+                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Scroll down the options list and select <strong class="font-semibold">Add to Home Screen</strong>.</span>
+              </li>
+            </ol>
+          </div>
+
+          <div class="offline-tab-panel hidden [&.active]:block" id="guide-safari" role="tabpanel" aria-labelledby="tab-safari">
+            <ol class="m-0 flex list-none flex-col gap-5 p-0">
+              <li class="flex items-start gap-4">
+                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Open the site in <strong class="font-semibold">Safari</strong> on your Mac.</span>
+              </li>
+              <li class="flex items-start gap-4">
+                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Click the <strong class="font-semibold">Share</strong> button in the top-right Safari toolbar.</span>
+              </li>
+              <li class="flex items-start gap-4">
+                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Select <strong class="font-semibold">Add to Dock...</strong> from the dropdown menu and click <strong class="font-semibold">Add</strong>.</span>
               </li>
             </ol>
           </div>
@@ -262,48 +262,48 @@ const HeroIcon = tools[0].icon;
     });
   </script>
 
-  <FeatureCard class="tool-content-card">
+  <FeatureCard class="relative isolate overflow-hidden">
     <CardDecor sketch="rings" icon={HelpCircle} iconPos="bl" iconSize={300} />
-    <div class="faq-header">
-      <span class="faq-tag">Got Questions?</span>
-      <h2>Frequently asked questions</h2>
+    <div class="mb-12 text-center">
+      <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase tracking-normal text-[var(--color-primary)]">Got Questions?</span>
+      <h2 class="m-0 text-[1.6rem] font-bold tracking-normal text-[var(--color-text)]">Frequently asked questions</h2>
     </div>
-    <div class="faq-grid">
+    <div class="grid grid-cols-2 gap-x-12 gap-y-8 max-[768px]:grid-cols-1 max-[768px]:gap-6">
       <div class="faq-card">
-        <h3>Are the tools really free?</h3>
-        <p>Yes, completely and permanently - no paywalls, no premium tier, no limits, and no watermark on your exported PDFs.</p>
+        <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold tracking-normal text-[var(--color-text)]">Are the tools really free?</h3>
+        <p class="m-0 text-[0.95rem] leading-[1.5] text-[var(--color-muted)]">Yes, completely and permanently - no paywalls, no premium tier, no limits, and no watermark on your exported PDFs.</p>
       </div>
       <div class="faq-card">
-        <h3>Do I need to sign up or create an account?</h3>
-        <p>No. There is no account, no email, and no trial period. Open a tool and use it immediately.</p>
+        <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold tracking-normal text-[var(--color-text)]">Do I need to sign up or create an account?</h3>
+        <p class="m-0 text-[0.95rem] leading-[1.5] text-[var(--color-muted)]">No. There is no account, no email, and no trial period. Open a tool and use it immediately.</p>
       </div>
       <div class="faq-card">
-        <h3>Are my files uploaded to a server?</h3>
-        <p>No. The tools run 100% locally in your browser, on desktop or mobile. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
+        <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold tracking-normal text-[var(--color-text)]">Are my files uploaded to a server?</h3>
+        <p class="m-0 text-[0.95rem] leading-[1.5] text-[var(--color-muted)]">No. The tools run 100% locally in your browser, on desktop or mobile. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
       </div>
       <div class="faq-card">
-        <h3>Is PDkef open source?</h3>
-        <p>Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.</p>
+        <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold tracking-normal text-[var(--color-text)]">Is PDkef open source?</h3>
+        <p class="m-0 text-[0.95rem] leading-[1.5] text-[var(--color-muted)]">Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.</p>
       </div>
     </div>
   </FeatureCard>
 
-  <FeatureCard variant="highlight" class="tool-content-card">
+  <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
     <CardDecor sketch="arcs" icon={ShieldCheck} iconPos="cl" iconSize={300} />
-    <div class="osp-content">
-      <span class="osp-tag">Transparent & Secure</span>
-      <h2>Open source & privacy</h2>
-      <div class="osp-blocks">
-        <div class="osp-block">
-          <div class="osp-block-icon"><Lock size={22} strokeWidth={2} /></div>
-          <h3>Privacy</h3>
-          <p>Every tool runs 100% locally in your browser. Your files are never uploaded - PDkef has no server to send them to.</p>
+    <div class="w-full">
+      <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase tracking-normal text-[var(--color-primary)]">Transparent & Secure</span>
+      <h2 class="mb-8 mt-0 text-[1.6rem] font-bold tracking-normal text-[var(--color-text)]">Open source & privacy</h2>
+      <div class="grid grid-cols-2 gap-7 max-[768px]:grid-cols-1 max-[768px]:gap-6">
+        <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7 shadow-[var(--shadow-xs)] transition-[transform,box-shadow,border-color] duration-300 ease-[var(--ease-out)] hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-[var(--shadow-md)]">
+          <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]"><Lock size={22} strokeWidth={2} /></div>
+          <h3 class="mb-2 mt-0 text-[1.15rem] font-semibold tracking-normal text-[var(--color-text)]">Privacy</h3>
+          <p class="m-0 text-[0.98rem] leading-[1.6] text-[var(--color-text)]">Every tool runs 100% locally in your browser. Your files are never uploaded - PDkef has no server to send them to.</p>
         </div>
-        <div class="osp-block">
-          <div class="osp-block-icon"><Code2 size={22} strokeWidth={2} /></div>
-          <h3>Open source</h3>
-          <p>This project is open source under the MIT license. You can <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">view the source code on GitHub</a>. PDkef is built on other open source projects too - see the <a href="/licenses">open source licenses</a> page for the full list.</p>
-          <span class="osp-badge">MIT Licensed</span>
+        <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7 shadow-[var(--shadow-xs)] transition-[transform,box-shadow,border-color] duration-300 ease-[var(--ease-out)] hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-[var(--shadow-md)]">
+          <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]"><Code2 size={22} strokeWidth={2} /></div>
+          <h3 class="mb-2 mt-0 text-[1.15rem] font-semibold tracking-normal text-[var(--color-text)]">Open source</h3>
+          <p class="m-0 text-[0.98rem] leading-[1.6] text-[var(--color-text)]">This project is open source under the MIT license. You can <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">view the source code on GitHub</a>. PDkef is built on other open source projects too - see the <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/licenses">open source licenses</a> page for the full list.</p>
+          <span class="mt-[1.1rem] inline-flex items-center rounded-[var(--radius-pill)] bg-[var(--color-success-soft)] px-3 py-[0.3rem] text-[0.78rem] font-bold text-[var(--color-success)]">MIT Licensed</span>
         </div>
       </div>
     </div>
@@ -313,165 +313,6 @@ const HeroIcon = tools[0].icon;
 </BaseLayout>
 
 <style>
-  /* These were inline style="" attributes; moved to scoped classes so a strict
-     CSP style-src (no unsafe-inline) does not block them at parse time. */
-  .h1-accent {
-    color: var(--color-primary);
-  }
-
-  .merge-tool-cta {
-    max-width: 1032px;
-    margin: 0 auto 4rem auto;
-    padding: 1.5rem;
-    box-sizing: border-box;
-  }
-
-  .tab-btn-icon {
-    margin-right: 0.5rem;
-  }
-
-  .hub-header {
-    padding: 3.5rem 1.5rem 2rem;
-  }
-  
-  .title-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
-  }
-  
-  .title-logo {
-    flex-shrink: 0;
-  }
-
-  .hub-header h1 {
-    margin-bottom: 0;
-    text-align: left;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-  }
-
-  /* Center the intro under the wordmark and cap it just short of the container
-     width, so it lands on ~2 lines on wide desktops rather than stretching fully
-     edge-to-edge. */
-  .hub-header p {
-    max-width: 54rem;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .hero-chips {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 1.5rem;
-  }
-  
-  .hero-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.45rem 1rem;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-pill);
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--color-muted);
-    text-decoration: none;
-    box-shadow: var(--shadow-xs);
-    transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), border-color 0.2s var(--ease-out), color 0.2s var(--ease-out);
-  }
-  
-  .hero-chip:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm);
-    border-color: var(--color-border-strong);
-    color: var(--color-text);
-  }
-
-  .appgrid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 24px;
-    max-width: 1080px;
-    margin: 0 auto 3rem;
-    padding: 1.5rem 1.5rem 1.5rem;
-  }
-
-  .app-card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    width: 80px;
-    flex-shrink: 0;
-    cursor: pointer;
-    text-decoration: none;
-    color: inherit;
-    outline: none;
-  }
-
-  .app-tile {
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(150deg, var(--color-muted-light), var(--color-border-strong));
-    box-shadow: 0 8px 18px -8px var(--color-primary-ring), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    transition: transform 0.4s var(--ease-spring), box-shadow 0.4s var(--ease-out), background-color 0.2s var(--ease-out);
-    color: var(--color-surface);
-  }
-
-  .app-card:first-child .app-tile {
-    background: linear-gradient(150deg, var(--color-primary-hover), var(--color-primary));
-  }
-
-  .app-card:last-child .app-tile {
-    background: linear-gradient(150deg, var(--color-surface), var(--color-success-soft));
-    color: var(--color-success);
-  }
-
-  .app-card:hover .app-tile, .app-card:focus-visible .app-tile {
-    background: var(--color-primary);
-    color: white;
-    transform: translateY(-3px) scale(1.04) rotate(1deg);
-    box-shadow: 0 12px 20px -8px var(--color-primary-ring), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  }
-  
-  .app-tile svg {
-    display: block;
-    width: 55%;
-    height: 55%;
-    transition: transform 0.4s var(--ease-spring);
-  }
-
-  .app-card:hover .app-tile svg, .app-card:focus-visible .app-tile svg {
-    transform: scale(1.08) rotate(-1deg);
-  }
-
-  .app-card:active .app-tile {
-    transform: translateY(0) scale(0.95);
-    box-shadow: 0 4px 10px -4px var(--color-primary-ring);
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
-  }
-
-  .app-lbl {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--color-muted);
-    text-align: center;
-    line-height: 1.25;
-  }
-
-  /* SEO Tooltip */
   .app-tooltip {
     position: absolute;
     bottom: calc(100% + 14px);
@@ -488,13 +329,13 @@ const HeroIcon = tools[0].icon;
     width: max-content;
     max-width: 200px;
     text-align: center;
-    transition: opacity 0.2s ease 0s, visibility 0.2s ease 0s, transform 0.2s ease 0s;
+    transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
     z-index: 10;
     pointer-events: none;
     line-height: 1.4;
     box-shadow: var(--shadow-md);
   }
-  
+
   .app-tooltip::after {
     content: '';
     position: absolute;
@@ -506,249 +347,12 @@ const HeroIcon = tools[0].icon;
     border-color: var(--color-surface) transparent transparent transparent;
   }
 
-  .app-card:hover .app-tooltip, .app-card:focus-visible .app-tooltip {
+  .app-card:hover .app-tooltip,
+  .app-card:focus-visible .app-tooltip {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(0) scale(1);
     transition: opacity 0.5s ease-out 0.4s, visibility 0.5s ease-out 0.4s, transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.4s;
-  }
-
-
-
-  .whypdkef-tag {
-    display: inline-block;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-primary);
-    margin-bottom: 0.5rem;
-  }
-
-  .whypdkef-copy h2 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin: 0 0 1rem;
-    color: var(--color-text);
-  }
-
-  .whypdkef-copy p {
-    font-size: 0.98rem;
-    line-height: 1.6;
-    color: var(--color-text);
-    margin: 0 0 1rem;
-    max-width: 800px;
-  }
-
-  .whypdkef-detail {
-    font-size: 0.92rem;
-    color: var(--color-muted);
-  }
-
-  .whypdkef-signature {
-    font-size: 0.9rem;
-    font-style: italic;
-    color: var(--color-muted);
-    margin-top: 1.25rem;
-  }
-
-  .whypdkef-signature a {
-    font-style: normal;
-    font-weight: 600;
-    color: var(--color-primary);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  .whypdkef-signature a:hover {
-    color: var(--color-primary-hover);
-  }
-
-  .whypdkef-layout {
-    display: flex;
-    align-items: stretch;
-    gap: 3rem;
-  }
-
-  .whypdkef-copy {
-    flex: 1.2;
-    min-width: 0;
-  }
-
-  .whypdkef-copy p:last-child {
-    margin-bottom: 0;
-  }
-
-  .whypdkef-proof {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-  }
-
-  .whypdkef-feat {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.25rem 1.5rem;
-    transition: background-color 0.25s var(--ease-out);
-  }
-
-  .whypdkef-feat + .whypdkef-feat {
-    border-top: 1px solid var(--color-border);
-  }
-
-  .whypdkef-feat:hover {
-    background: var(--color-primary-tint);
-  }
-
-  .whypdkef-feat-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    flex-shrink: 0;
-    border-radius: var(--radius-sm);
-    background: var(--color-primary-soft);
-    color: var(--color-primary);
-    transition: transform 0.25s var(--ease-spring), background-color 0.25s var(--ease-out),
-      color 0.25s var(--ease-out);
-  }
-
-  .whypdkef-feat:hover .whypdkef-feat-icon {
-    background: var(--color-primary);
-    color: var(--color-surface);
-    transform: scale(1.08);
-  }
-
-  .whypdkef-feat-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    min-width: 0;
-  }
-
-  .whypdkef-feat-text strong {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--color-text);
-  }
-
-  .whypdkef-feat-text span {
-    font-size: 0.85rem;
-    color: var(--color-muted);
-  }
-
-  @media (max-width: 768px) {
-    .whypdkef-layout {
-      flex-direction: column;
-      gap: 2rem;
-    }
-  }
-
-  .autosave-layout {
-    display: flex;
-    align-items: center;
-    gap: 3rem;
-  }
-
-  @media (max-width: 768px) {
-    .autosave-layout {
-      flex-direction: column-reverse;
-      gap: 2rem;
-    }
-  }
-
-  .autosave-content {
-    flex: 1.2;
-  }
-
-  .autosave-tag {
-    display: inline-block;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-primary);
-    margin-bottom: 0.5rem;
-  }
-
-  .autosave-content h2 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin: 0 0 1rem;
-    color: var(--color-text);
-  }
-
-  .autosave-content p {
-    font-size: 0.98rem;
-    line-height: 1.6;
-    color: var(--color-text);
-    margin: 0 0 1rem;
-  }
-
-  .autosave-content p:last-child {
-    margin-bottom: 0;
-  }
-
-  .autosave-subtext {
-    font-size: 0.9rem;
-    color: var(--color-muted);
-  }
-
-  .autosave-visual {
-    flex: 0.8;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    width: 100%;
-    min-height: 150px;
-  }
-
-  .autosave-doc {
-    width: 160px;
-    height: 120px;
-    background: var(--color-surface);
-    border: 1.5px solid var(--color-primary-soft);
-    border-radius: var(--radius-sm);
-    padding: 1.25rem 1rem;
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    position: relative;
-  }
-
-  .autosave-badge {
-    position: absolute;
-    bottom: -10px;
-    right: -10px;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.3rem 0.6rem;
-    background: var(--color-success-soft);
-    border: 1px solid color-mix(in srgb, var(--color-success) 20%, transparent);
-    border-radius: var(--radius-pill);
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--color-success);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .pulse-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--color-success);
-    animation: pulse 2s infinite;
   }
 
   @keyframes pulse {
@@ -766,415 +370,4 @@ const HeroIcon = tools[0].icon;
     }
   }
 
-
-
-  .offline-header {
-    text-align: center;
-    margin-bottom: 2rem;
-    max-width: 750px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .offline-header h2 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin: 0 0 0.75rem;
-    color: var(--color-text);
-  }
-
-  .offline-header p {
-    font-size: 0.96rem;
-    line-height: 1.6;
-    color: var(--color-muted);
-    margin: 0;
-  }
-
-  .offline-tabs-container {
-    width: 100%;
-    max-width: 680px;
-    margin: 0 auto;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-    box-sizing: border-box;
-  }
-
-  .offline-tab-buttons {
-    display: flex;
-    background: var(--color-surface-soft);
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .offline-tab-btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    color: var(--color-muted);
-    font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.2s var(--ease-out);
-  }
-
-  .offline-tab-btn:hover {
-    color: var(--color-text);
-    background: rgba(20, 99, 255, 0.02);
-  }
-
-  .offline-tab-btn.active {
-    color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
-    background: var(--color-surface);
-  }
-
-  .offline-tab-content {
-    padding: 2rem;
-  }
-
-  /* Panel visibility is class-driven, not an inline style attribute: a strict
-     CSP style-src blocks inline style="" at parse time, so relying on inline
-     display:none left every inactive panel visible until first interaction. */
-  .offline-tab-panel {
-    display: none;
-  }
-
-  .offline-tab-panel.active {
-    display: block;
-  }
-
-  .step-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-  }
-
-  .step-list li {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .step-num {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: var(--color-primary-soft);
-    color: var(--color-primary);
-    font-size: 0.8rem;
-    font-weight: 700;
-    flex-shrink: 0;
-    margin-top: 0.1rem;
-  }
-
-  .step-text {
-    font-size: 0.95rem;
-    line-height: 1.5;
-    color: var(--color-text);
-  }
-
-  .step-text strong {
-    color: var(--color-text);
-    font-weight: 600;
-  }
-
-  @media (max-width: 640px) {
-    .offline-tab-buttons {
-      flex-direction: column;
-    }
-    
-    .offline-tab-btn {
-      border-bottom: none;
-      border-left: 3px solid transparent;
-      justify-content: flex-start;
-      padding: 0.75rem 1.25rem;
-    }
-    
-    .offline-tab-btn.active {
-      border-left-color: var(--color-primary);
-    }
-  }
-
-  .first-fold-wrapper {
-    background: linear-gradient(180deg, var(--color-bg), var(--color-primary-tint));
-    padding-bottom: 3rem;
-  }
-
-  @media (min-width: 1024px) {
-    .first-fold-wrapper {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      box-sizing: border-box;
-      padding: 1.5rem 0;
-    }
-
-    .hub-header {
-      padding: 0.5rem 0 1.75rem 0;
-    }
-
-    .hub-header h1 {
-      font-size: 2.5rem;
-    }
-
-    .hub-header p {
-      font-size: 1rem;
-      margin-top: 0.6rem;
-    }
-
-    .hero-card {
-      padding: 1.25rem 2rem;
-      margin-bottom: 1.25rem;
-      gap: 2rem;
-    }
-
-    .hero-info h2 {
-      font-size: 1.5rem;
-    }
-
-    .hero-info p {
-      font-size: 0.88rem;
-    }
-
-    .hero-visual {
-      width: 160px;
-      height: 90px;
-    }
-
-    .doc-mockup {
-      width: 120px;
-      height: 80px;
-      padding: 0.75rem;
-    }
-
-    .pen-mockup {
-      width: 24px;
-      height: 24px;
-    }
-
-    .tool-grid {
-      gap: 1rem;
-    }
-
-    .tool-card {
-      padding: 1rem 1.25rem;
-    }
-
-    .tool-icon {
-      width: 40px;
-      height: 40px;
-      margin-bottom: 0.75rem;
-    }
-
-    .tool-icon svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    .tool-content h3 {
-      font-size: 1.05rem;
-      margin-bottom: 0.25rem;
-    }
-
-    .tool-content p {
-      font-size: 0.85rem;
-      line-height: 1.4;
-    }
-  }
-
-  @media (max-width: 1080px) {
-    .whypdkef-section,
-    .autosave-section,
-    .offline-section {
-      margin-left: 1.5rem;
-      margin-right: 1.5rem;
-      width: auto;
-    }
-  }
-
-  @media (min-width: 768px) {
-    .whypdkef-section,
-    .autosave-section,
-    .offline-section {
-      min-height: calc(100vh - 6rem);
-      box-sizing: border-box;
-      margin-top: 6rem;
-    }
-    
-    .whypdkef-section,
-    .offline-section,
-    .faq-section,
-    .osp-section {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-  }
-
-
-
-  .faq-header {
-    text-align: center;
-    margin-bottom: 3rem;
-  }
-
-  .faq-tag {
-    display: inline-block;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-primary);
-    margin-bottom: 0.5rem;
-  }
-
-  .faq-header h2 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin: 0;
-    color: var(--color-text);
-  }
-
-  .faq-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2rem 3rem;
-  }
-
-  .faq-card h3 {
-    font-size: 1.05rem;
-    font-weight: 600;
-    margin: 0 0 0.5rem;
-    color: var(--color-text);
-  }
-
-  .faq-card p {
-    font-size: 0.95rem;
-    line-height: 1.5;
-    color: var(--color-muted);
-    margin: 0;
-  }
-
-  @media (max-width: 768px) {
-    .faq-grid {
-      grid-template-columns: 1fr;
-      gap: 1.5rem;
-    }
-
-  }
-
-
-
-  .osp-content {
-    width: 100%;
-  }
-
-  .osp-tag {
-    display: inline-block;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-primary);
-    margin-bottom: 0.5rem;
-  }
-
-  .osp-content h2 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin: 0 0 2rem;
-    color: var(--color-text);
-  }
-
-  .osp-blocks {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.75rem;
-  }
-
-  .osp-block {
-    padding: 1.75rem;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-xs);
-    transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out),
-      border-color 0.3s var(--ease-out);
-  }
-
-  .osp-block:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
-    border-color: var(--color-border-strong);
-  }
-
-  .osp-block-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    margin-bottom: 1.1rem;
-    border-radius: var(--radius-sm);
-    background: var(--color-primary-soft);
-    color: var(--color-primary);
-  }
-
-  .osp-block h3 {
-    font-size: 1.15rem;
-    font-weight: 600;
-    margin: 0 0 0.5rem;
-    color: var(--color-text);
-  }
-
-  .osp-block p {
-    font-size: 0.98rem;
-    line-height: 1.6;
-    color: var(--color-text);
-    margin: 0;
-  }
-
-  .osp-badge {
-    display: inline-flex;
-    align-items: center;
-    margin-top: 1.1rem;
-    padding: 0.3rem 0.75rem;
-    border-radius: var(--radius-pill);
-    background: var(--color-success-soft);
-    color: var(--color-success);
-    font-size: 0.78rem;
-    font-weight: 700;
-  }
-
-  .osp-block a {
-    color: var(--color-primary);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  .osp-block a:hover {
-    color: var(--color-primary-hover);
-  }
-
-  @media (max-width: 768px) {
-    .osp-blocks {
-      grid-template-columns: 1fr;
-      gap: 1.5rem;
-    }
-
-  }
 </style>

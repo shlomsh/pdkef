@@ -197,16 +197,19 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   worktree: `tailwindcss` + `@tailwindcss/vite@^4.3.2` install **clean** against the Astro `^7.0.3` pin -
   no `legacy-peer-deps`, 0 new `npm audit` vulns, vite peer satisfied. Recipe: add the `@tailwindcss/vite`
   plugin to `astro.config` `vite.plugins`; CSS-first import of the **theme + utilities layers only**
-  (skip Preflight - it resets margins site-wide and blew the CSS budget). Landed on the E3.2 branch
-  with a project-scoped theme and utilities-only import.
+  (skip Preflight - it resets margins site-wide and blew the CSS budget). Landed on `main` as part of
+  E3.2 with a project-scoped theme and utilities-only import.
   - *Depends on:* - · *Lane:* D
-- **E3.2 Migrate the marketing `.astro` surface to utilities - in progress.** (`index.astro`, tool pages,
+- **E3.2 Migrate the marketing `.astro` surface to utilities - done.** (`index.astro`, tool pages,
   `FeatureCard`, `ToolHero`, `AppBar`, `Footer`). No editor components.
   - *Depends on:* E3.1, E1.1, E1.2 · *Lane:* D
-  - *Progress:* E3.1 scaffold and `FeatureCard` landed; `Footer` is migrated in the next small slice.
-    The CSS-first setup imports utilities only and defines the project spacing/font tokens, avoiding
-    Tailwind's unused default palette and Preflight. Keep `npm run test:css` as a per-slice gate because
-    the budget remains tight.
+  - *Progress:* E3.1 scaffold, `FeatureCard`, `Footer`, `ToolHero`, `AppBar`, tool-page content cards,
+    and the home first-fold/tool-grid structure and tile interactions, Why/Autosave/offline/open-source
+    sections plus `licenses` and `404` now use utilities. The generated maximum is `80,871 / 82,000` bytes.
+    The home grid tooltip and its delayed reveal/arrow are the approved scoped exception. The CSS-first
+    setup imports utilities only, excludes JSX and test sources from scanning because the editor has no
+    Tailwind surface, and defines the project spacing/font tokens, avoiding Tailwind's unused default palette
+    and Preflight.
 
 ## E4 - Headless TS editor core  ·  *Lane E, internally serial, parallel to E2/E3*
 

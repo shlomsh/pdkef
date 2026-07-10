@@ -1,7 +1,6 @@
 ---
 // Decorative, theme-colored geometric line sketch + an oversized watermark
-// icon, both tucked behind card content (z-index:-1 inside a .tool-content-card
-// which sets `isolation:isolate`). Swap `sketch` and `iconPos` per card to keep
+// icon, both tucked behind card content. Swap `sketch` and `iconPos` per card to keep
 // pages visually distinct while sharing one implementation.
 //   sketch: 'arcs' | 'waves' | 'rings' | 'grid'
 //   iconPos: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl'
@@ -21,20 +20,44 @@ const ringRadii = [50, 105, 160, 215, 270, 325];
 const gridStep = 48;
 const gridX = Array.from({ length: Math.floor(480 / gridStep) + 1 }, (_, i) => i * gridStep);
 const gridY = Array.from({ length: Math.floor(360 / gridStep) + 1 }, (_, i) => i * gridStep);
+
+const sketchClasses = {
+  arcs: '[mask-image:radial-gradient(135%_135%_at_90%_8%,#000_34%,transparent_100%)] [-webkit-mask-image:radial-gradient(135%_135%_at_90%_8%,#000_34%,transparent_100%)]',
+  grid: '[mask-image:radial-gradient(135%_135%_at_90%_8%,#000_34%,transparent_100%)] [-webkit-mask-image:radial-gradient(135%_135%_at_90%_8%,#000_34%,transparent_100%)]',
+  rings: '[mask-image:radial-gradient(120%_120%_at_6%_96%,#000_30%,transparent_100%)] [-webkit-mask-image:radial-gradient(120%_120%_at_6%_96%,#000_30%,transparent_100%)]',
+  waves: '[mask-image:linear-gradient(180deg,#000,transparent_88%)] [-webkit-mask-image:linear-gradient(180deg,#000,transparent_88%)]',
+};
+
+const iconPositionClasses = {
+  tr: '-top-[8%] -right-[5%]',
+  tl: '-top-[8%] -left-[5%]',
+  br: '-bottom-[8%] -right-[5%]',
+  bl: '-bottom-[8%] -left-[5%]',
+  cr: 'top-1/2 -right-[6%] -translate-y-1/2',
+  cl: 'top-1/2 -left-[6%] -translate-y-1/2',
+};
 ---
 
-<div class:list={['card-decor', `sketch-${sketch}`]} aria-hidden="true">
-  <svg viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice">
+<div class:list={['pointer-events-none absolute inset-0 -z-10 text-[var(--color-primary)]', sketchClasses[sketch]]} aria-hidden="true">
+  <svg class="block h-full w-full" viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice">
     {sketch === 'arcs' &&
-      arcRadii.map((r) => <path d={`M ${480 - r} 0 A ${r} ${r} 0 0 1 480 ${r}`} />)}
+      <g fill="none" stroke="currentColor" stroke-width="1.25" stroke-opacity="0.11">
+        {arcRadii.map((r) => <path d={`M ${480 - r} 0 A ${r} ${r} 0 0 1 480 ${r}`} />)}
+      </g>}
 
     {sketch === 'waves' &&
-      waveYs.map((y) => <path d={`M -20 ${y} C 120 ${y - 30}, 360 ${y + 30}, 500 ${y}`} />)}
+      <g fill="none" stroke="currentColor" stroke-width="1.25" stroke-opacity="0.11">
+        {waveYs.map((y) => <path d={`M -20 ${y} C 120 ${y - 30}, 360 ${y + 30}, 500 ${y}`} />)}
+      </g>}
 
-    {sketch === 'rings' && ringRadii.map((r) => <circle cx="34" cy="332" r={r} />)}
+    {sketch === 'rings' && (
+      <g fill="none" stroke="currentColor" stroke-width="1.25" stroke-opacity="0.11">
+        {ringRadii.map((r) => <circle cx="34" cy="332" r={r} />)}
+      </g>
+    )}
 
     {sketch === 'grid' && (
-      <g>
+      <g fill="none" stroke="currentColor" stroke-width="1.25" stroke-opacity="0.11">
         {gridX.map((x) => <line x1={x} y1="0" x2={x} y2="360" />)}
         {gridY.map((y) => <line x1="0" y1={y} x2="480" y2={y} />)}
       </g>
@@ -44,7 +67,7 @@ const gridY = Array.from({ length: Math.floor(360 / gridStep) + 1 }, (_, i) => i
 
 {Icon && (
   <Icon
-    class:list={['card-decor-icon', `pos-${iconPos}`]}
+    class:list={['pointer-events-none absolute -z-10 text-[var(--color-primary)] opacity-[0.07] max-[640px]:hidden', iconPositionClasses[iconPos]]}
     size={iconSize}
     strokeWidth={1}
     aria-hidden="true"
