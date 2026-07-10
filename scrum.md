@@ -131,8 +131,45 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
 - **E2.1 Tokens as the only global CSS.** Keep `:root` design tokens global; audit for escaped color
   literals (`grep -rn "rgba(0\|#[0-9a-f]\{6\}"` across `src/` and `public/`) and route them through vars.
   - *Depends on:* - · *Lane:* C
-- **E2.2 Colocate non-editor CSS into CSS Modules,** component by component (cards, hero, footer, dropzone, tool chrome).
+- **E2.2 Colocate non-editor CSS into CSS Modules,** component by component. **Full execution plan:
+  [docs/E2.2-css-modules-scoping-plan.md](./docs/E2.2-css-modules-scoping-plan.md)** (inventory with line
+  ranges, module destinations, risks) — read it before starting.
   - *Depends on:* E2.1 · *Lane:* C
+  - **Scope correction (do not skip):** the ticket's old "cards, hero, footer" wording predates the
+    ARCHITECTURE §3.1 styling boundary. E2.2 owns **only the interactive island (`.jsx`) tool chrome**.
+    The marketing `.astro` surface (hero/cards/footer/os-chips/tool-about/faq) is **E3.2 (Tailwind)** —
+    leave it in `global.css`. The `.sign-*` editor cascades **and anything coupled to them** are **E2.3**
+    — notably `.redact-box` (RedactBox.jsx reuses `.sign-element--shape`/`.sign-element-resizer`/
+    `.sign-element-actions`) and the Signature Dialog `.sig-*` (uses `.sign-color-swatch`). Migrating
+    either here collides with those lanes.
+  - **Guardrail (every subtask):** move selectors out of `global.css` → colocated `.module.css` → swap
+    `class=` strings in the consuming `.jsx` → `npm test` + `npm run test:css` green → **`npm run build &&
+    npm run preview`** CSP/hydration pass (emission changes; dev cannot catch it) → hand to maintainer for
+    a visual pass. `global.css` shrinks monotonically; each subtask lands independently.
+  - **Wave A — single-consumer leaves (start here, lowest risk):**
+    - *E2.2.1* `PdfSecurityTool` → `.unlock-*` (global.css 3379–3409) → `PdfSecurityTool.module.css`.
+    - *E2.2.2* `PdfSplitTool` → `.split-*` (3033–3095) → `PdfSplitTool.module.css`.
+    - *E2.2.3* `PdfCompressTool` → `.compress-*`, `.compression-stats`/`.stats-*`, `.compress-warning`,
+      `.target-size-*` (2721–2861, 2939–3032) → `PdfCompressTool.module.css`. Decide `.metric-*` owner first.
+    - *E2.2.4* `PdfMergeTool` → `.merge-button*`/`.progress-ring*` (1170–1254) → `PdfMergeTool.module.css`.
+    - *E2.2.5* `UndoHistoryModal` → `.undo-history-*`/`.metric-*` (2863–2937) → `UndoHistoryModal.module.css`
+      (`.metric-*` also used by Compress — pick one shared owner, see plan §5.8).
+  - **Wave B — single self-contained widget:**
+    - *E2.2.6* `FileDropzone` → `.dropzone*`/`.dz-*`/`.file-picker-button`/`.privacy-line` (669–808) →
+      `FileDropzone.module.css`.
+    - *E2.2.7* `FileList` → `.file-list`/`.file-item`/`.thumb*`/`.drag-handle`/`.remove-button` + keyframes
+      `item-in`/`thumb-in`/`shimmer` (985–1169) → `FileList.module.css`.
+  - **Wave C — cross-tool shared modules (touch several `.jsx`; land each atomically, do last):**
+    - *E2.2.8* `ToolToolbar.module.css` ← generic `.toolbar`/`.toolbar-label`/`.toolbar button` (844–889),
+      imported by Merge, ImageToPdf, ToImage, EditPages. Distinct from editor `.sign-toolbar`.
+    - *E2.2.9* `PageGrid.module.css` ← `.pages-grid`/`.page-card*`/`.page-drag-handle`/`.rotate-btn`/
+      SortableJS `.is-ghost/.is-chosen/.is-dragging`/`.grid-actions*`/`.page-numbers-toggle`/
+      `.page-card.is-removed` (3096–3378), imported by Split, EditPages, Redact. **Redact's box/resizer
+      chrome is excluded — that's E2.3.**
+    - *E2.2.10* `PdfTool.module.css` ← shared states: `.list-header`/`.list-count`/`.clear-all` (809–843),
+      `.page-selector-*` (942–984), `.error-message` (1255–1280), `.download-button`/`.download-check`/
+      `.check-*`/`.start-over` + keyframes (1281–1409), `.merge-tool` wrapper (654–668, verify owner).
+      Imported by every tool — do this **last**.
 - **E2.3 Migrate editor `.sign-*` styles into scoped CSS Modules** (currently ~121 `sign-*` references
   in a ~3,400-line `global.css`), **preserving descendant cascades** (`.sign-element.active
   .sign-element-actions`) as real CSS inside module scope. *(Absorbs the old "colocate `.sign-*`
