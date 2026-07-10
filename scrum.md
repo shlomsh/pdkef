@@ -63,7 +63,7 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
     newly-resizable **blackout and blur** styles (they gained the 8-handle path in `274b293`).
     Non-vacuity was verified by transiently reintroducing the `Infinity`-cap + blanket-clamp bug in both
     `DraggableWrapper.jsx` and `PdfRedactTool.jsx` and confirming the meta-guard / anchor tests go red,
-    then reverting. No type outside shape/whiteout failed an invariant. Full suite green (284); no source
+    then reverting. No type outside shape/whiteout failed an invariant. Full suite green (285); no source
     components modified.
 - **E1.6 Playwright browser guardrails for editor layout.** - **done.** Add a small
   browser-level e2e harness for the cases jsdom cannot prove. Keep files under `e2e/<module>/` and keep
@@ -113,7 +113,7 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
     in manual QA.
   - **e2e guard landed:** both `e2e/sign/sign-editor.spec.js` and `e2e/redact/redact-editor.spec.js`
     install a `securitypolicyviolation` listener via `addInitScript` (structured, spec-defined,
-    cross-engine signal - not console-text scraping) and assert zero violations in `afterEach`. All 4
+    cross-engine signal - not console-text scraping) and assert zero violations in `afterEach`. Both
     e2e tests pass against the real build with zero violations. No Vercel-Analytics-404 allowlist was
     needed - that's a network error, not a CSP violation, so it never fires the event.
   - *Depends on:* E1.6 · *Lane:* B
@@ -123,13 +123,14 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   `style={{}}` to SSR'd markup and prod silently blocks it" into a loud build failure instead of relying
   on e2e coverage of every code path. Now a path-independent guarantee for the whole site (including any
   future static page), complementing the e2e `securitypolicyviolation` guard (E1.7) which only covers the
-  two editor tools' hydrated flows.
+  two editor tools' hydrated flows. Current e2e shape is intentionally lean: one Sign browser guardrail
+  and one Redact browser guardrail.
   - *Landed:* after the existing style-hash loop, a `document.querySelectorAll('[style]')` pass per file
     logs `[ERROR] <file>: <tag> has a literal style="..." attribute ...: <snippet>` and sets `hasError`,
     matching the existing error format; no allowlist (dist has 0 literal `style=` post-E1.7). No wiring
     change needed - `npm run test:csp` (`node scripts/verify-csp.js`) already runs in CI after
     `npm run build`. Non-vacuity verified by injecting a `style="display:none"` div into `dist/index.html`
-    (verifier exits 1 with the new message), then restoring (clean pass). Full suite green (284); only
+    (verifier exits 1 with the new message), then restoring (clean pass). Full suite green (285); only
     `scripts/verify-csp.js` touched.
   - *Depends on:* E1.7 · *Lane:* B
 

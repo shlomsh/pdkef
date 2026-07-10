@@ -430,7 +430,7 @@
 
   <footer class="site">
     <div class="wrap">
-      Generated view of <code>scrum.md</code> - scrum.md is the source of truth. Regenerate when the backlog changes. · 2026-07-09
+      Generated view of <code>scrum.md</code> - scrum.md is the source of truth. Regenerate when the backlog changes. · 2026-07-10
     </div>
   </footer>
 
@@ -486,16 +486,32 @@ const TICKETS = [
     title: "Editor interaction/visual test harness",
     dependsOn: [],
     acceptance: "Cover the states unit tests miss: active outline, floating-toolbar visibility + top-edge flip, RTL toolbar alignment + leftward growth, dark mode, mobile full-width toolbar, whiteout bounds." },
-  { id: "E1.5", epic: "E1", lane: "B", status: "in-progress", priority: "high",
+  { id: "E1.5", epic: "E1", lane: "B", status: "done", priority: "high",
     title: "Per-type gesture invariants + non-vacuous geometry harness",
     dependsOn: [],
-    acceptance: "From the whiteout-resize post-mortem. For EVERY resizable element type, on a mandated realistic mocked page-wrapper rect: (a) move changes only position not size; (b) resize preserves the opposite/anchor edge for every handle; (c) zero-delta resize is a no-op. Ban the unmocked 0x0-rect pattern that made the prior whiteout tests vacuous. Report (don't silently fix) any other type that fails an invariant." },
+    acceptance: "Done. Sign and Redact gesture invariants cover resizable types on realistic mocked page-wrapper rects, including blackout and blur after they gained the 8-handle path." },
+  { id: "E1.6", epic: "E1", lane: "B", status: "done", priority: "high",
+    title: "Playwright browser guardrails for editor layout",
+    dependsOn: ["E1.4", "E1.5"],
+    acceptance: "Done. One lean Sign browser guardrail and one lean Redact browser guardrail run against production preview via npm run test:e2e. Redact covers blackout/blur/whiteout handles, delete control behavior, whiteout fill/default, and page-bound drag/resize." },
+  { id: "E1.6a", epic: "E1", lane: "B", status: "done", priority: "normal",
+    title: "Wire Playwright e2e into CI",
+    dependsOn: ["E1.6"],
+    acceptance: "Done. CI installs Chromium, runs npm run test:e2e, and uploads Playwright artifacts on failure." },
+  { id: "E1.7", epic: "E1", lane: "B", status: "done", priority: "high",
+    title: "Runtime CSP style-attribute guard",
+    dependsOn: ["E1.6"],
+    acceptance: "Done. Runtime style-attribute CSP posture decided and source fixed; Sign and Redact e2e install securitypolicyviolation listeners and assert zero violations." },
+  { id: "E1.7a", epic: "E1", lane: "B", status: "done", priority: "normal",
+    title: "Build-time no literal style= in dist guard",
+    dependsOn: ["E1.7"],
+    acceptance: "Done. scripts/verify-csp.js fails on any literal style attribute in dist HTML, complementing the browser CSP guard." },
 
   // ----- E2 -----
-  { id: "E2.1", epic: "E2", lane: "C", status: "todo", priority: "normal",
+  { id: "E2.1", epic: "E2", lane: "C", status: "done", priority: "normal",
     title: "Tokens as the only global CSS",
     dependsOn: [],
-    acceptance: "Keep :root design tokens global; audit for escaped color literals (grep -rn \"rgba(0\\|#[0-9a-f]{6}\" across src/ and public/) and route them through vars." },
+    acceptance: "Done. Theme-chrome color literals were audited and routed through design tokens where appropriate; annotation/pen defaults intentionally remain tool data literals." },
   { id: "E2.2", epic: "E2", lane: "C", status: "todo", priority: "normal",
     title: "Colocate non-editor CSS into CSS Modules",
     dependsOn: ["E2.1"],
@@ -516,10 +532,10 @@ const TICKETS = [
     acceptance: "index.astro, tool pages, FeatureCard, ToolHero, AppBar, Footer. No editor components. FIRST land the E3.1 recipe (plugin + theme/utilities import), then trim Tailwind's default color scales — the project uses its own :root tokens, so Tailwind's default palette must not be used anyway — because the theme layer alone left only ~862 bytes of CSS-budget headroom (79,138/80,000). Watch npm run test:css from the first page migrated." },
 
   // ----- E4 -----
-  { id: "E4.1", epic: "E4", lane: "E", status: "todo", priority: "normal",
+  { id: "E4.1", epic: "E4", lane: "E", status: "done", priority: "normal",
     title: "Introduce TypeScript",
     dependsOn: [],
-    acceptance: "To the element model, geometry math, and core (UI can stay JSX initially)." },
+    acceptance: "Done. Added TypeScript tooling, introduced the editor model union in src/lib/editorModel.ts, and renamed coords.js to coords.ts with zero logic change." },
   { id: "E4.2", epic: "E4", lane: "E", status: "todo", priority: "normal",
     title: "Extract a framework-agnostic editor/ core",
     dependsOn: ["E4.1", "E0.1"],
@@ -600,7 +616,7 @@ const TICKETS = [
 
 const LANE_FLOW = [
   { lane: "A", flow: ["E0.1", "→", "E0.2"], gate: "" },
-  { lane: "B", flow: ["E1.1", "E1.2", "E1.3", "E1.4", "E1.5"], gate: "gate → E2.*, E3.2, E4 verification" },
+  { lane: "B", flow: ["E1.1", "E1.2", "E1.3", "E1.4", "E1.5", "E1.6", "E1.6a", "E1.7", "E1.7a"], gate: "gate → E2.*, E3.2, E4 verification" },
   { lane: "C", flow: ["E2.1", "→", "E2.2", "E2.3"], gate: "E2.3 also needs E1.4" },
   { lane: "D", flow: ["E3.1", "→", "E3.2"], gate: "E3.2 also needs E1.1, E1.2" },
   { lane: "E", flow: ["E4.1", "→", "E4.2", "→", "E4.3", "→", "E4.4"], gate: "E4.2 also needs E0.1" }
