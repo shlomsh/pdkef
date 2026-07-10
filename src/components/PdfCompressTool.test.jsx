@@ -162,7 +162,7 @@ describe('PdfCompressTool UI flow', () => {
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
 
-    const shareButton = container.querySelector('.pdf-share-button');
+    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('test_doc-compressed.pdf');

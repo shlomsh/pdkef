@@ -371,3 +371,10 @@
   cursor: pointer;
   flex-shrink: 0;
 }
+
+/* Native-share button: generic multi-tool state (E2.2a.1). `.sig-btn`/
+   `.sig-btn-secondary` stay in global.css — those are E2.3-owned. */
+.pdf-share-button {
+  width: 100%;
+  margin-top: var(--space-3);
+}

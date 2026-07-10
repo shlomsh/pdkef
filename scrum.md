@@ -290,6 +290,16 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   styles" tech-debt note - now a first-class migration step, not opportunistic.)*
   - *Depends on:* E2.1, E1.4 · *Lane:* C
   - *Acceptance:* every conditional state (active, RTL, dark, mobile, whiteout) verified in a running editor.
+- **E2.4 Clean up two small leftovers surfaced by E2.2** (low priority, no urgency - not part of any
+  tool's rendering path in a way that blocks anything else):
+  - **`.info-icon`/`.tooltip-bubble`/`.tooltip-row`** (currently still in `global.css`, right after
+    `.clear-all`) - single-consumer (`PdfToImageTool.jsx`'s quality-preset tooltip), deliberately left
+    out of E2.2.10 since it's not a shared class. Move into `PdfToImageTool.module.css` alongside its
+    existing `.toolbar`/`.toolbar-label` (E2.2.8).
+  - **`.list-hint`** (currently still in `global.css`, right before where `.thumb-placeholder` used to
+    live) - dead CSS, confirmed zero consumers across `src/` during E2.2.7/E2.2.9/E2.2.10's ground-truth
+    sweeps. Safe to delete outright rather than migrate.
+  - *Depends on:* E2.2 (done) · *Lane:* C
 
 ## E3 - Tailwind on the static surface  ·  *Lane D, parallel with E2*
 
@@ -374,6 +384,14 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 - **Long-tail landing pages** - `/sign-pdf-no-signup`, `/offline-pdf-form-filler`, `/open-source-pdf-editor`.
 - **OS-specific how-to guides** internally linking into the tools (no outbound promo links).
 - **Public GitHub repo + iframe embed model** for contextual backlinks.
+
+**Bugs / hardening surfaced by E2.2 CSS-scoping ground-truth sweeps:**
+- **`.field-hint` is unstyled - pre-existing, not introduced by E2.2.** `PdfSplitTool.jsx` and
+  `PdfToImageTool.jsx` both render `<p class="field-hint">` under their page-selector inputs ("Enter page
+  numbers or ranges separated by commas..."), but no `.field-hint` rule has ever existed in `global.css`
+  - confirmed via `grep` during E2.2.10's sub-commit-1 sweep. Cosmetic (the hint text still renders, just
+  unstyled), low priority. Fix: either add a small `.field-hint` rule to `PdfTool.module.css` (it's used
+  by 2 tools) or decide the plain-text look was always intentional and delete the dead class reference.
 
 **Bugs / hardening surfaced by E4.1 typecheck:**
 - **`index.astro` typecheck errors** - running `astro check` project-wide for the first time (E4.1)

@@ -98,7 +98,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
     expect(downloadBtn.getAttribute('download')).toBe('merged.pdf');
 
-    const shareButton = container.querySelector('.pdf-share-button');
+    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share).toHaveBeenCalledOnce();

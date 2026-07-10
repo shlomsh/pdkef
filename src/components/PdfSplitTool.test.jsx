@@ -152,7 +152,7 @@ describe('PdfSplitTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const shareButton = container.querySelector('.pdf-share-button');
+    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     const files = nativeShare.share.mock.calls[0][0].files;

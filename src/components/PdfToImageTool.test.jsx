@@ -97,7 +97,7 @@ describe('PdfToImageTool UI flow', () => {
     expect(downloadLink.getAttribute('download')).toBe('report.png');
     expect(downloadLink.getAttribute('href')).toBe('blob:fake-url');
 
-    const shareButton = container.querySelector('.pdf-share-button');
+    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('report.png');

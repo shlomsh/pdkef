@@ -93,7 +93,7 @@ describe('PdfSecurityTool', () => {
 
     expect(securityLib.unlockPdf).toHaveBeenCalledWith(expect.any(File), 'secret');
     expect(container.querySelector(`.${pdfToolStyles['download-button']}`).getAttribute('download')).toBe('test_unlocked.pdf');
-    const shareButton = container.querySelector('.pdf-share-button');
+    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('test_unlocked.pdf');
