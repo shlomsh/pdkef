@@ -26,6 +26,10 @@ vi.mock('pdfjs-dist', () => {
   };
 });
 
+vi.mock('../lib/redact.js', () => ({
+  redactPdf: vi.fn(async () => new Blob(['redacted'], { type: 'application/pdf' }))
+}));
+
 describe('PdfRedactTool UI flow', () => {
   let container;
 
@@ -80,6 +84,43 @@ describe('PdfRedactTool UI flow', () => {
     expect(toolbar).not.toBeNull();
     expect(toolbar.textContent).toContain('Blackout');
     expect(toolbar.textContent).toContain('Blur');
+  });
+
+  it('returns to the existing draft when continuing to edit after generating a download', async () => {
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    const originalRevokeObjectURL = window.URL.revokeObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+    window.URL.revokeObjectURL = vi.fn();
+
+    try {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      const generateButton = Array.from(container.querySelectorAll('.sign-toolbar button'))
+        .find((button) => button.textContent.includes('Download'));
+
+      await act(async () => {
+        generateButton.click();
+      });
+
+      expect(container.querySelector('.download-button')).not.toBeNull();
+      expect(container.querySelector('.sign-workspace')).toBeNull();
+
+      const continueButton = Array.from(container.querySelectorAll('button'))
+        .find((button) => button.textContent.includes('Continue editing'));
+
+      await act(async () => {
+        continueButton.click();
+      });
+
+      expect(container.querySelector('.sign-workspace')).not.toBeNull();
+      expect(container.querySelector('.redact-box')).not.toBeNull();
+      expect(container.querySelector('.download-button')).toBeNull();
+      expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:redacted-pdf');
+    } finally {
+      window.URL.createObjectURL = originalCreateObjectURL;
+      window.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
   });
 
   async function loadFileAndGetDrawArea() {

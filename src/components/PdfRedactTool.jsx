@@ -563,6 +563,12 @@ export default function PdfRedactTool() {
     }
   };
 
+  const handleContinueEditing = () => {
+    setDownloadUrl(null);
+    setStatus('editing');
+    setAnnouncement('Returned to editing. Your redactions are unchanged.');
+  };
+
   const reset = () => {
     clearDraft();
     fileBytesRef.current = null;
@@ -717,6 +723,14 @@ export default function PdfRedactTool() {
             </svg>
             Download Redacted PDF
           </a>
+          <button
+            type="button"
+            className="sig-btn sig-btn-secondary"
+            style={{ width: '100%', marginTop: 'var(--space-3)' }}
+            onClick={handleContinueEditing}
+          >
+            Continue editing
+          </button>
           <button type="button" className="start-over" onClick={() => setConfirmResetOpen(true)}>
             <span className="sign-tool-btn-text">Start over</span>
           </button>
