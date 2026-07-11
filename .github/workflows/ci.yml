@@ -28,6 +28,9 @@ jobs:
     - name: Verify shared box-resize owner
       run: test "$(git grep -l "maxWidthFromRightGrowth\|maxHeightFromBottomGrowth" -- 'src/**' | wc -l | tr -d ' ')" = 1
 
+    - name: Verify gesture golden-rule (static)
+      run: npm run test:gesture-golden-rule
+
     - name: Build
       run: npm run build
 

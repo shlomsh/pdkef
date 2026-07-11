@@ -765,14 +765,22 @@ more than any numeric audit score suggests and must **not** be reopened while cl
   - *Acceptance:* the guard matches redact classes; adding a `.redact-foo { … }` rule to `global.css`
     fails `npm run test:css`. Also drop the now-stale `docs/E2.3-*` reference in the script's header
     comment.
-- **E7.8 Add the two missing static guards.** ARCHITECTURE §6.6 flags runtime-CSP as still pending, and
-  there is no *static* guard for the gesture golden rule (only tests). Add (a) a CI grep guard that fails
-  if `setState`/`dispatch(`/`onChange(` appears inside a `*PointerMove`/`*ResizeMove`/`*Move` handler
-  body (catches golden-rule regressions before a test would), and (b) a runtime-CSP smoke in e2e/preview
-  that fails on unexpected `securitypolicyviolation` events (beyond today's hash-only `test:csp`).
+- **E7.8 Add the two missing static guards - done.** Added (a)
+  `scripts/check-gesture-golden-rule.js` (`npm run test:gesture-golden-rule`, wired into `ci.yml` before
+  `Build`): a static, brace-matching scan of every `computePatch` body (both inline arrow functions and
+  the named-reference form, e.g. `computePatch: handleResizeMove`) across `src/`, failing if
+  `onChange(`/`dispatch(`/`setState(` appears inside one - `computePatch` is the single choke point every
+  Sign/Redact gesture routes through per `src/editor/gestures/controller.ts`, so this is a precise anchor
+  rather than a name-pattern heuristic. And (b) `e2e/csp-smoke.spec.js`: sweeps every indexed route
+  (`/`, all 9 tool pages, `/licenses`) on a plain production-preview page load with the same
+  `securitypolicyviolation` listener E1.7 uses, catching a regression anywhere on the site (not just the
+  two editor tools' hydrated flows E1.7 covers) - runs automatically as part of `npm run test:e2e`, no
+  separate CI step needed.
   - *Depends on:* - · *Lane:* B (guardrails)
-  - *Acceptance:* both run in `ci.yml`; a deliberately-added per-move `onChange` fails guard (a); an
-    injected disallowed inline style/attribute fails guard (b).
+  - *Acceptance:* both run in `ci.yml`. Non-vacuity verified for both: a deliberately-injected per-move
+    `onChange(`/`dispatch(` call inside a `computePatch` body (both the inline and named-reference forms)
+    fails guard (a), then was reverted; an injected `<div style="color:red">` into a built `dist/**/*.html`
+    fails guard (b) with the resulting `style-src-attr` violation, then `dist/` was rebuilt clean.
 
 ---
 

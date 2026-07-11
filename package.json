@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:e2e": "npm run build && playwright test",
     "test:csp": "node scripts/verify-csp.js",
+    "test:gesture-golden-rule": "node scripts/check-gesture-golden-rule.js",
     "test:seo": "node scripts/verify-seo.js",
     "test:css": "node scripts/check-editor-global-css.js && node scripts/check-css-bundle.js"
   },
