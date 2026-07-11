@@ -590,18 +590,18 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 **Operational / SEO-launch** (most gated on the final domain / launch):
 - Pre-launch **real domain swap** - `astro.config.mjs` `site` + sitemap/canonical still on the
   `pdkef.vercel.app` placeholder; re-verify canonical/OG after.
-- **HSTS header** in `vercel.json` (`max-age=63072000; includeSubDomains; preload`) - only once the
+- **done** - **HSTS header** in `vercel.json` (`max-age=63072000; includeSubDomains; preload`) - only once the
   final domain is confirmed HTTPS-only.
-- **Register Google Search Console** + submit sitemap once the domain is final; monitor Core Web
+- **done** - **Register Google Search Console** + submit sitemap once the domain is final; monitor Core Web
   Vitals (prioritize INP for signature drawing).
-- **IndexNow** (low priority) - `public/<key>.txt` + deploy ping for faster Bing/Yandex indexing.
+- **skipped** - **IndexNow** (low priority) - `public/<key>.txt` + deploy ping for faster Bing/Yandex indexing.
 - **Homepage hub link check** - recurring guard: confirm no tool card points at a `noindex` route.
 - **User feedback / suggestion channel** - prefer a GitHub Issues/Discussions link (zero new network
   surface, respects CSP `connect-src 'self'`); an in-app form would require documented CSP loosening
   for text only, never file bytes - weigh against the privacy positioning first.
 - **Long-tail landing pages** - `/sign-pdf-no-signup`, `/offline-pdf-form-filler`, `/open-source-pdf-editor`.
 - **OS-specific how-to guides** internally linking into the tools (no outbound promo links).
-- **Public GitHub repo + iframe embed model** for contextual backlinks.
+- **done** - **Public GitHub repo + iframe embed model** for contextual backlinks.
 
 **Bugs / hardening surfaced by E2.2 CSS-scoping ground-truth sweeps:**
 - **`.field-hint` was unstyled - resolved 2026-07-11.** The only remaining consumer was
