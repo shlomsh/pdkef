@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import BasePdfTool from './BasePdfTool.jsx';
 import PdfPageCanvas from './PdfPageCanvas.jsx';
-import { getPdfjs, uniqueId, seedUniqueId } from '../lib/sign.js';
+import { uniqueId, seedUniqueId } from '../lib/sign.js';
 import { redactPdf } from '../lib/redact.js';
 import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
+import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { startGesture } from '../editor/gestures/controller.ts';
 import { getPointerCoords } from '../editor/gestures/pointer.ts';
 import { getElementDefinition } from '../editor/registry/index.ts';
@@ -155,59 +156,28 @@ export default function PdfRedactTool() {
   // clobber the other's state. Tag each call with an id and ignore any state updates
   // from a call that's been superseded by a newer one.
   const loadPdf = async (selected, bytes, preset = {}, restored = false) => {
-    const loadId = ++loadIdRef.current;
     // Migrate drafts written before E4.4's flat type discriminant. New state is
     // always type-keyed; the compatibility read is intentionally at the boundary.
     const presetElements = (preset.elements || []).map(({ style, ...element }) => ({
       ...element,
       type: element.type || style || 'blackout',
     }));
-    setFile(selected);
-    setStatus('loading');
-    setProgress(0);
-    setElements(presetElements);
-    setActionHistory(preset.actionHistory || []);
-    setUndoSelection(new Set());
-    seedUniqueId(presetElements);
-    fileBytesRef.current = bytes;
-
-    // pdf.js can hang indefinitely (not reject) on a corrupted/pathological file
-    // instead of throwing — with no timeout that leaves the user staring at an
-    // infinite "Loading PDF document..." spinner with no way out. Bail out after a
-    // generous window instead. For a restore specifically, the file wasn't even a
-    // choice the user made, so also drop the draft — otherwise a single bad
-    // autosave permanently bricks the tool on every future visit.
-    const timeoutId = setTimeout(() => {
-      if (loadIdRef.current !== loadId) return;
-      loadIdRef.current++; // invalidate this attempt so a late resolve/reject is ignored
-      if (restored) clearDraft();
-      setStatus('error');
-      setAnnouncement('This PDF is taking too long to load - it may be corrupted. Please try a different file.');
-    }, 20000);
-
-    try {
-      const lib = await getPdfjs();
-      if (loadIdRef.current !== loadId) return;
-      const doc = await lib.getDocument({ data: bytes.slice(0) }).promise;
-      if (loadIdRef.current !== loadId) return;
-
-      setPdfDocument(doc);
-      setNumPages(doc.numPages);
-      setStatus('editing');
-      setAnnouncement(
-        restored
-          ? `Restored your last draft of "${selected.name}".`
-          : `Loaded PDF "${selected.name}" with ${doc.numPages} pages.`
-      );
-    } catch (err) {
-      if (loadIdRef.current !== loadId) return;
-      console.error(err);
-      if (restored) clearDraft();
-      setStatus('error');
-      setAnnouncement('Failed to load PDF file.');
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    await loadEditorPdf({
+      file: selected, bytes, restored, loadIdRef, clearDraft, setStatus, setAnnouncement,
+      initialize: () => {
+        setFile(selected);
+        setProgress(0);
+        setElements(presetElements);
+        setActionHistory(preset.actionHistory || []);
+        setUndoSelection(new Set());
+        seedUniqueId(presetElements);
+        fileBytesRef.current = bytes;
+      },
+      onDocument: (doc) => {
+        setPdfDocument(doc);
+        setNumPages(doc.numPages);
+      },
+    });
   };
 
   const handleFilesAdded = async (fileList) => {

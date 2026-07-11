@@ -3,8 +3,9 @@ import BasePdfTool from './BasePdfTool.jsx';
 import { SignToolProvider, useSignTool } from './SignTool/SignToolContext.jsx';
 import PdfWorkspace from './SignTool/PdfWorkspace.jsx';
 import SignatureDialog from './SignatureDialog.jsx';
-import { getPdfjs, uniqueId, seedUniqueId, signPdf } from '../lib/sign.js';
+import { uniqueId, seedUniqueId, signPdf } from '../lib/sign.js';
 import { widthPercentToHeightPercent } from '../lib/coords.js';
+import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { useSignDraftPersistence } from './useSignDraftPersistence.js';
 import { createActionEntry } from '../lib/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
@@ -353,61 +354,33 @@ function PdfSignToolInner() {
   // Core loader shared by fresh file picks and draft restore. `bytes` is the source
   // PDF's ArrayBuffer; `preset` seeds restored elements/action history.
   const loadPdf = async (selected, bytes, preset = {}, restored = false) => {
-    const loadId = ++loadIdRef.current;
     const presetElements = preset.elements || [];
-    setFile(selected);
-    setStatus('loading');
-    setProgress(0);
-    dispatch({ type: 'SET_ELEMENTS', payload: presetElements });
-    dispatch({ type: 'SET_ACTION_HISTORY', payload: preset.actionHistory || [] });
-    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
-    dispatch({ type: 'SET_TOOL', payload: null });
-    seedUniqueId(presetElements);
-    fileBytesRef.current = bytes;
-
-    // pdf.js can hang indefinitely (not reject) on a corrupted/pathological file
-    const timeoutId = setTimeout(() => {
-      if (loadIdRef.current !== loadId) return;
-      loadIdRef.current++;
-      if (restored) clearDraft();
-      setStatus('error');
-      setAnnouncement('This PDF is taking too long to load — it may be corrupted. Please try a different file.');
-    }, 20000);
-
-    try {
-      const lib = await getPdfjs();
-      if (loadIdRef.current !== loadId) return;
-      const doc = await lib.getDocument({ data: bytes.slice(0) }).promise;
-      if (loadIdRef.current !== loadId) return;
-
-      setPdfDocument(doc);
-      setNumPages(doc.numPages);
-
-      // Load all pages to read sizes
-      const sizes = [];
-      for (let i = 1; i <= doc.numPages; i++) {
-        const page = await doc.getPage(i);
-        if (loadIdRef.current !== loadId) return;
-        const { width, height } = page.getViewport({ scale: 1.0 });
-        sizes.push({ width, height });
-      }
-      if (loadIdRef.current !== loadId) return;
-      setPageSizes(sizes);
-      setStatus('editing');
-      setAnnouncement(
-        restored
-          ? `Restored your last draft of "${selected.name}".`
-          : `Loaded PDF "${selected.name}" with ${doc.numPages} pages.`
-      );
-    } catch (err) {
-      if (loadIdRef.current !== loadId) return;
-      console.error(err);
-      if (restored) clearDraft();
-      setStatus('error');
-      setAnnouncement('Failed to load PDF file.');
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    await loadEditorPdf({
+      file: selected, bytes, restored, loadIdRef, clearDraft, setStatus, setAnnouncement,
+      initialize: () => {
+        setFile(selected);
+        setProgress(0);
+        dispatch({ type: 'SET_ELEMENTS', payload: presetElements });
+        dispatch({ type: 'SET_ACTION_HISTORY', payload: preset.actionHistory || [] });
+        dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+        dispatch({ type: 'SET_TOOL', payload: null });
+        seedUniqueId(presetElements);
+        fileBytesRef.current = bytes;
+      },
+      onDocument: async (doc, isCurrent) => {
+        setPdfDocument(doc);
+        setNumPages(doc.numPages);
+        const sizes = [];
+        for (let i = 1; i <= doc.numPages; i++) {
+          const page = await doc.getPage(i);
+          if (!isCurrent()) return;
+          const { width, height } = page.getViewport({ scale: 1.0 });
+          sizes.push({ width, height });
+        }
+        if (!isCurrent()) return;
+        setPageSizes(sizes);
+      },
+    });
   };
 
   // Handle PDF file selection
