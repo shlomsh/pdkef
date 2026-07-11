@@ -5,6 +5,7 @@ import { sortByDate, sortByName } from '../lib/sort.js';
 import BasePdfTool from './BasePdfTool.jsx';
 import styles from './FileList.module.css';
 import pdfToolStyles from './PdfTool.module.css';
+import sortToolbarStyles from './SortToolbar.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 
@@ -228,17 +229,17 @@ export default function PdfImageToPdfTool() {
             </button>
           </div>
 
-          <div class="sign-toolbar" role="toolbar" aria-label="Sort images">
-            <button type="button" class="sign-tool-btn" onClick={() => applySort(sortByName, 'asc')}>
+          <div class={sortToolbarStyles.toolbar} role="toolbar" aria-label="Sort images">
+            <button type="button" class={sortToolbarStyles.button} onClick={() => applySort(sortByName, 'asc')}>
               A–Z
             </button>
-            <button type="button" class="sign-tool-btn" onClick={() => applySort(sortByName, 'desc')}>
+            <button type="button" class={sortToolbarStyles.button} onClick={() => applySort(sortByName, 'desc')}>
               Z–A
             </button>
-            <button type="button" class="sign-tool-btn" onClick={() => applySort(sortByDate, 'asc')}>
+            <button type="button" class={sortToolbarStyles.button} onClick={() => applySort(sortByDate, 'asc')}>
               Oldest
             </button>
-            <button type="button" class="sign-tool-btn" onClick={() => applySort(sortByDate, 'desc')}>
+            <button type="button" class={sortToolbarStyles.button} onClick={() => applySort(sortByDate, 'desc')}>
               Newest
             </button>
           </div>

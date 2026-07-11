@@ -4,6 +4,8 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import PdfSignTool from './PdfSignTool.jsx';
+import toolbarStyles from './SignTool/SignToolbar.module.css';
+import workspaceStyles from './SignTool/Workspace.module.css';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 import dropzoneStyles from './Dropzone.module.css';
 import pdfToolStyles from './PdfTool.module.css';
@@ -132,7 +134,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Locate the signature tool button in the toolbar
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
     expect(sigBtn).not.toBeNull();
 
@@ -176,7 +178,7 @@ describe('PdfSignTool UI flow', () => {
 
     // Clicking Signature when local storage is empty opens the dialog directly
     localStorage.removeItem('pdf-toolkit:signatures');
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
     
     await act(async () => {
@@ -226,14 +228,14 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select text tool
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
     await act(async () => {
       textBtn.click();
     });
 
     // Click on page overlay to place text element
-    const overlay = container.querySelector('.sign-page-overlay');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
@@ -287,7 +289,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select symbol tool
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const symbolBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Symbol') || btn.querySelector('svg'));
     
     await act(async () => {
@@ -296,7 +298,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Click on page overlay to place symbol element
-    const overlay = container.querySelector('.sign-page-overlay');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 200, clientY: 200, bubbles: true }));
     });
@@ -328,14 +330,14 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select text tool
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
     await act(async () => {
       textBtn.click();
     });
 
     // Click on page overlay to place text element
-    const overlay = container.querySelector('.sign-page-overlay');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
@@ -390,14 +392,14 @@ describe('PdfSignTool UI flow', () => {
     });
     
     // Select text tool
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
     await act(async () => {
       textBtn.click();
     });
 
     // Click on page overlay to place text element
-    const overlay = container.querySelector('.sign-page-overlay');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     overlay.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
     });
@@ -519,13 +521,13 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select text tool and place an element
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
     await act(async () => {
       textBtn.click();
     });
 
-    const overlay = container.querySelector('.sign-page-overlay');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
@@ -574,8 +576,8 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const wrapper = container.querySelector('.sign-page-wrapper');
-    const overlay = container.querySelector('.sign-page-overlay');
+    const wrapper = container.querySelector(`.${workspaceStyles['page-wrapper']}`);
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     const pageRect = {
       left: 0,
       top: 0,
@@ -590,7 +592,7 @@ describe('PdfSignTool UI flow', () => {
     wrapper.getBoundingClientRect = () => pageRect;
     overlay.getBoundingClientRect = () => pageRect;
 
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
     await act(async () => {
       textBtn.click();
@@ -677,7 +679,7 @@ describe('PdfSignTool UI flow', () => {
       });
 
       localStorage.removeItem('pdf-toolkit:signatures');
-      const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+      const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
       const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
       
       await act(async () => {
@@ -753,14 +755,14 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select the saved signature from the dropdown, arming `activeSignature`.
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
     await act(async () => { sigBtn.click(); });
     const dropdownItem = document.body.querySelector('.sign-dropdown-item');
     await act(async () => { dropdownItem.click(); });
 
-    const overlay = container.querySelector('.sign-page-overlay');
-    const wrapper = container.querySelector('.sign-page-wrapper');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const wrapper = container.querySelector(`.${workspaceStyles['page-wrapper']}`);
     overlay.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
     });
@@ -810,11 +812,11 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const whiteoutBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Whiteout'));
     await act(async () => { whiteoutBtn.click(); });
 
-    const overlay = container.querySelector('.sign-page-overlay');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     overlay.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
     });

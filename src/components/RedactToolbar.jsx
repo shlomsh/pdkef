@@ -1,4 +1,5 @@
 import FullscreenButton from './FullscreenButton';
+import styles from './SignTool/SignToolbar.module.css';
 
 export default function RedactToolbar({
   activeStyle,
@@ -18,11 +19,11 @@ export default function RedactToolbar({
   setUndoModalOpen
 }) {
   return (
-    <div className="sign-toolbar-container" style={{ marginTop: 'var(--space-5)' }}>
-      <div className="sign-toolbar" role="toolbar" aria-label="PDF redaction">
+    <div className={styles.container} style={{ marginTop: 'var(--space-5)' }}>
+      <div className={styles.toolbar} role="toolbar" aria-label="PDF redaction">
         <button
           type="button"
-          className={`sign-tool-btn${activeStyle === 'blackout' ? ' active' : ''}`}
+          className={`${styles.button}${activeStyle === 'blackout' ? ` ${styles.active}` : ''}`}
           onClick={() => setActiveStyle('blackout')}
           title="Draw black redaction boxes"
           aria-pressed={activeStyle === 'blackout'}
@@ -32,12 +33,12 @@ export default function RedactToolbar({
             <rect x="3" y="9.5" width="18" height="5" rx="1" fill="currentColor" stroke="none" />
             <line x1="4" y1="19" x2="12" y2="19" />
           </svg>
-          <span className="sign-tool-btn-text">Blackout</span>
+          <span className={styles.label}>Blackout</span>
         </button>
 
         <button
           type="button"
-          className={`sign-tool-btn${activeStyle === 'whiteout' ? ' active' : ''}`}
+          className={`${styles.button}${activeStyle === 'whiteout' ? ` ${styles.active}` : ''}`}
           onClick={() => setActiveStyle('whiteout')}
           title="Draw whiteout boxes to erase content"
           aria-pressed={activeStyle === 'whiteout'}
@@ -47,12 +48,12 @@ export default function RedactToolbar({
             <path d="M22 21H7" />
             <path d="m13.3 4 5.3 5.3" />
           </svg>
-          <span className="sign-tool-btn-text">Whiteout</span>
+          <span className={styles.label}>Whiteout</span>
         </button>
 
         <button
           type="button"
-          className={`sign-tool-btn${activeStyle === 'blur' ? ' active' : ''}`}
+          className={`${styles.button}${activeStyle === 'blur' ? ` ${styles.active}` : ''}`}
           onClick={() => setActiveStyle('blur')}
           title="Draw blur redaction boxes"
           aria-pressed={activeStyle === 'blur'}
@@ -62,12 +63,12 @@ export default function RedactToolbar({
             <rect x="3" y="9.5" width="18" height="5" rx="1" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2.5 2" />
             <line x1="4" y1="19" x2="12" y2="19" />
           </svg>
-          <span className="sign-tool-btn-text">Blur</span>
+          <span className={styles.label}>Blur</span>
         </button>
 
         <button
           type="button"
-          className="sign-tool-btn"
+          className={styles.button}
           onClick={() => setUndoModalOpen(true)}
           title="Undo changes"
           disabled={actionHistory.length === 0}
@@ -76,14 +77,14 @@ export default function RedactToolbar({
             <path d="M3 7v6h6" />
             <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
           </svg>
-          <span className="sign-tool-btn-text">Undo</span>
+          <span className={styles.label}>Undo</span>
         </button>
 
         <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
 
         <button
           type="button"
-          className="sign-tool-btn sign-tool-btn-reset"
+          className={`${styles.button} ${styles.reset}`}
           onClick={() => setConfirmResetOpen(true)}
           title="Discard your work and start over"
         >
@@ -91,12 +92,12 @@ export default function RedactToolbar({
             <path d="M3 2v6h6" />
             <path d="M3.51 15a9 9 0 1 0 2.13-9.36L3 8" />
           </svg>
-          <span className="sign-tool-btn-text">Start over</span>
+          <span className={styles.label}>Start over</span>
         </button>
 
         <button
           type="button"
-          className={`sign-tool-btn sign-tool-btn-download${canSharePdf ? ' sign-tool-btn-desktop-download' : ''}`}
+          className={`${styles.button} ${styles.download}${canSharePdf ? ` ${styles['desktop-download']}` : ''}`}
           onClick={handleDownloadPdf}
           disabled={elementsCount === 0}
           title={elementsCount === 0 ? 'Add at least one redaction box first' : 'Apply redactions and download'}
@@ -106,13 +107,13 @@ export default function RedactToolbar({
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          <span className="sign-tool-btn-text">Download</span>
+          <span className={styles.label}>Download</span>
         </button>
 
         {canSharePdf && (
           <button
             type="button"
-            className="sign-tool-btn sign-tool-btn-share"
+            className={`${styles.button} ${styles.share}`}
             onClick={shareReady ? handleSharePdf : handlePrepareShare}
             disabled={elementsCount === 0}
             title={elementsCount === 0
@@ -126,7 +127,7 @@ export default function RedactToolbar({
               <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" />
               <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
             </svg>
-            <span className="sign-tool-btn-text">{shareReady ? 'Share now' : 'Share'}</span>
+            <span className={styles.label}>{shareReady ? 'Share now' : 'Share'}</span>
           </button>
         )}
       </div>

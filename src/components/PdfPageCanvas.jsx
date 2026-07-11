@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'preact/hooks';
+import workspaceStyles from './SignTool/Workspace.module.css';
 
 // Dedicated canvas rendering component for clean lifecycles and race-free layout paints
 export default function PdfPageCanvas({ pdfDocument, pageNum }) {
@@ -34,7 +35,7 @@ export default function PdfPageCanvas({ pdfDocument, pageNum }) {
   return (
     <canvas
       ref={canvasRef}
-      className="sign-page-canvas"
+      className={workspaceStyles['page-canvas']}
     />
   );
 }

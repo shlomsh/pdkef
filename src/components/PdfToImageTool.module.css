@@ -2,7 +2,7 @@
    `.toolbar-label` to be shared across Merge/ImageToPdf/ToImage/EditPages
    (a "ToolToolbar.module.css"), but the real consumers turned out to be only
    PdfToImageTool.jsx (its Format/Quality/Output option groups) — Merge and
-   ImageToPdf render their own sort row with `.sign-toolbar` (a different,
+   ImageToPdf render their own sort row with the scoped SortToolbar module (a different,
    editor-territory class), not this one. Genuinely single-consumer, so this
    is a per-component module rather than a shared one. */
 .toolbar {

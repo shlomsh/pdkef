@@ -1,8 +1,10 @@
+import styles from './SignTool/SignToolbar.module.css';
+
 export default function FullscreenButton({ isFullscreen, toggleFullscreen }) {
   return (
     <button
       type="button"
-      className="sign-tool-btn"
+      className={styles.button}
       onClick={toggleFullscreen}
       title={isFullscreen ? 'Exit full screen' : 'Full screen'}
     >
@@ -21,7 +23,7 @@ export default function FullscreenButton({ isFullscreen, toggleFullscreen }) {
           <path d="M3 16v3a2 2 0 0 0 2 2h3" />
         </svg>
       )}
-      <span className="sign-tool-btn-text">{isFullscreen ? 'Exit full screen' : 'Full screen'}</span>
+      <span className={styles.label}>{isFullscreen ? 'Exit full screen' : 'Full screen'}</span>
     </button>
   );
 }

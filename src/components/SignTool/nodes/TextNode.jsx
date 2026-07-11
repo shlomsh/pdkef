@@ -3,6 +3,7 @@ import ElementResizers from '../../ElementResizers.jsx';
 import usePdfCoordinates from '../../../lib/usePdfCoordinates.js';
 import { getEffectiveTextDirection } from '../../../lib/sign.js';
 import { DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
+import workspaceStyles from '../Workspace.module.css';
 
 
 export default function TextNode({ element, isActive, onChange, onSelect, onResizeStart, pageWidthPoints }) {
@@ -12,7 +13,7 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
   const textareaRef = useRef(null);
 
   useLayoutEffect(() => {
-    const pageWrapper = textRef.current?.closest('.sign-page-wrapper') || null;
+    const pageWrapper = textRef.current?.closest(`.${workspaceStyles['page-wrapper']}`) || null;
     if (!pageWrapper) return;
     const updateScale = () => {
       setScaleFactor(getScaleFactor(pageWrapper, pageWidthPoints));

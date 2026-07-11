@@ -2,10 +2,11 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import TextNode from './TextNode.jsx';
+import workspaceStyles from '../Workspace.module.css';
 
 function mount(vnode) {
   const host = document.createElement('div');
-  host.className = 'sign-page-wrapper';
+  host.className = workspaceStyles['page-wrapper'];
   host.getBoundingClientRect = () => ({ width: 600, height: 800, top: 0, left: 0, right: 600, bottom: 800 });
   document.body.appendChild(host);
   act(() => {

@@ -15,6 +15,7 @@ import SignToolbar from './SignToolbar.jsx';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
 import { detectTextDirection } from '../../lib/sign.js';
 import pdfToolStyles from '../PdfTool.module.css';
+import workspaceStyles from './Workspace.module.css';
 
 export default function PdfWorkspace({
   file,
@@ -144,7 +145,7 @@ export default function PdfWorkspace({
 
   return (
     <div
-      className={`sign-workspace${isPseudoFullscreen ? ' pseudo-fullscreen' : ''}${status === 'signing' ? ' is-processing' : ''}`}
+      className={`${workspaceStyles.workspace}${isPseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}${status === 'signing' ? ` ${workspaceStyles['is-processing']}` : ''}`}
       ref={workspaceRef}
       aria-busy={status === 'signing'}
     >
@@ -178,7 +179,7 @@ export default function PdfWorkspace({
           />
 
           {/* PDF Pages rendering container */}
-          <div className="sign-pages-container" onClick={deactivateAll}>
+          <div className={workspaceStyles['pages-container']} onClick={deactivateAll}>
             {Array.from({ length: numPages }).map((_, pageIdx) => {
               const size = pageSizes[pageIdx] || { width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS };
 
@@ -186,7 +187,7 @@ export default function PdfWorkspace({
                 <div
                   key={pageIdx}
                   ref={(el) => (pageWrapperRefs.current[pageIdx] = el)}
-                  className="sign-page-wrapper"
+                  className={workspaceStyles['page-wrapper']}
                   style={{ aspectRatio: `${size.width} / ${size.height}` }}
                 >
                   <PdfPageCanvas
@@ -195,7 +196,7 @@ export default function PdfWorkspace({
                   />
 
                   <div
-                    className="sign-page-overlay"
+                    className={workspaceStyles['page-overlay']}
                     onClick={(e) => handlePageClick(e, pageIdx)}
                     onMouseDown={(e) => handleOverlayPointerDown(e, pageIdx)}
                     onTouchStart={(e) => handleOverlayPointerDown(e, pageIdx)}
@@ -228,12 +229,12 @@ export default function PdfWorkspace({
           </div>
 
           {/* Complete signing button */}
-          <div className="sign-export-actions" style={{ marginTop: '2rem' }}>
-            <button type="button" className={pdfToolStyles['merge-button']} onClick={handleDownloadPdf}>
+          <div className={workspaceStyles['export-actions']}>
+            <button type="button" className={`${pdfToolStyles['merge-button']} ${workspaceStyles['export-action']}`} onClick={handleDownloadPdf}>
               Download
             </button>
             {canSharePdf && (
-              <button type="button" className={`${pdfToolStyles['merge-button']} sign-export-share`} onClick={shareReady ? handleSharePdf : handleSavePdf}>
+              <button type="button" className={`${pdfToolStyles['merge-button']} ${workspaceStyles['export-action']} ${workspaceStyles['export-share']}`} onClick={shareReady ? handleSharePdf : handleSavePdf}>
                 {shareReady ? 'Share now' : 'Share'}
               </button>
             )}

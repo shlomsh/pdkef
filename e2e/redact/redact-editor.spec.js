@@ -78,7 +78,7 @@ async function openRedactTool(page) {
   });
 
   try {
-    await expect(page.locator('.sign-page-wrapper')).toBeVisible();
+    await expect(page.locator('[class*="page-wrapper"]')).toBeVisible();
   } catch (error) {
     throw new Error(
       `Redact workspace did not appear after selecting a PDF.\nBrowser messages:\n${browserMessages.join('\n') || '(none)'}\n\n${error.message}`,
@@ -230,7 +230,7 @@ test.describe('Redact editor browser guardrails', () => {
     await openRedactTool(page);
 
     await page.getByRole('button', { name: 'Full screen' }).click();
-    await expect.poll(() => page.evaluate(() => document.fullscreenElement?.classList.contains('sign-workspace'))).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement?.getAttribute('aria-busy') === 'false')).toBe(true);
 
     await page.getByRole('button', { name: 'Start over' }).click();
     const confirmation = page.getByRole('dialog', { name: 'Start over?' });
@@ -240,7 +240,7 @@ test.describe('Redact editor browser guardrails', () => {
     // The first Escape closes the top-layer dialog; it must not also exit full screen.
     await page.keyboard.press('Escape');
     await expect(confirmation).not.toBeVisible();
-    await expect.poll(() => page.evaluate(() => document.fullscreenElement?.classList.contains('sign-workspace'))).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement?.getAttribute('aria-busy') === 'false')).toBe(true);
 
     await page.evaluate(() => document.exitFullscreen());
   });

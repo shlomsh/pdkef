@@ -14,6 +14,7 @@ import {
   LINE_TOOLBAR_MARGIN_TOP_PX
 } from '../../constants/signGeometry.js';
 import ElementToolbar from '../ElementToolbar.jsx';
+import workspaceStyles from './Workspace.module.css';
 
 import { cloneElement, toChildArray } from 'preact';
 
@@ -47,7 +48,7 @@ export default function DraggableWrapper({
   // rendered at the wrong scale until an unrelated re-render happened. Reading it from
   // our own position in the DOM (at layout/event time, when it's always attached)
   // removes that timing dependency entirely.
-  const getPageWrapper = () => elementRef.current?.closest('.sign-page-wrapper') || null;
+  const getPageWrapper = () => elementRef.current?.closest(`.${workspaceStyles['page-wrapper']}`) || null;
   const actionsRef = useRef(null);
   const textDirection = element.type === 'text' ? getEffectiveTextDirection(element) : 'ltr';
 
@@ -74,7 +75,7 @@ export default function DraggableWrapper({
   // component. That preserves the fundamental anchor: LTR toolbars begin at
   // the element's left edge, RTL toolbars end at its right edge.
   const getFloatingBoundary = (reference) =>
-    reference?.closest?.('.sign-page-wrapper') || 'clippingAncestors';
+    reference?.closest?.(`.${workspaceStyles['page-wrapper']}`) || 'clippingAncestors';
   const { refs, floatingStyles } = useFloating({
     placement: textDirection === 'rtl' ? 'top-end' : 'top-start',
     whileElementsMounted: autoUpdate,
