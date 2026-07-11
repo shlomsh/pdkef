@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, beforeEach } from 'vitest';
 import { vi } from 'vitest';
 import DraggableWrapper from './DraggableWrapper.jsx';
+import workspaceStyles from './Workspace.module.css';
 import ShapeNode from './nodes/ShapeNode.jsx';
 import LineNode from './nodes/LineNode.jsx';
 import TextNode from './nodes/TextNode.jsx';
@@ -30,7 +31,7 @@ function mountInPageWrapper(element, node, { isActive = true, pageWidthPoints = 
   const container = document.createElement('div');
   document.body.appendChild(container);
   const wrapper = document.createElement('div');
-  wrapper.className = 'sign-page-wrapper';
+  wrapper.className = workspaceStyles['page-wrapper'];
   wrapper.getBoundingClientRect = () => ({
     left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {},
   });

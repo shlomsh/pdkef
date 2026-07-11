@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import PdfSignTool from './PdfSignTool.jsx';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
+import workspaceStyles from './SignTool/Workspace.module.css';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 import dropzoneStyles from './Dropzone.module.css';
 import pdfToolStyles from './PdfTool.module.css';
@@ -234,7 +235,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Click on page overlay to place text element
-    const overlay = container.querySelector('.sign-page-overlay');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
@@ -297,7 +298,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Click on page overlay to place symbol element
-    const overlay = container.querySelector('.sign-page-overlay');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 200, clientY: 200, bubbles: true }));
     });
@@ -336,7 +337,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Click on page overlay to place text element
-    const overlay = container.querySelector('.sign-page-overlay');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
@@ -398,7 +399,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Click on page overlay to place text element
-    const overlay = container.querySelector('.sign-page-overlay');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     overlay.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
     });
@@ -526,7 +527,7 @@ describe('PdfSignTool UI flow', () => {
       textBtn.click();
     });
 
-    const overlay = container.querySelector('.sign-page-overlay');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
@@ -575,8 +576,8 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const wrapper = container.querySelector('.sign-page-wrapper');
-    const overlay = container.querySelector('.sign-page-overlay');
+    const wrapper = container.querySelector(`.${workspaceStyles['page-wrapper']}`);
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     const pageRect = {
       left: 0,
       top: 0,
@@ -760,8 +761,8 @@ describe('PdfSignTool UI flow', () => {
     const dropdownItem = document.body.querySelector('.sign-dropdown-item');
     await act(async () => { dropdownItem.click(); });
 
-    const overlay = container.querySelector('.sign-page-overlay');
-    const wrapper = container.querySelector('.sign-page-wrapper');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const wrapper = container.querySelector(`.${workspaceStyles['page-wrapper']}`);
     overlay.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
     });
@@ -815,7 +816,7 @@ describe('PdfSignTool UI flow', () => {
     const whiteoutBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Whiteout'));
     await act(async () => { whiteoutBtn.click(); });
 
-    const overlay = container.querySelector('.sign-page-overlay');
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
     overlay.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
     });

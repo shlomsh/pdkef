@@ -66,6 +66,7 @@ vi.mock('@floating-ui/react', async () => {
 // Vitest hoists vi.mock calls above imports, so this plain top-level import
 // already resolves to the mocked module.
 import DraggableWrapper from './DraggableWrapper.jsx';
+import workspaceStyles from './Workspace.module.css';
 
 describe('DraggableWrapper interaction/visual states (E1.4)', () => {
   let container;
@@ -83,7 +84,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
 
   function mountInPageWrapper(element, { isActive = true, pageWidthPoints = 612, onChange = () => {} } = {}) {
     const wrapper = document.createElement('div');
-    wrapper.className = 'sign-page-wrapper';
+    wrapper.className = workspaceStyles['page-wrapper'];
     wrapper.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {},
     });
@@ -411,7 +412,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
   describe('whiteout bounds', () => {
     function renderWhiteout(element, onChange) {
       const page = document.createElement('div');
-      page.className = 'sign-page-wrapper';
+      page.className = workspaceStyles['page-wrapper'];
       document.body.appendChild(page);
       act(() => {
         render(

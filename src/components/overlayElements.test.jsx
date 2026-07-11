@@ -5,6 +5,7 @@ import ShapeNode from './SignTool/nodes/ShapeNode.jsx';
 import LineNode from './SignTool/nodes/LineNode.jsx';
 import DraggableWrapper from './SignTool/DraggableWrapper.jsx';
 import WhiteoutNode from './SignTool/nodes/WhiteoutNode.jsx';
+import workspaceStyles from './SignTool/Workspace.module.css';
 
 function mount(vnode) {
   const host = document.createElement('div');
@@ -55,7 +56,7 @@ describe('SVG stroke attributes render as kebab-case', () => {
 describe('DraggableWrapper dragging', () => {
   function renderInPage(element, onChange) {
     const page = document.createElement('div');
-    page.className = 'sign-page-wrapper';
+    page.className = workspaceStyles['page-wrapper'];
     document.body.appendChild(page);
     act(() => {
       render(

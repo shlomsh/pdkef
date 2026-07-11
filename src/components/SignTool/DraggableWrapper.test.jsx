@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import DraggableWrapper from './DraggableWrapper.jsx';
 import TextNode from './nodes/TextNode.jsx';
+import workspaceStyles from './Workspace.module.css';
 
 vi.mock('@floating-ui/react', async () => {
   const actual = await vi.importActual('@floating-ui/react');
@@ -68,7 +69,7 @@ describe('DraggableWrapper RTL text positioning', () => {
 
   function mountWithPageWrapper(element, pageWidthPoints, onChange) {
     const wrapper = document.createElement('div');
-    wrapper.className = 'sign-page-wrapper';
+    wrapper.className = workspaceStyles['page-wrapper'];
     wrapper.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
     });

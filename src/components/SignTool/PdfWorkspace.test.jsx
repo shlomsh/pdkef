@@ -71,7 +71,7 @@ describe('PdfWorkspace Component', () => {
         <PdfWorkspace {...props} />
       </SignToolContext.Provider>
     );
-    const pageBefore = host.querySelector('.sign-page-wrapper');
+    const pageBefore = host.querySelector(`.${workspaceStyles['page-wrapper']}`);
 
     act(() => {
       render(
@@ -82,7 +82,7 @@ describe('PdfWorkspace Component', () => {
       );
     });
 
-    expect(host.querySelector('.sign-page-wrapper')).toBe(pageBefore);
+    expect(host.querySelector(`.${workspaceStyles['page-wrapper']}`)).toBe(pageBefore);
     expect(host.querySelector(`.${workspaceStyles.workspace}`).classList.contains(workspaceStyles['is-processing'])).toBe(true);
     expect(host.querySelector(`.${workspaceStyles.workspace}`).getAttribute('aria-busy')).toBe('true');
   });
@@ -104,7 +104,7 @@ describe('PdfWorkspace Component', () => {
       </SignToolContext.Provider>
     );
 
-    const overlay = host.querySelector('.sign-page-overlay');
+    const overlay = host.querySelector(`.${workspaceStyles['page-overlay']}`);
     expect(overlay).not.toBeNull();
 
     // Mock bounding rectangle so coordinate calculations resolve nicely
@@ -382,7 +382,7 @@ describe('PdfWorkspace Component', () => {
       </SignToolContext.Provider>
     );
 
-    const overlay = host.querySelector('.sign-page-overlay');
+    const overlay = host.querySelector(`.${workspaceStyles['page-overlay']}`);
     expect(overlay).not.toBeNull();
     overlay.getBoundingClientRect = () => ({
       left: 0,
