@@ -3,6 +3,7 @@ import { useFloating, offset, shift, autoUpdate } from '@floating-ui/react';
 import usePdfCoordinates from '../../lib/usePdfCoordinates.js';
 import useDraggableElement from '../../lib/useDraggableElement.js';
 import { startGesture } from '../../editor/gestures/controller.ts';
+import { getElementDefinition } from '../../editor/registry/index.ts';
 import { getEffectiveTextDirection } from '../../lib/sign.js';
 import {
   TOOLBAR_FLOATING_OFFSET,
@@ -10,8 +11,6 @@ import {
   DEFAULT_FONT_SIZE_PT,
   ASPECT_RATIO_SYMBOL,
   ASPECT_RATIO_TEXT,
-  MIN_SHAPE_SIZE_PCT,
-  MAX_SHAPE_SIZE_PCT,
   TEXT_RESIZE_SCALE_FACTOR,
   MIN_FONT_SIZE_PT,
   MAX_FONT_SIZE_PT,
@@ -187,63 +186,19 @@ export default function DraggableWrapper({
       // wrapper is gone). Aliased for readability where several checks read it.
       const actualType = element.type;
 
-      if (element.type === 'whiteout' || actualType === 'ellipse' || actualType === 'rectangle') {
+      const definition = getElementDefinition(actualType);
+      if (definition.resizeBehavior.applyBoxResize) {
         const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
-        let newWidth = startWidth;
-        let newHeight = startHeight;
-        let newLeft = startLeft;
-        let newTop = startTop;
-
-        // On-page bounds, expressed per fixed edge rather than as a single
-        // post-hoc left/top clamp. A right/bottom-edge drag never moves
-        // left/top at all (they stay pinned at startLeft/startTop above), so
-        // the only thing that can push the box off-page on that side is
-        // width/height growing past what's left of the page from the
-        // *anchored* (opposite) edge — cap the dimension itself, in the same
-        // percent-of-page-wrapper units width/height already use, instead of
-        // moving the anchor. A left/top-edge drag derives its new left/top
-        // from newWidth/newHeight (below), so capping the dimension there
-        // keeps the derived left/top >= 0 for free, without ever touching
-        // the true anchor (the opposite, un-dragged edge).
-        const maxWidthFromRightGrowth = 100 - startLeft;   // right edge anchored at startLeft
-        const maxWidthFromLeftGrowth = startLeft + startWidth; // left-edge drag: right edge anchored
-        const maxHeightFromBottomGrowth = 100 - startTop;  // bottom edge anchored at startTop
-        const maxHeightFromTopGrowth = startTop + startHeight; // top-edge drag: bottom edge anchored
-
-        if (handle === 'right') {
-          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromRightGrowth, startWidth + dxPercent)));
-        } else if (handle === 'left') {
-          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromLeftGrowth, startWidth - dxPercent)));
-          newLeft = startLeft - (newWidth - startWidth);
-        } else if (handle === 'bottom') {
-          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromBottomGrowth, startHeight + dyPercent)));
-        } else if (handle === 'top') {
-          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromTopGrowth, startHeight - dyPercent)));
-          newTop = startTop - (newHeight - startHeight);
-        } else if (handle === 'bottom-right') {
-          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromRightGrowth, startWidth + dxPercent)));
-          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromBottomGrowth, startHeight + dyPercent)));
-        } else if (handle === 'bottom-left') {
-          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromLeftGrowth, startWidth - dxPercent)));
-          newLeft = startLeft - (newWidth - startWidth);
-          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromBottomGrowth, startHeight + dyPercent)));
-        } else if (handle === 'top-right') {
-          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromRightGrowth, startWidth + dxPercent)));
-          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromTopGrowth, startHeight - dyPercent)));
-          newTop = startTop - (newHeight - startHeight);
-        } else if (handle === 'top-left') {
-          newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromLeftGrowth, startWidth - dxPercent)));
-          newLeft = startLeft - (newWidth - startWidth);
-          newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromTopGrowth, startHeight - dyPercent)));
-          newTop = startTop - (newHeight - startHeight);
-        }
-
-        pendingResize = { width: newWidth, height: newHeight, left: newLeft, top: newTop };
+        pendingResize = definition.resizeBehavior.applyBoxResize({
+          handle,
+          delta: { x: dxPercent, y: dyPercent },
+          start: { width: startWidth, height: startHeight, left: startLeft, top: startTop },
+        });
         if (elementRef.current) {
-          elementRef.current.style.width = `${newWidth}%`;
-          elementRef.current.style.height = `${newHeight}%`;
-          elementRef.current.style.left = `${newLeft}%`;
-          elementRef.current.style.top = `${newTop}%`;
+          elementRef.current.style.width = `${pendingResize.width}%`;
+          elementRef.current.style.height = `${pendingResize.height}%`;
+          elementRef.current.style.left = `${pendingResize.left}%`;
+          elementRef.current.style.top = `${pendingResize.top}%`;
         }
         return pendingResize;
       }
