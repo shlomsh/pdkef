@@ -1,5 +1,5 @@
 import { cloneElement } from 'preact';
-import { useState } from 'preact/hooks';
+import { useState, useEffect } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
 import {
   useFloating,
@@ -48,6 +48,18 @@ export default function Popover({
     role
   ]);
 
+  const [portalTarget, setPortalTarget] = useState(
+    typeof document !== 'undefined' ? (document.fullscreenElement || document.body) : null
+  );
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setPortalTarget(document.fullscreenElement || document.body);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
   return (
     <>
       {cloneElement(trigger, {
@@ -55,7 +67,7 @@ export default function Popover({
         ...getReferenceProps()
       })}
       
-      {open &&
+      {open && portalTarget &&
         createPortal(
           <div
             ref={refs.setFloating}
@@ -68,7 +80,7 @@ export default function Popover({
           >
             {content}
           </div>,
-          document.body
+          portalTarget
         )}
     </>
   );

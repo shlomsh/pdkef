@@ -38,12 +38,28 @@ export default function SignToolbar({
     clearTimeout(shapesCloseTimer.current);
     shapesCloseTimer.current = setTimeout(() => setShowShapesDropdown(false), 180);
   };
-  useEffect(() => () => clearTimeout(shapesCloseTimer.current), []);
+
+  const sigCloseTimer = useRef(null);
+  const openSig = () => {
+    clearTimeout(sigCloseTimer.current);
+    if (savedSignatures.length > 0) {
+      setShowSigDropdown(true);
+    }
+  };
+  const scheduleCloseSig = () => {
+    clearTimeout(sigCloseTimer.current);
+    sigCloseTimer.current = setTimeout(() => setShowSigDropdown(false), 180);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(shapesCloseTimer.current);
+      clearTimeout(sigCloseTimer.current);
+    };
+  }, []);
 
   const handleSignatureBtnClick = () => {
-    if (savedSignatures.length > 0) {
-      setShowSigDropdown(!showSigDropdown);
-    } else {
+    if (savedSignatures.length === 0) {
       setDialogOpen(true);
     }
   };
@@ -200,7 +216,11 @@ export default function SignToolbar({
             <span className={styles.label}>Whiteout</span>
           </button>
 
-          <div className={styles.dropdown}>
+          <div
+            className={styles.dropdown}
+            onMouseEnter={openSig}
+            onMouseLeave={scheduleCloseSig}
+          >
             <Popover
               open={showSigDropdown}
               onOpenChange={setShowSigDropdown}
@@ -221,8 +241,15 @@ export default function SignToolbar({
                 </button>
               }
               content={
-                <div className={controlStyles.popover} data-editor-signature-popover role="menu">
-                  <div className={controlStyles['dropdown-list']}>
+                <div
+                  className={controlStyles.popover}
+                  data-editor-signature-popover
+                  role="menu"
+                  style={{ borderRadius: '12px', padding: '0.25rem' }}
+                  onMouseEnter={openSig}
+                  onMouseLeave={scheduleCloseSig}
+                >
+                  <div className={`${controlStyles['dropdown-list']} ${controlStyles.clean}`}>
                     {savedSignatures.map((sig) => (
                       <div
                         key={sig.id}

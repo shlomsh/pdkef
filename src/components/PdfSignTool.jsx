@@ -35,6 +35,7 @@ function PdfSignToolInner() {
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState(null);
   const [undoSelection, setUndoSelection] = useState(new Set());
+  const [signatureToDelete, setSignatureToDelete] = useState(null);
   const [announcement, setAnnouncement] = useState('');
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
 
@@ -73,6 +74,7 @@ function PdfSignToolInner() {
   const copiedElementRef = useRef(null);
   const workspaceRef = useRef(null);
   const resetDialogRef = useRef(null);
+  const deleteDialogRef = useRef(null);
   const fileBytesRef = useRef(null);
   const loadIdRef = useRef(0);
   // Whichever of {manual file pick, draft restore} happens first (in call order) wins
@@ -113,6 +115,13 @@ function PdfSignToolInner() {
     else if (!confirmResetOpen && d.open) d.close();
   }, [confirmResetOpen]);
 
+  useEffect(() => {
+    const d = deleteDialogRef.current;
+    if (!d) return;
+    if (signatureToDelete && !d.open) d.showModal();
+    else if (!signatureToDelete && d.open) d.close();
+  }, [signatureToDelete]);
+
   // Escape precedence while a dialog is open in full screen: close the dialog
   // FIRST, and only let a subsequent Escape exit full screen. Without this the
   // browser's default Escape (exit fullscreen) and the dialog's own Escape race,
@@ -121,17 +130,18 @@ function PdfSignToolInner() {
   // neither the fullscreen-exit default nor the global tool/selection Escape
   // handler also fires on the same press.
   useEffect(() => {
-    if (!undoModalOpen && !confirmResetOpen) return;
+    if (!undoModalOpen && !confirmResetOpen && !signatureToDelete) return;
     const onEsc = (e) => {
       if (e.key !== 'Escape') return;
       e.preventDefault();
       e.stopImmediatePropagation();
       if (undoModalOpen) setUndoModalOpen(false);
+      else if (signatureToDelete) setSignatureToDelete(null);
       else setConfirmResetOpen(false);
     };
     window.addEventListener('keydown', onEsc, { capture: true });
     return () => window.removeEventListener('keydown', onEsc, { capture: true });
-  }, [undoModalOpen, confirmResetOpen]);
+  }, [undoModalOpen, confirmResetOpen, signatureToDelete]);
 
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
@@ -333,23 +343,30 @@ function PdfSignToolInner() {
     return newSig;
   };
 
-  // Delete saved signature
+  // Confirm delete saved signature
   const deleteSavedSignature = (id, e) => {
     if (e) e.stopPropagation();
-    const updated = savedSignatures.filter((sig) => sig.id !== id);
+    setSignatureToDelete(id);
+  };
+
+  const proceedDeleteSignature = () => {
+    if (!signatureToDelete) return;
+    const updated = savedSignatures.filter((sig) => sig.id !== signatureToDelete);
     setSavedSignatures(updated);
     try {
       localStorage.setItem('pdf-toolkit:signatures', JSON.stringify(updated));
     } catch (e) {
       console.error('Failed to persist signatures to localStorage:', e);
     }
-    if (activeSignature && activeSignature.id === id) {
+    if (activeSignature && activeSignature.id === signatureToDelete) {
       const fallback = updated.length > 0 ? updated[0] : null;
       setActiveSignature(fallback);
       if (!fallback && selectedTool === 'signature') {
         setSelectedTool(null);
       }
     }
+    setSignatureToDelete(null);
+    setAnnouncement('Signature deleted.');
   };
 
   // Core loader shared by fresh file picks and draft restore. `bytes` is the source
@@ -757,6 +774,41 @@ function PdfSignToolInner() {
                 Discard &amp; start over
               </button>
             </div>
+      </dialog>
+
+      {/* Delete Signature confirmation */}
+      <dialog
+        ref={deleteDialogRef}
+        className={`${dialogStyles.dialog} ${dialogStyles.narrow}`}
+        onClose={() => setSignatureToDelete(null)}
+        onClick={(e) => { if (e.target === e.currentTarget) setSignatureToDelete(null); }}
+        aria-labelledby="confirm-delete-title"
+      >
+        <div className={dialogStyles.header}>
+          <h3 id="confirm-delete-title">Delete signature?</h3>
+          <button type="button" className={dialogStyles.close} onClick={() => setSignatureToDelete(null)} aria-label="Close dialog">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+          </button>
+        </div>
+        <div className={`${dialogStyles.body} ${dialogStyles['body-tight']}`}>
+          <p className={dialogStyles['confirm-text']}>
+            Are you sure you want to delete this saved signature? This action cannot be undone.
+          </p>
+        </div>
+        <div className={dialogStyles.footer}>
+          <button type="button" className={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={() => setSignatureToDelete(null)}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={`${dialogStyles.button} ${dialogStyles.primary} ${dialogStyles.danger}`}
+            onClick={proceedDeleteSignature}
+          >
+            Delete signature
+          </button>
+        </div>
       </dialog>
 
       <p className="sr-only" role="status" aria-live="polite">
