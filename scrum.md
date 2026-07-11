@@ -296,12 +296,131 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
     but requires a **judgment call on ownership** (which shared module truly owns each generic) — that
     boundary decision, plus the same keyframe-orphaning audit, is why it's not purely junior. Closing this
     sub-commit **completes E2.2** — flip E2.2 to *done* and drop the "in progress" note.
-- **E2.3 Migrate editor `.sign-*` styles into scoped CSS Modules** (currently ~121 `sign-*` references
-  in a ~3,400-line `global.css`), **preserving descendant cascades** (`.sign-element.active
-  .sign-element-actions`) as real CSS inside module scope. *(Absorbs the old "colocate `.sign-*`
-  styles" tech-debt note - now a first-class migration step, not opportunistic.)*
-  - *Depends on:* E2.1, E1.4 · *Lane:* C
-  - *Acceptance:* every conditional state (active, RTL, dark, mobile, whiteout) verified in a running editor.
+- **E2.3 Migrate editor `.sign-*` / `.sig-*` styles into scoped CSS Modules.** This is a migration of a
+  **shared Sign + Redact styling graph**, not a selector-block copy. CSS Module hashing also changes
+  selectors used by imperative editor code (`closest` / `querySelector`), component tests, and e2e tests.
+  Preserve descendant cascades such as selected-element toolbar visibility as real module CSS; do not
+  replace them with conditional utility strings. Runtime geometry and gesture-time CSSOM writes stay as
+  they are. No behavior, layout, gesture math, or copy change belongs in this ticket.
+  - *Depends on:* E2.1, E1.4, E2.2 (done) · *Lane:* C
+  - *Execution order:* E2.3.0 first; then E2.3.1 and E2.3.2 may run in parallel; E2.3.3 follows E2.3.2;
+    E2.3.4 follows E2.3.1 + E2.3.3; E2.3.5 closes the epic.
+  - *Global acceptance:* `npm test`, `npm run test:css`, and `npm run test:e2e` green; mandatory
+    `npm run build && npm run preview` CSP/hydration pass; Sign and Redact manually exercised at desktop,
+    <=919px, <=560px, coarse-pointer emulation, and real full screen. Verify selected outline, toolbar
+    visibility/stable top placement, LTR/RTL alignment, all element types and resize handles, whiteout,
+    blackout/blur controls, dialogs, dropdowns, export/share, processing lock, and Start-over confirmation.
+    `global.css` has zero live `.sign-*` / `.sig-*` selectors after the final sweep, with no orphaned
+    media rule/keyframe and no new literal `style=` in emitted HTML.
+
+  - **E2.3.0 - Freeze the selector/ownership contract and add a non-vacuous migration guard.** Before
+    moving CSS, inventory every `.sign-*` / `.sig-*` definition and consumer across source, imperative DOM
+    lookups, unit tests, and e2e. Record the mapping in `docs/E2.3-editor-css-modules-plan.md`, using these
+    fixed ownership boundaries unless the inventory proves one impossible:
+    `SignTool/Workspace.module.css` (workspace/pages/fullscreen/processing/export),
+    `SignTool/SignToolbar.module.css` (sticky toolbars, responsive toolbar rules, toolbar dropdown shell),
+    `SignTool/EditorElement.module.css` (element root/state, floating actions, text/signature nodes,
+    resizers/line handles, shared Redact shape hooks), `EditorControls.module.css` (element toolbar,
+    color/font/thickness popovers), and `SignatureDialog.module.css` (`.sig-*` dialog/draw/type/upload/reset
+    UI, including the Sign and Redact confirmation dialogs). Explicitly classify every cross-module
+    descendant selector and assign it wholly to one module; do not split either side of a cascade across
+    modules. Add a source guard that fails when a new editor selector is added to `global.css`; make the
+    guard allow the inventoried selectors only until E2.3.5 removes the temporary allowlist.
+    - *Depends on:* E2.1, E1.4, E2.2 · *Lane:* C0 (gates all E2.3 implementation)
+    - **Complexity: moderate. Risk: high. -> Senior engineer.** Little code, but this establishes the
+      shared-module API and prevents parallel tickets from creating circular ownership or breaking Redact.
+  - *Acceptance:* the plan lists selector, declaration/media/keyframe location, all JSX consumers,
+      all string-based DOM/test/e2e consumers, destination module, and responsible sub-ticket; duplicate
+      `.sign-element-actions` / button rule blocks are identified for one-copy migration; zero selectors
+      remain unowned. The guard is proven non-vacuous by a temporary forbidden selector, then restored.
+    - *Landed:* `6ce908b` adds `docs/E2.3-editor-css-modules-plan.md` (78-class ownership inventory),
+      `scripts/check-editor-global-css.js` (exact temporary inventory gate), and wires it before the CSS
+      budget check in `npm run test:css`. The guard is a contract, not a bypass: any added, removed, or
+      unassigned `sign-*` / `sig-*` global class fails until the ownership plan is deliberately updated.
+
+  - **E2.3.1 - Migrate workspace root, toolbar, and export chrome for both tools.** Create
+    `Workspace.module.css` and `SignToolbar.module.css`; update `SignTool/PdfWorkspace.jsx`,
+    `SignTool/SignToolbar.jsx`, `RedactToolbar.jsx`, `PdfRedactTool.jsx`, and `FullscreenButton.jsx` to use
+    their exported classes. Move whole responsive rules with their base selectors, including <=919px,
+    phone/landscape-coarse-pointer, sticky Safari `align-self`, full-screen/pseudo-fullscreen, processing
+    lock, share/download/reset states, and export rows. **Do not move the page-wrapper/canvas/overlay
+    selectors in this ticket:** E2.3.2 owns them with the imperative `closest`/`querySelector` consumers,
+    so CSS Module hashing cannot leave a temporary raw-class alias. Re-home the two non-editor sort rows in
+    `PdfMergeTool.jsx` and `PdfImageToPdfTool.jsx` that still misuse `sign-toolbar`/`sign-tool-btn` into a
+    generic scoped module before removing the editor toolbar selectors. Keep generic `PdfTool.module.css` button
+    classes imported separately; express the export-row cross-class rule by applying a local flex-item
+    class to the button, not by reaching into another module's generated name. Replace module-affected
+    runtime `closest/querySelector` strings with the imported exported class; do not add `:global` escape
+    hatches or permanent legacy aliases.
+    - *Depends on:* E2.3.0 · *Lane:* C1 (parallel with E2.3.2)
+    - **Complexity: moderate. Risk: moderate-high. -> Strong mid-level, senior review.** Responsive and
+      full-screen behavior spans Sign and Redact; CSP/hydration failure is build-only.
+    - *Acceptance:* both toolbars preserve desktop labels, compact icon-only layout, tap-target sizing,
+      dropdown overflow, sticky behavior, share/download substitution, and equal page/dropzone alignment;
+      processing state remains mounted and non-interactive; real full-screen Start-over behavior still
+      passes E1.8. Update tests to import module exports or use role/data semantics where behavior is under
+    test, rather than asserting old global strings. *(Sequencing correction found while starting this ticket:
+    page substrate migration moved to E2.3.2; generic sort-row cleanup is in scope here.)*
+
+  - **E2.3.2 - Migrate the page substrate, element surface, and gesture-adjacent selectors.** Create
+    `EditorElement.module.css` and update `DraggableWrapper.jsx`, `ElementResizers.jsx`, all
+    `SignTool/nodes/*`, and their unit/interaction/gesture tests. Keep the complete state graph in this one
+    module: base/active/hover/line/symbol/shape modifiers, the selected-element -> floating-actions cascade,
+    text display/input/measure parity, signature image, every edge/corner/line handle, pseudo-element drag
+    halos, and coarse-pointer hit targets, plus `sign-pages-container`, `sign-page-wrapper`,
+    `sign-page-canvas`, and `sign-page-overlay` in `Workspace.module.css`. Import the same module wherever a generated class is required by
+    `closest/querySelector`; never select by substring of a generated classname. Do not touch pointer event
+    algorithms, geometry constants, Floating UI placement/middleware, or per-frame DOM mutation.
+    - *Depends on:* E2.3.0 · *Lane:* C2 (parallel with E2.3.1)
+    - **Complexity: high. Risk: high. -> Senior frontend engineer.** This is mechanically a style move but
+      sits directly beside the 60fps gesture path and the historically fragile visibility/RTL/resize rules.
+    - *Acceptance:* E1.4/E1.5 tests are adapted without weakening assertions; realistic page rects remain;
+      `onChange` still occurs once per gesture; every element type moves/resizes with unchanged anchors and
+      zero-delta behavior; selected toolbar appears only for the active element, stays above it, and follows
+      live drag; text measurement padding remains synchronized with `TEXT_BOX_PADDING_EM` in `src/lib/sign.js`.
+
+  - **E2.3.3 - Migrate reusable element controls and popovers.** Create `EditorControls.module.css` and
+    update `ElementToolbar.jsx`, `ColorPicker.jsx`, `ColorPickerMenu.jsx`, `FontPickerMenu.jsx`, and
+    `ThicknessPickerMenu.jsx`. Move the toolbar buttons/dividers, active/danger states, color controls,
+    font menu, shared popover/list/menu primitives, thickness selection, and hover-capability delete-button
+    rule as complete selector families. Portal-rendered popovers import the module directly; do not depend
+    on an ancestor module selector. Preserve dynamic swatch/font/position values as the existing per-property
+    CSSOM/ref pattern where required by CSP; do not convert them to literal SSR style attributes.
+    - *Depends on:* E2.3.2 · *Lane:* C3
+    - **Complexity: moderate. Risk: moderate. -> Mid-level engineer.** Portals and shared active-state
+      selectors are the main traps; gesture math is out of scope.
+    - *Acceptance:* font/color/thickness menus anchor and scroll correctly, current values remain visibly
+      selected, delete controls obey hover-capable behavior, keyboard/focus interactions are unchanged, and
+      the CSP violation listener remains clean in production-preview e2e.
+
+  - **E2.3.4 - Migrate signature and confirmation dialogs, then close the Redact sharing seam.** Create
+    `SignatureDialog.module.css`; update `SignatureDialog.jsx`, `PdfSignTool.jsx`, and `PdfRedactTool.jsx`
+    so the signature authoring dialog and both Start-over confirmations share the same exported dialog/button
+    primitives. Move draw/type/upload styles, semantic danger/success buttons, narrow/body modifiers, and
+    `sigSlideUp` only if it has a live animation consumer; otherwise delete the orphan. Wire `RedactBox.jsx`
+    to `EditorElement.module.css` for the shared shape handles/floating action toolbar while keeping all
+    `.redact-*` ownership in Redact's existing module/global migration scope; replace its string-based
+    editor-class guards with imported generated classes or semantic refs/data attributes.
+    - *Depends on:* E2.3.1, E2.3.3 · *Lane:* C4
+    - **Complexity: moderate-high. Risk: high. -> Senior engineer.** Native dialog top-layer/full-screen
+      behavior and the deliberate Sign/Redact shared-class seam make regressions easy to hide.
+    - *Acceptance:* draw/type/upload/clear/save flows work; both confirmation dialogs preserve Escape and
+      full-screen precedence; Redact blackout/blur/whiteout expose the correct controls and remain page-bound;
+      no `.sig-*` or shared `.sign-*` global alias is retained to make one consumer pass.
+
+  - **E2.3.5 - Remove the global editor CSS and run the final parity gate.** Delete the migrated editor
+    blocks, duplicates, comments, temporary allowlist, and dead keyframes from `global.css`; update tests that
+    read `global.css` as their source of truth to read the owning module. Run a bidirectional ground-truth
+    sweep: every module export used, every editor class consumer styled, every `animation-name` paired with a
+    same-scope keyframe, and no `.sign-*` / `.sig-*` definition or hard-coded selector lookup left outside the
+    documented modules (test-only semantic fixtures must be documented if any remain). Update E2.3 and the
+    Lane C diagram to done only after all automated and manual global acceptance checks pass.
+    - *Depends on:* E2.3.4 · *Lane:* C5 (integration/closure)
+    - **Complexity: moderate. Risk: high. -> Senior integrator.** Mostly deletion and verification, but it
+      is the point where a missed selector becomes invisible and the global fallback disappears.
+    - *Acceptance:* global acceptance above is evidenced in the ticket/PR; compare production-preview Sign
+      and Redact at the required breakpoints and full-screen state; CSS budget decreases or is explicitly
+      explained; no unrelated visual or behavior cleanup is bundled into the closure commit.
 - **E2.4 Clean up two small leftovers surfaced by E2.2 - done.** (low priority, no urgency - not part of any
   tool's rendering path in a way that blocks anything else):
   - **`.info-icon`/`.tooltip-bubble`/`.tooltip-row`** (currently still in `global.css`, right after
