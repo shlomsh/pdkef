@@ -1,4 +1,6 @@
 import { MAX_SYMBOL_SIGNATURE_WIDTH_PCT, MIN_SYMBOL_WIDTH_PX } from '../../constants/signGeometry.js';
+import { h } from 'preact';
+import SymbolNode from '../../components/SignTool/nodes/SymbolNode.jsx';
 import type { CenteredResizeInput, CenteredResizePatch, ElementDefinition } from './types.ts';
 
 export function applySymbolResize({ deltaWidth, minWidth, aspectRatio, page, start }: CenteredResizeInput): CenteredResizePatch {
@@ -21,5 +23,6 @@ export const symbolDefinition: ElementDefinition = {
       width: symbolWidth, height: symbolHeight, mark: 'check', color,
     }),
   },
+  render: ({ element }) => h(SymbolNode, { element, isActive: false, onResizeStart: () => {} }),
   resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyCenteredResize: applySymbolResize, minimumWidth: { unit: 'pixels', value: MIN_SYMBOL_WIDTH_PX } },
 };

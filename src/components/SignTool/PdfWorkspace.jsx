@@ -9,12 +9,7 @@ import {
 } from '../../constants/signGeometry.js';
 import PdfPageCanvas from '../PdfPageCanvas.jsx';
 import DraggableWrapper from './DraggableWrapper.jsx';
-import TextNode from './nodes/TextNode.jsx';
-import ShapeNode from './nodes/ShapeNode.jsx';
-import SymbolNode from './nodes/SymbolNode.jsx';
-import SignatureNode from './nodes/SignatureNode.jsx';
-import WhiteoutNode from './nodes/WhiteoutNode.jsx';
-import LineNode from './nodes/LineNode.jsx';
+import { getElementDefinition } from '../../editor/registry/index.ts';
 import { useSignTool } from './SignToolContext.jsx';
 import SignToolbar from './SignToolbar.jsx';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
@@ -218,21 +213,12 @@ export default function PdfWorkspace({
                           onClone={makeOnClone(el.id, el.pageIndex, el.type)}
                           pageWidthPoints={size.width}
                         >
-                          {el.type === 'text' && (
-                            <TextNode
-                              element={el}
-                              onChange={makeOnChange(el.id)}
-                              onSelect={makeOnSelect(el.id)}
-                              pageWidthPoints={size.width}
-                            />
-                          )}
-                          {el.type === 'symbol' && <SymbolNode element={el} />}
-                          {(el.type === 'ellipse' || el.type === 'rectangle') && (
-                            <ShapeNode element={el} />
-                          )}
-                          {el.type === 'line' && <LineNode element={el} />}
-                          {el.type === 'signature' && <SignatureNode element={el} />}
-                          {el.type === 'whiteout' && <WhiteoutNode element={el} />}
+                          {getElementDefinition(el.type).render({
+                            element: el,
+                            onChange: makeOnChange(el.id),
+                            onSelect: makeOnSelect(el.id),
+                            pageWidthPoints: size.width,
+                          })}
                         </DraggableWrapper>
                       ))}
                   </div>

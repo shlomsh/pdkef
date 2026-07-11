@@ -1,4 +1,6 @@
 import type { ElementDefinition } from './types.ts';
+import { h } from 'preact';
+import TextNode from '../../components/SignTool/nodes/TextNode.jsx';
 import { MAX_FONT_SIZE_PT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
 import type { TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch } from './types.ts';
 
@@ -36,5 +38,6 @@ export const textDefinition: ElementDefinition = {
       ...(direction != null ? { textDirection: direction } : {}),
     }),
   },
+  render: ({ element, onChange, onSelect, pageWidthPoints }) => h(TextNode, { element, onChange, onSelect, pageWidthPoints, isActive: false, onResizeStart: () => {} }),
   resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyTextResize, applyTextPosition },
 };

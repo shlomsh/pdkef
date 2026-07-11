@@ -1,4 +1,6 @@
 import { MAX_SYMBOL_SIGNATURE_WIDTH_PCT, MIN_STANDARD_WIDTH_PCT } from '../../constants/signGeometry.js';
+import { h } from 'preact';
+import SignatureNode from '../../components/SignTool/nodes/SignatureNode.jsx';
 import type { CenteredResizeInput, CenteredResizePatch, ElementDefinition } from './types.ts';
 
 export function applySignatureResize({ deltaWidth, minWidth, aspectRatio, page, start }: CenteredResizeInput): CenteredResizePatch {
@@ -15,5 +17,6 @@ export function applySignatureResize({ deltaWidth, minWidth, aspectRatio, page, 
 export const signatureDefinition: ElementDefinition = {
   type: 'signature',
   creation: { mode: 'external' },
+  render: ({ element }) => h(SignatureNode, { element, isActive: false, onResizeStart: () => {} }),
   resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyCenteredResize: applySignatureResize, minimumWidth: { unit: 'percent', value: MIN_STANDARD_WIDTH_PCT } },
 };

@@ -9,10 +9,10 @@ const context = {
 
 describe('element registry creation factories', () => {
   it('creates point-placed text and symbols from their own modules', () => {
-    expect(getElementDefinition('text').creation.create(context)).toMatchObject({
+    expect(getElementDefinition('text').creation.create!(context)).toMatchObject({
       type: 'text', left: 25, top: 40, fontFamily: 'Arimo', textDirection: 'rtl', autoFocus: true,
     });
-    expect(getElementDefinition('symbol').creation.create(context)).toMatchObject({
+    expect(getElementDefinition('symbol').creation.create!(context)).toMatchObject({
       type: 'symbol', left: 22.5, top: 38, width: 5, height: 4, mark: 'check',
     });
   });
@@ -21,9 +21,9 @@ describe('element registry creation factories', () => {
     for (const type of ['rectangle', 'ellipse', 'whiteout', 'line'] as const) {
       const definition = getElementDefinition(type);
       expect(definition.creation.mode).toBe('drag');
-      expect(definition.creation.create(context)).toMatchObject({ id: 'el-1', pageIndex: 2 });
+      expect(definition.creation.create!(context)).toMatchObject({ id: 'el-1', pageIndex: 2 });
     }
-    expect(getElementDefinition('line').creation.create(context)).toMatchObject({ x1: 25, y1: 40, x2: 25, y2: 40 });
-    expect(getElementDefinition('whiteout').creation.create(context)).toMatchObject({ color: '#ffffff', width: 0, height: 0 });
+    expect(getElementDefinition('line').creation.create!(context)).toMatchObject({ x1: 25, y1: 40, x2: 25, y2: 40 });
+    expect(getElementDefinition('whiteout').creation.create!(context)).toMatchObject({ color: '#ffffff', width: 0, height: 0 });
   });
 });

@@ -1,4 +1,12 @@
 import type { ElementType } from '../../lib/editorModel.ts';
+import type { ComponentChildren } from 'preact';
+
+export interface NodeRenderContext {
+  element: Record<string, unknown>;
+  onChange: (changes: Record<string, unknown>) => void;
+  onSelect: (event: Event) => void;
+  pageWidthPoints: number;
+}
 
 export interface CreateContext {
   id: string;
@@ -87,6 +95,7 @@ export interface ElementDefinition {
     mode: CreationMode;
     create?: (context: CreateContext) => Record<string, unknown>;
   };
+  render: (context: NodeRenderContext) => ComponentChildren;
   resizeBehavior: {
     handles: readonly ResizeHandle[];
     applyBoxResize?: (input: BoxResizeInput) => BoxResizePatch;
