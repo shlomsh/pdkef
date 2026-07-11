@@ -20,6 +20,7 @@ import toolbarStyles from './SignTool/SignToolbar.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
 import dialogStyles from './SignatureDialog.module.css';
 import elementStyles from './SignTool/EditorElement.module.css';
+import styles from './PdfRedactTool.module.css';
 
 export default function PdfRedactTool() {
   const [file, setFile] = useState(null);
@@ -212,7 +213,7 @@ export default function PdfRedactTool() {
   });
 
   const handlePointerDown = (e, pageIndex) => {
-    if (e.target.closest('.redact-element-btn') || e.target.closest('.redact-box')) {
+    if (e.target.closest(`.${styles['redact-element-btn']}`) || e.target.closest(`.${styles['redact-box']}`)) {
       return; // Ignore clicks on existing boxes or buttons
     }
 
@@ -324,7 +325,7 @@ export default function PdfRedactTool() {
   // page wrapper, captured once at gesture start (it can't change mid-drag). We
   // stopPropagation so the page-level draw handler never starts a new box underneath.
   const handleBoxDragStart = (e, el) => {
-    if (e.target.closest('.redact-element-btn') || e.target.closest('.redact-box-resizer') || e.target.closest(`.${elementStyles.actions}`)) return;
+    if (e.target.closest(`.${styles['redact-element-btn']}`) || e.target.closest(`.${styles['redact-box-resizer']}`) || e.target.closest(`.${elementStyles.actions}`)) return;
     e.stopPropagation();
     e.preventDefault();
     setActiveBoxId(el.id); // reveal controls on touch/click, where there's no hover
@@ -335,7 +336,7 @@ export default function PdfRedactTool() {
 
     const pointer = getPointerCoords(e.nativeEvent || e);
     const start = { x: pointer.x, y: pointer.y, left: el.left, top: el.top };
-    const box = e.currentTarget.closest('.redact-box');
+    const box = e.currentTarget.closest(`.${styles['redact-box']}`);
     startGesture({
       computePatch: (moveEvent) => {
         if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
@@ -362,7 +363,7 @@ export default function PdfRedactTool() {
 
     const pointer = getPointerCoords(e.nativeEvent || e);
     const start = { x: pointer.x, y: pointer.y, width: el.width, height: el.height, left: el.left, top: el.top };
-    const box = e.currentTarget.closest('.redact-box');
+    const box = e.currentTarget.closest(`.${styles['redact-box']}`);
     const behavior = getElementDefinition(el.type).resizeBehavior;
     startGesture({
       computePatch: (moveEvent) => {

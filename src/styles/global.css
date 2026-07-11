@@ -343,24 +343,6 @@ main {
   }
 }
 
-/* Redact box delete/resize controls stay hidden until the box is hovered
-   (desktop) or actively touched/dragged (mobile, via the .active class set
-   in PdfRedactTool.jsx's activeBoxId state) — otherwise a page with several
-   redaction boxes is cluttered with ✕ buttons and resize handles at rest. */
-.redact-box .redact-element-btn,
-.redact-box .redact-box-resizer {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
-}
-
-.redact-box:hover .redact-element-btn,
-.redact-box:hover .redact-box-resizer,
-.redact-box.active .redact-element-btn,
-.redact-box.active .redact-box-resizer {
-  opacity: 1;
-  pointer-events: auto;
-}
 
 /* Mobile responsive adjustments */
 

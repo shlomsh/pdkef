@@ -4,6 +4,7 @@ import ElementToolbar from './ElementToolbar.jsx';
 import ElementResizers from './ElementResizers.jsx';
 import { getElementDefinition } from '../editor/registry/index.ts';
 import elementStyles from './SignTool/EditorElement.module.css';
+import styles from './PdfRedactTool.module.css';
 
 // Renders one redaction box (blackout/whiteout/blur). Extracted out of PdfRedactTool's
 // map() because useFloating (below) is a hook and can't run per-iteration inline.
@@ -55,7 +56,7 @@ export default function RedactBox({
   return (
     <div
       ref={refs.setReference}
-      className={`redact-box${isActiveHover ? ' active' : ''}${hasShapeHandles ? ` ${elementStyles.shape}` : ''}`}
+      className={`${styles['redact-box']}${isActiveHover ? ` ${styles.active}` : ''}${hasShapeHandles ? ` ${elementStyles.shape}` : ''}`}
       data-editor-shape={hasShapeHandles || undefined}
       onMouseDown={(e) => onDragStart(e, el)}
       onTouchStart={(e) => onDragStart(e, el)}
@@ -85,7 +86,7 @@ export default function RedactBox({
       {surface}
       {!isWhiteout && (
         <button
-          className="redact-element-btn"
+          className={styles['redact-element-btn']}
           onClick={(e) => {
             e.stopPropagation();
             onDelete(el.id);
@@ -122,7 +123,7 @@ export default function RedactBox({
         />
       ) : (
         <div
-          className="redact-box-resizer"
+          className={styles['redact-box-resizer']}
           onMouseDown={(e) => onResizeStart(e, el)}
           onTouchStart={(e) => onResizeStart(e, el)}
           title="Drag to resize"

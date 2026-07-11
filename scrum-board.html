@@ -373,7 +373,7 @@
     <div class="wrap head-inner">
       <div>
         <h1><span class="mark">PDkef</span> - Maintainability Migration Board</h1>
-        <p class="subtitle">A team-facing view of the migration backlog: epics, tickets, dependencies, and parallel lanes toward the layered target architecture. Filter by lane or status, and open a card for its acceptance summary.</p>
+        <p class="subtitle">A team-facing view of the migration backlog: epics, tickets, dependencies, and parallel lanes toward the layered target architecture. <strong>Migration complete</strong> - E0–E5 landed (CSS monolith gone, static surface on Tailwind, headless editor core with Sign + Redact converged); only the E6 launch backlog remains. Filter by lane or status, and open a card for its acceptance summary.</p>
       </div>
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light or dark theme">
         <span id="themeIcon">◐</span><span id="themeLabel">Theme</span>
@@ -460,7 +460,7 @@ const EPICS = [
 
 const TICKETS = [
   // ----- E0 -----
-  { id: "E0.1", epic: "E0", lane: "A", status: "done", priority: "high", first: true,
+  { id: "E0.1", epic: "E0", lane: "A", status: "done", priority: "high",
     title: "Land the resize perf fix on main",
     dependsOn: [],
     acceptance: "Re-apply the gesture portions of commit c4583df (pendingResize accumulator + direct DOM mutation during move, single onChange on pointerup) into DraggableWrapper/ElementResizers/TextNode, excluding the Tailwind className edits. Acceptance: drag AND resize stay smooth; a temp console.count in onChange ticks once per gesture, not per frame; draft autosave/restore still correct; build && preview CSP pass." },
@@ -516,10 +516,10 @@ const TICKETS = [
     title: "Colocate non-editor CSS into CSS Modules",
     dependsOn: ["E2.1"],
     acceptance: "DONE: E2.2b re-implemented the durable module artifacts and class swaps on main (a825e33), retaining share wiring and module-class assertions. The discarded branch-merge approach must not be reopened." },
-  { id: "E2.3", epic: "E2", lane: "C", status: "todo", priority: "normal",
-    title: "Migrate editor .sign-* styles into scoped CSS Modules",
+  { id: "E2.3", epic: "E2", lane: "C", status: "done", priority: "normal",
+    title: "Migrate editor .sign-*/.sig-* styles into scoped CSS Modules",
     dependsOn: ["E2.1", "E1.4"],
-    acceptance: "~121 sign-* references in a ~3,400-line global.css, preserving descendant cascades (.sign-element.active .sign-element-actions) as real CSS inside module scope. Every conditional state (active, RTL, dark, mobile, whiteout) verified in a running editor." },
+    acceptance: "DONE: editor surface, controls/popovers, dialogs, confirmations, and Redact's shared element seam migrated to colocated CSS Modules (EditorControls, EditorElement, SignatureDialog). Runtime/test class selectors replaced with semantic data attributes; descendant cascades preserved as real module CSS. 0 live .sign-*/.sig-* selectors left in global.css, enforced by scripts/check-editor-global-css.js. Verified: 312 unit tests, test:css, build, csp, e2e." },
   { id: "E2.4", epic: "E2", lane: "C", status: "done", priority: "low",
     title: "Clean up two small leftovers surfaced by E2.2",
     dependsOn: ["E2.2"],
@@ -556,18 +556,18 @@ const TICKETS = [
     title: "Extract a framework-agnostic editor/ core",
     dependsOn: ["E4.1", "E0.1"],
     acceptance: "Done. Added the framework-free gesture controller and pointer normaliser. Sign drag, resize, and creation now share its listener lifecycle; creation paints directly during movement and commits one state patch on release." },
-  { id: "E4.3a", epic: "E4", lane: "E", status: "todo", priority: "normal",
+  { id: "E4.3a", epic: "E4", lane: "E", status: "done", priority: "normal",
     title: "Per-element-type resize registry",
     dependsOn: ["E4.2"],
-    acceptance: "Each type owns registry resize behavior. computePatch is pure, writeDOM owns CSSOM/SVG painting, commits happen once, and touch movement prevents scroll. Box geometry may share boxResize.ts; cross-family post-processing is prohibited." },
-  { id: "E4.3b", epic: "E4", lane: "E", status: "todo", priority: "normal",
+    acceptance: "DONE: each type owns its registry resize behavior; box geometry shares editor/registry/boxResize.ts as the single owner (CI-guarded via the anchor-cap fingerprint). No shared cross-family post-processing." },
+  { id: "E4.3b", epic: "E4", lane: "E", status: "done", priority: "normal",
     title: "Per-element create/render/serialize registry",
     dependsOn: ["E4.3a"],
-    acceptance: "Extend each module with create, render, serialize, and schema; retire Sign creation/render/bake type branches." },
-  { id: "E4.4", epic: "E4", lane: "E", status: "todo", priority: "normal",
+    acceptance: "DONE: each registry module now carries create, render, serialize, and schema; signPdf is a registry dispatch loop with no bake-out type branching." },
+  { id: "E4.4", epic: "E4", lane: "E", status: "done", priority: "normal",
     title: "Converge Sign and Redact",
     dependsOn: ["E4.2", "E4.3b"],
-    acceptance: "Onto the shared core + a common PDF-workspace substrate (load, page render, draft persistence), removing duplication." },
+    acceptance: "DONE: Redact's style model retired (blackout/blur/whiteout are first-class registry types on the flat type discriminant); Redact gestures route through the shared controller (commit once on release); duplicate resize math removed (single boxResize.ts owner); shared PDF-load substrate in editor/workspace/loadPdf.ts + useEditorDraftPersistence.js consumed by both tools. 342 unit tests, e2e 7/7." },
 
   // ----- E5 -----
   { id: "E5.1", epic: "E5", lane: "X", status: "done", priority: "normal",
@@ -641,9 +641,9 @@ const TICKETS = [
 const LANE_FLOW = [
   { lane: "A", flow: ["E0.1", "→", "E0.2"], gate: "" },
   { lane: "B", flow: ["E1.1", "E1.2", "E1.3", "E1.4", "E1.5", "E1.6", "E1.6a", "E1.7", "E1.7a"], gate: "gate → E2.*, E3.2, E4 verification" },
-  { lane: "C", flow: ["E2.1", "→", "E2.2", "→", "E2.3", "E2.5", "E2.6"], gate: "E2.2, E2.4, E2.5, and E2.6 done. E2.3 also needs E1.4." },
-  { lane: "D", flow: ["E3.1", "→", "E3.2", "→", "E3.3"], gate: "E3.2 and E3.3 done; E3.2 also needs E1.1, E1.2." },
-  { lane: "E", flow: ["E4.1", "→", "E4.2", "→", "E4.3a", "→", "E4.3b", "→", "E4.4"], gate: "E4.2 also needs E0.1" }
+  { lane: "C", flow: ["E2.1", "→", "E2.2", "→", "E2.3", "E2.5", "E2.6"], gate: "✓ complete - global CSS monolith gone (0 editor selectors)." },
+  { lane: "D", flow: ["E3.1", "→", "E3.2", "→", "E3.3"], gate: "✓ complete - static surface on Tailwind utilities." },
+  { lane: "E", flow: ["E4.1", "→", "E4.2", "→", "E4.3a", "→", "E4.3b", "→", "E4.4"], gate: "✓ complete - headless editor core; Sign + Redact converged." }
 ];
 
 const DONE_LOG = [
@@ -746,7 +746,6 @@ function buildLaneMap() {
       if (tok === "→") { flow.append(el("span", "flow-arrow", "→")); return; }
       const node = el("button", "flow-node", tok);
       node.type = "button";
-      if (tok === "E0.1") node.classList.add("first");
       node.title = "Jump to " + tok;
       node.addEventListener("click", () => jumpToCard(tok));
       flow.append(node);
