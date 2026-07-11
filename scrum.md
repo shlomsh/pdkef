@@ -756,15 +756,16 @@ more than any numeric audit score suggests and must **not** be reopened while cl
   - *Depends on:* E7.2 · *Lane:* E
   - *Acceptance:* no `element.type === '…'`/`actualType === '…'` **view/paint** branching remains in
     `DraggableWrapper`; adding a hypothetical new type touches only registry files.
-- **E7.7 Widen the editor-CSS ratchet beyond `.sign-*`.** `scripts/check-editor-global-css.js:16` only
-  matches `\.(?:sign|sig)-…`, so the "0 editor classes in global.css" green is redact-blind: Redact's
-  component CSS was migrated out (`db2a0d6`), but nothing stops it — or a future tool's classes — from
-  silently reappearing in the monolith. Extend the regex to cover `.redact-` (and `.editor-`/`.el-` as
-  the editor grows) so the ratchet guards every editor surface, not just Sign.
+- **E7.7 Widen the editor-CSS ratchet beyond `.sign-*` - done.** `scripts/check-editor-global-css.js`'s
+  regex now matches `\.(?:sign|sig|redact|editor|el)-…`, so the "0 editor classes in global.css" guard
+  covers Redact and any future editor surface, not just Sign. Reworded the header comment from the E2.3.0
+  temporary-inventory framing to a standing ratchet description and dropped the stale
+  `docs/E2.3-editor-css-modules-plan.md` pointer (that plan's job ended at E2.3.5).
   - *Depends on:* - · *Lane:* B (guardrails)
-  - *Acceptance:* the guard matches redact classes; adding a `.redact-foo { … }` rule to `global.css`
-    fails `npm run test:css`. Also drop the now-stale `docs/E2.3-*` reference in the script's header
-    comment.
+  - *Acceptance:* non-vacuity verified by appending a throwaway `.redact-probe-test`, `.editor-probe-test`,
+    and `.el-probe-test` rule to `global.css` one at a time - each fails `npm run test:css`/the guard
+    script directly - then reverting; `.sign-`/`.sig-` still trip it too (regression check); clean
+    `global.css` passes with 0 classes.
 - **E7.8 Add the two missing static guards - done.** Added (a)
   `scripts/check-gesture-golden-rule.js` (`npm run test:gesture-golden-rule`, wired into `ci.yml` before
   `Build`): a static, brace-matching scan of every `computePatch` body (both inline arrow functions and
