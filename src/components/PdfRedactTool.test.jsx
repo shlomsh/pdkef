@@ -9,6 +9,11 @@ import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 import dropzoneStyles from './Dropzone.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
+import redactStyles from './PdfRedactTool.module.css';
+
+const REDACT_BOX = redactStyles['redact-box'];
+const REDACT_ELEMENT_BTN = redactStyles['redact-element-btn'];
+const REDACT_BOX_RESIZER = redactStyles['redact-box-resizer'];
 
 const { gestureCommitSpies } = vi.hoisted(() => ({ gestureCommitSpies: [] }));
 
@@ -128,7 +133,7 @@ describe('PdfRedactTool UI flow', () => {
       });
 
       expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
-      expect(container.querySelector('.redact-box')).not.toBeNull();
+      expect(container.querySelector(`.${REDACT_BOX}`)).not.toBeNull();
       expect(container.querySelector('.download-button')).toBeNull();
       expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:redacted-pdf');
     } finally {
@@ -280,7 +285,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     expectLatestGestureToCommitOnce();
-    expect(container.querySelectorAll('.redact-box')).toHaveLength(1);
+    expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
   });
 
   it('draws a box whose left/top/width/height are pxToPercent of the draw area, not raw px/rect.width math', async () => {
@@ -288,7 +293,7 @@ describe('PdfRedactTool UI flow', () => {
 
     await drawBox(drawArea, 50, 200, 200, 500);
 
-    const box = container.querySelector('.redact-box');
+    const box = container.querySelector(`.${REDACT_BOX}`);
     expect(box).not.toBeNull();
 
     const startLeft = pxToPercent(50, 500);
@@ -308,7 +313,7 @@ describe('PdfRedactTool UI flow', () => {
     // Draw a box first so there's something to drag.
     await drawBox(drawArea, 50, 200, 200, 500);
 
-    const box = container.querySelector('.redact-box');
+    const box = container.querySelector(`.${REDACT_BOX}`);
     const startLeftPercent = parseFloat(box.style.left);
     const startTopPercent = parseFloat(box.style.top);
 
@@ -338,7 +343,7 @@ describe('PdfRedactTool UI flow', () => {
 
     await drawBox(drawArea, 50, 200, 200, 500);
 
-    const box = container.querySelector('.redact-box');
+    const box = container.querySelector(`.${REDACT_BOX}`);
     const startWidthPercent = parseFloat(box.style.width);
     const startHeightPercent = parseFloat(box.style.height);
 
@@ -410,7 +415,7 @@ describe('PdfRedactTool UI flow', () => {
       // wrapper (100,300) -> (250,500) in px. Mirrors the diagnosed repro
       // (left:20, width:30).
       await drawBox(drawArea, 100, 300, 250, 500);
-      const box = container.querySelector('.redact-box');
+      const box = container.querySelector(`.${REDACT_BOX}`);
       expect(parseFloat(box.style.left)).toBeCloseTo(20);
       expect(parseFloat(box.style.top)).toBeCloseTo(30);
       expect(parseFloat(box.style.width)).toBeCloseTo(30);
@@ -499,7 +504,7 @@ describe('PdfRedactTool UI flow', () => {
       const box = await setupSelectedWhiteoutBox();
 
       expect(box.hasAttribute('data-editor-shape')).toBe(true);
-      expect(box.querySelector('.redact-element-btn')).toBeNull();
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`)).toBeNull();
       expect(box.querySelector('[data-editor-resizer="top-right"]')).not.toBeNull();
 
       const toolbarDelete = box.querySelector('[data-editor-actions] button[title="Delete element"]');
@@ -511,7 +516,7 @@ describe('PdfRedactTool UI flow', () => {
 
       await drawBox(drawArea, 50, 200, 200, 500);
 
-      const box = container.querySelector('.redact-box');
+      const box = container.querySelector(`.${REDACT_BOX}`);
       expect(box).not.toBeNull();
 
       await act(async () => {
@@ -522,11 +527,11 @@ describe('PdfRedactTool UI flow', () => {
       });
 
       expect(box.hasAttribute('data-editor-shape')).toBe(true);
-      expect(box.querySelector('.redact-element-btn')).not.toBeNull();
-      expect(box.querySelector('.redact-box-resizer')).toBeNull();
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`)).not.toBeNull();
+      expect(box.querySelector(`.${REDACT_BOX_RESIZER}`)).toBeNull();
       expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
-      expect(box.querySelector('.redact-element-btn').style.top).toBe('8px');
-      expect(box.querySelector('.redact-element-btn').style.right).toBe('8px');
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`).style.top).toBe('8px');
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`).style.right).toBe('8px');
     });
 
     it('blur boxes also render the 8 resize handles and keep the remove button reachable inside the box', async () => {
@@ -540,10 +545,10 @@ describe('PdfRedactTool UI flow', () => {
 
       await drawBox(drawArea, 50, 200, 200, 500);
 
-      const box = container.querySelector('.redact-box');
+      const box = container.querySelector(`.${REDACT_BOX}`);
       expect(box).not.toBeNull();
-      expect(box.querySelector('.redact-element-btn')).not.toBeNull();
-      expect(box.querySelector('.redact-box-resizer')).toBeNull();
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`)).not.toBeNull();
+      expect(box.querySelector(`.${REDACT_BOX_RESIZER}`)).toBeNull();
 
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
@@ -554,8 +559,8 @@ describe('PdfRedactTool UI flow', () => {
 
       expect(box.hasAttribute('data-editor-shape')).toBe(true);
       expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
-      expect(box.querySelector('.redact-element-btn').style.top).toBe('8px');
-      expect(box.querySelector('.redact-element-btn').style.right).toBe('8px');
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`).style.top).toBe('8px');
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`).style.right).toBe('8px');
     });
 
     // --- E1.5: generalize the whiteout-resize post-mortem's three gesture
@@ -623,7 +628,7 @@ describe('PdfRedactTool UI flow', () => {
       }
       // left=20%, top=30%, width=30%, height=20% on the 500x1000 wrapper.
       await drawBox(drawArea, 100, 300, 250, 500);
-      const box = container.querySelector('.redact-box');
+      const box = container.querySelector(`.${REDACT_BOX}`);
       expect(box).not.toBeNull();
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
