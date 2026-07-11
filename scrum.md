@@ -3,7 +3,7 @@
 The maintainability-migration backlog for PDkef, ready to assign. The design standard it serves is
 [ARCHITECTURE.md](./ARCHITECTURE.md); day-to-day repo guidance is [CLAUDE.md](./CLAUDE.md).
 
-**How to read this:** work is grouped into epics (E0–E6). Each ticket lists **Depends on** (what must
+**How to read this:** work is grouped into epics (E0–E7). Each ticket lists **Depends on** (what must
 land first) and a **Lane** (which tickets can run in parallel). Every ticket's acceptance includes the
 relevant guardrail - editor-touching work is verified in a *running* editor **and** with
 `npm run build && npm run preview` (the CSP bug class is invisible in `npm run dev`).
@@ -662,6 +662,126 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 
 ---
 
+## E7 - Finish the headless convergence  ·  *post-audit hardening; close the ARCHITECTURE.md gaps*
+
+Two independent architecture audits (2026-07-11) scored the landed refactor ~6.7–8.1/10 and agreed on
+what it got right and what it left half-built. **Fully landed (do not re-open):** the gesture golden
+rule is now structural (one `editor/gestures/controller.ts`, `finished`-guarded single commit, pure
+`computePatch`, painting `writeDOM`, all six Sign+Redact call sites, integration-proven); the
+shape-resize math has exactly one CI-enforced owner (`boxResize.ts`, per-handle anchor caps, `git grep`
+= 1 file); Sign and Redact key on one flat `type` discriminant with per-type registry modules (the
+legacy `style` field + whiteout shim are gone); and the shared load/draft-persistence substrate is real.
+**Unfinished (this epic):** the work stops at the TypeScript waterline — the interactive shell is
+untyped `.jsx` and the registry seam is `Record<string, unknown>`, so the doc's headline promise ("the
+compiler catches breakage at edit time in an unrelated tool") is only half-built — plus Redact never
+fully converged at the render/interaction layer, two guards have blind spots, and one stated invariant
+is contradicted by the code. Every claim below was verified against `main` on 2026-07-11.
+
+**Do not work this epic top-to-bottom — the ticket order is not the priority order.** The through-line:
+every remaining gap has the *same shape* — an invariant the guardrails don't reach yet (untyped seam,
+redact-blind CSS ratchet, no static gesture guard). That is exactly the rot ARCHITECTURE.md predicts,
+so the cheapest durable fix is to **extend the compiler/CI reach before writing more feature code.**
+Recommended sequence and rationale:
+
+1. **E7.1 first — it's product integrity, not code quality.** For a product whose whole pitch is "no
+   third-party tracking, nothing leaves your device," shipping `gtag` while the docs say "no third-party
+   scripts" is a credibility landmine, and it's the cheapest thing here. The docs even name the wrong
+   vendor ("Vercel"), which smells like unowned drift — needs a real decision, not a dormant ticket.
+2. **E7.7 + E7.8 next — cheap ratchets that stop regression permanently.** Widening the CSS guard and
+   adding the static gesture/runtime-CSP guards is an hour of work that makes the *next* regression
+   impossible. Higher value per minute than any refactor below.
+3. **E7.2 — the real type win, and the high-leverage one.** Threading the `EditorElement` union through
+   the registry seam delivers most of the compiler value the doc promises for a fraction of the cost.
+4. **E7.3 is a nice-to-have, not a blocker — reassess before starting it.** A ~60-file `.jsx`→`.tsx`
+   migration is large effort for diffuse benefit; most of the payoff is already captured by E7.2. Do it
+   gradually if at all; do **not** treat the full shell migration as required to "finish" this epic.
+5. **E7.4 / E7.5 / E7.6 — real debt, low blast radius.** The "second tenant never fully moved in"
+   (Redact). Steady cleanup, not a fire.
+
+The three landed wins above (structural golden rule, single resize owner, flat discriminant) are worth
+more than any numeric audit score suggests and must **not** be reopened while closing these gaps.
+
+- **E7.1 Reconcile the privacy invariant with analytics reality.** ARCHITECTURE §1.1 says "CSP
+  `connect-src 'self'` … no third-party API … zero JS shipped" and CLAUDE.md's Privacy-invariants
+  section says "No third-party scripts or tracking … Only same-origin Vercel Web Analytics." The code
+  contradicts both: `astro.config.mjs:47,49` whitelist three `google-analytics.com` domains in
+  `connect-src`/`img-src` and `BaseLayout.astro:56-63` ships a `gtag`/`googletagmanager` `<script>` to
+  every page, including the marketing surface. PDF **file bytes** still never leave the device (all
+  processing is client-side `pdf.js`/`pdf-lib`), so the substantive privacy promise holds — but the
+  literal invariant does not, and there **is** an off-device telemetry path. **Needs a product decision
+  (flag for the owner):** either (a) drop Google Analytics for a same-origin/no-third-party posture and
+  restore `connect-src 'self'` (matches the stated invariant and the privacy positioning), or (b) keep
+  GA but honestly disclose the exception in ARCHITECTURE §1.1, CLAUDE.md, and the user-facing privacy
+  copy.
+  - *Depends on:* - · *Lane:* product / docs
+  - *Acceptance:* docs and code agree. Either `grep -rn "google-analytics\|gtag\|googletagmanager"
+    astro.config.mjs src/layouts/BaseLayout.astro` returns nothing and `connect-src` is `'self'`; **or**
+    ARCHITECTURE §1.1 + CLAUDE.md privacy section + on-site privacy copy each explicitly state the
+    analytics `connect-src`/`gtag` exception (and that it carries no file content).
+- **E7.2 Thread the element union through the registry seam.** `src/editor/registry/types.ts:6,7,119,122`
+  type `NodeRenderContext.element`, the `onChange` changes, `create`'s return, and `serialize`'s element
+  as `Record<string, unknown>`, so a registry module reading a wrong/renamed field compiles clean — the
+  registry is stringly-typed exactly where ARCHITECTURE §3/§3.2 promise compiler enforcement. Replace
+  with the `EditorElement` union from `editorModel.ts` (or per-type generics `<T extends EditorElement>`).
+  - *Depends on:* - · *Lane:* E
+  - *Acceptance:* `git grep -n "Record<string, unknown>" -- src/editor/registry` returns 0; a
+    deliberately-wrong element field access in a registry module fails `npm run typecheck`.
+- **E7.3 Type the interactive shell (`.jsx` → `.tsx`).** ~60 `.jsx` files, 0 `.tsx` in `src/components`:
+  the union in `editorModel.ts` never reaches the shell, so the cross-tool breakage the doc says the
+  compiler will catch is still runtime-only. Migrate the editor-critical components to `.tsx` consuming
+  the union + the E7.2-typed registry props, starting with `DraggableWrapper`, `RedactBox`,
+  `ElementToolbar`, `PdfSignTool`, `PdfRedactTool`, `SignTool/nodes/*`, and the gesture hooks. Large —
+  split per component/PR as needed.
+  - *Depends on:* E7.2 · *Lane:* E
+  - *Acceptance:* the editor-path components are `.tsx` and `npm run typecheck` is clean; a wrong element
+    field in one of those components is a compile error, not a runtime surprise.
+- **E7.4 Collapse RedactBox's duplicate paint and kill its inline-conditional visuals.**
+  `RedactBox.jsx:73-79` expresses fill/blur/border/selection as inline JS ternaries
+  (`el.type === 'blur' ? … : (isWhiteout ? … : …)`) — the exact "state as inline conditional strings"
+  anti-pattern of ARCHITECTURE §3.1/§7 — and re-paints the fill that `registry/redactionSurface.ts:13-15`
+  already renders (self-admitted in the `RedactBox.jsx:70-72` comment). Make `renderRedactionSurface` the
+  sole fill/blur/border owner; reduce the host `<div>` to geometry (`left/top/width/height`) + a
+  selection class; move `.active`/`.selected` and per-type fill visuals into RedactBox's CSS Module.
+  - *Depends on:* - · *Lane:* E / C
+  - *Acceptance:* no per-type visual ternaries remain in `RedactBox.jsx`; selection/fill live in the
+    module cascade; one paint owner; Redact e2e + `build && preview` CSP pass.
+- **E7.5 Converge Redact's gesture wiring onto the shared hooks.** The controller's commit-once is
+  shared, but the **wiring** is not: `PdfRedactTool.jsx:215,327,357` reimplement create/drag/resize
+  inline instead of Sign's `useDraggableElement`/`useWorkspaceGestures`. Route Redact's create/drag/
+  resize through the same hooks so there is one interaction wiring, not two.
+  - *Depends on:* E4.4 · *Lane:* E
+  - *Acceptance:* `PdfRedactTool.jsx` no longer defines its own `handlePointerDown`/`handleBoxDragStart`/
+    `handleBoxResizeStart` pointer lifecycle (they delegate to the shared hooks); the one-commit-per-
+    gesture integration test stays green; Redact e2e passes.
+- **E7.6 Delegate DraggableWrapper's per-type DOM writes to the registry.**
+  `DraggableWrapper.jsx:135,145` still branch on `element.type === 'line'`/`'text'` inside
+  `paintResizePatch`, and `:266-269` hardcode `isLine`/`isWhiteout`/`isShape`, so a new type still edits
+  this shell file — contradicting §3's "adding a type touches only new files" (the one E4 acceptance line
+  that isn't yet literally true). Move per-type DOM/SVG writes into each registry module's `writeDOM` so
+  the wrapper calls `registry[type].writeDOM(patch)` generically.
+  - *Depends on:* E7.2 · *Lane:* E
+  - *Acceptance:* no `element.type === '…'`/`actualType === '…'` **view/paint** branching remains in
+    `DraggableWrapper`; adding a hypothetical new type touches only registry files.
+- **E7.7 Widen the editor-CSS ratchet beyond `.sign-*`.** `scripts/check-editor-global-css.js:16` only
+  matches `\.(?:sign|sig)-…`, so the "0 editor classes in global.css" green is redact-blind: Redact's
+  component CSS was migrated out (`db2a0d6`), but nothing stops it — or a future tool's classes — from
+  silently reappearing in the monolith. Extend the regex to cover `.redact-` (and `.editor-`/`.el-` as
+  the editor grows) so the ratchet guards every editor surface, not just Sign.
+  - *Depends on:* - · *Lane:* B (guardrails)
+  - *Acceptance:* the guard matches redact classes; adding a `.redact-foo { … }` rule to `global.css`
+    fails `npm run test:css`. Also drop the now-stale `docs/E2.3-*` reference in the script's header
+    comment.
+- **E7.8 Add the two missing static guards.** ARCHITECTURE §6.6 flags runtime-CSP as still pending, and
+  there is no *static* guard for the gesture golden rule (only tests). Add (a) a CI grep guard that fails
+  if `setState`/`dispatch(`/`onChange(` appears inside a `*PointerMove`/`*ResizeMove`/`*Move` handler
+  body (catches golden-rule regressions before a test would), and (b) a runtime-CSP smoke in e2e/preview
+  that fails on unexpected `securitypolicyviolation` events (beyond today's hash-only `test:csp`).
+  - *Depends on:* - · *Lane:* B (guardrails)
+  - *Acceptance:* both run in `ci.yml`; a deliberately-added per-move `onChange` fails guard (a); an
+    injected disallowed inline style/attribute fails guard (b).
+
+---
+
 ## Dependency / lane summary
 
 ```
@@ -670,10 +790,13 @@ Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓ E1.5✓ E1.6✓ E1.6a✓ E1.7✓
 Lane C:         E2.1 ──► E2.2✓ ──► E2.3✓       (E2.3 also needs E1.4; E2.4/E2.5/E2.6 complete)
 Lane D:         E3.1 ──► E3.2✓ ──► E3.3✓       (E3.2 also needs E1.1, E1.2)
 Lane E:         E4.1✓ ──► E4.2✓ ──► E4.3✓ ──► E4.4✓   (E4.2 also needs E0.1)
+Post-audit:     E7.2 ──► E7.3, E7.6   ·   E7.5 (needs E4.4)   ·   E7.1 E7.4 E7.7 E7.8 (independent)
 ```
 
 C, D, E run in parallel once B is in place. E0.1 unblocks E4.2. E6 is independent and can be picked
-up opportunistically (its launch items cluster around the domain cutover).
+up opportunistically (its launch items cluster around the domain cutover). **E7** is the post-audit
+convergence epic: E7.2 (type the registry seam) unblocks E7.3 (`.tsx` shell) and E7.6 (registry-owned
+`writeDOM`); E7.1/E7.4/E7.7/E7.8 stand alone. E7.1 needs a product decision before it can be actioned.
 
 ---
 
