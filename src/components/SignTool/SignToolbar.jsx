@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'preact/hooks';
 import { useSignTool } from './SignToolContext.jsx';
 import FullscreenButton from '../FullscreenButton';
 import Popover from '../Popover.jsx';
+import styles from './SignToolbar.module.css';
 
 export default function SignToolbar({
   setAnnouncement,
@@ -59,11 +60,11 @@ export default function SignToolbar({
 
   return (
     <>
-      <div className="sign-toolbar-container">
-        <div className="sign-toolbar" role="toolbar" aria-label="PDF annotations">
+      <div className={styles.container}>
+        <div className={styles.toolbar} role="toolbar" aria-label="PDF annotations">
           <button
             type="button"
-            className={`sign-tool-btn${selectedTool === 'text' ? ' active' : ''}`}
+            className={`${styles.button}${selectedTool === 'text' ? ` ${styles.active}` : ''}`}
             onClick={() => {
               setSelectedTool(selectedTool === 'text' ? null : 'text');
               setAnnouncement('Text tool active. Click anywhere on a page to place.');
@@ -76,12 +77,12 @@ export default function SignToolbar({
               <line x1="9" y1="20" x2="15" y2="20" />
               <line x1="12" y1="4" x2="12" y2="20" />
             </svg>
-            <span className="sign-tool-btn-text">Text</span>
+            <span className={styles.label}>Text</span>
           </button>
 
           <button
             type="button"
-            className={`sign-tool-btn${selectedTool === 'symbol' ? ' active' : ''}`}
+            className={`${styles.button}${selectedTool === 'symbol' ? ` ${styles.active}` : ''}`}
             onClick={() => {
               setSelectedTool(selectedTool === 'symbol' ? null : 'symbol');
               setAnnouncement('Symbols tool active. Click a page to place.');
@@ -92,11 +93,11 @@ export default function SignToolbar({
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12" />
             </svg>
-            <span className="sign-tool-btn-text">Symbols</span>
+            <span className={styles.label}>Symbols</span>
           </button>
 
           <div
-            className="sign-tool-dropdown-container"
+            className={styles.dropdown}
             onMouseEnter={openShapes}
             onMouseLeave={scheduleCloseShapes}
           >
@@ -107,7 +108,7 @@ export default function SignToolbar({
               trigger={
                 <button
                   type="button"
-                  className={`sign-tool-btn sign-dropdown-trigger${['ellipse', 'rectangle', 'line'].includes(selectedTool) ? ' active' : ''}`}
+                  className={`${styles.button}${['ellipse', 'rectangle', 'line'].includes(selectedTool) ? ` ${styles.active}` : ''}`}
                   title="Click here to select a shape"
                   aria-pressed={['ellipse', 'rectangle', 'line'].includes(selectedTool)}
                 >
@@ -116,7 +117,7 @@ export default function SignToolbar({
                     <circle cx="7" cy="17" r="4" />
                     <rect x="13" y="13" width="8" height="8" rx="1" />
                   </svg>
-                  <span className="sign-tool-btn-text" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                  <span className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                     Shapes
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="6 9 12 15 18 9" />
@@ -183,7 +184,7 @@ export default function SignToolbar({
 
           <button
             type="button"
-            className={`sign-tool-btn${selectedTool === 'whiteout' ? ' active' : ''}`}
+            className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}`}
             onClick={() => {
               setSelectedTool(selectedTool === 'whiteout' ? null : 'whiteout');
               setAnnouncement('Whiteout tool active. Click a page to place.');
@@ -195,10 +196,10 @@ export default function SignToolbar({
               <path d="M22 21H7" />
               <path d="m13.3 4 5.3 5.3" />
             </svg>
-            <span className="sign-tool-btn-text">Whiteout</span>
+            <span className={styles.label}>Whiteout</span>
           </button>
 
-          <div className="sign-tool-dropdown-container">
+          <div className={styles.dropdown}>
             <Popover
               open={showSigDropdown}
               onOpenChange={setShowSigDropdown}
@@ -206,7 +207,7 @@ export default function SignToolbar({
               trigger={
                 <button
                   type="button"
-                  className={`sign-tool-btn sign-dropdown-trigger${selectedTool === 'signature' ? ' active' : ''}`}
+                  className={`${styles.button}${selectedTool === 'signature' ? ` ${styles.active}` : ''}`}
                   onClick={handleSignatureBtnClick}
                   title="Click here to select or create a signature"
                   aria-pressed={selectedTool === 'signature'}
@@ -215,7 +216,7 @@ export default function SignToolbar({
                     <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
                     <path d="M3 21h18" />
                   </svg>
-                  <span className="sign-tool-btn-text">Sign</span>
+                  <span className={styles.label}>Sign</span>
                 </button>
               }
               content={
@@ -258,7 +259,7 @@ export default function SignToolbar({
                       <line x1="12" y1="5" x2="12" y2="19" />
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
-                    <span className="sign-tool-btn-text">New Signature</span>
+                    <span className={styles.label}>New Signature</span>
                   </button>
                 </div>
               }
@@ -267,7 +268,7 @@ export default function SignToolbar({
 
           <button
             type="button"
-            className="sign-tool-btn"
+            className={styles.button}
             onClick={() => setUndoModalOpen(true)}
             title="Undo changes"
             disabled={actionHistory.length === 0}
@@ -276,14 +277,14 @@ export default function SignToolbar({
               <path d="M3 7v6h6" />
               <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
             </svg>
-            <span className="sign-tool-btn-text">Undo</span>
+            <span className={styles.label}>Undo</span>
           </button>
 
           <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
 
           <button
             type="button"
-            className="sign-tool-btn sign-tool-btn-reset"
+            className={`${styles.button} ${styles.reset}`}
             onClick={() => setConfirmResetOpen(true)}
             title="Discard your work and start over"
           >
@@ -291,12 +292,12 @@ export default function SignToolbar({
               <path d="M3 2v6h6" />
               <path d="M3.51 15a9 9 0 1 0 2.13-9.36L3 8" />
             </svg>
-            <span className="sign-tool-btn-text">Start over</span>
+            <span className={styles.label}>Start over</span>
           </button>
 
           <button
             type="button"
-            className={`sign-tool-btn sign-tool-btn-download${canSharePdf ? ' sign-tool-btn-desktop-download' : ''}`}
+            className={`${styles.button} ${styles.download}${canSharePdf ? ` ${styles['desktop-download']}` : ''}`}
             onClick={onDownloadPdf}
             title="Save your changes and download the signed PDF"
           >
@@ -305,13 +306,13 @@ export default function SignToolbar({
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            <span className="sign-tool-btn-text">Download</span>
+            <span className={styles.label}>Download</span>
           </button>
 
           {canSharePdf && (
             <button
               type="button"
-              className="sign-tool-btn sign-tool-btn-share"
+              className={`${styles.button} ${styles.share}`}
               onClick={shareReady ? onSharePdf : onSavePdf}
               title={shareReady ? 'Share the signed PDF' : 'Save your changes to share the signed PDF'}
             >
@@ -322,7 +323,7 @@ export default function SignToolbar({
                 <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" />
                 <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
               </svg>
-              <span className="sign-tool-btn-text">{shareReady ? 'Share now' : 'Share'}</span>
+              <span className={styles.label}>{shareReady ? 'Share now' : 'Share'}</span>
             </button>
           )}
         </div>
@@ -330,7 +331,7 @@ export default function SignToolbar({
 
       {/* Status Helper */}
       {selectedTool ? (
-        <div className="sign-help-tip" role="status">
+        <div className={styles.help} role="status">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="16" x2="12" y2="12" />
@@ -344,7 +345,7 @@ export default function SignToolbar({
           </span>
         </div>
       ) : (
-        <div className="sign-help-tip" style={{ color: 'var(--color-muted-light)' }}>
+        <div className={styles.help} style={{ color: 'var(--color-muted-light)' }}>
           <span>Tip: Select a tool above and click on the PDF to place, or drag existing items. Hover a line to adjust it.</span>
         </div>
       )}

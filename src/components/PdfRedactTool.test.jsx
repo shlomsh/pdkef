@@ -7,6 +7,8 @@ import PdfRedactTool from './PdfRedactTool.jsx';
 import { redactPdf } from '../lib/redact.js';
 import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 import dropzoneStyles from './Dropzone.module.css';
+import workspaceStyles from './SignTool/Workspace.module.css';
+import toolbarStyles from './SignTool/SignToolbar.module.css';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -79,12 +81,12 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     // Verify hint message appears indicating editing mode
-    const header = container.querySelector('.sign-help-tip');
+    const header = container.querySelector(`.${toolbarStyles.help}`);
     expect(header).not.toBeNull();
     expect(header.textContent).toContain('hide sensitive text');
     
     // Verify toolbar modes exist
-    const toolbar = container.querySelector('.sign-toolbar');
+    const toolbar = container.querySelector(`.${toolbarStyles.toolbar}`);
     expect(toolbar).not.toBeNull();
     expect(toolbar.textContent).toContain('Blackout');
     expect(toolbar.textContent).toContain('Blur');
@@ -100,14 +102,14 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
 
-      const generateButton = Array.from(container.querySelectorAll('.sign-toolbar button'))
+      const generateButton = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
         .find((button) => button.textContent.includes('Download'));
 
       await act(async () => {
         generateButton.click();
       });
 
-      expect(container.querySelector('.sign-workspace')).not.toBeNull();
+      expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
       expect(container.querySelector('.redact-box')).not.toBeNull();
       expect(container.querySelector('.download-button')).toBeNull();
       expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:redacted-pdf');
@@ -131,7 +133,7 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       const pageBefore = container.querySelector('.redact-draw-area');
-      const downloadButton = Array.from(container.querySelectorAll('.sign-toolbar button'))
+      const downloadButton = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
         .find((button) => button.textContent.includes('Download'));
 
       await act(async () => {
@@ -139,8 +141,8 @@ describe('PdfRedactTool UI flow', () => {
       });
 
       expect(container.querySelector('.redact-draw-area')).toBe(pageBefore);
-      expect(container.querySelector('.sign-workspace').classList.contains('is-processing')).toBe(true);
-      expect(container.querySelector('.sign-workspace').getAttribute('aria-busy')).toBe('true');
+      expect(container.querySelector(`.${workspaceStyles.workspace}`).classList.contains(workspaceStyles['is-processing'])).toBe(true);
+      expect(container.querySelector(`.${workspaceStyles.workspace}`).getAttribute('aria-busy')).toBe('true');
 
       await act(async () => {
         finishRedaction(new Blob(['redacted'], { type: 'application/pdf' }));
@@ -174,7 +176,7 @@ describe('PdfRedactTool UI flow', () => {
         prepareButton.click();
       });
 
-      expect(container.querySelector('.sign-workspace')).not.toBeNull();
+      expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
       const shareButton = Array.from(container.querySelectorAll('button'))
         .find((button) => button.textContent.includes('Share now'));
       expect(shareButton).toBeDefined();
@@ -346,7 +348,7 @@ describe('PdfRedactTool UI flow', () => {
 
       // Switch to whiteout mode — all redaction box styles now get the
       // 8-direction ElementResizers handles.
-      const whiteoutBtn = Array.from(container.querySelectorAll('.sign-toolbar .sign-tool-btn'))
+      const whiteoutBtn = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
         .find((btn) => btn.textContent.includes('Whiteout'));
       await act(async () => {
         whiteoutBtn.click();
@@ -478,7 +480,7 @@ describe('PdfRedactTool UI flow', () => {
     it('blur boxes also render the 8 resize handles and keep the remove button reachable inside the box', async () => {
       const drawArea = await loadFileAndGetDrawArea();
 
-      const blurBtn = Array.from(container.querySelectorAll('.sign-toolbar .sign-tool-btn'))
+      const blurBtn = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
         .find((btn) => btn.textContent.includes('Blur'));
       await act(async () => {
         blurBtn.click();
@@ -561,7 +563,7 @@ describe('PdfRedactTool UI flow', () => {
     async function setupSelectedBox(styleLabel) {
       const drawArea = await loadFileAndGetDrawArea();
       if (styleLabel) {
-        const btn = Array.from(container.querySelectorAll('.sign-toolbar .sign-tool-btn'))
+        const btn = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
           .find((b) => b.textContent.includes(styleLabel));
         await act(async () => {
           btn.click();

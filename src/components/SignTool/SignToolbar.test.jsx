@@ -6,6 +6,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import SignToolbar from './SignToolbar.jsx';
 import { SignToolProvider, useSignTool } from './SignToolContext.jsx';
+import styles from './SignToolbar.module.css';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -57,7 +58,7 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const buttons = container.querySelectorAll('.sign-tool-btn');
+    const buttons = container.querySelectorAll(`.${styles.button}`);
     expect(buttons.length).toBeGreaterThan(0);
 
     const textBtn = Array.from(buttons).find(b => b.textContent.includes('Text') || b.querySelector('svg'));
@@ -101,7 +102,7 @@ describe('SignToolbar Component', () => {
     const exportButton = container.querySelector('button[title*="share"]');
     expect(exportButton).not.toBeNull();
     expect(exportButton.textContent).toContain('Share');
-    expect(container.querySelectorAll('.sign-tool-btn-download')).toHaveLength(1);
+    expect(container.querySelectorAll(`.${styles.download}`)).toHaveLength(1);
   });
 
   it('changes the export control to share the prepared file', () => {
@@ -183,7 +184,7 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const sigBtn = Array.from(container.querySelectorAll('.sign-tool-btn')).find(b => b.textContent.includes('Sign'));
+    const sigBtn = Array.from(container.querySelectorAll(`.${styles.button}`)).find(b => b.textContent.includes('Sign'));
     expect(sigBtn).not.toBeUndefined();
 
     // Clicking signature button toggles dropdown
@@ -220,7 +221,7 @@ describe('SignToolbar Component', () => {
     expect(onDeleteSavedSignature).toHaveBeenCalledWith(mockSignature.id, expect.any(Object));
   });
 
-  it('contains properly structured tool buttons with .sign-tool-btn-text spans to protect flexbox sizing', () => {
+  it('contains properly structured tool buttons with module-scoped labels to protect flexbox sizing', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
 
@@ -241,40 +242,40 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const buttons = container.querySelectorAll('.sign-tool-btn');
+    const buttons = container.querySelectorAll(`.${styles.button}`);
     expect(buttons.length).toBeGreaterThan(0);
     
-    // Every single tool button must have its text wrapped in a .sign-tool-btn-text span.
+    // Every single tool button must have its text wrapped in the scoped label span.
     // If a developer accidentally adds a raw text node, it breaks flexbox pixel-perfect division on mobile.
     buttons.forEach(btn => {
-      const textSpan = btn.querySelector('.sign-tool-btn-text');
+      const textSpan = btn.querySelector(`.${styles.label}`);
       expect(textSpan).not.toBeNull();
       expect(textSpan.textContent.trim().length).toBeGreaterThan(0);
       
-      // Ensure the button is a direct child of .sign-toolbar to avoid flexbox wrapper issues
+      // Ensure the button is a direct child of the toolbar to avoid flexbox wrapper issues.
       if (!btn.closest('.sign-popover')) {
         const parentClassList = btn.parentElement.classList;
         expect(
-          parentClassList.contains('sign-toolbar') || 
-          parentClassList.contains('sign-tool-dropdown-container')
+          parentClassList.contains(styles.toolbar) ||
+          parentClassList.contains(styles.dropdown)
         ).toBe(true);
       }
     });
   });
 
   // --- 5. Mobile full-width toolbar -----------------------------------------
-  // jsdom has no layout engine and never loads global.css, so there is no way
+  // jsdom has no layout engine and never loads module CSS, so there is no way
   // to observe a real computed width or flex-basis here — this is necessarily
   // a structural-contract test. It checks two halves of the contract that
   // together make the memoed "mobile toolbars stretch full width" behavior
   // (project_fullwidth_mobile_toolbar) actually hold: (a) the CSS rule that
   // grants every visible toolbar control equal, growable width really exists
-  // in global.css and targets the selector this component's DOM structure
+  // in the owning module and targets the selector this component's DOM structure
   // matches, and (b) the rendered DOM structure really matches that selector
-  // (every visible control is a direct child of .sign-toolbar, as asserted in
+  // (every visible control is a direct child of the toolbar, as asserted in
   // the test above) so the rule actually reaches every button and does not
   // silently skip one because of a stray wrapper div.
-  it('the full-width toolbar CSS contract (.sign-toolbar width:100% + flex:1 on every direct child) targets this component\'s real DOM shape', () => {
+  it('the full-width toolbar CSS contract targets this component\'s real DOM shape', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
 
@@ -295,26 +296,26 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const toolbar = container.querySelector('.sign-toolbar');
+    const toolbar = container.querySelector(`.${styles.toolbar}`);
     expect(toolbar).not.toBeNull();
-    expect(toolbar.parentElement.classList.contains('sign-toolbar-container')).toBe(true);
+    expect(toolbar.parentElement.classList.contains(styles.container)).toBe(true);
 
-    // global.css source-of-truth check: `.sign-toolbar` spans full width at
+    // The owning module source-of-truth check: `.toolbar` spans full width at
     // every breakpoint (no separate narrow-screen override shrinks it back to
     // a centered pill — see CLAUDE.md/ARCHITECTURE.md's "full-width mobile
     // toolbar" note), and every direct child is told to grow equally.
-    const css = readFileSync(join(__dirname, '..', '..', 'styles', 'global.css'), 'utf8');
-    const toolbarRuleMatch = /\.sign-toolbar\s*\{([^}]*)\}/.exec(css);
+    const css = readFileSync(join(__dirname, 'SignToolbar.module.css'), 'utf8');
+    const toolbarRuleMatch = /\.toolbar\s*\{([^}]*)\}/.exec(css);
     expect(toolbarRuleMatch).not.toBeNull();
     expect(toolbarRuleMatch[1]).toMatch(/width:\s*100%/);
 
-    const childrenRuleMatch = /\.sign-toolbar\s*>\s*\*\s*\{([^}]*)\}/.exec(css);
+    const childrenRuleMatch = /\.toolbar\s*>\s*\*\s*\{([^}]*)\}/.exec(css);
     expect(childrenRuleMatch).not.toBeNull();
     expect(childrenRuleMatch[1]).toMatch(/flex:\s*1\s+1\s+auto/);
 
     // Every visible top-level control (buttons + the signature/shapes dropdown
     // wrappers) is a DIRECT child of .sign-toolbar, which is exactly what the
-    // `.sign-toolbar > *` selector above requires to reach it. If a future
+    // `.toolbar > *` selector above requires to reach it. If a future
     // change wrapped a control in an extra <div>, that control would silently
     // stop growing to fill the row on mobile — this catches that.
     const directChildren = Array.from(toolbar.children);

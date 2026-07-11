@@ -343,254 +343,6 @@ main {
   }
 }
 
-/* --- Sign PDF Tool Custom Styles --- */
-.sign-workspace {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  max-width: 100%;
-  margin: 0 auto;
-  gap: var(--space-4);
-}
-
-/* Full screen mode: the workspace becomes the fullscreen root element itself,
-   so give it its own background/scroll/padding rather than inheriting the
-   page's — the UA default fullscreen backdrop is plain black otherwise. */
-.sign-workspace:fullscreen,
-.sign-workspace:-webkit-full-screen,
-.sign-workspace.pseudo-fullscreen {
-  max-width: none;
-  height: 100%;
-  background: var(--color-bg);
-  overflow-y: auto;
-  padding: var(--space-4);
-}
-
-.sign-workspace.pseudo-fullscreen {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-}
-
-/* Keep the editor mounted during export so canvases and scroll position do not
-   flash, while preventing edits from racing the generated file. */
-.sign-workspace.is-processing {
-  pointer-events: none;
-}
-
-.sign-toolbar-container {
-  position: sticky;
-  top: 1rem;
-  z-index: 100;
-  width: 100%;
-  /* Its parent (.sign-workspace) is a flex column with align-items:center for
-     the other children; a flex item defaults to align-self:auto (= center),
-     which shrinks this item to content width. That's harmless on Chrome, but
-     iOS/macOS Safari has a long-standing bug where position:sticky silently
-     stops working on flex items that aren't stretched to the cross axis —
-     the toolbar scrolled away instead of staying fixed. align-self:stretch
-     opts this item out of the parent's centering (width:100% below already
-     made it full-width anyway) and fixes sticky on Safari. */
-  align-self: stretch;
-  display: flex;
-  justify-content: center;
-  pointer-events: none; /* Let clicks pass through container */
-}
-
-.sign-toolbar {
-  pointer-events: auto; /* Re-enable clicks for the toolbar itself */
-  display: flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  /* Full-width at every breakpoint: the toolbar spans the same width as the
-     dropzone and the PDF pages (all sit in the .merge-tool card), so their edges
-     line up. A moderate rounded-rectangle radius reads better than a full pill on
-     a wide bar — the pill looked over-rounded once the bar went edge-to-edge. */
-  --toolbar-gap: var(--space-2);
-  --toolbar-padding: 0.5rem 0.75rem;
-  --btn-padding: 0.6rem 0.6rem;
-
-  width: 100%;
-  gap: var(--toolbar-gap);
-  padding: var(--toolbar-padding);
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid rgba(228, 228, 237, 0.8);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-lg), 0 4px 20px rgba(0, 0, 0, 0.03);
-}
-
-/* Every visible control grows to help fill the row, but its base size tracks its
-   own content (flex-basis: auto) and it never shrinks below its label
-   (min-width: max-content). Using flex-basis: 0 here forced every button to an
-   equal width regardless of label length, which clipped the longer labels
-   ("Full screen", "Start over") while over-sizing short ones ("Text", "Sign").
-   Free space is still distributed by flex-grow, so the bar stays full-width. */
-.sign-toolbar > * {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.sign-toolbar .sign-tool-dropdown-container > .sign-tool-btn {
-  width: 100%;
-  flex: 1 1 auto;
-}
-
-/* On narrow screens the toolbar wraps to a rounded card (see base rule). The
-   vertical separators that group controls on one desktop row become stray
-   floating lines once the buttons wrap, so drop them here; keep a little
-   horizontal breathing room in the sticky container. Horizontal scroll is
-   deliberately avoided — overflow-x:auto forces overflow-y to clip, which would
-   cut off the signature dropdown that opens below its toolbar button. */
-@media (max-width: 919px) {
-  /* Below the full labelled row: collapse buttons to icons only and tighten
-     spacing so every control fits on one line without wrapping (nowrap + fitting
-     width means nothing is clipped, so the signature dropdown stays visible).
-     Width, radius, and edge alignment are inherited from the base rule. */
-  .sign-toolbar {
-    --toolbar-gap: 0.35rem;
-    --toolbar-padding: 0.35rem;
-    --btn-padding: 0.15rem 0;
-  }
-
-  /* Collapse the tool buttons to icons only. Instead of font-size: 0, we use an
-     accessible hidden class on the span so that text nodes don't retain residual width.
-     gap:0 removes the space the now-empty label left behind. */
-  .sign-toolbar .sign-tool-btn {
-    gap: 0;
-    flex: 1;
-  }
-
-  .sign-toolbar .sign-tool-btn .sign-tool-btn-text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-  }
-
-  .sign-toolbar .sign-tool-dropdown-container {
-    flex: 1;
-    display: flex;
-  }
-
-  .sign-toolbar .sign-tool-btn-desktop-download {
-    display: none;
-  }
-
-  .sign-toolbar .sign-tool-btn-share {
-    color: var(--color-surface);
-    background: var(--color-primary);
-    border-color: var(--color-primary);
-  }
-}
-
-.sign-tool-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: var(--btn-padding);
-  font: inherit;
-  font-size: 0.88rem;
-  font-weight: 600;
-  white-space: nowrap;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  box-shadow: var(--shadow-xs);
-  transition: background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out), color 0.15s var(--ease-out), transform 0.1s var(--ease-spring);
-}
-
-.sign-tool-btn svg {
-  flex-shrink: 0;
-}
-
-.sign-tool-btn:hover {
-  background: var(--color-surface-sunken);
-  border-color: var(--color-border-strong);
-  color: var(--color-text);
-}
-
-.sign-tool-btn:active {
-  transform: scale(0.96);
-}
-
-.sign-tool-btn.active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-surface);
-}
-
-.sign-tool-btn-download {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-surface);
-}
-
-.sign-tool-btn-download:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-  color: var(--color-surface);
-}
-
-/* Desktop has room for both export paths. On compact toolbars the native share
-   control takes this slot, while Download remains the fallback where sharing is
-   not available. */
-.sign-tool-btn-share {
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.sign-tool-btn-share:hover {
-  color: var(--color-surface);
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.sign-export-actions {
-  display: flex;
-  gap: var(--space-3);
-  width: 100%;
-}
-
-.sign-export-actions .merge-button {
-  flex: 1;
-}
-
-.sign-export-share {
-  color: var(--color-primary);
-  background: var(--color-surface);
-  border-color: var(--color-primary);
-}
-
-.sign-export-share:hover {
-  color: var(--color-surface);
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-/* Start over: persistent lemon-tinted affordance, fills on hover. Sits left of
-   the primary Download button without competing with it. */
-.sign-tool-btn-reset {
-  color: var(--color-success);
-  background: var(--color-success-soft);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-success) 35%, transparent);
-}
-
-.sign-tool-btn-reset:hover {
-  color: var(--color-surface);
-  background: var(--color-success);
-}
-
 .sign-pages-container {
   width: 100%;
   display: flex;
@@ -921,7 +673,7 @@ main {
 
 /* Compact swatch button that opens the color picker in a popover — keeps the
    per-element floating toolbar narrow instead of showing the full palette
-   inline. Reuses .sign-tool-dropdown-container/.sign-dropdown-menu, the same
+   inline. Reuses the toolbar dropdown container and sign-dropdown-menu, the same
    popover pattern as the saved-signatures dropdown. */
 .sign-color-trigger {
   padding: 4px;
@@ -1428,31 +1180,6 @@ main {
   line-height: 1.5;
 }
 
-/* Floating Helper Text */
-.sign-help-tip {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 0.83rem;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-/* Signature Dropdown & List Styles */
-.sign-tool-dropdown-container {
-  position: relative;
-  display: flex;
-}
-
-/* Inside the CSS-based .sign-toolbar, dropdown wrappers stretch to match
-   the plain buttons (.sign-toolbar > * uses flex: 1 1 auto). Scoped here
-   so it doesn't fight the Tailwind toolbars (Sign/Redact) which use
-   [&>*]:shrink-0 and want content-sized children. */
-.sign-toolbar .sign-tool-dropdown-container {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
 .sign-popover {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -1713,7 +1440,7 @@ main {
    overflows) without wrapping. Labels stay hidden (font-size:0 from the 919px
    rule): a labelled layout left the label-less fullscreen control as an empty
    cell, so icon-only is both cleaner and avoids that gap. Signature is wrapped in
-   .sign-tool-dropdown-container, so it's sized as a cell alongside the bare
+   its dropdown container, so it's sized as a cell alongside the bare
    buttons and its inner button fills it.
 
    Also matched by a landscape-phone case: rotating a phone puts its width well
@@ -1724,30 +1451,6 @@ main {
    exactly that short, touch viewport without also matching a merely-narrow
    desktop window (which has a fine pointer). */
 @media (max-width: 560px), (max-height: 500px) and (pointer: coarse) {
-  /* Phone tuning layered on top of the shared full-width paradigm — width, flex,
-     radius, and edge alignment now live in the base .sign-toolbar rule. Here we
-     only tighten spacing, enlarge tap targets, and apply a few Redact tweaks. */
-  .sign-toolbar {
-    --toolbar-gap: 0.15rem;
-    --toolbar-padding: 0.4rem 0.4rem;
-    --btn-padding: 0.5rem;
-  }
-
-  /* Finger-sized tap targets; all-side padding so the icon centers in each cell. */
-  .sign-toolbar .sign-tool-btn {
-    justify-content: center;
-    min-height: 46px;
-    border-radius: var(--radius-sm);
-  }
-
-  /* Align the toolbar with the dropzone and the PDF pages: those sit flush inside
-     the .merge-tool card's padding, but the toolbar container adds an extra
-     horizontal inset (the max-width:919px rule) that makes it narrower. Drop it so
-     all three share one left/right edge. */
-  .sign-toolbar-container {
-    padding: 0;
-  }
-
   /* Reclaim screen width on phones: trim the outer page gutter and the card's own
      padding so the whole tool (dropzone, toolbar, pages) runs wider. All three move
      together since they share the card, so they stay aligned. */

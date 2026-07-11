@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import PdfWorkspace from './PdfWorkspace.jsx';
+import workspaceStyles from './Workspace.module.css';
 import { SignToolContext } from './SignToolContext.jsx';
 
 function mount(vnode) {
@@ -82,8 +83,8 @@ describe('PdfWorkspace Component', () => {
     });
 
     expect(host.querySelector('.sign-page-wrapper')).toBe(pageBefore);
-    expect(host.querySelector('.sign-workspace').classList.contains('is-processing')).toBe(true);
-    expect(host.querySelector('.sign-workspace').getAttribute('aria-busy')).toBe('true');
+    expect(host.querySelector(`.${workspaceStyles.workspace}`).classList.contains(workspaceStyles['is-processing'])).toBe(true);
+    expect(host.querySelector(`.${workspaceStyles.workspace}`).getAttribute('aria-busy')).toBe('true');
   });
 
   it('correctly dispatches ADD_ELEMENT, UPDATE_ELEMENT, and ENSURE_MINIMUM_SIZE on drag-drawing', () => {

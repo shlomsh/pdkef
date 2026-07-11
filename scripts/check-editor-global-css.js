@@ -19,16 +19,13 @@ const allowedEditorClasses = new Set([
   'sign-color-divider', 'sign-color-input', 'sign-color-menu', 'sign-color-picker',
   'sign-color-swatch', 'sign-color-trigger', 'sign-color-trigger-swatch', 'sign-dropdown-add-btn',
   'sign-dropdown-item', 'sign-dropdown-item-delete', 'sign-dropdown-list', 'sign-dropdown-list--clean',
-  'sign-dropdown-menu', 'sign-element', 'sign-element--line', 'sign-element--shape',
+  'sign-element', 'sign-element--line', 'sign-element--shape',
   'sign-element--symbol', 'sign-element-actions', 'sign-element-btn', 'sign-element-btn-danger',
-  'sign-element-resizer', 'sign-export-actions', 'sign-export-share', 'sign-font-menu',
-  'sign-font-menu-group-label', 'sign-font-menu-item', 'sign-font-trigger', 'sign-help-tip',
+  'sign-element-resizer', 'sign-font-menu',
+  'sign-font-menu-group-label', 'sign-font-menu-item', 'sign-font-trigger',
   'sign-menu-item', 'sign-page-canvas', 'sign-page-overlay', 'sign-page-wrapper',
   'sign-pages-container', 'sign-popover', 'sign-sig-image', 'sign-text-display', 'sign-text-input',
-  'sign-text-measure', 'sign-thickness-item', 'sign-tool-btn', 'sign-tool-btn-desktop-download',
-  'sign-tool-btn-download', 'sign-tool-btn-reset', 'sign-tool-btn-share', 'sign-tool-btn-text',
-  'sign-tool-dropdown-container', 'sign-toolbar', 'sign-toolbar-container', 'sign-toolbar-divider',
-  'sign-workspace',
+  'sign-text-measure', 'sign-thickness-item', 'sign-toolbar-divider',
 ]);
 
 const css = fs.readFileSync(globalCssPath, 'utf8');

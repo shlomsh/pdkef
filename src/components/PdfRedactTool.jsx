@@ -13,6 +13,8 @@ import { createActionEntry } from '../lib/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import pdfToolStyles from './PdfTool.module.css';
+import toolbarStyles from './SignTool/SignToolbar.module.css';
+import workspaceStyles from './SignTool/Workspace.module.css';
 
 export default function PdfRedactTool() {
   const [file, setFile] = useState(null);
@@ -613,7 +615,7 @@ export default function PdfRedactTool() {
 
       {(status === 'editing' || status === 'redacting') && pdfDocument && (
         <div
-          className={`sign-workspace${isPseudoFullscreen ? ' pseudo-fullscreen' : ''}${status === 'redacting' ? ' is-processing' : ''}`}
+          className={`${workspaceStyles.workspace}${isPseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}${status === 'redacting' ? ` ${workspaceStyles['is-processing']}` : ''}`}
           ref={workspaceRef}
           aria-busy={status === 'redacting'}
         >
@@ -635,7 +637,7 @@ export default function PdfRedactTool() {
             setUndoModalOpen={setUndoModalOpen}
           />
 
-          <div className="sign-help-tip" style={{ color: 'var(--color-muted-light)' }}>
+          <div className={toolbarStyles.help} style={{ color: 'var(--color-muted-light)' }}>
             <span>Click and drag on any page to hide sensitive text.</span>
           </div>
 

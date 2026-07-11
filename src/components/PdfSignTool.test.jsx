@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import PdfSignTool from './PdfSignTool.jsx';
+import toolbarStyles from './SignTool/SignToolbar.module.css';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 import dropzoneStyles from './Dropzone.module.css';
 import pdfToolStyles from './PdfTool.module.css';
@@ -132,7 +133,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Locate the signature tool button in the toolbar
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
     expect(sigBtn).not.toBeNull();
 
@@ -176,7 +177,7 @@ describe('PdfSignTool UI flow', () => {
 
     // Clicking Signature when local storage is empty opens the dialog directly
     localStorage.removeItem('pdf-toolkit:signatures');
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
     
     await act(async () => {
@@ -226,7 +227,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select text tool
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
     await act(async () => {
       textBtn.click();
@@ -287,7 +288,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select symbol tool
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const symbolBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Symbol') || btn.querySelector('svg'));
     
     await act(async () => {
@@ -328,7 +329,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select text tool
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
     await act(async () => {
       textBtn.click();
@@ -390,7 +391,7 @@ describe('PdfSignTool UI flow', () => {
     });
     
     // Select text tool
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
     await act(async () => {
       textBtn.click();
@@ -519,7 +520,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select text tool and place an element
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
     await act(async () => {
       textBtn.click();
@@ -590,7 +591,7 @@ describe('PdfSignTool UI flow', () => {
     wrapper.getBoundingClientRect = () => pageRect;
     overlay.getBoundingClientRect = () => pageRect;
 
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
     await act(async () => {
       textBtn.click();
@@ -677,7 +678,7 @@ describe('PdfSignTool UI flow', () => {
       });
 
       localStorage.removeItem('pdf-toolkit:signatures');
-      const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+      const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
       const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
       
       await act(async () => {
@@ -753,7 +754,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select the saved signature from the dropdown, arming `activeSignature`.
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
     await act(async () => { sigBtn.click(); });
     const dropdownItem = document.body.querySelector('.sign-dropdown-item');
@@ -810,7 +811,7 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const toolbarButtons = container.querySelectorAll('.sign-tool-btn');
+    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const whiteoutBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Whiteout'));
     await act(async () => { whiteoutBtn.click(); });
 

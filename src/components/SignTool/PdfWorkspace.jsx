@@ -20,6 +20,7 @@ import SignToolbar from './SignToolbar.jsx';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
 import { detectTextDirection } from '../../lib/sign.js';
 import pdfToolStyles from '../PdfTool.module.css';
+import workspaceStyles from './Workspace.module.css';
 
 export default function PdfWorkspace({
   file,
@@ -149,7 +150,7 @@ export default function PdfWorkspace({
 
   return (
     <div
-      className={`sign-workspace${isPseudoFullscreen ? ' pseudo-fullscreen' : ''}${status === 'signing' ? ' is-processing' : ''}`}
+      className={`${workspaceStyles.workspace}${isPseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}${status === 'signing' ? ` ${workspaceStyles['is-processing']}` : ''}`}
       ref={workspaceRef}
       aria-busy={status === 'signing'}
     >
@@ -242,12 +243,12 @@ export default function PdfWorkspace({
           </div>
 
           {/* Complete signing button */}
-          <div className="sign-export-actions" style={{ marginTop: '2rem' }}>
-            <button type="button" className={pdfToolStyles['merge-button']} onClick={handleDownloadPdf}>
+          <div className={workspaceStyles['export-actions']}>
+            <button type="button" className={`${pdfToolStyles['merge-button']} ${workspaceStyles['export-action']}`} onClick={handleDownloadPdf}>
               Download
             </button>
             {canSharePdf && (
-              <button type="button" className={`${pdfToolStyles['merge-button']} sign-export-share`} onClick={shareReady ? handleSharePdf : handleSavePdf}>
+              <button type="button" className={`${pdfToolStyles['merge-button']} ${workspaceStyles['export-action']} ${workspaceStyles['export-share']}`} onClick={shareReady ? handleSharePdf : handleSavePdf}>
                 {shareReady ? 'Share now' : 'Share'}
               </button>
             )}
