@@ -641,7 +641,7 @@ export default function PdfRedactTool() {
             <span>Click and drag on any page to hide sensitive text.</span>
           </div>
 
-          <div className="sign-pages-container">
+          <div className={workspaceStyles['pages-container']}>
             {Array.from({ length: numPages }).map((_, i) => (
               <div key={i} className="sign-page-card">
                 <div className="sign-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.25rem' }}>
@@ -663,7 +663,7 @@ export default function PdfRedactTool() {
                   )}
                 </div>
                 <div
-                  className="sign-page-wrapper redact-draw-area"
+                  className={`${workspaceStyles['page-wrapper']} redact-draw-area`}
                   ref={(el) => pageWrapperRefs.current[i] = el}
                   onMouseDown={(e) => handlePointerDown(e, i)}
                   onTouchStart={(e) => handlePointerDown(e, i)}

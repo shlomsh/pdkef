@@ -184,7 +184,7 @@ export default function PdfWorkspace({
           />
 
           {/* PDF Pages rendering container */}
-          <div className="sign-pages-container" onClick={deactivateAll}>
+          <div className={workspaceStyles['pages-container']} onClick={deactivateAll}>
             {Array.from({ length: numPages }).map((_, pageIdx) => {
               const size = pageSizes[pageIdx] || { width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS };
 
@@ -192,7 +192,7 @@ export default function PdfWorkspace({
                 <div
                   key={pageIdx}
                   ref={(el) => (pageWrapperRefs.current[pageIdx] = el)}
-                  className="sign-page-wrapper"
+                  className={workspaceStyles['page-wrapper']}
                   style={{ aspectRatio: `${size.width} / ${size.height}` }}
                 >
                   <PdfPageCanvas
@@ -201,7 +201,7 @@ export default function PdfWorkspace({
                   />
 
                   <div
-                    className="sign-page-overlay"
+                    className={workspaceStyles['page-overlay']}
                     onClick={(e) => handlePageClick(e, pageIdx)}
                     onMouseDown={(e) => handleOverlayPointerDown(e, pageIdx)}
                     onTouchStart={(e) => handleOverlayPointerDown(e, pageIdx)}
