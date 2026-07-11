@@ -401,14 +401,18 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   callback seam, and the OS-install tab script guards its optional `aria-controls` value before lookup.
   `npm run typecheck` is now project-wide error-free (hints only).
   - *Depends on:* - · *Lane:* E
-- **E4.2 Extract a framework-agnostic `editor/` core** (document model + geometry + gesture
-  controllers) with **one** "imperative-during, commit-on-release" controller unifying drag, resize
-  **and create**, so they can't diverge again (ARCHITECTURE §3.2, §4). Preact becomes a thin
-  render/event shell. **Low-level design: [plan §2, §3](./docs/E4-headless-editor-core-plan.md).**
+- **E4.2 Extract a framework-agnostic `editor/` core - done.** Added the plain-TS
+  `src/editor/gestures/controller.ts` lifecycle: it computes and paints a patch per movement, then
+  commits the final patch exactly once on release. `pointer.ts` supplies the framework-neutral
+  mouse/touch coordinate reader. Sign drag, resize, and drag-drawn creation all route their listener
+  lifecycle through the controller; creation now paints with CSSOM/SVG during the gesture and dispatches
+  a single `UPDATE_ELEMENT` only on release. The controller and workspace tests explicitly cover the
+  once-only commit rule. E4.3 will move the remaining per-type resize geometry into the registry.
   - *Depends on:* E4.1, E0.1 · *Lane:* E
-  - *Acceptance:* drag, resize **and create** each commit **once per gesture** (`console.count` proof —
-    create fails today); E1.5 invariants + Sign e2e green with no source math rewritten (moved, not
-    changed); `build && preview` CSP pass, zero `securitypolicyviolation`.
+  - *Verification:* 294 non-PDF-worker unit tests, the focused Sign editor suite (77 tests), TypeScript,
+    production build/CSP hash check, and the Sign Playwright guardrail all pass. The worktree's three
+    PDF raster integration tests remain blocked by its absent local `pdfjs-dist` worker copy, unrelated
+    to this change.
 - **E4.3 Per-element-type registry** - each type a module `{ create, render, resizeBehavior, serialize,
   schema }`; removes the `type === 'line'` / `!isLine` / `isShape` branching in `handleResizeMove` and
   the `DRAG_DRAWN_TOOLS` list. *(Supersedes the old lighter `geometryKind` half-measure - the registry

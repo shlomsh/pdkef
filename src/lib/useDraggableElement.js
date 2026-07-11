@@ -1,5 +1,6 @@
 import { useRef } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
+import { startGesture } from '../editor/gestures/controller.ts';
 import { getEffectiveTextDirection } from './sign.js';
 import {
   DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT,
@@ -93,14 +94,15 @@ export default function useDraggableElement({
 
     isDragging.current = true;
 
-    const handlePointerMove = (moveEvent) => {
+    startGesture({
+      computePatch: (moveEvent) => {
       const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
 
       const dx = moveX - dragStartPos.current.x;
       const dy = moveY - dragStartPos.current.y;
       if (element.type === 'line') {
         dragOffset.current = { x: dx, y: dy };
-        return;
+        return dragOffset.current;
       }
 
       const rawDxPercent = pageRect.width ? (dx / pageRect.width) * 100 : 0;
@@ -122,12 +124,14 @@ export default function useDraggableElement({
       const clampedDy = (clampedDyPercent / 100) * pageRect.height;
 
       dragOffset.current = { x: clampedDx, y: clampedDy };
-      if (elementRef.current) {
-        elementRef.current.style.transform = `translate(${clampedDx}px, ${clampedDy}px)`;
-      }
-    };
-
-    const handlePointerUp = () => {
+      return dragOffset.current;
+      },
+      writeDOM: ({ x, y }) => {
+        if (element.type !== 'line' && elementRef.current) {
+          elementRef.current.style.transform = `translate(${x}px, ${y}px)`;
+        }
+      },
+      commit: () => {
       isDragging.current = false;
       if (elementRef.current) elementRef.current.style.transform = 'none';
 
@@ -162,16 +166,8 @@ export default function useDraggableElement({
       }
 
       dragOffset.current = { x: 0, y: 0 };
-      window.removeEventListener('mousemove', handlePointerMove);
-      window.removeEventListener('mouseup', handlePointerUp);
-      window.removeEventListener('touchmove', handlePointerMove);
-      window.removeEventListener('touchend', handlePointerUp);
-    };
-
-    window.addEventListener('mousemove', handlePointerMove);
-    window.addEventListener('mouseup', handlePointerUp);
-    window.addEventListener('touchmove', handlePointerMove, { passive: false });
-    window.addEventListener('touchend', handlePointerUp);
+      },
+    });
   };
 
   return { handlePointerDown, isDragging, dragOffset };

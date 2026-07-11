@@ -86,7 +86,7 @@ describe('PdfWorkspace Component', () => {
     expect(host.querySelector('.sign-workspace').getAttribute('aria-busy')).toBe('true');
   });
 
-  it('correctly dispatches ADD_ELEMENT, UPDATE_ELEMENT, and ENSURE_MINIMUM_SIZE on drag-drawing', () => {
+  it('commits drag-drawn geometry once on release, then ensures its minimum size', () => {
     const dispatch = vi.fn();
     const state = {
       selectedTool: 'rectangle', // select a drag-drawn tool
@@ -159,7 +159,18 @@ describe('PdfWorkspace Component', () => {
       );
     });
 
-    expect(dispatch).toHaveBeenCalledTimes(3);
+    expect(dispatch).toHaveBeenCalledTimes(2);
+
+    // 3. Simulate mouseup to complete the gesture
+    act(() => {
+      window.dispatchEvent(
+        new MouseEvent('mouseup', {
+          bubbles: true
+        })
+      );
+    });
+
+    expect(dispatch).toHaveBeenCalledTimes(4);
     expect(dispatch.mock.calls[2][0]).toEqual(
       expect.objectContaining({
         type: 'UPDATE_ELEMENT',
@@ -173,17 +184,6 @@ describe('PdfWorkspace Component', () => {
         })
       })
     );
-
-    // 3. Simulate mouseup to complete the gesture
-    act(() => {
-      window.dispatchEvent(
-        new MouseEvent('mouseup', {
-          bubbles: true
-        })
-      );
-    });
-
-    expect(dispatch).toHaveBeenCalledTimes(4);
     expect(dispatch.mock.calls[3][0]).toEqual(
       expect.objectContaining({
         type: 'ENSURE_MINIMUM_SIZE',

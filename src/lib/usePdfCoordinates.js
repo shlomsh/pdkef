@@ -5,14 +5,9 @@ import {
   scaleFactorFromPx,
   widthPercentToHeightPercent
 } from './coords.js';
+import { getPointerCoords } from '../editor/gestures/pointer.ts';
 
 export default function usePdfCoordinates() {
-  const getPointerCoords = (event) => {
-    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-    return { x: clientX, y: clientY };
-  };
-
   const getPointerPercent = (event, containerNode) => {
     if (!containerNode) return { x: 0, y: 0 };
     const rect = containerNode.getBoundingClientRect();

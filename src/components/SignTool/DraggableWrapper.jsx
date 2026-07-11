@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'preact/hooks';
 import { useFloating, offset, shift, autoUpdate } from '@floating-ui/react';
 import usePdfCoordinates from '../../lib/usePdfCoordinates.js';
 import useDraggableElement from '../../lib/useDraggableElement.js';
+import { startGesture } from '../../editor/gestures/controller.ts';
 import { getEffectiveTextDirection } from '../../lib/sign.js';
 import {
   TOOLBAR_FLOATING_OFFSET,
@@ -164,7 +165,7 @@ export default function DraggableWrapper({
             l.setAttribute('y1', `${pendingResize.y1}%`);
           });
         }
-        return;
+        return pendingResize;
       }
       if (handle === 'line-end') {
         const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
@@ -179,7 +180,7 @@ export default function DraggableWrapper({
             l.setAttribute('y2', `${pendingResize.y2}%`);
           });
         }
-        return;
+        return pendingResize;
       }
 
       // element.type is the geometry discriminator directly (the old shape/shapeType
@@ -244,7 +245,7 @@ export default function DraggableWrapper({
           elementRef.current.style.left = `${newLeft}%`;
           elementRef.current.style.top = `${newTop}%`;
         }
-        return;
+        return pendingResize;
       }
 
       if (element.type === 'text') {
@@ -291,7 +292,7 @@ export default function DraggableWrapper({
             elementRef.current.style.left = `${newLeft}%`;
           }
         }
-        return;
+        return pendingResize;
       }
 
       const { x: deltaWidthPercent } = getDeltaPercent(normalizedDx, 0, pageWrapper);
@@ -325,7 +326,7 @@ export default function DraggableWrapper({
           elementRef.current.style.left = `${newLeft}%`;
           elementRef.current.style.top = `${newTop}%`;
         }
-        return;
+        return pendingResize;
       }
 
       pendingResize = { width: newWidth, height: newHeight };
@@ -333,24 +334,21 @@ export default function DraggableWrapper({
         elementRef.current.style.width = `${newWidth}%`;
         elementRef.current.style.height = `${newHeight}%`;
       }
+      return pendingResize;
     };
 
-    const handleResizeUp = () => {
-      window.removeEventListener('mousemove', handleResizeMove);
-      window.removeEventListener('mouseup', handleResizeUp);
-      window.removeEventListener('touchmove', handleResizeMove);
-      window.removeEventListener('touchend', handleResizeUp);
-
+    startGesture({
+      computePatch: handleResizeMove,
+      // The established resize math owns its CSSOM writes for this step; E4.3
+      // moves that per-type DOM projection beside each registry module.
+      writeDOM: () => {},
+      commit: () => {
       if (pendingResize) {
         onChange(pendingResize);
         pendingResize = null;
       }
-    };
-
-    window.addEventListener('mousemove', handleResizeMove);
-    window.addEventListener('mouseup', handleResizeUp);
-    window.addEventListener('touchmove', handleResizeMove, { passive: false });
-    window.addEventListener('touchend', handleResizeUp);
+      },
+    });
   };
 
   
@@ -396,6 +394,7 @@ export default function DraggableWrapper({
         }
       }}
       className={`sign-element${isActive ? ' active' : ''}${element.type === 'symbol' ? ' sign-element--symbol' : ''}${isShape ? ' sign-element--shape' : ''}${isLine ? ' sign-element--line' : ''}`}
+      data-editor-element-id={element.id}
       style={style}
       onMouseDown={!isLine ? handlePointerDown : undefined}
       onTouchStart={!isLine ? handlePointerDown : undefined}

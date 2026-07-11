@@ -2,12 +2,13 @@
 
 > Execution plan for backlog epic **E4** (tickets E4.2, E4.3, E4.4) in [scrum.md](../scrum.md).
 > Design standard: [ARCHITECTURE.md](../ARCHITECTURE.md) §1.2 (gesture hot path), §3.2 (editor core),
-> §3.1 (styling boundary), §4 (gesture golden rule), §5 (known hazards). **E4.1 is done** (the
-> `src/lib/editorModel.ts` discriminated union + `coords.ts`). This is the reference a fresh session
+> §3.1 (styling boundary), §4 (gesture golden rule), §5 (known hazards). **E4.1 and E4.2 are done**:
+> E4.1 introduced `src/lib/editorModel.ts` and `coords.ts`; E4.2 introduced the framework-free gesture
+> controller and pointer normaliser. This is the reference a fresh session
 > reads before touching the Sign/Redact editors.
 >
 > **Lane E is internally serial:** E4.2 → E4.3 → E4.4. It runs in parallel with E2 (Lane C) and E3
-> (Lane D). E4.2 is unblocked now (its deps E4.1 and E0.1 are both done).
+> (Lane D). **E4.3 is next**; its E4.2 dependency is satisfied.
 
 ---
 
@@ -164,12 +165,14 @@ pointerdown and `registry[el.type].render(...)` for the body; it no longer conta
 
 ---
 
-## 3. E4.2 — Extract the framework-agnostic core + unified gesture controller
+## 3. E4.2 — Extract the framework-agnostic core + unified gesture controller — done
 
 **Goal:** one "imperative-during, commit-on-release" controller unifying **drag, resize, and create**,
 so they cannot diverge again (ARCHITECTURE §3.2, §4). Preact becomes a thin shell.
 
-**Depends on:** E4.1 ✅, E0.1 ✅. **Do not start E4.3 until this lands.**
+**Depends on:** E4.1 ✅, E0.1 ✅. Landed with the controller and pointer normaliser in
+`src/editor/gestures/`; Sign drag, resize, and create use its listener lifecycle. Sign create now
+renders imperatively during the gesture and commits one state patch on release.
 
 ### Scope
 1. **Stand up `src/editor/geometry/` and `src/editor/gestures/pointer.ts`** by moving the pure parts of
@@ -330,7 +333,7 @@ draft persistence), removing today's duplication (§1e) and moving Redact onto t
 ## 6. Sequencing & per-ticket guardrail (every step)
 
 ```
-E4.1 ✅ ── E4.2 (controller + move core down) ── E4.3 (registry) ── E4.4 (converge Sign+Redact)
+E4.1 ✅ ── E4.2 ✅ ── E4.3 (registry) ── E4.4 (converge Sign+Redact)
 ```
 
 Each ticket lands independently behind a working editor. For **every** step:

@@ -1,4 +1,5 @@
 import usePdfCoordinates from './usePdfCoordinates.js';
+import { startGesture } from '../editor/gestures/controller.ts';
 import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,
@@ -183,15 +184,21 @@ export default function useWorkspaceGestures({
     dispatch({ type: 'ADD_ELEMENT', payload: newEl });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
 
-    const handlePointerMove = (moveEvent) => {
+    let pendingPatch = null;
+    const getElementNode = () => Array.from(
+      container.querySelectorAll('[data-editor-element-id]'),
+    ).find((node) => node.dataset.editorElementId === id);
+
+    startGesture({
+      computePatch: (moveEvent) => {
       const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
 
       if (isLineTool) {
         const { x, y } = getPointerPercent(moveEvent, container);
         const x2 = Math.max(0, Math.min(100, x));
         const y2 = Math.max(0, Math.min(100, y));
-        dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes: { x2, y2 } } });
-        return;
+        pendingPatch = { x2, y2 };
+        return pendingPatch;
       }
 
       const { x: widthPercent, y: heightPercent } = getDeltaPercent(
@@ -200,25 +207,35 @@ export default function useWorkspaceGestures({
         container,
       );
 
-      dispatch({
-        type: 'UPDATE_ELEMENT',
-        payload: {
-          id,
-          changes: {
-            left: widthPercent < 0 ? startLeftPercent + widthPercent : startLeftPercent,
-            top: heightPercent < 0 ? startTopPercent + heightPercent : startTopPercent,
-            width: Math.abs(widthPercent),
-            height: Math.abs(heightPercent),
-          },
-        },
-      });
-    };
+      pendingPatch = {
+        left: widthPercent < 0 ? startLeftPercent + widthPercent : startLeftPercent,
+        top: heightPercent < 0 ? startTopPercent + heightPercent : startTopPercent,
+        width: Math.abs(widthPercent),
+        height: Math.abs(heightPercent),
+      };
+      return pendingPatch;
+      },
+      writeDOM: (patch) => {
+        const elementNode = getElementNode();
+        if (!elementNode) return;
 
-    const handlePointerUp = () => {
-      window.removeEventListener('mousemove', handlePointerMove);
-      window.removeEventListener('mouseup', handlePointerUp);
-      window.removeEventListener('touchmove', handlePointerMove);
-      window.removeEventListener('touchend', handlePointerUp);
+        if (isLineTool) {
+          elementNode.querySelectorAll('line').forEach((line) => {
+            line.setAttribute('x2', `${patch.x2}%`);
+            line.setAttribute('y2', `${patch.y2}%`);
+          });
+          return;
+        }
+
+        elementNode.style.left = `${patch.left}%`;
+        elementNode.style.top = `${patch.top}%`;
+        elementNode.style.width = `${patch.width}%`;
+        elementNode.style.height = `${patch.height}%`;
+      },
+      commit: (patch) => {
+      if (patch) {
+        dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes: patch } });
+      }
 
       const dimensions = getDimensions(container);
       dispatch({
@@ -240,12 +257,8 @@ export default function useWorkspaceGestures({
         logAction('ADD_SHAPE', id, pageIndex, `Added ${tool}`);
         setAnnouncement(`Added ${tool}.`);
       }
-    };
-
-    window.addEventListener('mousemove', handlePointerMove);
-    window.addEventListener('mouseup', handlePointerUp);
-    window.addEventListener('touchmove', handlePointerMove, { passive: false });
-    window.addEventListener('touchend', handlePointerUp);
+      },
+    });
   };
 
   return { handlePageClick, handleOverlayPointerDown };

@@ -23,6 +23,7 @@ function makeOverlay({ left = 0, top = 0, width = 1000, height = 1000 } = {}) {
   return {
     getBoundingClientRect: () => ({ left, top, width, height, right: left + width, bottom: top + height }),
     closest: () => null,
+    querySelectorAll: () => [],
   };
 }
 
@@ -207,10 +208,14 @@ describe('useWorkspaceGestures – symbol remembered settings', () => {
 
 describe('useWorkspaceGestures – drag-drawn shape remembered settings', () => {
   const overlay = makeOverlay();
+  let listeners;
 
   beforeEach(() => {
     // handleOverlayPointerDown attaches window listeners — clean up after each test.
-    vi.spyOn(window, 'addEventListener').mockImplementation(() => {});
+    listeners = {};
+    vi.spyOn(window, 'addEventListener').mockImplementation((type, listener) => {
+      listeners[type] = listener;
+    });
     vi.spyOn(window, 'removeEventListener').mockImplementation(() => {});
   });
 
@@ -271,6 +276,22 @@ describe('useWorkspaceGestures – drag-drawn shape remembered settings', () => 
     });
     handleOverlayPointerDown(makeMouseDownEvent(100, 100, overlay), 0);
     expect(firstAddElement(dispatch)).toMatchObject({ strokeWidth: 3 });
+  });
+
+  it('does not dispatch geometry updates during a draw, then commits once on release', () => {
+    const { dispatch, handleOverlayPointerDown } = makeHook({ selectedTool: 'rectangle' });
+    handleOverlayPointerDown(makeMouseDownEvent(100, 100, overlay), 0);
+
+    listeners.mousemove(makeMouseDownEvent(300, 400, overlay));
+    listeners.mousemove(makeMouseDownEvent(400, 500, overlay));
+
+    expect(dispatch.mock.calls.filter(([action]) => action.type === 'UPDATE_ELEMENT')).toHaveLength(0);
+
+    listeners.mouseup();
+
+    const updates = dispatch.mock.calls.filter(([action]) => action.type === 'UPDATE_ELEMENT');
+    expect(updates).toHaveLength(1);
+    expect(updates[0][0].payload.changes).toEqual({ left: 10, top: 10, width: 30, height: 40 });
   });
 });
 
