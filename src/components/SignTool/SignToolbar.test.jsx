@@ -192,10 +192,10 @@ describe('SignToolbar Component', () => {
       sigBtn.click();
     });
 
-    const dropdown = document.body.querySelector('.sign-popover');
+    const dropdown = document.body.querySelector('[data-editor-signature-popover]');
     expect(dropdown).not.toBeNull();
 
-    const items = document.body.querySelectorAll('.sign-dropdown-item');
+    const items = document.body.querySelectorAll('[data-editor-signature-item]');
     expect(items.length).toBe(1);
 
     // Click the signature item to select it
@@ -211,7 +211,7 @@ describe('SignToolbar Component', () => {
       sigBtn.click(); // Re-open
     });
     
-    const deleteBtn = document.body.querySelector('.sign-dropdown-item-delete');
+    const deleteBtn = document.body.querySelector('[data-editor-signature-delete]');
     expect(deleteBtn).not.toBeNull();
 
     await act(async () => {
@@ -253,7 +253,7 @@ describe('SignToolbar Component', () => {
       expect(textSpan.textContent.trim().length).toBeGreaterThan(0);
       
       // Ensure the button is a direct child of the toolbar to avoid flexbox wrapper issues.
-      if (!btn.closest('.sign-popover')) {
+      if (!btn.closest('[data-editor-signature-popover]')) {
         const parentClassList = btn.parentElement.classList;
         expect(
           parentClassList.contains(styles.toolbar) ||

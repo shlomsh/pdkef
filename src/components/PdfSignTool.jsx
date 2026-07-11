@@ -11,6 +11,7 @@ import { createActionEntry } from '../lib/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import UndoHistoryModal from './UndoHistoryModal.jsx';
+import dialogStyles from './SignatureDialog.module.css';
 
 export default function PdfSignTool() {
   return (
@@ -713,26 +714,26 @@ function PdfSignToolInner() {
       {/* Start-over confirmation */}
       <dialog
         ref={resetDialogRef}
-        className="sig-dialog sig-dialog--narrow"
+        className={`${dialogStyles.dialog} ${dialogStyles.narrow}`}
         onClose={() => setConfirmResetOpen(false)}
         onClick={(e) => { if (e.target === e.currentTarget) setConfirmResetOpen(false); }}
         aria-labelledby="confirm-reset-title"
       >
-            <div className="sig-dialog-header">
+            <div className={dialogStyles.header}>
               <h3 id="confirm-reset-title">Start over?</h3>
-              <button type="button" className="sig-dialog-close" onClick={() => setConfirmResetOpen(false)} aria-label="Close dialog">
+              <button type="button" className={dialogStyles.close} onClick={() => setConfirmResetOpen(false)} aria-label="Close dialog">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                   <path d="M4 4l8 8M12 4l-8 8" />
                 </svg>
               </button>
             </div>
-            <div className="sig-dialog-body sig-dialog-body--tight">
-              <p className="sig-confirm-text">
+            <div className={`${dialogStyles.body} ${dialogStyles['body-tight']}`}>
+              <p className={dialogStyles['confirm-text']}>
                 This clears the current document and removes your saved draft. Your annotations can’t be recovered afterwards.
               </p>
             </div>
-            <div className="sig-dialog-footer">
-              <button type="button" className="sig-btn sig-btn-secondary" onClick={() => {
+            <div className={dialogStyles.footer}>
+              <button type="button" className={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={() => {
                 setConfirmResetOpen(false);
                 setPendingFile(null);
               }}>
@@ -740,7 +741,7 @@ function PdfSignToolInner() {
               </button>
               <button
                 type="button"
-                className="sig-btn sig-btn-primary sig-btn-danger"
+                className={`${dialogStyles.button} ${dialogStyles.primary} ${dialogStyles.danger}`}
                 onClick={async () => {
                   setConfirmResetOpen(false);
                   if (pendingFile) {

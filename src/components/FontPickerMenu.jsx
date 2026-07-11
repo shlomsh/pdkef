@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import Popover from './Popover.jsx';
+import styles from './EditorControls.module.css';
 import { HANDWRITING_FONTS } from '../lib/sign.js';
 
 // CSS font-family value to preview each option in its own font. All values
@@ -43,7 +44,7 @@ export default function FontPickerMenu({ value, onChange }) {
       trigger={
         <button
           type="button"
-          className="sign-element-btn sign-font-trigger"
+          className={`${styles['element-button']} ${styles['font-trigger']}`}
           title={`Font: ${current.label}`}
           aria-haspopup="true"
           aria-expanded={open}
@@ -52,13 +53,13 @@ export default function FontPickerMenu({ value, onChange }) {
         </button>
       }
       content={
-        <div className="sign-popover sign-font-menu" role="menu">
+        <div className={`${styles.popover} ${styles['font-menu']}`} role="menu">
           {STANDARD_FONTS.map((f) => (
             <button
               key={f.value}
               type="button"
               role="menuitem"
-              className={`sign-font-menu-item${f.value === current.value ? ' active' : ''}`}
+              className={`${styles['font-menu-item']}${f.value === current.value ? ` ${styles.active}` : ''}`}
               style={{ fontFamily: f.css }}
               onClick={() => {
                 onChange(f.value);
@@ -68,13 +69,13 @@ export default function FontPickerMenu({ value, onChange }) {
               {f.label}
             </button>
           ))}
-          <div className="sign-font-menu-group-label">Handwriting</div>
+          <div className={styles['font-menu-group-label']}>Handwriting</div>
           {HANDWRITING_OPTIONS.map((f) => (
             <button
               key={f.value}
               type="button"
               role="menuitem"
-              className={`sign-font-menu-item${f.value === current.value ? ' active' : ''}`}
+              className={`${styles['font-menu-item']}${f.value === current.value ? ` ${styles.active}` : ''}`}
               style={{ fontFamily: f.css }}
               onClick={() => {
                 onChange(f.value);

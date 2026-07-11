@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import ColorPicker from './ColorPicker.jsx';
+import styles from './EditorControls.module.css';
 import Popover from './Popover.jsx';
 
 // Compact trigger + popover wrapper around ColorPicker, reusing the same
@@ -18,13 +19,13 @@ export default function ColorPickerMenu({ value, onChange, title, defaultColor =
       trigger={
         <button
           type="button"
-          className="sign-element-btn sign-color-trigger"
+          className={`${styles['element-button']} ${styles['color-trigger']}`}
           title={title}
           aria-haspopup="true"
           aria-expanded={open}
         >
           <span
-            className="sign-color-trigger-swatch"
+            className={styles['color-trigger-swatch']}
             // Per-property CSSOM write, not a style="" attribute: dynamic color,
             // and element.style.* is exempt from a strict CSP style-src.
             ref={(el) => { if (el) el.style.background = swatchColor; }}
@@ -32,7 +33,7 @@ export default function ColorPickerMenu({ value, onChange, title, defaultColor =
         </button>
       }
       content={
-        <div className="sign-popover sign-color-menu" role="menu">
+        <div className={`${styles.popover} ${styles['color-menu']}`} data-editor-color-menu role="menu">
           <ColorPicker
             value={value}
             onChange={onChange}

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'preact/hooks';
 import SignaturePad from 'signature_pad';
 import ColorPicker from './ColorPicker.jsx';
 import { HANDWRITING_FONTS } from '../lib/sign.js';
+import styles from './SignatureDialog.module.css';
 
 export default function SignatureDialog({
   isOpen,
@@ -318,23 +319,24 @@ export default function SignatureDialog({
   };
 
   return (
-    <dialog ref={dialogRef} className="sig-dialog" closedby="any" aria-labelledby="dialog-title">
-      <div className="sig-dialog-header">
+    <dialog ref={dialogRef} className={styles.dialog} closedby="any" aria-labelledby="dialog-title">
+      <div className={styles.header}>
         <h3 id="dialog-title">Create Signature</h3>
-        <button type="button" className="sig-dialog-close" onClick={onClose} aria-label="Close dialog">
+        <button type="button" className={styles.close} data-editor-dialog-close onClick={onClose} aria-label="Close dialog">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M4 4l8 8M12 4l-8 8" />
           </svg>
         </button>
       </div>
 
-      <div className="sig-dialog-body">
-        <div className="sig-tabs" role="tablist">
+      <div className={styles.body}>
+        <div className={styles.tabs} role="tablist">
           <button
             type="button"
             role="tab"
             aria-selected={signatureMode === 'draw'}
-            className={`sig-tab-btn${signatureMode === 'draw' ? ' active' : ''}`}
+            className={`${styles.tab}${signatureMode === 'draw' ? ` ${styles.active}` : ''}`}
+            data-editor-dialog-tab="draw"
             onClick={() => setSignatureMode('draw')}
           >
             Draw
@@ -343,7 +345,8 @@ export default function SignatureDialog({
             type="button"
             role="tab"
             aria-selected={signatureMode === 'type'}
-            className={`sig-tab-btn${signatureMode === 'type' ? ' active' : ''}`}
+            className={`${styles.tab}${signatureMode === 'type' ? ` ${styles.active}` : ''}`}
+            data-editor-dialog-tab="type"
             onClick={() => setSignatureMode('type')}
           >
             Type
@@ -352,7 +355,8 @@ export default function SignatureDialog({
             type="button"
             role="tab"
             aria-selected={signatureMode === 'upload'}
-            className={`sig-tab-btn${signatureMode === 'upload' ? ' active' : ''}`}
+            className={`${styles.tab}${signatureMode === 'upload' ? ` ${styles.active}` : ''}`}
+            data-editor-dialog-tab="upload"
             onClick={() => setSignatureMode('upload')}
           >
             Upload
@@ -361,9 +365,9 @@ export default function SignatureDialog({
 
         {signatureMode === 'draw' && (
           <>
-            <div className="sig-pen-controls">
+            <div className={styles['pen-controls']}>
               <ColorPicker value={penColor} onChange={rememberPenColor} title="Pen color" defaultColor="#000000" />
-              <div className="sig-thickness-control">
+              <div className={styles['thickness-control']}>
                 <label htmlFor="sig-pen-thickness">Thickness</label>
                 <input
                   id="sig-pen-thickness"
@@ -376,9 +380,9 @@ export default function SignatureDialog({
                 />
               </div>
             </div>
-            <div className="sig-pad-wrapper">
-              <canvas ref={canvasPadRef} className="sig-canvas" />
-              <button type="button" className="sig-clear-btn" onClick={clearDrawing}>
+            <div className={styles.pad}>
+              <canvas ref={canvasPadRef} className={styles.canvas} />
+              <button type="button" className={styles.clear} onClick={clearDrawing}>
                 Clear
               </button>
             </div>
@@ -386,21 +390,24 @@ export default function SignatureDialog({
         )}
 
         {signatureMode === 'type' && (
-          <div className="sig-type-container">
+          <div className={styles['type-container']}>
             <input
               type="text"
-              className="sig-type-input"
+              className={styles['type-input']}
+              data-editor-signature-input
               placeholder="Type your name..."
               value={typedName}
               onInput={(e) => setTypedName(e.currentTarget.value)}
               autoFocus
             />
-            <div className="sig-font-picker" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem', justifyContent: 'center' }}>
+            <div className={styles['font-picker']}>
               {HANDWRITING_FONTS.map(font => (
                 <button
                   key={font}
                   type="button"
-                  className={`sig-font-btn ${typeFont === font ? 'active' : ''}`}
+                  className={`${styles['font-button']} ${typeFont === font ? styles.active : ''}`}
+                  data-editor-signature-font
+                  data-editor-active={typeFont === font || undefined}
                   onClick={() => setTypeFont(font)}
                   style={{
                     fontFamily: `'${font}', cursive`,
@@ -417,16 +424,16 @@ export default function SignatureDialog({
                 </button>
               ))}
             </div>
-            <div className="sig-type-preview" style={{ fontFamily: `'${typeFont}', cursive` }}>
+            <div className={styles['type-preview']} style={{ fontFamily: `'${typeFont}', cursive` }}>
               {typedName || 'Signature Preview'}
             </div>
           </div>
         )}
 
         {signatureMode === 'upload' && (
-          <div className="sig-upload-container">
+          <div className={styles['upload-container']}>
             {!uploadImage ? (
-              <label className="sig-upload-dropzone" onDragOver={(e) => e.preventDefault()} onDrop={handleUploadDrop}>
+              <label className={styles['upload-dropzone']} data-editor-upload-dropzone onDragOver={(e) => e.preventDefault()} onDrop={handleUploadDrop}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="17 8 12 3 7 8" />
@@ -443,7 +450,7 @@ export default function SignatureDialog({
               </label>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div className="sig-upload-preview">
+                <div className={styles['upload-preview']}>
                   {processedUploadImage ? (
                     <img src={processedUploadImage} alt="Uploaded signature preview" />
                   ) : (
@@ -451,7 +458,7 @@ export default function SignatureDialog({
                   )}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div className="sig-upload-options">
+                  <div className={styles['upload-options']}>
                     <label>
                       <input
                         type="checkbox"
@@ -461,7 +468,7 @@ export default function SignatureDialog({
                       Remove white background
                     </label>
                   </div>
-                  <button type="button" className="sig-clear-btn" style={{ position: 'static' }} onClick={clearUpload}>
+                  <button type="button" className={styles.clear} style={{ position: 'static' }} onClick={clearUpload}>
                     Change Image
                   </button>
                 </div>
@@ -471,13 +478,14 @@ export default function SignatureDialog({
         )}
       </div>
 
-      <div className="sig-dialog-footer">
-        <button type="button" className="sig-btn sig-btn-secondary" onClick={onClose}>
+      <div className={styles.footer}>
+        <button type="button" className={`${styles.button} ${styles.secondary}`} onClick={onClose}>
           Cancel
         </button>
         <button
           type="button"
-          className="sig-btn sig-btn-primary"
+          className={`${styles.button} ${styles.primary}`}
+          data-editor-signature-save
           onClick={handleSaveSignature}
           disabled={
             signatureMode === 'draw' ? !hasDrawn :

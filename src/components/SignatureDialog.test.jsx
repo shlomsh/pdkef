@@ -62,7 +62,7 @@ describe('SignatureDialog Component', () => {
     const dialog = container.querySelector('dialog');
     expect(dialog).not.toBeNull();
 
-    const tabBtns = container.querySelectorAll('.sig-tab-btn');
+    const tabBtns = container.querySelectorAll('[data-editor-dialog-tab]');
     expect(tabBtns.length).toBe(3);
     expect(tabBtns[0].textContent).toBe('Draw');
     expect(tabBtns[1].textContent).toBe('Type');
@@ -86,17 +86,17 @@ describe('SignatureDialog Component', () => {
       );
     });
 
-    const tabBtns = container.querySelectorAll('.sig-tab-btn');
+    const tabBtns = container.querySelectorAll('[data-editor-dialog-tab]');
     
     // Switch to Type mode
     await act(async () => {
       tabBtns[1].click(); // Type tab
     });
 
-    const typeInput = container.querySelector('.sig-type-input');
+    const typeInput = container.querySelector('[data-editor-signature-input]');
     expect(typeInput).not.toBeNull();
 
-    const saveBtn = container.querySelector('button.sig-btn-primary');
+    const saveBtn = container.querySelector('button[data-editor-signature-save]');
     expect(saveBtn.disabled).toBe(true);
 
     // Type a name
@@ -132,7 +132,7 @@ describe('SignatureDialog Component', () => {
       );
     });
 
-    const closeBtn = container.querySelector('.sig-dialog-close');
+    const closeBtn = container.querySelector('[data-editor-dialog-close]');
     expect(closeBtn).not.toBeNull();
 
     await act(async () => {

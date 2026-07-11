@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import DraggableWrapper from './DraggableWrapper.jsx';
+import elementStyles from './EditorElement.module.css';
 import TextNode from './nodes/TextNode.jsx';
 import workspaceStyles from './Workspace.module.css';
 
@@ -127,7 +128,7 @@ describe('DraggableWrapper RTL text positioning', () => {
     };
 
     const wrapper = mountWithPageWrapper(element, 612, () => {});
-    const box = wrapper.querySelector('.sign-element');
+    const box = wrapper.querySelector(`.${elementStyles.element}`);
 
     // Right edge = 100 - left, derived purely from `left` — never from width.
     expect(box.style.right).toBe('30%');
@@ -190,7 +191,7 @@ describe('DraggableWrapper RTL text positioning', () => {
     const onChangeCalls = [];
 
     const wrapper = mountWithPageWrapper(element, 612, (patch) => onChangeCalls.push(patch));
-    const box = wrapper.querySelector('.sign-element');
+    const box = wrapper.querySelector(`.${elementStyles.element}`);
 
     expect(box.style.left).toBe('20%');
     expect(box.style.right).toBe('');
@@ -208,15 +209,15 @@ describe('DraggableWrapper RTL text positioning', () => {
     };
 
     const wrapper = mountWithPageWrapper(element, 612, () => {});
-    const measure = wrapper.querySelector('.sign-text-measure');
-    const input = wrapper.querySelector('.sign-text-input');
+    const measure = wrapper.querySelector(`.${elementStyles['text-measure']}`);
+    const input = wrapper.querySelector(`.${elementStyles['text-input']}`);
 
-    // Padding is owned by the single `.sign-text-input, .sign-text-measure` rule
+    // Padding is owned by the single `[data-editor-text-input], [data-editor-text-measure]` rule
     // in global.css, not by inline styles. Both elements carrying those classes
     // with NO inline padding is what guarantees identical box metrics — a stronger
     // guarantee than two copies of an inline value that could drift out of sync.
-    expect(measure.className).toContain('sign-text-measure');
-    expect(input.className).toContain('sign-text-input');
+    expect(measure.className).toBe(elementStyles['text-measure']);
+    expect(input.className).toBe(elementStyles['text-input']);
     expect(measure.style.padding).toBe('');
     expect(input.style.padding).toBe('');
   });
@@ -232,8 +233,8 @@ describe('DraggableWrapper RTL text positioning', () => {
     };
 
     const wrapper = mountWithPageWrapper(element, 612, () => {});
-    const input = wrapper.querySelector('textarea.sign-text-input');
-    const measure = wrapper.querySelector('.sign-text-measure');
+    const input = wrapper.querySelector(`textarea.${elementStyles['text-input']}`);
+    const measure = wrapper.querySelector(`.${elementStyles['text-measure']}`);
 
     // A bare textarea defaults to ~20 cols and forces that intrinsic width onto the
     // grid track, stranding short text in a wide box. cols=1 removes that so the

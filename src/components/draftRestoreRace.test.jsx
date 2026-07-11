@@ -110,7 +110,7 @@ describe('draft-restore vs. manual file pick race', () => {
 
     let announcement = container.querySelector('p.sr-only[role="status"]');
     expect(announcement.textContent).toContain('fresh-user-pick.pdf');
-    expect(container.querySelectorAll('.sign-element').length).toBe(0);
+    expect(container.querySelectorAll('[data-editor-element]').length).toBe(0);
 
     // The stale restore resolves well after the fresh pick already finished loading.
     await act(async () => {
@@ -126,7 +126,7 @@ describe('draft-restore vs. manual file pick race', () => {
     expect(announcement.textContent).toContain('fresh-user-pick.pdf');
     expect(announcement.textContent).not.toContain('draft-old.pdf');
     // Stale draft's element must never have been applied on top of the fresh file.
-    expect(container.querySelectorAll('.sign-element').length).toBe(0);
+    expect(container.querySelectorAll('[data-editor-element]').length).toBe(0);
   });
 
   it('PdfSignTool: restores the draft normally when no manual pick preempts it', async () => {

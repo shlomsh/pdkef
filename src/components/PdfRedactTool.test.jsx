@@ -349,7 +349,7 @@ describe('PdfRedactTool UI flow', () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
     });
 
-    const resizer = box.querySelector('.sign-element-resizer.corner.bottom-right');
+    const resizer = box.querySelector('[data-editor-resizer="bottom-right"]');
     expect(resizer).not.toBeNull();
 
     await act(async () => {
@@ -429,7 +429,7 @@ describe('PdfRedactTool UI flow', () => {
     }
 
     async function dragHandle(box, handleClass, downX, downY, moveX, moveY) {
-      const handle = box.querySelector(`.sign-element-resizer.${handleClass}`);
+      const handle = box.querySelector(`[data-editor-resizer="${handleClass}"]`);
       expect(handle).not.toBeNull();
       await act(async () => {
         handle.dispatchEvent(new MouseEvent('mousedown', { clientX: downX, clientY: downY, bubbles: true }));
@@ -498,11 +498,11 @@ describe('PdfRedactTool UI flow', () => {
     it('whiteout uses the floating toolbar delete control instead of the overlapping red corner delete button', async () => {
       const box = await setupSelectedWhiteoutBox();
 
-      expect(box.classList.contains('sign-element--shape')).toBe(true);
+      expect(box.hasAttribute('data-editor-shape')).toBe(true);
       expect(box.querySelector('.redact-element-btn')).toBeNull();
-      expect(box.querySelector('.sign-element-resizer.corner.top-right')).not.toBeNull();
+      expect(box.querySelector('[data-editor-resizer="top-right"]')).not.toBeNull();
 
-      const toolbarDelete = box.querySelector('.sign-element-actions button[title="Delete element"]');
+      const toolbarDelete = box.querySelector('[data-editor-actions] button[title="Delete element"]');
       expect(toolbarDelete).not.toBeNull();
     });
 
@@ -521,10 +521,10 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
 
-      expect(box.classList.contains('sign-element--shape')).toBe(true);
+      expect(box.hasAttribute('data-editor-shape')).toBe(true);
       expect(box.querySelector('.redact-element-btn')).not.toBeNull();
       expect(box.querySelector('.redact-box-resizer')).toBeNull();
-      expect(box.querySelectorAll('.sign-element-resizer').length).toBe(8);
+      expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
       expect(box.querySelector('.redact-element-btn').style.top).toBe('8px');
       expect(box.querySelector('.redact-element-btn').style.right).toBe('8px');
     });
@@ -552,8 +552,8 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
 
-      expect(box.classList.contains('sign-element--shape')).toBe(true);
-      expect(box.querySelectorAll('.sign-element-resizer').length).toBe(8);
+      expect(box.hasAttribute('data-editor-shape')).toBe(true);
+      expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
       expect(box.querySelector('.redact-element-btn').style.top).toBe('8px');
       expect(box.querySelector('.redact-element-btn').style.right).toBe('8px');
     });
@@ -635,7 +635,7 @@ describe('PdfRedactTool UI flow', () => {
     }
 
     async function dragHandle(box, handleClass, downX, downY, moveX, moveY) {
-      const handle = box.querySelector(`.sign-element-resizer.${handleClass}`);
+      const handle = box.querySelector(`[data-editor-resizer="${handleClass}"]`);
       expect(handle).not.toBeNull();
       await act(async () => {
         handle.dispatchEvent(new MouseEvent('mousedown', { clientX: downX, clientY: downY, bubbles: true }));

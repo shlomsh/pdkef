@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import Popover from './Popover.jsx';
+import styles from './EditorControls.module.css';
 
 const THICKNESS_OPTIONS = [1, 2, 3, 5, 8, 12, 16];
 
@@ -15,7 +16,7 @@ export default function ThicknessPickerMenu({ value, onChange, title }) {
       trigger={
         <button
           type="button"
-          className="sign-element-btn"
+          className={styles['element-button']}
           title={title}
           aria-haspopup="true"
           aria-expanded={open}
@@ -26,7 +27,7 @@ export default function ThicknessPickerMenu({ value, onChange, title }) {
         </button>
       }
       content={
-        <div className="sign-popover" role="menu" style={{ minWidth: '100px', padding: '0.15rem', cursor: 'default' }}>
+        <div className={styles.popover} role="menu" style={{ minWidth: '100px', padding: '0.15rem', cursor: 'default' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.05rem' }}>
             {THICKNESS_OPTIONS.map(thickness => (
               <button
@@ -35,7 +36,8 @@ export default function ThicknessPickerMenu({ value, onChange, title }) {
                 // Selected state uses a class (not an inline background) so the
                 // .sign-menu-item:hover rule isn't overridden by an inline style —
                 // that's what killed the hover feedback before.
-                className={`sign-menu-item sign-thickness-item${thickness === currentThickness ? ' is-selected' : ''}`}
+                className={`${styles['menu-item']} ${styles['thickness-item']}${thickness === currentThickness ? ` ${styles['is-selected']}` : ''}`}
+                data-editor-thickness={thickness}
                 onClick={() => {
                   onChange(thickness);
                   setOpen(false);

@@ -296,7 +296,7 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
     but requires a **judgment call on ownership** (which shared module truly owns each generic) — that
     boundary decision, plus the same keyframe-orphaning audit, is why it's not purely junior. Closing this
     sub-commit **completes E2.2** — flip E2.2 to *done* and drop the "in progress" note.
-- **E2.3 Migrate editor `.sign-*` / `.sig-*` styles into scoped CSS Modules.** This is a migration of a
+- **E2.3 Migrate editor `.sign-*` / `.sig-*` styles into scoped CSS Modules - done.** This is a migration of a
   **shared Sign + Redact styling graph**, not a selector-block copy. CSS Module hashing also changes
   selectors used by imperative editor code (`closest` / `querySelector`), component tests, and e2e tests.
   Preserve descendant cascades such as selected-element toolbar visibility as real module CSS; do not
@@ -667,7 +667,7 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 ```
 Lane A (now):   E0.1 ──► E0.2
 Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓ E1.5✓ E1.6✓ E1.6a✓ E1.7✓ E1.7a✓ E1.8✓  ── gate ──► E2.*, E3.2, E4 verification
-Lane C:         E2.1 ──► E2.2✓ ──► E2.3        (E2.3 also needs E1.4; E2.4/E2.5/E2.6 complete)
+Lane C:         E2.1 ──► E2.2✓ ──► E2.3✓       (E2.3 also needs E1.4; E2.4/E2.5/E2.6 complete)
 Lane D:         E3.1 ──► E3.2✓ ──► E3.3✓       (E3.2 also needs E1.1, E1.2)
 Lane E:         E4.1 ──► E4.2 ──► E4.3 ──► E4.4   (E4.2 also needs E0.1)
 ```
