@@ -2,12 +2,13 @@
 
 > Execution plan for backlog epic **E4** (tickets E4.2, E4.3, E4.4) in [scrum.md](../scrum.md).
 > Design standard: [ARCHITECTURE.md](../ARCHITECTURE.md) §1.2 (gesture hot path), §3.2 (editor core),
-> §3.1 (styling boundary), §4 (gesture golden rule), §5 (known hazards). **E4.1 is done** (the
-> `src/lib/editorModel.ts` discriminated union + `coords.ts`). This is the reference a fresh session
+> §3.1 (styling boundary), §4 (gesture golden rule), §5 (known hazards). **E4.1 and E4.2 are done**:
+> E4.1 introduced `src/lib/editorModel.ts` and `coords.ts`; E4.2 introduced the framework-free gesture
+> controller and pointer normaliser. This is the reference a fresh session
 > reads before touching the Sign/Redact editors.
 >
 > **Lane E is internally serial:** E4.2 → E4.3 → E4.4. It runs in parallel with E2 (Lane C) and E3
-> (Lane D). E4.2 is unblocked now (its deps E4.1 and E0.1 are both done).
+> (Lane D). **E4.3 is next**; its E4.2 dependency is satisfied.
 
 ---
 
@@ -164,12 +165,14 @@ pointerdown and `registry[el.type].render(...)` for the body; it no longer conta
 
 ---
 
-## 3. E4.2 — Extract the framework-agnostic core + unified gesture controller
+## 3. E4.2 — Extract the framework-agnostic core + unified gesture controller — done
 
 **Goal:** one "imperative-during, commit-on-release" controller unifying **drag, resize, and create**,
 so they cannot diverge again (ARCHITECTURE §3.2, §4). Preact becomes a thin shell.
 
-**Depends on:** E4.1 ✅, E0.1 ✅. **Do not start E4.3 until this lands.**
+**Depends on:** E4.1 ✅, E0.1 ✅. Landed with the controller and pointer normaliser in
+`src/editor/gestures/`; Sign drag, resize, and create use its listener lifecycle. Sign create now
+renders imperatively during the gesture and commits one state patch on release.
 
 ### Scope
 1. **Stand up `src/editor/geometry/` and `src/editor/gestures/pointer.ts`** by moving the pure parts of
@@ -210,21 +213,22 @@ so they cannot diverge again (ARCHITECTURE §3.2, §4). Preact becomes a thin sh
 
 ---
 
-## 4. E4.3 — Per-element-type registry
+## 4. E4.3a/E4.3b — Per-element-type registry
 
-**Goal:** each type is a module `{ create, resizeBehavior, render, serialize, schema }`; the
-`type === 'line'` / `isShape` / `symbol||signature` branching in `handleResizeStart` and the
-`DRAG_DRAWN_TOOLS` list disappear. **Supersedes** the old lighter `geometryKind` idea.
+**E4.3a goal:** each type owns its resize behavior in `src/editor/registry/<type>.ts`; the
+`type === 'line'` / `isShape` / `symbol||signature` branching in `handleResizeStart` disappears.
+**E4.3b goal:** extend the same modules with `{ create, render, serialize, schema }`, retiring the
+`DRAG_DRAWN_TOOLS` list and Sign creation/render/bake type branches. This split keeps the already
+valuable geometry boundary independently shippable.
 
 **Depends on:** E4.2.
 
 ### Scope
 1. **Create `src/editor/registry/` with one module per type** (§1c is the full behavior spec). Move the
-   per-branch math out of `DraggableWrapper.handleResizeMove` into each type's `resizeBehavior.apply`,
-   and the per-tool creation seeds out of `useWorkspaceGestures` into each type's `create`.
-2. **`DraggableWrapper` and `useWorkspaceGestures` look up the registry** by `el.type` instead of
-   branching. `ElementResizers` reads `registry[type].resizeBehavior.handles` to decide which handles to
-   render (replacing its `isShape`/`isLine` props).
+   per-branch math out of `DraggableWrapper.handleResizeMove` into each type's `resizeBehavior.apply`.
+2. **`DraggableWrapper` looks up the registry** by `el.type` instead of branching. `ElementResizers`
+   reads `registry[type].resizeBehavior.handles` to decide which handles to render (replacing its
+   `isShape`/`isLine` props).
 3. **The controller (E4.2) calls `registry[type].resizeBehavior.apply(...)`** as its `computePatch`.
    No shared function post-processes geometry across handles or types.
 
@@ -244,6 +248,18 @@ so they cannot diverge again (ARCHITECTURE §3.2, §4). Preact becomes a thin sh
   `PdfRedactTool.jsx` is retired in E4.4; E4.3 gets Sign down to the single registry owner + Redact's
   lingering copy = 2 files, and E4.4 finishes the job at 1.)
 - Sign e2e + build/preview CSP pass unchanged.
+- **Controller purity (do not let the abstraction erode):** `computePatch` is side-effect-free and
+  returns the patch; `writeDOM(patch)` performs every CSSOM/SVG write. A no-op `writeDOM` with painting
+  done inside `computePatch` (the transitional state in `DraggableWrapper.jsx`) is not an acceptable
+  end state — it degrades `startGesture` to a listener-attach shim.
+- **Touch scroll:** `startGesture` sets `{ passive: false }` but does not itself call `preventDefault`;
+  each caller's `computePatch` must prevent default during the gesture. Verify in `e2e/sign/`.
+
+### E4.3b follow-on scope
+
+Each module gains `create` (point-place and drag-draw seeds), `render` (wrapping the current node
+components), `serialize` (the existing `sign.js` bake behavior), and `schema`. `useWorkspaceGestures`,
+`PdfWorkspace`, and `sign.js` then select the registry entry instead of branching on `type`.
 
 ### Risks
 - **Text is the odd one out:** it resizes `fontSize`, not `width`/`height`, and re-derives `left`/`top`
@@ -262,7 +278,7 @@ so they cannot diverge again (ARCHITECTURE §3.2, §4). Preact becomes a thin sh
 **Goal:** Sign and Redact share the editor core and one PDF-workspace substrate (load, page render,
 draft persistence), removing today's duplication (§1e) and moving Redact onto the golden rule (§1a).
 
-**Depends on:** E4.2, E4.3.
+**Depends on:** E4.2, E4.3b.
 
 ### Scope
 1. **Reconcile the models (§1d).** Fold Redact's `blackout` and `blur` into the `type` union as
@@ -330,7 +346,7 @@ draft persistence), removing today's duplication (§1e) and moving Redact onto t
 ## 6. Sequencing & per-ticket guardrail (every step)
 
 ```
-E4.1 ✅ ── E4.2 (controller + move core down) ── E4.3 (registry) ── E4.4 (converge Sign+Redact)
+E4.1 ✅ ── E4.2 ✅ ── E4.3a (resize registry) ── E4.3b (create/render/serialize) ── E4.4 (converge Sign+Redact)
 ```
 
 Each ticket lands independently behind a working editor. For **every** step:

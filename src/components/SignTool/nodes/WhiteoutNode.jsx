@@ -8,8 +8,6 @@ export default function WhiteoutNode({ element, isActive, onResizeStart }) {
       <ElementResizers 
         element={element}
         isActive={isActive}
-        isShape={true}
-        isLine={false}
         onResizeStart={onResizeStart}
       />
     </>

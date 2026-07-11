@@ -26,8 +26,6 @@ export default function SymbolNode({ element, isActive, onResizeStart }) {
       <ElementResizers 
         element={element}
         isActive={isActive}
-        isShape={false}
-        isLine={false}
         onResizeStart={onResizeStart}
       />
     </>

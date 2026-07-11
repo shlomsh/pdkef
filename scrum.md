@@ -520,33 +520,50 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   callback seam, and the OS-install tab script guards its optional `aria-controls` value before lookup.
   `npm run typecheck` is now project-wide error-free (hints only).
   - *Depends on:* - · *Lane:* E
-- **E4.2 Extract a framework-agnostic `editor/` core** (document model + geometry + gesture
-  controllers) with **one** "imperative-during, commit-on-release" controller unifying drag, resize
-  **and create**, so they can't diverge again (ARCHITECTURE §3.2, §4). Preact becomes a thin
-  render/event shell. **Low-level design: [plan §2, §3](./docs/E4-headless-editor-core-plan.md).**
+- **E4.2 Extract a framework-agnostic `editor/` core - done.** Added the plain-TS
+  `src/editor/gestures/controller.ts` lifecycle: it computes and paints a patch per movement, then
+  commits the final patch exactly once on release. `pointer.ts` supplies the framework-neutral
+  mouse/touch coordinate reader. Sign drag, resize, and drag-drawn creation all route their listener
+  lifecycle through the controller; creation now paints with CSSOM/SVG during the gesture and dispatches
+  a single `UPDATE_ELEMENT` only on release. The controller and workspace tests explicitly cover the
+  once-only commit rule. E4.3 will move the remaining per-type resize geometry into the registry.
   - *Depends on:* E4.1, E0.1 · *Lane:* E
-  - *Acceptance:* drag, resize **and create** each commit **once per gesture** (`console.count` proof —
-    create fails today); E1.5 invariants + Sign e2e green with no source math rewritten (moved, not
-    changed); `build && preview` CSP pass, zero `securitypolicyviolation`.
-- **E4.3 Per-element-type registry** - each type a module `{ create, render, resizeBehavior, serialize,
-  schema }`; removes the `type === 'line'` / `!isLine` / `isShape` branching in `handleResizeMove` and
-  the `DRAG_DRAWN_TOOLS` list. *(Supersedes the old lighter `geometryKind` half-measure - the registry
-  is the chosen fix; per-type `nodes/` already exist as the seam.)* **Low-level design + full per-type
-  behavior inventory: [plan §1c, §4](./docs/E4-headless-editor-core-plan.md).**
+  - *Verification:* 294 non-PDF-worker unit tests, the focused Sign editor suite (77 tests), TypeScript,
+    production build/CSP hash check, and the Sign Playwright guardrail all pass. The worktree's three
+    PDF raster integration tests remain blocked by its absent local `pdfjs-dist` worker copy, unrelated
+    to this change.
+- **E4.3a Per-element-type** ***resize*** **registry** - each type owns its own resize behavior in a registry
+  module (`src/editor/registry/<type>.ts`): the handle set plus per-handle, anchor-preserving geometry.
+  Removes the `type === 'text'` / `symbol||signature` / `line-start`/`line-end` / box branching from
+  `DraggableWrapper.jsx handleResizeMove`. Box types (rectangle/ellipse/whiteout) share `boxResize.ts`;
+  text (fontSize diagonal scaling), symbol/signature (center-anchored aspect-lock + symbol px floor),
+  and line (endpoint move) get their own module behavior. **Low-level design + per-type inventory:
+  [plan §1c, §4](./docs/E4-headless-editor-core-plan.md).**
   - *Depends on:* E4.2 · *Lane:* E
   - *Acceptance (sharpened by the whiteout-resize post-mortem):* **no shared function post-processes
-    geometry across handles or types** - each type's `resizeBehavior` owns its own per-handle bounds,
-    expressed against that handle's true anchor edge, so a clamp change to one type cannot corrupt
-    another (the exact failure mode of `434e844`). Every type's `resizeBehavior` is covered by the E1.5
-    invariants. **Duplication proof:** `git grep -l "maxWidthFromRightGrowth\|maxHeightFromBottomGrowth"
-    -- 'src/**'` (baseline **2 files**) must no longer list `DraggableWrapper.jsx` — the Sign shape
-    branch is deleted in favor of a registry lookup (Redact's copy is retired in E4.4).
+    geometry across element families** - each type's resize behavior owns its own per-handle bounds
+    against that handle's true anchor edge (a shared `boxResize` among box-geometry types is fine; a
+    blanket cross-type clamp is the banned `434e844` failure mode). Every type is covered by the E1.5
+    invariants. **Controller purity:** `computePatch` returns a pure patch and performs **no** DOM
+    writes; `writeDOM(patch)` owns all CSSOM/SVG painting; `commit` fires once per gesture
+    (`console.count` proof). **Duplication proof:** `git grep -l
+    "maxWidthFromRightGrowth\|maxHeightFromBottomGrowth" -- 'src/**'` must not list
+    `DraggableWrapper.jsx` (Redact's copy is retired in E4.4). **Mobile:** touch scroll is prevented
+    during gesture (verified in `e2e/sign/`, not jsdom).
+- **E4.3b Per-element-type** ***create/render/serialize*** **registry** - extend each registry module with
+  `create` (the point-place + drag-draw seeds now in `useWorkspaceGestures.js`, retiring the
+  `DRAG_DRAWN_TOOLS` list), `render` (wrapping today's `SignTool/nodes/*.jsx`), `serialize` (the
+  `sign.js` bake per type), and `schema`. Completes the `{ create, render, resizeBehavior, serialize,
+  schema }` module shape from ARCHITECTURE §3.
+  - *Depends on:* E4.3a · *Lane:* E
+  - *Acceptance:* no `type`-branching remains for creation/render/bake in the Sign components; adding a
+    hypothetical new type touches only new files.
 - **E4.4 Converge Sign and Redact** onto the shared core + a common PDF-workspace substrate
   (load, page render, draft persistence), removing duplication. Reconcile the two element models
   (Redact's `style` field vs the `type` union - fold `blackout`/`blur`/`whiteout` into the registry)
   and move Redact's per-move-dispatch gestures onto the golden-rule controller. **Low-level design +
   model reconciliation + bake-out seam: [plan §1d, §1e, §5](./docs/E4-headless-editor-core-plan.md).**
-  - *Depends on:* E4.2, E4.3 · *Lane:* E
+  - *Depends on:* E4.2, E4.3b · *Lane:* E
   - *Acceptance:* Redact drag/resize/create each commit **once per gesture** (`console.count` proof — all
     three fail today); the shape-resize math has **exactly one owner** — `git grep -l
     "maxWidthFromRightGrowth\|maxHeightFromBottomGrowth" -- 'src/**'` returns **1 file** (down from 2),
