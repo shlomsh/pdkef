@@ -42,9 +42,6 @@ export default function RedactBox({
 
   const isWhiteout = el.type === 'whiteout';
   const hasShapeHandles = true;
-  const whiteoutBorderColor = isSelected
-    ? 'var(--color-primary)'
-    : (isActiveHover ? 'var(--color-muted-light)' : 'transparent');
   const surface = getElementDefinition(el.type).render({
     element: el,
     onChange: () => {},
@@ -53,10 +50,24 @@ export default function RedactBox({
     renderTarget: 'redact',
   });
 
+  // Fill/blur/border for every redaction type is owned solely by `surface`
+  // (renderRedactionSurface, via the registry's render()) - the host div
+  // below carries only geometry, interaction chrome, and a selection class
+  // (E7.4). Whiteout's border is selection/hover-state-driven, so that part
+  // lives in PdfRedactTool.module.css's `.redact-box--whiteout` rules rather
+  // than a JS-computed color.
+  const className = [
+    styles['redact-box'],
+    isWhiteout && styles['redact-box--whiteout'],
+    isActiveHover && styles.active,
+    isSelected && styles.selected,
+    hasShapeHandles && elementStyles.shape,
+  ].filter(Boolean).join(' ');
+
   return (
     <div
       ref={refs.setReference}
-      className={`${styles['redact-box']}${isActiveHover ? ` ${styles.active}` : ''}${hasShapeHandles ? ` ${elementStyles.shape}` : ''}`}
+      className={className}
       data-editor-shape={hasShapeHandles || undefined}
       onMouseDown={(e) => onDragStart(e, el)}
       onTouchStart={(e) => onDragStart(e, el)}
@@ -68,16 +79,6 @@ export default function RedactBox({
         top: `${el.top}%`,
         width: `${el.width}%`,
         height: `${el.height}%`,
-        // Keep the host paint for the browser selector contract. The registry
-        // surface owns the same per-type render semantics for consumers that
-        // render an element without this interactive workspace adapter.
-        backgroundColor: el.type === 'blur' ? 'rgba(255,255,255,0.1)' : (isWhiteout ? el.color || '#ffffff' : '#000000'),
-        backdropFilter: el.type === 'blur' ? 'blur(8px)' : 'none',
-        WebkitBackdropFilter: el.type === 'blur' ? 'blur(8px)' : 'none',
-        border: el.type === 'blur'
-          ? '1px solid rgba(0,0,0,0.2)'
-          : (isWhiteout ? `1px dashed ${whiteoutBorderColor}` : '1px solid #333'),
-        boxShadow: isWhiteout && isSelected ? '0 0 0 1px var(--color-primary-ring)' : 'none',
         cursor: 'move',
         touchAction: 'none',
         zIndex: 10

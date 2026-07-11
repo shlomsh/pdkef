@@ -16,3 +16,21 @@
   opacity: 1;
   pointer-events: auto;
 }
+
+/* Whiteout's border reads as a true erase at rest (transparent) and only
+   appears on hover/selection - selection wins over hover when both apply,
+   which this rule order encodes (E7.4: state-driven visuals live in CSS,
+   not JS-computed color ternaries). Blackout/blur's border is static and
+   owned by the registry's renderRedactionSurface instead. */
+.redact-box--whiteout {
+  border: 1px dashed transparent;
+}
+
+.redact-box--whiteout.active {
+  border-color: var(--color-muted-light);
+}
+
+.redact-box--whiteout.selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary-ring);
+}

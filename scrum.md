@@ -737,16 +737,27 @@ more than any numeric audit score suggests and must **not** be reopened while cl
   - *Depends on:* E7.2 · *Lane:* E
   - *Acceptance:* the editor-path components are `.tsx` and `npm run typecheck` is clean; a wrong element
     field in one of those components is a compile error, not a runtime surprise.
-- **E7.4 Collapse RedactBox's duplicate paint and kill its inline-conditional visuals.**
-  `RedactBox.jsx:73-79` expresses fill/blur/border/selection as inline JS ternaries
-  (`el.type === 'blur' ? … : (isWhiteout ? … : …)`) — the exact "state as inline conditional strings"
-  anti-pattern of ARCHITECTURE §3.1/§7 — and re-paints the fill that `registry/redactionSurface.ts:13-15`
-  already renders (self-admitted in the `RedactBox.jsx:70-72` comment). Make `renderRedactionSurface` the
-  sole fill/blur/border owner; reduce the host `<div>` to geometry (`left/top/width/height`) + a
-  selection class; move `.active`/`.selected` and per-type fill visuals into RedactBox's CSS Module.
+- **E7.4 Collapse RedactBox's duplicate paint and kill its inline-conditional visuals - done.**
+  `renderRedactionSurface` (`registry/redactionSurface.ts`) is now the sole fill/blur/border owner for
+  blackout/blur (static per-type treatment); whiteout's border is `none` there since it's
+  selection/hover-state-dependent, not a redaction-surface visual. `RedactBox.jsx`'s host `<div>` lost its
+  `backgroundColor`/`backdropFilter`/`WebkitBackdropFilter`/`border`/`boxShadow` ternaries entirely - its
+  inline `style` is now geometry (`left/top/width/height`) plus interaction chrome
+  (`cursor`/`touchAction`/`zIndex`). Selection/hover state moved into `PdfRedactTool.module.css` as
+  `.redact-box--whiteout` (transparent border at rest) + `.redact-box--whiteout.active` (muted-light
+  border on hover) + `.redact-box--whiteout.selected` (primary border + ring, rule-order-wins over
+  `.active` when both classes apply, matching the removed ternary's priority).
   - *Depends on:* - · *Lane:* E / C
-  - *Acceptance:* no per-type visual ternaries remain in `RedactBox.jsx`; selection/fill live in the
-    module cascade; one paint owner; Redact e2e + `build && preview` CSP pass.
+  - *Found and fixed along the way:* `e2e/redact/redact-editor.spec.js` had the same stale literal
+    `.redact-box`/`.redact-element-btn` selector bug already fixed in the unit test
+    (`PdfRedactTool.test.jsx`) - the class is CSS-Modules-hashed since Redact's CSS moved into a module.
+    Switched to the `[class*="redact-box"]`/`[class*="redact-element-btn"]` substring-match pattern
+    `e2e/sign/sign-editor.spec.js` already uses for the same reason, and updated the whiteout
+    background-color assertion to check `.redact-surface` (the inset child) instead of the host box, since
+    that's now where the fill correctly lives.
+  - *Acceptance:* no per-type visual ternaries remain in `RedactBox.jsx` (confirmed by reading the file);
+    selection/fill live in the module cascade; one paint owner (`renderRedactionSurface`). Full unit suite
+    green (344/344); full e2e suite green (8/8, including both Redact specs); `build && preview` CSP pass.
 - **E7.5 Converge Redact's gesture wiring onto the shared hooks.** The controller's commit-once is
   shared, but the **wiring** is not: `PdfRedactTool.jsx:215,327,357` reimplement create/drag/resize
   inline instead of Sign's `useDraggableElement`/`useWorkspaceGestures`. Route Redact's create/drag/

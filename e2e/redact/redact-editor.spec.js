@@ -100,7 +100,7 @@ async function selectRedactStyle(page, name) {
 
 async function drawRedaction(page, styleName, startRatio, endRatio) {
   await selectRedactStyle(page, styleName);
-  const beforeCount = await page.locator('.redact-box').count();
+  const beforeCount = await page.locator('[class*="redact-box"]').count();
   const overlay = page.locator('.redact-draw-area').first();
   await overlay.scrollIntoViewIfNeeded();
   // The PDF page is taller than the viewport. scrollIntoViewIfNeeded() only
@@ -131,8 +131,8 @@ async function drawRedaction(page, styleName, startRatio, endRatio) {
   await page.waitForTimeout(50);
   await page.mouse.up();
 
-  await expect(page.locator('.redact-box')).toHaveCount(beforeCount + 1);
-  const redaction = page.locator('.redact-box').nth(beforeCount);
+  await expect(page.locator('[class*="redact-box"]')).toHaveCount(beforeCount + 1);
+  const redaction = page.locator('[class*="redact-box"]').nth(beforeCount);
   await expect(redaction).toBeVisible();
   return redaction;
 }
@@ -189,7 +189,7 @@ test.describe('Redact editor browser guardrails', () => {
 
     await blackout.hover();
     const blackoutBox = await getBox(blackout, 'Blackout box');
-    const redDelete = blackout.locator('.redact-element-btn');
+    const redDelete = blackout.locator('[class*="redact-element-btn"]');
     await expect(redDelete).toBeVisible();
     const redDeleteBox = await getBox(redDelete, 'Blackout delete button');
     expect(redDeleteBox.x).toBeGreaterThanOrEqual(blackoutBox.x);
@@ -218,8 +218,10 @@ test.describe('Redact editor browser guardrails', () => {
 
     await selectRedaction(whiteout);
     await expect(whiteout.locator('[data-editor-resizer]')).toHaveCount(8);
-    await expect(whiteout.locator('.redact-element-btn')).toHaveCount(0);
-    await expect(whiteout).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+    await expect(whiteout.locator('[class*="redact-element-btn"]')).toHaveCount(0);
+    // Fill lives on the inset registry-rendered surface, not the host box
+    // (E7.4 - renderRedactionSurface is the sole fill/blur/border owner).
+    await expect(whiteout.locator('.redact-surface')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 
     const floatingToolbar = whiteout.locator('[data-editor-actions]');
     await expect(floatingToolbar).toBeVisible();
