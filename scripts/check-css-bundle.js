@@ -46,8 +46,10 @@ for (const file of htmlFiles) {
   }
 }
 
-// 85KB maximum threshold to prevent Tailwind monolith regressions.
-const MAX_CSS_SIZE_BYTES = 1000;
+// 80KB maximum per-page compiled CSS budget. This includes global CSS and every
+// CSS Module Astro inlines for the page; editor selectors in global.css are
+// guarded separately by check-editor-global-css.js.
+const MAX_CSS_SIZE_BYTES = 80_000;
 
 if (maxCssSize > MAX_CSS_SIZE_BYTES) {
   console.error(`❌ CSS Budget exceeded! Max inline CSS size is ${maxCssSize} bytes, which exceeds the threshold of ${MAX_CSS_SIZE_BYTES} bytes.`);
