@@ -102,10 +102,11 @@ export default function RedactBox({
       )}
       {hasShapeHandles ? (
         <ElementResizers
-          element={el}
+          // Redact still discriminates with `style`; E4.4 reconciles that
+          // model. Its resize behavior is the same eight-handle box behavior
+          // as a Sign whiteout in the interim.
+          element={{ ...el, type: 'whiteout' }}
           isActive={isSelected}
-          isShape={true}
-          isLine={false}
           onResizeStart={(e, handle) => onResizeStart(e, el, handle)}
         />
       ) : (

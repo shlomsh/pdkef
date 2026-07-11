@@ -34,8 +34,6 @@ export default function LineNode({ element, isActive, onResizeStart, handlePoint
       <ElementResizers 
         element={element}
         isActive={isActive}
-        isShape={false}
-        isLine={true}
         onResizeStart={onResizeStart}
       />
     </>

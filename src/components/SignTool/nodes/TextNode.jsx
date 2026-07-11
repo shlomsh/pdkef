@@ -90,11 +90,12 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
           }}
         />
       </div>
-      <ElementResizers 
-        element={element}
+      <ElementResizers
+        // Older text fixtures predate the flat `type` discriminant. The node
+        // itself is the authoritative type boundary, so preserve that input
+        // compatibility while the registry remains type-driven.
+        element={{ ...element, type: 'text' }}
         isActive={isActive}
-        isShape={false}
-        isLine={false}
         onResizeStart={onResizeStart}
       />
     </>
