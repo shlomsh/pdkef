@@ -346,7 +346,7 @@ draft persistence), removing today's duplication (§1e) and moving Redact onto t
 ## 6. Sequencing & per-ticket guardrail (every step)
 
 ```
-E4.1 ✅ ── E4.2 ✅ ── E4.3a (resize registry) ── E4.3b (create/render/serialize) ── E4.4 (converge Sign+Redact)
+E4.1 ✅ ── E4.2 ✅ ── E4.3a ✅ ── E4.3b ✅ ── E4.4 ✅
 ```
 
 Each ticket lands independently behind a working editor. For **every** step:

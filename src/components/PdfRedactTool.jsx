@@ -8,7 +8,7 @@ import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { startGesture } from '../editor/gestures/controller.ts';
 import { getPointerCoords } from '../editor/gestures/pointer.ts';
 import { getElementDefinition } from '../editor/registry/index.ts';
-import { useDraftPersistence } from '../lib/useDraftPersistence.js';
+import { useEditorDraftPersistence } from '../editor/workspace/useEditorDraftPersistence.js';
 import RedactToolbar from './RedactToolbar.jsx';
 import RedactBox from './RedactBox.jsx';
 import UndoHistoryModal from './UndoHistoryModal.jsx';
@@ -198,28 +198,15 @@ export default function PdfRedactTool() {
     await loadPdf(selected, bytes, {});
   };
 
-  const { clearDraft } = useDraftPersistence({
+  const { clearDraft } = useEditorDraftPersistence({
     tool: 'redact',
     file,
     fileBytes: fileBytesRef.current,
     elements,
-    extra: { actionHistory },
+    actionHistory,
     status,
-    onRestore: (record) => {
-      // A manual pick already claimed the load slot (even if it hasn't finished loading
-      // yet) — never let a silent background restore override explicit user intent.
-      if (loadStartedRef.current) return;
-      loadStartedRef.current = true;
-      const restoredFile = new File([record.fileBytes], record.fileName, {
-        type: record.fileType || 'application/pdf'
-      });
-      loadPdf(
-        restoredFile,
-        record.fileBytes,
-        { elements: record.elements || [], actionHistory: record.extra?.actionHistory || [] },
-        true
-      );
-    }
+    loadStartedRef,
+    loadPdf,
   });
 
   const handlePointerDown = (e, pageIndex) => {

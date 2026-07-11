@@ -6,7 +6,7 @@ import SignatureDialog from './SignatureDialog.jsx';
 import { uniqueId, seedUniqueId, signPdf } from '../lib/sign.js';
 import { widthPercentToHeightPercent } from '../lib/coords.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
-import { useSignDraftPersistence } from './useSignDraftPersistence.js';
+import { useEditorDraftPersistence } from '../editor/workspace/useEditorDraftPersistence.js';
 import { createActionEntry } from '../lib/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
@@ -407,7 +407,8 @@ function PdfSignToolInner() {
   };
 
   // Setup draft persistence hook
-  const { clearDraft } = useSignDraftPersistence({
+  const { clearDraft } = useEditorDraftPersistence({
+    tool: 'sign',
     file,
     fileBytes: fileBytesRef.current,
     elements,

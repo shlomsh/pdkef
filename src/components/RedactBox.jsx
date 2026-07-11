@@ -2,6 +2,7 @@ import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react
 import { TOOLBAR_FLOATING_OFFSET } from '../constants/signGeometry.js';
 import ElementToolbar from './ElementToolbar.jsx';
 import ElementResizers from './ElementResizers.jsx';
+import { getElementDefinition } from '../editor/registry/index.ts';
 
 // Renders one redaction box (blackout/whiteout/blur). Extracted out of PdfRedactTool's
 // map() because useFloating (below) is a hook and can't run per-iteration inline.
@@ -42,6 +43,13 @@ export default function RedactBox({
   const whiteoutBorderColor = isSelected
     ? 'var(--color-primary)'
     : (isActiveHover ? 'var(--color-muted-light)' : 'transparent');
+  const surface = getElementDefinition(el.type).render({
+    element: el,
+    onChange: () => {},
+    onSelect: () => {},
+    pageWidthPoints: 0,
+    renderTarget: 'redact',
+  });
 
   return (
     <div
@@ -57,6 +65,9 @@ export default function RedactBox({
         top: `${el.top}%`,
         width: `${el.width}%`,
         height: `${el.height}%`,
+        // Keep the host paint for the browser selector contract. The registry
+        // surface owns the same per-type render semantics for consumers that
+        // render an element without this interactive workspace adapter.
         backgroundColor: el.type === 'blur' ? 'rgba(255,255,255,0.1)' : (isWhiteout ? el.color || '#ffffff' : '#000000'),
         backdropFilter: el.type === 'blur' ? 'blur(8px)' : 'none',
         WebkitBackdropFilter: el.type === 'blur' ? 'blur(8px)' : 'none',
@@ -69,6 +80,7 @@ export default function RedactBox({
         zIndex: 10
       }}
     >
+      {surface}
       {!isWhiteout && (
         <button
           className="redact-element-btn"

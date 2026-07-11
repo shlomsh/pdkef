@@ -7,6 +7,7 @@ export interface NodeRenderContext {
   onChange: (changes: Record<string, unknown>) => void;
   onSelect: (event: Event) => void;
   pageWidthPoints: number;
+  renderTarget?: 'sign' | 'redact';
 }
 
 export interface SerializeContext {
@@ -18,7 +19,16 @@ export interface SerializeContext {
   pdfY: number;
   loadCustomFont: (family: string, weight?: string, style?: string) => Promise<PDFFont | null>;
   baselineOffset: (font: PDFFont | null) => number;
+  /** Redact's page-scoped destructive flatten pass requests an instruction instead. */
+  redaction?: boolean;
 }
+
+export interface RedactionInstruction {
+  kind: 'blur' | 'solid';
+  element: { left: number; top: number; width: number; height: number; color?: string };
+}
+
+export type SerializeResult = void | RedactionInstruction | Promise<void | RedactionInstruction>;
 
 export interface CreateContext {
   id: string;
@@ -109,7 +119,7 @@ export interface ElementDefinition {
     create?: (context: CreateContext) => Record<string, unknown>;
   };
   render: (context: NodeRenderContext) => ComponentChildren;
-  serialize: (element: Record<string, unknown>, context: SerializeContext) => void | Promise<void>;
+  serialize: (element: Record<string, unknown>, context: SerializeContext) => SerializeResult;
   resizeBehavior: {
     handles: readonly ResizeHandle[];
     applyBoxResize?: (input: BoxResizeInput) => BoxResizePatch;

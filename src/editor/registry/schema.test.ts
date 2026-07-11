@@ -35,4 +35,17 @@ describe('element registry schemas', () => {
   it('rejects non-finite geometry', () => {
     expect(getElementDefinition('rectangle').schema({ ...validElements.rectangle, width: Infinity })).toBe(false);
   });
+
+  it('lets Redact ask each destructive type for its page-flatten instruction', () => {
+    const context = { redaction: true } as any;
+    expect(getElementDefinition('blackout').serialize(validElements.blackout, context)).toMatchObject({
+      kind: 'solid', element: validElements.blackout,
+    });
+    expect(getElementDefinition('blur').serialize(validElements.blur, context)).toMatchObject({
+      kind: 'blur', element: validElements.blur,
+    });
+    expect(getElementDefinition('whiteout').serialize(validElements.whiteout, context)).toMatchObject({
+      kind: 'solid', element: validElements.whiteout,
+    });
+  });
 });

@@ -558,14 +558,18 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   - *Depends on:* E4.3a · *Lane:* E
   - *Acceptance:* no `type`-branching remains for creation/render/bake in the Sign components; adding a
     hypothetical new type touches only new files.
-- **E4.4 Converge Sign and Redact** onto the shared core + a common PDF-workspace substrate
-  (load, page render, draft persistence), removing duplication. Reconcile the two element models
-  (Redact's `style` field vs the `type` union - fold `blackout`/`blur`/`whiteout` into the registry)
-  and move Redact's per-move-dispatch gestures onto the golden-rule controller. **Low-level design +
-  model reconciliation + bake-out seam: [plan §1d, §1e, §5](./docs/E4-headless-editor-core-plan.md).**
+- **E4.4 Converge Sign and Redact** onto the shared core + a common PDF-workspace substrate - **done.**
+  Redact now uses the controller for draw, drag, and resize with a one-commit-per-gesture
+  integration test; its `blackout` / `blur` / `whiteout` model is type-discriminated and
+  registry-owned for resize, rendering surface, and destructive page-flatten instructions.
+  `redact.js` is now PDF-wide raster orchestration only, while per-type behavior lives in
+  the registry. Sign and Redact share `workspace/loadPdf.ts`, `PdfPageCanvas`, and
+  `useEditorDraftPersistence.js`, preserving the race guard, first-wins restore rule,
+  timeout, tool-keyed on-device drafts, native share flow, and each tool's own store/UI.
+  **Low-level design: [plan §1d, §1e, §5](./docs/E4-headless-editor-core-plan.md).**
   - *Depends on:* E4.2, E4.3b · *Lane:* E
-  - *Acceptance:* Redact drag/resize/create each commit **once per gesture** (`console.count` proof — all
-    three fail today); the shape-resize math has **exactly one owner** — `git grep -l
+  - *Verification:* Redact drag/resize/create each commit **once per gesture** under controller
+    integration coverage; the shape-resize math has **exactly one owner** — `git grep -l
     "maxWidthFromRightGrowth\|maxHeightFromBottomGrowth" -- 'src/**'` returns **1 file** (down from 2),
     in `src/editor/`, not the tools (wire as a one-line CI guard, ARCHITECTURE §6); `blackout`/`blur`/
     `whiteout` are registry types (the `style` field + `type:'whiteout'` shim are gone); redaction stays
