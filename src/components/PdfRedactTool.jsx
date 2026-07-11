@@ -71,6 +71,7 @@ export default function PdfRedactTool() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const workspaceRef = useRef(null);
+  const resetDialogRef = useRef(null);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -80,22 +81,33 @@ export default function PdfRedactTool() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Escape precedence while the Undo modal is open in full screen: close the modal
+  // showModal() places the dialog in the browser's top layer. A plain <dialog open>
+  // remains in the normal stacking context and is invisible behind a real Fullscreen
+  // API workspace, regardless of its z-index.
+  useEffect(() => {
+    const dialog = resetDialogRef.current;
+    if (!dialog) return;
+    if (confirmResetOpen && !dialog.open) dialog.showModal();
+    else if (!confirmResetOpen && dialog.open) dialog.close();
+  }, [confirmResetOpen]);
+
+  // Escape precedence while an Undo or Start-over modal is open in full screen: close the modal
   // FIRST, and only let a subsequent Escape exit full screen. Without this the
   // browser's default Escape (exit fullscreen) races the dialog's own Escape, and
   // full screen tends to win, leaving the dialog orphaned open behind it. Mirrors
   // PdfSignTool.jsx's identical handling for its own Undo/Start-over dialogs.
   useEffect(() => {
-    if (!undoModalOpen) return;
+    if (!undoModalOpen && !confirmResetOpen) return;
     const onEsc = (e) => {
       if (e.key !== 'Escape') return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      setUndoModalOpen(false);
+      if (undoModalOpen) setUndoModalOpen(false);
+      else setConfirmResetOpen(false);
     };
     window.addEventListener('keydown', onEsc, { capture: true });
     return () => window.removeEventListener('keydown', onEsc, { capture: true });
-  }, [undoModalOpen]);
+  }, [undoModalOpen, confirmResetOpen]);
 
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
@@ -739,42 +751,42 @@ export default function PdfRedactTool() {
       />
 
       {/* Start-over confirmation */}
-      {confirmResetOpen && (
-        <>
-          <div className="sign-dropdown-backdrop" style={{ zIndex: 999 }} onClick={() => setConfirmResetOpen(false)} />
-          <dialog open className="sig-dialog" style={{ position: 'fixed', top: '20vh', zIndex: 1000, margin: '0 auto', maxWidth: '26rem' }} aria-labelledby="confirm-reset-title">
-            <div className="sig-dialog-header">
-              <h3 id="confirm-reset-title">Start over?</h3>
-              <button type="button" className="sig-dialog-close" onClick={() => setConfirmResetOpen(false)} aria-label="Close dialog">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <path d="M4 4l8 8M12 4l-8 8" />
-                </svg>
-              </button>
-            </div>
-            <div className="sig-dialog-body" style={{ padding: '0.5rem 1.5rem 1.25rem' }}>
-              <p style={{ margin: 0, color: 'var(--color-muted)', lineHeight: 1.5 }}>
-                This clears the current document and removes your saved draft. Your redactions can’t be recovered afterwards.
-              </p>
-            </div>
-            <div className="sig-dialog-footer">
-              <button type="button" className="sig-btn sig-btn-secondary" onClick={() => setConfirmResetOpen(false)}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="sig-btn sig-btn-primary"
-                style={{ background: 'var(--color-danger)' }}
-                onClick={() => {
-                  setConfirmResetOpen(false);
-                  reset();
-                }}
-              >
-                Discard &amp; start over
-              </button>
-            </div>
-          </dialog>
-        </>
-      )}
+      <dialog
+        ref={resetDialogRef}
+        className="sig-dialog sig-dialog--narrow"
+        onClose={() => setConfirmResetOpen(false)}
+        onClick={(e) => { if (e.target === e.currentTarget) setConfirmResetOpen(false); }}
+        aria-labelledby="confirm-reset-title"
+      >
+        <div className="sig-dialog-header">
+          <h3 id="confirm-reset-title">Start over?</h3>
+          <button type="button" className="sig-dialog-close" onClick={() => setConfirmResetOpen(false)} aria-label="Close dialog">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+          </button>
+        </div>
+        <div className="sig-dialog-body sig-dialog-body--tight">
+          <p className="sig-confirm-text">
+            This clears the current document and removes your saved draft. Your redactions can’t be recovered afterwards.
+          </p>
+        </div>
+        <div className="sig-dialog-footer">
+          <button type="button" className="sig-btn sig-btn-secondary" onClick={() => setConfirmResetOpen(false)}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="sig-btn sig-btn-primary sig-btn-danger"
+            onClick={() => {
+              setConfirmResetOpen(false);
+              reset();
+            }}
+          >
+            Discard &amp; start over
+          </button>
+        </div>
+      </dialog>
     </BasePdfTool>
   );
 }

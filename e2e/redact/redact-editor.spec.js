@@ -225,4 +225,23 @@ test.describe('Redact editor browser guardrails', () => {
     await expect(floatingToolbar).toBeVisible();
     await expect(floatingToolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
   });
+
+  test('keeps the Start-over confirmation visible in real full screen', async ({ page }) => {
+    await openRedactTool(page);
+
+    await page.getByRole('button', { name: 'Full screen' }).click();
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement?.classList.contains('sign-workspace'))).toBe(true);
+
+    await page.getByRole('button', { name: 'Start over' }).click();
+    const confirmation = page.getByRole('dialog', { name: 'Start over?' });
+    await expect(confirmation).toBeVisible();
+    await expect(confirmation.getByText('Your redactions can’t be recovered afterwards.')).toBeVisible();
+
+    // The first Escape closes the top-layer dialog; it must not also exit full screen.
+    await page.keyboard.press('Escape');
+    await expect(confirmation).not.toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement?.classList.contains('sign-workspace'))).toBe(true);
+
+    await page.evaluate(() => document.exitFullscreen());
+  });
 });

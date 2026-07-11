@@ -134,6 +134,14 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
     `scripts/verify-csp.js` touched.
   - *Depends on:* E1.7 · *Lane:* B
 
+- **E1.8 Keep Redact’s Start-over confirmation visible in real full screen - done.** A plain
+  `<dialog open>` remains in the normal stacking context, so it rendered behind a real Fullscreen API
+  workspace. Redact now follows Sign’s `showModal()` top-layer lifecycle, including Escape precedence:
+  the first Escape closes the dialog without exiting full screen.
+  - *Landed:* `e2e/redact/redact-editor.spec.js` enters real full screen, opens Start over, verifies the
+    confirmation is visible, and verifies Escape closes it while retaining full screen. Production-preview
+    e2e passes.
+
 ## E2 - Kill the global CSS monolith  ·  *Lane C, parallel with E3*
 
 - **E2.1 Tokens as the only global CSS. - done.** Audited `src/` + `public/` for escaped color literals;
@@ -145,7 +153,7 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   matching token and were left as reported gaps (see git history of this ticket's commit for the list) -
   candidates for new tokens, not folded into existing ones without human sign-off.
   - *Depends on:* - · *Lane:* C
-- **E2.2 Colocate non-editor CSS into CSS Modules,** component by component. **Full execution plan:
+- **E2.2 Colocate non-editor CSS into CSS Modules - done,** component by component. **Full execution plan:
   [docs/E2.2-css-modules-scoping-plan.md](./docs/E2.2-css-modules-scoping-plan.md)** (inventory with line
   ranges, module destinations, risks) — read it before starting.
   - *Depends on:* E2.1 · *Lane:* C
@@ -261,22 +269,26 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
     `PdfShareButton.jsx`; keep `.sig-btn`/`.sig-btn-secondary` as global strings.
   - **Note:** the E2.2.10 sub-commit 2 & 3 tickets below are **already implemented on the branch** — they
     arrive for free via the `.module.css` + `global.css` reuse above; do not treat them as pending code.
-    The branch's follow-up notes (**E2.4** leftovers, the **`.field-hint` unstyled** pre-existing bug, the
-    **worktree `node_modules`/CSS-Modules-resolution** gotcha in CLAUDE.md) must be carried onto `main` as
+    The branch's follow-up notes (**E2.4** leftovers and the **worktree
+    `node_modules`/CSS-Modules-resolution** gotcha in CLAUDE.md) must be carried onto `main` as
     part of this ticket's doc reconciliation, since the branch merge that would have brought them is dropped.
   - *Acceptance:* fresh `npm install` **inside the worktree** (a stray/absent `node_modules` makes CSS
     Modules resolve to `{}` silently under Vitest); `npm test` + `npm run test:css` green; **mandatory
     `npm run build && npm run preview` CSP/hydration pass** (rewrites every island's imports/render, dev
     cannot catch it); land via reviewed merge to `main`, not a direct push.
-- **E2.2.10 sub-commit 2 — `.merge-button*`/`.progress-ring*`/`.merge-button-progress` → `PdfTool.module.css`.**
-  Not started on the branch. Shared by ~9 tools (reclassified from the old `PdfMergeTool`-only E2.2.4).
-  - *Depends on:* E2.2a (rebase first, so the class swaps don't re-conflict) · *Lane:* C
+  - **Status: done.** Landed on `main` in `a825e33`, retaining the share wiring and the module-class
+    assertions. The durable CSS modules and scoped class swaps now form the E2.2 baseline; do not reopen
+    the discarded branch-merge approach.
+- **E2.2.10 sub-commit 2 — `.merge-button*`/`.progress-ring*`/`.merge-button-progress` → `PdfTool.module.css` - done.**
+  Landed as part of the E2.2b reimplementation. Shared by ~9 tools (reclassified from the old
+  `PdfMergeTool`-only E2.2.4).
+  - *Depends on:* E2.2b · *Lane:* C
   - **Complexity: low. Risk: low. → Junior-friendly**, once E2.2a has landed. Pure selector-move + class
     swap over a known consumer set; the only trap is the E2.2.7 orphaned-`@keyframes` gotcha — audit every
     `.module.css` + `global.css` for an `animation:` with no matching same-scope `@keyframes`, and verify
     against the actual `dist/` build. Standard E2.2 guardrail gates apply.
-- **E2.2.10 sub-commit 3 — cross-boundary generics: `.page-numbers-toggle` + `.thumb-placeholder`/`@keyframes shimmer` → `PdfTool.module.css`.**
-  Not started. `.page-numbers-toggle` is a generic pill-toggle used by `PdfEditPagesTool.jsx` +
+- **E2.2.10 sub-commit 3 — cross-boundary generics: `.page-numbers-toggle` + `.thumb-placeholder`/`@keyframes shimmer` → `PdfTool.module.css` - done.**
+  Landed as part of the E2.2b reimplementation. `.page-numbers-toggle` is a generic pill-toggle used by `PdfEditPagesTool.jsx` +
   `PdfMergeTool.jsx` for unrelated features; `.thumb-placeholder` + `shimmer` straddle
   `FileList.module.css` and `PageGrid.module.css` consumers with no combinator tying it to either.
   - *Depends on:* E2.2.10 sub-commit 2 · *Lane:* C
@@ -290,7 +302,7 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   styles" tech-debt note - now a first-class migration step, not opportunistic.)*
   - *Depends on:* E2.1, E1.4 · *Lane:* C
   - *Acceptance:* every conditional state (active, RTL, dark, mobile, whiteout) verified in a running editor.
-- **E2.4 Clean up two small leftovers surfaced by E2.2** (low priority, no urgency - not part of any
+- **E2.4 Clean up two small leftovers surfaced by E2.2 - done.** (low priority, no urgency - not part of any
   tool's rendering path in a way that blocks anything else):
   - **`.info-icon`/`.tooltip-bubble`/`.tooltip-row`** (currently still in `global.css`, right after
     `.clear-all`) - single-consumer (`PdfToImageTool.jsx`'s quality-preset tooltip), deliberately left
@@ -300,6 +312,40 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
     live) - dead CSS, confirmed zero consumers across `src/` during E2.2.7/E2.2.9/E2.2.10's ground-truth
     sweeps. Safe to delete outright rather than migrate.
   - *Depends on:* E2.2 (done) · *Lane:* C
+  - *Landed:* `a48180f` moved the quality-preset tooltip chrome into `PdfToImageTool.module.css`; the
+    dead `.list-hint` selector was removed after its zero-consumer check.
+
+- **E2.5 Restore desktop width parity for every `BasePdfTool` card - done.** **Bug, found in visual QA
+  2026-07-11.** On `http://localhost:4321/merge` at a 1280 × 720 viewport, the post-E2.2 Merge card is
+  only about 396px wide and its dropzone about 380px wide, leaving the rest of the 1032px app area blank.
+  `https://pdkef.com/merge` renders the corresponding card/dropzone at 1032px/998px. The cause is
+  verified in source: the old global desktop rule (`@media (min-width: 768px) { .merge-tool { width: 100%;
+  flex-shrink: 0; } }`) no longer matches the CSS-Module class emitted by `BasePdfTool.jsx`, and
+  `PdfTool.module.css` did not carry that rule across. This affects every tool composed with
+  `BasePdfTool`, not just Merge.
+  - *Depends on:* E2.2 (done) · *Lane:* C · *Priority:* P1 visual regression blocker
+  - *Acceptance:* at desktop widths, every `BasePdfTool` card fills the app content width and has no
+    empty right-hand region; add a browser-level computed-geometry assertion comparing card/dropzone
+    width to its container so a selector-scoping change cannot silently regress it. Verify the affected
+    tool routes in a production build/preview, then compare against the deployed Merge baseline.
+  - *Landed:* restored the `min-width: 768px` `width: 100%` / `flex-shrink: 0` contract in
+    `PdfTool.module.css`. `e2e/merge/merge-layout.spec.js` now asserts the card fills `#app` and the
+    dropzone remains correctly inset in a production preview.
+
+- **E2.6 Give native Share buttons a deliberate icon-label gap - done.** **Bug, found in visual QA
+  2026-07-11.** In the Merge success state on `https://pdkef.com/merge`, the share icon touches the
+  “Share PDF” label (`◌Share PDF`) rather than reading as a separate icon and label. The supplied
+  screenshot records the issue. `PdfShareButton.jsx` renders the SVG immediately before the text while
+  the reused `.sig-btn` styling has neither a flex icon layout nor a `gap`, so the omission is
+  deterministic across every native-share surface.
+  - *Depends on:* E2.2 (done) · *Lane:* C · *Priority:* P2 visual regression
+  - *Acceptance:* native-share controls align icon and label on one row with a tokenized, visible gap;
+    check Merge, Split, Compress, Image to PDF, PDF to Image, Security, Sign, and Redact where sharing is
+    available. Add a focused component/browser assertion for the icon-label layout contract without
+    altering sharing behavior.
+  - *Landed:* `PdfTool.module.css` gives `.pdf-share-button` an `inline-flex` row, centered items, and
+    `var(--space-2)` gap. The Merge production-preview guard exports two PDFs and asserts the resulting
+    Share control's computed layout without changing native-share behavior.
 
 ## E3 - Tailwind on the static surface  ·  *Lane D, parallel with E2*
 
@@ -321,6 +367,15 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
     Tailwind surface, and defines the project spacing/font tokens, avoiding Tailwind's unused default palette
     and Preflight.
 
+- **E3.3 Align the shared tool hero with the app-bar breadcrumb grid - done.** **Bug, found in visual QA
+  2026-07-11.** `ToolHero.astro` centered its title row independently, so at a 1280px desktop viewport
+  the breadcrumb grid began at x=100 but title rows began from x=282 to x=404 depending on the title
+  length. The problem was shared by every tool route, not tool-specific.
+  - *Landed:* the hero now occupies the same 1080px, 24px-inset desktop grid as `AppBar.astro`; its leading
+    icon aligns with the PDkef breadcrumb pill, while the subhead and chips begin beneath the title text.
+    `e2e/tool-layout.spec.js` visits Merge, Split, Compress, PDF to Image, Image to PDF, Unlock, Sign,
+    Redact, and Edit PDF in a production preview and asserts grid and leading-row alignment on each.
+
 ## E4 - Headless TS editor core  ·  *Lane E, internally serial, parallel to E2/E3*
 
 - **E4.1 Introduce TypeScript. - done.** Installed `typescript@6.0.3` + `@astrojs/check@0.9.9` (dev deps,
@@ -334,11 +389,10 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
   `coords.ts` via `git mv` (tracked rename, zero logic change, call sites still `import './coords.js'`
   and resolve fine). `npm run typecheck` (`astro check`) added as a script; `coords.ts` +
   `editorModel.ts` are 100% clean. `npm test` (284/284) and `npm run build` (12 pages) both green.
-  **Follow-up surfaced, not fixed here (island shell is off-limits for this ticket):** running `astro
-  check` project-wide for the first time surfaced 2 pre-existing errors in `src/pages/index.astro` -
-  `<FileDropzone>` missing its required `onFiles` prop (line 72), and a `getElementById` result
-  (`string | null`) passed where non-null is expected (line 257). Both predate this ticket and are
-  unrelated to the editor core; worth a small follow-up ticket so `typecheck` is green project-wide.
+  **Follow-up resolved:** the two pre-existing `src/pages/index.astro` errors found by the first
+  project-wide `astro check` are fixed. The redirecting `<FileDropzone>` declares its intentionally unused
+  callback seam, and the OS-install tab script guards its optional `aria-controls` value before lookup.
+  `npm run typecheck` is now project-wide error-free (hints only).
   - *Depends on:* - · *Lane:* E
 - **E4.2 Extract a framework-agnostic `editor/` core** (document model + geometry + gesture
   controllers) with **one** "imperative-during, commit-on-release" controller unifying drag **and**
@@ -386,21 +440,17 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 - **Public GitHub repo + iframe embed model** for contextual backlinks.
 
 **Bugs / hardening surfaced by E2.2 CSS-scoping ground-truth sweeps:**
-- **`.field-hint` is unstyled - pre-existing, not introduced by E2.2.** `PdfSplitTool.jsx` and
-  `PdfToImageTool.jsx` both render `<p class="field-hint">` under their page-selector inputs ("Enter page
-  numbers or ranges separated by commas..."), but no `.field-hint` rule has ever existed in `global.css`
-  - confirmed via `grep` during E2.2.10's sub-commit-1 sweep. Cosmetic (the hint text still renders, just
-  unstyled), low priority. Fix: either add a small `.field-hint` rule to `PdfTool.module.css` (it's used
-  by 2 tools) or decide the plain-text look was always intentional and delete the dead class reference.
+- **`.field-hint` was unstyled - resolved 2026-07-11.** The only remaining consumer was
+  `PdfSplitTool.jsx` (the old `PdfToImageTool.jsx` reference was stale). Its helper copy is intentional,
+  so it now uses the scoped `PdfTool.module.css` rule and the page-selector field uses a two-column grid
+  that places the muted hint beneath its input. `PdfSplitTool.test.jsx`, production build, and CSP
+  verification pass.
 
 **Bugs / hardening surfaced by E4.1 typecheck:**
-- **`index.astro` typecheck errors** - running `astro check` project-wide for the first time (E4.1)
-  surfaced 2 pre-existing errors, both predating and unrelated to the TS work: `<FileDropzone>` used
-  without its required `onFiles` prop (line 72), and a `getElementById(panelId)` result (`string | null`)
-  passed where non-null is expected (line 257). Small, isolated fixes; needed to get `npm run typecheck`
-  green project-wide. `index.astro` is the SEO/privacy island shell - low risk color/type-only fix, but
-  still verify with a full `build && preview` per the CSP section in CLAUDE.md since it's a script-adjacent
-  change, not a pure color change.
+- **`index.astro` typecheck errors - fixed.** The redirecting homepage `FileDropzone` now declares its
+  intentionally unused `onFiles={null}` callback seam, and the OS-install tab script guards its optional
+  `aria-controls` value before calling `getElementById`. `npm run typecheck` is now project-wide error-free
+  (32 pre-existing hints remain); `npm test`, CSS budget, build/CSP, and production-preview e2e pass.
 
 **Bugs / hardening surfaced by E1.4 test coverage:**
 - **Off-page shape resize** - **fixed.** `DraggableWrapper.jsx` `handleResizeMove` now clamps the
@@ -438,6 +488,9 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
   do not resurrect the stale branch in place against the current editor.
 
 **Editor / UX polish:**
+- **Unlock Start-over confirmation - fixed.** Both reset controls now open the native confirmation dialog;
+  Cancel preserves the active PDF and Discard clears it. Unit coverage plus
+  `e2e/unlock/unlock-reset-confirmation.spec.js` verify the production-preview flow.
 - **Verify Redact mobile toolbar** on a real narrow viewport - code updated (shared `.sign-toolbar`
   CSS, structure-agnostic mobile flex rule) but never visually confirmed.
 - **State-based drag halo** - replace the single-value `.sign-element::after` grab halo with a small
@@ -449,9 +502,9 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
 
 ```
 Lane A (now):   E0.1 ──► E0.2
-Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓ E1.5✓ E1.6✓ E1.6a✓ E1.7✓ E1.7a✓  ── gate ──► E2.*, E3.2, E4 verification
-Lane C:         E2.1 ──► E2.2, E2.3            (E2.3 also needs E1.4)
-Lane D:         E3.1 ──► E3.2                  (E3.2 also needs E1.1, E1.2)
+Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓ E1.5✓ E1.6✓ E1.6a✓ E1.7✓ E1.7a✓ E1.8✓  ── gate ──► E2.*, E3.2, E4 verification
+Lane C:         E2.1 ──► E2.2✓ ──► E2.3        (E2.3 also needs E1.4; E2.4/E2.5/E2.6 complete)
+Lane D:         E3.1 ──► E3.2✓ ──► E3.3✓       (E3.2 also needs E1.1, E1.2)
 Lane E:         E4.1 ──► E4.2 ──► E4.3 ──► E4.4   (E4.2 also needs E0.1)
 ```
 

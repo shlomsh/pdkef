@@ -69,7 +69,7 @@ const HeroIcon = tools[0].icon;
   <main class="min-[1024px]:!flex min-[1024px]:!min-h-0 min-[1024px]:!flex-1 min-[1024px]:!flex-col min-[1024px]:!pb-0">
     {/* Large Dropzone CTA */}
     <div class="merge-tool mx-auto mb-16 box-border max-w-[1032px] p-6 min-[1024px]:!mb-6 min-[1024px]:!p-4">
-      <FileDropzone client:load href="/sign?action=open" toolTarget="sign" className="min-[1024px]:!py-6" />
+      <FileDropzone client:load onFiles={null} href="/sign?action=open" toolTarget="sign" className="min-[1024px]:!py-6" />
     </div>
 
     {/* App Grid for all tools */}
@@ -254,6 +254,7 @@ const HeroIcon = tools[0].icon;
         tab.classList.add('active');
         tab.setAttribute('aria-selected', 'true');
         const panelId = tab.getAttribute('aria-controls');
+        if (!panelId) return;
         const targetPanel = document.getElementById(panelId);
         if (targetPanel) {
           targetPanel.classList.add('active');

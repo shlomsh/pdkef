@@ -71,6 +71,32 @@ describe('PdfSecurityTool', () => {
     expect(container.textContent).toContain("Enter a password to protect it");
   });
 
+  it('confirms before clearing the active file', async () => {
+    securityLib.isPdfEncrypted.mockResolvedValue(true);
+    mount();
+
+    await loadFile();
+
+    const startOver = container.querySelector(`.${pdfToolStyles['clear-all']}`);
+    await act(async () => startOver.click());
+
+    const dialog = container.querySelector('dialog[aria-labelledby="security-confirm-reset-title"]');
+    expect(dialog.open).toBe(true);
+    expect(dialog.textContent).toContain('This clears the current PDF and password from this tool.');
+    expect(container.textContent).toContain('test.pdf');
+
+    const cancel = Array.from(dialog.querySelectorAll('button')).find((button) => button.textContent.trim() === 'Cancel');
+    await act(async () => cancel.click());
+    expect(dialog.open).toBe(false);
+    expect(container.textContent).toContain('test.pdf');
+
+    await act(async () => startOver.click());
+    const discard = Array.from(dialog.querySelectorAll('button')).find((button) => button.textContent.includes('Discard'));
+    await act(async () => discard.click());
+    expect(container.textContent).toContain('Drop PDF here to unlock');
+    expect(container.textContent).not.toContain('test.pdf');
+  });
+
   it('performs unlocking successfully', async () => {
     const nativeShare = mockNativeFileShare();
     securityLib.isPdfEncrypted.mockResolvedValue(true);

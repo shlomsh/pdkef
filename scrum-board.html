@@ -430,7 +430,7 @@
 
   <footer class="site">
     <div class="wrap">
-      Generated view of <code>scrum.md</code> - scrum.md is the source of truth. Regenerate when the backlog changes. · 2026-07-10
+      Generated view of <code>scrum.md</code> - scrum.md is the source of truth. Regenerate when the backlog changes. · 2026-07-11
     </div>
   </footer>
 
@@ -512,14 +512,26 @@ const TICKETS = [
     title: "Tokens as the only global CSS",
     dependsOn: [],
     acceptance: "Done. Theme-chrome color literals were audited and routed through design tokens where appropriate; annotation/pen defaults intentionally remain tool data literals." },
-  { id: "E2.2", epic: "E2", lane: "C", status: "todo", priority: "normal",
+  { id: "E2.2", epic: "E2", lane: "C", status: "done", priority: "normal",
     title: "Colocate non-editor CSS into CSS Modules",
     dependsOn: ["E2.1"],
-    acceptance: "Component by component (cards, hero, footer, dropzone, tool chrome)." },
+    acceptance: "DONE: E2.2b re-implemented the durable module artifacts and class swaps on main (a825e33), retaining share wiring and module-class assertions. The discarded branch-merge approach must not be reopened." },
   { id: "E2.3", epic: "E2", lane: "C", status: "todo", priority: "normal",
     title: "Migrate editor .sign-* styles into scoped CSS Modules",
     dependsOn: ["E2.1", "E1.4"],
     acceptance: "~121 sign-* references in a ~3,400-line global.css, preserving descendant cascades (.sign-element.active .sign-element-actions) as real CSS inside module scope. Every conditional state (active, RTL, dark, mobile, whiteout) verified in a running editor." },
+  { id: "E2.4", epic: "E2", lane: "C", status: "done", priority: "low",
+    title: "Clean up two small leftovers surfaced by E2.2",
+    dependsOn: ["E2.2"],
+    acceptance: "DONE: a48180f colocated the PdfToImage quality-preset tooltip chrome and removed the zero-consumer .list-hint selector." },
+  { id: "E2.5", epic: "E2", lane: "C", status: "done", priority: "high",
+    title: "BUG: Restore desktop width parity for every BasePdfTool card",
+    dependsOn: ["E2.2"],
+    acceptance: "DONE: restored the min-width:768px full-width/flex-shrink contract in PdfTool.module.css. e2e/merge/merge-layout.spec.js asserts the card fills #app while the dropzone remains correctly inset in a production preview." },
+  { id: "E2.6", epic: "E2", lane: "C", status: "done", priority: "normal",
+    title: "BUG: Give native Share buttons a deliberate icon-label gap",
+    dependsOn: ["E2.2"],
+    acceptance: "DONE: .pdf-share-button now uses a centered inline-flex row with var(--space-2) gap. The Merge production-preview guard exports two PDFs and asserts its computed layout without changing native-share behavior." },
 
   // ----- E3 -----
   { id: "E3.1", epic: "E3", lane: "D", status: "done", priority: "normal",
@@ -530,6 +542,10 @@ const TICKETS = [
     title: "Migrate the marketing .astro surface to utilities",
     dependsOn: ["E3.1", "E1.1", "E1.2"],
     acceptance: "DONE: the E3.1 scaffold, FeatureCard, Footer, ToolHero, AppBar, tool-page content cards, home first-fold/tool-grid structure and tile interactions, Why/Autosave/offline/open-source sections, licenses, and 404 are migrated. Generated CSS is 80,871 / 82,000 bytes. The home grid tooltip and its delayed reveal/arrow are the approved scoped exception. JSX and test sources are excluded from Tailwind scanning because the editor has no Tailwind surface. No editor components. Keep npm run test:css as a per-slice gate." },
+  { id: "E3.3", epic: "E3", lane: "D", status: "done", priority: "high",
+    title: "Align the shared tool hero with the app-bar breadcrumb grid",
+    dependsOn: ["E3.2"],
+    acceptance: "DONE: ToolHero now uses the AppBar's 1080px desktop grid and 24px inset. e2e/tool-layout.spec.js checks grid/leading-row alignment on Merge, Split, Compress, PDF to Image, Image to PDF, Unlock, Sign, Redact, and Edit PDF in a production preview." },
 
   // ----- E4 -----
   { id: "E4.1", epic: "E4", lane: "E", status: "done", priority: "normal",
@@ -604,6 +620,10 @@ const TICKETS = [
     title: "Public GitHub repo + iframe embed model",
     dependsOn: [],
     acceptance: "For contextual backlinks." },
+  { id: "E6", epic: "E6", lane: "X", status: "done", priority: "normal", group: "Bugs / hardening",
+    title: "Fix homepage typecheck errors",
+    dependsOn: [],
+    acceptance: "DONE: the redirecting FileDropzone declares its intentionally unused callback seam and the OS-install tab script guards its optional aria-controls value. npm run typecheck now has zero errors; build/preview verification passed." },
   { id: "E6", epic: "E6", lane: "X", status: "todo", priority: "low", group: "Editor / UX polish",
     title: "Verify Redact mobile toolbar on a real narrow viewport",
     dependsOn: [],
@@ -617,8 +637,8 @@ const TICKETS = [
 const LANE_FLOW = [
   { lane: "A", flow: ["E0.1", "→", "E0.2"], gate: "" },
   { lane: "B", flow: ["E1.1", "E1.2", "E1.3", "E1.4", "E1.5", "E1.6", "E1.6a", "E1.7", "E1.7a"], gate: "gate → E2.*, E3.2, E4 verification" },
-  { lane: "C", flow: ["E2.1", "→", "E2.2", "E2.3"], gate: "E2.3 also needs E1.4" },
-  { lane: "D", flow: ["E3.1", "→", "E3.2"], gate: "E3.2 also needs E1.1, E1.2" },
+  { lane: "C", flow: ["E2.1", "→", "E2.2", "→", "E2.3", "E2.5", "E2.6"], gate: "E2.2, E2.4, E2.5, and E2.6 done. E2.3 also needs E1.4." },
+  { lane: "D", flow: ["E3.1", "→", "E3.2", "→", "E3.3"], gate: "E3.2 and E3.3 done; E3.2 also needs E1.1, E1.2." },
   { lane: "E", flow: ["E4.1", "→", "E4.2", "→", "E4.3", "→", "E4.4"], gate: "E4.2 also needs E0.1" }
 ];
 

@@ -24,6 +24,17 @@
   }
 }
 
+/* BasePdfTool is a centered flex item inside #app at desktop sizes. Preserve
+   the full-width contract that existed before this wrapper moved out of the
+   global stylesheet: without an explicit width, it shrink-wraps to its
+   dropzone and leaves an empty right-hand region. */
+@media (min-width: 768px) {
+  .merge-tool {
+    width: 100%;
+    flex-shrink: 0;
+  }
+}
+
 /* --- List header (count + clear) --- */
 .list-header {
   display: flex;
@@ -61,7 +72,8 @@
 
 /* --- Page selector --- */
 .page-selector-field {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 0.6rem;
   margin-top: var(--space-3);
@@ -94,6 +106,14 @@
 
 .page-selector-input.has-error {
   border-color: var(--color-danger);
+}
+
+.field-hint {
+  grid-column: 2;
+  margin: -0.2rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
 }
 
 .page-selector-error {
@@ -375,6 +395,10 @@
 /* Native-share button: generic multi-tool state (E2.2a.1). `.sig-btn`/
    `.sig-btn-secondary` stay in global.css — those are E2.3-owned. */
 .pdf-share-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
   width: 100%;
   margin-top: var(--space-3);
 }

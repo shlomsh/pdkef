@@ -351,7 +351,7 @@ export default function PdfSplitTool() {
                     aria-invalid={!!pageSelectorError}
                     aria-describedby={pageSelectorError ? 'page-selector-error' : undefined}
                   />
-                  <p class="field-hint">
+                  <p class={pdfToolStyles['field-hint']}>
                     Enter page numbers or ranges separated by commas (e.g. 1-3, 5, 8-).
                   </p>
                 </div>

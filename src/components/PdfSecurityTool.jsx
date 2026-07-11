@@ -13,15 +13,30 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
   const [mode, setMode] = useState(null); // 'unlock' | 'protect' | null
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [announcement, setAnnouncement] = useState('');
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const { canSharePdf, shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const downloadRef = useRef(null);
   const passwordRef = useRef(null);
+  const resetDialogRef = useRef(null);
 
   useEffect(() => {
     if (status === 'done' && downloadRef.current) {
       downloadRef.current.focus();
     }
   }, [status]);
+
+  useEffect(() => {
+    const dialog = resetDialogRef.current;
+    if (!dialog) return;
+
+    if (confirmResetOpen && !dialog.open) {
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.open = true;
+    } else if (!confirmResetOpen && dialog.open) {
+      if (typeof dialog.close === 'function') dialog.close();
+      else dialog.open = false;
+    }
+  }, [confirmResetOpen]);
 
   const resetOutput = () => {
     clearPrepared();
@@ -109,6 +124,8 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
     setAnnouncement('Cleared. Choose a PDF file to start again.');
   };
 
+  const requestReset = () => setConfirmResetOpen(true);
+
   const hasFiles = !!file;
 
   return (
@@ -122,7 +139,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
         <div class="tool-workspace">
           <div class={pdfToolStyles['list-header']}>
             <span class={pdfToolStyles['list-count']}>{file.name}</span>
-            <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
+            <button type="button" class={pdfToolStyles['clear-all']} onClick={requestReset}>
               Start over
             </button>
           </div>
@@ -186,7 +203,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
                 onShare={handleShare}
                 label={`Share ${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF`}
               />
-              <button type="button" class={pdfToolStyles['start-over']} onClick={reset}>
+              <button type="button" class={pdfToolStyles['start-over']} onClick={requestReset}>
                 Start over
               </button>
             </>
@@ -197,6 +214,41 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
       <p class="sr-only" role="status" aria-live="polite">
         {announcement}
       </p>
+
+      <dialog
+        ref={resetDialogRef}
+        class="sig-dialog sig-dialog--narrow"
+        onClose={() => setConfirmResetOpen(false)}
+        onClick={(event) => { if (event.target === event.currentTarget) setConfirmResetOpen(false); }}
+        aria-labelledby="security-confirm-reset-title"
+      >
+        <div class="sig-dialog-header">
+          <h3 id="security-confirm-reset-title">Start over?</h3>
+          <button type="button" class="sig-dialog-close" onClick={() => setConfirmResetOpen(false)} aria-label="Close dialog">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+          </button>
+        </div>
+        <div class="sig-dialog-body sig-dialog-body--tight">
+          <p class="sig-confirm-text">This clears the current PDF and password from this tool.</p>
+        </div>
+        <div class="sig-dialog-footer">
+          <button type="button" class="sig-btn sig-btn-secondary" onClick={() => setConfirmResetOpen(false)}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="sig-btn sig-btn-primary sig-btn-danger"
+            onClick={() => {
+              setConfirmResetOpen(false);
+              reset();
+            }}
+          >
+            Discard &amp; start over
+          </button>
+        </div>
+      </dialog>
     </BasePdfTool>
   );
 }
