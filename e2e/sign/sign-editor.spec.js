@@ -184,7 +184,7 @@ test.describe('Sign editor touch gesture guardrail', () => {
       .getByRole('button', { name: 'Whiteout', exact: true });
     await whiteoutTool.click();
 
-    const prevented = await page.locator('.sign-page-overlay').first().evaluate((overlay) => {
+    const prevented = await page.locator('[class*="page-overlay"]').first().evaluate((overlay) => {
       const rect = overlay.getBoundingClientRect();
       const touchAt = (x, y) => new Touch({ identifier: 1, target: overlay, clientX: x, clientY: y });
       const start = new TouchEvent('touchstart', {
