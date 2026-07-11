@@ -669,7 +669,7 @@ Lane A (now):   E0.1 ──► E0.2
 Lane B (now):   E1.1✓ E1.2✓ E1.3✓ E1.4✓ E1.5✓ E1.6✓ E1.6a✓ E1.7✓ E1.7a✓ E1.8✓  ── gate ──► E2.*, E3.2, E4 verification
 Lane C:         E2.1 ──► E2.2✓ ──► E2.3✓       (E2.3 also needs E1.4; E2.4/E2.5/E2.6 complete)
 Lane D:         E3.1 ──► E3.2✓ ──► E3.3✓       (E3.2 also needs E1.1, E1.2)
-Lane E:         E4.1 ──► E4.2 ──► E4.3 ──► E4.4   (E4.2 also needs E0.1)
+Lane E:         E4.1✓ ──► E4.2✓ ──► E4.3✓ ──► E4.4✓   (E4.2 also needs E0.1)
 ```
 
 C, D, E run in parallel once B is in place. E0.1 unblocks E4.2. E6 is independent and can be picked
