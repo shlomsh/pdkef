@@ -1,6 +1,7 @@
 import { MAX_SYMBOL_SIGNATURE_WIDTH_PCT, MIN_SYMBOL_WIDTH_PX } from '../../constants/signGeometry.js';
 import { h } from 'preact';
 import SymbolNode from '../../components/SignTool/nodes/SymbolNode.jsx';
+import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import type { CenteredResizeInput, CenteredResizePatch, ElementDefinition } from './types.ts';
 
 export function applySymbolResize({ deltaWidth, minWidth, aspectRatio, page, start }: CenteredResizeInput): CenteredResizePatch {
@@ -16,6 +17,8 @@ export function applySymbolResize({ deltaWidth, minWidth, aspectRatio, page, sta
 
 export const symbolDefinition: ElementDefinition = {
   type: 'symbol',
+  schema: (value) => isRecord(value) && value.type === 'symbol' && hasString(value, 'id')
+    && hasNumber(value, 'pageIndex') && hasBoxGeometry(value),
   creation: {
     mode: 'point',
     create: ({ id, pageIndex, point, color, symbolWidth = 0, symbolHeight = 0 }) => ({

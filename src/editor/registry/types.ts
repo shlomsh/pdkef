@@ -91,6 +91,7 @@ export interface TextPositionPatch { left: number; top: number; }
 
 export interface ElementDefinition {
   type: ElementType;
+  schema: (value: unknown) => boolean;
   creation: {
     mode: CreationMode;
     create?: (context: CreateContext) => Record<string, unknown>;

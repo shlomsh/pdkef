@@ -1,6 +1,7 @@
 import type { ElementDefinition } from './types.ts';
 import { h } from 'preact';
 import TextNode from '../../components/SignTool/nodes/TextNode.jsx';
+import { hasNumber, hasString, isRecord } from './schema.ts';
 import { MAX_FONT_SIZE_PT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
 import type { TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch } from './types.ts';
 
@@ -30,6 +31,8 @@ export function applyTextPosition({ start, startSize, nextSize, isLeftHandle, is
 
 export const textDefinition: ElementDefinition = {
   type: 'text',
+  schema: (value) => isRecord(value) && value.type === 'text' && hasString(value, 'id')
+    && hasNumber(value, 'pageIndex') && hasNumber(value, 'left') && hasNumber(value, 'top') && hasString(value, 'text'),
   creation: {
     mode: 'point',
     create: ({ id, pageIndex, point, color, font, fontSize, direction }) => ({
