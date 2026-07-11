@@ -3,6 +3,7 @@ import { useSignTool } from './SignToolContext.jsx';
 import FullscreenButton from '../FullscreenButton';
 import Popover from '../Popover.jsx';
 import styles from './SignToolbar.module.css';
+import controlStyles from '../EditorControls.module.css';
 
 export default function SignToolbar({
   setAnnouncement,
@@ -127,16 +128,16 @@ export default function SignToolbar({
               }
               content={
                 <div 
-                  className="sign-popover" 
+                  className={controlStyles.popover}
                   role="menu" 
                   style={{ minWidth: '140px', borderRadius: '12px', padding: '0.25rem' }}
                   onMouseEnter={openShapes}
                   onMouseLeave={scheduleCloseShapes}
                 >
-                  <div className="sign-dropdown-list sign-dropdown-list--clean">
+                  <div className={`${controlStyles['dropdown-list']} ${controlStyles.clean}`}>
                     <button
                       type="button"
-                      className="sign-menu-item"
+                      className={controlStyles['menu-item']}
                       onClick={() => {
                         setSelectedTool('ellipse');
                         setShowShapesDropdown(false);
@@ -150,7 +151,7 @@ export default function SignToolbar({
                     </button>
                     <button
                       type="button"
-                      className="sign-menu-item"
+                      className={controlStyles['menu-item']}
                       onClick={() => {
                         setSelectedTool('rectangle');
                         setShowShapesDropdown(false);
@@ -164,7 +165,7 @@ export default function SignToolbar({
                     </button>
                     <button
                       type="button"
-                      className="sign-menu-item"
+                      className={controlStyles['menu-item']}
                       onClick={() => {
                         setSelectedTool('line');
                         setShowShapesDropdown(false);
@@ -220,19 +221,21 @@ export default function SignToolbar({
                 </button>
               }
               content={
-                <div className="sign-popover" role="menu">
-                  <div className="sign-dropdown-list">
+                <div className={controlStyles.popover} data-editor-signature-popover role="menu">
+                  <div className={controlStyles['dropdown-list']}>
                     {savedSignatures.map((sig) => (
                       <div
                         key={sig.id}
-                        className="sign-dropdown-item"
+                        className={controlStyles['dropdown-item']}
+                        data-editor-signature-item
                         role="menuitem"
                         onClick={() => handleSelectSavedSignature(sig)}
                       >
                         <img src={sig.dataUrl} alt="Saved signature" />
                         <button
                           type="button"
-                          className="sign-dropdown-item-delete"
+                          className={controlStyles['dropdown-item-delete']}
+                          data-editor-signature-delete
                           onClick={(e) => {
                             e.stopPropagation();
                             onDeleteSavedSignature(sig.id, e);
@@ -249,7 +252,7 @@ export default function SignToolbar({
                   </div>
                   <button
                     type="button"
-                    className="sign-dropdown-add-btn"
+                    className={controlStyles['dropdown-add-button']}
                     onClick={() => {
                       setShowSigDropdown(false);
                       setDialogOpen(true);

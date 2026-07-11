@@ -224,11 +224,11 @@ describe('PdfWorkspace Component', () => {
       </SignToolContext.Provider>
     );
 
-    const symbol = host.querySelector('.sign-element');
+    const symbol = host.querySelector('[data-editor-element]');
     const colorHost = symbol.querySelector('div[style*="color"]');
     const path = symbol.querySelector('path[d*="M18 6L6 18"]');
 
-    expect(symbol.classList.contains('active')).toBe(true);
+    expect(symbol.hasAttribute('data-editor-active')).toBe(true);
     expect(colorHost.style.color).toBe('rgb(0, 0, 0)');
     expect(path).not.toBeNull();
   });
@@ -282,7 +282,7 @@ describe('PdfWorkspace Component', () => {
       colorTrigger.click();
     });
 
-    const redSwatch = document.body.querySelector('.sign-color-swatch[title="#d8342b"]');
+    const redSwatch = document.body.querySelector('[data-editor-color-swatch][title="#d8342b"]');
     expect(redSwatch).not.toBeNull();
     act(() => {
       redSwatch.click();
@@ -294,7 +294,7 @@ describe('PdfWorkspace Component', () => {
       payload: { id: 'text-1', changes: { color: '#d8342b' } }
     });
 
-    const textarea = host.querySelector('textarea.sign-text-input');
+    const textarea = host.querySelector('textarea[data-editor-text-input]');
     expect(textarea).not.toBeNull();
     act(() => {
       textarea.value = 'שלום';
@@ -341,7 +341,7 @@ describe('PdfWorkspace Component', () => {
       thicknessTrigger.click();
     });
 
-    const thickOption = document.body.querySelector('.sign-thickness-item[title="12px thickness"]');
+    const thickOption = document.body.querySelector('[data-editor-thickness][title="12px thickness"]');
     expect(thickOption).not.toBeNull();
     act(() => {
       thickOption.click();

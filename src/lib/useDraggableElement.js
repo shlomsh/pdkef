@@ -45,8 +45,8 @@ export default function useDraggableElement({
 
   const handlePointerDown = (e) => {
     if (
-      e.target.closest('.sign-element-actions') ||
-      e.target.closest('.sign-element-resizer')
+      e.target.closest('[data-editor-actions]') ||
+      e.target.closest('[data-editor-resizer]')
     ) {
       return;
     }

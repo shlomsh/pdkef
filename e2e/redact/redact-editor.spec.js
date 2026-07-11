@@ -185,7 +185,7 @@ test.describe('Redact editor browser guardrails', () => {
     const blur = await drawRedaction(page, 'Blur', { x: 0.2, y: 0.42 }, { x: 0.36, y: 0.48 });
 
     await selectRedaction(blackout);
-    await expect(blackout.locator('.sign-element-resizer')).toHaveCount(8);
+    await expect(blackout.locator('[data-editor-resizer]')).toHaveCount(8);
 
     await blackout.hover();
     const blackoutBox = await getBox(blackout, 'Blackout box');
@@ -198,7 +198,7 @@ test.describe('Redact editor browser guardrails', () => {
     expect(redDeleteBox.y + redDeleteBox.height).toBeLessThanOrEqual(blackoutBox.y + blackoutBox.height);
 
     const beforeResize = await getBox(blackout, 'Blackout before resize');
-    const bottomRight = blackout.locator('.sign-element-resizer.corner.bottom-right');
+    const bottomRight = blackout.locator('[data-editor-resizer="bottom-right"]');
     await bottomRight.hover();
     const handleBox = await getBox(bottomRight, 'Blackout bottom-right handle');
     await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
@@ -211,17 +211,17 @@ test.describe('Redact editor browser guardrails', () => {
     await expectWithinPage(blackout, overlay);
 
     await selectRedaction(blur);
-    await expect(blur.locator('.sign-element-resizer')).toHaveCount(8);
+    await expect(blur.locator('[data-editor-resizer]')).toHaveCount(8);
 
     await dragBy(page, blur, 2000, -2000);
     await expectWithinPage(blur, overlay);
 
     await selectRedaction(whiteout);
-    await expect(whiteout.locator('.sign-element-resizer')).toHaveCount(8);
+    await expect(whiteout.locator('[data-editor-resizer]')).toHaveCount(8);
     await expect(whiteout.locator('.redact-element-btn')).toHaveCount(0);
     await expect(whiteout).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 
-    const floatingToolbar = whiteout.locator('.sign-element-actions');
+    const floatingToolbar = whiteout.locator('[data-editor-actions]');
     await expect(floatingToolbar).toBeVisible();
     await expect(floatingToolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
   });

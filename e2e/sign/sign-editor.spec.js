@@ -90,11 +90,11 @@ async function addText(page, text, xRatio, yRatio) {
     await textTool.click();
   }
   await clickOverlayAt(page, xRatio, yRatio);
-  const input = page.locator('.sign-element.active .sign-text-input');
+  const input = page.locator('[data-editor-element][data-editor-active] [data-editor-text-input]');
   await expect(input).toBeVisible();
   await input.fill(text);
   await expect(input).toHaveValue(text);
-  return page.locator('.sign-element.active');
+  return page.locator('[data-editor-element][data-editor-active]');
 }
 
 async function addWhiteout(page, startRatio, endRatio) {
@@ -112,13 +112,13 @@ async function addWhiteout(page, startRatio, endRatio) {
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * endRatio.x, box.y + box.height * endRatio.y);
   await page.mouse.up();
-  const whiteout = page.locator('.sign-element.sign-element--shape').last();
+  const whiteout = page.locator('[data-editor-element][data-editor-shape]').last();
   await expect(whiteout).toBeVisible();
   return whiteout;
 }
 
 async function elementAndToolbarBoxes(element) {
-  const toolbar = element.locator('.sign-element-actions');
+  const toolbar = element.locator('[data-editor-actions]');
   await expect(toolbar).toBeVisible();
   const elementBox = await element.boundingBox();
   const toolbarBox = await toolbar.boundingBox();
@@ -149,11 +149,11 @@ test.describe('Sign editor browser guardrails', () => {
     expect(Math.abs(toolbarRight - elementRight)).toBeLessThanOrEqual(4);
 
     await rtl.locator('button[title="Text color"]').click();
-    await page.locator('.sign-color-menu .sign-color-swatch[title="#d8342b"]').click();
-    await expect(rtl.locator('.sign-text-input')).toHaveCSS('color', 'rgb(216, 52, 43)');
+    await page.locator('[data-editor-color-menu] [data-editor-color-swatch][title="#d8342b"]').click();
+    await expect(rtl.locator('[data-editor-text-input]')).toHaveCSS('color', 'rgb(216, 52, 43)');
 
     const whiteout = await addWhiteout(page, { x: 0.28, y: 0.52 }, { x: 0.42, y: 0.59 });
-    const fill = whiteout.locator('> div:not(.sign-element-actions)');
+    const fill = whiteout.locator('> div:not([data-editor-actions])');
     await expect(fill).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 
     const before = await elementAndToolbarBoxes(whiteout);

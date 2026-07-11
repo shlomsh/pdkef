@@ -59,6 +59,7 @@ export default function Popover({
         createPortal(
           <div
             ref={refs.setFloating}
+            data-editor-popover
             style={{
               ...floatingStyles,
               zIndex: 9999,

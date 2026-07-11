@@ -15,6 +15,7 @@ import {
 } from '../../constants/signGeometry.js';
 import ElementToolbar from '../ElementToolbar.jsx';
 import workspaceStyles from './Workspace.module.css';
+import elementStyles from './EditorElement.module.css';
 
 import { cloneElement, toChildArray } from 'preact';
 
@@ -143,7 +144,7 @@ export default function DraggableWrapper({
 
       if (element.type === 'text') {
         elementRef.current
-          .querySelectorAll('.sign-text-display, .sign-text-input, .sign-text-measure')
+          .querySelectorAll(`.${elementStyles['text-display']}, .${elementStyles['text-input']}, .${elementStyles['text-measure']}`)
           .forEach((node) => { node.style.fontSize = `${patch.fontSize * getScaleFactor(pageWrapper, pageWidthPoints)}px`; });
 
         if (textStartSizePercent) {
@@ -290,8 +291,11 @@ export default function DraggableWrapper({
           refs.setReference(node);
         }
       }}
-      className={`sign-element${isActive ? ' active' : ''}${element.type === 'symbol' ? ' sign-element--symbol' : ''}${isShape ? ' sign-element--shape' : ''}${isLine ? ' sign-element--line' : ''}`}
+      className={[elementStyles.element, isActive && elementStyles.active, element.type === 'symbol' && elementStyles.symbol, isShape && elementStyles.shape, isLine && elementStyles.line].filter(Boolean).join(' ')}
       data-editor-element-id={element.id}
+      data-editor-element
+      data-editor-active={isActive || undefined}
+      data-editor-shape={isShape || undefined}
       style={style}
       onMouseDown={!isLine ? handlePointerDown : undefined}
       onTouchStart={!isLine ? handlePointerDown : undefined}
@@ -305,7 +309,8 @@ export default function DraggableWrapper({
             refs.setFloating(node);
           }
         }}
-        className="sign-element-actions"
+        className={elementStyles.actions}
+        data-editor-actions
         style={isLine ? {
           position: 'absolute',
           left: `${Math.min(element.x1, element.x2) + Math.abs(element.x1 - element.x2) / 2}%`,

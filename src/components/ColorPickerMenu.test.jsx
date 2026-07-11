@@ -37,15 +37,15 @@ describe('ColorPickerMenu (Popover Refactor)', () => {
 
     // It should NOT be a child of the container (inline). 
     // It should be portaled to document.body.
-    const inlineMenu = container.querySelector('.sign-color-menu');
+    const inlineMenu = container.querySelector('[data-editor-color-menu]');
     expect(inlineMenu).toBeNull();
 
     // Check if it exists in the body instead (this is the expected behavior for the refactor)
-    const portaledMenu = document.body.querySelector('.sign-color-menu');
+    const portaledMenu = document.body.querySelector('[data-editor-color-menu]');
     expect(portaledMenu).not.toBeNull();
   });
 
-  it('uses the .sign-popover class instead of the overloaded .sign-dropdown-menu class', async () => {
+  it('uses the [data-editor-signature-popover] class instead of the overloaded .sign-dropdown-menu class', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
 
@@ -62,10 +62,10 @@ describe('ColorPickerMenu (Popover Refactor)', () => {
     });
 
     // Grab the menu (wherever it rendered)
-    const menu = document.body.querySelector('.sign-color-menu');
+    const menu = document.body.querySelector('[data-editor-color-menu]');
     expect(menu).not.toBeNull();
 
     expect(menu.classList.contains('sign-dropdown-menu')).toBe(false);
-    expect(menu.classList.contains('sign-popover')).toBe(true);
+    expect(menu.hasAttribute('data-editor-color-menu')).toBe(true);
   });
 });

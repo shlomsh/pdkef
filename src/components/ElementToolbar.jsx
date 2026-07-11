@@ -3,6 +3,7 @@ import ColorPickerMenu from './ColorPickerMenu.jsx';
 import FontPickerMenu from './FontPickerMenu.jsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.jsx';
 import { getEffectiveTextDirection } from '../lib/sign.js';
+import styles from './EditorControls.module.css';
 
 export default function ElementToolbar({
   element,
@@ -17,6 +18,7 @@ export default function ElementToolbar({
   // Gates the shape-type-switcher toolbar (ellipse / rectangle / line only — not whiteout,
   // which has its own separate tool and toolbar section).
   const isDrawnShape = actualType === 'ellipse' || actualType === 'rectangle';
+  const buttonClass = (active = false, danger = false) => [styles['element-button'], active && styles.active, danger && styles['element-button-danger']].filter(Boolean).join(' ');
 
   return (
     <>
@@ -26,10 +28,10 @@ export default function ElementToolbar({
             value={element.fontFamily || 'Arimo'}
             onChange={(fontFamily) => onChange({ fontFamily })}
           />
-          <div className="sign-toolbar-divider" />
+          <div className={styles.divider} />
           <button
             type="button"
-            className="sign-element-btn"
+            className={buttonClass()}
             onClick={() => onChange({ fontSize: Math.max(6, (element.fontSize || 12) - 1) })}
             title="Decrease font size"
           >
@@ -37,16 +39,16 @@ export default function ElementToolbar({
           </button>
           <button
             type="button"
-            className="sign-element-btn"
+            className={buttonClass()}
             onClick={() => onChange({ fontSize: Math.min(72, (element.fontSize || 12) + 1) })}
             title="Increase font size"
           >
             A+
           </button>
-          <div className="sign-toolbar-divider" />
+          <div className={styles.divider} />
           <button
             type="button"
-            className={`sign-element-btn ${element.fontWeight === 'bold' ? 'active' : ''}`}
+            className={buttonClass(element.fontWeight === 'bold')}
             onClick={() => onChange({ fontWeight: element.fontWeight === 'bold' ? 'normal' : 'bold' })}
             title="Bold"
           >
@@ -54,16 +56,16 @@ export default function ElementToolbar({
           </button>
           <button
             type="button"
-            className={`sign-element-btn ${element.fontStyle === 'italic' ? 'active' : ''}`}
+            className={buttonClass(element.fontStyle === 'italic')}
             onClick={() => onChange({ fontStyle: element.fontStyle === 'italic' ? 'normal' : 'italic' })}
             title="Italic"
           >
             <i>I</i>
           </button>
-          <div className="sign-toolbar-divider" />
+          <div className={styles.divider} />
           <button
             type="button"
-            className={`sign-element-btn ${textDirection === 'rtl' ? 'active' : ''}`}
+            className={buttonClass(textDirection === 'rtl')}
             onClick={() => onChange({ textDirection: textDirection === 'rtl' ? 'ltr' : 'rtl' })}
             title={
               textDirection === 'rtl'
@@ -77,21 +79,21 @@ export default function ElementToolbar({
               <PilcrowRight size={14} strokeWidth={2.5} />
             )}
           </button>
-          <div className="sign-toolbar-divider" />
+          <div className={styles.divider} />
           <ColorPickerMenu
             value={element.color}
             onChange={(color) => onChange({ color })}
             title="Text color"
             defaultColor="#000000"
           />
-          <div className="sign-toolbar-divider" />
+          <div className={styles.divider} />
         </>
       )}
       {element.type === 'symbol' && (
         <>
           <button
             type="button"
-            className={`sign-element-btn ${(element.mark || 'check') === 'check' ? 'active' : ''}`}
+            className={buttonClass((element.mark || 'check') === 'check')}
             onClick={() => onChange({ mark: 'check' })}
             title="Check mark"
           >
@@ -101,7 +103,7 @@ export default function ElementToolbar({
           </button>
           <button
             type="button"
-            className={`sign-element-btn ${element.mark === 'x' ? 'active' : ''}`}
+            className={buttonClass(element.mark === 'x')}
             onClick={() => onChange({ mark: 'x' })}
             title="X mark"
           >
@@ -112,7 +114,7 @@ export default function ElementToolbar({
           </button>
           <button
             type="button"
-            className={`sign-element-btn ${element.mark === 'dot' ? 'active' : ''}`}
+            className={buttonClass(element.mark === 'dot')}
             onClick={() => onChange({ mark: 'dot' })}
             title="Dot mark"
           >
@@ -120,21 +122,21 @@ export default function ElementToolbar({
               <circle cx="12" cy="12" r="7" />
             </svg>
           </button>
-          <div className="sign-toolbar-divider" />
+          <div className={styles.divider} />
           <ColorPickerMenu
             value={element.color}
             onChange={(color) => onChange({ color })}
             title="Checkbox color"
             defaultColor="#1463ff"
           />
-          <div className="sign-toolbar-divider" />
+          <div className={styles.divider} />
         </>
       )}
       {(isDrawnShape || isLine) && (
         <>
           <button
             type="button"
-            className={`sign-element-btn ${actualType === 'ellipse' ? 'active' : ''}`}
+            className={buttonClass(actualType === 'ellipse')}
             onClick={() => {
               if (actualType === 'line') {
                 onChange({ type: 'ellipse', left: Math.min(element.x1, element.x2), top: Math.min(element.y1, element.y2), width: Math.max(Math.abs(element.x2 - element.x1), 4), height: Math.max(Math.abs(element.y2 - element.y1), 4) });
@@ -150,7 +152,7 @@ export default function ElementToolbar({
           </button>
           <button
             type="button"
-            className={`sign-element-btn ${actualType === 'rectangle' ? 'active' : ''}`}
+            className={buttonClass(actualType === 'rectangle')}
             onClick={() => {
               if (actualType === 'line') {
                 onChange({ type: 'rectangle', left: Math.min(element.x1, element.x2), top: Math.min(element.y1, element.y2), width: Math.max(Math.abs(element.x2 - element.x1), 4), height: Math.max(Math.abs(element.y2 - element.y1), 4) });
@@ -166,7 +168,7 @@ export default function ElementToolbar({
           </button>
           <button
             type="button"
-            className={`sign-element-btn ${actualType === 'line' ? 'active' : ''}`}
+            className={buttonClass(actualType === 'line')}
             onClick={() => {
               if (actualType !== 'line') {
                 onChange({ type: 'line', x1: element.left, y1: element.top + (element.height || 6)/2, x2: element.left + (element.width || 12), y2: element.top + (element.height || 6)/2 });
@@ -178,7 +180,7 @@ export default function ElementToolbar({
               <line x1="4" y1="20" x2="20" y2="4" />
             </svg>
           </button>
-          <div className="sign-toolbar-divider" />
+          <div className={styles.divider} />
           <ThicknessPickerMenu
             value={element.strokeWidth}
             onChange={(strokeWidth) => onChange({ strokeWidth })}
@@ -190,7 +192,7 @@ export default function ElementToolbar({
             title="Shape color"
             defaultColor="#1463ff"
           />
-          <div className="sign-toolbar-divider" />
+          <div className={styles.divider} />
         </>
       )}
       {element.type === 'signature' && (
@@ -201,7 +203,7 @@ export default function ElementToolbar({
             title="Signature color"
             defaultColor="#000000"
           />
-          <div className="sign-toolbar-divider" />
+          <div className={styles.divider} />
         </>
       )}
       {element.type === 'whiteout' && (
@@ -212,12 +214,12 @@ export default function ElementToolbar({
             title="Whiteout color"
             defaultColor="#ffffff"
           />
-          <div className="sign-toolbar-divider" />
+          <div className={styles.divider} />
         </>
       )}
       <button
         type="button"
-        className="sign-element-btn"
+        className={buttonClass()}
         onClick={() => {
           const newId = `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           onClone({
@@ -236,7 +238,7 @@ export default function ElementToolbar({
       </button>
       <button
         type="button"
-        className="sign-element-btn sign-element-btn-danger"
+        className={buttonClass(false, true)}
         onClick={onDelete}
         title="Delete element"
       >

@@ -15,6 +15,8 @@ import { usePdfShare } from '../lib/usePdfShare.js';
 import pdfToolStyles from './PdfTool.module.css';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
+import dialogStyles from './SignatureDialog.module.css';
+import elementStyles from './SignTool/EditorElement.module.css';
 
 export default function PdfRedactTool() {
   const [file, setFile] = useState(null);
@@ -403,7 +405,7 @@ export default function PdfRedactTool() {
   // page wrapper, captured once at gesture start (it can't change mid-drag). We
   // stopPropagation so the page-level draw handler never starts a new box underneath.
   const handleBoxDragStart = (e, el) => {
-    if (e.target.closest('.redact-element-btn') || e.target.closest('.redact-box-resizer') || e.target.closest('.sign-element-actions')) return;
+    if (e.target.closest('.redact-element-btn') || e.target.closest('.redact-box-resizer') || e.target.closest(`.${elementStyles.actions}`)) return;
     e.stopPropagation();
     e.preventDefault();
     setActiveBoxId(el.id); // reveal controls on touch/click, where there's no hover
@@ -643,9 +645,9 @@ export default function PdfRedactTool() {
 
           <div className={workspaceStyles['pages-container']}>
             {Array.from({ length: numPages }).map((_, i) => (
-              <div key={i} className="sign-page-card">
-                <div className="sign-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.25rem' }}>
-                  <span className="sign-page-number" style={{ fontWeight: 600, color: 'var(--color-text)' }}>Page {i + 1}</span>
+              <div key={i} data-editor-page-card>
+                <div data-editor-page-header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.25rem' }}>
+                  <span data-editor-page-number style={{ fontWeight: 600, color: 'var(--color-text)' }}>Page {i + 1}</span>
                   {elements.some(el => el.pageIndex === i) && (
                     <button
                       type="button"
@@ -755,31 +757,31 @@ export default function PdfRedactTool() {
       {/* Start-over confirmation */}
       <dialog
         ref={resetDialogRef}
-        className="sig-dialog sig-dialog--narrow"
+        className={`${dialogStyles.dialog} ${dialogStyles.narrow}`}
         onClose={() => setConfirmResetOpen(false)}
         onClick={(e) => { if (e.target === e.currentTarget) setConfirmResetOpen(false); }}
         aria-labelledby="confirm-reset-title"
       >
-        <div className="sig-dialog-header">
+        <div className={dialogStyles.header}>
           <h3 id="confirm-reset-title">Start over?</h3>
-          <button type="button" className="sig-dialog-close" onClick={() => setConfirmResetOpen(false)} aria-label="Close dialog">
+          <button type="button" className={dialogStyles.close} onClick={() => setConfirmResetOpen(false)} aria-label="Close dialog">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <path d="M4 4l8 8M12 4l-8 8" />
             </svg>
           </button>
         </div>
-        <div className="sig-dialog-body sig-dialog-body--tight">
-          <p className="sig-confirm-text">
+        <div className={`${dialogStyles.body} ${dialogStyles['body-tight']}`}>
+          <p className={dialogStyles['confirm-text']}>
             This clears the current document and removes your saved draft. Your redactions can’t be recovered afterwards.
           </p>
         </div>
-        <div className="sig-dialog-footer">
-          <button type="button" className="sig-btn sig-btn-secondary" onClick={() => setConfirmResetOpen(false)}>
+        <div className={dialogStyles.footer}>
+          <button type="button" className={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={() => setConfirmResetOpen(false)}>
             Cancel
           </button>
           <button
             type="button"
-            className="sig-btn sig-btn-primary sig-btn-danger"
+            className={`${dialogStyles.button} ${dialogStyles.primary} ${dialogStyles.danger}`}
             onClick={() => {
               setConfirmResetOpen(false);
               reset();

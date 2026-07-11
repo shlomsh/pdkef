@@ -143,10 +143,10 @@ describe('PdfSignTool UI flow', () => {
       sigBtn.click();
     });
 
-    const dropdown = document.body.querySelector('.sign-popover');
+    const dropdown = document.body.querySelector('[data-editor-signature-popover]');
     expect(dropdown).not.toBeNull();
 
-    const dropdownItems = document.body.querySelectorAll('.sign-dropdown-item');
+    const dropdownItems = document.body.querySelectorAll('[data-editor-signature-item]');
     expect(dropdownItems.length).toBe(1);
 
     // Clicking the item should close dropdown and select tool
@@ -154,7 +154,7 @@ describe('PdfSignTool UI flow', () => {
       dropdownItems[0].click();
     });
 
-    const dropdownAfter = document.body.querySelector('.sign-popover');
+    const dropdownAfter = document.body.querySelector('[data-editor-signature-popover]');
     expect(dropdownAfter).toBeNull();
   });
 
@@ -189,7 +189,7 @@ describe('PdfSignTool UI flow', () => {
     expect(dialog).not.toBeNull();
 
     // Verify Draw, Type, Upload tabs are present
-    const tabBtns = container.querySelectorAll('.sig-tab-btn');
+    const tabBtns = container.querySelectorAll('[data-editor-dialog-tab]');
     expect(tabBtns.length).toBe(3);
     expect(tabBtns[0].textContent).toBe('Draw');
     expect(tabBtns[1].textContent).toBe('Type');
@@ -205,7 +205,7 @@ describe('PdfSignTool UI flow', () => {
       tabBtns[2].click();
     });
 
-    const dropzone = container.querySelector('.sig-upload-dropzone');
+    const dropzone = container.querySelector('[data-editor-upload-dropzone]');
     expect(dropzone).not.toBeNull();
   });
 
@@ -241,12 +241,12 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Verify element is placed
-    let elements = container.querySelectorAll('.sign-element');
+    let elements = container.querySelectorAll('[data-editor-element]');
     expect(elements.length).toBe(1);
 
     // Blur textarea to select the wrapper element instead for copy/paste
     await act(async () => {
-      container.querySelector('.sign-text-input')?.blur();
+      container.querySelector('[data-editor-text-input]')?.blur();
     });
 
     // Mock copy event
@@ -266,7 +266,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Verify element is cloned (now should be 2 elements)
-    elements = container.querySelectorAll('.sign-element');
+    elements = container.querySelectorAll('[data-editor-element]');
     expect(elements.length).toBe(2);
   });
 
@@ -304,7 +304,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Verify element is placed
-    const elements = container.querySelectorAll('.sign-element');
+    const elements = container.querySelectorAll('[data-editor-element]');
     expect(elements.length).toBe(1);
     
     // Check if it's a symbol (contains an SVG or symbol character)
@@ -342,12 +342,12 @@ describe('PdfSignTool UI flow', () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
 
-    let elements = container.querySelectorAll('.sign-element');
+    let elements = container.querySelectorAll('[data-editor-element]');
     expect(elements.length).toBe(1);
 
     // Blur textarea to select the wrapper element instead for deletion
     await act(async () => {
-      container.querySelector('.sign-text-input')?.blur();
+      container.querySelector('[data-editor-text-input]')?.blur();
     });
 
     // Press Delete key
@@ -357,7 +357,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Verify element is deleted
-    elements = container.querySelectorAll('.sign-element');
+    elements = container.querySelectorAll('[data-editor-element]');
     expect(elements.length).toBe(0);
   });
 
@@ -409,7 +409,7 @@ describe('PdfSignTool UI flow', () => {
     });
     
     // Set text element content
-    const inputField = container.querySelector('.sign-text-input');
+    const inputField = container.querySelector('[data-editor-text-input]');
     expect(inputField).not.toBeNull();
     await act(async () => {
       inputField.value = 'John Doe';
@@ -532,7 +532,7 @@ describe('PdfSignTool UI flow', () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
 
-    const textInput = container.querySelector('.sign-text-input');
+    const textInput = container.querySelector('[data-editor-text-input]');
     expect(textInput).not.toBeNull();
 
     // A fresh, empty element defaults to LTR
@@ -602,7 +602,7 @@ describe('PdfSignTool UI flow', () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
 
-    const firstTextInput = container.querySelector('.sign-text-input');
+    const firstTextInput = container.querySelector('[data-editor-text-input]');
     expect(firstTextInput).not.toBeNull();
 
     const increaseFont = container.querySelector('button[title="Increase font size"]');
@@ -617,9 +617,9 @@ describe('PdfSignTool UI flow', () => {
       colorTrigger.click();
     });
 
-    const colorMenu = document.body.querySelector('.sign-color-menu');
+    const colorMenu = document.body.querySelector('[data-editor-color-menu]');
     expect(colorMenu).not.toBeNull();
-    const redSwatch = colorMenu.querySelector('.sign-color-swatch[title="#d8342b"]');
+    const redSwatch = colorMenu.querySelector('[data-editor-color-swatch][title="#d8342b"]');
     expect(redSwatch).not.toBeNull();
     await act(async () => {
       redSwatch.click();
@@ -630,7 +630,7 @@ describe('PdfSignTool UI flow', () => {
 
     expect(localStorage.getItem('pdf-toolkit:lastColor')).toBe('#d8342b');
     expect(localStorage.getItem('pdf-toolkit:lastFontSize')).toBe('13');
-    expect(container.querySelector('.sign-text-input').style.color).toBe('rgb(216, 52, 43)');
+    expect(container.querySelector('[data-editor-text-input]').style.color).toBe('rgb(216, 52, 43)');
 
     await act(async () => {
       firstTextInput.value = 'שלום';
@@ -641,7 +641,7 @@ describe('PdfSignTool UI flow', () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 260, clientY: 220, bubbles: true }));
     });
 
-    const textInputs = container.querySelectorAll('.sign-text-input');
+    const textInputs = container.querySelectorAll('[data-editor-text-input]');
     expect(textInputs.length).toBe(2);
     const editedTextInput = textInputs[0];
     const nextTextInput = textInputs[1];
@@ -687,15 +687,15 @@ describe('PdfSignTool UI flow', () => {
       });
 
       // Switch to Type mode
-      const tabBtns = container.querySelectorAll('.sig-tab-btn');
+      const tabBtns = container.querySelectorAll('[data-editor-dialog-tab]');
       await act(async () => {
         tabBtns[1].click(); // Type tab
       });
 
       // The Caveat font should be active by default
-      const fontBtns = Array.from(container.querySelectorAll('.sig-font-btn'));
+      const fontBtns = Array.from(container.querySelectorAll('[data-editor-signature-font]'));
       const caveatBtn = fontBtns.find(btn => btn.textContent === 'Caveat');
-      expect(caveatBtn.classList.contains('active')).toBe(true);
+      expect(caveatBtn.hasAttribute('data-editor-active')).toBe(true);
 
       // Select Pacifico
       const pacificoBtn = fontBtns.find(btn => btn.textContent === 'Pacifico');
@@ -704,15 +704,15 @@ describe('PdfSignTool UI flow', () => {
       });
 
       // Pacifico should now be active, Caveat should not
-      expect(pacificoBtn.classList.contains('active')).toBe(true);
-      expect(caveatBtn.classList.contains('active')).toBe(false);
+      expect(pacificoBtn.hasAttribute('data-editor-active')).toBe(true);
+      expect(caveatBtn.hasAttribute('data-editor-active')).toBe(false);
 
       // Save button should be disabled initially
-      const saveSigBtn = container.querySelector('button.sig-btn-primary');
+      const saveSigBtn = container.querySelector('button[data-editor-signature-save]');
       expect(saveSigBtn.disabled).toBe(true);
 
       // Type a name
-      const typeInput = container.querySelector('.sig-type-input');
+      const typeInput = container.querySelector('[data-editor-signature-input]');
       await act(async () => {
         typeInput.value = 'Test Signature';
         typeInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -758,7 +758,7 @@ describe('PdfSignTool UI flow', () => {
     const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
     const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
     await act(async () => { sigBtn.click(); });
-    const dropdownItem = document.body.querySelector('.sign-dropdown-item');
+    const dropdownItem = document.body.querySelector('[data-editor-signature-item]');
     await act(async () => { dropdownItem.click(); });
 
     const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
@@ -774,7 +774,7 @@ describe('PdfSignTool UI flow', () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 120, clientY: 160, bubbles: true }));
     });
 
-    const placed = container.querySelector('.sign-element');
+    const placed = container.querySelector('[data-editor-element]');
     expect(placed).not.toBeNull();
 
     // Independently-derived expectation (mirrors placeSignatureAt's own math, but
@@ -827,7 +827,7 @@ describe('PdfSignTool UI flow', () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
     });
 
-    const box = container.querySelector('.sign-element');
+    const box = container.querySelector('[data-editor-element]');
     expect(box).not.toBeNull();
 
     const startLeftPercent = pxToPercent(100, 500);

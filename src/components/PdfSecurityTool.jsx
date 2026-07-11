@@ -3,6 +3,7 @@ import { isPdfEncrypted, protectPdf, unlockPdf, WrongPasswordError, SecurityErro
 import BasePdfTool from './BasePdfTool.jsx';
 import styles from './PdfSecurityTool.module.css';
 import pdfToolStyles from './PdfTool.module.css';
+import dialogStyles from './SignatureDialog.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 
@@ -217,29 +218,29 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
 
       <dialog
         ref={resetDialogRef}
-        class="sig-dialog sig-dialog--narrow"
+        class={`${dialogStyles.dialog} ${dialogStyles.narrow}`}
         onClose={() => setConfirmResetOpen(false)}
         onClick={(event) => { if (event.target === event.currentTarget) setConfirmResetOpen(false); }}
         aria-labelledby="security-confirm-reset-title"
       >
-        <div class="sig-dialog-header">
+        <div class={dialogStyles.header}>
           <h3 id="security-confirm-reset-title">Start over?</h3>
-          <button type="button" class="sig-dialog-close" onClick={() => setConfirmResetOpen(false)} aria-label="Close dialog">
+          <button type="button" class={dialogStyles.close} onClick={() => setConfirmResetOpen(false)} aria-label="Close dialog">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
               <path d="M4 4l8 8M12 4l-8 8" />
             </svg>
           </button>
         </div>
-        <div class="sig-dialog-body sig-dialog-body--tight">
-          <p class="sig-confirm-text">This clears the current PDF and password from this tool.</p>
+        <div class={`${dialogStyles.body} ${dialogStyles['body-tight']}`}>
+          <p class={dialogStyles['confirm-text']}>This clears the current PDF and password from this tool.</p>
         </div>
-        <div class="sig-dialog-footer">
-          <button type="button" class="sig-btn sig-btn-secondary" onClick={() => setConfirmResetOpen(false)}>
+        <div class={dialogStyles.footer}>
+          <button type="button" class={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={() => setConfirmResetOpen(false)}>
             Cancel
           </button>
           <button
             type="button"
-            class="sig-btn sig-btn-primary sig-btn-danger"
+            class={`${dialogStyles.button} ${dialogStyles.primary} ${dialogStyles.danger}`}
             onClick={() => {
               setConfirmResetOpen(false);
               reset();

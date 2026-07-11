@@ -1,4 +1,5 @@
 import { getElementDefinition } from '../editor/registry/index.ts';
+import styles from './SignTool/EditorElement.module.css';
 
 export default function ElementResizers({ element, isActive, onResizeStart }) {
   const { handles } = getElementDefinition(element.type).resizeBehavior;
@@ -19,7 +20,8 @@ export default function ElementResizers({ element, isActive, onResizeStart }) {
         return (
           <div
             key={handle}
-            className={`sign-element-resizer${isLineHandle ? ' line-handle' : ''}${isCorner ? ' corner' : ''}${isLineHandle ? '' : ` ${handle}`}`}
+            className={[styles.resizer, isLineHandle && styles['line-handle'], isCorner && styles.corner, !isLineHandle && styles[handle]].filter(Boolean).join(' ')}
+            data-editor-resizer={handle}
             style={isLineHandle ? { position: 'absolute', left: `${point.left}%`, top: `${point.top}%`, pointerEvents: 'auto', cursor: 'crosshair', transform: 'translate(-50%, -50%)', bottom: 'auto', right: 'auto' } : undefined}
             onMouseDown={(event) => onResizeStart(event, handle)}
             onTouchStart={(event) => onResizeStart(event, handle)}

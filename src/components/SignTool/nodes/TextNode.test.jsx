@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import TextNode from './TextNode.jsx';
 import workspaceStyles from '../Workspace.module.css';
+import elementStyles from '../EditorElement.module.css';
 
 function mount(vnode) {
   const host = document.createElement('div');
@@ -147,7 +148,7 @@ describe('TextNode component', () => {
     
     // Create a mock toolbar element and focus it
     const toolbar = document.createElement('div');
-    toolbar.className = 'sign-element-actions';
+    toolbar.className = elementStyles.actions;
     const button = document.createElement('button');
     toolbar.appendChild(button);
     host.appendChild(toolbar);

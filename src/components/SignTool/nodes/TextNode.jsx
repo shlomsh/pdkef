@@ -4,6 +4,7 @@ import usePdfCoordinates from '../../../lib/usePdfCoordinates.js';
 import { getEffectiveTextDirection } from '../../../lib/sign.js';
 import { DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
 import workspaceStyles from '../Workspace.module.css';
+import elementStyles from '../EditorElement.module.css';
 
 
 export default function TextNode({ element, isActive, onChange, onSelect, onResizeStart, pageWidthPoints }) {
@@ -28,7 +29,7 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
     if (!isActive || !textareaRef.current) return;
 
     const activeEl = document.activeElement;
-    const isToolbarFocused = activeEl && (activeEl.closest('.sign-element-actions') || activeEl.closest('.sign-popover'));
+    const isToolbarFocused = activeEl && (activeEl.closest(`.${elementStyles.actions}`) || activeEl.closest('[data-editor-popover]'));
     const isTextareaFocused = activeEl === textareaRef.current;
 
     if (element.autoFocus || isToolbarFocused) {
@@ -58,9 +59,10 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
 
   return (
     <>
-      <div ref={textRef} className="sign-text-display" style={{ fontSize: `${textFontSize}px` }}>
+      <div ref={textRef} className={elementStyles['text-display']} data-editor-text-display style={{ fontSize: `${textFontSize}px` }}>
         <div
-          className="sign-text-measure"
+          className={elementStyles['text-measure']}
+          data-editor-text-measure
           dir={textDirection}
           style={{
             fontSize: `${textFontSize}px`,
@@ -76,7 +78,8 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
           dir={textDirection}
           rows={1}
           cols={1}
-          className="sign-text-input"
+          className={elementStyles['text-input']}
+          data-editor-text-input
           value={element.text}
           placeholder="Click to edit"
           onInput={(e) => onChange({ text: e.currentTarget.value })}

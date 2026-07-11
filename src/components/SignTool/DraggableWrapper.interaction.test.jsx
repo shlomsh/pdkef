@@ -107,7 +107,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       );
     });
 
-    const box = wrapper.querySelector('.sign-element');
+    const box = wrapper.querySelector('[data-editor-element]');
     return { wrapper, box };
   }
 
@@ -117,15 +117,15 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12 };
 
       const { box: activeBox } = mountInPageWrapper(element, { isActive: true });
-      expect(activeBox.classList.contains('active')).toBe(true);
+      expect(activeBox.hasAttribute('data-editor-active')).toBe(true);
 
       const { box: inactiveBox } = mountInPageWrapper({ ...element, id: 'el-2' }, { isActive: false });
-      expect(inactiveBox.classList.contains('active')).toBe(false);
+      expect(inactiveBox.hasAttribute('data-editor-active')).toBe(false);
 
       // Structural contract, not a real rendered check: jsdom does not load
-      // global.css, so `.sign-element.active { border-color: var(--color-primary) }`
+      // global.css, so `[data-editor-element].active { border-color: var(--color-primary) }`
       // never actually paints here. The class is the load-bearing contract —
-      // CSS keys the visible outline off it (see global.css `.sign-element.active`).
+      // CSS keys the visible outline off it (see global.css `[data-editor-element].active`).
       expect(activeBox.style.borderColor).toBe('');
     });
   });
@@ -135,15 +135,15 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
     it("keeps the toolbar node present but its visibility gated purely by the `active` class, not JS (CSS opacity/pointer-events can't be observed in jsdom)", () => {
       const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12 };
       const { box } = mountInPageWrapper(element, { isActive: false });
-      const actions = box.querySelector('.sign-element-actions');
+      const actions = box.querySelector('[data-editor-actions]');
       // The toolbar node always exists in the DOM (so Floating UI can anchor to
       // it); *visibility* is a pure-CSS opacity/pointer-events toggle keyed off
-      // `.sign-element.active .sign-element-actions` (global.css). We can't
+      // `[data-editor-element].active [data-editor-actions]` (global.css). We can't
       // observe computed opacity in jsdom, so we assert the structural half of
       // that contract: the box lacks `.active`, which is the only thing that
       // contract keys off.
       expect(actions).not.toBeNull();
-      expect(box.classList.contains('active')).toBe(false);
+      expect(box.hasAttribute('data-editor-active')).toBe(false);
     });
 
     it('keeps Floating UI placement stable above the element and does not configure a bottom fallback', () => {
@@ -227,15 +227,15 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
     });
 
     it('never applies a `--rtl` toolbar class — horizontal alignment is driven entirely by Floating UI placement', () => {
-      // `.sign-element-actions--rtl` was dead CSS (removed from global.css) and
+      // `[data-editor-actions]--rtl` was dead CSS (removed from global.css) and
       // DraggableWrapper.jsx's comment claiming it drove horizontal alignment
       // was stale; both have been corrected. Horizontal alignment is driven
       // entirely by the `top-end`/`top-start` placement asserted above. This
       // guards against either regressing back in.
       const element = { id: 'el-1', type: 'text', left: 70, top: 10, text: 'שלום', textDirection: 'rtl', fontSize: 12 };
       const { box } = mountInPageWrapper(element, { isActive: true });
-      const actions = box.querySelector('.sign-element-actions');
-      expect(actions.className).toBe('sign-element-actions');
+      const actions = box.querySelector('[data-editor-actions]');
+      expect(actions.hasAttribute('data-editor-actions')).toBe(true);
       expect(actions.classList.contains('sign-element-actions--rtl')).toBe(false);
     });
   });
@@ -246,10 +246,10 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const onChange = vi.fn();
       const element = { id: 'txt-resize-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' };
       const { box } = mountInPageWrapper(element, { isActive: true, pageWidthPoints: 600, onChange });
-      const corner = box.querySelector('.sign-element-resizer.corner.top-right');
-      const display = box.querySelector('.sign-text-display');
-      const input = box.querySelector('.sign-text-input');
-      const measure = box.querySelector('.sign-text-measure');
+      const corner = box.querySelector('[data-editor-resizer="top-right"]');
+      const display = box.querySelector('[data-editor-text-display]');
+      const input = box.querySelector('[data-editor-text-input]');
+      const measure = box.querySelector('[data-editor-text-measure]');
 
       expect(corner).not.toBeNull();
       expect(display.style.fontSize).toBe('12px');
@@ -279,12 +279,12 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const onChange = vi.fn();
       const element = { id: 'txt-resize-2', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' };
       const { box } = mountInPageWrapper(element, { isActive: true, pageWidthPoints: 600, onChange });
-      const corner = box.querySelector('.sign-element-resizer.corner.top-left');
+      const corner = box.querySelector('[data-editor-resizer="top-left"]');
       const startWidthPx = 120;
       const startHeightPx = 24;
 
       box.getBoundingClientRect = () => {
-        const fontPx = parseFloat(box.querySelector('.sign-text-display').style.fontSize) || 12;
+        const fontPx = parseFloat(box.querySelector('[data-editor-text-display]').style.fontSize) || 12;
         const scale = fontPx / 12;
         const width = startWidthPx * scale;
         const height = startHeightPx * scale;
@@ -390,8 +390,8 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
     it('the floating toolbar and its buttons carry no inline color/background — visibility and contrast stay 100% CSS-driven', () => {
       const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12, color: '#000000' };
       const { box } = mountInPageWrapper(element, { isActive: true });
-      const actions = box.querySelector('.sign-element-actions');
-      const buttons = box.querySelectorAll('.sign-element-btn');
+      const actions = box.querySelector('[data-editor-actions]');
+      const buttons = box.querySelectorAll('[data-editor-actions] button');
 
       // This is the exact class of bug ARCHITECTURE.md §5 warns about: an
       // inline color/background on the toolbar chrome would fight (or silently
@@ -439,7 +439,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
         { id: 'w-1', type: 'whiteout', left: 5, top: 5, width: 20, height: 10, color: '#ffffff' },
         onChange
       );
-      const rightHandle = page.querySelector('.sign-element-resizer.right');
+      const rightHandle = page.querySelector('[data-editor-resizer="right"]');
       expect(rightHandle).not.toBeNull();
 
       act(() => {
@@ -461,7 +461,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
         { id: 'w-2', type: 'whiteout', left: 5, top: 5, width: 20, height: 10, color: '#ffffff' },
         onChange
       );
-      const rightHandle = page.querySelector('.sign-element-resizer.right');
+      const rightHandle = page.querySelector('[data-editor-resizer="right"]');
 
       act(() => {
         // A huge leftward drag on the right handle (shrinking width past 0).
@@ -480,13 +480,13 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
         { id: 'w-3', type: 'whiteout', left: 5, top: 5, width: 20, height: 10, color: '#ffffff' },
         () => {}
       );
-      // `.sign-element-actions` (the floating toolbar) is also a direct `div`
+      // `[data-editor-actions]` (the floating toolbar) is also a direct `div`
       // child and renders first in DOM order, so it must be excluded here —
       // the fill div is the other one.
-      const fill = page.querySelector('.sign-element > div:not(.sign-element-actions)');
+      const fill = page.querySelector('[data-editor-element] > div:not([data-editor-actions])');
       // Real rendered check: the fill div is the element that must fully cover
       // the box's bounds (that's what makes it "whiteout" and not a border) —
-      // it always sizes to 100%/100% of its parent `.sign-element`, whose own
+      // it always sizes to 100%/100% of its parent `[data-editor-element]`, whose own
       // width/height come from `element.width`/`element.height`.
       expect(fill.style.width).toBe('100%');
       expect(fill.style.height).toBe('100%');
@@ -504,7 +504,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
         { id: 'w-4', type: 'whiteout', left: 5, top: 5, width: 10, height: 10, color: '#ffffff' },
         onChange
       );
-      const leftHandle = page.querySelector('.sign-element-resizer.left');
+      const leftHandle = page.querySelector('[data-editor-resizer="left"]');
       expect(leftHandle).not.toBeNull();
 
       act(() => {
@@ -544,7 +544,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const onChange = vi.fn();
       const element = { id: 'w-5', type: 'whiteout', left: 50, top: 30, width: 20, height: 15, color: '#ffffff' };
       const { wrapper } = mountInPageWrapper(element, { isActive: true, onChange });
-      const rightHandle = wrapper.querySelector('.sign-element-resizer.right');
+      const rightHandle = wrapper.querySelector('[data-editor-resizer="right"]');
       expect(rightHandle).not.toBeNull();
 
       act(() => {
@@ -567,7 +567,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const onChange = vi.fn();
       const element = { id: 'w-6', type: 'whiteout', left: 20, top: 30, width: 10, height: 15, color: '#ffffff' };
       const { wrapper } = mountInPageWrapper(element, { isActive: true, onChange });
-      const leftHandle = wrapper.querySelector('.sign-element-resizer.left');
+      const leftHandle = wrapper.querySelector('[data-editor-resizer="left"]');
       expect(leftHandle).not.toBeNull();
 
       act(() => {
@@ -595,7 +595,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const onChange = vi.fn();
       const element = { id: 'w-7', type: 'whiteout', left: 30, top: 30, width: 20, height: 15, color: '#ffffff' };
       const { wrapper } = mountInPageWrapper(element, { isActive: true, onChange });
-      const box = wrapper.querySelector('.sign-element');
+      const box = wrapper.querySelector('[data-editor-element]');
 
       act(() => {
         // 600x800 mocked page: dx=30px -> 5%, dy=16px -> 2%.
@@ -617,7 +617,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const onChange = vi.fn();
       const element = { id: 'w-8', type: 'whiteout', left: 25, top: 35, width: 15, height: 10, color: '#ffffff' };
       const { wrapper } = mountInPageWrapper(element, { isActive: true, onChange });
-      const bottomRightHandle = wrapper.querySelector('.sign-element-resizer.corner.bottom-right');
+      const bottomRightHandle = wrapper.querySelector('[data-editor-resizer="bottom-right"]');
       expect(bottomRightHandle).not.toBeNull();
 
       act(() => {
@@ -634,7 +634,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const onChange = vi.fn();
       const element = { id: 'w-9', type: 'whiteout', left: 50, top: 30, width: 20, height: 15, color: '#ffffff' };
       const { wrapper, box } = mountInPageWrapper(element, { isActive: true, onChange });
-      const rightHandle = wrapper.querySelector('.sign-element-resizer.right');
+      const rightHandle = wrapper.querySelector('[data-editor-resizer="right"]');
       expect(rightHandle).not.toBeNull();
 
       act(() => {

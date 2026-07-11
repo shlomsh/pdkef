@@ -1,14 +1,17 @@
+import styles from './EditorControls.module.css';
+
 // A handful of common ink colors, plus a native picker for anything else
 const PRESET_COLORS = ['#000000', '#d8342b', '#1463ff', '#1a8f54', '#112d4e', '#ffffff'];
 
 export default function ColorPicker({ value, onChange, onClose, title, defaultColor = '#000000' }) {
   return (
-    <div className="sign-color-picker">
+    <div className={styles['color-picker']}>
       {PRESET_COLORS.map((c) => (
         <button
           key={c}
           type="button"
-          className={`sign-color-swatch${(value || defaultColor) === c ? ' active' : ''}`}
+          className={`${styles['color-swatch']}${(value || defaultColor) === c ? ` ${styles.active}` : ''}`}
+          data-editor-color-swatch
           // Per-property CSSOM write (not an inline style="" attribute): the
           // color is dynamic so it can't be a static class, and a strict CSP
           // style-src blocks style attributes but not element.style.* writes.
@@ -20,10 +23,10 @@ export default function ColorPicker({ value, onChange, onClose, title, defaultCo
           title={c}
         />
       ))}
-      <span className="sign-color-divider" aria-hidden="true" />
+      <span className={styles['color-divider']} aria-hidden="true" />
       <input
         type="color"
-        className="sign-color-input"
+        className={styles['color-input']}
         value={value || defaultColor}
         onChange={(e) => onChange(e.target.value)}
         title={title}

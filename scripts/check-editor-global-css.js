@@ -9,26 +9,9 @@ const globalCssPath = path.join(__dirname, '..', 'src', 'styles', 'global.css');
 // E2.3.0 temporary inventory. E2.3.5 must reduce this to an empty set and keep
 // this script as a no-new-editor-global-CSS guard. Do not add a selector here
 // without first assigning it to an E2.3 module in docs/E2.3-editor-css-modules-plan.md.
-const allowedEditorClasses = new Set([
-  'sig-btn', 'sig-btn-danger', 'sig-btn-primary', 'sig-btn-secondary', 'sig-btn-success',
-  'sig-canvas', 'sig-clear-btn', 'sig-confirm-text', 'sig-dialog', 'sig-dialog--narrow',
-  'sig-dialog-body', 'sig-dialog-body--list', 'sig-dialog-body--tight', 'sig-dialog-close',
-  'sig-dialog-footer', 'sig-dialog-header', 'sig-pad-wrapper', 'sig-pen-controls', 'sig-tab-btn',
-  'sig-tabs', 'sig-thickness-control', 'sig-type-container', 'sig-type-input', 'sig-type-preview',
-  'sig-upload-container', 'sig-upload-dropzone', 'sig-upload-options', 'sig-upload-preview',
-  'sign-color-divider', 'sign-color-input', 'sign-color-menu', 'sign-color-picker',
-  'sign-color-swatch', 'sign-color-trigger', 'sign-color-trigger-swatch', 'sign-dropdown-add-btn',
-  'sign-dropdown-item', 'sign-dropdown-item-delete', 'sign-dropdown-list', 'sign-dropdown-list--clean',
-  'sign-element', 'sign-element--line', 'sign-element--shape',
-  'sign-element--symbol', 'sign-element-actions', 'sign-element-btn', 'sign-element-btn-danger',
-  'sign-element-resizer', 'sign-font-menu',
-  'sign-font-menu-group-label', 'sign-font-menu-item', 'sign-font-trigger',
-  'sign-menu-item', 'sign-page-canvas', 'sign-page-overlay', 'sign-page-wrapper',
-  'sign-pages-container', 'sign-popover', 'sign-sig-image', 'sign-text-display', 'sign-text-input',
-  'sign-text-measure', 'sign-thickness-item', 'sign-toolbar-divider',
-]);
+const allowedEditorClasses = new Set();
 
-const css = fs.readFileSync(globalCssPath, 'utf8');
+const css = fs.readFileSync(globalCssPath, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 const foundEditorClasses = new Set(
   [...css.matchAll(/\.(?:sign|sig)-[A-Za-z0-9_-]+/g)].map(([selector]) => selector.slice(1)),
 );

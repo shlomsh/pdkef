@@ -2,6 +2,7 @@ import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react
 import { TOOLBAR_FLOATING_OFFSET } from '../constants/signGeometry.js';
 import ElementToolbar from './ElementToolbar.jsx';
 import ElementResizers from './ElementResizers.jsx';
+import elementStyles from './SignTool/EditorElement.module.css';
 
 // Renders one redaction box (blackout/whiteout/blur). Extracted out of PdfRedactTool's
 // map() because useFloating (below) is a hook and can't run per-iteration inline.
@@ -46,7 +47,8 @@ export default function RedactBox({
   return (
     <div
       ref={refs.setReference}
-      className={`redact-box${isActiveHover ? ' active' : ''}${hasShapeHandles ? ' sign-element--shape' : ''}`}
+      className={`redact-box${isActiveHover ? ' active' : ''}${hasShapeHandles ? ` ${elementStyles.shape}` : ''}`}
+      data-editor-shape={hasShapeHandles || undefined}
       onMouseDown={(e) => onDragStart(e, el)}
       onTouchStart={(e) => onDragStart(e, el)}
       onMouseEnter={onHoverEnter}
@@ -134,7 +136,8 @@ export default function RedactBox({
       {isSelected && isWhiteout && (
         <div
           ref={refs.setFloating}
-          className="sign-element-actions"
+          className={elementStyles.actions}
+          data-editor-actions
           style={{ ...floatingStyles, opacity: 1, pointerEvents: 'auto' }}
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}

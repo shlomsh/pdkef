@@ -54,7 +54,7 @@ function mountInPageWrapper(element, node, { isActive = true, pageWidthPoints = 
     );
   });
 
-  return { container, wrapper, box: wrapper.querySelector('.sign-element') };
+  return { container, wrapper, box: wrapper.querySelector('[data-editor-element]') };
 }
 
 function cleanup(wrapper) {
@@ -96,7 +96,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       const onChange = vi.fn();
       const element = { id: 'r-right', type: 'rectangle', left: 10, top: 10, width: 20, height: 15, color: '#000' };
       const { wrapper, box } = mountInPageWrapper(element, <ShapeNode element={element} />, { onChange });
-      const rightHandle = box.querySelector('.sign-element-resizer.right');
+      const rightHandle = box.querySelector('[data-editor-resizer="right"]');
 
       act(() => {
         rightHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
@@ -116,7 +116,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       const onChange = vi.fn();
       const element = { id: 'r-left', type: 'rectangle', left: 30, top: 10, width: 20, height: 15, color: '#000' };
       const { wrapper, box } = mountInPageWrapper(element, <ShapeNode element={element} />, { onChange });
-      const leftHandle = box.querySelector('.sign-element-resizer.left');
+      const leftHandle = box.querySelector('[data-editor-resizer="left"]');
 
       act(() => {
         leftHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 300, clientY: 0 }));
@@ -136,7 +136,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       const onChange = vi.fn();
       const element = { id: 'r-zero', type: 'rectangle', left: 10, top: 10, width: 20, height: 15, color: '#000' };
       const { wrapper, box } = mountInPageWrapper(element, <ShapeNode element={element} />, { onChange });
-      const bottomRightHandle = box.querySelector('.sign-element-resizer.corner.bottom-right');
+      const bottomRightHandle = box.querySelector('[data-editor-resizer="bottom-right"]');
 
       act(() => {
         bottomRightHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 50, clientY: 50 }));
@@ -153,7 +153,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       const onChange = vi.fn();
       const element = { id: 'e-zero', type: 'ellipse', left: 15, top: 15, width: 25, height: 25, color: '#000' };
       const { wrapper, box } = mountInPageWrapper(element, <ShapeNode element={element} />, { onChange });
-      const topHandle = box.querySelector('.sign-element-resizer.top');
+      const topHandle = box.querySelector('[data-editor-resizer="top"]');
 
       act(() => {
         topHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 40 }));
@@ -185,7 +185,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       const onChange = vi.fn();
       const element = { id: 'r-meta', type: 'rectangle', left: 80, top: 10, width: 15, height: 15, color: '#000' };
       const { wrapper, box } = mountInPageWrapper(element, <ShapeNode element={element} />, { onChange });
-      const rightHandle = box.querySelector('.sign-element-resizer.right');
+      const rightHandle = box.querySelector('[data-editor-resizer="right"]');
 
       act(() => {
         rightHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
@@ -244,7 +244,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       const onChange = vi.fn();
       const element = { id: 'l-start', type: 'line', x1: 20, y1: 20, x2: 60, y2: 50, color: '#000' };
       const { wrapper, box } = mountInPageWrapper(element, <LineNode element={element} />, { onChange });
-      const startHandle = box.querySelectorAll('.sign-element-resizer.line-handle')[0];
+      const startHandle = box.querySelectorAll('[data-editor-resizer^="line-"]')[0];
 
       act(() => {
         startHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
@@ -266,7 +266,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       const onChange = vi.fn();
       const element = { id: 'l-end', type: 'line', x1: 20, y1: 20, x2: 60, y2: 50, color: '#000' };
       const { wrapper, box } = mountInPageWrapper(element, <LineNode element={element} />, { onChange });
-      const endHandle = box.querySelectorAll('.sign-element-resizer.line-handle')[1];
+      const endHandle = box.querySelectorAll('[data-editor-resizer^="line-"]')[1];
 
       act(() => {
         endHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
@@ -286,7 +286,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       const onChange = vi.fn();
       const element = { id: 'l-zero', type: 'line', x1: 20, y1: 20, x2: 60, y2: 50, color: '#000' };
       const { wrapper, box } = mountInPageWrapper(element, <LineNode element={element} />, { onChange });
-      const startHandle = box.querySelectorAll('.sign-element-resizer.line-handle')[0];
+      const startHandle = box.querySelectorAll('[data-editor-resizer^="line-"]')[0];
 
       act(() => {
         startHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 10, clientY: 10 }));
@@ -328,9 +328,9 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       const onChange = vi.fn();
       const element = { id: 't-resize', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' };
       const { wrapper, box } = mountInPageWrapper(element, <TextNode element={element} />, { onChange, pageWidthPoints: 600 });
-      const corner = box.querySelector('.sign-element-resizer.corner.top-right');
+      const corner = box.querySelector('[data-editor-resizer="top-right"]');
       box.getBoundingClientRect = () => {
-        const fontPx = parseFloat(box.querySelector('.sign-text-display').style.fontSize) || 12;
+        const fontPx = parseFloat(box.querySelector('[data-editor-text-display]').style.fontSize) || 12;
         const scale = fontPx / 12;
         const width = 120 * scale;
         const height = 24 * scale;
@@ -358,7 +358,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       const onChange = vi.fn();
       const element = { id: 't-zero', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' };
       const { wrapper, box } = mountInPageWrapper(element, <TextNode element={element} />, { onChange, pageWidthPoints: 600 });
-      const corner = box.querySelector('.sign-element-resizer.corner.bottom-left');
+      const corner = box.querySelector('[data-editor-resizer="bottom-left"]');
 
       act(() => {
         corner.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 20, clientY: 20 }));
@@ -409,7 +409,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       // regardless of drag input.
       const element = { id: 'sym-anchor', type: 'symbol', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 };
       const { wrapper, box } = mountInPageWrapper(element, <SymbolNode element={element} />, { onChange });
-      const corner = box.querySelector('.sign-element-resizer.corner.bottom-right');
+      const corner = box.querySelector('[data-editor-resizer="bottom-right"]');
 
       const startCenterX = element.left + element.width / 2; // 50
       const startCenterY = element.top + element.height / 2; // 47.5
@@ -434,7 +434,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       const onChange = vi.fn();
       const element = { id: 'sym-zero', type: 'symbol', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 };
       const { wrapper, box } = mountInPageWrapper(element, <SymbolNode element={element} />, { onChange });
-      const corner = box.querySelector('.sign-element-resizer.corner.top-left');
+      const corner = box.querySelector('[data-editor-resizer="top-left"]');
 
       act(() => {
         corner.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 30, clientY: 30 }));
@@ -475,7 +475,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       const onChange = vi.fn();
       const element = { id: 'sig-anchor', type: 'signature', dataUrl: 'data:image/png;base64,x', left: 30, top: 30, width: 24, height: 18, aspectRatio: 1 };
       const { wrapper, box } = mountInPageWrapper(element, <SignatureNode element={element} />, { onChange });
-      const corner = box.querySelector('.sign-element-resizer.corner.bottom-right');
+      const corner = box.querySelector('[data-editor-resizer="bottom-right"]');
 
       const startCenterX = element.left + element.width / 2; // 42
       const startCenterY = element.top + element.height / 2; // 39
@@ -499,7 +499,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       const onChange = vi.fn();
       const element = { id: 'sig-zero', type: 'signature', dataUrl: 'data:image/png;base64,x', left: 30, top: 30, width: 24, height: 18, aspectRatio: 1 };
       const { wrapper, box } = mountInPageWrapper(element, <SignatureNode element={element} />, { onChange });
-      const corner = box.querySelector('.sign-element-resizer.corner.top-right');
+      const corner = box.querySelector('[data-editor-resizer="top-right"]');
 
       act(() => {
         corner.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 5, clientY: 5 }));

@@ -89,7 +89,7 @@ describe('DraggableWrapper dragging', () => {
       { type: 'rectangle', left: 20, top: 20, width: 10, height: 10, strokeWidth: 3 },
       onChange
     );
-    const el = page.querySelector('.sign-element');
+    const el = page.querySelector('[data-editor-element]');
 
     act(() => {
       el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100, clientY: 100 }));
@@ -109,10 +109,10 @@ describe('DraggableWrapper dragging', () => {
       () => {}
     );
     // 4 edge handles + 4 corner handles
-    const resizers = page.querySelectorAll('.sign-element-resizer');
+    const resizers = page.querySelectorAll('[data-editor-resizer]');
     expect(resizers.length).toBe(8);
-    expect(page.querySelector('.sign-element-resizer.corner.top-left')).not.toBeNull();
-    expect(page.querySelector('.sign-element-resizer.corner.bottom-right')).not.toBeNull();
+    expect(page.querySelector('[data-editor-resizer="top-left"]')).not.toBeNull();
+    expect(page.querySelector('[data-editor-resizer="bottom-right"]')).not.toBeNull();
   });
 
   it('whiteout height resize fires onChange with updated height via bottom handle', () => {
@@ -121,7 +121,7 @@ describe('DraggableWrapper dragging', () => {
       { type: 'whiteout', left: 10, top: 10, width: 20, height: 10, color: '#ffffff' },
       onChange
     );
-    const bottomHandle = page.querySelector('.sign-element-resizer.bottom');
+    const bottomHandle = page.querySelector('[data-editor-resizer="bottom"]');
     expect(bottomHandle).not.toBeNull();
 
     act(() => {
@@ -142,7 +142,7 @@ describe('DraggableWrapper dragging', () => {
       { type: 'rectangle', left: 10, top: 10, width: 20, height: 15, strokeWidth: 2 },
       onChange
     );
-    const cornerHandle = page.querySelector('.sign-element-resizer.corner.bottom-right');
+    const cornerHandle = page.querySelector('[data-editor-resizer="bottom-right"]');
     expect(cornerHandle).not.toBeNull();
 
     act(() => {

@@ -79,7 +79,7 @@ export default function useWorkspaceGestures({
     }
     e.stopPropagation();
 
-    if (e.target.closest('.sign-element')) return;
+    if (e.target.closest('[data-editor-element]')) return;
 
     const container = e.currentTarget;
     const { x: leftPercent, y: topPercent } = getPointerPercent(e, container);
@@ -119,7 +119,7 @@ export default function useWorkspaceGestures({
     if (!selectedTool) return;
     const definition = getElementDefinition(selectedTool);
     if (definition.creation.mode !== 'drag') return;
-    if (e.target.closest('.sign-element')) return;
+    if (e.target.closest('[data-editor-element]')) return;
     e.stopPropagation();
 
     if (!e.touches) e.preventDefault();
