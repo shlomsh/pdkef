@@ -50,7 +50,7 @@ export async function redactPdf(file, elements, onProgress) {
       // If there are any blur elements, create a blurred copy of the entire canvas
       // This is much faster and cleaner than trying to blur individual sub-regions
       let blurredCanvas;
-      if (pageElements.some(el => el.style === 'blur')) {
+      if (pageElements.some(el => el.type === 'blur')) {
         blurredCanvas = document.createElement('canvas');
         blurredCanvas.width = canvas.width;
         blurredCanvas.height = canvas.height;
@@ -67,7 +67,7 @@ export async function redactPdf(file, elements, onProgress) {
         const w = (el.width / 100) * viewport.width;
         const h = (el.height / 100) * viewport.height;
         
-        if (el.style === 'blur') {
+        if (el.type === 'blur') {
           // Paste the blurred section over the original
           ctx.drawImage(blurredCanvas, x, y, w, h, x, y, w, h);
         } else {

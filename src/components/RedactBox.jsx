@@ -37,8 +37,8 @@ export default function RedactBox({
     ]
   });
 
-  const isWhiteout = el.style === 'whiteout';
-  const hasShapeHandles = isWhiteout || el.style === 'blackout' || el.style === 'blur';
+  const isWhiteout = el.type === 'whiteout';
+  const hasShapeHandles = true;
   const whiteoutBorderColor = isSelected
     ? 'var(--color-primary)'
     : (isActiveHover ? 'var(--color-muted-light)' : 'transparent');
@@ -57,10 +57,10 @@ export default function RedactBox({
         top: `${el.top}%`,
         width: `${el.width}%`,
         height: `${el.height}%`,
-        backgroundColor: el.style === 'blur' ? 'rgba(255,255,255,0.1)' : (isWhiteout ? el.color || '#ffffff' : '#000000'),
-        backdropFilter: el.style === 'blur' ? 'blur(8px)' : 'none',
-        WebkitBackdropFilter: el.style === 'blur' ? 'blur(8px)' : 'none',
-        border: el.style === 'blur'
+        backgroundColor: el.type === 'blur' ? 'rgba(255,255,255,0.1)' : (isWhiteout ? el.color || '#ffffff' : '#000000'),
+        backdropFilter: el.type === 'blur' ? 'blur(8px)' : 'none',
+        WebkitBackdropFilter: el.type === 'blur' ? 'blur(8px)' : 'none',
+        border: el.type === 'blur'
           ? '1px solid rgba(0,0,0,0.2)'
           : (isWhiteout ? `1px dashed ${whiteoutBorderColor}` : '1px solid #333'),
         boxShadow: isWhiteout && isSelected ? '0 0 0 1px var(--color-primary-ring)' : 'none',
@@ -102,10 +102,7 @@ export default function RedactBox({
       )}
       {hasShapeHandles ? (
         <ElementResizers
-          // Redact still discriminates with `style`; E4.4 reconciles that
-          // model. Its resize behavior is the same eight-handle box behavior
-          // as a Sign whiteout in the interim.
-          element={{ ...el, type: 'whiteout' }}
+          element={el}
           isActive={isSelected}
           onResizeStart={(e, handle) => onResizeStart(e, el, handle)}
         />
@@ -141,7 +138,7 @@ export default function RedactBox({
           onTouchStart={(e) => e.stopPropagation()}
         >
           <ElementToolbar
-            element={{ ...el, type: 'whiteout' }}
+            element={el}
             onChange={(changes) => {
               if (changes.color) onChangeColor(el.id, changes.color);
             }}

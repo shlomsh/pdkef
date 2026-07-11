@@ -8,6 +8,8 @@ const validElements = {
   rectangle: { id: 'rectangle-1', type: 'rectangle', pageIndex: 0, left: 10, top: 20, width: 5, height: 5 },
   ellipse: { id: 'ellipse-1', type: 'ellipse', pageIndex: 0, left: 10, top: 20, width: 5, height: 5 },
   whiteout: { id: 'whiteout-1', type: 'whiteout', pageIndex: 0, left: 10, top: 20, width: 5, height: 5 },
+  blackout: { id: 'blackout-1', type: 'blackout', pageIndex: 0, left: 10, top: 20, width: 5, height: 5 },
+  blur: { id: 'blur-1', type: 'blur', pageIndex: 0, left: 10, top: 20, width: 5, height: 5 },
   line: { id: 'line-1', type: 'line', pageIndex: 0, x1: 10, y1: 20, x2: 15, y2: 25 },
 } as const;
 
