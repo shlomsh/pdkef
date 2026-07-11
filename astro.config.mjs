@@ -44,16 +44,16 @@ export default defineConfig({
     csp: {
       directives: [
         "default-src 'self'",
-        "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com",
+        "connect-src 'self'",
         "worker-src 'self' blob:",
-        "img-src 'self' data: blob: https://www.google-analytics.com",
+        "img-src 'self' data: blob:",
         "font-src 'self'",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
         "manifest-src 'self'"
       ],
-      scriptDirective: { src: ["'self'", "https://www.googletagmanager.com"] },
+      scriptDirective: { src: ["'self'"] },
       styleDirective: { src: ["'self'"] }
     }
   }

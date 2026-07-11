@@ -7,12 +7,6 @@ interface Props {
 
 const { title, description, noindex = false } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
-
-// Google Analytics — IDs injected at build time by Vercel (env vars).
-// Set PUBLIC_GA_MEASUREMENT_ID and PUBLIC_GT_TAG_ID in Vercel → Project Settings → Environment Variables.
-// Never hardcoded; absent in local dev and open-source builds.
-const gaMeasurementId = import.meta.env.PUBLIC_GA_MEASUREMENT_ID; // G-XXXXXXXXXX
-const gtTagId = import.meta.env.PUBLIC_GT_TAG_ID;                  // GT-XXXXXXXXX
 ---
 
 <!doctype html>
@@ -47,26 +41,6 @@ const gtTagId = import.meta.env.PUBLIC_GT_TAG_ID;                  // GT-XXXXXXX
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
     <slot name="head" />
-
-    <!-- Google Analytics (production only, requires env vars set in Vercel) -->
-    {import.meta.env.PROD && gtTagId && gaMeasurementId && (
-      <Fragment set:html={`
-        <script>
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', '${gtTagId}');
-          gtag('config', '${gaMeasurementId}');
-
-          window.addEventListener('load', () => {
-            const script = document.createElement('script');
-            script.src = 'https://www.googletagmanager.com/gtag/js?id=${gtTagId}';
-            script.async = true;
-            document.head.appendChild(script);
-          });
-        </script>
-      `} />
-    )}
   </head>
   <body>
     <slot />

@@ -701,23 +701,17 @@ Recommended sequence and rationale:
 The three landed wins above (structural golden rule, single resize owner, flat discriminant) are worth
 more than any numeric audit score suggests and must **not** be reopened while closing these gaps.
 
-- **E7.1 Reconcile the privacy invariant with analytics reality.** ARCHITECTURE §1.1 says "CSP
-  `connect-src 'self'` … no third-party API … zero JS shipped" and CLAUDE.md's Privacy-invariants
-  section says "No third-party scripts or tracking … Only same-origin Vercel Web Analytics." The code
-  contradicts both: `astro.config.mjs:47,49` whitelist three `google-analytics.com` domains in
-  `connect-src`/`img-src` and `BaseLayout.astro:56-63` ships a `gtag`/`googletagmanager` `<script>` to
-  every page, including the marketing surface. PDF **file bytes** still never leave the device (all
-  processing is client-side `pdf.js`/`pdf-lib`), so the substantive privacy promise holds — but the
-  literal invariant does not, and there **is** an off-device telemetry path. **Needs a product decision
-  (flag for the owner):** either (a) drop Google Analytics for a same-origin/no-third-party posture and
-  restore `connect-src 'self'` (matches the stated invariant and the privacy positioning), or (b) keep
-  GA but honestly disclose the exception in ARCHITECTURE §1.1, CLAUDE.md, and the user-facing privacy
-  copy.
+- **E7.1 Reconcile the privacy invariant with analytics reality - done.** Product decision: drop Google
+  Analytics, keep only same-origin `@vercel/analytics` (already installed and injected in
+  `BaseLayout.astro`). Removed the `gtag`/`googletagmanager` script block and the GA env var wiring from
+  `BaseLayout.astro`, dropped the three `google-analytics.com` allowances from `connect-src`/`img-src`
+  and the `googletagmanager.com` allowance from `scriptDirective` in `astro.config.mjs`, restoring
+  `connect-src 'self'` and a script allowlist of just `'self'`. Deleted the now-unused
+  `PUBLIC_GA_MEASUREMENT_ID`/`PUBLIC_GT_TAG_ID` entries from `.env.example`. Docs (ARCHITECTURE §1.1,
+  CLAUDE.md privacy section) now match code as written, no disclosure language needed.
   - *Depends on:* - · *Lane:* product / docs
-  - *Acceptance:* docs and code agree. Either `grep -rn "google-analytics\|gtag\|googletagmanager"
-    astro.config.mjs src/layouts/BaseLayout.astro` returns nothing and `connect-src` is `'self'`; **or**
-    ARCHITECTURE §1.1 + CLAUDE.md privacy section + on-site privacy copy each explicitly state the
-    analytics `connect-src`/`gtag` exception (and that it carries no file content).
+  - *Acceptance:* `grep -rn "google-analytics\|gtag\|googletagmanager" astro.config.mjs
+    src/layouts/BaseLayout.astro` returns nothing; `connect-src` is `'self'`.
 - **E7.2 Thread the element union through the registry seam.** `src/editor/registry/types.ts:6,7,119,122`
   type `NodeRenderContext.element`, the `onChange` changes, `create`'s return, and `serialize`'s element
   as `Record<string, unknown>`, so a registry module reading a wrong/renamed field compiles clean — the
