@@ -1,8 +1,11 @@
 import type { ElementDefinition } from './types.ts';
 import { h } from 'preact';
+import { rgb } from '@cantoo/pdf-lib';
 import TextNode from '../../components/SignTool/nodes/TextNode.jsx';
 import { hasNumber, hasString, isRecord } from './schema.ts';
 import { MAX_FONT_SIZE_PT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
+import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
+import { getEffectiveTextDirection, hexToRgbFractions } from '../../lib/signHelpers.js';
 import type { TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch } from './types.ts';
 
 export function applyTextResize({ startFontSize, delta, startRect, fallbackDeltaPoints }: TextResizeInput): TextResizePatch {
@@ -42,5 +45,21 @@ export const textDefinition: ElementDefinition = {
     }),
   },
   render: ({ element, onChange, onSelect, pageWidthPoints }) => h(TextNode, { element, onChange, onSelect, pageWidthPoints, isActive: false, onResizeStart: () => {} }),
+  serialize: async (element, { page, pdfX, pdfY, loadCustomFont, baselineOffset }) => {
+    const { text, fontSize, fontFamily, fontWeight, fontStyle, color } = element as { text?: string; fontSize?: number; fontFamily?: string; fontWeight?: string; fontStyle?: string; color?: string; textDirection?: string };
+    const textValue = (text || '').trim();
+    if (!textValue) return;
+    const fontSizeInPoints = fontSize || DEFAULT_FONT_SIZE_PT;
+    const resolvedFont = (await loadCustomFont(fontFamily || 'Arimo', fontWeight, fontStyle)) || (await loadCustomFont('Arimo', fontWeight, fontStyle));
+    if (!resolvedFont) throw new Error('Unable to load a PDF font for text export');
+    const { r, g, b } = hexToRgbFractions(color);
+    const baselineAdjustedY = pdfY - fontSizeInPoints * (baselineOffset(resolvedFont) + TEXT_BOX_PADDING_EM);
+    const lineHeight = fontSizeInPoints * DEFAULT_LINE_HEIGHT_EM;
+    const isRtl = getEffectiveTextDirection(element) === 'rtl';
+    textValue.split(/\r?\n/).forEach((line, lineIndex) => {
+      const lineWidth = resolvedFont.widthOfTextAtSize(line, fontSizeInPoints);
+      page.drawText(line, { x: isRtl ? pdfX - lineWidth : pdfX, y: baselineAdjustedY - lineIndex * lineHeight, size: fontSizeInPoints, font: resolvedFont, color: rgb(r, g, b) });
+    });
+  },
   resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyTextResize, applyTextPosition },
 };

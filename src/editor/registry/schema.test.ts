@@ -12,6 +12,15 @@ const validElements = {
 } as const;
 
 describe('element registry schemas', () => {
+  it.each(Object.keys(validElements))('exposes the complete module seam for %s', (type) => {
+    const definition = getElementDefinition(type as keyof typeof validElements);
+    expect(typeof definition.schema).toBe('function');
+    expect(typeof definition.render).toBe('function');
+    expect(typeof definition.serialize).toBe('function');
+    if (definition.creation.mode === 'external') expect(definition.creation.create).toBeUndefined();
+    else expect(typeof definition.creation.create).toBe('function');
+  });
+
   it.each(Object.entries(validElements))('accepts a valid %s element', (type, element) => {
     expect(getElementDefinition(type as keyof typeof validElements).schema(element)).toBe(true);
   });

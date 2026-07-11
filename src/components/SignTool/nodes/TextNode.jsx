@@ -1,7 +1,7 @@
 import { useState, useLayoutEffect, useRef, useEffect } from 'preact/hooks';
 import ElementResizers from '../../ElementResizers.jsx';
 import usePdfCoordinates from '../../../lib/usePdfCoordinates.js';
-import { getEffectiveTextDirection } from '../../../lib/sign.js';
+import { getEffectiveTextDirection } from '../../../lib/signHelpers.js';
 import { DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
 import workspaceStyles from '../Workspace.module.css';
 

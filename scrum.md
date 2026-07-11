@@ -550,7 +550,7 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
     "maxWidthFromRightGrowth\|maxHeightFromBottomGrowth" -- 'src/**'` must not list
     `DraggableWrapper.jsx` (Redact's copy is retired in E4.4). **Mobile:** touch scroll is prevented
     during gesture (verified in `e2e/sign/`, not jsdom).
-- **E4.3b Per-element-type** ***create/render/serialize*** **registry** - extend each registry module with
+- **E4.3b Per-element-type** ***create/render/serialize*** **registry** - **done.** Each registry module now has
   `create` (the point-place + drag-draw seeds now in `useWorkspaceGestures.js`, retiring the
   `DRAG_DRAWN_TOOLS` list), `render` (wrapping today's `SignTool/nodes/*.jsx`), `serialize` (the
   `sign.js` bake per type), and `schema`. Completes the `{ create, render, resizeBehavior, serialize,

@@ -2,6 +2,8 @@ import { MAX_SYMBOL_SIGNATURE_WIDTH_PCT, MIN_STANDARD_WIDTH_PCT } from '../../co
 import { h } from 'preact';
 import SignatureNode from '../../components/SignTool/nodes/SignatureNode.jsx';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
+import { tintImageDataUrl } from '../../lib/signHelpers.js';
+import { percentToPoints } from '../../lib/coords.js';
 import type { CenteredResizeInput, CenteredResizePatch, ElementDefinition } from './types.ts';
 
 export function applySignatureResize({ deltaWidth, minWidth, aspectRatio, page, start }: CenteredResizeInput): CenteredResizePatch {
@@ -21,5 +23,12 @@ export const signatureDefinition: ElementDefinition = {
     && hasNumber(value, 'pageIndex') && hasBoxGeometry(value) && hasString(value, 'dataUrl'),
   creation: { mode: 'external' },
   render: ({ element }) => h(SignatureNode, { element, isActive: false, onResizeStart: () => {} }),
+  serialize: async (element, { pdfDoc, page, pdfWidth, pdfHeight, pdfX, pdfY }) => {
+    const { dataUrl, width, height, color } = element as { dataUrl: string; width: number; height: number; color?: string };
+    const sourceDataUrl = color && color !== '#000000' ? await tintImageDataUrl(dataUrl, color) : dataUrl;
+    const embeddedImage = await pdfDoc.embedPng(sourceDataUrl.split(',')[1]);
+    const heightPoints = percentToPoints(height, pdfHeight);
+    page.drawImage(embeddedImage, { x: pdfX, y: pdfY - heightPoints, width: percentToPoints(width, pdfWidth), height: heightPoints });
+  },
   resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyCenteredResize: applySignatureResize, minimumWidth: { unit: 'percent', value: MIN_STANDARD_WIDTH_PCT } },
 };

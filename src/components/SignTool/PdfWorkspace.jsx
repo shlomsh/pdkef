@@ -13,7 +13,7 @@ import { getElementDefinition } from '../../editor/registry/index.ts';
 import { useSignTool } from './SignToolContext.jsx';
 import SignToolbar from './SignToolbar.jsx';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
-import { detectTextDirection } from '../../lib/sign.js';
+import { detectTextDirection } from '../../lib/signHelpers.js';
 import pdfToolStyles from '../PdfTool.module.css';
 import workspaceStyles from './Workspace.module.css';
 

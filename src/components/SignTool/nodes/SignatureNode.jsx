@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'preact/hooks';
 import ElementResizers from '../../ElementResizers.jsx';
-import { tintImageDataUrl } from '../../../lib/sign.js';
+import { tintImageDataUrl } from '../../../lib/signHelpers.js';
 
 export default function SignatureNode({ element, isActive, onResizeStart }) {
   const [tintedSigUrl, setTintedSigUrl] = useState(null);
