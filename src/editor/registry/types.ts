@@ -23,11 +23,57 @@ export interface LineResizeInput {
 
 export type LineResizePatch = Partial<LineResizeInput['start']>;
 
+export interface CenteredResizeInput {
+  deltaWidth: number;
+  minWidth: number;
+  aspectRatio: number;
+  page: { width: number; height: number };
+  start: { left: number; top: number; width: number; height: number };
+}
+
+export interface CenteredResizePatch {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export interface MinimumWidth {
+  unit: 'pixels' | 'percent';
+  value: number;
+}
+
+export interface TextResizeInput {
+  startFontSize: number;
+  delta: { x: number; y: number };
+  startRect?: { width: number; height: number } | null;
+  fallbackDeltaPoints: number;
+}
+
+export interface TextResizePatch {
+  fontSize: number;
+}
+
+export interface TextPositionInput {
+  start: { left: number; top: number };
+  startSize: { width: number; height: number };
+  nextSize: { width: number; height: number };
+  isLeftHandle: boolean;
+  isTopHandle: boolean;
+  isRtl: boolean;
+}
+
+export interface TextPositionPatch { left: number; top: number; }
+
 export interface ElementDefinition {
   type: ElementType;
   resizeBehavior: {
     handles: readonly ResizeHandle[];
     applyBoxResize?: (input: BoxResizeInput) => BoxResizePatch;
     applyLineResize?: (input: LineResizeInput) => LineResizePatch;
+    applyCenteredResize?: (input: CenteredResizeInput) => CenteredResizePatch;
+    applyTextResize?: (input: TextResizeInput) => TextResizePatch;
+    applyTextPosition?: (input: TextPositionInput) => TextPositionPatch;
+    minimumWidth?: MinimumWidth;
   };
 }

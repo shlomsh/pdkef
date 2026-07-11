@@ -32,7 +32,10 @@ export default function LineNode({ element, isActive, onResizeStart, handlePoint
         />
       </svg>
       <ElementResizers 
-        element={element}
+        // Standalone node tests predate the flat discriminant. Within this
+        // node, the type is unambiguous; keep that fixture compatibility at
+        // the renderer boundary rather than weakening the registry lookup.
+        element={{ ...element, type: 'line' }}
         isActive={isActive}
         onResizeStart={onResizeStart}
       />

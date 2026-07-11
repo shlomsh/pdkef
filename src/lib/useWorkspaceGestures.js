@@ -191,6 +191,7 @@ export default function useWorkspaceGestures({
 
     startGesture({
       computePatch: (moveEvent) => {
+      if (moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
       const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
 
       if (isLineTool) {

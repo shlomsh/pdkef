@@ -173,3 +173,37 @@ test.describe('Sign editor browser guardrails', () => {
     await page.mouse.up();
   });
 });
+
+test.describe('Sign editor touch gesture guardrail', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+
+  test('prevents native scrolling during a drag-drawn creation gesture', async ({ page }) => {
+    await openSignTool(page);
+    const whiteoutTool = page
+      .getByRole('toolbar', { name: 'PDF annotations' })
+      .getByRole('button', { name: 'Whiteout', exact: true });
+    await whiteoutTool.click();
+
+    const prevented = await page.locator('.sign-page-overlay').first().evaluate((overlay) => {
+      const rect = overlay.getBoundingClientRect();
+      const touchAt = (x, y) => new Touch({ identifier: 1, target: overlay, clientX: x, clientY: y });
+      const start = new TouchEvent('touchstart', {
+        bubbles: true,
+        cancelable: true,
+        touches: [touchAt(rect.left + 30, rect.top + 30)],
+      });
+      overlay.dispatchEvent(start);
+
+      const move = new TouchEvent('touchmove', {
+        bubbles: true,
+        cancelable: true,
+        touches: [touchAt(rect.left + 90, rect.top + 90)],
+      });
+      window.dispatchEvent(move);
+      window.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [] }));
+      return move.defaultPrevented;
+    });
+
+    expect(prevented).toBe(true);
+  });
+});

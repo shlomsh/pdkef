@@ -11,12 +11,6 @@ import {
   DEFAULT_FONT_SIZE_PT,
   ASPECT_RATIO_SYMBOL,
   ASPECT_RATIO_TEXT,
-  TEXT_RESIZE_SCALE_FACTOR,
-  MIN_FONT_SIZE_PT,
-  MAX_FONT_SIZE_PT,
-  MIN_SYMBOL_WIDTH_PX,
-  MIN_STANDARD_WIDTH_PCT,
-  MAX_SYMBOL_SIGNATURE_WIDTH_PCT,
   LINE_TOOLBAR_MARGIN_TOP_PX
 } from '../../constants/signGeometry.js';
 import ElementToolbar from '../ElementToolbar.jsx';
@@ -132,16 +126,52 @@ export default function DraggableWrapper({
       : null;
     let pendingResize = null;
 
-    const setTextResizeFontSize = (fontSize) => {
+    const paintResizePatch = (patch) => {
+      pendingResize = patch;
       if (!elementRef.current) return;
-      elementRef.current
-        .querySelectorAll('.sign-text-display, .sign-text-input, .sign-text-measure')
-        .forEach((node) => {
-          node.style.fontSize = fontSize ? `${fontSize}px` : '';
+
+      if (element.type === 'line') {
+        elementRef.current.querySelectorAll('line').forEach((line) => {
+          if (patch.x1 !== undefined) line.setAttribute('x1', `${patch.x1}%`);
+          if (patch.y1 !== undefined) line.setAttribute('y1', `${patch.y1}%`);
+          if (patch.x2 !== undefined) line.setAttribute('x2', `${patch.x2}%`);
+          if (patch.y2 !== undefined) line.setAttribute('y2', `${patch.y2}%`);
         });
+        return;
+      }
+
+      if (element.type === 'text') {
+        elementRef.current
+          .querySelectorAll('.sign-text-display, .sign-text-input, .sign-text-measure')
+          .forEach((node) => { node.style.fontSize = `${patch.fontSize * getScaleFactor(pageWrapper, pageWidthPoints)}px`; });
+
+        if (textStartSizePercent) {
+          const newSize = getElementPercentSize(elementRef.current, pageWrapper);
+          const isRtl = getEffectiveTextDirection(element) === 'rtl';
+          const { left: newLeft, top: newTop } = getElementDefinition('text').resizeBehavior.applyTextPosition({
+            start: { left: startLeft, top: startTop },
+            startSize: textStartSizePercent,
+            nextSize: newSize,
+            isLeftHandle: ['left', 'top-left', 'bottom-left'].includes(handle),
+            isTopHandle: ['top', 'top-left', 'top-right'].includes(handle),
+            isRtl,
+          });
+          pendingResize = { ...patch, left: newLeft, top: newTop };
+          elementRef.current.style.top = `${newTop}%`;
+          if (isRtl) elementRef.current.style.right = `${100 - newLeft}%`;
+          else elementRef.current.style.left = `${newLeft}%`;
+        }
+        return;
+      }
+
+      if (patch.width !== undefined) elementRef.current.style.width = `${patch.width}%`;
+      if (patch.height !== undefined) elementRef.current.style.height = `${patch.height}%`;
+      if (patch.left !== undefined) elementRef.current.style.left = `${patch.left}%`;
+      if (patch.top !== undefined) elementRef.current.style.top = `${patch.top}%`;
     };
 
     const handleResizeMove = (moveEvent) => {
+      if (moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
       const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
       const rawDx = moveX - dragStartX;
       const dy = moveY - dragStartY;
@@ -154,21 +184,11 @@ export default function DraggableWrapper({
       const definition = getElementDefinition(element.type);
       if (definition.resizeBehavior.applyLineResize) {
         const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
-        pendingResize = definition.resizeBehavior.applyLineResize({
+        return definition.resizeBehavior.applyLineResize({
           handle,
           delta: { x: dxPercent, y: dyPercent },
           start: { x1: startX1, y1: startY1, x2: startX2, y2: startY2 },
         });
-        const lines = elementRef.current?.querySelectorAll('line');
-        if (lines) {
-          lines.forEach(l => {
-            if (pendingResize.x1 !== undefined) l.setAttribute('x1', `${pendingResize.x1}%`);
-            if (pendingResize.y1 !== undefined) l.setAttribute('y1', `${pendingResize.y1}%`);
-            if (pendingResize.x2 !== undefined) l.setAttribute('x2', `${pendingResize.x2}%`);
-            if (pendingResize.y2 !== undefined) l.setAttribute('y2', `${pendingResize.y2}%`);
-          });
-        }
-        return pendingResize;
       }
 
       // element.type is the geometry discriminator directly (the old shape/shapeType
@@ -178,114 +198,46 @@ export default function DraggableWrapper({
       const boxDefinition = getElementDefinition(actualType);
       if (boxDefinition.resizeBehavior.applyBoxResize) {
         const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
-        pendingResize = boxDefinition.resizeBehavior.applyBoxResize({
+        return boxDefinition.resizeBehavior.applyBoxResize({
           handle,
           delta: { x: dxPercent, y: dyPercent },
           start: { width: startWidth, height: startHeight, left: startLeft, top: startTop },
         });
-        if (elementRef.current) {
-          elementRef.current.style.width = `${pendingResize.width}%`;
-          elementRef.current.style.height = `${pendingResize.height}%`;
-          elementRef.current.style.left = `${pendingResize.left}%`;
-          elementRef.current.style.top = `${pendingResize.top}%`;
-        }
-        return pendingResize;
       }
 
-      if (element.type === 'text') {
-        let newFontSize = startFontSize;
-        if (textStartRect && textStartRect.width > 0 && textStartRect.height > 0) {
-          const startW = textStartRect.width;
-          const startH = textStartRect.height;
-          // Scale font size proportionally to the mouse drag projected along the box's diagonal.
-          // This keeps the resizer handle exactly under the mouse, preventing the hypersensitivity
-          // caused by raw pixel->point mapping.
-          const scale = 1 + (normalizedDx * startW + normalizedDy * startH) / (startW * startW + startH * startH);
-          newFontSize = Math.round(startFontSize * scale);
-        } else {
-          const scale = getScaleFactor(pageWrapper, pageWidthPoints);
-          const deltaFontSize = pxToPoints(normalizedDx, scale) * TEXT_RESIZE_SCALE_FACTOR;
-          newFontSize = Math.round(startFontSize + deltaFontSize);
-        }
-        pendingResize = { fontSize: Math.max(MIN_FONT_SIZE_PT, Math.min(MAX_FONT_SIZE_PT, newFontSize)) };
-        setTextResizeFontSize(pendingResize.fontSize * getScaleFactor(pageWrapper, pageWidthPoints));
-
-        if (elementRef.current && textStartSizePercent) {
-          const newSize = getElementPercentSize(elementRef.current, pageWrapper);
-          const isRtl = getEffectiveTextDirection(element) === 'rtl';
-          let newLeft = startLeft;
-          let newTop = startTop;
-
-          if (newSize.width > 0 && textStartSizePercent.width > 0) {
-            if (isLeft && !isRtl) {
-              newLeft = startLeft + textStartSizePercent.width - newSize.width;
-            } else if (!isLeft && isRtl) {
-              newLeft = startLeft - textStartSizePercent.width + newSize.width;
-            }
-          }
-
-          if (newSize.height > 0 && textStartSizePercent.height > 0 && isTop) {
-            newTop = startTop + textStartSizePercent.height - newSize.height;
-          }
-
-          pendingResize = { ...pendingResize, left: newLeft, top: newTop };
-          elementRef.current.style.top = `${newTop}%`;
-          if (isRtl) {
-            elementRef.current.style.right = `${100 - newLeft}%`;
-          } else {
-            elementRef.current.style.left = `${newLeft}%`;
-          }
-        }
-        return pendingResize;
+      const textDefinition = getElementDefinition(element.type);
+      if (textDefinition.resizeBehavior.applyTextResize) {
+        return textDefinition.resizeBehavior.applyTextResize({
+          startFontSize,
+          delta: { x: normalizedDx, y: normalizedDy },
+          startRect: textStartRect,
+          fallbackDeltaPoints: pxToPoints(normalizedDx, getScaleFactor(pageWrapper, pageWidthPoints)),
+        });
       }
 
-      const { x: deltaWidthPercent } = getDeltaPercent(normalizedDx, 0, pageWrapper);
-
-      // Symbols use an absolute pixel floor (not a fixed %) so the box never
-      // shrinks past what its border/padding chrome needs to render the icon —
-      // a flat % floor collapses to a couple of screen pixels on a large page,
-      // leaving no content area for the SVG and making it vanish, not shrink.
-      const minWidth = element.type === 'symbol'
-        ? getWidthPercent(MIN_SYMBOL_WIDTH_PX, pageWrapper)
-        : MIN_STANDARD_WIDTH_PCT;
-      let newWidth = startWidth + deltaWidthPercent;
-      newWidth = Math.max(minWidth, Math.min(MAX_SYMBOL_SIGNATURE_WIDTH_PCT, newWidth)); // constraints (min% to max%)
-
-      const ratio = element.aspectRatio || defaultRatio;
-      // Convert width percent to correct height percent using responsive page dimensions
-      const newHeight = getWidthPercentToHeightPercent(newWidth, ratio, pageWrapper);
-
-      // Symbols and signatures grow/shrink around the box's center instead of its
-      // top-left corner. (Lines never reach here — they only render line-start /
-      // line-end handles, both handled by the early returns at the top of this fn.)
-      if (element.type === 'symbol' || element.type === 'signature') {
-        let newLeft = startLeft + (startWidth - newWidth) / 2;
-        let newTop = startTop + (startHeight - newHeight) / 2;
-        newLeft = Math.max(0, Math.min(100 - newWidth, newLeft));
-        newTop = Math.max(0, Math.min(100 - newHeight, newTop));
-        pendingResize = { width: newWidth, height: newHeight, left: newLeft, top: newTop };
-        if (elementRef.current) {
-          elementRef.current.style.width = `${newWidth}%`;
-          elementRef.current.style.height = `${newHeight}%`;
-          elementRef.current.style.left = `${newLeft}%`;
-          elementRef.current.style.top = `${newTop}%`;
-        }
-        return pendingResize;
+      const centeredDefinition = getElementDefinition(element.type);
+      if (centeredDefinition.resizeBehavior.applyCenteredResize) {
+        const { x: deltaWidth } = getDeltaPercent(normalizedDx, 0, pageWrapper);
+        const widthPolicy = centeredDefinition.resizeBehavior.minimumWidth;
+        const minWidth = widthPolicy.unit === 'pixels'
+          ? getWidthPercent(widthPolicy.value, pageWrapper)
+          : widthPolicy.value;
+        const rect = pageWrapper.getBoundingClientRect();
+        return centeredDefinition.resizeBehavior.applyCenteredResize({
+          deltaWidth,
+          minWidth,
+          aspectRatio: element.aspectRatio || defaultRatio,
+          page: { width: rect.width, height: rect.height },
+          start: { width: startWidth, height: startHeight, left: startLeft, top: startTop },
+        });
       }
 
-      pendingResize = { width: newWidth, height: newHeight };
-      if (elementRef.current) {
-        elementRef.current.style.width = `${newWidth}%`;
-        elementRef.current.style.height = `${newHeight}%`;
-      }
-      return pendingResize;
+      return null;
     };
 
     startGesture({
       computePatch: handleResizeMove,
-      // The established resize math owns its CSSOM writes for this step; E4.3
-      // moves that per-type DOM projection beside each registry module.
-      writeDOM: () => {},
+      writeDOM: paintResizePatch,
       commit: () => {
       if (pendingResize) {
         onChange(pendingResize);

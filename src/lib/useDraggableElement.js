@@ -96,6 +96,7 @@ export default function useDraggableElement({
 
     startGesture({
       computePatch: (moveEvent) => {
+      if (moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
       const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
 
       const dx = moveX - dragStartPos.current.x;

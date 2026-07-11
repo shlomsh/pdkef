@@ -556,13 +556,17 @@ const TICKETS = [
     title: "Extract a framework-agnostic editor/ core",
     dependsOn: ["E4.1", "E0.1"],
     acceptance: "Done. Added the framework-free gesture controller and pointer normaliser. Sign drag, resize, and creation now share its listener lifecycle; creation paints directly during movement and commits one state patch on release." },
-  { id: "E4.3", epic: "E4", lane: "E", status: "todo", priority: "normal",
-    title: "Per-element-type registry",
+  { id: "E4.3a", epic: "E4", lane: "E", status: "todo", priority: "normal",
+    title: "Per-element-type resize registry",
     dependsOn: ["E4.2"],
-    acceptance: "Each type a module { render, resizeBehavior, serialize, schema }; removes the type === 'line' / !isLine branching in handleResizeMove. Per-type nodes/ already exist as the seam. Sharpened by the whiteout-resize post-mortem: NO shared function post-processes geometry across handles/types — each resizeBehavior owns its per-handle bounds against that handle's true anchor edge (the failure mode of 434e844), and every type's resizeBehavior is covered by the E1.5 invariants." },
+    acceptance: "Each type owns registry resize behavior. computePatch is pure, writeDOM owns CSSOM/SVG painting, commits happen once, and touch movement prevents scroll. Box geometry may share boxResize.ts; cross-family post-processing is prohibited." },
+  { id: "E4.3b", epic: "E4", lane: "E", status: "todo", priority: "normal",
+    title: "Per-element create/render/serialize registry",
+    dependsOn: ["E4.3a"],
+    acceptance: "Extend each module with create, render, serialize, and schema; retire Sign creation/render/bake type branches." },
   { id: "E4.4", epic: "E4", lane: "E", status: "todo", priority: "normal",
     title: "Converge Sign and Redact",
-    dependsOn: ["E4.2", "E4.3"],
+    dependsOn: ["E4.2", "E4.3b"],
     acceptance: "Onto the shared core + a common PDF-workspace substrate (load, page render, draft persistence), removing duplication." },
 
   // ----- E5 -----
@@ -639,7 +643,7 @@ const LANE_FLOW = [
   { lane: "B", flow: ["E1.1", "E1.2", "E1.3", "E1.4", "E1.5", "E1.6", "E1.6a", "E1.7", "E1.7a"], gate: "gate → E2.*, E3.2, E4 verification" },
   { lane: "C", flow: ["E2.1", "→", "E2.2", "→", "E2.3", "E2.5", "E2.6"], gate: "E2.2, E2.4, E2.5, and E2.6 done. E2.3 also needs E1.4." },
   { lane: "D", flow: ["E3.1", "→", "E3.2", "→", "E3.3"], gate: "E3.2 and E3.3 done; E3.2 also needs E1.1, E1.2." },
-  { lane: "E", flow: ["E4.1", "→", "E4.2", "→", "E4.3", "→", "E4.4"], gate: "E4.2 also needs E0.1" }
+  { lane: "E", flow: ["E4.1", "→", "E4.2", "→", "E4.3a", "→", "E4.3b", "→", "E4.4"], gate: "E4.2 also needs E0.1" }
 ];
 
 const DONE_LOG = [
