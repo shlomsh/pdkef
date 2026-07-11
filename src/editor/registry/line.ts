@@ -29,5 +29,17 @@ export const lineDefinition: ElementDefinition<LineElement> = {
       color: rgb(r, g, b), thickness: strokeWidth || 3,
     });
   },
-  resizeBehavior: { handles: ['line-start', 'line-end'], applyLineResize },
+  view: { isLine: true },
+  resizeBehavior: {
+    handles: ['line-start', 'line-end'],
+    applyLineResize,
+    writeDOM: ({ node, patch }) => {
+      node.querySelectorAll('line').forEach((line) => {
+        if (patch.x1 !== undefined) line.setAttribute('x1', `${patch.x1}%`);
+        if (patch.y1 !== undefined) line.setAttribute('y1', `${patch.y1}%`);
+        if (patch.x2 !== undefined) line.setAttribute('x2', `${patch.x2}%`);
+        if (patch.y2 !== undefined) line.setAttribute('y2', `${patch.y2}%`);
+      });
+    },
+  },
 };

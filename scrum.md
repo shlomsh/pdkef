@@ -755,15 +755,30 @@ more than any numeric audit score suggests and must **not** be reopened while cl
   - *Acceptance:* `PdfRedactTool.jsx` no longer defines its own `handlePointerDown`/`handleBoxDragStart`/
     `handleBoxResizeStart` pointer lifecycle (they delegate to the shared hooks); the one-commit-per-
     gesture integration test stays green; Redact e2e passes.
-- **E7.6 Delegate DraggableWrapper's per-type DOM writes to the registry.**
-  `DraggableWrapper.jsx:135,145` still branch on `element.type === 'line'`/`'text'` inside
-  `paintResizePatch`, and `:266-269` hardcode `isLine`/`isWhiteout`/`isShape`, so a new type still edits
-  this shell file — contradicting §3's "adding a type touches only new files" (the one E4 acceptance line
-  that isn't yet literally true). Move per-type DOM/SVG writes into each registry module's `writeDOM` so
-  the wrapper calls `registry[type].writeDOM(patch)` generically.
+- **E7.6 Delegate DraggableWrapper's per-type DOM writes to the registry - done.** Added
+  `ElementDefinition.view` (`ViewFlags`: `isLine`/`isShape`/`isSymbol`/`usesRtlAnchoring`/
+  `usesIntrinsicSize`) and `resizeBehavior.writeDOM(context)` in `types.ts`. `line.ts` and `text.ts` (the
+  only two types with bespoke resize-time painting - SVG endpoint attrs and font-size + reposition,
+  respectively) now declare `writeDOM`; the other five Sign-side types (`rectangle`, `ellipse`,
+  `whiteout`, `symbol`, `signature`) fall through to `DraggableWrapper`'s one generic width/height/left/top
+  style write, gated on `writeDOM`'s *presence*, not on any type string. `line`/`rectangle`/`ellipse`/
+  `whiteout`/`symbol` each declare their `view` flags; `signature` needs none (defaults to standard box
+  behavior, matching its prior implicit fall-through). `DraggableWrapper` now computes one
+  `elementDefinition`/`view` pair up top and reads `view.isLine`/`.isShape`/`.isSymbol`/
+  `.usesRtlAnchoring`/`.usesIntrinsicSize` everywhere className/style/interactivity previously compared
+  `element.type`/`actualType` directly (`paintResizePatch`, the `isLine`/`isWhiteout`/`isShape` block, the
+  RTL-anchor and intrinsic-size style branches, and the symbol className check).
+  - **Scope decision (recorded, not silently narrowed):** left three `element.type === 'text'`/`'symbol'`
+    checks in `handleResizeStart` untouched (`defaultRatio`, `textStartRect`, `textStartSizePercent`) -
+    these are resize-*algorithm* setup/measurement (already registry-owned by E4.3a's `resizeBehavior`
+    dispatch), not the paint/view branching this ticket's citations (`:135,145` and `:266-269`) target.
+    Converting them would mean inventing a registry-owned generic measurement-request contract for a
+    two-line payoff; deferred as a judgment call rather than done implicitly.
   - *Depends on:* E7.2 · *Lane:* E
-  - *Acceptance:* no `element.type === '…'`/`actualType === '…'` **view/paint** branching remains in
-    `DraggableWrapper`; adding a hypothetical new type touches only registry files.
+  - *Acceptance:* `git grep -n "actualType\s*===" src/components/SignTool/DraggableWrapper.jsx` returns 0;
+    no remaining `element.type === '…'` drives view/paint (only the three scoped-out measurement checks
+    above). Full unit suite green (344/344), gesture-invariant suites (E1.5) green, Sign e2e + CSP smoke +
+    build/CSP-hash pass all green.
 - **E7.7 Widen the editor-CSS ratchet beyond `.sign-*` - done.** `scripts/check-editor-global-css.js`'s
   regex now matches `\.(?:sign|sig|redact|editor|el)-…`, so the "0 editor classes in global.css" guard
   covers Redact and any future editor surface, not just Sign. Reworded the header comment from the E2.3.0

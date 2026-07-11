@@ -26,5 +26,6 @@ export const whiteoutDefinition: ElementDefinition<WhiteoutElement> = {
     const { r, g, b } = hexToRgbFractions(color, '#ffffff');
     page.drawRectangle({ x: pdfX, y: pdfY - heightPoints, width: percentToPoints(width, pdfWidth), height: heightPoints, color: rgb(r, g, b) });
   },
+  view: { isShape: true },
   resizeBehavior: { handles: ['top', 'right', 'bottom', 'left', 'top-left', 'top-right', 'bottom-left', 'bottom-right'], applyBoxResize },
 };

@@ -20,5 +20,6 @@ export const rectangleDefinition: ElementDefinition<RectangleElement> = {
     const { r, g, b } = hexToRgbFractions(color, '#1463ff');
     page.drawRectangle({ x: pdfX, y: pdfY - heightPoints, width: widthPoints, height: heightPoints, borderColor: rgb(r, g, b), borderWidth: strokeWidth || 3 });
   },
+  view: { isShape: true },
   resizeBehavior: { handles: ['top', 'right', 'bottom', 'left', 'top-left', 'top-right', 'bottom-left', 'bottom-right'], applyBoxResize },
 };

@@ -114,6 +114,37 @@ export interface TextPositionInput {
 
 export interface TextPositionPatch { left: number; top: number; }
 
+/**
+ * Declarative flags DraggableWrapper reads instead of comparing `element.type`
+ * directly, so the wrapper's className/style/interactivity logic stays type-agnostic
+ * (E7.6). Absent flags default to `false`/standard box behavior.
+ */
+export interface ViewFlags {
+  /** Full-bleed SVG overlay with its own endpoint-driven positioning (line). */
+  isLine?: boolean;
+  /** Box-style CSS Module modifier (4/8-handle resize chrome) - rectangle/ellipse/whiteout. */
+  isShape?: boolean;
+  /** Aspect-locked symbol CSS Module modifier. */
+  isSymbol?: boolean;
+  /** RTL text anchors its right edge (`right` instead of `left`) as it grows. */
+  usesRtlAnchoring?: boolean;
+  /** Width/height come from CSS intrinsic sizing (`auto`), not `element.width`/`height` (text). */
+  usesIntrinsicSize?: boolean;
+}
+
+export interface ResizeWriteContext {
+  node: HTMLElement;
+  patch: Record<string, number | undefined>;
+  handle: ResizeHandle;
+  isRtl: boolean;
+  startLeft: number;
+  startTop: number;
+  scaleFactor: number;
+  pageWrapper: Element;
+  textStartSizePercent?: { width: number; height: number } | null;
+  getElementPercentSize: (node: Element, pageWrapper: Element) => { width: number; height: number };
+}
+
 export interface ElementDefinition<T extends EditorElement = EditorElement> {
   type: T['type'];
   schema: (value: unknown) => value is T;
@@ -123,6 +154,8 @@ export interface ElementDefinition<T extends EditorElement = EditorElement> {
   };
   render: (context: NodeRenderContext<T>) => ComponentChildren;
   serialize: (element: T, context: SerializeContext) => SerializeResult;
+  /** DraggableWrapper's element-root className/style/interactivity contract for this type. */
+  view?: ViewFlags;
   resizeBehavior: {
     handles: readonly ResizeHandle[];
     applyBoxResize?: (input: BoxResizeInput) => BoxResizePatch;
@@ -131,5 +164,12 @@ export interface ElementDefinition<T extends EditorElement = EditorElement> {
     applyTextResize?: (input: TextResizeInput) => TextResizePatch;
     applyTextPosition?: (input: TextPositionInput) => TextPositionPatch;
     minimumWidth?: MinimumWidth;
+    /**
+     * Per-type resize-time DOM/SVG paint, called on every gesture move (E7.6).
+     * Returning a partial patch merges into the value committed on release
+     * (text repositions as it resizes). Types that omit this get
+     * DraggableWrapper's generic width/height/left/top style write.
+     */
+    writeDOM?: (context: ResizeWriteContext) => Record<string, number> | void;
   };
 }

@@ -49,5 +49,6 @@ export const symbolDefinition: ElementDefinition<SymbolElement> = {
       page.drawLine({ start: { x: pdfX + widthPoints * (9 / 24), y: pdfY - heightPoints * (17 / 24) }, end: { x: pdfX + widthPoints * (20 / 24), y: pdfY - heightPoints * (6 / 24) }, thickness, color: symbolColor, lineCap: LineCapStyle.Round });
     }
   },
+  view: { isSymbol: true },
   resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyCenteredResize: applySymbolResize, minimumWidth: { unit: 'pixels', value: MIN_SYMBOL_WIDTH_PX } },
 };

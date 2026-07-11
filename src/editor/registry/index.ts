@@ -10,7 +10,7 @@ import { textDefinition } from './text.ts';
 import type { ElementDefinition, ElementForType } from './types.ts';
 import { whiteoutDefinition } from './whiteout.ts';
 
-export type { BoxResizeInput, BoxResizePatch, CenteredResizeInput, CenteredResizePatch, ElementDefinition, ElementForType, LineResizeInput, LineResizePatch, MinimumWidth, ResizeHandle, SerializeContext, TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch } from './types.ts';
+export type { BoxResizeInput, BoxResizePatch, CenteredResizeInput, CenteredResizePatch, ElementDefinition, ElementForType, LineResizeInput, LineResizePatch, MinimumWidth, ResizeHandle, ResizeWriteContext, SerializeContext, TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch, ViewFlags } from './types.ts';
 
 const definitions: { [K in ElementType]: ElementDefinition<ElementForType<K>> } = {
   text: textDefinition, rectangle: rectangleDefinition, ellipse: ellipseDefinition,

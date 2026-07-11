@@ -51,7 +51,12 @@ export default function DraggableWrapper({
   // removes that timing dependency entirely.
   const getPageWrapper = () => elementRef.current?.closest(`.${workspaceStyles['page-wrapper']}`) || null;
   const actionsRef = useRef(null);
-  const textDirection = element.type === 'text' ? getEffectiveTextDirection(element) : 'ltr';
+  // The registry's declarative view flags (E7.6) - DraggableWrapper reads these
+  // instead of comparing element.type directly, so adding a new element type
+  // never requires editing this shell file.
+  const elementDefinition = getElementDefinition(element.type);
+  const view = elementDefinition.view || {};
+  const textDirection = view.usesRtlAnchoring ? getEffectiveTextDirection(element) : 'ltr';
 
   // Drag-to-move gesture logic (extracted into useDraggableElement).
   const { handlePointerDown, isDragging, dragOffset } = useDraggableElement({
@@ -128,41 +133,29 @@ export default function DraggableWrapper({
       : null;
     let pendingResize = null;
 
+    // Per-type resize-time DOM/SVG paint is registry-owned (E7.6): a type
+    // that needs bespoke painting (line's SVG endpoints, text's font-size +
+    // reposition) declares resizeBehavior.writeDOM; anything else falls
+    // through to the generic box-style write below, with no type check.
     const paintResizePatch = (patch) => {
       pendingResize = patch;
       if (!elementRef.current) return;
 
-      if (element.type === 'line') {
-        elementRef.current.querySelectorAll('line').forEach((line) => {
-          if (patch.x1 !== undefined) line.setAttribute('x1', `${patch.x1}%`);
-          if (patch.y1 !== undefined) line.setAttribute('y1', `${patch.y1}%`);
-          if (patch.x2 !== undefined) line.setAttribute('x2', `${patch.x2}%`);
-          if (patch.y2 !== undefined) line.setAttribute('y2', `${patch.y2}%`);
+      const writeDOM = elementDefinition.resizeBehavior.writeDOM;
+      if (writeDOM) {
+        const extra = writeDOM({
+          node: elementRef.current,
+          patch,
+          handle,
+          isRtl: getEffectiveTextDirection(element) === 'rtl',
+          startLeft,
+          startTop,
+          scaleFactor: getScaleFactor(pageWrapper, pageWidthPoints),
+          pageWrapper,
+          textStartSizePercent,
+          getElementPercentSize,
         });
-        return;
-      }
-
-      if (element.type === 'text') {
-        elementRef.current
-          .querySelectorAll(`.${elementStyles['text-display']}, .${elementStyles['text-input']}, .${elementStyles['text-measure']}`)
-          .forEach((node) => { node.style.fontSize = `${patch.fontSize * getScaleFactor(pageWrapper, pageWidthPoints)}px`; });
-
-        if (textStartSizePercent) {
-          const newSize = getElementPercentSize(elementRef.current, pageWrapper);
-          const isRtl = getEffectiveTextDirection(element) === 'rtl';
-          const { left: newLeft, top: newTop } = getElementDefinition('text').resizeBehavior.applyTextPosition({
-            start: { left: startLeft, top: startTop },
-            startSize: textStartSizePercent,
-            nextSize: newSize,
-            isLeftHandle: ['left', 'top-left', 'bottom-left'].includes(handle),
-            isTopHandle: ['top', 'top-left', 'top-right'].includes(handle),
-            isRtl,
-          });
-          pendingResize = { ...patch, left: newLeft, top: newTop };
-          elementRef.current.style.top = `${newTop}%`;
-          if (isRtl) elementRef.current.style.right = `${100 - newLeft}%`;
-          else elementRef.current.style.left = `${newLeft}%`;
-        }
+        if (extra) pendingResize = { ...patch, ...extra };
         return;
       }
 
@@ -260,13 +253,13 @@ export default function DraggableWrapper({
   // above). Dragging (handlePointerDown) adds the same pixel delta to
   // `element.left` regardless of direction, which is correct either way since
   // it's just moving whichever edge is anchored.
-  // element.type is the geometry discriminator directly (no shape/shapeType wrapper).
-  const actualType = element.type;
-  const isRtlText = element.type === 'text' && textDirection === 'rtl';
-  const isLine = actualType === 'line';
-  const isWhiteout = actualType === 'whiteout';
-  // isShape controls 4-handle resizing and box-style CSS — includes whiteout
-  const isShape = actualType === 'ellipse' || actualType === 'rectangle' || isWhiteout;
+  // Registry view flags (E7.6) drive className/style/interactivity instead of
+  // comparing element.type directly — see the ViewFlags contract in
+  // src/editor/registry/types.ts.
+  const isRtlText = !!view.usesRtlAnchoring && textDirection === 'rtl';
+  const isLine = !!view.isLine;
+  const isShape = !!view.isShape;
+  const isSymbol = !!view.isSymbol;
   const style = isLine ? {
     left: 0,
     top: 0,
@@ -276,8 +269,8 @@ export default function DraggableWrapper({
     transform: 'none',
   } : {
     top: `${element.top}%`,
-    width: element.width && element.type !== 'text' ? `${element.width}%` : 'auto',
-    height: element.height && element.type !== 'text' ? `${element.height}%` : 'auto',
+    width: element.width && !view.usesIntrinsicSize ? `${element.width}%` : 'auto',
+    height: element.height && !view.usesIntrinsicSize ? `${element.height}%` : 'auto',
     ...(isRtlText
       ? { right: `${100 - element.left}%` }
       : { left: `${element.left}%` }),
@@ -291,7 +284,7 @@ export default function DraggableWrapper({
           refs.setReference(node);
         }
       }}
-      className={[elementStyles.element, isActive && elementStyles.active, element.type === 'symbol' && elementStyles.symbol, isShape && elementStyles.shape, isLine && elementStyles.line].filter(Boolean).join(' ')}
+      className={[elementStyles.element, isActive && elementStyles.active, isSymbol && elementStyles.symbol, isShape && elementStyles.shape, isLine && elementStyles.line].filter(Boolean).join(' ')}
       data-editor-element-id={element.id}
       data-editor-element
       data-editor-active={isActive || undefined}

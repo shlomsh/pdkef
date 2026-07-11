@@ -8,6 +8,7 @@ import { MAX_FONT_SIZE_PT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '..
 import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
 import { getEffectiveTextDirection, hexToRgbFractions } from '../../lib/signHelpers.js';
 import type { TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch } from './types.ts';
+import elementStyles from '../../components/SignTool/EditorElement.module.css';
 
 export function applyTextResize({ startFontSize, delta, startRect, fallbackDeltaPoints }: TextResizeInput): TextResizePatch {
   let fontSize = startFontSize;
@@ -62,5 +63,30 @@ export const textDefinition: ElementDefinition<TextElement> = {
       page.drawText(line, { x: isRtl ? pdfX - lineWidth : pdfX, y: baselineAdjustedY - lineIndex * lineHeight, size: fontSizeInPoints, font: resolvedFont, color: rgb(r, g, b) });
     });
   },
-  resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyTextResize, applyTextPosition },
+  view: { usesRtlAnchoring: true, usesIntrinsicSize: true },
+  resizeBehavior: {
+    handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+    applyTextResize,
+    applyTextPosition,
+    writeDOM: ({ node, patch, handle, isRtl, startLeft, startTop, scaleFactor, pageWrapper, textStartSizePercent, getElementPercentSize }) => {
+      node
+        .querySelectorAll(`.${elementStyles['text-display']}, .${elementStyles['text-input']}, .${elementStyles['text-measure']}`)
+        .forEach((el) => { (el as HTMLElement).style.fontSize = `${(patch.fontSize as number) * scaleFactor}px`; });
+
+      if (!textStartSizePercent) return;
+      const newSize = getElementPercentSize(node, pageWrapper);
+      const { left: newLeft, top: newTop } = applyTextPosition({
+        start: { left: startLeft, top: startTop },
+        startSize: textStartSizePercent,
+        nextSize: newSize,
+        isLeftHandle: ['left', 'top-left', 'bottom-left'].includes(handle),
+        isTopHandle: ['top', 'top-left', 'top-right'].includes(handle),
+        isRtl,
+      });
+      node.style.top = `${newTop}%`;
+      if (isRtl) node.style.right = `${100 - newLeft}%`;
+      else node.style.left = `${newLeft}%`;
+      return { left: newLeft, top: newTop };
+    },
+  },
 };

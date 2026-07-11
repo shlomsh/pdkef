@@ -20,5 +20,6 @@ export const ellipseDefinition: ElementDefinition<EllipseElement> = {
     const { r, g, b } = hexToRgbFractions(color, '#1463ff');
     page.drawEllipse({ x: pdfX + widthPoints / 2, y: pdfY - heightPoints / 2, xScale: widthPoints / 2, yScale: heightPoints / 2, borderColor: rgb(r, g, b), borderWidth: strokeWidth || 3 });
   },
+  view: { isShape: true },
   resizeBehavior: { handles: ['top', 'right', 'bottom', 'left', 'top-left', 'top-right', 'bottom-left', 'bottom-right'], applyBoxResize },
 };
