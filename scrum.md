@@ -1,4 +1,8 @@
-# Scrum Backlog
+# Legacy Scrum Narrative
+
+> **Board data is managed in [scrum-board.data.js](./scrum-board.data.js).** Do not update ticket
+> status, dependencies, priority, or lanes in this Markdown file. It remains as historical narrative
+> and detailed architectural context until that material is deliberately curated elsewhere.
 
 The maintainability-migration backlog for PDkef, ready to assign. The design standard it serves is
 [ARCHITECTURE.md](./ARCHITECTURE.md); day-to-day repo guidance is [CLAUDE.md](./CLAUDE.md).
