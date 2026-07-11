@@ -78,7 +78,7 @@ async function openRedactTool(page) {
   });
 
   try {
-    await expect(page.locator('.sign-page-wrapper')).toBeVisible();
+    await expect(page.locator('[class*="page-wrapper"]')).toBeVisible();
   } catch (error) {
     throw new Error(
       `Redact workspace did not appear after selecting a PDF.\nBrowser messages:\n${browserMessages.join('\n') || '(none)'}\n\n${error.message}`,

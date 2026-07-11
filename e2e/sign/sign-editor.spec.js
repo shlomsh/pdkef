@@ -65,17 +65,17 @@ async function openSignTool(page) {
     buffer: await makePdfBuffer(),
   });
   try {
-    await expect(page.locator('.sign-page-wrapper')).toBeVisible();
+    await expect(page.locator('[class*="page-wrapper"]')).toBeVisible();
   } catch (error) {
     throw new Error(
       `Sign workspace did not appear after selecting a PDF.\nBrowser messages:\n${browserMessages.join('\n') || '(none)'}\n\n${error.message}`,
     );
   }
-  await expect(page.locator('.sign-page-overlay')).toBeVisible();
+  await expect(page.locator('[class*="page-overlay"]')).toBeVisible();
 }
 
 async function clickOverlayAt(page, xRatio, yRatio) {
-  const overlay = page.locator('.sign-page-overlay').first();
+  const overlay = page.locator('[class*="page-overlay"]').first();
   await overlay.scrollIntoViewIfNeeded();
   const box = await overlay.boundingBox();
   if (!box) throw new Error('PDF overlay has no bounding box');
@@ -104,7 +104,7 @@ async function addWhiteout(page, startRatio, endRatio) {
   if ((await whiteoutTool.getAttribute('aria-pressed')) !== 'true') {
     await whiteoutTool.click();
   }
-  const overlay = page.locator('.sign-page-overlay').first();
+  const overlay = page.locator('[class*="page-overlay"]').first();
   await overlay.scrollIntoViewIfNeeded();
   const box = await overlay.boundingBox();
   if (!box) throw new Error('PDF overlay has no bounding box');
