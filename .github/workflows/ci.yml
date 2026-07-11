@@ -25,6 +25,9 @@ jobs:
     - name: Run tests
       run: npm run test
 
+    - name: Verify shared box-resize owner
+      run: test "$(git grep -l "maxWidthFromRightGrowth\|maxHeightFromBottomGrowth" -- 'src/**' | wc -l | tr -d ' ')" = 1
+
     - name: Build
       run: npm run build
 

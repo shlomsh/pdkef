@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import BasePdfTool from './BasePdfTool.jsx';
 import PdfPageCanvas from './PdfPageCanvas.jsx';
-import { getPdfjs, uniqueId, seedUniqueId } from '../lib/sign.js';
+import { uniqueId, seedUniqueId } from '../lib/sign.js';
 import { redactPdf } from '../lib/redact.js';
 import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
-import { useDraftPersistence } from '../lib/useDraftPersistence.js';
+import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
+import { startGesture } from '../editor/gestures/controller.ts';
+import { getPointerCoords } from '../editor/gestures/pointer.ts';
+import { getElementDefinition } from '../editor/registry/index.ts';
+import { useEditorDraftPersistence } from '../editor/workspace/useEditorDraftPersistence.js';
 import RedactToolbar from './RedactToolbar.jsx';
 import RedactBox from './RedactBox.jsx';
 import UndoHistoryModal from './UndoHistoryModal.jsx';
-import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../constants/signGeometry.js';
 import { createActionEntry } from '../lib/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
@@ -28,7 +31,8 @@ export default function PdfRedactTool() {
 
   const [activeStyle, setActiveStyle] = useState('blackout'); // 'blackout' | 'blur' | 'whiteout'
   const [activeColor, setActiveColor] = useState('#ffffff');
-  const [drawingState, setDrawingState] = useState(null); // { pageIndex, startX, startY, currentX, currentY }
+  const [drawingState, setDrawingState] = useState(null); // { pageIndex, startX, startY, type, color }
+  const drawingPreviewRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -152,54 +156,28 @@ export default function PdfRedactTool() {
   // clobber the other's state. Tag each call with an id and ignore any state updates
   // from a call that's been superseded by a newer one.
   const loadPdf = async (selected, bytes, preset = {}, restored = false) => {
-    const loadId = ++loadIdRef.current;
-    const presetElements = preset.elements || [];
-    setFile(selected);
-    setStatus('loading');
-    setProgress(0);
-    setElements(presetElements);
-    setActionHistory(preset.actionHistory || []);
-    setUndoSelection(new Set());
-    seedUniqueId(presetElements);
-    fileBytesRef.current = bytes;
-
-    // pdf.js can hang indefinitely (not reject) on a corrupted/pathological file
-    // instead of throwing — with no timeout that leaves the user staring at an
-    // infinite "Loading PDF document..." spinner with no way out. Bail out after a
-    // generous window instead. For a restore specifically, the file wasn't even a
-    // choice the user made, so also drop the draft — otherwise a single bad
-    // autosave permanently bricks the tool on every future visit.
-    const timeoutId = setTimeout(() => {
-      if (loadIdRef.current !== loadId) return;
-      loadIdRef.current++; // invalidate this attempt so a late resolve/reject is ignored
-      if (restored) clearDraft();
-      setStatus('error');
-      setAnnouncement('This PDF is taking too long to load - it may be corrupted. Please try a different file.');
-    }, 20000);
-
-    try {
-      const lib = await getPdfjs();
-      if (loadIdRef.current !== loadId) return;
-      const doc = await lib.getDocument({ data: bytes.slice(0) }).promise;
-      if (loadIdRef.current !== loadId) return;
-
-      setPdfDocument(doc);
-      setNumPages(doc.numPages);
-      setStatus('editing');
-      setAnnouncement(
-        restored
-          ? `Restored your last draft of "${selected.name}".`
-          : `Loaded PDF "${selected.name}" with ${doc.numPages} pages.`
-      );
-    } catch (err) {
-      if (loadIdRef.current !== loadId) return;
-      console.error(err);
-      if (restored) clearDraft();
-      setStatus('error');
-      setAnnouncement('Failed to load PDF file.');
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    // Migrate drafts written before E4.4's flat type discriminant. New state is
+    // always type-keyed; the compatibility read is intentionally at the boundary.
+    const presetElements = (preset.elements || []).map(({ style, ...element }) => ({
+      ...element,
+      type: element.type || style || 'blackout',
+    }));
+    await loadEditorPdf({
+      file: selected, bytes, restored, loadIdRef, clearDraft, setStatus, setAnnouncement,
+      initialize: () => {
+        setFile(selected);
+        setProgress(0);
+        setElements(presetElements);
+        setActionHistory(preset.actionHistory || []);
+        setUndoSelection(new Set());
+        seedUniqueId(presetElements);
+        fileBytesRef.current = bytes;
+      },
+      onDocument: (doc) => {
+        setPdfDocument(doc);
+        setNumPages(doc.numPages);
+      },
+    });
   };
 
   const handleFilesAdded = async (fileList) => {
@@ -220,28 +198,15 @@ export default function PdfRedactTool() {
     await loadPdf(selected, bytes, {});
   };
 
-  const { clearDraft } = useDraftPersistence({
+  const { clearDraft } = useEditorDraftPersistence({
     tool: 'redact',
     file,
     fileBytes: fileBytesRef.current,
     elements,
-    extra: { actionHistory },
+    actionHistory,
     status,
-    onRestore: (record) => {
-      // A manual pick already claimed the load slot (even if it hasn't finished loading
-      // yet) — never let a silent background restore override explicit user intent.
-      if (loadStartedRef.current) return;
-      loadStartedRef.current = true;
-      const restoredFile = new File([record.fileBytes], record.fileName, {
-        type: record.fileType || 'application/pdf'
-      });
-      loadPdf(
-        restoredFile,
-        record.fileBytes,
-        { elements: record.elements || [], actionHistory: record.extra?.actionHistory || [] },
-        true
-      );
-    }
+    loadStartedRef,
+    loadPdf,
   });
 
   const handlePointerDown = (e, pageIndex) => {
@@ -253,86 +218,44 @@ export default function PdfRedactTool() {
     setSelectedBoxId(null);
     e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
-    const leftPercent = pxToPercent(clientX - rect.left, rect.width);
-    const topPercent = pxToPercent(clientY - rect.top, rect.height);
-    
-    setDrawingState({
-      pageIndex,
-      startX: leftPercent,
-      startY: topPercent,
-      currentX: leftPercent,
-      currentY: topPercent
+    const start = getPointerCoords(e.nativeEvent || e);
+    const origin = { left: pxToPercent(start.x - rect.left, rect.width), top: pxToPercent(start.y - rect.top, rect.height) };
+    const type = activeStyle;
+    const color = type === 'whiteout' ? activeColor : (type === 'blackout' ? '#000000' : undefined);
+    setDrawingState({ pageIndex, startX: origin.left, startY: origin.top, type, color });
+    startGesture({
+      computePatch: (moveEvent) => {
+        if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
+        const point = getPointerCoords(moveEvent);
+        const x = Math.max(0, Math.min(100, pxToPercent(point.x - rect.left, rect.width)));
+        const y = Math.max(0, Math.min(100, pxToPercent(point.y - rect.top, rect.height)));
+        return { left: Math.min(origin.left, x), top: Math.min(origin.top, y), width: Math.abs(x - origin.left), height: Math.abs(y - origin.top) };
+      },
+      writeDOM: (patch) => {
+        const preview = drawingPreviewRef.current;
+        if (!preview) return;
+        preview.style.left = `${patch.left}%`;
+        preview.style.top = `${patch.top}%`;
+        preview.style.width = `${patch.width}%`;
+        preview.style.height = `${patch.height}%`;
+      },
+      commit: (patch) => {
+        setDrawingState(null);
+        if (!patch || patch.width <= 1 || patch.height <= 1) return;
+        const id = uniqueId();
+        setElements(prev => [...prev, { id, pageIndex, ...patch, type, color }]);
+        logAction(`ADD_${type.toUpperCase()}`, id, pageIndex, `Added ${type} box`);
+        setAnnouncement(`Added ${type} box.`);
+      },
     });
   };
-
-  const handlePointerMove = (e, pageIndex) => {
-    if (!drawingState || drawingState.pageIndex !== pageIndex) return;
-    
-    // Prevent scrolling while drawing on mobile
-    if (e.cancelable) e.preventDefault();
-    
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
-    const leftPercent = pxToPercent(clientX - rect.left, rect.width);
-    const topPercent = pxToPercent(clientY - rect.top, rect.height);
-    
-    setDrawingState(prev => ({
-      ...prev,
-      currentX: Math.max(0, Math.min(100, leftPercent)),
-      currentY: Math.max(0, Math.min(100, topPercent))
-    }));
-  };
-
-  const handlePointerUp = () => {
-    if (!drawingState) return;
-    
-    const left = Math.min(drawingState.startX, drawingState.currentX);
-    const top = Math.min(drawingState.startY, drawingState.currentY);
-    const width = Math.abs(drawingState.currentX - drawingState.startX);
-    const height = Math.abs(drawingState.currentY - drawingState.startY);
-    
-    // Only create a box if it has some minimum size (e.g., > 1% of page width/height)
-    if (width > 1 && height > 1) {
-      const id = uniqueId();
-      setElements(prev => [...prev, {
-        id,
-        pageIndex: drawingState.pageIndex,
-        left,
-        top,
-        width,
-        height,
-        style: activeStyle,
-        color: activeStyle === 'whiteout' ? activeColor : (activeStyle === 'blackout' ? '#000000' : undefined)
-      }]);
-      logAction(`ADD_${activeStyle.toUpperCase()}`, id, drawingState.pageIndex, `Added ${activeStyle} box`);
-      setAnnouncement(`Added ${activeStyle} box.`);
-    }
-    
-    setDrawingState(null);
-  };
-  
-  // Need to bind mouseup/touchend to window in case they release outside the page
-  useEffect(() => {
-    const onGlobalUp = () => handlePointerUp();
-    window.addEventListener('mouseup', onGlobalUp);
-    window.addEventListener('touchend', onGlobalUp);
-    return () => {
-      window.removeEventListener('mouseup', onGlobalUp);
-      window.removeEventListener('touchend', onGlobalUp);
-    };
-  }, [drawingState]);
 
   const deleteElement = (id) => {
     const el = elements.find(e => e.id === id);
     setElements(prev => prev.filter(el => el.id !== id));
     setActiveBoxId(prev => (prev === id ? null : prev));
     setSelectedBoxId(prev => (prev === id ? null : prev));
-    if (el) logAction('DELETE_ELEMENT', id, el.pageIndex, `Deleted ${el.style} box`, [el]);
+    if (el) logAction('DELETE_ELEMENT', id, el.pageIndex, `Deleted ${el.type} box`, [el]);
   };
 
   const updateElement = (id, changes) => {
@@ -388,12 +311,8 @@ export default function PdfRedactTool() {
     rememberColor(color);
   };
 
-  // Passed to ElementToolbar's onClone (whiteout only). ElementToolbar builds the new
-  // element object itself (new id, nudged position) and tags it with the rendering-only
-  // `type: 'whiteout'` shim RedactBox passes in — strip that back out since Redact's
-  // element model uses `style`, not `type`.
-  const cloneWhiteoutElement = ({ type, ...cloned }) => {
-    setElements(prev => [...prev, { ...cloned, style: 'whiteout' }]);
+  const cloneWhiteoutElement = (cloned) => {
+    setElements(prev => [...prev, cloned]);
     setSelectedBoxId(cloned.id);
     setActiveBoxId(cloned.id);
     logAction('DUPLICATE_ELEMENT', cloned.id, cloned.pageIndex, 'Duplicated whiteout box');
@@ -412,31 +331,19 @@ export default function PdfRedactTool() {
     const wrapper = pageWrapperRefs.current[el.pageIndex];
     if (!wrapper) return;
 
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const start = { x: clientX, y: clientY, left: el.left, top: el.top };
-
-    const onMove = (ev) => {
-      const mx = ev.touches ? ev.touches[0].clientX : ev.clientX;
-      const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
-      const rect = wrapper.getBoundingClientRect();
-      let newLeft = start.left + pxDeltaToPercent(mx - start.x, rect.width);
-      let newTop = start.top + pxDeltaToPercent(my - start.y, rect.height);
-      newLeft = Math.max(0, Math.min(100 - el.width, newLeft));
-      newTop = Math.max(0, Math.min(100 - el.height, newTop));
-      updateElement(el.id, { left: newLeft, top: newTop });
-      if (ev.cancelable) ev.preventDefault();
-    };
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      window.removeEventListener('touchmove', onMove);
-      window.removeEventListener('touchend', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    window.addEventListener('touchmove', onMove, { passive: false });
-    window.addEventListener('touchend', onUp);
+    const pointer = getPointerCoords(e.nativeEvent || e);
+    const start = { x: pointer.x, y: pointer.y, left: el.left, top: el.top };
+    const box = e.currentTarget.closest('.redact-box');
+    startGesture({
+      computePatch: (moveEvent) => {
+        if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
+        const move = getPointerCoords(moveEvent);
+        const rect = wrapper.getBoundingClientRect();
+        return { left: Math.max(0, Math.min(100 - el.width, start.left + pxDeltaToPercent(move.x - start.x, rect.width))), top: Math.max(0, Math.min(100 - el.height, start.top + pxDeltaToPercent(move.y - start.y, rect.height))) };
+      },
+      writeDOM: (patch) => { if (box) { box.style.left = `${patch.left}%`; box.style.top = `${patch.top}%`; } },
+      commit: (patch) => { if (patch) updateElement(el.id, patch); },
+    });
   };
 
   // Drag a resize handle to resize an existing box. `handle` defaults to the single
@@ -451,79 +358,20 @@ export default function PdfRedactTool() {
     const wrapper = pageWrapperRefs.current[el.pageIndex];
     if (!wrapper) return;
 
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const start = { x: clientX, y: clientY, width: el.width, height: el.height, left: el.left, top: el.top };
-
-    const onMove = (ev) => {
-      const mx = ev.touches ? ev.touches[0].clientX : ev.clientX;
-      const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
-      const rect = wrapper.getBoundingClientRect();
-      const dxPercent = pxDeltaToPercent(mx - start.x, rect.width);
-      const dyPercent = pxDeltaToPercent(my - start.y, rect.height);
-
-      let newWidth = start.width;
-      let newHeight = start.height;
-      let newLeft = start.left;
-      let newTop = start.top;
-
-      // On-page bounds, expressed per fixed edge rather than as a single
-      // post-hoc left/top clamp — mirrors SignTool/DraggableWrapper.jsx's
-      // handleResizeMove shape branch (see ca411be). A right/bottom-edge drag
-      // never moves left/top at all (they stay pinned at start.left/start.top
-      // above), so the only thing that can push the box off-page on that side
-      // is width/height growing past what's left of the page from the
-      // *anchored* (opposite) edge — cap the dimension itself instead of
-      // moving the anchor. A left/top-edge drag derives its new left/top from
-      // newWidth/newHeight (below), so capping the dimension there keeps the
-      // derived left/top >= 0 for free, without ever touching the true anchor
-      // (the opposite, un-dragged edge).
-      const maxWidthFromRightGrowth = 100 - start.left;      // right edge anchored at start.left
-      const maxWidthFromLeftGrowth = start.left + start.width; // left-edge drag: right edge anchored
-      const maxHeightFromBottomGrowth = 100 - start.top;     // bottom edge anchored at start.top
-      const maxHeightFromTopGrowth = start.top + start.height; // top-edge drag: bottom edge anchored
-
-      if (handle === 'right') {
-        newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromRightGrowth, start.width + dxPercent)));
-      } else if (handle === 'left') {
-        newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromLeftGrowth, start.width - dxPercent)));
-        newLeft = start.left - (newWidth - start.width);
-      } else if (handle === 'bottom') {
-        newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromBottomGrowth, start.height + dyPercent)));
-      } else if (handle === 'top') {
-        newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromTopGrowth, start.height - dyPercent)));
-        newTop = start.top - (newHeight - start.height);
-      } else if (handle === 'bottom-right') {
-        newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromRightGrowth, start.width + dxPercent)));
-        newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromBottomGrowth, start.height + dyPercent)));
-      } else if (handle === 'bottom-left') {
-        newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromLeftGrowth, start.width - dxPercent)));
-        newLeft = start.left - (newWidth - start.width);
-        newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromBottomGrowth, start.height + dyPercent)));
-      } else if (handle === 'top-right') {
-        newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromRightGrowth, start.width + dxPercent)));
-        newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromTopGrowth, start.height - dyPercent)));
-        newTop = start.top - (newHeight - start.height);
-      } else if (handle === 'top-left') {
-        newWidth = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxWidthFromLeftGrowth, start.width - dxPercent)));
-        newLeft = start.left - (newWidth - start.width);
-        newHeight = Math.max(MIN_SHAPE_SIZE_PCT, Math.min(MAX_SHAPE_SIZE_PCT, Math.min(maxHeightFromTopGrowth, start.height - dyPercent)));
-        newTop = start.top - (newHeight - start.height);
-      }
-
-      updateElement(el.id, { width: newWidth, height: newHeight, left: newLeft, top: newTop });
-      if (ev.cancelable) ev.preventDefault();
-    };
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      window.removeEventListener('touchmove', onMove);
-      window.removeEventListener('touchend', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    window.addEventListener('touchmove', onMove, { passive: false });
-    window.addEventListener('touchend', onUp);
+    const pointer = getPointerCoords(e.nativeEvent || e);
+    const start = { x: pointer.x, y: pointer.y, width: el.width, height: el.height, left: el.left, top: el.top };
+    const box = e.currentTarget.closest('.redact-box');
+    const behavior = getElementDefinition(el.type).resizeBehavior;
+    startGesture({
+      computePatch: (moveEvent) => {
+        if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
+        const move = getPointerCoords(moveEvent);
+        const rect = wrapper.getBoundingClientRect();
+        return behavior.applyBoxResize({ handle, start, delta: { x: pxDeltaToPercent(move.x - start.x, rect.width), y: pxDeltaToPercent(move.y - start.y, rect.height) } });
+      },
+      writeDOM: (patch) => { if (box) { box.style.left = `${patch.left}%`; box.style.top = `${patch.top}%`; box.style.width = `${patch.width}%`; box.style.height = `${patch.height}%`; } },
+      commit: (patch) => { if (patch) updateElement(el.id, patch); },
+    });
   };
   
   const clearPage = (pageIndex) => {
@@ -667,8 +515,6 @@ export default function PdfRedactTool() {
                   ref={(el) => pageWrapperRefs.current[i] = el}
                   onMouseDown={(e) => handlePointerDown(e, i)}
                   onTouchStart={(e) => handlePointerDown(e, i)}
-                  onMouseMove={(e) => handlePointerMove(e, i)}
-                  onTouchMove={(e) => handlePointerMove(e, i)}
                   style={{ touchAction: 'none', cursor: 'crosshair', position: 'relative' }}
                 >
                   <PdfPageCanvas pdfDocument={pdfDocument} pageNum={i + 1} />
@@ -693,18 +539,16 @@ export default function PdfRedactTool() {
                   {/* Render active drawing box */}
                   {drawingState && drawingState.pageIndex === i && (
                     <div
+                      ref={drawingPreviewRef}
                       className="redact-drawing-preview"
                       style={{
                         position: 'absolute',
-                        left: `${Math.min(drawingState.startX, drawingState.currentX)}%`,
-                        top: `${Math.min(drawingState.startY, drawingState.currentY)}%`,
-                        width: `${Math.abs(drawingState.currentX - drawingState.startX)}%`,
-                        height: `${Math.abs(drawingState.currentY - drawingState.startY)}%`,
-                        backgroundColor: activeStyle === 'blur' ? 'rgba(255,255,255,0.1)' : (activeStyle === 'whiteout' ? activeColor : 'rgba(0, 0, 0, 0.7)'),
-                        opacity: activeStyle === 'whiteout' && activeColor !== '#000000' ? 0.7 : 1,
-                        backdropFilter: activeStyle === 'blur' ? 'blur(8px)' : 'none',
-                        WebkitBackdropFilter: activeStyle === 'blur' ? 'blur(8px)' : 'none',
-                        border: activeStyle === 'blur' ? '2px dashed #000' : (activeStyle === 'whiteout' ? '2px dashed #000' : '2px dashed #ff4757'),
+                        left: `${drawingState.startX}%`, top: `${drawingState.startY}%`, width: 0, height: 0,
+                        backgroundColor: drawingState.type === 'blur' ? 'rgba(255,255,255,0.1)' : (drawingState.type === 'whiteout' ? drawingState.color : 'rgba(0, 0, 0, 0.7)'),
+                        opacity: drawingState.type === 'whiteout' && drawingState.color !== '#000000' ? 0.7 : 1,
+                        backdropFilter: drawingState.type === 'blur' ? 'blur(8px)' : 'none',
+                        WebkitBackdropFilter: drawingState.type === 'blur' ? 'blur(8px)' : 'none',
+                        border: drawingState.type === 'blur' ? '2px dashed #000' : (drawingState.type === 'whiteout' ? '2px dashed #000' : '2px dashed #ff4757'),
                         zIndex: 20,
                         pointerEvents: 'none'
                       }}

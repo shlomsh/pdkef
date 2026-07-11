@@ -1,12 +1,34 @@
 import type { ElementType } from '../../lib/editorModel.ts';
 import type { ComponentChildren } from 'preact';
+import type { PDFDocument, PDFFont, PDFPage } from '@cantoo/pdf-lib';
 
 export interface NodeRenderContext {
   element: Record<string, unknown>;
   onChange: (changes: Record<string, unknown>) => void;
   onSelect: (event: Event) => void;
   pageWidthPoints: number;
+  renderTarget?: 'sign' | 'redact';
 }
+
+export interface SerializeContext {
+  pdfDoc: PDFDocument;
+  page: PDFPage;
+  pdfWidth: number;
+  pdfHeight: number;
+  pdfX: number;
+  pdfY: number;
+  loadCustomFont: (family: string, weight?: string, style?: string) => Promise<PDFFont | null>;
+  baselineOffset: (font: PDFFont | null) => number;
+  /** Redact's page-scoped destructive flatten pass requests an instruction instead. */
+  redaction?: boolean;
+}
+
+export interface RedactionInstruction {
+  kind: 'blur' | 'solid';
+  element: { left: number; top: number; width: number; height: number; color?: string };
+}
+
+export type SerializeResult = void | RedactionInstruction | Promise<void | RedactionInstruction>;
 
 export interface CreateContext {
   id: string;
@@ -91,11 +113,13 @@ export interface TextPositionPatch { left: number; top: number; }
 
 export interface ElementDefinition {
   type: ElementType;
+  schema: (value: unknown) => boolean;
   creation: {
     mode: CreationMode;
     create?: (context: CreateContext) => Record<string, unknown>;
   };
   render: (context: NodeRenderContext) => ComponentChildren;
+  serialize: (element: Record<string, unknown>, context: SerializeContext) => SerializeResult;
   resizeBehavior: {
     handles: readonly ResizeHandle[];
     applyBoxResize?: (input: BoxResizeInput) => BoxResizePatch;

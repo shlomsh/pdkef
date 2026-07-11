@@ -99,20 +99,16 @@ same behavior is implemented several times, and nothing forces the copies to agr
 symptoms, all verified in the current code (see the full audit in
 [docs/E4-headless-editor-core-plan.md](./docs/E4-headless-editor-core-plan.md) §1):
 
-1. **The golden rule is obeyed by only *some* gesture paths.** It is not simply "drag was extracted, resize
-   stayed inline." Sign's **drag** (`useDraggableElement.js`) and **resize** (`DraggableWrapper.jsx`)
-   obey it; but Sign's **creation** path (`useWorkspaceGestures.js` dispatches `UPDATE_ELEMENT` per
-   `pointermove`) and **all three** Redact gesture paths (`PdfRedactTool.jsx` drag/resize/create commit
-   state per move) do **not**. The rule lives as a convention each of six code paths can break
-   independently - and half of them do.
-2. **The resize math is physically duplicated.** The per-handle, anchor-preserving shape-resize
-   arithmetic exists near-verbatim in two files - `DraggableWrapper.jsx` (Sign) and `PdfRedactTool.jsx`
-   (`handleBoxResizeStart`, Redact). It has already drifted once: the whiteout-off-page regression
-   (`ea10349`) was the Redact copy lagging the Sign fix (`ca411be`). Two copies of a clamp is one copy
-   too many. (Fingerprint: `git grep -l maxWidthFromRightGrowth` returns 2 files today; the target is 1.)
-3. **Two element models with different discriminants.** Sign keys on `type` (`editorModel.ts`); Redact
-   keys on a separate `style` field (`blackout|blur|whiteout`) and smuggles a `type:'whiteout'` shim
-   through `RedactBox` to reuse shared UI. The two editors can't share code until they share a model.
+1. **Every gesture path now obeys the golden rule.** Sign and Redact creation, drag, and resize route
+   through `editor/gestures/controller.ts`: pointer moves paint the DOM only and release commits exactly
+   once. Redact has integration coverage that proves the controller receives one final commit even after
+   multiple move events.
+2. **The resize math has one owner.** The per-handle, anchor-preserving shape resize arithmetic lives in
+   `editor/registry/boxResize.ts`. CI enforces this with the anchor-cap fingerprint, preventing the
+   earlier Redact drift from returning.
+3. **Both editors use the same flat discriminant.** Sign and Redact key elements on `type`
+   (`editorModel.ts`); `blackout`, `blur`, and `whiteout` each have a registry module. The legacy
+   `style` field and whiteout type shim are retired.
 
 **Why a headless core is the fix, not just tidier files.** Extracting hooks moved code around but left
 every invariant as prose the next path can ignore. A framework-agnostic `editor/` core (plain TS) makes
@@ -151,14 +147,9 @@ all three must mutate the DOM live and commit once.
 - ✅ `handlePointerUp` calls `onChange(final)` exactly once, then clears inline overrides.
 - ❌ Calling `onChange(...)`/`dispatch(...)`/`setState(...)` inside `pointermove` (per-pixel state
   dispatch) - this is the reconciliation thrash.
-- **Current reality (the thing E4 fixes):** only Sign's **drag** and **resize** obey the rule. Sign's
-  **create** path (`useWorkspaceGestures.handleOverlayPointerDown` dispatches `UPDATE_ELEMENT` per
-  move) and **all three** Redact gesture paths (`PdfRedactTool.jsx` commits `updateElement` /
-  `setDrawingState` per move) violate it. So the rule is not a two-path convention - it is a
-  *six-path* convention that half the paths already break. Unifying every path under **one** controller
-  (§3.2) is what makes the rule structural: a gesture commits once because the single controller is the
-  only thing that commits. A per-gesture `console.count` on the commit is the acceptance proof (it ticks
-  once per gesture only after E4.2/E4.4; it ticks per frame on the four violating paths today).
+- **Current reality:** every creation, drag, and resize route uses the controller. This makes the rule
+  structural: a gesture commits once because the controller is the only thing that commits. The Sign and
+  Redact integration tests verify one final commit after multiple pointer moves.
 
 ---
 

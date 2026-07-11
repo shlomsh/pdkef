@@ -1,5 +1,6 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { getPdfjs } from './sign.js';
+import { getElementDefinition } from '../editor/registry/index.ts';
 
 /**
  * Applies redactions to a PDF by permanently flattening pages containing redaction marks.
@@ -47,10 +48,17 @@ export async function redactPdf(file, elements, onProgress) {
       };
       await pdfjsPage.render(renderContext).promise;
       
-      // If there are any blur elements, create a blurred copy of the entire canvas
+      // Each type owns the instruction it contributes to this destructive,
+      // page-scoped flatten pass. The registry makes the type decision; this
+      // module intentionally only owns PDF-wide canvas/raster orchestration.
+      const instructions = pageElements.map((element) =>
+        getElementDefinition(element.type).serialize(element, { redaction: true }),
+      );
+
+      // If there are any blur instructions, create a blurred copy of the entire canvas
       // This is much faster and cleaner than trying to blur individual sub-regions
       let blurredCanvas;
-      if (pageElements.some(el => el.style === 'blur')) {
+      if (instructions.some((instruction) => instruction?.kind === 'blur')) {
         blurredCanvas = document.createElement('canvas');
         blurredCanvas.width = canvas.width;
         blurredCanvas.height = canvas.height;
@@ -60,19 +68,21 @@ export async function redactPdf(file, elements, onProgress) {
         bCtx.drawImage(canvas, 0, 0);
       }
       
-      // Draw redaction boxes
-      for (const el of pageElements) {
-        const x = (el.left / 100) * viewport.width;
-        const y = (el.top / 100) * viewport.height;
-        const w = (el.width / 100) * viewport.width;
-        const h = (el.height / 100) * viewport.height;
+      // Draw the registry-provided redaction instructions.
+      for (const instruction of instructions) {
+        if (!instruction) continue;
+        const { element } = instruction;
+        const x = (element.left / 100) * viewport.width;
+        const y = (element.top / 100) * viewport.height;
+        const w = (element.width / 100) * viewport.width;
+        const h = (element.height / 100) * viewport.height;
         
-        if (el.style === 'blur') {
+        if (instruction.kind === 'blur') {
           // Paste the blurred section over the original
           ctx.drawImage(blurredCanvas, x, y, w, h, x, y, w, h);
         } else {
           // Solid color redact box (defaults to black)
-          ctx.fillStyle = el.color || '#000000';
+          ctx.fillStyle = element.color || '#000000';
           ctx.fillRect(x, y, w, h);
         }
       }

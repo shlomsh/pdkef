@@ -27,7 +27,9 @@ export type ElementType =
   | 'line'
   | 'symbol'
   | 'signature'
-  | 'whiteout';
+  | 'whiteout'
+  | 'blackout'
+  | 'blur';
 
 /** Symbol glyphs (SymbolNode.jsx). `symbolType` is a legacy alias still tolerated. */
 export type SymbolMark = 'check' | 'x' | 'dot';
@@ -130,6 +132,12 @@ export interface WhiteoutElement extends ElementBase, BoxGeometry {
   type: 'whiteout';
 }
 
+/** Opaque destructive-redaction box, flattened by redact.js on export. */
+export interface BlackoutElement extends ElementBase, BoxGeometry { type: 'blackout'; }
+
+/** Blurred destructive-redaction box, flattened by redact.js on export. */
+export interface BlurElement extends ElementBase, BoxGeometry { type: 'blur'; }
+
 /**
  * The full editor element model: a discriminated union keyed on `type`. Narrow
  * with `el.type === '...'` to reach a variant's specific fields.
@@ -141,4 +149,6 @@ export type EditorElement =
   | LineElement
   | SymbolElement
   | SignatureElement
-  | WhiteoutElement;
+  | WhiteoutElement
+  | BlackoutElement
+  | BlurElement;

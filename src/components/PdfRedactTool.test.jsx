@@ -10,6 +10,23 @@ import dropzoneStyles from './Dropzone.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
 
+const { gestureCommitSpies } = vi.hoisted(() => ({ gestureCommitSpies: [] }));
+
+// Exercise the real controller while wrapping each commit callback. This proves
+// the Redact integration, rather than only controller.ts in isolation, commits
+// one final state patch regardless of how many pointer moves a gesture has.
+vi.mock('../editor/gestures/controller.ts', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    startGesture: (options) => {
+      const commit = vi.fn(options.commit);
+      gestureCommitSpies.push(commit);
+      return actual.startGesture({ ...options, commit });
+    },
+  };
+});
+
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 }
@@ -45,6 +62,7 @@ describe('PdfRedactTool UI flow', () => {
       container.remove();
       container = null;
     }
+    gestureCommitSpies.length = 0;
     vi.restoreAllMocks();
   });
 
@@ -239,6 +257,32 @@ describe('PdfRedactTool UI flow', () => {
     });
   }
 
+  function expectLatestGestureToCommitOnce() {
+    const commit = gestureCommitSpies.at(-1);
+    expect(commit).toBeDefined();
+    expect(commit).toHaveBeenCalledTimes(1);
+  }
+
+  it('commits Redact creation once after multiple pointer moves (E4.4)', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+
+    await act(async () => {
+      drawArea.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 200, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 100, clientY: 300, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 200, clientY: 500, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    });
+
+    expectLatestGestureToCommitOnce();
+    expect(container.querySelectorAll('.redact-box')).toHaveLength(1);
+  });
+
   it('draws a box whose left/top/width/height are pxToPercent of the draw area, not raw px/rect.width math', async () => {
     const drawArea = await loadFileAndGetDrawArea();
 
@@ -275,6 +319,9 @@ describe('PdfRedactTool UI flow', () => {
       window.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 300 })); // dx=50 dy=200
     });
     await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 300 }));
+    });
+    await act(async () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
     });
 
@@ -283,6 +330,7 @@ describe('PdfRedactTool UI flow', () => {
 
     expect(parseFloat(box.style.left)).toBeCloseTo(expectedLeft);
     expect(parseFloat(box.style.top)).toBeCloseTo(expectedTop);
+    expectLatestGestureToCommitOnce();
   });
 
   it('resizes an existing box by a percent delta computed via pxDeltaToPercent against the wrapper', async () => {
@@ -311,6 +359,9 @@ describe('PdfRedactTool UI flow', () => {
       window.dispatchEvent(new MouseEvent('mousemove', { clientX: 130, clientY: 180 })); // dx=30 dy=80
     });
     await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 130, clientY: 180 }));
+    });
+    await act(async () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
     });
 
@@ -319,6 +370,7 @@ describe('PdfRedactTool UI flow', () => {
 
     expect(parseFloat(box.style.width)).toBeCloseTo(expectedWidth);
     expect(parseFloat(box.style.height)).toBeCloseTo(expectedHeight);
+    expectLatestGestureToCommitOnce();
   });
 
   // --- Regression: whiteout box resize flying off-page (handleBoxResizeStart) ---
