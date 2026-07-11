@@ -151,32 +151,21 @@ export default function DraggableWrapper({
       const normalizedDx = isLeft ? -rawDx : rawDx;
       const normalizedDy = isTop ? -dy : dy;
       
-      if (handle === 'line-start') {
+      const definition = getElementDefinition(element.type);
+      if (definition.resizeBehavior.applyLineResize) {
         const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
-        pendingResize = {
-          x1: startX1 + dxPercent,
-          y1: startY1 + dyPercent
-        };
+        pendingResize = definition.resizeBehavior.applyLineResize({
+          handle,
+          delta: { x: dxPercent, y: dyPercent },
+          start: { x1: startX1, y1: startY1, x2: startX2, y2: startY2 },
+        });
         const lines = elementRef.current?.querySelectorAll('line');
         if (lines) {
           lines.forEach(l => {
-            l.setAttribute('x1', `${pendingResize.x1}%`);
-            l.setAttribute('y1', `${pendingResize.y1}%`);
-          });
-        }
-        return pendingResize;
-      }
-      if (handle === 'line-end') {
-        const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
-        pendingResize = {
-          x2: startX2 + dxPercent,
-          y2: startY2 + dyPercent
-        };
-        const lines = elementRef.current?.querySelectorAll('line');
-        if (lines) {
-          lines.forEach(l => {
-            l.setAttribute('x2', `${pendingResize.x2}%`);
-            l.setAttribute('y2', `${pendingResize.y2}%`);
+            if (pendingResize.x1 !== undefined) l.setAttribute('x1', `${pendingResize.x1}%`);
+            if (pendingResize.y1 !== undefined) l.setAttribute('y1', `${pendingResize.y1}%`);
+            if (pendingResize.x2 !== undefined) l.setAttribute('x2', `${pendingResize.x2}%`);
+            if (pendingResize.y2 !== undefined) l.setAttribute('y2', `${pendingResize.y2}%`);
           });
         }
         return pendingResize;
@@ -186,10 +175,10 @@ export default function DraggableWrapper({
       // wrapper is gone). Aliased for readability where several checks read it.
       const actualType = element.type;
 
-      const definition = getElementDefinition(actualType);
-      if (definition.resizeBehavior.applyBoxResize) {
+      const boxDefinition = getElementDefinition(actualType);
+      if (boxDefinition.resizeBehavior.applyBoxResize) {
         const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
-        pendingResize = definition.resizeBehavior.applyBoxResize({
+        pendingResize = boxDefinition.resizeBehavior.applyBoxResize({
           handle,
           delta: { x: dxPercent, y: dyPercent },
           start: { width: startWidth, height: startHeight, left: startLeft, top: startTop },

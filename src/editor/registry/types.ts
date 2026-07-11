@@ -15,10 +15,19 @@ export interface BoxResizePatch {
   height: number;
 }
 
+export interface LineResizeInput {
+  handle: 'line-start' | 'line-end';
+  delta: { x: number; y: number };
+  start: { x1: number; y1: number; x2: number; y2: number };
+}
+
+export type LineResizePatch = Partial<LineResizeInput['start']>;
+
 export interface ElementDefinition {
   type: ElementType;
   resizeBehavior: {
     handles: readonly ResizeHandle[];
     applyBoxResize?: (input: BoxResizeInput) => BoxResizePatch;
+    applyLineResize?: (input: LineResizeInput) => LineResizePatch;
   };
 }

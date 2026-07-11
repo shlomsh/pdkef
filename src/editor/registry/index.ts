@@ -8,7 +8,7 @@ import { textDefinition } from './text.ts';
 import type { ElementDefinition } from './types.ts';
 import { whiteoutDefinition } from './whiteout.ts';
 
-export type { BoxResizeInput, BoxResizePatch, ElementDefinition, ResizeHandle } from './types.ts';
+export type { BoxResizeInput, BoxResizePatch, ElementDefinition, LineResizeInput, LineResizePatch, ResizeHandle } from './types.ts';
 
 const definitions: Record<ElementType, ElementDefinition> = {
   text: textDefinition, rectangle: rectangleDefinition, ellipse: ellipseDefinition,
