@@ -1,4 +1,5 @@
 import type { ElementDefinition } from './types.ts';
+import type { WhiteoutElement } from '../../lib/editorModel.ts';
 import { h } from 'preact';
 import { rgb } from '@cantoo/pdf-lib';
 import WhiteoutNode from '../../components/SignTool/nodes/WhiteoutNode.jsx';
@@ -7,18 +8,18 @@ import { applyBoxResize } from './boxResize.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';
 import { percentToPoints } from '../../lib/coords.js';
 import { renderRedactionSurface } from './redactionSurface.ts';
-export const whiteoutDefinition: ElementDefinition = {
+export const whiteoutDefinition: ElementDefinition<WhiteoutElement> = {
   type: 'whiteout',
-  schema: (value) => isRecord(value) && value.type === 'whiteout' && hasString(value, 'id')
+  schema: (value): value is WhiteoutElement => isRecord(value) && value.type === 'whiteout' && hasString(value, 'id')
     && hasNumber(value, 'pageIndex') && hasBoxGeometry(value),
   creation: { mode: 'drag', create: ({ id, pageIndex, point, whiteoutColor }) => ({ id, type: 'whiteout', pageIndex, left: point.left, top: point.top, width: 0, height: 0, color: whiteoutColor }) },
   render: ({ element, renderTarget }) => renderTarget === 'redact'
-    ? renderRedactionSurface('whiteout', (element as { color?: string }).color)
+    ? renderRedactionSurface('whiteout', element.color)
     : h(WhiteoutNode, { element, isActive: false, onResizeStart: () => {} }),
   serialize: (element, context) => {
-    const { width, height, color } = element as { width: number; height: number; color?: string };
+    const { width, height, color } = element;
     if (context.redaction) {
-      return { kind: 'solid' as const, element: { ...(element as { left: number; top: number; width: number; height: number; color?: string }), color: color || '#000000' } };
+      return { kind: 'solid' as const, element: { ...element, color: color || '#000000' } };
     }
     const { page, pdfWidth, pdfHeight, pdfX, pdfY } = context;
     const heightPoints = percentToPoints(height, pdfHeight);

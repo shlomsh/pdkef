@@ -1,10 +1,13 @@
-import type { ElementType } from '../../lib/editorModel.ts';
+import type { EditorElement, ElementType } from '../../lib/editorModel.ts';
 import type { ComponentChildren } from 'preact';
 import type { PDFDocument, PDFFont, PDFPage } from '@cantoo/pdf-lib';
 
-export interface NodeRenderContext {
-  element: Record<string, unknown>;
-  onChange: (changes: Record<string, unknown>) => void;
+/** The specific union member for a given `ElementType` literal, e.g. `ElementForType<'text'>` is `TextElement`. */
+export type ElementForType<K extends ElementType> = Extract<EditorElement, { type: K }>;
+
+export interface NodeRenderContext<T extends EditorElement = EditorElement> {
+  element: T;
+  onChange: (changes: Partial<T>) => void;
   onSelect: (event: Event) => void;
   pageWidthPoints: number;
   renderTarget?: 'sign' | 'redact';
@@ -111,15 +114,15 @@ export interface TextPositionInput {
 
 export interface TextPositionPatch { left: number; top: number; }
 
-export interface ElementDefinition {
-  type: ElementType;
-  schema: (value: unknown) => boolean;
+export interface ElementDefinition<T extends EditorElement = EditorElement> {
+  type: T['type'];
+  schema: (value: unknown) => value is T;
   creation: {
     mode: CreationMode;
-    create?: (context: CreateContext) => Record<string, unknown>;
+    create?: (context: CreateContext) => T;
   };
-  render: (context: NodeRenderContext) => ComponentChildren;
-  serialize: (element: Record<string, unknown>, context: SerializeContext) => SerializeResult;
+  render: (context: NodeRenderContext<T>) => ComponentChildren;
+  serialize: (element: T, context: SerializeContext) => SerializeResult;
   resizeBehavior: {
     handles: readonly ResizeHandle[];
     applyBoxResize?: (input: BoxResizeInput) => BoxResizePatch;

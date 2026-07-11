@@ -6,6 +6,7 @@ import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';
 import { percentToPoints } from '../../lib/coords.js';
 import type { CenteredResizeInput, CenteredResizePatch, ElementDefinition } from './types.ts';
+import type { SymbolElement } from '../../lib/editorModel.ts';
 
 export function applySymbolResize({ deltaWidth, minWidth, aspectRatio, page, start }: CenteredResizeInput): CenteredResizePatch {
   const width = Math.max(minWidth, Math.min(MAX_SYMBOL_SIGNATURE_WIDTH_PCT, start.width + deltaWidth));
@@ -18,9 +19,9 @@ export function applySymbolResize({ deltaWidth, minWidth, aspectRatio, page, sta
   };
 }
 
-export const symbolDefinition: ElementDefinition = {
+export const symbolDefinition: ElementDefinition<SymbolElement> = {
   type: 'symbol',
-  schema: (value) => isRecord(value) && value.type === 'symbol' && hasString(value, 'id')
+  schema: (value): value is SymbolElement => isRecord(value) && value.type === 'symbol' && hasString(value, 'id')
     && hasNumber(value, 'pageIndex') && hasBoxGeometry(value),
   creation: {
     mode: 'point',
@@ -31,7 +32,7 @@ export const symbolDefinition: ElementDefinition = {
   },
   render: ({ element }) => h(SymbolNode, { element, isActive: false, onResizeStart: () => {} }),
   serialize: (element, { page, pdfWidth, pdfHeight, pdfX, pdfY }) => {
-    const { width, height, color, mark } = element as { width: number; height: number; color?: string; mark?: string };
+    const { width, height, color, mark } = element;
     const widthPoints = percentToPoints(width, pdfWidth);
     const heightPoints = percentToPoints(height, pdfHeight);
     const { r, g, b } = hexToRgbFractions(color, '#1463ff');

@@ -5,6 +5,7 @@ import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { tintImageDataUrl } from '../../lib/signHelpers.js';
 import { percentToPoints } from '../../lib/coords.js';
 import type { CenteredResizeInput, CenteredResizePatch, ElementDefinition } from './types.ts';
+import type { SignatureElement } from '../../lib/editorModel.ts';
 
 export function applySignatureResize({ deltaWidth, minWidth, aspectRatio, page, start }: CenteredResizeInput): CenteredResizePatch {
   const width = Math.max(minWidth, Math.min(MAX_SYMBOL_SIGNATURE_WIDTH_PCT, start.width + deltaWidth));
@@ -17,14 +18,14 @@ export function applySignatureResize({ deltaWidth, minWidth, aspectRatio, page, 
   };
 }
 
-export const signatureDefinition: ElementDefinition = {
+export const signatureDefinition: ElementDefinition<SignatureElement> = {
   type: 'signature',
-  schema: (value) => isRecord(value) && value.type === 'signature' && hasString(value, 'id')
+  schema: (value): value is SignatureElement => isRecord(value) && value.type === 'signature' && hasString(value, 'id')
     && hasNumber(value, 'pageIndex') && hasBoxGeometry(value) && hasString(value, 'dataUrl'),
   creation: { mode: 'external' },
   render: ({ element }) => h(SignatureNode, { element, isActive: false, onResizeStart: () => {} }),
   serialize: async (element, { pdfDoc, page, pdfWidth, pdfHeight, pdfX, pdfY }) => {
-    const { dataUrl, width, height, color } = element as { dataUrl: string; width: number; height: number; color?: string };
+    const { dataUrl, width, height, color } = element;
     const sourceDataUrl = color && color !== '#000000' ? await tintImageDataUrl(dataUrl, color) : dataUrl;
     const embeddedImage = await pdfDoc.embedPng(sourceDataUrl.split(',')[1]);
     const heightPoints = percentToPoints(height, pdfHeight);

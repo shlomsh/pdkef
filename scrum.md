@@ -712,14 +712,22 @@ more than any numeric audit score suggests and must **not** be reopened while cl
   - *Depends on:* - · *Lane:* product / docs
   - *Acceptance:* `grep -rn "google-analytics\|gtag\|googletagmanager" astro.config.mjs
     src/layouts/BaseLayout.astro` returns nothing; `connect-src` is `'self'`.
-- **E7.2 Thread the element union through the registry seam.** `src/editor/registry/types.ts:6,7,119,122`
-  type `NodeRenderContext.element`, the `onChange` changes, `create`'s return, and `serialize`'s element
-  as `Record<string, unknown>`, so a registry module reading a wrong/renamed field compiles clean — the
-  registry is stringly-typed exactly where ARCHITECTURE §3/§3.2 promise compiler enforcement. Replace
-  with the `EditorElement` union from `editorModel.ts` (or per-type generics `<T extends EditorElement>`).
+- **E7.2 Thread the element union through the registry seam - done.** Made `ElementDefinition<T extends
+  EditorElement = EditorElement>` and `NodeRenderContext<T>` generic over the specific union member (added
+  `ElementForType<K>` in `types.ts` as the `Extract<EditorElement, {type: K}>` lookup); `getElementDefinition`
+  is now `<K extends ElementType>(type: K): ElementDefinition<ElementForType<K>>` and the `definitions` map
+  in `index.ts` is typed as `{ [K in ElementType]: ElementDefinition<ElementForType<K>> }`. Each of the 9
+  per-type modules (`text.ts`, `rectangle.ts`, `ellipse.ts`, `line.ts`, `symbol.ts`, `signature.ts`,
+  `whiteout.ts`, `blackout.ts`, `blur.ts`) now declares `ElementDefinition<XElement>` and its `schema`
+  as a real type predicate (`(value): value is XElement => …`), removing every inline `element as {...}`
+  cast in favor of the destructured, compiler-checked field.
   - *Depends on:* - · *Lane:* E
-  - *Acceptance:* `git grep -n "Record<string, unknown>" -- src/editor/registry` returns 0; a
-    deliberately-wrong element field access in a registry module fails `npm run typecheck`.
+  - *Acceptance:* `git grep -n "Record<string, unknown>" -- src/editor/registry` returns 0 (only the
+    legitimate pre-narrowing helpers in `schema.ts` still use it, outside `types.ts`). Non-vacuity
+    verified: a deliberately-added `thisFieldDoesNotExist` destructure in `text.ts`'s `serialize` failed
+    `npm run typecheck` with `Property 'thisFieldDoesNotExist' does not exist on type 'TextElement'`, then
+    was reverted. Full unit suite green (344/344); `npm run typecheck` clean (0 errors, same 28
+    pre-existing hints).
 - **E7.3 Type the interactive shell (`.jsx` → `.tsx`).** ~60 `.jsx` files, 0 `.tsx` in `src/components`:
   the union in `editorModel.ts` never reaches the shell, so the cross-tool breakage the doc says the
   compiler will catch is still runtime-only. Migrate the editor-critical components to `.tsx` consuming

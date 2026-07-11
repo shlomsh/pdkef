@@ -1,4 +1,5 @@
 import type { ElementDefinition } from './types.ts';
+import type { TextElement } from '../../lib/editorModel.ts';
 import { h } from 'preact';
 import { rgb } from '@cantoo/pdf-lib';
 import TextNode from '../../components/SignTool/nodes/TextNode.jsx';
@@ -32,9 +33,9 @@ export function applyTextPosition({ start, startSize, nextSize, isLeftHandle, is
   return { left, top };
 }
 
-export const textDefinition: ElementDefinition = {
+export const textDefinition: ElementDefinition<TextElement> = {
   type: 'text',
-  schema: (value) => isRecord(value) && value.type === 'text' && hasString(value, 'id')
+  schema: (value): value is TextElement => isRecord(value) && value.type === 'text' && hasString(value, 'id')
     && hasNumber(value, 'pageIndex') && hasNumber(value, 'left') && hasNumber(value, 'top') && hasString(value, 'text'),
   creation: {
     mode: 'point',
@@ -46,7 +47,7 @@ export const textDefinition: ElementDefinition = {
   },
   render: ({ element, onChange, onSelect, pageWidthPoints }) => h(TextNode, { element, onChange, onSelect, pageWidthPoints, isActive: false, onResizeStart: () => {} }),
   serialize: async (element, { page, pdfX, pdfY, loadCustomFont, baselineOffset }) => {
-    const { text, fontSize, fontFamily, fontWeight, fontStyle, color } = element as { text?: string; fontSize?: number; fontFamily?: string; fontWeight?: string; fontStyle?: string; color?: string; textDirection?: string };
+    const { text, fontSize, fontFamily, fontWeight, fontStyle, color } = element;
     const textValue = (text || '').trim();
     if (!textValue) return;
     const fontSizeInPoints = fontSize || DEFAULT_FONT_SIZE_PT;

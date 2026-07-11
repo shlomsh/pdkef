@@ -1,4 +1,5 @@
 import type { ElementDefinition, LineResizeInput, LineResizePatch } from './types.ts';
+import type { LineElement } from '../../lib/editorModel.ts';
 import { h } from 'preact';
 import { rgb } from '@cantoo/pdf-lib';
 import LineNode from '../../components/SignTool/nodes/LineNode.jsx';
@@ -12,15 +13,15 @@ export function applyLineResize({ handle, delta, start }: LineResizeInput): Line
     : { x2: start.x2 + delta.x, y2: start.y2 + delta.y };
 }
 
-export const lineDefinition: ElementDefinition = {
+export const lineDefinition: ElementDefinition<LineElement> = {
   type: 'line',
-  schema: (value) => isRecord(value) && value.type === 'line' && hasString(value, 'id')
+  schema: (value): value is LineElement => isRecord(value) && value.type === 'line' && hasString(value, 'id')
     && hasNumber(value, 'pageIndex') && hasNumber(value, 'x1') && hasNumber(value, 'y1')
     && hasNumber(value, 'x2') && hasNumber(value, 'y2'),
   creation: { mode: 'drag', create: ({ id, pageIndex, point, color, strokeWidth }) => ({ id, type: 'line', pageIndex, x1: point.left, y1: point.top, x2: point.left, y2: point.top, color, strokeWidth }) },
   render: ({ element }) => h(LineNode, { element, isActive: false, onResizeStart: () => {}, handlePointerDown: () => {} }),
   serialize: (element, { page, pdfWidth, pdfHeight }) => {
-    const { x1, y1, x2, y2, color, strokeWidth } = element as { x1: number; y1: number; x2: number; y2: number; color?: string; strokeWidth?: number };
+    const { x1, y1, x2, y2, color, strokeWidth } = element;
     const { r, g, b } = hexToRgbFractions(color, '#1463ff');
     page.drawLine({
       start: { x: percentToPoints(x1, pdfWidth), y: pdfHeight - percentToPoints(y1, pdfHeight) },
