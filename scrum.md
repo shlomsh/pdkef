@@ -600,9 +600,11 @@ Triaged from the former `TODO.md` (KEEP-POSTPONED items, code-verified this sess
   Vitals (prioritize INP for signature drawing).
 - **skipped** - **IndexNow** (low priority) - `public/<key>.txt` + deploy ping for faster Bing/Yandex indexing.
 - **Homepage hub link check** - recurring guard: confirm no tool card points at a `noindex` route.
-- **User feedback / suggestion channel** - prefer a GitHub Issues/Discussions link (zero new network
-  surface, respects CSP `connect-src 'self'`); an in-app form would require documented CSP loosening
-  for text only, never file bytes - weigh against the privacy positioning first.
+- **done** - **User feedback / suggestion channel** - shipped as footer links: "Report a bug" (GitHub
+  Issues) and "Feedback & ideas" (GitHub Discussions), each with a matching inline icon. Link-only, so
+  zero new network surface and no CSP change, per the original recommendation; an in-app form was
+  rejected to avoid loosening `connect-src 'self'`. Follow-up on the GitHub side (not code): enable
+  Discussions and slim its categories to Ideas / Q&A / Show and tell.
 - **Long-tail landing pages** - `/sign-pdf-no-signup`, `/offline-pdf-form-filler`, `/open-source-pdf-editor`.
 - **OS-specific how-to guides** internally linking into the tools (no outbound promo links).
 - **done** - **Public GitHub repo + iframe embed model** for contextual backlinks.

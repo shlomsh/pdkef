@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💡 Feature or tool idea
+    url: https://github.com/shlomsh/pdkef/discussions/categories/ideas
+    about: Suggest a new tool or an improvement. Ideas live in Discussions.
+  - name: 🙏 Question / how do I do X
+    url: https://github.com/shlomsh/pdkef/discussions/categories/q-a
+    about: Ask how something works. Q&A lives in Discussions.
+  - name: 🙌 Show and tell
+    url: https://github.com/shlomsh/pdkef/discussions/categories/show-and-tell
+    about: Share what you built or say hi.
