@@ -1,16 +1,15 @@
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../editor/gestures/controller.ts';
+import { createElementId } from '../editor/model/ids.ts';
+import { getElementDefinition } from '../editor/registry/index.ts';
 import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,
   DEFAULT_FONT_FAMILY,
   DEFAULT_FONT_SIZE_PT,
   DEFAULT_SYMBOL_WIDTH_PCT,
-  ASPECT_RATIO_SYMBOL,
-  DEFAULT_WHITEOUT_COLOR
+  ASPECT_RATIO_SYMBOL
 } from '../constants/signGeometry.js';
-
-const DRAG_DRAWN_TOOLS = ['whiteout', 'line', 'ellipse', 'rectangle'];
 
 /**
  * Encapsulates the two gesture handlers that turn raw DOM pointer events on the
@@ -64,7 +63,20 @@ export default function useWorkspaceGestures({
    */
   const handlePageClick = (e, pageIndex) => {
     if (!selectedTool) return;
-    if (DRAG_DRAWN_TOOLS.includes(selectedTool)) return;
+    const definition = getElementDefinition(selectedTool);
+    if (definition.creation.mode !== 'point') {
+      if (definition.creation.mode === 'external' && selectedTool === 'signature') {
+        const container = e.currentTarget;
+        const { x: leftPercent, y: topPercent } = getPointerPercent(e, container);
+        if (activeSignature) {
+          placeSignatureAt(activeSignature.dataUrl, activeSignature.aspectRatio, pageIndex, leftPercent, topPercent);
+        } else {
+          setTempPlacement({ pageIndex, left: leftPercent, top: topPercent });
+          setDialogOpen(true);
+        }
+      }
+      return;
+    }
     e.stopPropagation();
 
     if (e.target.closest('.sign-element')) return;
@@ -72,65 +84,29 @@ export default function useWorkspaceGestures({
     const container = e.currentTarget;
     const { x: leftPercent, y: topPercent } = getPointerPercent(e, container);
 
+    const id = createElementId();
+    const symbolWidth = DEFAULT_SYMBOL_WIDTH_PCT;
+    const newEl = definition.creation.create({
+      id,
+      pageIndex,
+      point: { left: leftPercent, top: topPercent },
+      color: initialColor,
+      whiteoutColor: initialWhiteoutColor,
+      strokeWidth: initialStrokeWidth,
+      font: initialFont,
+      fontSize: initialFontSize,
+      direction: initialDirection,
+      symbolWidth,
+      symbolHeight: getWidthPercentToHeightPercent(symbolWidth, ASPECT_RATIO_SYMBOL, container),
+    });
+    dispatch({ type: 'ADD_ELEMENT', payload: newEl });
+    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
     if (selectedTool === 'text') {
-      const id = crypto.randomUUID
-        ? crypto.randomUUID()
-        : `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const newEl = {
-        id,
-        type: 'text',
-        pageIndex,
-        left: leftPercent,
-        top: topPercent,
-        text: '',
-        fontSize: initialFontSize,
-        fontWeight: 'normal',
-        fontStyle: 'normal',
-        fontFamily: initialFont,
-        color: initialColor,
-        autoFocus: true,
-        // Only set textDirection when the user has explicitly chosen one previously;
-        // null lets the auto-detector run on fresh elements (content-based detection).
-        ...(initialDirection != null ? { textDirection: initialDirection } : {}),
-      };
-      dispatch({ type: 'ADD_ELEMENT', payload: newEl });
-      dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
       logAction('ADD_TEXT', id, pageIndex, 'Added text box');
       setAnnouncement('Added text box. Click or double click to type.');
-    } else if (selectedTool === 'symbol') {
-      const id = crypto.randomUUID
-        ? crypto.randomUUID()
-        : `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const widthPercent = DEFAULT_SYMBOL_WIDTH_PCT;
-      const heightPercent = getWidthPercentToHeightPercent(widthPercent, ASPECT_RATIO_SYMBOL, container);
-      const newEl = {
-        id,
-        type: 'symbol',
-        pageIndex,
-        left: leftPercent - widthPercent / 2,
-        top: topPercent - heightPercent / 2,
-        width: widthPercent,
-        height: heightPercent,
-        mark: 'check',
-        color: initialColor,
-      };
-      dispatch({ type: 'ADD_ELEMENT', payload: newEl });
-      dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
+    } else {
       logAction('ADD_SYMBOL', id, pageIndex, 'Added symbol');
       setAnnouncement('Added symbol.');
-    } else if (selectedTool === 'signature') {
-      if (activeSignature) {
-        placeSignatureAt(
-          activeSignature.dataUrl,
-          activeSignature.aspectRatio,
-          pageIndex,
-          leftPercent,
-          topPercent,
-        );
-      } else {
-        setTempPlacement({ pageIndex, left: leftPercent, top: topPercent });
-        setDialogOpen(true);
-      }
     }
   };
 
@@ -140,51 +116,30 @@ export default function useWorkspaceGestures({
    * for the duration of the drag gesture, then cleans them up on pointer-up.
    */
   const handleOverlayPointerDown = (e, pageIndex) => {
-    if (!DRAG_DRAWN_TOOLS.includes(selectedTool)) return;
+    if (!selectedTool) return;
+    const definition = getElementDefinition(selectedTool);
+    if (definition.creation.mode !== 'drag') return;
     if (e.target.closest('.sign-element')) return;
     e.stopPropagation();
 
     if (!e.touches) e.preventDefault();
 
     const tool = selectedTool;
-    const isLineTool = tool === 'line';
     const container = e.currentTarget;
     const { x: startLeftPercent, y: startTopPercent } = getPointerPercent(e, container);
     const { x: clientX, y: clientY } = getPointerCoords(e);
 
-    const id = crypto.randomUUID
-      ? crypto.randomUUID()
-      : `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    const newEl = isLineTool
-      ? {
-          id,
-          type: 'line',
-          pageIndex,
-          x1: startLeftPercent,
-          y1: startTopPercent,
-          x2: startLeftPercent,
-          y2: startTopPercent,
-          color: initialColor,
-          strokeWidth: initialStrokeWidth,
-        }
-      : {
-          id,
-          type: tool,
-          pageIndex,
-          left: startLeftPercent,
-          top: startTopPercent,
-          width: 0,
-          height: 0,
-          ...(tool === 'whiteout'
-            ? { color: initialWhiteoutColor }
-            : { color: initialColor, strokeWidth: initialStrokeWidth }),
-        };
+    const id = createElementId();
+    const newEl = definition.creation.create({
+      id, pageIndex, point: { left: startLeftPercent, top: startTopPercent }, color: initialColor,
+      whiteoutColor: initialWhiteoutColor, strokeWidth: initialStrokeWidth, font: initialFont,
+      fontSize: initialFontSize, direction: initialDirection,
+    });
+    const isLineTool = newEl.type === 'line';
 
     dispatch({ type: 'ADD_ELEMENT', payload: newEl });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
 
-    let pendingPatch = null;
     const getElementNode = () => Array.from(
       container.querySelectorAll('[data-editor-element-id]'),
     ).find((node) => node.dataset.editorElementId === id);
@@ -198,8 +153,7 @@ export default function useWorkspaceGestures({
         const { x, y } = getPointerPercent(moveEvent, container);
         const x2 = Math.max(0, Math.min(100, x));
         const y2 = Math.max(0, Math.min(100, y));
-        pendingPatch = { x2, y2 };
-        return pendingPatch;
+        return { x2, y2 };
       }
 
       const { x: widthPercent, y: heightPercent } = getDeltaPercent(
@@ -208,13 +162,12 @@ export default function useWorkspaceGestures({
         container,
       );
 
-      pendingPatch = {
+      return {
         left: widthPercent < 0 ? startLeftPercent + widthPercent : startLeftPercent,
         top: heightPercent < 0 ? startTopPercent + heightPercent : startTopPercent,
         width: Math.abs(widthPercent),
         height: Math.abs(heightPercent),
       };
-      return pendingPatch;
       },
       writeDOM: (patch) => {
         const elementNode = getElementNode();

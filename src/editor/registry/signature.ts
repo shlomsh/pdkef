@@ -12,4 +12,8 @@ export function applySignatureResize({ deltaWidth, minWidth, aspectRatio, page, 
   };
 }
 
-export const signatureDefinition: ElementDefinition = { type: 'signature', resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyCenteredResize: applySignatureResize, minimumWidth: { unit: 'percent', value: MIN_STANDARD_WIDTH_PCT } } };
+export const signatureDefinition: ElementDefinition = {
+  type: 'signature',
+  creation: { mode: 'external' },
+  resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyCenteredResize: applySignatureResize, minimumWidth: { unit: 'percent', value: MIN_STANDARD_WIDTH_PCT } },
+};

@@ -26,4 +26,15 @@ export function applyTextPosition({ start, startSize, nextSize, isLeftHandle, is
   return { left, top };
 }
 
-export const textDefinition: ElementDefinition = { type: 'text', resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyTextResize, applyTextPosition } };
+export const textDefinition: ElementDefinition = {
+  type: 'text',
+  creation: {
+    mode: 'point',
+    create: ({ id, pageIndex, point, color, font, fontSize, direction }) => ({
+      id, type: 'text', pageIndex, left: point.left, top: point.top, text: '',
+      fontSize, fontWeight: 'normal', fontStyle: 'normal', fontFamily: font, color, autoFocus: true,
+      ...(direction != null ? { textDirection: direction } : {}),
+    }),
+  },
+  resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyTextResize, applyTextPosition },
+};

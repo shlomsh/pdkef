@@ -12,4 +12,14 @@ export function applySymbolResize({ deltaWidth, minWidth, aspectRatio, page, sta
   };
 }
 
-export const symbolDefinition: ElementDefinition = { type: 'symbol', resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyCenteredResize: applySymbolResize, minimumWidth: { unit: 'pixels', value: MIN_SYMBOL_WIDTH_PX } } };
+export const symbolDefinition: ElementDefinition = {
+  type: 'symbol',
+  creation: {
+    mode: 'point',
+    create: ({ id, pageIndex, point, color, symbolWidth = 0, symbolHeight = 0 }) => ({
+      id, type: 'symbol', pageIndex, left: point.left - symbolWidth / 2, top: point.top - symbolHeight / 2,
+      width: symbolWidth, height: symbolHeight, mark: 'check', color,
+    }),
+  },
+  resizeBehavior: { handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right'], applyCenteredResize: applySymbolResize, minimumWidth: { unit: 'pixels', value: MIN_SYMBOL_WIDTH_PX } },
+};

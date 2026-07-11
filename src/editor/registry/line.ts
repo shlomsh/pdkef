@@ -8,5 +8,6 @@ export function applyLineResize({ handle, delta, start }: LineResizeInput): Line
 
 export const lineDefinition: ElementDefinition = {
   type: 'line',
+  creation: { mode: 'drag', create: ({ id, pageIndex, point, color, strokeWidth }) => ({ id, type: 'line', pageIndex, x1: point.left, y1: point.top, x2: point.left, y2: point.top, color, strokeWidth }) },
   resizeBehavior: { handles: ['line-start', 'line-end'], applyLineResize },
 };

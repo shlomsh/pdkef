@@ -1,5 +1,21 @@
 import type { ElementType } from '../../lib/editorModel.ts';
 
+export interface CreateContext {
+  id: string;
+  pageIndex: number;
+  point: { left: number; top: number };
+  color: string;
+  whiteoutColor: string;
+  strokeWidth: number;
+  font: string;
+  fontSize: number;
+  direction: 'ltr' | 'rtl' | null;
+  symbolWidth?: number;
+  symbolHeight?: number;
+}
+
+export type CreationMode = 'point' | 'drag' | 'external';
+
 export type ResizeHandle = 'top' | 'right' | 'bottom' | 'left' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'line-start' | 'line-end';
 
 export interface BoxResizeInput {
@@ -67,6 +83,10 @@ export interface TextPositionPatch { left: number; top: number; }
 
 export interface ElementDefinition {
   type: ElementType;
+  creation: {
+    mode: CreationMode;
+    create?: (context: CreateContext) => Record<string, unknown>;
+  };
   resizeBehavior: {
     handles: readonly ResizeHandle[];
     applyBoxResize?: (input: BoxResizeInput) => BoxResizePatch;
