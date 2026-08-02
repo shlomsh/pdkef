@@ -43,6 +43,11 @@ export const DEFAULT_SHAPE_FALLBACK_ASPECT_RATIO = 1;
 export const HELVETICA_BASELINE_OFFSET_EM = 0.85;      // Fallback Helvetica baseline offset (em)
 export const DEFAULT_LINE_HEIGHT_EM = 1.05;             // Default text line height multiplier (em)
 export const TEXT_BOX_PADDING_EM = 0.12;                // Text box padding (em) matching editor styles
+// Total height of an empty one-line text box, in em: the 1.05em line box plus
+// the .12em padding above and below it (see EditorElement.module.css
+// .text-display / .text-input). Used to center a newly placed text box on the
+// click point instead of hanging it below the pointer.
+export const TEXT_BOX_LINE_HEIGHT_EM = DEFAULT_LINE_HEIGHT_EM + TEXT_BOX_PADDING_EM * 2;
 
 // Miscellaneous UI Sizing/Offsets
 export const TOOLBAR_FLOATING_OFFSET = 8;             // Offset in pixels for Floating UI positioning

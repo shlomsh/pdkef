@@ -5,6 +5,7 @@ import PdfWorkspace from './SignTool/PdfWorkspace.jsx';
 import SignatureDialog from './SignatureDialog.jsx';
 import { uniqueId, seedUniqueId, signPdf } from '../lib/sign.js';
 import { widthPercentToHeightPercent } from '../lib/coords.js';
+import { DEFAULT_SYMBOL_WIDTH_PCT } from '../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { useEditorDraftPersistence } from '../editor/workspace/useEditorDraftPersistence.js';
 import { createActionEntry } from '../lib/actionHistory.js';
@@ -59,6 +60,11 @@ function PdfSignToolInner() {
 
   // Last chosen stroke thickness, remembered across new placements
   const [lastThickness, setLastThickness] = useState(3);
+
+  // Last symbol size (width as a % of page width), remembered across new
+  // placements so repeated check marks on the same form keep the size the
+  // user already dialed in instead of resetting to the default each time.
+  const [lastSymbolWidth, setLastSymbolWidth] = useState(DEFAULT_SYMBOL_WIDTH_PCT);
 
   // Saved signatures and active signature state
   const [savedSignatures, setSavedSignatures] = useState([]);
@@ -271,6 +277,16 @@ function PdfSignToolInner() {
     }
   }, []);
 
+  // Load last-used symbol width from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = parseFloat(localStorage.getItem('pdf-toolkit:lastSymbolWidth'));
+      if (Number.isFinite(stored) && stored > 0) setLastSymbolWidth(stored);
+    } catch (e) {
+      console.error('Failed to load last symbol width from localStorage:', e);
+    }
+  }, []);
+
   // Remember the color last picked, shared across text/symbol/signature, for future placements
   const rememberColor = (color) => {
     setLastColor(color);
@@ -314,6 +330,17 @@ function PdfSignToolInner() {
   // Remember the stroke thickness last picked for a shape, for future placements
   const rememberThickness = (strokeWidth) => {
     setLastThickness(strokeWidth);
+  };
+
+  // Remember the size a symbol was last resized to, for future placements
+  const rememberSymbolWidth = (width) => {
+    if (!Number.isFinite(width) || width <= 0) return;
+    setLastSymbolWidth(width);
+    try {
+      localStorage.setItem('pdf-toolkit:lastSymbolWidth', String(width));
+    } catch (e) {
+      console.error('Failed to persist last symbol width to localStorage:', e);
+    }
   };
 
   // Remember the text direction last manually toggled, for future placements
@@ -678,6 +705,8 @@ function PdfSignToolInner() {
           rememberFontSize={rememberFontSize}
           rememberDirection={rememberDirection}
           rememberThickness={rememberThickness}
+          rememberSymbolWidth={rememberSymbolWidth}
+          lastSymbolWidth={lastSymbolWidth}
           lastColor={lastColor}
           lastWhiteoutColor={lastWhiteoutColor}
           lastThickness={lastThickness}

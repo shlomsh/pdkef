@@ -8,7 +8,9 @@ import {
   DEFAULT_FONT_FAMILY,
   DEFAULT_FONT_SIZE_PT,
   DEFAULT_SYMBOL_WIDTH_PCT,
-  ASPECT_RATIO_SYMBOL
+  ASPECT_RATIO_SYMBOL,
+  TEXT_BOX_LINE_HEIGHT_EM,
+  PAGE_HEIGHT_DEFAULT_PTS
 } from '../constants/signGeometry.js';
 
 /**
@@ -32,6 +34,8 @@ import {
  * @param {string}       params.initialFont         - last remembered font family for new text elements
  * @param {number}       params.initialFontSize     - last remembered font size for new text elements
  * @param {string|null}  params.initialDirection    - last remembered text direction ('ltr'|'rtl'|null)
+ * @param {number}       params.initialSymbolWidth  - last remembered symbol width (% of page width)
+ * @param {Array}        params.pageSizes           - per-page { width, height } in PDF points
  */
 export default function useWorkspaceGestures({
   selectedTool,
@@ -48,6 +52,8 @@ export default function useWorkspaceGestures({
   initialFont = DEFAULT_FONT_FAMILY,
   initialFontSize = DEFAULT_FONT_SIZE_PT,
   initialDirection = null,
+  initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
+  pageSizes = [],
 }) {
   const {
     getPointerCoords,
@@ -85,7 +91,12 @@ export default function useWorkspaceGestures({
     const { x: leftPercent, y: topPercent } = getPointerPercent(e, container);
 
     const id = createElementId();
-    const symbolWidth = DEFAULT_SYMBOL_WIDTH_PCT;
+    const symbolWidth = initialSymbolWidth;
+    // A text box's on-screen height is its font size (points) scaled by the same
+    // factor the page itself is rendered at, so as a share of the page it is just
+    // em-height / page height in points — no DOM measurement needed.
+    const pageHeightPoints = pageSizes[pageIndex]?.height || PAGE_HEIGHT_DEFAULT_PTS;
+    const textHeight = (initialFontSize * TEXT_BOX_LINE_HEIGHT_EM / pageHeightPoints) * 100;
     const newEl = definition.creation.create({
       id,
       pageIndex,
@@ -98,6 +109,7 @@ export default function useWorkspaceGestures({
       direction: initialDirection,
       symbolWidth,
       symbolHeight: getWidthPercentToHeightPercent(symbolWidth, ASPECT_RATIO_SYMBOL, container),
+      textHeight,
     });
     dispatch({ type: 'ADD_ELEMENT', payload: newEl });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });

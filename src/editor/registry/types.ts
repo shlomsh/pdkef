@@ -45,6 +45,8 @@ export interface CreateContext {
   direction: 'ltr' | 'rtl' | null;
   symbolWidth?: number;
   symbolHeight?: number;
+  /** Height of an empty one-line text box, as a % of page height. */
+  textHeight?: number;
 }
 
 export type CreationMode = 'point' | 'drag' | 'external';

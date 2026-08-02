@@ -46,6 +46,7 @@ describe('PdfWorkspace Component', () => {
       rememberFontSize: vi.fn(),
       rememberDirection: vi.fn(),
       rememberThickness: vi.fn(),
+      rememberSymbolWidth: vi.fn(),
       logAction: vi.fn(),
       handleSavePdf: vi.fn(),
       setAnnouncement: vi.fn(),
@@ -231,6 +232,56 @@ describe('PdfWorkspace Component', () => {
     expect(symbol.hasAttribute('data-editor-active')).toBe(true);
     expect(colorHost.style.color).toBe('rgb(0, 0, 0)');
     expect(path).not.toBeNull();
+  });
+
+  it('remembers a resized symbol size for the next placed symbol', () => {
+    const dispatch = vi.fn();
+    const rememberSymbolWidth = vi.fn();
+    const state = {
+      selectedTool: null,
+      elements: [{
+        id: 'symbol-1',
+        type: 'symbol',
+        pageIndex: 0,
+        left: 20,
+        top: 20,
+        width: 5,
+        height: 5,
+        mark: 'check',
+        color: '#000000'
+      }],
+      activeElementId: 'symbol-1',
+      actionHistory: []
+    };
+
+    host = mount(
+      <SignToolContext.Provider value={{ state, dispatch }}>
+        <PdfWorkspace {...defaultProps({ rememberSymbolWidth })} />
+      </SignToolContext.Provider>
+    );
+
+    const pageWrapper = host.querySelector(`.${workspaceStyles['page-wrapper']}`);
+    pageWrapper.getBoundingClientRect = () => ({
+      left: 0, top: 0, width: 1000, height: 1000, right: 1000, bottom: 1000
+    });
+
+    const handle = host.querySelector('[data-editor-resizer="bottom-right"]');
+    expect(handle).not.toBeNull();
+
+    // Drag the corner 100px right on a 1000px-wide page: +10% width.
+    act(() => {
+      handle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 300, clientY: 300 }));
+    });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 400, clientY: 300 }));
+    });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 400, clientY: 300 }));
+    });
+
+    // Bug: a resized symbol must set the size for the next one placed, so
+    // repeated check marks don't each need re-sizing by hand.
+    expect(rememberSymbolWidth).toHaveBeenCalledWith(15);
   });
 
   it('remembers edited text size, color, and typed direction for the next text element', () => {

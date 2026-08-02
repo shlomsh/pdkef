@@ -13,6 +13,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import useWorkspaceGestures from './useWorkspaceGestures.js';
+import { DEFAULT_SYMBOL_WIDTH_PCT } from '../constants/signGeometry.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -179,6 +180,44 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
       textDirection: 'rtl',
     });
   });
+
+  // The click point is the middle of the box's anchored edge (its left edge in
+  // LTR, its right edge in RTL), so the caret lands where the user pointed
+  // instead of the box hanging below the pointer.
+  it('centers a new text box vertically on the click point', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      initialFontSize: 12,
+      pageSizes: [{ width: 612, height: 792 }],
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    const el = firstAddElement(dispatch);
+    // Box height = 12pt * (1.05 + 2*0.12) em / 792pt of page = ~1.955% of the page.
+    const expectedHeight = (12 * 1.29 / 792) * 100;
+    expect(el.left).toBeCloseTo(50, 5);
+    expect(el.top).toBeCloseTo(50 - expectedHeight / 2, 5);
+  });
+
+  it('scales the vertical centering with the remembered font size', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      initialFontSize: 48,
+      pageSizes: [{ width: 612, height: 792 }],
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch).top).toBeCloseTo(50 - (48 * 1.29 / 792) * 100 / 2, 5);
+  });
+
+  it('never places a text box above the top of the page', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      initialFontSize: 48,
+      pageSizes: [{ width: 612, height: 792 }],
+    });
+    // Click 1px from the top: half the box would sit off-page.
+    handlePageClick(makeClickEvent(500, 1, overlay), 0);
+    expect(firstAddElement(dispatch).top).toBe(0);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -199,6 +238,26 @@ describe('useWorkspaceGestures – symbol remembered settings', () => {
       mark: 'check',
       color: '#111111',
     });
+  });
+
+  it('sizes a new symbol from the last remembered symbol width, centered on the click', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'symbol',
+      initialSymbolWidth: 12,
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    const el = firstAddElement(dispatch);
+    expect(el.width).toBe(12);
+    // Square aspect ratio on a square page: height matches width.
+    expect(el.height).toBeCloseTo(12, 5);
+    expect(el.left).toBeCloseTo(50 - 6, 5);
+    expect(el.top).toBeCloseTo(50 - 6, 5);
+  });
+
+  it('falls back to the default symbol width when nothing has been remembered yet', () => {
+    const { dispatch, handlePageClick } = makeHook({ selectedTool: 'symbol' });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch).width).toBe(DEFAULT_SYMBOL_WIDTH_PCT);
   });
 });
 
@@ -310,7 +369,9 @@ describe('useWorkspaceGestures – coordinate placement', () => {
 
     const el = firstAddElement(dispatch);
     expect(el.left).toBe(50);
-    expect(el.top).toBe(50);
+    // Vertically centered on the click: half a 12pt box on a default-height
+    // (792pt) page, since this overlay has no pageSizes entry.
+    expect(el.top).toBeCloseTo(50 - (12 * 1.29 / 792) * 100 / 2, 5);
     expect(el.pageIndex).toBe(3);
   });
 

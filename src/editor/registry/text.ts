@@ -40,8 +40,12 @@ export const textDefinition: ElementDefinition<TextElement> = {
     && hasNumber(value, 'pageIndex') && hasNumber(value, 'left') && hasNumber(value, 'top') && hasString(value, 'text'),
   creation: {
     mode: 'point',
-    create: ({ id, pageIndex, point, color, font, fontSize, direction }) => ({
-      id, type: 'text', pageIndex, left: point.left, top: point.top, text: '',
+    // The click point is the middle of the box's anchored edge — its left edge
+    // in LTR, its right edge in RTL (the anchored edge is `left` either way,
+    // see the usesRtlAnchoring view flag). So the box is centered vertically on
+    // the pointer rather than hanging below it.
+    create: ({ id, pageIndex, point, color, font, fontSize, direction, textHeight = 0 }) => ({
+      id, type: 'text', pageIndex, left: point.left, top: Math.max(0, point.top - textHeight / 2), text: '',
       fontSize, fontWeight: 'normal', fontStyle: 'normal', fontFamily: font, color, autoFocus: true,
       ...(direction != null ? { textDirection: direction } : {}),
     }),

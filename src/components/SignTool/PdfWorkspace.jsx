@@ -4,6 +4,7 @@ import {
   DEFAULT_STROKE_WIDTH,
   DEFAULT_FONT_FAMILY,
   DEFAULT_FONT_SIZE_PT,
+  DEFAULT_SYMBOL_WIDTH_PCT,
   PAGE_WIDTH_DEFAULT_PTS,
   PAGE_HEIGHT_DEFAULT_PTS
 } from '../../constants/signGeometry.js';
@@ -35,6 +36,8 @@ export default function PdfWorkspace({
   rememberFontSize,
   rememberDirection,
   rememberThickness,
+  rememberSymbolWidth,
+  lastSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
   lastColor = DEFAULT_COLOR_BLUE,
   lastWhiteoutColor = '#ffffff',
   lastThickness = DEFAULT_STROKE_WIDTH,
@@ -81,6 +84,8 @@ export default function PdfWorkspace({
     initialFont: activeTextElement?.fontFamily || lastFont,
     initialFontSize: activeTextElement?.fontSize || lastFontSize,
     initialDirection: initialTextDirection,
+    initialSymbolWidth: lastSymbolWidth,
+    pageSizes,
   });
 
   // --- Stable element mutation callbacks (hoisted out of the map loop) ---
@@ -116,6 +121,9 @@ export default function PdfWorkspace({
     if (fields.fontFamily) rememberFont(fields.fontFamily);
     if (fields.fontSize) rememberFontSize(fields.fontSize);
     if (fields.strokeWidth) rememberThickness(fields.strokeWidth);
+    // A resized symbol sets the size for the next one placed, so repeated marks
+    // (check, x, dot) don't have to be re-sized one by one.
+    if (element?.type === 'symbol' && fields.width !== undefined) rememberSymbolWidth?.(fields.width);
     if (element?.type === 'text') {
       if (fields.textDirection) {
         rememberDirection(fields.textDirection);
@@ -124,7 +132,7 @@ export default function PdfWorkspace({
         if (typedDirection) rememberDirection(typedDirection);
       }
     }
-  }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness]);
+  }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth]);
 
   const makeOnSelect = useCallback((id) => (e) => {
     e.stopPropagation();
