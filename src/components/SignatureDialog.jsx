@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'preact/hooks';
 import SignaturePad from 'signature_pad';
 import ColorPicker from './ColorPicker.jsx';
 import { HANDWRITING_FONTS } from '../lib/sign.js';
+import { resolveFontFamily } from '../lib/fonts.js';
 import styles from './SignatureDialog.module.css';
 
 export default function SignatureDialog({
@@ -296,7 +297,10 @@ export default function SignatureDialog({
       ctx.fillStyle = '#000000';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.font = `44px '${typeFont}', cursive`;
+      // Same substitution the editor and exporter use, so a Hebrew signature
+      // renders identically everywhere instead of taking whichever Hebrew face
+      // the viewer's own OS happens to fall back to.
+      ctx.font = `44px '${resolveFontFamily(typeFont, typedName)}', cursive`;
       ctx.fillText(typedName, canvas.width / 2, canvas.height / 2);
       
       const { dataUrl, aspectRatio } = trimCanvas(canvas);
@@ -424,7 +428,7 @@ export default function SignatureDialog({
                 </button>
               ))}
             </div>
-            <div className={styles['type-preview']} style={{ fontFamily: `'${typeFont}', cursive` }}>
+            <div className={styles['type-preview']} style={{ fontFamily: `'${resolveFontFamily(typeFont, typedName)}', cursive` }}>
               {typedName || 'Signature Preview'}
             </div>
           </div>

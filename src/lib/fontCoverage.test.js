@@ -15,7 +15,12 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
-import { TEXT_FONTS } from './sign.js';
+import {
+  HEBREW_CAPABLE_FONTS,
+  HEBREW_FALLBACK_HANDWRITING,
+  HEBREW_FALLBACK_TEXT,
+  TEXT_FONTS,
+} from './fonts.js';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 
@@ -24,8 +29,13 @@ const HEBREW_ALPHABET = 'אבגדהוזחטיכלמנסעפצקרשתםןץףך'
 // Nikud (sheva), geresh, and the shekel sign — common in filled Hebrew forms.
 const HEBREW_EXTRAS = [0x05b0, 0x05f3, 0x20aa];
 
-/** The families offered specifically so Hebrew can be typed and exported. */
-const HEBREW_CAPABLE_FAMILIES = [...TEXT_FONTS, 'Gveret Levin', 'Playpen Sans Hebrew'];
+/**
+ * Every family fonts.js claims can render Hebrew — including the two stand-ins
+ * resolveFontFamily substitutes in, which are the last line of defence and so
+ * must hold up. The claim is a hardcoded list there; this checks it against the
+ * actual bytes on disk.
+ */
+const HEBREW_CAPABLE_FAMILIES = HEBREW_CAPABLE_FONTS;
 
 const STYLES = ['Regular', 'Bold', 'Italic', 'BoldItalic'];
 
@@ -42,6 +52,15 @@ function characterSetOf(file) {
 }
 
 describe('bundled fonts offered for Hebrew', () => {
+  it('claims Hebrew support for every text font the picker offers', () => {
+    expect(TEXT_FONTS.filter((family) => !HEBREW_CAPABLE_FONTS.includes(family))).toEqual([]);
+  });
+
+  it('substitutes in fonts that are themselves Hebrew-capable', () => {
+    expect(HEBREW_CAPABLE_FONTS).toContain(HEBREW_FALLBACK_TEXT);
+    expect(HEBREW_CAPABLE_FONTS).toContain(HEBREW_FALLBACK_HANDWRITING);
+  });
+
   it.each(HEBREW_CAPABLE_FAMILIES)('%s ships at least a Regular file', (family) => {
     expect(variantFiles(family)).toContain(`${family.replace(/\s+/g, '')}-Regular.ttf`);
   });

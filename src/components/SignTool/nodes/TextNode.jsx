@@ -3,6 +3,7 @@ import ElementResizers from '../../ElementResizers.jsx';
 import usePdfCoordinates from '../../../lib/usePdfCoordinates.js';
 import { getEffectiveTextDirection } from '../../../lib/signHelpers.js';
 import { DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
+import { resolveFontFamily } from '../../../lib/fonts.js';
 import workspaceStyles from '../Workspace.module.css';
 import elementStyles from '../EditorElement.module.css';
 
@@ -56,6 +57,10 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
 
   const textFontSize = (element.fontSize || DEFAULT_FONT_SIZE_PT) * scaleFactor;
   const textDirection = getEffectiveTextDirection(element);
+  // Render the family the exporter will embed, not the one that was picked, so
+  // the browser never quietly patches in a system font for glyphs the chosen
+  // file lacks — that fallback is what a PDF cannot reproduce.
+  const renderedFontFamily = resolveFontFamily(element.fontFamily, element.text);
 
   return (
     <>
@@ -66,7 +71,7 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
           dir={textDirection}
           style={{
             fontSize: `${textFontSize}px`,
-            fontFamily: element.fontFamily || 'Arimo',
+            fontFamily: renderedFontFamily,
             fontWeight: element.fontWeight || 'normal',
             fontStyle: element.fontStyle || 'normal'
           }}
@@ -87,7 +92,7 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
           style={{
             textAlign: textDirection === 'rtl' ? 'right' : 'left',
             fontSize: `${textFontSize}px`,
-            fontFamily: element.fontFamily || 'Arimo',
+            fontFamily: renderedFontFamily,
             fontWeight: element.fontWeight || 'normal',
             fontStyle: element.fontStyle || 'normal',
             color: element.color || '#000000'

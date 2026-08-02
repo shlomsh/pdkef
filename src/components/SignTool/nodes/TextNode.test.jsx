@@ -176,4 +176,40 @@ describe('TextNode component', () => {
     // Clean up
     host.removeChild(toolbar);
   });
+
+  // The editor must render the family the exporter will embed. If it renders
+  // the picked family instead, the browser silently patches in a system font
+  // for the missing glyphs and the screen stops matching the downloaded PDF.
+  it('renders Hebrew in the substituted font when the picked font has no Hebrew glyphs', () => {
+    host = mount(
+      <TextNode
+        element={{ text: '\u05e9\u05dc\u05d5\u05de\u05d9', fontFamily: 'Caveat', fontSize: 16 }}
+        isActive={false}
+        onChange={() => {}}
+        onSelect={() => {}}
+        onResizeStart={() => {}}
+        pageWidthPoints={600}
+      />
+    );
+
+    // jsdom serializes a multi-word family with quotes, hence the strip.
+    const unquote = (node) => node.style.fontFamily.replace(/"/g, '');
+    expect(unquote(host.querySelector('[data-editor-text-input]'))).toBe('Gveret Levin');
+    expect(unquote(host.querySelector('[data-editor-text-measure]'))).toBe('Gveret Levin');
+  });
+
+  it('keeps the picked font for Latin text in that same font', () => {
+    host = mount(
+      <TextNode
+        element={{ text: 'Shlomi', fontFamily: 'Caveat', fontSize: 16 }}
+        isActive={false}
+        onChange={() => {}}
+        onSelect={() => {}}
+        onResizeStart={() => {}}
+        pageWidthPoints={600}
+      />
+    );
+
+    expect(host.querySelector('[data-editor-text-input]').style.fontFamily).toBe('Caveat');
+  });
 });

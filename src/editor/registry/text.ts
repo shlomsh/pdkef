@@ -7,6 +7,7 @@ import { hasNumber, hasString, isRecord } from './schema.ts';
 import { MAX_FONT_SIZE_PT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
 import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
 import { getEffectiveTextDirection, hexToRgbFractions } from '../../lib/signHelpers.js';
+import { resolveFontFamily } from '../../lib/fonts.js';
 import type { TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch } from './types.ts';
 import elementStyles from '../../components/SignTool/EditorElement.module.css';
 
@@ -56,7 +57,10 @@ export const textDefinition: ElementDefinition<TextElement> = {
     const textValue = (text || '').trim();
     if (!textValue) return;
     const fontSizeInPoints = fontSize || DEFAULT_FONT_SIZE_PT;
-    const resolvedFont = (await loadCustomFont(fontFamily || 'Arimo', fontWeight, fontStyle)) || (await loadCustomFont('Arimo', fontWeight, fontStyle));
+    // Same substitution the editor renders with, so the download matches the
+    // screen even when the picked font has no glyph for what was typed.
+    const embeddedFamily = resolveFontFamily(fontFamily, textValue);
+    const resolvedFont = (await loadCustomFont(embeddedFamily, fontWeight, fontStyle)) || (await loadCustomFont('Arimo', fontWeight, fontStyle));
     if (!resolvedFont) throw new Error('Unable to load a PDF font for text export');
     const { r, g, b } = hexToRgbFractions(color);
     const baselineAdjustedY = pdfY - fontSizeInPoints * (baselineOffset(resolvedFont) + TEXT_BOX_PADDING_EM);

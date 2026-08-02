@@ -15,8 +15,9 @@ export async function getPdfjs() {
   return pdfjsLib;
 }
 
-export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Pacifico', 'Playpen Sans Hebrew', 'Sacramento'];
-export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo'];
+// The catalogue and the Hebrew substitution rule live in fonts.js, which the
+// editor also imports — see the note there on why both sides must share it.
+export { HANDWRITING_FONTS, TEXT_FONTS, resolveFontFamily } from './fonts.js';
 
 let nextId = 0;
 export function uniqueId() { return `el-${nextId++}`; }
