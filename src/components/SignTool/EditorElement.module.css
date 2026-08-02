@@ -3,7 +3,12 @@
 .symbol { padding: 0; }
 .element:hover { border-color: var(--color-muted-light); }
 .element.line.active, .element.line:hover { border-color: transparent; box-shadow: none; background: transparent; }
-.element::before { content: ''; position: absolute; top: -44px; left: -8px; right: -8px; height: 44px; }
+/* No hit area above the element. There used to be an invisible 44px strip here
+   (matching where .actions sits) so the cursor could cross the gap to a
+   hover-revealed toolbar. The toolbar is revealed by .active now, not by hover,
+   so the strip only stole clicks: it made every element claim the 44px above
+   itself, and since siblings share z-index 1, a later-placed element below
+   would win a click aimed at the element above it. */
 .element::after { content: ''; position: absolute; inset: -10px; z-index: -1; }
 .actions { position: absolute; top: -44px; left: 0; display: flex; align-items: center; gap: 4px; background: var(--color-text); color: var(--color-surface); padding: 4px 6px; border-radius: var(--radius-sm); box-shadow: var(--shadow-md); z-index: 10; opacity: 0; pointer-events: none; transition: opacity .15s ease; white-space: nowrap; }
 .element.active .actions { opacity: 1; pointer-events: auto; }
