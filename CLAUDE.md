@@ -136,6 +136,14 @@ The CSP is intentionally split across two layers:
 
 **This feature is build/preview-only.** Per Astro's own docs, `security.csp` does not apply in `astro dev` — the Vite dev server doesn't support it. This means **the CSP bug class above cannot be reproduced or caught in `npm run dev`** — it only manifests in `npm run build && npm run preview` or the real deployment. Always do a build+preview pass (or check the live Vercel deployment) before considering any change to scripts, `astro.config.mjs`, or `vercel.json` verified.
 
+## URL canonicalization (trailing slashes)
+
+Astro's default `build.format: 'directory'` emits `dist/sign/index.html`, so every canonical URL, the generated sitemap (`src/pages/sitemap.xml.js`, driven by `src/data/tools.js` hrefs) and every internal link ends in a slash. `vercel.json` sets `"trailingSlash": true` so the non-slash form 308s to the canonical one instead of serving a duplicate `200` — without it, Search Console files `/sign` under "Alternate page with proper canonical tag" and burns crawl budget on URLs that will never be indexed.
+
+**Vercel applies that trailing-slash normalization *before* it matches `redirects`.** A redirect whose `source` omits the slash therefore never fires: `/remove-pages` gets rewritten to `/remove-pages/` first, misses the rule, and 404s. Both `source` and `destination` in `vercel.json`'s `redirects` must be slash-terminated. This shipped broken once.
+
+When adding an internal link, write the slash (`href="/licenses/"`); a non-slash link costs a redirect hop on every crawl. `grep -rho 'href="/[a-z0-9-]\+"' dist/ --include='*.html'` after a build should return nothing.
+
 ## PWA
 
 There is no PWA build plugin (`vite-plugin-pwa` and `@vite-pwa/astro` were both tried and dropped — see git history "Migrate to Astro" and "Reinstall on patched Astro 7.0.3" commits for why: `vite-plugin-pwa`'s `closeBundle` hook doesn't survive Astro's multi-pass static build, and `@vite-pwa/astro` doesn't yet certify Astro 7). Instead:

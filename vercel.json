@@ -16,12 +16,12 @@
   ],
   "redirects": [
     {
-      "source": "/remove-pages",
+      "source": "/remove-pages/",
       "destination": "/edit-pdf/",
       "permanent": true
     },
     {
-      "source": "/protect",
+      "source": "/protect/",
       "destination": "/unlock/",
       "permanent": true
     }
