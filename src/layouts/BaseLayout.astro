@@ -37,7 +37,13 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#ffffff" />
-    <link rel="icon" href="/favicon.png" type="image/png" />
+    {/* /favicon.ico must exist at the root: Bing's favicon crawler falls back to it and
+        largely ignores a PNG-only rel="icon", so without it the search result shows a
+        generic globe. Keep the .ico first and small (16-64px frames). */}
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/icons/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/icons/favicon-16.png" type="image/png" sizes="16x16" />
+    <link rel="icon" href="/favicon.png" type="image/png" sizes="512x512" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 
     <slot name="head" />

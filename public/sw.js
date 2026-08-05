@@ -12,9 +12,9 @@
 //     cache-first, populated as each asset is first requested.
 //   - Cross-origin requests are never intercepted — this app makes none
 //     in normal operation; not touching them is a deliberate safeguard.
-const CACHE_VERSION = 'pdkef-v3';
+const CACHE_VERSION = 'pdkef-v4';
 
-const PRECACHE_URLS = ['/', '/favicon.png', '/manifest.webmanifest'];
+const PRECACHE_URLS = ['/', '/favicon.ico', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
