@@ -1,4 +1,5 @@
 {
+  "trailingSlash": true,
   "headers": [
     {
       "source": "/(.*)",
@@ -16,12 +17,12 @@
   "redirects": [
     {
       "source": "/remove-pages",
-      "destination": "/edit-pdf",
+      "destination": "/edit-pdf/",
       "permanent": true
     },
     {
       "source": "/protect",
-      "destination": "/unlock",
+      "destination": "/unlock/",
       "permanent": true
     }
   ]

@@ -1,20 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Footer from '../components/Footer.astro';
+import { tools } from '../data/tools.js';
 import '../styles/global.css';
 
 const title = 'Page not found - PDkef';
 const description = 'The page you are looking for does not exist. Browse our free PDF tools instead.';
-
-const tools = [
-  { title: 'Merge PDF', href: '/merge' },
-  { title: 'Split PDF', href: '/split' },
-  { title: 'Remove Pages', href: '/remove-pages' },
-  { title: 'Compress PDF', href: '/compress' },
-  { title: 'PDF to Image', href: '/pdf-to-image' },
-  { title: 'Sign PDF', href: '/sign' },
-  { title: 'Unlock PDF', href: '/unlock' },
-];
 ---
 
 <BaseLayout title={title} description={description} noindex={true}>
@@ -36,7 +27,7 @@ const tools = [
     <div class="mx-auto mb-12 grid max-w-[760px] grid-cols-4 gap-[0.85rem] px-6 max-[768px]:grid-cols-2">
       {tools.map((tool) => (
         <a href={tool.href} class="flex items-center justify-center rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-4 text-center text-[0.92rem] font-medium text-[var(--color-text)] no-underline shadow-[var(--shadow-sm)] transition-[transform,box-shadow,border-color,color] duration-200 ease-[var(--ease-out)] hover:-translate-y-[3px] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:shadow-[var(--shadow-md)]">
-          {tool.title}
+          {tool.toolName}
         </a>
       ))}
     </div>
