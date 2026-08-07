@@ -10,13 +10,15 @@ interface Props {
 }
 const { toolName, isHome = false } = Astro.props;
 
+const maxWidthClass = isHome ? 'max-w-[1080px]' : 'max-w-[1400px]';
+
 const brandClasses = isHome
   ? 'inline-flex items-center gap-[0.45rem] rounded-[var(--radius-pill)] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] py-[0.3rem] pr-3 pl-[0.4rem] text-[var(--color-text)] no-underline'
   : 'group inline-flex items-center gap-[0.45rem] rounded-[var(--radius-pill)] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] py-[0.3rem] pr-3 pl-[0.4rem] text-[var(--color-text)] no-underline transition-[border-color,transform] duration-150 ease-[var(--ease-out)] hover:-translate-x-px hover:border-[var(--color-border-strong)]';
 ---
 
 <div class="sticky top-0 z-20 border-b-[0.5px] border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_86%,transparent)] backdrop-blur-[10px] backdrop-saturate-[1.2]">
-  <div class="mx-auto flex h-14 max-w-[1080px] items-center gap-[0.85rem] px-6 max-[560px]:gap-[0.55rem] max-[560px]:px-4">
+  <div class={`mx-auto flex h-14 ${maxWidthClass} items-center gap-[0.85rem] px-6 max-[560px]:gap-[0.55rem] max-[560px]:px-4`}>
     {isHome ? (
       <div class={brandClasses} aria-label="PDkef logo">
         <img src="/favicon.png" width="24" height="24" alt="" aria-hidden="true" class="block shrink-0 rounded-md" />
