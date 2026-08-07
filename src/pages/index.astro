@@ -10,7 +10,7 @@ import '../styles/global.css';
 const title = 'Free PDF Tools - Private, Local, No Sign-Up | PDkef';
 const description = 'A free, open-source suite of PDF tools that run entirely in your browser. Merge, sign, split, compress, and convert PDFs with nothing uploaded, no account, and no watermark. Your files never leave your device.';
 
-import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, HelpCircle, ShieldCheck, InfinityIcon, Lock, Code2 } from 'lucide-preact';
+import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, HelpCircle, ShieldCheck, InfinityIcon, Lock, Code2, Type, PenLine, Trash2 } from 'lucide-preact';
 import { tools } from '../data/tools.js';
 import FileDropzone from '../components/FileDropzone.jsx';
 
@@ -135,12 +135,51 @@ const HeroIcon = tools[0].icon;
     <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
       <CardDecor sketch="waves" icon={HardDriveDownload} iconPos="cr" iconSize={300} />
       <div class="flex items-center gap-12 max-[768px]:flex-col-reverse max-[768px]:gap-8">
-        <div class="relative flex min-h-[150px] w-full flex-[0.8] items-center justify-center" aria-hidden="true">
-          <div class="relative flex h-[120px] w-[160px] flex-col gap-2 rounded-[var(--radius-sm)] border-[1.5px] border-[var(--color-primary-soft)] bg-[var(--color-surface)] px-4 py-5 shadow-[var(--shadow-sm)]">
-            <div class="doc-line short"></div>
-            <div class="doc-line"></div>
-            <div class="doc-line medium"></div>
-            <div class="absolute -bottom-2.5 -right-2.5 inline-flex items-center gap-[0.35rem] rounded-[var(--radius-pill)] border border-[color-mix(in_srgb,var(--color-success)_20%,transparent)] bg-[var(--color-success-soft)] px-[0.6rem] py-[0.3rem] text-[0.7rem] font-semibold text-[var(--color-success)] shadow-[var(--shadow-sm)]">
+        <div class="relative flex min-h-[210px] w-full flex-[0.8] items-center justify-center py-4" aria-hidden="true">
+          <div class="relative w-[290px] max-w-full rotate-[-1.5deg]">
+            <div class="overflow-hidden rounded-[var(--radius-sm)] border-[1.5px] border-[var(--color-primary-soft)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]">
+              <div class="flex items-center gap-[0.3rem] border-b border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-[0.45rem]">
+                <span class="size-1.5 rounded-full bg-[var(--color-muted-light)]"></span>
+                <span class="size-1.5 rounded-full bg-[var(--color-muted-light)]"></span>
+                <span class="size-1.5 rounded-full bg-[var(--color-muted-light)]"></span>
+                <span class="ms-2 h-1.5 w-16 rounded-full bg-[var(--color-border)]"></span>
+              </div>
+              <svg class="block w-full" viewBox="0 0 200 132" role="presentation" focusable="false">
+                <g class="fill-[var(--color-border)]">
+                  <rect x="18" y="30" width="164" height="4" rx="2" />
+                  <rect x="18" y="40" width="164" height="4" rx="2" />
+                  <rect x="18" y="50" width="118" height="4" rx="2" />
+                  <rect x="142" y="82" width="40" height="4" rx="2" />
+                  <rect x="142" y="92" width="26" height="4" rx="2" />
+                  <rect x="18" y="122" width="88" height="4" rx="2" />
+                </g>
+                <rect x="18" y="14" width="72" height="6" rx="3" class="fill-[var(--color-muted-light)]" />
+
+                <rect x="24" y="68" width="100" height="44" rx="6" class="fill-[var(--color-primary-soft)] stroke-[var(--color-primary)]" stroke-width="1.2" stroke-dasharray="4 3" stroke-opacity="0.55" />
+                <g fill="none" class="stroke-[var(--color-primary)]" stroke-linecap="round" stroke-linejoin="round">
+                  <path
+                    d="M 32 98 C 34 84, 40 74, 46 77 C 52 80, 44 92, 40 96 C 36 100, 46 100, 52 92 C 58 84, 62 90, 59 96 C 56 102, 64 100, 68 91 C 72 82, 77 87, 74 95 C 71 103, 80 100, 85 91 C 90 82, 96 86, 93 95 C 90 104, 99 101, 105 92"
+                    stroke-width="2.2"
+                  />
+                  <path d="M 34 104 C 60 110, 88 107, 114 95" stroke-width="1.6" stroke-opacity="0.7" />
+                </g>
+                <g class="fill-[var(--color-surface)] stroke-[var(--color-primary)]" stroke-width="1.4">
+                  <rect x="21" y="65" width="6" height="6" rx="1.5" />
+                  <rect x="121" y="65" width="6" height="6" rx="1.5" />
+                  <rect x="21" y="109" width="6" height="6" rx="1.5" />
+                  <rect x="121" y="109" width="6" height="6" rx="1.5" />
+                </g>
+              </svg>
+            </div>
+
+            <div class="absolute left-[14%] top-[54%] flex -translate-y-full items-center gap-[0.45rem] rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[0.5rem] py-[0.3rem] text-[var(--color-muted)] shadow-[var(--shadow-sm)]">
+              <Type size={11} strokeWidth={2.2} />
+              <PenLine size={11} strokeWidth={2.2} class="text-[var(--color-primary)]" />
+              <span class="h-3 w-px bg-[var(--color-border)]"></span>
+              <Trash2 size={11} strokeWidth={2.2} />
+            </div>
+
+            <div class="absolute -bottom-3 -right-3 inline-flex items-center gap-[0.35rem] rounded-[var(--radius-pill)] border border-[color-mix(in_srgb,var(--color-success)_20%,transparent)] bg-[var(--color-success-soft)] px-[0.6rem] py-[0.3rem] text-[0.7rem] font-semibold text-[var(--color-success)] shadow-[var(--shadow-sm)]">
               <span class="size-1.5 rounded-full bg-[var(--color-success)] animate-[pulse_2s_infinite]"></span>
               Autosaved to device
             </div>
