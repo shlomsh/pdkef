@@ -181,7 +181,7 @@ export default function BasePdfTool({
           <label class={styles['file-bar-replace']}>
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
-                d="M2 6l2.5-2.5M2 6l2.5 2.5M2 6h9a3 3 0 0 1 3 3v1M14 10l-2.5 2.5M14 10l-2.5-2.5"
+                d="M8 10.5V2M8 2L5 5M8 2l3 3M3 10v2a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 13 12v-2"
                 stroke="currentColor"
                 stroke-width="1.5"
                 stroke-linecap="round"
