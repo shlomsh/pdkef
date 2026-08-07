@@ -91,10 +91,10 @@ describe('PdfCompressTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    // Check header
-    const header = container.querySelector(`.${pdfToolStyles['list-count']}`);
-    expect(header).not.toBeNull();
-    expect(header.textContent).toContain('test_doc.pdf');
+    // Check the loaded-state file bar
+    const fileBar = container.querySelector(`.${dropzoneStyles['file-bar']}`);
+    expect(fileBar).not.toBeNull();
+    expect(fileBar.textContent).toContain('test_doc.pdf');
 
     // Default level should be 'medium' (Recommended)
     const recommendedCard = container.querySelector(`.${styles['compress-card']}.${styles['is-selected']}`);

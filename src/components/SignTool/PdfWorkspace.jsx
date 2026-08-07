@@ -19,7 +19,6 @@ import pdfToolStyles from '../PdfTool.module.css';
 import workspaceStyles from './Workspace.module.css';
 
 export default function PdfWorkspace({
-  file,
   status,
   isPseudoFullscreen,
   workspaceRef,
@@ -157,13 +156,6 @@ export default function PdfWorkspace({
       ref={workspaceRef}
       aria-busy={status === 'signing'}
     >
-      {/* Header Controls */}
-      <div className={pdfToolStyles['list-header']} style={{ width: '100%' }}>
-        <span className={pdfToolStyles['list-count']} style={{ fontWeight: '600' }}>
-          Signing: {file.name}
-        </span>
-      </div>
-
       {(status === 'editing' || status === 'signing') && (
         <>
           {/* Floating Toolbar Component */}

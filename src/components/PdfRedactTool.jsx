@@ -21,6 +21,7 @@ import workspaceStyles from './SignTool/Workspace.module.css';
 import dialogStyles from './SignatureDialog.module.css';
 import elementStyles from './SignTool/EditorElement.module.css';
 import styles from './PdfRedactTool.module.css';
+import { describeFile } from '../lib/format.js';
 
 export default function PdfRedactTool() {
   const [file, setFile] = useState(null);
@@ -459,6 +460,9 @@ export default function PdfRedactTool() {
       multiple={false}
       accept=".pdf,application/pdf"
       emptyStateMessage="Select or drop a PDF to redact"
+      fileLabel={file?.name}
+      fileMeta={describeFile(file, numPages)}
+      draftSaved={status === 'editing'}
     >
       <div className="sr-only" role="status" aria-live="polite">
         {announcement}

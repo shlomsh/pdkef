@@ -112,7 +112,11 @@ describe('PdfSplitTool UI flow', () => {
 
     const workspace = container.querySelector('.tool-workspace');
     expect(workspace).not.toBeNull();
-    expect(workspace.textContent).toContain('File: test.pdf (4 pages)');
+
+    const fileBar = container.querySelector(`.${dropzoneStyles['file-bar']}`);
+    expect(fileBar).not.toBeNull();
+    expect(fileBar.textContent).toContain('test.pdf');
+    expect(fileBar.textContent).toContain('4 pages');
 
     // Textbox range should default to "1-4"
     const selectorInput = container.querySelector('#page-selector-input');

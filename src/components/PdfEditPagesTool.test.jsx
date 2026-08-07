@@ -89,10 +89,11 @@ describe('PdfEditPagesTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    // Check that it shows files and count
-    const countSpan = container.querySelector(`.${pdfToolStyles['list-count']}`);
-    expect(countSpan).not.toBeNull();
-    expect(countSpan.textContent).toContain('document.pdf (3 pages)');
+    // Check that the file bar shows the file name and page count
+    const fileBar = container.querySelector(`.${dropzoneStyles['file-bar']}`);
+    expect(fileBar).not.toBeNull();
+    expect(fileBar.textContent).toContain('document.pdf');
+    expect(fileBar.textContent).toContain('3 pages');
 
     // Check that we have 3 page cards
     const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);

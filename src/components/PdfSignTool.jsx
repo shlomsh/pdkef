@@ -13,6 +13,7 @@ import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import UndoHistoryModal from './UndoHistoryModal.jsx';
 import dialogStyles from './SignatureDialog.module.css';
+import { describeFile } from '../lib/format.js';
 
 export default function PdfSignTool() {
   return (
@@ -685,10 +686,16 @@ function PdfSignToolInner() {
   const hasFiles = !!file;
 
   return (
-    <BasePdfTool hasFiles={hasFiles} onFilesAdded={handleFilesAdded} multiple={false}>
+    <BasePdfTool
+      hasFiles={hasFiles}
+      onFilesAdded={handleFilesAdded}
+      multiple={false}
+      fileLabel={file?.name}
+      fileMeta={describeFile(file, numPages)}
+      draftSaved={status === 'editing'}
+    >
       {hasFiles && status !== 'loading' && (
         <PdfWorkspace
-          file={file}
           status={status}
           isPseudoFullscreen={isPseudoFullscreen}
           workspaceRef={workspaceRef}

@@ -6,6 +6,7 @@ import pdfToolStyles from './PdfTool.module.css';
 import dialogStyles from './SignatureDialog.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
+import { describeFile } from '../lib/format.js';
 
 export default function PdfSecurityTool({ intent = 'unlock' }) {
   const [file, setFile] = useState(null);
@@ -130,16 +131,17 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
   const hasFiles = !!file;
 
   return (
-    <BasePdfTool 
-      hasFiles={hasFiles} 
-      onFilesAdded={handleFilesAdded} 
+    <BasePdfTool
+      hasFiles={hasFiles}
+      onFilesAdded={handleFilesAdded}
       multiple={false}
       emptyStateMessage={intent === 'unlock' ? 'Drop PDF here to unlock' : 'Drop PDF here to protect'}
+      fileLabel={file?.name}
+      fileMeta={describeFile(file)}
     >
       {hasFiles && mode && (
         <div class="tool-workspace">
-          <div class={pdfToolStyles['list-header']}>
-            <span class={pdfToolStyles['list-count']}>{file.name}</span>
+          <div class={pdfToolStyles['list-header']} style={{ justifyContent: 'flex-end' }}>
             <button type="button" class={pdfToolStyles['clear-all']} onClick={requestReset}>
               Start over
             </button>

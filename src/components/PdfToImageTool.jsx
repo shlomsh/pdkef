@@ -6,6 +6,7 @@ import fileListStyles from './FileList.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
+import { describeFile } from '../lib/format.js';
 
 const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 18;
 const SCALE_OPTIONS = [
@@ -147,11 +148,16 @@ export default function PdfToImageTool() {
   const formatLabel = format === 'image/jpeg' ? 'JPG' : 'PNG';
 
   return (
-    <BasePdfTool hasFiles={hasFiles} onFilesAdded={handleFilesAdded} multiple={false}>
+    <BasePdfTool
+      hasFiles={hasFiles}
+      onFilesAdded={handleFilesAdded}
+      multiple={false}
+      fileLabel={file?.name}
+      fileMeta={describeFile(file)}
+    >
       {hasFiles && (
         <div class="tool-workspace">
-          <div class={pdfToolStyles['list-header']}>
-            <span class={pdfToolStyles['list-count']}>Converting: {file.name}</span>
+          <div class={pdfToolStyles['list-header']} style={{ justifyContent: 'flex-end' }}>
             <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
               Start over
             </button>

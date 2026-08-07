@@ -7,6 +7,7 @@ import pageGridStyles from './PageGrid.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
+import { describeFile } from '../lib/format.js';
 
 let pdfjsLib;
 async function getPdfjs() {
@@ -273,7 +274,13 @@ export default function PdfSplitTool() {
   const ringOffset = PROGRESS_RING_CIRCUMFERENCE - progress * PROGRESS_RING_CIRCUMFERENCE;
 
   return (
-    <BasePdfTool hasFiles={hasFiles} onFilesAdded={handleFilesAdded} multiple={false}>
+    <BasePdfTool
+      hasFiles={hasFiles}
+      onFilesAdded={handleFilesAdded}
+      multiple={false}
+      fileLabel={file?.name}
+      fileMeta={describeFile(file, numPages)}
+    >
       {rejectedFiles.length > 0 && (
         <p class="hint-message" role="status">
           {rejectedFiles.length === 1
@@ -284,10 +291,7 @@ export default function PdfSplitTool() {
 
       {hasFiles && (
         <div class="tool-workspace">
-          <div class={pdfToolStyles['list-header']}>
-            <span class={pdfToolStyles['list-count']}>
-              File: {file.name} ({numPages} page{numPages === 1 ? '' : 's'})
-            </span>
+          <div class={pdfToolStyles['list-header']} style={{ justifyContent: 'flex-end' }}>
             <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
               Start over
             </button>

@@ -11,6 +11,13 @@
 
 /* --- Merge tool island wrapper (owned by BasePdfTool.jsx) --- */
 .merge-tool {
+  position: relative; /* anchors the loaded-state drag-and-drop overlay */
+  /* #app is a flex container, so this card is a flex item and defaults to
+     min-width:auto — it would refuse to shrink below its min-content width.
+     The file bar's nowrap filename makes that min-content the full file name,
+     which blows the card past the viewport on mobile instead of ellipsizing. */
+  min-width: 0;
+  max-width: 100%;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
