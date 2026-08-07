@@ -88,6 +88,7 @@ export default function SignToolbar({
             }}
             title="Click here, then click a page to add text"
             aria-pressed={selectedTool === 'text'}
+            data-label-priority="1"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="4 7 4 4 20 4 20 7" />
@@ -106,6 +107,7 @@ export default function SignToolbar({
             }}
             title="Click here, then click a page to place symbols"
             aria-pressed={selectedTool === 'symbol'}
+            data-label-priority="1"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12" />
@@ -128,6 +130,7 @@ export default function SignToolbar({
                   className={`${styles.button}${['ellipse', 'rectangle', 'line'].includes(selectedTool) ? ` ${styles.active}` : ''}`}
                   title="Click here to select a shape"
                   aria-pressed={['ellipse', 'rectangle', 'line'].includes(selectedTool)}
+                  data-label-priority="1"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 3l4 7H8z" />
@@ -207,6 +210,7 @@ export default function SignToolbar({
               setAnnouncement('Whiteout tool active. Click a page to place.');
             }}
             title="Click here, then click a page to hide text"
+            data-label-priority="1"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
@@ -232,6 +236,7 @@ export default function SignToolbar({
                   onClick={handleSignatureBtnClick}
                   title="Click here to select or create a signature"
                   aria-pressed={selectedTool === 'signature'}
+                  data-label-priority="1"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
@@ -302,6 +307,7 @@ export default function SignToolbar({
             onClick={() => setUndoModalOpen(true)}
             title="Undo changes"
             disabled={actionHistory.length === 0}
+            data-label-priority="2"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 7v6h6" />
@@ -317,6 +323,7 @@ export default function SignToolbar({
             className={`${styles.button} ${styles.reset}`}
             onClick={() => setConfirmResetOpen(true)}
             title="Discard your work and start over"
+            data-label-priority="2"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 2v6h6" />
