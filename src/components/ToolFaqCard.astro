@@ -33,13 +33,13 @@ const {
 <FeatureCard class="relative isolate mb-16 overflow-hidden min-[768px]:mb-24">
   <CardDecor sketch={sketch} icon={icon} iconPos={iconPos} iconSize={240} />
   <div class="mb-12 text-center">
-    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase tracking-normal text-[var(--color-primary)]">{tag}</span>
-    <h2 class="m-0 text-[1.6rem] font-bold tracking-normal text-[var(--color-text)]">{heading}</h2>
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">{tag}</span>
+    <h2 class="m-0 text-[1.6rem] font-bold text-[var(--color-text)]">{heading}</h2>
   </div>
   <div class="grid grid-cols-2 gap-x-12 gap-y-8 max-[768px]:grid-cols-1 max-[768px]:gap-6">
     {faq.map((item) => (
       <div class="faq-item">
-        <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold tracking-normal text-[var(--color-text)]">{item.question}</h3>
+        <h3 class="mb-2 mt-0 text-[1.05rem] font-semibold text-[var(--color-text)]">{item.question}</h3>
         <p class="m-0 text-[0.95rem] leading-[1.5] text-[var(--color-muted)]">{item.answer}</p>
       </div>
     ))}
