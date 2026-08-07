@@ -26,7 +26,7 @@ Per-tool status — **see [TODO.md](./TODO.md) for the actionable, picked-up-by-
 | Image to PDF | `/image-to-pdf` | `PdfImageToPdfTool.jsx` | ✅ implemented (`src/lib/imageToPdf.js`, embeds JPG/PNG via `@cantoo/pdf-lib`, one page per image at native size) | ✅ in sitemap |
 | Redact | `/redact` | `PdfRedactTool.jsx` | ✅ implemented (blackout/blur/whiteout, rasterizes redacted pages) | ✅ in sitemap |
 
-All Phase 1 tools are now functional and promoted (de-noindexed, in `public/sitemap.xml`, with a visible "How it works" + FAQ section and a matching `<SeoSchema>` on their pages). Unlock and Image to PDF were added beyond the original Phase 1 scope per SEO research identifying them as high client-side-fit, lower-competition keywords that reinforce the privacy-first positioning — Image to PDF (JPG/PNG batches into one PDF) was the original motivating use case for building this app. Remaining open items (header wordmark) are tracked in [TODO.md](./TODO.md).
+All Phase 1 tools are now functional and promoted (de-noindexed, in `public/sitemap.xml`, with a visible "How it works" + FAQ section and a matching `<SeoSchema>` on their pages). Unlock and Image to PDF were added beyond the original Phase 1 scope per SEO research identifying them as high client-side-fit, lower-competition keywords that reinforce the privacy-first positioning — Image to PDF (JPG/PNG batches into one PDF) was the original motivating use case for building this app. Remaining open items are tracked in [scrum.md](./scrum.md); [TODO.md](./TODO.md) is now just a pointer to it.
 
 **Definition of done for promoting any tool (do these as one unit — see TODO.md):** (1) implement the real `src/lib/` logic, no network calls; (2) replace the `setTimeout` mock in the component with the real call + download, mirroring `PdfMergeTool.jsx`; (3) add a visible "How it works" + FAQ section to the `.astro` page and a matching `<SeoSchema>` (FAQ schema only — HowTo schema was removed, deprecated by Google in 2023; structured data must match on-page content); (4) remove `noindex` from the page; (5) add the route to `public/sitemap.xml`; (6) `npm run build && npm run preview` to confirm CSP/hydration (the dev server cannot catch CSP regressions — see the CSP section).
 
@@ -104,7 +104,7 @@ The full brand voice, origin story, and messaging principles live in [PRODUCT.md
 - Primary keyword ("pdf merge online free", "split pdf", etc.) stays in `<title>`, the single `<h1>`, and meta description for each specific tool page.
 - Only one `<h1>` per page.
 - All marketing/how-to/FAQ content stays in `.astro` files (build-time rendered), never moved into the Preact island.
-- `robots.txt` and `sitemap.xml` in `public/` must stay reachable and accurate; `astro.config.mjs`'s `site` must match the real deployed domain (currently a placeholder — update before launch).
+- `robots.txt` and `sitemap.xml` in `public/` must stay reachable and accurate; `astro.config.mjs`'s `site` must match the real deployed domain (currently `https://pdkef.com`).
 - Canonical URL, Open Graph + Twitter Card tags (`BaseLayout.astro`) must stay present.
 - JSON-LD (`SeoSchema.astro`: `SoftwareApplication` with `Person` author, `FAQPage`) must stay valid — verify with Google's Rich Results Test after edits. `HowTo` schema was intentionally removed (Google deprecated HowTo rich results in 2023); don't re-add it.
 - Target Lighthouse SEO + Performance ≥ 95 — keep the island lean, lazy-load thumbnails, avoid layout shift.
@@ -151,7 +151,7 @@ There is no PWA build plugin (`vite-plugin-pwa` and `@vite-pwa/astro` were both 
 - `public/sw.js` is a small, hand-written, dependency-free service worker (network-first for navigations, cache-first runtime caching for everything else). Bump `CACHE_VERSION` inside it to force clients to drop their old cache on a deploy.
 - Registration lives in `BaseLayout.astro` as a production-only (`import.meta.env.PROD`), non-`is:inline` script (see the CSP section above for why it must not be `is:inline`).
 
-Icons referenced in the manifest (`public/icons/*.png`) still need to be generated as real PNGs before launch (currently only `favicon.svg` exists).
+Icons referenced in the manifest are generated and live in `public/icons/` (`icon-192`, `icon-512`, `icon-512-maskable`, `apple-touch-icon`, plus `favicon-16`/`favicon-32`).
 
 ## Astro/Vercel version pinning — don't casually upgrade
 
@@ -161,7 +161,7 @@ Astro is pinned to `^7.0.3`, not the `@vite-pwa/astro`-certified `^5.x` line, **
 
 The decided direction is a **scoped hybrid**, documented in full in [ARCHITECTURE.md](./ARCHITECTURE.md) and sequenced in [scrum.md](./scrum.md):
 
-- **Tailwind** for the static/SEO `.astro` surface only (pages, heroes, cards, footer, dropzones, static buttons) - no runtime state, no cascades.
+- **Tailwind** for the static/SEO `.astro` surface only (pages, heroes, cards, footer, dropzones, static buttons) - no runtime state, no cascades. `global.css`'s `@theme` block deliberately skips Tailwind's default theme (CSS budget), so a utility whose scale step isn't declared there (e.g. `font-bold`, `rounded-2xl`) silently compiles to **no CSS at all** - not an error, just a missing rule. Declare the token before using a new utility class. `npm run test:css` runs `scripts/check-dead-utilities.js`, which fails the build if any class in the built HTML has no matching selector.
 - **CSS Modules** (scoped, colocated per component) for the canvas editor (`SignTool/*`, `RedactTool`, `ElementToolbar`, resizers, element nodes). Keep semantic class names so the descendant-combinator state cascades (e.g. `.sign-element.active .sign-element-actions`) survive as real CSS inside module scope.
 - **Inline styles / CSS custom properties** for per-element runtime geometry (`top/left/width/height/fontSize` percentages) - these are continuous floats the Tailwind JIT cannot emit classes for.
 
