@@ -288,7 +288,7 @@ header:not(.tool-hero):not(.not-found-header) p {
 }
 
 main {
-  max-width: 1080px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 1.5rem 4rem;
   flex: 1 0 auto;

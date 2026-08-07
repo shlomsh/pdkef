@@ -21,18 +21,18 @@
 @media (max-width: 560px), (max-height: 500px) and (pointer: coarse) { .toolbar { --toolbar-gap: .15rem; --toolbar-padding: .4rem; --btn-padding: .5rem; } .toolbar .button { justify-content: center; min-height: 46px; border-radius: var(--radius-sm); } .container { padding: 0; } }
 
 /* Desktop (>=920px, above the fully-collapsed phone breakpoint): `main` caps out at
-   max-width:1080px, so the toolbar's real available width plateaus around ~950-960px
-   no matter how wide the window gets, it does NOT keep growing with the viewport.
-   Ten labelled buttons (Sign toolbar) need more than that, so a single "labelled vs
-   icon-only" viewport breakpoint always undercounts on wide screens: the row still
-   reads as "wide viewport, show labels" while the actual box is too narrow, and
-   `.toolbar > * { min-width: 0 }` lets each button shrink past its label's content
-   width, so the text spills past the button's edge into its neighbor instead of wrapping.
-   Container queries measure the toolbar's own box instead of the viewport, so each
-   button can drop its label individually, in priority order, as real space runs out,
-   least-essential (repeatedly-used tool buttons, learned by icon) first, primary CTAs
-   (Download/Share) last. This only reveals what fits; overflow can't recur because a
-   collapsed label is removed from flow, not shrunk. */
+   a fixed max-width (see global.css), so the toolbar's real available width plateaus
+   once the window gets wide enough, it does NOT keep growing with the viewport. A
+   single "labelled vs icon-only" viewport breakpoint can't account for that: the row
+   still reads as "wide viewport, show labels" even on a window wide enough that the
+   actual toolbar box is too narrow, and `.toolbar > * { min-width: 0 }` lets each
+   button shrink past its label's content width, so the text spills past the button's
+   edge into its neighbor instead of wrapping. Container queries measure the toolbar's
+   own box instead of the viewport, so each button can drop its label individually, in
+   priority order, as real space runs out, least-essential (repeatedly-used tool
+   buttons, learned by icon) first, primary CTAs (Download/Share) last. This only
+   reveals what fits; overflow can't recur because a collapsed label is removed from
+   flow, not shrunk. */
 @media (min-width: 920px) {
   .toolbar { container-type: inline-size; container-name: toolbar; }
 
