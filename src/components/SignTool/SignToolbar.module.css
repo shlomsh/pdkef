@@ -7,7 +7,7 @@
    phone. The height floor is enforced here; the width floor is the flex-basis
    every control shares below 920px, where the labels come off (see that media
    query). */
-.toolbar { pointer-events: auto; display: flex; align-items: center; flex-wrap: nowrap; --toolbar-gap: var(--space-2); --toolbar-padding: 0.5rem 0.75rem; --btn-padding: 0.6rem; --btn-min-size: 2.75rem; width: 100%; gap: var(--toolbar-gap); padding: var(--toolbar-padding); background: rgba(255,255,255,.85); backdrop-filter: blur(12px) saturate(180%); -webkit-backdrop-filter: blur(12px) saturate(180%); border: 1px solid rgba(228,228,237,.8); border-radius: var(--radius); box-shadow: var(--shadow-lg), 0 4px 20px rgba(0,0,0,.03); }
+.toolbar { pointer-events: auto; display: flex; align-items: center; flex-wrap: nowrap; container-type: inline-size; container-name: toolbar; --toolbar-gap: var(--space-2); --toolbar-padding: 0.5rem 0.75rem; --btn-padding: 0.6rem; --btn-min-size: 2.75rem; width: 100%; gap: var(--toolbar-gap); padding: var(--toolbar-padding); background: rgba(255,255,255,.85); backdrop-filter: blur(12px) saturate(180%); -webkit-backdrop-filter: blur(12px) saturate(180%); border: 1px solid rgba(228,228,237,.8); border-radius: var(--radius); box-shadow: var(--shadow-lg), 0 4px 20px rgba(0,0,0,.03); }
 /* Every top-level control is sized by this one rule, whether it is a bare
    `<button>` or a `<div class=dropdown>` wrapping a popover trigger. The wrapper
    deliberately has no `flex` of its own: a `.toolbar .dropdown` declaration
@@ -16,6 +16,22 @@
    exactly the bug this file used to have. Style the wrapper's box here, never its
    flexibility. */
 .toolbar > * { flex: 1 1 auto; min-width: 0; }
+
+/* How many controls may share one line once the toolbar has to wrap - half the
+   total, rounded up, so the wrap lands as an even two-row split. Flex packs
+   greedily on its own: it fills the first line and drops whatever is left onto the
+   next, which is how nine controls landed 8+1 and seven landed 6+1. Sizing each
+   control to one Nth of the line caps the line at N instead (9 -> 5+4, 7 -> 4+3)
+   while the first line still stretches edge to edge.
+   The count comes from the markup itself: `:has(> :nth-child(9))` reads as "has
+   at least a ninth child", and each larger threshold overrides the smaller one
+   above it. Controls hidden at this width (.desktop-download) still count as
+   children, so the thresholds sit one clear of each boundary - over-counting by
+   one never changes which bucket a toolbar lands in. Sign has 9-10 children,
+   Redact 7-8. A larger toolbar later is one more line here. */
+.toolbar { --controls-per-row: 4; }
+.toolbar:has(> :nth-child(9)) { --controls-per-row: 5; }
+
 .dropdown { position: relative; display: flex; }
 .toolbar .dropdown > .button { width: 100%; flex: 1 1 auto; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: var(--btn-min-size, 2.75rem); padding: var(--btn-padding); font: inherit; font-size: .88rem; font-weight: 600; white-space: nowrap; overflow: hidden; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; box-shadow: var(--shadow-xs); transition: background-color .15s var(--ease-out), border-color .15s var(--ease-out), color .15s var(--ease-out), transform .1s var(--ease-spring); }
@@ -44,23 +60,51 @@
    touch floor is the starting point rather than an afterthought. */
 @media (max-width: 919px) { .toolbar { flex-wrap: wrap; justify-content: center; align-items: stretch; --toolbar-gap: .35rem; --toolbar-padding: .35rem; --btn-padding: .35rem; } .toolbar > * { flex: 1 1 var(--btn-min-size); } .toolbar .button { gap: 0; } .toolbar .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; } .toolbar .dropdown { display: flex; } .desktop-download { display: none; } .share { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); } }
 
-/* The wrapping regime. Nine 44px targets plus gaps need ~440px and a 360px phone
-   offers ~265px of usable toolbar, so below roughly 530px the row has to break -
-   and this breakpoint sits far enough above that to cover the 7-to-10 control
-   toolbars this module serves (Sign, Redact), while staying below the width where
-   they still fit on one line.
-   Two things have to be true for a wrapped toolbar to look deliberate rather than
-   truncated, and `flex-grow: 0` is what buys both. Growing items would size each
-   line independently, so a line of five and a line of four end up visibly
-   different button widths - the original asymmetry, just stacked vertically
-   instead of side by side. Growing items also consume every last pixel of the
-   line, which leaves `justify-content` nothing to distribute and strands the short
-   final line against the leading edge. Pinning each item at exactly the touch
-   floor keeps every button identical across both lines and leaves real free space
-   on each one, which `justify-content: center` then centers per line. (Grid cannot
-   do this: rows share one set of columns, so a partial last row is always packed
-   into the leading columns no matter how the tracks are aligned.) */
-@media (max-width: 560px) { .toolbar { --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; } .toolbar > * { flex: 0 0 var(--btn-min-size); } .container { padding: 0; } }
+/* Phone widths: tighter spacing, and the only regime where the toolbar can wrap.
+   Nine 44px targets plus gaps need ~440px of line and a 360px phone offers ~265px,
+   so the break is unavoidable well inside this breakpoint. */
+@media (max-width: 560px) {
+  .toolbar { --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; }
+  .container { padding: 0; }
+
+  /* Controls keep growing to fill the line (inherited from the rule above) right
+     up until the line genuinely cannot hold them all, and only then switch to the
+     capped, centred two-row layout. Asking "is the toolbar narrower than one full
+     line of controls" is a question about the toolbar's own box, not the
+     viewport, so it is a container query - it stays correct if the page gutters
+     change. N controls need N * --btn-min-size + (N-1) gaps inside
+     --toolbar-padding, which is 350px for seven and 448px for nine, so each query
+     fires just below its own figure. Those two numbers are the one piece of
+     arithmetic in this file that has to be redone by hand if --btn-min-size,
+     --toolbar-gap or --toolbar-padding change at this breakpoint.
+     `flex-grow: 0` is what makes the wrapped layout read as deliberate. Growing
+     items size each line independently, so a line of five and a line of four end
+     up different button widths - the original asymmetry, stacked vertically
+     instead of side by side. They also consume every last pixel of the line,
+     leaving `justify-content` nothing to distribute and stranding the short final
+     line against the leading edge. (Grid cannot do this at all: its rows share one
+     set of columns, so a partial last row is always packed into the leading ones.)
+     Below the narrowest query the touch floor wins over the computed share and the
+     line packs greedily again, still centred. */
+  @container toolbar (max-width: 349px) {
+    .toolbar > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+  }
+
+  @container toolbar (max-width: 447px) {
+    .toolbar:has(> :nth-child(9)) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+  }
+
+  /* Once even the two-row split stops fitting - nine controls need 252px of
+     toolbar to put five on a line - split three ways instead, which lands 9 as
+     3+3+3. This is the regime a 390px phone reaches at 125% browser zoom, not
+     just an unusually small device, so it is worth getting right rather than
+     letting it fall back to 4+4+1. Note the override has to be set on the
+     children: rules inside a container query match the container's descendants,
+     never the container element itself. */
+  @container toolbar (max-width: 251px) {
+    .toolbar:has(> :nth-child(9)) > * { --controls-per-row: 3; }
+  }
+}
 
 /* Landscape phone: wide enough that the row never wraps, so it keeps the grow
    behaviour above and only takes the compact spacing. */
@@ -80,8 +124,6 @@
    reveals what fits; overflow can't recur because a collapsed label is removed from
    flow, not shrunk. */
 @media (min-width: 920px) {
-  .toolbar { container-type: inline-size; container-name: toolbar; }
-
   @container toolbar (max-width: 1000px) {
     .toolbar .button[data-label-priority="1"] { gap: 0; }
     .toolbar .button[data-label-priority="1"] .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }

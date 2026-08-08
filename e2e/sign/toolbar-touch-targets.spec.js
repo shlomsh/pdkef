@@ -120,16 +120,28 @@ test.describe('Sign toolbar touch targets', () => {
     });
   }
 
-  test('wraps to centred rows on a narrow phone rather than overflowing', async ({ page }) => {
-    await page.setViewportSize({ width: 360, height: 900 });
-    await openSignTool(page);
+  // Flex packs greedily left to right, so without the per-line cap in
+  // SignToolbar.module.css these widths strand one or two controls on a line of
+  // their own (390px used to give 6+3, 500px gave 8+1).
+  for (const width of [320, 360, 390, 430, 500]) {
+    test(`splits into evenly filled rows at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openSignTool(page);
 
-    const { rows } = await readToolbar(page);
-    expect(rows.length).toBeGreaterThan(1);
-    // No row may spill past the toolbar it sits in.
-    for (const row of rows) {
-      expect(row.leadGap).toBeGreaterThanOrEqual(0);
-      expect(row.trailGap).toBeGreaterThanOrEqual(0);
-    }
-  });
+      const { rows } = await readToolbar(page);
+      expect(rows.length).toBeGreaterThan(1);
+
+      const counts = rows.map((row) => row.count);
+      expect(
+        Math.max(...counts) - Math.min(...counts),
+        `Rows are unbalanced: ${counts.join('+')}`,
+      ).toBeLessThanOrEqual(1);
+
+      // No row may spill past the toolbar it sits in.
+      for (const row of rows) {
+        expect(row.leadGap).toBeGreaterThanOrEqual(0);
+        expect(row.trailGap).toBeGreaterThanOrEqual(0);
+      }
+    });
+  }
 });

@@ -191,9 +191,17 @@ This is explicitly **not** "finish the wholesale Tailwind migration." The goal i
     plus `flex-basis: 0` letting a border-box button floor at its own padding+border while a
     padding-less wrapper floors at 0, is why the dropdowns once rendered ~13px wide beside ~31px
     buttons. An explicit shared basis makes the markup underneath irrelevant.
-  - **`flex-grow: 0` in the wrapping regime (<=560px).** Growing items size each line independently,
-    so a line of five and a line of four end up different button widths - the same asymmetry stacked
-    vertically. Growing items also eat all the free space, leaving `justify-content` nothing to centre.
+  - **`flex-grow: 0` once it actually wraps.** Growing items size each line independently, so a line
+    of five and a line of four end up different button widths - the same asymmetry stacked vertically.
+    Growing items also eat all the free space, leaving `justify-content` nothing to centre. Above the
+    wrap point they keep growing, so a single row still fills the bar.
+  - **A per-line cap, or flex strands the remainder.** Flex packs greedily, so nine controls wrapped
+    as 8+1 and seven as 6+1. `--controls-per-row` (half the control count, rounded up; derived from
+    the markup with `:has(> :nth-child(N))`) becomes each control's `flex-basis` share, capping the
+    line and giving 5+4 and 4+3 instead. It engages only inside `@container` queries sized to "one
+    full line of controls no longer fits" - those two pixel figures are the one hand-computed thing
+    in the file and must be redone if `--btn-min-size`, `--toolbar-gap` or `--toolbar-padding` change
+    at that breakpoint.
   - **Flex, not grid, for the wrapped rows.** Grid rows share one set of columns, so a partial last row
     is always packed into the leading columns; only a wrapping flex container centres each line.
 
