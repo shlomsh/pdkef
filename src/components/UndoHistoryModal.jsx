@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'preact/hooks';
 import dialogStyles from './Dialog.module.css';
+import styles from './UndoHistoryModal.module.css';
 
 // Shared "Undo changes" dialog for the Sign and Redact tools — lists logged
 // actions (see actionHistory.js) as a checklist so several can be reverted at
@@ -46,12 +47,12 @@ export default function UndoHistoryModal({
       </div>
 
       <div className={`${dialogStyles.body} ${dialogStyles['body-list']}`}>
-        <div className="undo-history-list">
+        <div className={styles['undo-history-list']}>
           {actionHistory.map((action) => {
             const time = new Date(action.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             const isSelected = undoSelection.has(action.id);
             return (
-              <label key={action.id} className="undo-history-item">
+              <label key={action.id} className={styles['undo-history-item']}>
                 <input
                   type="checkbox"
                   checked={isSelected}
@@ -62,10 +63,10 @@ export default function UndoHistoryModal({
                     setUndoSelection(newSet);
                   }}
                 />
-                <div className="undo-history-details">
-                  <span className="undo-history-desc">{action.description}</span>
-                  <span className="undo-history-time">{time}</span>
-                  <span className="undo-history-page">Page {action.pageIndex + 1}</span>
+                <div className={styles['undo-history-details']}>
+                  <span className={styles['undo-history-desc']}>{action.description}</span>
+                  <span className={styles['undo-history-time']}>{time}</span>
+                  <span className={styles['undo-history-page']}>Page {action.pageIndex + 1}</span>
                 </div>
               </label>
             );

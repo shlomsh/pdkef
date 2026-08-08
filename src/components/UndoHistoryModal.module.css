@@ -1,6 +1,13 @@
-/* Undo Modal — colocated from global.css in E2.2.5. Only the `.undo-history-*`
-   list chrome moved here; the dialog shell (`.sig-dialog*`, `.sig-btn*`) stays
-   in global.css as sign-coupled and is owned by E2.3. */
+/* Undo Modal list chrome. The dialog shell around it (header, body, footer,
+   buttons) comes from Dialog.module.css, which the component imports alongside
+   this file.
+
+   These rules arrived in the E2.2b reimplementation but the matching class swap
+   in UndoHistoryModal.jsx did not, so the component kept rendering the old
+   unhashed global strings and this whole file was dead - the dialog shipped
+   unstyled on Sign and Redact until 2026-08-08. scripts/check-class-resolution.js
+   now fails the build if any component renders a class string with no matching
+   rule, which is what makes that specific mistake unrepeatable. */
 .undo-history-list {
   display: flex;
   flex-direction: column;

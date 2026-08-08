@@ -92,7 +92,7 @@ describe('PdfImageToPdfTool UI flow', () => {
       input.dispatchEvent(new Event('change', { bubbles: true }));
     });
 
-    const hint = container.querySelector('.hint-message');
+    const hint = container.querySelector(`.${pdfToolStyles['hint-message']}`);
     expect(hint.textContent).toContain('not a JPG or PNG');
   });
 

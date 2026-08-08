@@ -23,7 +23,8 @@ const EPICS = [
   { id: "E4", name: "Headless TS editor core", goal: "Lane E, internally serial, parallel to E2/E3." },
   { id: "E5", name: "Documentation",       goal: "Mostly done this session." },
   { id: "E6", name: "Carried-over backlog", goal: "Postponed, off the migration critical path." },
-  { id: "E7", name: "Finish the headless convergence", goal: "Post-audit hardening; close the architecture gaps." }
+  { id: "E7", name: "Finish the headless convergence", goal: "Post-audit hardening; close the architecture gaps." },
+  { id: "E8", name: "Post-assessment cleanup", goal: "From the 2026-08-08 repo health assessment. Every item is a fork of one idea, or a guard that does not reach far enough." }
 ];
 
 const TICKETS = [
@@ -238,14 +239,107 @@ const TICKETS = [
     title: "Add the two missing static guards",
     dependsOn: [],
     acceptance: "Done. Static gesture golden-rule and runtime-CSP smoke guards are wired into CI with non-vacuity checks." }
+
+  // ----- E8 - from the 2026-08-08 repo health assessment -----
+  // Findings keep their assessment letters (A/B/T) in the title so the report and
+  // the board can be read against each other. A1, A2, A3 and T3 were fixed in the
+  // same session and are recorded here as done.
+  ,{ id: "E8.A1", epic: "E8", lane: "B", status: "done", priority: "high",
+    title: "A1 - Home-page drop destroyed the saved Sign draft and lost the file",
+    dependsOn: [],
+    acceptance: "Done. FileDropzone parked the dropped file in the tool's own draft key, whose put() replaces the record, so one drop destroyed any saved signing work - and the record it wrote had no fileBytes, so the restore path skipped it and the file was lost too. Dropped files now go into a separate one-shot handoff key (draftStore.saveHandoff/takeHandoff, 5-minute TTL), the tool resolves a handoff before loadDraft rather than racing it, and a drop that would discard a draft asks first through the shared ConfirmDialog, naming both files." }
+  ,{ id: "E8.A2", epic: "E8", lane: "C", status: "done", priority: "high",
+    title: "A2 - UndoHistoryModal shipped unstyled; its CSS Module was orphaned",
+    dependsOn: [],
+    acceptance: "Done. The component rendered raw global class strings while its rules sat in an UndoHistoryModal.module.css nothing imported - the only orphaned module in the repo, and dead since the E2.2b reimplementation, which listed the file for CSS reuse but not for the class swap. Module now imported and the six classes swapped; the misleading undo-history-list entry is out of check-dead-utilities.js's allowlist." }
+  ,{ id: "E8.A3", epic: "E8", lane: "C", status: "done", priority: "normal",
+    title: "A3 - .hint-message had no rule in five tools",
+    dependsOn: [],
+    acceptance: "Done. The rule was deleted from global.css in a40a937 without being re-homed, so six render sites across five tools showed their 'skipped a file that wasn't a PDF' notice as bare text - and Edit PDF alone papered over it with inline centring and a danger colour. Restored in PdfTool.module.css with real .centered/.danger modifiers, and all six sites swapped." }
+  ,{ id: "E8.T3", epic: "E8", lane: "B", status: "done", priority: "high",
+    title: "T3 - Source-side guard: every class string must resolve to CSS",
+    dependsOn: [],
+    acceptance: "Done. scripts/check-class-resolution.js reads src/**/*.jsx rather than the built HTML, closing check-dead-utilities.js's structural blind spot (it only ever sees an island's initial SSR state, so post-interaction classes are invisible to it - which is how A2 and A3 shipped green). Catches three shapes: a class with no rule anywhere, a raw string whose rule is CSS-Modules-hashed, and a styles['key'] lookup that is not in the module it points at (class=\"undefined\"). Found redact-draw-area on first run. Wired into test:css and as its own pre-build CI step; non-vacuity proven against both original defects." }
+
+  ,{ id: "E8.T2", epic: "E8", lane: "B", status: "todo", priority: "high",
+    title: "T2 - Make the FileList test double behave like a live FileList",
+    dependsOn: [],
+    acceptance: "14 test sites inline `Object.defineProperty(input, 'files', {value: [...]})`, which survives `input.value = ''` where a real live FileList does not. That gap shipped a bug where file selection did nothing in production with all tests green; the fix is documented in CLAUDE.md and BasePdfTool and enforced by nothing. Replace all 14 with one shared helper whose `files` getter empties once `value` is cleared, so reintroducing the bug turns the suite red. Prove non-vacuity by reverting BasePdfTool's read-before-clear." }
+  ,{ id: "E8.T6", epic: "E8", lane: "B", status: "todo", priority: "normal",
+    title: "T6 - One browser test that puts a file into the five uncovered tools",
+    dependsOn: [],
+    acceptance: "Split, Compress, PDF to Image, Image to PDF and Edit Pages are only ever page-loaded in e2e; their object-URL and download/share output paths are jsdom-only. Add ONE parameterised spec that loads a fixture into each and asserts a real object URL and download attribute - not five specs. The shared BasePdfTool input path is already covered by Merge/Unlock/Sign/Redact, so this is about per-tool output, and the ~1:25 e2e ratio has room for exactly this." }
+  ,{ id: "E8.T6a", epic: "E8", lane: "B", status: "todo", priority: "high",
+    title: "Browser guardrail for the home-page handoff (finishes E8.A1)",
+    dependsOn: ["E8.A1"],
+    acceptance: "E8.A1's unit tests mock draftStore and cannot observe the navigation, and jsdom has no IndexedDB at all, so nothing proves the round trip end to end. Add an e2e that drops a PDF on the home page, lands on /sign, and asserts the document opened - plus the case where a draft exists and the confirmation appears first. This is the half of A1 that only a browser can prove." }
+  ,{ id: "E8.T5", epic: "E8", lane: "B", status: "todo", priority: "high",
+    title: "T5 - Unit-test redact.js and merge.js",
+    dependsOn: [],
+    acceptance: "Neither has a test file. Worse, the component tests that appear to cover them vi.mock the module in question (PdfRedactTool.test.jsx mocks redact.js; PdfMergeTool.test.jsx mocks merge.js), so the mock asserts the wiring and nothing asserts the logic. redact.js first: it is the only library that destructively flattens the user's document. Also unowned: split.js, sort.js (the three-tier date fallback), draftStore.js, thumbnails.js, usePdfShare.js, actionHistory.js, signHelpers.js." }
+  ,{ id: "E8.T7", epic: "E8", lane: "B", status: "todo", priority: "low",
+    title: "T7 - Make a missing ToolShell provider loud instead of silent",
+    dependsOn: [],
+    acceptance: "ToolShell.jsx's `createContext({})` lets a control render outside the provider with `onClick={undefined}` - SignToolbar.test.jsx does exactly that and asserts the Replace button's class rather than its behaviour. Give the default a requestReplace that throws, so isolated rendering still works but dead wiring is not something a test can pass through." }
+  ,{ id: "E8.C1", epic: "E8", lane: "B", status: "todo", priority: "normal",
+    title: "Extend the toolbar touch-target guard to Redact",
+    dependsOn: [],
+    acceptance: "SignToolbar.module.css's container-query thresholds (349/447/251px) are hand-computed and honestly documented as such, and e2e/sign/toolbar-touch-targets.spec.js guards them the right way - by asserting outcomes (rows balanced within one control, every control >=44px, each row centred) rather than restating the numbers. It only drives /sign. Redact has 7-8 controls and takes the --controls-per-row:4 branch, which no browser test exercises. This is a parameter on the existing spec, not a new file." }
+
+  ,{ id: "E8.B1", epic: "E8", lane: "C", status: "todo", priority: "high",
+    title: "B1 - The output state machine: the second BasePdfTool-shaped consolidation",
+    dependsOn: [],
+    acceptance: "Measured: nine hand-rolled useState('idle') machines with nine different status vocabularies, PROGRESS_RING_CIRCUMFERENCE redeclared in six files, the progress-ring SVG in six, the error-message block in eight, resetOutput in five, 27 hand-managed revokeObjectURL sites in seven files, and the done-focus effect in every tool. Do NOT extract one useToolOutput() - the bodies genuinely differ and that would be the god-abstraction ARCHITECTURE section 2 warns about. Extract exactly three things: (1) a useObjectUrls() owning create/replace/revoke/unmount - highest value and already inconsistent, since only Split registers unmount cleanup so every other single-output tool leaks its blob if unmounted mid-'done'; (2) progress-ring, error-message and download-button as components; (3) PROGRESS_RING_CIRCUMFERENCE as one constant. Status vocabularies, announcement strings and download filenames stay per-tool - those are declared differences." }
+  ,{ id: "E8.B2", epic: "E8", lane: "C", status: "todo", priority: "normal",
+    title: "B2 - Rename .merge-tool / .merge-button, which are every tool's",
+    dependsOn: ["E8.B1"],
+    acceptance: "pdfToolStyles['merge-tool'] is BasePdfTool's wrapper for all nine tools and .merge-button is the primary CTA in eight plus PdfWorkspace; six of PdfTool.module.css's classes are named after one tool. Rename to something the shared module can own (tool-card / tool-primary-action). Mechanical and module-scoped; best done in the same pass as B1 so the nine tools are only touched once. PdfTool.module.css also still carries a comment about the removed .start-over." }
+  ,{ id: "E8.B4", epic: "E8", lane: "C", status: "todo", priority: "normal",
+    title: "B4 - Collapse the two dropzones",
+    dependsOn: ["E8.A1"],
+    acceptance: "FileDropzone.jsx and BasePdfTool.jsx render the same SVG, copy, button and privacy line from the same Dropzone.module.css, in two files; they diverged when BasePdfTool gained the FileList fix and the confirmation gate and FileDropzone got neither. Extract the shared presentation. Check first whether FileDropzone's `onFiles` branch can simply be deleted - no production caller passes it (index.astro passes onFiles={null}), and A1's fix means the toolTarget path is the only live one." }
+  ,{ id: "E8.B8", epic: "E8", lane: "C", status: "todo", priority: "low",
+    title: "B8 - Move the ~20 static inline styles back into the styling system",
+    dependsOn: [],
+    acceptance: "Of 55 inline style sites, roughly a third qualify under ARCHITECTURE 3.1 (per-element runtime geometry, Floating UI coordinates, colour-from-element) and should be left exactly as they are. The rest are static: most visibly four copies of a centred loading block with three different paddings (PdfSignTool, PdfSplitTool, PdfEditPagesTool, PdfWorkspace/PdfRedactTool), plus Redact's page-header row, two Split layout blocks, popover sizing in SignToolbar/ThicknessPickerMenu, three SignatureDialog flex rows, and four bare `color: var(--color-muted)` declarations. None is a CSP risk - Preact routes object style props through per-key setProperty, which style-src does not govern." }
+
+  ,{ id: "E8.B3", epic: "E8", lane: "E", status: "todo", priority: "normal",
+    title: "B3 - Cut the Sign editor's prop drilling with two small contexts",
+    dependsOn: [],
+    acceptance: "PdfWorkspace declares 38 props and its call site passes 38; it forwards 15 to SignToolbar of which 14 are verbatim (the only transform is isFullscreen || isPseudoFullscreen). Two cohesive clusters are visible in the prop list itself: the seven remember* setters plus seven last* values (creation defaults), and savedSignatures/activeSignature/setActiveSignature/onDeleteSavedSignature. Moving just those takes PdfWorkspace to ~15 and SignToolbar to ~6. Keep dispatch-adjacent state where it is - context makes re-render scope invisible, which matters next to the gesture hot path. The pattern is already proven twice in-tree (SignToolContext, ToolShellContext)." }
+  ,{ id: "E8.B5", epic: "E8", lane: "E", status: "todo", priority: "normal",
+    title: "B5 - Redact's drag-draw preview is a second per-type paint owner",
+    dependsOn: [],
+    acceptance: "registry/redactionSurface.ts documents itself as the sole owner of fill/blur/border, and E7.4 accepted on RedactBox having no per-type ternaries - but PdfRedactTool.jsx's in-flight preview re-derives all three inline, with raw #ff4757 / #000 / rgba(0,0,0,0.7) chrome literals against the no-hardcoded-colour rule. E7.4 is honestly closed; the invariant is just not true of the file next door. A dashed ghost differing from the committed fill is fine as intent - having two places decide it is not." }
+
+  ,{ id: "E8.B7", epic: "E8", lane: "X", status: "todo", priority: "low",
+    title: "B7 - One share gate, spelled two ways",
+    dependsOn: [],
+    acceptance: "Six tools pass visible={canSharePdf && shareReady}; ToImage and Split pass visible={shareReady}. Equivalent, since prepareFiles already refuses when canShareFiles is false - so canSharePdf is redundant everywhere, and ToImage's spelling is arguably the more correct one since canSharePdf probes a PDF while ToImage emits PNG/JPEG. Pick one." }
+  ,{ id: "E8.B9", epic: "E8", lane: "X", status: "todo", priority: "normal",
+    title: "B9 - Three checkable CLAUDE.md claims that are no longer true",
+    dependsOn: [],
+    acceptance: "(1) The implementation-status table still lists Remove Pages / /remove-pages / PdfRemovePagesTool.jsx / src/lib/removePages.js - none of the four exists, and the table is missing Edit Pages at /edit-pdf, the tool that actually shipped. (2) Two sections tell you to edit public/sitemap.xml, which does not exist; the sitemap is generated from src/data/tools.js by src/pages/sitemap.xml.js, so the documented definition-of-done points at a missing file. (3) The voice section asks for competitor jabs in tools.js to be softened; they are already gone (PRODUCT.md line 43 carries the same stale parenthetical). Worth fixing precisely because the rest of the file - the four hazard write-ups, the CSP split, the trailing-slash rule - checks out and is trusted." }
+  ,{ id: "E8.B10", epic: "E8", lane: "X", status: "todo", priority: "low",
+    title: "B10 - Two em dashes in user-facing copy",
+    dependsOn: [],
+    acceptance: "ElementToolbar.jsx's LTR/RTL tooltips are the only user-visible copy in the repo carrying an em dash; the other 18 are in code comments, which the rule does not cover. .astro and tools.js copy is clean." }
+  ,{ id: "E8.A4", epic: "E8", lane: "X", status: "todo", priority: "normal",
+    title: "A4 - Delete the dead reset() in four tools",
+    dependsOn: [],
+    acceptance: "be2b5fc removed the Start-over buttons and left their handlers behind: reset is defined and never referenced in PdfSplitTool, PdfToImageTool, PdfCompressTool and PdfEditPagesTool. Only Merge and ImageToPdf still wire theirs to onClearAll. Low cost today, but it is the FileList shape again - the next person adding 'clear the tool' edits the dead function, sees tests pass, and ships nothing." }
+  ,{ id: "E8.TS", epic: "E8", lane: "X", status: "todo", priority: "normal",
+    title: "npm run typecheck is no longer error-free",
+    dependsOn: [],
+    acceptance: "src/editor/registry/text.ts line 62 fails with ts(2345): resolveFontFamily(fontFamily, textValue) passes `string | undefined` where `string` is required. E4.1 and E7.2 both record typecheck as project-wide error-free with only hints remaining, so this is a regression that arrived without anyone noticing - which also means typecheck is not gating anything. Fix the error, then consider adding npm run typecheck to ci.yml so the claim stays true." }
 ];
 
 const LANE_FLOW = [
   { lane: "A", flow: ["E0.1", "→", "E0.2"], gate: "" },
-  { lane: "B", flow: ["E1.1", "E1.2", "E1.3", "E1.4", "E1.5", "E1.6", "E1.6a", "E1.7", "E1.7a"], gate: "gate → E2.*, E3.2, E4 verification" },
-  { lane: "C", flow: ["E2.1", "→", "E2.2", "→", "E2.3", "E2.5", "E2.6"], gate: "✓ complete - global CSS monolith gone (0 editor selectors)." },
+  { lane: "B", flow: ["E1.1", "E1.2", "E1.3", "E1.4", "E1.5", "E1.6", "E1.6a", "E1.7", "E1.7a", "→", "E8.A1", "E8.T3", "→", "E8.T2", "E8.T6a", "E8.T5", "E8.T6", "E8.C1", "E8.T7"], gate: "gate → E2.*, E3.2, E4 verification · E8 extends the guards' reach before more feature code." },
+  { lane: "C", flow: ["E2.1", "→", "E2.2", "→", "E2.3", "E2.5", "E2.6", "→", "E8.A2", "E8.A3", "→", "E8.B1", "→", "E8.B2", "E8.B4", "E8.B8"], gate: "Monolith gone (0 editor selectors); E8 is the per-tool duplication left after it." },
   { lane: "D", flow: ["E3.1", "→", "E3.2", "→", "E3.3"], gate: "✓ complete - static surface on Tailwind utilities." },
-  { lane: "E", flow: ["E4.1", "→", "E4.2", "→", "E4.3a", "→", "E4.3b", "→", "E4.4", "→", "E7.2", "E7.3", "E7.4", "E7.5", "E7.6"], gate: "E7 hardening is in progress; type the shell and finish Redact convergence." }
+  { lane: "E", flow: ["E4.1", "→", "E4.2", "→", "E4.3a", "→", "E4.3b", "→", "E4.4", "→", "E7.2", "E7.3", "E7.4", "E7.5", "E7.6", "E8.B3", "E8.B5"], gate: "E7 hardening is in progress; type the shell and finish Redact convergence." }
 ];
 
 const DONE_LOG = [

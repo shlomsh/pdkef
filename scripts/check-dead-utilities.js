@@ -23,6 +23,14 @@ const distDir = path.join(__dirname, '..', 'dist');
 // that is a behavioural hook - something JS queries or another selector matches -
 // never to silence a utility that should have compiled. The fix for a utility is
 // to declare its token in global.css's @theme block.
+//
+// This list has been abused once already: `undo-history-list` sat here labelled
+// "scroll container the undo modal measures" while the real cause was that
+// UndoHistoryModal.jsx never imported its CSS Module, so the entire dialog
+// shipped unstyled behind a green check. If a class you are about to allowlist
+// has a matching rule in some `.module.css`, the bug is a missing import, not a
+// hook - go wire it. scripts/check-class-resolution.js now catches that case at
+// the source, before it can reach this list.
 const allowedClassPrefixes = ['lucide-'];
 const allowedClasses = new Set([
   'lucide', // lucide-astro stamps this on every icon; styling comes from utilities
@@ -31,7 +39,6 @@ const allowedClasses = new Set([
   'faq-item',
   'offline-tab-btn', // querySelectorAll targets in index.astro's tab script
   'offline-tab-panel',
-  'undo-history-list', // scroll container the undo modal measures
   'doc-line', // autosave card sketch; sized by sibling combinators
   'short',
   'medium',

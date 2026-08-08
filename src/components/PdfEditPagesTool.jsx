@@ -364,14 +364,17 @@ export default function PdfEditPagesTool() {
               </div>
 
               {isAllRemoved && (
-                <p class="hint-message" role="status" style={{ color: 'var(--color-danger)', textAlign: 'center', marginTop: '0.5rem' }}>
+                <p
+                  class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.centered} ${pdfToolStyles.danger}`}
+                  role="status"
+                >
                   A PDF must contain at least one page. Please keep at least one page.
                 </p>
               )}
 
 
               {!hasEdits && (
-                <p class="hint-message" role="status" style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+                <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.centered}`} role="status">
                   Remove pages, rotate, reorder, or add page numbers before applying changes.
                 </p>
               )}

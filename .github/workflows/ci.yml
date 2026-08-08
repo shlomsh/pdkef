@@ -31,6 +31,11 @@ jobs:
     - name: Verify gesture golden-rule (static)
       run: npm run test:gesture-golden-rule
 
+    # Source-side, so it needs no build and fails before one is spent. It also
+    # runs again inside test:css below, for anyone running that locally.
+    - name: Verify every class string resolves to CSS
+      run: node scripts/check-class-resolution.js
+
     - name: Build
       run: npm run build
 

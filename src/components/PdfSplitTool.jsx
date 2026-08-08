@@ -284,7 +284,7 @@ export default function PdfSplitTool() {
       workNoun="your page selection"
     >
       {rejectedFiles.length > 0 && (
-        <p class="hint-message" role="status">
+        <p class={pdfToolStyles['hint-message']} role="status">
           {rejectedFiles.length === 1
             ? `Skipped “${rejectedFiles[0]}” - not a PDF.`
             : `Skipped ${rejectedFiles.length} files - not PDFs.`}
