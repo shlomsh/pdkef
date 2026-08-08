@@ -52,9 +52,14 @@ export default function BasePdfTool({
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDraggingOverWorkspace, setIsDraggingOverWorkspace] = useState(false);
   const [pendingFiles, setPendingFiles] = useState(null);
+  const [confirmPickerOpen, setConfirmPickerOpen] = useState(false);
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const fileInputRef = useRef(null);
   const dragDepthRef = useRef(0);
+  // Set when the user has already agreed to a replacement and the picker is
+  // being opened on the strength of that agreement, so the file coming back is
+  // not put through the gate a second time.
+  const agreedRef = useRef(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !hasFiles && fileInputRef.current) {
@@ -68,18 +73,27 @@ export default function BasePdfTool({
     }
   }, [hasFiles]);
 
-  // The one gate every incoming file goes through, whether it arrived from the
-  // picker or from a drop. Adding to a list costs nothing and an untouched tool
-  // has nothing to lose; anything else asks first, naming both files.
+  // Adding to a list costs nothing and an untouched tool has nothing to lose;
+  // anything else has to be agreed to first.
+  const costsSomething = hasFiles && hasWork && !multiple;
+
+  // A dropped file arrives already chosen, so this is the earliest the user can
+  // be asked - and because the file is in hand, the question can name it.
   const receiveFiles = useCallback((fileList) => {
     const incoming = Array.from(fileList || []);
     if (incoming.length === 0) return;
-    if (multiple || !hasFiles || !hasWork) {
+    // Already agreed to, one step ago, in order to get the picker open at all.
+    if (agreedRef.current) {
+      agreedRef.current = false;
+      onFilesAdded(incoming);
+      return;
+    }
+    if (!costsSomething) {
       onFilesAdded(incoming);
       return;
     }
     setPendingFiles(incoming);
-  }, [multiple, hasFiles, hasWork, onFilesAdded]);
+  }, [costsSomething, onFilesAdded]);
 
   const onInputChange = (event) => {
     // Copy the FileList out before clearing the input. `value = ''` resets the
@@ -125,15 +139,35 @@ export default function BasePdfTool({
     receiveFiles(event.dataTransfer.files);
   };
 
-  const requestReplace = useCallback(() => fileInputRef.current?.click(), []);
+  const openPicker = () => fileInputRef.current?.click();
+
+  // Pressing Replace asks BEFORE opening the picker. Asking afterwards let the
+  // question name the incoming file, but it made the user walk through the OS
+  // picker to find out that the swap was going to cost them their work - the
+  // warning arrived after the only step they might have wanted to skip.
+  const requestReplace = useCallback(() => {
+    agreedRef.current = false;
+    if (costsSomething) setConfirmPickerOpen(true);
+    else openPicker();
+  }, [costsSomething]);
+
   const requestClear = useCallback(() => setConfirmClearOpen(true), []);
-  const cancelReplace = useCallback(() => setPendingFiles(null), []);
   const cancelClear = useCallback(() => setConfirmClearOpen(false), []);
+  const cancelReplace = useCallback(() => {
+    setPendingFiles(null);
+    setConfirmPickerOpen(false);
+  }, []);
 
   const confirmReplace = () => {
-    const files = pendingFiles;
-    setPendingFiles(null);
-    if (files) onFilesAdded(files);
+    if (pendingFiles) {
+      const files = pendingFiles;
+      setPendingFiles(null);
+      onFilesAdded(files);
+      return;
+    }
+    setConfirmPickerOpen(false);
+    agreedRef.current = true;
+    openPicker();
   };
 
   const confirmClear = () => {
@@ -220,6 +254,10 @@ export default function BasePdfTool({
           accept={accept}
           multiple={multiple}
           onChange={onInputChange}
+          // Dismissing the OS picker has to retract the agreement that opened
+          // it, or it would still be standing next time a file arrived by some
+          // other route and that one would skip the question.
+          onCancel={() => { agreedRef.current = false; }}
           hidden
         />
       )}
@@ -248,17 +286,26 @@ export default function BasePdfTool({
       {children}
 
       {/* Replacing a file is the one destructive thing a single-file tool can
-          do, so it says which file is going and what goes with it. It never
-          appears when there is nothing to lose - see `hasWork`. */}
+          do, so it says what is going and what goes with it. It never appears
+          when there is nothing to lose - see `hasWork`.
+
+          Two ways in, asked at whichever point comes first. Pressing Replace
+          asks before the picker opens, so nobody hunts through their filesystem
+          only to be told at the end that it will cost them; a dropped file is
+          already chosen, so that one can name it. */}
       <ConfirmDialog
-        open={!!pendingFiles}
+        open={!!pendingFiles || confirmPickerOpen}
         titleId="confirm-replace-title"
         title="Replace this file?"
-        confirmLabel="Replace file"
+        confirmLabel={pendingFiles ? 'Replace file' : 'Choose a file'}
         onCancel={cancelReplace}
         onConfirm={confirmReplace}
       >
-        Opening <span class={dialogStyles['confirm-file']}>{pendingFiles?.[0]?.name}</span> closes{' '}
+        {pendingFiles ? (
+          <>Opening <span class={dialogStyles['confirm-file']}>{pendingFiles[0]?.name}</span> closes </>
+        ) : (
+          <>Choosing another file closes </>
+        )}
         <span class={dialogStyles['confirm-file']}>{fileLabel || 'the current PDF'}</span> and discards {workNoun}.
         That can’t be undone.{draftSaved ? ' Your saved draft goes with it.' : ''}
       </ConfirmDialog>

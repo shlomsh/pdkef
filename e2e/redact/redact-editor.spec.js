@@ -240,18 +240,11 @@ test.describe('Redact editor browser guardrails', () => {
     await page.getByRole('button', { name: 'Full screen' }).click();
     await expect.poll(() => page.evaluate(() => document.fullscreenElement?.getAttribute('aria-busy') === 'false')).toBe(true);
 
-    const fileChooserPromise = page.waitForEvent('filechooser');
-    await page.getByRole('button', { name: 'Replace', exact: true }).click();
-    await (await fileChooserPromise).setFiles({
-      name: 'redact-replacement.pdf',
-      mimeType: 'application/pdf',
-      buffer: await makePdfBuffer(),
-    });
+    await page.getByRole('button', { name: 'Replace file', exact: true }).click();
 
     const confirmation = page.getByRole('dialog', { name: 'Replace this file?' });
     await expect(confirmation).toBeVisible();
     await expect(confirmation).toContainText('discards your redaction boxes');
-    await expect(confirmation).toContainText('redact-replacement.pdf');
 
     // The first Escape closes the top-layer dialog; it must not also exit full screen.
     await page.keyboard.press('Escape');

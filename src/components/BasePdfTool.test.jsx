@@ -210,7 +210,57 @@ describe('BasePdfTool', () => {
   // The gate that closed the drift: six of nine tools used to discard the user's
   // work on a file swap with no warning at all, and the three that did ask each
   // asked differently. One component decides now, from declared config.
-  it('asks before a replacement that would cost something, naming both files', () => {
+  it('asks BEFORE opening the picker when Replace is pressed', () => {
+    const onFilesAddedSpy = vi.fn();
+    mount({
+      hasFiles: true,
+      onFilesAdded: onFilesAddedSpy,
+      multiple: false,
+      fileLabel: 'contract.pdf',
+      hasWork: true,
+      workNoun: 'your annotations',
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const openedPicker = vi.spyOn(input, 'click');
+
+    const replace = container.querySelector(`.${toolShellStyles.action}`);
+    act(() => replace.click());
+
+    // The point of the ordering: the warning arrives before the trip through
+    // the OS picker, not after it.
+    const dialog = dialogNamed(container, 'confirm-replace-title');
+    expect(dialog.open).toBe(true);
+    expect(openedPicker).not.toHaveBeenCalled();
+    expect(dialog.textContent).toContain('Choosing another file closes');
+    expect(dialog.textContent).toContain('contract.pdf');
+    expect(dialog.textContent).toContain('discards your annotations');
+
+    act(() => dialogButton(dialog, 'Cancel').click());
+    expect(dialog.open).toBe(false);
+    expect(openedPicker).not.toHaveBeenCalled();
+
+    act(() => replace.click());
+    act(() => dialogButton(dialog, 'Choose a file').click());
+    expect(openedPicker).toHaveBeenCalledTimes(1);
+
+    // Having just agreed, the file that comes back must not be queried again.
+    selectFile(input);
+    expect(dialogNamed(container, 'confirm-replace-title').open).toBe(false);
+    expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the picker straight away when a replacement costs nothing', () => {
+    mount({ hasFiles: true, onFilesAdded: vi.fn(), multiple: false, fileLabel: 'contract.pdf' });
+    const openedPicker = vi.spyOn(container.querySelector('input[type="file"]'), 'click');
+
+    act(() => container.querySelector(`.${toolShellStyles.action}`).click());
+
+    expect(dialogNamed(container, 'confirm-replace-title').open).toBe(false);
+    expect(openedPicker).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks about a dropped file by name, since that one arrives already chosen', () => {
     const onFilesAddedSpy = vi.fn();
     mount({
       hasFiles: true,
