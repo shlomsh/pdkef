@@ -269,10 +269,10 @@ const TICKETS = [
     title: "T6 - One browser test that puts a file into the five uncovered tools",
     dependsOn: [],
     acceptance: "Split, Compress, PDF to Image, Image to PDF and Edit Pages are only ever page-loaded in e2e; their object-URL and download/share output paths are jsdom-only. Add ONE parameterised spec that loads a fixture into each and asserts a real object URL and download attribute - not five specs. The shared BasePdfTool input path is already covered by Merge/Unlock/Sign/Redact, so this is about per-tool output, and the ~1:25 e2e ratio has room for exactly this." }
-  ,{ id: "E8.T6a", epic: "E8", lane: "B", status: "todo", priority: "high",
+  ,{ id: "E8.T6a", epic: "E8", lane: "B", status: "done", priority: "high",
     title: "Browser guardrail for the home-page handoff (finishes E8.A1)",
     dependsOn: ["E8.A1"],
-    acceptance: "E8.A1's unit tests mock draftStore and cannot observe the navigation, and jsdom has no IndexedDB at all, so nothing proves the round trip end to end. Add an e2e that drops a PDF on the home page, lands on /sign, and asserts the document opened - plus the case where a draft exists and the confirmation appears first. This is the half of A1 that only a browser can prove." }
+    acceptance: "Done. e2e/home/handoff.spec.js (3 tests): a dropped file survives the navigation and opens in /sign; a drop that would discard a saved draft asks first, naming both files, and writes nothing until answered; declining leaves the draft intact and still restorable on a later visit - the exact case the original bug got backwards, since it had already overwritten the draft before any dialog could render. Seeds IndexedDB directly to set up the draft-exists case without driving a full signing session. Non-vacuity verified by reinstating the original bug (drop written straight to the tool's draft key, no confirmation) against a rebuilt dist: all three fail, the middle one on a 10s timeout waiting for the editor - the 'dropped file vanishes' signature - then reverted. Full e2e suite 20/20 (was 17); ratio to the 438 unit tests holds at ~1:22, inside the ~1:10 ceiling." }
   ,{ id: "E8.T5", epic: "E8", lane: "B", status: "todo", priority: "high",
     title: "T5 - Unit-test redact.js and merge.js",
     dependsOn: [],
