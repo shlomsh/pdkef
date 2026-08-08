@@ -1,4 +1,5 @@
 import FullscreenButton from './FullscreenButton';
+import ToolShell, { FILE_ACTIONS, useToolShell } from './ToolShell.jsx';
 import styles from './SignTool/SignToolbar.module.css';
 
 export default function RedactToolbar({
@@ -8,7 +9,6 @@ export default function RedactToolbar({
   setActiveColor,
   toggleFullscreen,
   isFullscreen,
-  setConfirmResetOpen,
   handleDownloadPdf,
   handlePrepareShare,
   handleSharePdf,
@@ -18,8 +18,13 @@ export default function RedactToolbar({
   actionHistory,
   setUndoModalOpen
 }) {
+  const { requestReplace } = useToolShell();
+
   return (
-    <div className={styles.container} style={{ marginTop: 'var(--space-5)' }}>
+    // No inline margin here any more. This file used to add one and SignToolbar
+    // did not, which is the entire reason the two tools disagreed about the gap
+    // above their toolbars; spacing belongs to the shared shell.
+    <ToolShell editor>
       <div className={styles.toolbar} role="toolbar" aria-label="PDF redaction">
         <button
           type="button"
@@ -86,18 +91,19 @@ export default function RedactToolbar({
 
         <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
 
+        {/* The united file action, in the exact slot Start over used to hold.
+            Both meant "I want a different file"; this one says it once. */}
         <button
           type="button"
-          className={`${styles.button} ${styles.reset}`}
-          onClick={() => setConfirmResetOpen(true)}
-          title="Discard your work and start over"
+          className={`${styles.button} ${styles.highlight}`}
+          onClick={requestReplace}
+          title={FILE_ACTIONS.replace.title}
           data-label-priority="2"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 2v6h6" />
-            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L3 8" />
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d={FILE_ACTIONS.replace.icon} />
           </svg>
-          <span className={styles.label}>Start over</span>
+          <span className={styles.label}>{FILE_ACTIONS.replace.shortLabel}</span>
         </button>
 
         <button
@@ -136,6 +142,6 @@ export default function RedactToolbar({
           </button>
         )}
       </div>
-    </div>
+    </ToolShell>
   );
 }

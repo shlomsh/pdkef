@@ -228,16 +228,30 @@ test.describe('Redact editor browser guardrails', () => {
     await expect(floatingToolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
   });
 
-  test('keeps the Start-over confirmation visible in real full screen', async ({ page }) => {
+  // Start over is gone: it and Replace both meant "I want a different file", so
+  // the toolbar carries one control that says it once. What this guards is
+  // unchanged - a confirmation raised from inside real full screen has to paint
+  // in the top layer, and the first Escape must close it without also dropping
+  // out of full screen.
+  test('keeps the replace confirmation visible in real full screen', async ({ page }) => {
     await openRedactTool(page);
+    await drawRedaction(page, 'Blackout', { x: 0.18, y: 0.28 }, { x: 0.38, y: 0.34 });
 
     await page.getByRole('button', { name: 'Full screen' }).click();
     await expect.poll(() => page.evaluate(() => document.fullscreenElement?.getAttribute('aria-busy') === 'false')).toBe(true);
 
-    await page.getByRole('button', { name: 'Start over' }).click();
-    const confirmation = page.getByRole('dialog', { name: 'Start over?' });
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Replace', exact: true }).click();
+    await (await fileChooserPromise).setFiles({
+      name: 'redact-replacement.pdf',
+      mimeType: 'application/pdf',
+      buffer: await makePdfBuffer(),
+    });
+
+    const confirmation = page.getByRole('dialog', { name: 'Replace this file?' });
     await expect(confirmation).toBeVisible();
-    await expect(confirmation.getByText('Your redactions can’t be recovered afterwards.')).toBeVisible();
+    await expect(confirmation).toContainText('discards your redaction boxes');
+    await expect(confirmation).toContainText('redact-replacement.pdf');
 
     // The first Escape closes the top-layer dialog; it must not also exit full screen.
     await page.keyboard.press('Escape');

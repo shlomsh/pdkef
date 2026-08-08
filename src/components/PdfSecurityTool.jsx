@@ -3,7 +3,6 @@ import { isPdfEncrypted, protectPdf, unlockPdf, WrongPasswordError, SecurityErro
 import BasePdfTool from './BasePdfTool.jsx';
 import styles from './PdfSecurityTool.module.css';
 import pdfToolStyles from './PdfTool.module.css';
-import dialogStyles from './SignatureDialog.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { describeFile } from '../lib/format.js';
@@ -15,30 +14,15 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
   const [mode, setMode] = useState(null); // 'unlock' | 'protect' | null
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [announcement, setAnnouncement] = useState('');
-  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const { canSharePdf, shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const downloadRef = useRef(null);
   const passwordRef = useRef(null);
-  const resetDialogRef = useRef(null);
 
   useEffect(() => {
     if (status === 'done' && downloadRef.current) {
       downloadRef.current.focus();
     }
   }, [status]);
-
-  useEffect(() => {
-    const dialog = resetDialogRef.current;
-    if (!dialog) return;
-
-    if (confirmResetOpen && !dialog.open) {
-      if (typeof dialog.showModal === 'function') dialog.showModal();
-      else dialog.open = true;
-    } else if (!confirmResetOpen && dialog.open) {
-      if (typeof dialog.close === 'function') dialog.close();
-      else dialog.open = false;
-    }
-  }, [confirmResetOpen]);
 
   const resetOutput = () => {
     clearPrepared();
@@ -118,16 +102,6 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
     else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
   };
 
-  const reset = () => {
-    setFile(null);
-    setPassword('');
-    setMode(null);
-    resetOutput();
-    setAnnouncement('Cleared. Choose a PDF file to start again.');
-  };
-
-  const requestReset = () => setConfirmResetOpen(true);
-
   const hasFiles = !!file;
 
   return (
@@ -138,15 +112,11 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
       emptyStateMessage={intent === 'unlock' ? 'Drop PDF here to unlock' : 'Drop PDF here to protect'}
       fileLabel={file?.name}
       fileMeta={describeFile(file)}
+      hasWork={status === 'done' || password !== ''}
+      workNoun="the password you entered"
     >
       {hasFiles && mode && (
         <div class="tool-workspace">
-          <div class={pdfToolStyles['list-header']} style={{ justifyContent: 'flex-end' }}>
-            <button type="button" class={pdfToolStyles['clear-all']} onClick={requestReset}>
-              Start over
-            </button>
-          </div>
-
           <form class={styles['unlock-form']} onSubmit={handleSubmit}>
             <label class={styles['unlock-label']} htmlFor="security-password">
               {mode === 'unlock' ? 'PDF password' : 'Set Password'}
@@ -206,9 +176,6 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
                 onShare={handleShare}
                 label={`Share ${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF`}
               />
-              <button type="button" class={pdfToolStyles['start-over']} onClick={requestReset}>
-                Start over
-              </button>
             </>
           )}
         </div>
@@ -218,40 +185,6 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
         {announcement}
       </p>
 
-      <dialog
-        ref={resetDialogRef}
-        class={`${dialogStyles.dialog} ${dialogStyles.narrow}`}
-        onClose={() => setConfirmResetOpen(false)}
-        onClick={(event) => { if (event.target === event.currentTarget) setConfirmResetOpen(false); }}
-        aria-labelledby="security-confirm-reset-title"
-      >
-        <div class={dialogStyles.header}>
-          <h3 id="security-confirm-reset-title">Start over?</h3>
-          <button type="button" class={dialogStyles.close} onClick={() => setConfirmResetOpen(false)} aria-label="Close dialog">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-              <path d="M4 4l8 8M12 4l-8 8" />
-            </svg>
-          </button>
-        </div>
-        <div class={`${dialogStyles.body} ${dialogStyles['body-tight']}`}>
-          <p class={dialogStyles['confirm-text']}>This clears the current PDF and password from this tool.</p>
-        </div>
-        <div class={dialogStyles.footer}>
-          <button type="button" class={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={() => setConfirmResetOpen(false)}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            class={`${dialogStyles.button} ${dialogStyles.primary} ${dialogStyles.danger}`}
-            onClick={() => {
-              setConfirmResetOpen(false);
-              reset();
-            }}
-          >
-            Discard &amp; start over
-          </button>
-        </div>
-      </dialog>
     </BasePdfTool>
   );
 }

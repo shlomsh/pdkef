@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'preact/hooks';
-import styles from './SignatureDialog.module.css';
+import dialogStyles from './Dialog.module.css';
 
 // Shared "Undo changes" dialog for the Sign and Redact tools — lists logged
 // actions (see actionHistory.js) as a checklist so several can be reverted at
@@ -31,21 +31,21 @@ export default function UndoHistoryModal({
   return (
     <dialog
       ref={dialogRef}
-      className={styles.dialog}
+      className={dialogStyles.dialog}
       onClose={onClose}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       aria-labelledby="undo-dialog-title"
     >
-      <div className={styles.header}>
+      <div className={dialogStyles.header}>
         <h3 id="undo-dialog-title">Undo changes</h3>
-        <button type="button" className={styles.close} onClick={onClose} aria-label="Close dialog">
+        <button type="button" className={dialogStyles.close} onClick={onClose} aria-label="Close dialog">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M4 4l8 8M12 4l-8 8" />
           </svg>
         </button>
       </div>
 
-      <div className={`${styles.body} ${styles['body-list']}`}>
+      <div className={`${dialogStyles.body} ${dialogStyles['body-list']}`}>
         <div className="undo-history-list">
           {actionHistory.map((action) => {
             const time = new Date(action.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -73,10 +73,10 @@ export default function UndoHistoryModal({
         </div>
       </div>
 
-      <div className={styles.footer}>
+      <div className={dialogStyles.footer}>
         <button
           type="button"
-          className={`${styles.button} ${styles.primary} ${styles.success}`}
+          className={`${dialogStyles.button} ${dialogStyles.primary} ${dialogStyles.success}`}
           onClick={onRevertSelected}
           disabled={undoSelection.size === 0}
         >

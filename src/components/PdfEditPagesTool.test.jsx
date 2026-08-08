@@ -4,6 +4,7 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.jsx';
 import { editPages } from '../lib/editPages.js';
 import dropzoneStyles from './Dropzone.module.css';
+import toolShellStyles from './ToolShell.module.css';
 import pageGridStyles from './PageGrid.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
@@ -90,7 +91,7 @@ describe('PdfEditPagesTool UI flow', () => {
     });
 
     // Check that the file bar shows the file name and page count
-    const fileBar = container.querySelector(`.${dropzoneStyles['file-bar']}`);
+    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
     expect(fileBar).not.toBeNull();
     expect(fileBar.textContent).toContain('document.pdf');
     expect(fileBar.textContent).toContain('3 pages');
@@ -260,16 +261,22 @@ describe('PdfEditPagesTool UI flow', () => {
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('document_modified.pdf');
 
-    // Click start over
-    const startOverBtn = container.querySelector(`.${pdfToolStyles['start-over']}`);
-    expect(startOverBtn).not.toBeNull();
+    // There is no Start over button under the result any more, and none in the
+    // header above it either: both meant "give me a different file", so the one
+    // Replace control in the shell says it. Picking a replacement on top of page
+    // changes has to ask first - this tool used to discard them silently.
+    expect(container.querySelector(`.${toolShellStyles.action}`).textContent).toContain('Replace');
+
+    const replacement = new File([new Uint8Array([1, 2, 3])], 'other.pdf', { type: 'application/pdf' });
+    const replaceInput = container.querySelector('input[type="file"]');
     await act(async () => {
-      startOverBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      Object.defineProperty(replaceInput, 'files', { value: [replacement], configurable: true });
+      replaceInput.dispatchEvent(new Event('change', { bubbles: true }));
     });
 
-    const dropzoneAfterReset = container.querySelector(`.${dropzoneStyles.dropzone}`);
-    expect(dropzoneAfterReset).not.toBeNull();
-    expect(dropzoneAfterReset.textContent).toContain('Drop PDF here');
+    const confirmation = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
+    expect(confirmation.open).toBe(true);
+    expect(confirmation.textContent).toContain('discards your page changes');
 
     window.URL.createObjectURL = originalCreateObjectURL;
     window.URL.revokeObjectURL = originalRevokeObjectURL;

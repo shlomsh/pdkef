@@ -244,15 +244,11 @@ export default function PdfEditPagesTool() {
       multiple={false}
       fileLabel={file?.name}
       fileMeta={describeFile(file, pages.length)}
+      hasWork={hasEdits || status === 'done'}
+      workNoun="your page changes"
     >
       {hasFiles && (
         <div class="tool-workspace">
-          <div class={pdfToolStyles['list-header']} style={{ justifyContent: 'flex-end' }}>
-            <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
-              Start over
-            </button>
-          </div>
-
           {status === 'loading-file' ? (
             <div style={{ padding: '3rem', textAlign: 'center' }}>
               <p style={{ color: 'var(--color-muted)' }}>Loading PDF file structure…</p>
@@ -435,9 +431,6 @@ export default function PdfEditPagesTool() {
                     Download PDF
                   </a>
                   <PdfShareButton visible={canSharePdf && shareReady} onShare={handleShare} />
-                  <button type="button" class={pdfToolStyles['start-over']} onClick={reset}>
-                    Start over
-                  </button>
                 </>
               )}
             </>

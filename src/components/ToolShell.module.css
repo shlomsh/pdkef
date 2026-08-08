@@ -1,0 +1,266 @@
+/* The loaded-file shell: identity line + control row as one object.
+
+   These two used to be separate boxes stacked with nothing between them - a
+   tinted file bar and, immediately below it, whatever the tool put next - which
+   read as a rendering fault rather than a design. They are one card now, sharing
+   a line on desktop and stacking only when the screen is too narrow to hold
+   both. The identity half is chromeless: it is information, so it gets no panel
+   of its own and no controls. */
+.shell {
+  /* The editor variant is a child of the workspace's centring flex column, so
+     without these it shrink-wraps to its content and the toolbar inside it
+     collapses to a fraction of the line. */
+  width: 100%;
+  align-self: stretch;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: 0.45rem 0.6rem;
+  background: var(--color-primary-tint);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+
+/* Both halves start out full-width, so a phone stacks them; the media queries
+   below hand them a shared line once there is room. */
+.identity,
+.controls {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  background: var(--color-surface);
+  border-radius: 9px;
+  color: var(--color-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+/* `unicode-bidi: plaintext` resolves the filename's direction from its own
+   first strong character, so a Hebrew name keeps its ".pdf" suffix on the
+   correct side. Unlike dir="auto" it leaves the element's own `direction`
+   (and therefore the alignment) alone, so the name still starts at the left
+   edge in line with the metadata row beneath it. */
+.name {
+  font-size: 0.87rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  unicode-bidi: plaintext;
+  text-align: left;
+}
+
+/* The pages/size text shrinks and ellipsizes; the draft-saved chip is pinned
+   so it survives on narrow screens. Truncating "2.5 KB" costs nothing, while
+   truncating "Draft saved" would hide the reassurance the user actually
+   wants when a long filename squeezes this row. */
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  font-size: 0.74rem;
+  color: var(--color-muted);
+}
+
+.meta-text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  color: var(--color-success);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Separator between the pages/size text and the draft-saved chip, drawn only
+   when both are present so neither needs to carry punctuation itself. */
+.meta-text + .saved::before {
+  content: '·';
+  margin-right: 0.3rem;
+  color: var(--color-muted);
+}
+
+/* --- The default control row's buttons --- */
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  flex: 1 1 auto;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.75rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out),
+    color 0.15s var(--ease-out);
+}
+
+.action:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.action:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* The row's standout. Named for the job, not the hue: it is not reporting
+   success, it is the control the eye should land on first, and a retheme
+   should be free to move it without recolouring every success state. */
+.highlight {
+  color: var(--color-highlight);
+  background: var(--color-highlight-soft);
+  border-color: color-mix(in srgb, var(--color-highlight) 35%, transparent);
+}
+
+.highlight:hover {
+  color: var(--color-surface);
+  background: var(--color-highlight);
+  border-color: var(--color-highlight);
+}
+
+.action-short {
+  display: none;
+}
+
+@media (max-width: 419px) {
+  .action-full {
+    display: none;
+  }
+
+  .action-short {
+    display: inline;
+  }
+
+  .icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+
+  .name {
+    font-size: 0.82rem;
+  }
+}
+
+/* Desktop: the two halves share one line. The identity takes the slack and the
+   controls sit at the trailing edge, sized to their content. */
+@media (min-width: 560px) {
+  .identity {
+    flex: 1 1 auto;
+  }
+
+  .controls {
+    flex: 0 0 auto;
+  }
+
+  .action {
+    flex: 0 0 auto;
+  }
+
+  /* The editor variant keeps stacking through this band - it joins at 920px
+     instead, for the reason spelled out at that query below. */
+  .editor .identity,
+  .editor .controls {
+    flex: 1 1 100%;
+  }
+}
+
+/* --- Editor variant: Sign and Redact --- */
+
+/* Their control row is a full toolbar rather than a button or two, so it takes
+   the line and the identity is capped instead. The card is glass and sticky
+   here: it stays legible and reachable while pages scroll underneath, including
+   in real full screen, which is why those two tools mount this shell inside
+   their workspace rather than taking it from BasePdfTool.
+
+   Padding is zero because the toolbar row brings its own. That is not tidiness:
+   the container-query thresholds in SignToolbar.module.css are hand-computed
+   from `--toolbar-padding`, so moving the row's padding out here would silently
+   shift where the toolbar decides to wrap. The identity is padded to match it
+   instead. */
+.editor {
+  position: sticky;
+  top: 1rem;
+  z-index: 100;
+  gap: 0;
+  margin-bottom: 0;
+  padding: 0;
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-lg), 0 4px 20px var(--color-surface-soft);
+}
+
+.editor .identity {
+  padding: 0.5rem 0.75rem;
+}
+
+.editor .controls {
+  display: block;
+}
+
+/* 920px, not the 560px the plain shell joins at, because that is where the
+   editor toolbars stop wrapping (see SignToolbar.module.css). Below it the
+   toolbar needs the whole width to lay its controls out in even rows, and the
+   wrap arithmetic that keeps those rows even is scoped to phone widths - hand
+   it a narrowed line at 768px and nine controls strand as 8+1 again. */
+@media (min-width: 920px) {
+  .editor .identity {
+    flex: 0 1 16rem;
+    padding-right: 0;
+  }
+
+  .editor .controls {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}

@@ -4,6 +4,7 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfSplitTool from './PdfSplitTool.jsx';
 import { parsePageSelector, pageNumbersToRangeString } from '../lib/split.js';
 import dropzoneStyles from './Dropzone.module.css';
+import toolShellStyles from './ToolShell.module.css';
 import pageGridStyles from './PageGrid.module.css';
 import styles from './PdfSplitTool.module.css';
 import pdfToolStyles from './PdfTool.module.css';
@@ -113,7 +114,7 @@ describe('PdfSplitTool UI flow', () => {
     const workspace = container.querySelector('.tool-workspace');
     expect(workspace).not.toBeNull();
 
-    const fileBar = container.querySelector(`.${dropzoneStyles['file-bar']}`);
+    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
     expect(fileBar).not.toBeNull();
     expect(fileBar.textContent).toContain('test.pdf');
     expect(fileBar.textContent).toContain('4 pages');

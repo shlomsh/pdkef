@@ -1,5 +1,5 @@
 import pdfToolStyles from './PdfTool.module.css';
-import dialogStyles from './SignatureDialog.module.css';
+import dialogStyles from './Dialog.module.css';
 
 export default function PdfShareButton({ visible, onShare, label = 'Share PDF' }) {
   if (!visible) return null;

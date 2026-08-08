@@ -7,6 +7,7 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import SignToolbar from './SignToolbar.jsx';
 import { SignToolProvider, useSignTool } from './SignToolContext.jsx';
 import styles from './SignToolbar.module.css';
+import toolShellStyles from '../ToolShell.module.css';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -49,7 +50,6 @@ describe('SignToolbar Component', () => {
             actionHistory={[]}
             toggleFullscreen={() => {}}
             isFullscreen={false}
-            setConfirmResetOpen={() => {}}
             onSavePdf={() => {}}
           />
           <TestConsumer />
@@ -89,7 +89,6 @@ describe('SignToolbar Component', () => {
             actionHistory={[]}
             toggleFullscreen={() => {}}
             isFullscreen={false}
-            setConfirmResetOpen={() => {}}
             onSavePdf={() => {}}
             onSharePdf={() => {}}
             canSharePdf
@@ -124,7 +123,6 @@ describe('SignToolbar Component', () => {
             actionHistory={[]}
             toggleFullscreen={() => {}}
             isFullscreen={false}
-            setConfirmResetOpen={() => {}}
             onSavePdf={() => {}}
             onSharePdf={onSharePdf}
             canSharePdf
@@ -175,7 +173,6 @@ describe('SignToolbar Component', () => {
             actionHistory={[]}
             toggleFullscreen={() => {}}
             isFullscreen={false}
-            setConfirmResetOpen={() => {}}
             onSavePdf={() => {}}
           />
           <TestConsumer />
@@ -234,7 +231,6 @@ describe('SignToolbar Component', () => {
             actionHistory={[]}
             toggleFullscreen={() => {}}
             isFullscreen={false}
-            setConfirmResetOpen={() => {}}
             onSavePdf={() => {}}
           />
         </SignToolProvider>,
@@ -288,7 +284,6 @@ describe('SignToolbar Component', () => {
             actionHistory={[]}
             toggleFullscreen={() => {}}
             isFullscreen={false}
-            setConfirmResetOpen={() => {}}
             onSavePdf={() => {}}
           />
         </SignToolProvider>,
@@ -298,7 +293,7 @@ describe('SignToolbar Component', () => {
 
     const toolbar = container.querySelector(`.${styles.toolbar}`);
     expect(toolbar).not.toBeNull();
-    expect(toolbar.parentElement.classList.contains(styles.container)).toBe(true);
+    expect(toolbar.parentElement.classList.contains(toolShellStyles.controls)).toBe(true);
 
     // The owning module source-of-truth check: `.toolbar` spans full width at
     // every breakpoint (no separate narrow-screen override shrinks it back to

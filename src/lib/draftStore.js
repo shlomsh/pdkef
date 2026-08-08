@@ -116,7 +116,8 @@ export async function loadDraft(tool) {
 }
 
 /**
- * Remove a tool's draft. Called on explicit "Start over".
+ * Remove a tool's draft. Called when a tool loads a different file over this one; Start over, which
+ * used to be the other caller, is gone (it and Replace meant the same thing).
  * @param {string} tool
  * @returns {Promise<boolean>}
  */

@@ -12,7 +12,7 @@ import { createActionEntry } from '../lib/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import UndoHistoryModal from './UndoHistoryModal.jsx';
-import dialogStyles from './SignatureDialog.module.css';
+import ConfirmDialog from './ConfirmDialog.jsx';
 import { describeFile } from '../lib/format.js';
 
 export default function PdfSignTool() {
@@ -34,8 +34,6 @@ function PdfSignToolInner() {
   const [progress, setProgress] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [undoModalOpen, setUndoModalOpen] = useState(false);
-  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
-  const [pendingFile, setPendingFile] = useState(null);
   const [undoSelection, setUndoSelection] = useState(new Set());
   const [signatureToDelete, setSignatureToDelete] = useState(null);
   const [announcement, setAnnouncement] = useState('');
@@ -80,8 +78,6 @@ function PdfSignToolInner() {
   const pageWrapperRefs = useRef([]);
   const copiedElementRef = useRef(null);
   const workspaceRef = useRef(null);
-  const resetDialogRef = useRef(null);
-  const deleteDialogRef = useRef(null);
   const fileBytesRef = useRef(null);
   const loadIdRef = useRef(0);
   // Whichever of {manual file pick, draft restore} happens first (in call order) wins
@@ -109,46 +105,23 @@ function PdfSignToolInner() {
     clearPrepared();
   }, [file, elements, clearPrepared]);
 
-  // Open the Start-over dialog with showModal() rather than the `open` attribute.
-  // showModal() promotes the dialog into the browser's top layer, which paints
-  // above the Fullscreen API element — a plain <dialog open> renders in normal
-  // stacking and is invisible while the workspace is in real full screen (that's
-  // why the modal SignatureDialog showed but this didn't). UndoHistoryModal
-  // handles the same lifecycle for itself.
+  // Escape precedence while the undo history is open in full screen: close the
+  // modal FIRST, and only let a subsequent Escape exit full screen. Without this
+  // the browser's default Escape (exit fullscreen) and the dialog's own Escape
+  // race, and full screen tends to win. Capturing it here also stops the global
+  // tool/selection Escape handler firing on the same press. The confirmations
+  // handle this for themselves inside ConfirmDialog.
   useEffect(() => {
-    const d = resetDialogRef.current;
-    if (!d) return;
-    if (confirmResetOpen && !d.open) d.showModal();
-    else if (!confirmResetOpen && d.open) d.close();
-  }, [confirmResetOpen]);
-
-  useEffect(() => {
-    const d = deleteDialogRef.current;
-    if (!d) return;
-    if (signatureToDelete && !d.open) d.showModal();
-    else if (!signatureToDelete && d.open) d.close();
-  }, [signatureToDelete]);
-
-  // Escape precedence while a dialog is open in full screen: close the dialog
-  // FIRST, and only let a subsequent Escape exit full screen. Without this the
-  // browser's default Escape (exit fullscreen) and the dialog's own Escape race,
-  // and full screen tends to win. Capturing Escape here (capture phase) lets us
-  // close the modal ourselves and preventDefault/stopImmediatePropagation so
-  // neither the fullscreen-exit default nor the global tool/selection Escape
-  // handler also fires on the same press.
-  useEffect(() => {
-    if (!undoModalOpen && !confirmResetOpen && !signatureToDelete) return;
+    if (!undoModalOpen) return;
     const onEsc = (e) => {
       if (e.key !== 'Escape') return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      if (undoModalOpen) setUndoModalOpen(false);
-      else if (signatureToDelete) setSignatureToDelete(null);
-      else setConfirmResetOpen(false);
+      setUndoModalOpen(false);
     };
     window.addEventListener('keydown', onEsc, { capture: true });
     return () => window.removeEventListener('keydown', onEsc, { capture: true });
-  }, [undoModalOpen, confirmResetOpen, signatureToDelete]);
+  }, [undoModalOpen]);
 
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
@@ -439,13 +412,10 @@ function PdfSignToolInner() {
       return;
     }
 
+    // No confirmation branch here: BasePdfTool asks before a replacement that
+    // would cost anything, so by the time a file reaches this handler the user
+    // has already agreed to it (or there was nothing to agree to).
     const selected = pdfs[0];
-
-    if (file) {
-      setPendingFile(selected);
-      setConfirmResetOpen(true);
-      return;
-    }
 
     loadStartedRef.current = true;
     const bytes = await selected.arrayBuffer();
@@ -670,19 +640,6 @@ function PdfSignToolInner() {
     }
   };
 
-  const reset = () => {
-    clearDraft();
-    fileBytesRef.current = null;
-    setFile(null);
-    setPdfDocument(null);
-    dispatch({ type: 'SET_ELEMENTS', payload: [] });
-    dispatch({ type: 'SET_ACTION_HISTORY', payload: [] });
-    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
-    setStatus('idle');
-    setProgress(0);
-    setAnnouncement('Cleared workspace.');
-  };
-
   const hasFiles = !!file;
 
   return (
@@ -693,6 +650,9 @@ function PdfSignToolInner() {
       fileLabel={file?.name}
       fileMeta={describeFile(file, numPages)}
       draftSaved={status === 'editing'}
+      hasWork={elements.length > 0}
+      workNoun="your annotations"
+      ownsShell
     >
       {hasFiles && status !== 'loading' && (
         <PdfWorkspace
@@ -731,7 +691,6 @@ function PdfSignToolInner() {
           setUndoModalOpen={setUndoModalOpen}
           toggleFullscreen={toggleFullscreen}
           isFullscreen={isFullscreen}
-          setConfirmResetOpen={setConfirmResetOpen}
           placeSignatureAt={placeSignatureAt}
           canSharePdf={canSharePdf}
           shareReady={shareReady}
@@ -764,88 +723,16 @@ function PdfSignToolInner() {
         onRevertSelected={handleRevertSelected}
       />
 
-      {/* Start-over confirmation */}
-      <dialog
-        ref={resetDialogRef}
-        className={`${dialogStyles.dialog} ${dialogStyles.narrow}`}
-        onClose={() => setConfirmResetOpen(false)}
-        onClick={(e) => { if (e.target === e.currentTarget) setConfirmResetOpen(false); }}
-        aria-labelledby="confirm-reset-title"
+      <ConfirmDialog
+        open={!!signatureToDelete}
+        titleId="confirm-delete-title"
+        title="Delete signature?"
+        confirmLabel="Delete signature"
+        onCancel={() => setSignatureToDelete(null)}
+        onConfirm={proceedDeleteSignature}
       >
-            <div className={dialogStyles.header}>
-              <h3 id="confirm-reset-title">Start over?</h3>
-              <button type="button" className={dialogStyles.close} onClick={() => setConfirmResetOpen(false)} aria-label="Close dialog">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <path d="M4 4l8 8M12 4l-8 8" />
-                </svg>
-              </button>
-            </div>
-            <div className={`${dialogStyles.body} ${dialogStyles['body-tight']}`}>
-              <p className={dialogStyles['confirm-text']}>
-                This clears the current document and removes your saved draft. Your annotations can’t be recovered afterwards.
-              </p>
-            </div>
-            <div className={dialogStyles.footer}>
-              <button type="button" className={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={() => {
-                setConfirmResetOpen(false);
-                setPendingFile(null);
-              }}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={`${dialogStyles.button} ${dialogStyles.primary} ${dialogStyles.danger}`}
-                onClick={async () => {
-                  setConfirmResetOpen(false);
-                  if (pendingFile) {
-                    const bytes = await pendingFile.arrayBuffer();
-                    loadStartedRef.current = true;
-                    await loadPdf(pendingFile, bytes, {});
-                    setPendingFile(null);
-                  } else {
-                    reset();
-                  }
-                }}
-              >
-                Discard &amp; start over
-              </button>
-            </div>
-      </dialog>
-
-      {/* Delete Signature confirmation */}
-      <dialog
-        ref={deleteDialogRef}
-        className={`${dialogStyles.dialog} ${dialogStyles.narrow}`}
-        onClose={() => setSignatureToDelete(null)}
-        onClick={(e) => { if (e.target === e.currentTarget) setSignatureToDelete(null); }}
-        aria-labelledby="confirm-delete-title"
-      >
-        <div className={dialogStyles.header}>
-          <h3 id="confirm-delete-title">Delete signature?</h3>
-          <button type="button" className={dialogStyles.close} onClick={() => setSignatureToDelete(null)} aria-label="Close dialog">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <path d="M4 4l8 8M12 4l-8 8" />
-            </svg>
-          </button>
-        </div>
-        <div className={`${dialogStyles.body} ${dialogStyles['body-tight']}`}>
-          <p className={dialogStyles['confirm-text']}>
-            Are you sure you want to delete this saved signature? This action cannot be undone.
-          </p>
-        </div>
-        <div className={dialogStyles.footer}>
-          <button type="button" className={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={() => setSignatureToDelete(null)}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className={`${dialogStyles.button} ${dialogStyles.primary} ${dialogStyles.danger}`}
-            onClick={proceedDeleteSignature}
-          >
-            Delete signature
-          </button>
-        </div>
-      </dialog>
+        Are you sure you want to delete this saved signature? This action cannot be undone.
+      </ConfirmDialog>
 
       <p className="sr-only" role="status" aria-live="polite">
         {announcement}

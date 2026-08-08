@@ -38,9 +38,9 @@ describe('PdfSecurityTool', () => {
     });
   }
 
-  async function loadFile() {
+  async function loadFile(name = 'test.pdf') {
     const input = container.querySelector('input[type="file"]');
-    const file = new File(['dummy'], 'test.pdf', { type: 'application/pdf' });
+    const file = new File(['dummy'], name, { type: 'application/pdf' });
     
     await act(async () => {
       Object.defineProperty(input, 'files', { value: [file], configurable: true });
@@ -71,30 +71,53 @@ describe('PdfSecurityTool', () => {
     expect(container.textContent).toContain("Enter a password to protect it");
   });
 
-  it('confirms before clearing the active file', async () => {
+  // Replace is the one file action this tool has now: Start over used to sit
+  // beside it saying the same thing, once in the form above and again under the
+  // result. Swapping the file while a password is typed still has to ask.
+  it('confirms before a replacement discards the password', async () => {
     securityLib.isPdfEncrypted.mockResolvedValue(true);
     mount();
 
     await loadFile();
+    const passwordInput = container.querySelector('#security-password');
+    await act(async () => {
+      passwordInput.value = 'hunter2';
+      passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
 
-    const startOver = container.querySelector(`.${pdfToolStyles['clear-all']}`);
-    await act(async () => startOver.click());
+    await loadFile('replacement.pdf');
 
-    const dialog = container.querySelector('dialog[aria-labelledby="security-confirm-reset-title"]');
+    const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
     expect(dialog.open).toBe(true);
-    expect(dialog.textContent).toContain('This clears the current PDF and password from this tool.');
-    expect(container.textContent).toContain('test.pdf');
+    expect(dialog.textContent).toContain('replacement.pdf');
+    expect(dialog.textContent).toContain('test.pdf');
+    expect(dialog.textContent).toContain('discards the password you entered');
 
     const cancel = Array.from(dialog.querySelectorAll('button')).find((button) => button.textContent.trim() === 'Cancel');
     await act(async () => cancel.click());
     expect(dialog.open).toBe(false);
     expect(container.textContent).toContain('test.pdf');
+    expect(container.textContent).not.toContain('replacement.pdf');
 
-    await act(async () => startOver.click());
-    const discard = Array.from(dialog.querySelectorAll('button')).find((button) => button.textContent.includes('Discard'));
-    await act(async () => discard.click());
-    expect(container.textContent).toContain('Drop PDF here to unlock');
-    expect(container.textContent).not.toContain('test.pdf');
+    await loadFile('replacement.pdf');
+    const confirm = Array.from(dialog.querySelectorAll('button')).find((button) => button.textContent.trim() === 'Replace file');
+    await act(async () => {
+      confirm.click();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    expect(container.textContent).toContain('replacement.pdf');
+  });
+
+  it('replaces without asking when nothing has been entered yet', async () => {
+    securityLib.isPdfEncrypted.mockResolvedValue(true);
+    mount();
+
+    await loadFile();
+    await loadFile('replacement.pdf');
+
+    const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
+    expect(dialog.open).toBe(false);
+    expect(container.textContent).toContain('replacement.pdf');
   });
 
   it('performs unlocking successfully', async () => {

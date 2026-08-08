@@ -1,0 +1,21 @@
+/* Dialog chrome shared by every modal in the app: the confirmations
+   (ConfirmDialog.jsx), the undo history list (UndoHistoryModal.jsx), the
+   signature builder (SignatureDialog.jsx) and the share button that borrows the
+   secondary-button look (PdfShareButton.jsx).
+
+   These rules used to live in SignatureDialog.module.css, and everything else
+   imported that file to get at them - one specific dialog's stylesheet acting as
+   the app's dialog system by accident. Nothing here is signature-specific;
+   SignatureDialog.module.css now keeps only the pad, tabs and upload chrome that
+   genuinely belong to it and imports this module alongside. */
+.dialog { border: none; border-radius: var(--radius-lg); padding: 0; width: 100%; max-width: 500px; box-shadow: var(--shadow-lg); background: var(--color-surface); overflow: hidden; }
+.dialog::backdrop { background-color: rgba(0,0,0,.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem .75rem; border-bottom: 1px solid var(--color-border); }.header h3 { margin: 0; font-size: 1.2rem; font-weight: 600; color: var(--color-text); }
+.close { display: inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border:none; background:var(--color-surface-sunken); color:var(--color-muted); border-radius:50%; cursor:pointer; }.close:hover { background:var(--color-border); color:var(--color-text); }
+.body { padding:1.5rem; }.body-tight { padding:.5rem 1.5rem 1.25rem; }.body-list { padding:.75rem 1.5rem 1.5rem; }.narrow { max-width:26rem; }
+.footer { display:flex; align-items:center; justify-content:flex-end; gap:var(--space-2); padding:.75rem 1.5rem 1.25rem; border-top:1px solid var(--color-border); }.button { padding:.6rem 1.25rem; font:inherit; font-size:.9rem; font-weight:600; border-radius:var(--radius); cursor:pointer; }.secondary { background:var(--color-surface-sunken); border:1px solid var(--color-border); color:var(--color-text); }.primary { background:var(--color-primary); border:none; color:var(--color-surface); }.danger { background:var(--color-danger); }.success { background:var(--color-success); }.confirm-text { margin:0; color:var(--color-muted); line-height:1.5; }
+/* The filename a confirmation is about, quoted inline in its body copy.
+   `unicode-bidi: plaintext` resolves a Hebrew name's direction from its own
+   first strong character so the ".pdf" suffix stays on the correct side, the
+   same treatment the identity line gives it. */
+.confirm-file { font-weight: 600; color: var(--color-text); unicode-bidi: plaintext; }

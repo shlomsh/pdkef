@@ -2,7 +2,7 @@
    by every tool (Merge, Split, Compress, ImageToPdf, ToImage, EditPages,
    Security, Redact) and BasePdfTool.jsx. This is the highest-fanout module in
    E2.2, landed as a few smaller commits by class-group rather than one atomic
-   change: (1) list/error/download/start-over states + `.merge-tool` wrapper,
+   change: (1) list/error/download states + `.merge-tool` wrapper,
    (2) `.merge-button*`/`.progress-ring*` (moved here from the old E2.2.4,
    which turned out to be an 8-9-tool shared class, not PdfMergeTool-only),
    (3) items deferred from E2.2.9 (`.page-numbers-toggle`,
@@ -42,40 +42,12 @@
   }
 }
 
-/* --- List header (count + clear) --- */
-.list-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-top: var(--space-5);
-}
-
-.list-count {
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--color-text);
-}
-
-.clear-all {
-  font: inherit;
-  font-size: 0.83rem;
-  font-weight: 500;
-  color: var(--color-muted);
-  background: none;
-  border: none;
-  padding: 0.3rem 0.4rem;
-  margin: -0.3rem -0.4rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: color 0.15s var(--ease-out), background-color 0.15s var(--ease-out);
-}
-
-.clear-all:hover {
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
-}
+/* No `.list-header` / `.list-count` / `.clear-all` here any more. The file count
+   is part of the identity line now (ToolShell.module.css) and Clear all is one
+   of that shell's controls, so neither the header row nor the two classes it
+   needed survive. `.clear-all` in particular was the shared "throw the user's
+   work away" button eight tools reached for while their results views reached
+   for `.start-over` to do the same thing under a second name. */
 
 /* --- Page selector --- */
 .page-selector-field {
@@ -231,30 +203,6 @@
   to {
     stroke-dashoffset: 0;
   }
-}
-
-.start-over {
-  display: block;
-  width: 100%;
-  margin: var(--space-3) 0 0;
-  padding: 0.5rem;
-  font: inherit;
-  font-size: 0.88rem;
-  font-weight: 500;
-  color: var(--color-muted);
-  background: var(--color-primary-soft);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  text-align: center;
-  transition: color 0.15s var(--ease-out), background-color 0.15s var(--ease-out),
-    border-color 0.15s var(--ease-out);
-}
-
-.start-over:hover {
-  color: var(--color-text);
-  background: var(--color-primary-tint);
-  border-color: var(--color-border-strong);
 }
 
 /* --- Merge button --- */

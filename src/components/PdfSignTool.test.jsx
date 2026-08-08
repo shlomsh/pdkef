@@ -8,6 +8,7 @@ import toolbarStyles from './SignTool/SignToolbar.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 import dropzoneStyles from './Dropzone.module.css';
+import toolShellStyles from './ToolShell.module.css';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -101,8 +102,8 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    // The dropzone should now be replaced by the loaded-state file bar.
-    const fileBar = container.querySelector(`.${dropzoneStyles['file-bar']}`);
+    // The dropzone should now be replaced by the loaded-state identity line.
+    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
     expect(fileBar).not.toBeNull();
     expect(fileBar.textContent).toContain('test_agreement.pdf');
   });

@@ -183,6 +183,15 @@
   --color-success-soft: #ebffd8; /* Trust color for pill and privacy caption */
   --color-danger: #b84c58; /* Muted berry red to complement the cool teal theme */
   --color-danger-soft: #fcf1f3;
+  /* The theme's highlight accent: the one control in a crowded row that should
+     catch the eye without claiming primary-action status. It is deliberately a
+     token of its own rather than a reference to --color-success: the control
+     wearing it is not reporting success, it is just the row's standout, and a
+     retheme should be able to move one without dragging the other. The values
+     start out identical to the success family, so nothing changes on screen. */
+  --color-highlight: #5c7a3a;
+  --color-highlight-hover: #4a632f;
+  --color-highlight-soft: #ebffd8;
   --color-surface-soft: rgba(0, 0, 0, 0.02);
 
   --radius-sm: 10px;

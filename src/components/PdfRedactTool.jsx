@@ -18,7 +18,6 @@ import { usePdfShare } from '../lib/usePdfShare.js';
 import pdfToolStyles from './PdfTool.module.css';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
-import dialogStyles from './SignatureDialog.module.css';
 import elementStyles from './SignTool/EditorElement.module.css';
 import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../lib/format.js';
@@ -51,7 +50,6 @@ export default function PdfRedactTool() {
       localStorage.setItem('pdf-toolkit:lastWhiteoutColor', color);
     } catch (e) {}
   };
-  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   // Which existing box shows its delete/resize controls — set on hover (desktop) or
   // on touch/drag interaction (mobile has no hover), so the controls stay hidden
   // otherwise and don't clutter pages full of redaction boxes.
@@ -81,7 +79,6 @@ export default function PdfRedactTool() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const workspaceRef = useRef(null);
-  const resetDialogRef = useRef(null);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -91,33 +88,22 @@ export default function PdfRedactTool() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // showModal() places the dialog in the browser's top layer. A plain <dialog open>
-  // remains in the normal stacking context and is invisible behind a real Fullscreen
-  // API workspace, regardless of its z-index.
+  // Escape precedence while the Undo modal is open in full screen: close the
+  // modal FIRST, and only let a subsequent Escape exit full screen. Without this
+  // the browser's default Escape (exit fullscreen) races the dialog's own
+  // Escape, and full screen tends to win, leaving the dialog orphaned open
+  // behind it. The confirmations handle this for themselves in ConfirmDialog.
   useEffect(() => {
-    const dialog = resetDialogRef.current;
-    if (!dialog) return;
-    if (confirmResetOpen && !dialog.open) dialog.showModal();
-    else if (!confirmResetOpen && dialog.open) dialog.close();
-  }, [confirmResetOpen]);
-
-  // Escape precedence while an Undo or Start-over modal is open in full screen: close the modal
-  // FIRST, and only let a subsequent Escape exit full screen. Without this the
-  // browser's default Escape (exit fullscreen) races the dialog's own Escape, and
-  // full screen tends to win, leaving the dialog orphaned open behind it. Mirrors
-  // PdfSignTool.jsx's identical handling for its own Undo/Start-over dialogs.
-  useEffect(() => {
-    if (!undoModalOpen && !confirmResetOpen) return;
+    if (!undoModalOpen) return;
     const onEsc = (e) => {
       if (e.key !== 'Escape') return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      if (undoModalOpen) setUndoModalOpen(false);
-      else setConfirmResetOpen(false);
+      setUndoModalOpen(false);
     };
     window.addEventListener('keydown', onEsc, { capture: true });
     return () => window.removeEventListener('keydown', onEsc, { capture: true });
-  }, [undoModalOpen, confirmResetOpen]);
+  }, [undoModalOpen]);
 
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
@@ -193,8 +179,10 @@ export default function PdfRedactTool() {
       return;
     }
 
-    // Claim the load slot synchronously, before the arrayBuffer() await, so a draft
-    // restore resolving in that gap sees the claim and backs off instead of racing us.
+    // BasePdfTool has already asked about anything a replacement would cost, so
+    // reaching here means the swap is agreed. Claim the load slot synchronously,
+    // before the arrayBuffer() await, so a draft restore resolving in that gap
+    // sees the claim and backs off instead of racing us.
     loadStartedRef.current = true;
 
     const selected = pdfs[0];
@@ -436,23 +424,6 @@ export default function PdfRedactTool() {
     }
   };
 
-  const reset = () => {
-    clearDraft();
-    clearPrepared();
-    fileBytesRef.current = null;
-    setFile(null);
-    setPdfDocument(null);
-    setElements([]);
-    setActiveBoxId(null);
-    setSelectedBoxId(null);
-    setActionHistory([]);
-    setUndoSelection(new Set());
-    setUndoModalOpen(false);
-    setStatus('idle');
-    setProgress(0);
-    setAnnouncement('Cleared workspace.');
-  };
-
   return (
     <BasePdfTool
       hasFiles={!!file}
@@ -463,6 +434,9 @@ export default function PdfRedactTool() {
       fileLabel={file?.name}
       fileMeta={describeFile(file, numPages)}
       draftSaved={status === 'editing'}
+      hasWork={elements.length > 0}
+      workNoun="your redaction boxes"
+      ownsShell
     >
       <div className="sr-only" role="status" aria-live="polite">
         {announcement}
@@ -481,7 +455,6 @@ export default function PdfRedactTool() {
             setActiveColor={rememberColor}
             toggleFullscreen={toggleFullscreen}
             isFullscreen={isFullscreen || isPseudoFullscreen}
-            setConfirmResetOpen={setConfirmResetOpen}
             handleDownloadPdf={() => handleSavePdf('download')}
             handlePrepareShare={() => handleSavePdf('share')}
             handleSharePdf={handleSharePdf}
@@ -504,8 +477,7 @@ export default function PdfRedactTool() {
                   {elements.some(el => el.pageIndex === i) && (
                     <button
                       type="button"
-                      className={pdfToolStyles['clear-all']}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                      className={styles['clear-page']}
                       title="Clear all redactions on this page"
                       onClick={() => clearPage(i)}
                     >
@@ -603,43 +575,6 @@ export default function PdfRedactTool() {
         onRevertSelected={handleRevertSelected}
       />
 
-      {/* Start-over confirmation */}
-      <dialog
-        ref={resetDialogRef}
-        className={`${dialogStyles.dialog} ${dialogStyles.narrow}`}
-        onClose={() => setConfirmResetOpen(false)}
-        onClick={(e) => { if (e.target === e.currentTarget) setConfirmResetOpen(false); }}
-        aria-labelledby="confirm-reset-title"
-      >
-        <div className={dialogStyles.header}>
-          <h3 id="confirm-reset-title">Start over?</h3>
-          <button type="button" className={dialogStyles.close} onClick={() => setConfirmResetOpen(false)} aria-label="Close dialog">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <path d="M4 4l8 8M12 4l-8 8" />
-            </svg>
-          </button>
-        </div>
-        <div className={`${dialogStyles.body} ${dialogStyles['body-tight']}`}>
-          <p className={dialogStyles['confirm-text']}>
-            This clears the current document and removes your saved draft. Your redactions can’t be recovered afterwards.
-          </p>
-        </div>
-        <div className={dialogStyles.footer}>
-          <button type="button" className={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={() => setConfirmResetOpen(false)}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className={`${dialogStyles.button} ${dialogStyles.primary} ${dialogStyles.danger}`}
-            onClick={() => {
-              setConfirmResetOpen(false);
-              reset();
-            }}
-          >
-            Discard &amp; start over
-          </button>
-        </div>
-      </dialog>
     </BasePdfTool>
   );
 }

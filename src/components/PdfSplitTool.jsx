@@ -280,6 +280,8 @@ export default function PdfSplitTool() {
       multiple={false}
       fileLabel={file?.name}
       fileMeta={describeFile(file, numPages)}
+      hasWork={status === 'done' || pageSelector.trim() !== ''}
+      workNoun="your page selection"
     >
       {rejectedFiles.length > 0 && (
         <p class="hint-message" role="status">
@@ -291,12 +293,6 @@ export default function PdfSplitTool() {
 
       {hasFiles && (
         <div class="tool-workspace">
-          <div class={pdfToolStyles['list-header']} style={{ justifyContent: 'flex-end' }}>
-            <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
-              Start over
-            </button>
-          </div>
-
           {status === 'loading' ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-muted)' }}>
               <p>Loading document pages...</p>
@@ -495,9 +491,6 @@ export default function PdfSplitTool() {
                     onShare={handleShare}
                     label={downloadFiles.length === 1 ? 'Share PDF' : `Share ${downloadFiles.length} PDFs`}
                   />
-                  <button type="button" class={pdfToolStyles['start-over']} onClick={reset}>
-                    Start over
-                  </button>
                 </div>
               )}
             </>

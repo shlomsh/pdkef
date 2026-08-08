@@ -154,15 +154,11 @@ export default function PdfToImageTool() {
       multiple={false}
       fileLabel={file?.name}
       fileMeta={describeFile(file)}
+      hasWork={status === 'done' || pageSelector.trim() !== ''}
+      workNoun="the images you just made"
     >
       {hasFiles && (
         <div class="tool-workspace">
-          <div class={pdfToolStyles['list-header']} style={{ justifyContent: 'flex-end' }}>
-            <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
-              Start over
-            </button>
-          </div>
-
           <div class={styles.toolbar} role="group" aria-label="Image format">
             <span class={styles['toolbar-label']}>Format</span>
             <button
@@ -321,9 +317,6 @@ export default function PdfToImageTool() {
                 onShare={handleShare}
                 label={images.length === 1 ? `Share ${formatLabel}` : `Share ${images.length} images`}
               />
-              <button type="button" class={pdfToolStyles['start-over']} onClick={reset}>
-                Start over
-              </button>
             </>
           )}
         </div>

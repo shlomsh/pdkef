@@ -9,6 +9,7 @@ import pdfToolStyles from './PdfTool.module.css';
 import sortToolbarStyles from './SortToolbar.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
+import { formatFileSize } from '../lib/format.js';
 
 let nextId = 0;
 
@@ -216,11 +217,19 @@ export default function PdfMergeTool() {
   };
 
   const hasFiles = entries.length > 0;
+  const fileSummary = `${entries.length} PDF${entries.length === 1 ? '' : 's'}`;
   const ringOffset =
     PROGRESS_RING_CIRCUMFERENCE - progress * PROGRESS_RING_CIRCUMFERENCE;
 
   return (
-    <BasePdfTool hasFiles={hasFiles} onFilesAdded={addFiles}>
+    <BasePdfTool
+      hasFiles={hasFiles}
+      onFilesAdded={addFiles}
+      fileLabel={fileSummary}
+      fileMeta={formatFileSize(entries.reduce((total, entry) => total + entry.file.size, 0))}
+      onClearAll={reset}
+      clearSummary={fileSummary}
+    >
 
       {rejectedFiles.length > 0 && (
         <p class="hint-message" role="status">
@@ -232,15 +241,6 @@ export default function PdfMergeTool() {
 
       {hasFiles && (
         <>
-          <div class={pdfToolStyles['list-header']}>
-            <span class={pdfToolStyles['list-count']}>
-              {entries.length} PDF{entries.length === 1 ? '' : 's'}
-            </span>
-            <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
-              Clear all
-            </button>
-          </div>
-
           <div class={sortToolbarStyles.toolbar} role="toolbar" aria-label="Sort files">
             <button type="button" class={sortToolbarStyles.button} onClick={() => applySort(sortByName, 'asc')}>
               A–Z
@@ -376,9 +376,6 @@ export default function PdfMergeTool() {
                 Download PDF
               </a>
               <PdfShareButton visible={canSharePdf && shareReady} onShare={handleShare} />
-              <button type="button" class={pdfToolStyles['start-over']} onClick={reset}>
-                Start over
-              </button>
             </>
           )}
         </>

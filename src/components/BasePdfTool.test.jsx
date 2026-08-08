@@ -3,15 +3,35 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import BasePdfTool from './BasePdfTool.jsx';
 import styles from './Dropzone.module.css';
+import toolShellStyles from './ToolShell.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 
 function fileDragEvent(type, { withFiles = true, bubbles = true } = {}) {
   const event = new Event(type, { bubbles, cancelable: true });
   event.dataTransfer = {
     types: withFiles ? ['Files'] : ['text/plain'],
-    files: [],
+    // A real drop always carries at least one file; an empty list is now a
+    // no-op on purpose, so the helper has to be honest about what it simulates.
+    files: withFiles ? [new File([''], 'dropped.pdf', { type: 'application/pdf' })] : [],
   };
   return event;
+}
+
+function selectFile(input, name = 'replacement.pdf') {
+  const file = new File([''], name, { type: 'application/pdf' });
+  act(() => {
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  return file;
+}
+
+function dialogNamed(container, id) {
+  return container.querySelector(`dialog[aria-labelledby="${id}"]`);
+}
+
+function dialogButton(dialog, label) {
+  return Array.from(dialog.querySelectorAll('button')).find((button) => button.textContent.trim() === label);
 }
 
 describe('BasePdfTool', () => {
@@ -47,15 +67,19 @@ describe('BasePdfTool', () => {
     expect(dropzone).not.toBeNull();
   });
 
-  it('renders the loaded-state file bar instead of the dropzone', () => {
+  it('renders the loaded-state identity line instead of the dropzone', () => {
     mount({ hasFiles: true, onFilesAdded: vi.fn(), fileLabel: 'contract.pdf' });
     expect(container.textContent).not.toContain('Drop PDF');
     expect(container.textContent).not.toContain('Private. Files never leave your device.');
     expect(container.querySelector(`.${styles['dropzone']}`)).toBeNull();
 
-    const fileBar = container.querySelector(`.${styles['file-bar']}`);
-    expect(fileBar).not.toBeNull();
-    expect(fileBar.textContent).toContain('contract.pdf');
+    const identity = container.querySelector(`.${toolShellStyles.identity}`);
+    expect(identity).not.toBeNull();
+    expect(identity.textContent).toContain('contract.pdf');
+    // Read-only: the identity states what is loaded and offers no way to act on it.
+    expect(identity.querySelector('button')).toBeNull();
+    expect(identity.querySelector('a')).toBeNull();
+    expect(identity.querySelector('input')).toBeNull();
     expect(container.textContent).toContain('Add files');
   });
 
@@ -181,6 +205,99 @@ describe('BasePdfTool', () => {
     });
 
     expect(container.querySelector(`.${styles['drop-overlay']}`)).toBeNull();
+  });
+
+  // The gate that closed the drift: six of nine tools used to discard the user's
+  // work on a file swap with no warning at all, and the three that did ask each
+  // asked differently. One component decides now, from declared config.
+  it('asks before a replacement that would cost something, naming both files', () => {
+    const onFilesAddedSpy = vi.fn();
+    mount({
+      hasFiles: true,
+      onFilesAdded: onFilesAddedSpy,
+      multiple: false,
+      fileLabel: 'contract.pdf',
+      hasWork: true,
+      workNoun: 'your annotations',
+    });
+
+    const incoming = selectFile(container.querySelector('input[type="file"]'));
+    expect(onFilesAddedSpy).not.toHaveBeenCalled();
+
+    const dialog = dialogNamed(container, 'confirm-replace-title');
+    expect(dialog.open).toBe(true);
+    expect(dialog.textContent).toContain('replacement.pdf');
+    expect(dialog.textContent).toContain('contract.pdf');
+    expect(dialog.textContent).toContain('discards your annotations');
+
+    act(() => dialogButton(dialog, 'Cancel').click());
+    expect(dialog.open).toBe(false);
+    expect(onFilesAddedSpy).not.toHaveBeenCalled();
+
+    selectFile(container.querySelector('input[type="file"]'));
+    act(() => dialogButton(dialog, 'Replace file').click());
+    expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
+    expect(onFilesAddedSpy.mock.calls[0][0][0].name).toBe(incoming.name);
+  });
+
+  it('mentions the saved draft only when there is one to lose', () => {
+    mount({
+      hasFiles: true,
+      onFilesAdded: vi.fn(),
+      multiple: false,
+      fileLabel: 'contract.pdf',
+      hasWork: true,
+      draftSaved: true,
+    });
+
+    selectFile(container.querySelector('input[type="file"]'));
+    expect(dialogNamed(container, 'confirm-replace-title').textContent).toContain('Your saved draft goes with it.');
+  });
+
+  it('skips the prompt when nothing has been done to the file yet', () => {
+    const onFilesAddedSpy = vi.fn();
+    mount({ hasFiles: true, onFilesAdded: onFilesAddedSpy, multiple: false, fileLabel: 'contract.pdf' });
+
+    selectFile(container.querySelector('input[type="file"]'));
+    expect(dialogNamed(container, 'confirm-replace-title').open).toBe(false);
+    expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('never prompts a list tool for adding files, but does for clearing them', () => {
+    const onFilesAddedSpy = vi.fn();
+    const onClearAllSpy = vi.fn();
+    mount({
+      hasFiles: true,
+      onFilesAdded: onFilesAddedSpy,
+      onClearAll: onClearAllSpy,
+      clearSummary: '3 PDFs',
+      fileLabel: '3 PDFs',
+      hasWork: true,
+    });
+
+    selectFile(container.querySelector('input[type="file"]'));
+    expect(dialogNamed(container, 'confirm-replace-title').open).toBe(false);
+    expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
+
+    const clear = Array.from(container.querySelectorAll(`.${toolShellStyles.action}`))
+      .find((button) => button.textContent.includes('Clear all'));
+    act(() => clear.click());
+
+    const dialog = dialogNamed(container, 'confirm-clear-title');
+    expect(dialog.open).toBe(true);
+    expect(dialog.textContent).toContain('3 PDFs');
+    expect(onClearAllSpy).not.toHaveBeenCalled();
+
+    act(() => dialogButton(dialog, 'Clear all').click());
+    expect(onClearAllSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the shell to the tool when it mounts one itself', () => {
+    mount({ hasFiles: true, onFilesAdded: vi.fn(), multiple: false, fileLabel: 'contract.pdf', ownsShell: true });
+    expect(container.querySelector(`.${toolShellStyles.identity}`)).toBeNull();
+    // The picker behind it still belongs to BasePdfTool, so the tool's own
+    // Replace control has something to open.
+    expect(container.querySelector('input[type="file"]')).not.toBeNull();
   });
 
   it('does not attach the drop overlay in the empty state', () => {
