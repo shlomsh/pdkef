@@ -8,6 +8,8 @@
 //
 // One draft per tool: the store is keyed by tool name ('sign' | 'redact'), so
 // picking a new file or starting over simply overwrites/deletes the single record.
+// The same store also holds short-lived handoffs under a `handoff:<tool>` key -
+// see saveHandoff/takeHandoff below for why those must never share the draft key.
 
 const DB_NAME = 'pdf-toolkit-drafts';
 const STORE_NAME = 'drafts';
@@ -16,6 +18,20 @@ const DB_VERSION = 1;
 // Drop drafts older than this on load so an abandoned (possibly sensitive) PDF does
 // not linger in browser storage forever.
 export const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+
+// A handoff is a baton, not a draft: the home page drops a PDF into it and the tool
+// page picks it up one navigation later. Five minutes is far longer than a
+// same-origin navigation and short enough that a handoff abandoned mid-flight
+// cannot ambush a different session days later with a file it never asked for.
+export const HANDOFF_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
+
+// Handoffs live in the same store under their own key space, which is the whole
+// point: the home page used to write the dropped file straight into the tool's
+// draft key, and since a put() replaces the record, one drop silently destroyed
+// whatever signing work was saved there - and wrote a record with no fileBytes, so
+// the restore path skipped it and the dropped file was lost too. Nothing outside
+// this file may write to a tool's draft key on a tool's behalf.
+const handoffKey = (tool) => `handoff:${tool}`;
 
 function hasIndexedDB() {
   try {
@@ -131,5 +147,56 @@ export async function deleteDraft(tool) {
   } catch (e) {
     console.error('draftStore.deleteDraft failed:', e);
     return false;
+  }
+}
+
+/**
+ * Park a dropped file for a tool to collect after the navigation that follows.
+ * Stores the bytes, not the File: a File handle does not survive a page load, and
+ * the receiving side rebuilds one from these fields.
+ *
+ * @param {string} tool - 'sign' | 'redact'
+ * @param {{ fileName: string, fileType?: string, fileBytes: ArrayBuffer }} record
+ * @returns {Promise<boolean>} true if written
+ */
+export async function saveHandoff(tool, record) {
+  if (!hasIndexedDB()) return false;
+  try {
+    await withStore('readwrite', (store) => {
+      store.put({ ...record, tool: handoffKey(tool), savedAt: Date.now() });
+    });
+    return true;
+  } catch (e) {
+    console.error('draftStore.saveHandoff failed:', e);
+    return false;
+  }
+}
+
+/**
+ * Collect and consume a tool's pending handoff, or null if there is none.
+ *
+ * Read-and-delete in one call, deliberately: a handoff is a one-shot baton, so
+ * leaving it behind would re-open the same file on every later visit to the tool,
+ * and would do it over whatever the user had since started.
+ *
+ * @param {string} tool
+ * @returns {Promise<object|null>}
+ */
+export async function takeHandoff(tool) {
+  if (!hasIndexedDB()) return null;
+  const key = handoffKey(tool);
+  try {
+    const record = await withStore('readonly', (store) => reqToPromise(store.get(key)));
+    if (!record) return null;
+    await withStore('readwrite', (store) => {
+      store.delete(key);
+    });
+    if (typeof record.savedAt === 'number' && Date.now() - record.savedAt > HANDOFF_MAX_AGE_MS) {
+      return null;
+    }
+    return record.fileBytes ? record : null;
+  } catch (e) {
+    console.error('draftStore.takeHandoff failed:', e);
+    return null;
   }
 }
