@@ -226,17 +226,24 @@
   color: var(--color-muted);
 }
 
+/* Secondary to everything else on the screen: the file is already loaded, so the
+   real call to action is in the editor toolbar below. It is sized to give the
+   filename beside it as much room as possible - tight horizontal padding and a
+   lighter border - while `min-height` keeps it a comfortable tap target and
+   squares it off against the 36px file icon at the other end of the bar. */
 .file-bar-replace {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: center;
+  gap: 0.3rem;
   flex-shrink: 0;
-  padding: 0.45rem 0.85rem;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.6rem;
   background: var(--color-surface);
   color: var(--color-primary);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out);

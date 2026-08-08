@@ -33,13 +33,15 @@ async function openSignTool(page) {
   await expect(page.locator('[role="toolbar"]')).toBeVisible();
 }
 
-// Reads the rendered rect of every top-level toolbar control. Some controls are
-// a bare <button>, others are a <div class=dropdown> wrapping the popover
-// trigger — the two used to size differently, which is the whole point here.
-async function readControlRects(page) {
+// Reads the rendered rect of every top-level toolbar control, grouped into the
+// rows they wrapped onto. Some controls are a bare <button>, others are a
+// <div class=dropdown> wrapping the popover trigger — the two used to size
+// differently, which is half the point here.
+async function readToolbar(page) {
   return page.evaluate(() => {
     const toolbar = document.querySelector('[role="toolbar"]');
-    return [...toolbar.children]
+    const toolbarRect = toolbar.getBoundingClientRect();
+    const controls = [...toolbar.children]
       .map((child) => (child.tagName === 'BUTTON' ? child : child.querySelector('button')))
       .filter((button) => button && button.offsetParent !== null)
       .map((button) => {
@@ -48,8 +50,24 @@ async function readControlRects(page) {
           name: button.textContent.trim() || button.title,
           width: rect.width,
           height: rect.height,
+          top: Math.round(rect.top),
+          left: rect.left,
+          right: rect.right,
         };
       });
+
+    const byTop = new Map();
+    for (const control of controls) {
+      if (!byTop.has(control.top)) byTop.set(control.top, []);
+      byTop.get(control.top).push(control);
+    }
+    const rows = [...byTop.values()].map((row) => ({
+      count: row.length,
+      leadGap: row[0].left - toolbarRect.left,
+      trailGap: toolbarRect.right - row[row.length - 1].right,
+    }));
+
+    return { controls, rows };
   });
 }
 
@@ -64,7 +82,7 @@ test.describe('Sign toolbar touch targets', () => {
       await page.setViewportSize({ width, height: 900 });
       await openSignTool(page);
 
-      const controls = await readControlRects(page);
+      const { controls, rows } = await readToolbar(page);
       expect(controls.length).toBeGreaterThan(5);
 
       for (const control of controls) {
@@ -89,6 +107,29 @@ test.describe('Sign toolbar touch targets', () => {
           .map((control) => `${control.name}=${control.width}`)
           .join(', ')}`,
       ).toBeLessThanOrEqual(1);
+
+      // Each wrapped line is centred on its own, so a short final row reads as
+      // deliberate instead of stranded against the leading edge. This is the
+      // part grid could not do — its rows share one set of columns.
+      for (const [index, row] of rows.entries()) {
+        expect(
+          Math.abs(row.leadGap - row.trailGap),
+          `Row ${index + 1} (${row.count} controls) is off-centre: ${row.leadGap}px before, ${row.trailGap}px after`,
+        ).toBeLessThanOrEqual(1);
+      }
     });
   }
+
+  test('wraps to centred rows on a narrow phone rather than overflowing', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 900 });
+    await openSignTool(page);
+
+    const { rows } = await readToolbar(page);
+    expect(rows.length).toBeGreaterThan(1);
+    // No row may spill past the toolbar it sits in.
+    for (const row of rows) {
+      expect(row.leadGap).toBeGreaterThanOrEqual(0);
+      expect(row.trailGap).toBeGreaterThanOrEqual(0);
+    }
+  });
 });
