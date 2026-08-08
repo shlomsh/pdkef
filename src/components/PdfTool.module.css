@@ -101,6 +101,34 @@
   font-size: 0.8rem;
 }
 
+/* The low-key notice tools use for "skipped a file that wasn't a PDF" and
+   similar asides - quieter than .error-message, which is for a failed operation.
+
+   This rule existed in global.css until a40a937 deleted it during the Sign
+   modularization without re-homing it, so for several months five tools rendered
+   `class="hint-message"` against no rule at all and the notices came out as bare
+   body text. One of them (Edit PDF) papered over it with inline centring and a
+   danger colour, which is why the .centered and .danger modifiers below exist as
+   real classes rather than as a style attribute in one tool and nothing in the
+   other four. */
+.hint-message {
+  margin: var(--space-3) 0 0;
+  padding: 0.65rem 0.9rem;
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+}
+
+.hint-message.centered {
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.hint-message.danger {
+  color: var(--color-danger);
+}
+
 /* --- Error state --- */
 .error-message {
   display: flex;

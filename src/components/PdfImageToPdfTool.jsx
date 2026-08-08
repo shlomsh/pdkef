@@ -217,7 +217,7 @@ export default function PdfImageToPdfTool() {
       clearSummary={fileSummary}
     >
       {rejectedFiles.length > 0 && (
-        <p class="hint-message" role="status">
+        <p class={pdfToolStyles['hint-message']} role="status">
           {rejectedFiles.length === 1
             ? `Skipped “${rejectedFiles[0]}” - not a JPG or PNG.`
             : `Skipped ${rejectedFiles.length} files - not JPG or PNG.`}
