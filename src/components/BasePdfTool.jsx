@@ -6,6 +6,31 @@ function hasFilePayload(event) {
   return Array.from(event.dataTransfer?.types || []).includes('Files');
 }
 
+/* The file bar's secondary action, keyed by whether the tool takes one file or
+   many. Label, short label and glyph live together so a future mode is one entry
+   here instead of three conditionals threaded through the markup below. */
+const FILE_ACTIONS = {
+  add: {
+    label: 'Add files',
+    shortLabel: 'Add',
+    title: 'Add more files',
+    // A plain plus: there will be more files than there are now.
+    icon: 'M8 3.5v9M3.5 8h9',
+  },
+  replace: {
+    label: 'Replace file',
+    shortLabel: 'Replace',
+    title: 'Replace the current file',
+    /* Two arrows trading places. Deliberately not the arrow-out-of-a-tray glyph
+       this used to carry: that is the universal "upload" icon, and uploading is
+       the one thing this app never does, so it misrepresented the action on the
+       page where the privacy promise matters most. Circular arrows were the
+       other obvious candidate and are also out - they would collide with the
+       editor toolbar's Undo and Start over icons directly below. */
+    icon: 'M3 6h10M10.5 3.5 13 6l-2.5 2.5M13 10H3M5.5 7.5 3 10l2.5 2.5',
+  },
+};
+
 export default function BasePdfTool({
   hasFiles,
   onFilesAdded,
@@ -73,8 +98,7 @@ export default function BasePdfTool({
     onFilesAdded(event.dataTransfer.files);
   };
 
-  const replaceLabel = multiple ? 'Add files' : 'Replace file';
-  const replaceLabelShort = multiple ? 'Add' : 'Replace';
+  const fileAction = FILE_ACTIONS[multiple ? 'add' : 'replace'];
 
   return (
     <div
@@ -178,18 +202,18 @@ export default function BasePdfTool({
             )}
           </span>
 
-          <label class={styles['file-bar-replace']}>
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <label class={styles['file-bar-replace']} title={fileAction.title}>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path
-                d="M8 10.5V2M8 2L5 5M8 2l3 3M3 10v2a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 13 12v-2"
+                d={fileAction.icon}
                 stroke="currentColor"
                 stroke-width="1.5"
                 stroke-linecap="round"
                 stroke-linejoin="round"
               />
             </svg>
-            <span class={styles['file-bar-replace-full']}>{replaceLabel}</span>
-            <span class={styles['file-bar-replace-short']}>{replaceLabelShort}</span>
+            <span class={styles['file-bar-replace-full']}>{fileAction.label}</span>
+            <span class={styles['file-bar-replace-short']}>{fileAction.shortLabel}</span>
             <input
               ref={fileInputRef}
               type="file"

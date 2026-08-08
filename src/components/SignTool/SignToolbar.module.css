@@ -4,13 +4,19 @@
    land; Material Design asks for 48. WCAG 2.2's AA criterion (2.5.8) only demands
    24x24, which this toolbar used to sit right on top of: icon-only buttons
    rendered 24.8px tall between 561px and 919px, and as narrow as 18px wide on a
-   phone. The height floor is enforced here; the width floor is enforced by the
-   grid track below 920px (see that media query for why it can't just be a
-   min-width on the flex items). */
+   phone. The height floor is enforced here; the width floor is the flex-basis
+   every control shares below 920px, where the labels come off (see that media
+   query). */
 .toolbar { pointer-events: auto; display: flex; align-items: center; flex-wrap: nowrap; --toolbar-gap: var(--space-2); --toolbar-padding: 0.5rem 0.75rem; --btn-padding: 0.6rem; --btn-min-size: 2.75rem; width: 100%; gap: var(--toolbar-gap); padding: var(--toolbar-padding); background: rgba(255,255,255,.85); backdrop-filter: blur(12px) saturate(180%); -webkit-backdrop-filter: blur(12px) saturate(180%); border: 1px solid rgba(228,228,237,.8); border-radius: var(--radius); box-shadow: var(--shadow-lg), 0 4px 20px rgba(0,0,0,.03); }
+/* Every top-level control is sized by this one rule, whether it is a bare
+   `<button>` or a `<div class=dropdown>` wrapping a popover trigger. The wrapper
+   deliberately has no `flex` of its own: a `.toolbar .dropdown` declaration
+   outranks this selector, so it would quietly win in the media queries below and
+   size the two dropdowns differently from every button beside them - which is
+   exactly the bug this file used to have. Style the wrapper's box here, never its
+   flexibility. */
 .toolbar > * { flex: 1 1 auto; min-width: 0; }
 .dropdown { position: relative; display: flex; }
-.toolbar .dropdown { flex: 1 1 auto; min-width: 0; }
 .toolbar .dropdown > .button { width: 100%; flex: 1 1 auto; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: var(--btn-min-size, 2.75rem); padding: var(--btn-padding); font: inherit; font-size: .88rem; font-weight: 600; white-space: nowrap; overflow: hidden; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; box-shadow: var(--shadow-xs); transition: background-color .15s var(--ease-out), border-color .15s var(--ease-out), color .15s var(--ease-out), transform .1s var(--ease-spring); }
 .button svg { flex-shrink: 0; }
@@ -25,24 +31,40 @@
 .reset:hover { color: var(--color-surface); background: var(--color-success); }
 .label { display: inline; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .help { margin: 0; color: var(--color-muted); font-size: .83rem; display: flex; align-items: center; gap: .35rem; }
-/* Below 920px every control is icon-only, so they are all the same shape and equal
-   tracks are the honest layout - which flexbox was not delivering. The row mixes
-   two kinds of item: bare `<button>`s and the `<div class=dropdown>` wrappers
-   around the Shapes/Sign popovers. Under `flex: 1 1 0` a border-box button can
-   never shrink below its own padding+border, so each button kept an ~18px floor
-   the padding-less wrapper divs did not, and the leftover space was then split
-   evenly on top of those unequal bases - the two dropdown controls came out ~13px
-   while every button beside them was ~31px. That is the visible asymmetry.
-   Enforcing a shared min-width on the flex items would fix the widths but not the
-   overflow: nine 44px targets plus gaps need ~415px and a 360px phone has ~265px
-   of usable toolbar. `flex-wrap` alone is no better, since each row is sized
-   independently, so a row of five and a row of four land on different button
-   widths - the same "looks like a bug" asymmetry from the other direction.
-   `auto-fit` + `minmax(--btn-min-size, 1fr)` answers all three: one uniform column
-   width across every row, never narrower than the touch floor, wrapping only once
-   the space genuinely runs out. */
-@media (max-width: 919px) { .toolbar { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--btn-min-size), 1fr)); align-items: stretch; --toolbar-gap: .35rem; --toolbar-padding: .35rem; --btn-padding: .35rem; } .toolbar .button { gap: 0; } .toolbar .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; } .toolbar .dropdown { display: flex; } .desktop-download { display: none; } .share { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); } }
-@media (max-width: 560px), (max-height: 500px) and (pointer: coarse) { .toolbar { --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; } .container { padding: 0; } }
+/* Below 920px every control is icon-only, so they all carry identical content and
+   any difference in rendered width is a bug rather than a design choice. The row
+   mixes two kinds of item though - bare `<button>`s and the `<div class=dropdown>`
+   wrappers around the Shapes/Sign popovers - and under the old `flex: 1 1 0` a
+   border-box button could never shrink below its own padding+border while a
+   padding-less wrapper div floored at 0. The leftover space was then split evenly
+   on top of those unequal bases, so the dropdowns rendered ~13px wide beside ~31px
+   buttons. Giving every item the same explicit `flex-basis` removes the whole
+   class of problem: the bases are equal, the growth is equal, so the widths are
+   equal whatever the markup underneath. Basing them on --btn-min-size means the
+   touch floor is the starting point rather than an afterthought. */
+@media (max-width: 919px) { .toolbar { flex-wrap: wrap; justify-content: center; align-items: stretch; --toolbar-gap: .35rem; --toolbar-padding: .35rem; --btn-padding: .35rem; } .toolbar > * { flex: 1 1 var(--btn-min-size); } .toolbar .button { gap: 0; } .toolbar .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; } .toolbar .dropdown { display: flex; } .desktop-download { display: none; } .share { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); } }
+
+/* The wrapping regime. Nine 44px targets plus gaps need ~440px and a 360px phone
+   offers ~265px of usable toolbar, so below roughly 530px the row has to break -
+   and this breakpoint sits far enough above that to cover the 7-to-10 control
+   toolbars this module serves (Sign, Redact), while staying below the width where
+   they still fit on one line.
+   Two things have to be true for a wrapped toolbar to look deliberate rather than
+   truncated, and `flex-grow: 0` is what buys both. Growing items would size each
+   line independently, so a line of five and a line of four end up visibly
+   different button widths - the original asymmetry, just stacked vertically
+   instead of side by side. Growing items also consume every last pixel of the
+   line, which leaves `justify-content` nothing to distribute and strands the short
+   final line against the leading edge. Pinning each item at exactly the touch
+   floor keeps every button identical across both lines and leaves real free space
+   on each one, which `justify-content: center` then centers per line. (Grid cannot
+   do this: rows share one set of columns, so a partial last row is always packed
+   into the leading columns no matter how the tracks are aligned.) */
+@media (max-width: 560px) { .toolbar { --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; } .toolbar > * { flex: 0 0 var(--btn-min-size); } .container { padding: 0; } }
+
+/* Landscape phone: wide enough that the row never wraps, so it keeps the grow
+   behaviour above and only takes the compact spacing. */
+@media (max-height: 500px) and (pointer: coarse) { .toolbar { --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; } .container { padding: 0; } }
 
 /* Desktop (>=920px, above the fully-collapsed phone breakpoint): `main` caps out at
    a fixed max-width (see global.css), so the toolbar's real available width plateaus

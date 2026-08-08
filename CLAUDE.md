@@ -182,12 +182,20 @@ This is explicitly **not** "finish the wholesale Tailwind migration." The goal i
   not text/shape color.
 - The main Sign/Redact toolbar (`SignToolbar.module.css`, shared by both tools and `FullscreenButton`)
   holds every control to a 44x44 CSS px touch target - `--btn-min-size`, the figure WCAG 2.5.5 (AAA)
-  and Apple's HIG agree on. Below 920px the row is icon-only and laid out as
-  `grid-template-columns: repeat(auto-fit, minmax(var(--btn-min-size), 1fr))`, **not** flex. Do not put
-  it back on `flex: 1`: the row mixes bare `<button>`s with `<div class="dropdown">` popover wrappers,
-  and under `flex-basis: 0` a border-box button can't shrink below its own padding+border while a
-  padding-less wrapper div floors at 0 - so the Shapes/Sign dropdowns rendered ~13px wide next to ~31px
-  buttons. Equal grid tracks also wrap to a second row on narrow phones instead of overflowing, and
-  keep one uniform button width across both rows (plain `flex-wrap` sizes each row separately, which
-  reintroduces the asymmetry). Guarded by `e2e/sign/toolbar-touch-targets.spec.js` - jsdom has no
-  layout, so only a real browser can prove the rects.
+  and Apple's HIG agree on. Below 920px the row is icon-only and every control shares one explicit
+  `flex-basis` of `--btn-min-size`; at 560px and below it also drops to `flex-grow: 0` and the toolbar
+  centres each wrapped line. Three rules hold this together, and each one is load-bearing:
+  - **Size every control from `.toolbar > *`, never from `.toolbar .dropdown`.** The row mixes bare
+    `<button>`s with `<div class="dropdown">` popover wrappers. A `.toolbar .dropdown` rule outranks
+    `.toolbar > *`, so any `flex` on it silently wins and sizes those two controls differently. That,
+    plus `flex-basis: 0` letting a border-box button floor at its own padding+border while a
+    padding-less wrapper floors at 0, is why the dropdowns once rendered ~13px wide beside ~31px
+    buttons. An explicit shared basis makes the markup underneath irrelevant.
+  - **`flex-grow: 0` in the wrapping regime (<=560px).** Growing items size each line independently,
+    so a line of five and a line of four end up different button widths - the same asymmetry stacked
+    vertically. Growing items also eat all the free space, leaving `justify-content` nothing to centre.
+  - **Flex, not grid, for the wrapped rows.** Grid rows share one set of columns, so a partial last row
+    is always packed into the leading columns; only a wrapping flex container centres each line.
+
+  Guarded by `e2e/sign/toolbar-touch-targets.spec.js` - jsdom has no layout, so only a real browser can
+  prove the rects.
