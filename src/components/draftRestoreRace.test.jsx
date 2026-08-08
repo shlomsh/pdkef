@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from './PdfSignTool.jsx';
 import PdfRedactTool from './PdfRedactTool.jsx';
 import redactStyles from './PdfRedactTool.module.css';
+import { takeHandoff } from '../lib/draftStore.js';
 
 const REDACT_BOX = redactStyles['redact-box'];
 
@@ -50,7 +51,10 @@ let loadDraftDeferred;
 vi.mock('../lib/draftStore.js', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
-  loadDraft: vi.fn(() => loadDraftDeferred.promise)
+  loadDraft: vi.fn(() => loadDraftDeferred.promise),
+  // No pending home-page handoff in these cases; the tools resolve one before
+  // touching the draft, so it has to be present in the mock.
+  takeHandoff: vi.fn(() => Promise.resolve(null))
 }));
 
 // Mock getDocument because we don't want to load actual pdf.js workers in jsdom environment
@@ -196,5 +200,51 @@ describe('draft-restore vs. manual file pick race', () => {
     const announcement = container.querySelector('div.sr-only[role="status"]');
     expect(announcement.textContent).toContain('Restored your last draft of "draft-old.pdf"');
     expect(container.querySelectorAll(`.${REDACT_BOX}`).length).toBe(1);
+  });
+
+  // A file dropped on the home page arrives as a handoff (draftStore.saveHandoff)
+  // rather than as a draft, precisely so it cannot overwrite one. The tool resolves
+  // it *before* loadDraft rather than racing it, so which document opens is decided
+  // by intent and not by which IndexedDB read happened to settle first.
+  it('PdfSignTool: a pending home-page handoff opens ahead of the saved draft', async () => {
+    takeHandoff.mockResolvedValueOnce({
+      fileName: 'dropped-on-home.pdf',
+      fileType: 'application/pdf',
+      fileBytes: new TextEncoder().encode('%PDF-1.4').buffer
+    });
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSignTool />, container);
+    });
+
+    // Let the draft resolve too: it must lose, and it must lose deterministically
+    // rather than because the handoff happened to be quicker.
+    await act(async () => {
+      loadDraftDeferred.resolve(staleDraftRecord('draft-old.pdf', []));
+    });
+    await waitAsync();
+
+    const announcement = container.querySelector('p.sr-only[role="status"]');
+    expect(announcement.textContent).toContain('dropped-on-home.pdf');
+    expect(announcement.textContent).not.toContain('draft-old.pdf');
+  });
+
+  it('PdfSignTool: falls back to the draft when there is no handoff waiting', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSignTool />, container);
+    });
+
+    await act(async () => {
+      loadDraftDeferred.resolve(staleDraftRecord('draft-old.pdf', []));
+    });
+    await waitAsync();
+
+    expect(takeHandoff).toHaveBeenCalledWith('sign');
+    const announcement = container.querySelector('p.sr-only[role="status"]');
+    expect(announcement.textContent).toContain('Restored your last draft of "draft-old.pdf"');
   });
 });

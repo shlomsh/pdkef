@@ -16,6 +16,8 @@ import { saveDraft, loadDraft, deleteDraft } from './draftStore.js';
  * @param {Array}   opts.elements   - JSON-serializable edit state
  * @param {object}  opts.extra      - tool-specific extra state (e.g. { actionHistory })
  * @param {string}  opts.status     - tool status; only 'editing' persists
+ * @param {() => Promise<boolean>} [opts.beforeRestore] - runs first on mount; return
+ *   true to claim the load (a pending home-page handoff) and skip the draft restore
  * @param {(record: object) => void} opts.onRestore - rehydrate the tool from a draft
  * @returns {{ clearDraft: () => Promise<void> }}
  */
@@ -27,6 +29,7 @@ export function useDraftPersistence({
   elements,
   extra,
   status,
+  beforeRestore,
   onRestore
 }) {
   // Restore runs exactly once per mount, before any autosave can fire.
@@ -55,6 +58,10 @@ export function useDraftPersistence({
     restoreAttempted.current = true;
     let cancelled = false;
     (async () => {
+      // Sequenced, not raced: whoever resolves first would otherwise claim the
+      // load by timing alone. See useEditorDraftPersistence's beforeRestore.
+      if (beforeRestore && (await beforeRestore())) return;
+      if (cancelled) return;
       const record = await loadDraft(tool);
       if (!cancelled && record && record.fileBytes) {
         onRestore(record);
