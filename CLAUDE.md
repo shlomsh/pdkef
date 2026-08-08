@@ -180,3 +180,14 @@ This is explicitly **not** "finish the wholesale Tailwind migration." The goal i
 - Text defaults and whiteout defaults are separate. New text may inherit the active/last edited text
   size, color, font, and typed-language direction; whiteout must use its own remembered whiteout color,
   not text/shape color.
+- The main Sign/Redact toolbar (`SignToolbar.module.css`, shared by both tools and `FullscreenButton`)
+  holds every control to a 44x44 CSS px touch target - `--btn-min-size`, the figure WCAG 2.5.5 (AAA)
+  and Apple's HIG agree on. Below 920px the row is icon-only and laid out as
+  `grid-template-columns: repeat(auto-fit, minmax(var(--btn-min-size), 1fr))`, **not** flex. Do not put
+  it back on `flex: 1`: the row mixes bare `<button>`s with `<div class="dropdown">` popover wrappers,
+  and under `flex-basis: 0` a border-box button can't shrink below its own padding+border while a
+  padding-less wrapper div floors at 0 - so the Shapes/Sign dropdowns rendered ~13px wide next to ~31px
+  buttons. Equal grid tracks also wrap to a second row on narrow phones instead of overflowing, and
+  keep one uniform button width across both rows (plain `flex-wrap` sizes each row separately, which
+  reintroduces the asymmetry). Guarded by `e2e/sign/toolbar-touch-targets.spec.js` - jsdom has no
+  layout, so only a real browser can prove the rects.
