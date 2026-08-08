@@ -26,9 +26,15 @@ test('asks before a replacement discards the Unlock password', async ({ page }) 
   // an unscoped text match is ambiguous while the dialog is in the DOM.
   const identity = page.locator('[class*="_identity_"]');
   const replace = page.getByRole('button', { name: 'Replace file', exact: true });
+  const dialog = page.getByRole('dialog', { name: 'Replace this file?' });
+
+  // Pressing Replace asks first; the picker only opens once the answer is yes,
+  // so nobody walks through their filesystem to be warned at the end of it.
   const chooseReplacement = async () => {
-    const fileChooserPromise = page.waitForEvent('filechooser');
     await replace.click();
+    await expect(dialog).toBeVisible();
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await dialog.getByRole('button', { name: 'Choose a file', exact: true }).click();
     await (await fileChooserPromise).setFiles({
       name: 'replacement.pdf',
       mimeType: 'application/pdf',
@@ -36,12 +42,10 @@ test('asks before a replacement discards the Unlock password', async ({ page }) 
     });
   };
 
-  await chooseReplacement();
-
-  const dialog = page.getByRole('dialog', { name: 'Replace this file?' });
+  await replace.click();
   await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('Choosing another file closes');
   await expect(dialog).toContainText('discards the password you entered');
-  await expect(dialog).toContainText('replacement.pdf');
 
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(dialog).toBeHidden();
@@ -49,7 +53,6 @@ test('asks before a replacement discards the Unlock password', async ({ page }) 
   await expect(page.locator('#security-password')).toHaveValue('hunter2');
 
   await chooseReplacement();
-  await dialog.getByRole('button', { name: 'Replace file', exact: true }).click();
   await expect(identity).toContainText('replacement.pdf');
   await expect(page.locator('#security-password')).toHaveValue('');
 });

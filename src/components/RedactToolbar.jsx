@@ -98,6 +98,7 @@ export default function RedactToolbar({
           className={`${styles.button} ${styles.highlight}`}
           onClick={requestReplace}
           title={FILE_ACTIONS.replace.title}
+          aria-label={FILE_ACTIONS.replace.label}
           data-label-priority="2"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
