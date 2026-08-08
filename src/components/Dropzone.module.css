@@ -1,8 +1,9 @@
 /* Shared dropzone chrome — colocated from global.css in E2.2.6.
    Two independent components render this markup: FileDropzone.jsx (homepage /
    index.astro entry point, always empty-state) and BasePdfTool.jsx (every
-   tool's own dropzone, which collapses into a .file-bar once a file is
-   loaded — see below). Both import this module so the styling can't diverge. */
+   tool's own dropzone, which is replaced by the ToolShell identity + control
+   row once a file is loaded). Both import this module so the styling can't
+   diverge. */
 .dropzone {
   position: relative;
   display: flex;
@@ -138,150 +139,9 @@
   flex-shrink: 0;
 }
 
-/* --- Loaded-state file bar: replaces the dropzone once a file is picked,
-   so the toolbar/document become the first thing seen instead of a CTA
-   that reads as "choose a file" mid-edit. --- */
-.file-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 0.55rem 0.6rem 0.55rem 0.55rem;
-  background: var(--color-primary-tint);
-  border-radius: var(--radius-sm);
-}
-
-.file-bar-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  background: var(--color-surface);
-  border-radius: 9px;
-  color: var(--color-primary);
-  box-shadow: 0 1px 2px rgba(35, 64, 74, 0.08);
-}
-
-.file-bar-info {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-  flex: 1;
-}
-
-/* `unicode-bidi: plaintext` resolves the filename's direction from its own
-   first strong character, so a Hebrew name keeps its ".pdf" suffix on the
-   correct side. Unlike dir="auto" it leaves the element's own `direction`
-   (and therefore the alignment) alone, so the name still starts at the left
-   edge in line with the metadata row beneath it. */
-.file-bar-name {
-  font-size: 0.87rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  unicode-bidi: plaintext;
-  text-align: left;
-}
-
-/* The pages/size text shrinks and ellipsizes; the draft-saved chip is pinned
-   so it survives on narrow screens. Truncating "2.5 KB" costs nothing, while
-   truncating "Draft saved" would hide the reassurance the user actually
-   wants when a long filename squeezes this row. */
-.file-bar-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  min-width: 0;
-  font-size: 0.74rem;
-  color: var(--color-muted);
-}
-
-.file-bar-meta-text {
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.file-bar-saved {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  flex-shrink: 0;
-  color: var(--color-success);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-/* Separator between the pages/size text and the draft-saved chip, drawn only
-   when both are present so neither needs to carry punctuation itself. */
-.file-bar-meta-text + .file-bar-saved::before {
-  content: '·';
-  margin-right: 0.3rem;
-  color: var(--color-muted);
-}
-
-/* Secondary to everything else on the screen: the file is already loaded, so the
-   real call to action is in the editor toolbar below. It is sized to give the
-   filename beside it as much room as possible - tight horizontal padding and a
-   lighter border - while `min-height` keeps it a comfortable tap target and
-   squares it off against the 36px file icon at the other end of the bar. */
-.file-bar-replace {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  flex-shrink: 0;
-  min-height: 2.25rem;
-  padding: 0.35rem 0.6rem;
-  background: var(--color-surface);
-  color: var(--color-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
-}
-
-.file-bar-replace:hover {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary);
-}
-
-.file-bar-replace:has(input:focus-visible) {
-  outline: none;
-  box-shadow: var(--shadow-focus);
-}
-
-.file-bar-replace-short {
-  display: none;
-}
-
-@media (max-width: 480px) {
-  .file-bar-replace-full {
-    display: none;
-  }
-
-  .file-bar-replace-short {
-    display: inline;
-  }
-
-  .file-bar-icon {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-  }
-
-  .file-bar-name {
-    font-size: 0.82rem;
-  }
-}
+/* The loaded state is not styled here any more. Once a file is picked the
+   dropzone is replaced by the identity line and control row, which are one
+   joined object and live in ToolShell.module.css. */
 
 /* --- Drag-anywhere overlay: shown over the whole tool area (dropzone,
    toolbar, document) only while a file is being dragged over it, so

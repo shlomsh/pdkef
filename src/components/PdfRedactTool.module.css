@@ -34,3 +34,30 @@
   border-color: var(--color-primary);
   box-shadow: 0 0 0 1px var(--color-primary-ring);
 }
+
+/* "Clear page": wipes the redaction boxes on one page, and nothing else. It
+   used to borrow `.clear-all` from PdfTool.module.css, back when that class was
+   the generic "throw the user's work away" button eight tools shared. That class
+   is gone - one file action, one owner - and this is the only survivor of it,
+   so it lives here with the tool that actually means it. */
+.clear-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font: inherit;
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  background: none;
+  border: none;
+  padding: 0.3rem 0.4rem;
+  margin: -0.3rem -0.4rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s var(--ease-out), background-color 0.15s var(--ease-out);
+}
+
+.clear-page:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}

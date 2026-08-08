@@ -184,6 +184,8 @@ export default function PdfCompressTool() {
       multiple={false}
       fileLabel={file?.name}
       fileMeta={describeFile(file)}
+      hasWork={status === 'done'}
+      workNoun="the compressed PDF you just made"
     >
       {rejectedFiles.length > 0 && (
         <p class="hint-message" role="status">
@@ -195,12 +197,6 @@ export default function PdfCompressTool() {
 
       {hasFiles && (
         <div class="tool-workspace">
-          <div class={pdfToolStyles['list-header']} style={{ justifyContent: 'flex-end' }}>
-            <button type="button" class={pdfToolStyles['clear-all']} onClick={reset}>
-              Start over
-            </button>
-          </div>
-
           <div class={styles['compress-options']} role="radiogroup" aria-label="Compression Options">
             {COMPRESSION_LEVELS.map((opt) => (
               <div
@@ -356,9 +352,6 @@ export default function PdfCompressTool() {
                 Download Compressed PDF
               </a>
               <PdfShareButton visible={canSharePdf && shareReady} onShare={handleShare} label="Share Compressed PDF" />
-              <button type="button" class={pdfToolStyles['start-over']} onClick={reset}>
-                Start over
-              </button>
             </>
           )}
         </div>

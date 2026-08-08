@@ -75,7 +75,7 @@ export const tools = [
       },
       {
         question: 'What happens if my browser crashes while filling out a form?',
-        answer: 'Your work is not lost. As you add text, symbols, and signatures, the tool auto-saves your progress to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. Because this happens on your device, your file is still never uploaded, and your saved draft is only cleared when you click Start over.',
+        answer: 'Your work is not lost. As you add text, symbols, and signatures, the tool auto-saves your progress to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. Because this happens on your device, your file is still never uploaded, and your saved draft stays until you replace the file, or for 14 days if you never come back.',
       },
     ],
   },
@@ -411,7 +411,7 @@ export const tools = [
       { question: 'How is this different from just drawing a black box?', answer: 'Many free tools just draw a layer over the text, meaning anyone can still copy-paste the text hidden underneath. We perform "True Redaction": the page is converted into a flattened image, permanently destroying the underlying text data so it is impossible to recover.' },
       { question: 'How do I blackout or blur text in a PDF?', answer: 'Load your PDF, choose "Blackout" or "Blur" from the toolbar, then click and drag on any page to draw a box over the sensitive information. Once you have covered all sensitive areas, click Redact PDF. The tool will flatten the edited pages and generate your secure PDF.' },
       { question: 'Is there a file size limit?', answer: 'There are no artificial limits. However, because redacted pages are converted to high-quality images, your final file size may be larger than the original document.' },
-      { question: 'If my browser crashes mid-redaction, do I lose my boxes?', answer: 'No. As you draw blackout and blur boxes, the tool auto-saves your progress to local storage in your own browser, and restores your boxes automatically the next time you open the tool on the same device. This happens on your device, so your file is still never uploaded, and your saved draft is only cleared when you click Start over.' },
+      { question: 'If my browser crashes mid-redaction, do I lose my boxes?', answer: 'No. As you draw blackout and blur boxes, the tool auto-saves your progress to local storage in your own browser, and restores your boxes automatically the next time you open the tool on the same device. This happens on your device, so your file is still never uploaded, and your saved draft stays until you replace the file, or for 14 days if you never come back.' },
     ],
   },
 ];

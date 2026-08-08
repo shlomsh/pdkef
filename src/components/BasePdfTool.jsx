@@ -1,49 +1,58 @@
-import { useState, useRef, useEffect } from 'preact/hooks';
+import { useState, useRef, useEffect, useCallback } from 'preact/hooks';
 import styles from './Dropzone.module.css';
 import pdfToolStyles from './PdfTool.module.css';
+import dialogStyles from './Dialog.module.css';
+import ConfirmDialog from './ConfirmDialog.jsx';
+import ToolShell, { FileActions, ToolShellContext } from './ToolShell.jsx';
 
 function hasFilePayload(event) {
   return Array.from(event.dataTransfer?.types || []).includes('Files');
 }
 
-/* The file bar's secondary action, keyed by whether the tool takes one file or
-   many. Label, short label and glyph live together so a future mode is one entry
-   here instead of three conditionals threaded through the markup below. */
-const FILE_ACTIONS = {
-  add: {
-    label: 'Add files',
-    shortLabel: 'Add',
-    title: 'Add more files',
-    // A plain plus: there will be more files than there are now.
-    icon: 'M8 3.5v9M3.5 8h9',
-  },
-  replace: {
-    label: 'Replace file',
-    shortLabel: 'Replace',
-    title: 'Replace the current file',
-    /* Two arrows trading places. Deliberately not the arrow-out-of-a-tray glyph
-       this used to carry: that is the universal "upload" icon, and uploading is
-       the one thing this app never does, so it misrepresented the action on the
-       page where the privacy promise matters most. Circular arrows were the
-       other obvious candidate and are also out - they would collide with the
-       editor toolbar's Undo and Start over icons directly below. */
-    icon: 'M3 6h10M10.5 3.5 13 6l-2.5 2.5M13 10H3M5.5 7.5 3 10l2.5 2.5',
-  },
-};
-
+/**
+ * The shell every tool is built on: the empty-state dropzone, the loaded-state
+ * identity + control row, the file input behind both, and the confirmation any
+ * destructive file action goes through.
+ *
+ * It owns all of that on purpose. Nine tools each deciding for themselves what
+ * "start over" meant is what produced two class names, two labels and two
+ * behaviours for one action, plus three hand-copied confirmation dialogs and
+ * three tools out of nine that quietly threw the user's work away. What differs
+ * between tools is declared here as configuration - one file or many, what work
+ * a replacement would cost - not re-implemented per tool.
+ */
 export default function BasePdfTool({
   hasFiles,
   onFilesAdded,
   children,
   multiple = true,
-  accept = "application/pdf",
+  accept = 'application/pdf',
   emptyStateMessage,
   fileLabel,
   fileMeta,
-  draftSaved = false
+  draftSaved = false,
+  /* Is there anything a replacement would destroy? False skips the
+     confirmation entirely: nothing has been done to this file yet, so asking
+     would be noise. */
+  hasWork = false,
+  /* What the confirmation calls the thing being discarded, in the tool's own
+     words: it reads "...and discards your redaction boxes." */
+  workNoun = 'the work you have done here',
+  /* List tools only. Its presence is what puts a Clear all beside Add files:
+     for a list those are two genuinely different intents, not the drift this
+     shell exists to remove. */
+  onClearAll,
+  clearSummary,
+  /* Sign and Redact mount <ToolShell> themselves, inside the element that goes
+     full screen - a toolbar rendered out here would disappear the moment full
+     screen started. They still take every other decision from this component
+     through the context below. */
+  ownsShell = false,
 }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDraggingOverWorkspace, setIsDraggingOverWorkspace] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState(null);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const fileInputRef = useRef(null);
   const dragDepthRef = useRef(0);
 
@@ -59,15 +68,33 @@ export default function BasePdfTool({
     }
   }, [hasFiles]);
 
+  // The one gate every incoming file goes through, whether it arrived from the
+  // picker or from a drop. Adding to a list costs nothing and an untouched tool
+  // has nothing to lose; anything else asks first, naming both files.
+  const receiveFiles = useCallback((fileList) => {
+    const incoming = Array.from(fileList || []);
+    if (incoming.length === 0) return;
+    if (multiple || !hasFiles || !hasWork) {
+      onFilesAdded(incoming);
+      return;
+    }
+    setPendingFiles(incoming);
+  }, [multiple, hasFiles, hasWork, onFilesAdded]);
+
   const onInputChange = (event) => {
-    onFilesAdded(event.currentTarget.files);
+    // Copy the FileList out before clearing the input. `value = ''` resets the
+    // selection, and `files` is a live list, so it empties underneath you - in
+    // a real browser only. jsdom's stubbed `files` survives it, so this reads
+    // as working in unit tests and does nothing at all in the built app.
+    const files = Array.from(event.currentTarget.files || []);
     event.currentTarget.value = '';
+    receiveFiles(files);
   };
 
   const onDrop = (event) => {
     event.preventDefault();
     setIsDragOver(false);
-    onFilesAdded(event.dataTransfer.files);
+    receiveFiles(event.dataTransfer.files);
   };
 
   // Once a file is loaded, the small dropzone is gone, so the whole tool
@@ -95,12 +122,29 @@ export default function BasePdfTool({
     event.preventDefault();
     dragDepthRef.current = 0;
     setIsDraggingOverWorkspace(false);
-    onFilesAdded(event.dataTransfer.files);
+    receiveFiles(event.dataTransfer.files);
   };
 
-  const fileAction = FILE_ACTIONS[multiple ? 'add' : 'replace'];
+  const requestReplace = useCallback(() => fileInputRef.current?.click(), []);
+  const requestClear = useCallback(() => setConfirmClearOpen(true), []);
+  const cancelReplace = useCallback(() => setPendingFiles(null), []);
+  const cancelClear = useCallback(() => setConfirmClearOpen(false), []);
+
+  const confirmReplace = () => {
+    const files = pendingFiles;
+    setPendingFiles(null);
+    if (files) onFilesAdded(files);
+  };
+
+  const confirmClear = () => {
+    setConfirmClearOpen(false);
+    onClearAll?.();
+  };
+
+  const shell = { fileLabel, fileMeta, draftSaved, multiple, requestReplace, requestClear };
 
   return (
+    <ToolShellContext.Provider value={shell}>
     <div
       class={pdfToolStyles['merge-tool']}
       onDragEnter={onWorkspaceDragEnter}
@@ -170,60 +214,20 @@ export default function BasePdfTool({
       )}
 
       {hasFiles && (
-        <div class={styles['file-bar']}>
-          <span class={styles['file-bar-icon']} aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M6 3.5h8l5 5V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19V5A1.5 1.5 0 0 1 6.5 3.5Z"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linejoin="round"
-              />
-              <path d="M14 3.5V8a1 1 0 0 0 1 1h4.5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-            </svg>
-          </span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={accept}
+          multiple={multiple}
+          onChange={onInputChange}
+          hidden
+        />
+      )}
 
-          <span class={styles['file-bar-info']}>
-            <span class={styles['file-bar-name']}>
-              {fileLabel || (multiple ? 'Files loaded' : 'PDF loaded')}
-            </span>
-            {(fileMeta || draftSaved) && (
-              <span class={styles['file-bar-meta']}>
-                {fileMeta && <span class={styles['file-bar-meta-text']}>{fileMeta}</span>}
-                {draftSaved && (
-                  <span class={styles['file-bar-saved']}>
-                    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M3 8.5l3 3 7-7.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                    Draft saved
-                  </span>
-                )}
-              </span>
-            )}
-          </span>
-
-          <label class={styles['file-bar-replace']} title={fileAction.title}>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path
-                d={fileAction.icon}
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-            <span class={styles['file-bar-replace-full']}>{fileAction.label}</span>
-            <span class={styles['file-bar-replace-short']}>{fileAction.shortLabel}</span>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={accept}
-              multiple={multiple}
-              onChange={onInputChange}
-              hidden
-            />
-          </label>
-        </div>
+      {hasFiles && !ownsShell && (
+        <ToolShell>
+          <FileActions />
+        </ToolShell>
       )}
 
       {hasFiles && isDraggingOverWorkspace && (
@@ -242,6 +246,35 @@ export default function BasePdfTool({
       )}
 
       {children}
+
+      {/* Replacing a file is the one destructive thing a single-file tool can
+          do, so it says which file is going and what goes with it. It never
+          appears when there is nothing to lose - see `hasWork`. */}
+      <ConfirmDialog
+        open={!!pendingFiles}
+        titleId="confirm-replace-title"
+        title="Replace this file?"
+        confirmLabel="Replace file"
+        onCancel={cancelReplace}
+        onConfirm={confirmReplace}
+      >
+        Opening <span class={dialogStyles['confirm-file']}>{pendingFiles?.[0]?.name}</span> closes{' '}
+        <span class={dialogStyles['confirm-file']}>{fileLabel || 'the current PDF'}</span> and discards {workNoun}.
+        That can’t be undone.{draftSaved ? ' Your saved draft goes with it.' : ''}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={confirmClearOpen}
+        titleId="confirm-clear-title"
+        title="Clear all files?"
+        confirmLabel="Clear all"
+        onCancel={cancelClear}
+        onConfirm={confirmClear}
+      >
+        This empties the list{clearSummary ? ` of ${clearSummary}` : ''} and the order you put it in.
+        Nothing is removed from your device.
+      </ConfirmDialog>
     </div>
+    </ToolShellContext.Provider>
   );
 }

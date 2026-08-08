@@ -54,7 +54,6 @@ export default function PdfWorkspace({
   setUndoModalOpen,
   toggleFullscreen,
   isFullscreen,
-  setConfirmResetOpen,
   placeSignatureAt,
   canSharePdf = false,
   shareReady = false
@@ -170,7 +169,6 @@ export default function PdfWorkspace({
             actionHistory={actionHistory}
             toggleFullscreen={toggleFullscreen}
             isFullscreen={isFullscreen || isPseudoFullscreen}
-            setConfirmResetOpen={setConfirmResetOpen}
             onSavePdf={handleSavePdf}
             onDownloadPdf={handleDownloadPdf}
             onSharePdf={handleSharePdf}

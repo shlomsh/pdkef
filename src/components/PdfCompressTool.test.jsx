@@ -5,6 +5,7 @@ import PdfCompressTool from './PdfCompressTool.jsx';
 import * as compressLib from '../lib/compress.js';
 import styles from './PdfCompressTool.module.css';
 import dropzoneStyles from './Dropzone.module.css';
+import toolShellStyles from './ToolShell.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 
@@ -92,7 +93,7 @@ describe('PdfCompressTool UI flow', () => {
     });
 
     // Check the loaded-state file bar
-    const fileBar = container.querySelector(`.${dropzoneStyles['file-bar']}`);
+    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
     expect(fileBar).not.toBeNull();
     expect(fileBar.textContent).toContain('test_doc.pdf');
 

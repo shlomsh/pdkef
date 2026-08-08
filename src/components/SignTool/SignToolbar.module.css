@@ -1,5 +1,11 @@
-.container { position: sticky; top: 1rem; z-index: 100; width: 100%; align-self: stretch; display: flex; justify-content: center; pointer-events: none; }
-/* --btn-min-size is the touch-target floor every control in this toolbar is held
+/* The card this row sits in - its background, border, shadow and sticky
+   positioning - belongs to ToolShell.module.css, which draws it around both
+   this row and the file identity line beside it so the two read as one object.
+   The row keeps its own padding, deliberately: the container-query thresholds
+   further down are hand-computed from `--toolbar-padding`, so moving it out
+   would silently shift where the toolbar wraps.
+
+   --btn-min-size is the touch-target floor every control in this toolbar is held
    to. 44x44 CSS px is where WCAG 2.5.5 (Target Size, AAA) and Apple's HIG both
    land; Material Design asks for 48. WCAG 2.2's AA criterion (2.5.8) only demands
    24x24, which this toolbar used to sit right on top of: icon-only buttons
@@ -7,7 +13,7 @@
    phone. The height floor is enforced here; the width floor is the flex-basis
    every control shares below 920px, where the labels come off (see that media
    query). */
-.toolbar { pointer-events: auto; display: flex; align-items: center; flex-wrap: nowrap; container-type: inline-size; container-name: toolbar; --toolbar-gap: var(--space-2); --toolbar-padding: 0.5rem 0.75rem; --btn-padding: 0.6rem; --btn-min-size: 2.75rem; width: 100%; gap: var(--toolbar-gap); padding: var(--toolbar-padding); background: rgba(255,255,255,.85); backdrop-filter: blur(12px) saturate(180%); -webkit-backdrop-filter: blur(12px) saturate(180%); border: 1px solid rgba(228,228,237,.8); border-radius: var(--radius); box-shadow: var(--shadow-lg), 0 4px 20px rgba(0,0,0,.03); }
+.toolbar { display: flex; align-items: center; flex-wrap: nowrap; container-type: inline-size; container-name: toolbar; --toolbar-gap: var(--space-2); --toolbar-padding: 0.5rem 0.75rem; --btn-padding: 0.6rem; --btn-min-size: 2.75rem; width: 100%; gap: var(--toolbar-gap); padding: var(--toolbar-padding); }
 /* Every top-level control is sized by this one rule, whether it is a bare
    `<button>` or a `<div class=dropdown>` wrapping a popover trigger. The wrapper
    deliberately has no `flex` of its own: a `.toolbar .dropdown` declaration
@@ -43,8 +49,13 @@
 .download:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); color: var(--color-surface); }
 .share { color: var(--color-primary); border-color: var(--color-primary); }
 .share:hover { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); }
-.reset { color: var(--color-success); background: var(--color-success-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-success) 35%, transparent); }
-.reset:hover { color: var(--color-surface); background: var(--color-success); }
+/* The row's standout treatment. Named for the job it does, not for the colour
+   it happens to be: the control wearing it is not reporting success, it is the
+   one the eye should find first among nine identical squares, and a retheme
+   should be free to move it without recolouring every success state in the app.
+   It used to borrow --color-success outright, which is why this needed saying. */
+.highlight { color: var(--color-highlight); background: var(--color-highlight-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-highlight) 35%, transparent); }
+.highlight:hover { color: var(--color-surface); background: var(--color-highlight); }
 .label { display: inline; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .help { margin: 0; color: var(--color-muted); font-size: .83rem; display: flex; align-items: center; gap: .35rem; }
 /* Below 920px every control is icon-only, so they all carry identical content and
@@ -65,8 +76,6 @@
    so the break is unavoidable well inside this breakpoint. */
 @media (max-width: 560px) {
   .toolbar { --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; }
-  .container { padding: 0; }
-
   /* Controls keep growing to fill the line (inherited from the rule above) right
      up until the line genuinely cannot hold them all, and only then switch to the
      capped, centred two-row layout. Asking "is the toolbar narrower than one full
@@ -108,7 +117,7 @@
 
 /* Landscape phone: wide enough that the row never wraps, so it keeps the grow
    behaviour above and only takes the compact spacing. */
-@media (max-height: 500px) and (pointer: coarse) { .toolbar { --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; } .container { padding: 0; } }
+@media (max-height: 500px) and (pointer: coarse) { .toolbar { --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; } }
 
 /* Desktop (>=920px, above the fully-collapsed phone breakpoint): `main` caps out at
    a fixed max-width (see global.css), so the toolbar's real available width plateaus

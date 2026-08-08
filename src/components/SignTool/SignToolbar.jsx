@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'preact/hooks';
 import { useSignTool } from './SignToolContext.jsx';
 import FullscreenButton from '../FullscreenButton';
 import Popover from '../Popover.jsx';
+import ToolShell, { FILE_ACTIONS, useToolShell } from '../ToolShell.jsx';
 import styles from './SignToolbar.module.css';
 import controlStyles from '../EditorControls.module.css';
 
@@ -16,7 +17,6 @@ export default function SignToolbar({
   actionHistory,
   toggleFullscreen,
   isFullscreen,
-  setConfirmResetOpen,
   onSavePdf,
   onDownloadPdf,
   onSharePdf,
@@ -25,6 +25,7 @@ export default function SignToolbar({
 }) {
   const { state, dispatch } = useSignTool();
   const selectedTool = state.selectedTool;
+  const { requestReplace } = useToolShell();
 
   const [showSigDropdown, setShowSigDropdown] = useState(false);
   const [showShapesDropdown, setShowShapesDropdown] = useState(false);
@@ -77,7 +78,7 @@ export default function SignToolbar({
 
   return (
     <>
-      <div className={styles.container}>
+      <ToolShell editor>
         <div className={styles.toolbar} role="toolbar" aria-label="PDF annotations">
           <button
             type="button"
@@ -318,18 +319,21 @@ export default function SignToolbar({
 
           <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
 
+          {/* The united file action, in the exact slot Start over used to hold.
+              Both meant "I want a different file"; this one says it once and
+              actually gets you there. BasePdfTool decides whether swapping the
+              file needs confirming - see requestReplace. */}
           <button
             type="button"
-            className={`${styles.button} ${styles.reset}`}
-            onClick={() => setConfirmResetOpen(true)}
-            title="Discard your work and start over"
+            className={`${styles.button} ${styles.highlight}`}
+            onClick={requestReplace}
+            title={FILE_ACTIONS.replace.title}
             data-label-priority="2"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 2v6h6" />
-              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L3 8" />
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d={FILE_ACTIONS.replace.icon} />
             </svg>
-            <span className={styles.label}>Start over</span>
+            <span className={styles.label}>{FILE_ACTIONS.replace.shortLabel}</span>
           </button>
 
           <button
@@ -364,7 +368,7 @@ export default function SignToolbar({
             </button>
           )}
         </div>
-      </div>
+      </ToolShell>
 
       {/* Status Helper */}
       {selectedTool ? (

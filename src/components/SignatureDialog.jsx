@@ -4,6 +4,7 @@ import ColorPicker from './ColorPicker.jsx';
 import { HANDWRITING_FONTS } from '../lib/sign.js';
 import { resolveFontFamily } from '../lib/fonts.js';
 import styles from './SignatureDialog.module.css';
+import dialogStyles from './Dialog.module.css';
 
 export default function SignatureDialog({
   isOpen,
@@ -323,17 +324,17 @@ export default function SignatureDialog({
   };
 
   return (
-    <dialog ref={dialogRef} className={styles.dialog} closedby="any" aria-labelledby="dialog-title">
-      <div className={styles.header}>
+    <dialog ref={dialogRef} className={dialogStyles.dialog} closedby="any" aria-labelledby="dialog-title">
+      <div className={dialogStyles.header}>
         <h3 id="dialog-title">Create Signature</h3>
-        <button type="button" className={styles.close} data-editor-dialog-close onClick={onClose} aria-label="Close dialog">
+        <button type="button" className={dialogStyles.close} data-editor-dialog-close onClick={onClose} aria-label="Close dialog">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M4 4l8 8M12 4l-8 8" />
           </svg>
         </button>
       </div>
 
-      <div className={styles.body}>
+      <div className={dialogStyles.body}>
         <div className={styles.tabs} role="tablist">
           <button
             type="button"
@@ -482,13 +483,13 @@ export default function SignatureDialog({
         )}
       </div>
 
-      <div className={styles.footer}>
-        <button type="button" className={`${styles.button} ${styles.secondary}`} onClick={onClose}>
+      <div className={dialogStyles.footer}>
+        <button type="button" className={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={onClose}>
           Cancel
         </button>
         <button
           type="button"
-          className={`${styles.button} ${styles.primary}`}
+          className={`${dialogStyles.button} ${dialogStyles.primary}`}
           data-editor-signature-save
           onClick={handleSaveSignature}
           disabled={

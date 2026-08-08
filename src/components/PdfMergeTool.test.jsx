@@ -8,6 +8,7 @@ import * as thumbnailsLib from '../lib/thumbnails.js';
 import styles from './FileList.module.css';
 import dropzoneStyles from './Dropzone.module.css';
 import pdfToolStyles from './PdfTool.module.css';
+import toolShellStyles from './ToolShell.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 
 function makePdfFile(name) {
@@ -64,8 +65,10 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['one.pdf']);
 
-    const header = container.querySelector(`.${pdfToolStyles['list-count']}`);
-    expect(header.textContent).toContain('1 PDF');
+    // The count moved into the read-only identity line when the header row
+    // it used to share with Clear all was dissolved.
+    const identity = container.querySelector(`.${toolShellStyles.name}`);
+    expect(identity.textContent).toContain('1 PDF');
 
     const fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map(el => el.textContent);
     expect(fileNames).toEqual(['one.pdf']);

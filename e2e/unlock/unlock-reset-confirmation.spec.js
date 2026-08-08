@@ -7,7 +7,10 @@ async function makePdfBuffer() {
   return Buffer.from(await document.save());
 }
 
-test('asks before clearing an active Unlock PDF', async ({ page }) => {
+// Unlock used to show two controls that both meant "give me a different file":
+// Start over above the form and Start over again under the result. There is one
+// now, Replace file, and it still has to ask before it throws anything away.
+test('asks before a replacement discards the Unlock password', async ({ page }) => {
   await page.goto('/unlock');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
 
@@ -17,19 +20,36 @@ test('asks before clearing an active Unlock PDF', async ({ page }) => {
     buffer: await makePdfBuffer(),
   });
   await expect(page.getByText('Set Password', { exact: true })).toBeVisible();
+  await page.locator('#security-password').fill('hunter2');
 
-  const startOver = page.getByRole('button', { name: 'Start over', exact: true });
-  await startOver.click();
+  // Scoped to the identity line: the confirmation quotes both filenames too, so
+  // an unscoped text match is ambiguous while the dialog is in the DOM.
+  const identity = page.locator('[class*="_identity_"]');
+  const replace = page.getByRole('button', { name: 'Replace file', exact: true });
+  const chooseReplacement = async () => {
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await replace.click();
+    await (await fileChooserPromise).setFiles({
+      name: 'replacement.pdf',
+      mimeType: 'application/pdf',
+      buffer: await makePdfBuffer(),
+    });
+  };
 
-  const dialog = page.getByRole('dialog');
+  await chooseReplacement();
+
+  const dialog = page.getByRole('dialog', { name: 'Replace this file?' });
   await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText('This clears the current PDF and password from this tool.');
+  await expect(dialog).toContainText('discards the password you entered');
+  await expect(dialog).toContainText('replacement.pdf');
 
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByText('reset-confirmation.pdf', { exact: true })).toBeVisible();
+  await expect(identity).toContainText('reset-confirmation.pdf');
+  await expect(page.locator('#security-password')).toHaveValue('hunter2');
 
-  await startOver.click();
-  await dialog.getByRole('button', { name: 'Discard & start over', exact: true }).click();
-  await expect(page.getByText('Drop PDF here to unlock', { exact: true })).toBeVisible();
+  await chooseReplacement();
+  await dialog.getByRole('button', { name: 'Replace file', exact: true }).click();
+  await expect(identity).toContainText('replacement.pdf');
+  await expect(page.locator('#security-password')).toHaveValue('');
 });
