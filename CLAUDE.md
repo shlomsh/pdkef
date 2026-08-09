@@ -175,6 +175,33 @@ This is explicitly **not** "finish the wholesale Tailwind migration." The goal i
 
 **The old "the branch broke the PDF math" framing is stale - do not act on it.** That warning described one snapshot: an early wip commit that (wrongly) routed `pointermove` through React state and thrashed reconciliation. The **resize perf fix already landed on the same wip branch** with the correct deferred-DOM pattern. That per-frame `onChange` on resize in `src/components/SignTool/DraggableWrapper.jsx` `handleResizeMove` was fixed under backlog E0.1, so Sign drag and resize follow the golden rule. The gesture golden rule (mutate the DOM during a gesture, commit React state once on `pointerup`) is non-negotiable and is now captured in ARCHITECTURE.md §1.2 / §4 along with the other still-true lessons from the retired learnings doc (invisible-toolbar cascade hazard, CSP-invisible-in-dev hazard). Read ARCHITECTURE.md before touching editor styling or the gesture path. **Status (E4 landed):** every gesture path - Sign **and** Redact, drag/resize/create alike - now routes through the single `src/editor/gestures/controller.ts`, which mutates the DOM during the gesture and commits state exactly once on release. Both tools share the headless `src/editor/` core and per-type registry (per-type resize/serialize/schema; box-resize has one owner, CI-guarded). The full editor-core low-level design (audit + `src/editor/` layout + per-ticket plan) is **[docs/E4-headless-editor-core-plan.md](./docs/E4-headless-editor-core-plan.md)**.
 
+**Sign editor interaction model (three invariants, each fixed a shipped bug - don't quietly revert them):**
+- **Tools are one-shot.** An armed tool disarms itself after one committed placement (`DISARM_TOOL`,
+  fired from every creation path in `useWorkspaceGestures.js`), so the click *after* a placement means
+  "deselect" and reaches the workspace's deselect handler. Before this, a tool stayed armed until Esc
+  while the creation handlers called `stopPropagation`, so clicking empty space to get out of what you
+  were doing silently placed a stray element - and with a drag tool it was worse, since
+  `ENSURE_MINIMUM_SIZE` promotes a zero-size drag into a default-size box. Repeat placement is opt-in:
+  double-click a tool button to lock it (`SET_TOOL` with `{ tool, locked: true }`). The toggle buttons
+  read the click count off their existing `onClick` (`e.detail >= 2`) rather than using `ondblclick`,
+  because a real dblclick fires after two clicks and the second would disarm before the lock landed.
+  Shapes is the exception and locks from its own button via a real `ondblclick`: a menu item can't be
+  double-clicked (the first click unmounts it, so the second lands on the page), and there the two
+  clicks only toggle the popover, never the tool.
+- **Selection and text editing are separate states.** `activeElementId` means selected (toolbar points
+  at it, Backspace deletes it, drag moves it); `editingElementId` means a text edit session is open.
+  A text element is a live `<textarea>`, so without the split there was no state where a text box was
+  selected but not being typed into, and Backspace could never delete one - only the trash icon worked.
+  The invariant (`editingElementId` is null or equals `activeElementId`) is enforced **only** in the
+  reducer, so no call site has to remember to close a session. Escape unwinds one level at a time.
+  Outside a session the textarea is inert (`text-input-inert`: `pointer-events: none`, plus `tabIndex
+  -1` and `readOnly`), which is also what lets a text box be dragged from its middle. jsdom does not
+  implement `pointer-events`, so that one is guarded in Playwright or not at all.
+- **`TOOL_COPY` in `SignToolbar.jsx` owns every tool-facing string**, visible and announced, so the two
+  can't drift. Never interpolate a raw tool id into copy. Keep "click and" on the drag tools: "drag on
+  a page" reads as dragging the tool from the toolbar onto the page, which older editors really did
+  work like and this does not. Guarded by tests in `SignToolbar.test.jsx`.
+
 **Sign editor positioning/color pitfalls (current guardrail work):**
 - Text toolbar placement must stay stable above the element: LTR uses `top-start`, RTL uses
   `top-end`. Do not reintroduce Floating UI vertical `flip()` to `bottom-*`; that made the toolbar
