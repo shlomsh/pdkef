@@ -9,10 +9,28 @@ import controlStyles from '../EditorControls.module.css';
 // The tools that live behind the Shapes button, so its pressed/locked state and
 // its lock target read from one list instead of three copies of the same array.
 const SHAPE_TOOLS = ['ellipse', 'rectangle', 'line'];
-// Tools drawn by dragging rather than by a single click, which is the one thing
-// the status line phrases differently. Derived from SHAPE_TOOLS so adding a
-// shape does not need this list updated too.
-const DRAG_DRAWN_TOOLS = ['whiteout', ...SHAPE_TOOLS];
+
+// What each tool is called in front of a user, and the button that arms it.
+// Every visible string and every screen-reader announcement reads from here, so
+// the two cannot drift, and a rename of an internal tool id cannot silently
+// rewrite the UI copy.
+//
+// `action` is written out per tool rather than generated: "a" versus "an" is
+// not worth deriving, and "click" versus "click and drag" is the real
+// difference between the two families, so it belongs in the sentence rather
+// than in a branch around it. Every line is "Click [and drag] on a page to
+// [place|draw] a thing", which teaches both families as one pattern. Keep
+// "click and" on the drag tools: without it, "drag on a page" reads as dragging
+// the tool from the toolbar onto the page, which is not how this works.
+const TOOL_COPY = {
+  text:      { action: 'Click on a page to place a text box.',              button: 'Text' },
+  symbol:    { action: 'Click on a page to place a symbol.',                button: 'Symbols' },
+  signature: { action: 'Click on a page to place your signature.',          button: 'Sign' },
+  whiteout:  { action: 'Click and drag on a page to draw a whiteout box.',  button: 'Whiteout' },
+  ellipse:   { action: 'Click and drag on a page to draw an ellipse.',      button: 'Shapes' },
+  rectangle: { action: 'Click and drag on a page to draw a rectangle.',     button: 'Shapes' },
+  line:      { action: 'Click and drag on a page to draw a line.',          button: 'Shapes' },
+};
 
 export default function SignToolbar({
   setAnnouncement,
@@ -82,37 +100,42 @@ export default function SignToolbar({
     setActiveSignature(sig);
     dispatch({ type: 'SET_TOOL', payload: 'signature' });
     setShowSigDropdown(false);
-    setAnnouncement('Signature tool active. Click anywhere on a page to place.');
+    setAnnouncement(`Sign tool active. ${TOOL_COPY.signature.action}`);
   };
 
   const setSelectedTool = (tool) => {
     dispatch({ type: 'SET_TOOL', payload: tool });
   };
 
+  // Absent when no tool is armed, which is also what a tool missing from
+  // TOOL_COPY looks like: the status line falls back to the idle tip rather
+  // than rendering a half-built sentence or throwing.
+  const activeToolCopy = selectedTool ? TOOL_COPY[selectedTool] : null;
+
   // A tool arms for a single placement. Double-click locks it on for repeats -
   // the Figma/Illustrator convention. `detail` is the click count on the same
   // button, so the second click of a double-click locks instead of toggling the
   // tool back off; no dblclick handler and no timer needed.
-  const armTool = (tool, label) => (e) => {
+  const armTool = (tool) => (e) => {
     if (e.detail >= 2) {
-      lockTool(tool, label);
+      lockTool(tool);
       return;
     }
     const next = selectedTool === tool ? null : tool;
     setSelectedTool(next);
-    if (next) setAnnouncement(`${label} tool active. Click a page to place one.`);
+    if (next) setAnnouncement(`${TOOL_COPY[tool].button} tool active. ${TOOL_COPY[tool].action}`);
   };
 
-  const lockTool = (tool, label) => {
+  const lockTool = (tool) => {
     dispatch({ type: 'SET_TOOL', payload: { tool, locked: true } });
-    setAnnouncement(`${label} tool locked on. Press Escape to stop adding.`);
+    setAnnouncement(`${TOOL_COPY[tool].button} tool locked on. Press Escape to stop adding.`);
   };
 
   const chooseShape = (tool) => {
     setSelectedTool(tool);
     setLastShape(tool);
     setShowShapesDropdown(false);
-    setAnnouncement(`${tool} tool active. Drag on a page to draw one.`);
+    setAnnouncement(`${TOOL_COPY[tool].button} tool active. ${TOOL_COPY[tool].action}`);
   };
 
   // Shapes locks from its own button rather than from a menu item, because a
@@ -126,7 +149,7 @@ export default function SignToolbar({
   const lockShape = () => {
     const shape = SHAPE_TOOLS.includes(selectedTool) ? selectedTool : lastShape;
     if (!shape) return;
-    lockTool(shape, shape);
+    lockTool(shape);
     setShowShapesDropdown(false);
   };
 
@@ -137,8 +160,8 @@ export default function SignToolbar({
           <button
             type="button"
             className={`${styles.button}${selectedTool === 'text' ? ` ${styles.active}` : ''}${selectedTool === 'text' && toolLocked ? ` ${styles.locked}` : ''}`}
-            onClick={armTool('text', 'Text')}
-            title="Click here, then click a page to add text. Double-click to keep adding"
+            onClick={armTool('text')}
+            title="Add a text box. Double-click to keep adding"
             aria-pressed={selectedTool === 'text'}
             data-label-priority="1"
           >
@@ -153,8 +176,8 @@ export default function SignToolbar({
           <button
             type="button"
             className={`${styles.button}${selectedTool === 'symbol' ? ` ${styles.active}` : ''}${selectedTool === 'symbol' && toolLocked ? ` ${styles.locked}` : ''}`}
-            onClick={armTool('symbol', 'Symbols')}
-            title="Click here, then click a page to place symbols. Double-click to keep adding"
+            onClick={armTool('symbol')}
+            title="Add a check, cross, or dot. Double-click to keep adding"
             aria-pressed={selectedTool === 'symbol'}
             data-label-priority="1"
           >
@@ -178,7 +201,7 @@ export default function SignToolbar({
                 <button
                   type="button"
                   className={`${styles.button}${SHAPE_TOOLS.includes(selectedTool) ? ` ${styles.active}` : ''}${SHAPE_TOOLS.includes(selectedTool) && toolLocked ? ` ${styles.locked}` : ''}`}
-                  title="Click here to select a shape. Double-click to keep adding"
+                  title="Draw an ellipse, rectangle, or line. Double-click to keep adding"
                   aria-pressed={SHAPE_TOOLS.includes(selectedTool)}
                   data-label-priority="1"
                 >
@@ -243,8 +266,8 @@ export default function SignToolbar({
           <button
             type="button"
             className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}${selectedTool === 'whiteout' && toolLocked ? ` ${styles.locked}` : ''}`}
-            onClick={armTool('whiteout', 'Whiteout')}
-            title="Click here, then drag on a page to hide text. Double-click to keep adding"
+            onClick={armTool('whiteout')}
+            title="Cover text with a white box. Double-click to keep adding"
             data-label-priority="1"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -406,7 +429,7 @@ export default function SignToolbar({
       </ToolShell>
 
       {/* Status Helper */}
-      {selectedTool ? (
+      {activeToolCopy ? (
         <div className={styles.help} role="status">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10" />
@@ -414,17 +437,15 @@ export default function SignToolbar({
             <line x1="12" y1="8" x2="12.01" y2="8" />
           </svg>
           <span>
-            {DRAG_DRAWN_TOOLS.includes(selectedTool)
-              ? <>Click and drag on a PDF page below to draw your <strong>{selectedTool}</strong>.</>
-              : <>Click anywhere on the PDF pages below to place your <strong>{selectedTool}</strong> layer.</>}
+            {activeToolCopy.action}
             {toolLocked
-              ? <> The tool stays on until you press <strong>Esc</strong>.</>
-              : <> One at a time. Double-click the tool to keep adding.</>}
+              ? <> <strong>{activeToolCopy.button}</strong> stays on until you press <strong>Esc</strong>.</>
+              : <> Double-click <strong>{activeToolCopy.button}</strong> to keep adding.</>}
           </span>
         </div>
       ) : (
         <div className={styles.help} style={{ color: 'var(--color-muted-light)' }}>
-          <span>Tip: Select a tool above and click on the PDF to place, or drag existing items. Double-click a text box to edit it, and hover a line to adjust it.</span>
+          <span>Tip: pick a tool above, then click or drag on the page. Double-click a text box to edit it.</span>
         </div>
       )}
     </>
