@@ -71,6 +71,174 @@ describe('SignToolbar Component', () => {
     expect(contextValue.selectedTool).toBe('text');
   });
 
+  // Every tool arms for one placement; double-clicking its button keeps it on.
+  // Shapes is the awkward one, because its tool lives behind a dropdown and a
+  // menu item cannot be double-clicked (the first click unmounts it), so the
+  // lock has to come off the Shapes button itself.
+  describe('locking a tool on for repeat placements', () => {
+    const renderToolbar = (onState) => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+
+      const TestConsumer = () => {
+        onState(useSignTool().state);
+        return null;
+      };
+
+      act(() => {
+        render(
+          <SignToolProvider>
+            <SignToolbar
+              setAnnouncement={() => {}}
+              savedSignatures={[]}
+              activeSignature={null}
+              setActiveSignature={() => {}}
+              onDeleteSavedSignature={() => {}}
+              setDialogOpen={() => {}}
+              setUndoModalOpen={() => {}}
+              actionHistory={[]}
+              toggleFullscreen={() => {}}
+              isFullscreen={false}
+              onSavePdf={() => {}}
+            />
+            <TestConsumer />
+          </SignToolProvider>,
+          container
+        );
+      });
+    };
+
+    const findButton = (label) => Array.from(container.querySelectorAll(`.${styles.button}`))
+      .find(b => b.textContent.includes(label));
+
+    it('arms a tool for one placement on a single click', async () => {
+      let state;
+      renderToolbar((s) => { state = s; });
+
+      await act(async () => {
+        findButton('Text').dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+      });
+
+      expect(state.selectedTool).toBe('text');
+      expect(state.toolLocked).toBe(false);
+    });
+
+    it('locks a tool on when its button is double-clicked', async () => {
+      let state;
+      renderToolbar((s) => { state = s; });
+
+      const textBtn = findButton('Text');
+      await act(async () => {
+        textBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+      });
+      await act(async () => {
+        textBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
+      });
+
+      expect(state.selectedTool).toBe('text');
+      expect(state.toolLocked).toBe(true);
+      expect(textBtn.className).toContain(styles.locked);
+    });
+
+    it('locks the chosen shape when the Shapes button is double-clicked', async () => {
+      let state;
+      renderToolbar((s) => { state = s; });
+
+      const shapesBtn = findButton('Shapes');
+      await act(async () => {
+        shapesBtn.click();
+      });
+
+      const ellipse = Array.from(document.body.querySelectorAll('button'))
+        .find(b => b.textContent.trim() === 'Ellipse');
+      expect(ellipse).not.toBeUndefined();
+      await act(async () => {
+        ellipse.click();
+      });
+      expect(state.selectedTool).toBe('ellipse');
+      expect(state.toolLocked).toBe(false);
+
+      await act(async () => {
+        shapesBtn.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+      });
+
+      expect(state.selectedTool).toBe('ellipse');
+      expect(state.toolLocked).toBe(true);
+      expect(shapesBtn.className).toContain(styles.locked);
+    });
+
+    it('locks the last shape picked even after its one placement disarmed the tool', async () => {
+      let state;
+      let dispatch;
+      const TestConsumer = () => {
+        const ctx = useSignTool();
+        state = ctx.state;
+        dispatch = ctx.dispatch;
+        return null;
+      };
+
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(
+          <SignToolProvider>
+            <SignToolbar
+              setAnnouncement={() => {}}
+              savedSignatures={[]}
+              activeSignature={null}
+              setActiveSignature={() => {}}
+              onDeleteSavedSignature={() => {}}
+              setDialogOpen={() => {}}
+              setUndoModalOpen={() => {}}
+              actionHistory={[]}
+              toggleFullscreen={() => {}}
+              isFullscreen={false}
+              onSavePdf={() => {}}
+            />
+            <TestConsumer />
+          </SignToolProvider>,
+          container
+        );
+      });
+
+      const shapesBtn = findButton('Shapes');
+      await act(async () => {
+        shapesBtn.click();
+      });
+      const line = Array.from(document.body.querySelectorAll('button'))
+        .find(b => b.textContent.trim() === 'Line');
+      await act(async () => {
+        line.click();
+      });
+
+      // The placement disarms the tool, so nothing is selected when the user
+      // reaches for the lock - the button still has to know it means Line.
+      await act(async () => {
+        dispatch({ type: 'DISARM_TOOL' });
+      });
+      expect(state.selectedTool).toBeNull();
+
+      await act(async () => {
+        shapesBtn.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+      });
+
+      expect(state.selectedTool).toBe('line');
+      expect(state.toolLocked).toBe(true);
+    });
+
+    it('does nothing on a double-click before any shape has been chosen', async () => {
+      let state;
+      renderToolbar((s) => { state = s; });
+
+      await act(async () => {
+        findButton('Shapes').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+      });
+
+      expect(state.selectedTool).toBeNull();
+      expect(state.toolLocked).toBe(false);
+    });
+  });
+
   it('uses the existing export control for sharing when file sharing is supported', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
