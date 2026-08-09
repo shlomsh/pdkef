@@ -369,6 +369,47 @@ describe('SignToolbar Component', () => {
     });
   });
 
+  // First run of the Sign tool: nothing is saved yet, so the button has to open
+  // the create-signature dialog. Its onClick lives on a Popover trigger, and
+  // Popover used to spread Floating UI's handlers over the trigger instead of
+  // through them, which replaced this one - the button silently opened an empty
+  // dropdown instead, on the first thing a new user does with the tool.
+  it('opens the create-signature dialog when nothing has been saved yet', async () => {
+    const setDialogOpen = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    act(() => {
+      render(
+        <SignToolProvider>
+          <SignToolbar
+            setAnnouncement={() => {}}
+            savedSignatures={[]}
+            activeSignature={null}
+            setActiveSignature={() => {}}
+            onDeleteSavedSignature={() => {}}
+            setDialogOpen={setDialogOpen}
+            setUndoModalOpen={() => {}}
+            actionHistory={[]}
+            toggleFullscreen={() => {}}
+            isFullscreen={false}
+            onSavePdf={() => {}}
+          />
+        </SignToolProvider>,
+        container
+      );
+    });
+
+    const signBtn = Array.from(container.querySelectorAll(`.${styles.button}`))
+      .find(b => b.textContent.includes('Sign'));
+
+    await act(async () => {
+      signBtn.click();
+    });
+
+    expect(setDialogOpen).toHaveBeenCalledWith(true);
+  });
+
   it('uses the existing export control for sharing when file sharing is supported', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
