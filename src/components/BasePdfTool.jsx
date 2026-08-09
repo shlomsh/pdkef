@@ -3,6 +3,7 @@ import styles from './Dropzone.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import dialogStyles from './Dialog.module.css';
 import ConfirmDialog from './ConfirmDialog.jsx';
+import DropzoneEmptyState from './DropzoneEmptyState.jsx';
 import ToolShell, { FileActions, ToolShellContext } from './ToolShell.jsx';
 
 function hasFilePayload(event) {
@@ -49,7 +50,6 @@ export default function BasePdfTool({
      through the context below. */
   ownsShell = false,
 }) {
-  const [isDragOver, setIsDragOver] = useState(false);
   const [isDraggingOverWorkspace, setIsDraggingOverWorkspace] = useState(false);
   const [pendingFiles, setPendingFiles] = useState(null);
   const [confirmPickerOpen, setConfirmPickerOpen] = useState(false);
@@ -103,12 +103,6 @@ export default function BasePdfTool({
     const files = Array.from(event.currentTarget.files || []);
     event.currentTarget.value = '';
     receiveFiles(files);
-  };
-
-  const onDrop = (event) => {
-    event.preventDefault();
-    setIsDragOver(false);
-    receiveFiles(event.dataTransfer.files);
   };
 
   // Once a file is loaded, the small dropzone is gone, so the whole tool
@@ -187,64 +181,13 @@ export default function BasePdfTool({
       onDrop={onWorkspaceDrop}
     >
       {!hasFiles && (
-        <div
-          class={`${styles.dropzone}${isDragOver ? ` ${styles['is-dragover']}` : ''}`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setIsDragOver(true);
-          }}
-          onDragLeave={() => setIsDragOver(false)}
-          onDrop={onDrop}
-        >
-          <svg
-            class={styles['dropzone-icon']}
-            width="48"
-            height="48"
-            viewBox="0 0 48 48"
-            fill="none"
-            aria-hidden="true"
-          >
-            <rect x="9" y="4" width="24" height="32" rx="3" class={styles['dz-page']} />
-            <path d="M27 4v8h8" class={styles['dz-fold']} />
-            <rect x="16" y="26" width="22" height="16" rx="3" class={`${styles['dz-page']} ${styles['dz-page-front']}`} />
-            <path d="M23 30v8M27 34h-8" class={styles['dz-plus']} />
-          </svg>
-
-          <p class={styles['dropzone-text']}>
-            <strong>{emptyStateMessage || `Drop PDF${multiple ? 's' : ''} here`}</strong>
-          </p>
-
-          <label class={styles['file-picker-button']}>
-            {`Choose file${multiple ? 's' : ''}`}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={accept}
-              multiple={multiple}
-              onChange={onInputChange}
-              hidden
-            />
-          </label>
-
-          <p class={styles['privacy-line']}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M9 12.5l2 2 4-4.5"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-            Private. Files never leave your device.
-          </p>
-        </div>
+        <DropzoneEmptyState
+          multiple={multiple}
+          accept={accept}
+          message={emptyStateMessage}
+          inputRef={fileInputRef}
+          onFiles={receiveFiles}
+        />
       )}
 
       {hasFiles && (

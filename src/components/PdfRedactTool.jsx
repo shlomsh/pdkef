@@ -8,6 +8,7 @@ import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { startGesture } from '../editor/gestures/controller.ts';
 import { getPointerCoords } from '../editor/gestures/pointer.ts';
 import { getElementDefinition } from '../editor/registry/index.ts';
+import { redactionDrawingPreviewStyle } from '../editor/registry/redactionSurface.ts';
 import { useEditorDraftPersistence } from '../editor/workspace/useEditorDraftPersistence.js';
 import RedactToolbar from './RedactToolbar.jsx';
 import RedactBox from './RedactBox.jsx';
@@ -523,11 +524,7 @@ export default function PdfRedactTool() {
                       style={{
                         position: 'absolute',
                         left: `${drawingState.startX}%`, top: `${drawingState.startY}%`, width: 0, height: 0,
-                        backgroundColor: drawingState.type === 'blur' ? 'rgba(255,255,255,0.1)' : (drawingState.type === 'whiteout' ? drawingState.color : 'rgba(0, 0, 0, 0.7)'),
-                        opacity: drawingState.type === 'whiteout' && drawingState.color !== '#000000' ? 0.7 : 1,
-                        backdropFilter: drawingState.type === 'blur' ? 'blur(8px)' : 'none',
-                        WebkitBackdropFilter: drawingState.type === 'blur' ? 'blur(8px)' : 'none',
-                        border: drawingState.type === 'blur' ? '2px dashed #000' : (drawingState.type === 'whiteout' ? '2px dashed #000' : '2px dashed #ff4757'),
+                        ...redactionDrawingPreviewStyle(drawingState.type, drawingState.color),
                         zIndex: 20,
                         pointerEvents: 'none'
                       }}
