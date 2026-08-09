@@ -25,7 +25,7 @@ export default function PdfEditPagesTool() {
   const [progress, setProgress] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [announcement, setAnnouncement] = useState('');
-  const { canSharePdf, shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
+  const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const gridRef = useRef(null);
   const sortableRef = useRef(null);
   const downloadRef = useRef(null);
@@ -116,22 +116,6 @@ export default function PdfEditPagesTool() {
       setStatus('error');
       setAnnouncement('Failed to load PDF file.');
     }
-  }, []);
-
-  const reset = useCallback(() => {
-    setFile(null);
-    setPages([]);
-    setRemovedPageNums(new Set());
-    setRotations({});
-    setAddPageNumbers(false);
-    setStatus('idle');
-    setProgress(0);
-    clearPrepared();
-    setDownloadUrl((previous) => {
-      if (previous) URL.revokeObjectURL(previous);
-      return null;
-    });
-    setAnnouncement('Cleared. Add a PDF to start again.');
   }, []);
 
   const togglePage = useCallback((pageNum) => {
@@ -433,7 +417,7 @@ export default function PdfEditPagesTool() {
                     </svg>
                     Download PDF
                   </a>
-                  <PdfShareButton visible={canSharePdf && shareReady} onShare={handleShare} />
+                  <PdfShareButton visible={shareReady} onShare={handleShare} />
                 </>
               )}
             </>

@@ -14,7 +14,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
   const [mode, setMode] = useState(null); // 'unlock' | 'protect' | null
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [announcement, setAnnouncement] = useState('');
-  const { canSharePdf, shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
+  const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const downloadRef = useRef(null);
   const passwordRef = useRef(null);
 
@@ -172,7 +172,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
                 Download {mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF
               </a>
               <PdfShareButton
-                visible={canSharePdf && shareReady}
+                visible={shareReady}
                 onShare={handleShare}
                 label={`Share ${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF`}
               />

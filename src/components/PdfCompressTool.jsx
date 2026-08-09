@@ -65,7 +65,7 @@ export default function PdfCompressTool() {
   const [metTarget, setMetTarget] = useState(true);
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const [announcement, setAnnouncement] = useState('');
-  const { canSharePdf, shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
+  const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   
   const downloadRef = useRef(null);
 
@@ -160,13 +160,6 @@ export default function PdfCompressTool() {
     if (result.status === 'shared') setAnnouncement('Compressed PDF shared successfully.');
     else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your compressed PDF is still ready.');
     else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
-  };
-
-  const reset = () => {
-    setFile(null);
-    setRejectedFiles([]);
-    resetOutput();
-    setAnnouncement('Cleared. Choose a PDF file to start again.');
   };
 
   const hasFiles = !!file;
@@ -351,7 +344,7 @@ export default function PdfCompressTool() {
                 </svg>
                 Download Compressed PDF
               </a>
-              <PdfShareButton visible={canSharePdf && shareReady} onShare={handleShare} label="Share Compressed PDF" />
+              <PdfShareButton visible={shareReady} onShare={handleShare} label="Share Compressed PDF" />
             </>
           )}
         </div>

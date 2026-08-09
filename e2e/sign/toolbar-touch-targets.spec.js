@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 
 // 44 CSS px is the touch-target minimum WCAG 2.5.5 (AAA) and Apple's HIG both
-// settle on, and the value `--btn-min-size` encodes in SignToolbar.module.css.
+// settle on, and the value `--btn-min-size` encodes in SignToolbar.module.css -
+// the CSS module Sign and Redact's main toolbar both share.
 const MIN_TARGET = 44;
 
 async function makePdfBuffer() {
@@ -19,14 +20,14 @@ async function makePdfBuffer() {
   return Buffer.from(await doc.save());
 }
 
-async function openSignTool(page) {
-  await page.goto('/sign');
+async function openTool(page, toolPath, fixtureName) {
+  await page.goto(toolPath);
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   const fileChooser = await fileChooserPromise;
   await fileChooser.setFiles({
-    name: 'sign-toolbar-e2e.pdf',
+    name: fixtureName,
     mimeType: 'application/pdf',
     buffer: await makePdfBuffer(),
   });
@@ -71,77 +72,92 @@ async function readToolbar(page) {
   });
 }
 
-test.describe('Sign toolbar touch targets', () => {
-  // jsdom has no layout, so only a real browser can prove the rendered rects.
-  // Two viewports below the 920px icon-only breakpoint: one wide enough for a
-  // single row, one narrow enough that the grid has to wrap to a second row.
-  for (const width of [700, 390]) {
-    test(`keeps every icon-only control at least ${MIN_TARGET}px and all the same size at ${width}px`, async ({
-      page,
-    }) => {
-      await page.setViewportSize({ width, height: 900 });
-      await openSignTool(page);
+// Sign (9+ controls) takes the --controls-per-row:5 branch; Redact (7-8
+// controls) never reaches the 9th-child selector so it stays on the base
+// --controls-per-row:4 branch instead - a different code path in the same
+// shared module, and one Sign-only coverage can't exercise. Both tools'
+// widths were picked the same way: narrow enough to force wrapping, one step
+// below the shared 920px icon-only breakpoint for the single/double-row case.
+const tools = [
+  { name: 'Sign', path: '/sign', fixture: 'sign-toolbar-e2e.pdf', wrapWidths: [320, 360, 390, 430, 500] },
+  { name: 'Redact', path: '/redact', fixture: 'redact-toolbar-e2e.pdf', wrapWidths: [300, 320, 340] },
+];
 
-      const { controls, rows } = await readToolbar(page);
-      expect(controls.length).toBeGreaterThan(5);
+for (const tool of tools) {
+  test.describe(`${tool.name} toolbar touch targets`, () => {
+    // jsdom has no layout, so only a real browser can prove the rendered rects.
+    // Two viewports below the 920px icon-only breakpoint: one wide enough for a
+    // single row, one narrow enough that the grid has to wrap to a second row.
+    for (const width of [700, 390]) {
+      test(`keeps every icon-only control at least ${MIN_TARGET}px and all the same size at ${width}px`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openTool(page, tool.path, tool.fixture);
 
-      for (const control of controls) {
+        const { controls, rows } = await readToolbar(page);
+        expect(controls.length).toBeGreaterThan(5);
+
+        for (const control of controls) {
+          expect(
+            control.width,
+            `"${control.name}" is ${control.width}px wide, below the ${MIN_TARGET}px touch target`,
+          ).toBeGreaterThanOrEqual(MIN_TARGET);
+          expect(
+            control.height,
+            `"${control.name}" is ${control.height}px tall, below the ${MIN_TARGET}px touch target`,
+          ).toBeGreaterThanOrEqual(MIN_TARGET);
+        }
+
+        // Icon-only controls all carry the same content, so any difference in
+        // rendered width is a layout bug, not a design choice. The dropdown
+        // wrappers used to land ~13px narrower than the buttons beside them.
+        const widths = controls.map((control) => control.width);
+        const spread = Math.max(...widths) - Math.min(...widths);
         expect(
-          control.width,
-          `"${control.name}" is ${control.width}px wide, below the ${MIN_TARGET}px touch target`,
-        ).toBeGreaterThanOrEqual(MIN_TARGET);
-        expect(
-          control.height,
-          `"${control.name}" is ${control.height}px tall, below the ${MIN_TARGET}px touch target`,
-        ).toBeGreaterThanOrEqual(MIN_TARGET);
-      }
-
-      // Icon-only controls all carry the same content, so any difference in
-      // rendered width is a layout bug, not a design choice. The dropdown
-      // wrappers used to land ~13px narrower than the buttons beside them.
-      const widths = controls.map((control) => control.width);
-      const spread = Math.max(...widths) - Math.min(...widths);
-      expect(
-        spread,
-        `Toolbar controls differ in width by ${spread}px: ${controls
-          .map((control) => `${control.name}=${control.width}`)
-          .join(', ')}`,
-      ).toBeLessThanOrEqual(1);
-
-      // Each wrapped line is centred on its own, so a short final row reads as
-      // deliberate instead of stranded against the leading edge. This is the
-      // part grid could not do — its rows share one set of columns.
-      for (const [index, row] of rows.entries()) {
-        expect(
-          Math.abs(row.leadGap - row.trailGap),
-          `Row ${index + 1} (${row.count} controls) is off-centre: ${row.leadGap}px before, ${row.trailGap}px after`,
+          spread,
+          `Toolbar controls differ in width by ${spread}px: ${controls
+            .map((control) => `${control.name}=${control.width}`)
+            .join(', ')}`,
         ).toBeLessThanOrEqual(1);
-      }
-    });
-  }
 
-  // Flex packs greedily left to right, so without the per-line cap in
-  // SignToolbar.module.css these widths strand one or two controls on a line of
-  // their own (390px used to give 6+3, 500px gave 8+1).
-  for (const width of [320, 360, 390, 430, 500]) {
-    test(`splits into evenly filled rows at ${width}px`, async ({ page }) => {
-      await page.setViewportSize({ width, height: 900 });
-      await openSignTool(page);
+        // Each wrapped line is centred on its own, so a short final row reads as
+        // deliberate instead of stranded against the leading edge. This is the
+        // part grid could not do — its rows share one set of columns.
+        for (const [index, row] of rows.entries()) {
+          expect(
+            Math.abs(row.leadGap - row.trailGap),
+            `Row ${index + 1} (${row.count} controls) is off-centre: ${row.leadGap}px before, ${row.trailGap}px after`,
+          ).toBeLessThanOrEqual(1);
+        }
+      });
+    }
 
-      const { rows } = await readToolbar(page);
-      expect(rows.length).toBeGreaterThan(1);
+    // Flex packs greedily left to right, so without the per-line cap in
+    // SignToolbar.module.css these widths strand one or two controls on a line
+    // of their own (390px used to give 6+3, 500px gave 8+1, for Sign's control
+    // count - Redact's own widths were found the same way against its own,
+    // smaller control count).
+    for (const width of tool.wrapWidths) {
+      test(`splits into evenly filled rows at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openTool(page, tool.path, tool.fixture);
 
-      const counts = rows.map((row) => row.count);
-      expect(
-        Math.max(...counts) - Math.min(...counts),
-        `Rows are unbalanced: ${counts.join('+')}`,
-      ).toBeLessThanOrEqual(1);
+        const { rows } = await readToolbar(page);
+        expect(rows.length).toBeGreaterThan(1);
 
-      // No row may spill past the toolbar it sits in.
-      for (const row of rows) {
-        expect(row.leadGap).toBeGreaterThanOrEqual(0);
-        expect(row.trailGap).toBeGreaterThanOrEqual(0);
-      }
-    });
-  }
-});
+        const counts = rows.map((row) => row.count);
+        expect(
+          Math.max(...counts) - Math.min(...counts),
+          `Rows are unbalanced: ${counts.join('+')}`,
+        ).toBeLessThanOrEqual(1);
+
+        // No row may spill past the toolbar it sits in.
+        for (const row of rows) {
+          expect(row.leadGap).toBeGreaterThanOrEqual(0);
+          expect(row.trailGap).toBeGreaterThanOrEqual(0);
+        }
+      });
+    }
+  });
+}

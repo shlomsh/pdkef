@@ -39,13 +39,30 @@ export const FILE_ACTIONS = {
   },
 };
 
+// A control rendered without a real provider (an isolated unit test, a stray
+// future usage) should still mount cleanly - but if it's clicked, that click
+// silently doing nothing is worse than an error, since a passing test can't
+// tell "wired to a live action" from "wired to nothing" any other way.
+function missingProvider(action) {
+  return () => {
+    throw new Error(
+      `useToolShell(): ${action} was called with no <ToolShellContext.Provider> above it. ` +
+        'Mount this control inside BasePdfTool, or wrap the render in ToolShellContext.Provider.',
+    );
+  };
+}
+
 /* Everything a tool's controls need to know about the loaded file and how to
    act on it. BasePdfTool is the single provider: it owns the file input, the
    confirmations and the per-tool configuration, so no control anywhere has to
    re-derive any of it, and two tools cannot end up disagreeing about what
    "replace" means. The default value keeps a control renderable in isolation
-   (a unit test mounting just a toolbar) instead of throwing. */
-export const ToolShellContext = createContext({});
+   (a unit test mounting just a toolbar) instead of throwing - but only until
+   one of its actions is actually invoked. */
+export const ToolShellContext = createContext({
+  requestReplace: missingProvider('requestReplace'),
+  requestClear: missingProvider('requestClear'),
+});
 
 export function useToolShell() {
   return useContext(ToolShellContext);
