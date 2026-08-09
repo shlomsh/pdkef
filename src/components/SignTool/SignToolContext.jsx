@@ -18,6 +18,11 @@ export const SignToolContext = createContext(null);
 
 const initialState = {
   selectedTool: null,
+  // A tool is one-shot by default: it disarms itself once it has placed
+  // something, so the click that follows a placement means "deselect", not
+  // "make another one". Locking (double-click the tool button) opts back into
+  // the old sticky behaviour for repeat placements - ten check marks on a form.
+  toolLocked: false,
   elements: [],
   activeElementId: null,
   actionHistory: []
@@ -25,11 +30,23 @@ const initialState = {
 
 export function reducer(state, action) {
   switch (action.type) {
-    case 'SET_TOOL':
+    case 'SET_TOOL': {
+      // Payload is either a bare tool name (the common one-shot case) or
+      // { tool, locked } when the user has asked to keep the tool armed.
+      const { tool, locked = false } =
+        action.payload && typeof action.payload === 'object'
+          ? action.payload
+          : { tool: action.payload };
       return {
         ...state,
-        selectedTool: action.payload
+        selectedTool: tool,
+        toolLocked: tool ? locked : false
       };
+    }
+    // Fired by the gesture handlers once a placement is committed. A locked
+    // tool ignores it and stays armed.
+    case 'DISARM_TOOL':
+      return state.toolLocked ? state : { ...state, selectedTool: null };
     case 'SET_ELEMENTS':
       return {
         ...state,
