@@ -10,6 +10,7 @@ import dropzoneStyles from './Dropzone.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
 import redactStyles from './PdfRedactTool.module.css';
+import { setInputFiles } from '../test/setInputFiles.js';
 
 const REDACT_BOX = redactStyles['redact-box'];
 const REDACT_ELEMENT_BTN = redactStyles['redact-element-btn'];
@@ -94,8 +95,7 @@ describe('PdfRedactTool UI flow', () => {
     const file = makePdfFile('test_secret.pdf');
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     // Wait for async file loading
@@ -233,8 +233,7 @@ describe('PdfRedactTool UI flow', () => {
 
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 50));

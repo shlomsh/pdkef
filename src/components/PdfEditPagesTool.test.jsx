@@ -8,6 +8,7 @@ import toolShellStyles from './ToolShell.module.css';
 import pageGridStyles from './PageGrid.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
+import { setInputFiles } from '../test/setInputFiles.js';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -81,8 +82,7 @@ describe('PdfEditPagesTool UI flow', () => {
     const file = makePdfFile('document.pdf');
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     // Wait for the async loads to resolve
@@ -115,8 +115,7 @@ describe('PdfEditPagesTool UI flow', () => {
     const file = makePdfFile('document.pdf');
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     await act(async () => {
@@ -160,8 +159,7 @@ describe('PdfEditPagesTool UI flow', () => {
     const file = makePdfFile('document.pdf');
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     await act(async () => {
@@ -226,8 +224,7 @@ describe('PdfEditPagesTool UI flow', () => {
     const file = makePdfFile('document.pdf');
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     await act(async () => {

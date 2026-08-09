@@ -5,6 +5,7 @@ import PdfSignTool from './PdfSignTool.jsx';
 import PdfRedactTool from './PdfRedactTool.jsx';
 import redactStyles from './PdfRedactTool.module.css';
 import { takeHandoff } from '../lib/draftStore.js';
+import { setInputFiles } from '../test/setInputFiles.js';
 
 const REDACT_BOX = redactStyles['redact-box'];
 
@@ -82,8 +83,7 @@ async function waitAsync(ms = 30) {
 async function pickFile(container, file) {
   const input = container.querySelector('input[type="file"]');
   await act(async () => {
-    Object.defineProperty(input, 'files', { value: [file], configurable: true });
-    input.dispatchEvent(new Event('change', { bubbles: true }));
+    setInputFiles(input, [file]);
   });
 }
 

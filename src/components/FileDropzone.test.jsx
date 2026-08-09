@@ -4,6 +4,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone from './FileDropzone.jsx';
 import styles from './Dropzone.module.css';
 import { loadDraft, deleteDraft, saveDraft, saveHandoff } from '../lib/draftStore.js';
+import { setInputFiles } from '../test/setInputFiles.js';
 
 vi.mock('../lib/draftStore.js', () => ({
   loadDraft: vi.fn(() => Promise.resolve(null)),
@@ -83,8 +84,7 @@ describe('FileDropzone', () => {
     const file = new File([''], 'test.pdf', { type: 'application/pdf' });
     
     act(() => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     expect(onFilesSpy).toHaveBeenCalledTimes(1);

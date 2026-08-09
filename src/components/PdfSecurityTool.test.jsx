@@ -5,6 +5,7 @@ import PdfSecurityTool from './PdfSecurityTool.jsx';
 import * as securityLib from '../lib/security.js';
 import pdfToolStyles from './PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
+import { setInputFiles } from '../test/setInputFiles.js';
 
 vi.mock('../lib/security.js', () => ({
   isPdfEncrypted: vi.fn(),
@@ -43,8 +44,7 @@ describe('PdfSecurityTool', () => {
     const file = new File(['dummy'], name, { type: 'application/pdf' });
     
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
       await new Promise(resolve => setTimeout(resolve, 10)); // wait for async checks
     });
   }
