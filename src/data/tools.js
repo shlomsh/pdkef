@@ -77,6 +77,10 @@ export const tools = [
         question: 'What happens if my browser crashes while filling out a form?',
         answer: 'Your work is not lost. As you add text, symbols, and signatures, the tool auto-saves your progress to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. Because this happens on your device, your file is still never uploaded, and your saved draft stays until you replace the file, or for 14 days if you never come back.',
       },
+      {
+        question: 'Can I fill and sign a PDF in Hebrew (חתימה על PDF)?',
+        answer: 'Yes. Hebrew works end to end. Type into a text box and it grows leftward from a fixed right edge, the way right-to-left text actually behaves. The fonts offered for Hebrew are bundled with the tool and checked against their real glyph coverage, so what you see on screen is what gets embedded in the file you download, with no empty rectangles where the letters should be. You can also type your signature in a Hebrew handwriting font rather than drawing it.',
+      },
     ],
   },
 
