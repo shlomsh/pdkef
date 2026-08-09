@@ -2,15 +2,15 @@
    by every tool (Merge, Split, Compress, ImageToPdf, ToImage, EditPages,
    Security, Redact) and BasePdfTool.jsx. This is the highest-fanout module in
    E2.2, landed as a few smaller commits by class-group rather than one atomic
-   change: (1) list/error/download states + `.merge-tool` wrapper,
-   (2) `.merge-button*`/`.progress-ring*` (moved here from the old E2.2.4,
+   change: (1) list/error/download states + `.tool-card` wrapper,
+   (2) `.tool-primary-action*`/`.progress-ring*` (moved here from the old E2.2.4,
    which turned out to be an 8-9-tool shared class, not PdfMergeTool-only),
    (3) items deferred from E2.2.9 (`.page-numbers-toggle`,
    `.thumb-placeholder`+`@keyframes shimmer`, genuinely generic/cross-boundary
    rather than page-grid-specific). */
 
-/* --- Merge tool island wrapper (owned by BasePdfTool.jsx) --- */
-.merge-tool {
+/* --- Tool card: BasePdfTool.jsx's wrapper, shared by all nine tools --- */
+.tool-card {
   position: relative; /* anchors the loaded-state drag-and-drop overlay */
   /* #app is a flex container, so this card is a flex item and defaults to
      min-width:auto — it would refuse to shrink below its min-content width.
@@ -26,7 +26,7 @@
 }
 
 @media (min-width: 560px) {
-  .merge-tool {
+  .tool-card {
     padding: 1.5rem;
   }
 }
@@ -36,7 +36,7 @@
    global stylesheet: without an explicit width, it shrink-wraps to its
    dropzone and leaves an empty right-hand region. */
 @media (min-width: 768px) {
-  .merge-tool {
+  .tool-card {
     width: 100%;
     flex-shrink: 0;
   }
@@ -45,9 +45,7 @@
 /* No `.list-header` / `.list-count` / `.clear-all` here any more. The file count
    is part of the identity line now (ToolShell.module.css) and Clear all is one
    of that shell's controls, so neither the header row nor the two classes it
-   needed survive. `.clear-all` in particular was the shared "throw the user's
-   work away" button eight tools reached for while their results views reached
-   for `.start-over` to do the same thing under a second name. */
+   needed survive. */
 
 /* --- Page selector --- */
 .page-selector-field {
@@ -233,8 +231,8 @@
   }
 }
 
-/* --- Merge button --- */
-.merge-button {
+/* --- Primary action button --- */
+.tool-primary-action {
   position: relative;
   display: flex;
   align-items: center;
@@ -256,44 +254,44 @@
     box-shadow 0.18s var(--ease-out);
 }
 
-.merge-button:hover:not(:disabled) {
+.tool-primary-action:hover:not(:disabled) {
   background: var(--color-primary-hover);
   box-shadow: 0 8px 22px color-mix(in srgb, var(--color-primary) 34%, transparent);
   transform: translateY(-1px);
 }
 
-.merge-button:active:not(:disabled) {
+.tool-primary-action:active:not(:disabled) {
   transform: translateY(0) scale(0.995);
 }
 
-.merge-button:disabled {
+.tool-primary-action:disabled {
   background: var(--color-surface-sunken);
   color: var(--color-muted-light);
   cursor: not-allowed;
   box-shadow: none;
 }
 
-.merge-button.is-merging {
+.tool-primary-action.is-processing {
   cursor: progress;
   background: var(--color-primary);
   color: var(--color-surface);
 }
 
-.merge-button.is-done {
+.tool-primary-action.is-done {
   background: var(--color-surface-sunken);
   color: var(--color-muted);
   box-shadow: none;
   border: 1px solid var(--color-border);
 }
 
-.merge-button.is-done:hover:not(:disabled) {
+.tool-primary-action.is-done:hover:not(:disabled) {
   background: var(--color-border);
   color: var(--color-text);
   box-shadow: none;
   transform: none;
 }
 
-.merge-button-progress {
+.tool-primary-action-progress {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;

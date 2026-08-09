@@ -261,7 +261,7 @@ export default function PdfImageToPdfTool() {
 
           <button
             type="button"
-            class={`${pdfToolStyles['merge-button']}${status === 'converting' ? ` ${pdfToolStyles['is-merging']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
+            class={`${pdfToolStyles['tool-primary-action']}${status === 'converting' ? ` ${pdfToolStyles['is-processing']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
             disabled={entries.length === 0 || status === 'converting'}
             onClick={handleConvert}
           >

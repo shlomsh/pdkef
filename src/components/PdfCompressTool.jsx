@@ -251,7 +251,7 @@ export default function PdfCompressTool() {
           {status !== 'done' && (
             <button
               type="button"
-              class={`${pdfToolStyles['merge-button']}${status === 'processing' ? ` ${pdfToolStyles['is-merging']}` : ''}`}
+              class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}`}
               disabled={status === 'processing'}
               onClick={handleCompress}
             >

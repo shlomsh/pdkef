@@ -140,7 +140,7 @@ describe('PdfCompressTool UI flow', () => {
     window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
 
     // Click compression button
-    const button = container.querySelector(`.${pdfToolStyles['merge-button']}`);
+    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     expect(button).not.toBeNull();
     expect(button.textContent).toContain('Compress PDF');
 
@@ -210,7 +210,7 @@ describe('PdfCompressTool UI flow', () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:targeturl');
 
-    const button = container.querySelector(`.${pdfToolStyles['merge-button']}`);
+    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });

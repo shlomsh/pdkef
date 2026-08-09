@@ -291,7 +291,7 @@ export default function PdfMergeTool() {
 
           <button
             type="button"
-            class={`${pdfToolStyles['merge-button']}${status === 'merging' ? ` ${pdfToolStyles['is-merging']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
+            class={`${pdfToolStyles['tool-primary-action']}${status === 'merging' ? ` ${pdfToolStyles['is-processing']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
             disabled={entries.length < 2 || status === 'merging'}
             onClick={handleMerge}
           >

@@ -73,7 +73,7 @@ describe('PdfMergeTool UI flow', () => {
     const fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map(el => el.textContent);
     expect(fileNames).toEqual(['one.pdf']);
 
-    const mergeBtn = container.querySelector(`.${pdfToolStyles['merge-button']}`);
+    const mergeBtn = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     expect(mergeBtn.disabled).toBe(true);
     expect(mergeBtn.textContent).toContain('Add 1 more to merge');
   });
@@ -83,7 +83,7 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['doc1.pdf', 'doc2.pdf']);
 
-    const mergeBtn = container.querySelector(`.${pdfToolStyles['merge-button']}`);
+    const mergeBtn = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     expect(mergeBtn.disabled).toBe(false);
     expect(mergeBtn.textContent).toContain('Merge 2 PDFs');
 

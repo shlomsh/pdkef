@@ -175,7 +175,7 @@ describe('BasePdfTool', () => {
   it('shows a drop overlay over the whole tool while dragging a file in the loaded state', () => {
     const onFilesAddedSpy = vi.fn();
     mount({ hasFiles: true, onFilesAdded: onFilesAddedSpy, multiple: false, fileLabel: 'contract.pdf' });
-    const wrapper = container.querySelector(`.${pdfToolStyles['merge-tool']}`);
+    const wrapper = container.querySelector(`.${pdfToolStyles['tool-card']}`);
 
     expect(container.querySelector(`.${styles['drop-overlay']}`)).toBeNull();
 
@@ -196,7 +196,7 @@ describe('BasePdfTool', () => {
 
   it('does not show the overlay for non-file drags (e.g. SortableJS reorder)', () => {
     mount({ hasFiles: true, onFilesAdded: vi.fn(), fileLabel: '3 PDFs' });
-    const wrapper = container.querySelector(`.${pdfToolStyles['merge-tool']}`);
+    const wrapper = container.querySelector(`.${pdfToolStyles['tool-card']}`);
 
     act(() => {
       wrapper.dispatchEvent(fileDragEvent('dragenter', { withFiles: false }));
@@ -350,7 +350,7 @@ describe('BasePdfTool', () => {
 
   it('does not attach the drop overlay in the empty state', () => {
     mount({ hasFiles: false, onFilesAdded: vi.fn() });
-    const wrapper = container.querySelector(`.${pdfToolStyles['merge-tool']}`);
+    const wrapper = container.querySelector(`.${pdfToolStyles['tool-card']}`);
 
     act(() => {
       wrapper.dispatchEvent(fileDragEvent('dragenter'));

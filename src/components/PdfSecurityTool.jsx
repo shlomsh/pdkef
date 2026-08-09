@@ -125,7 +125,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
 
             <button
               type="submit"
-              class={`${pdfToolStyles['merge-button']}${status === 'processing' ? ` ${pdfToolStyles['is-merging']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
+              class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
               disabled={!password || status === 'processing'}
             >
               {status === 'processing' 
