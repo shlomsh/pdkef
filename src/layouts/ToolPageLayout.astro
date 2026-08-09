@@ -12,6 +12,7 @@ import ToolHero from '../components/ToolHero.astro';
 import AppBar from '../components/AppBar.astro';
 import ToolAboutCard from '../components/ToolAboutCard.astro';
 import ToolFaqCard from '../components/ToolFaqCard.astro';
+import ToolCrossLinks from '../components/ToolCrossLinks.astro';
 import Footer from '../components/Footer.astro';
 import '../styles/global.css';
 
@@ -46,6 +47,8 @@ const { tool } = Astro.props;
   />
 
   <ToolFaqCard faq={tool.faq} sketch={tool.faqSketch} iconPos={tool.faqIconPos} />
+
+  <ToolCrossLinks currentSlug={tool.slug} />
 
   <Footer />
 </BaseLayout>
