@@ -479,6 +479,9 @@ function PdfSignToolInner() {
     
     const placement = tempPlacement || { pageIndex: 0, left: 40, top: 40 };
     placeSignatureAt(dataUrl, aspectRatio, placement.pageIndex, placement.left, placement.top);
+    // The dialog both creates and places the signature, so that counts as the
+    // tool's one placement - same as a click-placement on the page overlay.
+    dispatch({ type: 'DISARM_TOOL' });
     setDialogOpen(false);
     setTempPlacement(null);
   };

@@ -25,6 +25,7 @@ export default function SignToolbar({
 }) {
   const { state, dispatch } = useSignTool();
   const selectedTool = state.selectedTool;
+  const toolLocked = state.toolLocked;
   const { requestReplace } = useToolShell();
 
   const [showSigDropdown, setShowSigDropdown] = useState(false);
@@ -76,18 +77,30 @@ export default function SignToolbar({
     dispatch({ type: 'SET_TOOL', payload: tool });
   };
 
+  // A tool arms for a single placement. Double-click locks it on for repeats -
+  // the Figma/Illustrator convention. `detail` is the click count on the same
+  // button, so the second click of a double-click locks instead of toggling the
+  // tool back off; no dblclick handler and no timer needed.
+  const armTool = (tool, label) => (e) => {
+    if (e.detail >= 2) {
+      dispatch({ type: 'SET_TOOL', payload: { tool, locked: true } });
+      setAnnouncement(`${label} tool locked on. Press Escape to stop adding.`);
+      return;
+    }
+    const next = selectedTool === tool ? null : tool;
+    setSelectedTool(next);
+    if (next) setAnnouncement(`${label} tool active. Click a page to place one.`);
+  };
+
   return (
     <>
       <ToolShell editor>
         <div className={styles.toolbar} role="toolbar" aria-label="PDF annotations">
           <button
             type="button"
-            className={`${styles.button}${selectedTool === 'text' ? ` ${styles.active}` : ''}`}
-            onClick={() => {
-              setSelectedTool(selectedTool === 'text' ? null : 'text');
-              setAnnouncement('Text tool active. Click anywhere on a page to place.');
-            }}
-            title="Click here, then click a page to add text"
+            className={`${styles.button}${selectedTool === 'text' ? ` ${styles.active}` : ''}${selectedTool === 'text' && toolLocked ? ` ${styles.locked}` : ''}`}
+            onClick={armTool('text', 'Text')}
+            title="Click here, then click a page to add text. Double-click to keep adding"
             aria-pressed={selectedTool === 'text'}
             data-label-priority="1"
           >
@@ -101,12 +114,9 @@ export default function SignToolbar({
 
           <button
             type="button"
-            className={`${styles.button}${selectedTool === 'symbol' ? ` ${styles.active}` : ''}`}
-            onClick={() => {
-              setSelectedTool(selectedTool === 'symbol' ? null : 'symbol');
-              setAnnouncement('Symbols tool active. Click a page to place.');
-            }}
-            title="Click here, then click a page to place symbols"
+            className={`${styles.button}${selectedTool === 'symbol' ? ` ${styles.active}` : ''}${selectedTool === 'symbol' && toolLocked ? ` ${styles.locked}` : ''}`}
+            onClick={armTool('symbol', 'Symbols')}
+            title="Click here, then click a page to place symbols. Double-click to keep adding"
             aria-pressed={selectedTool === 'symbol'}
             data-label-priority="1"
           >
@@ -205,12 +215,9 @@ export default function SignToolbar({
 
           <button
             type="button"
-            className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}`}
-            onClick={() => {
-              setSelectedTool(selectedTool === 'whiteout' ? null : 'whiteout');
-              setAnnouncement('Whiteout tool active. Click a page to place.');
-            }}
-            title="Click here, then click a page to hide text"
+            className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}${selectedTool === 'whiteout' && toolLocked ? ` ${styles.locked}` : ''}`}
+            onClick={armTool('whiteout', 'Whiteout')}
+            title="Click here, then drag on a page to hide text. Double-click to keep adding"
             data-label-priority="1"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -383,7 +390,9 @@ export default function SignToolbar({
             {['whiteout', 'line', 'ellipse', 'rectangle'].includes(selectedTool)
               ? <>Click and drag on a PDF page below to draw your <strong>{selectedTool}</strong>.</>
               : <>Click anywhere on the PDF pages below to place your <strong>{selectedTool}</strong> layer.</>}
-            {' '}Press <strong>Esc</strong> to stop adding.
+            {toolLocked
+              ? <> The tool stays on until you press <strong>Esc</strong>.</>
+              : <> One at a time. Double-click the tool to keep adding.</>}
           </span>
         </div>
       ) : (
