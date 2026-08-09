@@ -6,6 +6,14 @@ import ToolShell, { FILE_ACTIONS, useToolShell } from '../ToolShell.jsx';
 import styles from './SignToolbar.module.css';
 import controlStyles from '../EditorControls.module.css';
 
+// The tools that live behind the Shapes button, so its pressed/locked state and
+// its lock target read from one list instead of three copies of the same array.
+const SHAPE_TOOLS = ['ellipse', 'rectangle', 'line'];
+// Tools drawn by dragging rather than by a single click, which is the one thing
+// the status line phrases differently. Derived from SHAPE_TOOLS so adding a
+// shape does not need this list updated too.
+const DRAG_DRAWN_TOOLS = ['whiteout', ...SHAPE_TOOLS];
+
 export default function SignToolbar({
   setAnnouncement,
   savedSignatures,
@@ -30,6 +38,10 @@ export default function SignToolbar({
 
   const [showSigDropdown, setShowSigDropdown] = useState(false);
   const [showShapesDropdown, setShowShapesDropdown] = useState(false);
+  // Which shape the Shapes button stands for once its menu has closed. The
+  // button is the shape tool's button, so locking has to know what to lock
+  // even after the one-shot placement has already disarmed the tool.
+  const [lastShape, setLastShape] = useState(null);
 
   const shapesCloseTimer = useRef(null);
   const openShapes = () => {
@@ -83,13 +95,39 @@ export default function SignToolbar({
   // tool back off; no dblclick handler and no timer needed.
   const armTool = (tool, label) => (e) => {
     if (e.detail >= 2) {
-      dispatch({ type: 'SET_TOOL', payload: { tool, locked: true } });
-      setAnnouncement(`${label} tool locked on. Press Escape to stop adding.`);
+      lockTool(tool, label);
       return;
     }
     const next = selectedTool === tool ? null : tool;
     setSelectedTool(next);
     if (next) setAnnouncement(`${label} tool active. Click a page to place one.`);
+  };
+
+  const lockTool = (tool, label) => {
+    dispatch({ type: 'SET_TOOL', payload: { tool, locked: true } });
+    setAnnouncement(`${label} tool locked on. Press Escape to stop adding.`);
+  };
+
+  const chooseShape = (tool) => {
+    setSelectedTool(tool);
+    setLastShape(tool);
+    setShowShapesDropdown(false);
+    setAnnouncement(`${tool} tool active. Drag on a page to draw one.`);
+  };
+
+  // Shapes locks from its own button rather than from a menu item, because a
+  // menu item cannot be double-clicked: the first click closes the popover and
+  // unmounts it, so the second click would land on whatever is underneath -
+  // possibly the page, placing an element nobody asked for. The button is the
+  // shape tool's button, so double-clicking it is the same gesture as on Text.
+  // A real dblclick handler is safe here (unlike the toggle buttons, where the
+  // second click would disarm before the lock landed): the two clicks only
+  // toggle the popover, never the tool.
+  const lockShape = () => {
+    const shape = SHAPE_TOOLS.includes(selectedTool) ? selectedTool : lastShape;
+    if (!shape) return;
+    lockTool(shape, shape);
+    setShowShapesDropdown(false);
   };
 
   return (
@@ -130,6 +168,7 @@ export default function SignToolbar({
             className={styles.dropdown}
             onMouseEnter={openShapes}
             onMouseLeave={scheduleCloseShapes}
+            onDblClick={lockShape}
           >
             <Popover
               open={showShapesDropdown}
@@ -138,9 +177,9 @@ export default function SignToolbar({
               trigger={
                 <button
                   type="button"
-                  className={`${styles.button}${['ellipse', 'rectangle', 'line'].includes(selectedTool) ? ` ${styles.active}` : ''}`}
-                  title="Click here to select a shape"
-                  aria-pressed={['ellipse', 'rectangle', 'line'].includes(selectedTool)}
+                  className={`${styles.button}${SHAPE_TOOLS.includes(selectedTool) ? ` ${styles.active}` : ''}${SHAPE_TOOLS.includes(selectedTool) && toolLocked ? ` ${styles.locked}` : ''}`}
+                  title="Click here to select a shape. Double-click to keep adding"
+                  aria-pressed={SHAPE_TOOLS.includes(selectedTool)}
                   data-label-priority="1"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -168,11 +207,7 @@ export default function SignToolbar({
                     <button
                       type="button"
                       className={controlStyles['menu-item']}
-                      onClick={() => {
-                        setSelectedTool('ellipse');
-                        setShowShapesDropdown(false);
-                        setAnnouncement('Ellipse tool active. Click a page to place.');
-                      }}
+                      onClick={() => chooseShape('ellipse')}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <ellipse cx="12" cy="12" rx="10" ry="7" />
@@ -182,11 +217,7 @@ export default function SignToolbar({
                     <button
                       type="button"
                       className={controlStyles['menu-item']}
-                      onClick={() => {
-                        setSelectedTool('rectangle');
-                        setShowShapesDropdown(false);
-                        setAnnouncement('Rectangle tool active. Click a page to place.');
-                      }}
+                      onClick={() => chooseShape('rectangle')}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <rect x="3" y="6" width="18" height="12" rx="2" />
@@ -196,11 +227,7 @@ export default function SignToolbar({
                     <button
                       type="button"
                       className={controlStyles['menu-item']}
-                      onClick={() => {
-                        setSelectedTool('line');
-                        setShowShapesDropdown(false);
-                        setAnnouncement('Line tool active. Click a page to place.');
-                      }}
+                      onClick={() => chooseShape('line')}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                         <line x1="4" y1="20" x2="20" y2="4" />
@@ -387,7 +414,7 @@ export default function SignToolbar({
             <line x1="12" y1="8" x2="12.01" y2="8" />
           </svg>
           <span>
-            {['whiteout', 'line', 'ellipse', 'rectangle'].includes(selectedTool)
+            {DRAG_DRAWN_TOOLS.includes(selectedTool)
               ? <>Click and drag on a PDF page below to draw your <strong>{selectedTool}</strong>.</>
               : <>Click anywhere on the PDF pages below to place your <strong>{selectedTool}</strong> layer.</>}
             {toolLocked
