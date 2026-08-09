@@ -8,7 +8,7 @@ import workspaceStyles from '../Workspace.module.css';
 import elementStyles from '../EditorElement.module.css';
 
 
-export default function TextNode({ element, isActive, onChange, onSelect, onResizeStart, pageWidthPoints }) {
+export default function TextNode({ element, isActive, isEditing, onChange, onSelect, onBeginEdit, onResizeStart, pageWidthPoints }) {
   const [scaleFactor, setScaleFactor] = useState(1);
   const { getScaleFactor } = usePdfCoordinates();
   const textRef = useRef(null);
@@ -26,33 +26,25 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
     return () => observer.disconnect();
   }, [pageWidthPoints]);
 
+  // The caret follows the edit session, not the selection. Two things open one:
+  // starting to edit (created, double-clicked, Enter), and returning from the
+  // floating toolbar - clicking A+ or a colour moves focus out of the textarea,
+  // and typing has to continue where it left off afterwards.
   useEffect(() => {
-    if (!isActive || !textareaRef.current) return;
+    if (!isEditing || !textareaRef.current) return;
+    if (document.activeElement === textareaRef.current) return;
 
-    const activeEl = document.activeElement;
-    const isToolbarFocused = activeEl && (activeEl.closest(`.${elementStyles.actions}`) || activeEl.closest('[data-editor-popover]'));
-    const isTextareaFocused = activeEl === textareaRef.current;
-
-    if (element.autoFocus || isToolbarFocused) {
-      if (!isTextareaFocused) {
-        textareaRef.current.focus();
-        const len = textareaRef.current.value.length;
-        textareaRef.current.setSelectionRange(len, len);
-      }
-      if (element.autoFocus) {
-        onChange({ autoFocus: undefined });
-      }
-    }
+    textareaRef.current.focus();
+    const len = textareaRef.current.value.length;
+    textareaRef.current.setSelectionRange(len, len);
   }, [
-    isActive,
-    element.autoFocus,
+    isEditing,
     element.fontFamily,
     element.fontSize,
     element.color,
     element.fontWeight,
     element.fontStyle,
-    element.textDirection,
-    onChange
+    element.textDirection
   ]);
 
   const textFontSize = (element.fontSize || DEFAULT_FONT_SIZE_PT) * scaleFactor;
@@ -61,10 +53,19 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
   // the browser never quietly patches in a system font for glyphs the chosen
   // file lacks — that fallback is what a PDF cannot reproduce.
   const renderedFontFamily = resolveFontFamily(element.fontFamily, element.text);
+  // Shown in the empty box, and measured to size it. One string for both, so the
+  // box can never be sized against copy it isn't showing.
+  const placeholder = isEditing ? 'Type your text' : 'Double-click to edit';
 
   return (
     <>
-      <div ref={textRef} className={elementStyles['text-display']} data-editor-text-display style={{ fontSize: `${textFontSize}px` }}>
+      <div
+        ref={textRef}
+        className={elementStyles['text-display']}
+        data-editor-text-display
+        style={{ fontSize: `${textFontSize}px` }}
+        onDblClick={onBeginEdit}
+      >
         <div
           className={elementStyles['text-measure']}
           data-editor-text-measure
@@ -76,17 +77,25 @@ export default function TextNode({ element, isActive, onChange, onSelect, onResi
             fontStyle: element.fontStyle || 'normal'
           }}
         >
-          {(element.text || 'Click to edit') + '\u200B'}
+          {(element.text || placeholder) + '\u200B'}
         </div>
+        {/* Outside an edit session the textarea is inert: it cannot take the
+            caret by click (pointer-events, via the class) or by Tab (tabIndex),
+            and cannot be typed into (readOnly). That is what frees a plain click
+            to select the element and Backspace to delete it, and it hands
+            mousedown to the wrapper so a selected box can be dragged from
+            anywhere - previously the textarea swallowed it. */}
         <textarea
           ref={textareaRef}
           dir={textDirection}
           rows={1}
           cols={1}
-          className={elementStyles['text-input']}
+          className={`${elementStyles['text-input']}${isEditing ? '' : ` ${elementStyles['text-input-inert']}`}`}
           data-editor-text-input
+          readOnly={!isEditing}
+          tabIndex={isEditing ? undefined : -1}
           value={element.text}
-          placeholder="Click to edit"
+          placeholder={placeholder}
           onInput={(e) => onChange({ text: e.currentTarget.value })}
           onFocus={onSelect}
           style={{

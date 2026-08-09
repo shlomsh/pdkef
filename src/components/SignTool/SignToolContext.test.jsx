@@ -71,6 +71,41 @@ describe('SignToolContext Reducer', () => {
     expect(nextState.activeElementId).toBe('el-1');
   });
 
+  // Selection and editing are two states, and only the reducer keeps them in
+  // step: editingElementId is null or equal to activeElementId, never anything
+  // else. These four cases are that invariant.
+  describe('text edit sessions', () => {
+    const editing = { ...initialState, activeElementId: 'el-1', editingElementId: 'el-1' };
+
+    it('SET_EDITING_ELEMENT_ID opens a session on the selected element', () => {
+      const selected = { ...initialState, activeElementId: 'el-1' };
+      const next = reducer(selected, { type: 'SET_EDITING_ELEMENT_ID', payload: 'el-1' });
+      expect(next.editingElementId).toBe('el-1');
+    });
+
+    it('refuses to open a session on an element that is not selected', () => {
+      const selected = { ...initialState, activeElementId: 'el-1' };
+      const next = reducer(selected, { type: 'SET_EDITING_ELEMENT_ID', payload: 'el-2' });
+      expect(next.editingElementId).toBeNull();
+    });
+
+    it('selecting a different element closes the open session', () => {
+      const next = reducer(editing, { type: 'SET_ACTIVE_ELEMENT_ID', payload: 'el-2' });
+      expect(next.activeElementId).toBe('el-2');
+      expect(next.editingElementId).toBeNull();
+    });
+
+    it('re-selecting the element being edited leaves the session open', () => {
+      const next = reducer(editing, { type: 'SET_ACTIVE_ELEMENT_ID', payload: 'el-1' });
+      expect(next.editingElementId).toBe('el-1');
+    });
+
+    it('replacing the document closes the session', () => {
+      const next = reducer(editing, { type: 'SET_ELEMENTS', payload: [] });
+      expect(next.editingElementId).toBeNull();
+    });
+  });
+
   it('ADD_ACTION_HISTORY prepends actions to history stack', () => {
     const action1 = { type: 'ADD_ACTION_HISTORY', payload: { id: 'act-1', elementId: 'el-1', type: 'ADD_TEXT' } };
     const action2 = { type: 'ADD_ACTION_HISTORY', payload: { id: 'act-2', elementId: 'el-2', type: 'ADD_SHAPE' } };

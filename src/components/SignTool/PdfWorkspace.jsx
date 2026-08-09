@@ -58,7 +58,7 @@ export default function PdfWorkspace({
   canSharePdf = false,
   shareReady = false
 }) {
-  const { state: { selectedTool, elements, activeElementId, actionHistory }, dispatch } = useSignTool();
+  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
   const activeElement = elements.find((el) => el.id === activeElementId);
   const activeTextElement = activeElement?.type === 'text' ? activeElement : null;
   const initialTextDirection =
@@ -137,6 +137,14 @@ export default function PdfWorkspace({
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
   }, [dispatch]);
 
+  // Opening an edit session selects first, so the reducer's guard (editing must
+  // match the selection) holds even when the double-click lands on an element
+  // that was not the selected one.
+  const makeOnBeginEdit = useCallback((id) => () => {
+    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
+    dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: id });
+  }, [dispatch]);
+
   const makeOnDelete = useCallback((id) => () => deleteElement(id), [deleteElement]);
 
   const makeOnClone = useCallback((id, pageIndex, type) => (cloneInfo) => {
@@ -206,6 +214,8 @@ export default function PdfWorkspace({
                           key={el.id}
                           element={el}
                           isActive={activeElementId === el.id}
+                          isEditing={editingElementId === el.id}
+                          onBeginEdit={makeOnBeginEdit(el.id)}
                           onSelect={makeOnSelect(el.id)}
                           onChange={makeOnChange(el.id)}
                           onDelete={makeOnDelete(el.id)}

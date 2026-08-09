@@ -47,11 +47,13 @@ export const textDefinition: ElementDefinition<TextElement> = {
     // the pointer rather than hanging below it.
     create: ({ id, pageIndex, point, color, font, fontSize, direction, textHeight = 0 }) => ({
       id, type: 'text', pageIndex, left: point.left, top: Math.max(0, point.top - textHeight / 2), text: '',
-      fontSize, fontWeight: 'normal', fontStyle: 'normal', fontFamily: font, color, autoFocus: true,
+      fontSize, fontWeight: 'normal', fontStyle: 'normal', fontFamily: font, color,
       ...(direction != null ? { textDirection: direction } : {}),
     }),
   },
-  render: ({ element, onChange, onSelect, pageWidthPoints }) => h(TextNode, { element, onChange, onSelect, pageWidthPoints, isActive: false, onResizeStart: () => {} }),
+  // isActive/isEditing/onBeginEdit are placeholders: DraggableWrapper injects the
+  // real values via cloneElement, the same channel onResizeStart arrives on.
+  render: ({ element, onChange, onSelect, pageWidthPoints }) => h(TextNode, { element, onChange, onSelect, pageWidthPoints, isActive: false, isEditing: false, onBeginEdit: () => {}, onResizeStart: () => {} }),
   serialize: async (element, { page, pdfX, pdfY, loadCustomFont, baselineOffset }) => {
     const { text, fontSize, fontFamily, fontWeight, fontStyle, color } = element;
     const textValue = (text || '').trim();

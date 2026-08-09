@@ -17,6 +17,10 @@
 .text-measure { visibility: hidden; pointer-events: none; }
 .text-input { display: block; border: none; background: transparent; color: inherit; outline: none; resize: none; overflow: hidden; width: 100%; height: 100%; min-width: 0; }
 .text-input::placeholder { color: inherit; opacity: .45; }
+/* A text box that is selected but not being edited. Pointer events pass through
+   to the wrapper, so the click selects and drags the element instead of placing
+   a caret; entering the edit session (double-click, Enter) drops this class. */
+.text-input-inert { pointer-events: none; user-select: none; }
 .signature-image { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; user-select: none; }
 .resizer { position: absolute; bottom: -4px; width: 10px; height: 10px; background: var(--color-primary); border: 1px solid var(--color-surface); border-radius: 50%; z-index: 5; }
 .resizer.right { right: -4px; cursor: se-resize; }

@@ -28,7 +28,7 @@ function PdfSignToolInner() {
   const [numPages, setNumPages] = useState(0);
   const [pdfDocument, setPdfDocument] = useState(null);
   const [pageSizes, setPageSizes] = useState([]); // Array of { width, height } in PDF points
-  const { state: { selectedTool, elements, activeElementId, actionHistory }, dispatch } = useSignTool();
+  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
   const setSelectedTool = (tool) => dispatch({ type: 'SET_TOOL', payload: tool });
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
   const [progress, setProgress] = useState(0);
@@ -498,8 +498,17 @@ function PdfSignToolInner() {
   // Global keyboard shortcuts (Escape, Undo, Delete)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Clear selected tool and active element on Escape
+      // Escape unwinds one level at a time: out of the text box first, then out
+      // of the selection and tool. Collapsing both into one press would make it
+      // impossible to go from typing to "this box is selected", which is the
+      // state Backspace-to-delete needs.
       if (e.key === 'Escape') {
+        if (editingElementId) {
+          dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: null });
+          document.activeElement?.blur();
+          setAnnouncement('Finished editing. Press Backspace to delete this box.');
+          return;
+        }
         dispatch({ type: 'SET_TOOL', payload: null });
         dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
         document.activeElement?.blur();
@@ -509,6 +518,18 @@ function PdfSignToolInner() {
       const tag = document.activeElement?.tagName;
       const isInput = tag === 'INPUT' || tag === 'TEXTAREA';
 
+      // Enter opens an edit session on a selected text box - the keyboard's
+      // equivalent of double-clicking it, so text stays reachable without a
+      // pointer.
+      if (e.key === 'Enter' && activeElementId && !editingElementId && !isInput) {
+        const selected = elements.find(el => el.id === activeElementId);
+        if (selected?.type === 'text') {
+          e.preventDefault();
+          dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: activeElementId });
+        }
+        return;
+      }
+
       // Delete the active element via Backspace/Delete
       if (activeElementId && (e.key === 'Backspace' || e.key === 'Delete')) {
         if (isInput) return;
@@ -516,10 +537,10 @@ function PdfSignToolInner() {
         deleteElement(activeElementId);
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeElementId]);
+  }, [activeElementId, editingElementId, elements]);
 
   // Handle element copy and paste actions
   useEffect(() => {
