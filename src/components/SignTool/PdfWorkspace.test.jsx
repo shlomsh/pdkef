@@ -172,7 +172,7 @@ describe('PdfWorkspace Component', () => {
       );
     });
 
-    expect(dispatch).toHaveBeenCalledTimes(4);
+    expect(dispatch).toHaveBeenCalledTimes(5);
     expect(dispatch.mock.calls[2][0]).toEqual(
       expect.objectContaining({
         type: 'UPDATE_ELEMENT',
@@ -198,6 +198,9 @@ describe('PdfWorkspace Component', () => {
         })
       })
     );
+    // The drawn shape is the tool's one placement, so the tool disarms itself
+    // and the next click on empty page area deselects instead of drawing again.
+    expect(dispatch.mock.calls[4][0]).toEqual({ type: 'DISARM_TOOL' });
   });
 
   it('renders a selected symbol with its chosen mark and color in the editor', () => {

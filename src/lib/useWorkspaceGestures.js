@@ -76,6 +76,7 @@ export default function useWorkspaceGestures({
         const { x: leftPercent, y: topPercent } = getPointerPercent(e, container);
         if (activeSignature) {
           placeSignatureAt(activeSignature.dataUrl, activeSignature.aspectRatio, pageIndex, leftPercent, topPercent);
+          dispatch({ type: 'DISARM_TOOL' });
         } else {
           setTempPlacement({ pageIndex, left: leftPercent, top: topPercent });
           setDialogOpen(true);
@@ -113,6 +114,10 @@ export default function useWorkspaceGestures({
     });
     dispatch({ type: 'ADD_ELEMENT', payload: newEl });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
+    // One placement per arming, so the next click on empty page area falls
+    // through to the workspace's deselect handler instead of making a second
+    // element the user never asked for. A locked tool stays armed.
+    dispatch({ type: 'DISARM_TOOL' });
     if (selectedTool === 'text') {
       logAction('ADD_TEXT', id, pageIndex, 'Added text box');
       setAnnouncement('Added text box. Click or double click to type.');
@@ -215,6 +220,8 @@ export default function useWorkspaceGestures({
           startTopPercent,
         },
       });
+
+      dispatch({ type: 'DISARM_TOOL' });
 
       if (tool === 'whiteout') {
         logAction('ADD_WHITEOUT', id, pageIndex, 'Added whiteout box');
