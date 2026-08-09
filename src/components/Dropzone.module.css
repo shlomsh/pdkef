@@ -24,6 +24,15 @@
   background: var(--color-primary-tint);
 }
 
+/* #app top-aligns instead of centering at this breakpoint (ToolPageLayout.astro);
+   trim the vertical padding so the empty dropzone doesn't read as an oversized
+   frame sitting at the top of the viewport. */
+@media (min-width: 1024px) {
+  .dropzone {
+    padding: 1.5rem;
+  }
+}
+
 .dropzone.is-dragover {
   border-color: var(--color-success);
   border-style: solid;
