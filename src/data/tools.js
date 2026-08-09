@@ -245,6 +245,7 @@ export const tools = [
       { question: 'What is the difference between Combined and Separate mode?', answer: 'Combined mode takes all selected pages and merges them into a single output PDF document. Separate mode extracts each selected page as its own individual PDF file.' },
       { question: 'Is there a limit on file size or number of pages?', answer: "There is no artificial limit. The tool can handle any file size and page count, constrained only by your device's system memory." },
       { question: 'Can I pull a single chapter or receipt out of a large PDF?', answer: 'Yes. Type the page range for just the chapter, invoice, or receipt you need, and Split extracts exactly those pages into their own file.' },
+      { question: 'Is this a PDF page extractor?', answer: 'Yes. Splitting and extracting are the same operation here: pick the pages you want and choose Separate mode to pull each one out as its own file, or Combined mode to extract a range into a single new PDF.' },
     ],
   },
 
@@ -287,6 +288,7 @@ export const tools = [
       { question: 'What is the difference between the compression levels?', answer: 'Extreme compression reduces file size by 60-80% using 72 DPI images. Recommended compression reduces size by 40-60% at 110 DPI. High Quality compression reduces size by 10-30% at 150 DPI. The Target Size option lets you name a specific byte limit and the tool finds the best quality that fits.' },
       { question: 'Does compressing a PDF affect text search or copying?', answer: 'Yes. To compress client-side, pages are rasterized into images. Text selection, copy-pasting, and embedded links will be disabled in the output. This trade-off is necessary for any browser-based compressor that achieves real file size reduction.' },
       { question: 'Is there a limit on the file size I can compress?', answer: "No artificial limit - no daily task cap, no watermark, no paywall. Most online compressors impose limits because server processing costs them money. This tool runs entirely on your device, so the only constraint is your device's available memory." },
+      { question: 'Can I target a custom size, like 110KB or 250KB, not just the presets?', answer: 'Yes. The 100 KB, 200 KB, 500 KB, and 1 MB quick-picks are just shortcuts - type any number of your own into the KB field and the tool searches for the best quality that fits that exact limit.' },
     ],
   },
 
