@@ -123,7 +123,7 @@ describe('PdfEditPagesTool UI flow', () => {
     });
 
     const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
-    const actionButton = container.querySelector(`.${pdfToolStyles['merge-button']}`);
+    const actionButton = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
 
     // Default: no pages selected for removal, button says "Make edits to apply"
     expect(actionButton.textContent).toContain('Make edits to apply');
@@ -179,7 +179,7 @@ describe('PdfEditPagesTool UI flow', () => {
     const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
     expect(Array.from(cards).every(c => c.classList.contains(pageGridStyles['is-removed']))).toBe(true);
 
-    const actionButton = container.querySelector(`.${pdfToolStyles['merge-button']}`);
+    const actionButton = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     expect(actionButton.textContent).toContain('Cannot remove all pages');
     expect(actionButton.disabled).toBe(true);
 
@@ -236,7 +236,7 @@ describe('PdfEditPagesTool UI flow', () => {
       cards[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    const actionButton = container.querySelector(`.${pdfToolStyles['merge-button']}`);
+    const actionButton = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     expect(actionButton.textContent).toContain('Apply Changes');
 
     await act(async () => {

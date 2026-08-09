@@ -174,7 +174,7 @@ export default function BasePdfTool({
   return (
     <ToolShellContext.Provider value={shell}>
     <div
-      class={pdfToolStyles['merge-tool']}
+      class={pdfToolStyles['tool-card']}
       onDragEnter={onWorkspaceDragEnter}
       onDragOver={onWorkspaceDragOver}
       onDragLeave={onWorkspaceDragLeave}

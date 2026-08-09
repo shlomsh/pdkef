@@ -238,11 +238,11 @@ export default function PdfWorkspace({
 
           {/* Complete signing button */}
           <div className={workspaceStyles['export-actions']}>
-            <button type="button" className={`${pdfToolStyles['merge-button']} ${workspaceStyles['export-action']}`} onClick={handleDownloadPdf}>
+            <button type="button" className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']}`} onClick={handleDownloadPdf}>
               Download
             </button>
             {canSharePdf && (
-              <button type="button" className={`${pdfToolStyles['merge-button']} ${workspaceStyles['export-action']} ${workspaceStyles['export-share']}`} onClick={shareReady ? handleSharePdf : handleSavePdf}>
+              <button type="button" className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']} ${workspaceStyles['export-share']}`} onClick={shareReady ? handleSharePdf : handleSavePdf}>
                 {shareReady ? 'Share now' : 'Share'}
               </button>
             )}
@@ -253,7 +253,7 @@ export default function PdfWorkspace({
       {/* Signing state */}
       {status === 'signing' && (
         <div style={{ textAlign: 'center', width: '100%', padding: '3rem 0' }}>
-          <span className={pdfToolStyles['merge-button-progress']} style={{ color: 'var(--color-text)' }}>
+          <span className={pdfToolStyles['tool-primary-action-progress']} style={{ color: 'var(--color-text)' }}>
             <svg className={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40">
               <circle className={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" stroke="var(--color-border-strong)" />
             </svg>

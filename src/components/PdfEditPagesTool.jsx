@@ -352,7 +352,7 @@ export default function PdfEditPagesTool() {
 
               <button
                 type="button"
-                class={`${pdfToolStyles['merge-button']}${status === 'processing' ? ` ${pdfToolStyles['is-merging']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
+                class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
                 disabled={actionButtonDisabled}
                 onClick={handleApplyChanges}
               >

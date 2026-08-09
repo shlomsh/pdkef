@@ -78,7 +78,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     const fileNames = Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map((el) => el.textContent);
     expect(fileNames).toEqual(['one.png']);
 
-    const convertBtn = container.querySelector(`.${pdfToolStyles['merge-button']}`);
+    const convertBtn = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     expect(convertBtn.disabled).toBe(false);
     expect(convertBtn.textContent).toContain('Convert 1 image to PDF');
   });
@@ -100,7 +100,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     mount();
     await loadFiles(['doc1.png', 'doc2.jpg']);
 
-    const convertBtn = container.querySelector(`.${pdfToolStyles['merge-button']}`);
+    const convertBtn = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     expect(convertBtn.textContent).toContain('Convert 2 images to PDF');
 
     await act(async () => {

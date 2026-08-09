@@ -150,7 +150,7 @@ describe('PdfSplitTool UI flow', () => {
       .find((button) => button.textContent.includes('Individual Pages'));
     await act(async () => separateButton.click());
 
-    const splitButton = container.querySelector(`.${pdfToolStyles['merge-button']}`);
+    const splitButton = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     await act(async () => {
       splitButton.click();
       await new Promise((resolve) => setTimeout(resolve, 50));

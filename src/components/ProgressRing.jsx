@@ -12,7 +12,7 @@ export default function ProgressRing({ progress, label }) {
   const offset = PROGRESS_RING_CIRCUMFERENCE - progress * PROGRESS_RING_CIRCUMFERENCE;
 
   return (
-    <span class={pdfToolStyles['merge-button-progress']}>
+    <span class={pdfToolStyles['tool-primary-action-progress']}>
       <svg class={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
         <circle class={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" />
         <circle
