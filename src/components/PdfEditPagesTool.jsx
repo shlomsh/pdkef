@@ -3,14 +3,16 @@ import Sortable from 'sortablejs';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { editPages } from '../lib/editPages.js';
 import { renderPdfThumbnails } from '../lib/thumbnails.js';
+import { useObjectUrls } from '../lib/useObjectUrls.js';
 import BasePdfTool from './BasePdfTool.jsx';
 import styles from './PageGrid.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
+import ProgressRing from './ProgressRing.jsx';
+import ErrorMessage from './ErrorMessage.jsx';
+import DownloadButton from './DownloadButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { describeFile } from '../lib/format.js';
-
-const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 18;
 
 export default function PdfEditPagesTool() {
   const [file, setFile] = useState(null);
@@ -23,18 +25,11 @@ export default function PdfEditPagesTool() {
   const [addPageNumbers, setAddPageNumbers] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | loading-file | processing | done | error
   const [progress, setProgress] = useState(0);
-  const [downloadUrl, setDownloadUrl] = useState(null);
+  const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const gridRef = useRef(null);
   const sortableRef = useRef(null);
-  const downloadRef = useRef(null);
-
-  useEffect(() => {
-    if (status === 'done' && downloadRef.current) {
-      downloadRef.current.focus();
-    }
-  }, [status]);
 
   // Wire up SortableJS on the grid whenever pages are loaded
   useEffect(() => {
@@ -67,10 +62,7 @@ export default function PdfEditPagesTool() {
     clearPrepared();
     setStatus('idle');
     setProgress(0);
-    setDownloadUrl((previous) => {
-      if (previous) URL.revokeObjectURL(previous);
-      return null;
-    });
+    clearDownload();
   };
 
   const handleFilesAdded = useCallback(async (fileList) => {
@@ -84,7 +76,7 @@ export default function PdfEditPagesTool() {
     setRemovedPageNums(new Set());
     setRotations({});
     setAddPageNumbers(false);
-    setDownloadUrl(null);
+    clearDownload();
     clearPrepared();
     setPages([]);
 
@@ -183,10 +175,7 @@ export default function PdfEditPagesTool() {
         addPageNumbers,
       };
       const blob = await editPages(file, options, setProgress);
-      setDownloadUrl((previous) => {
-        if (previous) URL.revokeObjectURL(previous);
-        return URL.createObjectURL(blob);
-      });
+      setDownloadBlob(blob);
       prepare(blob, `${file.name.replace(/\.pdf$/i, '')}_modified.pdf`);
       setStatus('done');
       setAnnouncement('Your modified PDF is ready.');
@@ -218,8 +207,6 @@ export default function PdfEditPagesTool() {
   } else if (!hasEdits) {
     actionButtonText = 'Make edits to apply';
   }
-
-  const ringOffset = PROGRESS_RING_CIRCUMFERENCE - progress * PROGRESS_RING_CIRCUMFERENCE;
 
   return (
     <BasePdfTool
@@ -370,53 +357,24 @@ export default function PdfEditPagesTool() {
                 onClick={handleApplyChanges}
               >
                 {status === 'processing' ? (
-                  <span class={pdfToolStyles['merge-button-progress']}>
-                    <svg class={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
-                      <circle class={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" />
-                      <circle
-                        class={pdfToolStyles['progress-ring-fill']}
-                        cx="20"
-                        cy="20"
-                        r="18"
-                        stroke-dasharray={PROGRESS_RING_CIRCUMFERENCE}
-                        stroke-dashoffset={ringOffset}
-                      />
-                    </svg>
-                    Processing… {Math.round(progress * 100)}%
-                  </span>
+                  <ProgressRing progress={progress} label="Processing…" />
                 ) : (
                   actionButtonText
                 )}
               </button>
 
               {status === 'error' && (
-                <div class={pdfToolStyles['error-message']} role="alert">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-                    <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                    <circle cx="12" cy="16" r="1" fill="currentColor" />
-                  </svg>
-                  <span>
-                    <strong>That didn't work.</strong> The file may be damaged or
-                    password-protected - try another PDF.
-                  </span>
-                </div>
+                <ErrorMessage>
+                  The file may be damaged or password-protected - try another PDF.
+                </ErrorMessage>
               )}
 
               {status === 'done' && downloadUrl && (
                 <>
-                  <a
-                    ref={downloadRef}
-                    class={pdfToolStyles['download-button']}
+                  <DownloadButton
                     href={downloadUrl}
                     download={`${file.name.replace(/\.pdf$/i, '')}_modified.pdf`}
-                  >
-                    <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
-                      <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                    </svg>
-                    Download PDF
-                  </a>
+                  />
                   <PdfShareButton visible={shareReady} onShare={handleShare} />
                 </>
               )}

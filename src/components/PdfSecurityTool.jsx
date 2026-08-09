@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import { isPdfEncrypted, protectPdf, unlockPdf, WrongPasswordError, SecurityError } from '../lib/security.js';
+import { useObjectUrls } from '../lib/useObjectUrls.js';
 import BasePdfTool from './BasePdfTool.jsx';
 import styles from './PdfSecurityTool.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
+import ErrorMessage from './ErrorMessage.jsx';
+import DownloadButton from './DownloadButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { describeFile } from '../lib/format.js';
 
@@ -12,25 +15,15 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('idle'); // idle | processing | done | error
   const [mode, setMode] = useState(null); // 'unlock' | 'protect' | null
-  const [downloadUrl, setDownloadUrl] = useState(null);
+  const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
-  const downloadRef = useRef(null);
   const passwordRef = useRef(null);
-
-  useEffect(() => {
-    if (status === 'done' && downloadRef.current) {
-      downloadRef.current.focus();
-    }
-  }, [status]);
 
   const resetOutput = () => {
     clearPrepared();
     setStatus('idle');
-    setDownloadUrl((previous) => {
-      if (previous) URL.revokeObjectURL(previous);
-      return null;
-    });
+    clearDownload();
   };
 
   const handleFilesAdded = async (files) => {
@@ -72,10 +65,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
         ? await unlockPdf(file, password)
         : await protectPdf(file, password);
         
-      setDownloadUrl((previous) => {
-        if (previous) URL.revokeObjectURL(previous);
-        return URL.createObjectURL(blob);
-      });
+      setDownloadBlob(blob);
       prepare(blob, `${file.name.replace(/\.pdf$/i, '')}_${mode}ed.pdf`);
       setStatus('done');
       setAnnouncement(mode === 'unlock' 
@@ -145,32 +135,18 @@ export default function PdfSecurityTool({ intent = 'unlock' }) {
           </form>
 
           {status === 'error' && (
-            <div class={pdfToolStyles['error-message']} role="alert">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-                <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                <circle cx="12" cy="16" r="1" fill="currentColor" />
-              </svg>
-              <span>
-                <strong>That didn't work.</strong> {mode === 'unlock' ? 'The password may be incorrect.' : 'The file might already be encrypted or corrupted.'}
-              </span>
-            </div>
+            <ErrorMessage>
+              {mode === 'unlock' ? 'The password may be incorrect.' : 'The file might already be encrypted or corrupted.'}
+            </ErrorMessage>
           )}
 
           {status === 'done' && downloadUrl && (
             <>
-              <a
-                ref={downloadRef}
-                class={pdfToolStyles['download-button']}
+              <DownloadButton
                 href={downloadUrl}
                 download={`${file.name.replace(/\.pdf$/i, '')}_${mode}ed.pdf`}
-              >
-                <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
-                  <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                </svg>
-                Download {mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF
-              </a>
+                label={`Download ${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF`}
+              />
               <PdfShareButton
                 visible={shareReady}
                 onShare={handleShare}

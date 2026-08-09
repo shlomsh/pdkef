@@ -2,11 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
 import { imagesToPdf } from '../lib/imageToPdf.js';
 import { sortByDate, sortByName } from '../lib/sort.js';
+import { useObjectUrls } from '../lib/useObjectUrls.js';
 import BasePdfTool from './BasePdfTool.jsx';
 import styles from './FileList.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import sortToolbarStyles from './SortToolbar.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
+import ProgressRing from './ProgressRing.jsx';
+import ErrorMessage from './ErrorMessage.jsx';
+import DownloadButton from './DownloadButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { formatFileSize } from '../lib/format.js';
 
@@ -17,25 +21,16 @@ function toEntry(file) {
   return { id: nextId++, file, thumbnail: URL.createObjectURL(file) };
 }
 
-const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 18;
-
 export default function PdfImageToPdfTool() {
   const [entries, setEntries] = useState([]);
   const [status, setStatus] = useState('idle'); // idle | converting | done | error
   const [progress, setProgress] = useState(0);
-  const [downloadUrl, setDownloadUrl] = useState(null);
+  const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const listRef = useRef(null);
   const sortableRef = useRef(null);
-  const downloadRef = useRef(null);
-
-  useEffect(() => {
-    if (status === 'done' && downloadRef.current) {
-      downloadRef.current.focus();
-    }
-  }, [status]);
 
   useEffect(() => {
     clearPrepared();
@@ -71,10 +66,7 @@ export default function PdfImageToPdfTool() {
           return next;
         });
         setStatus('idle');
-        setDownloadUrl((previous) => {
-          if (previous) URL.revokeObjectURL(previous);
-          return null;
-        });
+        clearDownload();
       },
     });
     return () => sortableRef.current?.destroy();
@@ -92,7 +84,7 @@ export default function PdfImageToPdfTool() {
     const newEntries = imageFiles.map(toEntry);
     setEntries((current) => [...current, ...newEntries]);
     setStatus('idle');
-    setDownloadUrl(null);
+    clearDownload();
     setAnnouncement(
       `${newEntries.length} image${newEntries.length === 1 ? '' : 's'} added.`,
     );
@@ -108,10 +100,7 @@ export default function PdfImageToPdfTool() {
       return current.filter((e) => e.id !== id);
     });
     setStatus('idle');
-    setDownloadUrl((previous) => {
-      if (previous) URL.revokeObjectURL(previous);
-      return null;
-    });
+    clearDownload();
   }, []);
 
   const reset = useCallback(() => {
@@ -122,10 +111,7 @@ export default function PdfImageToPdfTool() {
     setStatus('idle');
     setProgress(0);
     setRejectedFiles([]);
-    setDownloadUrl((previous) => {
-      if (previous) URL.revokeObjectURL(previous);
-      return null;
-    });
+    clearDownload();
     setAnnouncement('Cleared. Add images to start again.');
   }, []);
 
@@ -141,10 +127,7 @@ export default function PdfImageToPdfTool() {
       return next;
     });
     setStatus('idle');
-    setDownloadUrl((previous) => {
-      if (previous) URL.revokeObjectURL(previous);
-      return null;
-    });
+    clearDownload();
   }, []);
 
   const onItemKeyDown = useCallback(
@@ -163,10 +146,7 @@ export default function PdfImageToPdfTool() {
   const applySort = useCallback((sortFn, direction) => {
     setEntries((current) => sortFn(current, direction));
     setStatus('idle');
-    setDownloadUrl((previous) => {
-      if (previous) URL.revokeObjectURL(previous);
-      return null;
-    });
+    clearDownload();
     setAnnouncement('Images reordered.');
   }, []);
 
@@ -179,10 +159,7 @@ export default function PdfImageToPdfTool() {
         entries.map((e) => e.file),
         setProgress,
       );
-      setDownloadUrl((previous) => {
-        if (previous) URL.revokeObjectURL(previous);
-        return URL.createObjectURL(blob);
-      });
+      setDownloadBlob(blob);
       prepare(blob, 'images.pdf');
       setStatus('done');
       setAnnouncement('Your PDF is ready.');
@@ -202,8 +179,6 @@ export default function PdfImageToPdfTool() {
 
   const hasFiles = entries.length > 0;
   const fileSummary = `${entries.length} image${entries.length === 1 ? '' : 's'}`;
-  const ringOffset =
-    PROGRESS_RING_CIRCUMFERENCE - progress * PROGRESS_RING_CIRCUMFERENCE;
 
   return (
     <BasePdfTool
@@ -291,53 +266,21 @@ export default function PdfImageToPdfTool() {
             onClick={handleConvert}
           >
             {status === 'converting' ? (
-              <span class={pdfToolStyles['merge-button-progress']}>
-                <svg class={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
-                  <circle class={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" />
-                  <circle
-                    class={pdfToolStyles['progress-ring-fill']}
-                    cx="20"
-                    cy="20"
-                    r="18"
-                    stroke-dasharray={PROGRESS_RING_CIRCUMFERENCE}
-                    stroke-dashoffset={ringOffset}
-                  />
-                </svg>
-                Converting… {Math.round(progress * 100)}%
-              </span>
+              <ProgressRing progress={progress} label="Converting…" />
             ) : (
               `Convert ${entries.length} image${entries.length === 1 ? '' : 's'} to PDF`
             )}
           </button>
 
           {status === 'error' && (
-            <div class={pdfToolStyles['error-message']} role="alert">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-                <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                <circle cx="12" cy="16" r="1" fill="currentColor" />
-              </svg>
-              <span>
-                <strong>That didn't work.</strong> A file may be damaged - remove
-                it and try again.
-              </span>
-            </div>
+            <ErrorMessage>
+              A file may be damaged - remove it and try again.
+            </ErrorMessage>
           )}
 
           {status === 'done' && downloadUrl && (
             <>
-              <a
-                ref={downloadRef}
-                class={pdfToolStyles['download-button']}
-                href={downloadUrl}
-                download="images.pdf"
-              >
-                <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
-                  <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                </svg>
-                Download PDF
-              </a>
+              <DownloadButton href={downloadUrl} download="images.pdf" />
               <PdfShareButton visible={shareReady} onShare={handleShare} />
             </>
           )}

@@ -5,10 +5,11 @@ import styles from './PdfToImageTool.module.css';
 import fileListStyles from './FileList.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
+import ProgressRing from './ProgressRing.jsx';
+import ErrorMessage from './ErrorMessage.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { describeFile } from '../lib/format.js';
 
-const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 18;
 const SCALE_OPTIONS = [
   { value: 1, label: 'Standard', hint: '~72 DPI - smallest file size, fine for screen viewing.' },
   { value: 2, label: 'High', hint: '~144 DPI - sharp on most screens, good default for printing.' },
@@ -137,7 +138,6 @@ export default function PdfToImageTool() {
   };
 
   const hasFiles = !!file;
-  const ringOffset = PROGRESS_RING_CIRCUMFERENCE - progress * PROGRESS_RING_CIRCUMFERENCE;
   const formatLabel = format === 'image/jpeg' ? 'JPG' : 'PNG';
 
   return (
@@ -240,37 +240,16 @@ export default function PdfToImageTool() {
             onClick={handleConvert}
           >
             {status === 'converting' ? (
-              <span class={pdfToolStyles['merge-button-progress']}>
-                <svg class={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
-                  <circle class={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" />
-                  <circle
-                    class={pdfToolStyles['progress-ring-fill']}
-                    cx="20"
-                    cy="20"
-                    r="18"
-                    stroke-dasharray={PROGRESS_RING_CIRCUMFERENCE}
-                    stroke-dashoffset={ringOffset}
-                  />
-                </svg>
-                Converting… {Math.round(progress * 100)}%
-              </span>
+              <ProgressRing progress={progress} label="Converting…" />
             ) : (
               `Convert to ${formatLabel}`
             )}
           </button>
 
           {status === 'error' && (
-            <div class={pdfToolStyles['error-message']} role="alert">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-                <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                <circle cx="12" cy="16" r="1" fill="currentColor" />
-              </svg>
-              <span>
-                <strong>That didn't work.</strong> The file may be damaged or
-                password-protected - try another PDF.
-              </span>
-            </div>
+            <ErrorMessage>
+              The file may be damaged or password-protected - try another PDF.
+            </ErrorMessage>
           )}
 
           {status === 'done' && images.length > 0 && (

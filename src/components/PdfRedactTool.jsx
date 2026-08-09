@@ -16,6 +16,7 @@ import UndoHistoryModal from './UndoHistoryModal.jsx';
 import { createActionEntry } from '../lib/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
+import ErrorMessage from './ErrorMessage.jsx';
 import pdfToolStyles from './PdfTool.module.css';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
@@ -551,16 +552,9 @@ export default function PdfRedactTool() {
 
       {/* Error */}
       {status === 'error' && (
-        <div className={pdfToolStyles['error-message']} role="alert" style={{ width: '100%' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-            <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            <circle cx="12" cy="16" r="1" fill="currentColor" />
-          </svg>
-          <span>
-            <strong>Redaction failed.</strong> The PDF may be password-protected or corrupted.
-          </span>
-        </div>
+        <ErrorMessage title="Redaction failed." style={{ width: '100%' }}>
+          The PDF may be password-protected or corrupted.
+        </ErrorMessage>
       )}
 
       <UndoHistoryModal

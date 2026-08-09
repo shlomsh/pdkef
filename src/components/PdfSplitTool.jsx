@@ -6,6 +6,8 @@ import fileListStyles from './FileList.module.css';
 import pageGridStyles from './PageGrid.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
+import ProgressRing from './ProgressRing.jsx';
+import ErrorMessage from './ErrorMessage.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { describeFile } from '../lib/format.js';
 
@@ -20,8 +22,6 @@ async function getPdfjs() {
   }
   return pdfjsLib;
 }
-
-const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 18;
 
 export default function PdfSplitTool() {
   const [file, setFile] = useState(null);
@@ -260,7 +260,6 @@ export default function PdfSplitTool() {
 
   const hasFiles = !!file;
   const selectedCount = pages.filter((p) => p.selected).length;
-  const ringOffset = PROGRESS_RING_CIRCUMFERENCE - progress * PROGRESS_RING_CIRCUMFERENCE;
 
   return (
     <BasePdfTool
@@ -402,20 +401,7 @@ export default function PdfSplitTool() {
                 onClick={handleSplit}
               >
                 {status === 'processing' ? (
-                  <span class={pdfToolStyles['merge-button-progress']}>
-                    <svg class={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
-                      <circle class={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" />
-                      <circle
-                        class={pdfToolStyles['progress-ring-fill']}
-                        cx="20"
-                        cy="20"
-                        r="18"
-                        stroke-dasharray={PROGRESS_RING_CIRCUMFERENCE}
-                        stroke-dashoffset={ringOffset}
-                      />
-                    </svg>
-                    Splitting… {Math.round(progress * 100)}%
-                  </span>
+                  <ProgressRing progress={progress} label="Splitting…" />
                 ) : selectedCount === 0 ? (
                   'Select pages to split'
                 ) : mode === 'combined' ? (
@@ -426,16 +412,9 @@ export default function PdfSplitTool() {
               </button>
 
               {status === 'error' && (
-                <div class={pdfToolStyles['error-message']} role="alert">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-                    <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                    <circle cx="12" cy="16" r="1" fill="currentColor" />
-                  </svg>
-                  <span>
-                    <strong>That didn't work.</strong> The split operation failed. Make sure the file is not encrypted or damaged.
-                  </span>
-                </div>
+                <ErrorMessage>
+                  The split operation failed. Make sure the file is not encrypted or damaged.
+                </ErrorMessage>
               )}
 
               {status === 'done' && downloadFiles.length > 0 && (
