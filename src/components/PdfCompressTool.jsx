@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import { compressPdf, compressPdfToTarget } from '../lib/compress.js';
+import { useObjectUrls } from '../lib/useObjectUrls.js';
 import BasePdfTool from './BasePdfTool.jsx';
 import styles from './PdfCompressTool.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import PdfShareButton from './PdfShareButton.jsx';
+import ProgressRing from './ProgressRing.jsx';
+import ErrorMessage from './ErrorMessage.jsx';
+import DownloadButton from './DownloadButton.jsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { describeFile } from '../lib/format.js';
-
-const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * 18;
 
 const COMPRESSION_LEVELS = [
   {
@@ -60,30 +62,19 @@ export default function PdfCompressTool() {
   const [targetKB, setTargetKB] = useState(100);
   const [status, setStatus] = useState('idle'); // idle | processing | done | error
   const [progress, setProgress] = useState(0);
-  const [downloadUrl, setDownloadUrl] = useState(null);
+  const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [compressedSize, setCompressedSize] = useState(null);
   const [metTarget, setMetTarget] = useState(true);
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
-  
-  const downloadRef = useRef(null);
-
-  useEffect(() => {
-    if (status === 'done' && downloadRef.current) {
-      downloadRef.current.focus();
-    }
-  }, [status]);
 
   const resetOutput = () => {
     clearPrepared();
     setStatus('idle');
     setProgress(0);
     setCompressedSize(null);
-    setDownloadUrl((previous) => {
-      if (previous) URL.revokeObjectURL(previous);
-      return null;
-    });
+    clearDownload();
   };
 
   const handleFilesAdded = (files) => {
@@ -141,10 +132,7 @@ export default function PdfCompressTool() {
 
       setCompressedSize(compressedBlob.size);
       setMetTarget(didMeetTarget);
-      setDownloadUrl((previous) => {
-        if (previous) URL.revokeObjectURL(previous);
-        return URL.createObjectURL(compressedBlob);
-      });
+      setDownloadBlob(compressedBlob);
       prepare(compressedBlob, file.name.replace(/\.pdf$/i, '') + '-compressed.pdf');
       setStatus('done');
       setAnnouncement('PDF compression complete. Your file is ready.');
@@ -163,7 +151,6 @@ export default function PdfCompressTool() {
   };
 
   const hasFiles = !!file;
-  const ringOffset = PROGRESS_RING_CIRCUMFERENCE - progress * PROGRESS_RING_CIRCUMFERENCE;
 
   // Calculate savings percentage
   const savingsPercent = file && compressedSize 
@@ -269,20 +256,7 @@ export default function PdfCompressTool() {
               onClick={handleCompress}
             >
               {status === 'processing' ? (
-                <span class={pdfToolStyles['merge-button-progress']}>
-                  <svg class={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40" aria-hidden="true">
-                    <circle class={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" />
-                    <circle
-                      class={pdfToolStyles['progress-ring-fill']}
-                      cx="20"
-                      cy="20"
-                      r="18"
-                      stroke-dasharray={PROGRESS_RING_CIRCUMFERENCE}
-                      stroke-dashoffset={ringOffset}
-                    />
-                  </svg>
-                  Compressing… {Math.round(progress * 100)}%
-                </span>
+                <ProgressRing progress={progress} label="Compressing…" />
               ) : (
                 'Compress PDF'
               )}
@@ -290,16 +264,9 @@ export default function PdfCompressTool() {
           )}
 
           {status === 'error' && (
-            <div class={pdfToolStyles['error-message']} role="alert">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
-                <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                <circle cx="12" cy="16" r="1" fill="currentColor" />
-              </svg>
-              <span>
-                <strong>Compression failed.</strong> The file may be password-protected or corrupted. Please try another PDF.
-              </span>
-            </div>
+            <ErrorMessage title="Compression failed.">
+              The file may be password-protected or corrupted. Please try another PDF.
+            </ErrorMessage>
           )}
 
           {status === 'done' && downloadUrl && (
@@ -332,18 +299,11 @@ export default function PdfCompressTool() {
                 </p>
               </div>
 
-              <a
-                ref={downloadRef}
-                class={pdfToolStyles['download-button']}
+              <DownloadButton
                 href={downloadUrl}
                 download={file.name.replace(/\.pdf$/i, '') + '-compressed.pdf'}
-              >
-                <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
-                  <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                </svg>
-                Download Compressed PDF
-              </a>
+                label="Download Compressed PDF"
+              />
               <PdfShareButton visible={shareReady} onShare={handleShare} label="Share Compressed PDF" />
             </>
           )}
