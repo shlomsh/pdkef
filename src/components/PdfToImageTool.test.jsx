@@ -7,6 +7,7 @@ import dropzoneStyles from './Dropzone.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import toolStyles from './PdfToImageTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
+import { setInputFiles } from '../test/setInputFiles.js';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -71,8 +72,7 @@ describe('PdfToImageTool UI flow', () => {
     const file = makePdfFile('report.pdf');
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     const infoIcon = container.querySelector(`.${toolStyles['info-icon']}`);
@@ -105,8 +105,7 @@ describe('PdfToImageTool UI flow', () => {
     const file = makePdfFile('report.pdf');
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     const convertButton = Array.from(container.querySelectorAll('button')).find((b) =>
@@ -154,8 +153,7 @@ describe('PdfToImageTool UI flow', () => {
     const file = makePdfFile('report.pdf');
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     const layoutButton = Array.from(container.querySelectorAll('button')).find((b) =>
@@ -201,8 +199,7 @@ describe('PdfToImageTool UI flow', () => {
     const file = makePdfFile('report.pdf');
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     const pageInput = container.querySelector('#page-selector-input');
@@ -236,8 +233,7 @@ describe('PdfToImageTool UI flow', () => {
     const file = makePdfFile('report.pdf');
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     const pageInput = container.querySelector('#page-selector-input');

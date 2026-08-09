@@ -9,6 +9,7 @@ import workspaceStyles from './SignTool/Workspace.module.css';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 import dropzoneStyles from './Dropzone.module.css';
 import toolShellStyles from './ToolShell.module.css';
+import { setInputFiles } from '../test/setInputFiles.js';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -93,8 +94,7 @@ describe('PdfSignTool UI flow', () => {
     const file = makePdfFile('test_agreement.pdf');
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     // Wait for chained async operations (getPdfjs -> arrayBuffer -> getDocument) to settle
@@ -125,8 +125,7 @@ describe('PdfSignTool UI flow', () => {
     const file = makePdfFile('test.pdf');
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     await act(async () => {
@@ -168,8 +167,7 @@ describe('PdfSignTool UI flow', () => {
     const file = makePdfFile('test.pdf');
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     await act(async () => {
@@ -219,8 +217,7 @@ describe('PdfSignTool UI flow', () => {
     const file = makePdfFile('test.pdf');
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     await act(async () => {
@@ -280,8 +277,7 @@ describe('PdfSignTool UI flow', () => {
     const file = makePdfFile('test.pdf');
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     await act(async () => {
@@ -321,8 +317,7 @@ describe('PdfSignTool UI flow', () => {
     const file = makePdfFile('test.pdf');
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     await act(async () => {
@@ -383,8 +378,7 @@ describe('PdfSignTool UI flow', () => {
     
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
     
     await act(async () => {
@@ -465,8 +459,7 @@ describe('PdfSignTool UI flow', () => {
       const file = new File([fs.readFileSync(fixturePath)], 'num-1.pdf', { type: 'application/pdf' });
       const input = container.querySelector('input[type="file"]');
       await act(async () => {
-        Object.defineProperty(input, 'files', { value: [file], configurable: true });
-        input.dispatchEvent(new Event('change', { bubbles: true }));
+        setInputFiles(input, [file]);
         await new Promise(resolve => setTimeout(resolve, 50));
       });
 
@@ -512,8 +505,7 @@ describe('PdfSignTool UI flow', () => {
     const file = makePdfFile('test.pdf');
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     await act(async () => {
@@ -568,8 +560,7 @@ describe('PdfSignTool UI flow', () => {
     const file = makePdfFile('test.pdf');
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     await act(async () => {
@@ -670,8 +661,7 @@ describe('PdfSignTool UI flow', () => {
       const file = makePdfFile('test.pdf');
       const input = container.querySelector('input[type="file"]');
       await act(async () => {
-        Object.defineProperty(input, 'files', { value: [file], configurable: true });
-        input.dispatchEvent(new Event('change', { bubbles: true }));
+        setInputFiles(input, [file]);
       });
 
       await act(async () => {
@@ -747,8 +737,7 @@ describe('PdfSignTool UI flow', () => {
     const file = makePdfFile('test.pdf');
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -805,8 +794,7 @@ describe('PdfSignTool UI flow', () => {
     const file = makePdfFile('test.pdf');
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 50));

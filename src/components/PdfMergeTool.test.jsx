@@ -10,6 +10,7 @@ import dropzoneStyles from './Dropzone.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import toolShellStyles from './ToolShell.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
+import { setInputFiles } from '../test/setInputFiles.js';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -48,8 +49,7 @@ describe('PdfMergeTool UI flow', () => {
     const input = container.querySelector('input[type="file"]');
     const files = names.map(makePdfFile);
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: files, configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, files);
       await new Promise(resolve => setTimeout(resolve, 10)); // let thumbnails resolve
     });
   }

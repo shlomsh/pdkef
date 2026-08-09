@@ -8,6 +8,7 @@ import dropzoneStyles from './Dropzone.module.css';
 import toolShellStyles from './ToolShell.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
+import { setInputFiles } from '../test/setInputFiles.js';
 
 function makePdfFile(name, size = 1000) {
   const file = new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -83,8 +84,7 @@ describe('PdfCompressTool UI flow', () => {
     const file = makePdfFile('test_doc.pdf', 50000);
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     // Wait for async file load to resolve
@@ -127,8 +127,7 @@ describe('PdfCompressTool UI flow', () => {
     const file = makePdfFile('test_doc.pdf', 100000); // 100 KB
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     // Wait for async file load
@@ -183,8 +182,7 @@ describe('PdfCompressTool UI flow', () => {
     const file = makePdfFile('big_scan.pdf', 5_000_000);
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 50));

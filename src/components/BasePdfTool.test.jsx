@@ -5,6 +5,7 @@ import BasePdfTool from './BasePdfTool.jsx';
 import styles from './Dropzone.module.css';
 import toolShellStyles from './ToolShell.module.css';
 import pdfToolStyles from './PdfTool.module.css';
+import { setInputFiles } from '../test/setInputFiles.js';
 
 function fileDragEvent(type, { withFiles = true, bubbles = true } = {}) {
   const event = new Event(type, { bubbles, cancelable: true });
@@ -20,8 +21,7 @@ function fileDragEvent(type, { withFiles = true, bubbles = true } = {}) {
 function selectFile(input, name = 'replacement.pdf') {
   const file = new File([''], name, { type: 'application/pdf' });
   act(() => {
-    Object.defineProperty(input, 'files', { value: [file], configurable: true });
-    input.dispatchEvent(new Event('change', { bubbles: true }));
+    setInputFiles(input, [file]);
   });
   return file;
 }
@@ -126,8 +126,7 @@ describe('BasePdfTool', () => {
     const file = new File([''], 'test.pdf', { type: 'application/pdf' });
 
     act(() => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
@@ -143,8 +142,7 @@ describe('BasePdfTool', () => {
     const file = new File([''], 'replacement.pdf', { type: 'application/pdf' });
 
     act(() => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);

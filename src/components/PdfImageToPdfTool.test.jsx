@@ -9,6 +9,7 @@ import dropzoneStyles from './Dropzone.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import toolShellStyles from './ToolShell.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
+import { setInputFiles } from '../test/setInputFiles.js';
 
 function makeImageFile(name, type = 'image/png') {
   return new File(['fake-image-bytes'], name, { type });
@@ -54,8 +55,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     const input = container.querySelector('input[type="file"]');
     const files = names.map((n) => makeImageFile(n, n.endsWith('.jpg') ? 'image/jpeg' : 'image/png'));
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: files, configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, files);
     });
   }
 
@@ -88,8 +88,7 @@ describe('PdfImageToPdfTool UI flow', () => {
     const input = container.querySelector('input[type="file"]');
     const files = [makeImageFile('doc.pdf', 'application/pdf')];
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: files, configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, files);
     });
 
     const hint = container.querySelector(`.${pdfToolStyles['hint-message']}`);

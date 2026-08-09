@@ -9,6 +9,7 @@ import pageGridStyles from './PageGrid.module.css';
 import styles from './PdfSplitTool.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
+import { setInputFiles } from '../test/setInputFiles.js';
 
 // Test split.js library
 describe('split.js library helpers', () => {
@@ -102,8 +103,7 @@ describe('PdfSplitTool UI flow', () => {
     const file = makePdfFile('test.pdf');
 
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
     });
 
     // Wait for the async loader to finish
@@ -142,8 +142,7 @@ describe('PdfSplitTool UI flow', () => {
     const file = new File([fs.readFileSync(fixturePath)], 'num-5.pdf', { type: 'application/pdf' });
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
-      Object.defineProperty(input, 'files', { value: [file], configurable: true });
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      setInputFiles(input, [file]);
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
