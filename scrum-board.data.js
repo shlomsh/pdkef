@@ -192,7 +192,7 @@ const TICKETS = [
   { id: "E6", epic: "E6", lane: "X", status: "done", priority: "low", group: "Operational / SEO-launch",
     title: "Public GitHub repo + iframe embed model",
     dependsOn: [],
-    acceptance: "For contextual backlinks." },
+    acceptance: "For contextual backlinks. CORRECTION (2026-08-09): the iframe half of this never worked as an SEO play - an <iframe src> passes no link equity, so an embed is not a backlink unless the host also adds a real <a href>. The permissive 'frame-ancestors *' it motivated (commit 4909cb5) has been reverted to 'none', since it bought no links and left a clickjacking hole on a tool handling sensitive documents. The public repo half stands." },
   { id: "E6", epic: "E6", lane: "X", status: "done", priority: "normal", group: "Bugs / hardening",
     title: "Fix homepage typecheck errors",
     dependsOn: [],
