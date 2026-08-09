@@ -628,6 +628,11 @@ describe('PdfSignTool UI flow', () => {
       firstTextInput.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
+    // The text tool places one box per arming, so re-arm it for the second.
+    await act(async () => {
+      textBtn.click();
+    });
+
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 260, clientY: 220, bubbles: true }));
     });
