@@ -28,3 +28,24 @@ export function renderRedactionSurface(kind: 'blackout' | 'blur' | 'whiteout', c
     },
   });
 }
+
+/**
+ * Paint for the in-progress drag-draw preview, before a box becomes a real
+ * element - deliberately not identical to renderRedactionSurface's committed
+ * look (translucent, dashed, reads as "not final yet"), but the same module
+ * should decide that for every type. This used to be a second copy living in
+ * PdfRedactTool.jsx that re-derived fill/blur/border from `drawingState.type`
+ * with its own raw color literals, in the one file the sole-owner comment
+ * above does not reach.
+ */
+export function redactionDrawingPreviewStyle(kind: 'blackout' | 'blur' | 'whiteout', color?: string) {
+  const isBlur = kind === 'blur';
+  const isWhiteout = kind === 'whiteout';
+  return {
+    backgroundColor: isBlur ? 'rgba(255,255,255,0.1)' : (isWhiteout ? color : 'rgba(0, 0, 0, 0.7)'),
+    opacity: isWhiteout && color !== '#000000' ? 0.7 : 1,
+    backdropFilter: isBlur ? 'blur(8px)' : 'none',
+    WebkitBackdropFilter: isBlur ? 'blur(8px)' : 'none',
+    border: isBlur || isWhiteout ? '2px dashed #000' : '2px dashed #ff4757',
+  };
+}

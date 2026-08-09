@@ -48,7 +48,7 @@ describe('FileDropzone', () => {
   }
 
   it('renders correctly with default multiple=true', () => {
-    mount({ onFiles: vi.fn() });
+    mount({});
     expect(container.textContent).toContain('Drop PDFs here');
     expect(container.textContent).toContain('Choose files');
     const input = container.querySelector('input[type="file"]');
@@ -57,7 +57,7 @@ describe('FileDropzone', () => {
   });
 
   it('renders correctly with multiple=false', () => {
-    mount({ onFiles: vi.fn(), multiple: false });
+    mount({ multiple: false });
     expect(container.textContent).toContain('Drop PDF here');
     expect(container.textContent).toContain('Choose file');
     const input = container.querySelector('input[type="file"]');
@@ -67,7 +67,7 @@ describe('FileDropzone', () => {
   // The homepage CTA (`index.astro`) mounts FileDropzone with an `href`, which
   // renders the picker as a navigating anchor instead of a file <input> label.
   it('renders the picker as an anchor (no file input) when href is set', () => {
-    mount({ onFiles: vi.fn(), href: '/sign?action=open' });
+    mount({ href: '/sign?action=open' });
     const link = container.querySelector(`a.${styles['file-picker-button']}`);
     expect(link).not.toBeNull();
     expect(link.getAttribute('href')).toBe('/sign?action=open');
@@ -76,24 +76,8 @@ describe('FileDropzone', () => {
     expect(container.querySelector('input[type="file"]')).toBeNull();
   });
 
-  it('calls onFiles when a file is selected via input', () => {
-    const onFilesSpy = vi.fn();
-    mount({ onFiles: onFilesSpy });
-
-    const input = container.querySelector('input[type="file"]');
-    const file = new File([''], 'test.pdf', { type: 'application/pdf' });
-    
-    act(() => {
-      setInputFiles(input, [file]);
-    });
-
-    expect(onFilesSpy).toHaveBeenCalledTimes(1);
-    expect(onFilesSpy.mock.calls[0][0][0]).toBe(file);
-    expect(input.value).toBe(''); // it resets the input
-  });
-
   it('adds and removes is-dragover class on drag events', () => {
-    mount({ onFiles: vi.fn() });
+    mount({});
     const dropzone = container.querySelector(`.${styles['dropzone']}`);
     expect(dropzone.classList.contains(styles['is-dragover'])).toBe(false);
 
@@ -108,39 +92,15 @@ describe('FileDropzone', () => {
     expect(dropzone.classList.contains(styles['is-dragover'])).toBe(false);
   });
 
-  it('calls onFiles when files are dropped', () => {
-    const onFilesSpy = vi.fn();
-    mount({ onFiles: onFilesSpy });
-    const dropzone = container.querySelector(`.${styles['dropzone']}`);
-
-    act(() => {
-      dropzone.dispatchEvent(new Event('dragover', { bubbles: true }));
-    });
-    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(true);
-
-    const file = new File([''], 'test.pdf', { type: 'application/pdf' });
-    const dropEvent = new Event('drop', { bubbles: true, cancelable: true });
-    dropEvent.dataTransfer = { files: [file] };
-
-    act(() => {
-      dropzone.dispatchEvent(dropEvent);
-    });
-
-    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(false);
-    expect(onFilesSpy).toHaveBeenCalledTimes(1);
-    expect(onFilesSpy.mock.calls[0][0][0]).toBe(file);
-  });
-
-  // The mode the home page actually ships. Everything above drives `onFiles`,
-  // which no production caller passes - index.astro mounts this with
-  // `onFiles={null}` and `toolTarget="sign"`, so until these tests existed the
-  // only live branch had no coverage at all and shipped a bug that overwrote the
-  // user's saved Sign draft with a record the tool could not even restore.
+  // toolTarget is the only mode a production caller ever uses (index.astro
+  // mounts this with toolTarget="sign"), so until tests like these existed the
+  // only live branch had no coverage at all and shipped a bug that overwrote
+  // the user's saved Sign draft with a record the tool could not even restore.
   describe('handing a dropped file to a tool (toolTarget)', () => {
     const pdf = () => new File(['%PDF-1.4'], 'contract.pdf', { type: 'application/pdf' });
 
     function mountTarget() {
-      mount({ onFiles: null, toolTarget: 'sign', href: '/sign?action=open' });
+      mount({ toolTarget: 'sign', href: '/sign?action=open' });
       return container.querySelector(`.${styles['dropzone']}`);
     }
 
@@ -159,6 +119,26 @@ describe('FileDropzone', () => {
       // whatever was saved there. Nothing here may touch a draft.
       expect(saveDraft).not.toHaveBeenCalled();
       expect(deleteDraft).not.toHaveBeenCalled();
+    });
+
+    // index.astro always passes `href`, so the click-to-choose picker is a
+    // navigating link there in production - but FileDropzone still supports a
+    // plain file input when `href` is omitted, and that path has to hand off
+    // exactly the same way a drop does, reading the FileList before resetting
+    // the input (see setInputFiles.js's own note on why that order matters).
+    it('parks the file in a handoff when chosen via the file input too', async () => {
+      mount({ toolTarget: 'sign' });
+      const input = container.querySelector('input[type="file"]');
+
+      await act(async () => {
+        setInputFiles(input, [pdf()]);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(saveHandoff).toHaveBeenCalledTimes(1);
+      expect(saveHandoff.mock.calls[0][0]).toBe('sign');
+      expect(saveHandoff.mock.calls[0][1].fileName).toBe('contract.pdf');
+      expect(input.value).toBe('');
     });
 
     it('asks before a drop would discard a saved draft, naming both files', async () => {
