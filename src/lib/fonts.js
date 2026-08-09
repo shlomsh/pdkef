@@ -49,7 +49,8 @@ export function supportsHebrew(fontFamily) {
  * the editor and the PDF would have to agree on where every run starts. One
  * family per box is what both sides can guarantee identically.
  *
- * @param {string} fontFamily - the family the user chose
+ * @param {string} [fontFamily] - the family the user chose; falls back to the
+ *   Hebrew-capable default below when unset, so callers may pass undefined
  * @param {string} text       - the element's current content
  * @returns {string} the family to render and embed
  */

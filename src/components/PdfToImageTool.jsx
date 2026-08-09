@@ -62,13 +62,6 @@ export default function PdfToImageTool() {
     resetOutput();
   };
 
-  const reset = () => {
-    setFile(null);
-    setPageSelector('');
-    setPageSelectorError('');
-    resetOutput();
-  };
-
   const handlePageSelectorChange = (next) => {
     setPageSelector(next);
     setPageSelectorError('');

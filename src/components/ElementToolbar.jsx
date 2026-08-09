@@ -69,8 +69,8 @@ export default function ElementToolbar({
             onClick={() => onChange({ textDirection: textDirection === 'rtl' ? 'ltr' : 'rtl' })}
             title={
               textDirection === 'rtl'
-                ? 'Right-to-left text (Hebrew/Arabic) — click to switch to left-to-right'
-                : 'Left-to-right text — click to switch to right-to-left (Hebrew/Arabic)'
+                ? 'Right-to-left text (Hebrew/Arabic), click to switch to left-to-right'
+                : 'Left-to-right text, click to switch to right-to-left (Hebrew/Arabic)'
             }
           >
             {textDirection === 'rtl' ? (

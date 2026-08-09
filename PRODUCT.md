@@ -40,7 +40,7 @@ The motivation is the point, not the effort. I believe simple tools like these s
 
 The market is crowded and most competitors sound salesy. PDkef wins by sounding like a person who made something and wants to share it. Concrete rules:
 
-1. **Explain, don't compete.** State why the tool exists and how it works. Do not argue against named competitors or take an us-vs-them tone. "Your file stays on your device" carries itself and needs no "unlike [Competitor]" attached. (Legacy jabs at DocuSign / Adobe Sign / "other converters" in the FAQ copy should be softened to plain statements.)
+1. **Explain, don't compete.** State why the tool exists and how it works. Do not argue against named competitors or take an us-vs-them tone. "Your file stays on your device" carries itself and needs no "unlike [Competitor]" attached. (The FAQ copy no longer names competitors; do not reintroduce that framing.)
 2. **Lead with discovery, not fear.** The strongest hook is telling people something genuinely useful they may not know, for example "you can fill and sign a PDF without printing and scanning." That is a gift, not a pitch. Privacy is a reason to trust the tool, not the headline.
 3. **Plain facts over intensifiers.** "Runs on your device. Free. Open source." reads as more true than "100% secure, instant, zero-limit." Pick the one honest word. Overselling reads like the paywalled sites we are not.
 4. **Privacy at human altitude.** Frame it the way a normal person would ("I would not want to upload a consent form to a random site"), not with corporate security language ("military-grade, breach-proof").

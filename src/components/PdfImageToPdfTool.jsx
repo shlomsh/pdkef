@@ -26,7 +26,7 @@ export default function PdfImageToPdfTool() {
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [rejectedFiles, setRejectedFiles] = useState([]);
   const [announcement, setAnnouncement] = useState('');
-  const { canSharePdf, shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
+  const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const listRef = useRef(null);
   const sortableRef = useRef(null);
   const downloadRef = useRef(null);
@@ -338,7 +338,7 @@ export default function PdfImageToPdfTool() {
                 </svg>
                 Download PDF
               </a>
-              <PdfShareButton visible={canSharePdf && shareReady} onShare={handleShare} />
+              <PdfShareButton visible={shareReady} onShare={handleShare} />
             </>
           )}
         </>

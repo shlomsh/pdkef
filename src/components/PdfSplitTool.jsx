@@ -141,17 +141,6 @@ export default function PdfSplitTool() {
     }
   };
 
-  const reset = () => {
-    setFile(null);
-    setNumPages(0);
-    setPages([]);
-    setPageSelector('');
-    setPageSelectorError('');
-    setRejectedFiles([]);
-    resetOutput();
-    setAnnouncement('Cleared. Choose a PDF file to start again.');
-  };
-
   const handlePageSelectorChange = (value) => {
     setPageSelector(value);
     resetOutput();
