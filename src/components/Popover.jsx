@@ -62,9 +62,14 @@ export default function Popover({
 
   return (
     <>
+      {/* The trigger's own props go THROUGH getReferenceProps, not around it.
+          Called empty, it returns Floating UI's handlers alone, and spreading
+          those over the trigger replaces any onClick the trigger already had
+          rather than running both. Passed the trigger's props, it composes them:
+          the trigger's handler runs, then the open/close one. */}
       {cloneElement(trigger, {
         ref: refs.setReference,
-        ...getReferenceProps()
+        ...getReferenceProps(trigger.props)
       })}
       
       {open && portalTarget &&
