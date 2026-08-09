@@ -239,6 +239,88 @@ describe('SignToolbar Component', () => {
     });
   });
 
+  // The status line is the only place that tells a first-time user how a tool is
+  // actually used, so its wording is a contract, not decoration.
+  describe('status line wording', () => {
+    const armAndRead = (tool, locked = false) => {
+      let dispatch;
+      const TestConsumer = () => {
+        dispatch = useSignTool().dispatch;
+        return null;
+      };
+
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(
+          <SignToolProvider>
+            <SignToolbar
+              setAnnouncement={() => {}}
+              savedSignatures={[]}
+              activeSignature={null}
+              setActiveSignature={() => {}}
+              onDeleteSavedSignature={() => {}}
+              setDialogOpen={() => {}}
+              setUndoModalOpen={() => {}}
+              actionHistory={[]}
+              toggleFullscreen={() => {}}
+              isFullscreen={false}
+              onSavePdf={() => {}}
+            />
+            <TestConsumer />
+          </SignToolProvider>,
+          container
+        );
+      });
+
+      act(() => {
+        dispatch({ type: 'SET_TOOL', payload: locked ? { tool, locked: true } : tool });
+      });
+
+      return container.querySelector('[role="status"]').textContent;
+    };
+
+    // "Drag on a page" reads as dragging the tool from the toolbar onto the
+    // page, which is a real pattern in older editors and not how this works.
+    // The gesture starts and ends on the page, and "Click and" is what says so.
+    it.each(['whiteout', 'ellipse', 'rectangle', 'line'])(
+      'tells you the %s gesture starts on the page, not at the toolbar',
+      (tool) => {
+        expect(armAndRead(tool)).toContain('Click and drag on a page');
+      }
+    );
+
+    it.each(['text', 'symbol', 'signature'])('tells you to click a page to place a %s', (tool) => {
+      const text = armAndRead(tool);
+      expect(text).toContain('Click on a page to place');
+      expect(text).not.toContain('drag');
+    });
+
+    it('names the button to double-click rather than saying "the tool"', () => {
+      expect(armAndRead('ellipse')).toContain('Double-click Shapes to keep adding');
+      expect(armAndRead('text')).toContain('Double-click Text to keep adding');
+    });
+
+    it('says what a locked tool will keep doing and how to stop it', () => {
+      expect(armAndRead('ellipse', true)).toContain('Shapes stays on until you press Esc');
+    });
+
+    it('never calls these "layers", which nothing else in the product does', () => {
+      for (const tool of ['text', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line']) {
+        expect(armAndRead(tool)).not.toContain('layer');
+      }
+    });
+
+    // "your ellipse" claims you already have one. Signature is the exception and
+    // keeps the possessive: it exists before you place it, and it really is yours.
+    it('does not hand you an element you have not made yet', () => {
+      for (const tool of ['text', 'symbol', 'whiteout', 'ellipse', 'rectangle', 'line']) {
+        expect(armAndRead(tool)).not.toContain('your ');
+      }
+      expect(armAndRead('signature')).toContain('your signature');
+    });
+  });
+
   it('uses the existing export control for sharing when file sharing is supported', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
