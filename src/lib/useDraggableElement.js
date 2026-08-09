@@ -53,6 +53,10 @@ export default function useDraggableElement({
 
     onSelect(e);
 
+    // Only reachable while a text edit session is open — outside one the
+    // textarea is inert (see TextNode's text-input-inert class), so the target
+    // is the wrapper and the drag proceeds. During editing the click belongs to
+    // the caret, not to a drag.
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
       return;
     }

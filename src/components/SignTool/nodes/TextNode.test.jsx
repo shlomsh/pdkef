@@ -107,14 +107,14 @@ describe('TextNode component', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
-  it('focuses textarea automatically when isActive is true and autoFocus is set', () => {
-    const element = { text: 'Hello', fontSize: 12, autoFocus: true };
-    const onChange = vi.fn();
+  it('takes the caret when an edit session is open, with the cursor at the end', () => {
+    const element = { text: 'Hello', fontSize: 12 };
     host = mount(
       <TextNode
         element={element}
         isActive={true}
-        onChange={onChange}
+        isEditing={true}
+        onChange={vi.fn()}
         onSelect={() => {}}
         onResizeStart={() => {}}
         pageWidthPoints={600}
@@ -125,27 +125,71 @@ describe('TextNode component', () => {
     expect(document.activeElement).toBe(textarea);
     expect(textarea.selectionStart).toBe(5);
     expect(textarea.selectionEnd).toBe(5);
-    expect(onChange).toHaveBeenCalledWith({ autoFocus: undefined });
+    expect(textarea.readOnly).toBe(false);
+  });
+
+  it('stays inert while selected but not editing, so the click selects instead of typing', () => {
+    const element = { text: 'Hello', fontSize: 12 };
+    host = mount(
+      <TextNode
+        element={element}
+        isActive={true}
+        isEditing={false}
+        onChange={vi.fn()}
+        onSelect={() => {}}
+        onResizeStart={() => {}}
+        pageWidthPoints={600}
+      />
+    );
+
+    const textarea = host.querySelector('textarea');
+    expect(document.activeElement).not.toBe(textarea);
+    expect(textarea.readOnly).toBe(true);
+    expect(textarea.getAttribute('tabindex')).toBe('-1');
+    expect(textarea.classList.contains(elementStyles['text-input-inert'])).toBe(true);
+  });
+
+  it('opens an edit session on double click', () => {
+    const onBeginEdit = vi.fn();
+    host = mount(
+      <TextNode
+        element={{ text: 'Hello', fontSize: 12 }}
+        isActive={true}
+        isEditing={false}
+        onChange={vi.fn()}
+        onSelect={() => {}}
+        onBeginEdit={onBeginEdit}
+        onResizeStart={() => {}}
+        pageWidthPoints={600}
+      />
+    );
+
+    act(() => {
+      host.querySelector('[data-editor-text-display]')
+        .dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    });
+
+    expect(onBeginEdit).toHaveBeenCalledTimes(1);
   });
 
   it('focuses textarea when style properties change while a toolbar element is focused', () => {
     const element = { text: 'Style focus', fontSize: 12, color: '#000000' };
     const onChange = vi.fn();
-    
+
     host = mount(
       <TextNode
         element={element}
         isActive={true}
+        isEditing={true}
         onChange={onChange}
         onSelect={() => {}}
         onResizeStart={() => {}}
         pageWidthPoints={600}
       />
     );
-    
+
     const textarea = host.querySelector('textarea');
-    expect(document.activeElement).not.toBe(textarea);
-    
+
     // Create a mock toolbar element and focus it
     const toolbar = document.createElement('div');
     toolbar.className = elementStyles.actions;
@@ -161,6 +205,7 @@ describe('TextNode component', () => {
         <TextNode
           element={{ ...element, color: '#ff0000' }}
           isActive={true}
+          isEditing={true}
           onChange={onChange}
           onSelect={() => {}}
           onResizeStart={() => {}}

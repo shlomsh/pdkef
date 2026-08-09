@@ -22,6 +22,10 @@ import { cloneElement, toChildArray } from 'preact';
 export default function DraggableWrapper({
   element,
   isActive,
+  // Forwarded to the node untouched, like onResizeStart: only the text node
+  // has an edit session, and the wrapper stays type-agnostic about it.
+  isEditing = false,
+  onBeginEdit,
   onSelect,
   onChange,
   onDelete,
@@ -324,6 +328,8 @@ export default function DraggableWrapper({
       {/* Render element depending on type */}
       {toChildArray(children).map(child => cloneElement(child, {
         isActive,
+        isEditing,
+        onBeginEdit,
         onResizeStart: handleResizeStart,
         handlePointerDown
       }))}

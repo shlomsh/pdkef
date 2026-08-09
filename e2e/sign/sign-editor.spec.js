@@ -172,6 +172,35 @@ test.describe('Sign editor browser guardrails', () => {
     await expect(page.locator(`[data-editor-element-id="${lowerId}"]`)).not.toHaveAttribute('data-editor-active', 'true');
   });
 
+  // Only a real browser can prove this one: the textarea covers the whole box,
+  // and what keeps a plain click from landing in it is `pointer-events: none`,
+  // which jsdom does not implement. Under jsdom the click would reach the
+  // wrapper either way, so the guard would pass there even if the CSS were
+  // deleted.
+  test('a plain click selects a text box, and only a double click puts the caret in it', async ({ page }) => {
+    await openSignTool(page);
+
+    const element = await addText(page, 'Hello', 0.4, 0.4);
+    const input = element.locator('[data-editor-text-input]');
+    await expect(input).toBeFocused();
+
+    // First Escape ends the edit session and leaves the box selected.
+    await page.keyboard.press('Escape');
+    await expect(element).toHaveAttribute('data-editor-active', 'true');
+    await expect(input).not.toBeFocused();
+
+    const box = await element.boundingBox();
+    if (!box) throw new Error('Text element has no bounding box');
+    const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+
+    await page.mouse.click(centre.x, centre.y);
+    await expect(element).toHaveAttribute('data-editor-active', 'true');
+    await expect(input).not.toBeFocused();
+
+    await page.mouse.dblclick(centre.x, centre.y);
+    await expect(input).toBeFocused();
+  });
+
   test('keeps toolbar positioning stable and whiteout defaults separate in the real browser', async ({ page }) => {
     await openSignTool(page);
 

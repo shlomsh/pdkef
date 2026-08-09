@@ -119,8 +119,12 @@ export default function useWorkspaceGestures({
     // element the user never asked for. A locked tool stays armed.
     dispatch({ type: 'DISARM_TOOL' });
     if (selectedTool === 'text') {
+      // A box you just placed opens ready to type - the one case where placing
+      // and editing are the same intent. This replaces the old per-element
+      // `autoFocus` flag, so the caret has exactly one owner.
+      dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: id });
       logAction('ADD_TEXT', id, pageIndex, 'Added text box');
-      setAnnouncement('Added text box. Click or double click to type.');
+      setAnnouncement('Added text box. Type your text.');
     } else {
       logAction('ADD_SYMBOL', id, pageIndex, 'Added symbol');
       setAnnouncement('Added symbol.');

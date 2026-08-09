@@ -76,8 +76,6 @@ export interface TextElement extends ElementBase {
   fontStyle?: 'normal' | 'italic';
   /** Explicit direction seed; absent lets sign.js auto-detect from `text`. */
   textDirection?: TextDirection;
-  /** Transient: focus the textarea on next render, then cleared by TextNode. */
-  autoFocus?: boolean;
   /** Height/width ratio used during resize (falls back to ASPECT_RATIO_TEXT). */
   aspectRatio?: number;
 }

@@ -25,6 +25,19 @@ const initialState = {
   toolLocked: false,
   elements: [],
   activeElementId: null,
+  // Selection and text editing are separate states. `activeElementId` means
+  // "this element is selected" - the toolbar points at it, Backspace deletes
+  // it, dragging moves it. `editingElementId` means "a text edit session is
+  // open on it", which is the only state where the caret lives inside the box
+  // and Backspace belongs to the text. Without the split there is no way to
+  // have a text box selected but not being typed into, so Backspace can never
+  // delete one.
+  //
+  // Invariant, enforced in this reducer and nowhere else: editingElementId is
+  // either null or equal to activeElementId. Every caller sets selection
+  // through SET_ACTIVE_ELEMENT_ID, so no caller has to remember to close an
+  // edit session - the two cannot drift apart.
+  editingElementId: null,
   actionHistory: []
 };
 
@@ -48,9 +61,12 @@ export function reducer(state, action) {
     case 'DISARM_TOOL':
       return state.toolLocked ? state : { ...state, selectedTool: null };
     case 'SET_ELEMENTS':
+      // A wholesale replacement of the document (load, draft restore, undo)
+      // invalidates any open edit session along with the selection.
       return {
         ...state,
-        elements: action.payload
+        elements: action.payload,
+        editingElementId: null
       };
     case 'ADD_ELEMENT':
       return {
@@ -72,7 +88,19 @@ export function reducer(state, action) {
     case 'SET_ACTIVE_ELEMENT_ID':
       return {
         ...state,
-        activeElementId: action.payload
+        activeElementId: action.payload,
+        // Selecting anything other than the element being edited ends the edit
+        // session. This is what holds the invariant documented on initialState.
+        editingElementId:
+          state.editingElementId === action.payload ? state.editingElementId : null
+      };
+    // Opens a text edit session on the element that is already selected. Guarded
+    // rather than trusted, so a stray dispatch cannot put the caret inside an
+    // element the toolbar is not pointing at.
+    case 'SET_EDITING_ELEMENT_ID':
+      return {
+        ...state,
+        editingElementId: action.payload === state.activeElementId ? action.payload : null
       };
     case 'SET_ACTION_HISTORY':
       return {

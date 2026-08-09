@@ -217,7 +217,9 @@ describe('DraggableWrapper RTL text positioning', () => {
     // with NO inline padding is what guarantees identical box metrics — a stronger
     // guarantee than two copies of an inline value that could drift out of sync.
     expect(measure.className).toBe(elementStyles['text-measure']);
-    expect(input.className).toBe(elementStyles['text-input']);
+    // The input also carries the inert class when no edit session is open; what
+    // matters here is that padding rides on the shared class, not inline.
+    expect(input.classList.contains(elementStyles['text-input'])).toBe(true);
     expect(measure.style.padding).toBe('');
     expect(input.style.padding).toBe('');
   });

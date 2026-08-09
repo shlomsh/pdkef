@@ -397,7 +397,7 @@ export default function SignToolbar({
         </div>
       ) : (
         <div className={styles.help} style={{ color: 'var(--color-muted-light)' }}>
-          <span>Tip: Select a tool above and click on the PDF to place, or drag existing items. Hover a line to adjust it.</span>
+          <span>Tip: Select a tool above and click on the PDF to place, or drag existing items. Double-click a text box to edit it, and hover a line to adjust it.</span>
         </div>
       )}
     </>

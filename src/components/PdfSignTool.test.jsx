@@ -648,6 +648,114 @@ describe('PdfSignTool UI flow', () => {
     expect(nextTextInput.style.fontSize).toBe(editedTextInput.style.fontSize);
   });
 
+  // The reported bug: a text box could not be removed from the keyboard at all,
+  // because clicking it put the caret inside, and the delete shortcut steps
+  // aside for a focused input. Escape now ends the edit session and leaves the
+  // box selected, which is the state Backspace acts on.
+  it('deletes a text box with Backspace once Escape has closed its edit session', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSignTool />, container);
+    });
+
+    const file = makePdfFile('test.pdf');
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [file]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const wrapper = container.querySelector(`.${workspaceStyles['page-wrapper']}`);
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const pageRect = {
+      left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
+    };
+    wrapper.getBoundingClientRect = () => pageRect;
+    overlay.getBoundingClientRect = () => pageRect;
+
+    const textBtn = Array.from(container.querySelectorAll(`.${toolbarStyles.button}`))
+      .find(btn => btn.textContent.includes('Text'));
+    await act(async () => {
+      textBtn.click();
+    });
+    await act(async () => {
+      overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+
+    const textInput = container.querySelector('[data-editor-text-input]');
+    expect(textInput).not.toBeNull();
+    // Placed boxes open ready to type, so Backspace still belongs to the text.
+    expect(textInput.readOnly).toBe(false);
+    expect(document.activeElement).toBe(textInput);
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    });
+    expect(container.querySelectorAll('[data-editor-text-input]').length).toBe(1);
+
+    // Escape steps out of the text and leaves the box selected, not deselected.
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    const selected = container.querySelector('[data-editor-element][data-editor-active]');
+    expect(selected).not.toBeNull();
+    expect(container.querySelector('[data-editor-text-input]').readOnly).toBe(true);
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
+    });
+    expect(container.querySelectorAll('[data-editor-text-input]').length).toBe(0);
+  });
+
+  it('reopens an edit session with Enter on a selected text box', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSignTool />, container);
+    });
+
+    const file = makePdfFile('test.pdf');
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [file]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const wrapper = container.querySelector(`.${workspaceStyles['page-wrapper']}`);
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const pageRect = {
+      left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
+    };
+    wrapper.getBoundingClientRect = () => pageRect;
+    overlay.getBoundingClientRect = () => pageRect;
+
+    const textBtn = Array.from(container.querySelectorAll(`.${toolbarStyles.button}`))
+      .find(btn => btn.textContent.includes('Text'));
+    await act(async () => {
+      textBtn.click();
+    });
+    await act(async () => {
+      overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(container.querySelector('[data-editor-text-input]').readOnly).toBe(true);
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    });
+
+    const textInput = container.querySelector('[data-editor-text-input]');
+    expect(textInput.readOnly).toBe(false);
+    expect(document.activeElement).toBe(textInput);
+  });
+
   it('updates font selection and enables Save button when typing a signature', async () => {
     // Safely mock canvas context to prevent the live-preview useEffect from throwing
     const originalGetContext = HTMLCanvasElement.prototype.getContext;
