@@ -301,6 +301,54 @@ describe('SignToolbar Component', () => {
       expect(armAndRead('text')).toContain('Double-click Text to keep adding');
     });
 
+    // The idle tip does not teach the gesture: arming a tool says exactly how
+    // that tool works, and a generic "click or drag on the page" here carried
+    // the same drag-it-from-the-toolbar misreading the per-tool lines avoid.
+    it('asks only for a tool choice when nothing is armed', () => {
+      let dispatch;
+      const TestConsumer = () => {
+        dispatch = useSignTool().dispatch;
+        return null;
+      };
+
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(
+          <SignToolProvider>
+            <SignToolbar
+              setAnnouncement={() => {}}
+              savedSignatures={[]}
+              activeSignature={null}
+              setActiveSignature={() => {}}
+              onDeleteSavedSignature={() => {}}
+              setDialogOpen={() => {}}
+              setUndoModalOpen={() => {}}
+              actionHistory={[]}
+              toggleFullscreen={() => {}}
+              isFullscreen={false}
+              onSavePdf={() => {}}
+            />
+            <TestConsumer />
+          </SignToolProvider>,
+          container
+        );
+      });
+
+      const tip = () => container.querySelector(`.${styles.help}`).textContent;
+      expect(tip()).toContain('pick a tool above');
+      expect(tip()).not.toContain('drag');
+      // Nothing has been placed, so the editing hint would be advice about
+      // something that does not exist yet.
+      expect(tip()).not.toContain('Double-click');
+
+      act(() => {
+        dispatch({ type: 'ADD_ELEMENT', payload: { id: 'el-1', type: 'text', pageIndex: 0, left: 5, top: 5, text: '' } });
+      });
+
+      expect(tip()).toContain('Double-click a text box to edit it');
+    });
+
     it('says what a locked tool will keep doing and how to stop it', () => {
       expect(armAndRead('ellipse', true)).toContain('Shapes stays on until you press Esc');
     });

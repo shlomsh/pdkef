@@ -111,6 +111,9 @@ export default function SignToolbar({
   // TOOL_COPY looks like: the status line falls back to the idle tip rather
   // than rendering a half-built sentence or throwing.
   const activeToolCopy = selectedTool ? TOOL_COPY[selectedTool] : null;
+  // How to re-edit a text box is only worth saying once one exists. Before that
+  // the idle tip has one job, which is to get you to pick a tool.
+  const hasTextElement = state.elements.some((el) => el.type === 'text');
 
   // A tool arms for a single placement. Double-click locks it on for repeats -
   // the Figma/Illustrator convention. `detail` is the click count on the same
@@ -445,7 +448,10 @@ export default function SignToolbar({
         </div>
       ) : (
         <div className={styles.help} style={{ color: 'var(--color-muted-light)' }}>
-          <span>Tip: pick a tool above, then click or drag on the page. Double-click a text box to edit it.</span>
+          <span>
+            Tip: pick a tool above to start.
+            {hasTextElement ? ' Double-click a text box to edit it.' : ''}
+          </span>
         </div>
       )}
     </>
