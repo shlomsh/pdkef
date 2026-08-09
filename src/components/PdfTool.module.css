@@ -42,6 +42,15 @@
   }
 }
 
+/* #app top-aligns instead of centering at this breakpoint (ToolPageLayout.astro),
+   so a smaller card padding keeps the card from reading as an oversized empty
+   frame sitting at the top of the viewport. */
+@media (min-width: 1024px) {
+  .tool-card {
+    padding: 1rem;
+  }
+}
+
 /* No `.list-header` / `.list-count` / `.clear-all` here any more. The file count
    is part of the identity line now (ToolShell.module.css) and Clear all is one
    of that shell's controls, so neither the header row nor the two classes it
