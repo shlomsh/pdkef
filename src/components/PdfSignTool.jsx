@@ -7,7 +7,7 @@ import PdfWorkspace from './SignTool/PdfWorkspace.jsx';
 import SignatureDialog from './SignatureDialog.jsx';
 import { uniqueId, seedUniqueId, signPdf } from '../lib/sign.js';
 import { widthPercentToHeightPercent } from '../lib/coords.js';
-import { DEFAULT_SYMBOL_WIDTH_PCT } from '../constants/signGeometry.js';
+import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { useEditorDraftPersistence } from '../editor/workspace/useEditorDraftPersistence.js';
 import { createActionEntry } from '../lib/actionHistory.js';
@@ -66,6 +66,11 @@ function PdfSignToolInner() {
   // placements so repeated check marks on the same form keep the size the
   // user already dialed in instead of resetting to the default each time.
   const [lastSymbolWidth, setLastSymbolWidth] = useState(DEFAULT_SYMBOL_WIDTH_PCT);
+
+  // Last signature size (width as a % of page width), remembered across new
+  // placements so dropping the same signature repeatedly on a form keeps the
+  // size the user already dialed in instead of resetting to the default each time.
+  const [lastSignatureWidth, setLastSignatureWidth] = useState(DEFAULT_START_WIDTH_PCT);
 
   // Saved signatures and active signature state
   const [savedSignatures, setSavedSignatures] = useState([]);
@@ -263,6 +268,16 @@ function PdfSignToolInner() {
     }
   }, []);
 
+  // Load last-used signature width from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = parseFloat(localStorage.getItem('pdf-toolkit:lastSignatureWidth'));
+      if (Number.isFinite(stored) && stored > 0) setLastSignatureWidth(stored);
+    } catch (e) {
+      console.error('Failed to load last signature width from localStorage:', e);
+    }
+  }, []);
+
   // Remember the color last picked, shared across text/symbol/signature, for future placements
   const rememberColor = (color) => {
     setLastColor(color);
@@ -316,6 +331,17 @@ function PdfSignToolInner() {
       localStorage.setItem('pdf-toolkit:lastSymbolWidth', String(width));
     } catch (e) {
       console.error('Failed to persist last symbol width to localStorage:', e);
+    }
+  };
+
+  // Remember the size a signature was last resized to, for future placements
+  const rememberSignatureWidth = (width) => {
+    if (!Number.isFinite(width) || width <= 0) return;
+    setLastSignatureWidth(width);
+    try {
+      localStorage.setItem('pdf-toolkit:lastSignatureWidth', String(width));
+    } catch (e) {
+      console.error('Failed to persist last signature width to localStorage:', e);
     }
   };
 
@@ -425,7 +451,7 @@ function PdfSignToolInner() {
   };
 
   // Setup draft persistence hook
-  const { clearDraft } = useEditorDraftPersistence({
+  const { clearDraft, isRestoring } = useEditorDraftPersistence({
     tool: 'sign',
     file,
     fileBytes: fileBytesRef.current,
@@ -439,9 +465,11 @@ function PdfSignToolInner() {
   // Helper to place a signature at a specific location
   const placeSignatureAt = (dataUrl, aspectRatio, pageIdx, leftPercent, topPercent) => {
     const id = uniqueId();
-    // Default size: width = 20% of page
-    const widthPercent = 20;
-    
+    // Width defaults to whatever the last placed/resized signature used, so
+    // consecutive placements of the same signature keep its size instead of
+    // resetting to the default every time.
+    const widthPercent = lastSignatureWidth;
+
     // Calculate page wrapper dimension
     let pageWrapperHeight = 800;
     let pageWrapperWidth = 600;
@@ -679,12 +707,13 @@ function PdfSignToolInner() {
       hasWork={elements.length > 0}
       workNoun="your annotations"
       ownsShell
+      checkingDraft={isRestoring}
     >
       {hasFiles && status !== 'loading' && (
         <SignDefaultsContext.Provider
           value={{
-            lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastDirection, lastThickness, lastSymbolWidth,
-            rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth
+            lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastDirection, lastThickness, lastSymbolWidth, lastSignatureWidth,
+            rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSignatureWidth
           }}
         >
           <SavedSignaturesContext.Provider
@@ -716,12 +745,10 @@ function PdfSignToolInner() {
         </SignDefaultsContext.Provider>
       )}
 
-      {/* Loading state */}
-      {status === 'loading' && (
-        <div style={{ textAlign: 'center', padding: '4rem 0' }}>
-          <p style={{ color: 'var(--color-muted)', fontWeight: '600' }}>Loading PDF document...</p>
-        </div>
-      )}
+      {/* No loading-state message: pdf.js parses fast enough that a text block
+          here just added its own undersized-then-replaced flicker (see
+          Workspace.module.css's fade-in on .workspace, which softens the real
+          jump from nothing to a loaded document instead). */}
 
       {/* Signature Creation Modal Component */}
       <SignatureDialog

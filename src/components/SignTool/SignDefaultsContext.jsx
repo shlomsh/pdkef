@@ -5,7 +5,8 @@ import {
   DEFAULT_STROKE_WIDTH,
   DEFAULT_FONT_FAMILY,
   DEFAULT_FONT_SIZE_PT,
-  DEFAULT_SYMBOL_WIDTH_PCT
+  DEFAULT_SYMBOL_WIDTH_PCT,
+  DEFAULT_START_WIDTH_PCT
 } from '../../constants/signGeometry.js';
 
 const noop = () => {};
@@ -26,13 +27,15 @@ export const SignDefaultsContext = createContext({
   lastDirection: null,
   lastThickness: DEFAULT_STROKE_WIDTH,
   lastSymbolWidth: DEFAULT_SYMBOL_WIDTH_PCT,
+  lastSignatureWidth: DEFAULT_START_WIDTH_PCT,
   rememberColor: noop,
   rememberWhiteoutColor: noop,
   rememberFont: noop,
   rememberFontSize: noop,
   rememberDirection: noop,
   rememberThickness: noop,
-  rememberSymbolWidth: noop
+  rememberSymbolWidth: noop,
+  rememberSignatureWidth: noop
 });
 
 export function useSignDefaults() {
