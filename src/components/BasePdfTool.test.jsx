@@ -65,6 +65,45 @@ describe('BasePdfTool', () => {
     expect(container.textContent).toContain('Private. Files never leave your device.');
     const dropzone = container.querySelector(`.${styles['dropzone']}`);
     expect(dropzone).not.toBeNull();
+    // Marks this as the real empty-state invitation, distinct from the
+    // checking-draft placeholder below - see Dropzone.module.css's
+    // `html[data-draft-hint] .dropzone[data-empty-state]` pre-hydration gate.
+    expect(dropzone.hasAttribute('data-empty-state')).toBe(true);
+  });
+
+  // A tool with draft persistence (Sign, Redact) passes checkingDraft while it
+  // is still deciding whether a saved draft exists - see useDraftPersistence.js's
+  // isRestoring. The empty-state "add a file" invitation must not appear during
+  // that window, since a file may be about to load over it.
+  it('shows a neutral placeholder instead of the empty-state dropzone while checkingDraft is true', () => {
+    mount({ hasFiles: false, onFilesAdded: vi.fn(), checkingDraft: true });
+
+    expect(container.textContent).not.toContain('Drop PDF');
+    expect(container.textContent).not.toContain('Choose file');
+    expect(container.textContent).toContain('Checking for a saved draft');
+    // No empty-state dropzone at all while checking - not even a hidden one.
+    expect(container.querySelector('[data-empty-state]')).toBeNull();
+    expect(container.querySelector('input[type="file"]')).toBeNull();
+
+    const placeholder = container.querySelector(`.${styles['dropzone']}`);
+    expect(placeholder).not.toBeNull();
+    expect(placeholder.getAttribute('aria-busy')).toBe('true');
+  });
+
+  it('reveals the real empty-state dropzone once checkingDraft settles to false', () => {
+    mount({ hasFiles: false, onFilesAdded: vi.fn(), checkingDraft: true });
+    expect(container.textContent).toContain('Checking for a saved draft');
+
+    act(() => {
+      render(
+        <BasePdfTool hasFiles={false} onFilesAdded={vi.fn()} checkingDraft={false} />,
+        container
+      );
+    });
+
+    expect(container.textContent).not.toContain('Checking for a saved draft');
+    expect(container.textContent).toContain('Drop PDFs here');
+    expect(container.querySelector('input[type="file"]')).not.toBeNull();
   });
 
   it('renders the loaded-state identity line instead of the dropzone', () => {

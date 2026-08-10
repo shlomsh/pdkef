@@ -55,7 +55,11 @@ vi.mock('../lib/draftStore.js', () => ({
   loadDraft: vi.fn(() => loadDraftDeferred.promise),
   // No pending home-page handoff in these cases; the tools resolve one before
   // touching the draft, so it has to be present in the mock.
-  takeHandoff: vi.fn(() => Promise.resolve(null))
+  takeHandoff: vi.fn(() => Promise.resolve(null)),
+  // These races care about which file wins, not the checking placeholder
+  // (covered separately in draftCheckingPlaceholder.test.jsx) - false keeps
+  // every scenario here starting straight in the empty state, as before.
+  hasDraftHint: vi.fn(() => false)
 }));
 
 // Mock getDocument because we don't want to load actual pdf.js workers in jsdom environment
