@@ -62,6 +62,25 @@ function clearDraftHint(tool) {
   }
 }
 
+/**
+ * Synchronous, best-effort read of the same hint ToolPageLayout.astro's
+ * pre-paint script reads: "a draft probably exists for `tool`". Exported so
+ * useDraftPersistence.js can decide, before its first render, whether it is
+ * worth holding the caller in a "checking" state at all - a visitor with no
+ * hint gets today's behaviour (empty state immediately), so this can never
+ * add a wait where there wasn't already a draft to wait for.
+ *
+ * @param {string} tool
+ * @returns {boolean}
+ */
+export function hasDraftHint(tool) {
+  try {
+    return localStorage.getItem(DRAFT_HINT_PREFIX + tool) === '1';
+  } catch {
+    return false;
+  }
+}
+
 function hasIndexedDB() {
   try {
     return typeof indexedDB !== 'undefined' && indexedDB !== null;

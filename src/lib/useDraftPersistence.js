@@ -1,5 +1,14 @@
-import { useEffect, useRef } from 'preact/hooks';
-import { saveDraft, loadDraft, deleteDraft } from './draftStore.js';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { saveDraft, loadDraft, deleteDraft, hasDraftHint } from './draftStore.js';
+
+// Upper bound on how long the mount-time restore check may hold the caller in
+// `isRestoring` before giving up. A real IndexedDB open+read is normally
+// single-digit milliseconds; this exists only to protect against a genuinely
+// stuck transaction turning a brief loading state into one that never
+// resolves. It does not cancel the underlying check - a late result still
+// gets applied (see the restore effect below) - it only stops the caller from
+// blocking its empty state on it forever.
+export const RESTORE_TIMEOUT_MS = 4000;
 
 /**
  * Wires crash-safe draft persistence into a PDF editing tool.
@@ -19,7 +28,13 @@ import { saveDraft, loadDraft, deleteDraft } from './draftStore.js';
  * @param {() => Promise<boolean>} [opts.beforeRestore] - runs first on mount; return
  *   true to claim the load (a pending home-page handoff) and skip the draft restore
  * @param {(record: object) => void} opts.onRestore - rehydrate the tool from a draft
- * @returns {{ clearDraft: () => Promise<void> }}
+ * @returns {{ clearDraft: () => Promise<void>, isRestoring: boolean }} isRestoring
+ *   starts true only when draftStore's synchronous hint (hasDraftHint) says a
+ *   draft is likely, and flips false once the real restore settles or
+ *   RESTORE_TIMEOUT_MS elapses - the caller's cue to hold off on an empty state
+ *   that a file is about to replace anyway. A visitor with no hint never enters
+ *   this state at all, so a plain first visit is exactly as fast as before. See
+ *   BasePdfTool.jsx's `checkingDraft` prop.
  */
 export function useDraftPersistence({
   tool,
@@ -38,6 +53,8 @@ export function useDraftPersistence({
   const latest = useRef({});
   latest.current = { tool, enabled, file, fileBytes, elements, extra, status };
 
+  const [isRestoring, setIsRestoring] = useState(() => enabled && hasDraftHint(tool));
+
   const buildRecord = () => {
     const { file, fileBytes, elements, extra } = latest.current;
     if (!file || !fileBytes) return null;
@@ -54,16 +71,31 @@ export function useDraftPersistence({
 
   // Restore on mount.
   useEffect(() => {
-    if (!enabled || restoreAttempted.current) return;
+    if (!enabled || restoreAttempted.current) {
+      setIsRestoring(false);
+      return;
+    }
     restoreAttempted.current = true;
     let cancelled = false;
+    // Only ever moves isRestoring from true to false, so a late timeout firing
+    // after the real check already settled (or vice versa) is a harmless no-op.
+    const stopWaiting = () => {
+      if (!cancelled) setIsRestoring(false);
+    };
+    const timeoutId = setTimeout(stopWaiting, RESTORE_TIMEOUT_MS);
     (async () => {
       // Sequenced, not raced: whoever resolves first would otherwise claim the
       // load by timing alone. See useEditorDraftPersistence's beforeRestore.
-      if (beforeRestore && (await beforeRestore())) return;
+      if (beforeRestore && (await beforeRestore())) {
+        if (cancelled) return;
+        clearTimeout(timeoutId);
+        stopWaiting();
+        return;
+      }
       if (cancelled) return;
       const record = await loadDraft(tool);
       if (cancelled) return;
+      clearTimeout(timeoutId);
       if (record && record.fileBytes) {
         onRestore(record);
       } else {
@@ -74,9 +106,11 @@ export function useDraftPersistence({
         // pre-collapsed above an empty dropzone with nothing to explain it.
         document.documentElement?.removeAttribute('data-draft-hint');
       }
+      stopWaiting();
     })();
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -115,5 +149,5 @@ export function useDraftPersistence({
 
   const clearDraft = () => deleteDraft(tool);
 
-  return { clearDraft };
+  return { clearDraft, isRestoring };
 }

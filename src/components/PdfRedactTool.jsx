@@ -189,7 +189,7 @@ export default function PdfRedactTool() {
     await loadPdf(selected, bytes, {});
   };
 
-  const { clearDraft } = useEditorDraftPersistence({
+  const { clearDraft, isRestoring } = useEditorDraftPersistence({
     tool: 'redact',
     file,
     fileBytes: fileBytesRef.current,
@@ -379,10 +379,16 @@ export default function PdfRedactTool() {
       hasWork={elements.length > 0}
       workNoun="your redaction boxes"
       ownsShell
+      checkingDraft={isRestoring}
     >
       <div className="sr-only" role="status" aria-live="polite">
         {announcement}
       </div>
+
+      {/* No loading-state message: pdf.js parses fast enough that a text block
+          here just added its own undersized-then-replaced flicker (see
+          Workspace.module.css's fade-in on .workspace, which softens the real
+          jump from nothing to a loaded document instead). */}
 
       {(status === 'editing' || status === 'redacting') && pdfDocument && (
         <div

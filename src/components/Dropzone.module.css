@@ -9,6 +9,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* Floors the box at roughly the empty state's own height (icon + heading +
+     button + privacy line), so the one-line checking-draft placeholder
+     (BasePdfTool.jsx, same class, far less content) renders at the same size
+     instead of collapsing small and then visibly growing once real content
+     replaces it - a skeleton screen has to match the size of what it stands
+     in for, not just its box styling. */
+  justify-content: center;
+  min-height: 13rem;
   gap: var(--space-2);
   padding: 3rem 1.5rem;
   border: 1.5px dashed var(--color-border-strong);
@@ -17,6 +25,21 @@
   background: var(--color-surface-sunken);
   transition: border-color 0.25s var(--ease-out), background-color 0.25s var(--ease-out),
     transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+}
+
+/* Astro server-renders a client:load island's first paint in Node, where
+   localStorage does not exist - so before hydration ever runs, the "add a
+   file" dropzone always renders, regardless of the draft hint useDraftPersistence.js
+   will read the instant JS takes over. Hiding it here for that pre-hydration
+   window (same blocking-script + attribute technique as ToolHero.astro's
+   collapse) turns "add a file" flashing before a restored draft appears into
+   blank space instead - not misleading, and gone the moment hydration commits
+   its real state. `[data-empty-state]` scopes this to DropzoneEmptyState only,
+   never BasePdfTool's own checking-draft placeholder, which reuses .dropzone's
+   box styling but must stay visible. Only ever armed on /sign/ or /redact/ -
+   the only pages whose pre-paint script can set the attribute. */
+:global(html[data-draft-hint]) .dropzone[data-empty-state] {
+  display: none;
 }
 
 .dropzone:hover {

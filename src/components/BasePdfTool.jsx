@@ -49,6 +49,13 @@ export default function BasePdfTool({
      screen started. They still take every other decision from this component
      through the context below. */
   ownsShell = false,
+  /* True while a tool with draft persistence is still checking IndexedDB for a
+     saved draft on mount (see useDraftPersistence.js's `isRestoring`). Renders
+     a brief neutral placeholder instead of the "drop a file here" empty state,
+     so a returning visitor with a draft never sees an invitation to add a file
+     for the split second before their file loads over it. Tools without draft
+     persistence never set this, so their empty state is unaffected. */
+  checkingDraft = false,
 }) {
   const [isDraggingOverWorkspace, setIsDraggingOverWorkspace] = useState(false);
   const [pendingFiles, setPendingFiles] = useState(null);
@@ -71,7 +78,11 @@ export default function BasePdfTool({
         fileInputRef.current.click();
       }
     }
-  }, [hasFiles]);
+    // checkingDraft is a dep, not just hasFiles: while it's true the empty-state
+    // dropzone (and its input ref) hasn't mounted yet, so this has to re-run once
+    // checking settles and the real ref becomes available - hasFiles alone never
+    // changes across that transition.
+  }, [hasFiles, checkingDraft]);
 
   // Adding to a list costs nothing and an untouched tool has nothing to lose;
   // anything else has to be agreed to first.
@@ -181,13 +192,22 @@ export default function BasePdfTool({
       onDrop={onWorkspaceDrop}
     >
       {!hasFiles && (
-        <DropzoneEmptyState
-          multiple={multiple}
-          accept={accept}
-          message={emptyStateMessage}
-          inputRef={fileInputRef}
-          onFiles={receiveFiles}
-        />
+        checkingDraft ? (
+          // Same dropzone box, so nothing resizes when this resolves either way -
+          // just a neutral holding message instead of "drop a file here", which
+          // would be actively misleading the moment before a draft loads over it.
+          <div class={styles.dropzone} aria-busy="true">
+            <p class={styles['dropzone-text']}>Checking for a saved draft…</p>
+          </div>
+        ) : (
+          <DropzoneEmptyState
+            multiple={multiple}
+            accept={accept}
+            message={emptyStateMessage}
+            inputRef={fileInputRef}
+            onFiles={receiveFiles}
+          />
+        )
       )}
 
       {hasFiles && (
