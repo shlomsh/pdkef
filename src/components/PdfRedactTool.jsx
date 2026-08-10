@@ -3,11 +3,9 @@ import BasePdfTool from './BasePdfTool.jsx';
 import PdfPageCanvas from './PdfPageCanvas.jsx';
 import { uniqueId, seedUniqueId } from '../lib/sign.js';
 import { redactPdf } from '../lib/redact.js';
-import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { startGesture } from '../editor/gestures/controller.ts';
-import { getPointerCoords } from '../editor/gestures/pointer.ts';
-import { getElementDefinition } from '../editor/registry/index.ts';
+import usePdfCoordinates from '../lib/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle } from '../editor/registry/redactionSurface.ts';
 import { useEditorDraftPersistence } from '../editor/workspace/useEditorDraftPersistence.js';
 import RedactToolbar from './RedactToolbar.jsx';
@@ -18,9 +16,7 @@ import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import ErrorMessage from './ErrorMessage.jsx';
 import pdfToolStyles from './PdfTool.module.css';
-import toolbarStyles from './SignTool/SignToolbar.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
-import elementStyles from './SignTool/EditorElement.module.css';
 import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../lib/format.js';
 
@@ -33,6 +29,7 @@ export default function PdfRedactTool() {
   const [progress, setProgress] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const { canSharePdf, shareReady, prepare, clearPrepared, download, sharePrepared } = usePdfShare();
+  const { getPointerPercent } = usePdfCoordinates();
 
   const [activeStyle, setActiveStyle] = useState('blackout'); // 'blackout' | 'blur' | 'whiteout'
   const [activeColor, setActiveColor] = useState('#ffffff');
@@ -211,19 +208,18 @@ export default function PdfRedactTool() {
     setActiveBoxId(null); // clicking blank page area deselects/hides any box's controls
     setSelectedBoxId(null);
     e.preventDefault();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const start = getPointerCoords(e.nativeEvent || e);
-    const origin = { left: pxToPercent(start.x - rect.left, rect.width), top: pxToPercent(start.y - rect.top, rect.height) };
+    const container = e.currentTarget;
+    const origin = getPointerPercent(e, container);
     const type = activeStyle;
     const color = type === 'whiteout' ? activeColor : (type === 'blackout' ? '#000000' : undefined);
-    setDrawingState({ pageIndex, startX: origin.left, startY: origin.top, type, color });
+    setDrawingState({ pageIndex, startX: origin.x, startY: origin.y, type, color });
     startGesture({
       computePatch: (moveEvent) => {
         if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
-        const point = getPointerCoords(moveEvent);
-        const x = Math.max(0, Math.min(100, pxToPercent(point.x - rect.left, rect.width)));
-        const y = Math.max(0, Math.min(100, pxToPercent(point.y - rect.top, rect.height)));
-        return { left: Math.min(origin.left, x), top: Math.min(origin.top, y), width: Math.abs(x - origin.left), height: Math.abs(y - origin.top) };
+        const point = getPointerPercent(moveEvent, container);
+        const x = Math.max(0, Math.min(100, point.x));
+        const y = Math.max(0, Math.min(100, point.y));
+        return { left: Math.min(origin.x, x), top: Math.min(origin.y, y), width: Math.abs(x - origin.x), height: Math.abs(y - origin.y) };
       },
       writeDOM: (patch) => {
         const preview = drawingPreviewRef.current;
@@ -312,62 +308,6 @@ export default function PdfRedactTool() {
     logAction('DUPLICATE_ELEMENT', cloned.id, cloned.pageIndex, 'Duplicated whiteout box');
   };
 
-  // Drag an existing box to reposition it. Percentages are relative to the box's own
-  // page wrapper, captured once at gesture start (it can't change mid-drag). We
-  // stopPropagation so the page-level draw handler never starts a new box underneath.
-  const handleBoxDragStart = (e, el) => {
-    if (e.target.closest(`.${styles['redact-element-btn']}`) || e.target.closest(`.${styles['redact-box-resizer']}`) || e.target.closest(`.${elementStyles.actions}`)) return;
-    e.stopPropagation();
-    e.preventDefault();
-    setActiveBoxId(el.id); // reveal controls on touch/click, where there's no hover
-    setSelectedBoxId(el.id); // pin the whiteout toolbar open (see selectedBoxId comment above)
-
-    const wrapper = pageWrapperRefs.current[el.pageIndex];
-    if (!wrapper) return;
-
-    const pointer = getPointerCoords(e.nativeEvent || e);
-    const start = { x: pointer.x, y: pointer.y, left: el.left, top: el.top };
-    const box = e.currentTarget.closest(`.${styles['redact-box']}`);
-    startGesture({
-      computePatch: (moveEvent) => {
-        if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
-        const move = getPointerCoords(moveEvent);
-        const rect = wrapper.getBoundingClientRect();
-        return { left: Math.max(0, Math.min(100 - el.width, start.left + pxDeltaToPercent(move.x - start.x, rect.width))), top: Math.max(0, Math.min(100 - el.height, start.top + pxDeltaToPercent(move.y - start.y, rect.height))) };
-      },
-      writeDOM: (patch) => { if (box) { box.style.left = `${patch.left}%`; box.style.top = `${patch.top}%`; } },
-      commit: (patch) => { if (patch) updateElement(el.id, patch); },
-    });
-  };
-
-  // Drag a resize handle to resize an existing box. `handle` defaults to the single
-  // bottom-right corner used by blackout/blur boxes (anchored top-left, only
-  // width/height change). Whiteout boxes pass one of the 8 directions ElementResizers
-  // emits (top/right/bottom/left + 4 corners), mirroring the shape-resize math in
-  // SignTool/DraggableWrapper.jsx's handleResizeStart so the two behave identically.
-  const handleBoxResizeStart = (e, el, handle = 'bottom-right') => {
-    e.stopPropagation();
-    e.preventDefault();
-
-    const wrapper = pageWrapperRefs.current[el.pageIndex];
-    if (!wrapper) return;
-
-    const pointer = getPointerCoords(e.nativeEvent || e);
-    const start = { x: pointer.x, y: pointer.y, width: el.width, height: el.height, left: el.left, top: el.top };
-    const box = e.currentTarget.closest(`.${styles['redact-box']}`);
-    const behavior = getElementDefinition(el.type).resizeBehavior;
-    startGesture({
-      computePatch: (moveEvent) => {
-        if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
-        const move = getPointerCoords(moveEvent);
-        const rect = wrapper.getBoundingClientRect();
-        return behavior.applyBoxResize({ handle, start, delta: { x: pxDeltaToPercent(move.x - start.x, rect.width), y: pxDeltaToPercent(move.y - start.y, rect.height) } });
-      },
-      writeDOM: (patch) => { if (box) { box.style.left = `${patch.left}%`; box.style.top = `${patch.top}%`; box.style.width = `${patch.width}%`; box.style.height = `${patch.height}%`; } },
-      commit: (patch) => { if (patch) updateElement(el.id, patch); },
-    });
-  };
-  
   const clearPage = (pageIndex) => {
     const removed = elements.filter(el => el.pageIndex === pageIndex);
     if (removed.length === 0) return;
@@ -467,10 +407,6 @@ export default function PdfRedactTool() {
             setUndoModalOpen={setUndoModalOpen}
           />
 
-          <div className={toolbarStyles.help} style={{ color: 'var(--color-muted-light)' }}>
-            <span>Click and drag on any page to hide sensitive text.</span>
-          </div>
-
           <div className={workspaceStyles['pages-container']}>
             {Array.from({ length: numPages }).map((_, i) => (
               <div key={i} data-editor-page-card>
@@ -507,8 +443,9 @@ export default function PdfRedactTool() {
                       el={el}
                       isSelected={el.id === selectedBoxId}
                       isActiveHover={el.id === activeBoxId}
-                      onDragStart={handleBoxDragStart}
-                      onResizeStart={handleBoxResizeStart}
+                      onSelect={(id) => { setActiveBoxId(id); setSelectedBoxId(id); }}
+                      onChange={updateElement}
+                      getPageWrapper={() => pageWrapperRefs.current[el.pageIndex]}
                       onHoverEnter={() => setActiveBoxId(el.id)}
                       onHoverLeave={() => setActiveBoxId((prev) => (prev === el.id ? null : prev))}
                       onDelete={deleteElement}

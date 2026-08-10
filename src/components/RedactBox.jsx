@@ -1,8 +1,11 @@
+import { useRef } from 'preact/hooks';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 import { TOOLBAR_FLOATING_OFFSET } from '../constants/signGeometry.js';
 import ElementToolbar from './ElementToolbar.jsx';
 import ElementResizers from './ElementResizers.jsx';
 import { getElementDefinition } from '../editor/registry/index.ts';
+import useDraggableElement from '../lib/useDraggableElement.js';
+import useElementResize from '../lib/useElementResize.js';
 import elementStyles from './SignTool/EditorElement.module.css';
 import styles from './PdfRedactTool.module.css';
 
@@ -22,14 +25,16 @@ export default function RedactBox({
   el,
   isSelected,
   isActiveHover,
-  onDragStart,
-  onResizeStart,
+  onSelect,
+  onChange,
+  getPageWrapper,
   onHoverEnter,
   onHoverLeave,
   onDelete,
   onChangeColor,
   onClone
 }) {
+  const elementRef = useRef(null);
   const { refs, floatingStyles } = useFloating({
     placement: 'top-start',
     whileElementsMounted: autoUpdate,
@@ -39,6 +44,33 @@ export default function RedactBox({
       shift({ padding: TOOLBAR_FLOATING_OFFSET })
     ]
   });
+
+  // Drag-to-move and resize gestures, shared with the Sign tool's element
+  // wrapper (E7.5) - blackout/blur/whiteout never hit the line/text-specific
+  // branches in either hook, so the box-only path applies unmodified.
+  const { handlePointerDown: handleDragPointerDown } = useDraggableElement({
+    element: el,
+    elementRef,
+    getPageWrapper,
+    onSelect: () => onSelect(el.id),
+    onChange: (patch) => onChange(el.id, patch),
+  });
+  const { handleResizeStart } = useElementResize({
+    element: el,
+    elementRef,
+    getPageWrapper,
+    pageWidthPoints: 0,
+    onChange: (patch) => onChange(el.id, patch),
+  });
+
+  // The inline delete button (blackout/blur only) has no data-editor-actions/
+  // data-editor-resizer marker, so useDraggableElement's own target-closest
+  // guards don't catch it - preserved here as the one piece of Redact-specific
+  // logic that survives the convergence onto the shared hook.
+  const handlePointerDown = (e) => {
+    if (e.target.closest(`.${styles['redact-element-btn']}`)) return;
+    handleDragPointerDown(e);
+  };
 
   const isWhiteout = el.type === 'whiteout';
   const hasShapeHandles = true;
@@ -66,11 +98,16 @@ export default function RedactBox({
 
   return (
     <div
-      ref={refs.setReference}
+      ref={(node) => {
+        elementRef.current = node;
+        if (node && refs.reference !== node) {
+          refs.setReference(node);
+        }
+      }}
       className={className}
       data-editor-shape={hasShapeHandles || undefined}
-      onMouseDown={(e) => onDragStart(e, el)}
-      onTouchStart={(e) => onDragStart(e, el)}
+      onMouseDown={handlePointerDown}
+      onTouchStart={handlePointerDown}
       onMouseEnter={onHoverEnter}
       onMouseLeave={onHoverLeave}
       style={{
@@ -120,13 +157,13 @@ export default function RedactBox({
         <ElementResizers
           element={el}
           isActive={isSelected}
-          onResizeStart={(e, handle) => onResizeStart(e, el, handle)}
+          onResizeStart={(e, handle) => handleResizeStart(e, handle)}
         />
       ) : (
         <div
           className={styles['redact-box-resizer']}
-          onMouseDown={(e) => onResizeStart(e, el)}
-          onTouchStart={(e) => onResizeStart(e, el)}
+          onMouseDown={(e) => handleResizeStart(e)}
+          onTouchStart={(e) => handleResizeStart(e)}
           title="Drag to resize"
           style={{
             position: 'absolute',
