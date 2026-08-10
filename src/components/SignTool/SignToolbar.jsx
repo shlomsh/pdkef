@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
 import { useSignTool } from './SignToolContext.jsx';
 import { useSavedSignatures } from './SavedSignaturesContext.jsx';
-import FullscreenButton from '../FullscreenButton';
+import ViewControl from '../ViewControl.jsx';
 import Popover from '../Popover.jsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../ToolShell.jsx';
 import styles from './SignToolbar.module.css';
@@ -402,7 +402,7 @@ export default function SignToolbar({
             <span className={styles.label}>Undo</span>
           </button>
 
-          <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
+          <ViewControl isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
 
           {/* The united file action, in the exact slot Start over used to hold.
               Both meant "I want a different file"; this one says it once and

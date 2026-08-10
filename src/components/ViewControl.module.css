@@ -1,0 +1,47 @@
+/* Hidden below 920px: FullscreenButton (the plain <button> rendered right
+   after this in ViewControl.jsx) is the only visible piece there, sized like
+   every other toolbar child via .toolbar > * in SignToolbar.module.css. Both
+   stay in the DOM at every width - display:none removes an element from
+   layout/gap but not from the DOM, so :has(> :nth-child(N)) in
+   SignToolbar.module.css still counts it (see that file's --controls-per-row
+   comment: over-counting by one is tolerated). */
+.segmented { display: none; }
+
+@media (min-width: 920px) {
+  /* Fixed 99x44px track, not flexed - this replaces a ~127px labelled button,
+     so growing it would undo the width saving the control exists for. */
+  .segmented {
+    display: flex;
+    flex: 0 0 auto;
+    width: 99px;
+    height: var(--btn-min-size, 2.75rem);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-xs);
+    overflow: hidden;
+  }
+
+  /* FullscreenButton, unwrapped - see ViewControl.jsx. */
+  .segmented + button { display: none; }
+}
+
+.segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 33px;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-right: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+.segment:last-child { border-right: none; }
+.segment:hover { color: var(--color-text); background: var(--color-surface-sunken); }
+.segment.active, .segment.active:hover { background: var(--color-primary); color: var(--color-surface); }
+/* The track's overflow:hidden clips the global :focus-visible outline on the
+   edge segments, so this uses an inset ring instead (spec 3.2). */
+.segment:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--color-primary); }

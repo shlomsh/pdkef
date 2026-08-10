@@ -1,4 +1,4 @@
-import FullscreenButton from './FullscreenButton';
+import ViewControl from './ViewControl.jsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from './ToolShell.jsx';
 import styles from './SignTool/SignToolbar.module.css';
 
@@ -96,7 +96,7 @@ export default function RedactToolbar({
           <span className={styles.label}>Undo</span>
         </button>
 
-        <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
+        <ViewControl isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
 
         {/* The united file action, in the exact slot Start over used to hold.
             Both meant "I want a different file"; this one says it once. */}

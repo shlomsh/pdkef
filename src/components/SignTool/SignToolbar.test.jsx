@@ -627,4 +627,30 @@ describe('SignToolbar Component', () => {
       expect(child.parentElement).toBe(toolbar);
     });
   });
+
+  // E9: ViewControl replaced FullscreenButton in this exact slot.
+  it('renders the view density control in place of a bare FullscreenButton', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    act(() => {
+      render(
+        <SignToolProvider>
+          <SignToolbar
+            setAnnouncement={() => {}}
+            actionHistory={[]}
+            toggleFullscreen={() => {}}
+            isFullscreen={false}
+            onSavePdf={() => {}}
+          />
+        </SignToolProvider>,
+        container
+      );
+    });
+
+    const radiogroup = container.querySelector(`.${styles.toolbar} [role="radiogroup"]`);
+    expect(radiogroup).not.toBeNull();
+    expect(radiogroup.getAttribute('aria-label')).toBe('View density');
+    expect(radiogroup.querySelectorAll('[role="radio"]')).toHaveLength(3);
+  });
 });
