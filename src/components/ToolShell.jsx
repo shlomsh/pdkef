@@ -84,12 +84,23 @@ export function useToolShell() {
  * two mount this shell themselves, inside the element that goes full screen,
  * because a toolbar rendered outside it would vanish the moment full screen
  * started. Every other tool gets the shell from BasePdfTool.
+ *
+ * `status` is the tool's live hint line. It rides in the identity row rather
+ * than under the toolbar because that row is mostly empty space past the
+ * filename, and a hint on a line of its own cost 53px of the most valuable band
+ * on the page - directly above the document - to say one short sentence.
+ *
+ * `data-tool-shell` is the page's "a file is open" signal. This component is
+ * rendered only once a file is loaded, in every tool, so it is the one honest
+ * hook for that state; the hero uses it to fold its marketing copy away while
+ * you work (see ToolHero.astro). Keep the attribute even if nothing local reads
+ * it.
  */
-export default function ToolShell({ editor = false, children }) {
+export default function ToolShell({ editor = false, status = null, children }) {
   const { fileLabel, fileMeta, draftSaved, multiple } = useToolShell();
 
   return (
-    <div class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}`}>
+    <div class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}`} data-tool-shell>
       <div class={styles.identity}>
         <span class={styles.icon} aria-hidden="true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -121,6 +132,8 @@ export default function ToolShell({ editor = false, children }) {
             </span>
           )}
         </span>
+
+        {status && <div class={styles.status}>{status}</div>}
       </div>
 
       <div class={styles.controls}>{children}</div>

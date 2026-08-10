@@ -34,8 +34,31 @@
 
 .identity {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.3rem 0.55rem;
+}
+
+/* The tool's hint line, riding at the trailing edge of the identity row. It is
+   last in the flex order and allowed to wrap onto its own line, so on a narrow
+   screen it drops under the filename instead of squeezing it; the filename is
+   the one thing on this row you cannot infer from anywhere else.
+   `margin-inline-start: auto` is what pins it right on a wide row - not
+   `justify-content: space-between`, which would also push the metadata away
+   from the name it belongs to. */
+.status {
+  margin-inline-start: auto;
+  min-width: 0;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+/* Wrapped, it is a line of its own and the auto margin would strand it right. */
+@media (max-width: 719px) {
+  .status {
+    margin-inline-start: 0;
+  }
 }
 
 .controls {
@@ -205,8 +228,8 @@
     flex: 0 0 auto;
   }
 
-  /* The editor variant keeps stacking through this band - it joins at 920px
-     instead, for the reason spelled out at that query below. */
+  /* The editor variant never joins: its control row is a whole toolbar and
+     wants the whole line, at every width. See the .editor comment above. */
   .editor .identity,
   .editor .controls {
     flex: 1 1 100%;
@@ -215,11 +238,21 @@
 
 /* --- Editor variant: Sign and Redact --- */
 
-/* Their control row is a full toolbar rather than a button or two, so it takes
-   the line and the identity is capped instead. The card is glass and sticky
-   here: it stays legible and reachable while pages scroll underneath, including
-   in real full screen, which is why those two tools mount this shell inside
-   their workspace rather than taking it from BasePdfTool.
+/* Their control row is a full toolbar rather than a button or two, so it gets a
+   line of its own at every width and the identity sits above it. The two used
+   to share a line on desktop, and that is what made the toolbar unreadable on
+   an ordinary laptop: `main` caps at 1400px, so a 1512px MacBook Pro 14 draws a
+   1352px card, the identity took 256px of it, and the ten labelled controls
+   left in ~1100px needed ~1100px - every one of them ellipsised at once
+   ("Symb...", "Whiteo...", "Downlo..."). Handing the toolbar the whole width
+   buys back exactly the room those labels were missing. The identity is one
+   thin line of text, so the cost is a little height on a card that was already
+   two rows tall on every screen under 920px.
+
+   The card is glass and sticky here: it stays legible and reachable while pages
+   scroll underneath, including in real full screen, which is why those two
+   tools mount this shell inside their workspace rather than taking it from
+   BasePdfTool.
 
    Padding is zero because the toolbar row brings its own. That is not tidiness:
    the container-query thresholds in SignToolbar.module.css are hand-computed
@@ -244,23 +277,57 @@
   padding: 0.5rem 0.75rem;
 }
 
-.editor .controls {
-  display: block;
+/* From tablet up the identity states itself on one line - name, pages, size,
+   draft chip, reading as a single sentence the way a document editor's title bar
+   does. Stacking the name over its metadata cost a second text line, and in this
+   variant that line is expensive: the card is sticky and now carries the toolbar
+   underneath it, so its height comes straight off the document. The icon shrinks
+   with it, since a 34px square was only that big to match a two-line block.
+
+   Phones keep the stack. There a filename can fill the width on its own, and
+   stacking is the only arrangement where the metadata survives at all.
+
+   The name is the only part allowed to give ground: it is the part that can be
+   arbitrarily long, and it already ellipsises. Pinning the metadata means a long
+   name eats into itself rather than the row splitting the loss and truncating
+   "496 KB" as well. */
+@media (min-width: 560px) {
+  .editor .identity {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .editor .icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+  }
+
+  .editor .icon svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .editor .text {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.4rem;
+  }
+
+  .editor .meta {
+    flex: 0 0 auto;
+  }
+
+  /* The interpunct the metadata already uses between its own parts, so the whole
+     line reads as one list instead of a title with a caption stuck to it. It
+     hangs off .meta, which is only rendered when there is something to separate
+     from. */
+  .editor .meta::before {
+    content: '·';
+    color: var(--color-muted);
+  }
 }
 
-/* 920px, not the 560px the plain shell joins at, because that is where the
-   editor toolbars stop wrapping (see SignToolbar.module.css). Below it the
-   toolbar needs the whole width to lay its controls out in even rows, and the
-   wrap arithmetic that keeps those rows even is scoped to phone widths - hand
-   it a narrowed line at 768px and nine controls strand as 8+1 again. */
-@media (min-width: 920px) {
-  .editor .identity {
-    flex: 0 1 16rem;
-    padding-right: 0;
-  }
-
-  .editor .controls {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
+.editor .controls {
+  display: block;
 }

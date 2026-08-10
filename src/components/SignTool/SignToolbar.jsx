@@ -154,9 +154,36 @@ export default function SignToolbar({
     setShowShapesDropdown(false);
   };
 
+  // The hint line, handed to the shell so it rides in the file row instead of
+  // taking a line of its own directly above the document. Only the armed-tool
+  // branch is a live region: the idle tip is standing advice, and announcing it
+  // on every state change would talk over the thing that actually changed.
+  const statusLine = activeToolCopy ? (
+    <div className={styles.help} role="status">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="16" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
+      </svg>
+      <span>
+        {activeToolCopy.action}
+        {toolLocked
+          ? <> <strong>{activeToolCopy.button}</strong> stays on until you press <strong>Esc</strong>.</>
+          : <> Double-click <strong>{activeToolCopy.button}</strong> to keep adding.</>}
+      </span>
+    </div>
+  ) : (
+    <div className={styles.help}>
+      <span>
+        Tip: pick a tool to start.
+        {hasTextElement ? ' Double-click a text box to edit it.' : ''}
+      </span>
+    </div>
+  );
+
   return (
     <>
-      <ToolShell editor>
+      <ToolShell editor status={statusLine}>
         <div className={styles.toolbar} role="toolbar" aria-label="PDF annotations">
           <button
             type="button"
@@ -164,7 +191,7 @@ export default function SignToolbar({
             onClick={armTool('text')}
             title="Add a text box. Double-click to keep adding"
             aria-pressed={selectedTool === 'text'}
-            data-label-priority="1"
+            data-label-priority="2"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="4 7 4 4 20 4 20 7" />
@@ -180,7 +207,7 @@ export default function SignToolbar({
             onClick={armTool('symbol')}
             title="Add a check, cross, or dot. Double-click to keep adding"
             aria-pressed={selectedTool === 'symbol'}
-            data-label-priority="1"
+            data-label-priority="2"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12" />
@@ -204,7 +231,7 @@ export default function SignToolbar({
                   className={`${styles.button}${SHAPE_TOOLS.includes(selectedTool) ? ` ${styles.active}` : ''}${SHAPE_TOOLS.includes(selectedTool) && toolLocked ? ` ${styles.locked}` : ''}`}
                   title="Draw an ellipse, rectangle, or line. Double-click to keep adding"
                   aria-pressed={SHAPE_TOOLS.includes(selectedTool)}
-                  data-label-priority="1"
+                  data-label-priority="2"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 3l4 7H8z" />
@@ -269,7 +296,7 @@ export default function SignToolbar({
             className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}${selectedTool === 'whiteout' && toolLocked ? ` ${styles.locked}` : ''}`}
             onClick={armTool('whiteout')}
             title="Cover text with a white box. Double-click to keep adding"
-            data-label-priority="1"
+            data-label-priority="2"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
@@ -295,7 +322,7 @@ export default function SignToolbar({
                   onClick={handleSignatureBtnClick}
                   title="Click here to select or create a signature"
                   aria-pressed={selectedTool === 'signature'}
-                  data-label-priority="1"
+                  data-label-priority="2"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
@@ -366,7 +393,7 @@ export default function SignToolbar({
             onClick={() => setUndoModalOpen(true)}
             title="Undo changes"
             disabled={actionHistory.length === 0}
-            data-label-priority="2"
+            data-label-priority="1"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 7v6h6" />
@@ -387,7 +414,7 @@ export default function SignToolbar({
             onClick={requestReplace}
             title={FILE_ACTIONS.replace.title}
             aria-label={FILE_ACTIONS.replace.label}
-            data-label-priority="2"
+            data-label-priority="1"
           >
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <path d={FILE_ACTIONS.replace.icon} />
@@ -428,30 +455,6 @@ export default function SignToolbar({
           )}
         </div>
       </ToolShell>
-
-      {/* Status Helper */}
-      {activeToolCopy ? (
-        <div className={styles.help} role="status">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="16" x2="12" y2="12" />
-            <line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
-          <span>
-            {activeToolCopy.action}
-            {toolLocked
-              ? <> <strong>{activeToolCopy.button}</strong> stays on until you press <strong>Esc</strong>.</>
-              : <> Double-click <strong>{activeToolCopy.button}</strong> to keep adding.</>}
-          </span>
-        </div>
-      ) : (
-        <div className={styles.help} style={{ color: 'var(--color-muted-light)' }}>
-          <span>
-            Tip: pick a tool above to start.
-            {hasTextElement ? ' Double-click a text box to edit it.' : ''}
-          </span>
-        </div>
-      )}
     </>
   );
 }

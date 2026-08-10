@@ -123,26 +123,49 @@
    behaviour above and only takes the compact spacing. */
 @media (max-height: 500px) and (pointer: coarse) { .toolbar { --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; } }
 
-/* Desktop (>=920px, above the fully-collapsed phone breakpoint): `main` caps out at
+/* Desktop (>=920px, above the fully-collapsed phone breakpoint). `main` caps out at
    a fixed max-width (see global.css), so the toolbar's real available width plateaus
    once the window gets wide enough, it does NOT keep growing with the viewport. A
-   single "labelled vs icon-only" viewport breakpoint can't account for that: the row
-   still reads as "wide viewport, show labels" even on a window wide enough that the
-   actual toolbar box is too narrow, and `.toolbar > * { min-width: 0 }` lets each
-   button shrink past its label's content width, so the text spills past the button's
-   edge into its neighbor instead of wrapping. Container queries measure the toolbar's
-   own box instead of the viewport, so each button can drop its label individually, in
-   priority order, as real space runs out, least-essential (repeatedly-used tool
-   buttons, learned by icon) first, primary CTAs (Download/Share) last. This only
-   reveals what fits; overflow can't recur because a collapsed label is removed from
-   flow, not shrunk. */
+   single "labelled vs icon-only" viewport breakpoint can't account for that, so each
+   button drops its own label as the toolbar's own box - not the viewport - runs out
+   of room. Two rules make that honest, and both are load-bearing:
+
+   - **Nothing shrinks.** `flex-shrink: 0` is the whole fix for the bug this block
+     shipped with. Under `flex: 1 1 auto` every button could shrink past its label's
+     content width, and `.label`'s ellipsis quietly took up the slack: at 1352px, the
+     widest a laptop ever draws this card, all ten controls read "Te...", "Symb...",
+     "Whiteo...", "Downlo..." at once. Worse, it hid itself - the row still measured
+     as fitting, so no width-based rule below could tell anything was wrong.
+   - **Wrapping is the fallback, never truncation.** If the figures below ever drift
+     (a longer label, a wider system font, a zoom level, one more control), the row
+     breaks onto a second line with every label intact instead of turning to ellipses.
+     A wrapped line is a design that got tight; an ellipsised one is a defect.
+
+   The figures, all measured on the toolbar's box: Sign's ten labelled controls come to
+   ~1100px, dropping the three utility labels takes that to ~910px, and dropping the
+   tool labels as well to ~620px - comfortably inside the ~870px the row has at the
+   920px floor. Each query fires a little above its own figure so a label collapses
+   before the row would have to wrap. Redact's seven-to-eight controls are narrower
+   than Sign's throughout, so it simply keeps its labels longer on the same numbers.
+
+   Priority order is "which icon carries its own meaning": Undo, Full screen and
+   Replace are conventions a user already knows (and Replace is a once-per-session
+   action), so their labels go first. Text, Symbols, Shapes, Whiteout and Sign are
+   this app's own vocabulary - a first-time visitor has no idea the eraser glyph means
+   whiteout - so they hold their labels longest, and Download/Share never lose theirs.
+   Read the priorities that way round before renumbering anything: this used to be the
+   reverse, on the theory that repeatedly-used tools get learned by icon, which is only
+   true of the second document a person signs here, not the first. */
 @media (min-width: 920px) {
-  @container toolbar (max-width: 1000px) {
+  .toolbar { flex-wrap: wrap; }
+  .toolbar > * { flex-shrink: 0; }
+
+  @container toolbar (max-width: 1160px) {
     .toolbar .button[data-label-priority="1"] { gap: 0; }
     .toolbar .button[data-label-priority="1"] .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
   }
 
-  @container toolbar (max-width: 760px) {
+  @container toolbar (max-width: 960px) {
     .toolbar .button[data-label-priority="2"] { gap: 0; }
     .toolbar .button[data-label-priority="2"] .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
   }

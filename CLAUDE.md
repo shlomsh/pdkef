@@ -238,3 +238,14 @@ This is explicitly **not** "finish the wholesale Tailwind migration." The goal i
 
   Guarded by `e2e/sign/toolbar-touch-targets.spec.js` - jsdom has no layout, so only a real browser can
   prove the rects.
+
+  Above 920px the same row must never truncate a label. Two rules hold that, and the reasoning lives in
+  the desktop block of `SignToolbar.module.css`: the toolbar takes a **full row of its own** (the file
+  identity line stacks above it at every width - it used to share the line and cost the toolbar 256px,
+  which is why every label ellipsised on a 1512px MacBook Pro), and nothing in the row may **shrink**, so
+  a button either shows its whole label, drops it for the icon at a container-query threshold, or the row
+  wraps. Ellipsis is the one outcome that is always a bug, because it also hides itself: the row still
+  measures as fitting. Label-drop order is by how much the icon carries on its own - Undo/Full screen/
+  Replace first, this app's own vocabulary (Text, Symbols, Shapes, Whiteout, Sign) last, Download/Share
+  never. Don't renumber `data-label-priority` back the other way on the "learned by icon" argument; that
+  is true of the second document someone signs here, not the first.

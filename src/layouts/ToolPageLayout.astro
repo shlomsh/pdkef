@@ -22,6 +22,36 @@ const { tool } = Astro.props;
 <BaseLayout title={tool.seoTitle} description={tool.seoDescription}>
   <Fragment slot="head">
     <SeoSchema name={tool.schemaName} description={tool.seoDescription} faq={tool.faq} />
+
+    {/* Pre-collapses the marketing hero (see ToolHero.astro) for a returning
+        visitor who has a saved Sign/Redact draft, before the async IndexedDB
+        restore and Preact hydration would otherwise do it later and register
+        as a real, input-less layout shift. Must be a blocking, unprocessed
+        script — a bundled Astro <script> compiles to type="module", which is
+        always deferred and runs after the body has already parsed, too late
+        to prevent the flash this exists to avoid. That means `is:inline`
+        (CLAUDE.md's CSP section), which Astro does not auto-hash: the hash
+        below in astro.config.mjs's security.csp.scriptDirective.hashes is
+        computed by hand and WILL silently stop matching — breaking every tool
+        page's CSP — if this script's text changes by even one byte. If you
+        edit it, rebuild, extract the exact text Astro emits, and recompute:
+          node -e "console.log('sha256-'+require('crypto').createHash('sha256').update(require('fs').readFileSync('dist/sign/index.html','utf8').match(/<script>\(function\(\)\{[\s\S]*?\}\)\(\);<\/script>/)[0].replace(/^<script>|<\/script>$/g,'')).digest('base64'))"
+        then paste the result in astro.config.mjs.
+
+        No tool.slug interpolation on purpose: every tool page must emit this
+        exact same script text so one hash covers all of them. The slug comes
+        from location.pathname at runtime instead. Tools with no draft feature
+        (merge, split, ...) just look up a key that's never set — harmless. */}
+    <script is:inline>
+      (function () {
+        try {
+          var slug = location.pathname.replace(/\//g, '');
+          if (localStorage.getItem('pdf-toolkit:has-draft:' + slug) === '1') {
+            document.documentElement.setAttribute('data-draft-hint', '1');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </Fragment>
 
   <AppBar toolName={tool.toolName} />

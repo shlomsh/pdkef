@@ -327,7 +327,17 @@ main {
     min-height: 100vh;
   }
 
-  header {
+  /* The tool hero is excluded because it sizes its own padding with utilities,
+     and this rule silently beat every one of them. Tailwind's utilities are
+     imported into `@layer utilities`, and an unlayered rule outranks any layered
+     rule however specific, so a bare element selector here won against
+     `min-[1024px]:pt-2`. The tell was subtle: `pt-14` and `px-6` happen to
+     compute to the same 56px/24px this rule sets, so only the bottom padding
+     visibly disagreed, and every tool page shipped with 80px of hero padding on
+     desktop where 24px was intended. Anything else in this file that styles a
+     bare element the .astro surface also styles with utilities has the same
+     hazard - check the computed value, not the class list. */
+  header:not(.tool-hero) {
     padding: 3.5rem 1.5rem 1.5rem;
   }
 

@@ -317,7 +317,9 @@ describe('SignToolbar Component', () => {
       });
 
       const tip = () => container.querySelector(`.${styles.help}`).textContent;
-      expect(tip()).toContain('pick a tool above');
+      // No direction word: the tip lives in the shell's file row now, which sits
+      // above the toolbar, so "above" would have been pointing the wrong way.
+      expect(tip()).toContain('pick a tool to start');
       expect(tip()).not.toContain('drag');
       // Nothing has been placed, so the editing hint would be advice about
       // something that does not exist yet.

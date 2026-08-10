@@ -24,7 +24,14 @@ export default function RedactToolbar({
     // No inline margin here any more. This file used to add one and SignToolbar
     // did not, which is the entire reason the two tools disagreed about the gap
     // above their toolbars; spacing belongs to the shared shell.
-    <ToolShell editor>
+    <ToolShell
+      editor
+      status={
+        <div className={styles.help}>
+          <span>Click and drag on any page to hide sensitive text.</span>
+        </div>
+      }
+    >
       <div className={styles.toolbar} role="toolbar" aria-label="PDF redaction">
         <button
           type="button"
@@ -32,7 +39,7 @@ export default function RedactToolbar({
           onClick={() => setActiveStyle('blackout')}
           title="Draw black redaction boxes"
           aria-pressed={activeStyle === 'blackout'}
-          data-label-priority="1"
+          data-label-priority="2"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <line x1="4" y1="5" x2="15" y2="5" />
@@ -48,7 +55,7 @@ export default function RedactToolbar({
           onClick={() => setActiveStyle('whiteout')}
           title="Draw whiteout boxes to erase content"
           aria-pressed={activeStyle === 'whiteout'}
-          data-label-priority="1"
+          data-label-priority="2"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
@@ -64,7 +71,7 @@ export default function RedactToolbar({
           onClick={() => setActiveStyle('blur')}
           title="Draw blur redaction boxes"
           aria-pressed={activeStyle === 'blur'}
-          data-label-priority="1"
+          data-label-priority="2"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <line x1="4" y1="5" x2="15" y2="5" />
@@ -80,7 +87,7 @@ export default function RedactToolbar({
           onClick={() => setUndoModalOpen(true)}
           title="Undo changes"
           disabled={actionHistory.length === 0}
-          data-label-priority="2"
+          data-label-priority="1"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 7v6h6" />
@@ -99,7 +106,7 @@ export default function RedactToolbar({
           onClick={requestReplace}
           title={FILE_ACTIONS.replace.title}
           aria-label={FILE_ACTIONS.replace.label}
-          data-label-priority="2"
+          data-label-priority="1"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d={FILE_ACTIONS.replace.icon} />
