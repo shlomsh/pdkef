@@ -37,7 +37,7 @@ export default function PdfWorkspace({
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
   const {
     lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastDirection, lastThickness, lastSymbolWidth,
-    rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth
+    rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSignatureWidth
   } = useSignDefaults();
   const { activeSignature } = useSavedSignatures();
   const activeElement = elements.find((el) => el.id === activeElementId);
@@ -103,6 +103,9 @@ export default function PdfWorkspace({
     // A resized symbol sets the size for the next one placed, so repeated marks
     // (check, x, dot) don't have to be re-sized one by one.
     if (element?.type === 'symbol' && fields.width !== undefined) rememberSymbolWidth?.(fields.width);
+    // A resized signature sets the size for the next one placed, so signing
+    // multiple fields on the same form doesn't require re-sizing every time.
+    if (element?.type === 'signature' && fields.width !== undefined) rememberSignatureWidth?.(fields.width);
     if (element?.type === 'text') {
       if (fields.textDirection) {
         rememberDirection(fields.textDirection);
@@ -111,7 +114,7 @@ export default function PdfWorkspace({
         if (typedDirection) rememberDirection(typedDirection);
       }
     }
-  }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth]);
+  }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSignatureWidth]);
 
   const makeOnSelect = useCallback((id) => (e) => {
     e.stopPropagation();
