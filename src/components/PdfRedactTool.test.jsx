@@ -337,6 +337,40 @@ describe('PdfRedactTool UI flow', () => {
     expectLatestGestureToCommitOnce();
   });
 
+  // The inline delete button (blackout/blur only) has no data-editor-actions/
+  // data-editor-resizer marker, so useDraggableElement's own target-closest
+  // guards don't catch it - RedactBox wraps the shared hook's handler with its
+  // own .redact-element-btn check instead (see E7.5). Without that wrapper, a
+  // press on the button would also start a drag gesture underneath it.
+  it('does not start a drag when the inline delete button is pressed', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+
+    // Default activeStyle is 'blackout', which renders the inline delete button.
+    await drawBox(drawArea, 50, 200, 200, 500);
+
+    const box = container.querySelector(`.${REDACT_BOX}`);
+    const deleteBtn = box.querySelector(`.${REDACT_ELEMENT_BTN}`);
+    expect(deleteBtn).not.toBeNull();
+
+    const startLeftPercent = parseFloat(box.style.left);
+    const startTopPercent = parseFloat(box.style.top);
+    const gestureCountBefore = gestureCommitSpies.length;
+
+    await act(async () => {
+      deleteBtn.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 300 }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    expect(gestureCommitSpies.length).toBe(gestureCountBefore);
+    expect(parseFloat(box.style.left)).toBeCloseTo(startLeftPercent);
+    expect(parseFloat(box.style.top)).toBeCloseTo(startTopPercent);
+  });
+
   it('resizes an existing box by a percent delta computed via pxDeltaToPercent against the wrapper', async () => {
     const drawArea = await loadFileAndGetDrawArea();
 
