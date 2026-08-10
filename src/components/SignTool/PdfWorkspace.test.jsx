@@ -4,6 +4,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import PdfWorkspace from './PdfWorkspace.jsx';
 import workspaceStyles from './Workspace.module.css';
 import { SignToolContext } from './SignToolContext.jsx';
+import { SignDefaultsContext } from './SignDefaultsContext.jsx';
+import { SavedSignaturesContext } from './SavedSignaturesContext.jsx';
 
 function mount(vnode) {
   const host = document.createElement('div');
@@ -12,6 +14,87 @@ function mount(vnode) {
     render(vnode, host);
   });
   return host;
+}
+
+// A Provider's `value` replaces the context's own default outright rather than
+// merging with it, so these mirror the real default values PdfWorkspace's
+// props used to fall back to (see SignDefaultsContext.jsx /
+// SavedSignaturesContext.jsx) - a test only needs to override the one or two
+// fields it actually asserts on.
+function defaultDefaults(overrides = {}) {
+  return {
+    lastColor: '#000000',
+    lastWhiteoutColor: '#ffffff',
+    lastFont: 'Arimo',
+    lastFontSize: 12,
+    lastDirection: null,
+    lastThickness: 3,
+    lastSymbolWidth: 5,
+    rememberColor: vi.fn(),
+    rememberWhiteoutColor: vi.fn(),
+    rememberFont: vi.fn(),
+    rememberFontSize: vi.fn(),
+    rememberDirection: vi.fn(),
+    rememberThickness: vi.fn(),
+    rememberSymbolWidth: vi.fn(),
+    ...overrides
+  };
+}
+
+function defaultSavedSignatures(overrides = {}) {
+  return {
+    savedSignatures: [],
+    activeSignature: null,
+    setActiveSignature: vi.fn(),
+    onDeleteSavedSignature: vi.fn(),
+    ...overrides
+  };
+}
+
+function defaultProps(overrides = {}) {
+  return {
+    file: { name: 'sample.pdf' },
+    status: 'editing',
+    isPseudoFullscreen: false,
+    workspaceRef: { current: null },
+    numPages: 1,
+    pageSizes: [{ width: 600, height: 800 }],
+    pdfDocument: null,
+    pageWrapperRefs: { current: [] },
+    setTempPlacement: vi.fn(),
+    setDialogOpen: vi.fn(),
+    logAction: vi.fn(),
+    handleSavePdf: vi.fn(),
+    setAnnouncement: vi.fn(),
+    setUndoModalOpen: vi.fn(),
+    toggleFullscreen: vi.fn(),
+    isFullscreen: false,
+    setConfirmResetOpen: vi.fn(),
+    placeSignatureAt: vi.fn(),
+    ...overrides
+  };
+}
+
+// Builds (without mounting) the tree PdfWorkspace now needs: SignToolContext
+// already existed; SignDefaultsContext and SavedSignaturesContext moved the
+// creation-defaults and saved-signature clusters out of props in E8.B3.
+// Exposed separately from mountWorkspace() so a test that re-renders with a
+// changed prop (see "keeps the same rendered page mounted while signing") can
+// build the same tree twice against the same host.
+function workspaceTree({ state, dispatch = vi.fn(), props = {}, defaults = {}, savedSignatures = {} }) {
+  return (
+    <SignToolContext.Provider value={{ state, dispatch }}>
+      <SignDefaultsContext.Provider value={defaultDefaults(defaults)}>
+        <SavedSignaturesContext.Provider value={defaultSavedSignatures(savedSignatures)}>
+          <PdfWorkspace {...defaultProps(props)} />
+        </SavedSignaturesContext.Provider>
+      </SignDefaultsContext.Provider>
+    </SignToolContext.Provider>
+  );
+}
+
+function mountWorkspace(args) {
+  return mount(workspaceTree(args));
 }
 
 describe('PdfWorkspace Component', () => {
@@ -27,60 +110,15 @@ describe('PdfWorkspace Component', () => {
     }
   });
 
-  function defaultProps(overrides = {}) {
-    return {
-      file: { name: 'sample.pdf' },
-      status: 'editing',
-      isPseudoFullscreen: false,
-      workspaceRef: { current: null },
-      numPages: 1,
-      pageSizes: [{ width: 600, height: 800 }],
-      pdfDocument: null,
-      pageWrapperRefs: { current: [] },
-      activeSignature: null,
-      setTempPlacement: vi.fn(),
-      setDialogOpen: vi.fn(),
-      rememberColor: vi.fn(),
-      rememberWhiteoutColor: vi.fn(),
-      rememberFont: vi.fn(),
-      rememberFontSize: vi.fn(),
-      rememberDirection: vi.fn(),
-      rememberThickness: vi.fn(),
-      rememberSymbolWidth: vi.fn(),
-      logAction: vi.fn(),
-      handleSavePdf: vi.fn(),
-      setAnnouncement: vi.fn(),
-      savedSignatures: [],
-      setActiveSignature: vi.fn(),
-      onDeleteSavedSignature: vi.fn(),
-      setUndoModalOpen: vi.fn(),
-      toggleFullscreen: vi.fn(),
-      isFullscreen: false,
-      setConfirmResetOpen: vi.fn(),
-      placeSignatureAt: vi.fn(),
-      ...overrides
-    };
-  }
-
   it('keeps the same rendered page mounted while signing', () => {
     const dispatch = vi.fn();
     const state = { selectedTool: null, elements: [], activeElementId: null, actionHistory: [] };
-    const props = defaultProps();
 
-    host = mount(
-      <SignToolContext.Provider value={{ state, dispatch }}>
-        <PdfWorkspace {...props} />
-      </SignToolContext.Provider>
-    );
+    host = mountWorkspace({ state, dispatch });
     const pageBefore = host.querySelector(`.${workspaceStyles['page-wrapper']}`);
 
     act(() => {
-      render(
-        <SignToolContext.Provider value={{ state, dispatch }}>
-          <PdfWorkspace {...props} status="signing" />
-        </SignToolContext.Provider>,
-        host
-      );
+      render(workspaceTree({ state, dispatch, props: { status: 'signing' } }), host);
     });
 
     expect(host.querySelector(`.${workspaceStyles['page-wrapper']}`)).toBe(pageBefore);
@@ -97,13 +135,7 @@ describe('PdfWorkspace Component', () => {
       actionHistory: []
     };
 
-    const mockProps = defaultProps();
-
-    host = mount(
-      <SignToolContext.Provider value={{ state, dispatch }}>
-        <PdfWorkspace {...mockProps} />
-      </SignToolContext.Provider>
-    );
+    host = mountWorkspace({ state, dispatch });
 
     const overlay = host.querySelector(`.${workspaceStyles['page-overlay']}`);
     expect(overlay).not.toBeNull();
@@ -222,11 +254,7 @@ describe('PdfWorkspace Component', () => {
       actionHistory: []
     };
 
-    host = mount(
-      <SignToolContext.Provider value={{ state, dispatch }}>
-        <PdfWorkspace {...defaultProps()} />
-      </SignToolContext.Provider>
-    );
+    host = mountWorkspace({ state, dispatch });
 
     const symbol = host.querySelector('[data-editor-element]');
     const colorHost = symbol.querySelector('div[style*="color"]');
@@ -257,11 +285,7 @@ describe('PdfWorkspace Component', () => {
       actionHistory: []
     };
 
-    host = mount(
-      <SignToolContext.Provider value={{ state, dispatch }}>
-        <PdfWorkspace {...defaultProps({ rememberSymbolWidth })} />
-      </SignToolContext.Provider>
-    );
+    host = mountWorkspace({ state, dispatch, defaults: { rememberSymbolWidth } });
 
     const pageWrapper = host.querySelector(`.${workspaceStyles['page-wrapper']}`);
     pageWrapper.getBoundingClientRect = () => ({
@@ -310,13 +334,7 @@ describe('PdfWorkspace Component', () => {
       actionHistory: []
     };
 
-    host = mount(
-      <SignToolContext.Provider value={{ state, dispatch }}>
-        <PdfWorkspace
-          {...defaultProps({ rememberColor, rememberFontSize, rememberDirection })}
-        />
-      </SignToolContext.Provider>
-    );
+    host = mountWorkspace({ state, dispatch, defaults: { rememberColor, rememberFontSize, rememberDirection } });
 
     const increaseFont = host.querySelector('button[title="Increase font size"]');
     expect(increaseFont).not.toBeNull();
@@ -383,11 +401,7 @@ describe('PdfWorkspace Component', () => {
       actionHistory: []
     };
 
-    host = mount(
-      <SignToolContext.Provider value={{ state, dispatch }}>
-        <PdfWorkspace {...defaultProps({ rememberThickness })} />
-      </SignToolContext.Provider>
-    );
+    host = mountWorkspace({ state, dispatch, defaults: { rememberThickness } });
 
     const thicknessTrigger = host.querySelector('button[title="Line thickness"]');
     expect(thicknessTrigger).not.toBeNull();
@@ -430,11 +444,7 @@ describe('PdfWorkspace Component', () => {
       actionHistory: []
     };
 
-    host = mount(
-      <SignToolContext.Provider value={{ state, dispatch }}>
-        <PdfWorkspace {...defaultProps({ lastColor: '#1463ff', lastWhiteoutColor: '#ffffff' })} />
-      </SignToolContext.Provider>
-    );
+    host = mountWorkspace({ state, dispatch, defaults: { lastColor: '#1463ff', lastWhiteoutColor: '#ffffff' } });
 
     const overlay = host.querySelector(`.${workspaceStyles['page-overlay']}`);
     expect(overlay).not.toBeNull();

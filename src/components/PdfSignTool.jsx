@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import BasePdfTool from './BasePdfTool.jsx';
 import { SignToolProvider, useSignTool } from './SignTool/SignToolContext.jsx';
+import { SignDefaultsContext } from './SignTool/SignDefaultsContext.jsx';
+import { SavedSignaturesContext } from './SignTool/SavedSignaturesContext.jsx';
 import PdfWorkspace from './SignTool/PdfWorkspace.jsx';
 import SignatureDialog from './SignatureDialog.jsx';
 import { uniqueId, seedUniqueId, signPdf } from '../lib/sign.js';
@@ -679,46 +681,39 @@ function PdfSignToolInner() {
       ownsShell
     >
       {hasFiles && status !== 'loading' && (
-        <PdfWorkspace
-          status={status}
-          isPseudoFullscreen={isPseudoFullscreen}
-          workspaceRef={workspaceRef}
-          numPages={numPages}
-          pageSizes={pageSizes}
-          pdfDocument={pdfDocument}
-          pageWrapperRefs={pageWrapperRefs}
-          activeSignature={activeSignature}
-          setTempPlacement={setTempPlacement}
-          setDialogOpen={setDialogOpen}
-          rememberColor={rememberColor}
-          rememberWhiteoutColor={rememberWhiteoutColor}
-          rememberFont={rememberFont}
-          rememberFontSize={rememberFontSize}
-          rememberDirection={rememberDirection}
-          rememberThickness={rememberThickness}
-          rememberSymbolWidth={rememberSymbolWidth}
-          lastSymbolWidth={lastSymbolWidth}
-          lastColor={lastColor}
-          lastWhiteoutColor={lastWhiteoutColor}
-          lastThickness={lastThickness}
-          lastFont={lastFont}
-          lastFontSize={lastFontSize}
-          lastDirection={lastDirection}
-          logAction={logAction}
-          handleSavePdf={handleSavePdf}
-          handleDownloadPdf={handleDownloadPdf}
-          handleSharePdf={handleSharePdf}
-          setAnnouncement={setAnnouncement}
-          savedSignatures={savedSignatures}
-          setActiveSignature={setActiveSignature}
-          onDeleteSavedSignature={deleteSavedSignature}
-          setUndoModalOpen={setUndoModalOpen}
-          toggleFullscreen={toggleFullscreen}
-          isFullscreen={isFullscreen}
-          placeSignatureAt={placeSignatureAt}
-          canSharePdf={canSharePdf}
-          shareReady={shareReady}
-        />
+        <SignDefaultsContext.Provider
+          value={{
+            lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastDirection, lastThickness, lastSymbolWidth,
+            rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth
+          }}
+        >
+          <SavedSignaturesContext.Provider
+            value={{ savedSignatures, activeSignature, setActiveSignature, onDeleteSavedSignature: deleteSavedSignature }}
+          >
+            <PdfWorkspace
+              status={status}
+              isPseudoFullscreen={isPseudoFullscreen}
+              workspaceRef={workspaceRef}
+              numPages={numPages}
+              pageSizes={pageSizes}
+              pdfDocument={pdfDocument}
+              pageWrapperRefs={pageWrapperRefs}
+              setTempPlacement={setTempPlacement}
+              setDialogOpen={setDialogOpen}
+              logAction={logAction}
+              handleSavePdf={handleSavePdf}
+              handleDownloadPdf={handleDownloadPdf}
+              handleSharePdf={handleSharePdf}
+              setAnnouncement={setAnnouncement}
+              setUndoModalOpen={setUndoModalOpen}
+              toggleFullscreen={toggleFullscreen}
+              isFullscreen={isFullscreen}
+              placeSignatureAt={placeSignatureAt}
+              canSharePdf={canSharePdf}
+              shareReady={shareReady}
+            />
+          </SavedSignaturesContext.Provider>
+        </SignDefaultsContext.Provider>
       )}
 
       {/* Loading state */}

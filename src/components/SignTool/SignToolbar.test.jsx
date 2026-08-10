@@ -6,6 +6,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import SignToolbar from './SignToolbar.jsx';
 import { SignToolProvider, useSignTool } from './SignToolContext.jsx';
+import { SavedSignaturesContext } from './SavedSignaturesContext.jsx';
 import styles from './SignToolbar.module.css';
 import toolShellStyles from '../ToolShell.module.css';
 
@@ -41,10 +42,6 @@ describe('SignToolbar Component', () => {
         <SignToolProvider>
           <SignToolbar
             setAnnouncement={setAnnouncement}
-            savedSignatures={[]}
-            activeSignature={null}
-            setActiveSignature={() => {}}
-            onDeleteSavedSignature={() => {}}
             setDialogOpen={() => {}}
             setUndoModalOpen={() => {}}
             actionHistory={[]}
@@ -90,10 +87,6 @@ describe('SignToolbar Component', () => {
           <SignToolProvider>
             <SignToolbar
               setAnnouncement={() => {}}
-              savedSignatures={[]}
-              activeSignature={null}
-              setActiveSignature={() => {}}
-              onDeleteSavedSignature={() => {}}
               setDialogOpen={() => {}}
               setUndoModalOpen={() => {}}
               actionHistory={[]}
@@ -184,10 +177,6 @@ describe('SignToolbar Component', () => {
           <SignToolProvider>
             <SignToolbar
               setAnnouncement={() => {}}
-              savedSignatures={[]}
-              activeSignature={null}
-              setActiveSignature={() => {}}
-              onDeleteSavedSignature={() => {}}
               setDialogOpen={() => {}}
               setUndoModalOpen={() => {}}
               actionHistory={[]}
@@ -256,10 +245,6 @@ describe('SignToolbar Component', () => {
           <SignToolProvider>
             <SignToolbar
               setAnnouncement={() => {}}
-              savedSignatures={[]}
-              activeSignature={null}
-              setActiveSignature={() => {}}
-              onDeleteSavedSignature={() => {}}
               setDialogOpen={() => {}}
               setUndoModalOpen={() => {}}
               actionHistory={[]}
@@ -318,10 +303,6 @@ describe('SignToolbar Component', () => {
           <SignToolProvider>
             <SignToolbar
               setAnnouncement={() => {}}
-              savedSignatures={[]}
-              activeSignature={null}
-              setActiveSignature={() => {}}
-              onDeleteSavedSignature={() => {}}
               setDialogOpen={() => {}}
               setUndoModalOpen={() => {}}
               actionHistory={[]}
@@ -384,10 +365,6 @@ describe('SignToolbar Component', () => {
         <SignToolProvider>
           <SignToolbar
             setAnnouncement={() => {}}
-            savedSignatures={[]}
-            activeSignature={null}
-            setActiveSignature={() => {}}
-            onDeleteSavedSignature={() => {}}
             setDialogOpen={setDialogOpen}
             setUndoModalOpen={() => {}}
             actionHistory={[]}
@@ -419,10 +396,6 @@ describe('SignToolbar Component', () => {
         <SignToolProvider>
           <SignToolbar
             setAnnouncement={() => {}}
-            savedSignatures={[]}
-            activeSignature={null}
-            setActiveSignature={() => {}}
-            onDeleteSavedSignature={() => {}}
             setDialogOpen={() => {}}
             setUndoModalOpen={() => {}}
             actionHistory={[]}
@@ -453,10 +426,6 @@ describe('SignToolbar Component', () => {
         <SignToolProvider>
           <SignToolbar
             setAnnouncement={() => {}}
-            savedSignatures={[]}
-            activeSignature={null}
-            setActiveSignature={() => {}}
-            onDeleteSavedSignature={() => {}}
             setDialogOpen={() => {}}
             setUndoModalOpen={() => {}}
             actionHistory={[]}
@@ -501,20 +470,20 @@ describe('SignToolbar Component', () => {
     act(() => {
       render(
         <SignToolProvider>
-          <SignToolbar
-            setAnnouncement={() => {}}
-            savedSignatures={[mockSignature]}
-            activeSignature={mockSignature}
-            setActiveSignature={setActiveSignature}
-            onDeleteSavedSignature={onDeleteSavedSignature}
-            setDialogOpen={() => {}}
-            setUndoModalOpen={() => {}}
-            actionHistory={[]}
-            toggleFullscreen={() => {}}
-            isFullscreen={false}
-            onSavePdf={() => {}}
-          />
-          <TestConsumer />
+          <SavedSignaturesContext.Provider
+            value={{ savedSignatures: [mockSignature], activeSignature: mockSignature, setActiveSignature, onDeleteSavedSignature }}
+          >
+            <SignToolbar
+              setAnnouncement={() => {}}
+              setDialogOpen={() => {}}
+              setUndoModalOpen={() => {}}
+              actionHistory={[]}
+              toggleFullscreen={() => {}}
+              isFullscreen={false}
+              onSavePdf={() => {}}
+            />
+            <TestConsumer />
+          </SavedSignaturesContext.Provider>
         </SignToolProvider>,
         container
       );
@@ -566,7 +535,6 @@ describe('SignToolbar Component', () => {
         <SignToolProvider>
           <SignToolbar
             setAnnouncement={() => {}}
-            savedSignatures={[]}
             actionHistory={[]}
             toggleFullscreen={() => {}}
             isFullscreen={false}
@@ -619,7 +587,6 @@ describe('SignToolbar Component', () => {
         <SignToolProvider>
           <SignToolbar
             setAnnouncement={() => {}}
-            savedSignatures={[]}
             actionHistory={[]}
             toggleFullscreen={() => {}}
             isFullscreen={false}
