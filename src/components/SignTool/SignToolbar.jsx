@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
 import { useSignTool } from './SignToolContext.jsx';
+import { useSavedSignatures } from './SavedSignaturesContext.jsx';
 import FullscreenButton from '../FullscreenButton';
 import Popover from '../Popover.jsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../ToolShell.jsx';
@@ -34,10 +35,6 @@ const TOOL_COPY = {
 
 export default function SignToolbar({
   setAnnouncement,
-  savedSignatures,
-  activeSignature,
-  setActiveSignature,
-  onDeleteSavedSignature,
   setDialogOpen,
   setUndoModalOpen,
   actionHistory,
@@ -53,6 +50,7 @@ export default function SignToolbar({
   const selectedTool = state.selectedTool;
   const toolLocked = state.toolLocked;
   const { requestReplace } = useToolShell();
+  const { savedSignatures, activeSignature, setActiveSignature, onDeleteSavedSignature } = useSavedSignatures();
 
   const [showSigDropdown, setShowSigDropdown] = useState(false);
   const [showShapesDropdown, setShowShapesDropdown] = useState(false);

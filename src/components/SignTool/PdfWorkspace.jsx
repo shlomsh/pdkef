@@ -1,17 +1,11 @@
 import { useRef, useCallback } from 'preact/hooks';
-import {
-  DEFAULT_COLOR_BLUE,
-  DEFAULT_STROKE_WIDTH,
-  DEFAULT_FONT_FAMILY,
-  DEFAULT_FONT_SIZE_PT,
-  DEFAULT_SYMBOL_WIDTH_PCT,
-  PAGE_WIDTH_DEFAULT_PTS,
-  PAGE_HEIGHT_DEFAULT_PTS
-} from '../../constants/signGeometry.js';
+import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS } from '../../constants/signGeometry.js';
 import PdfPageCanvas from '../PdfPageCanvas.jsx';
 import DraggableWrapper from './DraggableWrapper.jsx';
 import { getElementDefinition } from '../../editor/registry/index.ts';
 import { useSignTool } from './SignToolContext.jsx';
+import { useSignDefaults } from './SignDefaultsContext.jsx';
+import { useSavedSignatures } from './SavedSignaturesContext.jsx';
 import SignToolbar from './SignToolbar.jsx';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
 import { detectTextDirection } from '../../lib/signHelpers.js';
@@ -26,31 +20,13 @@ export default function PdfWorkspace({
   pageSizes,
   pdfDocument,
   pageWrapperRefs,
-  activeSignature,
   setTempPlacement,
   setDialogOpen,
-  rememberColor,
-  rememberWhiteoutColor,
-  rememberFont,
-  rememberFontSize,
-  rememberDirection,
-  rememberThickness,
-  rememberSymbolWidth,
-  lastSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
-  lastColor = DEFAULT_COLOR_BLUE,
-  lastWhiteoutColor = '#ffffff',
-  lastThickness = DEFAULT_STROKE_WIDTH,
-  lastFont = DEFAULT_FONT_FAMILY,
-  lastFontSize = DEFAULT_FONT_SIZE_PT,
-  lastDirection = null,
   logAction,
   handleSavePdf,
   handleDownloadPdf,
   handleSharePdf,
   setAnnouncement,
-  savedSignatures,
-  setActiveSignature,
-  onDeleteSavedSignature,
   setUndoModalOpen,
   toggleFullscreen,
   isFullscreen,
@@ -59,6 +35,11 @@ export default function PdfWorkspace({
   shareReady = false
 }) {
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
+  const {
+    lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastDirection, lastThickness, lastSymbolWidth,
+    rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth
+  } = useSignDefaults();
+  const { activeSignature } = useSavedSignatures();
   const activeElement = elements.find((el) => el.id === activeElementId);
   const activeTextElement = activeElement?.type === 'text' ? activeElement : null;
   const initialTextDirection =
@@ -168,10 +149,6 @@ export default function PdfWorkspace({
           {/* Floating Toolbar Component */}
           <SignToolbar
             setAnnouncement={setAnnouncement}
-            savedSignatures={savedSignatures}
-            activeSignature={activeSignature}
-            setActiveSignature={setActiveSignature}
-            onDeleteSavedSignature={onDeleteSavedSignature}
             setDialogOpen={setDialogOpen}
             setUndoModalOpen={setUndoModalOpen}
             actionHistory={actionHistory}
