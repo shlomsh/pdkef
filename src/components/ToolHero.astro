@@ -7,8 +7,9 @@ interface Props {
   title: string;
   subhead: string;
   slug: string;
+  condensable: boolean;
 }
-const { icon: Icon, title, subhead, slug } = Astro.props;
+const { icon: Icon, title, subhead, slug, condensable } = Astro.props;
 
 const iconTone = slug === 'sign'
   ? 'bg-[linear-gradient(150deg,var(--color-primary-hover),var(--color-primary))] text-[var(--color-surface)]'
@@ -27,7 +28,7 @@ const iconTone = slug === 'sign'
   The tile is TALLER than the first line box, so the title is nudged down half
   the difference to centre the two. Anything below that shares --hero-indent.
 -->
-<header class="tool-hero mx-auto w-full max-w-[1400px] px-6 pb-8 pt-14 min-[1024px]:grid min-[1024px]:grid-cols-[minmax(0,1fr)_auto] min-[1024px]:items-center min-[1024px]:gap-x-6 min-[1024px]:px-6 min-[1024px]:pb-3 min-[1024px]:pt-2 [--hero-icon:clamp(44px,8vw,52px)] [--hero-indent:calc(var(--hero-icon)_+_1rem)] [--hero-line:calc(var(--hero-title)*1.1)] [--hero-title:2rem] min-[1024px]:[--hero-icon:2.75rem] min-[1024px]:[--hero-title:2rem]">
+<header class="tool-hero mx-auto w-full max-w-[1400px] px-6 pb-8 pt-14 min-[1024px]:grid min-[1024px]:grid-cols-[minmax(0,1fr)_auto] min-[1024px]:items-center min-[1024px]:gap-x-6 min-[1024px]:px-6 min-[1024px]:pb-3 min-[1024px]:pt-2 [--hero-icon:clamp(44px,8vw,52px)] [--hero-indent:calc(var(--hero-icon)_+_1rem)] [--hero-line:calc(var(--hero-title)*1.1)] [--hero-title:2rem] min-[1024px]:[--hero-icon:2.75rem] min-[1024px]:[--hero-title:2rem]" data-hero-condensable={condensable ? '' : undefined}>
   <div class="mb-3 flex items-start justify-center gap-4 min-[1024px]:col-start-1 min-[1024px]:row-start-1 min-[1024px]:mb-0 min-[1024px]:justify-start">
     <div class={`flex size-[var(--hero-icon)] shrink-0 items-center justify-center rounded-2xl border-0 shadow-[0_8px_18px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)] ${iconTone}`}>
       <Icon class="h-[55%] w-[55%]" size={28} strokeWidth={1.5} />
@@ -94,24 +95,34 @@ const iconTone = slug === 'sign'
      hint state and a real state that could ever disagree; the hint is removed
      (by useDraftPersistence.js) if the restore turns out to have nothing to
      show, so a stale hint self-corrects instead of leaving the hero wrongly
-     collapsed for good. */
-  :global(body:has([data-tool-shell])) .tool-hero,
-  :global(html[data-draft-hint]) .tool-hero {
+     collapsed for good.
+
+     Two more gates sit on top of both triggers now (E9): a `density`
+     preference (`html[data-view-density='condensed']`) so the fold-away is
+     opt-out instead of permanent, and a per-tool `condenseOnLoad` flag
+     (`[data-hero-condensable]`, only rendered on the header when the tool
+     opts in - see src/data/tools.js) so short single-card tools never fold at
+     all. The draft-hint trigger already bakes the density check into whether
+     `data-draft-hint` gets set (ToolPageLayout.astro's inline script only
+     sets it when density is condensed), so it only needs the condensable
+     gate repeated here - not the density one again. */
+  :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable],
+  :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] {
     padding-bottom: 0.75rem;
   }
 
-  :global(body:has([data-tool-shell])) .tool-hero [data-hero-sub],
-  :global(body:has([data-tool-shell])) .tool-hero [data-hero-chips],
-  :global(html[data-draft-hint]) .tool-hero [data-hero-sub],
-  :global(html[data-draft-hint]) .tool-hero [data-hero-chips] {
+  :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable] [data-hero-sub],
+  :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable] [data-hero-chips],
+  :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] [data-hero-sub],
+  :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] [data-hero-chips] {
     display: none;
   }
 
   /* The title stays, one step quieter: it is orientation now rather than the
      page's opening statement. */
   @media (min-width: 1024px) {
-    :global(body:has([data-tool-shell])) .tool-hero,
-    :global(html[data-draft-hint]) .tool-hero {
+    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable],
+    :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] {
       --hero-title: 1.75rem;
       --hero-icon: 2.5rem;
     }

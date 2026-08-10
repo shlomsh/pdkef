@@ -113,6 +113,12 @@ describe('PdfRedactTool UI flow', () => {
     expect(toolbar).not.toBeNull();
     expect(toolbar.textContent).toContain('Blackout');
     expect(toolbar.textContent).toContain('Blur');
+
+    // E9: ViewControl replaced FullscreenButton in this exact slot.
+    const radiogroup = toolbar.querySelector('[role="radiogroup"]');
+    expect(radiogroup).not.toBeNull();
+    expect(radiogroup.getAttribute('aria-label')).toBe('View density');
+    expect(radiogroup.querySelectorAll('[role="radio"]')).toHaveLength(3);
   });
 
   it('keeps the redaction editor open after downloading', async () => {

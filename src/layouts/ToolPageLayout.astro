@@ -26,17 +26,24 @@ const { tool } = Astro.props;
     {/* Pre-collapses the marketing hero (see ToolHero.astro) for a returning
         visitor who has a saved Sign/Redact draft, before the async IndexedDB
         restore and Preact hydration would otherwise do it later and register
-        as a real, input-less layout shift. Must be a blocking, unprocessed
-        script — a bundled Astro <script> compiles to type="module", which is
-        always deferred and runs after the body has already parsed, too late
-        to prevent the flash this exists to avoid. That means `is:inline`
-        (CLAUDE.md's CSP section), which Astro does not auto-hash: the hash
-        below in astro.config.mjs's security.csp.scriptDirective.hashes is
-        computed by hand and WILL silently stop matching — breaking every tool
-        page's CSP — if this script's text changes by even one byte. If you
-        edit it, rebuild, extract the exact text Astro emits, and recompute:
-          node -e "console.log('sha256-'+require('crypto').createHash('sha256').update(require('fs').readFileSync('dist/sign/index.html','utf8').match(/<script>\(function\(\)\{[\s\S]*?\}\)\(\);<\/script>/)[0].replace(/^<script>|<\/script>$/g,'')).digest('base64'))"
-        then paste the result in astro.config.mjs.
+        as a real, input-less layout shift. Also applies the persisted view
+        density (see useViewDensity.js) before first paint, for the same
+        reason: without it, the density-driven collapse would only land once
+        the Sign/Redact island hydrates and reads localStorage itself. Must be
+        a blocking, unprocessed script — a bundled Astro <script> compiles to
+        type="module", which is always deferred and runs after the body has
+        already parsed, too late to prevent the flash this exists to avoid.
+        That means `is:inline` (CLAUDE.md's CSP section), which Astro does not
+        auto-hash: the hash below in astro.config.mjs's
+        security.csp.scriptDirective.hashes is computed by hand and WILL
+        silently stop matching — breaking every tool page's CSP — if this
+        script's text changes by even one byte. If you edit it, rebuild,
+        extract the exact text Astro emits, and recompute (the marker must be
+        something that appears ONLY inside this script — 'view-density' alone
+        also appears in ToolHero.astro's inlined CSS, in the same <head>):
+          node -e "const f=require('fs'),c=require('crypto');const h=f.readFileSync('dist/sign/index.html','utf8');const i=h.indexOf(\"getItem('pdf-toolkit:view-density')\");const s=h.lastIndexOf('<script>',i);const e=h.indexOf('</script>',s);console.log('sha256-'+c.createHash('sha256').update(h.slice(s+8,e),'utf8').digest('base64'))"
+        then paste the result in astro.config.mjs, and confirm the same hash
+        is produced for dist/redact/index.html and dist/merge/index.html.
 
         No tool.slug interpolation on purpose: every tool page must emit this
         exact same script text so one hash covers all of them. The slug comes
@@ -46,7 +53,9 @@ const { tool } = Astro.props;
       (function () {
         try {
           var slug = location.pathname.replace(/\//g, '');
-          if (localStorage.getItem('pdf-toolkit:has-draft:' + slug) === '1') {
+          var density = localStorage.getItem('pdf-toolkit:view-density') || 'condensed';
+          document.documentElement.setAttribute('data-view-density', density);
+          if (density === 'condensed' && localStorage.getItem('pdf-toolkit:has-draft:' + slug) === '1') {
             document.documentElement.setAttribute('data-draft-hint', '1');
           }
         } catch (e) {}
@@ -57,7 +66,7 @@ const { tool } = Astro.props;
   <AppBar toolName={tool.toolName} />
 
   <div class="flex min-h-[calc(100svh-3.5rem)] flex-col">
-    <ToolHero icon={tool.icon} title={tool.h1} subhead={tool.subhead} slug={tool.slug} />
+    <ToolHero icon={tool.icon} title={tool.h1} subhead={tool.subhead} slug={tool.slug} condensable={tool.condenseOnLoad !== false} />
 
     <main class="!flex !min-h-0 !flex-1 !flex-col !px-4 !pb-4 min-[560px]:!px-6 min-[768px]:!pb-5">
       <section id="app" class="!my-0 !flex !min-h-0 !w-full !flex-1 !items-center !justify-center min-[1024px]:!items-start min-[1024px]:!justify-start" aria-label={tool.ariaLabel}>
