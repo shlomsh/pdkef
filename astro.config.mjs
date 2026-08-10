@@ -53,7 +53,18 @@ export default defineConfig({
         "form-action 'self'",
         "manifest-src 'self'"
       ],
-      scriptDirective: { src: ["'self'"] },
+      // Hand-computed hash for the one `is:inline` script in the app
+      // (ToolPageLayout.astro's draft-hint reader). Astro only auto-hashes
+      // scripts it bundles; `is:inline` opts out of bundling on purpose,
+      // because that script must block parsing and run before first paint —
+      // a bundled script compiles to type="module", which is always deferred
+      // and would run too late. This hash goes stale the instant that
+      // script's text changes by even one byte; ToolPageLayout.astro's
+      // comment on the script has the exact command to recompute it.
+      scriptDirective: {
+        src: ["'self'"],
+        hashes: ['sha256-dgQbD7BdDwvbJEAU16sy7H34A6f2mTSy4hiu1eak42s=']
+      },
       styleDirective: { src: ["'self'"] }
     }
   }

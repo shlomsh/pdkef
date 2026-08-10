@@ -27,15 +27,15 @@ const iconTone = slug === 'sign'
   The tile is TALLER than the first line box, so the title is nudged down half
   the difference to centre the two. Anything below that shares --hero-indent.
 -->
-<header class="tool-hero mx-auto w-full max-w-[1400px] px-6 pb-8 pt-14 min-[1024px]:px-6 min-[1024px]:pb-4 min-[1024px]:pt-2 [--hero-icon:clamp(44px,8vw,52px)] [--hero-indent:calc(var(--hero-icon)_+_1rem)] [--hero-line:calc(var(--hero-title)*1.1)] [--hero-title:2rem] min-[1024px]:[--hero-icon:3.5rem] min-[1024px]:[--hero-title:2.5rem]">
-  <div class="mb-3 flex items-start justify-center gap-4 min-[1024px]:justify-start">
+<header class="tool-hero mx-auto w-full max-w-[1400px] px-6 pb-8 pt-14 min-[1024px]:grid min-[1024px]:grid-cols-[minmax(0,1fr)_auto] min-[1024px]:items-center min-[1024px]:gap-x-6 min-[1024px]:px-6 min-[1024px]:pb-3 min-[1024px]:pt-2 [--hero-icon:clamp(44px,8vw,52px)] [--hero-indent:calc(var(--hero-icon)_+_1rem)] [--hero-line:calc(var(--hero-title)*1.1)] [--hero-title:2rem] min-[1024px]:[--hero-icon:2.75rem] min-[1024px]:[--hero-title:2rem]">
+  <div class="mb-3 flex items-start justify-center gap-4 min-[1024px]:col-start-1 min-[1024px]:row-start-1 min-[1024px]:mb-0 min-[1024px]:justify-start">
     <div class={`flex size-[var(--hero-icon)] shrink-0 items-center justify-center rounded-2xl border-0 shadow-[0_8px_18px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)] ${iconTone}`}>
       <Icon class="h-[55%] w-[55%]" size={28} strokeWidth={1.5} />
     </div>
     <h1 class="mb-0 mt-[calc((var(--hero-icon)_-_var(--hero-line))/2)] text-left text-[length:var(--hero-title)] leading-[1.1]">{title}</h1>
   </div>
-  <p class="mx-auto max-w-[54rem] min-[1024px]:mx-0 min-[1024px]:ml-[var(--hero-indent)] min-[1024px]:mt-[0.6rem] min-[1024px]:text-left min-[1024px]:text-[1rem]">{subhead}</p>
-  <div class="mt-6 flex flex-wrap justify-center gap-[0.6rem] min-[1024px]:mt-4 min-[1024px]:justify-start min-[1024px]:pl-[var(--hero-indent)]">
+  <p data-hero-sub class="mx-auto max-w-[54rem] min-[1024px]:col-span-2 min-[1024px]:row-start-2 min-[1024px]:mx-0 min-[1024px]:ml-[var(--hero-indent)] min-[1024px]:mt-2 min-[1024px]:text-left min-[1024px]:text-[0.9375rem] min-[1024px]:leading-[1.45]">{subhead}</p>
+  <div data-hero-chips class="mt-6 flex flex-wrap justify-center gap-[0.6rem] min-[1024px]:col-start-2 min-[1024px]:row-start-1 min-[1024px]:mt-0 min-[1024px]:justify-end min-[1024px]:justify-self-end min-[1024px]:pl-0">
     <a class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-text)] no-underline transition-[border-color,transform,color] duration-150 ease-[var(--ease-out)] hover:-translate-y-px hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">
       <svg class="shrink-0 text-[var(--color-text)]" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" />
@@ -59,3 +59,61 @@ const iconTone = slug === 'sign'
     </span>
   </div>
 </header>
+
+<style>
+  /* Once a file is open, the hero keeps its title line and folds the rest away.
+     Reading the pitch is not what you are doing at that point - you are looking
+     at your document, and on a 1512x870 laptop the pitch was costing about a
+     fifth of the screen directly above it.
+
+     `[data-tool-shell]` is the file-open signal: ToolShell renders only once a
+     file is loaded, in every tool (see ToolShell.jsx). No JavaScript is involved
+     and no state is duplicated - the DOM already says whether you have a file.
+
+     This is deliberately not an SEO risk, and the reasoning matters more than
+     the rule:
+       - Every word stays server-rendered in the HTML, in its original order,
+         with the one crawlable <h1> untouched. Nothing is moved into the island.
+       - A crawler never opens a file, so `:has()` never matches and Googlebot
+         renders the full hero exactly as before. It is state-driven CSS, the
+         same as an open menu, not two different pages for two audiences.
+       - The copy is visible by default, so it keeps full weight. Content hidden
+         *by default* behind a tab or accordion is what gets discounted; this is
+         the opposite.
+     Do not "simplify" this into hiding the copy by default, or into removing it
+     from the .astro file, which would be all three of those things at once.
+
+     `html[data-draft-hint]` is the second, earlier gate: a returning visitor
+     with a saved Sign/Redact draft gets the same collapse applied by a
+     blocking script before first paint (see ToolPageLayout.astro), instead of
+     waiting for `[data-tool-shell]` to appear once the async IndexedDB restore
+     and hydration finish. Without it that restore is a real, input-less layout
+     shift - the hero visibly collapsing a moment after the page already
+     painted expanded - which Core Web Vitals' CLS metric scores. Both gates
+     drive the exact same declarations so there is one visual state, not a
+     hint state and a real state that could ever disagree; the hint is removed
+     (by useDraftPersistence.js) if the restore turns out to have nothing to
+     show, so a stale hint self-corrects instead of leaving the hero wrongly
+     collapsed for good. */
+  :global(body:has([data-tool-shell])) .tool-hero,
+  :global(html[data-draft-hint]) .tool-hero {
+    padding-bottom: 0.75rem;
+  }
+
+  :global(body:has([data-tool-shell])) .tool-hero [data-hero-sub],
+  :global(body:has([data-tool-shell])) .tool-hero [data-hero-chips],
+  :global(html[data-draft-hint]) .tool-hero [data-hero-sub],
+  :global(html[data-draft-hint]) .tool-hero [data-hero-chips] {
+    display: none;
+  }
+
+  /* The title stays, one step quieter: it is orientation now rather than the
+     page's opening statement. */
+  @media (min-width: 1024px) {
+    :global(body:has([data-tool-shell])) .tool-hero,
+    :global(html[data-draft-hint]) .tool-hero {
+      --hero-title: 1.75rem;
+      --hero-icon: 2.5rem;
+    }
+  }
+</style>

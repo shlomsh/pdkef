@@ -33,6 +33,35 @@ export const HANDOFF_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
 // this file may write to a tool's draft key on a tool's behalf.
 const handoffKey = (tool) => `handoff:${tool}`;
 
+// Mirrors "a draft record exists for `tool`" into localStorage, which is
+// synchronous and readable from a blocking inline script before first paint -
+// unlike the IndexedDB record itself. ToolPageLayout.astro reads this at parse
+// time to pre-collapse the marketing hero for a returning visitor who has a
+// saved draft, instead of the hero visibly collapsing later, once the async
+// IndexedDB read and Preact hydration finish - a real, input-less layout shift
+// that Core Web Vitals' CLS metric scores. See ToolHero.astro for the read
+// side and the invariant this depends on: the flag must be cleared whenever a
+// load resolves without a usable record, or a stale hint would pre-collapse a
+// hero that then has no file to show.
+const DRAFT_HINT_PREFIX = 'pdf-toolkit:has-draft:';
+
+function setDraftHint(tool) {
+  try {
+    localStorage.setItem(DRAFT_HINT_PREFIX + tool, '1');
+  } catch {
+    // Best-effort, like everything else here — localStorage can throw in
+    // private/locked-down browsing contexts.
+  }
+}
+
+function clearDraftHint(tool) {
+  try {
+    localStorage.removeItem(DRAFT_HINT_PREFIX + tool);
+  } catch {
+    // ditto
+  }
+}
+
 function hasIndexedDB() {
   try {
     return typeof indexedDB !== 'undefined' && indexedDB !== null;
@@ -101,6 +130,7 @@ export async function saveDraft(tool, record) {
     await withStore('readwrite', (store) => {
       store.put({ ...record, tool, savedAt: Date.now() });
     });
+    setDraftHint(tool);
     return true;
   } catch (e) {
     console.error('draftStore.saveDraft failed:', e);
@@ -116,10 +146,20 @@ export async function saveDraft(tool, record) {
  * @returns {Promise<object|null>}
  */
 export async function loadDraft(tool) {
-  if (!hasIndexedDB()) return null;
+  // No IndexedDB means no draft ever gets written by this module, so any hint
+  // still sitting in localStorage (from a previous browser/profile whose
+  // export got copied, say) cannot correspond to a real record here — clear it
+  // rather than let it keep pre-collapsing a hero with nothing to restore.
+  if (!hasIndexedDB()) {
+    clearDraftHint(tool);
+    return null;
+  }
   try {
     const record = await withStore('readonly', (store) => reqToPromise(store.get(tool)));
-    if (!record) return null;
+    if (!record) {
+      clearDraftHint(tool);
+      return null;
+    }
     if (typeof record.savedAt === 'number' && Date.now() - record.savedAt > MAX_AGE_MS) {
       await deleteDraft(tool);
       return null;
@@ -127,6 +167,7 @@ export async function loadDraft(tool) {
     return record;
   } catch (e) {
     console.error('draftStore.loadDraft failed:', e);
+    clearDraftHint(tool);
     return null;
   }
 }
@@ -143,6 +184,7 @@ export async function deleteDraft(tool) {
     await withStore('readwrite', (store) => {
       store.delete(tool);
     });
+    clearDraftHint(tool);
     return true;
   } catch (e) {
     console.error('draftStore.deleteDraft failed:', e);

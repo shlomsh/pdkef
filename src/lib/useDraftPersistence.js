@@ -63,8 +63,16 @@ export function useDraftPersistence({
       if (beforeRestore && (await beforeRestore())) return;
       if (cancelled) return;
       const record = await loadDraft(tool);
-      if (!cancelled && record && record.fileBytes) {
+      if (cancelled) return;
+      if (record && record.fileBytes) {
         onRestore(record);
+      } else {
+        // No draft to restore after all. draftStore already clears the
+        // localStorage hint for next time; this clears the *live* DOM
+        // attribute the blocking head script set from that hint before this
+        // component ever mounted, so a stale hint doesn't leave the hero
+        // pre-collapsed above an empty dropzone with nothing to explain it.
+        document.documentElement?.removeAttribute('data-draft-hint');
       }
     })();
     return () => {
