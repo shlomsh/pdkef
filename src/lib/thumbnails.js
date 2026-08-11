@@ -20,7 +20,26 @@ async function getPdfjs() {
 
 const TARGET_WIDTH = 150;
 
-export async function renderThumbnail(file) {
+/**
+ * Render page 1 to a data URL.
+ *
+ * Always takes a `File` rather than bytes you already hold, and that is
+ * deliberate: pdf.js may detach the ArrayBuffer it is handed, so passing a
+ * buffer that something else still needs (a draft's `fileBytes`, say) would
+ * empty it out from under that owner. `file.arrayBuffer()` mints a fresh copy
+ * each call, which is the only reason this is safe to call alongside draft
+ * persistence.
+ *
+ * @param {File} file
+ * @param {{ width?: number, type?: string, quality?: number }} [opts]
+ *   `width` in device px; `type`/`quality` go straight to `toDataURL`. The
+ *   defaults are the merge tool's list thumbnails. Draft previews override all
+ *   three, because they are bound for localStorage where size is the whole
+ *   constraint - see draftStore's DRAFT_META_PREFIX.
+ * @returns {Promise<string>} data URL
+ */
+export async function renderThumbnail(file, opts = {}) {
+  const { width = TARGET_WIDTH, type = 'image/png', quality } = opts;
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();
   const loadingTask = lib.getDocument({ data: bytes });
@@ -29,7 +48,7 @@ export async function renderThumbnail(file) {
     const page = await pdf.getPage(1);
 
     const nativeViewport = page.getViewport({ scale: 1 });
-    const scale = TARGET_WIDTH / nativeViewport.width;
+    const scale = width / nativeViewport.width;
     const viewport = page.getViewport({ scale });
 
     const canvas = document.createElement('canvas');
@@ -37,13 +56,38 @@ export async function renderThumbnail(file) {
     canvas.height = viewport.height;
     const context = canvas.getContext('2d');
 
+    // A PDF page is paper: it assumes white behind it. Canvas starts
+    // transparent, and JPEG has no alpha, so without this the transparent
+    // pixels flatten to black and a text page encodes as a black rectangle.
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
     await page.render({ canvasContext: context, viewport }).promise;
 
-    return canvas.toDataURL('image/png');
+    return canvas.toDataURL(type, quality);
   } finally {
     // pdf.js v6 exposes teardown on the loading task, not the document proxy.
     await loadingTask.destroy();
   }
+}
+
+/**
+ * The small page-1 preview the home page's resume card shows in place of a
+ * generic file icon, so a draft named `pdf1.pdf` is still recognisable.
+ *
+ * Sized and encoded for localStorage, not for looks: ~96 device px (2x a 48px
+ * CSS box) as JPEG lands around 2-3KB of base64, where the 150px PNG the merge
+ * list uses would be 15-25KB. That matters because this string is read
+ * synchronously before first paint - see draftStore.readDraftMeta.
+ */
+export const DRAFT_PREVIEW_WIDTH = 96;
+
+export function renderDraftPreview(file) {
+  return renderThumbnail(file, {
+    width: DRAFT_PREVIEW_WIDTH,
+    type: 'image/jpeg',
+    quality: 0.7,
+  });
 }
 
 export async function renderPdfThumbnails(file, onPageRender) {

@@ -33,8 +33,8 @@ const HeroIcon = tools[0].icon;
   </Fragment>
 
   <AppBar isHome />
-  <div class="bg-[linear-gradient(180deg,var(--color-bg),var(--color-primary-tint))] pb-12 min-[1024px]:flex min-[1024px]:min-h-[calc(100svh-3.5rem)] min-[1024px]:flex-col min-[1024px]:justify-center min-[1024px]:box-border min-[1024px]:pt-3 min-[1024px]:pb-0">
-    <header class="px-6 pb-8 pt-14 min-[1024px]:px-0 min-[1024px]:pb-4 min-[1024px]:pt-2">
+  <div class="bg-[linear-gradient(180deg,var(--color-bg),var(--color-primary-tint))] pb-12 min-[1024px]:flex min-[1024px]:min-h-[calc(100svh-3.5rem)] min-[1024px]:flex-col min-[1024px]:justify-center min-[1024px]:box-border min-[1024px]:pt-2 min-[1024px]:pb-0">
+    <header class="px-6 pb-8 pt-14 min-[1024px]:px-0 min-[1024px]:pb-3 min-[1024px]:pt-2">
       <div class="mb-3 flex items-center justify-center gap-4">
         <img src="/favicon.png" width="56" height="56" alt="" aria-hidden="true" class="shrink-0" />
         <h1 class="mb-0 text-left leading-[1.1] min-[1024px]:text-[2.5rem]">Free PDF tools that run <span class="text-[var(--color-primary)]">on your device</span></h1>
@@ -68,8 +68,8 @@ const HeroIcon = tools[0].icon;
 
   <main class="min-[1024px]:!flex min-[1024px]:!min-h-0 min-[1024px]:!flex-1 min-[1024px]:!flex-col min-[1024px]:!pb-0">
     {/* Large Dropzone CTA */}
-    <div class="merge-tool mx-auto mb-16 box-border max-w-[1080px] p-6 min-[1024px]:!mb-6 min-[1024px]:!p-4">
-      <FileDropzone client:load href="/sign?action=open" toolTarget="sign" className="min-[1024px]:!py-6" />
+    <div class="merge-tool mx-auto mb-16 box-border max-w-[1080px] p-6 min-[1024px]:!mb-4 min-[1024px]:!p-4">
+      <FileDropzone client:only="preact" href="/sign?action=open" toolTarget="sign" className="min-[1024px]:!py-6" />
     </div>
 
     {/* App Grid for all tools */}
