@@ -1,3 +1,5 @@
+import { createDraftRetention, isDraftExpired } from './draftPolicy.js';
+
 // On-device, no-backend draft persistence for in-progress PDF edits.
 //
 // Uses IndexedDB (not localStorage) because drafts hold the raw PDF bytes as an
@@ -15,9 +17,9 @@ const DB_NAME = 'pdf-toolkit-drafts';
 const STORE_NAME = 'drafts';
 const DB_VERSION = 1;
 
-// Drop drafts older than this on load so an abandoned (possibly sensitive) PDF does
-// not linger in browser storage forever.
-export const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+// Kept as a public re-export for existing callers. The policy itself lives in
+// draftPolicy.js so cache writes and every read path share one definition.
+export { MAX_AGE_MS } from './draftPolicy.js';
 
 // A handoff is a baton, not a draft: the home page drops a PDF into it and the tool
 // page picks it up one navigation later. Five minutes is far longer than a
@@ -45,12 +47,42 @@ const handoffKey = (tool) => `handoff:${tool}`;
 // hero that then has no file to show.
 const DRAFT_HINT_PREFIX = 'pdf-toolkit:has-draft:';
 
-function setDraftHint(tool) {
+// The home page's resume card needs more than "a draft exists": it names the
+// file, dates it, and shows a page-1 preview. All three have to be readable
+// *synchronously*, for the same reason the boolean hint does - the card sits
+// above the dropzone, so learning about it after an async IndexedDB read would
+// push the dropzone down after first paint, which is the exact layout shift
+// the hint was invented to avoid.
+//
+// This is a second key rather than a richer value under DRAFT_HINT_PREFIX on
+// purpose. Two readers already hard-compare that value to the string '1'
+// (hasDraftHint below, and ToolPageLayout.astro's blocking head script), and
+// both run for visitors whose localStorage was written by an older build.
+// Widening it would have meant migrating a value that decides whether a hero
+// pre-collapses - a silent CLS regression if either reader was missed. A
+// sibling key costs one extra write and cannot break either of them.
+const DRAFT_META_PREFIX = 'pdf-toolkit:draft-meta:';
+
+function setDraftHint(tool, meta) {
   try {
     localStorage.setItem(DRAFT_HINT_PREFIX + tool, '1');
   } catch {
     // Best-effort, like everything else here — localStorage can throw in
     // private/locked-down browsing contexts.
+  }
+  // Separate try/catch, and second: the preview pushes this value into the
+  // kilobytes, so it is the write that can plausibly hit a quota error. If it
+  // does, the boolean hint above must still stand - a tool page that
+  // pre-collapses its hero is worth more than a home-page card that shows a
+  // thumbnail.
+  try {
+    if (!meta) return;
+    localStorage.setItem(
+      DRAFT_META_PREFIX + tool,
+      JSON.stringify({ fileName: meta.fileName, savedAt: meta.savedAt, preview: meta.preview }),
+    );
+  } catch {
+    // ditto
   }
 }
 
@@ -59,6 +91,41 @@ function clearDraftHint(tool) {
     localStorage.removeItem(DRAFT_HINT_PREFIX + tool);
   } catch {
     // ditto
+  }
+  try {
+    localStorage.removeItem(DRAFT_META_PREFIX + tool);
+  } catch {
+    // ditto
+  }
+}
+
+/**
+ * Synchronous, best-effort read of a draft's display metadata without opening
+ * IndexedDB, so the client-only home launcher can render its complete local
+ * state in its first pass.
+ *
+ * Advisory only, exactly like hasDraftHint - the IndexedDB record stays the
+ * source of truth, and this can lag it if a write was dropped on quota. A
+ * caller that acts on this must therefore tolerate the draft turning out not
+ * to exist; FileDropzone does, by handing the tool a plain navigation and
+ * letting the tool's own restore decide.
+ *
+ * @param {string} tool
+ * @returns {{ fileName?: string, savedAt?: number, preview?: string }|null}
+ */
+export function readDraftMeta(tool) {
+  try {
+    if (localStorage.getItem(DRAFT_HINT_PREFIX + tool) !== '1') return null;
+    const raw = localStorage.getItem(DRAFT_META_PREFIX + tool);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || isDraftExpired(parsed.savedAt)) {
+      clearDraftHint(tool);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
   }
 }
 
@@ -145,11 +212,17 @@ function reqToPromise(request) {
  */
 export async function saveDraft(tool, record) {
   if (!hasIndexedDB()) return false;
+  // `preview` is display metadata for the home page, not part of the draft:
+  // it lives in localStorage (see setDraftHint) because it has to be readable
+  // synchronously. Keeping it out of the record avoids storing the same image
+  // twice, and keeps it out of what onRestore rehydrates a tool from.
+  const { preview, ...draft } = record;
+  const { savedAt } = createDraftRetention();
   try {
     await withStore('readwrite', (store) => {
-      store.put({ ...record, tool, savedAt: Date.now() });
+      store.put({ ...draft, tool, savedAt });
     });
-    setDraftHint(tool);
+    setDraftHint(tool, { fileName: draft.fileName, savedAt, preview });
     return true;
   } catch (e) {
     console.error('draftStore.saveDraft failed:', e);
@@ -179,7 +252,7 @@ export async function loadDraft(tool) {
       clearDraftHint(tool);
       return null;
     }
-    if (typeof record.savedAt === 'number' && Date.now() - record.savedAt > MAX_AGE_MS) {
+    if (isDraftExpired(record.savedAt)) {
       await deleteDraft(tool);
       return null;
     }

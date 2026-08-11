@@ -55,6 +55,12 @@ export function useDraftPersistence({
 
   const [isRestoring, setIsRestoring] = useState(() => enabled && hasDraftHint(tool));
 
+  // Page-1 preview for the home page's resume card, rendered once per loaded
+  // file and reused by every save after it. Autosave fires on a 700ms debounce
+  // while typing, so rendering this inside buildRecord would re-rasterize a
+  // PDF page every few keystrokes to produce a byte-identical image.
+  const previewRef = useRef(null);
+
   const buildRecord = () => {
     const { file, fileBytes, elements, extra } = latest.current;
     if (!file || !fileBytes) return null;
@@ -65,7 +71,8 @@ export function useDraftPersistence({
       fileType: file.type || 'application/pdf',
       fileBytes,
       elements: elements || [],
-      extra: extra || {}
+      extra: extra || {},
+      preview: previewRef.current || undefined
     };
   };
 
@@ -114,6 +121,34 @@ export function useDraftPersistence({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Render the resume-card preview when the loaded file changes. Deliberately
+  // fire-and-forget: it dynamically imports pdf.js, so it must never sit in
+  // front of the first autosave. A save that beats it just writes no preview,
+  // and the next one (700ms later, at the next edit) carries it.
+  useEffect(() => {
+    previewRef.current = null;
+    if (!enabled || !file) return;
+    // Re-fires on a restored draft too, since `file` is a fresh File rebuilt
+    // from the record either way (see useEditorDraftPersistence's fileFrom) -
+    // one redundant rasterization of a page the record may already have a
+    // preview for. Deduping would mean threading "this file came from a
+    // restore" through this hook's params just to save one decode; not worth
+    // it against the restore path staying this thin.
+    let cancelled = false;
+    import('./thumbnails.js')
+      .then(({ renderDraftPreview }) => renderDraftPreview(file))
+      .then((dataUrl) => {
+        if (!cancelled) previewRef.current = dataUrl;
+      })
+      .catch(() => {
+        // A preview is decoration. An encrypted or malformed PDF that pdf.js
+        // refuses must not take the draft down with it.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, file]);
 
   // Debounced autosave on edit-state changes while editing.
   useEffect(() => {

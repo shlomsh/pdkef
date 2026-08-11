@@ -1,0 +1,160 @@
+/* The home page's resume-draft card. Colocated with ResumeDraftCard.jsx per
+   the CSS Modules convention this repo uses outside the Tailwind static
+   surface - see CLAUDE.md's styling-direction section. This card lives on an
+   .astro page but is rendered by a Preact island, so it follows the island's
+   convention, not the page's Tailwind one. */
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary-tint);
+  border-radius: 14px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.heading {
+  margin: 0;
+  padding: 0.7rem 1rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* The desktop homepage is laid out to fit hero + card + dropzone + tool grid
+   in one viewport with no scroll (index.astro's `min-h-[calc(100svh-3.5rem)]
+   justify-center`); a resume card is real height nothing budgeted for before
+   it shipped, and with two rows it was enough to push the tool grid past the
+   fold. Trims row padding and the preview size - the two things a fixed
+   number of drafts pays for per row - rather than the type scale, which stays
+   legible either way. */
+@media (min-width: 1024px) {
+  .heading {
+    padding: 0.5rem 1rem;
+  }
+
+  .row {
+    padding: 0.4rem 1rem;
+  }
+
+  .preview {
+    width: 32px;
+    height: 42px;
+  }
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.65rem 1rem;
+}
+
+.row + .row {
+  border-top: 1px solid var(--color-border);
+}
+
+.preview {
+  flex: none;
+  width: 40px;
+  height: 52px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  object-fit: cover;
+  object-position: top;
+}
+
+.details {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toolIcon {
+  flex: none;
+  color: var(--color-muted-light);
+}
+
+.when::before {
+  content: '\00b7';
+  margin-right: 0.3rem;
+}
+
+.when {
+  flex: none;
+}
+
+.continue,
+.continuePrimary {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.continuePrimary {
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.continuePrimary:hover,
+.continuePrimary:focus-visible {
+  background: var(--color-primary-hover);
+}
+
+.continue {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+}
+
+.continue:hover,
+.continue:focus-visible {
+  background: var(--color-primary-soft);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

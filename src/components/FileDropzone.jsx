@@ -1,8 +1,26 @@
 import { useState } from 'preact/hooks';
-import { loadDraft, deleteDraft, saveHandoff } from '../lib/draftStore.js';
+import { loadDraft, deleteDraft, saveHandoff, readDraftMeta } from '../lib/draftStore.js';
 import ConfirmDialog from './ConfirmDialog.jsx';
 import dialogStyles from './Dialog.module.css';
 import DropzoneEmptyState from './DropzoneEmptyState.jsx';
+import ResumeDraftCard from './ResumeDraftCard.jsx';
+import homepageStyles from './FileDropzone.module.css';
+
+// Every tool that persists a draft. Not sourced from tools.js - most tools
+// there have no draft feature at all, and this list has to stay in the exact
+// order the resume card should check/display them in.
+const DRAFT_TOOLS = ['sign', 'redact'];
+
+// Synchronous, so the client-only launcher starts with the complete local
+// state rather than fetching it after its first render.
+function readAllDraftMeta() {
+  return DRAFT_TOOLS.map((tool) => {
+    const meta = readDraftMeta(tool);
+    return meta && { tool, ...meta };
+  })
+    .filter(Boolean)
+    .sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+}
 
 /**
  * The home page's dropzone. Unlike the one inside BasePdfTool it does not run a
@@ -24,6 +42,9 @@ import DropzoneEmptyState from './DropzoneEmptyState.jsx';
  */
 export default function FileDropzone({ multiple = true, accept = "application/pdf", href, toolTarget, className = '' }) {
   const [pending, setPending] = useState(null);
+  // Lazy initializer, not an effect: the launcher renders its complete local
+  // state in one client pass, with no asynchronous metadata fetch.
+  const [drafts] = useState(readAllDraftMeta);
 
   // Park the file for `toolTarget` and go there. Split out from the drop handler
   // so the confirmation can call it later, once the user has agreed.
@@ -50,12 +71,25 @@ export default function FileDropzone({ multiple = true, accept = "application/pd
 
   return (
     <>
+      <ResumeDraftCard drafts={drafts} />
+
       <DropzoneEmptyState
         multiple={multiple}
         accept={accept}
         href={href}
         onFiles={handleFiles}
-        className={className}
+        className={`${className} ${drafts.length > 0 ? homepageStyles.compact : ''}`}
+        // The card above already made the primary pitch to a returning
+        // visitor; this keeps the dropzone from repeating "Drop PDFs here" as
+        // if nothing had just answered that question for them.
+        message={drafts.length > 0 ? 'Or start something new' : undefined}
+        // Same reasoning, sized: a resume card is real height the desktop
+        // layout's one-viewport budget never accounted for (see
+        // FileDropzone.module.css's header comment) - shrink the now-
+        // secondary CTA to make room rather than let the tool grid below it
+        // get pushed past the fold. `compact` only controls JSX (hiding the
+        // icon/privacy line); the row-layout CSS comes from the class above.
+        compact={drafts.length > 0}
       />
 
       <ConfirmDialog

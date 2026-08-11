@@ -1,0 +1,37 @@
+/* Homepage-only overrides for DropzoneEmptyState's "or start something new"
+   state, once a resume-draft card already occupies the primary spot above it.
+   Deliberately NOT added to Dropzone.module.css: that file is also imported
+   by BasePdfTool.jsx, which every tool page server-renders, so anything added
+   there is inlined into all of them regardless of whether a given page ever
+   sets `compact` - see check-css-bundle.js's per-page budget. FileDropzone.jsx
+   is a client:only island, so Astro never inlines this file into any page's
+   HTML at all; it only ever ships in the client bundle that already needs it.
+
+   Selectors target children by position/tag, not by DropzoneEmptyState's own
+   class names - those live in Dropzone.module.css's separate hash namespace,
+   which this file has no access to. */
+@media (min-width: 1024px) {
+  .compact {
+    min-height: 0;
+    flex-direction: row;
+    justify-content: center;
+    gap: var(--space-3);
+    /* !important: this class is combined, in the same className string, with
+       index.astro's `min-[1024px]:!py-6` (a Tailwind `!` utility, itself
+       already !important) on the same element - without this, that utility's
+       vertical padding wins on specificity-among-equals and the desktop
+       compaction this class exists for silently does nothing. */
+    padding: 0.85rem 1.25rem !important;
+  }
+
+  .compact > p {
+    font-size: 0.92rem;
+  }
+
+  .compact > a,
+  .compact > label {
+    margin-top: 0;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.88rem;
+  }
+}

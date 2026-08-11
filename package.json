@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/generate-precache-manifest.mjs",
     "preview": "astro preview",
     "typecheck": "astro check",
     "test": "vitest run",

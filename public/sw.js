@@ -2,42 +2,64 @@
 // deploy where you want clients to drop their old cache.
 //
 // Strategy:
-//   - HTML (navigations): network-first, falling back to the cached shell
-//     when offline. Keeps the page fresh when online, since asset
-//     filenames change on build.
-//   - Non-hashed same-origin assets (favicon.png, manifest.webmanifest, icons, etc.):
-//     network-first, falling back to the cache when offline. This ensures
-//     logo and configuration changes are picked up immediately when online.
-//   - Content-hashed same-origin assets (JS/CSS under /_astro/):
-//     cache-first, populated as each asset is first requested.
+//   - The complete built application shell is precached during install.
+//   - HTML navigations are cache-first and refresh in the background, so a
+//     returning visitor can reopen the app when the server is unavailable.
+//   - Other same-origin assets are cache-first after precache or first use.
 //   - Cross-origin requests are never intercepted — this app makes none
 //     in normal operation; not touching them is a deliberate safeguard.
-const CACHE_VERSION = 'pdkef-v4';
+const CACHE_VERSION = 'pdkef-__BUILD_ID__';
 
-const PRECACHE_URLS = ['/', '/favicon.ico', '/manifest.webmanifest'];
+const PRECACHE_MANIFEST_URL = '/precache-manifest.json';
+
+// A real ServiceWorkerGlobalScope resolves a bare '/path' Request against the
+// worker's own script URL implicitly, same as any Window/Worker context - but
+// nothing here should depend on an ambient base that only exists in a browser.
+// self.location is already load-bearing elsewhere in this file (the fetch
+// handler's origin check below), so resolving explicitly against it costs
+// nothing and makes every fetch in this file behave identically under a real
+// browser and under a Node-based test harness with no implicit base URL.
+function resolve(path) {
+  return new URL(path, self.location.origin).href;
+}
+
+async function precacheAppShell() {
+  const manifestResponse = await fetch(new Request(resolve(PRECACHE_MANIFEST_URL), { cache: 'reload' }));
+  if (!manifestResponse.ok) {
+    throw new Error(`Failed to load precache manifest: ${manifestResponse.status}`);
+  }
+  const { urls } = await manifestResponse.json();
+  if (!Array.isArray(urls) || urls.length === 0) {
+    throw new Error('Precache manifest has no URLs.');
+  }
+
+  const cache = await caches.open(CACHE_VERSION);
+  await Promise.all(urls.map(async (url) => {
+    const response = await fetch(new Request(resolve(url), { cache: 'reload' }));
+    if (!response.ok) {
+      throw new Error(`Failed to precache ${url}: ${response.status}`);
+    }
+    await cache.put(url, response);
+  }));
+}
+
+function navigationCacheKey(request) {
+  return new URL(request.url).pathname;
+}
+
+async function refreshNavigation(request, cache, cacheKey) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) await cache.put(cacheKey, response.clone());
+    return response;
+  } catch {
+    return null;
+  }
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches
-      .open(CACHE_VERSION)
-      .then((cache) => {
-        // Force request to bypass HTTP cache to ensure we get fresh assets
-        const cachePromises = PRECACHE_URLS.map((url) => {
-          return fetch(new Request(url, { cache: 'reload' }))
-            .then((response) => {
-              if (response.ok) {
-                return cache.put(url, response);
-              }
-              throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
-            })
-            .catch(() => {
-              // Fallback if reload cache mode is unsupported or fails
-              return fetch(url).then((response) => cache.put(url, response));
-            });
-        });
-        return Promise.all(cachePromises);
-      })
-      .then(() => self.skipWaiting()),
+    precacheAppShell().then(() => self.skipWaiting()),
   );
 });
 
@@ -57,48 +79,39 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // 1. Navigation requests (HTML pages): Network-first with root fallback
+  // 1. Navigation requests: use the cached route immediately and refresh it
+  // in the background. Query strings intentionally share their page shell -
+  // /sign/?action=open receives cached /sign/ while location.search remains
+  // available to the hydrated client code.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(() => caches.match(request).then((cached) => cached ?? caches.match('/'))),
+      caches.open(CACHE_VERSION).then(async (cache) => {
+        const cacheKey = navigationCacheKey(request);
+        const cached = await cache.match(cacheKey);
+        if (cached) {
+          event.waitUntil(refreshNavigation(request, cache, cacheKey));
+          return cached;
+        }
+        const response = await refreshNavigation(request, cache, cacheKey);
+        return response ?? cache.match('/');
+      }),
     );
     return;
   }
 
-  // 2. Non-hashed assets (favicon, manifest, icons, etc.): Network-first
-  const isHashedAsset = url.pathname.startsWith('/_astro/');
-  if (!isHashedAsset) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => caches.match(request)),
-    );
-    return;
-  }
-
-  // 3. Content-hashed assets (JS/CSS built by Astro): Cache-first
+  // 2. Every other same-origin asset is cache-first. The build manifest has
+  // already populated the essential app shell; this caches any later asset on
+  // first use without making it a condition of a navigation response.
   event.respondWith(
-    caches.match(request).then((cached) => {
+    caches.open(CACHE_VERSION).then((cache) => cache.match(request).then((cached) => {
       if (cached) return cached;
       return fetch(request).then((response) => {
         if (response.ok) {
           const copy = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
+          cache.put(request, copy);
         }
         return response;
       });
-    }),
+    })),
   );
 });

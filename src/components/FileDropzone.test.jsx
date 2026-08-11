@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone from './FileDropzone.jsx';
 import styles from './Dropzone.module.css';
-import { loadDraft, deleteDraft, saveDraft, saveHandoff } from '../lib/draftStore.js';
+import { loadDraft, deleteDraft, saveDraft, saveHandoff, readDraftMeta } from '../lib/draftStore.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 
 vi.mock('../lib/draftStore.js', () => ({
@@ -11,6 +11,9 @@ vi.mock('../lib/draftStore.js', () => ({
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   saveDraft: vi.fn(() => Promise.resolve(true)),
   saveHandoff: vi.fn(() => Promise.resolve(true)),
+  // Synchronous by contract (see draftStore.js) - the resume card reads it at
+  // mount time, before any of the async mocks above would have settled.
+  readDraftMeta: vi.fn(() => null),
 }));
 
 function dropOn(dropzone, files) {
@@ -74,6 +77,70 @@ describe('FileDropzone', () => {
     expect(link.textContent).toContain('Choose files');
     // In href mode there is no hidden file input.
     expect(container.querySelector('input[type="file"]')).toBeNull();
+  });
+
+  describe('resume-draft card', () => {
+    it('renders nothing when no tool has a draft', () => {
+      readDraftMeta.mockReturnValue(null);
+      mount({ toolTarget: 'sign', href: '/sign?action=open' });
+      expect(container.textContent).not.toContain('Pick up where you left off');
+      expect(container.textContent).not.toContain('Continue');
+    });
+
+    it('shows a saved draft above the dropzone, and drops the "Drop PDFs" pitch', () => {
+      readDraftMeta.mockImplementation((tool) =>
+        tool === 'sign'
+          ? { fileName: 'contract.pdf', savedAt: Date.now() - 60_000, preview: 'data:image/jpeg;base64,abc' }
+          : null,
+      );
+      mount({ toolTarget: 'sign', href: '/sign?action=open' });
+
+      expect(container.textContent).toContain('Pick up where you left off');
+      expect(container.textContent).toContain('contract.pdf');
+      expect(container.textContent).toContain('Sign & Fill PDF');
+      expect(container.querySelector('img[src="data:image/jpeg;base64,abc"]')).not.toBeNull();
+
+      const continueLink = container.querySelector('a[href="/sign/"]');
+      expect(continueLink).not.toBeNull();
+      expect(continueLink.textContent).toContain('Continue');
+
+      // The card already made the case for resuming; the dropzone below
+      // shouldn't repeat the from-scratch pitch as if the card said nothing.
+      expect(container.textContent).not.toContain('Drop PDFs here');
+      expect(container.textContent).toContain('Or start something new');
+    });
+
+    it('lists both tools, most recently saved first, and never renders a dismiss control', () => {
+      const older = Date.now() - 2 * 60 * 60 * 1000;
+      const newer = Date.now() - 60_000;
+      readDraftMeta.mockImplementation((tool) => {
+        if (tool === 'sign') return { fileName: 'older-sign.pdf', savedAt: older };
+        if (tool === 'redact') return { fileName: 'newer-redact.pdf', savedAt: newer };
+        return null;
+      });
+      mount({ toolTarget: 'sign', href: '/sign?action=open' });
+
+      const names = Array.from(container.querySelectorAll('li')).map((li) =>
+        li.textContent.includes('newer-redact.pdf') ? 'redact' : 'sign',
+      );
+      expect(names).toEqual(['redact', 'sign']);
+
+      // No '×'/close control anywhere in the card: dismissing would hide a
+      // draft whose bytes are still sitting in IndexedDB, implying it's gone
+      // when it isn't. See ResumeDraftCard.jsx's header comment.
+      expect(container.querySelector('button[aria-label="Hide"]')).toBeNull();
+      expect(container.textContent).not.toMatch(/[×✕]/);
+    });
+
+    it('draws an empty preview box, not a broken image, when a draft has no preview', () => {
+      readDraftMeta.mockImplementation((tool) =>
+        tool === 'sign' ? { fileName: 'pdf1.pdf', savedAt: Date.now() } : null,
+      );
+      mount({ toolTarget: 'sign', href: '/sign?action=open' });
+
+      expect(container.querySelector('img')).toBeNull();
+      expect(container.textContent).toContain('pdf1.pdf');
+    });
   });
 
   it('adds and removes is-dragover class on drag events', () => {
