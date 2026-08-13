@@ -122,7 +122,10 @@ export default function DraggableWrapper({
     transform: 'none',
   } : {
     top: `${element.top}%`,
-    width: element.width && !view.usesIntrinsicSize ? `${element.width}%` : 'auto',
+    // An intrinsically sized type can still opt individual elements into an
+    // explicit width (comb text): the span is the whole point there, and the
+    // height stays intrinsic either way.
+    width: element.width && (!view.usesIntrinsicSize || view.allowsExplicitWidth) ? `${element.width}%` : 'auto',
     height: element.height && !view.usesIntrinsicSize ? `${element.height}%` : 'auto',
     ...(isRtlText
       ? { right: `${100 - element.left}%` }
@@ -142,6 +145,7 @@ export default function DraggableWrapper({
       data-editor-element
       data-editor-active={isActive || undefined}
       data-editor-shape={isShape || undefined}
+      data-editor-comb={element.comb || undefined}
       style={style}
       onMouseDown={!isLine ? handlePointerDown : undefined}
       onTouchStart={!isLine ? handlePointerDown : undefined}

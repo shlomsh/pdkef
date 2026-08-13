@@ -4,6 +4,7 @@ import usePdfCoordinates from '../../../lib/usePdfCoordinates.js';
 import { getEffectiveTextDirection } from '../../../lib/signHelpers.js';
 import { DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
 import { resolveFontFamily } from '../../../lib/fonts.js';
+import { combLayout, isComb } from '../../../lib/comb.js';
 import workspaceStyles from '../Workspace.module.css';
 import elementStyles from '../EditorElement.module.css';
 
@@ -56,12 +57,17 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   // Shown in the empty box, and measured to size it. One string for both, so the
   // box can never be sized against copy it isn't showing.
   const placeholder = isEditing ? 'Type your text' : 'Double-click to edit';
+  // Comb: the span is explicit and the characters are placed by cell, so the box
+  // no longer measures itself from the text. Only its height still does, and it
+  // is always exactly one line - a comb is a single row of boxes.
+  const comb = isComb(element);
+  const cells = comb ? combLayout(element) : null;
 
   return (
     <>
       <div
         ref={textRef}
-        className={elementStyles['text-display']}
+        className={[elementStyles['text-display'], comb && elementStyles['text-display-comb']].filter(Boolean).join(' ')}
         data-editor-text-display
         style={{ fontSize: `${textFontSize}px` }}
         onDblClick={onBeginEdit}
@@ -77,8 +83,40 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
             fontStyle: element.fontStyle || 'normal'
           }}
         >
-          {(element.text || placeholder) + '\u200B'}
+          {comb ? '\u200B' : (element.text || placeholder) + '\u200B'}
         </div>
+        {comb && (
+          <div
+            className={elementStyles['text-comb']}
+            data-editor-text-comb
+            aria-hidden="true"
+            style={{
+              fontFamily: renderedFontFamily,
+              fontWeight: element.fontWeight || 'normal',
+              fontStyle: element.fontStyle || 'normal',
+              color: element.color || '#000000'
+            }}
+          >
+            {/* Editor-only guides. They exist to be lined up against the rules
+                printed on the page, and never reach the exported file. */}
+            {isActive && cells.slice(1).map((cell) => (
+              <span
+                key={`guide-${cell.index}`}
+                className={elementStyles['text-comb-guide']}
+                style={{ left: `${(cell.index / cells.length) * 100}%` }}
+              />
+            ))}
+            {cells.map((cell) => (
+              <span
+                key={`cell-${cell.index}`}
+                className={elementStyles['text-comb-cell']}
+                style={{ left: `${cell.centerFraction * 100}%` }}
+              >
+                {cell.char}
+              </span>
+            ))}
+          </div>
+        )}
         {/* Outside an edit session the textarea is inert: it cannot take the
             caret by click (pointer-events, via the class) or by Tab (tabIndex),
             and cannot be typed into (readOnly). That is what frees a plain click
@@ -104,7 +142,11 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
             fontFamily: renderedFontFamily,
             fontWeight: element.fontWeight || 'normal',
             fontStyle: element.fontStyle || 'normal',
-            color: element.color || '#000000'
+            // In comb layout the cells above are what you see; the textarea
+            // stays underneath purely to take the typing, so only its caret
+            // shows through.
+            color: comb ? 'transparent' : (element.color || '#000000'),
+            ...(comb ? { caretColor: element.color || '#000000' } : {})
           }}
         />
       </div>

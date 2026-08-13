@@ -6,7 +6,8 @@ import {
   DEFAULT_START_WIDTH_PCT,
   DEFAULT_FONT_SIZE_PT,
   ASPECT_RATIO_SYMBOL,
-  ASPECT_RATIO_TEXT
+  ASPECT_RATIO_TEXT,
+  MIN_COMB_WIDTH_PCT
 } from '../constants/signGeometry.js';
 
 /**
@@ -130,6 +131,20 @@ export default function useElementResize({
           handle,
           delta: { x: dxPercent, y: dyPercent },
           start: { width: startWidth, height: startHeight, left: startLeft, top: startTop },
+        });
+      }
+
+      // Side handles that set a width without touching font size (comb text).
+      // Checked before applyTextResize because text declares both: the corner
+      // handles still mean font size, and only the type knows which is which.
+      if (elementDefinition.resizeBehavior.applyWidthResize && (handle === 'left' || handle === 'right')) {
+        const { x: dxPercent } = getDeltaPercent(rawDx, 0, pageWrapper);
+        return elementDefinition.resizeBehavior.applyWidthResize({
+          handle,
+          delta: { x: dxPercent },
+          start: { left: startLeft, width: startWidth },
+          isRtl: getEffectiveTextDirection(element) === 'rtl',
+          minWidth: MIN_COMB_WIDTH_PCT,
         });
       }
 

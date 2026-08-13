@@ -49,6 +49,11 @@ export const TEXT_BOX_PADDING_EM = 0.12;                // Text box padding (em)
 // click point instead of hanging it below the pointer.
 export const TEXT_BOX_LINE_HEIGHT_EM = DEFAULT_LINE_HEIGHT_EM + TEXT_BOX_PADDING_EM * 2;
 
+// Comb layout (one character per cell, for pre-printed form boxes)
+export const DEFAULT_COMB_WIDTH_PCT = 40;               // Span a comb takes when first switched on (% of page width)
+export const MIN_COMB_WIDTH_PCT = 2;                    // Floor for the side-handle drag, so the box stays grabbable
+export const MAX_COMB_CELLS = 60;                       // Upper bound on the cell stepper
+
 // Miscellaneous UI Sizing/Offsets
 export const TOOLBAR_FLOATING_OFFSET = 8;             // Offset in pixels for Floating UI positioning
 export const LINE_TOOLBAR_MARGIN_TOP_PX = -10;         // Margin top offset in pixels for line toolbar positioning

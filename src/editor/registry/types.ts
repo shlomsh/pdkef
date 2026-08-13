@@ -117,6 +117,20 @@ export interface TextPositionInput {
 export interface TextPositionPatch { left: number; top: number; }
 
 /**
+ * Side-handle drag that sets an explicit width without touching font size.
+ * Only comb text uses it today; the corner handles keep meaning font size.
+ */
+export interface WidthResizeInput {
+  handle: ResizeHandle;
+  delta: { x: number };
+  start: { left: number; width: number };
+  isRtl: boolean;
+  minWidth: number;
+}
+
+export interface WidthResizePatch { left: number; width: number; }
+
+/**
  * Declarative flags DraggableWrapper reads instead of comparing `element.type`
  * directly, so the wrapper's className/style/interactivity logic stays type-agnostic
  * (E7.6). Absent flags default to `false`/standard box behavior.
@@ -132,6 +146,11 @@ export interface ViewFlags {
   usesRtlAnchoring?: boolean;
   /** Width/height come from CSS intrinsic sizing (`auto`), not `element.width`/`height` (text). */
   usesIntrinsicSize?: boolean;
+  /**
+   * An intrinsically sized type that may still carry an explicit `element.width`
+   * on individual elements (comb text). Height stays intrinsic either way.
+   */
+  allowsExplicitWidth?: boolean;
 }
 
 export interface ResizeWriteContext {
@@ -159,8 +178,14 @@ export interface ElementDefinition<T extends EditorElement = EditorElement> {
   /** DraggableWrapper's element-root className/style/interactivity contract for this type. */
   view?: ViewFlags;
   resizeBehavior: {
-    handles: readonly ResizeHandle[];
+    /**
+     * A function form lets a type vary its handles per element - comb text
+     * exposes side handles only while comb is on, so a plain text box keeps
+     * exactly the four font-size corners it has always had.
+     */
+    handles: readonly ResizeHandle[] | ((element: T) => readonly ResizeHandle[]);
     applyBoxResize?: (input: BoxResizeInput) => BoxResizePatch;
+    applyWidthResize?: (input: WidthResizeInput) => WidthResizePatch;
     applyLineResize?: (input: LineResizeInput) => LineResizePatch;
     applyCenteredResize?: (input: CenteredResizeInput) => CenteredResizePatch;
     applyTextResize?: (input: TextResizeInput) => TextResizePatch;
