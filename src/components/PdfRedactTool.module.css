@@ -65,12 +65,14 @@
 /* Delete tool: unmarked objects are invisible until hovered, so a text-dense
    page isn't covered in outlines before the user has done anything - the
    same "chrome appears on hover/selection, not at rest" rule RedactBox's
-   controls follow above. */
+   controls follow above. Dashed reads as "previewing, not committed yet" -
+   the deliberate opposite of .delete-mark's solid border below, so the two
+   states are told apart at a glance rather than by shade of red alone. */
 .delete-candidate {
   cursor: pointer;
-  border-radius: 2px;
-  border: 1px solid transparent;
-  transition: background-color 0.1s var(--ease-out), border-color 0.1s var(--ease-out);
+  border-radius: 3px;
+  border: 1.5px dashed transparent;
+  transition: background-color 0.12s var(--ease-out), border-color 0.12s var(--ease-out);
 }
 
 .delete-candidate:hover {
@@ -78,39 +80,70 @@
   border-color: var(--color-danger);
 }
 
-/* A marked object: dashed to read as "removed", not "hidden" like a blackout
-   box - it stays visible through the underlying content by design, since
-   nothing is painted over it. Deletion happens at export. */
+/* A marked object. Solid border (vs. the candidate's dashed preview above)
+   reads as committed, not tentative. The fill is a diagonal hatch rather than
+   a flat tint - a stripe pattern in fixed px bands stays the same visual
+   weight whether the mark is a wide, short line of text or a small square
+   image, where a flat wash could still look right but "crossed out" reads
+   immediately, and the pattern is deliberately translucent enough that the
+   underlying text stays legible: the user should be able to double check
+   what they selected without hovering away the mark to look. Deletion is
+   still deferred to export - nothing is actually removed until Download. */
 .delete-mark {
-  border: 2px dashed var(--color-danger);
-  background: var(--color-danger-soft);
-  border-radius: 2px;
+  position: relative;
+  border: 1.5px solid var(--color-danger);
+  border-radius: 3px;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-danger-soft) 0,
+    var(--color-danger-soft) 6px,
+    rgba(184, 76, 88, 0.16) 6px,
+    rgba(184, 76, 88, 0.16) 12px
+  );
+  animation: delete-mark-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@keyframes delete-mark-pop {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* The undo control stays visible at rest, unlike RedactBox's controls above -
+   "marked for deletion" is a stronger claim than "here is a box", and hiding
+   the only way to check/undo it behind a hover would make that claim harder
+   to verify at a glance on a page with several marks. It inverts to solid
+   on hover as the click invitation, same red-fills-on-hover language the
+   toolbar's own buttons use. */
 .delete-mark-btn {
   position: absolute;
-  top: -10px;
-  right: -10px;
-  width: 24px;
-  height: 24px;
+  top: -9px;
+  right: -9px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: none;
+  border: 1.5px solid var(--color-danger);
   border-radius: 50%;
-  background: var(--color-danger);
-  color: #fff;
-  font-size: 14px;
-  line-height: 1;
+  background: var(--color-surface);
+  color: var(--color-danger);
   cursor: pointer;
   box-shadow: var(--shadow-sm);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
+  opacity: 0.9;
+  transition: transform 0.12s var(--ease-out), opacity 0.12s var(--ease-out),
+    background-color 0.12s var(--ease-out), color 0.12s var(--ease-out);
 }
 
-.delete-mark:hover .delete-mark-btn {
+.delete-mark-btn:hover {
   opacity: 1;
-  pointer-events: auto;
+  background: var(--color-danger);
+  color: #fff;
+  transform: scale(1.12);
 }
