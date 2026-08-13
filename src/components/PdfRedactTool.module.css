@@ -85,30 +85,40 @@
   border-color: var(--color-danger);
 }
 
-/* A marked object. Solid border (vs. the candidate's dashed preview above)
-   reads as committed, not tentative. The fill is a diagonal hatch rather than
-   a flat tint - a stripe pattern in fixed px bands stays the same visual
-   weight whether the mark is a wide, short line of text or a small square
-   image, where a flat wash could still look right but "crossed out" reads
-   immediately, and the pattern is deliberately translucent enough that the
-   underlying text stays legible: the user should be able to double check
-   what they selected without hovering away the mark to look. Deletion is
-   still deferred to export - nothing is actually removed until Download.
-   Both stripe colors must be rgba(), not the opaque --color-danger-soft
-   token - see the note on .delete-candidate:hover above; the same mistake
-   here would have hidden the text under half of every hatch band. */
+/* A marked object. No fill at all - the hatch-pattern version of this rule
+   twice shipped a fill color that turned out translucent-in-comment but
+   opaque-in-practice, hiding the exact content a user needs to see to
+   double check what they selected. Zero fill makes that whole bug class
+   impossible instead of merely tuned around, and it's also the honest
+   answer until the delete-mark can genuinely stop rendering the object
+   (tracked in scrum-board.data.js) rather than decorate over it - a plain
+   outline never overclaims what's actually happened.
+   Solid border (vs. the candidate's dashed preview above) reads as
+   committed, not tentative. The strikethrough is a single horizontal line
+   through the vertical center rather than a corner-to-corner diagonal,
+   deliberately: a diagonal's apparent thickness swings with the box's own
+   aspect ratio (fine on a square image mark, either a hairline or a thick
+   slash on a long, short line of text), where a fixed-height horizontal
+   line reads the same "struck out" regardless of shape - the same
+   read as text-decoration: line-through, on an element that isn't text. */
 .delete-mark {
   position: relative;
   border: 1.5px solid var(--color-danger);
   border-radius: 3px;
-  background-image: repeating-linear-gradient(
-    -45deg,
-    rgba(184, 76, 88, 0.07) 0,
-    rgba(184, 76, 88, 0.07) 6px,
-    rgba(184, 76, 88, 0.18) 6px,
-    rgba(184, 76, 88, 0.18) 12px
-  );
+  background: transparent;
   animation: delete-mark-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.delete-mark::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1.5px;
+  background: var(--color-danger);
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 @keyframes delete-mark-pop {
