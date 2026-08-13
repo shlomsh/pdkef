@@ -13,3 +13,15 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
     disconnect() {}
   };
 }
+
+// IntersectionObserver: used by useCurrentPage.js to track the fullscreen
+// page indicator. Same reasoning as ResizeObserver above - a no-op keeps
+// components that use it mountable; tests that care about the callback
+// behavior install their own controllable mock instead.
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  globalThis.IntersectionObserver = class IntersectionObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}

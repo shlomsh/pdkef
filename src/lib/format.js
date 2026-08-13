@@ -14,13 +14,18 @@ export function formatFileSize(bytes) {
   return `${value.toFixed(value < 10 ? 1 : 0)} ${UNITS[unitIndex]}`;
 }
 
-// Metadata line for the loaded-state file bar, e.g. "3 pages · 1.4 MB".
-export function describeFile(file, pageCount) {
+// Metadata line for the loaded-state file bar, e.g. "3 pages · 1.4 MB". When
+// `currentPage` is given (the fullscreen page indicator - see
+// useCurrentPage.js - is only tracked there, since it needs a scrollable
+// workspace to observe), the page clause becomes "Page 2 of 3" instead: the
+// live position is more useful than the static count once you can't see the
+// browser's own scrollbar for orientation.
+export function describeFile(file, pageCount, currentPage) {
   if (!file) return undefined;
-  return [
-    pageCount && `${pageCount} page${pageCount === 1 ? '' : 's'}`,
-    formatFileSize(file.size),
-  ]
+  const pageLabel = pageCount
+    ? (currentPage && pageCount > 1 ? `Page ${currentPage} of ${pageCount}` : `${pageCount} page${pageCount === 1 ? '' : 's'}`)
+    : undefined;
+  return [pageLabel, formatFileSize(file.size)]
     .filter(Boolean)
     .join(' · ');
 }

@@ -7,6 +7,16 @@
 .workspace { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 100%; margin: 0 auto; gap: var(--space-4); animation: workspace-in 0.2s var(--ease-out); }
 @keyframes workspace-in { from { opacity: 0; } to { opacity: 1; } }
 .workspace:fullscreen, .workspace:-webkit-full-screen, .pseudo-fullscreen { max-width: none; height: 100%; background: var(--color-bg); overflow-y: auto; padding: var(--space-4); }
+/* The sticky editor toolbar (ToolShell's `.editor`, this workspace's first
+   child) reaches its stuck position immediately here: unlike the normal page,
+   .workspace itself is the scrolling ancestor and its own padding-top already
+   satisfies the toolbar's `top: 1rem` offset at scroll 0. The flex `gap` that
+   normally separates it from the pages below is ordinary flowed space, so it
+   scrolls away under the stuck toolbar the moment the document scrolls at
+   all - the gap only ever showed in the very first, unscrolled frame. A
+   margin on the toolbar itself travels with it while stuck, so the pages
+   never scroll flush against the glass. */
+.workspace:fullscreen > :first-child, .workspace:-webkit-full-screen > :first-child, .pseudo-fullscreen > :first-child { margin-bottom: var(--space-4); }
 .pseudo-fullscreen { position: fixed; inset: 0; z-index: 9999; }
 .is-processing { pointer-events: none; }
 .pages-container { width: 100%; display: flex; flex-direction: column; gap: 2rem; }

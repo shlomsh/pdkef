@@ -16,6 +16,7 @@ import { usePdfShare } from '../lib/usePdfShare.js';
 import UndoHistoryModal from './UndoHistoryModal.jsx';
 import ConfirmDialog from './ConfirmDialog.jsx';
 import { describeFile } from '../lib/format.js';
+import useCurrentPage from '../lib/useCurrentPage.js';
 
 export default function PdfSignTool() {
   return (
@@ -96,6 +97,13 @@ function PdfSignToolInner() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const [tempPlacement, setTempPlacement] = useState(null);
+  const isFullscreenActive = isFullscreen || isPseudoFullscreen;
+  const currentPage = useCurrentPage({
+    active: isFullscreenActive,
+    rootRef: workspaceRef,
+    pageRefs: pageWrapperRefs,
+    numPages,
+  });
 
   // Track fullscreen state (also covers exiting via Esc, not just our own button)
   useEffect(() => {
@@ -702,7 +710,7 @@ function PdfSignToolInner() {
       onFilesAdded={handleFilesAdded}
       multiple={false}
       fileLabel={file?.name}
-      fileMeta={describeFile(file, numPages)}
+      fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null)}
       draftSaved={status === 'editing'}
       hasWork={elements.length > 0}
       workNoun="your annotations"
