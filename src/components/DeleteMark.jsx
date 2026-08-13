@@ -40,7 +40,13 @@ export default function DeleteMark({ el, onDelete }) {
         title="Keep this instead"
         aria-label={`Undo: keep ${el.kind === 'image' ? 'this image' : 'this text'}`}
       >
-        ✕
+        {/* Same rotate-back glyph as the toolbar's own Undo button - this badge
+            reverts the mark, it doesn't delete anything itself, so an undo arrow
+            reads more precisely than a generic ✕ or a trash icon would. */}
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 7v6h6" />
+          <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+        </svg>
       </button>
     </div>
   );
