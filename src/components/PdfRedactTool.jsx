@@ -1,15 +1,18 @@
-import { useState, useRef, useEffect } from 'preact/hooks';
+import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
 import BasePdfTool from './BasePdfTool.jsx';
 import PdfPageCanvas from './PdfPageCanvas.jsx';
 import { uniqueId, seedUniqueId } from '../lib/sign.js';
-import { redactPdf } from '../lib/redact.js';
+import { applyPageEdits } from '../lib/applyPageEdits.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { startGesture } from '../editor/gestures/controller.ts';
 import usePdfCoordinates from '../lib/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle } from '../editor/registry/redactionSurface.ts';
 import { useEditorDraftPersistence } from '../editor/workspace/useEditorDraftPersistence.js';
+import useDeletableObjects from '../lib/useDeletableObjects.js';
 import RedactToolbar from './RedactToolbar.jsx';
 import RedactBox from './RedactBox.jsx';
+import DeleteMark from './DeleteMark.jsx';
+import DeletableObjectOverlay from './DeletableObjectOverlay.jsx';
 import UndoHistoryModal from './UndoHistoryModal.jsx';
 import { createActionEntry } from '../lib/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
@@ -32,7 +35,7 @@ export default function PdfRedactTool() {
   const { canSharePdf, shareReady, prepare, clearPrepared, download, sharePrepared } = usePdfShare();
   const { getPointerPercent } = usePdfCoordinates();
 
-  const [activeStyle, setActiveStyle] = useState('blackout'); // 'blackout' | 'blur' | 'whiteout'
+  const [activeStyle, setActiveStyle] = useState('blackout'); // 'blackout' | 'blur' | 'whiteout' | 'delete'
   const [activeColor, setActiveColor] = useState('#ffffff');
   const [drawingState, setDrawingState] = useState(null); // { pageIndex, startX, startY, type, color }
   const drawingPreviewRef = useRef(null);
@@ -132,6 +135,16 @@ export default function PdfRedactTool() {
   // already finished editing would otherwise still be "the newer call" and clobber it.
   const loadStartedRef = useRef(false);
 
+  // What the Delete tool can offer to click on: images and text runs the PDF
+  // itself stores as a single object, found by parsing the source file's own
+  // content streams (not what's on the page after any edits this session has
+  // queued - the source never changes until export, only `elements` does).
+  const deletableObjects = useDeletableObjects(file, fileBytesRef.current);
+  const markedForDeletionIds = useMemo(
+    () => new Set(elements.filter((el) => el.type === 'delete').map((el) => el.sourceObjectId)),
+    [elements],
+  );
+
   const isFullscreenActive = isFullscreen || isPseudoFullscreen;
   const currentPage = useCurrentPage({
     active: isFullscreenActive,
@@ -210,6 +223,11 @@ export default function PdfRedactTool() {
   });
 
   const handlePointerDown = (e, pageIndex) => {
+    // Delete mode has its own click targets (DeletableObjectOverlay / DeleteMark
+    // below); it never draws a box, so the drag gesture this function starts
+    // must not run at all while it's active.
+    if (activeStyle === 'delete') return;
+
     if (e.target.closest(`.${styles['redact-element-btn']}`) || e.target.closest(`.${styles['redact-box']}`)) {
       return; // Ignore clicks on existing boxes or buttons
     }
@@ -259,6 +277,41 @@ export default function PdfRedactTool() {
 
   const updateElement = (id, changes) => {
     setElements(prev => prev.map(el => (el.id === id ? { ...el, ...changes } : el)));
+  };
+
+  // Delete tool: clicking a highlighted object queues it for removal by
+  // recording the byte span pdfObjects.js found for it. Clicking an
+  // already-marked object again un-marks it, through the same deleteElement
+  // path a regular redaction box's × button uses, so it gets the same
+  // undo-history treatment for free.
+  const toggleObjectDeletion = (object) => {
+    const existing = elements.find((el) => el.type === 'delete' && el.sourceObjectId === object.id);
+    if (existing) {
+      deleteElement(existing.id);
+      return;
+    }
+    const id = uniqueId();
+    setElements(prev => [...prev, {
+      id,
+      pageIndex: object.pageIndex,
+      type: 'delete',
+      sourceObjectId: object.id,
+      kind: object.kind,
+      preview: object.preview,
+      left: object.rect.left,
+      top: object.rect.top,
+      width: object.rect.width,
+      height: object.rect.height,
+      start: object.start,
+      end: object.end,
+    }]);
+    logAction(
+      'ADD_DELETE',
+      id,
+      object.pageIndex,
+      object.kind === 'image' ? 'Marked image for deletion' : 'Marked text for deletion',
+    );
+    setAnnouncement(object.kind === 'image' ? 'Image marked for deletion.' : 'Text marked for deletion.');
   };
 
   // Cmd/Ctrl+Z: undo the single most recently logged action. Deletion entries
@@ -342,10 +395,13 @@ export default function PdfRedactTool() {
     
     setStatus('redacting');
     setProgress(0);
-    setAnnouncement('Applying redactions and flattening pages...');
+    const hasBoxes = elements.some((el) => el.type !== 'delete');
+    setAnnouncement(
+      hasBoxes ? 'Applying redactions and flattening pages...' : 'Removing selected content...',
+    );
 
     try {
-      const redactedBlob = await redactPdf(file, elements, (p) => setProgress(p));
+      const redactedBlob = await applyPageEdits(file, elements, (p) => setProgress(p));
       const filename = `redacted_${file.name}`;
 
       if (exportAction === 'share' && prepare(redactedBlob, filename)) {
@@ -447,12 +503,14 @@ export default function PdfRedactTool() {
                   ref={(el) => pageWrapperRefs.current[i] = el}
                   onMouseDown={(e) => handlePointerDown(e, i)}
                   onTouchStart={(e) => handlePointerDown(e, i)}
-                  style={{ touchAction: 'none', cursor: 'crosshair', position: 'relative' }}
+                  style={{ touchAction: 'none', cursor: activeStyle === 'delete' ? 'default' : 'crosshair', position: 'relative' }}
                 >
                   <PdfPageCanvas pdfDocument={pdfDocument} pageNum={i + 1} />
-                  
-                  {/* Render existing redaction boxes */}
-                  {elements.filter(el => el.pageIndex === i).map(el => (
+
+                  {/* Render existing redaction boxes (delete marks render separately below - they
+                      have no color/drag/resize, so RedactBox and the registry it draws through
+                      don't apply to them) */}
+                  {elements.filter(el => el.pageIndex === i && el.type !== 'delete').map(el => (
                     <RedactBox
                       key={el.id}
                       el={el}
@@ -468,7 +526,24 @@ export default function PdfRedactTool() {
                       onClone={cloneWhiteoutElement}
                     />
                   ))}
-                  
+
+                  {/* Objects already queued for deletion - shown regardless of the active
+                      tool, same as redaction boxes above, so switching tools doesn't hide
+                      queued work. */}
+                  {elements.filter(el => el.pageIndex === i && el.type === 'delete').map(el => (
+                    <DeleteMark key={el.id} el={el} onDelete={deleteElement} />
+                  ))}
+
+                  {/* Delete tool's hover targets: only shown while that tool is active,
+                      and only for objects not already marked (DeleteMark covers those). */}
+                  {activeStyle === 'delete' && (
+                    <DeletableObjectOverlay
+                      objects={deletableObjects.filter((object) => object.pageIndex === i)}
+                      markedIds={markedForDeletionIds}
+                      onSelect={toggleObjectDeletion}
+                    />
+                  )}
+
                   {/* Render active drawing box */}
                   {drawingState && drawingState.pageIndex === i && (
                     <div

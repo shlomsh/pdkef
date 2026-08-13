@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import { extractPageObjects, getPageContentBytes } from './pdfObjects.js';
 import { deleteObjectsFromPdf, spliceOut, listDeletableObjects } from './deleteObjects.js';
@@ -250,5 +250,30 @@ describe('listDeletableObjects', () => {
     const objects = await listDeletableObjects(source);
     expect(new Set(objects.map((o) => o.pageIndex))).toEqual(new Set([0, 1]));
     expect(objects.filter((o) => o.pageIndex === 1)).toHaveLength(4);
+  });
+
+  it('skips a page the extractor cannot parse instead of failing the whole file', async () => {
+    const doc = await PDFDocument.load(await buildSample());
+    const [copied] = await doc.copyPages(doc, [0]);
+    doc.addPage(copied);
+    const source = new Uint8Array(await doc.save());
+
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const pdfObjects = await import('./pdfObjects.js');
+    const realExtract = pdfObjects.extractPageObjects;
+    const extractSpy = vi
+      .spyOn(pdfObjects, 'extractPageObjects')
+      .mockImplementation((page, pageIndex) => {
+        if (pageIndex === 1) throw new Error('unsupported operator');
+        return realExtract(page, pageIndex);
+      });
+
+    const objects = await listDeletableObjects(source);
+    expect(objects.every((o) => o.pageIndex === 0)).toBe(true);
+    expect(objects.length).toBeGreaterThan(0);
+    expect(consoleSpy).toHaveBeenCalled();
+
+    extractSpy.mockRestore();
+    consoleSpy.mockRestore();
   });
 });

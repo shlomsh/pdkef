@@ -136,6 +136,12 @@ describe('PdfRedactTool UI flow', () => {
 
       await act(async () => {
         generateButton.click();
+        // handleSavePdf now awaits applyPageEdits(), which conditionally chains
+        // deleteObjectsFromPdf() before redactPdf() - one more microtask hop than
+        // awaiting redactPdf() directly, even on this box-only path. A bare
+        // `click()` doesn't await the handler it fires, so give the promise
+        // chain a tick to actually settle before asserting its effects.
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
@@ -203,6 +209,9 @@ describe('PdfRedactTool UI flow', () => {
       expect(prepareButton).not.toBeNull();
       await act(async () => {
         prepareButton.click();
+        // See the comment on the same pattern above: applyPageEdits() adds one
+        // more microtask hop than awaiting redactPdf() directly.
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
@@ -228,6 +237,128 @@ describe('PdfRedactTool UI flow', () => {
       if (originalCanShare === undefined) delete navigator.canShare;
       else Object.defineProperty(navigator, 'canShare', { configurable: true, value: originalCanShare });
     }
+  });
+
+  describe('Delete tool', () => {
+    // The Delete tool needs an object to actually click on, which the fake
+    // makePdfFile() stub can't provide (it has no content stream to parse).
+    // num-1.pdf is a real, minimal PDF with one text run - the same fixture
+    // the share test above already uses for the same reason.
+    async function loadRealPdfAndSwitchToDelete() {
+      const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+      const fixtureBytes = fs.readFileSync(fixturePath);
+      const drawArea = await loadFileAndGetDrawArea(
+        new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
+      );
+
+      const deleteButton = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
+        .find((button) => button.textContent.includes('Delete'));
+      await act(async () => {
+        deleteButton.click();
+      });
+      // useDeletableObjects parses the real file asynchronously.
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      return drawArea;
+    }
+
+    it('highlights the one object the fixture contains', async () => {
+      await loadRealPdfAndSwitchToDelete();
+      const candidates = container.querySelectorAll(`.${redactStyles['delete-candidate']}`);
+      expect(candidates).toHaveLength(1);
+      expect(container.querySelectorAll(`.${redactStyles['delete-mark']}`)).toHaveLength(0);
+    });
+
+    it('marks an object for deletion on click, and un-marks it on undo', async () => {
+      await loadRealPdfAndSwitchToDelete();
+
+      const candidate = container.querySelector(`.${redactStyles['delete-candidate']}`);
+      await act(async () => {
+        candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
+      const mark = container.querySelector(`.${redactStyles['delete-mark']}`);
+      expect(mark).not.toBeNull();
+
+      const undoButton = mark.querySelector(`.${redactStyles['delete-mark-btn']}`);
+      await act(async () => {
+        undoButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      expect(container.querySelectorAll(`.${redactStyles['delete-mark']}`)).toHaveLength(0);
+      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(1);
+    });
+
+    it('does not start a redaction-box drag gesture while the Delete tool is active', async () => {
+      const drawArea = await loadRealPdfAndSwitchToDelete();
+
+      await act(async () => {
+        drawArea.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 200, bubbles: true }));
+      });
+      await act(async () => {
+        drawArea.dispatchEvent(new MouseEvent('mousemove', { clientX: 200, clientY: 400, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+
+      expect(container.querySelector(`.${redactStyles['redact-box']}`)).toBeNull();
+    });
+
+    it('produces a smaller, still-valid PDF with the marked object actually removed', async () => {
+      await loadRealPdfAndSwitchToDelete();
+
+      const candidate = container.querySelector(`.${redactStyles['delete-candidate']}`);
+      await act(async () => {
+        candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      let capturedBlob;
+      const originalCreateObjectURL = window.URL.createObjectURL;
+      const originalRevokeObjectURL = window.URL.revokeObjectURL;
+      window.URL.createObjectURL = vi.fn((blob) => {
+        capturedBlob = blob;
+        return 'blob:deleted-pdf';
+      });
+      window.URL.revokeObjectURL = vi.fn();
+
+      try {
+        // redactPdf is one mock shared (and never reset) across every test in
+        // this file, so earlier tests' calls are still in its history here -
+        // compare against a snapshot taken just before this test's own action.
+        const redactPdfCallsBefore = redactPdf.mock.calls.length;
+
+        const downloadButton = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
+          .find((button) => button.textContent.includes('Download'));
+        await act(async () => {
+          downloadButton.click();
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+
+        // This path never touches the mocked redactPdf: a delete-only session
+        // has no box element, so applyPageEdits returns deleteObjectsFromPdf's
+        // real output directly rather than flattening anything.
+        expect(redactPdf.mock.calls.length).toBe(redactPdfCallsBefore);
+        expect(capturedBlob).toBeDefined();
+
+        const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+        const originalSize = fs.statSync(fixturePath).size;
+        expect(capturedBlob.size).toBeLessThan(originalSize * 3);
+
+        const { extractPageObjects } = await import('../lib/pdfObjects.js');
+        const { PDFDocument } = await import('@cantoo/pdf-lib');
+        const outBytes = new Uint8Array(await capturedBlob.arrayBuffer());
+        const doc = await PDFDocument.load(outBytes);
+        const { objects } = extractPageObjects(doc.getPage(0), 0);
+        expect(objects.map((o) => o.preview)).not.toContain('1');
+      } finally {
+        window.URL.createObjectURL = originalCreateObjectURL;
+        window.URL.revokeObjectURL = originalRevokeObjectURL;
+      }
+    });
   });
 
   async function loadFileAndGetDrawArea(file = makePdfFile('test_secret.pdf')) {
