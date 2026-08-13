@@ -10,13 +10,14 @@ import styles from './EditorControls.module.css';
 export default function ElementToolbar({
   element,
   onChange,
-  // Comb needs the box's current rendered width to start from, which only
-  // DraggableWrapper (owner of the element's DOM ref) can measure - see its
-  // handleToggleComb. Plain onChange can't do that, so it's a separate prop.
-  onToggleComb,
   onClone,
   onDelete
 }) {
+  // A font-size change is the "done aligning, back to normal typing" signal
+  // that turns comb off (see useElementResize.js for the drag-gesture side of
+  // the same rule) - width is what makes a text element a comb at all (see
+  // comb.js's isComb), so clearing it here is what actually turns it off.
+  const setFontSize = (fontSize) => onChange(isComb(element) ? { fontSize, width: 0 } : { fontSize });
   const textDirection = element.type === 'text' ? getEffectiveTextDirection(element) : 'ltr';
   // element.type is the geometry discriminator directly (no shape/shapeType wrapper).
   const actualType = element.type;
@@ -38,7 +39,7 @@ export default function ElementToolbar({
           <button
             type="button"
             className={buttonClass()}
-            onClick={() => onChange({ fontSize: Math.max(6, (element.fontSize || 12) - 1) })}
+            onClick={() => setFontSize(Math.max(6, (element.fontSize || 12) - 1))}
             title="Decrease font size"
           >
             A-
@@ -46,7 +47,7 @@ export default function ElementToolbar({
           <button
             type="button"
             className={buttonClass()}
-            onClick={() => onChange({ fontSize: Math.min(72, (element.fontSize || 12) + 1) })}
+            onClick={() => setFontSize(Math.min(72, (element.fontSize || 12) + 1))}
             title="Increase font size"
           >
             A+
@@ -85,26 +86,9 @@ export default function ElementToolbar({
               <PilcrowRight size={14} strokeWidth={2.5} />
             )}
           </button>
-          <div className={styles.divider} />
-          <button
-            type="button"
-            className={buttonClass(isComb(element))}
-            // Explicit, never implied by a drag: "text box with a width" already
-            // means "wrap the text" to everyone, and silently spacing the
-            // characters out instead would sabotage that expectation.
-            onClick={() => onToggleComb(!isComb(element))}
-            title={isComb(element)
-              ? 'One character per box, on. Click to go back to normal text'
-              : 'One character per box, for a form with pre-printed boxes'}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="6" width="20" height="12" rx="1" />
-              <line x1="9" y1="6" x2="9" y2="18" />
-              <line x1="15" y1="6" x2="15" y2="18" />
-            </svg>
-          </button>
           {isComb(element) && (
             <>
+              <div className={styles.divider} />
               <button
                 type="button"
                 className={buttonClass()}

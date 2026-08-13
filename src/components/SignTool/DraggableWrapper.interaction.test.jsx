@@ -67,6 +67,7 @@ vi.mock('@floating-ui/react', async () => {
 // already resolves to the mocked module.
 import DraggableWrapper from './DraggableWrapper.jsx';
 import workspaceStyles from './Workspace.module.css';
+import elementStyles from './EditorElement.module.css';
 
 describe('DraggableWrapper interaction/visual states (E1.4)', () => {
   let container;
@@ -656,39 +657,147 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
     });
   });
 
-  // --- Comb toggle starts from the box's actual rendered width -------------
-  describe('comb toggle', () => {
-    it('measures the box as it is actually rendered instead of snapping to a fixed default', () => {
+  // --- Comb: side handles turn it on, a font-size change turns it off ------
+  describe('comb (side handles vs. font-size handles on the same text box)', () => {
+    it('starts a side-handle drag from the box as actually rendered, not a fixed default', () => {
       const onChange = vi.fn();
       const element = { id: 'el-comb', type: 'text', left: 20, top: 10, text: '0382', fontSize: 12 };
       const { box } = mountInPageWrapper(element, { isActive: true, onChange, pageWidthPoints: 600 });
       // 90px on a 600px-wide page-wrapper is 15% - deliberately not
-      // DEFAULT_COMB_WIDTH_PCT (40), so a fallback-to-default bug shows up as a
-      // wrong number rather than an accidental pass.
+      // DEFAULT_COMB_WIDTH_PCT (40), so a fallback-to-a-default bug would show
+      // up as a wrong number rather than an accidental pass.
       box.getBoundingClientRect = () => ({
         left: 120, top: 80, width: 90, height: 20, right: 210, bottom: 100, x: 120, y: 80, toJSON: () => {},
       });
+      const rightHandle = box.querySelector('[data-editor-resizer="right"]');
+      expect(rightHandle).not.toBeNull();
 
-      const toggle = box.querySelector('[title="One character per box, for a form with pre-printed boxes"]');
-      expect(toggle).not.toBeNull();
-      act(() => toggle.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+      act(() => {
+        rightHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
+        // +30px on the 600px-wide wrapper is +5%.
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 30, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
 
       expect(onChange).toHaveBeenCalledTimes(1);
-      const patch = onChange.mock.calls[0][0];
-      expect(patch.comb).toBe(true);
-      expect(patch.width).toBeCloseTo(15);
+      // 15% measured + 5% dragged = 20%. There's no separate on/off flag to
+      // assert on - width itself is what makes this element a comb (comb.js).
+      expect(onChange.mock.calls[0][0]).toEqual({ left: 20, width: 20 });
     });
 
-    it('clears the width on the way back to plain text, rather than leaving a stale span behind', () => {
+    it('leaves a plain box looking exactly as it did when a side handle is merely grabbed, so it never flinches before the drag says anything', () => {
+      const element = { id: 'el-comb-grab', type: 'text', left: 20, top: 10, text: '0382', fontSize: 12 };
+      const { box } = mountInPageWrapper(element, { isActive: true, onChange: vi.fn(), pageWidthPoints: 600 });
+      const measure = () => box.querySelector(`.${elementStyles['text-measure']}`);
+      const before = { width: box.style.width, measured: measure().textContent };
+
+      act(() => {
+        box.querySelector('[data-editor-resizer="right"]')
+          .dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
+      });
+
+      // Grabbing the handle mounts the cell overlay (hidden) so the first
+      // moved frame has real nodes to reflow - and that is all it does. The
+      // box has no committed span yet, so it is still sized by what the
+      // measure holds: blanking that on grab is what once dropped the box to
+      // nothing until the first mousemove wrote a width back, read on screen
+      // as the box collapsing and snapping back the moment it was touched.
+      expect(measure().textContent).toBe(before.measured);
+      expect(measure().textContent).toContain('0382');
+      expect(box.style.width).toBe(before.width);
+      expect(box.querySelector(`.${elementStyles['text-comb']}`).style.display).toBe('none');
+      expect(box.querySelector(`.${elementStyles['text-display']}`).className)
+        .not.toContain(elementStyles['text-display-comb']);
+    });
+
+    it('leaves a comb\'s span completely alone when its font size is dragged - the two never contend for the same grip', () => {
       const onChange = vi.fn();
-      const element = { id: 'el-comb-off', type: 'text', left: 20, top: 10, text: '0382', fontSize: 12, comb: true, width: 25 };
+      const element = { id: 'el-comb-font', type: 'text', left: 20, top: 10, text: '0382', fontSize: 12, width: 25 };
       const { box } = mountInPageWrapper(element, { isActive: true, onChange, pageWidthPoints: 600 });
+      const corner = box.querySelector('[data-editor-resizer="top-right"]');
 
-      const toggle = box.querySelector('[title="One character per box, on. Click to go back to normal text"]');
-      expect(toggle).not.toBeNull();
-      act(() => toggle.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+      act(() => {
+        corner.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 50, clientY: 0 }));
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
 
-      expect(onChange).toHaveBeenCalledWith({ comb: false, width: 0 });
+      // No `width` in the committed patch at all - the span this element was
+      // carefully aligned to survives a font-size tweak untouched.
+      expect(onChange.mock.calls[0][0]).toEqual({ fontSize: 22, left: 20, top: 10 });
+    });
+
+    it('collapses on release once a drag pushes the span past its usable floor, instead of parking it there', () => {
+      const onChange = vi.fn();
+      const element = { id: 'el-comb-collapse', type: 'text', left: 20, top: 10, text: '0382', fontSize: 12, width: 10 };
+      const { box } = mountInPageWrapper(element, { isActive: true, onChange, pageWidthPoints: 600 });
+      const rightHandle = box.querySelector('[data-editor-resizer="right"]');
+
+      act(() => {
+        rightHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
+        // -600px on the 600px-wide wrapper is -100% - far past the floor.
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: -600, clientY: 0 }));
+      });
+
+      // Mid-drag, still holding the handle: the box already shows what letting
+      // go here will commit - no explicit span (so it measures itself from its
+      // own text again), no cell overlay, opaque text. Deciding to stop being
+      // a comb is visible while it can still be taken back, not discovered
+      // after the fact.
+      expect(box.style.width).toBe('');
+      expect(box.querySelector(`.${elementStyles['text-comb']}`).style.display).toBe('none');
+      expect(box.querySelector(`.${elementStyles['text-display']}`).className)
+        .not.toContain(elementStyles['text-display-comb']);
+      expect(box.querySelector(`.${elementStyles['text-input']}`).style.color).toBe('rgb(0, 0, 0)');
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+      // Not `{ left: 20, width: 2 }` (the clamped value) - dragging past the
+      // floor and letting go means "close this comb", so only `width` clears.
+      expect(onChange.mock.calls[0][0]).toEqual({ width: 0 });
+    });
+
+    it('reflows the comb cells live during a side-handle drag, matching the box outline instead of lagging until release', () => {
+      const onChange = vi.fn();
+      const element = { id: 'el-comb-live', type: 'text', left: 20, top: 10, text: '27', fontSize: 12, width: 20 };
+      const { box } = mountInPageWrapper(element, { isActive: true, onChange, pageWidthPoints: 600 });
+      // Stands in for real layout: width tracks whatever `.element`'s own
+      // inline style currently says, the same way a real browser resolves it
+      // from the style writeDOM just set - jsdom has no layout engine, so
+      // nothing does this automatically.
+      box.getBoundingClientRect = () => {
+        const widthPct = parseFloat(box.style.width) || 20;
+        const width = (widthPct / 100) * 600;
+        return { left: 0, top: 0, width, height: 20, right: width, bottom: 20, x: 0, y: 0, toJSON: () => {} };
+      };
+      const rightHandle = box.querySelector('[data-editor-resizer="right"]');
+      const cells = () => [...box.querySelectorAll(`.${elementStyles['text-comb-cell']}`)];
+      // '27' with no explicit combCells is 2 cells, centred at 25%/75%.
+      expect(cells()[0].style.left).toBe('25%');
+      expect(cells()[1].style.left).toBe('75%');
+
+      act(() => {
+        rightHandle.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 0, clientY: 0 }));
+        // +60px on the 600px wrapper is +10%: 20% -> 30%, i.e. 180px wide.
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 60, clientY: 0 }));
+      });
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(box.style.width).toBe('30%');
+      // 25%/75% of the new 180px width, in pixels - proving the cells moved
+      // *during* the drag, not only once it's released.
+      expect(cells()[0].style.left).toBe('45px');
+      expect(cells()[1].style.left).toBe('135px');
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange.mock.calls[0][0]).toEqual({ left: 20, width: 30 });
     });
   });
 });

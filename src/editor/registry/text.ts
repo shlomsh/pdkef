@@ -4,12 +4,12 @@ import { h } from 'preact';
 import { rgb } from '@cantoo/pdf-lib';
 import TextNode from '../../components/SignTool/nodes/TextNode.jsx';
 import { hasNumber, hasString, isRecord } from './schema.ts';
-import { MAX_FONT_SIZE_PT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
+import { COMB_MIN_CELL_EM, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
 import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
 import { combCellCount, combCharacters, combCellCenterFraction, isComb } from '../../lib/comb.js';
 import { getEffectiveTextDirection, hexToRgbFractions } from '../../lib/signHelpers.js';
 import { resolveFontFamily } from '../../lib/fonts.js';
-import type { TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch, WidthResizeInput, WidthResizePatch } from './types.ts';
+import type { TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch, WidthFloorInput, WidthResizeInput, WidthResizePatch } from './types.ts';
 import elementStyles from '../../components/SignTool/EditorElement.module.css';
 
 export function applyTextResize({ startFontSize, delta, startRect, fallbackDeltaPoints }: TextResizeInput): TextResizePatch {
@@ -49,13 +49,38 @@ export function applyCombWidth({ handle, delta, start, isRtl, minWidth }: WidthR
   // Whether dragging rightward widens the box. Both the anchored RTL edge and
   // the free LTR edge do; the other two shrink it.
   const growsWithPointer = isRtl ? movesAnchor : !movesAnchor;
-  const width = Math.max(minWidth, start.width + (growsWithPointer ? delta.x : -delta.x));
+  const rawWidth = start.width + (growsWithPointer ? delta.x : -delta.x);
+  const width = Math.max(minWidth, rawWidth);
   // Derived from the *clamped* width, so hitting the floor parks the anchor
   // instead of letting it keep sliding out from under a box that stopped shrinking.
   const left = movesAnchor
     ? start.left + (isRtl ? width - start.width : start.width - width)
     : start.left;
-  return { left, width };
+  // Dragging the span down past its usable floor and letting go there is
+  // "close this comb" - a deliberate, visible gesture (the box visibly stops
+  // shrinking at the floor before it happens) rather than a fuzzy proximity
+  // check against the text's natural width, which would depend on font and
+  // content and could fire while fine-tuning a span nowhere near where the
+  // user meant to stop.
+  return { left, width, collapsed: rawWidth < minWidth };
+}
+
+/**
+ * Where a comb's span stops being worth having, as a % of page width.
+ *
+ * Derived from the cells rather than being a flat fraction of the page, because
+ * that is the only version of the question with a real answer: a comb exists to
+ * put one character in each printed box, so once a cell is narrower than the
+ * character it holds there is nothing left to align and the element is just
+ * text again. That lands the floor near the box's own natural text width, which
+ * is what makes shrinking it back down a gesture someone can finish - a flat
+ * percentage of the page would have to be dragged to a slit first, and would
+ * sit in a different place relative to the text for every font size and length.
+ */
+export function combWidthFloor({ element, fontSizePx, pageWidthPx }: WidthFloorInput): number {
+  if (!(pageWidthPx > 0) || !(fontSizePx > 0)) return MIN_COMB_WIDTH_PCT;
+  const cellPitchPx = combCellCount(element as TextElement) * fontSizePx * COMB_MIN_CELL_EM;
+  return Math.max(MIN_COMB_WIDTH_PCT, (cellPitchPx / pageWidthPx) * 100);
 }
 
 export const textDefinition: ElementDefinition<TextElement> = {
@@ -104,7 +129,7 @@ export const textDefinition: ElementDefinition<TextElement> = {
       combCharacters(element).slice(0, cellCount).forEach((char, index) => {
         if (!char.trim()) return;
         const charWidth = resolvedFont.widthOfTextAtSize(char, fontSizeInPoints);
-        const center = boxLeft + combCellCenterFraction(index, cellCount) * widthPoints;
+        const center = boxLeft + combCellCenterFraction(index, cellCount, isRtl) * widthPoints;
         page.drawText(char, { x: center - charWidth / 2, y: baselineAdjustedY, size: fontSizeInPoints, font: resolvedFont, color: rgb(r, g, b) });
       });
       return;
@@ -117,21 +142,80 @@ export const textDefinition: ElementDefinition<TextElement> = {
   },
   view: { usesRtlAnchoring: true, usesIntrinsicSize: true, allowsExplicitWidth: true },
   resizeBehavior: {
-    // Corners always mean font size, comb or not. The side handles appear only
-    // for a comb and only ever set the span, so the two never contend for the
-    // same grip and a plain text box is unchanged.
-    handles: (element) => (isComb(element)
-      ? ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'left', 'right']
-      : ['top-left', 'top-right', 'bottom-left', 'bottom-right']),
+    // Corners always mean font size; the side handles always mean comb span.
+    // Both are always present - dragging a side handle is what turns comb on
+    // (see useElementResize.js), and there is nothing left for a plain text
+    // box to opt into first, so there's no per-element handle set to compute.
+    handles: ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'left', 'right'],
     applyTextResize,
     applyTextPosition,
     applyWidthResize: applyCombWidth,
-    writeDOM: ({ node, patch, handle, isRtl, startLeft, startTop, scaleFactor, pageWrapper, textStartSizePercent, getElementPercentSize }) => {
+    widthFloor: combWidthFloor,
+    writeDOM: ({ node, patch, handle, isRtl, startLeft, startTop, scaleFactor, pageWrapper, textStartSizePercent, getElementPercentSize, element }) => {
       // Side-handle drag on a comb: span only, and the font size is left alone.
       if (patch.width !== undefined) {
+        const textDisplay = node.querySelector(`.${elementStyles['text-display']}`) as HTMLElement | null;
+        const textInput = node.querySelector(`.${elementStyles['text-input']}`) as HTMLElement | null;
+        const combNode = node.querySelector(`.${elementStyles['text-comb']}`) as HTMLElement | null;
+
+        // Dragged past the floor: paint exactly what releasing here commits -
+        // a plain text box, at its own natural width, back on its original
+        // anchor. Not a hint or a highlight, the actual result, because the
+        // decision being previewed ("this stops being a comb") is one the box
+        // can simply show. Clearing the explicit width is what does it: with
+        // the span gone the box measures itself from its text again, the same
+        // as any other text element (see TextNode's measure div, which keeps
+        // holding the real text throughout precisely so this works).
+        if (patch.collapsed) {
+          node.style.width = '';
+          if (isRtl) node.style.right = `${100 - startLeft}%`;
+          else node.style.left = `${startLeft}%`;
+          if (combNode) combNode.style.display = 'none';
+          if (textInput) textInput.style.color = (element as TextElement).color || '#000000';
+          textDisplay?.classList.remove(elementStyles['text-display-comb']);
+          return;
+        }
+
         node.style.width = `${patch.width}%`;
         if (isRtl) node.style.right = `${100 - (patch.left as number)}%`;
         else node.style.left = `${patch.left as number}%`;
+
+        // The overlay is mounted but hidden from the moment a side handle is
+        // grabbed (isSpanResizing in TextNode), so it is here to be shown the
+        // first frame the drag clears the floor - the box looks untouched
+        // until then, which is the honest picture of a gesture that has not
+        // made a comb yet. Guarded anyway: the state flush that mounts it is
+        // asynchronous and a fast first move can beat it to the screen, in
+        // which case the next frame finds it. Never built here by hand - a
+        // node this module creates would sit outside Preact's vnode tree for
+        // this subtree, and the next real render would layer its own overlay
+        // next to it instead of replacing it (two sets of characters).
+        if (!combNode) return;
+        combNode.style.display = '';
+        textDisplay?.classList.add(elementStyles['text-display-comb']);
+        if (textInput) textInput.style.color = 'transparent';
+
+        // The cells' `left: X%` is nominally relative to this same box, so it
+        // would in principle track the width above through CSS alone - but
+        // that's a percentage grid track nested inside an ancestor whose size
+        // was just set via a raw style mutation, not a plain 100% fill like
+        // everywhere else in this file, and it isn't guaranteed to resolve in
+        // the same paint. Reading the box's own just-set width back and
+        // writing pixel offsets removes the question: the digits track the
+        // span exactly as it's dragged, the same as the box's own outline,
+        // not only once the drag is released.
+        const widthPx = node.getBoundingClientRect().width;
+        const cells = combNode.querySelectorAll(`.${elementStyles['text-comb-cell']}`);
+        cells.forEach((cell, index) => {
+          (cell as HTMLElement).style.left = `${combCellCenterFraction(index, cells.length, isRtl) * widthPx}px`;
+        });
+        // Guides render only for cells.slice(1), so the i-th guide node is
+        // cell (i + 1)'s left boundary - mirrored the same way as the cells
+        // themselves so the dividers still line up with the digits between them.
+        combNode.querySelectorAll(`.${elementStyles['text-comb-guide']}`).forEach((guide, i) => {
+          const boundary = (i + 1) / cells.length;
+          (guide as HTMLElement).style.left = `${(isRtl ? 1 - boundary : boundary) * widthPx}px`;
+        });
         return;
       }
 

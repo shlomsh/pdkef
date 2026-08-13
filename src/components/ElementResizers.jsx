@@ -3,9 +3,6 @@ import styles from './SignTool/EditorElement.module.css';
 
 export default function ElementResizers({ element, isActive, onResizeStart }) {
   const { handles } = getElementDefinition(element.type).resizeBehavior;
-  // A type may vary its handles per element (comb text adds side handles only
-  // while comb is on), so the declaration can be a function of the element.
-  const handleList = typeof handles === 'function' ? handles(element) : handles;
 
   // Line endpoints remain available without selection so the SVG's hit target
   // can select and then adjust either endpoint, matching the prior behavior.
@@ -13,7 +10,7 @@ export default function ElementResizers({ element, isActive, onResizeStart }) {
 
   return (
     <>
-      {handleList.map((handle) => {
+      {handles.map((handle) => {
         const isLineHandle = handle.startsWith('line-');
         const isCorner = handle.includes('-') && !isLineHandle;
         const point = handle === 'line-start'

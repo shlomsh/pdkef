@@ -2,10 +2,9 @@ import { useRef, useEffect } from 'preact/hooks';
 import { useFloating, offset, shift, autoUpdate } from '@floating-ui/react';
 import useDraggableElement from '../../lib/useDraggableElement.js';
 import useElementResize from '../../lib/useElementResize.js';
-import usePdfCoordinates from '../../lib/usePdfCoordinates.js';
 import { getElementDefinition } from '../../editor/registry/index.ts';
 import { getEffectiveTextDirection } from '../../lib/sign.js';
-import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX, DEFAULT_COMB_WIDTH_PCT } from '../../constants/signGeometry.js';
+import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX } from '../../constants/signGeometry.js';
 import ElementToolbar from '../ElementToolbar.jsx';
 import workspaceStyles from './Workspace.module.css';
 import elementStyles from './EditorElement.module.css';
@@ -38,23 +37,6 @@ export default function DraggableWrapper({
   // removes that timing dependency entirely.
   const getPageWrapper = () => elementRef.current?.closest(`.${workspaceStyles['page-wrapper']}`) || null;
   const actionsRef = useRef(null);
-  const { getElementPercentSize } = usePdfCoordinates();
-
-  // Turning comb on has to start from the box's current rendered width, not a
-  // fixed default - otherwise the box visibly jumps the instant the toggle is
-  // clicked, for no reason the user asked for. Measured here (not in
-  // ElementToolbar) because this is the component that owns elementRef and
-  // getPageWrapper; DEFAULT_COMB_WIDTH_PCT only covers the layout measurement
-  // failing outright, not the ordinary case.
-  const handleToggleComb = (nextComb) => {
-    if (!nextComb) {
-      onChange({ comb: false, width: 0 });
-      return;
-    }
-    const pageWrapper = getPageWrapper();
-    const measured = pageWrapper ? getElementPercentSize(elementRef.current, pageWrapper).width : 0;
-    onChange({ comb: true, width: measured || element.width || DEFAULT_COMB_WIDTH_PCT });
-  };
   // The registry's declarative view flags (E7.6) - DraggableWrapper reads these
   // instead of comparing element.type directly, so adding a new element type
   // never requires editing this shell file.
@@ -72,7 +54,7 @@ export default function DraggableWrapper({
   });
 
   // Resize gesture logic (extracted into useElementResize - shared with Redact, E7.5).
-  const { handleResizeStart } = useElementResize({
+  const { handleResizeStart, isSpanResizing } = useElementResize({
     element,
     elementRef,
     getPageWrapper,
@@ -163,7 +145,10 @@ export default function DraggableWrapper({
       data-editor-element
       data-editor-active={isActive || undefined}
       data-editor-shape={isShape || undefined}
-      data-editor-comb={element.comb || undefined}
+      // Text's side resize handles are mid-edge (unlike the box types' bottom-
+      // corner default), and are always present now - see EditorElement's
+      // `[data-editor-text] .resizer.left/.right`.
+      data-editor-text={element.type === 'text' || undefined}
       style={style}
       onMouseDown={!isLine ? handlePointerDown : undefined}
       onTouchStart={!isLine ? handlePointerDown : undefined}
@@ -191,7 +176,6 @@ export default function DraggableWrapper({
         <ElementToolbar
           element={element}
           onChange={onChange}
-          onToggleComb={handleToggleComb}
           onClone={onClone}
           onDelete={onDelete}
         />
@@ -203,7 +187,8 @@ export default function DraggableWrapper({
         isEditing,
         onBeginEdit,
         onResizeStart: handleResizeStart,
-        handlePointerDown
+        handlePointerDown,
+        isSpanResizing
       }))}
     </div>
   );

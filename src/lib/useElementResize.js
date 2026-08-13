@@ -1,3 +1,4 @@
+import { useState } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../editor/gestures/controller.ts';
 import { getElementDefinition } from '../editor/registry/index.ts';
@@ -44,6 +45,10 @@ export default function useElementResize({
   } = usePdfCoordinates();
 
   const elementDefinition = getElementDefinition(element.type);
+  // Real, but purely local and short-lived (grab-to-release) - never part of
+  // the committed element, never touches onChange. See the comment at its
+  // one call site below for why this needs to exist at all.
+  const [isSpanResizing, setIsSpanResizing] = useState(false);
 
   const handleResizeStart = (e, handle = 'right') => {
     e.stopPropagation();
@@ -66,12 +71,31 @@ export default function useElementResize({
     const defaultRatio = element.type === 'symbol' ? ASPECT_RATIO_SYMBOL : ASPECT_RATIO_TEXT;
     const ratioAtStart = element.aspectRatio || defaultRatio;
     const startHeight = element.height || getWidthPercentToHeightPercent(startWidth, ratioAtStart, pageWrapper);
+    // Fixed for the gesture's whole duration, same as isWidthHandle below.
+    const isRtl = getEffectiveTextDirection(element) === 'rtl';
 
     const textStartRect = element.type === 'text' && elementRef.current ? getDimensions(elementRef.current) : null;
     const textStartSizePercent = element.type === 'text' && elementRef.current
       ? getElementPercentSize(elementRef.current, pageWrapper)
       : null;
     let pendingResize = null;
+    // Fixed for the gesture's whole duration (the handle never changes
+    // mid-drag), so decided once rather than re-derived every frame.
+    const isWidthHandle = handle === 'left' || handle === 'right';
+
+    // Grabbing a span handle - even before the first pointermove - is the
+    // one moment allowed to touch React state, because it's what lets a type
+    // (text, via isSpanResizing) render whatever gesture-preview DOM it needs
+    // as *real*, Preact-owned nodes before the per-frame reflow in writeDOM
+    // needs one. A node writeDOM built by hand instead would sit outside
+    // Preact's vnode tree for this subtree, and the next real render would
+    // layer its own copy next to it rather than replace it - two sets of
+    // characters (see text.ts). This is one flag flip at grab time, not a
+    // committed field and not a per-frame update, so it doesn't touch
+    // `onChange` and can't double the one commit release still makes.
+    if (elementDefinition.resizeBehavior.applyWidthResize && isWidthHandle) {
+      setIsSpanResizing(true);
+    }
 
     // Per-type resize-time DOM/SVG paint is registry-owned (E7.6): a type
     // that needs bespoke painting (line's SVG endpoints, text's font-size +
@@ -87,13 +111,14 @@ export default function useElementResize({
           node: elementRef.current,
           patch,
           handle,
-          isRtl: getEffectiveTextDirection(element) === 'rtl',
+          isRtl,
           startLeft,
           startTop,
           scaleFactor: getScaleFactor(pageWrapper, pageWidthPoints),
           pageWrapper,
           textStartSizePercent,
           getElementPercentSize,
+          element,
         });
         if (extra) pendingResize = { ...patch, ...extra };
         return;
@@ -137,14 +162,32 @@ export default function useElementResize({
       // Side handles that set a width without touching font size (comb text).
       // Checked before applyTextResize because text declares both: the corner
       // handles still mean font size, and only the type knows which is which.
-      if (elementDefinition.resizeBehavior.applyWidthResize && (handle === 'left' || handle === 'right')) {
+      if (elementDefinition.resizeBehavior.applyWidthResize && isWidthHandle) {
         const { x: dxPercent } = getDeltaPercent(rawDx, 0, pageWrapper);
+        // Where the floor sits is the type's call, not this hook's - for a
+        // comb it follows the cell count and font size (see combWidthFloor),
+        // which is the difference between "shrink it back to about its own
+        // text width and it turns back into text" and "drag it down to a slit
+        // first". Types that don't declare one get the flat absolute floor.
+        const widthFloor = elementDefinition.resizeBehavior.widthFloor;
+        const minWidth = widthFloor
+          ? widthFloor({
+            element,
+            fontSizePx: startFontSize * getScaleFactor(pageWrapper, pageWidthPoints),
+            pageWidthPx: pageWrapper.getBoundingClientRect().width,
+          })
+          : MIN_COMB_WIDTH_PCT;
+        // The box's actual rendered width, not `element.width || a default` -
+        // for a plain (never-combed) text box that's undefined, and starting
+        // from a fallback default instead of what's on screen is exactly the
+        // "snaps to an arbitrary width" bug this measurement exists to avoid.
+        const measuredStartWidth = textStartSizePercent ? textStartSizePercent.width : startWidth;
         return elementDefinition.resizeBehavior.applyWidthResize({
           handle,
           delta: { x: dxPercent },
-          start: { left: startLeft, width: startWidth },
-          isRtl: getEffectiveTextDirection(element) === 'rtl',
-          minWidth: MIN_COMB_WIDTH_PCT,
+          start: { left: startLeft, width: measuredStartWidth },
+          isRtl,
+          minWidth,
         });
       }
 
@@ -180,13 +223,27 @@ export default function useElementResize({
       computePatch: handleResizeMove,
       writeDOM: paintResizePatch,
       commit: () => {
+        setIsSpanResizing(false);
         if (pendingResize) {
-          onChange(pendingResize);
+          // `collapsed` (set by applyCombWidth - see text.ts) is a signal,
+          // not a real element field: dragging a comb's span down past its
+          // usable floor and releasing there means "close this comb", not
+          // "set the width to the floor value". Stripped either way so it
+          // never leaks into committed element state.
+          const { collapsed, ...patch } = pendingResize;
+          // Nothing to unwind on the DOM side for either outcome: the last
+          // painted frame already *is* the committed picture (a collapsed drag
+          // paints the plain text box back itself - see text.ts's writeDOM),
+          // which matters because Preact's style diff compares against its own
+          // last vnode rather than the live DOM, and so writes nothing at all
+          // when a committed value comes out unchanged - routine here, since
+          // collapsing sends no new `left`.
+          onChange(collapsed ? { width: 0 } : patch);
           pendingResize = null;
         }
       },
     });
   };
 
-  return { handleResizeStart };
+  return { handleResizeStart, isSpanResizing };
 }

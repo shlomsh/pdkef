@@ -261,7 +261,7 @@ describe('TextNode component', () => {
   describe('comb layout', () => {
     const renderComb = (element, isActive = true) => mount(
       <TextNode
-        element={{ type: 'text', fontSize: 16, comb: true, width: 40, ...element }}
+        element={{ type: 'text', fontSize: 16, width: 40, ...element }}
         isActive={isActive}
         onChange={() => {}}
         onSelect={() => {}}
@@ -300,6 +300,21 @@ describe('TextNode component', () => {
       const input = host.querySelector('[data-editor-text-input]');
       expect(input.style.color).toBe('transparent');
       expect(input.style.caretColor).toBe('rgb(17, 34, 51)');
+    });
+
+    it('mirrors cell position for RTL content, so the first character typed lands nearest the right edge', () => {
+      // Hebrew has a strong RTL character, so direction auto-detects without
+      // needing textDirection set (see signHelpers.js).
+      host = renderComb({ text: 'שלום' });
+      const cells = [...host.querySelectorAll(`.${elementStyles['text-comb-cell']}`)];
+      // Array order (and so which character is "first") is unchanged - only
+      // *where* each index renders mirrors. LTR would be 1/8, 3/8, 5/8, 7/8;
+      // RTL is that reversed, so the first character ('ש') ends up at 7/8
+      // (nearest the right edge), not 1/8.
+      expect(cells.map((cell) => cell.textContent)).toEqual(['ש', 'ל', 'ו', 'ם']);
+      expect(cells.map((cell) => cell.style.left)).toEqual([
+        `${(7 / 8) * 100}%`, `${(5 / 8) * 100}%`, `${(3 / 8) * 100}%`, `${(1 / 8) * 100}%`,
+      ]);
     });
 
     it('leaves a plain text box completely alone', () => {

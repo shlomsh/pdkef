@@ -1,29 +1,80 @@
 import { describe, expect, it, vi } from 'vitest';
-import { applyCombWidth, applyTextPosition, applyTextResize, textDefinition } from './text.ts';
+import { applyCombWidth, applyTextPosition, applyTextResize, combWidthFloor, textDefinition } from './text.ts';
 
 describe('applyCombWidth', () => {
   const start = { left: 20, width: 30 };
 
   it('widens from the free edge without moving the anchor', () => {
     expect(applyCombWidth({ handle: 'right', delta: { x: 10 }, start, isRtl: false, minWidth: 2 }))
-      .toEqual({ left: 20, width: 40 });
+      .toEqual({ left: 20, width: 40, collapsed: false });
   });
 
   it('moves the anchor when the anchored edge is dragged', () => {
     expect(applyCombWidth({ handle: 'left', delta: { x: 5 }, start, isRtl: false, minWidth: 2 }))
-      .toEqual({ left: 25, width: 25 });
+      .toEqual({ left: 25, width: 25, collapsed: false });
   });
 
   it('mirrors both roles in RTL, where `left` is the box’s right edge', () => {
     expect(applyCombWidth({ handle: 'left', delta: { x: 10 }, start, isRtl: true, minWidth: 2 }))
-      .toEqual({ left: 20, width: 20 });
+      .toEqual({ left: 20, width: 20, collapsed: false });
     expect(applyCombWidth({ handle: 'right', delta: { x: 10 }, start, isRtl: true, minWidth: 2 }))
-      .toEqual({ left: 30, width: 40 });
+      .toEqual({ left: 30, width: 40, collapsed: false });
   });
 
   it('parks the anchor at the floor instead of sliding it past a box that stopped shrinking', () => {
     expect(applyCombWidth({ handle: 'left', delta: { x: 999 }, start, isRtl: false, minWidth: 2 }))
-      .toEqual({ left: 48, width: 2 });
+      .toEqual({ left: 48, width: 2, collapsed: true });
+  });
+
+  describe('collapsed: dragging the span past its floor signals "close this comb"', () => {
+    it('is false right up to the floor, so an ordinary shrink never triggers it', () => {
+      // Raw width lands exactly on minWidth - clamping never even engages.
+      expect(applyCombWidth({ handle: 'left', delta: { x: 28 }, start, isRtl: false, minWidth: 2 }).collapsed)
+        .toBe(false);
+    });
+
+    it('is true the instant the raw (pre-clamp) width would go past the floor, from either handle', () => {
+      expect(applyCombWidth({ handle: 'left', delta: { x: 28.01 }, start, isRtl: false, minWidth: 2 }).collapsed)
+        .toBe(true);
+      // The free-edge handle can collapse it too - it isn't special to the
+      // anchored edge.
+      expect(applyCombWidth({ handle: 'right', delta: { x: -28.01 }, start, isRtl: false, minWidth: 2 }).collapsed)
+        .toBe(true);
+    });
+
+    it('is not a proximity check against any particular width - only the fixed, predictable floor matters', () => {
+      // A wide starting span dragged down to *near* (but not past) the floor
+      // must not collapse just because it's numerically close to something -
+      // there is no "something" here, only the floor itself.
+      expect(applyCombWidth({ handle: 'left', delta: { x: 500 - 2.01 }, start: { left: 0, width: 500 }, isRtl: false, minWidth: 2 }).collapsed)
+        .toBe(false);
+    });
+  });
+});
+
+describe('combWidthFloor', () => {
+  const text = (over = {}) => ({ id: 't', type: 'text', pageIndex: 0, left: 0, top: 0, text: '0382', fontSize: 12, ...over }) as never;
+
+  it('sits within reach of the box’s own text width, so shrinking one back is a gesture and not an errand', () => {
+    // 4 cells x 12px x 0.6em = 28.8px of a 600px page. The same four digits set
+    // at 12px measure roughly 27px, so the floor lands just the far side of
+    // "as narrow as this text has any business being" - which is where someone
+    // shrinking a comb back down naturally stops.
+    expect(combWidthFloor({ element: text(), fontSizePx: 12, pageWidthPx: 600 })).toBeCloseTo(4.8);
+  });
+
+  it('follows the cells rather than the page, because that is what decides when a comb has stopped being one', () => {
+    // Twice the cells, or twice the type size, needs twice the span before the
+    // characters would start colliding - a flat percentage could not say that.
+    expect(combWidthFloor({ element: text({ combCells: 8 }), fontSizePx: 12, pageWidthPx: 600 })).toBeCloseTo(9.6);
+    expect(combWidthFloor({ element: text(), fontSizePx: 24, pageWidthPx: 600 })).toBeCloseTo(9.6);
+  });
+
+  it('never drops below the absolute floor that keeps the box grabbable at all', () => {
+    expect(combWidthFloor({ element: text({ text: '7' }), fontSizePx: 1, pageWidthPx: 600 })).toBe(2);
+    // No layout to measure yet (an unrendered page) - fall back rather than
+    // return a garbage percentage derived from a zero width.
+    expect(combWidthFloor({ element: text(), fontSizePx: 12, pageWidthPx: 0 })).toBe(2);
   });
 });
 
@@ -102,7 +153,7 @@ describe('comb serialize', () => {
   const base = {
     type: 'text', id: 't1', pageIndex: 0, left: 10, top: 10, fontSize: 12,
     fontWeight: 'normal', fontStyle: 'normal', color: '#000000', fontFamily: 'Arimo',
-    comb: true, width: 10,
+    width: 10, // width alone is what makes a text element a comb - see comb.js's isComb
   };
 
   it('draws one character per cell, each centred on its cell rather than by font advance', () => {
@@ -118,14 +169,19 @@ describe('comb serialize', () => {
     expect(filled).toEqual(full.slice(0, 2));
   });
 
-  it('measures RTL from the anchored right edge', async () => {
+  it('measures RTL from the anchored right edge, with reading order mirrored so the first character lands there', async () => {
     // A comb has no genuine RTL use case in practice - every real one here is
     // digits/dates, which now always render LTR (see signHelpers.js) - but the
     // export math still needs proving for whatever does carry RTL content.
-    const [[, firstX]] = await serializeComb({ ...base, text: 'שר', textDirection: 'rtl' });
-    // The box now occupies 0..61.2 rather than 61.2..122.4, so the first cell
-    // centre is 15.3 and the glyph starts 21 to its left.
-    expect(firstX).toBeCloseTo(-5.7);
+    const [[firstChar, firstX], [, secondX]] = await serializeComb({ ...base, text: 'שר', textDirection: 'rtl' });
+    // The box occupies 0..61.2pt (anchored at its right edge, pdfX=61.2). The
+    // *first* character typed ('ש') must land nearest that right edge, not in
+    // whichever cell happens to be physically first - a comb has no growing
+    // edge to anchor to the way plain RTL text does, but the reading order
+    // still has to agree with it. Cell centres: 45.9 (ש's cell) then 15.3.
+    expect(firstChar).toBe('ש');
+    expect(firstX).toBeCloseTo(24.9);
+    expect(secondX).toBeCloseTo(-5.7);
   });
 
   it('skips blank cells without shifting the ones after them', async () => {

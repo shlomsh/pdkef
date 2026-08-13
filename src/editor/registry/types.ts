@@ -128,7 +128,31 @@ export interface WidthResizeInput {
   minWidth: number;
 }
 
-export interface WidthResizePatch { left: number; width: number; }
+/**
+ * Everything a type needs to say where its own width floor sits, measured at
+ * grab time. Kept per-type because the answer is content-dependent (a comb's
+ * floor follows its cell count and font size), and the shared resize hook has
+ * no business knowing that.
+ */
+export interface WidthFloorInput {
+  element: EditorElement;
+  /** The element's font size in rendered CSS pixels, not PDF points. */
+  fontSizePx: number;
+  /** The page wrapper's rendered width in CSS pixels, so the answer can be a %. */
+  pageWidthPx: number;
+}
+
+export interface WidthResizePatch {
+  left: number;
+  width: number;
+  /**
+   * True once the drag has pushed the raw (pre-clamp) width past `minWidth` -
+   * the caller treats release in that state as "close this comb" rather than
+   * "set the width to the floor value". Not a real element field; stripped
+   * before the patch is committed (see useElementResize.js).
+   */
+  collapsed?: boolean;
+}
 
 /**
  * Declarative flags DraggableWrapper reads instead of comparing `element.type`
@@ -155,7 +179,7 @@ export interface ViewFlags {
 
 export interface ResizeWriteContext {
   node: HTMLElement;
-  patch: Record<string, number | undefined>;
+  patch: Record<string, number | boolean | undefined>;
   handle: ResizeHandle;
   isRtl: boolean;
   startLeft: number;
@@ -164,6 +188,7 @@ export interface ResizeWriteContext {
   pageWrapper: Element;
   textStartSizePercent?: { width: number; height: number } | null;
   getElementPercentSize: (node: Element, pageWrapper: Element) => { width: number; height: number };
+  element: EditorElement;
 }
 
 export interface ElementDefinition<T extends EditorElement = EditorElement> {
@@ -178,14 +203,15 @@ export interface ElementDefinition<T extends EditorElement = EditorElement> {
   /** DraggableWrapper's element-root className/style/interactivity contract for this type. */
   view?: ViewFlags;
   resizeBehavior: {
-    /**
-     * A function form lets a type vary its handles per element - comb text
-     * exposes side handles only while comb is on, so a plain text box keeps
-     * exactly the four font-size corners it has always had.
-     */
-    handles: readonly ResizeHandle[] | ((element: T) => readonly ResizeHandle[]);
+    handles: readonly ResizeHandle[];
     applyBoxResize?: (input: BoxResizeInput) => BoxResizePatch;
     applyWidthResize?: (input: WidthResizeInput) => WidthResizePatch;
+    /**
+     * The `minWidth` handed to applyWidthResize, as a % of page width. Absent
+     * means the shared absolute floor; a type that declares it is saying the
+     * floor depends on the element's own content (see combWidthFloor).
+     */
+    widthFloor?: (input: WidthFloorInput) => number;
     applyLineResize?: (input: LineResizeInput) => LineResizePatch;
     applyCenteredResize?: (input: CenteredResizeInput) => CenteredResizePatch;
     applyTextResize?: (input: TextResizeInput) => TextResizePatch;

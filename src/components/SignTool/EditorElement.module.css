@@ -21,7 +21,7 @@
    to-fit then clamped the box to whatever room was left and broke the line
    mid-word to fit it, which read as the box randomly wrapping while typing an
    ID or date near the right side of a page. */
-.text-input, .text-measure { grid-area: 1 / 1; font-family: inherit; font-size: inherit; font-weight: inherit; font-style: inherit; line-height: inherit; padding: .12em 4px; margin: 0; white-space: pre; }
+.text-input, .text-measure { grid-area: 1 / 1; font-family: inherit; font-size: inherit; font-weight: inherit; font-style: inherit; line-height: inherit; padding: var(--text-pad-em, .12em) 4px; margin: 0; white-space: pre; }
 .text-measure { visibility: hidden; pointer-events: none; }
 /* `visible`, not `hidden`: shrink-to-fit can still clamp the box narrower than
    its own content right at a page edge: with wrapping off (above) that must
@@ -36,14 +36,16 @@
 /* Comb layout. The span is explicit, so the grid column is pinned to it and the
    measure (kept only for the one-line height) can no longer widen the box. */
 .text-display-comb { grid-template-columns: 100%; overflow: hidden; }
-.text-comb { grid-area: 1 / 1; position: relative; width: 100%; height: 100%; pointer-events: none; font-size: inherit; line-height: inherit; padding: .12em 0; }
+.text-comb { grid-area: 1 / 1; position: relative; width: 100%; height: 100%; pointer-events: none; font-size: inherit; line-height: inherit; padding: var(--text-pad-em, .12em) 0; }
 /* Centred on the cell centre, which is the whole point: the printed pitch
    decides where the glyph goes, never the font's advance width. */
-.text-comb-cell { position: absolute; top: .12em; transform: translateX(-50%); white-space: pre; }
+.text-comb-cell { position: absolute; top: var(--text-pad-em, .12em); transform: translateX(-50%); white-space: pre; }
 .text-comb-guide { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--color-primary); opacity: .55; }
-/* Side handles exist only on a comb, and set the span rather than the font
-   size, so they sit mid-edge with a horizontal cursor instead of at the corners. */
-[data-editor-comb] .resizer.left, [data-editor-comb] .resizer.right { top: 50%; bottom: auto; transform: translateY(-50%); cursor: ew-resize; }
+/* Text's side handles always set the comb span (dragging one is what turns
+   comb on - see useElementResize.js), never the font size, so they sit
+   mid-edge with a horizontal cursor instead of at the corners - unlike a box
+   type's left/right, which are just two of its eight regular resize handles. */
+[data-editor-text] .resizer.left, [data-editor-text] .resizer.right { top: 50%; bottom: auto; transform: translateY(-50%); cursor: ew-resize; }
 .signature-image { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; user-select: none; }
 .resizer { position: absolute; bottom: -4px; width: 10px; height: 10px; background: var(--color-primary); border: 1px solid var(--color-surface); border-radius: 50%; z-index: 5; }
 .resizer.right { right: -4px; cursor: se-resize; }
