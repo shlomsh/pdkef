@@ -499,6 +499,47 @@ Two things stay untouched across the whole migration: the **SEO/privacy island s
     `e2e/tool-layout.spec.js` visits Merge, Split, Compress, PDF to Image, Image to PDF, Unlock, Sign,
     Redact, and Edit PDF in a production preview and asserts grid and leading-row alignment on each.
 
+- **E3.4 Keep one component's decoration out of the site-wide utility layer - done.** **Budget
+  regression, 2026-08-14:** `check-css-bundle.js` failed at `80,473 / 80,000` bytes on `/sign/`. The
+  cause is structural rather than anything Sign did: Tailwind v4 emits **one** stylesheet for the whole
+  site, `inlineStylesheets: 'always'` inlines it into all 12 pages, and its utilities layer was
+  byte-identical (32,654) everywhere. 21,719 of those bytes were arbitrary-value rules, so a utility
+  used on one page was paid for on twelve.
+  - *Landed:* the home page's tool tiles were ~1.6KB of class attribute each (two gradients, three
+    layered shadows, a per-state transition, the whole hover/focus/active transform set) and generated
+    ~30 arbitrary-value rules that every tool page carried. None of it is reusable or used outside
+    `index.astro`, so it moved into that file's existing scoped `<style>` beside `.app-tooltip` (the
+    already-approved scoped exception noted in E3.2). **Every page dropped 4,187 bytes**; `/sign/` went
+    80,473 -> 76,286 and `/redact/` 79,227 -> 75,040.
+  - *Also fixed:* `transition-[transform_0.4s_var(--ease-spring),...]` sets transition-**property**, so
+    it compiled to `transition-property: transform .4s var(...)`, not a list of property names. The
+    declaration was invalid and dropped, and the tiles had been snapping between states with no
+    animation at all since E3.2. Restored as real CSS. Tailwind v4 animates transforms through the
+    individual `translate`/`rotate`/`scale` properties, so those are what the transition names.
+  - *Not verified in a browser:* the built selectors, source order and specificity match the old utility
+    behaviour, but the restored animation is a visible change nobody has looked at yet.
+  - *Depends on:* E3.2 · *Lane:* D
+- **E3.5 Promote the standing shadow/easing tokens into `@theme`.** `--shadow-xs/sm/md/lg` and
+  `--ease-out/emphasized/spring` live in `:root`, where Tailwind cannot see them as scale steps, so
+  every use is written `shadow-[var(--shadow-md)]` and compiles to a long escaped selector. This is
+  exactly the `@theme`-omission trap CLAUDE.md documents, worked around rather than fixed. Declaring
+  them makes `shadow-md` / `hover:shadow-md` / `ease-spring` compile as named utilities and shortens
+  ~12 rules. **Verify first that Tailwind still emits the variables to `:root`** - `global.css` and
+  several CSS Modules reference them directly, so if v4 tree-shakes unused theme values the shadows
+  break site-wide and silently. Worth ~300 bytes/page; take it for the trap it closes, not the bytes.
+  - *Depends on:* E3.4 · *Lane:* D
+- **E3.6 Consolidate the `transition-[...]` long tail.** Ten distinct property lists across the static
+  surface, several differing by a single property (`transform,box-shadow,border-color` vs
+  `transform,box-shadow,border-color,color`). That is drift, not design intent. Each costs ~200 bytes
+  in the shared layer. Standardise on two or three, or fall back to `transition`/`transition-colors`
+  where the difference is immaterial. Worth ~1.2KB/page.
+  - *Depends on:* E3.4 · *Lane:* D
+- **E3.7 Re-tighten the CSS budget once E3.5/E3.6 land.** The threshold has been raised before (82,000
+  -> 80,000) and the guard only earns its keep while the headroom is small enough to notice. `/sign/`
+  now sits at 76,286; set the cap just above whatever the worst page measures after E3.6 rather than
+  leaving 4KB of slack for the next feature to quietly eat.
+  - *Depends on:* E3.5, E3.6 · *Lane:* D
+
 ## E4 - Headless TS editor core  ·  *Lane E, internally serial, parallel to E2/E3*
 
 > **Full low-level design for this epic (E4.2–E4.4):
