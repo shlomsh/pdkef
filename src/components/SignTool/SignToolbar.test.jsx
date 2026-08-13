@@ -226,6 +226,126 @@ describe('SignToolbar Component', () => {
       expect(state.selectedTool).toBeNull();
       expect(state.toolLocked).toBe(false);
     });
+
+    // Sign is a dropdown-trigger button too, so it needs the same real-dblclick
+    // treatment as Shapes rather than counting e.detail on the button.
+    const mockSignature = { id: 'sig-lock-test', dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANS...', aspectRatio: 1 };
+
+    const renderToolbarWithSignature = (onState) => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+
+      const TestConsumer = () => {
+        onState(useSignTool().state);
+        return null;
+      };
+
+      act(() => {
+        render(
+          <SignToolProvider>
+            <SavedSignaturesContext.Provider
+              value={{ savedSignatures: [mockSignature], activeSignature: mockSignature, setActiveSignature: () => {}, onDeleteSavedSignature: () => {} }}
+            >
+              <SignToolbar
+                setAnnouncement={() => {}}
+                setDialogOpen={() => {}}
+                setUndoModalOpen={() => {}}
+                actionHistory={[]}
+                toggleFullscreen={() => {}}
+                isFullscreen={false}
+                onSavePdf={() => {}}
+              />
+              <TestConsumer />
+            </SavedSignaturesContext.Provider>
+          </SignToolProvider>,
+          container
+        );
+      });
+    };
+
+    it('locks the Sign tool on when its button is double-clicked', async () => {
+      let state;
+      renderToolbarWithSignature((s) => { state = s; });
+
+      const sigBtn = findButton('Sign');
+      await act(async () => {
+        sigBtn.click();
+      });
+      const item = document.body.querySelector('[data-editor-signature-item]');
+      await act(async () => {
+        item.click();
+      });
+      expect(state.selectedTool).toBe('signature');
+      expect(state.toolLocked).toBe(false);
+
+      await act(async () => {
+        sigBtn.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+      });
+
+      expect(state.selectedTool).toBe('signature');
+      expect(state.toolLocked).toBe(true);
+      expect(sigBtn.className).toContain(styles.locked);
+    });
+
+    it('locks the Sign tool even after its one placement disarmed it, as long as a signature is chosen', async () => {
+      let state;
+      let dispatch;
+      const TestConsumer = () => {
+        const ctx = useSignTool();
+        state = ctx.state;
+        dispatch = ctx.dispatch;
+        return null;
+      };
+
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(
+          <SignToolProvider>
+            <SavedSignaturesContext.Provider
+              value={{ savedSignatures: [mockSignature], activeSignature: mockSignature, setActiveSignature: () => {}, onDeleteSavedSignature: () => {} }}
+            >
+              <SignToolbar
+                setAnnouncement={() => {}}
+                setDialogOpen={() => {}}
+                setUndoModalOpen={() => {}}
+                actionHistory={[]}
+                toggleFullscreen={() => {}}
+                isFullscreen={false}
+                onSavePdf={() => {}}
+              />
+              <TestConsumer />
+            </SavedSignaturesContext.Provider>
+          </SignToolProvider>,
+          container
+        );
+      });
+
+      await act(async () => {
+        dispatch({ type: 'DISARM_TOOL' });
+      });
+      expect(state.selectedTool).toBeNull();
+
+      const sigBtn = findButton('Sign');
+      await act(async () => {
+        sigBtn.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+      });
+
+      expect(state.selectedTool).toBe('signature');
+      expect(state.toolLocked).toBe(true);
+    });
+
+    it('does nothing on a Sign double-click before any signature has been chosen', async () => {
+      let state;
+      renderToolbar((s) => { state = s; });
+
+      await act(async () => {
+        findButton('Sign').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+      });
+
+      expect(state.selectedTool).toBeNull();
+      expect(state.toolLocked).toBe(false);
+    });
   });
 
   // The status line is the only place that tells a first-time user how a tool is

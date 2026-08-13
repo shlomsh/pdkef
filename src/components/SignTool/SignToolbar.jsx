@@ -154,6 +154,20 @@ export default function SignToolbar({
     setShowShapesDropdown(false);
   };
 
+  // Same reasoning as lockShape: Sign is also a dropdown-trigger button, so a
+  // real dblclick handler on the wrapping div is what has to lock it - counting
+  // e.detail on the button itself would be fighting floating-ui's own click
+  // handler, which toggles the popover on every click including both of a
+  // double-click. Locking only makes sense once a signature exists to place;
+  // activeSignature outlives a one-shot placement's disarm, so double-clicking
+  // right after placing one still re-arms and locks it, same as lastShape does
+  // for shapes.
+  const lockSignature = () => {
+    if (!activeSignature) return;
+    lockTool('signature');
+    setShowSigDropdown(false);
+  };
+
   // The hint line, handed to the shell so it rides in the file row instead of
   // taking a line of its own directly above the document. Only the armed-tool
   // branch is a live region: the idle tip is standing advice, and announcing it
@@ -215,6 +229,12 @@ export default function SignToolbar({
             <span className={styles.label}>Symbols</span>
           </button>
 
+          {/* placement="bottom" (centered), not "bottom-start": these toolbar
+              buttons stretch to fill the row (`.toolbar > * { flex: 1 1 auto }`)
+              while their icon/label/chevron stay centered inside via
+              justify-content, so on a wide button "bottom-start" anchored the
+              menu to the empty left edge of the box instead of the visible
+              trigger content, reading as misaligned. */}
           <div
             className={styles.dropdown}
             onMouseEnter={openShapes}
@@ -224,7 +244,7 @@ export default function SignToolbar({
             <Popover
               open={showShapesDropdown}
               onOpenChange={setShowShapesDropdown}
-              placement="bottom-start"
+              placement="bottom"
               trigger={
                 <button
                   type="button"
@@ -310,17 +330,18 @@ export default function SignToolbar({
             className={styles.dropdown}
             onMouseEnter={openSig}
             onMouseLeave={scheduleCloseSig}
+            onDblClick={lockSignature}
           >
             <Popover
               open={showSigDropdown}
               onOpenChange={setShowSigDropdown}
-              placement="bottom-start"
+              placement="bottom"
               trigger={
                 <button
                   type="button"
-                  className={`${styles.button}${selectedTool === 'signature' ? ` ${styles.active}` : ''}`}
+                  className={`${styles.button}${selectedTool === 'signature' ? ` ${styles.active}` : ''}${selectedTool === 'signature' && toolLocked ? ` ${styles.locked}` : ''}`}
                   onClick={handleSignatureBtnClick}
-                  title="Click here to select or create a signature"
+                  title="Click here to select or create a signature. Double-click to keep adding"
                   aria-pressed={selectedTool === 'signature'}
                   data-label-priority="2"
                 >
