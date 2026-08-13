@@ -72,10 +72,12 @@ async function readToolbar(page) {
   });
 }
 
-// Sign (9+ controls) takes the --controls-per-row:5 branch; Redact (7-8
-// controls) never reaches the 9th-child selector so it stays on the base
-// --controls-per-row:4 branch instead - a different code path in the same
-// shared module, and one Sign-only coverage can't exercise. Both tools'
+// Sign (9+ controls) takes the --controls-per-row:5 branch. Redact used to
+// stay under the 9th-child selector too (7-8 controls) and take the base
+// --controls-per-row:4 branch - a different code path in the same shared
+// module - but the Delete tool button (feat/delete-pdf-objects) pushed it to
+// 8-9, so both tools may now exercise the same 5-per-row branch depending on
+// whether the Web Share API is available. Both tools'
 // widths were picked the same way: narrow enough to force wrapping, one step
 // below the shared 920px icon-only breakpoint for the single/double-row case.
 const tools = [

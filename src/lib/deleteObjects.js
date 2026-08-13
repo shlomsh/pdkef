@@ -95,6 +95,12 @@ export function spliceOut(bytes, ranges) {
 /**
  * Lists the deletable objects on every page, for the UI's hover targets.
  *
+ * A page whose content stream this lexer cannot fully model (an unusual
+ * operator sequence, a font it can't read metrics from) is skipped rather than
+ * failing the whole file: it simply offers nothing to click, which matches the
+ * "what you see is what you get, no highlight means no delete" rule the rest
+ * of this feature follows.
+ *
  * @param {File|Blob|ArrayBuffer|Uint8Array} file
  * @returns {Promise<Array>} objects carrying `rect` in page percentages
  */
@@ -107,8 +113,12 @@ export async function listDeletableObjects(file) {
   const doc = await PDFDocument.load(bytes);
   const all = [];
   for (let i = 0; i < doc.getPageCount(); i += 1) {
-    const { objects } = extractPageObjects(doc.getPage(i), i);
-    all.push(...objects);
+    try {
+      const { objects } = extractPageObjects(doc.getPage(i), i);
+      all.push(...objects);
+    } catch (err) {
+      console.error(`Could not read deletable objects on page ${i + 1}`, err);
+    }
   }
   return all;
 }

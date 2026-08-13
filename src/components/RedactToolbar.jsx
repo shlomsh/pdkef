@@ -28,11 +28,30 @@ export default function RedactToolbar({
       editor
       status={
         <div className={styles.help}>
-          <span>Click and drag on any page to hide sensitive text.</span>
+          <span>
+            {activeStyle === 'delete'
+              ? 'Hover to find images and text the file stores as one piece, then click to delete them.'
+              : 'Click and drag on any page to hide sensitive text.'}
+          </span>
         </div>
       }
     >
       <div className={styles.toolbar} role="toolbar" aria-label="PDF redaction">
+        <button
+          type="button"
+          className={`${styles.button}${activeStyle === 'delete' ? ` ${styles.active}` : ''}`}
+          onClick={() => setActiveStyle('delete')}
+          title="Click an image or text run to delete it from the PDF"
+          aria-pressed={activeStyle === 'delete'}
+          data-label-priority="2"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          </svg>
+          <span className={styles.label}>Delete</span>
+        </button>
+
         <button
           type="button"
           className={`${styles.button}${activeStyle === 'blackout' ? ` ${styles.active}` : ''}`}

@@ -61,3 +61,56 @@
   color: var(--color-danger);
   background: var(--color-danger-soft);
 }
+
+/* Delete tool: unmarked objects are invisible until hovered, so a text-dense
+   page isn't covered in outlines before the user has done anything - the
+   same "chrome appears on hover/selection, not at rest" rule RedactBox's
+   controls follow above. */
+.delete-candidate {
+  cursor: pointer;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  transition: background-color 0.1s var(--ease-out), border-color 0.1s var(--ease-out);
+}
+
+.delete-candidate:hover {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
+}
+
+/* A marked object: dashed to read as "removed", not "hidden" like a blackout
+   box - it stays visible through the underlying content by design, since
+   nothing is painted over it. Deletion happens at export. */
+.delete-mark {
+  border: 2px dashed var(--color-danger);
+  background: var(--color-danger-soft);
+  border-radius: 2px;
+}
+
+.delete-mark-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.delete-mark:hover .delete-mark-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
