@@ -19,6 +19,7 @@ import pdfToolStyles from './PdfTool.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
 import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../lib/format.js';
+import useCurrentPage from '../lib/useCurrentPage.js';
 
 export default function PdfRedactTool() {
   const [file, setFile] = useState(null);
@@ -130,6 +131,14 @@ export default function PdfRedactTool() {
   // doesn't cover: a slow draft restore that resolves *after* a fast manual pick has
   // already finished editing would otherwise still be "the newer call" and clobber it.
   const loadStartedRef = useRef(false);
+
+  const isFullscreenActive = isFullscreen || isPseudoFullscreen;
+  const currentPage = useCurrentPage({
+    active: isFullscreenActive,
+    rootRef: workspaceRef,
+    pageRefs: pageWrapperRefs,
+    numPages,
+  });
 
   // A generated PDF must match the current source and redaction boxes.
   useEffect(() => {
@@ -374,7 +383,7 @@ export default function PdfRedactTool() {
       accept=".pdf,application/pdf"
       emptyStateMessage="Select or drop a PDF to redact"
       fileLabel={file?.name}
-      fileMeta={describeFile(file, numPages)}
+      fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null)}
       draftSaved={status === 'editing'}
       hasWork={elements.length > 0}
       workNoun="your redaction boxes"
