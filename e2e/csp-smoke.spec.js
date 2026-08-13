@@ -42,7 +42,13 @@ test('every indexed route loads with zero CSP violations', async ({ page }) => {
   for (const route of routes) {
     await collectCspViolations(page);
     await page.goto(route);
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor({ timeout: 10_000 }).catch(() => {});
+    // Directive-agnostic on purpose: the home page's island is `client:only`,
+    // which never carries `client="load"`, so a load-only selector stops
+    // waiting for hydration there - and because the wait is swallowed, the
+    // route would still pass while only ever being observed pre-hydration.
+    // `:not([ssr])` covers `client:load` once it hydrates; the visibility wait
+    // covers `client:only`, whose island is present but empty until it renders.
+    await page.locator('astro-island:not([ssr])').first().waitFor({ timeout: 10_000 }).catch(() => {});
 
     const violations = await page.evaluate(() => window.__cspViolations || []);
     expect(violations, `${route} produced unexpected CSP violations:\n${violations.join('\n')}`).toEqual([]);
