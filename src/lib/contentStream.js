@@ -69,26 +69,92 @@ function decodeHexString(bytes, start, end) {
 }
 
 /**
- * Walks a literal string `(...)`, honouring backslash escapes and the balanced
- * inner parens PDF allows unescaped. Returns the index just past the closer.
+ * Decodes a literal string `(...)`, honouring backslash escapes and the
+ * balanced inner parens PDF allows unescaped.
+ *
+ * This has to actually decode the escapes, not just skip over them to find
+ * the closing paren: a two-byte Identity-H run pairs up consecutive raw bytes
+ * to form glyph codes, and any byte that needed escaping in the source
+ * (`\t`, `\b`, an octal `\ddd`, a literal `(`/`)`/`\`) is written as two or
+ * four *source* characters for one *actual* byte. Returning those source
+ * characters unresolved desyncs every 2-byte pairing for the rest of the
+ * string - not just at the escaped byte, everything after it - which reads
+ * as random glyphs going missing or a run's width coming out wrong depending
+ * on where in the string the escape falls.
+ *
+ * @param {Uint8Array} bytes
+ * @param {number} start index of the character right after the opening `(`
+ * @returns {{value: Uint8Array, end: number}} end is just past the closer
  */
-function skipLiteralString(bytes, start) {
+function decodeLiteralString(bytes, start) {
+  const out = [];
   let depth = 0;
   let i = start;
   while (i < bytes.length) {
     const byte = bytes[i];
+
     if (byte === 0x5c) {
-      i += 2;
+      const next = bytes[i + 1];
+      switch (next) {
+        case 0x6e: out.push(0x0a); i += 2; continue; // \n
+        case 0x72: out.push(0x0d); i += 2; continue; // \r
+        case 0x74: out.push(0x09); i += 2; continue; // \t
+        case 0x62: out.push(0x08); i += 2; continue; // \b
+        case 0x66: out.push(0x0c); i += 2; continue; // \f
+        case 0x28: out.push(0x28); i += 2; continue; // \(
+        case 0x29: out.push(0x29); i += 2; continue; // \)
+        case 0x5c: out.push(0x5c); i += 2; continue; // \\
+        case 0x0d: // line continuation: backslash + CR(LF) contributes nothing
+          i += bytes[i + 2] === 0x0a ? 3 : 2;
+          continue;
+        case 0x0a: // line continuation: backslash + LF contributes nothing
+          i += 2;
+          continue;
+        default:
+          if (next >= 0x30 && next <= 0x37) {
+            // Up to three octal digits.
+            let value = 0;
+            let digits = 0;
+            let j = i + 1;
+            while (digits < 3 && bytes[j] >= 0x30 && bytes[j] <= 0x37) {
+              value = value * 8 + (bytes[j] - 0x30);
+              j += 1;
+              digits += 1;
+            }
+            out.push(value & 0xff);
+            i = j;
+            continue;
+          }
+          // Spec: an unrecognized escape drops the backslash and keeps the
+          // character as-is (a producer escaping a byte that needs none).
+          if (next !== undefined) {
+            out.push(next);
+            i += 2;
+            continue;
+          }
+          i += 1;
+          continue;
+      }
+    }
+
+    if (byte === 0x28) {
+      depth += 1;
+      out.push(byte);
+      i += 1;
       continue;
     }
-    if (byte === 0x28) depth += 1;
     if (byte === 0x29) {
+      if (depth === 0) return { value: Uint8Array.from(out), end: i + 1 };
       depth -= 1;
-      if (depth === 0) return i + 1;
+      out.push(byte);
+      i += 1;
+      continue;
     }
+
+    out.push(byte);
     i += 1;
   }
-  return bytes.length;
+  return { value: Uint8Array.from(out), end: bytes.length };
 }
 
 /**
@@ -158,8 +224,9 @@ export function tokenize(bytes) {
     }
 
     if (byte === 0x28) {
-      i = skipLiteralString(bytes, i);
-      push({ type: 'string', value: bytes.subarray(start + 1, i - 1), start, end: i });
+      const decoded = decodeLiteralString(bytes, i + 1);
+      push({ type: 'string', value: decoded.value, start, end: decoded.end });
+      i = decoded.end;
       continue;
     }
 
