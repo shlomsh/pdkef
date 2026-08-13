@@ -190,9 +190,17 @@ describe('sign.js pure functions', () => {
       expect(getEffectiveTextDirection({ type: 'text', text: 'مرحبا' })).toBe('rtl');
     });
 
-    it('should use textDirection only as a fallback before text has a strong language direction', () => {
+    it('should use textDirection only as a fallback before any text is typed', () => {
       expect(getEffectiveTextDirection({ type: 'text', text: '', textDirection: 'rtl' })).toBe('rtl');
-      expect(getEffectiveTextDirection({ type: 'text', text: '123', textDirection: 'rtl' })).toBe('rtl');
+    });
+
+    it('should render digits and date/ID punctuation left-to-right regardless of a stale or inherited textDirection', () => {
+      // A numeric field placed right after a Hebrew one otherwise inherits
+      // that element's remembered direction and renders backwards/right-
+      // anchored, even though "27/05/2008" has no Hebrew in it at all.
+      expect(getEffectiveTextDirection({ type: 'text', text: '123', textDirection: 'rtl' })).toBe('ltr');
+      expect(getEffectiveTextDirection({ type: 'text', text: '327-69-8221', textDirection: 'rtl' })).toBe('ltr');
+      expect(getEffectiveTextDirection({ type: 'text', text: '27/05/2008', textDirection: 'rtl' })).toBe('ltr');
     });
 
     it('should let typed language direction override the fallback direction', () => {
