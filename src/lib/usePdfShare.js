@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 
 function canShareFiles(files) {
   if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') return false;
@@ -59,8 +59,18 @@ export function usePdfShare() {
     return true;
   }, [download, preparedFiles]);
 
+  const sharingRef = useRef(false);
+
   const sharePrepared = useCallback(async () => {
     if (preparedFiles.length === 0) return { status: 'unavailable' };
+    // A fast double-click/double-tap on the Share button re-enters this
+    // before the first navigator.share() call settles - there's no visible
+    // feedback while the native share sheet is opening, so it's an easy
+    // double-tap. Without this guard, macOS's "Copy" service ends up
+    // writing the file to the pasteboard twice, and pasting produces two
+    // identical files.
+    if (sharingRef.current) return { status: 'unavailable' };
+    sharingRef.current = true;
 
     try {
       await navigator.share({
@@ -70,6 +80,8 @@ export function usePdfShare() {
       return { status: 'shared' };
     } catch (error) {
       return { status: error?.name === 'AbortError' ? 'canceled' : 'error', error };
+    } finally {
+      sharingRef.current = false;
     }
   }, [preparedFiles]);
 
