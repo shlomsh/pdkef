@@ -5,10 +5,10 @@ import { rgb } from '@cantoo/pdf-lib';
 import TextNode from '../../components/SignTool/nodes/TextNode.jsx';
 import { hasNumber, hasString, isRecord } from './schema.ts';
 import { COMB_MIN_CELL_EM, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
-import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
+import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM } from '../../constants/signGeometry.js';
 import { combCellCount, combCharacters, combCellCenterFraction, isComb } from '../../lib/comb.js';
 import { getEffectiveTextDirection, hexToRgbFractions } from '../../lib/signHelpers.js';
-import { resolveFontFamily } from '../../lib/fonts.js';
+import { resolveFontFamily, textBoxPaddingEm } from '../../lib/fonts.js';
 import type { TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch, WidthFloorInput, WidthResizeInput, WidthResizePatch } from './types.ts';
 import elementStyles from '../../components/SignTool/EditorElement.module.css';
 
@@ -113,7 +113,10 @@ export const textDefinition: ElementDefinition<TextElement> = {
     const resolvedFont = (await loadCustomFont(embeddedFamily, fontWeight, fontStyle)) || (await loadCustomFont('Arimo', fontWeight, fontStyle));
     if (!resolvedFont) throw new Error('Unable to load a PDF font for text export');
     const { r, g, b } = hexToRgbFractions(color);
-    const baselineAdjustedY = pdfY - fontSizeInPoints * (baselineOffset(resolvedFont) + TEXT_BOX_PADDING_EM);
+    // Same per-font padding the editor renders with (fonts.js), so a face
+    // whose box grew to fit its own tall ascenders on screen exports at the
+    // same baseline instead of drifting once the extra padding is dropped.
+    const baselineAdjustedY = pdfY - fontSizeInPoints * (baselineOffset(resolvedFont) + textBoxPaddingEm(embeddedFamily));
     const lineHeight = fontSizeInPoints * DEFAULT_LINE_HEIGHT_EM;
     const isRtl = getEffectiveTextDirection(element) === 'rtl';
 

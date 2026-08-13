@@ -6,13 +6,19 @@
  * per-character fallback cannot be relied on here.
  */
 import { describe, it, expect } from 'vitest';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import fontkit from '@pdf-lib/fontkit';
+import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../constants/signGeometry.js';
 import {
+  FONT_VERTICAL_METRICS,
   HANDWRITING_FONTS,
   HEBREW_CAPABLE_FONTS,
   TEXT_FONTS,
   containsHebrew,
   resolveFontFamily,
   supportsHebrew,
+  textBoxPaddingEm,
 } from './fonts.js';
 
 describe('containsHebrew', () => {
@@ -70,5 +76,67 @@ describe('resolveFontFamily', () => {
       const once = resolveFontFamily(family, 'שלום');
       expect(resolveFontFamily(once, 'שלום')).toBe(once);
     }
+  });
+});
+
+/**
+ * FONT_VERTICAL_METRICS is a hardcoded snapshot of each bundled TTF's hhea
+ * ascent/descent — checked against the real asset bytes the same way
+ * fontCoverage.test.js checks Hebrew glyph coverage, so a swapped font file
+ * can't silently drift the table stale and let a clipped ascender back in.
+ */
+describe('FONT_VERTICAL_METRICS', () => {
+  const FONT_DIR = join(process.cwd(), 'public', 'fonts');
+
+  function regularFileFor(family) {
+    return `${family.replace(/\s+/g, '')}-Regular.ttf`;
+  }
+
+  it('covers every font the picker offers', () => {
+    for (const family of [...TEXT_FONTS, ...HANDWRITING_FONTS]) {
+      expect(FONT_VERTICAL_METRICS[family]).toBeDefined();
+    }
+  });
+
+  it('matches the real hhea ascent/descent of the bundled Regular TTF', () => {
+    for (const [family, metrics] of Object.entries(FONT_VERTICAL_METRICS)) {
+      const file = join(FONT_DIR, regularFileFor(family));
+      expect(existsSync(file), `${file} should exist`).toBe(true);
+      const font = fontkit.create(readFileSync(file));
+      const ascent = font.ascent / font.unitsPerEm;
+      const descent = Math.abs(font.descent) / font.unitsPerEm;
+      // Table values are rounded to 3dp; allow the same rounding tolerance.
+      expect(metrics.ascent).toBeCloseTo(ascent, 3);
+      expect(metrics.descent).toBeCloseTo(descent, 3);
+    }
+  });
+});
+
+describe('textBoxPaddingEm', () => {
+  it('never goes below the box’s baseline padding', () => {
+    for (const family of [...TEXT_FONTS, ...HANDWRITING_FONTS]) {
+      expect(textBoxPaddingEm(family)).toBeGreaterThanOrEqual(TEXT_BOX_PADDING_EM);
+    }
+  });
+
+  it('falls back to the baseline padding for an unknown family', () => {
+    expect(textBoxPaddingEm('Comic Sans MS')).toBe(TEXT_BOX_PADDING_EM);
+    expect(textBoxPaddingEm(undefined)).toBe(TEXT_BOX_PADDING_EM);
+  });
+
+  // Real regression: Heebo (a plain text font, not even a script face) has an
+  // ascent+descent well past DEFAULT_LINE_HEIGHT_EM, so the flat 0.12em
+  // padding this replaces was clipping ordinary Hebrew text at the box's top
+  // edge — not just the decorative handwriting fonts.
+  it('gives every font enough room for its own ascent+descent, not just the default', () => {
+    for (const [family, metrics] of Object.entries(FONT_VERTICAL_METRICS)) {
+      const halfOverhang = Math.max(0, (metrics.ascent + metrics.descent - DEFAULT_LINE_HEIGHT_EM) / 2);
+      expect(textBoxPaddingEm(family)).toBeGreaterThan(halfOverhang);
+    }
+  });
+
+  it('scales with how far a font\'s metrics overshoot the line box', () => {
+    expect(textBoxPaddingEm('Pacifico')).toBeGreaterThan(textBoxPaddingEm('Heebo'));
+    expect(textBoxPaddingEm('Heebo')).toBeGreaterThan(textBoxPaddingEm('Arimo'));
   });
 });
