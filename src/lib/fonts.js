@@ -53,10 +53,12 @@ export const FONT_VERTICAL_METRICS = {
   Sacramento: { ascent: 0.930, descent: 0.529 },
 };
 
-// Slack on top of the computed overhang: the metrics are exact, but hinting
-// and antialiasing can paint a hair past them. Costs nothing on fonts that
-// don't need it — they're floored at TEXT_BOX_PADDING_EM below regardless.
-const VERTICAL_METRICS_SLACK_EM = 0.02;
+// Slack on top of the computed overhang: the metrics are the font's design
+// box, but a real string can still paint past it - a flourish like Gveret
+// Levin's ץ tail clipped at the previous, thinner slack (0.02em). Costs
+// nothing on fonts that don't need it - they're floored at
+// TEXT_BOX_PADDING_EM below regardless.
+const VERTICAL_METRICS_SLACK_EM = 0.06;
 
 /**
  * Vertical padding (em, each side) a text box needs so `fontFamily`'s real
