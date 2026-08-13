@@ -655,4 +655,40 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       expect(box.style.width).toBe('40%');
     });
   });
+
+  // --- Comb toggle starts from the box's actual rendered width -------------
+  describe('comb toggle', () => {
+    it('measures the box as it is actually rendered instead of snapping to a fixed default', () => {
+      const onChange = vi.fn();
+      const element = { id: 'el-comb', type: 'text', left: 20, top: 10, text: '0382', fontSize: 12 };
+      const { box } = mountInPageWrapper(element, { isActive: true, onChange, pageWidthPoints: 600 });
+      // 90px on a 600px-wide page-wrapper is 15% - deliberately not
+      // DEFAULT_COMB_WIDTH_PCT (40), so a fallback-to-default bug shows up as a
+      // wrong number rather than an accidental pass.
+      box.getBoundingClientRect = () => ({
+        left: 120, top: 80, width: 90, height: 20, right: 210, bottom: 100, x: 120, y: 80, toJSON: () => {},
+      });
+
+      const toggle = box.querySelector('[title="One character per box, for a form with pre-printed boxes"]');
+      expect(toggle).not.toBeNull();
+      act(() => toggle.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+      const patch = onChange.mock.calls[0][0];
+      expect(patch.comb).toBe(true);
+      expect(patch.width).toBeCloseTo(15);
+    });
+
+    it('clears the width on the way back to plain text, rather than leaving a stale span behind', () => {
+      const onChange = vi.fn();
+      const element = { id: 'el-comb-off', type: 'text', left: 20, top: 10, text: '0382', fontSize: 12, comb: true, width: 25 };
+      const { box } = mountInPageWrapper(element, { isActive: true, onChange, pageWidthPoints: 600 });
+
+      const toggle = box.querySelector('[title="One character per box, on. Click to go back to normal text"]');
+      expect(toggle).not.toBeNull();
+      act(() => toggle.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+
+      expect(onChange).toHaveBeenCalledWith({ comb: false, width: 0 });
+    });
+  });
 });

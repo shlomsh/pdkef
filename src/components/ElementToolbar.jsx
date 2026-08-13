@@ -4,12 +4,16 @@ import FontPickerMenu from './FontPickerMenu.jsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.jsx';
 import { getEffectiveTextDirection } from '../lib/sign.js';
 import { combCellCount, isComb } from '../lib/comb.js';
-import { DEFAULT_COMB_WIDTH_PCT, MAX_COMB_CELLS } from '../constants/signGeometry.js';
+import { MAX_COMB_CELLS } from '../constants/signGeometry.js';
 import styles from './EditorControls.module.css';
 
 export default function ElementToolbar({
   element,
   onChange,
+  // Comb needs the box's current rendered width to start from, which only
+  // DraggableWrapper (owner of the element's DOM ref) can measure - see its
+  // handleToggleComb. Plain onChange can't do that, so it's a separate prop.
+  onToggleComb,
   onClone,
   onDelete
 }) {
@@ -88,9 +92,7 @@ export default function ElementToolbar({
             // Explicit, never implied by a drag: "text box with a width" already
             // means "wrap the text" to everyone, and silently spacing the
             // characters out instead would sabotage that expectation.
-            onClick={() => onChange(isComb(element)
-              ? { comb: false, width: 0 }
-              : { comb: true, width: element.width || DEFAULT_COMB_WIDTH_PCT })}
+            onClick={() => onToggleComb(!isComb(element))}
             title={isComb(element)
               ? 'One character per box, on. Click to go back to normal text'
               : 'One character per box, for a form with pre-printed boxes'}
