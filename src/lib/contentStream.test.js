@@ -45,6 +45,61 @@ describe('tokenize', () => {
     assertFullyLexed(source);
   });
 
+  describe('literal string escapes', () => {
+    // A real PDF from RealObjects PDFreactor shipped a Type0/Identity-H run
+    // whose string used \b and \t for two of its 2-byte glyph codes. Returning
+    // those as the raw source characters `\`, `b`, `\`, `t` instead of the
+    // single decoded bytes 0x08/0x09 shifted every 2-byte code pairing for the
+    // rest of the string - not just the escaped glyph, everything after it -
+    // which showed up as missing/wrong Hebrew letters in a Redact-tool preview
+    // and, worse, a wrong bounding box width for the whole run.
+    const decodedBytes = (source) => lex(source).find((t) => t.type === 'string').value;
+    const decoded = (source) => Array.from(decodedBytes(source));
+
+    it('decodes the standard single-character escapes', () => {
+      expect(decoded('(\\n)')).toEqual([0x0a]);
+      expect(decoded('(\\r)')).toEqual([0x0d]);
+      expect(decoded('(\\t)')).toEqual([0x09]);
+      expect(decoded('(\\b)')).toEqual([0x08]);
+      expect(decoded('(\\f)')).toEqual([0x0c]);
+      expect(decoded('(\\()')).toEqual([0x28]);
+      expect(decoded('(\\))')).toEqual([0x29]);
+      expect(decoded('(\\\\)')).toEqual([0x5c]);
+    });
+
+    it('decodes octal escapes up to three digits, and stops at the third', () => {
+      expect(decoded('(\\101)')).toEqual([0x41]); // 'A'
+      expect(decoded('(\\1014)')).toEqual([0x41, 0x34]); // 'A' + literal '4'
+      expect(decoded('(\\0)')).toEqual([0x00]);
+    });
+
+    it('drops a line-continuation backslash-newline entirely', () => {
+      expect(decoded('(a\\\nb)')).toEqual([0x61, 0x62]);
+      expect(decoded('(a\\\r\nb)')).toEqual([0x61, 0x62]);
+    });
+
+    it('drops the backslash and keeps the character for an unrecognized escape', () => {
+      // Per spec: a backslash before anything not in the escape table is
+      // ignored, and the character is taken literally - a producer escaping
+      // a byte that needed no escaping.
+      expect(decoded('(\\g)')).toEqual([0x67]); // 'g'
+    });
+
+    it('leaves unescaped bytes, including nested balanced parens, untouched', () => {
+      expect(decoded('(a(b)c)')).toEqual([...'a(b)c'].map((c) => c.charCodeAt(0)));
+    });
+
+    it('does not desync a two-byte code pairing around an escape mid-string', () => {
+      // The bug this guards: four raw glyph-code bytes where the second one
+      // (0x09) is written as the two-character escape \t. Decoding must yield
+      // exactly four bytes (two 2-byte codes: 0x0109 and 0x0203), not five -
+      // which is what leaving `\` and `t` as separate, un-decoded source
+      // characters would produce, shifting every code pairing after it.
+      const source = '(' + String.fromCharCode(0x01) + '\\t' + String.fromCharCode(0x02, 0x03) + ')';
+      expect(decoded(source)).toEqual([0x01, 0x09, 0x02, 0x03]);
+    });
+  });
+
   it('keeps a TJ array as one token holding its own contents', () => {
     const array = lex('[(A) -250 (B)] TJ').find((t) => t.type === 'array');
     expect(array.value.map((t) => t.type)).toEqual(['string', 'number', 'string']);
