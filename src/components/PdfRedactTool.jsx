@@ -35,7 +35,7 @@ export default function PdfRedactTool() {
   const { canSharePdf, shareReady, prepare, clearPrepared, download, sharePrepared } = usePdfShare();
   const { getPointerPercent } = usePdfCoordinates();
 
-  const [activeStyle, setActiveStyle] = useState('blackout'); // 'blackout' | 'blur' | 'whiteout' | 'delete'
+  const [activeStyle, setActiveStyle] = useState('delete'); // 'delete' | 'blackout' | 'blur' | 'whiteout'
   const [activeColor, setActiveColor] = useState('#ffffff');
   const [drawingState, setDrawingState] = useState(null); // { pageIndex, startX, startY, type, color }
   const drawingPreviewRef = useRef(null);
