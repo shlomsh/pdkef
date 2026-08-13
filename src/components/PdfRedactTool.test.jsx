@@ -103,10 +103,12 @@ describe('PdfRedactTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    // Verify hint message appears indicating editing mode
+    // Verify hint message appears indicating editing mode. Delete is the
+    // default-selected tool, so this is its status copy, not the box-drawing
+    // tools' "hide sensitive text" message.
     const header = container.querySelector(`.${toolbarStyles.help}`);
     expect(header).not.toBeNull();
-    expect(header.textContent).toContain('hide sensitive text');
+    expect(header.textContent).toContain('click to delete them');
     
     // Verify toolbar modes exist
     const toolbar = container.querySelector(`.${toolbarStyles.toolbar}`);
@@ -380,6 +382,20 @@ describe('PdfRedactTool UI flow', () => {
     drawArea.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
     });
+
+    // The tool now defaults to Delete (a fourth click-to-mark mode, not a
+    // draw-a-box mode), so every caller here that wants drawBox() to actually
+    // draw a blackout box needs Blackout selected first - it used to be the
+    // implicit default. Centralized here rather than at each of this file's
+    // many drawBox() call sites, since none of them are testing which tool
+    // starts selected; they're testing box drag/resize/delete mechanics that
+    // just need a box on the page to exercise.
+    const blackoutButton = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
+      .find((button) => button.textContent.includes('Blackout'));
+    await act(async () => {
+      blackoutButton.click();
+    });
+
     return drawArea;
   }
 
