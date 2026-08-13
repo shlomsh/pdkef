@@ -50,8 +50,17 @@ export const TEXT_BOX_PADDING_EM = 0.12;                // Text box padding (em)
 export const TEXT_BOX_LINE_HEIGHT_EM = DEFAULT_LINE_HEIGHT_EM + TEXT_BOX_PADDING_EM * 2;
 
 // Comb layout (one character per cell, for pre-printed form boxes)
-export const DEFAULT_COMB_WIDTH_PCT = 40;               // Span a comb takes when first switched on (% of page width)
-export const MIN_COMB_WIDTH_PCT = 2;                    // Floor for the side-handle drag, so the box stays grabbable
+export const MIN_COMB_WIDTH_PCT = 2;                    // Absolute floor for the side-handle drag, so the box stays grabbable
+// Narrowest cell pitch (in em) a comb is still a comb at. The real floor for
+// the side-handle drag is derived from this and the cell count, not from a flat
+// percentage of the page: a comb whose cells are narrower than the characters
+// in them has stopped doing the one thing it exists for, and where that happens
+// depends entirely on font size and how many cells there are. It also puts the
+// floor within a hand's reach of the text's own natural width, which is what
+// makes "shrink it back down and it turns into normal text again" a gesture
+// someone can actually perform - a flat 2% of the page means dragging the box
+// down to a 12px slit first, whatever is written in it.
+export const COMB_MIN_CELL_EM = 0.6;
 export const MAX_COMB_CELLS = 60;                       // Upper bound on the cell stepper
 
 // Miscellaneous UI Sizing/Offsets

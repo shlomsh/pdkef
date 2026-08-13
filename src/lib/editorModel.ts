@@ -79,12 +79,12 @@ export interface TextElement extends ElementBase {
   /** Height/width ratio used during resize (falls back to ASPECT_RATIO_TEXT). */
   aspectRatio?: number;
   /**
-   * Comb layout: one character per cell, centred, across an explicit `width`.
+   * Comb layout: one character per cell, centred, across an explicit span.
    * For pre-printed forms whose boxes have a pitch no font happens to match.
-   * Off by default, and the element is intrinsically sized as before.
+   * Absent means intrinsically sized as normal - dragging a side handle is
+   * the only thing that ever sets this (see comb.js's isComb, the single
+   * place that treats "has a width" as "is a comb").
    */
-  comb?: boolean;
-  /** Comb span as a % of page width. Only read while `comb` is on. */
   width?: number;
   /**
    * Explicit cell count. Absent means "follow the text", which is right

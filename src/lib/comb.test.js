@@ -2,23 +2,27 @@ import { describe, expect, it } from 'vitest';
 import { combCellCenterFraction, combCellCount, combCharacters, combLayout, isComb } from './comb.js';
 
 describe('comb layout', () => {
-  it('is off unless a text element opts in', () => {
+  it('is derived from having an explicit width, not a separate flag', () => {
+    // Dragging a side handle is the only thing that ever sets `width` on a
+    // text element, and clearing it is the only thing that ever unsets it
+    // (see useElementResize.js/ElementToolbar.jsx), so the two can't drift.
     expect(isComb({ type: 'text', text: '123' })).toBe(false);
-    expect(isComb({ type: 'text', text: '123', comb: true })).toBe(true);
-    expect(isComb({ type: 'rectangle', comb: true })).toBe(false);
+    expect(isComb({ type: 'text', text: '123', width: 10 })).toBe(true);
+    expect(isComb({ type: 'text', text: '123', width: 0 })).toBe(false);
+    expect(isComb({ type: 'rectangle', width: 10 })).toBe(false);
   });
 
   it('follows the text when no cell count is set', () => {
-    expect(combCellCount({ type: 'text', comb: true, text: '327698221' })).toBe(9);
-    expect(combCellCount({ type: 'text', comb: true, text: '01072026' })).toBe(8);
+    expect(combCellCount({ type: 'text', width: 10, text: '327698221' })).toBe(9);
+    expect(combCellCount({ type: 'text', width: 10, text: '01072026' })).toBe(8);
   });
 
   it('honours an explicit cell count, which is what a field with blank boxes needs', () => {
-    expect(combCellCount({ type: 'text', comb: true, text: '27', combCells: 8 })).toBe(8);
+    expect(combCellCount({ type: 'text', width: 10, text: '27', combCells: 8 })).toBe(8);
   });
 
   it('never reports fewer than one cell, so an empty comb still has a box', () => {
-    expect(combCellCount({ type: 'text', comb: true, text: '' })).toBe(1);
+    expect(combCellCount({ type: 'text', width: 10, text: '' })).toBe(1);
   });
 
   it('collapses newlines, because a comb is a single row of boxes', () => {
@@ -34,13 +38,41 @@ describe('comb layout', () => {
   });
 
   it('spaces the cells evenly and leaves unreached cells empty', () => {
-    const layout = combLayout({ type: 'text', comb: true, text: '27', combCells: 4 });
+    const layout = combLayout({ type: 'text', width: 10, text: '27', combCells: 4 });
     expect(layout.map((cell) => cell.char)).toEqual(['2', '7', '', '']);
     expect(layout.map((cell) => cell.centerFraction)).toEqual([0.125, 0.375, 0.625, 0.875]);
   });
 
   it('drops characters past the last cell rather than crowding the field', () => {
-    expect(combLayout({ type: 'text', comb: true, text: '12345', combCells: 3 }).map((c) => c.char))
+    expect(combLayout({ type: 'text', width: 10, text: '12345', combCells: 3 }).map((c) => c.char))
       .toEqual(['1', '2', '3']);
+  });
+
+  describe('RTL: reading order mirrors, not just the box position', () => {
+    it('mirrors the fraction, so the same cell index sits opposite where it does in LTR', () => {
+      // Not a coincidence that these equal the LTR pair reversed: mirroring
+      // around the centre is exactly what "same layout, opposite direction"
+      // means.
+      expect(combCellCenterFraction(0, 8, true)).toBeCloseTo(0.9375);
+      expect(combCellCenterFraction(7, 8, true)).toBeCloseTo(0.0625);
+    });
+
+    it('places character 0 at the highest (rightmost) fraction, so it renders nearest the fixed right edge', () => {
+      // Plain RTL text in this editor anchors its fixed edge on the right and
+      // grows leftward, so the first character typed always stays at that
+      // fixed edge (see usesRtlAnchoring). A comb's span is fixed rather than
+      // growing, but the reading order still has to agree: the array order
+      // (and so which character is "0") is unchanged - what mirrors is only
+      // *where on the page* each index is drawn.
+      const layout = combLayout({ type: 'text', width: 10, text: '27', combCells: 4 }, true);
+      expect(layout.map((cell) => cell.char)).toEqual(['2', '7', '', '']);
+      expect(layout.map((cell) => cell.centerFraction)).toEqual([0.875, 0.625, 0.375, 0.125]);
+    });
+
+    it('defaults to LTR when direction is omitted, so every existing call site is unaffected', () => {
+      expect(combCellCenterFraction(0, 8)).toBeCloseTo(combCellCenterFraction(0, 8, false));
+      expect(combLayout({ type: 'text', width: 10, text: '27' }))
+        .toEqual(combLayout({ type: 'text', width: 10, text: '27' }, false));
+    });
   });
 });

@@ -18,9 +18,16 @@ import { MAX_COMB_CELLS } from '../constants/signGeometry.js';
  * agree exactly, the same way `fonts.js` owns family resolution for both.
  */
 
-/** True for a text element currently laid out as a comb. */
+/**
+ * True for a text element currently laid out as a comb. Derived from `width`
+ * rather than a separate flag: dragging a side handle is the only way `width`
+ * ever gets set on text, and clearing it (a font-size change - see
+ * useElementResize.js/ElementToolbar.jsx) is the only way it's ever unset, so
+ * the two are always in lockstep. A standalone boolean would just be a second
+ * place for that same fact to go stale.
+ */
 export function isComb(element) {
-  return element?.type === 'text' && !!element.comb;
+  return element?.type === 'text' && !!element.width;
 }
 
 /**
@@ -45,21 +52,30 @@ export function combCellCount(element) {
 /**
  * Centre of cell `index` as a fraction of the comb's width. Characters past the
  * last cell have no box to sit in, so callers stop at `combCellCount`.
+ *
+ * `isRtl` mirrors the fraction: character 0 sits in the *last* (rightmost)
+ * cell instead of the first. Plain RTL text in this editor already anchors
+ * its fixed edge on the right and grows leftward as more is typed (see the
+ * usesRtlAnchoring view flag), so the first character typed stays at that
+ * fixed right edge; a comb has no growing edge to anchor to (the span is
+ * fixed), but the reading order still has to match - the first character
+ * belongs at the right, not wherever cell 0 happens to be physically.
  */
-export function combCellCenterFraction(index, cellCount) {
-  return (index + 0.5) / cellCount;
+export function combCellCenterFraction(index, cellCount, isRtl = false) {
+  const fraction = (index + 0.5) / cellCount;
+  return isRtl ? 1 - fraction : fraction;
 }
 
 /**
  * The laid-out cells: `char` is empty for a cell the text does not reach, which
  * is what a form with trailing blank boxes looks like.
  */
-export function combLayout(element) {
+export function combLayout(element, isRtl = false) {
   const characters = combCharacters(element);
   const cellCount = combCellCount(element);
   return Array.from({ length: cellCount }, (_, index) => ({
     index,
     char: characters[index] || '',
-    centerFraction: combCellCenterFraction(index, cellCount),
+    centerFraction: combCellCenterFraction(index, cellCount, isRtl),
   }));
 }
