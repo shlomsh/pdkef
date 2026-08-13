@@ -119,7 +119,10 @@ describe('comb serialize', () => {
   });
 
   it('measures RTL from the anchored right edge', async () => {
-    const [[, firstX]] = await serializeComb({ ...base, text: '27', textDirection: 'rtl' });
+    // A comb has no genuine RTL use case in practice - every real one here is
+    // digits/dates, which now always render LTR (see signHelpers.js) - but the
+    // export math still needs proving for whatever does carry RTL content.
+    const [[, firstX]] = await serializeComb({ ...base, text: 'שר', textDirection: 'rtl' });
     // The box now occupies 0..61.2 rather than 61.2..122.4, so the first cell
     // centre is 15.3 and the glyph starts 21 to its left.
     expect(firstX).toBeCloseTo(-5.7);

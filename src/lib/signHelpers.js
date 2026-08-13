@@ -1,10 +1,19 @@
 const STRONG_DIRECTION_CHAR = /[A-Za-z\u0591-\u07FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
 const RTL_CHAR = /[\u0591-\u07FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
+// Digits and the punctuation an ID number or date is made of (327-69-8221,
+// 27/05/2008). None of it has an inherent direction, so without this a field
+// like that would silently inherit whatever direction the *previous* element
+// on the page happened to be \u2014 e.g. always landing right-anchored and
+// right-aligned after a Hebrew field, even though nothing about "27/05/2008"
+// is Hebrew.
+const NEUTRAL_ONLY = /^[0-9\s/\-.:,()+]*$/;
 
 export function detectTextDirection(text) {
-  const firstStrong = (text || '').match(STRONG_DIRECTION_CHAR)?.[0];
-  if (!firstStrong) return null;
-  return RTL_CHAR.test(firstStrong) ? 'rtl' : 'ltr';
+  const value = text || '';
+  const firstStrong = value.match(STRONG_DIRECTION_CHAR)?.[0];
+  if (firstStrong) return RTL_CHAR.test(firstStrong) ? 'rtl' : 'ltr';
+  if (value && NEUTRAL_ONLY.test(value)) return 'ltr';
+  return null;
 }
 
 export function getEffectiveTextDirection(element) {
