@@ -76,7 +76,12 @@
 }
 
 .delete-candidate:hover {
-  background: var(--color-danger-soft);
+  /* --color-danger-soft is a solid opaque hex (#fcf1f3), not a tint - used
+     as a flat background it painted an opaque patch over the text instead
+     of the translucent highlight this is meant to be, hiding exactly the
+     content the user is trying to identify before deleting it. rgba() over
+     the danger color, at low alpha, is the actual tint. */
+  background: rgba(184, 76, 88, 0.1);
   border-color: var(--color-danger);
 }
 
@@ -88,17 +93,20 @@
    immediately, and the pattern is deliberately translucent enough that the
    underlying text stays legible: the user should be able to double check
    what they selected without hovering away the mark to look. Deletion is
-   still deferred to export - nothing is actually removed until Download. */
+   still deferred to export - nothing is actually removed until Download.
+   Both stripe colors must be rgba(), not the opaque --color-danger-soft
+   token - see the note on .delete-candidate:hover above; the same mistake
+   here would have hidden the text under half of every hatch band. */
 .delete-mark {
   position: relative;
   border: 1.5px solid var(--color-danger);
   border-radius: 3px;
   background-image: repeating-linear-gradient(
     -45deg,
-    var(--color-danger-soft) 0,
-    var(--color-danger-soft) 6px,
-    rgba(184, 76, 88, 0.16) 6px,
-    rgba(184, 76, 88, 0.16) 12px
+    rgba(184, 76, 88, 0.07) 0,
+    rgba(184, 76, 88, 0.07) 6px,
+    rgba(184, 76, 88, 0.18) 6px,
+    rgba(184, 76, 88, 0.18) 12px
   );
   animation: delete-mark-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
