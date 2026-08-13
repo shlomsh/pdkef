@@ -78,6 +78,20 @@ export interface TextElement extends ElementBase {
   textDirection?: TextDirection;
   /** Height/width ratio used during resize (falls back to ASPECT_RATIO_TEXT). */
   aspectRatio?: number;
+  /**
+   * Comb layout: one character per cell, centred, across an explicit `width`.
+   * For pre-printed forms whose boxes have a pitch no font happens to match.
+   * Off by default, and the element is intrinsically sized as before.
+   */
+  comb?: boolean;
+  /** Comb span as a % of page width. Only read while `comb` is on. */
+  width?: number;
+  /**
+   * Explicit cell count. Absent means "follow the text", which is right
+   * whenever the field has exactly as many boxes as there are characters;
+   * set it only for a field with cells left blank.
+   */
+  combCells?: number;
 }
 
 /** A stroked rectangle outline. */

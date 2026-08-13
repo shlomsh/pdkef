@@ -3,6 +3,8 @@ import ColorPickerMenu from './ColorPickerMenu.jsx';
 import FontPickerMenu from './FontPickerMenu.jsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.jsx';
 import { getEffectiveTextDirection } from '../lib/sign.js';
+import { combCellCount, isComb } from '../lib/comb.js';
+import { DEFAULT_COMB_WIDTH_PCT, MAX_COMB_CELLS } from '../constants/signGeometry.js';
 import styles from './EditorControls.module.css';
 
 export default function ElementToolbar({
@@ -79,6 +81,57 @@ export default function ElementToolbar({
               <PilcrowRight size={14} strokeWidth={2.5} />
             )}
           </button>
+          <div className={styles.divider} />
+          <button
+            type="button"
+            className={buttonClass(isComb(element))}
+            // Explicit, never implied by a drag: "text box with a width" already
+            // means "wrap the text" to everyone, and silently spacing the
+            // characters out instead would sabotage that expectation.
+            onClick={() => onChange(isComb(element)
+              ? { comb: false, width: 0 }
+              : { comb: true, width: element.width || DEFAULT_COMB_WIDTH_PCT })}
+            title={isComb(element)
+              ? 'One character per box, on. Click to go back to normal text'
+              : 'One character per box, for a form with pre-printed boxes'}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="6" width="20" height="12" rx="1" />
+              <line x1="9" y1="6" x2="9" y2="18" />
+              <line x1="15" y1="6" x2="15" y2="18" />
+            </svg>
+          </button>
+          {isComb(element) && (
+            <>
+              <button
+                type="button"
+                className={buttonClass()}
+                onClick={() => onChange({ combCells: Math.max(1, combCellCount(element) - 1) })}
+                title="One box fewer"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                className={buttonClass()}
+                // Absent combCells means the count follows the text, which is
+                // right whenever the field has one box per character. Clicking
+                // the readout gives that back after a manual override.
+                onClick={() => onChange({ combCells: 0 })}
+                title={element.combCells ? 'Boxes, fixed. Click to follow the text again' : 'Boxes, following the text'}
+              >
+                {combCellCount(element)}
+              </button>
+              <button
+                type="button"
+                className={buttonClass()}
+                onClick={() => onChange({ combCells: Math.min(MAX_COMB_CELLS, combCellCount(element) + 1) })}
+                title="One box more"
+              >
+                +
+              </button>
+            </>
+          )}
           <div className={styles.divider} />
           <ColorPickerMenu
             value={element.color}

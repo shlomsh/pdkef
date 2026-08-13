@@ -257,4 +257,64 @@ describe('TextNode component', () => {
 
     expect(host.querySelector('[data-editor-text-input]').style.fontFamily).toBe('Caveat');
   });
+
+  describe('comb layout', () => {
+    const renderComb = (element, isActive = true) => mount(
+      <TextNode
+        element={{ type: 'text', fontSize: 16, comb: true, width: 40, ...element }}
+        isActive={isActive}
+        onChange={() => {}}
+        onSelect={() => {}}
+        onResizeStart={() => {}}
+        pageWidthPoints={600}
+      />
+    );
+
+    it('places one character per cell at the cell centre', () => {
+      host = renderComb({ text: '270' });
+      const cells = [...host.querySelectorAll(`.${elementStyles['text-comb-cell']}`)];
+      expect(cells.map((cell) => cell.textContent)).toEqual(['2', '7', '0']);
+      // Centres, not edges: 1/6, 3/6, 5/6 of the span.
+      expect(cells.map((cell) => cell.style.left)).toEqual([
+        `${(1 / 6) * 100}%`, '50%', `${(5 / 6) * 100}%`,
+      ]);
+    });
+
+    it('shows the alignment guides only while selected, so they stay an editing aid', () => {
+      host = renderComb({ text: '270' });
+      expect(host.querySelectorAll(`.${elementStyles['text-comb-guide']}`)).toHaveLength(2);
+      document.body.removeChild(host);
+
+      host = renderComb({ text: '270' }, false);
+      expect(host.querySelectorAll(`.${elementStyles['text-comb-guide']}`)).toHaveLength(0);
+    });
+
+    it('renders blank cells for a field with boxes left empty', () => {
+      host = renderComb({ text: '27', combCells: 5 });
+      expect([...host.querySelectorAll(`.${elementStyles['text-comb-cell']}`)].map((c) => c.textContent))
+        .toEqual(['2', '7', '', '', '']);
+    });
+
+    it('hides the textarea’s own text but keeps its caret, since the cells are what you see', () => {
+      host = renderComb({ text: '270', color: '#112233' });
+      const input = host.querySelector('[data-editor-text-input]');
+      expect(input.style.color).toBe('transparent');
+      expect(input.style.caretColor).toBe('rgb(17, 34, 51)');
+    });
+
+    it('leaves a plain text box completely alone', () => {
+      host = mount(
+        <TextNode
+          element={{ type: 'text', text: '270', fontSize: 16 }}
+          isActive
+          onChange={() => {}}
+          onSelect={() => {}}
+          onResizeStart={() => {}}
+          pageWidthPoints={600}
+        />
+      );
+      expect(host.querySelector(`.${elementStyles['text-comb']}`)).toBeNull();
+      expect(host.querySelector('[data-editor-text-input]').style.color).toBe('rgb(0, 0, 0)');
+    });
+  });
 });

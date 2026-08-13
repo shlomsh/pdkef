@@ -3,6 +3,9 @@ import styles from './SignTool/EditorElement.module.css';
 
 export default function ElementResizers({ element, isActive, onResizeStart }) {
   const { handles } = getElementDefinition(element.type).resizeBehavior;
+  // A type may vary its handles per element (comb text adds side handles only
+  // while comb is on), so the declaration can be a function of the element.
+  const handleList = typeof handles === 'function' ? handles(element) : handles;
 
   // Line endpoints remain available without selection so the SVG's hit target
   // can select and then adjust either endpoint, matching the prior behavior.
@@ -10,7 +13,7 @@ export default function ElementResizers({ element, isActive, onResizeStart }) {
 
   return (
     <>
-      {handles.map((handle) => {
+      {handleList.map((handle) => {
         const isLineHandle = handle.startsWith('line-');
         const isCorner = handle.includes('-') && !isLineHandle;
         const point = handle === 'line-start'
@@ -25,7 +28,12 @@ export default function ElementResizers({ element, isActive, onResizeStart }) {
             style={isLineHandle ? { position: 'absolute', left: `${point.left}%`, top: `${point.top}%`, pointerEvents: 'auto', cursor: 'crosshair', transform: 'translate(-50%, -50%)', bottom: 'auto', right: 'auto' } : undefined}
             onMouseDown={(event) => onResizeStart(event, handle)}
             onTouchStart={(event) => onResizeStart(event, handle)}
-            title={!isLineHandle && element.type === 'text' ? 'Drag to resize font size' : !isLineHandle ? 'Drag to resize' : undefined}
+            title={isLineHandle ? undefined
+              : element.type !== 'text' ? 'Drag to resize'
+              // On a comb the two grips do different jobs, and saying so is the
+              // only hint that font size and cell pitch are independent here.
+              : isCorner ? 'Drag to resize font size'
+              : 'Drag to span the form’s boxes'}
           />
         );
       })}
