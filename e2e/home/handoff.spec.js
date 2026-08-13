@@ -34,6 +34,8 @@ async function makePdfBuffer(label) {
   return Buffer.from(await doc.save());
 }
 
+const dropzone = (page) => page.locator('[class*="_dropzone_"]').first();
+
 // Builds the File inside the page from a plain byte array. Deliberately not via
 // `fetch('data:...')`, which the site's strict connect-src would block: the point
 // of this test is the app's behaviour, not a CSP violation of the test's making.
@@ -48,7 +50,7 @@ async function dropOnHomeDropzone(page, { name, bytes }) {
     },
     [name, [...bytes]],
   );
-  await page.locator('[class*="_dropzone_"]').first().dispatchEvent('drop', { dataTransfer });
+  await dropzone(page).dispatchEvent('drop', { dataTransfer });
 }
 
 // Writes a draft the way the Sign tool's autosave would, so the "there is
@@ -112,7 +114,16 @@ test.describe('home page hands a dropped PDF to the Sign tool', () => {
           request.onblocked = resolve;
         }),
     );
-    await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+    // Hydration wait, written against what the island *renders* rather than how
+    // it is directed to hydrate. The home page's dropzone is `client:only`
+    // (it reads the local draft hint synchronously, so there is nothing worth
+    // server-rendering), which means the `astro-island[client="load"]:not([ssr])`
+    // selector every tool-page spec uses never matches here - it matched once,
+    // then the directive changed and this whole file started timing out in the
+    // hook. The dropzone only exists once the island has rendered client-side,
+    // so waiting for it proves the same thing and survives the next directive
+    // change.
+    await dropzone(page).waitFor();
   });
 
   test('a dropped file survives the navigation and opens in the editor', async ({ page }) => {
