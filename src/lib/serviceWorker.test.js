@@ -9,7 +9,7 @@ function requestUrl(request) {
   return typeof request === 'string' ? new URL(request, 'https://pdkef.test').href : request.url;
 }
 
-function createWorker(fetchImpl = vi.fn()) {
+function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous']) {
   const listeners = new Map();
   const entries = new Map();
   const cache = {
@@ -18,7 +18,7 @@ function createWorker(fetchImpl = vi.fn()) {
   };
   const caches = {
     open: vi.fn(async () => cache),
-    keys: vi.fn(async () => ['pdkef-previous']),
+    keys: vi.fn(async () => cacheKeys),
     delete: vi.fn(async () => true),
   };
   const self = {
@@ -26,6 +26,7 @@ function createWorker(fetchImpl = vi.fn()) {
     addEventListener: (name, listener) => listeners.set(name, listener),
     skipWaiting: vi.fn(async () => undefined),
     clients: { claim: vi.fn(async () => undefined) },
+    registration: { unregister: vi.fn(async () => true) },
   };
 
   vm.runInNewContext(workerSource, {
@@ -44,6 +45,26 @@ function createWorker(fetchImpl = vi.fn()) {
   return { cache, caches, entries, fetchImpl, listeners, self };
 }
 
+async function dispatchInstall(worker) {
+  const waits = [];
+  worker.listeners.get('install')({ waitUntil: (promise) => waits.push(Promise.resolve(promise)) });
+  return Promise.all(waits);
+}
+
+async function dispatchActivate(worker) {
+  const waits = [];
+  worker.listeners.get('activate')({ waitUntil: (promise) => waits.push(Promise.resolve(promise)) });
+  return Promise.all(waits);
+}
+
+function manifestResponder(urls, perUrl = () => new Response('asset')) {
+  return vi.fn(async (request) => {
+    const url = requestUrl(request);
+    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ urls }));
+    return perUrl(new URL(url).pathname);
+  });
+}
+
 async function dispatchFetch(worker, request) {
   let responsePromise;
   const background = [];
@@ -56,26 +77,66 @@ async function dispatchFetch(worker, request) {
 }
 
 describe('offline-first service worker', () => {
-  it('atomically precaches the manifest before activating', async () => {
-    const fetchImpl = vi.fn(async (request) => {
-      const url = requestUrl(request);
-      if (url.endsWith('/precache-manifest.json')) {
-        return new Response(JSON.stringify({ urls: ['/', '/sign/', '/_astro/app.js'] }));
-      }
-      return new Response(`asset:${url}`);
-    });
-    const worker = createWorker(fetchImpl);
-    const waits = [];
+  it('precaches the manifest without claiming pages from the previous build', async () => {
+    const worker = createWorker(manifestResponder(['/', '/sign/', '/_astro/app.js']));
 
-    worker.listeners.get('install')({ waitUntil: (promise) => waits.push(Promise.resolve(promise)) });
-    await Promise.all(waits);
+    await dispatchInstall(worker);
 
-    expect(worker.self.skipWaiting).toHaveBeenCalledOnce();
-    expect(Array.from(worker.entries.keys())).toEqual([
+    expect(Array.from(worker.entries.keys()).sort()).toEqual([
+      'https://pdkef.test/',
+      'https://pdkef.test/_astro/app.js',
+      'https://pdkef.test/sign/',
+    ]);
+    // skipWaiting would activate over pages still running the old build, whose
+    // cache activate then deletes while they are lazy-importing from it.
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('keeps installing when individual assets fail, so one bad response is not fatal', async () => {
+    const worker = createWorker(manifestResponder(
+      ['/', '/sign/', '/fonts/heebo.ttf'],
+      (pathname) => (pathname === '/fonts/heebo.ttf' ? new Response('nope', { status: 503 }) : new Response('asset')),
+    ));
+
+    await dispatchInstall(worker);
+
+    expect(Array.from(worker.entries.keys()).sort()).toEqual([
       'https://pdkef.test/',
       'https://pdkef.test/sign/',
-      'https://pdkef.test/_astro/app.js',
     ]);
+    expect(worker.self.registration.unregister).not.toHaveBeenCalled();
+  });
+
+  it('fails the install when the offline fallback itself cannot be cached', async () => {
+    const worker = createWorker(manifestResponder(
+      ['/', '/sign/'],
+      (pathname) => (pathname === '/' ? new Response('nope', { status: 500 }) : new Response('asset')),
+    ));
+
+    await expect(dispatchInstall(worker)).rejects.toThrow(/Failed to precache \//);
+  });
+
+  it('uninstalls itself and drops its caches when the origin serves no build', async () => {
+    const worker = createWorker(
+      vi.fn(async () => new Response('not found', { status: 404 })),
+      ['pdkef-previous', 'some-other-app'],
+    );
+
+    await dispatchInstall(worker);
+
+    expect(worker.self.registration.unregister).toHaveBeenCalledOnce();
+    expect(worker.caches.delete).toHaveBeenCalledWith('pdkef-previous');
+    expect(worker.caches.delete).not.toHaveBeenCalledWith('some-other-app');
+  });
+
+  it('only ever deletes its own caches on activate', async () => {
+    const worker = createWorker(vi.fn(), ['pdkef-previous', 'some-other-app']);
+
+    await dispatchActivate(worker);
+
+    expect(worker.caches.delete).toHaveBeenCalledWith('pdkef-previous');
+    expect(worker.caches.delete).not.toHaveBeenCalledWith('some-other-app');
+    expect(worker.self.clients.claim).toHaveBeenCalledOnce();
   });
 
   it('serves a cached pathname for a query-route navigation while refreshing in the background', async () => {

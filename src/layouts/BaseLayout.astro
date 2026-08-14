@@ -56,12 +56,30 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
         inject();
       }
     </script>
-    {import.meta.env.PROD && (
-      <script>
-        if ('serviceWorker' in navigator) {
+    <script>
+      // Registration stays production-only, but a service worker outlives the
+      // build that installed it and is scoped to the origin, which on localhost
+      // is just a port. Running `npm run preview` once therefore leaves a worker
+      // controlling the dev server afterwards, serving that build's assets
+      // cache-first alongside the dev server's own — the page ends up with
+      // modules from two Vite optimize passes and hydration dies on an undefined
+      // internal. Dev actively uninstalls it instead of leaving it to rot.
+      if ('serviceWorker' in navigator) {
+        if (import.meta.env.PROD) {
           window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+        } else {
+          navigator.serviceWorker.getRegistrations()
+            .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+            .catch(() => {});
+          if ('caches' in window) {
+            caches.keys()
+              .then((keys) => Promise.all(
+                keys.filter((key) => key.startsWith('pdkef-')).map((key) => caches.delete(key)),
+              ))
+              .catch(() => {});
+          }
         }
-      </script>
-    )}
+      }
+    </script>
   </body>
 </html>
