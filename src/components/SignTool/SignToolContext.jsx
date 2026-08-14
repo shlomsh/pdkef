@@ -85,6 +85,22 @@ export function reducer(state, action) {
         ...state,
         elements: state.elements.filter(el => el.id !== action.payload)
       };
+    // Every element on one page at once (the page header's "Clear page"). The
+    // caller logs it with a snapshot, so UNDO restores the whole page the same
+    // way it restores a single delete. The reducer's own job is the selection
+    // invariant: if what was selected or being edited lived on that page, it
+    // just stopped existing, so neither id may survive it.
+    case 'CLEAR_PAGE': {
+      const remaining = state.elements.filter(el => el.pageIndex !== action.payload);
+      if (remaining.length === state.elements.length) return state;
+      const activeSurvives = remaining.some(el => el.id === state.activeElementId);
+      return {
+        ...state,
+        elements: remaining,
+        activeElementId: activeSurvives ? state.activeElementId : null,
+        editingElementId: activeSurvives ? state.editingElementId : null
+      };
+    }
     case 'SET_ACTIVE_ELEMENT_ID':
       return {
         ...state,

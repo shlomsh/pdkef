@@ -1,6 +1,7 @@
 import { useRef, useCallback } from 'preact/hooks';
 import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS } from '../../constants/signGeometry.js';
 import PdfPageCanvas from '../PdfPageCanvas.jsx';
+import EditorPageHeader from '../EditorPageHeader.jsx';
 import DraggableWrapper from './DraggableWrapper.jsx';
 import { getElementDefinition } from '../../editor/registry/index.ts';
 import { useSignTool } from './SignToolContext.jsx';
@@ -141,6 +142,23 @@ export default function PdfWorkspace({
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
   }, [dispatch]);
 
+  // "Clear page" (the page header, same action the Redact editor has): removes
+  // one page's annotations and leaves every other page alone. Logged with the
+  // removed elements as its snapshot, so it undoes in one step like a delete.
+  const clearPage = useCallback((pageIndex) => {
+    const removed = elements.filter(el => el.pageIndex === pageIndex);
+    if (removed.length === 0) return;
+    dispatch({ type: 'CLEAR_PAGE', payload: pageIndex });
+    logAction(
+      'CLEAR_PAGE',
+      null,
+      pageIndex,
+      `Cleared ${removed.length} annotation${removed.length === 1 ? '' : 's'} on page ${pageIndex + 1}`,
+      removed
+    );
+    setAnnouncement(`Cleared page ${pageIndex + 1}.`);
+  }, [elements, dispatch, logAction, setAnnouncement]);
+
   return (
     <div
       className={`${workspaceStyles.workspace}${isPseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}${status === 'signing' ? ` ${workspaceStyles['is-processing']}` : ''}`}
@@ -169,27 +187,32 @@ export default function PdfWorkspace({
             {Array.from({ length: numPages }).map((_, pageIdx) => {
               const size = pageSizes[pageIdx] || { width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS };
 
-              return (
-                <div
-                  key={pageIdx}
-                  ref={(el) => (pageWrapperRefs.current[pageIdx] = el)}
-                  className={workspaceStyles['page-wrapper']}
-                  style={{ aspectRatio: `${size.width} / ${size.height}` }}
-                >
-                  <PdfPageCanvas
-                    pdfDocument={pdfDocument}
-                    pageNum={pageIdx + 1}
-                  />
+              const pageElements = elements.filter((el) => el.pageIndex === pageIdx);
 
+              return (
+                <div key={pageIdx} data-editor-page-card>
+                  <EditorPageHeader
+                    pageNumber={pageIdx + 1}
+                    onClear={pageElements.length > 0 ? () => clearPage(pageIdx) : null}
+                    clearTitle="Clear all annotations on this page"
+                  />
                   <div
-                    className={workspaceStyles['page-overlay']}
-                    onClick={(e) => handlePageClick(e, pageIdx)}
-                    onMouseDown={(e) => handleOverlayPointerDown(e, pageIdx)}
-                    onTouchStart={(e) => handleOverlayPointerDown(e, pageIdx)}
+                    ref={(el) => (pageWrapperRefs.current[pageIdx] = el)}
+                    className={workspaceStyles['page-wrapper']}
+                    style={{ aspectRatio: `${size.width} / ${size.height}` }}
                   >
-                    {elements
-                      .filter((el) => el.pageIndex === pageIdx)
-                      .map((el) => (
+                    <PdfPageCanvas
+                      pdfDocument={pdfDocument}
+                      pageNum={pageIdx + 1}
+                    />
+
+                    <div
+                      className={workspaceStyles['page-overlay']}
+                      onClick={(e) => handlePageClick(e, pageIdx)}
+                      onMouseDown={(e) => handleOverlayPointerDown(e, pageIdx)}
+                      onTouchStart={(e) => handleOverlayPointerDown(e, pageIdx)}
+                    >
+                      {pageElements.map((el) => (
                         <DraggableWrapper
                           key={el.id}
                           element={el}
@@ -210,6 +233,7 @@ export default function PdfWorkspace({
                           })}
                         </DraggableWrapper>
                       ))}
+                    </div>
                   </div>
                 </div>
               );

@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import PdfWorkspace from './PdfWorkspace.jsx';
 import workspaceStyles from './Workspace.module.css';
+import pageHeaderStyles from '../EditorPageHeader.module.css';
 import { SignToolContext } from './SignToolContext.jsx';
 import { SignDefaultsContext } from './SignDefaultsContext.jsx';
 import { SavedSignaturesContext } from './SavedSignaturesContext.jsx';
@@ -468,6 +469,68 @@ describe('PdfWorkspace Component', () => {
     expect(added).toMatchObject({
       type: 'whiteout',
       color: '#ffffff'
+    });
+  });
+
+  describe('Clear page', () => {
+    it('only renders the button on a page that has elements', () => {
+      const dispatch = vi.fn();
+      const state = {
+        selectedTool: null,
+        elements: [{ id: 'el-1', type: 'text', pageIndex: 0 }],
+        activeElementId: null,
+        actionHistory: []
+      };
+
+      host = mountWorkspace({
+        state,
+        dispatch,
+        props: { numPages: 2, pageSizes: [{ width: 600, height: 800 }, { width: 600, height: 800 }] }
+      });
+
+      const buttons = host.querySelectorAll(`.${pageHeaderStyles['clear-page']}`);
+      expect(buttons).toHaveLength(1);
+    });
+
+    it('dispatches CLEAR_PAGE and logs an undoable action for that page only', () => {
+      const dispatch = vi.fn();
+      const logAction = vi.fn();
+      const setAnnouncement = vi.fn();
+      const state = {
+        selectedTool: null,
+        elements: [
+          { id: 'el-1', type: 'text', pageIndex: 0 },
+          { id: 'el-2', type: 'rectangle', pageIndex: 1 }
+        ],
+        activeElementId: null,
+        actionHistory: []
+      };
+
+      host = mountWorkspace({
+        state,
+        dispatch,
+        props: {
+          numPages: 2,
+          pageSizes: [{ width: 600, height: 800 }, { width: 600, height: 800 }],
+          logAction,
+          setAnnouncement
+        }
+      });
+
+      const button = host.querySelector(`.${pageHeaderStyles['clear-page']}`);
+      act(() => {
+        button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      expect(dispatch).toHaveBeenCalledWith({ type: 'CLEAR_PAGE', payload: 0 });
+      expect(logAction).toHaveBeenCalledWith(
+        'CLEAR_PAGE',
+        null,
+        0,
+        expect.any(String),
+        [state.elements[0]]
+      );
+      expect(setAnnouncement).toHaveBeenCalledWith('Cleared page 1.');
     });
   });
 });
