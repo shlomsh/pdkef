@@ -36,8 +36,36 @@ export default defineConfig({
     // them yet — that migration is a separate ticket (E3.2), scoped to the
     // static/marketing surface only, per ARCHITECTURE.md §3.1.
     plugins: [tailwindcss()],
+    // Every entry below must stay listed. The failure is not "one slow first
+    // request" but a cascade: each dep Vite discovers late bumps the optimizer's
+    // browserHash, and every module already resolved under the previous hash
+    // then 504s as `Outdated Optimize Dep`. Vite's recovery is a full reload
+    // pushed over HMR, so a *single* late discovery is survivable — but several
+    // in one page load strand the astro-island bootstrap and the dev toolbar
+    // together, the toolbar's own dynamic import throws inside initApp, and the
+    // HMR channel dies before the rescue reload is ever sent. What you see then
+    // is `Cannot read properties of undefined (reading '__H')` from
+    // preact_hooks (two optimizer generations of Preact live in one page) and an
+    // island that never mounts, so the PDF silently never renders. Clearing
+    // node_modules/.vite does not help: the next load rebuilds the same
+    // cascade. Verify with one load after a cache clear — every
+    // /node_modules/.vite/deps/ request must carry the *same* ?v= hash.
     optimizeDeps: {
-      include: ['sortablejs', '@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist', '@floating-ui/react'],
+      include: [
+        'sortablejs',
+        '@cantoo/pdf-lib',
+        '@pdf-lib/fontkit',
+        'pdfjs-dist',
+        '@floating-ui/react',
+        // Reached only from an island: SignatureDialog.jsx (signature_pad) and
+        // every icon call site (lucide-preact), neither of which Vite's startup
+        // crawl of the .astro entry points can see.
+        'signature_pad',
+        'lucide-preact',
+        // Imported from BaseLayout's bundled analytics script, so it is
+        // discovered on first navigation rather than at startup.
+        '@vercel/analytics',
+      ],
     },
   },
   security: {
