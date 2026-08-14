@@ -48,8 +48,11 @@ jobs:
     - name: Verify SEO invariants
       run: npm run test:seo
 
-    - name: Check CSS bundle size
+    - name: Check CSS correctness and duplication
       run: npm run test:css
+
+    - name: Check first-load page weight
+      run: npm run test:weight
 
     - name: Install Playwright browsers
       run: npx playwright install --with-deps chromium
