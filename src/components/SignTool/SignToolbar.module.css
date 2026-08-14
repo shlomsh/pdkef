@@ -31,12 +31,22 @@
    while the first line still stretches edge to edge.
    The count comes from the markup itself: `:has(> :nth-child(9))` reads as "has
    at least a ninth child", and each larger threshold overrides the smaller one
-   above it. Controls hidden at this width (.desktop-download) still count as
-   children, so the thresholds sit one clear of each boundary - over-counting by
-   one never changes which bucket a toolbar lands in. Sign has 9-10 children,
-   Redact 7-8. A larger toolbar later is one more line here. */
+   above it. Sign has 10-11 children, Redact 9-10 - one more each than a JSX
+   read-through suggests, because ViewControl (E9) returns an unwrapped fragment:
+   its `.segmented` div and the always-rendered FullscreenButton fallback (hidden
+   by CSS below 920px, but a real node) are each their own direct .toolbar child,
+   not one. That swap landed without anyone redoing this arithmetic, so the count
+   here sat stale for both tools until it was rechecked by rendering rather than
+   by reading the component. Recount by rendering, not by eye, whenever a slot's
+   own component changes shape.
+   Every real toolbar today has at least nine children even after that hidden
+   control is excluded (see below), so one bucket boundary is all there is to
+   get right; nothing here reaches ten VISIBLE controls and a --controls-per-row
+   of 6, only Sign's counted total does (see the width-threshold comment below
+   for why counted and visible diverge, and why that distinction matters more
+   there than it does here). */
 .toolbar { --controls-per-row: 4; }
-.toolbar:has(> :nth-child(9)) { --controls-per-row: 5; }
+.toolbar:has(> :nth-child(9 of :not(.desktop-download))) { --controls-per-row: 5; }
 
 .dropdown { position: relative; display: flex; }
 .toolbar .dropdown > .button { width: 100%; flex: 1 1 auto; }
@@ -61,7 +71,20 @@
 .highlight { color: var(--color-highlight); background: var(--color-highlight-soft); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-highlight) 35%, transparent); }
 .highlight:hover { color: var(--color-surface); background: var(--color-highlight); }
 .label { display: inline; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.help { margin: 0; color: var(--color-muted); font-size: .83rem; display: flex; align-items: center; gap: .35rem; }
+.help { margin: 0; color: var(--color-muted); font-size: .83rem; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
+/* The one control that turns "keep adding" on and off - the only way out of a
+   locked tool that exists on a phone, where there is no Escape key and no
+   reliable double-click (a double-tap is the browser's zoom gesture). It sits
+   inside the sentence that is already explaining the tool, so it reads as part
+   of the instruction rather than as a ninth toolbar button competing with the
+   eight above it.
+   32px rather than the toolbar's 44px floor: this is a target inline in a line
+   of text, which is the case WCAG 2.5.5 excepts, and the identity row it rides
+   in is sticky - every pixel of it comes straight off the visible document on a
+   phone. It still clears WCAG 2.2 AA's 24px minimum with room to spare. */
+.status-action { display: inline-flex; align-items: center; min-height: 2rem; padding: .2rem .6rem; font: inherit; font-size: .78rem; font-weight: 600; white-space: nowrap; color: var(--color-primary); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-pill); cursor: pointer; transition: background-color .15s var(--ease-out), border-color .15s var(--ease-out), color .15s var(--ease-out); }
+.status-action:hover { background: var(--color-primary-soft); border-color: var(--color-primary); }
+.status-action:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
 /* Below 920px every control is icon-only, so they all carry identical content and
    any difference in rendered width is a bug rather than a design choice. The row
    mixes two kinds of item though - bare `<button>`s and the `<div class=dropdown>`
@@ -76,8 +99,8 @@
 @media (max-width: 919px) { .toolbar { flex-wrap: wrap; justify-content: center; align-items: stretch; --toolbar-gap: .35rem; --toolbar-padding: .35rem; --btn-padding: .35rem; } .toolbar > * { flex: 1 1 var(--btn-min-size); } .toolbar .button { gap: 0; } .toolbar .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; } .toolbar .dropdown { display: flex; } .desktop-download { display: none; } .share { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); } }
 
 /* Phone widths: tighter spacing, and the only regime where the toolbar can wrap.
-   Nine 44px targets plus gaps need ~440px of line and a 360px phone offers ~265px,
-   so the break is unavoidable well inside this breakpoint. */
+   Ten visible 44px targets plus gaps need ~496px of line and a 360px phone
+   offers ~265px, so the break is unavoidable well inside this breakpoint. */
 @media (max-width: 560px) {
   .toolbar { --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; }
   /* Controls keep growing to fill the line (inherited from the rule above) right
@@ -86,10 +109,35 @@
      line of controls" is a question about the toolbar's own box, not the
      viewport, so it is a container query - it stays correct if the page gutters
      change. N controls need N * --btn-min-size + (N-1) gaps inside
-     --toolbar-padding, which is 350px for seven and 448px for nine, so each query
-     fires just below its own figure. Those two numbers are the one piece of
-     arithmetic in this file that has to be redone by hand if --btn-min-size,
-     --toolbar-gap or --toolbar-padding change at this breakpoint.
+     --toolbar-padding, which is 349.6px for seven, 447.2px for nine and 496.0px
+     for ten, so each query fires just below its own figure - floor() for the
+     fractional ones, one pixel below for the one whole number (496.0). Skipping
+     a real N leaves it uncapped in the gap between its neighbours' thresholds:
+     that line still wraps once it stops fitting, but with no cap active it packs
+     greedily and strands whatever's left on the second line at full stretched
+     width, exactly the 8+1/1-giant-button failure this whole mechanism exists to
+     prevent. This shipped broken once: E9 (see the recount note by the
+     --controls-per-row rules above) pushed every real toolbar in this file past
+     nine children without anyone adding the ten threshold, so Sign - the ten
+     truly-visible-child case - wrapped uncapped between roughly 448px and 496px
+     of container width.
+     N here means controls actually rendered, not raw DOM position: Sign with
+     share support counts eleven children (see the recount note above) but only
+     ever shows ten, since Download hides itself below 920px. `:nth-child(10 of
+     :not(.desktop-download))` reads as "the tenth child once you skip anything
+     wearing that hidden-below-920px class", so it counts what a phone user
+     actually sees rather than what exists in the DOM. Using a plain
+     `:nth-child(10)` here instead would be wrong in the other direction too:
+     Redact with share support also counts ten, but only nine are ever visible
+     (Download hides the same way), so it would wrongly pick up this ten-wide
+     threshold and wrap a whole 48px early. The nine-threshold just below does
+     not need this care - no real toolbar's true visible count ever drops from
+     nine to eight, since only one control in this row is ever conditionally
+     hidden.
+     These two numbers are the arithmetic that has to be redone by hand if
+     --btn-min-size, --toolbar-gap or --toolbar-padding change at this
+     breakpoint, or if a control is added or removed anywhere that changes a
+     toolbar's true visible child count.
      `flex-grow: 0` is what makes the wrapped layout read as deliberate. Growing
      items size each line independently, so a line of five and a line of four end
      up different button widths - the original asymmetry, stacked vertically
@@ -98,7 +146,10 @@
      line against the leading edge. (Grid cannot do this at all: its rows share one
      set of columns, so a partial last row is always packed into the leading ones.)
      Below the narrowest query the touch floor wins over the computed share and the
-     line packs greedily again, still centred. */
+     line packs greedily again, still centred. Both thresholds below compute the
+     same flex-basis from the same --controls-per-row variable, so on a toolbar
+     matched by both (any true-ten-visible toolbar also has a ninth child) it does
+     not matter which rule wins the cascade - they agree by construction. */
   @container toolbar (max-width: 349px) {
     .toolbar > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
@@ -107,15 +158,37 @@
     .toolbar:has(> :nth-child(9)) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
-  /* Once even the two-row split stops fitting - nine controls need 252px of
-     toolbar to put five on a line - split three ways instead, which lands 9 as
-     3+3+3. This is the regime a 390px phone reaches at 125% browser zoom, not
-     just an unusually small device, so it is worth getting right rather than
-     letting it fall back to 4+4+1. Note the override has to be set on the
-     children: rules inside a container query match the container's descendants,
-     never the container element itself. */
+  @container toolbar (max-width: 495px) {
+    .toolbar:has(> :nth-child(10 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+  }
+
+  /* Once even the two-row split stops fitting - five-per-row controls need
+     252px of toolbar to fit even at the touch floor - split three ways
+     instead, landing a true nine-visible toolbar as 3+3+3 rather than the
+     lone stranded control (4+4+1) it would otherwise fall back to. Scoped to
+     exactly nine VISIBLE controls, the same `:not(.desktop-download)`
+     counting as the width thresholds above: both Redact's true nine-visible
+     cases match (plain nine children, and ten children with Download hidden
+     alike), while both of Sign's true ten-visible cases are excluded. A
+     raw `:nth-child(9)` would have missed Redact-with-share entirely (it
+     counts ten), reintroducing the exact 4+4+1 strand this rule exists to
+     remove for that one case.
+     Ten is deliberately left without an equivalent three-way step. Below
+     251px every real toolbar has floor-clamped to --btn-min-size regardless
+     of its own --controls-per-row (ten's own clamp point is 252px, same as
+     nine's, since both share --controls-per-row: 5), so from this width down,
+     items-per-row is governed purely by how many 44px targets the available
+     width holds - four, at 251px - not by the nominal per-row value. Ten
+     lands on a full short row that way (4+4+2, not a lone control), so
+     forcing it to three as well would make it worse, not better (3+3+3+1 -
+     the exact strand this rule exists to remove, just relocated onto ten).
+     This is the regime a 390px phone reaches at 125% browser zoom, not just
+     an unusually small device, so it is worth getting right rather than
+     letting nine fall back to 4+4+1. Note the override has to be set on the
+     children: rules inside a container query match the container's
+     descendants, never the container element itself. */
   @container toolbar (max-width: 251px) {
-    .toolbar:has(> :nth-child(9)) > * { --controls-per-row: 3; }
+    .toolbar:has(> :nth-child(9 of :not(.desktop-download))):not(:has(> :nth-child(10 of :not(.desktop-download)))) > * { --controls-per-row: 3; }
   }
 }
 
@@ -145,8 +218,10 @@
    ~1100px, dropping the three utility labels takes that to ~910px, and dropping the
    tool labels as well to ~620px - comfortably inside the ~870px the row has at the
    920px floor. Each query fires a little above its own figure so a label collapses
-   before the row would have to wrap. Redact's seven-to-eight controls are narrower
-   than Sign's throughout, so it simply keeps its labels longer on the same numbers.
+   before the row would have to wrap. Redact's nine-to-ten controls (see the recount
+   note above the --controls-per-row rules) are still narrower than Sign's throughout
+   - one fewer control at every share state - so it simply keeps its labels longer on
+   the same numbers.
 
    Priority order is "which icon carries its own meaning": Undo, Full screen and
    Replace are conventions a user already knows (and Replace is a once-per-session

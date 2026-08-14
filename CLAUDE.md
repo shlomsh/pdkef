@@ -181,19 +181,36 @@ This is explicitly **not** "finish the wholesale Tailwind migration." The goal i
 
 **The old "the branch broke the PDF math" framing is stale - do not act on it.** That warning described one snapshot: an early wip commit that (wrongly) routed `pointermove` through React state and thrashed reconciliation. The **resize perf fix already landed on the same wip branch** with the correct deferred-DOM pattern. That per-frame `onChange` on resize in `src/components/SignTool/DraggableWrapper.jsx` `handleResizeMove` was fixed under backlog E0.1, so Sign drag and resize follow the golden rule. The gesture golden rule (mutate the DOM during a gesture, commit React state once on `pointerup`) is non-negotiable and is now captured in ARCHITECTURE.md §1.2 / §4 along with the other still-true lessons from the retired learnings doc (invisible-toolbar cascade hazard, CSP-invisible-in-dev hazard). Read ARCHITECTURE.md before touching editor styling or the gesture path. **Status (E4 landed):** every gesture path - Sign **and** Redact, drag/resize/create alike - now routes through the single `src/editor/gestures/controller.ts`, which mutates the DOM during the gesture and commits state exactly once on release. Both tools share the headless `src/editor/` core and per-type registry (per-type resize/serialize/schema; box-resize has one owner, CI-guarded). The full editor-core low-level design (audit + `src/editor/` layout + per-ticket plan) is **[docs/E4-headless-editor-core-plan.md](./docs/E4-headless-editor-core-plan.md)**.
 
-**Sign editor interaction model (three invariants, each fixed a shipped bug - don't quietly revert them):**
-- **Tools are one-shot.** An armed tool disarms itself after one committed placement (`DISARM_TOOL`,
-  fired from every creation path in `useWorkspaceGestures.js`), so the click *after* a placement means
-  "deselect" and reaches the workspace's deselect handler. Before this, a tool stayed armed until Esc
-  while the creation handlers called `stopPropagation`, so clicking empty space to get out of what you
-  were doing silently placed a stray element - and with a drag tool it was worse, since
-  `ENSURE_MINIMUM_SIZE` promotes a zero-size drag into a default-size box. Repeat placement is opt-in:
-  double-click a tool button to lock it (`SET_TOOL` with `{ tool, locked: true }`). The toggle buttons
-  read the click count off their existing `onClick` (`e.detail >= 2`) rather than using `ondblclick`,
-  because a real dblclick fires after two clicks and the second would disarm before the lock landed.
-  Shapes is the exception and locks from its own button via a real `ondblclick`: a menu item can't be
-  double-clicked (the first click unmounts it, so the second lands on the page), and there the two
-  clicks only toggle the popover, never the tool.
+**Editor tool arming model (invariants, each fixed a shipped bug - don't quietly revert them):**
+- **Tools are one-shot, and the arming gesture is shared by Sign and Redact via `src/lib/toolArming.js`'s
+  `makeArmTool`, so the two toolbars cannot drift apart on it.** An armed tool disarms itself after one
+  committed placement (`DISARM_TOOL` in Sign's reducer, fired from every creation path in
+  `useWorkspaceGestures.js`; `disarmTool()` in `PdfRedactTool.jsx`, called from the box-commit and
+  mark-for-deletion paths), so the click *after* a placement means "deselect" and reaches the
+  workspace's deselect handler. Before this, a tool stayed armed until Esc while the creation handlers
+  called `stopPropagation`, so clicking empty space to get out of what you were doing silently placed a
+  stray element - and with a drag tool it was worse, since `ENSURE_MINIMUM_SIZE` promotes a zero-size
+  drag into a default-size box. Redact had no such model at all before this: `activeStyle` defaulted to
+  `'delete'` and stayed selected forever, so the editor arrived already armed and a drag anywhere on a
+  freshly opened document drew a box. Repeat placement is opt-in: double-click a tool button to lock it
+  (`SET_TOOL` with `{ tool, locked: true }` in Sign; `setTool(tool, true)` in Redact). The toggle
+  buttons read the click count off their existing `onClick` (`e.detail >= 2`) rather than using
+  `ondblclick`, because a real dblclick fires after two clicks and the second would disarm before the
+  lock landed. Shapes is the exception and locks from its own button via a real `ondblclick`: a menu
+  item can't be double-clicked (the first click unmounts it, so the second lands on the page), and
+  there the two clicks only toggle the popover, never the tool. **Escape is one of three ways out of a
+  locked tool, and the least available one.** There is no Escape key on a phone, and a double-tap is
+  the browser's zoom gesture, not this app's - so the "Stop" chip in the shared status line
+  (`EditorToolStatus.jsx`, rendered by both toolbars) is the only exit that exists on touch at all.
+  Don't simplify that chip away as redundant with Escape or double-click; for a touch user it is not a
+  shortcut, it is the only way in.
+- **Redact's page `touch-action` is armed with the tool, not left unconditionally `none`.** In
+  `PdfRedactTool.jsx` it's `activeStyle && activeStyle !== 'delete' ? 'none' : 'auto'`: a drawing tool
+  (blackout/whiteout/blur) has to own the touch so a drag draws a box instead of scrolling the page,
+  but Delete places by tapping a highlighted run, not dragging, so it leaves the browser's own panning
+  alone. Before the arming model landed, `touch-action: none` was set unconditionally and `activeStyle`
+  always had a tool selected (Delete, by default), so the two bugs compounded: a phone could not scroll
+  the redact document at all, from the moment it opened.
 - **Selection and text editing are separate states.** `activeElementId` means selected (toolbar points
   at it, Backspace deletes it, drag moves it); `editingElementId` means a text edit session is open.
   A text element is a live `<textarea>`, so without the split there was no state where a text box was
@@ -203,10 +220,13 @@ This is explicitly **not** "finish the wholesale Tailwind migration." The goal i
   Outside a session the textarea is inert (`text-input-inert`: `pointer-events: none`, plus `tabIndex
   -1` and `readOnly`), which is also what lets a text box be dragged from its middle. jsdom does not
   implement `pointer-events`, so that one is guarded in Playwright or not at all.
-- **`TOOL_COPY` in `SignToolbar.jsx` owns every tool-facing string**, visible and announced, so the two
-  can't drift. Never interpolate a raw tool id into copy. Keep "click and" on the drag tools: "drag on
-  a page" reads as dragging the tool from the toolbar onto the page, which older editors really did
-  work like and this does not. Guarded by tests in `SignToolbar.test.jsx`.
+- **`TOOL_COPY` owns every tool-facing string**, visible and announced, so the two can't drift. Both
+  toolbars keep their own `TOOL_COPY` object under the same contract - `SignToolbar.jsx` for Sign's
+  tools, `RedactToolbar.jsx` for Delete/Blackout/Whiteout/Blur - and `EditorToolStatus.jsx` (the shared
+  status line both render) only ever reads through it, never a raw tool id. Never interpolate a raw
+  tool id into copy. Keep "click and" on the drag tools: "drag on a page" reads as dragging the tool
+  from the toolbar onto the page, which older editors really did work like and this does not. Guarded
+  by tests in `SignToolbar.test.jsx`.
 
 **Sign editor positioning/color pitfalls (current guardrail work):**
 - Text toolbar placement must stay stable above the element: LTR uses `top-start`, RTL uses

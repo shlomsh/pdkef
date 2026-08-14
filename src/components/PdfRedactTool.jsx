@@ -35,8 +35,29 @@ export default function PdfRedactTool() {
   const { canSharePdf, shareReady, prepare, clearPrepared, download, sharePrepared } = usePdfShare();
   const { getPointerPercent } = usePdfCoordinates();
 
-  const [activeStyle, setActiveStyle] = useState('delete'); // 'delete' | 'blackout' | 'blur' | 'whiteout'
+  // null | 'delete' | 'blackout' | 'blur' | 'whiteout'. Null - nothing armed -
+  // is the resting state, exactly as it is in the Sign tool: a tool arms for one
+  // box and disarms itself once that box is committed, unless it has been locked
+  // on. Before this the tool was permanently armed (it even started on Delete),
+  // so there was no state in which a drag on the document meant anything but
+  // "draw a box" - which on a phone meant the page could not be scrolled.
+  const [activeStyle, setActiveStyle] = useState(null);
+  const [toolLocked, setToolLocked] = useState(false);
   const [activeColor, setActiveColor] = useState('#ffffff');
+
+  // The single entry point for arming: `setTool('blur')` for one box,
+  // `setTool('blur', true)` to keep it on. Locking is meaningless without a
+  // tool, so disarming always clears it.
+  const setTool = (tool, locked = false) => {
+    setActiveStyle(tool);
+    setToolLocked(tool ? locked : false);
+  };
+
+  // Fired once a placement is committed. A locked tool ignores it and stays
+  // armed - the same contract as the Sign reducer's DISARM_TOOL.
+  const disarmTool = () => {
+    if (!toolLocked) setTool(null);
+  };
   const [drawingState, setDrawingState] = useState(null); // { pageIndex, startX, startY, type, color }
   const drawingPreviewRef = useRef(null);
 
@@ -107,6 +128,22 @@ export default function PdfRedactTool() {
     window.addEventListener('keydown', onEsc, { capture: true });
     return () => window.removeEventListener('keydown', onEsc, { capture: true });
   }, [undoModalOpen]);
+
+  // Escape disarms the tool and drops the selection, matching the Sign editor.
+  // It is a shortcut for the status line's Stop chip, not the only way out: a
+  // phone has no Escape key, which is exactly why that chip exists.
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+      if (undoModalOpen) return; // the capture-phase handler above owns this press
+      if (!activeStyle && !activeBoxId && !selectedBoxId) return;
+      setTool(null);
+      setActiveBoxId(null);
+      setSelectedBoxId(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [undoModalOpen, activeStyle, activeBoxId, selectedBoxId]);
 
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
@@ -223,10 +260,11 @@ export default function PdfRedactTool() {
   });
 
   const handlePointerDown = (e, pageIndex) => {
-    // Delete mode has its own click targets (DeletableObjectOverlay / DeleteMark
-    // below); it never draws a box, so the drag gesture this function starts
-    // must not run at all while it's active.
-    if (activeStyle === 'delete') return;
+    // No tool armed: a press on the page is a scroll or a deselect, never a new
+    // box. Delete mode has its own click targets (DeletableObjectOverlay /
+    // DeleteMark below) and never draws one either, so neither may start the
+    // drag gesture this function owns.
+    if (!activeStyle || activeStyle === 'delete') return;
 
     if (e.target.closest(`.${styles['redact-element-btn']}`) || e.target.closest(`.${styles['redact-box']}`)) {
       return; // Ignore clicks on existing boxes or buttons
@@ -258,11 +296,15 @@ export default function PdfRedactTool() {
       },
       commit: (patch) => {
         setDrawingState(null);
+        // A press that drew nothing has not spent the tool's one placement, so
+        // it stays armed - otherwise a mistimed tap would silently disarm and
+        // the next real drag would do nothing at all.
         if (!patch || patch.width <= 1 || patch.height <= 1) return;
         const id = uniqueId();
         setElements(prev => [...prev, { id, pageIndex, ...patch, type, color }]);
         logAction(`ADD_${type.toUpperCase()}`, id, pageIndex, `Added ${type} box`);
         setAnnouncement(`Added ${type} box.`);
+        disarmTool();
       },
     });
   };
@@ -312,6 +354,10 @@ export default function PdfRedactTool() {
       object.kind === 'image' ? 'Marked image for deletion' : 'Marked text for deletion',
     );
     setAnnouncement(object.kind === 'image' ? 'Image marked for deletion.' : 'Text marked for deletion.');
+    // Marking is this tool's placement, so it spends the arming. Un-marking
+    // above deliberately does not: that is a correction, and dropping the tool
+    // mid-correction is the opposite of what you asked for.
+    disarmTool();
   };
 
   // Cmd/Ctrl+Z: undo the single most recently logged action. Deletion entries
@@ -463,7 +509,9 @@ export default function PdfRedactTool() {
         >
           <RedactToolbar
             activeStyle={activeStyle}
-            setActiveStyle={setActiveStyle}
+            toolLocked={toolLocked}
+            setTool={setTool}
+            setAnnouncement={setAnnouncement}
             activeColor={activeColor}
             setActiveColor={rememberColor}
             toggleFullscreen={toggleFullscreen}
@@ -503,7 +551,17 @@ export default function PdfRedactTool() {
                   ref={(el) => pageWrapperRefs.current[i] = el}
                   onMouseDown={(e) => handlePointerDown(e, i)}
                   onTouchStart={(e) => handlePointerDown(e, i)}
-                  style={{ touchAction: 'none', cursor: activeStyle === 'delete' ? 'default' : 'crosshair', position: 'relative' }}
+                  /* touch-action is armed with the tool, not left off wholesale.
+                     A drawing tool has to own the touch so a drag draws instead
+                     of scrolling - but this used to be unconditional, and since
+                     a style was always selected, that meant a phone could never
+                     scroll the document at all. Delete places by tapping, so it
+                     keeps the browser's own panning. */
+                  style={{
+                    touchAction: activeStyle && activeStyle !== 'delete' ? 'none' : 'auto',
+                    cursor: activeStyle && activeStyle !== 'delete' ? 'crosshair' : 'default',
+                    position: 'relative',
+                  }}
                 >
                   <PdfPageCanvas pdfDocument={pdfDocument} pageNum={i + 1} />
 

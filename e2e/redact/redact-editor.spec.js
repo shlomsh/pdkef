@@ -256,4 +256,38 @@ test.describe('Redact editor browser guardrails', () => {
 
     await page.evaluate(() => document.exitFullscreen());
   });
+
+  // Redact's touch-action is now conditional (E9: nothing is armed when a file
+  // loads, so a phone can scroll the page until a drawing tool is armed - see
+  // the touchAction comment on the page wrapper in PdfRedactTool.jsx). jsdom
+  // can assert the inline style value itself (PdfRedactTool.test.jsx does),
+  // but not whether a real browser actually honors it, so the one fact worth
+  // pinning here is that native scrolling really is prevented once a drawing
+  // tool is armed - mirrors the equivalent Sign guardrail in sign-editor.spec.js.
+  test('prevents native scrolling during a drag-drawn creation gesture', async ({ page }) => {
+    await openRedactTool(page);
+    await selectRedactStyle(page, 'Whiteout');
+
+    const prevented = await page.locator('.redact-draw-area').first().evaluate((overlay) => {
+      const rect = overlay.getBoundingClientRect();
+      const touchAt = (x, y) => new Touch({ identifier: 1, target: overlay, clientX: x, clientY: y });
+      const start = new TouchEvent('touchstart', {
+        bubbles: true,
+        cancelable: true,
+        touches: [touchAt(rect.left + 30, rect.top + 30)],
+      });
+      overlay.dispatchEvent(start);
+
+      const move = new TouchEvent('touchmove', {
+        bubbles: true,
+        cancelable: true,
+        touches: [touchAt(rect.left + 90, rect.top + 90)],
+      });
+      window.dispatchEvent(move);
+      window.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [] }));
+      return move.defaultPrevented;
+    });
+
+    expect(prevented).toBe(true);
+  });
 });
