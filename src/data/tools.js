@@ -9,6 +9,14 @@
 //
 // Order = SEO priority (search volume x winnability x client-side fit); the
 // highest-opportunity tools surface first on the home page.
+//
+// `accent` (optional) tints that tool's home-grid tile. It lives here, on the
+// tool, rather than as a :first-child/:last-child rule in index.astro, because
+// the positional version silently re-pointed the highlight at whatever tool
+// happened to be last whenever this array was reordered. Two levels only, both
+// from the existing palette, so the grid keeps one accent color:
+//   'primary' - the flagship; mirrors the big dropzone CTA, which opens /sign.
+//   'soft'    - the one we're deliberately pushing.
 import {
   FileSignature,
   Merge,
@@ -26,6 +34,7 @@ export const tools = [
     slug: 'sign',
     href: '/sign/',
     icon: FileSignature,
+    accent: 'primary',
     gridTitle: 'Sign & Fill PDF',
     gridDescription:
       'Fill interactive PDF forms and draw secure digital signatures instantly in your browser with zero registration, zero limits, and no watermarks. Your progress auto-saves locally so a crash never loses your work.',
@@ -85,6 +94,48 @@ export const tools = [
   },
 
   {
+    slug: 'redact',
+    href: '/redact/',
+    icon: Eraser,
+    accent: 'soft',
+    gridTitle: 'Redact & Blur',
+    gridDescription:
+      "Black out or blur sensitive text and permanently flatten the page so it can't be recovered.",
+    sitemapPriority: '0.9',
+    sitemapChangefreq: 'monthly',
+    seoTitle: 'Blackout, Blur, or Redact PDF Online | Free & Private',
+    seoDescription:
+      'Securely hide text in your PDF files. Black out or blur sensitive information, and we permanently flatten the page so the data cannot be extracted. 100% private.',
+    schemaName: 'PDkef - Redact PDF',
+    toolName: 'Redact PDF',
+    h1: 'Redact PDF Online Free: Blackout or Blur Text',
+    subhead:
+      "Black out or blur sensitive text like SSNs and addresses, then flatten the file so it can't be copied or extracted. Your redaction boxes are auto-saved on your device as you work, so a crash or accidental refresh never loses your progress.",
+    ariaLabel: 'Redact PDF tool',
+    aboutHeading: 'How to blackout or blur a PDF securely',
+    aboutLead:
+      'Permanently hide, blackout, blur, and flatten sensitive information in your PDFs, right in your browser. No uploads, absolute privacy.',
+    freeNoteLead:
+      'Black out or blur sensitive text in as many PDFs as you like, with no watermark or usage caps. Because redaction runs on your device, nothing is uploaded, and your boxes auto-save locally so a crash never loses your progress.',
+    aboutSketch: 'grid',
+    aboutIconPos: 'tr',
+    faqSketch: 'rings',
+    faqIconPos: 'bl',
+    steps: [
+      { title: 'Open your PDF', text: 'Click Choose file or drag and drop any PDF into the tool. Your file stays on your device, nothing is uploaded.' },
+      { title: 'Draw boxes', text: 'Choose your style (solid blackout or blurred out), then click and drag over the text you want to hide.' },
+      { title: 'Apply and download', text: 'Click Redact PDF. The tool flattens those pages, destroying the underlying text so it can never be extracted, and downloads the secure PDF.' },
+    ],
+    faq: [
+      { question: 'Are my PDF files uploaded to a server?', answer: 'No. PDkef runs entirely in your browser. Your file is never uploaded, never sent over the network, and never stored anywhere outside your own device.' },
+      { question: 'How is this different from just drawing a black box?', answer: 'Many free tools just draw a layer over the text, meaning anyone can still copy-paste the text hidden underneath. We perform "True Redaction": the page is converted into a flattened image, permanently destroying the underlying text data so it is impossible to recover.' },
+      { question: 'How do I blackout or blur text in a PDF?', answer: 'Load your PDF, choose "Blackout" or "Blur" from the toolbar, then click and drag on any page to draw a box over the sensitive information. Once you have covered all sensitive areas, click Redact PDF. The tool will flatten the edited pages and generate your secure PDF.' },
+      { question: 'Is there a file size limit?', answer: 'There are no artificial limits. However, because redacted pages are converted to high-quality images, your final file size may be larger than the original document.' },
+      { question: 'If my browser crashes mid-redaction, do I lose my boxes?', answer: 'No. As you draw blackout and blur boxes, the tool auto-saves your progress to local storage in your own browser, and restores your boxes automatically the next time you open the tool on the same device. This happens on your device, so your file is still never uploaded, and your saved draft stays until you replace the file, or for 14 days if you never come back.' },
+    ],
+  },
+
+  {
     slug: 'merge',
     href: '/merge/',
     icon: Merge,
@@ -122,47 +173,6 @@ export const tools = [
       { question: 'Does PDkef work on mobile?', answer: 'Yes. PDkef works in Chrome on Android and iOS, as well as desktop browsers on macOS and Windows.' },
       { question: 'Is there a file size or page limit?', answer: "No artificial limit is imposed by PDkef. The only constraint is your device's available memory, since merging happens locally." },
       { question: 'Can I combine scanned receipts or reports into one PDF?', answer: 'Yes - this is one of the most common uses. Add each scanned page or report PDF, reorder them, and merge into a single file for an expense report, portfolio, or ebook.' },
-    ],
-  },
-
-  {
-    slug: 'redact',
-    href: '/redact/',
-    icon: Eraser,
-    gridTitle: 'Redact & Blur',
-    gridDescription:
-      "Black out or blur sensitive text and permanently flatten the page so it can't be recovered.",
-    sitemapPriority: '0.9',
-    sitemapChangefreq: 'monthly',
-    seoTitle: 'Blackout, Blur, or Redact PDF Online | Free & Private',
-    seoDescription:
-      'Securely hide text in your PDF files. Black out or blur sensitive information, and we permanently flatten the page so the data cannot be extracted. 100% private.',
-    schemaName: 'PDkef - Redact PDF',
-    toolName: 'Redact PDF',
-    h1: 'Redact PDF Online Free: Blackout or Blur Text',
-    subhead:
-      "Black out or blur sensitive text like SSNs and addresses, then flatten the file so it can't be copied or extracted. Your redaction boxes are auto-saved on your device as you work, so a crash or accidental refresh never loses your progress.",
-    ariaLabel: 'Redact PDF tool',
-    aboutHeading: 'How to blackout or blur a PDF securely',
-    aboutLead:
-      'Permanently hide, blackout, blur, and flatten sensitive information in your PDFs, right in your browser. No uploads, absolute privacy.',
-    freeNoteLead:
-      'Black out or blur sensitive text in as many PDFs as you like, with no watermark or usage caps. Because redaction runs on your device, nothing is uploaded, and your boxes auto-save locally so a crash never loses your progress.',
-    aboutSketch: 'grid',
-    aboutIconPos: 'tr',
-    faqSketch: 'rings',
-    faqIconPos: 'bl',
-    steps: [
-      { title: 'Open your PDF', text: 'Click Choose file or drag and drop any PDF into the tool. Your file stays on your device, nothing is uploaded.' },
-      { title: 'Draw boxes', text: 'Choose your style (solid blackout or blurred out), then click and drag over the text you want to hide.' },
-      { title: 'Apply and download', text: 'Click Redact PDF. The tool flattens those pages, destroying the underlying text so it can never be extracted, and downloads the secure PDF.' },
-    ],
-    faq: [
-      { question: 'Are my PDF files uploaded to a server?', answer: 'No. PDkef runs entirely in your browser. Your file is never uploaded, never sent over the network, and never stored anywhere outside your own device.' },
-      { question: 'How is this different from just drawing a black box?', answer: 'Many free tools just draw a layer over the text, meaning anyone can still copy-paste the text hidden underneath. We perform "True Redaction": the page is converted into a flattened image, permanently destroying the underlying text data so it is impossible to recover.' },
-      { question: 'How do I blackout or blur text in a PDF?', answer: 'Load your PDF, choose "Blackout" or "Blur" from the toolbar, then click and drag on any page to draw a box over the sensitive information. Once you have covered all sensitive areas, click Redact PDF. The tool will flatten the edited pages and generate your secure PDF.' },
-      { question: 'Is there a file size limit?', answer: 'There are no artificial limits. However, because redacted pages are converted to high-quality images, your final file size may be larger than the original document.' },
-      { question: 'If my browser crashes mid-redaction, do I lose my boxes?', answer: 'No. As you draw blackout and blur boxes, the tool auto-saves your progress to local storage in your own browser, and restores your boxes automatically the next time you open the tool on the same device. This happens on your device, so your file is still never uploaded, and your saved draft stays until you replace the file, or for 14 days if you never come back.' },
     ],
   },
 
