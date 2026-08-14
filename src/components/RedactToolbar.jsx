@@ -1,10 +1,28 @@
 import ViewControl from './ViewControl.jsx';
+import EditorToolStatus from './EditorToolStatus.jsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from './ToolShell.jsx';
+import { makeArmTool } from '../lib/toolArming.js';
 import styles from './SignTool/SignToolbar.module.css';
+
+// What each tool is called in front of a user and what it is waiting for -
+// the same contract SignToolbar's TOOL_COPY holds, for the same reason: every
+// visible string and every announcement reads from here, so the two cannot
+// drift and an internal id rename cannot rewrite the UI copy.
+//
+// Nothing here mentions hovering. Delete's copy used to open with "Hover to
+// find...", which describes a gesture half this tool's users do not have.
+const TOOL_COPY = {
+  delete:   { action: 'Click a highlighted image or text run to delete it from the file.', button: 'Delete' },
+  blackout: { action: 'Click and drag on a page to draw a blackout box.',                  button: 'Blackout' },
+  whiteout: { action: 'Click and drag on a page to draw a whiteout box.',                  button: 'Whiteout' },
+  blur:     { action: 'Click and drag on a page to blur an area.',                         button: 'Blur' },
+};
 
 export default function RedactToolbar({
   activeStyle,
-  setActiveStyle,
+  toolLocked,
+  setTool,
+  setAnnouncement,
   activeColor,
   setActiveColor,
   toggleFullscreen,
@@ -20,6 +38,37 @@ export default function RedactToolbar({
 }) {
   const { requestReplace } = useToolShell();
 
+  // One-shot arming, double-click to lock - the same gesture the Sign toolbar
+  // uses, from the same module. This tool used to have no such model at all:
+  // a style stayed selected forever, which on a phone meant every drag on the
+  // document drew a box and the page could not be scrolled at all.
+  const armTool = makeArmTool({
+    selectedTool: activeStyle,
+    arm: (next) => {
+      setTool(next);
+      if (next) setAnnouncement(`${TOOL_COPY[next].button} tool active. ${TOOL_COPY[next].action}`);
+    },
+    lock: (tool) => lockTool(tool),
+  });
+
+  const lockTool = (tool) => {
+    setTool(tool, true);
+    setAnnouncement(`${TOOL_COPY[tool].button} tool stays on. Choose Stop, or press Escape, when you are done.`);
+  };
+
+  const stopTool = () => {
+    setTool(null);
+    setAnnouncement('Stopped adding.');
+  };
+
+  // Absent when no tool is armed, which is also what a tool missing from
+  // TOOL_COPY looks like: the status line falls back to the idle tip rather
+  // than rendering a half-built sentence.
+  const activeToolCopy = activeStyle ? TOOL_COPY[activeStyle] : null;
+
+  const toolClass = (tool) =>
+    `${styles.button}${activeStyle === tool ? ` ${styles.active}` : ''}${activeStyle === tool && toolLocked ? ` ${styles.locked}` : ''}`;
+
   return (
     // No inline margin here any more. This file used to add one and SignToolbar
     // did not, which is the entire reason the two tools disagreed about the gap
@@ -27,21 +76,21 @@ export default function RedactToolbar({
     <ToolShell
       editor
       status={
-        <div className={styles.help}>
-          <span>
-            {activeStyle === 'delete'
-              ? 'Hover to find images and text the file stores as one piece, then click to delete them.'
-              : 'Click and drag on any page to hide sensitive text.'}
-          </span>
-        </div>
+        <EditorToolStatus
+          copy={activeToolCopy}
+          locked={toolLocked}
+          onKeepAdding={() => activeStyle && lockTool(activeStyle)}
+          onStop={stopTool}
+          idle="Tip: pick a tool to start. Delete takes an image or text run out of the file itself."
+        />
       }
     >
       <div className={styles.toolbar} role="toolbar" aria-label="PDF redaction">
         <button
           type="button"
-          className={`${styles.button}${activeStyle === 'delete' ? ` ${styles.active}` : ''}`}
-          onClick={() => setActiveStyle('delete')}
-          title="Click an image or text run to delete it from the PDF"
+          className={toolClass('delete')}
+          onClick={armTool('delete')}
+          title="Delete an image or text run from the PDF. Double-click to keep deleting"
           aria-pressed={activeStyle === 'delete'}
           data-label-priority="2"
         >
@@ -54,9 +103,9 @@ export default function RedactToolbar({
 
         <button
           type="button"
-          className={`${styles.button}${activeStyle === 'blackout' ? ` ${styles.active}` : ''}`}
-          onClick={() => setActiveStyle('blackout')}
-          title="Draw black redaction boxes"
+          className={toolClass('blackout')}
+          onClick={armTool('blackout')}
+          title="Draw a black redaction box. Double-click to keep adding"
           aria-pressed={activeStyle === 'blackout'}
           data-label-priority="2"
         >
@@ -70,9 +119,9 @@ export default function RedactToolbar({
 
         <button
           type="button"
-          className={`${styles.button}${activeStyle === 'whiteout' ? ` ${styles.active}` : ''}`}
-          onClick={() => setActiveStyle('whiteout')}
-          title="Draw whiteout boxes to erase content"
+          className={toolClass('whiteout')}
+          onClick={armTool('whiteout')}
+          title="Draw a whiteout box to erase content. Double-click to keep adding"
           aria-pressed={activeStyle === 'whiteout'}
           data-label-priority="2"
         >
@@ -86,9 +135,9 @@ export default function RedactToolbar({
 
         <button
           type="button"
-          className={`${styles.button}${activeStyle === 'blur' ? ` ${styles.active}` : ''}`}
-          onClick={() => setActiveStyle('blur')}
-          title="Draw blur redaction boxes"
+          className={toolClass('blur')}
+          onClick={armTool('blur')}
+          title="Draw a blur redaction box. Double-click to keep adding"
           aria-pressed={activeStyle === 'blur'}
           data-label-priority="2"
         >

@@ -103,12 +103,12 @@ describe('PdfRedactTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    // Verify hint message appears indicating editing mode. Delete is the
-    // default-selected tool, so this is its status copy, not the box-drawing
-    // tools' "hide sensitive text" message.
+    // Verify hint message appears indicating editing mode. Nothing is armed on
+    // load - a tool is one-shot here now, exactly as in the Sign editor - so
+    // this is the idle tip, not any tool's own copy.
     const header = container.querySelector(`.${toolbarStyles.help}`);
     expect(header).not.toBeNull();
-    expect(header.textContent).toContain('click to delete them');
+    expect(header.textContent).toContain('pick a tool to start');
     
     // Verify toolbar modes exist
     const toolbar = container.querySelector(`.${toolbarStyles.toolbar}`);
@@ -253,11 +253,7 @@ describe('PdfRedactTool UI flow', () => {
         new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
       );
 
-      const deleteButton = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
-        .find((button) => button.textContent.includes('Delete'));
-      await act(async () => {
-        deleteButton.click();
-      });
+      await armTool('Delete');
       // useDeletableObjects parses the real file asynchronously.
       await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 50));
@@ -291,7 +287,50 @@ describe('PdfRedactTool UI flow', () => {
       });
 
       expect(container.querySelectorAll(`.${redactStyles['delete-mark']}`)).toHaveLength(0);
+
+      // Marking spent the tool's one arming, so the highlights are gone with it
+      // and the object is only offered again once Delete is armed again. That is
+      // the same one-shot contract every other tool in both editors follows.
+      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
+      await armTool('Delete');
       expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(1);
+    });
+
+    // Marking runs through toggleObjectDeletion's "new mark" branch, which ends
+    // in disarmTool() - that is this tool's one placement. Un-marking always
+    // runs through deleteElement instead (DeleteMark's own undo button calls it
+    // directly), which never calls disarmTool(). Un-marking is a correction, not
+    // a placement, so it must not cost the arming the correction is trying to
+    // use - dropping the tool mid-correction would be the opposite of what was
+    // asked for. The button's own active class is the observable proxy for
+    // "still armed" here, since Delete's touch-action never changes (it places
+    // by tap, not drag).
+    it('marking spends the arming; un-marking the same object does not', async () => {
+      await loadRealPdfAndSwitchToDelete();
+
+      const deleteBtn = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
+        .find((b) => b.textContent.includes('Delete'));
+      expect(deleteBtn.className).toContain(toolbarStyles.active);
+
+      const candidate = container.querySelector(`.${redactStyles['delete-candidate']}`);
+      await act(async () => {
+        candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(deleteBtn.className).not.toContain(toolbarStyles.active);
+
+      // Re-arm, then undo the mark through DeleteMark's own button - once an
+      // object is marked, the overlay no longer offers it, so this is the only
+      // way left to un-mark it.
+      await armTool('Delete');
+      expect(deleteBtn.className).toContain(toolbarStyles.active);
+
+      const mark = container.querySelector(`.${redactStyles['delete-mark']}`);
+      const undoButton = mark.querySelector(`.${redactStyles['delete-mark-btn']}`);
+      await act(async () => {
+        undoButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      expect(deleteBtn.className).toContain(toolbarStyles.active);
     });
 
     it('does not start a redaction-box drag gesture while the Delete tool is active', async () => {
@@ -383,20 +422,30 @@ describe('PdfRedactTool UI flow', () => {
       left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
     });
 
-    // The tool now defaults to Delete (a fourth click-to-mark mode, not a
-    // draw-a-box mode), so every caller here that wants drawBox() to actually
-    // draw a blackout box needs Blackout selected first - it used to be the
-    // implicit default. Centralized here rather than at each of this file's
-    // many drawBox() call sites, since none of them are testing which tool
-    // starts selected; they're testing box drag/resize/delete mechanics that
-    // just need a box on the page to exercise.
-    const blackoutButton = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
-      .find((button) => button.textContent.includes('Blackout'));
-    await act(async () => {
-      blackoutButton.click();
-    });
+    // Nothing is armed on load, and a tool arms for one box at a time, so every
+    // caller here that wants drawBox() to actually draw needs Blackout armed
+    // first. Centralized rather than repeated at this file's many drawBox()
+    // call sites, since none of them are testing which tool starts selected;
+    // they test box drag/resize/delete mechanics and just need a box on the
+    // page to exercise. Tests that draw twice have to arm twice - that is the
+    // one-shot contract, and it has its own tests below.
+    await armTool('Blackout');
 
     return drawArea;
+  }
+
+  async function armTool(label, { lock = false } = {}) {
+    const button = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
+      .find((b) => b.textContent.includes(label));
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    });
+    if (lock) {
+      await act(async () => {
+        button.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
+      });
+    }
+    return button;
   }
 
   // Each dispatch is its own act() so the state update it triggers (e.g. setDrawingState
@@ -897,5 +946,211 @@ describe('PdfRedactTool UI flow', () => {
         });
       });
     }
+  });
+
+  // Same load as loadFileAndGetDrawArea, minus the trailing armTool('Blackout').
+  // Most tests in this file want a box on the page and don't care which tool
+  // starts selected, so loadFileAndGetDrawArea arms Blackout for them. The tests
+  // below are specifically about the *resting* state before anything is armed
+  // (nothing was ever true before E9's arming model - a style, 'delete', used to
+  // be permanently selected from the moment a file loaded), so they need the
+  // load without that convenience.
+  async function loadFileWithoutArming(file = makePdfFile('unarmed.pdf')) {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfRedactTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [file]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const drawArea = container.querySelector('.redact-draw-area');
+    drawArea.getBoundingClientRect = () => ({
+      left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
+    });
+    return drawArea;
+  }
+
+  function findToolButton(label) {
+    return Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
+      .find((b) => b.textContent.includes(label));
+  }
+
+  // The mobile scroll fix itself (see the touchAction comment in
+  // PdfRedactTool.jsx's page-wrapper style, and CLAUDE.md's "Sign editor
+  // positioning" notes for the sibling Sign-tool pattern this mirrors). Before
+  // E9 a style was armed from the moment a file loaded, so this inline style
+  // was unconditionally 'none' and a phone could never scroll a redact page at
+  // all. This is a real inline style attribute, not a computed cascade value,
+  // so unlike most CSS in this codebase it's fully assertable under jsdom.
+  describe('touch-action follows tool arming (mobile scroll fix)', () => {
+    it('is auto (page scrolls) when a file first loads, before any tool is armed', async () => {
+      const drawArea = await loadFileWithoutArming();
+      expect(drawArea.style.touchAction).toBe('auto');
+    });
+
+    it('is none while Blackout is armed, so a drag draws instead of scrolling', async () => {
+      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout
+      expect(drawArea.style.touchAction).toBe('none');
+    });
+
+    it('is none while Whiteout is armed', async () => {
+      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout first
+      await armTool('Whiteout'); // switches the armed tool
+      expect(drawArea.style.touchAction).toBe('none');
+    });
+
+    it('is none while Blur is armed', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await armTool('Blur');
+      expect(drawArea.style.touchAction).toBe('none');
+    });
+
+    it('returns to auto once a drawn box commits and the one-shot tool disarms itself', async () => {
+      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout, unlocked
+      expect(drawArea.style.touchAction).toBe('none');
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      expect(drawArea.style.touchAction).toBe('auto');
+    });
+
+    it('stays auto while Delete is armed, since Delete places by tap and never owns the drag gesture', async () => {
+      const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+      const fixtureBytes = fs.readFileSync(fixturePath);
+      const drawArea = await loadFileAndGetDrawArea(
+        new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
+      );
+
+      await armTool('Delete');
+
+      expect(drawArea.style.touchAction).toBe('auto');
+    });
+  });
+
+  describe('one-shot tool arming', () => {
+    it('does not draw a second box after the first commits without re-arming', async () => {
+      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout, unlocked
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+
+      // Same gesture, nothing re-armed in between: handlePointerDown bails out
+      // immediately because activeStyle is back to null.
+      await drawBox(drawArea, 60, 220, 220, 520);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+    });
+
+    it('draws a second box once the tool is re-armed', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+    });
+
+    // A drag that never actually moved the pointer draws nothing (width/height
+    // <= 1), and must not have spent the one placement - otherwise a mistimed
+    // tap would silently disarm the tool and the next real drag would do
+    // nothing at all. See the "commit" comment in PdfRedactTool.jsx.
+    it('a drag that draws nothing does not spend the arming', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+
+      await drawBox(drawArea, 50, 200, 50, 200); // zero-delta drag, no box
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+      expect(drawArea.style.touchAction).toBe('none'); // still armed
+
+      await drawBox(drawArea, 50, 200, 200, 500); // now actually draw
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+    });
+  });
+
+  describe('locking a tool on with a double click', () => {
+    it('keeps the tool armed across two drawn boxes and marks the button locked', async () => {
+      const drawArea = await loadFileWithoutArming();
+
+      await armTool('Blackout', { lock: true });
+      const blackoutBtn = findToolButton('Blackout');
+      expect(blackoutBtn.className).toContain(toolbarStyles.locked);
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      // The lock survived the commit - still locked, no re-arm needed for the
+      // second box.
+      expect(blackoutBtn.className).toContain(toolbarStyles.locked);
+
+      await drawBox(drawArea, 60, 220, 220, 520);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+    });
+  });
+
+  describe('status line "Keep adding" / "Stop" chip', () => {
+    // Scoped to the toolbar's own help/status line, not just any [role="status"]
+    // - the sr-only announcement region at the top of PdfRedactTool.jsx has the
+    // same role for its own, unrelated reason (live-announcing text changes).
+    const statusChip = () => container.querySelector(`.${toolbarStyles.help}[role="status"] button`);
+
+    it('reads "Keep adding" for a one-shot armed tool, and locks it on when clicked', async () => {
+      await loadFileAndGetDrawArea(); // arms Blackout, unlocked
+      expect(statusChip().textContent).toBe('Keep adding');
+
+      await act(async () => {
+        statusChip().click();
+      });
+
+      expect(statusChip().textContent).toBe('Stop');
+      expect(findToolButton('Blackout').className).toContain(toolbarStyles.locked);
+    });
+
+    it('reads "Stop" for a locked tool, and disarms it entirely when clicked', async () => {
+      const drawArea = await loadFileWithoutArming();
+      await armTool('Blackout', { lock: true });
+      expect(statusChip().textContent).toBe('Stop');
+
+      await act(async () => {
+        statusChip().click();
+      });
+
+      // Fully disarmed: the status line drops back to the idle tip (no
+      // role="status"), and the page can scroll again.
+      expect(container.querySelector(`.${toolbarStyles.help}[role="status"]`)).toBeNull();
+      expect(drawArea.style.touchAction).toBe('auto');
+    });
+  });
+
+  describe('Escape disarms the tool', () => {
+    it('disarms a one-shot armed tool and restores scrolling', async () => {
+      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout
+      expect(drawArea.style.touchAction).toBe('none');
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      });
+
+      expect(container.querySelector(`.${toolbarStyles.help}[role="status"]`)).toBeNull();
+      expect(drawArea.style.touchAction).toBe('auto');
+    });
+
+    it('disarms a locked tool too', async () => {
+      const drawArea = await loadFileWithoutArming();
+      await armTool('Blackout', { lock: true });
+      expect(drawArea.style.touchAction).toBe('none');
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      });
+
+      expect(container.querySelector(`.${toolbarStyles.help}[role="status"]`)).toBeNull();
+      expect(drawArea.style.touchAction).toBe('auto');
+    });
   });
 });

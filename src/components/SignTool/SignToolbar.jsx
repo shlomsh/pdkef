@@ -3,7 +3,9 @@ import { useSignTool } from './SignToolContext.jsx';
 import { useSavedSignatures } from './SavedSignaturesContext.jsx';
 import ViewControl from '../ViewControl.jsx';
 import Popover from '../Popover.jsx';
+import EditorToolStatus from '../EditorToolStatus.jsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../ToolShell.jsx';
+import { makeArmTool } from '../../lib/toolArming.js';
 import styles from './SignToolbar.module.css';
 import controlStyles from '../EditorControls.module.css';
 
@@ -56,8 +58,11 @@ export default function SignToolbar({
   const [showShapesDropdown, setShowShapesDropdown] = useState(false);
   // Which shape the Shapes button stands for once its menu has closed. The
   // button is the shape tool's button, so locking has to know what to lock
-  // even after the one-shot placement has already disarmed the tool.
-  const [lastShape, setLastShape] = useState(null);
+  // even after the one-shot placement has already disarmed the tool. Defaults
+  // to Rectangle (the conventional default shape tool) so double-clicking
+  // Shapes locks something even before the dropdown has ever been opened,
+  // rather than silently doing nothing on a fresh page.
+  const [lastShape, setLastShape] = useState('rectangle');
 
   const shapesCloseTimer = useRef(null);
   const openShapes = () => {
@@ -113,23 +118,25 @@ export default function SignToolbar({
   // the idle tip has one job, which is to get you to pick a tool.
   const hasTextElement = state.elements.some((el) => el.type === 'text');
 
-  // A tool arms for a single placement. Double-click locks it on for repeats -
-  // the Figma/Illustrator convention. `detail` is the click count on the same
-  // button, so the second click of a double-click locks instead of toggling the
-  // tool back off; no dblclick handler and no timer needed.
-  const armTool = (tool) => (e) => {
-    if (e.detail >= 2) {
-      lockTool(tool);
-      return;
-    }
-    const next = selectedTool === tool ? null : tool;
-    setSelectedTool(next);
-    if (next) setAnnouncement(`${TOOL_COPY[tool].button} tool active. ${TOOL_COPY[tool].action}`);
-  };
+  // One-shot arming, double-click to lock. The gesture itself lives in
+  // lib/toolArming.js so this toolbar and Redact's cannot drift on it.
+  const armTool = makeArmTool({
+    selectedTool,
+    arm: (next) => {
+      setSelectedTool(next);
+      if (next) setAnnouncement(`${TOOL_COPY[next].button} tool active. ${TOOL_COPY[next].action}`);
+    },
+    lock: (tool) => lockTool(tool),
+  });
 
   const lockTool = (tool) => {
     dispatch({ type: 'SET_TOOL', payload: { tool, locked: true } });
-    setAnnouncement(`${TOOL_COPY[tool].button} tool locked on. Press Escape to stop adding.`);
+    setAnnouncement(`${TOOL_COPY[tool].button} tool stays on. Choose Stop, or press Escape, when you are done.`);
+  };
+
+  const stopTool = () => {
+    dispatch({ type: 'SET_TOOL', payload: null });
+    setAnnouncement('Stopped adding.');
   };
 
   const chooseShape = (tool) => {
@@ -146,10 +153,11 @@ export default function SignToolbar({
   // shape tool's button, so double-clicking it is the same gesture as on Text.
   // A real dblclick handler is safe here (unlike the toggle buttons, where the
   // second click would disarm before the lock landed): the two clicks only
-  // toggle the popover, never the tool.
+  // toggle the popover, never the tool. `lastShape` always has a value (it
+  // defaults to Rectangle), so this locks something even on a fresh page
+  // where no shape has been chosen yet.
   const lockShape = () => {
     const shape = SHAPE_TOOLS.includes(selectedTool) ? selectedTool : lastShape;
-    if (!shape) return;
     lockTool(shape);
     setShowShapesDropdown(false);
   };
@@ -169,30 +177,17 @@ export default function SignToolbar({
   };
 
   // The hint line, handed to the shell so it rides in the file row instead of
-  // taking a line of its own directly above the document. Only the armed-tool
-  // branch is a live region: the idle tip is standing advice, and announcing it
-  // on every state change would talk over the thing that actually changed.
-  const statusLine = activeToolCopy ? (
-    <div className={styles.help} role="status">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="16" x2="12" y2="12" />
-        <line x1="12" y1="8" x2="12.01" y2="8" />
-      </svg>
-      <span>
-        {activeToolCopy.action}
-        {toolLocked
-          ? <> <strong>{activeToolCopy.button}</strong> stays on until you press <strong>Esc</strong>.</>
-          : <> Double-click <strong>{activeToolCopy.button}</strong> to keep adding.</>}
-      </span>
-    </div>
-  ) : (
-    <div className={styles.help}>
-      <span>
-        Tip: pick a tool to start.
-        {hasTextElement ? ' Double-click a text box to edit it.' : ''}
-      </span>
-    </div>
+  // taking a line of its own directly above the document. EditorToolStatus owns
+  // the shape of it, and the Keep adding / Stop chip that is the only exit from
+  // a locked tool a phone actually has.
+  const statusLine = (
+    <EditorToolStatus
+      copy={activeToolCopy}
+      locked={toolLocked}
+      onKeepAdding={() => selectedTool && lockTool(selectedTool)}
+      onStop={stopTool}
+      idle={`Tip: pick a tool to start.${hasTextElement ? ' Double-click a text box to edit it.' : ''}`}
+    />
   );
 
   return (

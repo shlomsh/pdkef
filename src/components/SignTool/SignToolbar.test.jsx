@@ -215,7 +215,7 @@ describe('SignToolbar Component', () => {
       expect(state.toolLocked).toBe(true);
     });
 
-    it('does nothing on a double-click before any shape has been chosen', async () => {
+    it('locks the default shape (rectangle) on a double-click before any shape has been chosen', async () => {
       let state;
       renderToolbar((s) => { state = s; });
 
@@ -223,8 +223,8 @@ describe('SignToolbar Component', () => {
         findButton('Shapes').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
       });
 
-      expect(state.selectedTool).toBeNull();
-      expect(state.toolLocked).toBe(false);
+      expect(state.selectedTool).toBe('rectangle');
+      expect(state.toolLocked).toBe(true);
     });
 
     // Sign is a dropdown-trigger button too, so it needs the same real-dblclick
@@ -385,6 +385,12 @@ describe('SignToolbar Component', () => {
       return container.querySelector('[role="status"]').textContent;
     };
 
+    // The status line's one control: "Keep adding" while the tool is one-shot,
+    // "Stop" once it is locked on. It exists because Escape and double-click,
+    // the two shortcuts that used to be the only way in and out of a locked
+    // tool, are both keyboard/pointer gestures a phone does not have.
+    const statusChip = () => container.querySelector('[role="status"] button');
+
     // "Drag on a page" reads as dragging the tool from the toolbar onto the
     // page, which is a real pattern in older editors and not how this works.
     // The gesture starts and ends on the page, and "Click and" is what says so.
@@ -401,9 +407,15 @@ describe('SignToolbar Component', () => {
       expect(text).not.toContain('drag');
     });
 
-    it('names the button to double-click rather than saying "the tool"', () => {
-      expect(armAndRead('ellipse')).toContain('Double-click Shapes to keep adding');
-      expect(armAndRead('text')).toContain('Double-click Text to keep adding');
+    it('offers repeat placement as a control, not only as a double-click', () => {
+      armAndRead('ellipse');
+      expect(statusChip().textContent).toBe('Keep adding');
+      // Naming the button is still the contract - "the tool" says nothing about
+      // which one, and the shortcut has to be discoverable on desktop too.
+      expect(statusChip().title).toContain('Double-clicking Shapes does the same');
+
+      armAndRead('text');
+      expect(statusChip().title).toContain('Keep Text on');
     });
 
     // The idle tip does not teach the gesture: arming a tool says exactly how
@@ -452,8 +464,97 @@ describe('SignToolbar Component', () => {
       expect(tip()).toContain('Double-click a text box to edit it');
     });
 
-    it('says what a locked tool will keep doing and how to stop it', () => {
-      expect(armAndRead('ellipse', true)).toContain('Shapes stays on until you press Esc');
+    // How to stop must be reachable by tapping, not only by pressing Escape:
+    // that key is what made "keep adding" a one-way door on a phone.
+    it('says what a locked tool will keep doing, and offers a way to stop it', () => {
+      expect(armAndRead('ellipse', true)).toContain('Shapes stays on');
+      expect(statusChip().textContent).toBe('Stop');
+      expect(statusChip().title).toContain('Escape does the same');
+    });
+
+    it('stops a locked tool when the status chip is pressed', () => {
+      let state;
+      let dispatch;
+      const TestConsumer = () => {
+        const ctx = useSignTool();
+        state = ctx.state;
+        dispatch = ctx.dispatch;
+        return null;
+      };
+
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(
+          <SignToolProvider>
+            <SignToolbar
+              setAnnouncement={() => {}}
+              setDialogOpen={() => {}}
+              setUndoModalOpen={() => {}}
+              actionHistory={[]}
+              toggleFullscreen={() => {}}
+              isFullscreen={false}
+              onSavePdf={() => {}}
+            />
+            <TestConsumer />
+          </SignToolProvider>,
+          container
+        );
+      });
+
+      act(() => {
+        dispatch({ type: 'SET_TOOL', payload: { tool: 'whiteout', locked: true } });
+      });
+      expect(state.selectedTool).toBe('whiteout');
+
+      act(() => {
+        statusChip().click();
+      });
+
+      expect(state.selectedTool).toBeNull();
+      expect(state.toolLocked).toBe(false);
+    });
+
+    it('locks the armed tool when the status chip is pressed', () => {
+      let state;
+      let dispatch;
+      const TestConsumer = () => {
+        const ctx = useSignTool();
+        state = ctx.state;
+        dispatch = ctx.dispatch;
+        return null;
+      };
+
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(
+          <SignToolProvider>
+            <SignToolbar
+              setAnnouncement={() => {}}
+              setDialogOpen={() => {}}
+              setUndoModalOpen={() => {}}
+              actionHistory={[]}
+              toggleFullscreen={() => {}}
+              isFullscreen={false}
+              onSavePdf={() => {}}
+            />
+            <TestConsumer />
+          </SignToolProvider>,
+          container
+        );
+      });
+
+      act(() => {
+        dispatch({ type: 'SET_TOOL', payload: 'symbol' });
+      });
+
+      act(() => {
+        statusChip().click();
+      });
+
+      expect(state.selectedTool).toBe('symbol');
+      expect(state.toolLocked).toBe(true);
     });
 
     it('never calls these "layers", which nothing else in the product does', () => {
