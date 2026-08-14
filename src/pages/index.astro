@@ -75,7 +75,7 @@ const HeroIcon = tools[0].icon;
     {/* App Grid for all tools */}
     <div class="mx-auto mb-12 flex max-w-[1080px] flex-wrap justify-center gap-6 p-6 min-[1024px]:!mt-auto min-[1024px]:mb-0 min-[1024px]:gap-5 min-[1024px]:p-3">
       {tools.map((tool) => (
-        <a href={tool.href} class="app-card relative flex w-20 shrink-0 cursor-pointer flex-col items-center gap-3 text-inherit no-underline outline-none">
+        <a href={tool.href} data-accent={tool.accent} class="app-card relative flex w-20 shrink-0 cursor-pointer flex-col items-center gap-3 text-inherit no-underline outline-none">
           <div class="app-tile flex size-16 items-center justify-center">
             <tool.icon strokeWidth={1.5} />
           </div>
@@ -380,13 +380,20 @@ const HeroIcon = tools[0].icon;
       box-shadow 0.4s var(--ease-out), background-color 0.2s var(--ease-out);
   }
 
-  /* First and last tile carry their own gradient; hover overrides both, which
-     is why those rules come first and the state rules after. */
-  .app-card:first-child .app-tile {
+  /* Accented tiles carry their own gradient; hover overrides both, which is why
+     these rules come first and the state rules after.
+
+     Keyed off the tool's own `accent` field (src/data/tools.js), NOT off
+     :first-child/:last-child as this once was. The positional version pointed
+     the highlight at whatever tool happened to sit last in that array, so
+     reordering the array by SEO priority silently moved the accent onto an
+     unrelated tool. :last-child was the wrong hook regardless: the grid wraps,
+     so the last tile is only a visual corner at some widths. */
+  .app-card[data-accent='primary'] .app-tile {
     background: linear-gradient(150deg, var(--color-primary-hover), var(--color-primary));
   }
 
-  .app-card:last-child .app-tile {
+  .app-card[data-accent='soft'] .app-tile {
     background: linear-gradient(150deg, var(--color-surface), var(--color-success-soft));
     color: var(--color-success);
   }
