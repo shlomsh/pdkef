@@ -46,10 +46,18 @@ for (const file of htmlFiles) {
   }
 }
 
-// 80KB maximum per-page compiled CSS budget. This includes global CSS and every
+// Maximum per-page compiled CSS budget. This includes global CSS and every
 // CSS Module Astro inlines for the page; editor selectors in global.css are
 // guarded separately by check-editor-global-css.js.
-const MAX_CSS_SIZE_BYTES = 80_000;
+//
+// Ratchet history: raised 82,000 -> 80,000, then left there with ~4KB of slack
+// even after E3.4 dropped /sign/ to 76,286 (scrum.md E3.7 called this out - the
+// guard only earns its keep while the headroom is small enough to notice).
+// E3.5/E3.6 (2026-08-14) promoted --shadow-xs/sm/md/lg and
+// --ease-out/emphasized/spring into @theme and consolidated the
+// transition-[...] long tail, dropping the worst page (/sign/) to 77,906.
+// Re-tightened to just above that instead of leaving multiple KB of slack again.
+const MAX_CSS_SIZE_BYTES = 78_500;
 
 if (maxCssSize > MAX_CSS_SIZE_BYTES) {
   console.error(`❌ CSS Budget exceeded! Max inline CSS size is ${maxCssSize} bytes, which exceeds the threshold of ${MAX_CSS_SIZE_BYTES} bytes.`);
