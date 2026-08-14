@@ -65,6 +65,57 @@ describe('SignToolContext Reducer', () => {
     expect(nextState.elements[0].id).toBe('el-2');
   });
 
+  describe('CLEAR_PAGE', () => {
+    it('removes only the elements on the given page', () => {
+      const state = {
+        ...initialState,
+        elements: [
+          { id: 'el-1', type: 'text', pageIndex: 0 },
+          { id: 'el-2', type: 'rectangle', pageIndex: 1 },
+          { id: 'el-3', type: 'signature', pageIndex: 0 }
+        ]
+      };
+      const nextState = reducer(state, { type: 'CLEAR_PAGE', payload: 0 });
+      expect(nextState.elements).toHaveLength(1);
+      expect(nextState.elements[0].id).toBe('el-2');
+    });
+
+    it('drops the selection when the active element was on the cleared page', () => {
+      const state = {
+        ...initialState,
+        elements: [{ id: 'el-1', type: 'text', pageIndex: 0 }],
+        activeElementId: 'el-1',
+        editingElementId: 'el-1'
+      };
+      const nextState = reducer(state, { type: 'CLEAR_PAGE', payload: 0 });
+      expect(nextState.activeElementId).toBeNull();
+      expect(nextState.editingElementId).toBeNull();
+    });
+
+    it('leaves the selection untouched when the active element is on a different page', () => {
+      const state = {
+        ...initialState,
+        elements: [
+          { id: 'el-1', type: 'text', pageIndex: 0 },
+          { id: 'el-2', type: 'text', pageIndex: 1 }
+        ],
+        activeElementId: 'el-2'
+      };
+      const nextState = reducer(state, { type: 'CLEAR_PAGE', payload: 0 });
+      expect(nextState.activeElementId).toBe('el-2');
+      expect(nextState.elements).toHaveLength(1);
+    });
+
+    it('is a no-op when the page has nothing on it', () => {
+      const state = {
+        ...initialState,
+        elements: [{ id: 'el-1', type: 'text', pageIndex: 1 }]
+      };
+      const nextState = reducer(state, { type: 'CLEAR_PAGE', payload: 0 });
+      expect(nextState).toBe(state);
+    });
+  });
+
   it('SET_ACTIVE_ELEMENT_ID sets activeElementId', () => {
     const action = { type: 'SET_ACTIVE_ELEMENT_ID', payload: 'el-1' };
     const nextState = reducer(initialState, action);

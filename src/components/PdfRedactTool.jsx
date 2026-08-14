@@ -13,6 +13,7 @@ import RedactToolbar from './RedactToolbar.jsx';
 import RedactBox from './RedactBox.jsx';
 import DeleteMark from './DeleteMark.jsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.jsx';
+import EditorPageHeader from './EditorPageHeader.jsx';
 import UndoHistoryModal from './UndoHistoryModal.jsx';
 import { createActionEntry } from '../lib/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
@@ -529,23 +530,11 @@ export default function PdfRedactTool() {
           <div className={workspaceStyles['pages-container']}>
             {Array.from({ length: numPages }).map((_, i) => (
               <div key={i} data-editor-page-card>
-                <div data-editor-page-header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.25rem' }}>
-                  <span data-editor-page-number style={{ fontWeight: 600, color: 'var(--color-text)' }}>Page {i + 1}</span>
-                  {elements.some(el => el.pageIndex === i) && (
-                    <button
-                      type="button"
-                      className={styles['clear-page']}
-                      title="Clear all redactions on this page"
-                      onClick={() => clearPage(i)}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                      Clear page
-                    </button>
-                  )}
-                </div>
+                <EditorPageHeader
+                  pageNumber={i + 1}
+                  onClear={elements.some(el => el.pageIndex === i) ? () => clearPage(i) : null}
+                  clearTitle="Clear all redactions on this page"
+                />
                 <div
                   className={`${workspaceStyles['page-wrapper']} redact-draw-area`}
                   ref={(el) => pageWrapperRefs.current[i] = el}
