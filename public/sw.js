@@ -1,16 +1,37 @@
-// Hand-written, dependency-free service worker. Bump CACHE_VERSION on any
-// deploy where you want clients to drop their old cache.
+// Hand-written, dependency-free service worker. CACHE_VERSION is content-hashed
+// per build by scripts/generate-precache-manifest.mjs, so every deploy gets its
+// own cache and no two builds ever share one.
 //
 // Strategy:
-//   - The complete built application shell is precached during install.
+//   - The built application shell is precached during install, best-effort per
+//     URL (see precacheAppShell).
 //   - HTML navigations are cache-first and refresh in the background, so a
 //     returning visitor can reopen the app when the server is unavailable.
 //   - Other same-origin assets are cache-first after precache or first use.
 //   - Cross-origin requests are never intercepted — this app makes none
 //     in normal operation; not touching them is a deliberate safeguard.
-const CACHE_VERSION = 'pdkef-__BUILD_ID__';
+//   - An update never takes over a page from the previous build (no
+//     skipWaiting), because deleting that build's cache under a live page
+//     breaks its lazy imports. See the activate handler.
+const CACHE_PREFIX = 'pdkef-';
+const CACHE_VERSION = `${CACHE_PREFIX}__BUILD_ID__`;
 
 const PRECACHE_MANIFEST_URL = '/precache-manifest.json';
+
+// The offline fallback that every uncached navigation lands on, and so the one
+// precache entry with no second chance at runtime.
+const REQUIRED_URL = '/';
+
+// Precaching covers the whole build, which is hundreds of requests. Firing them
+// all at once is what makes a phone on a weak connection drop some of them, so
+// they go through a small pool instead.
+const PRECACHE_CONCURRENCY = 6;
+
+// Raised when this origin serves no build manifest at all — a 404, not a
+// network blip. The worker is then running somewhere it was never built for
+// (a dev server on a port that once ran `npm run preview`, or a deploy that
+// lost its manifest) and cannot verify anything it would serve from cache.
+class OrphanedWorkerError extends Error {}
 
 // A real ServiceWorkerGlobalScope resolves a bare '/path' Request against the
 // worker's own script URL implicitly, same as any Window/Worker context - but
@@ -23,24 +44,76 @@ function resolve(path) {
   return new URL(path, self.location.origin).href;
 }
 
-async function precacheAppShell() {
-  const manifestResponse = await fetch(new Request(resolve(PRECACHE_MANIFEST_URL), { cache: 'reload' }));
-  if (!manifestResponse.ok) {
-    throw new Error(`Failed to load precache manifest: ${manifestResponse.status}`);
+// Only ever delete caches this app created. On localhost an origin is just a
+// port, so a dev server can share one with anything else that has run there.
+function isOwnCache(key) {
+  return key.startsWith(CACHE_PREFIX);
+}
+
+function fetchFresh(url) {
+  return fetch(new Request(resolve(url), { cache: 'reload' }));
+}
+
+async function loadPrecacheManifest() {
+  const response = await fetchFresh(PRECACHE_MANIFEST_URL);
+  if (response.status === 404) {
+    throw new OrphanedWorkerError('This origin serves no precache manifest.');
   }
-  const { urls } = await manifestResponse.json();
+  if (!response.ok) {
+    throw new Error(`Failed to load precache manifest: ${response.status}`);
+  }
+  const { urls } = await response.json();
   if (!Array.isArray(urls) || urls.length === 0) {
     throw new Error('Precache manifest has no URLs.');
   }
+  return urls;
+}
 
-  const cache = await caches.open(CACHE_VERSION);
-  await Promise.all(urls.map(async (url) => {
-    const response = await fetch(new Request(resolve(url), { cache: 'reload' }));
-    if (!response.ok) {
-      throw new Error(`Failed to precache ${url}: ${response.status}`);
+// Run task over items with at most `limit` in flight. A rejection propagates and
+// abandons the remaining work, same as Promise.all.
+async function forEachLimited(items, limit, task) {
+  let cursor = 0;
+  const lanes = Array.from({ length: items.length < limit ? items.length : limit }, async () => {
+    while (cursor < items.length) {
+      await task(items[cursor++]);
     }
-    await cache.put(url, response);
-  }));
+  });
+  await Promise.all(lanes);
+}
+
+async function precacheAppShell() {
+  const urls = await loadPrecacheManifest();
+  const cache = await caches.open(CACHE_VERSION);
+
+  // Per-URL tolerance is deliberate. This precaches every page, font and worker
+  // chunk in the build, so on a weak connection something will eventually fail,
+  // and an earlier version failed the whole install on the first bad response.
+  // The visitor then got no offline shell at all and re-downloaded the entire
+  // site on their next visit, silently, forever. Anything missed here still
+  // resolves over the network on demand and is cached on first use by the fetch
+  // handler below, so a miss costs nothing but the offline guarantee for that
+  // one asset.
+  const missed = [];
+  await forEachLimited(urls, PRECACHE_CONCURRENCY, async (url) => {
+    try {
+      const response = await fetchFresh(url);
+      if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
+      await cache.put(url, response);
+    } catch (error) {
+      if (url === REQUIRED_URL) throw error;
+      missed.push(url);
+    }
+  });
+
+  if (missed.length > 0) {
+    console.warn(`[pdkef] ${missed.length}/${urls.length} assets are not cached for offline use; they will load from the network.`);
+  }
+}
+
+async function removeSelf() {
+  const keys = await caches.keys();
+  await Promise.all(keys.filter(isOwnCache).map((key) => caches.delete(key)));
+  if (self.registration) await self.registration.unregister();
 }
 
 function navigationCacheKey(request) {
@@ -58,16 +131,39 @@ async function refreshNavigation(request, cache, cacheKey) {
 }
 
 self.addEventListener('install', (event) => {
+  // Deliberately no skipWaiting(): a new build must not take control of a page
+  // that is still running the previous one. See the activate handler.
   event.waitUntil(
-    precacheAppShell().then(() => self.skipWaiting()),
+    precacheAppShell().catch(async (error) => {
+      if (error instanceof OrphanedWorkerError) {
+        // Uninstall rather than stay resident. A worker left over from a
+        // `npm run preview` kept serving that build's assets cache-first to the
+        // dev server on the same port, so the page received modules from two
+        // different Vite optimize passes and hydration died on an undefined
+        // internal — with nothing in the console naming the cache as the cause.
+        console.warn('[pdkef] No build on this origin; uninstalling the service worker.');
+        await removeSelf();
+        return;
+      }
+      throw error;
+    }),
   );
 });
 
 self.addEventListener('activate', (event) => {
+  // Because install does not call skipWaiting(), this runs only once every page
+  // from the previous build has closed. That ordering is load-bearing: those
+  // pages lazy-import content-hashed chunks long after first paint (pdfjs, its
+  // worker, the font files), and an earlier version of this file activated
+  // immediately and deleted the very cache they were still resolving against.
+  // The visible result was a page that looked fine while the PDF silently never
+  // rendered. Waiting costs one visit of staleness and removes that failure.
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(
+        keys.filter((key) => isOwnCache(key) && key !== CACHE_VERSION).map((key) => caches.delete(key)),
+      ))
       .then(() => self.clients.claim()),
   );
 });
