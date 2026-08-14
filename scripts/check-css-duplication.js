@@ -62,13 +62,18 @@ const distDir = path.join(__dirname, '..', 'dist');
  * declarations or frame selectors, not rules).
  */
 
-// Ratchets, set just above the values measured on main (2026-08-14): duplication
-// 6.93x, worst page 28,899 dead bytes (/licenses/, 94% of its class-bearing CSS),
-// 149 single-page utilities. Lower them when work lands that improves a number;
-// never raise one without saying which page got worse and why that is acceptable.
-const MAX_DUPLICATION_FACTOR = 7.0;
-const MAX_PAGE_DEAD_BYTES = 30_000;
-const MAX_SINGLE_PAGE_UTILITIES = 155;
+// Ratchets, set just above the values measured on main (2026-08-14, after E3.5/E3.6
+// promoted --shadow-xs/sm/md/lg and --ease-out/emphasized/spring into @theme and
+// consolidated the transition-[...] long tail to four canonical property lists):
+// duplication 6.91x, worst page 28,577 dead bytes (/licenses/, still ~94% of its
+// class-bearing CSS - that page's ratio is dominated by content, not the
+// shadow/ease/transition cleanup), 144 single-page utilities. Previous baseline
+// (before E3.5/E3.6): 6.93x / 28,899 / 149. Lower these further when work lands
+// that improves a number; never raise one without saying which page got worse and
+// why that is acceptable.
+const MAX_DUPLICATION_FACTOR = 6.95;
+const MAX_PAGE_DEAD_BYTES = 29_000;
+const MAX_SINGLE_PAGE_UTILITIES = 148;
 
 if (!fs.existsSync(distDir)) {
   console.error(`dist directory not found: ${distDir}. Run npm run build first.`);

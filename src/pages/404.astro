@@ -20,13 +20,13 @@ const description = 'The page you are looking for does not exist. Browse our fre
     </div>
     <h1 class="mb-3 mt-0 text-[clamp(2rem,5.2vw,3.25rem)] font-bold leading-[1.08] text-[var(--color-text)]">Page not found</h1>
     <p class="mb-8 mt-0 leading-[1.5] text-[var(--color-muted)]">The page you're looking for doesn't exist, or may have moved. Try one of the tools below.</p>
-    <a href="/" class="inline-flex items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-primary)] px-7 py-3 text-[var(--color-surface)] no-underline shadow-[var(--shadow-sm)] transition-[background-color,transform] duration-200 ease-[var(--ease-out)] hover:-translate-y-0.5 hover:bg-[var(--color-primary-hover)]">Back to home</a>
+    <a href="/" class="inline-flex items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-primary)] px-7 py-3 text-[var(--color-surface)] no-underline shadow-sm transition-[transform,background-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:bg-[var(--color-primary-hover)]">Back to home</a>
   </header>
 
   <main>
     <div class="mx-auto mb-12 grid max-w-[760px] grid-cols-4 gap-[0.85rem] px-6 max-[768px]:grid-cols-2">
       {tools.map((tool) => (
-        <a href={tool.href} class="flex items-center justify-center rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-4 text-center text-[0.92rem] font-medium text-[var(--color-text)] no-underline shadow-[var(--shadow-sm)] transition-[transform,box-shadow,border-color,color] duration-200 ease-[var(--ease-out)] hover:-translate-y-[3px] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:shadow-[var(--shadow-md)]">
+        <a href={tool.href} class="flex items-center justify-center rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-4 text-center text-[0.92rem] font-medium text-[var(--color-text)] no-underline shadow-sm transition-[transform,box-shadow,border-color,color] duration-200 ease-out hover:-translate-y-[3px] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:shadow-md">
           {tool.toolName}
         </a>
       ))}

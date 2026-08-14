@@ -40,7 +40,7 @@ const others = tools.filter((tool) => tool.slug !== currentSlug);
       <li class="m-0 p-0">
         <a
           href={tool.href}
-          class="group flex h-full items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-inherit no-underline transition-[border-color,transform] duration-150 ease-[var(--ease-out)] hover:-translate-y-px hover:border-[var(--color-border-strong)] focus-visible:-translate-y-px focus-visible:border-[var(--color-border-strong)]"
+          class="group flex h-full items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-inherit no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)] focus-visible:-translate-y-px focus-visible:border-[var(--color-border-strong)]"
         >
           <span class="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] [&_svg]:block [&_svg]:size-[55%]">
             <tool.icon strokeWidth={1.5} />
