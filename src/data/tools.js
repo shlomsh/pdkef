@@ -126,6 +126,47 @@ export const tools = [
   },
 
   {
+    slug: 'redact',
+    href: '/redact/',
+    icon: Eraser,
+    gridTitle: 'Redact & Blur',
+    gridDescription:
+      "Black out or blur sensitive text and permanently flatten the page so it can't be recovered.",
+    sitemapPriority: '0.9',
+    sitemapChangefreq: 'monthly',
+    seoTitle: 'Blackout, Blur, or Redact PDF Online | Free & Private',
+    seoDescription:
+      'Securely hide text in your PDF files. Black out or blur sensitive information, and we permanently flatten the page so the data cannot be extracted. 100% private.',
+    schemaName: 'PDkef - Redact PDF',
+    toolName: 'Redact PDF',
+    h1: 'Redact PDF Online Free: Blackout or Blur Text',
+    subhead:
+      "Black out or blur sensitive text like SSNs and addresses, then flatten the file so it can't be copied or extracted. Your redaction boxes are auto-saved on your device as you work, so a crash or accidental refresh never loses your progress.",
+    ariaLabel: 'Redact PDF tool',
+    aboutHeading: 'How to blackout or blur a PDF securely',
+    aboutLead:
+      'Permanently hide, blackout, blur, and flatten sensitive information in your PDFs, right in your browser. No uploads, absolute privacy.',
+    freeNoteLead:
+      'Black out or blur sensitive text in as many PDFs as you like, with no watermark or usage caps. Because redaction runs on your device, nothing is uploaded, and your boxes auto-save locally so a crash never loses your progress.',
+    aboutSketch: 'grid',
+    aboutIconPos: 'tr',
+    faqSketch: 'rings',
+    faqIconPos: 'bl',
+    steps: [
+      { title: 'Open your PDF', text: 'Click Choose file or drag and drop any PDF into the tool. Your file stays on your device, nothing is uploaded.' },
+      { title: 'Draw boxes', text: 'Choose your style (solid blackout or blurred out), then click and drag over the text you want to hide.' },
+      { title: 'Apply and download', text: 'Click Redact PDF. The tool flattens those pages, destroying the underlying text so it can never be extracted, and downloads the secure PDF.' },
+    ],
+    faq: [
+      { question: 'Are my PDF files uploaded to a server?', answer: 'No. PDkef runs entirely in your browser. Your file is never uploaded, never sent over the network, and never stored anywhere outside your own device.' },
+      { question: 'How is this different from just drawing a black box?', answer: 'Many free tools just draw a layer over the text, meaning anyone can still copy-paste the text hidden underneath. We perform "True Redaction": the page is converted into a flattened image, permanently destroying the underlying text data so it is impossible to recover.' },
+      { question: 'How do I blackout or blur text in a PDF?', answer: 'Load your PDF, choose "Blackout" or "Blur" from the toolbar, then click and drag on any page to draw a box over the sensitive information. Once you have covered all sensitive areas, click Redact PDF. The tool will flatten the edited pages and generate your secure PDF.' },
+      { question: 'Is there a file size limit?', answer: 'There are no artificial limits. However, because redacted pages are converted to high-quality images, your final file size may be larger than the original document.' },
+      { question: 'If my browser crashes mid-redaction, do I lose my boxes?', answer: 'No. As you draw blackout and blur boxes, the tool auto-saves your progress to local storage in your own browser, and restores your boxes automatically the next time you open the tool on the same device. This happens on your device, so your file is still never uploaded, and your saved draft stays until you replace the file, or for 14 days if you never come back.' },
+    ],
+  },
+
+  {
     slug: 'pdf-to-image',
     href: '/pdf-to-image/',
     icon: ImageUp,
@@ -383,47 +424,6 @@ export const tools = [
       { question: 'Can I do all edits at once - rotate, remove, and reorder?', answer: 'Yes. All edits are applied together in a single pass when you click Apply Changes. You can freely mix removing pages, rotating individual pages, reordering, and adding page numbers before exporting.' },
       { question: 'Is there a file size limit?', answer: "There are no artificial file size limits. The only constraint is your device's available memory, since all processing runs locally in the browser." },
       { question: 'Can I remove all pages from a PDF?', answer: 'No. A valid PDF must contain at least one page. The Apply Changes button is disabled if every page is marked for removal.' },
-    ],
-  },
-
-  {
-    slug: 'redact',
-    href: '/redact/',
-    icon: Eraser,
-    gridTitle: 'Redact & Blur',
-    gridDescription:
-      "Black out or blur sensitive text and permanently flatten the page so it can't be recovered.",
-    sitemapPriority: '0.9',
-    sitemapChangefreq: 'monthly',
-    seoTitle: 'Blackout, Blur, or Redact PDF Online | Free & Private',
-    seoDescription:
-      'Securely hide text in your PDF files. Black out or blur sensitive information, and we permanently flatten the page so the data cannot be extracted. 100% private.',
-    schemaName: 'PDkef - Redact PDF',
-    toolName: 'Redact PDF',
-    h1: 'Redact PDF Online Free: Blackout or Blur Text',
-    subhead:
-      "Black out or blur sensitive text like SSNs and addresses, then flatten the file so it can't be copied or extracted. Your redaction boxes are auto-saved on your device as you work, so a crash or accidental refresh never loses your progress.",
-    ariaLabel: 'Redact PDF tool',
-    aboutHeading: 'How to blackout or blur a PDF securely',
-    aboutLead:
-      'Permanently hide, blackout, blur, and flatten sensitive information in your PDFs, right in your browser. No uploads, absolute privacy.',
-    freeNoteLead:
-      'Black out or blur sensitive text in as many PDFs as you like, with no watermark or usage caps. Because redaction runs on your device, nothing is uploaded, and your boxes auto-save locally so a crash never loses your progress.',
-    aboutSketch: 'grid',
-    aboutIconPos: 'tr',
-    faqSketch: 'rings',
-    faqIconPos: 'bl',
-    steps: [
-      { title: 'Open your PDF', text: 'Click Choose file or drag and drop any PDF into the tool. Your file stays on your device, nothing is uploaded.' },
-      { title: 'Draw boxes', text: 'Choose your style (solid blackout or blurred out), then click and drag over the text you want to hide.' },
-      { title: 'Apply and download', text: 'Click Redact PDF. The tool flattens those pages, destroying the underlying text so it can never be extracted, and downloads the secure PDF.' },
-    ],
-    faq: [
-      { question: 'Are my PDF files uploaded to a server?', answer: 'No. PDkef runs entirely in your browser. Your file is never uploaded, never sent over the network, and never stored anywhere outside your own device.' },
-      { question: 'How is this different from just drawing a black box?', answer: 'Many free tools just draw a layer over the text, meaning anyone can still copy-paste the text hidden underneath. We perform "True Redaction": the page is converted into a flattened image, permanently destroying the underlying text data so it is impossible to recover.' },
-      { question: 'How do I blackout or blur text in a PDF?', answer: 'Load your PDF, choose "Blackout" or "Blur" from the toolbar, then click and drag on any page to draw a box over the sensitive information. Once you have covered all sensitive areas, click Redact PDF. The tool will flatten the edited pages and generate your secure PDF.' },
-      { question: 'Is there a file size limit?', answer: 'There are no artificial limits. However, because redacted pages are converted to high-quality images, your final file size may be larger than the original document.' },
-      { question: 'If my browser crashes mid-redaction, do I lose my boxes?', answer: 'No. As you draw blackout and blur boxes, the tool auto-saves your progress to local storage in your own browser, and restores your boxes automatically the next time you open the tool on the same device. This happens on your device, so your file is still never uploaded, and your saved draft stays until you replace the file, or for 14 days if you never come back.' },
     ],
   },
 ];
