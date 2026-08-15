@@ -95,9 +95,59 @@
    of text, which is the case WCAG 2.5.5 excepts, and the identity row it rides
    in is sticky - every pixel of it comes straight off the visible document on a
    phone. It still clears WCAG 2.2 AA's 24px minimum with room to spare. */
-.status-action { display: inline-flex; align-items: center; min-height: 2rem; padding: .2rem .6rem; font: inherit; font-size: .78rem; font-weight: 600; white-space: nowrap; color: var(--color-primary); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-pill); cursor: pointer; transition: background-color .15s var(--ease-out), border-color .15s var(--ease-out), color .15s var(--ease-out); }
+.status-action { display: inline-flex; align-items: center; gap: .4rem; min-height: 2rem; padding: .2rem .6rem .2rem .45rem; font: inherit; font-size: .78rem; font-weight: 600; white-space: nowrap; color: var(--color-primary); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-pill); cursor: pointer; transition: background-color .15s var(--ease-out), border-color .15s var(--ease-out); }
 .status-action:hover { background: var(--color-primary-soft); border-color: var(--color-primary); }
 .status-action:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+/* The knob is the whole state display, which is why the pill only tints when on
+   instead of inverting. Filling the row made the control read as a *different*
+   button appearing in place of the last one - the exact misreading that let an
+   earlier version get away with an asymmetric pair, where pressing "off"
+   disarmed the tool rather than returning it to one at a time. One setting,
+   one label that holds still, one thing that moves. */
+.status-switch { flex: none; position: relative; width: 1.7rem; height: 1rem; border-radius: var(--radius-pill); background: var(--color-muted-light); transition: background-color .15s var(--ease-out); }
+.status-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: .75rem; height: .75rem; border-radius: 50%; background: var(--color-surface); transition: transform .15s var(--ease-out); }
+.status-action-on { background: var(--color-primary-soft); border-color: var(--color-primary); }
+.status-action-on .status-switch { background: var(--color-primary); }
+.status-action-on .status-switch::after { transform: translateX(.7rem); }
+/* The keyboard/pointer shortcut for what the switch does, hidden on the devices
+   that do not have it. Double-click and Escape are both absent on touch (a
+   double-tap is the browser's zoom gesture), so this is gated on a fine pointer
+   rather than on width - a tablet with a mouse should get it and a large phone
+   should not. display:none also keeps it out of the accessibility tree, so it
+   is not read out to someone who cannot act on it. */
+.status-hint { display: none; font-size: .75rem; color: var(--color-muted-light); }
+/* A grid rather than a line of text, so both hints share one cell and the slot
+   is always as wide as the longer of them - see the note in EditorToolStatus.jsx
+   for why a slot that resized on toggle moved the switch itself. `visibility`,
+   not `display`, because a hidden grid item still contributes its width, and it
+   drops out of the accessibility tree the same way. Start-aligned so the shorter
+   hint stays beside the switch it describes and the slack falls at the row's
+   trailing edge, where there is nothing to look out of place. */
+@media (hover: hover) and (pointer: fine) { .status-hint { display: grid; justify-items: start; } }
+.status-hint > * { grid-area: 1 / 1; }
+.status-hint-shown { visibility: visible; }
+.status-hint-spare { visibility: hidden; }
+/* The tool button's one hover tooltip - what it does, plus the double-click
+   shortcut - replacing its native `title` outright rather than sitting beside
+   it (see ArmHint.jsx). Visual styling only: show/hide, the hover delay and
+   positioning are owned by Floating UI and a portal, not CSS, because
+   `.toolbar` above has `container-type: inline-size` for its responsive
+   label-dropping, and per the CSS Containment spec that clips anything inside
+   it that overflows - an earlier version of this bubble was a child of the
+   button and got clipped exactly that way. Same dark-bubble language as
+   PdfToImageTool.module.css's `.tooltip-bubble`, so it reads as an existing
+   pattern.
+
+   No `width: max-content`: this box is border-box (global.css's reset), and a
+   max-content *width* resolves against the border box rather than the content
+   box, so it quietly ate its own padding out of the space meant for text.
+   Floating UI handles placement, so this only needs `max-width` as a wrap
+   safety net for a long label. */
+/* `start`, not `left`: this is two sentences of prose, and centering left both
+   of them with ragged edges on both sides once either wrapped. The logical
+   keyword rather than the physical one so a right-to-left UI reads correctly
+   without a second rule. */
+.hint { max-width: 220px; padding: .5rem .7rem; background: var(--color-text); color: var(--color-surface); font-size: .74rem; font-weight: 400; line-height: 1.4; text-align: start; border-radius: var(--radius-sm); box-shadow: 0 8px 24px rgba(0, 0, 0, .18); pointer-events: none; }
 /* Below 920px every control is icon-only, so they all carry identical content and
    any difference in rendered width is a bug rather than a design choice. The row
    mixes two kinds of item though - bare `<button>`s and the `<div class=dropdown>`

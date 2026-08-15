@@ -25,3 +25,22 @@ if (typeof globalThis.IntersectionObserver === 'undefined') {
     disconnect() {}
   };
 }
+
+// matchMedia: jsdom does not implement it at all. ArmHint.jsx gates its hover
+// tooltip on `(hover: hover) and (pointer: fine)` to keep it unreachable on
+// touch, computed once via window.matchMedia - default every query to
+// "matches", i.e. the desktop path, so tests exercise the normal behavior
+// without each one having to stub this individually. A test that specifically
+// covers the touch/no-hover case should override window.matchMedia itself.
+if (typeof window !== 'undefined' && typeof window.matchMedia === 'undefined') {
+  window.matchMedia = (query) => ({
+    matches: true,
+    media: query,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent() { return false; }
+  });
+}

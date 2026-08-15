@@ -78,7 +78,13 @@ export default function ViewControl({ isFullscreen, toggleFullscreen }) {
 
   return (
     <>
-      <div className={styles.segmented} role="radiogroup" aria-label="View density" onKeyDown={onKeyDown}>
+      {/* data-toolbar-narrow-hidden: a plain HTML attribute rather than a class,
+          so SignToolbar.module.css (a different CSS Modules file, which cannot
+          see this file's scoped .segmented hash) can still exclude this control
+          from its "how many controls does the phone actually see" nth-child
+          counting below 920px, where this element is unconditionally
+          display:none - see that file's --controls-per-row comment. */}
+      <div className={styles.segmented} data-toolbar-narrow-hidden role="radiogroup" aria-label="View density" onKeyDown={onKeyDown}>
         {SEGMENTS.map((segment, index) => {
           const isActive = activeIndex === index;
           const label = segment.key === 'fullscreen' && isFullscreen ? 'Exit full screen' : segment.label;

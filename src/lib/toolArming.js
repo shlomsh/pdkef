@@ -1,3 +1,5 @@
+import { useRef, useState, useEffect, useCallback } from 'preact/hooks';
+
 /**
  * The one-shot-with-lock arming gesture, owned in one place so the Sign and
  * Redact toolbars cannot drift apart on it.
@@ -31,4 +33,40 @@ export function makeArmTool({ selectedTool, arm, lock }) {
     }
     arm(selectedTool === tool ? null : tool);
   };
+}
+
+/**
+ * Teaches the double-click shortcut once, at the button it belongs to, instead
+ * of leaving it to a `title` attribute that needs a hover and a wait to find.
+ * The first time any tool arms this session, its button's hint bubble (see
+ * `ArmHint.jsx`) is forced open for a few seconds; after that it reverts to
+ * ordinary hover/focus, same as any tooltip.
+ *
+ * Gated on `(hover: hover) and (pointer: fine)` before ever starting the timer,
+ * not just in the CSS that shows the bubble: double-click and hover both do not
+ * exist on touch, so auto-showing "double-click to keep this on" there would be
+ * advice a phone cannot act on, and would cost a repaint for nothing every time
+ * a tool arms on a device that will never see it.
+ *
+ * `shownRef`, not state, for "has this fired yet" - flipping it must not itself
+ * cause a render, only the timer's two edges (show, then hide) should.
+ *
+ * @returns {{ autoShowTool: string|null, noteArmed: (tool: string|null) => void }}
+ */
+export function useAutoArmHint() {
+  const [autoShowTool, setAutoShowTool] = useState(null);
+  const shownRef = useRef(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  const noteArmed = useCallback((tool) => {
+    if (!tool || shownRef.current) return;
+    if (!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches) return;
+    shownRef.current = true;
+    setAutoShowTool(tool);
+    timerRef.current = setTimeout(() => setAutoShowTool(null), 2600);
+  }, []);
+
+  return { autoShowTool, noteArmed };
 }

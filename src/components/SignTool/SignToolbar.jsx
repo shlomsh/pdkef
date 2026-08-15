@@ -4,8 +4,9 @@ import { useSavedSignatures } from './SavedSignaturesContext.jsx';
 import ViewControl from '../ViewControl.jsx';
 import Popover from '../Popover.jsx';
 import EditorToolStatus from '../EditorToolStatus.jsx';
+import ArmHint from '../ArmHint.jsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../ToolShell.jsx';
-import { makeArmTool } from '../../lib/toolArming.js';
+import { makeArmTool, useAutoArmHint } from '../../lib/toolArming.js';
 import styles from './SignToolbar.module.css';
 import controlStyles from '../EditorControls.module.css';
 
@@ -104,6 +105,7 @@ export default function SignToolbar({
     dispatch({ type: 'SET_TOOL', payload: 'signature' });
     setShowSigDropdown(false);
     setAnnouncement(`Sign tool active. ${TOOL_COPY.signature.action}`);
+    noteArmed('signature');
   };
 
   const setSelectedTool = (tool) => {
@@ -120,23 +122,31 @@ export default function SignToolbar({
 
   // One-shot arming, double-click to lock. The gesture itself lives in
   // lib/toolArming.js so this toolbar and Redact's cannot drift on it.
+  const { autoShowTool, noteArmed } = useAutoArmHint();
   const armTool = makeArmTool({
     selectedTool,
     arm: (next) => {
       setSelectedTool(next);
-      if (next) setAnnouncement(`${TOOL_COPY[next].button} tool active. ${TOOL_COPY[next].action}`);
+      if (next) {
+        setAnnouncement(`${TOOL_COPY[next].button} tool active. ${TOOL_COPY[next].action}`);
+        noteArmed(next);
+      }
     },
     lock: (tool) => lockTool(tool),
   });
 
   const lockTool = (tool) => {
     dispatch({ type: 'SET_TOOL', payload: { tool, locked: true } });
-    setAnnouncement(`${TOOL_COPY[tool].button} tool stays on. Choose Stop, or press Escape, when you are done.`);
+    setAnnouncement(`${TOOL_COPY[tool].button} stays on after each one. Switch it off, or press Escape, when you are done.`);
   };
 
-  const stopTool = () => {
-    dispatch({ type: 'SET_TOOL', payload: null });
-    setAnnouncement('Stopped adding.');
+  // The switch's other half, and deliberately not "disarm": a bare SET_TOOL
+  // payload arms without locking, so switching off lands back in exactly the
+  // state switching on was entered from. Dropping the tool here instead is what
+  // made the old chip a one-way door - see EditorToolStatus.jsx.
+  const unlockTool = (tool) => {
+    dispatch({ type: 'SET_TOOL', payload: tool });
+    setAnnouncement(`${TOOL_COPY[tool].button} is back to one at a time.`);
   };
 
   const chooseShape = (tool) => {
@@ -144,6 +154,10 @@ export default function SignToolbar({
     setLastShape(tool);
     setShowShapesDropdown(false);
     setAnnouncement(`${TOOL_COPY[tool].button} tool active. ${TOOL_COPY[tool].action}`);
+    // Shapes is one button standing for three tools, so the hint that follows
+    // has to key off the button ("shapes"), not whichever shape happens to be
+    // chosen - see the Shapes button's ArmHint below.
+    noteArmed('shapes');
   };
 
   // Shapes locks from its own button rather than from a menu item, because a
@@ -184,8 +198,7 @@ export default function SignToolbar({
     <EditorToolStatus
       copy={activeToolCopy}
       locked={toolLocked}
-      onKeepAdding={() => selectedTool && lockTool(selectedTool)}
-      onStop={stopTool}
+      onToggleKeepOn={() => selectedTool && (toolLocked ? unlockTool(selectedTool) : lockTool(selectedTool))}
       idle={`Tip: pick a tool to start.${hasTextElement ? ' Double-click a text box to edit it.' : ''}`}
     />
   );
@@ -194,74 +207,94 @@ export default function SignToolbar({
     <>
       <ToolShell editor status={statusLine}>
         <div className={styles.toolbar} role="toolbar" aria-label="PDF annotations">
-          <button
-            type="button"
-            className={`${styles.button}${selectedTool === 'text' ? ` ${styles.active}` : ''}${selectedTool === 'text' && toolLocked ? ` ${styles.locked}` : ''}`}
-            onClick={armTool('text')}
-            title="Add a text box. Double-click to keep adding"
-            aria-pressed={selectedTool === 'text'}
-            data-label-priority="2"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="4 7 4 4 20 4 20 7" />
-              <line x1="9" y1="20" x2="15" y2="20" />
-              <line x1="12" y1="4" x2="12" y2="20" />
-            </svg>
-            <span className={styles.label}>Text</span>
-          </button>
+          <ArmHint tool="text" label="Text" action={TOOL_COPY.text.action} locked={selectedTool === 'text' && toolLocked} autoShowTool={autoShowTool}>
+            <button
+              type="button"
+              className={`${styles.button}${selectedTool === 'text' ? ` ${styles.active}` : ''}${selectedTool === 'text' && toolLocked ? ` ${styles.locked}` : ''}`}
+              onClick={armTool('text')}
+              aria-pressed={selectedTool === 'text'}
+              data-label-priority="2"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="4 7 4 4 20 4 20 7" />
+                <line x1="9" y1="20" x2="15" y2="20" />
+                <line x1="12" y1="4" x2="12" y2="20" />
+              </svg>
+              <span className={styles.label}>Text</span>
+            </button>
+          </ArmHint>
 
-          <button
-            type="button"
-            className={`${styles.button}${selectedTool === 'symbol' ? ` ${styles.active}` : ''}${selectedTool === 'symbol' && toolLocked ? ` ${styles.locked}` : ''}`}
-            onClick={armTool('symbol')}
-            title="Add a check, cross, or dot. Double-click to keep adding"
-            aria-pressed={selectedTool === 'symbol'}
-            data-label-priority="2"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            <span className={styles.label}>Symbols</span>
-          </button>
+          <ArmHint tool="symbol" label="Symbols" action={TOOL_COPY.symbol.action} locked={selectedTool === 'symbol' && toolLocked} autoShowTool={autoShowTool}>
+            <button
+              type="button"
+              className={`${styles.button}${selectedTool === 'symbol' ? ` ${styles.active}` : ''}${selectedTool === 'symbol' && toolLocked ? ` ${styles.locked}` : ''}`}
+              onClick={armTool('symbol')}
+              aria-pressed={selectedTool === 'symbol'}
+              data-label-priority="2"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span className={styles.label}>Symbols</span>
+            </button>
+          </ArmHint>
 
-          {/* placement="bottom" (centered), not "bottom-start": these toolbar
-              buttons stretch to fill the row (`.toolbar > * { flex: 1 1 auto }`)
-              while their icon/label/chevron stay centered inside via
-              justify-content, so on a wide button "bottom-start" anchored the
-              menu to the empty left edge of the box instead of the visible
-              trigger content, reading as misaligned. */}
-          <div
-            className={styles.dropdown}
-            onMouseEnter={openShapes}
-            onMouseLeave={scheduleCloseShapes}
-            onDblClick={lockShape}
-          >
-            <Popover
-              open={showShapesDropdown}
-              onOpenChange={setShowShapesDropdown}
-              placement="bottom"
-              trigger={
-                <button
-                  type="button"
-                  className={`${styles.button}${SHAPE_TOOLS.includes(selectedTool) ? ` ${styles.active}` : ''}${SHAPE_TOOLS.includes(selectedTool) && toolLocked ? ` ${styles.locked}` : ''}`}
-                  title="Draw an ellipse, rectangle, or line. Double-click to keep adding"
-                  aria-pressed={SHAPE_TOOLS.includes(selectedTool)}
-                  data-label-priority="2"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 3l4 7H8z" />
-                    <circle cx="7" cy="17" r="4" />
-                    <rect x="13" y="13" width="8" height="8" rx="1" />
-                  </svg>
-                  <span className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                    Shapes
-                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="6 9 12 15 18 9" />
+          {/* placement="bottom-start". A dropdown drops down - and it is the
+              only surface here that does, which is what lets it coexist with
+              ArmHint's tooltip rather than take turns with it: the tooltip
+              opens upward, this opens downward, so both can be on screen at
+              once and neither has to be suppressed. (Suppressing was tried,
+              and it silently cost these two buttons their tooltip altogether,
+              because the menu opens on the very hover the tooltip waits on.)
+
+              Start-aligned, not centered. Centering was the old behaviour, on
+              the argument that these buttons stretch to fill the row (`.toolbar
+              > * { flex: 1 1 auto }`) while their icon and label stay centered
+              inside, so start-aligning anchored the menu to an empty left edge
+              rather than to visible content. That held while the menu was the
+              narrower of the two, and stopped holding once the menu grew wider
+              than the button: centering a wider box on a narrower one makes it
+              overhang on both sides and line up with nothing. A shared edge is
+              legible at any relative width; a shared centre is not. */}
+          {/* ArmHint wraps this outer div, not the button Popover clones below:
+              Popover already clones that button to attach its own Floating UI
+              reference (for the Shapes menu itself), and a second, independent
+              clone-and-ref from ArmHint needs a DOM node of its own to attach
+              to - the div is already position:relative and already sized to
+              match the button exactly (`.toolbar .dropdown > .button { width:
+              100% }`), so anchoring here costs nothing visually. */}
+          <ArmHint tool="shapes" label="Shapes" action="Draw an ellipse, rectangle, or line." locked={SHAPE_TOOLS.includes(selectedTool) && toolLocked} autoShowTool={autoShowTool}>
+            <div
+              className={styles.dropdown}
+              onMouseEnter={openShapes}
+              onMouseLeave={scheduleCloseShapes}
+              onDblClick={lockShape}
+            >
+              <Popover
+                open={showShapesDropdown}
+                onOpenChange={setShowShapesDropdown}
+                placement="bottom-start"
+                trigger={
+                  <button
+                    type="button"
+                    className={`${styles.button}${SHAPE_TOOLS.includes(selectedTool) ? ` ${styles.active}` : ''}${SHAPE_TOOLS.includes(selectedTool) && toolLocked ? ` ${styles.locked}` : ''}`}
+                    aria-pressed={SHAPE_TOOLS.includes(selectedTool)}
+                    data-label-priority="2"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 3l4 7H8z" />
+                      <circle cx="7" cy="17" r="4" />
+                      <rect x="13" y="13" width="8" height="8" rx="1" />
                     </svg>
-                  </span>
-                </button>
-              }
-              content={
+                    <span className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                      Shapes
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </span>
+                  </button>
+                }
+                content={
                 <div 
                   className={controlStyles.popover}
                   role="menu" 
@@ -304,50 +337,70 @@ export default function SignToolbar({
                 </div>
               }
             />
-          </div>
+            </div>
+          </ArmHint>
 
-          <button
-            type="button"
-            className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}${selectedTool === 'whiteout' && toolLocked ? ` ${styles.locked}` : ''}`}
-            onClick={armTool('whiteout')}
-            title="Cover text with a white box. Double-click to keep adding"
-            data-label-priority="2"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
-              <path d="M22 21H7" />
-              <path d="m13.3 4 5.3 5.3" />
-            </svg>
-            <span className={styles.label}>Whiteout</span>
-          </button>
+          <ArmHint tool="whiteout" label="Whiteout" action={TOOL_COPY.whiteout.action} locked={selectedTool === 'whiteout' && toolLocked} autoShowTool={autoShowTool}>
+            <button
+              type="button"
+              className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}${selectedTool === 'whiteout' && toolLocked ? ` ${styles.locked}` : ''}`}
+              onClick={armTool('whiteout')}
+              data-label-priority="2"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+                <path d="M22 21H7" />
+                <path d="m13.3 4 5.3 5.3" />
+              </svg>
+              <span className={styles.label}>Whiteout</span>
+            </button>
+          </ArmHint>
 
-          <div
-            className={styles.dropdown}
-            onMouseEnter={openSig}
-            onMouseLeave={scheduleCloseSig}
-            onDblClick={lockSignature}
+          {/* Same wrapping reasoning as Shapes above: ArmHint anchors to the
+              dropdown div, not the button Popover clones. `locked` doubles as
+              "nothing to teach yet" here - before a signature exists, this
+              button's click opens the create dialog rather than arming
+              anything, and ArmHint's own `locked` branch already means "render
+              the trigger plain, no hover wiring" for exactly that case, so
+              there is no need for a second conditional path. */}
+          <ArmHint
+            tool="signature"
+            label="Sign"
+            action={TOOL_COPY.signature.action}
+            locked={!activeSignature || (selectedTool === 'signature' && toolLocked)}
+            autoShowTool={autoShowTool}
           >
-            <Popover
-              open={showSigDropdown}
-              onOpenChange={setShowSigDropdown}
-              placement="bottom"
-              trigger={
-                <button
-                  type="button"
-                  className={`${styles.button}${selectedTool === 'signature' ? ` ${styles.active}` : ''}${selectedTool === 'signature' && toolLocked ? ` ${styles.locked}` : ''}`}
-                  onClick={handleSignatureBtnClick}
-                  title="Click here to select or create a signature. Double-click to keep adding"
-                  aria-pressed={selectedTool === 'signature'}
-                  data-label-priority="2"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
-                    <path d="M3 21h18" />
-                  </svg>
-                  <span className={styles.label}>Sign</span>
-                </button>
-              }
-              content={
+            <div
+              className={styles.dropdown}
+              onMouseEnter={openSig}
+              onMouseLeave={scheduleCloseSig}
+              onDblClick={lockSignature}
+            >
+              <Popover
+                open={showSigDropdown}
+                onOpenChange={setShowSigDropdown}
+                placement="bottom-start"
+                trigger={
+                  <button
+                    type="button"
+                    className={`${styles.button}${selectedTool === 'signature' ? ` ${styles.active}` : ''}${selectedTool === 'signature' && toolLocked ? ` ${styles.locked}` : ''}`}
+                    onClick={handleSignatureBtnClick}
+                    // Only said here when there is nothing yet for ArmHint to
+                    // teach: once a signature exists, ArmHint's own bubble
+                    // (wrapping the div above) covers this button instead, and
+                    // showing both would duplicate the description.
+                    title={activeSignature ? undefined : 'Click here to select or create a signature'}
+                    aria-pressed={selectedTool === 'signature'}
+                    data-label-priority="2"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
+                      <path d="M3 21h18" />
+                    </svg>
+                    <span className={styles.label}>Sign</span>
+                  </button>
+                }
+                content={
                 <div
                   className={controlStyles.popover}
                   data-editor-signature-popover
@@ -401,7 +454,8 @@ export default function SignToolbar({
                 </div>
               }
             />
-          </div>
+            </div>
+          </ArmHint>
 
           <button
             type="button"
