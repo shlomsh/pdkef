@@ -44,9 +44,22 @@
    get right; nothing here reaches ten VISIBLE controls and a --controls-per-row
    of 6, only Sign's counted total does (see the width-threshold comment below
    for why counted and visible diverge, and why that distinction matters more
-   there than it does here). */
+   there than it does here).
+   `.segmented` (ViewControl's >=920px view-density control, the hidden node
+   this whole comment is about) carries no class or attribute of its own that
+   a sibling module's selector can target - CSS Modules hash `styles.segmented`,
+   so nothing outside ViewControl.module.css can name it directly. It does
+   carry `role="radiogroup"`, already on the element for its own accessibility
+   reasons and unique among this toolbar's children, so that is what excludes
+   it here instead of introducing a new attribute. Missing this exclusion is
+   exactly the "4+4+1 instead of 3+3+3" failure below, not a narrower one: an
+   uncounted-for `.segmented` inflates Sign's true nine-visible toolbar to a
+   counted ten, which the counted-ten guard on the three-way split explicitly
+   excludes (see that rule's own comment for why ten is excluded on purpose),
+   so the toolbar it was meant to protect loses the protection entirely and
+   flex wraps 9 real controls under an uncorrected --controls-per-row: 5. */
 .toolbar { --controls-per-row: 4; }
-.toolbar:has(> :nth-child(9 of :not(.desktop-download))) { --controls-per-row: 5; }
+.toolbar:has(> :nth-child(9 of :not(.desktop-download):not([role="radiogroup"]))) { --controls-per-row: 5; }
 
 .dropdown { position: relative; display: flex; }
 .toolbar .dropdown > .button { width: 100%; flex: 1 1 auto; }
@@ -159,7 +172,7 @@
   }
 
   @container toolbar (max-width: 495px) {
-    .toolbar:has(> :nth-child(10 of :not(.desktop-download))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+    .toolbar:has(> :nth-child(10 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
   /* Once even the two-row split stops fitting - five-per-row controls need
@@ -186,9 +199,19 @@
      an unusually small device, so it is worth getting right rather than
      letting nine fall back to 4+4+1. Note the override has to be set on the
      children: rules inside a container query match the container's
-     descendants, never the container element itself. */
+     descendants, never the container element itself.
+     `:not([role="radiogroup"])` alongside `:not(.desktop-download)`, matching
+     the --controls-per-row: 5 trigger above (see its comment for why a role
+     attribute stands in for a class here): without it, ViewControl's hidden
+     `.segmented` control inflates Sign's counted total from nine to ten,
+     which trips the very guard above meant to exclude Sign's true ten-visible
+     cases from this rule - so a toolbar that has never actually shown ten
+     visible controls loses the three-way split anyway, and 9 real controls
+     wrap under the uncorrected 5-per-row share as 4+4+1. This shipped exactly
+     that way once already, reproduced deterministically (every run, not an
+     intermittent flake) against a real build and caught by CI. */
   @container toolbar (max-width: 251px) {
-    .toolbar:has(> :nth-child(9 of :not(.desktop-download))):not(:has(> :nth-child(10 of :not(.desktop-download)))) > * { --controls-per-row: 3; }
+    .toolbar:has(> :nth-child(9 of :not(.desktop-download):not([role="radiogroup"]))):not(:has(> :nth-child(10 of :not(.desktop-download):not([role="radiogroup"])))) > * { --controls-per-row: 3; }
   }
 }
 
