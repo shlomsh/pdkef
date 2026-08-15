@@ -133,6 +133,85 @@ describe('SignToolbar Component', () => {
       expect(textBtn.className).toContain(styles.locked);
     });
 
+    // These buttons used to carry a native `title` for the action ("Add a text
+    // box") and a separate ArmHint bubble for the double-click shortcut, which
+    // could both be showing at once on hover, on two different delays. There is
+    // now exactly one hover surface, reached the accessible way (aria-describedby
+    // to the visible bubble) rather than through `title`, which the button no
+    // longer has. ArmHint portals its bubble to `document.body` (see ArmHint.jsx
+    // for why - `.toolbar`'s container-type clips anything overflowing it), so
+    // these look it up via `document`, not `container`.
+    //
+    // Opened by focus, not hover: Floating UI's `useFocus` opens with no
+    // artificial delay, where `useHover`'s 500ms would need fake timers to
+    // exercise here for no real gain - the same open/content contract holds
+    // either way, and focus is also the path a keyboard user actually takes.
+    it('has no native title, and its one hint bubble carries both the action and the shortcut', async () => {
+      renderToolbar(() => {});
+      const textBtn = findButton('Text');
+      expect(textBtn.hasAttribute('title')).toBe(false);
+
+      await act(async () => {
+        textBtn.focus();
+      });
+
+      const describedBy = textBtn.getAttribute('aria-describedby');
+      expect(describedBy).toBeTruthy();
+      const hint = document.getElementById(describedBy);
+      expect(hint.textContent).toContain('Click on a page to place a text box');
+      expect(hint.textContent).toContain('Double-click to keep Text on');
+    });
+
+    it('drops the hint bubble and its aria-describedby once the tool is locked', async () => {
+      renderToolbar(() => {});
+      const textBtn = findButton('Text');
+
+      await act(async () => {
+        textBtn.focus();
+      });
+      const describedBy = textBtn.getAttribute('aria-describedby');
+      expect(describedBy).toBeTruthy();
+      expect(document.getElementById(describedBy)).not.toBeNull();
+
+      await act(async () => {
+        textBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+      });
+      await act(async () => {
+        textBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
+      });
+
+      expect(textBtn.hasAttribute('aria-describedby')).toBe(false);
+      expect(document.getElementById(describedBy)).toBeNull();
+    });
+
+    // Shapes gets the same black tooltip as every plain tool button, with no
+    // special case. Its menu opens downward while the tooltip opens upward, so
+    // the two never contend and neither has to yield. An earlier version had
+    // both opening downward and suppressed the tooltip whenever the menu was
+    // open, which silently cost this button its tooltip entirely - the menu
+    // opens on the very hover the tooltip waits on.
+    //
+    // Driven through the once-per-session auto-show rather than a hover, which
+    // would need fake timers for the 1s delay: choosing a shape calls
+    // noteArmed('shapes'), so this exercises the real path a first-time user
+    // takes and asserts the bubble that appears is the shared one.
+    it('gives Shapes the same tooltip every plain tool button gets', async () => {
+      renderToolbar(() => {});
+
+      await act(async () => {
+        findButton('Shapes').click();
+      });
+      const ellipse = Array.from(document.body.querySelectorAll('button'))
+        .find((b) => b.textContent.trim() === 'Ellipse');
+      await act(async () => {
+        ellipse.click();
+      });
+
+      const bubble = document.querySelector(`.${styles.hint}`);
+      expect(bubble).not.toBeNull();
+      expect(bubble.textContent).toContain('Double-click to keep Shapes on');
+    });
+
     it('locks the chosen shape when the Shapes button is double-clicked', async () => {
       let state;
       renderToolbar((s) => { state = s; });
@@ -263,6 +342,24 @@ describe('SignToolbar Component', () => {
       });
     };
 
+    // Sign has the same problem Shapes does: its menu takes the hover the
+    // tooltip would need, so the shortcut is taught in the menu instead.
+    it('gives Sign the same tooltip every plain tool button gets', async () => {
+      renderToolbarWithSignature(() => {});
+
+      await act(async () => {
+        findButton('Sign').click();
+      });
+      const item = document.body.querySelector('[data-editor-signature-item]');
+      await act(async () => {
+        item.click();
+      });
+
+      const bubble = document.querySelector(`.${styles.hint}`);
+      expect(bubble).not.toBeNull();
+      expect(bubble.textContent).toContain('Double-click to keep Sign on');
+    });
+
     it('locks the Sign tool on when its button is double-clicked', async () => {
       let state;
       renderToolbarWithSignature((s) => { state = s; });
@@ -385,10 +482,11 @@ describe('SignToolbar Component', () => {
       return container.querySelector('[role="status"]').textContent;
     };
 
-    // The status line's one control: "Keep adding" while the tool is one-shot,
-    // "Stop" once it is locked on. It exists because Escape and double-click,
-    // the two shortcuts that used to be the only way in and out of a locked
-    // tool, are both keyboard/pointer gestures a phone does not have.
+    // The status line's one control: a toggle reading "Keep Shapes on" while the
+    // tool is one-shot and "Turn Shapes off" once it is locked. It exists
+    // because Escape and double-click, the two shortcuts that used to be the
+    // only way in and out of a locked tool, are both keyboard/pointer gestures
+    // a phone does not have.
     const statusChip = () => container.querySelector('[role="status"] button');
 
     // "Drag on a page" reads as dragging the tool from the toolbar onto the
@@ -409,13 +507,43 @@ describe('SignToolbar Component', () => {
 
     it('offers repeat placement as a control, not only as a double-click', () => {
       armAndRead('ellipse');
-      expect(statusChip().textContent).toBe('Keep adding');
-      // Naming the button is still the contract - "the tool" says nothing about
-      // which one, and the shortcut has to be discoverable on desktop too.
+      // Naming the button is the contract: "keep adding" says nothing about
+      // which of the eight tools it means, and on Redact's Delete tool the bare
+      // verb was outright wrong - it removes a run rather than adding one.
+      expect(statusChip().textContent).toContain('Keep Shapes on');
+      expect(statusChip().getAttribute('role')).toBe('switch');
+      expect(statusChip().getAttribute('aria-checked')).toBe('false');
       expect(statusChip().title).toContain('Double-clicking Shapes does the same');
 
       armAndRead('text');
-      expect(statusChip().title).toContain('Keep Text on');
+      expect(statusChip().textContent).toContain('Keep Text on');
+    });
+
+    // A title needs a hover to appear, so on its own it is not an affordance.
+    // The shortcut is rendered as visible text next to the chip instead - and
+    // only where the gesture exists, which CSS handles (see .status-hint).
+    it('names the double-click shortcut in the line itself, not only in a title', () => {
+      armAndRead('text');
+      const hint = () => container.querySelector(`.${styles['status-hint-shown']}`).textContent.trim();
+      expect(hint()).toBe('or double-click Text');
+
+      // Not the switch's inverse, and says so: Escape drops the tool, the
+      // switch only stops it repeating. "entirely" is the word doing that work.
+      armAndRead('text', true);
+      expect(hint()).toBe('or press Esc to stop entirely');
+    });
+
+    // The line is pinned to the trailing edge of the identity row, so its left
+    // edge moves whenever its total width does. A hint that was dropped rather
+    // than hidden on toggle therefore slid the switch out from under the pointer
+    // that had just clicked it. Both strings stay in the layout at all times.
+    it('keeps both hints in the layout so toggling cannot move the switch', () => {
+      armAndRead('text');
+      const spare = () => container.querySelector(`.${styles['status-hint-spare']}`);
+      expect(spare().textContent.trim()).toBe('or press Esc to stop entirely');
+
+      armAndRead('text', true);
+      expect(spare().textContent.trim()).toBe('or double-click Text');
     });
 
     // The idle tip does not teach the gesture: arming a tool says exactly how
@@ -464,15 +592,20 @@ describe('SignToolbar Component', () => {
       expect(tip()).toContain('Double-click a text box to edit it');
     });
 
-    // How to stop must be reachable by tapping, not only by pressing Escape:
-    // that key is what made "keep adding" a one-way door on a phone.
-    it('says what a locked tool will keep doing, and offers a way to stop it', () => {
-      expect(armAndRead('ellipse', true)).toContain('Shapes stays on');
-      expect(statusChip().textContent).toBe('Stop');
-      expect(statusChip().title).toContain('Escape does the same');
+    // Repeat placement must be switchable off by tapping, not only by pressing
+    // Escape: that key is what made "keep adding" a one-way door on a phone.
+    it('holds its label steady and moves only the switch when a tool locks', () => {
+      armAndRead('ellipse', true);
+      // A switch names its setting, not the next press, so the same label reads
+      // correctly in both states and aria-checked carries the difference. The
+      // label used to flip to "Turn Shapes off", which made one control look
+      // like two swapping places - and hid that pressing it did not undo.
+      expect(statusChip().textContent).toContain('Keep Shapes on');
+      expect(statusChip().getAttribute('aria-checked')).toBe('true');
+      expect(statusChip().title).toContain('Shapes stays selected either way');
     });
 
-    it('stops a locked tool when the status chip is pressed', () => {
+    it('stops a locked tool repeating when the status switch is pressed', () => {
       let state;
       let dispatch;
       const TestConsumer = () => {
@@ -511,8 +644,21 @@ describe('SignToolbar Component', () => {
         statusChip().click();
       });
 
-      expect(state.selectedTool).toBeNull();
+      // Armed for one, which is the state switching on was entered from - so
+      // pressing twice is a no-op and a mis-tap costs one more tap to undo.
+      // It used to disarm outright, which also unmounted this whole line: the
+      // control deleted itself from under the pointer that had just clicked it,
+      // leaving nothing to click to get back.
+      expect(state.selectedTool).toBe('whiteout');
       expect(state.toolLocked).toBe(false);
+      expect(statusChip()).not.toBeNull();
+
+      // Symmetric: the same press puts it back.
+      act(() => {
+        statusChip().click();
+      });
+      expect(state.selectedTool).toBe('whiteout');
+      expect(state.toolLocked).toBe(true);
     });
 
     it('locks the armed tool when the status chip is pressed', () => {

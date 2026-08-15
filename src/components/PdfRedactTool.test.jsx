@@ -1093,37 +1093,107 @@ describe('PdfRedactTool UI flow', () => {
     });
   });
 
-  describe('status line "Keep adding" / "Stop" chip', () => {
+  describe('status line "Keep <tool> on" / "Turn <tool> off" chip', () => {
     // Scoped to the toolbar's own help/status line, not just any [role="status"]
     // - the sr-only announcement region at the top of PdfRedactTool.jsx has the
     // same role for its own, unrelated reason (live-announcing text changes).
     const statusChip = () => container.querySelector(`.${toolbarStyles.help}[role="status"] button`);
 
-    it('reads "Keep adding" for a one-shot armed tool, and locks it on when clicked', async () => {
+    it('names the armed tool rather than the action, and locks it on when clicked', async () => {
       await loadFileAndGetDrawArea(); // arms Blackout, unlocked
-      expect(statusChip().textContent).toBe('Keep adding');
+      expect(statusChip().textContent).toContain('Keep Blackout on');
+      expect(statusChip().getAttribute('aria-checked')).toBe('false');
 
       await act(async () => {
         statusChip().click();
       });
 
-      expect(statusChip().textContent).toBe('Stop');
+      expect(statusChip().getAttribute('aria-checked')).toBe('true');
       expect(findToolButton('Blackout').className).toContain(toolbarStyles.locked);
     });
 
-    it('reads "Stop" for a locked tool, and disarms it entirely when clicked', async () => {
-      const drawArea = await loadFileWithoutArming();
+    // Redact is why the chip cannot use a bare verb: this tool takes a run out
+    // of the file, so the old "Keep adding" label described the opposite of
+    // what pressing it would do.
+    it('does not describe the Delete tool as adding anything', async () => {
+      await loadFileWithoutArming();
+      await armTool('Delete');
+      expect(statusChip().textContent).toContain('Keep Delete on');
+      expect(statusChip().textContent).not.toContain('adding');
+    });
+
+    it('returns a locked tool to one at a time, and stays on screen to be undone', async () => {
+      await loadFileWithoutArming();
       await armTool('Blackout', { lock: true });
-      expect(statusChip().textContent).toBe('Stop');
+      expect(statusChip().getAttribute('aria-checked')).toBe('true');
 
       await act(async () => {
         statusChip().click();
       });
 
-      // Fully disarmed: the status line drops back to the idle tip (no
-      // role="status"), and the page can scroll again.
+      // Still armed, still here. Switching off is the inverse of switching on,
+      // not a way out of the tool - so the switch cannot delete itself from
+      // under the pointer, and a mis-tap is one tap from being undone.
+      expect(statusChip()).not.toBeNull();
+      expect(statusChip().getAttribute('aria-checked')).toBe('false');
+      expect(findToolButton('Blackout').className).not.toContain(toolbarStyles.locked);
+      expect(findToolButton('Blackout').className).toContain(toolbarStyles.active);
+    });
+
+    // Leaving the tool entirely is a statement about the tool, so it is made at
+    // the tool - or with Escape. That path is what restores page scrolling.
+    it('leaves stopping entirely to Escape and the tool button', async () => {
+      const drawArea = await loadFileWithoutArming();
+      await armTool('Blackout', { lock: true });
+      expect(drawArea.style.touchAction).toBe('none');
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      });
+
       expect(container.querySelector(`.${toolbarStyles.help}[role="status"]`)).toBeNull();
       expect(drawArea.style.touchAction).toBe('auto');
+    });
+  });
+
+  // These buttons used to carry a native `title` for the action plus a
+  // separate ArmHint bubble for the double-click shortcut, which could both be
+  // showing on hover at once, on two different delays. One bubble now covers
+  // both, reached the accessible way (aria-describedby) rather than `title`.
+  // ArmHint portals its bubble to `document.body` (see ArmHint.jsx - `.toolbar`'s
+  // container-type clips anything overflowing it), so these look it up through
+  // `document`, not `container`. Opened by focus rather than hover: Floating
+  // UI's useFocus opens with no artificial delay, where useHover's 500ms would
+  // need fake timers here for no real gain, and focus is also the path a
+  // keyboard user actually takes.
+  describe('tool button hint bubble', () => {
+    it('has no native title, and its hint carries both the action and the shortcut', async () => {
+      await loadFileWithoutArming();
+      const deleteBtn = findToolButton('Delete');
+      expect(deleteBtn.hasAttribute('title')).toBe(false);
+
+      await act(async () => {
+        deleteBtn.focus();
+      });
+
+      const describedBy = deleteBtn.getAttribute('aria-describedby');
+      expect(describedBy).toBeTruthy();
+      const hint = document.getElementById(describedBy);
+      expect(hint.textContent).toContain('Click a highlighted image or text run to delete it');
+      expect(hint.textContent).toContain('Double-click to keep Delete on');
+    });
+
+    it('drops the hint and its aria-describedby once the tool is locked', async () => {
+      await loadFileWithoutArming();
+      await armTool('Delete', { lock: true });
+
+      const deleteBtn = findToolButton('Delete');
+      await act(async () => {
+        deleteBtn.focus();
+      });
+
+      expect(deleteBtn.hasAttribute('aria-describedby')).toBe(false);
+      expect(document.querySelector(`.${toolbarStyles.hint}`)).toBeNull();
     });
   });
 
