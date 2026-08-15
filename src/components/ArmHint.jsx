@@ -119,7 +119,15 @@ export default function ArmHint({ tool, label, action, locked, autoShowTool, chi
 
   const hover = useHover(context, { delay: { open: HOVER_OPEN_DELAY_MS, close: 0 }, enabled: !inert });
   const focus = useFocus(context, { enabled: !inert });
-  const dismiss = useDismiss(context);
+  // bubbles.escapeKey: true - this is a tooltip, not a modal or a menu with its
+  // own Escape-driven state to protect. Floating UI's default is to swallow the
+  // keystroke that closed it (stopPropagation), which is right for something
+  // like Popover.jsx's dropdowns but wrong here: it silently ate the Escape
+  // press that PdfSignTool.jsx's/PdfRedactTool.jsx's own global handler uses to
+  // clear the active tool and selection, whenever this hint's once-per-session
+  // auto-show happened to still be open - exactly the moment right after
+  // arming a tool, which is also exactly when these tests press Escape.
+  const dismiss = useDismiss(context, { bubbles: { escapeKey: true } });
   const role = useRole(context, { role: 'tooltip' });
 
   const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, dismiss, role]);
