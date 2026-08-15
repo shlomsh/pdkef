@@ -281,8 +281,18 @@ body {
   border: 0;
 }
 
-a {
-  color: var(--color-primary);
+/* In @layer base, not bare: an unlayered rule always wins over @layer utilities
+   regardless of specificity (CSS Cascade Layers, not the specificity it looks
+   like). Bare, this element selector silently beat every text-[...] utility
+   Tailwind ever compiled for an <a> - invisible on most links, since the
+   fallback IS the site's primary accent, but it made the /404 "Back to home"
+   button's white-on-primary text render as primary-on-primary. @layer order is
+   theme, base, components, utilities (declared above), so this now loses to
+   utilities as intended. */
+@layer base {
+  a {
+    color: var(--color-primary);
+  }
 }
 
 :focus-visible {
