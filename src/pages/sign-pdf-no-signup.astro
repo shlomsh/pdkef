@@ -1,0 +1,81 @@
+---
+import ContentPageLayout from '../layouts/ContentPageLayout.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import CardDecor from '../components/CardDecor.astro';
+import { UserX, MousePointerClick } from 'lucide-preact';
+
+const title = 'Sign a PDF Without Signing Up - No Account Needed | PDkef';
+const description =
+  'Sign a PDF online with no account, no email address, and no free trial that runs out. PDkef runs in your browser, so there is nothing to sign up for.';
+
+const faq = [
+  {
+    question: 'Do I need to create an account to sign a PDF?',
+    answer: 'No. There is no signup form, no email verification, and no password to set. Open the tool and start signing right away.',
+  },
+  {
+    question: 'Will I hit a free trial limit or a paywall partway through?',
+    answer: 'No. There is no trial period and no premium tier. Every feature is available the first time you open the tool and every time after that.',
+  },
+  {
+    question: 'Do I need to give an email address to download my signed PDF?',
+    answer: "No. Signing and downloading happen entirely in your browser, so there's nothing to email you and no address to collect.",
+  },
+  {
+    question: 'Can I sign more than one PDF, or is that limited too?',
+    answer: 'Sign as many PDFs as you like. There is no daily cap and no watermark added to your downloads.',
+  },
+  {
+    question: 'If there is no account, where is my signature stored?',
+    answer: "Nowhere but your own device. Your signature is embedded directly into the PDF you download, and your in-progress work auto-saves locally to your browser so a crash doesn't lose it. Nothing is ever sent to a server.",
+  },
+];
+---
+
+<ContentPageLayout
+  title={title}
+  description={description}
+  breadcrumb="No signup"
+  icon={UserX}
+  kicker="No signup, ever"
+  h1="Sign a PDF Without Creating an Account"
+  subhead="Open a PDF, add your signature, and download it again, without typing an email address or picking a password. PDkef doesn't have accounts to sign up for, because it doesn't need to know who you are."
+  primaryCta={{ href: '/sign/', label: 'Sign a PDF now' }}
+  faq={faq}
+>
+  <FeatureCard class="relative isolate overflow-hidden">
+    <CardDecor sketch="arcs" icon={UserX} iconPos="tr" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Why the tool works this way</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Why so many PDF tools ask you to sign up</h2>
+    <p class="mb-4 mt-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      Most online PDF signers process your file on their own servers, so they need somewhere to put it while they work,
+      and an account gives them a place to track your usage and enforce a free-tier limit. That's a reasonable way to
+      build a server-based tool. It's just not how this one works.
+    </p>
+    <p class="m-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      PDkef signs your PDF right there in your browser tab. Your file never leaves your device, so there's no upload to
+      account for, no usage to meter, and no reason to ask who you are before you can use it. You can even
+      <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/offline-pdf-form-filler/">install it and sign PDFs with no internet connection at all</a>.
+    </p>
+  </FeatureCard>
+
+  <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+    <CardDecor sketch="rings" icon={MousePointerClick} iconPos="br" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Three steps</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Sign a PDF right now, no signup required</h2>
+    <ol class="m-0 flex list-none flex-col gap-5 p-0">
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Open the <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/sign/">Sign & Fill tool</a></strong> and choose or drag in your PDF. No login screen in the way.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Draw, type, or upload your signature,</strong> and fill in any text fields or checkboxes the form needs.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Download the signed PDF.</strong> That's the whole process, and it's free every time.</span>
+      </li>
+    </ol>
+  </FeatureCard>
+</ContentPageLayout>

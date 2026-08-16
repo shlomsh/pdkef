@@ -1,0 +1,75 @@
+---
+import ContentPageLayout from '../layouts/ContentPageLayout.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import CardDecor from '../components/CardDecor.astro';
+import OtherGuides from '../components/OtherGuides.astro';
+import { Laptop, FileEdit } from 'lucide-preact';
+
+const title = 'How to Sign a PDF on Mac | PDkef';
+const description =
+  'Sign a PDF on Mac in Safari or Chrome, fill out form fields and checkboxes at the same time, and pick up the same form on your phone if you need to. Free, no account.';
+
+const faq = [
+  {
+    question: 'Do I need Preview or Adobe Acrobat to sign a PDF on Mac?',
+    answer: "No. This runs entirely in Safari or Chrome, so there's nothing else to open.",
+  },
+  {
+    question: 'Can I draw my signature with the trackpad?',
+    answer: 'Yes, or you can type it in a handwriting-style font, or upload a photo of your signature. Whichever is easiest.',
+  },
+  {
+    question: 'Does this work in Safari, or only Chrome?',
+    answer: 'Both. Use whichever browser you already have your PDF open in.',
+  },
+];
+---
+
+<ContentPageLayout
+  title={title}
+  description={description}
+  breadcrumb="Mac"
+  icon={Laptop}
+  kicker="macOS, right in the browser"
+  h1="How to Sign a PDF on Mac"
+  subhead="Preview can add a quick signature to a PDF, but it doesn't fill out checkboxes or text fields, and it only lives on this one Mac. Here's a way that does both, and picks up the same form on your phone if you need to."
+  primaryCta={{ href: '/sign/', label: 'Sign a PDF now' }}
+  faq={faq}
+>
+  <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+    <CardDecor sketch="arcs" icon={Laptop} iconPos="tr" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Four steps</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Sign a PDF on Mac</h2>
+    <ol class="m-0 flex list-none flex-col gap-5 p-0">
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Open <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/sign/">pdkef.com/sign</a></strong> in Safari or Chrome.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Drag the PDF in</strong> from Finder or your Downloads folder.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Fill in the form and add your signature,</strong> drawn with the trackpad, typed, or uploaded from a saved image.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">4</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Click Sign and Download.</strong> The finished PDF saves straight to Downloads.</span>
+      </li>
+    </ol>
+  </FeatureCard>
+
+  <FeatureCard class="relative isolate overflow-hidden">
+    <CardDecor sketch="grid" icon={FileEdit} iconPos="br" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Why not just use Preview</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Preview is fine for a quick signature, not a whole form</h2>
+    <p class="m-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      Preview's built-in signature tool works well when all you need is your name on a page. It's less suited to a
+      multi-page form with checkboxes and text fields, and it's tied to this one Mac, so if you need to finish the same
+      form on your phone later, you're starting over. PDkef handles both in one pass and works the same on any device.
+    </p>
+  </FeatureCard>
+
+  <OtherGuides currentHref="/how-to-sign-a-pdf-on-mac/" />
+</ContentPageLayout>

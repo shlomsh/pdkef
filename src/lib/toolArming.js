@@ -17,7 +17,7 @@ import { useRef, useState, useEffect, useCallback } from 'preact/hooks';
  *
  * Double-clicking is a pointer gesture with no touch equivalent worth relying on
  * (a double-tap is the browser's zoom gesture), which is why locking is also
- * reachable from the status line's chip - see EditorToolStatus.jsx.
+ * reachable from the status line's chip - see EditorToolStatus.tsx.
  *
  * @param {object} params
  * @param {string|null} params.selectedTool - the currently armed tool, if any
@@ -39,7 +39,7 @@ export function makeArmTool({ selectedTool, arm, lock }) {
  * Teaches the double-click shortcut once, at the button it belongs to, instead
  * of leaving it to a `title` attribute that needs a hover and a wait to find.
  * The first time any tool arms this session, its button's hint bubble (see
- * `ArmHint.jsx`) is forced open for a few seconds; after that it reverts to
+ * `ArmHint.tsx`) is forced open for a few seconds; after that it reverts to
  * ordinary hover/focus, same as any tooltip.
  *
  * Gated on `(hover: hover) and (pointer: fine)` before ever starting the timer,

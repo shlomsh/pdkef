@@ -19,7 +19,7 @@ const JPEG_1X1_BASE64 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQg
 // out with toDataURL(); jsdom implements neither canvas drawing nor encoding,
 // so both are stubbed here the same way compress.test.js stubs toBlob/getContext
 // for the same reason - a page that goes through this path in the real browser
-// never gets touched by the mocked-module component tests (PdfRedactTool.test.jsx
+// never gets touched by the mocked-module component tests (PdfRedactTool.test.tsx
 // mocks redact.js outright), so this is the only place the real logic runs.
 describe('redactPdf library integration with real fixtures', () => {
   let originalToDataURL;

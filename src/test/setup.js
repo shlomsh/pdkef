@@ -26,7 +26,7 @@ if (typeof globalThis.IntersectionObserver === 'undefined') {
   };
 }
 
-// matchMedia: jsdom does not implement it at all. ArmHint.jsx gates its hover
+// matchMedia: jsdom does not implement it at all. ArmHint.tsx gates its hover
 // tooltip on `(hover: hover) and (pointer: fine)` to keep it unreachable on
 // touch, computed once via window.matchMedia - default every query to
 // "matches", i.e. the desktop path, so tests exercise the normal behavior

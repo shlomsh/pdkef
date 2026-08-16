@@ -5,7 +5,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { mergePdfs, resolvePdfCreationDate } from './merge.js';
 
-// PdfMergeTool.test.jsx mocks merge.js outright, so nothing in the component
+// PdfMergeTool.test.tsx mocks merge.js outright, so nothing in the component
 // suite ever runs this file's real pdf-lib calls - see the same gap noted for
 // redact.test.js. These fixtures are single-page PDFs whose one page reads its
 // own file number ("num-3.pdf" -> "3"), which makes both order and content

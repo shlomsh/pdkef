@@ -2,7 +2,7 @@ import type { ElementDefinition, LineResizeInput, LineResizePatch } from './type
 import type { LineElement } from '../../lib/editorModel.ts';
 import { h } from 'preact';
 import { rgb } from '@cantoo/pdf-lib';
-import LineNode from '../../components/SignTool/nodes/LineNode.jsx';
+import LineNode from '../../components/SignTool/nodes/LineNode.tsx';
 import { hasNumber, hasString, isRecord } from './schema.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';
 import { percentToPoints } from '../../lib/coords.js';

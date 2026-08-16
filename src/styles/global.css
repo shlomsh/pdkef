@@ -35,6 +35,7 @@
 }
 @import "tailwindcss/utilities.css" layer(utilities);
 @source not "../**/*.jsx";
+@source not "../**/*.tsx";
 @source not "../**/*.test.js";
 @source not "../../e2e/**/*.js";
 /* Documentation is not a template - see CLAUDE.md, "Tailwind source scanning". */
@@ -336,13 +337,6 @@ main {
   padding: 0 1.5rem 4rem;
   flex: 1 0 auto;
   width: 100%;
-}
-
-/* --- File list --- */
-.list-hint {
-  margin: var(--space-3) 0 0;
-  color: var(--color-muted-light);
-  font-size: 0.8rem;
 }
 
 @media (min-width: 768px) {

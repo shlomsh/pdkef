@@ -34,7 +34,7 @@ export const RESTORE_TIMEOUT_MS = 4000;
  *   RESTORE_TIMEOUT_MS elapses - the caller's cue to hold off on an empty state
  *   that a file is about to replace anyway. A visitor with no hint never enters
  *   this state at all, so a plain first visit is exactly as fast as before. See
- *   BasePdfTool.jsx's `checkingDraft` prop.
+ *   BasePdfTool.tsx's `checkingDraft` prop.
  */
 export function useDraftPersistence({
   tool,

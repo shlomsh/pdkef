@@ -1,7 +1,7 @@
 import { uniqueId } from './sign.js';
 
 // One entry in a tool's undo-able action log (see useUndoShortcut.js and
-// UndoHistoryModal.jsx). Both the Sign and Redact tools log two kinds of
+// UndoHistoryModal.tsx). Both the Sign and Redact tools log two kinds of
 // events:
 //   - creation (draw/place/duplicate): `snapshot` is null, `elementId` is set.
 //     Undoing removes the element by id.

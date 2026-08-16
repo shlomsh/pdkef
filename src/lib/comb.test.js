@@ -5,7 +5,7 @@ describe('comb layout', () => {
   it('is derived from having an explicit width, not a separate flag', () => {
     // Dragging a side handle is the only thing that ever sets `width` on a
     // text element, and clearing it is the only thing that ever unsets it
-    // (see useElementResize.js/ElementToolbar.jsx), so the two can't drift.
+    // (see useElementResize.js/ElementToolbar.tsx), so the two can't drift.
     expect(isComb({ type: 'text', text: '123' })).toBe(false);
     expect(isComb({ type: 'text', text: '123', width: 10 })).toBe(true);
     expect(isComb({ type: 'text', text: '123', width: 0 })).toBe(false);

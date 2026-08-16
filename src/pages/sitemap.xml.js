@@ -1,8 +1,10 @@
-// Sitemap generated from the shared tool registry (src/data/tools.js) so it can
-// never drift from the actual tool pages. Prerendered to /sitemap.xml at build
-// time (static output). The home page is listed explicitly; every tool comes
-// from the registry with its per-tool priority/changefreq.
+// Sitemap generated from the shared tool + content-page registries
+// (src/data/tools.js, src/data/contentPages.js) so it can never drift from
+// the actual pages. Prerendered to /sitemap.xml at build time (static
+// output). The home page is listed explicitly; every tool and content page
+// comes from its registry with its own priority/changefreq.
 import { tools } from '../data/tools.js';
+import { contentPages } from '../data/contentPages.js';
 
 const FALLBACK_SITE = 'https://pdkef.com';
 
@@ -15,6 +17,11 @@ export function GET({ site }) {
       loc: `${base}${tool.href}`,
       changefreq: tool.sitemapChangefreq,
       priority: tool.sitemapPriority,
+    })),
+    ...contentPages.map((page) => ({
+      loc: `${base}${page.href}`,
+      changefreq: page.sitemapChangefreq,
+      priority: page.sitemapPriority,
     })),
   ];
 

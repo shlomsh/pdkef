@@ -67,7 +67,7 @@ describe('sign.js signPdf', () => {
     const pdfWidth = 200;
 
     // The editor stores `left` as the RIGHT-anchor percent for RTL text
-    // (DraggableOverlayElement.jsx: `right: 100 - element.left`). left=80 means
+    // (DraggableOverlayElement.tsx: `right: 100 - element.left`). left=80 means
     // the box's right edge sits at 80% of the page width from the left.
     const element = {
       id: 'el-rtl',

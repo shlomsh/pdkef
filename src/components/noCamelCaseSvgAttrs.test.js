@@ -23,7 +23,7 @@ const componentsDir = path.dirname(fileURLToPath(import.meta.url));
 
 function jsxFiles(dir) {
   return fs.readdirSync(dir)
-    .filter((f) => f.endsWith('.jsx') && !f.endsWith('.test.jsx'))
+    .filter((f) => f.endsWith('.tsx') && !f.endsWith('.test.tsx'))
     .map((f) => path.join(dir, f));
 }
 

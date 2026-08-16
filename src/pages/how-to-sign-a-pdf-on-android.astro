@@ -1,0 +1,76 @@
+---
+import ContentPageLayout from '../layouts/ContentPageLayout.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import CardDecor from '../components/CardDecor.astro';
+import OtherGuides from '../components/OtherGuides.astro';
+import { TabletSmartphone, ShieldCheck } from 'lucide-preact';
+
+const title = 'How to Sign a PDF on Android (No App Needed) | PDkef';
+const description =
+  'Sign a PDF on Android right in Chrome, no app download and no account. Fill out checkboxes and text fields, add your signature, and download the finished file.';
+
+const faq = [
+  {
+    question: 'Do I need to install an app to sign a PDF on Android?',
+    answer: 'No. It works right inside Chrome, so there is nothing to install from the Play Store.',
+  },
+  {
+    question: 'Do I need to create an account or start a subscription?',
+    answer: 'No. There is no account, no email, and no free trial that runs out.',
+  },
+  {
+    question: 'Does this work on any Android phone or tablet?',
+    answer: 'Yes, on any device with Chrome installed, which is nearly all of them.',
+  },
+];
+---
+
+<ContentPageLayout
+  title={title}
+  description={description}
+  breadcrumb="Android"
+  icon={TabletSmartphone}
+  kicker="Android, right in Chrome"
+  h1="How to Sign a PDF on Android"
+  subhead="Android doesn't include a built-in way to sign a PDF, so most searches lead to a Play Store app asking for an account or a subscription before it will export the file. Here's a way that needs neither, right in Chrome."
+  primaryCta={{ href: '/sign/', label: 'Sign a PDF now' }}
+  faq={faq}
+>
+  <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+    <CardDecor sketch="arcs" icon={TabletSmartphone} iconPos="tr" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Four steps</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Sign a PDF on Android</h2>
+    <ol class="m-0 flex list-none flex-col gap-5 p-0">
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Open <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/sign/">pdkef.com/sign</a></strong> in Chrome.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Tap "Choose file"</strong> and pick the PDF from Downloads or Google Drive.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Fill in the form and add your signature,</strong> drawn with your finger, typed, or uploaded from a saved image.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">4</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Tap Sign and Download.</strong> The finished PDF saves to your Downloads folder.</span>
+      </li>
+    </ol>
+  </FeatureCard>
+
+  <FeatureCard class="relative isolate overflow-hidden">
+    <CardDecor sketch="grid" icon={ShieldCheck} iconPos="br" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Why not a Play Store app</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">No app, no account, no subscription</h2>
+    <p class="m-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      Most PDF signing apps in the Play Store ask you to sign up before you can export a finished file, and some cap
+      how many documents you can sign for free. PDkef runs in the browser tab you already have open, so there's
+      <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/sign-pdf-no-signup/">no app to install and no account to create</a>,
+      and no limit on how many PDFs you sign.
+    </p>
+  </FeatureCard>
+
+  <OtherGuides currentHref="/how-to-sign-a-pdf-on-android/" />
+</ContentPageLayout>

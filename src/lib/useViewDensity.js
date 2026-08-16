@@ -19,6 +19,7 @@ function readStoredDensity() {
 // ToolHero.astro's collapse CSS (gated on that attribute) never has to know
 // this hook exists. Reads its initial value from localStorage so a hydrated
 // island agrees with whatever the pre-paint script already applied - no flash.
+/** @returns {[string, (next: string) => void]} */
 export default function useViewDensity() {
   const [density, setDensityState] = useState(readStoredDensity);
 
