@@ -255,6 +255,15 @@ The decided direction is a **scoped hybrid**, documented in full in Part II §3.
 - **Tailwind** for the static/SEO `.astro` surface only (pages, heroes, cards, footer, dropzones, static buttons) - no runtime state, no cascades. `global.css`'s `@theme` block deliberately skips Tailwind's default theme (CSS budget), so a utility whose scale step isn't declared there (e.g. `font-bold`, `rounded-2xl`) silently compiles to **no CSS at all** - not an error, just a missing rule. Declare the token before using a new utility class. `npm run test:css` runs `scripts/check-dead-utilities.js`, which fails the build if any class in the built HTML has no matching selector.
 
   **That guard only sees an island's initial server-rendered markup**, because it reads the built HTML. Any class that appears only after an interaction - a loaded file, an open dialog, an error - is invisible to it, and two real defects lived in that gap for months (`UndoHistoryModal.jsx` rendering raw strings against a CSS Module nothing imported, so the Undo dialog shipped unstyled; `.hint-message` deleted from `global.css` and never re-homed, so five tools' "not a PDF" notice rendered as bare text). `scripts/check-class-resolution.js` is the source-side complement and runs first in `test:css`: it reads `src/**/*.jsx` and fails on a class string with no rule anywhere, a raw string whose rule is CSS-Modules-hashed, or a `styles['key']` lookup missing from the module it points at (which renders `class="undefined"`). **If you are about to allowlist a class in either script, check whether it has a rule in some `.module.css` first - if it does, the bug is a missing import, not a hook.**
+  **Tailwind source scanning: documentation is not a template.** Tailwind v4's default scan walks the
+  whole project, and `global.css`'s `@source not` rules exclude only `.jsx`, tests and e2e. Everything
+  else it finds is read for utility candidates, including prose. Root-level `.md` files and standalone
+  docs `.js`/`.html` were therefore compiling real utilities into the one stylesheet every page inlines
+  - CSS shipped to real visitors for text that never renders. This was measured, not theorised: the old
+  `scrum-board.data.js` was worth 83 bytes on every page by itself, and the docs beside it more. The
+  `@source not` list now covers `*.md`, `docs/**` and root `*.html`. **If you add documentation in a
+  format Tailwind scans, exclude it there**, and remember the symptom is invisible: no error, no failing
+  class, just a slightly heavier stylesheet on all 12 pages.
 - **CSS Modules** (scoped, colocated per component) for the canvas editor (`SignTool/*`, `RedactTool`, `ElementToolbar`, resizers, element nodes). Keep semantic class names so the descendant-combinator state cascades (e.g. `.sign-element.active .sign-element-actions`) survive as real CSS inside module scope.
 - **Inline styles / CSS custom properties** for per-element runtime geometry (`top/left/width/height/fontSize` percentages) - these are continuous floats the Tailwind JIT cannot emit classes for.
 
