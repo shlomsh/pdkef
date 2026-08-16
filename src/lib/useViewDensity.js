@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'preact/hooks';
 
-// Global preference, not per-tool: E9-view-density-control-spec.md 2.1. The
+// Global preference, not per-tool: view-density-control-spec.md 2.1. The
 // key follows the existing pdf-toolkit:* convention (see draftStore.js).
 const STORAGE_KEY = 'pdf-toolkit:view-density';
 const DEFAULT_DENSITY = 'condensed';

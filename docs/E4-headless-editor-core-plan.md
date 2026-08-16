@@ -1,7 +1,8 @@
 # E4 Low-Level Design — Headless TS Editor Core (Lane E)
 
-> Execution plan for backlog epic **E4** (tickets E4.2, E4.3, E4.4) in [scrum.md](../scrum.md).
-> Design standard: [ARCHITECTURE.md](../ARCHITECTURE.md) §1.2 (gesture hot path), §3.2 (editor core),
+> Execution plan for backlog epic **E4** (tickets E4.2, E4.3, E4.4) on the
+> [TODO.md](../TODO.md). **Epic E4 is complete**; this is kept as the design record.
+> Design standard: [CLAUDE.md](../CLAUDE.md) Part II §1.2 (gesture hot path), §3.2 (editor core),
 > §3.1 (styling boundary), §4 (gesture golden rule), §5 (known hazards). **E4.1 and E4.2 are done**:
 > E4.1 introduced `src/lib/editorModel.ts` and `coords.ts`; E4.2 introduced the framework-free gesture
 > controller and pointer normaliser. This is the reference a fresh session
@@ -14,13 +15,13 @@
 
 ## 0. The three things this epic must not break (read first)
 
-1. **The gesture golden rule (ARCHITECTURE §1.2 / §4).** During a gesture, mutate the DOM directly;
+1. **The gesture golden rule (CLAUDE.md Part II §1.2 / §4).** During a gesture, mutate the DOM directly;
    commit React/Preact state **once** on `pointerup`. Never route continuous drag/resize/create
    through reactive state or a store. The core must make this rule *structural* — one controller both
    gestures share — not a convention two code paths can each break.
-2. **The SEO/privacy island wall (ARCHITECTURE §1.1).** The core is plain TS behind the island; it
+2. **The SEO/privacy island wall (CLAUDE.md Part II §1.1).** The core is plain TS behind the island; it
    ships no JS to the marketing surface and makes no network calls. Nothing here touches `.astro`.
-3. **CSP is invisible in `npm run dev` (ARCHITECTURE §5, CLAUDE.md).** Every landing step that changes
+3. **CSP is invisible in `npm run dev` (CLAUDE.md Part II §5, CLAUDE.md).** Every landing step that changes
    what the editor emits must pass `npm run build && npm run preview` and the e2e
    `securitypolicyviolation` guard, not just `npm run dev`. Prefer per-property CSSOM writes
    (`el.style.width = …`) over string `style=`/`cssText` — the former is CSP-exempt, the latter is not.
@@ -93,8 +94,9 @@ Both [`PdfSignTool.jsx`](../src/components/PdfSignTool.jsx) and
 
 - **PDF load** with a monotonic `loadIdRef` race guard, a `loadStartedRef` first-wins claim, a 20s
   hang timeout, and draft-restore reconciliation (see the long comments around `loadPdf`).
-- **Draft persistence** via [`useDraftPersistence.js`](../src/lib/useDraftPersistence.js) (Sign also has
-  [`useSignDraftPersistence.js`](../src/components/useSignDraftPersistence.js)).
+- **Draft persistence** via [`useDraftPersistence.js`](../src/lib/useDraftPersistence.js) (Sign also had
+  its own `useSignDraftPersistence.js` at the time of this audit; E4.4 converged both onto the shared
+  [`useEditorDraftPersistence.js`](../src/editor/workspace/useEditorDraftPersistence.js)).
 - **Fullscreen** (real + `pseudo-fullscreen` fallback) and **Escape precedence** while a modal is open.
 - **Undo history** ([`actionHistory.js`](../src/lib/actionHistory.js),
   [`useUndoShortcut.js`](../src/lib/useUndoShortcut.js), `UndoHistoryModal`).
@@ -141,7 +143,7 @@ src/editor/
     substrate.ts        # shared load/render/draft orchestration seam (E4.4)
 ```
 
-**Each registry `ElementModule`** (the ARCHITECTURE §3 shape `{ render, resizeBehavior, serialize, schema }`):
+**Each registry `ElementModule`** (the CLAUDE.md Part II §3 shape `{ render, resizeBehavior, serialize, schema }`):
 
 ```ts
 interface ElementModule<E extends EditorElement> {
@@ -168,7 +170,7 @@ pointerdown and `registry[el.type].render(...)` for the body; it no longer conta
 ## 3. E4.2 — Extract the framework-agnostic core + unified gesture controller — done
 
 **Goal:** one "imperative-during, commit-on-release" controller unifying **drag, resize, and create**,
-so they cannot diverge again (ARCHITECTURE §3.2, §4). Preact becomes a thin shell.
+so they cannot diverge again (CLAUDE.md Part II §3.2, §4). Preact becomes a thin shell.
 
 **Depends on:** E4.1 ✅, E0.1 ✅. Landed with the controller and pointer normaliser in
 `src/editor/gestures/`; Sign drag, resize, and create use its listener lifecycle. Sign create now
@@ -208,7 +210,7 @@ renders imperatively during the gesture and commits one state patch on release.
 - **`elementRef` ownership:** `DraggableWrapper` owns `elementRef` because Floating UI also needs it
   (§ the comment at `DraggableWrapper.jsx:56`). The controller receives the node via callback; it must
   not try to own or create it.
-- **Do not introduce a store/signal for live state** (ARCHITECTURE §1.2 anti-pattern). The controller's
+- **Do not introduce a store/signal for live state** (CLAUDE.md Part II §1.2 anti-pattern). The controller's
   live state is plain locals/refs, exactly as today.
 
 ---
@@ -232,7 +234,7 @@ valuable geometry boundary independently shippable.
 3. **The controller (E4.2) calls `registry[type].resizeBehavior.apply(...)`** as its `computePatch`.
    No shared function post-processes geometry across handles or types.
 
-### Acceptance (sharpened by the whiteout post-mortem — ARCHITECTURE §5)
+### Acceptance (sharpened by the whiteout post-mortem — CLAUDE.md Part II §5)
 - **No shared function post-processes geometry across handles or types.** Each `resizeBehavior` owns its
   own per-handle bounds against that handle's true anchor edge. Verify by the E1.5 meta-guard: a
   deliberately reintroduced blanket left/top clamp in one type's module must **not** affect another
@@ -265,7 +267,7 @@ components), `serialize` (the existing `sign.js` bake behavior), and `schema`. `
 - **Text is the odd one out:** it resizes `fontSize`, not `width`/`height`, and re-derives `left`/`top`
   from a measured rect, and RTL anchors via CSS `right`. Its `resizeBehavior.apply` needs the measured
   start size + direction in its context, not just numeric geometry. Keep that measurement read-only at
-  pointer-down (ARCHITECTURE §5 "measure-then-mutate drift").
+  pointer-down (CLAUDE.md Part II §5 "measure-then-mutate drift").
 - **Symbol's min-size floor is in *pixels*, not %** — the module must receive the page-wrapper rect to
   convert, exactly as `getWidthPercent(MIN_SYMBOL_WIDTH_PX, …)` does today.
 - **`symbolType` legacy alias** (`cross` → `x`) and the `mark` field: keep the module tolerant of both
@@ -313,7 +315,7 @@ draft persistence), removing today's duplication (§1e) and moving Redact onto t
   `DraggableWrapper.jsx`. Both `PdfRedactTool.handleBoxResizeStart` and the `DraggableWrapper` shape
   branch are deleted, not merely re-pointed. Wire this grep as a one-line CI guard (extend
   `scripts/verify-csp.js` or a sibling `scripts/` check) so the duplication cannot silently return —
-  the same "invariant as CI, not prose" posture as the CSP/CSS guards (ARCHITECTURE §6).
+  the same "invariant as CI, not prose" posture as the CSP/CSS guards (CLAUDE.md Part II §6).
 - Both tools' draft autosave/restore, undo history, fullscreen/Esc precedence, and download flow behave
   as before (regression-tested via existing suites + `draftRestoreRace.test.jsx`).
 - **Native share is preserved** (§1e): both tools still expose the share button gated on
@@ -358,7 +360,7 @@ Each ticket lands independently behind a working editor. For **every** step:
    pre-existing `index.astro` typecheck errors from E4.1 are unrelated and tracked in E6.)
 3. `npm run test:e2e` green (Sign + Redact browser guardrails).
 4. **`npm run build && npm run preview`** CSP/hydration pass — mandatory, `npm run dev` cannot catch the
-   CSP class (ARCHITECTURE §5). Then hand to the maintainer for a visual pass in their own preview on
+   CSP class (CLAUDE.md Part II §5). Then hand to the maintainer for a visual pass in their own preview on
    4322 (per project convention — do not start a preview server yourself).
 5. A temporary `console.count` proof that each touched gesture commits **once per gesture**.
 
@@ -369,7 +371,7 @@ Each ticket lands independently behind a working editor. For **every** step:
 - **The golden rule applies to create, not just drag/resize** (§1a). This is the single most important
   correction to the ARCHITECTURE framing: three of the four/six current gesture paths violate it. The
   controller is the fix and its once-per-gesture commit must be *tested*, not assumed.
-- **Per-handle bounds, never shared cross-handle post-processing** (§4 acceptance, ARCHITECTURE §5).
+- **Per-handle bounds, never shared cross-handle post-processing** (§4 acceptance, CLAUDE.md Part II §5).
   This regression already shipped once (`434e844` blanket clamp) and re-shipped in Redact (`ea10349`).
   The registry structurally prevents it; the E1.5 meta-guard proves it.
 - **Two element models, two discriminant fields** (§1d) — Redact `style` vs union `type`. Reconcile in
@@ -377,7 +379,7 @@ Each ticket lands independently behind a working editor. For **every** step:
 - **RTL text anchors via CSS `right`, and `element.left` is "the anchored edge"** — not always the
   physical left edge (`editorModel.ts` BoxGeometry comment, `DraggableWrapper.jsx:358-388`). Any
   geometry code that assumes `left` is the visual left will break RTL text drag/resize.
-- **Measure read-only at pointer-down, never in a render effect** (ARCHITECTURE §5 measure-then-mutate).
+- **Measure read-only at pointer-down, never in a render effect** (CLAUDE.md Part II §5 measure-then-mutate).
   Text drag/resize both capture the measured rect once at gesture start — preserve that.
 - **CSSOM vs `style=` for CSP** (§0.3): per-property writes are exempt; string style attributes are not.
   The controller's `writeDOM` must use `el.style.width = …` / `.transform = …` / SVG `setAttribute`,

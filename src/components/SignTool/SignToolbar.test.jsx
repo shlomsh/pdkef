@@ -972,7 +972,7 @@ describe('SignToolbar Component', () => {
 
     // The owning module source-of-truth check: `.toolbar` spans full width at
     // every breakpoint (no separate narrow-screen override shrinks it back to
-    // a centered pill — see CLAUDE.md/ARCHITECTURE.md's "full-width mobile
+    // a centered pill — see CLAUDE.md's "full-width mobile
     // toolbar" note), and every direct child is told to grow equally.
     const css = readFileSync(join(__dirname, 'SignToolbar.module.css'), 'utf8');
     const toolbarRuleMatch = /\.toolbar\s*\{([^}]*)\}/.exec(css);

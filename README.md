@@ -69,7 +69,7 @@ Offline support and installability come from a hand-written service worker (`pub
 
 All runtime dependencies are MIT or Apache-2.0 licensed and make no network calls of their own - I checked, on purpose, because that guarantee only holds if every dependency upholds it too.
 
-See [CLAUDE.md](./CLAUDE.md) for architecture notes and [ARCHITECTURE.md](./ARCHITECTURE.md) for the forward-looking design standard.
+See [CLAUDE.md](./CLAUDE.md) for architecture notes and the design standard, and [TODO.md](./TODO.md) for the backlog.
 
 ## Contributing
 
