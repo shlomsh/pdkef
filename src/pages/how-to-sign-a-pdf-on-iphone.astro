@@ -1,0 +1,75 @@
+---
+import ContentPageLayout from '../layouts/ContentPageLayout.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import CardDecor from '../components/CardDecor.astro';
+import OtherGuides from '../components/OtherGuides.astro';
+import { Smartphone, PenLine } from 'lucide-preact';
+
+const title = 'How to Sign a PDF on iPhone (No App Needed) | PDkef';
+const description =
+  'Sign a PDF on iPhone or iPad right in Safari, fill out checkboxes and text fields, and add your signature. No App Store download, no account.';
+
+const faq = [
+  {
+    question: 'Do I need to download an app from the App Store?',
+    answer: 'No. It works right inside Safari, so there is nothing to install.',
+  },
+  {
+    question: 'Does this work on iPad too?',
+    answer: 'Yes, the same way, whether you\'re using Safari on an iPhone or an iPad.',
+  },
+  {
+    question: 'Where does the signed PDF get saved on my iPhone?',
+    answer: 'To the Files app, from where you can share it, email it, or save it to Photos.',
+  },
+];
+---
+
+<ContentPageLayout
+  title={title}
+  description={description}
+  breadcrumb="iPhone"
+  icon={Smartphone}
+  kicker="iPhone, right in Safari"
+  h1="How to Sign a PDF on iPhone"
+  subhead="The Markup tool in Files lets you scribble a signature on top of a page, but it doesn't understand checkboxes or text fields. Here's a way to actually fill out the form, right in Safari, with no app to download."
+  primaryCta={{ href: '/sign/', label: 'Sign a PDF now' }}
+  faq={faq}
+>
+  <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+    <CardDecor sketch="arcs" icon={Smartphone} iconPos="tr" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Four steps</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Sign a PDF on iPhone</h2>
+    <ol class="m-0 flex list-none flex-col gap-5 p-0">
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Open <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/sign/">pdkef.com/sign</a></strong> in Safari.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Tap "Choose file"</strong> and pick the PDF from Files, or share it into the tool from Mail or Messages.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Tap to fill in fields and add your signature,</strong> drawn with your finger, typed, or uploaded from a saved image.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">4</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Tap Sign and Download.</strong> The signed PDF saves to your Files app, ready to share back.</span>
+      </li>
+    </ol>
+  </FeatureCard>
+
+  <FeatureCard class="relative isolate overflow-hidden">
+    <CardDecor sketch="grid" icon={PenLine} iconPos="br" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Why not just use Markup</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Markup is for scribbling, not filling out a form</h2>
+    <p class="m-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      The Markup tool built into Files and Mail is fine for dropping a signature onto a single page, but it doesn't
+      recognize checkboxes or text fields, and there's no way to position things precisely before you're committed.
+      PDkef fills real form fields directly and lets you place your signature exactly where it needs to go.
+    </p>
+  </FeatureCard>
+
+  <OtherGuides currentHref="/how-to-sign-a-pdf-on-iphone/" />
+</ContentPageLayout>

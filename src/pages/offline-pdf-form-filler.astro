@@ -1,0 +1,86 @@
+---
+import ContentPageLayout from '../layouts/ContentPageLayout.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import CardDecor from '../components/CardDecor.astro';
+import { WifiOff, HardDriveDownload, Monitor, Smartphone, Compass } from 'lucide-preact';
+
+const title = 'Offline PDF Form Filler - Fill PDFs Without Internet | PDkef';
+const description =
+  'Install PDkef as an app and fill out PDF forms with no internet connection. Your progress auto-saves to your device, so a dropped connection or a closed tab never loses your work.';
+
+const faq = [
+  {
+    question: 'Do I need an internet connection to fill out a form?',
+    answer: 'Only the first time, to load the tool. Once you install it as an app, everything it needs is already on your device, so you can open and fill out PDFs with no connection at all.',
+  },
+  {
+    question: 'What happens to my progress if I lose connection partway through?',
+    answer: "Nothing happens to it, because nothing about filling out the form depended on being online in the first place. Your work is saved to your device as you go, not to a server, so a dropped connection doesn't touch it.",
+  },
+  {
+    question: 'Does the offline install work on my phone, or only a computer?',
+    answer: 'Both. You can install it from Chrome or Edge on a computer, or add it to your home screen from Safari on an iPhone, iPad, or Mac.',
+  },
+  {
+    question: 'Once I am back online, is my form data uploaded anywhere?',
+    answer: 'No. Nothing about this tool uploads your file at any point, online or offline. Your PDF and your saved progress stay on your device the entire time.',
+  },
+];
+---
+
+<ContentPageLayout
+  title={title}
+  description={description}
+  breadcrumb="Offline forms"
+  icon={WifiOff}
+  kicker="Works without a connection"
+  h1="Fill Out a PDF Form Offline"
+  subhead="Install PDkef once, and you can open, fill out, and sign PDF forms with no internet connection at all. Your progress auto-saves to your own device as you work, so a dropped connection or a closed tab never costs you anything."
+  primaryCta={{ href: '/sign/', label: 'Open the form filler' }}
+  faq={faq}
+>
+  <FeatureCard class="relative isolate overflow-hidden">
+    <CardDecor sketch="grid" icon={Monitor} iconPos="tr" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Set up once</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Install it like a regular app</h2>
+    <p class="mb-8 mt-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      Because every tool runs locally in your browser with nothing uploaded, your device can keep a full offline copy of it,
+      the same way it can with any other installed app. You'll only need a connection for the install itself.
+    </p>
+    <div class="grid grid-cols-3 gap-6 max-[768px]:grid-cols-1">
+      <div class="flex flex-col gap-2">
+        <div class="mb-1 flex items-center gap-2 text-[0.95rem] font-semibold text-[var(--color-text)]">
+          <Monitor size={17} class="text-[var(--color-primary)]" /> Chrome &amp; Edge
+        </div>
+        <p class="m-0 text-[0.9rem] leading-[1.55] text-[var(--color-muted)]">Click the install icon (a screen with a down arrow) in the address bar, or open the browser menu and choose "Install PDkef".</p>
+      </div>
+      <div class="flex flex-col gap-2">
+        <div class="mb-1 flex items-center gap-2 text-[0.95rem] font-semibold text-[var(--color-text)]">
+          <Smartphone size={17} class="text-[var(--color-primary)]" /> Safari (iPhone/iPad)
+        </div>
+        <p class="m-0 text-[0.9rem] leading-[1.55] text-[var(--color-muted)]">Tap the Share button, scroll down, and select "Add to Home Screen".</p>
+      </div>
+      <div class="flex flex-col gap-2">
+        <div class="mb-1 flex items-center gap-2 text-[0.95rem] font-semibold text-[var(--color-text)]">
+          <Compass size={17} class="text-[var(--color-primary)]" /> Safari (Mac)
+        </div>
+        <p class="m-0 text-[0.9rem] leading-[1.55] text-[var(--color-muted)]">Click the Share button in the toolbar and choose "Add to Dock...".</p>
+      </div>
+    </div>
+  </FeatureCard>
+
+  <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+    <CardDecor sketch="waves" icon={HardDriveDownload} iconPos="br" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">While you're offline</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Your progress is never sitting in a browser tab alone</h2>
+    <p class="mb-4 mt-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      As you type into fields, tick checkboxes, or add a signature, the tool saves your progress to your device in the
+      background. Close the tab, restart your computer, or lose power mid-form, and it's waiting for you exactly where
+      you left it the next time you open the same file.
+    </p>
+    <p class="m-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      This is the same reason it can work offline in the first place: there was never a server in the loop to begin
+      with, so there's nothing a lost connection can interrupt.
+    </p>
+  </FeatureCard>
+</ContentPageLayout>

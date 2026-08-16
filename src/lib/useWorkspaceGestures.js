@@ -30,6 +30,7 @@ import {
  * @param {function}     params.logAction           - action history logger
  * @param {function}     params.setAnnouncement     - a11y live-region setter
  * @param {string}       params.initialColor        - last remembered element color for new placements
+ * @param {string}       [params.initialWhiteoutColor] - last remembered whiteout color for new placements
  * @param {number}       params.initialStrokeWidth  - last remembered stroke width for new placements
  * @param {string}       params.initialFont         - last remembered font family for new text elements
  * @param {number}       params.initialFontSize     - last remembered font size for new text elements

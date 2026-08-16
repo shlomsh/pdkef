@@ -1,0 +1,81 @@
+---
+// Shared shell for standalone SEO/content pages that are not themselves a
+// tool (long-tail landing pages, OS how-to guides). Mirrors the shape of
+// ToolPageLayout.astro - hero, body slot, FAQ card, tool cross-links,
+// footer - but with a plain centered hero instead of an app-mounting
+// section, since these pages carry no Preact island.
+import BaseLayout from './BaseLayout.astro';
+import SeoSchema from '../components/SeoSchema.astro';
+import AppBar from '../components/AppBar.astro';
+import ToolFaqCard from '../components/ToolFaqCard.astro';
+import ToolCrossLinks from '../components/ToolCrossLinks.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+interface FaqItem {
+  question: string;
+  answer: string;
+}
+interface Cta {
+  href: string;
+  label: string;
+}
+interface Props {
+  title: string;
+  description: string;
+  schemaName?: string;
+  breadcrumb?: string;
+  icon: any;
+  kicker: string;
+  h1: string;
+  subhead: string;
+  primaryCta: Cta;
+  faq: FaqItem[];
+}
+
+const {
+  title,
+  description,
+  schemaName = 'PDkef',
+  breadcrumb,
+  icon: Icon,
+  kicker,
+  h1,
+  subhead,
+  primaryCta,
+  faq,
+} = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <Fragment slot="head">
+    <SeoSchema name={schemaName} description={description} faq={faq} />
+  </Fragment>
+
+  <AppBar toolName={breadcrumb} />
+
+  <header class="mx-auto max-w-[720px] px-6 pb-10 pt-14 text-center min-[768px]:pb-14 min-[768px]:pt-[4.5rem]">
+    <div class="mb-5 inline-flex size-16 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
+      <Icon size={30} strokeWidth={1.75} />
+    </div>
+    <span class="mb-2 block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">{kicker}</span>
+    <h1 class="mb-4 mt-0 text-[clamp(1.85rem,4.4vw,2.6rem)] font-bold leading-[1.15] text-[var(--color-text)]">{h1}</h1>
+    <p class="mx-auto mb-7 mt-0 max-w-[56ch] text-[1.02rem] leading-[1.6] text-[var(--color-muted)]">{subhead}</p>
+    <a
+      href={primaryCta.href}
+      class="inline-flex items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-primary)] px-7 py-3 text-[0.98rem] font-semibold text-[var(--color-surface)] no-underline shadow-sm transition-[transform,background-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:bg-[var(--color-primary-hover)]"
+    >
+      {primaryCta.label}
+    </a>
+  </header>
+
+  <main>
+    <slot />
+  </main>
+
+  <ToolFaqCard faq={faq} />
+
+  <ToolCrossLinks currentSlug="" />
+
+  <Footer />
+</BaseLayout>

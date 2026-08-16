@@ -1,0 +1,77 @@
+---
+import ContentPageLayout from '../layouts/ContentPageLayout.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import CardDecor from '../components/CardDecor.astro';
+import { Code2, Package } from 'lucide-preact';
+
+const title = 'Open Source PDF Editor - Free, MIT Licensed | PDkef';
+const description =
+  'A free, open source PDF editor that runs entirely in your browser. Read the code, fork it, or self-host it. MIT licensed, no account, nothing uploaded.';
+
+const faq = [
+  {
+    question: 'What license is PDkef released under?',
+    answer: "The MIT license, for the code we wrote. It's about as permissive as open source licenses get: you can read it, fork it, modify it, or reuse it in your own project.",
+  },
+  {
+    question: 'Can I see the source code before I trust it with my files?',
+    answer: "Yes, that's the point. Every privacy claim on this site, that files never leave your device, that there's no server, is something you can verify yourself by reading the code on GitHub instead of taking our word for it.",
+  },
+  {
+    question: 'Can I self-host it or run my own copy?',
+    answer: "Yes. Clone the repository and it runs the same way, since it's a static site with no backend to stand up.",
+  },
+  {
+    question: 'Can I contribute or report a bug?',
+    answer: 'Yes, contributions and bug reports are welcome on GitHub. Issues and discussions are both open.',
+  },
+  {
+    question: 'Is the free version limited in any way, with a paid version being the "real" editor?',
+    answer: "No. There is only one version, and it's the whole thing. Nothing here is a demo or a trial of something bigger.",
+  },
+];
+---
+
+<ContentPageLayout
+  title={title}
+  description={description}
+  breadcrumb="Open source"
+  icon={Code2}
+  kicker="MIT licensed"
+  h1="A Free, Open Source PDF Editor"
+  subhead="Every tool here runs in your browser and is built from code you can actually read. No account, no server, and nothing about how it works is hidden behind a paywall or a closed source binary."
+  primaryCta={{ href: '/edit-pdf/', label: 'Try the PDF editor' }}
+  faq={faq}
+>
+  <FeatureCard class="relative isolate overflow-hidden">
+    <CardDecor sketch="arcs" icon={Code2} iconPos="tr" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Why it's open</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">You don't have to take our word for the privacy claims</h2>
+    <p class="mb-4 mt-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      This whole product is built around one promise: your files never leave your device. That's an easy thing for any
+      site to claim and a hard thing for a visitor to check, unless the code behind it is actually public.
+    </p>
+    <p class="m-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      PDkef is open source under the MIT license, so anyone can
+      <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">read the source on GitHub</a>,
+      confirm there's no upload happening anywhere in it, fork it, or run their own copy. Simple tools like these should
+      be free and auditable for everyone.
+    </p>
+  </FeatureCard>
+
+  <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+    <CardDecor sketch="grid" icon={Package} iconPos="br" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">What it's built with</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Standing on other open source projects</h2>
+    <p class="mb-4 mt-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      PDkef itself is built on other people's open source work: the PDF reading and writing comes from
+      <span class="font-medium">pdf.js</span> and <span class="font-medium">pdf-lib</span>, the interface from
+      <span class="font-medium">Astro</span> and <span class="font-medium">Preact</span>. Every dependency is MIT or
+      Apache 2.0 licensed and makes no network calls of its own.
+    </p>
+    <p class="m-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      The full list, with license terms and links, is on the
+      <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/licenses/">open source licenses page</a>.
+    </p>
+  </FeatureCard>
+</ContentPageLayout>

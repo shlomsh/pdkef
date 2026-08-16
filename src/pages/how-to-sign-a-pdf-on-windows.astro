@@ -1,0 +1,75 @@
+---
+import ContentPageLayout from '../layouts/ContentPageLayout.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import CardDecor from '../components/CardDecor.astro';
+import OtherGuides from '../components/OtherGuides.astro';
+import { Monitor, Printer } from 'lucide-preact';
+
+const title = 'How to Sign a PDF on Windows (No Install) | PDkef';
+const description =
+  'Sign a PDF on Windows without installing anything or printing and scanning. Works right in Chrome or Edge, free, no account, no watermark.';
+
+const faq = [
+  {
+    question: 'Do I need to install any software on Windows to sign a PDF?',
+    answer: "No. It's a website that runs entirely in the browser tab you already have open, so there's nothing to download or install.",
+  },
+  {
+    question: 'Does this work in both Chrome and Edge?',
+    answer: 'Yes, and any other modern desktop browser. There is no browser-specific setup needed.',
+  },
+  {
+    question: 'Can I sign with a touchscreen or trackpad instead of a mouse?',
+    answer: 'Yes. Drawing your signature works the same with a mouse, trackpad, or touchscreen, whichever your Windows laptop has.',
+  },
+];
+---
+
+<ContentPageLayout
+  title={title}
+  description={description}
+  breadcrumb="Windows"
+  icon={Monitor}
+  kicker="Windows, no install"
+  h1="How to Sign a PDF on Windows"
+  subhead="Windows doesn't come with a way to add a real signature to a PDF from File Explorer, which is why so many people still print the page, sign it, and scan it back in. Here's how to skip that, right from Chrome or Edge."
+  primaryCta={{ href: '/sign/', label: 'Sign a PDF now' }}
+  faq={faq}
+>
+  <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+    <CardDecor sketch="arcs" icon={Monitor} iconPos="tr" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Four steps</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Sign a PDF on Windows</h2>
+    <ol class="m-0 flex list-none flex-col gap-5 p-0">
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Open <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/sign/">pdkef.com/sign</a></strong> in Chrome or Edge, whichever you already have open.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Drag the PDF in</strong> from File Explorer, or click "Choose file" and pick it from Downloads or Documents.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Draw or type your signature</strong> with your mouse or trackpad, and fill in any text fields or checkboxes the form needs.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">4</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Click Sign and Download.</strong> The finished PDF lands in your Downloads folder, ready to attach to an email.</span>
+      </li>
+    </ol>
+  </FeatureCard>
+
+  <FeatureCard class="relative isolate overflow-hidden">
+    <CardDecor sketch="grid" icon={Printer} iconPos="br" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Why bother</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Why print and scan when you don't have to</h2>
+    <p class="m-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      Windows' built-in PDF preview is made for reading a document, not filling one out, so it doesn't offer a real way
+      to add a signature or type into form fields. That's the gap PDkef fills, right in the browser you already have
+      open, with nothing else to install.
+    </p>
+  </FeatureCard>
+
+  <OtherGuides currentHref="/how-to-sign-a-pdf-on-windows/" />
+</ContentPageLayout>

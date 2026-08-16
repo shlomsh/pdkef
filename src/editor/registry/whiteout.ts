@@ -2,7 +2,7 @@ import type { ElementDefinition } from './types.ts';
 import type { WhiteoutElement } from '../../lib/editorModel.ts';
 import { h } from 'preact';
 import { rgb } from '@cantoo/pdf-lib';
-import WhiteoutNode from '../../components/SignTool/nodes/WhiteoutNode.jsx';
+import WhiteoutNode from '../../components/SignTool/nodes/WhiteoutNode.tsx';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { applyBoxResize } from './boxResize.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';

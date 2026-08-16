@@ -1,5 +1,5 @@
 // Pure percent <-> pixel <-> PDF-point conversion helpers shared by the Sign/Redact
-// editors (DraggableOverlayElement.jsx, PdfSignTool.jsx, PdfRedactTool.jsx) and
+// editors (DraggableOverlayElement.tsx, PdfSignTool.tsx, PdfRedactTool.tsx) and
 // signPdf's bake-out (sign.js). No DOM reads here — callers measure rects/scale
 // factors and pass the numbers in, so every function is trivially testable and
 // there is exactly one place that can get a conversion's scale wrong.

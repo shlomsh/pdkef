@@ -9,9 +9,7 @@
    - `.thumb-placeholder` + `@keyframes shimmer` — also used by PdfEditPagesTool's
      page-grid loading skeleton (`.page-card-thumb-container`), which is E2.2.9
      (PageGrid) territory. Cross-boundary; resolve ownership when PageGrid lands,
-     same pattern as E2.2.3's `.metric-*` resolution.
-   - `.list-hint` — currently unused by any consumer (dead CSS); left alone
-     rather than silently dropped in a CSS-scoping ticket. */
+     same pattern as E2.2.3's `.metric-*` resolution. */
 .file-list {
   list-style: none;
   margin: var(--space-3) 0 0;

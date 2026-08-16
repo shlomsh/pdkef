@@ -65,13 +65,27 @@ const distDir = path.join(__dirname, '..', 'dist');
 // Ratchets, set just above the values measured on main (2026-08-14, after E3.5/E3.6
 // promoted --shadow-xs/sm/md/lg and --ease-out/emphasized/spring into @theme and
 // consolidated the transition-[...] long tail to four canonical property lists):
-// duplication 6.91x, worst page 28,577 dead bytes (/licenses/, still ~94% of its
+// duplication 6.78x, worst page 28,019 dead bytes (/licenses/, still ~94% of its
 // class-bearing CSS - that page's ratio is dominated by content, not the
-// shadow/ease/transition cleanup), 144 single-page utilities. Previous baseline
-// (before E3.5/E3.6): 6.93x / 28,899 / 149. Lower these further when work lands
-// that improves a number; never raise one without saying which page got worse and
-// why that is acceptable.
-const MAX_DUPLICATION_FACTOR = 6.95;
+// shadow/ease/transition cleanup), 144 single-page utilities. Lower these further
+// when work lands that improves a number; never raise one without saying which
+// page got worse and why that is acceptable.
+//
+// Duplication factor was raised again (6.95x -> 9.85x) when the Launch/SEO
+// backlog item landed 8 new static content pages (3 long-tail landing pages, 1
+// Redact landing page, 4 OS how-to guides - see TODO.md). This is the one ratchet
+// here that scales with page *count*, not CSS quality: `inlineStylesheets:
+// 'always'` bakes the whole shared utility stylesheet into every page, so the
+// numerator (bytes shipped, summed across all pages) grows with each new page
+// almost regardless of how disciplined that page's markup is, while the
+// denominator (distinct rule bytes site-wide) barely moves if the new pages reuse
+// the existing utility vocabulary. That's exactly what happened: adding 8 pages
+// (12 -> 20) moved distinct bytes by +455 (102,913 -> 103,368) while shipped bytes
+// rose with page count (697,512 -> 1,014,340), pushing the factor from 6.78x to
+// 9.81x. The other two ratchets below are unaffected by page count and both
+// stayed inside their limits without being touched, which is the signal that this
+// was page growth, not new duplication.
+const MAX_DUPLICATION_FACTOR = 9.85;
 const MAX_PAGE_DEAD_BYTES = 29_000;
 const MAX_SINGLE_PAGE_UTILITIES = 148;
 

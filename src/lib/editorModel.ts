@@ -6,10 +6,10 @@
 //
 // Field shapes are read from reality, not invented:
 //   - creation:  src/lib/useWorkspaceGestures.js (text/symbol/line/shape/whiteout
-//                factories) and PdfSignTool.jsx `placeSignatureAt` (signature).
-//   - rendering: src/components/SignTool/nodes/*.jsx.
+//                factories) and PdfSignTool.tsx `placeSignatureAt` (signature).
+//   - rendering: src/components/SignTool/nodes/*.tsx.
 //   - export:    src/lib/sign.js `signPdf` (the bake-out reads these fields).
-//   - geometry:  DraggableWrapper.jsx drag/resize (left/top/width/height percents,
+//   - geometry:  DraggableWrapper.tsx drag/resize (left/top/width/height percents,
 //                x1..y2 line endpoints, aspectRatio, fontSize).
 //
 // Repo conventions this encodes (see CLAUDE.md / project memory):
@@ -31,7 +31,7 @@ export type ElementType =
   | 'blackout'
   | 'blur';
 
-/** Symbol glyphs (SymbolNode.jsx). `symbolType` is a legacy alias still tolerated. */
+/** Symbol glyphs (SymbolNode.tsx). `symbolType` is a legacy alias still tolerated. */
 export type SymbolMark = 'check' | 'x' | 'dot';
 
 /** Text flow direction; `null`/absent means "auto-detect from content" (sign.js). */
@@ -53,7 +53,7 @@ export interface ElementBase {
  * Axis-aligned bounding box shared by every non-line element. All four values
  * are percentages of the page wrapper (width for left/width, height for
  * top/height). For RTL text, `left` is the anchored *right* edge — see
- * DraggableWrapper.jsx's positioning comment — but the field name is unchanged.
+ * DraggableWrapper.tsx's positioning comment — but the field name is unchanged.
  */
 export interface BoxGeometry {
   left: number;
@@ -126,7 +126,7 @@ export interface SymbolElement extends ElementBase, BoxGeometry {
   type: 'symbol';
   /** Preferred glyph field. */
   mark?: SymbolMark;
-  /** Legacy glyph field still read by SymbolNode.jsx (`cross` -> `x`). */
+  /** Legacy glyph field still read by SymbolNode.tsx (`cross` -> `x`). */
   symbolType?: string;
   aspectRatio?: number;
 }

@@ -1,0 +1,32 @@
+---
+// Links each OS how-to guide to the other three, so a visitor who landed on
+// the Windows guide but is actually on a Mac isn't stuck. Compact strip, same
+// reasoning as ToolCrossLinks.astro for not using a full-height FeatureCard.
+import { guides } from '../data/contentPages.js';
+
+interface Props {
+  currentHref: string;
+}
+
+const { currentHref } = Astro.props;
+const others = guides.filter((guide) => guide.href !== currentHref);
+---
+
+<section class="mx-auto mb-16 w-full max-w-[1080px] px-6 min-[768px]:mb-24" aria-labelledby="other-guides-heading">
+  <div class="mb-6 text-center">
+    <h2 id="other-guides-heading" class="m-0 text-[1.15rem] font-bold text-[var(--color-text)]">Signing on a different device?</h2>
+  </div>
+  <ul class="m-0 flex list-none flex-wrap justify-center gap-3 p-0">
+    {others.map((guide) => (
+      <li class="m-0 p-0">
+        <a
+          href={guide.href}
+          class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-[0.9rem] font-medium text-[var(--color-text)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)]"
+        >
+          <guide.icon size={16} strokeWidth={1.75} class="text-[var(--color-primary)]" />
+          {guide.label}
+        </a>
+      </li>
+    ))}
+  </ul>
+</section>

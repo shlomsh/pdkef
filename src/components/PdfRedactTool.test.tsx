@@ -1,0 +1,1227 @@
+// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
+import { render } from 'preact';
+import { act } from 'preact/test-utils';
+import { describe, expect, it, vi, afterEach } from 'vitest';
+import fs from 'fs';
+import path from 'path';
+import PdfRedactTool from './PdfRedactTool.tsx';
+import { redactPdf } from '../lib/redact.js';
+import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
+import dropzoneStyles from './Dropzone.module.css';
+import workspaceStyles from './SignTool/Workspace.module.css';
+import toolbarStyles from './SignTool/SignToolbar.module.css';
+import redactStyles from './PdfRedactTool.module.css';
+import { setInputFiles } from '../test/setInputFiles.js';
+
+const REDACT_BOX = redactStyles['redact-box'];
+const REDACT_ELEMENT_BTN = redactStyles['redact-element-btn'];
+const REDACT_BOX_RESIZER = redactStyles['redact-box-resizer'];
+
+const { gestureCommitSpies } = vi.hoisted(() => ({ gestureCommitSpies: [] }));
+
+// Exercise the real controller while wrapping each commit callback. This proves
+// the Redact integration, rather than only controller.ts in isolation, commits
+// one final state patch regardless of how many pointer moves a gesture has.
+vi.mock('../editor/gestures/controller.ts', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    startGesture: (options) => {
+      const commit = vi.fn(options.commit);
+      gestureCommitSpies.push(commit);
+      return actual.startGesture({ ...options, commit });
+    },
+  };
+});
+
+function makePdfFile(name) {
+  return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
+}
+
+// Mock getDocument because we don't want to load actual pdf.js workers in jsdom environment
+vi.mock('pdfjs-dist', () => {
+  return {
+    GlobalWorkerOptions: {
+      workerSrc: ''
+    },
+    getDocument: vi.fn(() => ({
+      promise: Promise.resolve({
+        numPages: 2,
+        getPage: vi.fn(() => Promise.resolve({
+          getViewport: () => ({ width: 612, height: 792 }),
+          render: () => ({ promise: Promise.resolve() })
+        }))
+      })
+    }))
+  };
+});
+
+vi.mock('../lib/redact.js', () => ({
+  redactPdf: vi.fn(async () => new Blob(['redacted'], { type: 'application/pdf' }))
+}));
+
+describe('PdfRedactTool UI flow', () => {
+  let container;
+
+  afterEach(() => {
+    if (container) {
+      act(() => render(null, container));
+      container.remove();
+      container = null;
+    }
+    gestureCommitSpies.length = 0;
+    vi.restoreAllMocks();
+  });
+
+  it('renders the initial file dropper zone', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfRedactTool />, container);
+    });
+
+    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
+    expect(dropzone).not.toBeNull();
+    expect(dropzone.textContent).toContain('Select or drop a PDF to redact');
+  });
+
+  it('transitions to editing state when a file is selected', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfRedactTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const file = makePdfFile('test_secret.pdf');
+
+    await act(async () => {
+      setInputFiles(input, [file]);
+    });
+
+    // Wait for async file loading
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    // Verify hint message appears indicating editing mode. Nothing is armed on
+    // load - a tool is one-shot here now, exactly as in the Sign editor - so
+    // this is the idle tip, not any tool's own copy.
+    const header = container.querySelector(`.${toolbarStyles.help}`);
+    expect(header).not.toBeNull();
+    expect(header.textContent).toContain('pick a tool to start');
+    
+    // Verify toolbar modes exist
+    const toolbar = container.querySelector(`.${toolbarStyles.toolbar}`);
+    expect(toolbar).not.toBeNull();
+    expect(toolbar.textContent).toContain('Blackout');
+    expect(toolbar.textContent).toContain('Blur');
+
+    // E9: ViewControl replaced FullscreenButton in this exact slot.
+    const radiogroup = toolbar.querySelector('[role="radiogroup"]');
+    expect(radiogroup).not.toBeNull();
+    expect(radiogroup.getAttribute('aria-label')).toBe('View density');
+    expect(radiogroup.querySelectorAll('[role="radio"]')).toHaveLength(3);
+  });
+
+  it('keeps the redaction editor open after downloading', async () => {
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    const originalRevokeObjectURL = window.URL.revokeObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+    window.URL.revokeObjectURL = vi.fn();
+
+    try {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      const generateButton = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
+        .find((button) => button.textContent.includes('Download'));
+
+      await act(async () => {
+        generateButton.click();
+        // handleSavePdf now awaits applyPageEdits(), which conditionally chains
+        // deleteObjectsFromPdf() before redactPdf() - one more microtask hop than
+        // awaiting redactPdf() directly, even on this box-only path. A bare
+        // `click()` doesn't await the handler it fires, so give the promise
+        // chain a tick to actually settle before asserting its effects.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
+      expect(container.querySelector(`.${REDACT_BOX}`)).not.toBeNull();
+      expect(container.querySelector('.download-button')).toBeNull();
+      expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:redacted-pdf');
+    } finally {
+      window.URL.createObjectURL = originalCreateObjectURL;
+      window.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+  });
+
+  it('keeps the same PDF page mounted while redacting', async () => {
+    let finishRedaction;
+    redactPdf.mockImplementationOnce(() => new Promise((resolve) => {
+      finishRedaction = resolve;
+    }));
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    const originalRevokeObjectURL = window.URL.revokeObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+    window.URL.revokeObjectURL = vi.fn();
+
+    try {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const pageBefore = container.querySelector('.redact-draw-area');
+      const downloadButton = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
+        .find((button) => button.textContent.includes('Download'));
+
+      await act(async () => {
+        downloadButton.click();
+      });
+
+      expect(container.querySelector('.redact-draw-area')).toBe(pageBefore);
+      expect(container.querySelector(`.${workspaceStyles.workspace}`).classList.contains(workspaceStyles['is-processing'])).toBe(true);
+      expect(container.querySelector(`.${workspaceStyles.workspace}`).getAttribute('aria-busy')).toBe('true');
+
+      await act(async () => {
+        finishRedaction(new Blob(['redacted'], { type: 'application/pdf' }));
+      });
+    } finally {
+      window.URL.createObjectURL = originalCreateObjectURL;
+      window.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+  });
+
+  it('shares a valid PDF prepared from the real num-1.pdf fixture', async () => {
+    const originalShare = navigator.share;
+    const originalCanShare = navigator.canShare;
+    const share = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'share', { configurable: true, value: share });
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => true) });
+
+    try {
+      const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+      const fixtureBytes = fs.readFileSync(fixturePath);
+      redactPdf.mockResolvedValueOnce(new Blob([fixtureBytes], { type: 'application/pdf' }));
+
+      const drawArea = await loadFileAndGetDrawArea(
+        new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
+      );
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      const prepareButton = container.querySelector('button[title="Apply redactions and prepare the PDF for sharing"]');
+      expect(prepareButton).not.toBeNull();
+      await act(async () => {
+        prepareButton.click();
+        // See the comment on the same pattern above: applyPageEdits() adds one
+        // more microtask hop than awaiting redactPdf() directly.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
+      const shareButton = Array.from(container.querySelectorAll('button'))
+        .find((button) => button.textContent.includes('Share now'));
+      expect(shareButton).toBeDefined();
+      await act(async () => {
+        shareButton.click();
+      });
+
+      expect(share).toHaveBeenCalledOnce();
+      const sharedFile = share.mock.calls[0][0].files[0];
+      expect(sharedFile.name).toBe('redacted_num-1.pdf');
+
+      const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      const loadingTask = getDocument({ data: new Uint8Array(await sharedFile.arrayBuffer()) });
+      const pdf = await loadingTask.promise;
+      expect(pdf.numPages).toBe(1);
+      await loadingTask.destroy();
+    } finally {
+      if (originalShare === undefined) delete navigator.share;
+      else Object.defineProperty(navigator, 'share', { configurable: true, value: originalShare });
+      if (originalCanShare === undefined) delete navigator.canShare;
+      else Object.defineProperty(navigator, 'canShare', { configurable: true, value: originalCanShare });
+    }
+  });
+
+  describe('Delete tool', () => {
+    // The Delete tool needs an object to actually click on, which the fake
+    // makePdfFile() stub can't provide (it has no content stream to parse).
+    // num-1.pdf is a real, minimal PDF with one text run - the same fixture
+    // the share test above already uses for the same reason.
+    async function loadRealPdfAndSwitchToDelete() {
+      const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+      const fixtureBytes = fs.readFileSync(fixturePath);
+      const drawArea = await loadFileAndGetDrawArea(
+        new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
+      );
+
+      await armTool('Delete');
+      // useDeletableObjects parses the real file asynchronously.
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      return drawArea;
+    }
+
+    it('highlights the one object the fixture contains', async () => {
+      await loadRealPdfAndSwitchToDelete();
+      const candidates = container.querySelectorAll(`.${redactStyles['delete-candidate']}`);
+      expect(candidates).toHaveLength(1);
+      expect(container.querySelectorAll(`.${redactStyles['delete-mark']}`)).toHaveLength(0);
+    });
+
+    it('marks an object for deletion on click, and un-marks it on undo', async () => {
+      await loadRealPdfAndSwitchToDelete();
+
+      const candidate = container.querySelector(`.${redactStyles['delete-candidate']}`);
+      await act(async () => {
+        candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
+      const mark = container.querySelector(`.${redactStyles['delete-mark']}`);
+      expect(mark).not.toBeNull();
+
+      const undoButton = mark.querySelector(`.${redactStyles['delete-mark-btn']}`);
+      await act(async () => {
+        undoButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      expect(container.querySelectorAll(`.${redactStyles['delete-mark']}`)).toHaveLength(0);
+
+      // Marking spent the tool's one arming, so the highlights are gone with it
+      // and the object is only offered again once Delete is armed again. That is
+      // the same one-shot contract every other tool in both editors follows.
+      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
+      await armTool('Delete');
+      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(1);
+    });
+
+    // Marking runs through toggleObjectDeletion's "new mark" branch, which ends
+    // in disarmTool() - that is this tool's one placement. Un-marking always
+    // runs through deleteElement instead (DeleteMark's own undo button calls it
+    // directly), which never calls disarmTool(). Un-marking is a correction, not
+    // a placement, so it must not cost the arming the correction is trying to
+    // use - dropping the tool mid-correction would be the opposite of what was
+    // asked for. The button's own active class is the observable proxy for
+    // "still armed" here, since Delete's touch-action never changes (it places
+    // by tap, not drag).
+    it('marking spends the arming; un-marking the same object does not', async () => {
+      await loadRealPdfAndSwitchToDelete();
+
+      const deleteBtn = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
+        .find((b) => b.textContent.includes('Delete'));
+      expect(deleteBtn.className).toContain(toolbarStyles.active);
+
+      const candidate = container.querySelector(`.${redactStyles['delete-candidate']}`);
+      await act(async () => {
+        candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(deleteBtn.className).not.toContain(toolbarStyles.active);
+
+      // Re-arm, then undo the mark through DeleteMark's own button - once an
+      // object is marked, the overlay no longer offers it, so this is the only
+      // way left to un-mark it.
+      await armTool('Delete');
+      expect(deleteBtn.className).toContain(toolbarStyles.active);
+
+      const mark = container.querySelector(`.${redactStyles['delete-mark']}`);
+      const undoButton = mark.querySelector(`.${redactStyles['delete-mark-btn']}`);
+      await act(async () => {
+        undoButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      expect(deleteBtn.className).toContain(toolbarStyles.active);
+    });
+
+    it('does not start a redaction-box drag gesture while the Delete tool is active', async () => {
+      const drawArea = await loadRealPdfAndSwitchToDelete();
+
+      await act(async () => {
+        drawArea.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 200, bubbles: true }));
+      });
+      await act(async () => {
+        drawArea.dispatchEvent(new MouseEvent('mousemove', { clientX: 200, clientY: 400, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+
+      expect(container.querySelector(`.${redactStyles['redact-box']}`)).toBeNull();
+    });
+
+    it('produces a smaller, still-valid PDF with the marked object actually removed', async () => {
+      await loadRealPdfAndSwitchToDelete();
+
+      const candidate = container.querySelector(`.${redactStyles['delete-candidate']}`);
+      await act(async () => {
+        candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      let capturedBlob;
+      const originalCreateObjectURL = window.URL.createObjectURL;
+      const originalRevokeObjectURL = window.URL.revokeObjectURL;
+      window.URL.createObjectURL = vi.fn((blob) => {
+        capturedBlob = blob;
+        return 'blob:deleted-pdf';
+      });
+      window.URL.revokeObjectURL = vi.fn();
+
+      try {
+        // redactPdf is one mock shared (and never reset) across every test in
+        // this file, so earlier tests' calls are still in its history here -
+        // compare against a snapshot taken just before this test's own action.
+        const redactPdfCallsBefore = redactPdf.mock.calls.length;
+
+        const downloadButton = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
+          .find((button) => button.textContent.includes('Download'));
+        await act(async () => {
+          downloadButton.click();
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+
+        // This path never touches the mocked redactPdf: a delete-only session
+        // has no box element, so applyPageEdits returns deleteObjectsFromPdf's
+        // real output directly rather than flattening anything.
+        expect(redactPdf.mock.calls.length).toBe(redactPdfCallsBefore);
+        expect(capturedBlob).toBeDefined();
+
+        const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+        const originalSize = fs.statSync(fixturePath).size;
+        expect(capturedBlob.size).toBeLessThan(originalSize * 3);
+
+        const { extractPageObjects } = await import('../lib/pdfObjects.js');
+        const { PDFDocument } = await import('@cantoo/pdf-lib');
+        const outBytes = new Uint8Array(await capturedBlob.arrayBuffer());
+        const doc = await PDFDocument.load(outBytes);
+        const { objects } = extractPageObjects(doc.getPage(0), 0);
+        expect(objects.map((o) => o.preview)).not.toContain('1');
+      } finally {
+        window.URL.createObjectURL = originalCreateObjectURL;
+        window.URL.revokeObjectURL = originalRevokeObjectURL;
+      }
+    });
+  });
+
+  async function loadFileAndGetDrawArea(file = makePdfFile('test_secret.pdf')) {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfRedactTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [file]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const drawArea = container.querySelector('.redact-draw-area');
+    drawArea.getBoundingClientRect = () => ({
+      left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
+    });
+
+    // Nothing is armed on load, and a tool arms for one box at a time, so every
+    // caller here that wants drawBox() to actually draw needs Blackout armed
+    // first. Centralized rather than repeated at this file's many drawBox()
+    // call sites, since none of them are testing which tool starts selected;
+    // they test box drag/resize/delete mechanics and just need a box on the
+    // page to exercise. Tests that draw twice have to arm twice - that is the
+    // one-shot contract, and it has its own tests below.
+    await armTool('Blackout');
+
+    return drawArea;
+  }
+
+  async function armTool(label, { lock = false } = {}) {
+    const button = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
+      .find((b) => b.textContent.includes(label));
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    });
+    if (lock) {
+      await act(async () => {
+        button.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
+      });
+    }
+    return button;
+  }
+
+  // Each dispatch is its own act() so the state update it triggers (e.g. setDrawingState
+  // in handlePointerDown) flushes and re-renders before the next event is handled —
+  // batching them in one act() left drawingState still null when handlePointerMove ran.
+  async function drawBox(drawArea, downX, downY, moveX, moveY) {
+    await act(async () => {
+      drawArea.dispatchEvent(new MouseEvent('mousedown', { clientX: downX, clientY: downY, bubbles: true }));
+    });
+    await act(async () => {
+      drawArea.dispatchEvent(new MouseEvent('mousemove', { clientX: moveX, clientY: moveY, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+  }
+
+  function expectLatestGestureToCommitOnce() {
+    const commit = gestureCommitSpies.at(-1);
+    expect(commit).toBeDefined();
+    expect(commit).toHaveBeenCalledTimes(1);
+  }
+
+  it('commits Redact creation once after multiple pointer moves (E4.4)', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+
+    await act(async () => {
+      drawArea.dispatchEvent(new MouseEvent('mousedown', { clientX: 50, clientY: 200, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 100, clientY: 300, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 200, clientY: 500, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    });
+
+    expectLatestGestureToCommitOnce();
+    expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+  });
+
+  it('draws a box whose left/top/width/height are pxToPercent of the draw area, not raw px/rect.width math', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+
+    await drawBox(drawArea, 50, 200, 200, 500);
+
+    const box = container.querySelector(`.${REDACT_BOX}`);
+    expect(box).not.toBeNull();
+
+    const startLeft = pxToPercent(50, 500);
+    const startTop = pxToPercent(200, 1000);
+    const endLeft = pxToPercent(200, 500);
+    const endTop = pxToPercent(500, 1000);
+
+    expect(parseFloat(box.style.left)).toBeCloseTo(Math.min(startLeft, endLeft));
+    expect(parseFloat(box.style.top)).toBeCloseTo(Math.min(startTop, endTop));
+    expect(parseFloat(box.style.width)).toBeCloseTo(Math.abs(endLeft - startLeft));
+    expect(parseFloat(box.style.height)).toBeCloseTo(Math.abs(endTop - startTop));
+  });
+
+  it('drags an existing box by a percent delta computed via pxDeltaToPercent against the wrapper', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+
+    // Draw a box first so there's something to drag.
+    await drawBox(drawArea, 50, 200, 200, 500);
+
+    const box = container.querySelector(`.${REDACT_BOX}`);
+    const startLeftPercent = parseFloat(box.style.left);
+    const startTopPercent = parseFloat(box.style.top);
+
+    await act(async () => {
+      box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 300 })); // dx=50 dy=200
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 300 }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    const expectedLeft = startLeftPercent + pxDeltaToPercent(50, 500);
+    const expectedTop = startTopPercent + pxDeltaToPercent(200, 1000);
+
+    expect(parseFloat(box.style.left)).toBeCloseTo(expectedLeft);
+    expect(parseFloat(box.style.top)).toBeCloseTo(expectedTop);
+    expectLatestGestureToCommitOnce();
+  });
+
+  // The inline delete button (blackout/blur only) has no data-editor-actions/
+  // data-editor-resizer marker, so useDraggableElement's own target-closest
+  // guards don't catch it - RedactBox wraps the shared hook's handler with its
+  // own .redact-element-btn check instead (see E7.5). Without that wrapper, a
+  // press on the button would also start a drag gesture underneath it.
+  it('does not start a drag when the inline delete button is pressed', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+
+    // Default activeStyle is 'blackout', which renders the inline delete button.
+    await drawBox(drawArea, 50, 200, 200, 500);
+
+    const box = container.querySelector(`.${REDACT_BOX}`);
+    const deleteBtn = box.querySelector(`.${REDACT_ELEMENT_BTN}`);
+    expect(deleteBtn).not.toBeNull();
+
+    const startLeftPercent = parseFloat(box.style.left);
+    const startTopPercent = parseFloat(box.style.top);
+    const gestureCountBefore = gestureCommitSpies.length;
+
+    await act(async () => {
+      deleteBtn.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 150, clientY: 300 }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    expect(gestureCommitSpies.length).toBe(gestureCountBefore);
+    expect(parseFloat(box.style.left)).toBeCloseTo(startLeftPercent);
+    expect(parseFloat(box.style.top)).toBeCloseTo(startTopPercent);
+  });
+
+  it('resizes an existing box by a percent delta computed via pxDeltaToPercent against the wrapper', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+
+    await drawBox(drawArea, 50, 200, 200, 500);
+
+    const box = container.querySelector(`.${REDACT_BOX}`);
+    const startWidthPercent = parseFloat(box.style.width);
+    const startHeightPercent = parseFloat(box.style.height);
+
+    await act(async () => {
+      box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    const resizer = box.querySelector('[data-editor-resizer="bottom-right"]');
+    expect(resizer).not.toBeNull();
+
+    await act(async () => {
+      resizer.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 130, clientY: 180 })); // dx=30 dy=80
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 130, clientY: 180 }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    const expectedWidth = startWidthPercent + pxDeltaToPercent(30, 500);
+    const expectedHeight = startHeightPercent + pxDeltaToPercent(80, 1000);
+
+    expect(parseFloat(box.style.width)).toBeCloseTo(expectedWidth);
+    expect(parseFloat(box.style.height)).toBeCloseTo(expectedHeight);
+    expectLatestGestureToCommitOnce();
+  });
+
+  // --- Regression: whiteout box resize flying off-page (handleBoxResizeStart) ---
+  //
+  // Root cause: handleBoxResizeStart's left/top/top-left/bottom-left/top-right
+  // branches derived newLeft/newTop as `start.left - (newWidth - start.width)`
+  // where newWidth/newHeight were only clamped against MIN/MAX_SHAPE_SIZE_PCT,
+  // never against the box's own anchored (opposite) edge. A large outward drag
+  // on e.g. the left handle drives newWidth up to MAX_SHAPE_SIZE_PCT (90) with
+  // no regard for how much room is actually left between the anchored right
+  // edge and the page edge, so newLeft goes negative and the box renders off
+  // the left/top of the page (effectively "disappears").
+  //
+  // These tests use the SAME realistic, non-degenerate mocked wrapper rect
+  // (500x1000, via loadFileAndGetDrawArea's drawArea.getBoundingClientRect
+  // override — that draw area IS the resize handler's `wrapper`, since both
+  // `sign-page-wrapper` and `redact-draw-area` are classes on one DOM node) as
+  // the existing tests above, per CLAUDE.md Part II §5's "vacuous 0x0-rect
+  // geometry tests" hazard: an unmocked jsdom rect is 0x0, which turns every
+  // pixel delta into +/-Infinity and saturates the MIN/MAX clamp either way,
+  // masking exactly this class of bug. With a real 500x1000 rect, the drag
+  // distances below map to finite, checkable percentages and genuinely
+  // exercise the anchor math.
+  describe('whiteout box resize stays on-page (regression)', () => {
+    async function setupSelectedWhiteoutBox() {
+      const drawArea = await loadFileAndGetDrawArea();
+
+      // Switch to whiteout mode — all redaction box styles now get the
+      // 8-direction ElementResizers handles.
+      const whiteoutBtn = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+        .find((btn) => btn.textContent.includes('Whiteout'));
+      await act(async () => {
+        whiteoutBtn.click();
+      });
+
+      // Draw a box at left=20%, top=30%, width=30%, height=20% on the 500x1000
+      // wrapper (100,300) -> (250,500) in px. Mirrors the diagnosed repro
+      // (left:20, width:30).
+      await drawBox(drawArea, 100, 300, 250, 500);
+      const box = container.querySelector(`.${REDACT_BOX}`);
+      expect(parseFloat(box.style.left)).toBeCloseTo(20);
+      expect(parseFloat(box.style.top)).toBeCloseTo(30);
+      expect(parseFloat(box.style.width)).toBeCloseTo(30);
+      expect(parseFloat(box.style.height)).toBeCloseTo(20);
+
+      // Select it (mousedown + immediate mouseup, zero delta) so ElementResizers
+      // renders its handles — they're gated on isSelected/isActive.
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+
+      return box;
+    }
+
+    async function dragHandle(box, handleClass, downX, downY, moveX, moveY) {
+      const handle = box.querySelector(`[data-editor-resizer="${handleClass}"]`);
+      expect(handle).not.toBeNull();
+      await act(async () => {
+        handle.dispatchEvent(new MouseEvent('mousedown', { clientX: downX, clientY: downY, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: moveX, clientY: moveY, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+    }
+
+    it('left-handle resize with a large outward drag keeps left >= 0 and preserves the anchored right edge', async () => {
+      const box = await setupSelectedWhiteoutBox();
+
+      // dx = -500px on a 500px-wide wrapper = -100% — a huge outward drag on
+      // the left handle. Anchored right edge is at left+width = 20+30 = 50%.
+      await dragHandle(box, 'left', 300, 0, -200, 0);
+
+      const committedLeft = parseFloat(box.style.left);
+      const committedWidth = parseFloat(box.style.width);
+
+      expect(committedLeft).toBeGreaterThanOrEqual(0);
+      expect(committedLeft + committedWidth).toBeCloseTo(50, 5);
+    });
+
+    it('top-handle resize with a large outward drag keeps top >= 0 and preserves the anchored bottom edge', async () => {
+      const box = await setupSelectedWhiteoutBox();
+
+      // dy = -900px on a 1000px-tall wrapper = -90% — a huge outward drag on
+      // the top handle. Anchored bottom edge is at top+height = 30+20 = 50%.
+      await dragHandle(box, 'top', 0, 300, 0, -600);
+
+      const committedTop = parseFloat(box.style.top);
+      const committedHeight = parseFloat(box.style.height);
+
+      expect(committedTop).toBeGreaterThanOrEqual(0);
+      expect(committedTop + committedHeight).toBeCloseTo(50, 5);
+    });
+
+    it('top-left corner resize with a large outward drag keeps both left >= 0 and top >= 0 (box stays on page)', async () => {
+      const box = await setupSelectedWhiteoutBox();
+
+      await dragHandle(box, 'top-left', 300, 300, -200, -600);
+
+      const committedLeft = parseFloat(box.style.left);
+      const committedTop = parseFloat(box.style.top);
+
+      expect(committedLeft).toBeGreaterThanOrEqual(0);
+      expect(committedTop).toBeGreaterThanOrEqual(0);
+    });
+
+    it('sanity: right-handle resize still grows the box normally and never moves left/top', async () => {
+      const box = await setupSelectedWhiteoutBox();
+
+      // Modest +50px (10%) growth, well within bounds — no clamp should
+      // engage at all, on either the old or fixed code path.
+      await dragHandle(box, 'right', 0, 0, 50, 0);
+
+      expect(parseFloat(box.style.left)).toBeCloseTo(20);
+      expect(parseFloat(box.style.top)).toBeCloseTo(30);
+      expect(parseFloat(box.style.width)).toBeCloseTo(40);
+      expect(parseFloat(box.style.height)).toBeCloseTo(20);
+    });
+
+    it('whiteout uses the floating toolbar delete control instead of the overlapping red corner delete button', async () => {
+      const box = await setupSelectedWhiteoutBox();
+
+      expect(box.hasAttribute('data-editor-shape')).toBe(true);
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`)).toBeNull();
+      expect(box.querySelector('[data-editor-resizer="top-right"]')).not.toBeNull();
+
+      const toolbarDelete = box.querySelector('[data-editor-actions] button[title="Delete element"]');
+      expect(toolbarDelete).not.toBeNull();
+    });
+
+    it('blackout boxes render the 8 resize handles and keep the remove button reachable inside the box', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      const box = container.querySelector(`.${REDACT_BOX}`);
+      expect(box).not.toBeNull();
+
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+
+      expect(box.hasAttribute('data-editor-shape')).toBe(true);
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`)).not.toBeNull();
+      expect(box.querySelector(`.${REDACT_BOX_RESIZER}`)).toBeNull();
+      expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`).style.top).toBe('8px');
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`).style.right).toBe('8px');
+    });
+
+    it('blur boxes also render the 8 resize handles and keep the remove button reachable inside the box', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+
+      const blurBtn = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+        .find((btn) => btn.textContent.includes('Blur'));
+      await act(async () => {
+        blurBtn.click();
+      });
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      const box = container.querySelector(`.${REDACT_BOX}`);
+      expect(box).not.toBeNull();
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`)).not.toBeNull();
+      expect(box.querySelector(`.${REDACT_BOX_RESIZER}`)).toBeNull();
+
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+
+      expect(box.hasAttribute('data-editor-shape')).toBe(true);
+      expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`).style.top).toBe('8px');
+      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`).style.right).toBe('8px');
+    });
+
+    // --- E1.5: generalize the whiteout-resize post-mortem's three gesture
+    // invariants (TODO.md) to this second, independent implementation of the
+    // same math (handleBoxResizeStart/handleBoxDragStart in PdfRedactTool.tsx
+    // — see its own comment there noting it mirrors DraggableWrapper.tsx's
+    // handleResizeMove; CLAUDE.md Part II's E4.3 backlog item is to converge
+    // these two copies, which is exactly why this file needs its own
+    // coverage rather than relying on the Sign tool's tests). Move already
+    // has basic coverage above ("drags an existing box..."); these add the
+    // move width/height-untouched invariant plus the zero-delta no-op. ---
+    it('move: dragging the box body by a delta leaves width/height untouched (E1.5 move invariant)', async () => {
+      const box = await setupSelectedWhiteoutBox();
+      const startWidth = parseFloat(box.style.width);
+      const startHeight = parseFloat(box.style.height);
+
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 100, bubbles: true })); // +10% / +10%
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      });
+
+      expect(parseFloat(box.style.left)).toBeCloseTo(30); // 20 + 10
+      expect(parseFloat(box.style.top)).toBeCloseTo(40); // 30 + 10
+      expect(parseFloat(box.style.width)).toBeCloseTo(startWidth);
+      expect(parseFloat(box.style.height)).toBeCloseTo(startHeight);
+    });
+
+    it('a zero-delta resize commits exactly the start geometry, with no drift (E1.5 zero-delta invariant)', async () => {
+      const box = await setupSelectedWhiteoutBox();
+      const startLeft = parseFloat(box.style.left);
+      const startTop = parseFloat(box.style.top);
+      const startWidth = parseFloat(box.style.width);
+      const startHeight = parseFloat(box.style.height);
+
+      await dragHandle(box, 'bottom-right', 200, 200, 200, 200);
+
+      expect(parseFloat(box.style.left)).toBeCloseTo(startLeft);
+      expect(parseFloat(box.style.top)).toBeCloseTo(startTop);
+      expect(parseFloat(box.style.width)).toBeCloseTo(startWidth);
+      expect(parseFloat(box.style.height)).toBeCloseTo(startHeight);
+    });
+  });
+
+  // E1.5: blackout and blur became resizable in commit 274b293 — previously a
+  // single corner dot, now the full 8-handle ElementResizers on the same
+  // handleBoxResizeStart path as whiteout. The regression block above exercises
+  // that math through whiteout, but E1.5 mandates the three gesture invariants
+  // for EVERY resizable type. handleBoxResizeStart does not branch on el.style,
+  // so a failure here would mean the render layer forked the resize path per
+  // style. Same realistic 500x1000 mocked wrapper (via loadFileAndGetDrawArea).
+  describe('blackout/blur resize invariants (E1.5)', () => {
+    async function setupSelectedBox(styleLabel) {
+      const drawArea = await loadFileAndGetDrawArea();
+      if (styleLabel) {
+        const btn = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+          .find((b) => b.textContent.includes(styleLabel));
+        await act(async () => {
+          btn.click();
+        });
+      }
+      // left=20%, top=30%, width=30%, height=20% on the 500x1000 wrapper.
+      await drawBox(drawArea, 100, 300, 250, 500);
+      const box = container.querySelector(`.${REDACT_BOX}`);
+      expect(box).not.toBeNull();
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+      return box;
+    }
+
+    async function dragHandle(box, handleClass, downX, downY, moveX, moveY) {
+      const handle = box.querySelector(`[data-editor-resizer="${handleClass}"]`);
+      expect(handle).not.toBeNull();
+      await act(async () => {
+        handle.dispatchEvent(new MouseEvent('mousedown', { clientX: downX, clientY: downY, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: moveX, clientY: moveY, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+    }
+
+    // blackout is the default mode (no button click); blur is selected via its toolbar button.
+    for (const { label, styleLabel } of [
+      { label: 'blackout', styleLabel: null },
+      { label: 'blur', styleLabel: 'Blur' },
+    ]) {
+      describe(label, () => {
+        it('anchor: left-handle outward drag keeps left >= 0 and preserves the anchored right edge', async () => {
+          const box = await setupSelectedBox(styleLabel);
+          // -200px on the left handle from clientX 300 = a large outward drag.
+          await dragHandle(box, 'left', 300, 0, -200, 0);
+          const left = parseFloat(box.style.left);
+          const width = parseFloat(box.style.width);
+          expect(left).toBeGreaterThanOrEqual(0);
+          expect(left + width).toBeCloseTo(50, 5); // startLeft(20) + startWidth(30)
+        });
+
+        it('anchor: top-handle outward drag keeps top >= 0 and preserves the anchored bottom edge', async () => {
+          const box = await setupSelectedBox(styleLabel);
+          await dragHandle(box, 'top', 0, 300, 0, -600);
+          const top = parseFloat(box.style.top);
+          const height = parseFloat(box.style.height);
+          expect(top).toBeGreaterThanOrEqual(0);
+          expect(top + height).toBeCloseTo(50, 5); // startTop(30) + startHeight(20)
+        });
+
+        it('move: dragging the box body leaves width/height untouched', async () => {
+          const box = await setupSelectedBox(styleLabel);
+          const startWidth = parseFloat(box.style.width);
+          const startHeight = parseFloat(box.style.height);
+          await act(async () => {
+            box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+          });
+          await act(async () => {
+            window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 100, bubbles: true })); // +10% / +10%
+          });
+          await act(async () => {
+            window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+          });
+          expect(parseFloat(box.style.left)).toBeCloseTo(30); // 20 + 10
+          expect(parseFloat(box.style.top)).toBeCloseTo(40); // 30 + 10
+          expect(parseFloat(box.style.width)).toBeCloseTo(startWidth);
+          expect(parseFloat(box.style.height)).toBeCloseTo(startHeight);
+        });
+
+        it('zero-delta resize commits exactly the start geometry', async () => {
+          const box = await setupSelectedBox(styleLabel);
+          const startLeft = parseFloat(box.style.left);
+          const startTop = parseFloat(box.style.top);
+          const startWidth = parseFloat(box.style.width);
+          const startHeight = parseFloat(box.style.height);
+          await dragHandle(box, 'bottom-right', 200, 200, 200, 200);
+          expect(parseFloat(box.style.left)).toBeCloseTo(startLeft);
+          expect(parseFloat(box.style.top)).toBeCloseTo(startTop);
+          expect(parseFloat(box.style.width)).toBeCloseTo(startWidth);
+          expect(parseFloat(box.style.height)).toBeCloseTo(startHeight);
+        });
+      });
+    }
+  });
+
+  // Same load as loadFileAndGetDrawArea, minus the trailing armTool('Blackout').
+  // Most tests in this file want a box on the page and don't care which tool
+  // starts selected, so loadFileAndGetDrawArea arms Blackout for them. The tests
+  // below are specifically about the *resting* state before anything is armed
+  // (nothing was ever true before E9's arming model - a style, 'delete', used to
+  // be permanently selected from the moment a file loaded), so they need the
+  // load without that convenience.
+  async function loadFileWithoutArming(file = makePdfFile('unarmed.pdf')) {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfRedactTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [file]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const drawArea = container.querySelector('.redact-draw-area');
+    drawArea.getBoundingClientRect = () => ({
+      left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
+    });
+    return drawArea;
+  }
+
+  function findToolButton(label) {
+    return Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
+      .find((b) => b.textContent.includes(label));
+  }
+
+  // The mobile scroll fix itself (see the touchAction comment in
+  // PdfRedactTool.tsx's page-wrapper style, and CLAUDE.md's "Sign editor
+  // positioning" notes for the sibling Sign-tool pattern this mirrors). Before
+  // E9 a style was armed from the moment a file loaded, so this inline style
+  // was unconditionally 'none' and a phone could never scroll a redact page at
+  // all. This is a real inline style attribute, not a computed cascade value,
+  // so unlike most CSS in this codebase it's fully assertable under jsdom.
+  describe('touch-action follows tool arming (mobile scroll fix)', () => {
+    it('is auto (page scrolls) when a file first loads, before any tool is armed', async () => {
+      const drawArea = await loadFileWithoutArming();
+      expect(drawArea.style.touchAction).toBe('auto');
+    });
+
+    it('is none while Blackout is armed, so a drag draws instead of scrolling', async () => {
+      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout
+      expect(drawArea.style.touchAction).toBe('none');
+    });
+
+    it('is none while Whiteout is armed', async () => {
+      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout first
+      await armTool('Whiteout'); // switches the armed tool
+      expect(drawArea.style.touchAction).toBe('none');
+    });
+
+    it('is none while Blur is armed', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await armTool('Blur');
+      expect(drawArea.style.touchAction).toBe('none');
+    });
+
+    it('returns to auto once a drawn box commits and the one-shot tool disarms itself', async () => {
+      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout, unlocked
+      expect(drawArea.style.touchAction).toBe('none');
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      expect(drawArea.style.touchAction).toBe('auto');
+    });
+
+    it('stays auto while Delete is armed, since Delete places by tap and never owns the drag gesture', async () => {
+      const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+      const fixtureBytes = fs.readFileSync(fixturePath);
+      const drawArea = await loadFileAndGetDrawArea(
+        new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
+      );
+
+      await armTool('Delete');
+
+      expect(drawArea.style.touchAction).toBe('auto');
+    });
+  });
+
+  describe('one-shot tool arming', () => {
+    it('does not draw a second box after the first commits without re-arming', async () => {
+      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout, unlocked
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+
+      // Same gesture, nothing re-armed in between: handlePointerDown bails out
+      // immediately because activeStyle is back to null.
+      await drawBox(drawArea, 60, 220, 220, 520);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+    });
+
+    it('draws a second box once the tool is re-armed', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+    });
+
+    // A drag that never actually moved the pointer draws nothing (width/height
+    // <= 1), and must not have spent the one placement - otherwise a mistimed
+    // tap would silently disarm the tool and the next real drag would do
+    // nothing at all. See the "commit" comment in PdfRedactTool.tsx.
+    it('a drag that draws nothing does not spend the arming', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+
+      await drawBox(drawArea, 50, 200, 50, 200); // zero-delta drag, no box
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+      expect(drawArea.style.touchAction).toBe('none'); // still armed
+
+      await drawBox(drawArea, 50, 200, 200, 500); // now actually draw
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+    });
+  });
+
+  describe('locking a tool on with a double click', () => {
+    it('keeps the tool armed across two drawn boxes and marks the button locked', async () => {
+      const drawArea = await loadFileWithoutArming();
+
+      await armTool('Blackout', { lock: true });
+      const blackoutBtn = findToolButton('Blackout');
+      expect(blackoutBtn.className).toContain(toolbarStyles.locked);
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      // The lock survived the commit - still locked, no re-arm needed for the
+      // second box.
+      expect(blackoutBtn.className).toContain(toolbarStyles.locked);
+
+      await drawBox(drawArea, 60, 220, 220, 520);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+    });
+  });
+
+  describe('status line "Keep <tool> on" / "Turn <tool> off" chip', () => {
+    // Scoped to the toolbar's own help/status line, not just any [role="status"]
+    // - the sr-only announcement region at the top of PdfRedactTool.tsx has the
+    // same role for its own, unrelated reason (live-announcing text changes).
+    const statusChip = () => container.querySelector(`.${toolbarStyles.help}[role="status"] button`);
+
+    it('names the armed tool rather than the action, and locks it on when clicked', async () => {
+      await loadFileAndGetDrawArea(); // arms Blackout, unlocked
+      expect(statusChip().textContent).toContain('Keep Blackout on');
+      expect(statusChip().getAttribute('aria-checked')).toBe('false');
+
+      await act(async () => {
+        statusChip().click();
+      });
+
+      expect(statusChip().getAttribute('aria-checked')).toBe('true');
+      expect(findToolButton('Blackout').className).toContain(toolbarStyles.locked);
+    });
+
+    // Redact is why the chip cannot use a bare verb: this tool takes a run out
+    // of the file, so the old "Keep adding" label described the opposite of
+    // what pressing it would do.
+    it('does not describe the Delete tool as adding anything', async () => {
+      await loadFileWithoutArming();
+      await armTool('Delete');
+      expect(statusChip().textContent).toContain('Keep Delete on');
+      expect(statusChip().textContent).not.toContain('adding');
+    });
+
+    it('returns a locked tool to one at a time, and stays on screen to be undone', async () => {
+      await loadFileWithoutArming();
+      await armTool('Blackout', { lock: true });
+      expect(statusChip().getAttribute('aria-checked')).toBe('true');
+
+      await act(async () => {
+        statusChip().click();
+      });
+
+      // Still armed, still here. Switching off is the inverse of switching on,
+      // not a way out of the tool - so the switch cannot delete itself from
+      // under the pointer, and a mis-tap is one tap from being undone.
+      expect(statusChip()).not.toBeNull();
+      expect(statusChip().getAttribute('aria-checked')).toBe('false');
+      expect(findToolButton('Blackout').className).not.toContain(toolbarStyles.locked);
+      expect(findToolButton('Blackout').className).toContain(toolbarStyles.active);
+    });
+
+    // Leaving the tool entirely is a statement about the tool, so it is made at
+    // the tool - or with Escape. That path is what restores page scrolling.
+    it('leaves stopping entirely to Escape and the tool button', async () => {
+      const drawArea = await loadFileWithoutArming();
+      await armTool('Blackout', { lock: true });
+      expect(drawArea.style.touchAction).toBe('none');
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      });
+
+      expect(container.querySelector(`.${toolbarStyles.help}[role="status"]`)).toBeNull();
+      expect(drawArea.style.touchAction).toBe('auto');
+    });
+  });
+
+  // These buttons used to carry a native `title` for the action plus a
+  // separate ArmHint bubble for the double-click shortcut, which could both be
+  // showing on hover at once, on two different delays. One bubble now covers
+  // both, reached the accessible way (aria-describedby) rather than `title`.
+  // ArmHint portals its bubble to `document.body` (see ArmHint.tsx - `.toolbar`'s
+  // container-type clips anything overflowing it), so these look it up through
+  // `document`, not `container`. Opened by focus rather than hover: Floating
+  // UI's useFocus opens with no artificial delay, where useHover's 500ms would
+  // need fake timers here for no real gain, and focus is also the path a
+  // keyboard user actually takes.
+  describe('tool button hint bubble', () => {
+    it('has no native title, and its hint carries both the action and the shortcut', async () => {
+      await loadFileWithoutArming();
+      const deleteBtn = findToolButton('Delete');
+      expect(deleteBtn.hasAttribute('title')).toBe(false);
+
+      await act(async () => {
+        deleteBtn.focus();
+      });
+
+      const describedBy = deleteBtn.getAttribute('aria-describedby');
+      expect(describedBy).toBeTruthy();
+      const hint = document.getElementById(describedBy);
+      expect(hint.textContent).toContain('Click a highlighted image or text run to delete it');
+      expect(hint.textContent).toContain('Double-click to keep Delete on');
+    });
+
+    it('drops the hint and its aria-describedby once the tool is locked', async () => {
+      await loadFileWithoutArming();
+      await armTool('Delete', { lock: true });
+
+      const deleteBtn = findToolButton('Delete');
+      await act(async () => {
+        deleteBtn.focus();
+      });
+
+      expect(deleteBtn.hasAttribute('aria-describedby')).toBe(false);
+      expect(document.querySelector(`.${toolbarStyles.hint}`)).toBeNull();
+    });
+  });
+
+  describe('Escape disarms the tool', () => {
+    it('disarms a one-shot armed tool and restores scrolling', async () => {
+      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout
+      expect(drawArea.style.touchAction).toBe('none');
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      });
+
+      expect(container.querySelector(`.${toolbarStyles.help}[role="status"]`)).toBeNull();
+      expect(drawArea.style.touchAction).toBe('auto');
+    });
+
+    it('disarms a locked tool too', async () => {
+      const drawArea = await loadFileWithoutArming();
+      await armTool('Blackout', { lock: true });
+      expect(drawArea.style.touchAction).toBe('none');
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      });
+
+      expect(container.querySelector(`.${toolbarStyles.help}[role="status"]`)).toBeNull();
+      expect(drawArea.style.touchAction).toBe('auto');
+    });
+  });
+});

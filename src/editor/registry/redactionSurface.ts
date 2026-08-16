@@ -34,7 +34,7 @@ export function renderRedactionSurface(kind: 'blackout' | 'blur' | 'whiteout', c
  * element - deliberately not identical to renderRedactionSurface's committed
  * look (translucent, dashed, reads as "not final yet"), but the same module
  * should decide that for every type. This used to be a second copy living in
- * PdfRedactTool.jsx that re-derived fill/blur/border from `drawingState.type`
+ * PdfRedactTool.tsx that re-derived fill/blur/border from `drawingState.type`
  * with its own raw color literals, in the one file the sole-owner comment
  * above does not reach.
  */

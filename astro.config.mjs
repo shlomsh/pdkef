@@ -57,7 +57,7 @@ export default defineConfig({
         '@pdf-lib/fontkit',
         'pdfjs-dist',
         '@floating-ui/react',
-        // Reached only from an island: SignatureDialog.jsx (signature_pad) and
+        // Reached only from an island: SignatureDialog.tsx (signature_pad) and
         // every icon call site (lucide-preact), neither of which Vite's startup
         // crawl of the .astro entry points can see.
         'signature_pad',

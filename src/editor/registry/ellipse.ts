@@ -2,7 +2,7 @@ import type { ElementDefinition } from './types.ts';
 import type { EllipseElement } from '../../lib/editorModel.ts';
 import { h } from 'preact';
 import { rgb } from '@cantoo/pdf-lib';
-import ShapeNode from '../../components/SignTool/nodes/ShapeNode.jsx';
+import ShapeNode from '../../components/SignTool/nodes/ShapeNode.tsx';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { applyBoxResize } from './boxResize.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';

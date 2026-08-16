@@ -2,7 +2,7 @@ import type { ElementDefinition } from './types.ts';
 import type { TextElement } from '../../lib/editorModel.ts';
 import { h } from 'preact';
 import { rgb } from '@cantoo/pdf-lib';
-import TextNode from '../../components/SignTool/nodes/TextNode.jsx';
+import TextNode from '../../components/SignTool/nodes/TextNode.tsx';
 import { hasNumber, hasString, isRecord } from './schema.ts';
 import { COMB_MIN_CELL_EM, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
 import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM } from '../../constants/signGeometry.js';

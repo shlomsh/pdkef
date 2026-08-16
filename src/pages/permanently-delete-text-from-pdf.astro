@@ -1,0 +1,93 @@
+---
+import ContentPageLayout from '../layouts/ContentPageLayout.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import CardDecor from '../components/CardDecor.astro';
+import { Trash2, Droplets } from 'lucide-preact';
+
+const title = 'Permanently Delete Text From a PDF | PDkef';
+const description =
+  'Actually remove text or an image from a PDF, not just cover it with a black box. Click the word or image you want gone and it is deleted from the file itself, for free and entirely in your browser.';
+
+const faq = [
+  {
+    question: 'How is this different from drawing a black box over the text?',
+    answer: "A black box (or a blurred one) sits on top of the page and hides what's underneath from view, but the original text is often still there in the file and can sometimes be copied or recovered. Delete works differently: it removes the text or image itself from the page, so there's nothing left underneath to recover.",
+  },
+  {
+    question: 'Does deleting one word or image affect the rest of the page?',
+    answer: 'No. Only what you click on is removed. Everything else on the page stays exactly as it was, including any other text, which stays real and selectable rather than being turned into a picture of itself.',
+  },
+  {
+    question: 'Can I undo a deletion before I download the file?',
+    answer: "Yes. Every deletion is tracked in the toolbar's history, so you can undo it at any point before you download the finished PDF.",
+  },
+  {
+    question: 'I want to hide something rather than delete it. Can I do that here too?',
+    answer: 'Yes. The same tool also has a Blackout and a Blur mode, for when you want to cover something like a photo or a signature rather than remove it outright.',
+  },
+  {
+    question: 'Are my PDF files uploaded anywhere?',
+    answer: 'No. This runs entirely in your browser. Your file is never uploaded, never sent over the network, and never stored anywhere outside your own device.',
+  },
+];
+---
+
+<ContentPageLayout
+  title={title}
+  description={description}
+  breadcrumb="Delete from PDF"
+  icon={Trash2}
+  kicker="True deletion, not a cover-up"
+  h1="Permanently Delete Text From a PDF"
+  subhead="Click the word, sentence, or image you want gone, and it's removed from the file itself, not just covered by a box on top of it. Everything else on the page stays untouched, real text included."
+  primaryCta={{ href: '/redact/', label: 'Delete text from a PDF' }}
+  faq={faq}
+>
+  <FeatureCard class="relative isolate overflow-hidden">
+    <CardDecor sketch="grid" icon={Trash2} iconPos="tr" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Why it matters</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">A black box is not the same as deleting something</h2>
+    <p class="mb-4 mt-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      A lot of "redaction" tools just paint a rectangle over the sensitive part of the page. That can look finished, but
+      the original text often hasn't gone anywhere, it's just hidden underneath, and depending on the tool it can
+      sometimes still be selected, copied, or extracted from the file.
+    </p>
+    <p class="m-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      Delete does the more literal thing: it removes the text or image operation from the page itself. There's no
+      hidden layer to recover, because there's nothing left underneath, and because only that one piece is touched, the
+      rest of the page stays real, selectable text instead of being turned into a flattened image.
+    </p>
+  </FeatureCard>
+
+  <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+    <CardDecor sketch="rings" icon={Trash2} iconPos="br" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Three steps</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Delete text or an image from a PDF</h2>
+    <ol class="m-0 flex list-none flex-col gap-5 p-0">
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Open the <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/redact/">Redact tool</a></strong> and choose or drag in your PDF.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Select the Delete tool,</strong> then click any highlighted text run or image you want removed from the file.</span>
+      </li>
+      <li class="flex items-start gap-4">
+        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Download the PDF.</strong> The deleted content is gone from the file, and everything else stays exactly as it was.</span>
+      </li>
+    </ol>
+  </FeatureCard>
+
+  <FeatureCard class="relative isolate overflow-hidden">
+    <CardDecor sketch="waves" icon={Droplets} iconPos="cl" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Prefer to hide it instead?</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Blackout and blur are in the same tool</h2>
+    <p class="m-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      Deletion is the right call when you want something genuinely gone. Sometimes you'd rather just cover it, a photo,
+      a signature, a block of a scanned document, without needing it removed as cleanly. The same
+      <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/redact/">Redact tool</a>
+      also has Blackout and Blur modes for exactly that, both flattening the page afterward so nothing underneath can be recovered either.
+    </p>
+  </FeatureCard>
+</ContentPageLayout>

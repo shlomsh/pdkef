@@ -8,14 +8,14 @@ Guidance for working in the repo (commands, invariants, the design standard, bra
 [CLAUDE.md](./CLAUDE.md). [README.md](./README.md) is the human-facing project landing page.
 
 **The hard constraint on every task, unchanged: no file bytes ever leave the device.** No `fetch`/`XHR`
-of PDF contents, no third-party API, no server. `PdfMergeTool.jsx` + `src/lib/merge.js` remain the
+of PDF contents, no third-party API, no server. `PdfMergeTool.tsx` + `src/lib/merge.js` remain the
 reference implementation of a finished tool.
 
 ---
 
 ## Open work
 
-Five items. Nothing structural is outstanding; see "Migration status" below for why.
+Four items. Nothing structural is outstanding; see "Migration status" below for why.
 
 ### Launch / SEO
 
@@ -42,22 +42,28 @@ Neither is blocked by anything technical.
   blackout/blur/whiteout already preview accurately and cheaply via their overlay div. Delete is the one
   mode where looking right requires the object to actually be absent rather than covered.
 
-### Code quality
-
-- **Type the interactive shell (`.jsx` → `.tsx`).** `src/components` is 50 `.jsx` and 0 `.tsx`;
-  `src/lib` is 34 `.js` to 2 `.ts`. This is the one real gap against the standard's promise that "the
-  compiler catches breakage at edit time in an unrelated tool." **Explicitly optional** and not a
-  blocker: most of that value was already captured by making the registry seam generic over the element
-  union. Large effort, diffuse benefit. Do it gradually if at all.
-
 ### Known small defects
 
-- **`.list-hint` is dead CSS still in `global.css`** (5 lines, zero consumers). A closed ticket claims
-  it was "removed after its zero-consumer check", but no commit ever touched it. Safe to delete.
-- **`useEditorDraftPersistence.js`** is the single `.js` file in an otherwise 27-file all-TypeScript
-  `src/editor` core.
-- **`ElementToolbar.jsx` still has 5 `element.type ===` branches** deciding which controls to show,
-  plausibly the last per-type branching the registry could own. On no ticket; noted as an observation.
+- ~~`.list-hint` is dead CSS still in `global.css`~~ **Fixed.** Deleted the 5 dead lines, and the stale
+  "left alone" comment in `FileList.module.css` that referenced it.
+- ~~`useEditorDraftPersistence.js`~~ **Fixed.** Converted to `.ts`; `src/editor` is now 28 TypeScript
+  files to 0 JavaScript.
+- ~~Type the interactive shell (`.jsx` → `.tsx`)~~ **Fixed.** All 50 `src/components` files (plus their
+  27 test files) are now `.tsx`, with light types rather than a deep interface pass per file (props as
+  inline object types, `any` for still-undocumented domain shapes like editor elements and action-history
+  entries, typed `useRef`/`useState` generics). `npm run typecheck` (`astro check`) went from the
+  878-error baseline this produced to 0; every other guard (tests, build, CSP, SEO, CSS, gesture golden
+  rule, page weight, e2e) stayed green throughout. `src/lib` (34 `.js` to 2 `.ts`) is intentionally out of
+  scope for this pass - a separate, smaller gap.
+- **`ElementToolbar.jsx` still has 5 `element.type ===` branches** deciding which controls to show.
+  Investigated: not a good fit for the registry after all. Four of the five (text/symbol/signature/
+  whiteout) are genuinely per-type and could move into registry modules, but the shape branch
+  (`isDrawnShape || isLine`) renders a switcher *between* ellipse/rectangle/line - clicking "Line"
+  while a rectangle is selected converts its geometry and reassigns `element.type`. That control
+  inherently needs to know about sibling types, which is the opposite of what the registry buys
+  (files that don't know about each other). Forcing it in means duplicating the switcher three times
+  or inventing a "type family" concept that exists nowhere else. Left as-is; not worth the complexity
+  it would add.
 
 ---
 
@@ -81,16 +87,16 @@ rather than the ticket list:
 
 **Ground-truth evidence, not ticket status:**
 
-- `global.css` is 436 lines, and its only two class selectors are `.sr-only` (a legitimate global a11y
-  utility) and the dead `.list-hint`. Everything else is `@theme`/`:root` tokens, `@font-face`, and four
-  element rules. That is the "tokens as the only global CSS" target, reached. 22 CSS Modules carry what
-  the monolith did.
+- `global.css` is 430 lines, and its only class selector is `.sr-only` (a legitimate global a11y
+  utility). Everything else is `@theme`/`:root` tokens, `@font-face`, and four element rules. That is
+  the "tokens as the only global CSS" target, reached. 22 CSS Modules carry what the monolith did.
 - `git grep` for the resize anchor-cap fingerprint returns exactly one file,
   `src/editor/registry/boxResize.ts`.
 - The registry covers all 9 element types with `{ create, render, resizeBehavior, serialize, schema }`.
-- `src/editor` is 27 TypeScript files to 1 JavaScript.
+- `src/editor` is 28 TypeScript files to 0 JavaScript, and `src/components` is 77 TypeScript files
+  (50 source + 27 test) to 0 JavaScript/JSX.
 - All guards green: CSP hashes, SEO invariants, class resolution, editor-CSS ratchet, CSS duplication,
-  page weight (40,411 / 48,000 bytes brotli on the worst page), gesture golden rule, and e2e.
+  page weight (40,510 / 48,000 bytes brotli on the worst page), gesture golden rule, typecheck, and e2e.
 
 ## Landed structural wins: do not reopen these
 

@@ -22,7 +22,7 @@ import { MAX_COMB_CELLS } from '../constants/signGeometry.js';
  * True for a text element currently laid out as a comb. Derived from `width`
  * rather than a separate flag: dragging a side handle is the only way `width`
  * ever gets set on text, and clearing it (a font-size change - see
- * useElementResize.js/ElementToolbar.jsx) is the only way it's ever unset, so
+ * useElementResize.js/ElementToolbar.tsx) is the only way it's ever unset, so
  * the two are always in lockstep. A standalone boolean would just be a second
  * place for that same fact to go stale.
  */

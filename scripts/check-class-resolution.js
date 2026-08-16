@@ -28,7 +28,7 @@ const srcDir = path.join(__dirname, '..', 'src');
  * what this checks, reading the source rather than the output. It needs no build,
  * which is why it runs first in `npm run test:css`.
  *
- * Scope: `.jsx` under src/ (excluding tests). The `.astro` surface is Tailwind's and
+ * Scope: `.tsx` under src/ (excluding tests). The `.astro` surface is Tailwind's and
  * is already covered by check-dead-utilities.js against the built HTML.
  */
 
@@ -36,8 +36,8 @@ const srcDir = path.join(__dirname, '..', 'src');
 // Every entry must name its consumer, and "it looked unused" is not a reason - if the
 // class has a rule in some .module.css, the bug is a missing import, not a hook.
 const allowedClasses = new Map([
-  ['tool-workspace', 'layout hook; queried by PdfSplitTool.test.jsx'],
-  ['redact-draw-area', 'gesture-surface hook; queried by PdfRedactTool.test.jsx and e2e/redact/redact-editor.spec.js. Its appearance comes from the page-wrapper module class beside it'],
+  ['tool-workspace', 'layout hook; queried by PdfSplitTool.test.tsx'],
+  ['redact-draw-area', 'gesture-surface hook; queried by PdfRedactTool.test.tsx and e2e/redact/redact-editor.spec.js. Its appearance comes from the page-wrapper module class beside it'],
   ['redact-drawing-preview', 'selector hook; queried by e2e/redact/redact-editor.spec.js. Its visuals are inline geometry'],
 ]);
 
@@ -99,7 +99,7 @@ const lineOf = (source, index) => source.slice(0, index).split('\n').length;
 const problems = [];
 
 for (const file of allFiles) {
-  if (!file.endsWith('.jsx') || isTest(file)) continue;
+  if (!file.endsWith('.tsx') || isTest(file)) continue;
   const source = fs.readFileSync(file, 'utf8');
   const rel = path.relative(path.join(__dirname, '..'), file);
 
@@ -167,4 +167,4 @@ if (problems.length > 0) {
   process.exit(1);
 }
 
-console.log('Class-resolution check passed: every literal class string in src/**/*.jsx resolves to CSS.');
+console.log('Class-resolution check passed: every literal class string in src/**/*.tsx resolves to CSS.');

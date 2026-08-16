@@ -1,6 +1,6 @@
 import { MAX_SYMBOL_SIGNATURE_WIDTH_PCT, MIN_STANDARD_WIDTH_PCT } from '../../constants/signGeometry.js';
 import { h } from 'preact';
-import SignatureNode from '../../components/SignTool/nodes/SignatureNode.jsx';
+import SignatureNode from '../../components/SignTool/nodes/SignatureNode.tsx';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { tintImageDataUrl } from '../../lib/signHelpers.js';
 import { percentToPoints } from '../../lib/coords.js';
