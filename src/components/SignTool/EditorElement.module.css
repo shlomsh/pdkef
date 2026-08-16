@@ -9,7 +9,8 @@
    so the strip only stole clicks: it made every element claim the 44px above
    itself, and since siblings share z-index 1, a later-placed element below
    would win a click aimed at the element above it. */
-.element::after { content: ''; position: absolute; inset: -10px; z-index: -1; }
+.element::after { content: ''; position: absolute; inset: -4px; z-index: -1; }
+.element.active::after { inset: -10px; }
 .actions { position: absolute; top: -44px; left: 0; display: flex; align-items: center; gap: 4px; background: var(--color-text); color: var(--color-surface); padding: 4px 6px; border-radius: var(--radius-sm); box-shadow: var(--shadow-md); z-index: 10; opacity: 0; pointer-events: none; transition: opacity .15s ease; white-space: nowrap; }
 .element.active .actions { opacity: 1; pointer-events: auto; }
 .text-display { display: grid; position: relative; align-items: start; justify-items: start; color: #000; line-height: 1.05; }
@@ -65,4 +66,4 @@
 .line > svg { pointer-events: none; }
 .line .line-handle { opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility .2s ease; border-radius: 0; }
 .line.active .line-handle, .line:hover .line-handle { opacity: 1; visibility: visible; }
-@media (pointer: coarse) { .element::after { inset: -16px; } .resizer::before { content: ''; position: absolute; inset: -14px; } }
+@media (pointer: coarse) { .element::after { inset: -8px; } .element.active::after { inset: -16px; } .resizer::before { content: ''; position: absolute; inset: -14px; } }

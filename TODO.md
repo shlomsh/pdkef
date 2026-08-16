@@ -15,16 +15,12 @@ reference implementation of a finished tool.
 
 ## Open work
 
-Nine items. Nothing structural is outstanding; see "Migration status" below for why.
+Five items. Nothing structural is outstanding; see "Migration status" below for why.
 
 ### Launch / SEO
 
-These cluster around the domain cutover and are not blocked by anything technical.
+Neither is blocked by anything technical.
 
-- **Pre-launch real domain swap.** `astro.config.mjs`'s `site` plus sitemap/canonical still carry the
-  `pdkef.vercel.app` placeholder. Re-verify canonical and OG tags after the swap.
-- **Homepage hub link check.** A recurring guard rather than a one-off: confirm no tool card points at a
-  `noindex` route.
 - **Long-tail landing pages.** `/sign-pdf-no-signup`, `/offline-pdf-form-filler`,
   `/open-source-pdf-editor`.
 - **OS-specific how-to guides**, internally linking into the tools. No outbound promo links.
@@ -45,8 +41,6 @@ These cluster around the domain cutover and are not blocked by anything technica
   `pdfDocument`, so only the affected canvas swaps; (3) scope to `type:'delete'` only, since
   blackout/blur/whiteout already preview accurately and cheaply via their overlay div. Delete is the one
   mode where looking right requires the object to actually be absent rather than covered.
-- **Verify the Redact mobile toolbar on a real narrow viewport.** Not unfinished work: the code landed
-  (shared toolbar CSS, structure-agnostic mobile flex rule) but was never visually confirmed on a device.
 
 ### Code quality
 
@@ -63,12 +57,6 @@ These cluster around the domain cutover and are not blocked by anything technica
   blocks, popover sizing in `SignToolbar`/`ThicknessPickerMenu`, three `SignatureDialog` flex rows, and
   four bare `color: var(--color-muted)` declarations. **None is a CSP risk** - Preact routes object
   `style` props through per-key `setProperty`, which `style-src` does not govern.
-
-### Standing
-
-- **Keep the docs in sync.** Update CLAUDE.md and this file as work lands. This is the ticket that was
-  open while three separate backlogs drifted; the consolidation into one file is the structural fix, but
-  it only holds if closing work updates this file.
 
 ### Known small defects
 
@@ -93,8 +81,8 @@ rather than the ticket list:
 | E2 | Kill the global CSS monolith | 6/6 |
 | E3 | Tailwind on the static surface | 8/8 |
 | E4 | Headless TS editor core | 5/5 |
-| E5 | Documentation | 3/4 (the standing sync ticket) |
-| E6 | Carried-over launch backlog | 7/13 |
+| E5 | Documentation | 3/3 |
+| E6 | Carried-over launch backlog | 8/11 |
 | E7 | Finish the headless convergence | 7/8 (E7.3 optional) |
 | E8 | Post-assessment cleanup | 20/21 |
 | E9 | Offline-first app shell | 1/1 |
