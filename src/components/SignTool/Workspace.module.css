@@ -2,7 +2,7 @@
    `status === 'editing'` gate), replacing the "Loading PDF document..." text
    with a document of unknown height - a real size jump that can't be sized
    away since we don't know a given PDF's height until it's parsed (see
-   ARCHITECTURE.md's zoom note: one A4 page alone renders ~1863px tall). A fade
+   CLAUDE.md Part II's zoom note: one A4 page alone renders ~1863px tall). A fade
    softens how abrupt that arrival feels without pretending to eliminate it. */
 .workspace { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 100%; margin: 0 auto; gap: var(--space-4); animation: workspace-in 0.2s var(--ease-out); }
 @keyframes workspace-in { from { opacity: 0; } to { opacity: 1; } }

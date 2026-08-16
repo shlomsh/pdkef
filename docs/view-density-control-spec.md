@@ -1,4 +1,12 @@
-# E9 - View density control (Relaxed / Condensed / Full screen)
+# View density control (Relaxed / Condensed / Full screen)
+
+> **Status: landed.** `ViewControl.jsx`, `useViewDensity.js` and their tests are in the tree and wired
+> into both the Sign and Redact toolbars. This is kept as the design record for *why* the control works
+> the way it does, not as a task. Backlog state lives in
+> [TODO.md](../TODO.md).
+>
+> This file used to be named `E9-...`, which collided with the board's unrelated E9 (offline-first app
+> shell). The prefix was dropped; the doc was never a board epic.
 
 Implementation spec. Self-contained: read this plus the files it names, and you
 should not need the conversation that produced it.
@@ -310,7 +318,7 @@ copy is repeated in the About card immediately below, so nothing is unreachable.
 
 ## 5. Copy
 
-Per PRODUCT.md: plain words, no intensifiers, **no em dashes**.
+Per CLAUDE.md's "Product, voice & copy": plain words, no intensifiers, **no em dashes**.
 
 - `aria-label` / `title`: `"Relaxed view"`, `"Condensed view"`, `"Full screen"`.
 - When already in full screen, segment 3's label becomes `"Exit full screen"`

@@ -10,8 +10,8 @@ import TextNode from './nodes/TextNode.jsx';
 import SymbolNode from './nodes/SymbolNode.jsx';
 import SignatureNode from './nodes/SignatureNode.jsx';
 
-// scrum.md E1.5 (post-mortem of the two shipped "element jumps/disappears on
-// resize" regressions — ca411be/ea10349, see ARCHITECTURE.md §5). The whiteout
+// TODO.md (post-mortem of the two shipped "element jumps/disappears on
+// resize" regressions — ca411be/ea10349, see CLAUDE.md Part II §5). The whiteout
 // type already has this coverage (DraggableWrapper.interaction.test.jsx,
 // PdfRedactTool.test.jsx); this file generalizes the three gesture invariants
 // — (1) move changes only position, (2) resize preserves the un-dragged
@@ -180,7 +180,7 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
     // (90) either way, and `100 - newWidth` (=10) would coincidentally look
     // like a "plausible" left value too — the 0x0 rect can't distinguish a
     // correct pinned-left-at-80 result from a buggy clamped-to-10 one, which
-    // is exactly the vacuity ARCHITECTURE.md §5 warns about.
+    // is exactly the vacuity CLAUDE.md Part II §5 warns about.
     it('meta-guard: right-handle growth past the page edge would expose a reintroduced blanket left/top clamp', () => {
       const onChange = vi.fn();
       const element = { id: 'r-meta', type: 'rectangle', left: 80, top: 10, width: 15, height: 15, color: '#000' };

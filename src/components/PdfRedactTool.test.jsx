@@ -628,7 +628,7 @@ describe('PdfRedactTool UI flow', () => {
   // (500x1000, via loadFileAndGetDrawArea's drawArea.getBoundingClientRect
   // override — that draw area IS the resize handler's `wrapper`, since both
   // `sign-page-wrapper` and `redact-draw-area` are classes on one DOM node) as
-  // the existing tests above, per ARCHITECTURE.md §5's "vacuous 0x0-rect
+  // the existing tests above, per CLAUDE.md Part II §5's "vacuous 0x0-rect
   // geometry tests" hazard: an unmocked jsdom rect is 0x0, which turns every
   // pixel delta into +/-Infinity and saturates the MIN/MAX clamp either way,
   // masking exactly this class of bug. With a real 500x1000 rect, the drag
@@ -799,10 +799,10 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     // --- E1.5: generalize the whiteout-resize post-mortem's three gesture
-    // invariants (scrum.md) to this second, independent implementation of the
+    // invariants (TODO.md) to this second, independent implementation of the
     // same math (handleBoxResizeStart/handleBoxDragStart in PdfRedactTool.jsx
     // — see its own comment there noting it mirrors DraggableWrapper.jsx's
-    // handleResizeMove; ARCHITECTURE.md's E4.3 backlog item is to converge
+    // handleResizeMove; CLAUDE.md Part II's E4.3 backlog item is to converge
     // these two copies, which is exactly why this file needs its own
     // coverage rather than relying on the Sign tool's tests). Move already
     // has basic coverage above ("drags an existing box..."); these add the

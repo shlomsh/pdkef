@@ -40,7 +40,7 @@ function SegmentIcon({ segment }) {
   );
 }
 
-// Replaces FullscreenButton in the toolbar, same slot (E9-view-density-control-spec.md
+// Replaces FullscreenButton in the toolbar, same slot (view-density-control-spec.md
 // 2.4). Renders BOTH the >=920px segmented control and the <920px FullscreenButton
 // fallback and lets CSS pick one - no resize listener, no hydration mismatch.
 //

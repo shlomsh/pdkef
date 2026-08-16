@@ -308,7 +308,7 @@ export const tools = [
     slug: 'compress',
     href: '/compress/',
     // One short options card - collapsing the hero buys no space here and
-    // just leaves the page looking sparse (see docs/E9-view-density-control-spec.md 4.7).
+    // just leaves the page looking sparse (see docs/view-density-control-spec.md 4.7).
     condenseOnLoad: false,
     icon: Shrink,
     gridTitle: 'Compress PDF',
@@ -354,7 +354,7 @@ export const tools = [
     slug: 'unlock',
     href: '/unlock/',
     // Same reasoning as compress: one short options card, nothing to gain by
-    // folding the hero (see docs/E9-view-density-control-spec.md 4.7).
+    // folding the hero (see docs/view-density-control-spec.md 4.7).
     condenseOnLoad: false,
     icon: FileLock2,
     gridTitle: 'Protect & Unlock',

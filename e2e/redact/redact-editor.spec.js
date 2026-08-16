@@ -31,7 +31,7 @@ async function makePdfBuffer() {
 
 // Collects the browser's own securitypolicyviolation events (structured,
 // spec-defined, cross-engine) rather than scraping console text — see E1.7
-// in scrum.md. Installed via addInitScript so it's listening before any
+// in TODO.md. Installed via addInitScript so it's listening before any
 // script on the page runs, including the astro-island hydration bootstrap.
 async function collectCspViolations(page) {
   await page.addInitScript(() => {

@@ -5,7 +5,7 @@ import TextNode from './nodes/TextNode.jsx';
 import WhiteoutNode from './nodes/WhiteoutNode.jsx';
 import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../../constants/signGeometry.js';
 
-// This file covers ARCHITECTURE.md §6 guardrail #4 / scrum.md ticket E1.4: the
+// This file covers CLAUDE.md Part II §6 guardrail #4 / TODO.md: the
 // interaction/visual states existing unit tests miss — active outline,
 // floating-toolbar visibility + stable top placement, RTL toolbar alignment + leftward
 // growth, dark mode, mobile full-width toolbar (see SignToolbar.test.jsx for
@@ -382,7 +382,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
   });
 
   // --- 5. Dark mode (no runtime dark theme exists yet in this codebase; see
-  // report) — structural guard against the exact hazard ARCHITECTURE.md §5
+  // report) — structural guard against the exact hazard CLAUDE.md Part II §5
   // documents ("Invisible floating toolbars... white text on a transparent
   // background") by proving the editor chrome never hardcodes a color/background
   // inline, which is what would make it immune to any future theme (dark or
@@ -394,7 +394,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const actions = box.querySelector('[data-editor-actions]');
       const buttons = box.querySelectorAll('[data-editor-actions] button');
 
-      // This is the exact class of bug ARCHITECTURE.md §5 warns about: an
+      // This is the exact class of bug CLAUDE.md Part II §5 warns about: an
       // inline color/background on the toolbar chrome would fight (or silently
       // win over) any theme CSS applied later, potentially reproducing the
       // "white text on white background" incident. Structural contract: no
