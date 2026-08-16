@@ -256,8 +256,8 @@ export default function PdfWorkspace({
 
       {/* Signing state */}
       {status === 'signing' && (
-        <div style={{ textAlign: 'center', width: '100%', padding: '3rem 0' }}>
-          <span className={pdfToolStyles['tool-primary-action-progress']} style={{ color: 'var(--color-text)' }}>
+        <div className={pdfToolStyles['status-block--compact']}>
+          <span className={`${pdfToolStyles['tool-primary-action-progress']} ${pdfToolStyles['tool-primary-action-progress--standalone']}`}>
             <svg className={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40">
               <circle className={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" stroke="var(--color-border-strong)" />
             </svg>
@@ -268,7 +268,7 @@ export default function PdfWorkspace({
 
       {/* Error Message */}
       {status === 'error' && (
-        <div className={pdfToolStyles['error-message']} role="alert" style={{ width: '100%' }}>
+        <div className={`${pdfToolStyles['error-message']} ${pdfToolStyles['error-message--full-width']}`} role="alert">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
             <path d="M12 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />

@@ -221,8 +221,8 @@ export default function PdfEditPagesTool() {
       {hasFiles && (
         <div class="tool-workspace">
           {status === 'loading-file' ? (
-            <div style={{ padding: '3rem', textAlign: 'center' }}>
-              <p style={{ color: 'var(--color-muted)' }}>Loading PDF file structure…</p>
+            <div class={pdfToolStyles['status-block']}>
+              <p class={pdfToolStyles['status-text-muted']}>Loading PDF file structure…</p>
             </div>
           ) : (
             <>
@@ -260,7 +260,6 @@ export default function PdfEditPagesTool() {
                       class={`${styles['page-card']}${isRemoved ? ` ${styles['is-removed']}` : ` ${styles['is-selected']}`}`}
                       data-page={page.pageNumber}
                       onClick={() => togglePage(page.pageNumber)}
-                      style={{ cursor: 'pointer' }}
                     >
                       {/* Drag handle - full-width top bar */}
                       <span
@@ -296,7 +295,7 @@ export default function PdfEditPagesTool() {
                         )}
                       </button>
 
-                      <div class={styles['page-card-thumb-container']} style={{ cursor: 'pointer' }}>
+                      <div class={styles['page-card-thumb-container']}>
                         {page.thumbnail ? (
                           <img
                             class={styles['page-card-thumb']}
@@ -305,7 +304,7 @@ export default function PdfEditPagesTool() {
                             style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.2s ease' }}
                           />
                         ) : (
-                          <span class={pdfToolStyles['thumb-placeholder']} style={{ width: '100%', height: '100%' }} />
+                          <span class={`${pdfToolStyles['thumb-placeholder']} ${pdfToolStyles['thumb-placeholder-fill']}`} />
                         )}
                       </div>
 

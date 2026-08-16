@@ -6,6 +6,20 @@
   text-align: left;
 }
 
+.split-downloads {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.split-download-list {
+  width: 100%;
+  max-width: 400px;
+  margin: 0.5rem 0;
+}
+
 .split-modes {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

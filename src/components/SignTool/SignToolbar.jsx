@@ -286,7 +286,7 @@ export default function SignToolbar({
                       <circle cx="7" cy="17" r="4" />
                       <rect x="13" y="13" width="8" height="8" rx="1" />
                     </svg>
-                    <span className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                    <span className={`${styles.label} ${styles['shapes-label']}`}>
                       Shapes
                       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="6 9 12 15 18 9" />
@@ -296,9 +296,8 @@ export default function SignToolbar({
                 }
                 content={
                 <div 
-                  className={controlStyles.popover}
-                  role="menu" 
-                  style={{ minWidth: '140px', borderRadius: '12px', padding: '0.25rem' }}
+                  className={`${controlStyles.popover} ${controlStyles['shapes-menu']}`}
+                  role="menu"
                   onMouseEnter={openShapes}
                   onMouseLeave={scheduleCloseShapes}
                 >
@@ -402,10 +401,9 @@ export default function SignToolbar({
                 }
                 content={
                 <div
-                  className={controlStyles.popover}
+                  className={`${controlStyles.popover} ${controlStyles['signature-menu']}`}
                   data-editor-signature-popover
                   role="menu"
-                  style={{ borderRadius: '12px', padding: '0.25rem' }}
                   onMouseEnter={openSig}
                   onMouseLeave={scheduleCloseSig}
                 >

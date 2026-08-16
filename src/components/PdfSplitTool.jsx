@@ -282,8 +282,8 @@ export default function PdfSplitTool() {
       {hasFiles && (
         <div class="tool-workspace">
           {status === 'loading' ? (
-            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-muted)' }}>
-              <p>Loading document pages...</p>
+            <div class={pdfToolStyles['status-block']}>
+              <p class={pdfToolStyles['status-text-muted']}>Loading document pages...</p>
             </div>
           ) : (
             <>
@@ -385,7 +385,7 @@ export default function PdfSplitTool() {
                         {p.thumbnail ? (
                           <img class={pageGridStyles['page-card-thumb']} src={p.thumbnail} alt="" />
                         ) : (
-                          <div class={pdfToolStyles['thumb-placeholder']} style={{ width: '100%', height: '100%' }} />
+                          <div class={`${pdfToolStyles['thumb-placeholder']} ${pdfToolStyles['thumb-placeholder-fill']}`} />
                         )}
                       </div>
                       <span class={pageGridStyles['page-card-number']}>Page {p.pageNumber}</span>
@@ -418,7 +418,7 @@ export default function PdfSplitTool() {
               )}
 
               {status === 'done' && downloadFiles.length > 0 && (
-                <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
+                <div class={styles['split-downloads']}>
                   {mode === 'combined' ? (
                     <a
                       ref={downloadRef}
@@ -442,7 +442,7 @@ export default function PdfSplitTool() {
                       >
                         Download all {downloadFiles.length} PDFs
                       </button>
-                      <ul class={fileListStyles['file-list']} style={{ width: '100%', maxWidth: '400px', margin: '0.5rem 0' }}>
+                      <ul class={`${fileListStyles['file-list']} ${styles['split-download-list']}`}>
                         {downloadFiles.map((f) => (
                           <li key={f.pageNumber} class={fileListStyles['file-item']}>
                             <span class={fileListStyles['file-name']}>Page {f.pageNumber} PDF</span>
