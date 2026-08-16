@@ -6,7 +6,7 @@ runtime dependencies listed below are the only ones whose code is shipped
 to the browser; build-only tooling (Astro/Vite's transitive dependencies)
 is not included here since it never ships to end users.
 
-A summary view of this list is also published at [/licenses](https://pdkef.vercel.app/licenses).
+A summary view of this list is also published at [/licenses](https://pdkef.com/licenses/).
 
 ---
 
