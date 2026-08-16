@@ -37,6 +37,10 @@
 @source not "../**/*.jsx";
 @source not "../**/*.test.js";
 @source not "../../e2e/**/*.js";
+/* Documentation is not a template - see CLAUDE.md, "Tailwind source scanning". */
+@source not "../../*.md";
+@source not "../../docs/**";
+@source not "../../*.html";
 
 /* --- Handwriting Fonts --- */
 @font-face {

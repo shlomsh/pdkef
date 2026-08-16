@@ -15,7 +15,7 @@ reference implementation of a finished tool.
 
 ## Open work
 
-Ten items. Nothing structural is outstanding; see "Migration status" below for why.
+Nine items. Nothing structural is outstanding; see "Migration status" below for why.
 
 ### Launch / SEO
 
@@ -47,9 +47,6 @@ These cluster around the domain cutover and are not blocked by anything technica
   mode where looking right requires the object to actually be absent rather than covered.
 - **Verify the Redact mobile toolbar on a real narrow viewport.** Not unfinished work: the code landed
   (shared toolbar CSS, structure-agnostic mobile flex rule) but was never visually confirmed on a device.
-- **State-based drag halo.** Replace the single-value `.sign-element::after` grab halo with a small
-  resting halo plus a larger one only on `.active` (which is `z-index: 50`, so it will not steal
-  neighbouring clicks).
 
 ### Code quality
 
@@ -97,7 +94,7 @@ rather than the ticket list:
 | E3 | Tailwind on the static surface | 8/8 |
 | E4 | Headless TS editor core | 5/5 |
 | E5 | Documentation | 3/4 (the standing sync ticket) |
-| E6 | Carried-over launch backlog | 6/13 |
+| E6 | Carried-over launch backlog | 7/13 |
 | E7 | Finish the headless convergence | 7/8 (E7.3 optional) |
 | E8 | Post-assessment cleanup | 20/21 |
 | E9 | Offline-first app shell | 1/1 |
