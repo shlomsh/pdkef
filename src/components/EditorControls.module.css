@@ -4,6 +4,10 @@
 .element-button.active { background: var(--color-primary); }
 .element-button-danger:hover { background: var(--color-danger); }
 .color-menu, .font-menu { min-width: 0; width: max-content; padding: .5rem; }
+.shapes-menu { min-width: 140px; border-radius: 12px; padding: .25rem; }
+.signature-menu { border-radius: 12px; padding: .25rem; }
+.thickness-menu { min-width: 100px; padding: .15rem; cursor: default; }
+.thickness-menu-list { display: flex; flex-direction: column; gap: .05rem; }
 .color-picker { display: flex; align-items: center; gap: 4px; }
 .color-swatch { width: 18px; height: 18px; padding: 0; border: 1px solid rgba(255,255,255,.3); border-radius: 50%; cursor: pointer; box-shadow: 0 0 0 1px rgba(0,0,0,.15) inset; transition: transform .1s ease; }
 .color-swatch:hover { transform: scale(1.12); }

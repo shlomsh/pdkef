@@ -414,16 +414,7 @@ export default function SignatureDialog({
                   data-editor-signature-font
                   data-editor-active={typeFont === font || undefined}
                   onClick={() => setTypeFont(font)}
-                  style={{
-                    fontFamily: `'${font}', cursive`,
-                    fontSize: '1.2rem',
-                    padding: '0.3rem 0.8rem',
-                    border: `1px solid ${typeFont === font ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                    borderRadius: 'var(--radius-sm)',
-                    background: typeFont === font ? 'var(--color-primary-soft)' : 'var(--color-surface)',
-                    color: typeFont === font ? 'var(--color-primary)' : 'var(--color-text)',
-                    cursor: 'pointer'
-                  }}
+                  style={{ fontFamily: `'${font}', cursive` }}
                 >
                   {font}
                 </button>
@@ -449,20 +440,20 @@ export default function SignatureDialog({
                 <input
                   type="file"
                   accept="image/*"
-                  style={{ display: 'none' }}
+                  className={styles['upload-file-input']}
                   onChange={handleUploadChange}
                 />
               </label>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className={styles['upload-result']}>
                 <div className={styles['upload-preview']}>
                   {processedUploadImage ? (
                     <img src={processedUploadImage} alt="Uploaded signature preview" />
                   ) : (
-                    <p style={{ color: 'var(--color-muted)', fontSize: '0.88rem' }}>Processing signature...</p>
+                    <p className={styles['upload-processing']}>Processing signature...</p>
                   )}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className={styles['upload-actions-row']}>
                   <div className={styles['upload-options']}>
                     <label>
                       <input
@@ -473,7 +464,7 @@ export default function SignatureDialog({
                       Remove white background
                     </label>
                   </div>
-                  <button type="button" className={styles.clear} style={{ position: 'static' }} onClick={clearUpload}>
+                  <button type="button" className={`${styles.clear} ${styles['clear-inline']}`} onClick={clearUpload}>
                     Change Image
                   </button>
                 </div>

@@ -27,8 +27,8 @@ export default function ThicknessPickerMenu({ value, onChange, title }) {
         </button>
       }
       content={
-        <div className={styles.popover} role="menu" style={{ minWidth: '100px', padding: '0.15rem', cursor: 'default' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.05rem' }}>
+        <div className={`${styles.popover} ${styles['thickness-menu']}`} role="menu">
+          <div className={styles['thickness-menu-list']}>
             {THICKNESS_OPTIONS.map(thickness => (
               <button
                 key={thickness}

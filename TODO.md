@@ -49,14 +49,6 @@ Neither is blocked by anything technical.
   compiler catches breakage at edit time in an unrelated tool." **Explicitly optional** and not a
   blocker: most of that value was already captured by making the registry seam generic over the element
   union. Large effort, diffuse benefit. Do it gradually if at all.
-- **Move the ~20 static inline styles back into the styling system.** Of 53 inline-style sites, roughly
-  a third legitimately qualify under the styling boundary (per-element runtime geometry, Floating UI
-  coordinates, colour-from-element) and must be left exactly as they are. The rest are static: four
-  copies of a centred loading block with three different paddings (`PdfSignTool`, `PdfSplitTool`,
-  `PdfEditPagesTool`, `PdfWorkspace`/`PdfRedactTool`), Redact's page-header row, two Split layout
-  blocks, popover sizing in `SignToolbar`/`ThicknessPickerMenu`, three `SignatureDialog` flex rows, and
-  four bare `color: var(--color-muted)` declarations. **None is a CSP risk** - Preact routes object
-  `style` props through per-key `setProperty`, which `style-src` does not govern.
 
 ### Known small defects
 
