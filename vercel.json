@@ -27,7 +27,12 @@
     },
     {
       "source": "/offline-pdf-form-filler/",
-      "destination": "/pdf-fill-and-sign-app/",
+      "destination": "/install-pdf-app/",
+      "permanent": true
+    },
+    {
+      "source": "/pdf-fill-and-sign-app/",
+      "destination": "/install-pdf-app/",
       "permanent": true
     }
   ]
