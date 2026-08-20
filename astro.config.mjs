@@ -15,6 +15,46 @@ export default defineConfig({
   output: 'static',
   integrations: [preact({ compat: true })],
   build: {
+    // Every page carries its whole stylesheet inline. This looks wasteful and is
+    // measured to be correct anyway, so do not "fix" it: 'auto' was built and
+    // benchmarked head to head (2026-08-20) and lost every scenario tested.
+    //
+    // The waste is real. 'always' ships 1,060,961 raw bytes of inline CSS across
+    // the 20 built pages for 107,384 bytes of distinct rules, and it is the single
+    // biggest input to check-css-duplication.js's 9.73x duplication factor.
+    // Switching to 'auto' drops total build HTML from 2.04 MB to 1.01 MB raw and
+    // the service-worker precache from 12,050,788 to 11,114,237 raw bytes.
+    //
+    // It still loses, because bytes are not the binding constraint here, round
+    // trips are. An external <link rel="stylesheet"> is render-blocking and is
+    // discovered only after the document is parsed, so it serializes one extra
+    // RTT in front of first paint, and Astro emits no preload for it. Measured
+    // brotli, first view of /sign/: 41,723 inline vs 43,097 external, so 'auto'
+    // is worse on bytes AND adds the round trip. Modelled render-blocking time
+    // (both a plain bandwidth model and one with TCP slow start) puts 'auto'
+    // behind on every page at every network profile tried: +150ms on slow 4G,
+    // +60ms on fast 4G, +25ms on broadband.
+    //
+    // The multi-page argument does not rescue it either. 'auto' does not emit one
+    // shared stylesheet; it emits six, and only global.css is used by all 20
+    // pages. The other five cover 1 to 9 pages each, so moving between two tool
+    // pages usually discovers a fresh sheet and pays the RTT again. A four-view
+    // journey saves 24,016 brotli and spends three extra round trips, netting
+    // +330ms on slow 4G. Even an idealized hybrid, where only global.css is
+    // external and every per-page sheet stays inline, saves ~6,441 brotli per
+    // later view and needs 5 (slow 4G) to 15 (broadband) page views in ONE
+    // session to repay its single round trip. This site's traffic is cold
+    // single-page visits from search, and Lighthouse Performance >= 95 is a
+    // stated SEO invariant, so the first view is the case that matters most.
+    //
+    // Two guardrails also assume this setting and go blind without it, which is
+    // a reason to change it deliberately rather than casually:
+    // check-css-duplication.js and check-page-weight.js both read only inline
+    // <style>. Under 'auto' the duplication factor reads 1.72x instead of 9.73x
+    // and per-page dead bytes read 0, while check-page-weight.js silently stops
+    // counting 6,753 to 13,966 brotli of render-blocking CSS per page. If this
+    // ever does flip, teach both scripts to follow <link rel="stylesheet"> in the
+    // same change.
     inlineStylesheets: 'always',
   },
   // These are only reachable through dynamic import() inside the Preact
