@@ -54,24 +54,35 @@ const {
 
   <AppBar toolName={breadcrumb} />
 
-  <header class="mx-auto max-w-[720px] px-6 pb-2 pt-14 text-center min-[768px]:pb-4 min-[768px]:pt-[4.5rem]">
+  {/* No CTA button in the hero, deliberately. Every one of these pages makes a
+      case first (what the platform's own tool covers, where it stops, when to
+      just use that instead) - a "Sign a PDF now" pill above all of that reads
+      as pushing past the argument the page exists to make, and sits oddly next
+      to the honest "use the built-in tool" card further down. The action sits
+      after the content earns it, in the section below <slot />. A reader who
+      wants to skip straight there still can: the first how-it-works card's own
+      step 1 always links to the tool. */}
+  <header class="mx-auto max-w-[720px] px-6 pb-6 pt-14 text-center min-[768px]:pb-8 min-[768px]:pt-[4.5rem]">
     <div class="mb-5 inline-flex size-16 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
       <Icon size={30} strokeWidth={1.75} />
     </div>
     <span class="mb-2 block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">{kicker}</span>
     <h1 class="mb-4 mt-0 text-[clamp(1.85rem,4.4vw,2.6rem)] font-bold leading-[1.15] text-[var(--color-text)]">{h1}</h1>
-    <p class="mx-auto mb-7 mt-0 max-w-[56ch] text-[1.02rem] leading-[1.6] text-[var(--color-muted)]">{subhead}</p>
+    <p class="mx-auto mb-0 mt-0 max-w-[56ch] text-[1.02rem] leading-[1.6] text-[var(--color-muted)]">{subhead}</p>
+  </header>
+
+  <main>
+    <slot />
+  </main>
+
+  <section class="mx-auto mb-16 w-full max-w-[720px] px-6 text-center min-[768px]:mb-24">
     <a
       href={primaryCta.href}
       class="inline-flex items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-primary)] px-7 py-3 text-[0.98rem] font-semibold text-[var(--color-surface)] no-underline shadow-sm transition-[transform,background-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:bg-[var(--color-primary-hover)]"
     >
       {primaryCta.label}
     </a>
-  </header>
-
-  <main>
-    <slot />
-  </main>
+  </section>
 
   <ToolFaqCard faq={faq} />
 
