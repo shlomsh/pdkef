@@ -85,6 +85,29 @@ const distDir = path.join(__dirname, '..', 'dist');
 // 9.81x. The other two ratchets below are unaffected by page count and both
 // stayed inside their limits without being touched, which is the signal that this
 // was page growth, not new duplication.
+//
+// THE OBVIOUS FIX WAS MEASURED AND REJECTED (2026-08-20). Since this factor is
+// largely a consequence of `build.inlineStylesheets: 'always'`, the tempting move
+// is to flip that to 'auto' and watch the number collapse. It does collapse, to
+// 1.72x, but only because this script reads inline <style> and nothing else: with
+// the CSS in <link> tags it measures ~34KB of leftovers instead of the ~1.05MB
+// actually shipped, per-page dead bytes read 0, and single-page utilities read 0.
+// All three ratchets would flatline and never fire again. The number would look
+// like a win and would in fact be a blind guard.
+//
+// The config itself also lost on its own merits, so there is no quiet win waiting
+// here: an external stylesheet is render-blocking and discovered only after the
+// document parses, and Astro emits no preload for it, so 'auto' costs one extra
+// serialized round trip and is worse on first-view bytes too (/sign/: 43,097 vs
+// 41,723 brotli). Full numbers and the multi-page and precache analysis are in the
+// comment on `inlineStylesheets` in astro.config.mjs. Read that before touching
+// this constant for that reason.
+//
+// So this ratchet stays what it is: a page-count-sensitive number that is useful
+// for catching a jump between builds at a FIXED page count, and that must be
+// re-based (saying so, as above) whenever pages are added. It is not a measure of
+// style quality on its own; MAX_PAGE_DEAD_BYTES and MAX_SINGLE_PAGE_UTILITIES
+// below are the two here that are page-count-invariant and do measure that.
 const MAX_DUPLICATION_FACTOR = 9.85;
 const MAX_PAGE_DEAD_BYTES = 29_000;
 const MAX_SINGLE_PAGE_UTILITIES = 148;

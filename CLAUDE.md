@@ -504,6 +504,22 @@ and fails if it calls `onChange`/`dispatch`/`setState` directly.
   silently-blocked hydration bootstrap looks fine (static HTML renders) but the island never hydrates.
   Do not add `script-src`/`default-src` back into the `vercel.json` header CSP: policies intersect, and
   a second `default-src 'self'` re-blocks scripts the meta tag allows.
+- **`build.inlineStylesheets: 'always'` is a measured decision, not a leftover default.** Every page
+  inlines its whole stylesheet, which ships 1,060,961 raw bytes of CSS across 20 pages for 107,384
+  bytes of distinct rules and is the main input to the 9.73x duplication factor. That looks like an
+  obvious win to reclaim, and it is not. `'auto'` was built and benchmarked head to head (2026-08-20)
+  and lost every scenario: an external `<link rel="stylesheet">` is render-blocking and is discovered
+  only after the document parses, and Astro emits no preload for it, so it serializes an extra round
+  trip in front of first paint while also costing *more* first-view bytes (/sign/: 43,097 vs 41,723
+  brotli). Modelled render-blocking time put `'auto'` behind at every network profile (+150ms slow 4G,
+  +60ms fast 4G, +25ms broadband), with and without TCP slow start. The multi-page case does not
+  rescue it, because `'auto'` emits six stylesheets rather than one and only `global.css` is used by
+  all 20 pages, so a second page view usually discovers a fresh sheet and pays the RTT again. Even an
+  idealized hybrid (only `global.css` external) needs 5 to 15 page views in a single session to repay
+  its one round trip, against a traffic model of cold single-page visits from search. Two guardrails
+  also assume this setting and silently go blind without it (§6.5). Full numbers live in the comment
+  on `inlineStylesheets` in `astro.config.mjs`; the duplication factor being "inflated by the config"
+  is a known property, not a bug to fix by flipping it.
 - **`legacy-peer-deps` is a smell, not a fix.** Astro is pinned to `^7.0.3` on purpose (security
   advisories cover every version through 7.0-beta). Any tool that forces `legacy-peer-deps` to install
   must be re-audited against that pin before adoption.
@@ -557,7 +573,11 @@ Run by `ci.yml`; see Part I "Commands" for the npm scripts.
 4. **Editor CSS ratchet** (`check-editor-global-css.js`) - zero `sign-`/`sig-`/`redact-`/`editor-`/`el-`
    selectors in `global.css`.
 5. **CSS duplication** (`check-css-duplication.js`) - hard ratchets on duplication factor, dead bytes
-   and single-page utilities. Every number here measures a mistake, so these only ever go down.
+   and single-page utilities. Every number here measures a mistake, so these only ever go down. The
+   one exception is the duplication factor, which is page-count-sensitive by construction (see the
+   hazard on `inlineStylesheets` in §5): re-base it when pages are added, and say so. Both this
+   script and `check-page-weight.js` read inline `<style>` only, so they measure the real stylesheet
+   only while `build.inlineStylesheets` stays `'always'`.
 6. **Page weight** (`check-page-weight.js`) - two separate budgets per page: document plus
    eagerly-referenced JS (brotli), and eagerly-referenced images (raw, since they are already
    compressed and served as-is). Deliberately *not* ratchets: features grow page weight and that is
