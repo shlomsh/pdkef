@@ -1,0 +1,116 @@
+title: 'How to Sign a PDF on Mac | PDkef'
+description: >-
+  Sign a PDF on Mac in Safari or Chrome. Preview handles a signature well but stops at flat scans
+  and checkboxes - here is what each one can do, and how to fill in the rest.
+breadcrumb: 'Mac'
+icon: 'Laptop'
+kicker: 'macOS, right in the browser'
+h1: 'How to Sign a PDF on Mac'
+subhead: >-
+  Your Mac can already sign a PDF, and for a signature on its own, Preview does the job well. It
+  gets awkward the moment the form is a scan with checkboxes. Here's what each approach covers, and
+  a way to finish the parts Preview leaves you nudging into place.
+primaryCta:
+  href: '/sign/'
+  label: 'Sign a PDF now'
+sections:
+  - variant: 'highlight'
+    sketch: 'arcs'
+    icon: 'Laptop'
+    iconPos: 'tr'
+    kicker: 'Four steps'
+    heading: 'Sign a PDF on Mac'
+    blocks:
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Open <a href="/sign/">pdkef.com/sign</a></strong> in Safari or Chrome.
+          - >-
+            <strong>Drag the PDF in</strong> from Finder, or from the Downloads stack in your Dock
+            if it just arrived by email.
+          - >-
+            <strong>Fill in the form, then add your signature.</strong> Draw it with the trackpad,
+            type it in a handwriting font, or upload a photo of one. Text and checkboxes go anywhere
+            on the page, so a scan is no harder than a proper form.
+          - >-
+            <strong>Download it.</strong> The finished PDF saves to Downloads as a new file, leaving
+            your original alone.
+  - sketch: 'grid'
+    icon: 'FileEdit'
+    iconPos: 'br'
+    kicker: 'Preview, side by side'
+    heading: 'What Preview already handles, and where it stops'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Preview's Markup toolbar can capture a signature from your trackpad, your camera, or your
+          iPhone, and it fills properly fillable PDFs without complaint. The gap opens up with flat
+          documents: a scanned consent form, or a PDF exported so its fields are baked into the
+          page. Preview can only float text on top of those, one box at a time.
+      - kind: 'compare'
+        builtInLabel: 'Preview'
+        caption: >-
+          Both run on your Mac with nothing uploaded, so this is about what each one can reach, not
+          about privacy.
+        rows:
+          - task: 'Add a handwritten signature'
+            builtIn: 'Yes, via Markup'
+            here: 'Draw, type, or upload one'
+          - task: 'Fill a form that has real fillable fields'
+            builtIn: 'Yes'
+            here: 'Yes'
+          - task: 'Fill a flat or scanned form'
+            builtIn: 'Only by placing text boxes by hand'
+            here: 'Type straight onto the page'
+          - task: 'Tick a checkbox on a scanned form'
+            builtIn: ''
+            here: 'Yes'
+          - task: 'Permanently remove text from a page'
+            builtIn: ''
+            here: 'Yes'
+          - task: 'Pick it up on a Windows PC or Android phone'
+            builtIn: ''
+            here: 'Same tool, any browser'
+  - sketch: 'rings'
+    icon: 'Lightbulb'
+    iconPos: 'cl'
+    kicker: 'Worth saying plainly'
+    heading: 'When you should just use Preview'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          If the document needs your signature and nothing else, open it in Preview and use the
+          signature you already saved there. It's two clicks, it's built into the Mac you're sitting
+          at, and no website is going to beat that. Come here when the form fights back: a scan that
+          won't take text, checkboxes that aren't real checkboxes, something you need <a
+          href="/permanently-delete-text-from-pdf/">actually removed from the file</a> rather than
+          covered over, or a form you started on the Mac and have to finish on a borrowed Windows
+          laptop.
+faq:
+  - question: 'Do I need Preview or Adobe Acrobat to sign a PDF on Mac?'
+    answer: >-
+      No. This runs in Safari or Chrome, so there's nothing else to open. Preview is genuinely good
+      for adding a signature, so if that's all you need, it's already on your Mac and worth using.
+  - question: 'Preview lets me sign. Why would I use anything else?'
+    answer: >-
+      Mostly for flat forms. If the PDF has real fillable fields, Preview fills them fine. If it's a
+      scan or a flattened export - which is what most forms sent over email or WhatsApp are -
+      Preview can only float text boxes on top, so you end up nudging each one into place by hand,
+      and there's no way to tick an actual checkbox.
+  - question: 'Can I draw my signature with the trackpad?'
+    answer: >-
+      Yes. You can draw it with the trackpad, type it in a handwriting-style font, or upload a photo
+      of a signature you already have. Trackpad drawing is steadier if you zoom in first and sign
+      larger than you think you need to.
+  - question: 'Does this work in Safari, or only Chrome?'
+    answer: >-
+      Both, along with Firefox and Edge. Use whichever browser you already have the PDF open in.
+  - question: 'Where does the signed PDF end up?'
+    answer: >-
+      In your Downloads folder, as a new file. The original is untouched, so if you get something
+      wrong you still have the copy you started from.
+  - question: 'If I start a form on my Mac, can I finish it on my iPhone?'
+    answer: >-
+      Not the same half-finished copy, no. Your progress is saved on the Mac you're working on, in
+      that browser, because nothing is uploaded to a server that could sync it. You can absolutely
+      use the tool on your iPhone, but you'd start that form from the top.

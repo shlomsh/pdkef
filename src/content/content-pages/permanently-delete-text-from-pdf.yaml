@@ -1,0 +1,152 @@
+title: 'Permanently Delete Text From a PDF | PDkef'
+description: >-
+  Actually remove text or an image from a PDF instead of covering it with a black box. Learn why
+  drawn rectangles leak, which method to use when, and do it free in your browser.
+breadcrumb: 'Delete from PDF'
+icon: 'Trash2'
+kicker: 'True deletion, not a cover-up'
+h1: 'Permanently Delete Text From a PDF'
+subhead: >-
+  Covering something with a black rectangle usually leaves the original text sitting in the file
+  underneath, where anyone can copy it back out. Here's what's actually going on, how to remove
+  content for real, and when a black box is genuinely the right tool anyway.
+primaryCta:
+  href: '/redact/'
+  label: 'Delete text from a PDF'
+sections:
+  - sketch: 'grid'
+    icon: 'AlertTriangle'
+    iconPos: 'tr'
+    kicker: 'The thing most people get wrong'
+    heading: 'A black box is a sticker, not an eraser'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          It helps to know how a PDF is put together. A page isn't a picture; it's a list of
+          instructions, roughly "draw this text here, in this font, at this size." When you drag a
+          black rectangle over a name, you haven't edited that list. You've added one more
+          instruction to the end of it: draw a black rectangle here.
+      - kind: 'prose'
+        text: >-
+          The name is still in the list. It's drawn first and then covered, the way a sticker covers
+          a word in a book. Select the area and copy it, and you get the text. Feed the file to any
+          extraction tool and the text comes straight out. This is why redaction failures keep
+          making the news, usually in published court filings and government documents where the
+          person doing it had every intention of removing the information and reasonably believed
+          they had.
+      - kind: 'prose'
+        text: >-
+          Nothing about it looks wrong on screen, which is exactly the problem. The document appears
+          finished. The check that would catch it, trying to select the text under the box, is one
+          nobody thinks to run.
+  - variant: 'highlight'
+    sketch: 'rings'
+    icon: 'Trash2'
+    iconPos: 'br'
+    kicker: 'Three steps'
+    heading: 'Remove text or an image for real'
+    blocks:
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Open the <a href="/redact/">Redact tool</a></strong> and choose or drag in your
+            PDF.
+          - >-
+            <strong>Pick the Delete tool, then click what you want gone.</strong> Hovering
+            highlights each removable piece of text or image, so you can see exactly what a click
+            will take before you commit to it.
+          - >-
+            <strong>Download the PDF, then check your work.</strong> Open it, try to select the area
+            you cleared, and search the document for the word you removed. It should find nothing.
+      - kind: 'prose'
+        text: >-
+          Under the hood this rewrites the instructions for that page and leaves every other page in
+          the file untouched. The page stays real text rather than becoming an image, so the
+          document remains searchable, selectable, and the same size it was. That last step is worth
+          doing anyway, with any tool: verifying takes ten seconds and it's the only way to actually
+          know.
+  - sketch: 'waves'
+    icon: 'Layers'
+    iconPos: 'cl'
+    kicker: 'Pick the right one'
+    heading: 'Delete, blackout, or blur'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          All three are in the same tool and all three are safe, in the sense that none of them
+          leaves recoverable text behind. They differ in what they cost you, and the honest answer
+          is that Delete isn't always the right pick.
+      - kind: 'columns'
+        items:
+          - icon: 'Trash2'
+            title: 'Delete'
+            body: >-
+              Removes the content and leaves no gap in its place. The page stays vector text, the
+              file stays small. <strong>Use it for</strong> real text and images in a
+              digitally-created PDF. Won't work on a scan.
+          - icon: 'Droplets'
+            title: 'Blackout'
+            body: >-
+              Paints a solid box, then flattens the whole page to an image so nothing survives
+              underneath. <strong>Use it for</strong> scans, and when the reader should see that
+              something was withheld.
+          - icon: 'Droplets'
+            title: 'Blur'
+            body: >-
+              Same flattening, softer look. <strong>Use it for</strong> faces, signatures and logos
+              in a screenshot, where a hard black rectangle would be heavier than the situation
+              calls for.
+      - kind: 'prose'
+        text: >-
+          The trade-off is straightforward: Blackout and Blur have to turn the affected page into an
+          image to be safe, which makes the file bigger and stops that page's text being searchable.
+          Delete avoids all of that, but only reaches content the PDF genuinely knows about. On a
+          scanned form, that's nothing, so blackout is your tool.
+  - sketch: 'arcs'
+    icon: 'AlertTriangle'
+    iconPos: 'tr'
+    kicker: 'Before you send it'
+    heading: 'What removing text doesn''t cover'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Clearing a name off page three does exactly that and nothing more. If the same name
+          appears on page seven, it's still on page seven. If it's in the document's title or author
+          properties, filled into a form field, or sitting in the filename you're about to attach to
+          an email, none of that is touched either. This isn't a limitation of one tool so much as a
+          thing worth carrying into any redaction job: search the finished document for what you
+          were trying to remove, and check the parts of a file that aren't the visible page. It
+          takes a minute, and it's the difference between a document that looks handled and one that
+          is.
+faq:
+  - question: 'How is this different from drawing a black box over the text?'
+    answer: >-
+      A drawn rectangle is just another thing painted on the page. The original text is usually
+      still in the file underneath it, and can often be selected, copied, or pulled out with any
+      text-extraction tool. Delete removes the text from the page's instructions entirely, so there
+      is nothing left underneath to recover.
+  - question: 'Does deleting one word affect the rest of the page?'
+    answer: >-
+      No. Only what you click is removed. The rest of the page stays real, selectable text rather
+      than being flattened into a picture of itself, the file stays small, and every other page in
+      the document is left byte-for-byte identical.
+  - question: 'Can I delete text from a scanned document?'
+    answer: >-
+      Not with Delete, and this is the one important limitation. In a scan, the words are pixels in
+      a photograph, not text the file knows about, so there is no text object to remove. Use
+      Blackout or Blur on scanned pages instead: both flatten the page afterwards, which genuinely
+      destroys what was underneath.
+  - question: 'Does this also remove the information from the document properties?'
+    answer: >-
+      No, and it's worth knowing. Deleting a name from page three doesn't remove it from the
+      document's title, author field, or from page seven if it appears there too. Removing something
+      sensitive means removing every copy of it, wherever it appears.
+  - question: 'Can I undo a deletion before I download the file?'
+    answer: >-
+      Yes. Every deletion goes into the toolbar's undo history, so you can step back at any point
+      before you download. Nothing is written to your actual file until you download it, so the
+      original on your disk is never modified.
+  - question: 'Are my PDF files uploaded anywhere?'
+    answer: >-
+      No. This runs entirely in your browser. Your file is never uploaded, never sent over the
+      network, and never stored anywhere outside your own device.

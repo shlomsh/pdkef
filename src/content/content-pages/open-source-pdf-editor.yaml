@@ -1,0 +1,116 @@
+title: 'Open Source PDF Editor - Free, MIT Licensed | PDkef'
+description: >-
+  A free, open source PDF editor that runs entirely in your browser. Includes a one-minute test you
+  can run yourself to confirm nothing is uploaded. MIT licensed.
+breadcrumb: 'Open source'
+icon: 'Code2'
+kicker: 'MIT licensed'
+h1: 'A Free, Open Source PDF Editor'
+subhead: >-
+  Every tool here runs in your browser, and the code behind it is public. That matters more than it
+  sounds: it means the claim that your files never leave your device is something you can check for
+  yourself rather than something you have to believe.
+primaryCta:
+  href: '/edit-pdf/'
+  label: 'Try the PDF editor'
+sections:
+  - sketch: 'arcs'
+    icon: 'Code2'
+    iconPos: 'tr'
+    kicker: 'Why it''s open'
+    heading: '"We never see your files" is easy to say'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Every online PDF tool says something reassuring on its homepage. Most of them upload your
+          document to a server, process it there, and delete it afterwards, which is a perfectly
+          normal way to build software. The awkward part is that from the outside, a site that
+          deletes your file an hour later and a site that doesn't look identical. You get a promise
+          and a privacy policy, and no way to tell the difference.
+      - kind: 'prose'
+        text: >-
+          PDkef is architecturally incapable of the thing it promises not to do: there is no server
+          to upload to. The <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener
+          noreferrer">source is on GitHub</a> under the MIT license so you can confirm that, but you
+          don't have to read a line of it. The next card is a faster test.
+  - variant: 'highlight'
+    sketch: 'rings'
+    icon: 'WifiOff'
+    iconPos: 'br'
+    kicker: 'One minute, no code'
+    heading: 'Prove it to yourself: use it with the network switched off'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          This is the test worth knowing, because it works on any web tool, not just this one.
+          Software that secretly uploads your file cannot function without a connection. Take the
+          connection away and watch what happens.
+      - kind: 'steps'
+        items:
+          - '<strong>Open any tool here</strong> and let the page finish loading.'
+          - >-
+            <strong>Turn off your wifi,</strong> or open developer tools and set the Network tab to
+            Offline. Then put the phone in airplane mode, if that's easier.
+          - >-
+            <strong>Load a PDF, edit it, and download the result.</strong> Merge some files, sign a
+            form, delete a paragraph. All of it still works.
+      - kind: 'prose'
+        text: >-
+          Nothing about that is a trick of caching. The PDF is read, edited and written by your own
+          browser, using your device's processor, and the finished file is handed back to you
+          locally. There is no round trip to interrupt, which is also why you can <a
+          href="/install-pdf-app/">install it and use it on a plane</a>.
+      - kind: 'prose'
+        text: >-
+          That isn't left to good intentions either. The site ships a Content Security Policy with
+          <strong>connect-src 'self'</strong>, which instructs your browser to refuse any connection
+          to another origin. If a future change ever tried to send your document somewhere, the
+          browser would block it rather than trust us to have got it right.
+  - sketch: 'grid'
+    icon: 'GitFork'
+    iconPos: 'tr'
+    kicker: 'Built on other people''s work'
+    heading: 'What''s underneath, and how to run your own'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          The heavy lifting comes from open source projects that were here long before this one.
+          <strong>pdf.js</strong> reads and renders PDFs, <strong>pdf-lib</strong> writes them,
+          <strong>Astro</strong> and <strong>Preact</strong> build the interface, and
+          <strong>signature_pad</strong> handles the drawing surface. Every one is MIT or Apache 2.0
+          licensed and makes no network calls of its own, which is a hard requirement here rather
+          than a nice-to-have: a single dependency phoning home would undo the whole premise. The
+          complete list with license texts is on the <a href="/licenses/">open source licenses
+          page</a>.
+      - kind: 'prose'
+        text: >-
+          Running your own copy is genuinely simple, because there's nothing to run: clone the
+          repository, build it, and serve the resulting folder from any static host, or straight off
+          your own machine. No backend, no database, no keys to configure. If your workplace would
+          rather this lived on an internal server than on someone else's domain, that's a completely
+          reasonable thing to want, and the license says yes.
+faq:
+  - question: 'What license is PDkef released under?'
+    answer: >-
+      The MIT license, for the code we wrote. It's about as permissive as open source licenses get:
+      read it, fork it, modify it, sell something built on it. Every runtime dependency is MIT or
+      Apache 2.0 too, which is a deliberate constraint rather than a coincidence.
+  - question: 'How can I verify that my files really are not uploaded?'
+    answer: >-
+      The fastest way takes about a minute and doesn't involve reading any code: open your browser's
+      developer tools, switch the Network tab to Offline, then load a PDF, sign it, and download it.
+      It all still works. A tool that sent your file to a server could not do that.
+  - question: 'Can I self-host it or run my own copy?'
+    answer: >-
+      Yes. Clone the repository, run npm install and npm run build, and serve the dist folder from
+      anything that can serve static files. There is no backend to stand up, no database, and no
+      environment variables to configure.
+  - question: 'Can I contribute or report a bug?'
+    answer: >-
+      Yes, contributions and bug reports are both welcome on GitHub. Issues and discussions are
+      open.
+  - question: >-
+      Is the free version limited, with a paid version being the "real" editor?
+    answer: >-
+      No. There is one version and it's the whole thing. Nothing here is a demo, a trial, or a
+      reduced build of something bigger sold elsewhere.
