@@ -2,26 +2,53 @@
 import ContentPageLayout from '../layouts/ContentPageLayout.astro';
 import FeatureCard from '../components/FeatureCard.astro';
 import CardDecor from '../components/CardDecor.astro';
+import CompareTable from '../components/CompareTable.astro';
 import OtherGuides from '../components/OtherGuides.astro';
-import { Laptop, FileEdit } from 'lucide-preact';
+import { Laptop, FileEdit, Lightbulb } from 'lucide-preact';
 
 const title = 'How to Sign a PDF on Mac | PDkef';
 const description =
-  'Sign a PDF on Mac in Safari or Chrome, fill out form fields and checkboxes at the same time, and pick up the same form on your phone if you need to. Free, no account.';
+  'Sign a PDF on Mac in Safari or Chrome. Preview handles a signature well but stops at flat scans and checkboxes - here is what each one can do, and how to fill in the rest.';
 
 const faq = [
   {
     question: 'Do I need Preview or Adobe Acrobat to sign a PDF on Mac?',
-    answer: "No. This runs entirely in Safari or Chrome, so there's nothing else to open.",
+    answer:
+      "No. This runs in Safari or Chrome, so there's nothing else to open. Preview is genuinely good for adding a signature, so if that's all you need, it's already on your Mac and worth using.",
+  },
+  {
+    question: 'Preview lets me sign. Why would I use anything else?',
+    answer:
+      "Mostly for flat forms. If the PDF has real fillable fields, Preview fills them fine. If it's a scan or a flattened export - which is what most forms sent over email or WhatsApp are - Preview can only float text boxes on top, so you end up nudging each one into place by hand, and there's no way to tick an actual checkbox.",
   },
   {
     question: 'Can I draw my signature with the trackpad?',
-    answer: 'Yes, or you can type it in a handwriting-style font, or upload a photo of your signature. Whichever is easiest.',
+    answer:
+      'Yes. You can draw it with the trackpad, type it in a handwriting-style font, or upload a photo of a signature you already have. Trackpad drawing is steadier if you zoom in first and sign larger than you think you need to.',
   },
   {
     question: 'Does this work in Safari, or only Chrome?',
-    answer: 'Both. Use whichever browser you already have your PDF open in.',
+    answer: 'Both, along with Firefox and Edge. Use whichever browser you already have the PDF open in.',
   },
+  {
+    question: 'Where does the signed PDF end up?',
+    answer:
+      "In your Downloads folder, as a new file. The original is untouched, so if you get something wrong you still have the copy you started from.",
+  },
+  {
+    question: 'If I start a form on my Mac, can I finish it on my iPhone?',
+    answer:
+      "Not the same half-finished copy, no. Your progress is saved on the Mac you're working on, in that browser, because nothing is uploaded to a server that could sync it. You can absolutely use the tool on your iPhone, but you'd start that form from the top.",
+  },
+];
+
+const compareRows = [
+  { task: 'Add a handwritten signature', builtIn: 'Yes, via Markup', here: 'Draw, type, or upload one' },
+  { task: 'Fill a form that has real fillable fields', builtIn: 'Yes', here: 'Yes' },
+  { task: 'Fill a flat or scanned form', builtIn: 'Only by placing text boxes by hand', here: 'Type straight onto the page' },
+  { task: 'Tick a checkbox on a scanned form', builtIn: '', here: 'Yes' },
+  { task: 'Permanently remove text from a page', builtIn: '', here: 'Yes' },
+  { task: 'Pick it up on a Windows PC or Android phone', builtIn: '', here: 'Same tool, any browser' },
 ];
 ---
 
@@ -32,11 +59,11 @@ const faq = [
   icon={Laptop}
   kicker="macOS, right in the browser"
   h1="How to Sign a PDF on Mac"
-  subhead="Preview can add a quick signature to a PDF, but it doesn't fill out checkboxes or text fields, and it only lives on this one Mac. Here's a way that does both, and picks up the same form on your phone if you need to."
+  subhead="Your Mac can already sign a PDF, and for a signature on its own, Preview does the job well. It gets awkward the moment the form is a scan with checkboxes. Here's what each approach covers, and a way to finish the parts Preview leaves you nudging into place."
   primaryCta={{ href: '/sign/', label: 'Sign a PDF now' }}
   faq={faq}
 >
-  <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+  <FeatureCard density="flow" variant="highlight" class="relative isolate overflow-hidden">
     <CardDecor sketch="arcs" icon={Laptop} iconPos="tr" iconSize={280} />
     <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Four steps</span>
     <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Sign a PDF on Mac</h2>
@@ -47,27 +74,45 @@ const faq = [
       </li>
       <li class="flex items-start gap-4">
         <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
-        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Drag the PDF in</strong> from Finder or your Downloads folder.</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Drag the PDF in</strong> from Finder, or from the Downloads stack in your Dock if it just arrived by email.</span>
       </li>
       <li class="flex items-start gap-4">
         <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
-        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Fill in the form and add your signature,</strong> drawn with the trackpad, typed, or uploaded from a saved image.</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Fill in the form, then add your signature.</strong> Draw it with the trackpad, type it in a handwriting font, or upload a photo of one. Text and checkboxes go anywhere on the page, so a scan is no harder than a proper form.</span>
       </li>
       <li class="flex items-start gap-4">
         <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">4</span>
-        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Click Sign and Download.</strong> The finished PDF saves straight to Downloads.</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Download it.</strong> The finished PDF saves to Downloads as a new file, leaving your original alone.</span>
       </li>
     </ol>
   </FeatureCard>
 
-  <FeatureCard class="relative isolate overflow-hidden">
+  <FeatureCard density="flow" class="relative isolate overflow-hidden">
     <CardDecor sketch="grid" icon={FileEdit} iconPos="br" iconSize={280} />
-    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Why not just use Preview</span>
-    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Preview is fine for a quick signature, not a whole form</h2>
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Preview, side by side</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">What Preview already handles, and where it stops</h2>
+    <p class="mb-6 mt-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      Preview's Markup toolbar can capture a signature from your trackpad, your camera, or your iPhone, and it fills
+      properly fillable PDFs without complaint. The gap opens up with flat documents: a scanned consent form, or a PDF
+      exported so its fields are baked into the page. Preview can only float text on top of those, one box at a time.
+    </p>
+    <CompareTable
+      builtInLabel="Preview"
+      rows={compareRows}
+      caption="Both run on your Mac with nothing uploaded, so this is about what each one can reach, not about privacy."
+    />
+  </FeatureCard>
+
+  <FeatureCard density="flow" class="relative isolate overflow-hidden">
+    <CardDecor sketch="rings" icon={Lightbulb} iconPos="cl" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Worth saying plainly</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">When you should just use Preview</h2>
     <p class="m-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
-      Preview's built-in signature tool works well when all you need is your name on a page. It's less suited to a
-      multi-page form with checkboxes and text fields, and it's tied to this one Mac, so if you need to finish the same
-      form on your phone later, you're starting over. PDkef handles both in one pass and works the same on any device.
+      If the document needs your signature and nothing else, open it in Preview and use the signature you already
+      saved there. It's two clicks, it's built into the Mac you're sitting at, and no website is going to beat that.
+      Come here when the form fights back: a scan that won't take text, checkboxes that aren't real checkboxes,
+      something you need <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/permanently-delete-text-from-pdf/">actually removed from the file</a>
+      rather than covered over, or a form you started on the Mac and have to finish on a borrowed Windows laptop.
     </p>
   </FeatureCard>
 

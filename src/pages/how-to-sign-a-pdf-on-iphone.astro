@@ -2,26 +2,54 @@
 import ContentPageLayout from '../layouts/ContentPageLayout.astro';
 import FeatureCard from '../components/FeatureCard.astro';
 import CardDecor from '../components/CardDecor.astro';
+import CompareTable from '../components/CompareTable.astro';
 import OtherGuides from '../components/OtherGuides.astro';
-import { Smartphone, PenLine } from 'lucide-preact';
+import { Smartphone, PenLine, Lightbulb } from 'lucide-preact';
 
 const title = 'How to Sign a PDF on iPhone (No App Needed) | PDkef';
 const description =
-  'Sign a PDF on iPhone or iPad right in Safari, fill out checkboxes and text fields, and add your signature. No App Store download, no account.';
+  'Sign a PDF on iPhone or iPad in Safari. Markup can scribble a signature but not fill a form - here is what each one covers, and how to tick checkboxes and type on a scan.';
 
 const faq = [
   {
     question: 'Do I need to download an app from the App Store?',
-    answer: 'No. It works right inside Safari, so there is nothing to install.',
+    answer:
+      'No. It runs inside Safari, so there is nothing to install, no permissions to grant, and nothing left on your phone afterwards unless you choose to add it to your Home Screen.',
+  },
+  {
+    question: "The Files app can already mark up a PDF. Why not just use that?",
+    answer:
+      "For a signature on its own, do. Markup has a proper signature tool and it's two taps away. It just doesn't understand forms: there's no way to tick a real checkbox, and typed text becomes a floating label you drag into position, which is fiddly work on a phone-sized page.",
+  },
+  {
+    question: 'How do I get a PDF from WhatsApp or Mail into the tool?',
+    answer:
+      'Open the attachment, tap the Share button, and choose "Save to Files". Then in the tool, tap to choose a file and pick it from Files. You can also long-press the attachment and share it straight across.',
   },
   {
     question: 'Does this work on iPad too?',
-    answer: 'Yes, the same way, whether you\'re using Safari on an iPhone or an iPad.',
+    answer:
+      "Yes, the same way. An iPad is the nicer of the two for this, and with an Apple Pencil the drawn signature looks like it was signed on paper.",
   },
   {
-    question: 'Where does the signed PDF get saved on my iPhone?',
-    answer: 'To the Files app, from where you can share it, email it, or save it to Photos.',
+    question: 'Where does the signed PDF get saved?',
+    answer:
+      'To the Files app, in whichever folder Safari is set to use for downloads. From there you can share it, mail it, or drop it back into the chat it arrived from.',
   },
+  {
+    question: 'My finger signature looks terrible. Any way to fix that?',
+    answer:
+      "Two, and both help. Zoom in and sign much larger than the space you actually need, since scaling down hides the wobble. Or skip drawing entirely and type your name in a handwriting-style font, which is accepted for most everyday forms.",
+  },
+];
+
+const compareRows = [
+  { task: 'Add a handwritten signature', builtIn: 'Yes, Markup has a signature tool', here: 'Draw, type, or upload a photo of one' },
+  { task: 'Fill a form that has real fillable fields', builtIn: 'Yes', here: 'Yes' },
+  { task: 'Type onto a flat or scanned form', builtIn: 'Only as a floating text label you drag into place', here: 'Tap where you want it and type' },
+  { task: 'Tick a checkbox on a scanned form', builtIn: '', here: 'Yes' },
+  { task: 'Permanently remove text from a page', builtIn: '', here: 'Yes' },
+  { task: 'Keep going if the form takes two sittings', builtIn: '', here: 'Your progress is saved on the phone' },
 ];
 ---
 
@@ -32,42 +60,62 @@ const faq = [
   icon={Smartphone}
   kicker="iPhone, right in Safari"
   h1="How to Sign a PDF on iPhone"
-  subhead="The Markup tool in Files lets you scribble a signature on top of a page, but it doesn't understand checkboxes or text fields. Here's a way to actually fill out the form, right in Safari, with no app to download."
+  subhead="Markup in the Files app will happily scribble a signature onto a page, and for that alone it's excellent. It has no idea what a checkbox is, though. Here's what each approach covers, and how to fill in an actual form from your phone without installing anything."
   primaryCta={{ href: '/sign/', label: 'Sign a PDF now' }}
   faq={faq}
 >
-  <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+  <FeatureCard density="flow" variant="highlight" class="relative isolate overflow-hidden">
     <CardDecor sketch="arcs" icon={Smartphone} iconPos="tr" iconSize={280} />
     <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Four steps</span>
     <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Sign a PDF on iPhone</h2>
     <ol class="m-0 flex list-none flex-col gap-5 p-0">
       <li class="flex items-start gap-4">
         <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
-        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Open <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/sign/">pdkef.com/sign</a></strong> in Safari.</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Save the PDF to Files first.</strong> Open the attachment in Mail or WhatsApp, tap Share, then "Save to Files". This is the step most people miss.</span>
       </li>
       <li class="flex items-start gap-4">
         <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
-        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Tap "Choose file"</strong> and pick the PDF from Files, or share it into the tool from Mail or Messages.</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Open <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/sign/">pdkef.com/sign</a> in Safari</strong> and tap to choose that file.</span>
       </li>
       <li class="flex items-start gap-4">
         <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
-        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Tap to fill in fields and add your signature,</strong> drawn with your finger, typed, or uploaded from a saved image.</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Fill it in, then sign.</strong> Pinch to zoom before placing anything small. Draw your signature with a finger or Apple Pencil, or type it in a handwriting font if the finger version isn't cooperating.</span>
       </li>
       <li class="flex items-start gap-4">
         <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">4</span>
-        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Tap Sign and Download.</strong> The signed PDF saves to your Files app, ready to share back.</span>
+        <span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"><strong class="font-semibold">Download and share it back.</strong> The finished PDF lands in Files, ready to send straight back to whoever asked for it.</span>
       </li>
     </ol>
   </FeatureCard>
 
-  <FeatureCard class="relative isolate overflow-hidden">
+  <FeatureCard density="flow" class="relative isolate overflow-hidden">
     <CardDecor sketch="grid" icon={PenLine} iconPos="br" iconSize={280} />
-    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Why not just use Markup</span>
-    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Markup is for scribbling, not filling out a form</h2>
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Markup, side by side</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">Where Markup stops being enough</h2>
+    <p class="mb-6 mt-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
+      Markup is built into Files, Mail and Photos, and its signature tool is genuinely one of the better ones on any
+      platform. It's an annotation tool, though: it draws on top of a page rather than understanding what's on it. That
+      distinction is invisible until the page is a scanned form and you need an X inside a small square.
+    </p>
+    <CompareTable
+      builtInLabel="Markup (Files)"
+      rows={compareRows}
+      caption="Both run on the phone itself with nothing uploaded, so this is about what each one can do, not about privacy."
+    />
+  </FeatureCard>
+
+  <FeatureCard density="flow" class="relative isolate overflow-hidden">
+    <CardDecor sketch="rings" icon={Lightbulb} iconPos="cl" iconSize={280} />
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Worth saying plainly</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">When Markup is the right answer</h2>
     <p class="m-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]">
-      The Markup tool built into Files and Mail is fine for dropping a signature onto a single page, but it doesn't
-      recognize checkboxes or text fields, and there's no way to position things precisely before you're committed.
-      PDkef fills real form fields directly and lets you place your signature exactly where it needs to go.
+      A permission slip that needs a signature at the bottom and nothing else? Use Markup. It's already on the phone,
+      it's faster than opening a browser, and the result is the same. Come here when the form has fields to complete,
+      boxes to tick, or something on it you need
+      <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/permanently-delete-text-from-pdf/">genuinely removed rather than covered up</a>.
+      If it's a form you'll be at for a while, this one also
+      <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/offline-pdf-form-filler/">saves your progress as you go</a>,
+      so a phone call halfway through doesn't cost you the work.
     </p>
   </FeatureCard>
 

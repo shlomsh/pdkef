@@ -1,7 +1,13 @@
 ---
 // Links each OS how-to guide to the other three, so a visitor who landed on
-// the Windows guide but is actually on a Mac isn't stuck. Compact strip, same
-// reasoning as ToolCrossLinks.astro for not using a full-height FeatureCard.
+// the Windows guide but is actually on a Mac isn't stuck, and back up to the
+// tool itself. The hub link is structural rather than decorative: the four
+// guides used to link only to each other, a closed ring with no way out to the
+// rest of the site, which left the whole cluster orphaned (see
+// RelatedGuides.astro for the other half of that fix).
+// Compact strip, same reasoning as ToolCrossLinks.astro for not using a
+// full-height FeatureCard.
+import { FileSignature } from 'lucide-preact';
 import { guides } from '../data/contentPages.js';
 
 interface Props {
@@ -28,5 +34,14 @@ const others = guides.filter((guide) => guide.href !== currentHref);
         </a>
       </li>
     ))}
+    <li class="m-0 p-0">
+      <a
+        href="/sign/"
+        class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-primary-tint)] bg-[var(--color-primary-soft)] px-4 py-2 text-[0.9rem] font-medium text-[var(--color-primary)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)]"
+      >
+        <FileSignature size={16} strokeWidth={1.75} />
+        Open the Sign &amp; Fill tool
+      </a>
+    </li>
   </ul>
 </section>

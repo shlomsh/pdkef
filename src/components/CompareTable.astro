@@ -1,0 +1,152 @@
+---
+// A factual side-by-side of the device's own built-in option against doing it
+// here. Exists because the OS how-to guides were otherwise four copies of one
+// template with the OS noun swapped - the thing that actually differs per
+// platform is what that platform already ships, so that comparison is the
+// page's real content rather than decoration.
+//
+// Semantic <table> on purpose: it is genuinely tabular, it reads correctly to
+// a screen reader, and it is the shape answer engines quote from.
+//
+// Styled with a scoped <style> block rather than utilities, deliberately. Cell
+// styling here is per-element (th/td) and would otherwise mean repeating the
+// same six classes on every cell, and - the reason that matters - each new
+// utility lands in the one stylesheet every page inlines, so all 20 pages pay
+// for a table that four of them render. check-css-duplication.js fails the
+// build on exactly that. Scoped styles ship with the component instead.
+import { Check, Minus } from 'lucide-preact';
+
+interface Row {
+  /* What the reader is trying to do. */
+  task: string;
+  /* '' renders a "no" dash; a string renders as a qualified yes. */
+  builtIn: string;
+  here: string;
+}
+interface Props {
+  builtInLabel: string;
+  rows: Row[];
+  caption?: string;
+}
+
+const { builtInLabel, rows, caption } = Astro.props;
+---
+
+<div class="compare-scroll">
+  <table>
+    {caption && <caption>{caption}</caption>}
+    <thead>
+      <tr>
+        <th scope="col">What you need to do</th>
+        <th scope="col">{builtInLabel}</th>
+        <th scope="col" class="col-ours">PDkef</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr>
+          <th scope="row">{row.task}</th>
+          <td class="cell-muted">
+            <span class="cell-line">
+              {row.builtIn
+                ? <span class="mark mark-yes"><Check size={16} /></span>
+                : <span class="mark mark-no"><Minus size={16} /></span>}
+              {row.builtIn || 'No'}
+            </span>
+          </td>
+          <td>
+            <span class="cell-line">
+              <span class="mark mark-yes"><Check size={16} /></span>
+              {row.here}
+            </span>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .compare-scroll {
+    overflow-x: auto;
+    margin-inline: -0.5rem;
+    padding-inline: 0.5rem;
+  }
+
+  table {
+    width: 100%;
+    min-width: 520px;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  caption {
+    margin-bottom: 0.75rem;
+    text-align: left;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--color-muted);
+  }
+
+  thead th {
+    padding-bottom: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  thead th.col-ours {
+    color: var(--color-primary);
+  }
+
+  th,
+  td {
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: top;
+  }
+
+  tbody th {
+    padding: 0.75rem 1rem 0.75rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--color-text);
+  }
+
+  tbody td {
+    padding: 0.75rem 0 0.75rem 1rem;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: var(--color-text);
+  }
+
+  thead th:not(:first-child),
+  tbody td:not(:last-child) {
+    padding-inline: 1rem;
+  }
+
+  tbody td.cell-muted {
+    color: var(--color-muted);
+  }
+
+  .cell-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .mark {
+    display: flex;
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+  }
+
+  .mark-yes {
+    color: var(--color-success);
+  }
+
+  .mark-no {
+    color: var(--color-muted-light);
+  }
+</style>
