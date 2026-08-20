@@ -1,0 +1,187 @@
+---
+// The one template behind every standalone SEO landing page: the four OS
+// how-to guides and the four long-tail pages. Each was its own .astro file
+// until the copy moved into src/content/content-pages/*.yaml; what is left
+// here is only the markup those files describe. See src/content.config.ts for
+// the schema and the reasoning.
+//
+// This is a root-level dynamic route, which looks alarming next to the static
+// tool pages and is not: Astro gives static routes precedence, and
+// getStaticPaths below emits exactly the eight slugs the collection holds.
+// It lives at the root because that is where these URLs already are, and they
+// rank - moving them under a prefix would throw that away.
+import { getCollection, type CollectionEntry } from 'astro:content';
+import ContentPageLayout from '../layouts/ContentPageLayout.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import CardDecor from '../components/CardDecor.astro';
+import CompareTable from '../components/CompareTable.astro';
+import OtherGuides from '../components/OtherGuides.astro';
+import { CONTENT_ICONS } from '../data/contentIcons';
+import { contentPages, guides } from '../data/contentPages.js';
+import { renderInline } from '../lib/contentMarkup';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('contentPages');
+
+  // Two registries describe these pages and they must not drift. This one owns
+  // what each page SAYS; src/data/contentPages.js owns where each page sits in
+  // the site (its hub tool, its cross-link card, its sitemap entry). Neither
+  // can be derived from the other, but a page present in one and absent from
+  // the other is always a mistake: a content file with no registry entry is an
+  // orphan page nothing links to, and a registry entry with no content file is
+  // a 404 in the sitemap. Both were possible before; now both fail the build.
+  const fromCollection = entries.map((entry) => entry.id).sort();
+  const fromRegistry = contentPages.map((page) => page.href.replace(/^\/|\/$/g, '')).sort();
+  const orphaned = fromCollection.filter((slug) => !fromRegistry.includes(slug));
+  const missing = fromRegistry.filter((slug) => !fromCollection.includes(slug));
+  if (orphaned.length > 0 || missing.length > 0) {
+    throw new Error(
+      'Content pages are out of sync between src/content/content-pages/ and src/data/contentPages.js.\n' +
+        (orphaned.length
+          ? `  No registry entry (page would be an orphan): ${orphaned.join(', ')}\n`
+          : '') +
+        (missing.length ? `  No content file (sitemap would 404): ${missing.join(', ')}\n` : ''),
+    );
+  }
+
+  return entries.map((entry) => ({ params: { contentPage: entry.id }, props: { entry } }));
+}
+
+type Props = { entry: CollectionEntry<'contentPages'> };
+type Block = Props['entry']['data']['sections'][number]['blocks'][number];
+
+const { entry } = Astro.props;
+const page = entry.data;
+const href = `/${entry.id}/`;
+
+// The OS switcher belongs to the four device guides and only to them: it asks
+// "signing on a different device?", which is not a question the long-tail pages
+// pose. `guides` is the registry that already answers which is which, so the
+// entry does not carry a flag that could disagree with it.
+const isDeviceGuide = guides.some((guide) => guide.href === href);
+
+// Spacing between blocks is derived, not authored, so a card cannot end up with
+// the wrong rhythm because someone copied the classes from a different page.
+// The rule the eight pages already followed: the last block in a card has no
+// bottom margin; a paragraph gets a wider gap when something structural (a
+// list, a table, a column grid) comes next than when another paragraph does.
+const PARAGRAPH_LAST = 'm-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]';
+const PARAGRAPH_BEFORE_TEXT =
+  'mb-4 mt-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]';
+const PARAGRAPH_BEFORE_BLOCK =
+  'mb-6 mt-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]';
+const LIST_LAST = 'm-0 flex list-none flex-col gap-5 p-0';
+const LIST_BEFORE_BLOCK = 'm-0 mb-6 flex list-none flex-col gap-5 p-0';
+const COLUMNS_LAST = 'grid gap-6 grid-cols-3 max-[768px]:grid-cols-1';
+const COLUMNS_BEFORE_BLOCK = 'mb-6 grid gap-6 grid-cols-3 max-[768px]:grid-cols-1';
+
+const isLast = (list: Block[], index: number) => index === list.length - 1;
+
+function paragraphClass(list: Block[], index: number) {
+  if (isLast(list, index)) return PARAGRAPH_LAST;
+  return list[index + 1].kind === 'prose' ? PARAGRAPH_BEFORE_TEXT : PARAGRAPH_BEFORE_BLOCK;
+}
+---
+
+<ContentPageLayout
+  title={page.title}
+  description={page.description}
+  breadcrumb={page.breadcrumb}
+  icon={CONTENT_ICONS[page.icon]}
+  kicker={page.kicker}
+  h1={page.h1}
+  subhead={page.subhead}
+  primaryCta={page.primaryCta}
+  faq={page.faq}
+>
+  {
+    page.sections.map((section) => (
+      <FeatureCard
+        density="flow"
+        variant={section.variant}
+        class="relative isolate overflow-hidden"
+      >
+        <CardDecor
+          sketch={section.sketch}
+          icon={CONTENT_ICONS[section.icon]}
+          iconPos={section.iconPos}
+          iconSize={280}
+        />
+        <span
+          class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]"
+          set:html={renderInline(section.kicker)}
+        />
+        <h2
+          class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]"
+          set:html={renderInline(section.heading)}
+        />
+        {section.blocks.map((block, index) => (
+          <Fragment>
+            {block.kind === 'prose' && (
+              <p
+                class={paragraphClass(section.blocks, index)}
+                set:html={renderInline(block.text)}
+              />
+            )}
+
+            {(block.kind === 'steps' || block.kind === 'checklist') &&
+              (() => {
+                // Both render the same numbered rows; the tag is the whole
+                // difference. Steps are an ordered procedure, a checklist is a
+                // set of questions that happen to be numbered for reference,
+                // and a screen reader should be told which it is looking at.
+                const ListTag = block.kind === 'steps' ? 'ol' : 'ul';
+                return (
+                  <ListTag class={isLast(section.blocks, index) ? LIST_LAST : LIST_BEFORE_BLOCK}>
+                    {block.items.map((item, n) => (
+                      <li class="flex items-start gap-4">
+                        <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">
+                          {n + 1}
+                        </span>
+                        <span
+                          class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]"
+                          set:html={renderInline(item)}
+                        />
+                      </li>
+                    ))}
+                  </ListTag>
+                );
+              })()}
+
+            {block.kind === 'compare' && (
+              <CompareTable
+                builtInLabel={block.builtInLabel}
+                rows={block.rows}
+                caption={block.caption}
+              />
+            )}
+
+            {block.kind === 'columns' && (
+              <div
+                class={isLast(section.blocks, index) ? COLUMNS_LAST : COLUMNS_BEFORE_BLOCK}
+              >
+                {block.items.map((column) => {
+                  const ColumnIcon = CONTENT_ICONS[column.icon];
+                  return (
+                    <div class="flex flex-col gap-2">
+                      <div class="mb-1 flex items-center gap-2 text-[0.95rem] font-semibold text-[var(--color-text)]">
+                        <ColumnIcon size={17} class="text-[var(--color-primary)]" />{' '}
+                        <Fragment set:html={renderInline(column.title)} />
+                      </div>
+                      <p
+                        class="m-0 text-[0.92rem] leading-[1.55] text-[var(--color-muted)]"
+                        set:html={renderInline(column.body, 'muted')}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Fragment>
+        ))}
+      </FeatureCard>
+    ))
+  }
+
+  {isDeviceGuide && <OtherGuides currentHref={href} />}
+</ContentPageLayout>

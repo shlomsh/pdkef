@@ -1,0 +1,137 @@
+title: 'Install a PDF App - Works With No Internet | PDkef'
+description: >-
+  Install PDkef as an app, no App Store needed, and it keeps working with no internet connection at
+  all. Fill forms, sign documents, and your progress saves to your own device automatically.
+breadcrumb: 'PDF app'
+icon: 'Download'
+kicker: 'Install it, use it anywhere'
+h1: 'Install a PDF App That Works With No Internet'
+subhead: >-
+  Add PDkef to your home screen or dock and it becomes a real app, no App Store required: the same
+  tool, filling and signing PDFs exactly the way it does in a browser tab, except it now keeps
+  working with no connection at all, because it never needed the network to begin with.
+primaryCta:
+  href: '/sign/'
+  label: 'Open the Sign & Fill tool'
+sections:
+  - sketch: 'arcs'
+    icon: 'Plane'
+    iconPos: 'tr'
+    kicker: 'Why it matters'
+    heading: 'Paperwork has a habit of happening where the signal doesn''t'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Think about where you actually end up filling in forms. A clinic waiting room in a
+          basement. The back office of a government building. A plane, an hour before you land and
+          need the arrival form done. A train through a valley. Abroad, with data roaming off and
+          the hotel wifi asking for a room number you don't have yet.
+      - kind: 'prose'
+        text: >-
+          A tool that uploads your document can't help you in any of those places, and it tends to
+          fail at the worst moment: not when you open it, but three fields from the end, when it
+          tries to send. Doing the work on your own device removes that entire category of problem.
+          There is no request to fail, so a bad signal is just a bad signal rather than lost work.
+  - variant: 'highlight'
+    sketch: 'grid'
+    icon: 'Monitor'
+    iconPos: 'br'
+    kicker: 'Set up once'
+    heading: 'Install it like a regular app'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Because every tool already runs locally with nothing uploaded, your device can simply keep
+          a copy of the whole thing. Installing takes a few seconds and one connection, after which
+          it opens from your dock or home screen like anything else you've installed.
+      - kind: 'columns'
+        items:
+          - icon: 'Monitor'
+            title: 'Chrome &amp; Edge'
+            body: >-
+              Click the install icon (a screen with a down arrow) at the right-hand end of the
+              address bar, or open the browser menu and choose "Install PDkef".
+          - icon: 'Smartphone'
+            title: 'Safari (iPhone/iPad)'
+            body: >-
+              Tap the Share button, scroll down the list, and select "Add to Home Screen". It has to
+              be Safari; Chrome on iOS can't do this.
+          - icon: 'Compass'
+            title: 'Safari (Mac)'
+            body: 'Click the Share button in the toolbar and choose "Add to Dock...".'
+      - kind: 'prose'
+        text: >-
+          No install icon in the address bar? It usually means the page hasn't finished loading yet,
+          or you're in a private window, where browsers don't offer it. You don't strictly need to
+          install anything either: an ordinary browser tab keeps working offline too once you've
+          visited once. Installing just makes it easy to find when there's no connection to search
+          with.
+  - sketch: 'waves'
+    icon: 'Save'
+    iconPos: 'cl'
+    kicker: 'While you work'
+    heading: 'Your half-finished form isn''t riding on one open tab'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Long forms rarely get done in one sitting. As you type into fields, tick boxes and place a
+          signature, the tool writes your progress to your device's own storage in the background.
+          Close the tab, run out of battery, or let the browser quietly discard the page while you
+          take a call: open the tool again and your work is where you left it.
+      - kind: 'prose'
+        text: >-
+          The document itself is saved alongside the edits, so you don't have to find the original
+          file again either. Drafts are kept for 14 days and then cleared, and loading a different
+          file into the same tool replaces the one that was there. Downloading your finished PDF
+          deliberately doesn't wipe it, so noticing a typo two minutes later isn't a disaster.
+      - kind: 'prose'
+        text: >-
+          The honest limit: this is your device's storage, not an account, so the draft stays in the
+          browser you started in. Nothing syncs to a phone, because syncing would mean uploading,
+          and that's the one thing this is built not to do. Crash recovery without a server is a
+          fair trade for that.
+  - sketch: 'rings'
+    icon: 'HardDriveDownload'
+    iconPos: 'tr'
+    kicker: 'What "offline" really means here'
+    heading: 'Not a reduced offline mode'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Plenty of apps have an offline mode that queues your work up and syncs it later, which
+          means the important part still happens on a server eventually. This isn't that. The code
+          that reads your PDF, places your signature and writes the finished file has always run on
+          your device, connection or not, so there's nothing to queue and nothing waiting to be sent
+          when you reconnect. Offline isn't a fallback mode here, it's just the normal mode with the
+          wifi off. You can <a href="/open-source-pdf-editor/">check that claim yourself in about a
+          minute</a>.
+faq:
+  - question: 'Do I need an internet connection to fill out a form?'
+    answer: >-
+      Only for the very first visit, to fetch the tool itself. Once it is stored on your device, it
+      opens and works with no connection at all, the same way an installed app does.
+  - question: 'What happens to my progress if I lose connection partway through?'
+    answer: >-
+      Nothing, because filling out the form never depended on the connection. Your work is saved to
+      your own device as you go, not to a server, so there is no session to drop and no upload to
+      fail.
+  - question: 'How long is my in-progress form kept?'
+    answer: >-
+      Up to 14 days, after which it is cleared automatically. Loading a different file into the same
+      tool replaces the saved draft, and downloading your finished PDF doesn't clear it, so you can
+      come back and adjust something.
+  - question: 'Can I start a form on my laptop and finish it on my phone?'
+    answer: >-
+      No, and this is the honest trade-off of keeping everything local. Your saved progress lives in
+      the browser you started in, on that device, because there is no server holding a copy to sync
+      from. You can use the tool on any device, but a half-finished form doesn't travel between
+      them.
+  - question: 'Does the offline install work on my phone, or only a computer?'
+    answer: >-
+      Both. Install it from Chrome or Edge on a computer, or add it to your Home Screen from Safari
+      on an iPhone or iPad. On iOS it has to be Safari, as other browsers there cannot install web
+      apps.
+  - question: 'Once I am back online, does my form data get uploaded?'
+    answer: >-
+      No. Nothing uploads your file at any point, online or offline. Reconnecting changes nothing
+      about where your document lives, which is on your device and nowhere else.
