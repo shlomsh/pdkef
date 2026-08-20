@@ -2,11 +2,11 @@
 import ContentPageLayout from '../layouts/ContentPageLayout.astro';
 import FeatureCard from '../components/FeatureCard.astro';
 import CardDecor from '../components/CardDecor.astro';
-import { WifiOff, HardDriveDownload, Monitor, Smartphone, Compass, Save, Plane } from 'lucide-preact';
+import { Download, HardDriveDownload, Monitor, Smartphone, Compass, Save, Plane } from 'lucide-preact';
 
-const title = 'Offline PDF Form Filler - Fill PDFs Without Internet | PDkef';
+const title = 'Fill & Sign a PDF Online - Install as an App | PDkef';
 const description =
-  'Install PDkef as an app and fill out PDF forms with no internet connection. Your progress saves to your own device, so a dead signal or a closed tab never costs you the form.';
+  'Fill and sign a PDF right in your browser, then install it as an app so it keeps working with no connection at all. Your progress saves to your own device automatically. Free, no account.';
 
 const faq = [
   {
@@ -45,12 +45,12 @@ const faq = [
 <ContentPageLayout
   title={title}
   description={description}
-  breadcrumb="Offline forms"
-  icon={WifiOff}
-  kicker="Works without a connection"
-  h1="Fill Out a PDF Form Offline"
-  subhead="Install PDkef once and you can open, fill and sign PDF forms with no connection at all. Not a stripped-back offline mode either: it's the same tool, working the same way, because it never needed the network in the first place."
-  primaryCta={{ href: '/sign/', label: 'Open the form filler' }}
+  breadcrumb="Fill & Sign app"
+  icon={Download}
+  kicker="Install it, use it anywhere"
+  h1="Fill & Sign a PDF Online, Installable as an App"
+  subhead="Open pdkef.com/sign in any browser and fill or sign a PDF right away, no install needed. Add it to your home screen or dock, though, and it becomes a real app: same tool, works with no connection at all, because it never needed the network to begin with."
+  primaryCta={{ href: '/sign/', label: 'Open the Sign & Fill tool' }}
   faq={faq}
 >
   <FeatureCard density="flow" class="relative isolate overflow-hidden">
@@ -138,8 +138,7 @@ const faq = [
       still happens on a server eventually. This isn't that. The code that reads your PDF, places your signature and
       writes the finished file has always run on your device, connection or not, so there's nothing to queue and
       nothing waiting to be sent when you reconnect. Offline isn't a fallback mode here, it's just the normal mode with
-      the wifi off. You can
-      <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/open-source-pdf-editor/">check that claim yourself in about a minute</a>.
+      the wifi off. You can <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/open-source-pdf-editor/">check that claim yourself in about a minute</a>.
     </p>
   </FeatureCard>
 </ContentPageLayout>
