@@ -38,8 +38,15 @@
 @source not "../**/*.tsx";
 @source not "../**/*.test.js";
 @source not "../../e2e/**/*.js";
-/* Documentation is not a template - see CLAUDE.md, "Tailwind source scanning". */
-@source not "../../*.md";
+/* Documentation is not a template - see CLAUDE.md, "Tailwind source scanning".
+   `**` on purpose: this was `../../*.md`, which only ever covered root-level
+   files, so a markdown file one directory down was still scanned for utility
+   candidates (seo-audit-output/ has four). That costs nothing today - measured
+   at 0 bytes - but the whole point of these rules is that the symptom is
+   invisible when it does bite: no error, no failing class, just a slightly
+   heavier stylesheet inlined into all 21 pages. Match every .md anywhere so a
+   new report or note cannot reintroduce it by being filed somewhere new. */
+@source not "../../**/*.md";
 @source not "../../docs/**";
 @source not "../../*.html";
 
