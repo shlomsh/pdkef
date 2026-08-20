@@ -45,6 +45,42 @@ const distDir = path.join(__dirname, '..', 'dist');
  * referenced it will appear in the HTML and this number will jump, which is the
  * regression worth catching.
  *
+ * IMAGES ARE A SECOND, SEPARATE BUDGET, and they are here because their absence
+ * cost real bytes for months. The brand logo shipped as <img src="/favicon.png">,
+ * a 512x512 PNG of 153,946 bytes, painted at 24px in the app bar on 18 of the 21
+ * pages. Every first visit from search paid ~150KB for a 24px square, and this
+ * script - the one guard whose entire job is "what does a visitor download
+ * before the page is usable" - said nothing, because it only ever looked at
+ * .js. A budget that watches the two lightest asset types and ignores the
+ * heaviest one is not a page-weight budget.
+ *
+ * Three deliberate choices in how images are counted:
+ *
+ *   Raw bytes, not brotli. WebP/JPEG/PNG are already compressed and Vercel
+ *   serves them as-is, so brotli-ing them here would report a number no
+ *   visitor ever experiences. The doc and JS stay brotli because those really
+ *   are served compressed. The columns therefore mix units on purpose: each
+ *   one is the bytes that actually cross the wire.
+ *
+ *   The largest srcset candidate, not the src. A browser downloads exactly one
+ *   candidate, and on the retina displays most visitors have that is the 2x. A
+ *   budget should measure the worst realistic case, not the cheapest one.
+ *
+ *   loading="lazy" is excluded, anything else is counted. Absent means eager
+ *   per spec, so the default is to count it. Favicons and manifest icons are
+ *   also excluded: the browser picks one, fetches it once for the whole origin,
+ *   and it is not part of any single page's render path.
+ *
+ * Images referenced from CSS url() are NOT counted - there are none today, and
+ * whether a rule that mentions one actually matches is not decidable from the
+ * stylesheet alone. If a background image ever ships, it will be invisible here.
+ *
+ * The two budgets stay separate rather than summing into one first-load number,
+ * for the same reason the file argues against merging a ratchet with a budget
+ * below: a JS regression and an image regression have different causes and
+ * different fixes, and one number would let a win on either side hide a loss on
+ * the other. The combined figure is printed for context and enforces nothing.
+ *
  * NOT A RATCHET. Page weight legitimately grows when features ship, so this
  * carries real headroom (48,000 against a measured 39,984, ~20%) and should be
  * raised deliberately when a feature needs it, saying what shipped. The hard
@@ -57,6 +93,15 @@ const distDir = path.join(__dirname, '..', 'dist');
 
 // Worst measured page is /sign/ at 39,984 brotli (23,910 document + 16,074 JS).
 const MAX_FIRST_LOAD_BROTLI = 48_000;
+
+// Worst measured page is / at 4,586 raw bytes: the app bar logo (1,342 at 2x)
+// plus the home hero logo (3,244 at 2x). Every other page carries the app bar
+// alone. The limit is deliberately close - roughly 3x headroom - because this
+// site has no photography by design, so the realistic ways this number moves
+// are a genuine new asset (raise it, and say what shipped) or an unoptimised
+// one landing on the critical path (the regression). For scale, the defect
+// this was written after would have blown it by more than 10x.
+const MAX_EAGER_IMAGE_BYTES = 15_000;
 
 if (!fs.existsSync(distDir)) {
   console.error(`dist directory not found: ${distDir}. Run npm run build first.`);
@@ -80,6 +125,65 @@ const brotli = (buffer) =>
   zlib.brotliCompressSync(buffer, {
     params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 },
   }).length;
+
+// One srcset candidate list -> the URLs in it. A candidate is "<url> <descriptor>"
+// and descriptors never contain a comma, so splitting on commas is safe for the
+// hashed, comma-free filenames Astro emits.
+function srcsetUrls(value) {
+  return value
+    .split(',')
+    .map((candidate) => candidate.trim().split(/\s+/)[0])
+    .filter(Boolean);
+}
+
+// Every image the document makes the browser fetch before it is usable, as a
+// map of resolved dist path -> bytes. Deduped by URL, because two elements
+// pointing at the same file cost one download.
+function eagerImages(html) {
+  const found = new Map();
+
+  const consider = (urls) => {
+    // A browser picks exactly one candidate; assume the largest (see header).
+    let worstPath = null;
+    let worstBytes = -1;
+    for (const url of urls) {
+      if (!url.startsWith('/')) continue; // data: URIs and off-origin: not our bytes
+      const assetPath = path.join(distDir, url.split('?')[0]);
+      if (!assetPath.startsWith(distDir) || !fs.existsSync(assetPath)) continue;
+      const bytes = fs.statSync(assetPath).size;
+      if (bytes > worstBytes) {
+        worstBytes = bytes;
+        worstPath = assetPath;
+      }
+    }
+    if (worstPath) found.set(worstPath, worstBytes);
+  };
+
+  for (const [tag] of html.matchAll(/<img\b[^>]*>/gi)) {
+    if (/\bloading\s*=\s*["']?lazy\b/i.test(tag)) continue;
+    const srcset = tag.match(/\bsrcset\s*=\s*"([^"]*)"/i);
+    const src = tag.match(/\bsrc\s*=\s*"([^"]*)"/i);
+    consider(srcset ? srcsetUrls(srcset[1]) : src ? [src[1]] : []);
+  }
+
+  // <picture><source srcset> - unused today, but it is the other way an eager
+  // image reaches the page, and a guard that misses it invites the same bug back.
+  for (const [tag] of html.matchAll(/<source\b[^>]*>/gi)) {
+    const srcset = tag.match(/\bsrcset\s*=\s*"([^"]*)"/i);
+    if (srcset) consider(srcsetUrls(srcset[1]));
+  }
+
+  // An explicit preload is as eager as it gets.
+  for (const [tag] of html.matchAll(/<link\b[^>]*>/gi)) {
+    if (!/\brel\s*=\s*["']?preload\b/i.test(tag)) continue;
+    if (!/\bas\s*=\s*["']?image\b/i.test(tag)) continue;
+    const imagesrcset = tag.match(/\bimagesrcset\s*=\s*"([^"]*)"/i);
+    const href = tag.match(/\bhref\s*=\s*"([^"]*)"/i);
+    consider(imagesrcset ? srcsetUrls(imagesrcset[1]) : href ? [href[1]] : []);
+  }
+
+  return found;
+}
 
 const htmlFiles = getHtmlFiles(distDir).sort();
 if (htmlFiles.length === 0) {
@@ -106,27 +210,42 @@ for (const file of htmlFiles) {
   const styleTagRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
   while ((match = styleTagRegex.exec(html)) !== null) css += match[1];
 
+  // Raw, not brotli: images are already compressed and served as-is.
+  const images = eagerImages(html);
+  let imgBytes = 0;
+  for (const bytes of images.values()) imgBytes += bytes;
+
   const docBytes = brotli(buffer);
   rows.push({
     label: `/${path.relative(distDir, file).replace(/(^|\/)index\.html$/, '/').replace(/^\/+/, '')}`,
     doc: docBytes,
     js: jsBytes,
     css: css ? brotli(Buffer.from(css, 'utf8')) : 0,
+    img: imgBytes,
+    imgCount: images.size,
     total: docBytes + jsBytes,
     modules: scriptRefs.length,
   });
 }
 
-rows.sort((a, b) => b.total - a.total);
-const worst = rows[0];
+rows.sort((a, b) => b.total + b.img - (a.total + a.img));
+const worst = rows.reduce((a, b) => (b.total > a.total ? b : a));
+const worstImage = rows.reduce((a, b) => (b.img > a.img ? b : a));
 
-console.log(`First-load weight (brotli, document + eagerly referenced JS), ${rows.length} pages:`);
+console.log(
+  `First-load weight, ${rows.length} pages. Document and JS are brotli; images are raw ` +
+    '(already compressed, served as-is):',
+);
 for (const row of rows) {
   console.log(
-    `  ${row.label.padEnd(16)} ${String(row.total).padStart(6)} total = ${String(row.doc).padStart(6)} doc + ${String(row.js).padStart(6)} js` +
-      `   (css ${row.css} of doc, ${row.modules} module${row.modules === 1 ? '' : 's'})`,
+    `  ${row.label.padEnd(16)} ${String(row.doc).padStart(6)} doc + ${String(row.js).padStart(6)} js` +
+      ` + ${String(row.img).padStart(5)} img` +
+      `   (css ${row.css} of doc, ${row.modules} module${row.modules === 1 ? '' : 's'},` +
+      ` ${row.imgCount} image${row.imgCount === 1 ? '' : 's'})`,
   );
 }
+
+let failed = false;
 
 if (worst.total > MAX_FIRST_LOAD_BROTLI) {
   console.error(
@@ -135,7 +254,23 @@ if (worst.total > MAX_FIRST_LOAD_BROTLI) {
       'If a chunk that used to load behind a user action is now referenced by the HTML, that is the regression; ' +
       'otherwise raise the limit deliberately and say what shipped.',
   );
-  process.exit(1);
+  failed = true;
 }
 
-console.log(`\nPage weight check passed. Worst page ${worst.label}: ${worst.total} / ${MAX_FIRST_LOAD_BROTLI} bytes brotli.`);
+if (worstImage.img > MAX_EAGER_IMAGE_BYTES) {
+  console.error(
+    `\nEager image budget exceeded: ${worstImage.label} fetches ${worstImage.img} raw bytes of images ` +
+      `before first paint, over the ${MAX_EAGER_IMAGE_BYTES} byte limit. ` +
+      'The usual cause is a full-size asset referenced at display size instead of going through ' +
+      'astro:assets, or an image that should carry loading="lazy" and does not; ' +
+      'otherwise raise the limit deliberately and say what shipped.',
+  );
+  failed = true;
+}
+
+if (failed) process.exit(1);
+
+console.log(
+  `\nPage weight check passed. Worst document+JS ${worst.label}: ${worst.total} / ${MAX_FIRST_LOAD_BROTLI} brotli. ` +
+    `Worst eager images ${worstImage.label}: ${worstImage.img} / ${MAX_EAGER_IMAGE_BYTES} raw.`,
+);

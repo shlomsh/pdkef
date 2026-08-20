@@ -558,9 +558,16 @@ Run by `ci.yml`; see Part I "Commands" for the npm scripts.
    selectors in `global.css`.
 5. **CSS duplication** (`check-css-duplication.js`) - hard ratchets on duplication factor, dead bytes
    and single-page utilities. Every number here measures a mistake, so these only ever go down.
-6. **Page weight** (`check-page-weight.js`) - document plus eagerly-referenced JS, brotli, per page.
-   Deliberately *not* a ratchet: features grow page weight and that is not a defect. Runtime-`import()`
-   chunks are uncounted on purpose, so one becoming eager shows up as a jump.
+6. **Page weight** (`check-page-weight.js`) - two separate budgets per page: document plus
+   eagerly-referenced JS (brotli), and eagerly-referenced images (raw, since they are already
+   compressed and served as-is). Deliberately *not* ratchets: features grow page weight and that is
+   not a defect. Runtime-`import()` chunks are uncounted on purpose, so one becoming eager shows up
+   as a jump. The image budget counts the **largest** `srcset` candidate (a retina device downloads
+   the 2x, and a budget should measure the worst realistic case), skips `loading="lazy"`, and skips
+   favicons and manifest icons (fetched once per origin, not per page). It exists because the brand
+   logo shipped for months as a 512x512, 153,946-byte PNG painted at 24px in the app bar on 18 of 21
+   pages, and a guard whose whole job is first-load weight said nothing because it only looked at
+   `.js`. Images referenced from CSS `url()` are still invisible here.
 7. **Gesture golden rule** (`check-gesture-golden-rule.js`) - §4, statically enforced.
 8. **Playwright e2e** - reserved for what jsdom cannot prove (rendered rects, drag-time toolbar
    following, page-edge behavior, hydration/CSP flows). Keep the suite sparse, roughly one e2e test per
