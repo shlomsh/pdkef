@@ -10,11 +10,20 @@
 // tools, so it leaked internal signal and received none. This is the same
 // diagnosis, and the same fix, as ToolCrossLinks.astro for tool-to-tool links.
 //
-// Compact strip rather than a <FeatureCard>, for the reason ToolCrossLinks
-// documents: a FeatureCard lays out at min-h-[calc(100vh-6rem)] on desktop and
-// another near-full-viewport panel here would bury the footer. Utility classes
-// are deliberately the same ones OtherGuides.astro already uses, so this adds
-// no new rules to the stylesheet every page inlines.
+// Card grid, matching ToolCrossLinks.astro's visual language (icon square,
+// title, one-line description) rather than OtherGuides.astro's bare pills,
+// because this section renders directly above ToolCrossLinks' own grid on the
+// same page - a plain pill row next to it read as an afterthought, and with
+// only one or two related pages on some tools (redact, edit-pdf) a lone pill
+// in a wide centered container looked broken rather than compact.
+//
+// Styled with scoped CSS rather than utilities, for the same reason as
+// CompareTable.astro: a new utility lands in the one stylesheet all 20 pages
+// inline, and this section only ever renders on the 3 tool pages that have a
+// related guide. `justify-content: center` on the grid (not a fixed column
+// count) is what lets a lone card on /redact/ centre itself instead of
+// pinning to the grid's first column with empty space beside it, while the
+// same rule wraps sign's six cards into balanced rows.
 import { contentPagesForTool } from '../data/contentPages.js';
 
 interface Props {
@@ -27,22 +36,157 @@ const related = contentPagesForTool(currentSlug);
 ---
 
 {related.length > 0 && (
-  <section class="mx-auto mb-16 w-full max-w-[1080px] px-6 min-[768px]:mb-24" aria-labelledby="related-guides-heading">
-    <div class="mb-6 text-center">
-      <h2 id="related-guides-heading" class="m-0 text-[1.15rem] font-bold text-[var(--color-text)]">{heading}</h2>
+  <section class="related-guides" aria-labelledby="related-guides-heading">
+    <div class="related-guides-head">
+      <span class="related-guides-kicker">More on this tool</span>
+      <h2 id="related-guides-heading">{heading}</h2>
     </div>
-    <ul class="m-0 flex list-none flex-wrap justify-center gap-3 p-0">
+
+    <ul class="related-guides-grid">
       {related.map((page) => (
-        <li class="m-0 p-0">
-          <a
-            href={page.href}
-            class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-[0.9rem] font-medium text-[var(--color-text)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)]"
-          >
-            <page.icon size={16} strokeWidth={1.75} class="text-[var(--color-primary)]" />
-            {page.label}
+        <li>
+          <a href={page.href} class="related-guides-card">
+            <span class="related-guides-icon">
+              <page.icon strokeWidth={1.5} />
+            </span>
+            <span class="related-guides-text">
+              <span class="related-guides-title">{page.label}</span>
+              <span class="related-guides-blurb">{page.blurb}</span>
+            </span>
           </a>
         </li>
       ))}
     </ul>
   </section>
 )}
+
+<style>
+  .related-guides {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto 4rem;
+    padding-inline: 1.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .related-guides {
+      margin-bottom: 6rem;
+    }
+  }
+
+  .related-guides-head {
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .related-guides-kicker {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-primary);
+  }
+
+  .related-guides-head h2 {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  /* flex, not grid: 6 related pages (sign's hub) lay out as two even rows of
+     three, and a single related page (redact, edit-pdf) centres on its own.
+     A grid's auto-fit centres unused TRACK space as one block, so an uneven
+     trailing row (e.g. 4 columns fit, 6 items -> 4+2) stays left-packed
+     against the first columns instead of centring itself - the exact
+     asymmetry a flex row's own justify-content avoids, because flex centres
+     each wrapped line independently. */
+  .related-guides-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .related-guides-grid > li {
+    flex: 0 1 calc(33.333% - 0.667rem);
+    min-width: 240px;
+    max-width: 320px;
+    list-style: none;
+  }
+
+  @media (max-width: 768px) {
+    .related-guides-grid > li {
+      flex-basis: calc(50% - 0.5rem);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .related-guides-grid > li {
+      flex-basis: 100%;
+      max-width: 400px;
+    }
+  }
+
+  .related-guides-card {
+    display: flex;
+    height: 100%;
+    align-items: flex-start;
+    gap: 0.75rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    padding: 1rem;
+    color: inherit;
+    text-decoration: none;
+    transition: transform 150ms ease-out, border-color 150ms ease-out;
+  }
+
+  .related-guides-card:hover,
+  .related-guides-card:focus-visible {
+    transform: translateY(-1px);
+    border-color: var(--color-border-strong);
+  }
+
+  .related-guides-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-md);
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+  }
+
+  .related-guides-icon :global(svg) {
+    display: block;
+    width: 55%;
+    height: 55%;
+  }
+
+  .related-guides-text {
+    min-width: 0;
+  }
+
+  .related-guides-title {
+    display: block;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .related-guides-blurb {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: var(--color-muted);
+  }
+</style>
