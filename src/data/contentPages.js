@@ -31,9 +31,9 @@ export const landingPages = [
     sitemapChangefreq: 'monthly',
   },
   {
-    href: '/pdf-fill-and-sign-app/',
+    href: '/install-pdf-app/',
     label: 'Installing it as an app',
-    blurb: 'Fill and sign a PDF online, then install it so it works with no connection.',
+    blurb: 'Install it once and every tool here works with no connection at all.',
     icon: Download,
     hub: 'sign',
     sitemapPriority: '0.6',
