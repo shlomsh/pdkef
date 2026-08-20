@@ -18,7 +18,7 @@
 // tools.js's gridDescription. `label` stays the short form OtherGuides.astro
 // uses for its OS-switcher pills, where the "Signing on a different device?"
 // heading already supplies the context a bare "Windows" needs.
-import { Monitor, Laptop, Smartphone, TabletSmartphone, UserX, WifiOff, Code2, Trash2 } from 'lucide-preact';
+import { Monitor, Laptop, Smartphone, TabletSmartphone, UserX, Download, Code2, Trash2 } from 'lucide-preact';
 
 export const landingPages = [
   {
@@ -31,10 +31,10 @@ export const landingPages = [
     sitemapChangefreq: 'monthly',
   },
   {
-    href: '/offline-pdf-form-filler/',
-    label: 'Filling forms offline',
-    blurb: 'Install it once and it works with no connection at all.',
-    icon: WifiOff,
+    href: '/pdf-fill-and-sign-app/',
+    label: 'Installing it as an app',
+    blurb: 'Fill and sign a PDF online, then install it so it works with no connection.',
+    icon: Download,
     hub: 'sign',
     sitemapPriority: '0.6',
     sitemapChangefreq: 'monthly',

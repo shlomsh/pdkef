@@ -24,6 +24,11 @@
       "source": "/protect/",
       "destination": "/unlock/",
       "permanent": true
+    },
+    {
+      "source": "/offline-pdf-form-filler/",
+      "destination": "/pdf-fill-and-sign-app/",
+      "permanent": true
     }
   ]
 }
