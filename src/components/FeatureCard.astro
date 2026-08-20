@@ -3,23 +3,33 @@ interface Props {
   id?: string;
   class?: string;
   variant?: 'default' | 'highlight';
+  /* 'screen' is the tool-page rhythm: each card is a full-viewport section
+     scrolled to below the app, so its content sits centred in its own screen.
+     'flow' is for prose pages that are nothing but cards - there the 100vh
+     floor turns three paragraphs into a screenful of empty space and makes
+     the page read as padded out rather than substantial. */
+  density?: 'screen' | 'flow';
 }
 
-const { id, class: className = '', variant = 'default' } = Astro.props;
+const { id, class: className = '', variant = 'default', density = 'screen' } = Astro.props;
 
 const baseClasses = [
-  'mt-16 box-border w-full max-w-[1080px] mx-auto rounded-[var(--radius-lg)] px-10 py-14',
+  'box-border w-full max-w-[1080px] mx-auto rounded-[var(--radius-lg)] px-10 py-14',
   'last:mb-16',
   'max-[1080px]:mx-6 max-[1080px]:w-auto',
   'max-[640px]:px-6 max-[640px]:py-10',
-  'min-[768px]:mt-24 min-[768px]:flex min-[768px]:min-h-[calc(100vh-6rem)] min-[768px]:flex-col min-[768px]:justify-center min-[768px]:last:mb-24',
+  'min-[768px]:last:mb-24',
 ];
+
+const densityClasses = density === 'screen'
+  ? 'mt-16 min-[768px]:mt-24 min-[768px]:flex min-[768px]:min-h-[calc(100vh-6rem)] min-[768px]:flex-col min-[768px]:justify-center'
+  : 'mt-6 min-[768px]:mt-8';
 
 const variantClasses = variant === 'highlight'
   ? 'border border-[var(--color-primary-tint)] bg-[linear-gradient(135deg,var(--color-primary-soft)_0%,var(--color-bg)_100%)]'
   : 'border border-[var(--color-border)] bg-[var(--color-surface)]';
 ---
-<section id={id} class:list={[baseClasses, variantClasses, className]}>
+<section id={id} class:list={[baseClasses, densityClasses, variantClasses, className]}>
   <div class="w-full">
     <slot />
   </div>

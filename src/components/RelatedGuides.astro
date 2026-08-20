@@ -1,0 +1,48 @@
+---
+// Inbound links from a tool page to the content pages that hang off it, read
+// from src/data/contentPages.js's `hub` field.
+//
+// Why this exists, and it is not a nice-to-have: before it, all eight content
+// pages were orphans. Every link they had came from inside the cluster itself,
+// so no sequence of clicks from the home page reached any of them, and their
+// only route to a crawler was sitemap.xml - which gets a URL fetched but says
+// nothing about whether it matters. Worse, the cluster linked *out* to the
+// tools, so it leaked internal signal and received none. This is the same
+// diagnosis, and the same fix, as ToolCrossLinks.astro for tool-to-tool links.
+//
+// Compact strip rather than a <FeatureCard>, for the reason ToolCrossLinks
+// documents: a FeatureCard lays out at min-h-[calc(100vh-6rem)] on desktop and
+// another near-full-viewport panel here would bury the footer. Utility classes
+// are deliberately the same ones OtherGuides.astro already uses, so this adds
+// no new rules to the stylesheet every page inlines.
+import { contentPagesForTool } from '../data/contentPages.js';
+
+interface Props {
+  currentSlug: string;
+  heading?: string;
+}
+
+const { currentSlug, heading = 'Guides for this tool' } = Astro.props;
+const related = contentPagesForTool(currentSlug);
+---
+
+{related.length > 0 && (
+  <section class="mx-auto mb-16 w-full max-w-[1080px] px-6 min-[768px]:mb-24" aria-labelledby="related-guides-heading">
+    <div class="mb-6 text-center">
+      <h2 id="related-guides-heading" class="m-0 text-[1.15rem] font-bold text-[var(--color-text)]">{heading}</h2>
+    </div>
+    <ul class="m-0 flex list-none flex-wrap justify-center gap-3 p-0">
+      {related.map((page) => (
+        <li class="m-0 p-0">
+          <a
+            href={page.href}
+            class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-[0.9rem] font-medium text-[var(--color-text)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)]"
+          >
+            <page.icon size={16} strokeWidth={1.75} class="text-[var(--color-primary)]" />
+            {page.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
