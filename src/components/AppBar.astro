@@ -3,7 +3,18 @@
 // (reveals a back arrow on hover) that signals "part of a suite"; the optional
 // breadcrumb is a nav label, NOT the page <h1>. Right side carries a quiet
 // "on-device" privacy badge. Pure inline SVG, no script, so it adds no CSP
-// surface. Uses a favicon square + wordmark for the brand pill.
+// surface. Uses a logo square + wordmark for the brand pill.
+//
+// The logo goes through astro:assets rather than a public/ path. It used to be
+// <img src="/favicon.png">, which shipped the 512x512, 150KB master to every
+// page in the site in order to paint a 24px square. Astro resizes it at build
+// time and `densities` emits the 2x variant for retina, so the pill costs ~2KB
+// instead. eager + sync decoding because this sits in the sticky bar at the top
+// of every page: astro:assets defaults to loading="lazy", which would defer the
+// one image that is always above the fold.
+import { Image } from 'astro:assets';
+import logo from '../assets/logo.png';
+
 interface Props {
   toolName?: string;
   isHome?: boolean;
@@ -21,7 +32,7 @@ const brandClasses = isHome
   <div class={`mx-auto flex h-14 ${maxWidthClass} items-center gap-[0.85rem] px-6 max-[560px]:gap-[0.55rem] max-[560px]:px-4`}>
     {isHome ? (
       <div class={brandClasses} aria-label="PDkef logo">
-        <img src="/favicon.png" width="24" height="24" alt="" aria-hidden="true" class="block shrink-0 rounded-md" />
+        <Image src={logo} width={24} height={24} densities={[1, 2]} loading="eager" decoding="sync" alt="" aria-hidden="true" class="block shrink-0 rounded-md" />
         <span class="text-[0.95rem] font-bold">PDkef</span>
       </div>
     ) : (
@@ -31,7 +42,7 @@ const brandClasses = isHome
             <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
           </svg>
         </span>
-        <img src="/favicon.png" width="24" height="24" alt="" aria-hidden="true" class="block shrink-0 rounded-md" />
+        <Image src={logo} width={24} height={24} densities={[1, 2]} loading="eager" decoding="sync" alt="" aria-hidden="true" class="block shrink-0 rounded-md" />
         <span class="text-[0.95rem] font-bold">PDkef</span>
       </a>
     )}
