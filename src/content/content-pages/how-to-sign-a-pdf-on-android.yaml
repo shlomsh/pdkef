@@ -1,0 +1,118 @@
+title: 'How to Sign a PDF on Android (No App Needed) | PDkef'
+description: >-
+  Sign a PDF on Android in Chrome, with no app to install. What your phone can already do varies by
+  handset - here is how to fill a form, tick checkboxes, and sign it for free.
+breadcrumb: 'Android'
+icon: 'TabletSmartphone'
+kicker: 'Android, right in Chrome'
+h1: 'How to Sign a PDF on Android'
+subhead: >-
+  Android has no single built-in PDF editor, so what your phone can do with a form depends on which
+  app happens to open it. Chrome is the one thing every Android device has, and it turns out to be
+  enough.
+primaryCta:
+  href: '/sign/'
+  label: 'Sign a PDF now'
+sections:
+  - variant: 'highlight'
+    sketch: 'arcs'
+    icon: 'TabletSmartphone'
+    iconPos: 'tr'
+    kicker: 'Four steps'
+    heading: 'Sign a PDF on Android'
+    blocks:
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Download the PDF first</strong> from Gmail, WhatsApp or wherever it arrived, so
+            it's sitting in your Downloads folder.
+          - >-
+            <strong>Open <a href="/sign/">pdkef.com/sign</a> in Chrome</strong> and tap to choose
+            that file.
+          - >-
+            <strong>Fill it in, then sign.</strong> Pinch to zoom before placing anything small.
+            Draw your signature with a finger or a stylus, or type it in a handwriting font.
+          - >-
+            <strong>Download it.</strong> The finished PDF goes back to Downloads, ready to attach
+            to your reply.
+  - sketch: 'grid'
+    icon: 'TabletSmartphone'
+    iconPos: 'br'
+    kicker: 'Your phone''s own tools, side by side'
+    heading: 'Why the answer is different on every Android phone'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          There's no Android equivalent of Preview or Markup, so the PDF opens in whatever viewer
+          your phone shipped with or you installed at some point. Some can draw on a page. Some are
+          read-only. A Samsung with a stylus can do rather more than a budget handset. That
+          variation is the real problem on Android, and it's why the built-in column below has to be
+          answered with "it depends".
+      - kind: 'compare'
+        builtInLabel: 'Your phone''s viewer'
+        caption: >-
+          Both run on the phone itself with nothing uploaded, so this is about what each one can do,
+          not about privacy.
+        rows:
+          - task: 'Add a handwritten signature'
+            builtIn: 'Freehand pen, if your viewer app has one'
+            here: 'Draw, type, or upload a photo of one'
+          - task: 'Fill a form that has real fillable fields'
+            builtIn: 'Depends entirely on the app'
+            here: 'Yes'
+          - task: 'Type onto a flat or scanned form'
+            builtIn: 'A floating text box at best'
+            here: 'Tap where you want it and type'
+          - task: 'Tick a checkbox on a scanned form'
+            builtIn: ''
+            here: 'Yes'
+          - task: 'Permanently remove text from a page'
+            builtIn: ''
+            here: 'Yes'
+          - task: 'Keep going if the form takes two sittings'
+            builtIn: ''
+            here: 'Your progress is saved on the phone'
+  - sketch: 'waves'
+    icon: 'ShieldCheck'
+    iconPos: 'cl'
+    kicker: 'One less thing installed'
+    heading: 'A signed form isn''t worth a permanent app'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Signing a PDF is usually a once-every-few-months errand: a school form, a rental
+          agreement, something a bank needed yesterday. Installing an app for that means granting it
+          access to your files and then leaving it on the phone long after the form is sent.
+      - kind: 'prose'
+        text: >-
+          A browser tab asks for none of that. Your document is opened by Chrome, worked on by
+          Chrome, and saved back by Chrome, without ever being uploaded anywhere. If it does turn
+          out to be a regular errand, you can <a href="/install-pdf-app/">add it to your
+          home screen</a> and it works with no connection at all.
+faq:
+  - question: 'Do I need to install an app to sign a PDF on Android?'
+    answer: >-
+      No. It works inside Chrome, so there is nothing to fetch from the Play Store, no storage
+      permission to grant, and nothing left behind on your phone afterwards.
+  - question: 'Why does signing a PDF feel harder on Android than on an iPhone?'
+    answer: >-
+      Because Android doesn't ship one PDF editor the way iOS ships Markup. Whatever opens your PDF
+      is whichever app happens to be installed, so what you can do with it varies from phone to
+      phone. A browser is the one thing every Android device has, which is why this approach works
+      the same everywhere.
+  - question: 'How do I get a PDF from WhatsApp or Gmail into the tool?'
+    answer: >-
+      Download the attachment first, which puts it in your Downloads folder. Then open the tool, tap
+      to choose a file, and pick it from there.
+  - question: 'Do I need to create an account or start a subscription?'
+    answer: >-
+      No. There is no account, no email address, and no trial that runs out partway through a form.
+      The whole thing is free every time.
+  - question: 'Will there be a watermark on my downloaded file?'
+    answer: >-
+      No. What you download is your document, with your signature on it and nothing added.
+  - question: 'My finger signature looks like a scribble. What helps?'
+    answer: >-
+      Pinch to zoom in and sign much bigger than the space needs, since shrinking it down hides most
+      of the wobble. If your phone came with a stylus, use it. Failing both, type your name in a
+      handwriting-style font, which is fine for most everyday forms.
