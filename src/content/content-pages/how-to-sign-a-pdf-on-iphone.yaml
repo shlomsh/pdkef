@@ -1,0 +1,117 @@
+title: 'How to Sign a PDF on iPhone (No App Needed) | PDkef'
+description: >-
+  Sign a PDF on iPhone or iPad in Safari. Markup can scribble a signature but not fill a form - here
+  is what each one covers, and how to tick checkboxes and type on a scan.
+breadcrumb: 'iPhone'
+icon: 'Smartphone'
+kicker: 'iPhone, right in Safari'
+h1: 'How to Sign a PDF on iPhone'
+subhead: >-
+  Markup in the Files app will happily scribble a signature onto a page, and for that alone it's
+  excellent. It has no idea what a checkbox is, though. Here's what each approach covers, and how to
+  fill in an actual form from your phone without installing anything.
+primaryCta:
+  href: '/sign/'
+  label: 'Sign a PDF now'
+sections:
+  - variant: 'highlight'
+    sketch: 'arcs'
+    icon: 'Smartphone'
+    iconPos: 'tr'
+    kicker: 'Four steps'
+    heading: 'Sign a PDF on iPhone'
+    blocks:
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Save the PDF to Files first.</strong> Open the attachment in Mail or WhatsApp,
+            tap Share, then "Save to Files". This is the step most people miss.
+          - >-
+            <strong>Open <a href="/sign/">pdkef.com/sign</a> in Safari</strong> and tap to choose
+            that file.
+          - >-
+            <strong>Fill it in, then sign.</strong> Pinch to zoom before placing anything small.
+            Draw your signature with a finger or Apple Pencil, or type it in a handwriting font if
+            the finger version isn't cooperating.
+          - >-
+            <strong>Download and share it back.</strong> The finished PDF lands in Files, ready to
+            send straight back to whoever asked for it.
+  - sketch: 'grid'
+    icon: 'PenLine'
+    iconPos: 'br'
+    kicker: 'Markup, side by side'
+    heading: 'Where Markup stops being enough'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Markup is built into Files, Mail and Photos, and its signature tool is genuinely one of
+          the better ones on any platform. It's an annotation tool, though: it draws on top of a
+          page rather than understanding what's on it. That distinction is invisible until the page
+          is a scanned form and you need an X inside a small square.
+      - kind: 'compare'
+        builtInLabel: 'Markup (Files)'
+        caption: >-
+          Both run on the phone itself with nothing uploaded, so this is about what each one can do,
+          not about privacy.
+        rows:
+          - task: 'Add a handwritten signature'
+            builtIn: 'Yes, Markup has a signature tool'
+            here: 'Draw, type, or upload a photo of one'
+          - task: 'Fill a form that has real fillable fields'
+            builtIn: 'Yes'
+            here: 'Yes'
+          - task: 'Type onto a flat or scanned form'
+            builtIn: 'Only as a floating text label you drag into place'
+            here: 'Tap where you want it and type'
+          - task: 'Tick a checkbox on a scanned form'
+            builtIn: ''
+            here: 'Yes'
+          - task: 'Permanently remove text from a page'
+            builtIn: ''
+            here: 'Yes'
+          - task: 'Keep going if the form takes two sittings'
+            builtIn: ''
+            here: 'Your progress is saved on the phone'
+  - sketch: 'rings'
+    icon: 'Lightbulb'
+    iconPos: 'cl'
+    kicker: 'Worth saying plainly'
+    heading: 'When Markup is the right answer'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          A permission slip that needs a signature at the bottom and nothing else? Use Markup. It's
+          already on the phone, it's faster than opening a browser, and the result is the same. Come
+          here when the form has fields to complete, boxes to tick, or something on it you need <a
+          href="/permanently-delete-text-from-pdf/">genuinely removed rather than covered up</a>. If
+          it's a form you'll be at for a while, this one also <a
+          href="/install-pdf-app/">saves your progress as you go</a>, so a phone call
+          halfway through doesn't cost you the work.
+faq:
+  - question: 'Do I need to download an app from the App Store?'
+    answer: >-
+      No. It runs inside Safari, so there is nothing to install, no permissions to grant, and
+      nothing left on your phone afterwards unless you choose to add it to your Home Screen.
+  - question: 'The Files app can already mark up a PDF. Why not just use that?'
+    answer: >-
+      For a signature on its own, do. Markup has a proper signature tool and it's two taps away. It
+      just doesn't understand forms: there's no way to tick a real checkbox, and typed text becomes
+      a floating label you drag into position, which is fiddly work on a phone-sized page.
+  - question: 'How do I get a PDF from WhatsApp or Mail into the tool?'
+    answer: >-
+      Open the attachment, tap the Share button, and choose "Save to Files". Then in the tool, tap
+      to choose a file and pick it from Files. You can also long-press the attachment and share it
+      straight across.
+  - question: 'Does this work on iPad too?'
+    answer: >-
+      Yes, the same way. An iPad is the nicer of the two for this, and with an Apple Pencil the
+      drawn signature looks like it was signed on paper.
+  - question: 'Where does the signed PDF get saved?'
+    answer: >-
+      To the Files app, in whichever folder Safari is set to use for downloads. From there you can
+      share it, mail it, or drop it back into the chat it arrived from.
+  - question: 'My finger signature looks terrible. Any way to fix that?'
+    answer: >-
+      Two, and both help. Zoom in and sign much larger than the space you actually need, since
+      scaling down hides the wobble. Or skip drawing entirely and type your name in a
+      handwriting-style font, which is accepted for most everyday forms.

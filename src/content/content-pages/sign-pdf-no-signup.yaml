@@ -1,0 +1,143 @@
+title: 'Sign a PDF Without Signing Up - No Account Needed | PDkef'
+description: >-
+  Sign a PDF with no account, no email, and no trial that runs out. Plus why these sites ask you to
+  register, and how to tell a safe PDF signer from a risky one.
+breadcrumb: 'No signup'
+icon: 'UserX'
+kicker: 'No signup, ever'
+h1: 'Sign a PDF Without Creating an Account'
+subhead: >-
+  You have a form to sign, and the first three results want an email address before they will show
+  you anything. Here's why that keeps happening, how to judge whether a PDF site is worth handing a
+  document to, and a way to just get it done.
+primaryCta:
+  href: '/sign/'
+  label: 'Sign a PDF now'
+sections:
+  - sketch: 'arcs'
+    icon: 'UserX'
+    iconPos: 'tr'
+    kicker: 'Why this keeps happening'
+    heading: 'The signup wall is a symptom of how the tool is built'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Most online PDF tools do the work on their own servers. Your file gets uploaded, processed
+          somewhere in a data centre, and sent back. That approach is completely normal, and it has
+          real costs attached: storage, processing time, bandwidth, and someone paying for all
+          three. An account is how those costs get managed. It gives them a way to meter usage, cap
+          the free tier, and stop one person running a thousand files through it.
+      - kind: 'prose'
+        text: >-
+          So the signup form isn't really about you. It's downstream of a decision made long before
+          you arrived, about where the work happens. Change that decision and the reason for the
+          account disappears with it. PDkef signs your PDF inside your browser tab, using your own
+          device. Nothing is uploaded, so there's nothing to meter, no storage to pay for, and no
+          reason to know who you are before you can start.
+  - sketch: 'grid'
+    icon: 'ListChecks'
+    iconPos: 'br'
+    kicker: 'Useful anywhere'
+    heading: 'How to judge a PDF site before you hand it a document'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Signing a PDF often means handing over something you'd rather not scatter around: a
+          passport page, a payslip, a child's consent form. These are the questions worth asking of
+          any tool, this one included.
+      - kind: 'checklist'
+        items:
+          - >-
+            <strong>Does it upload your file?</strong> An upload progress bar is the giveaway. So is
+            a wait that scales with file size. Work done in your browser is instant on a small file
+            regardless of your connection.
+          - >-
+            <strong>Does it work offline?</strong> Turn off your wifi and try. It's a one-second
+            test that no amount of marketing copy can talk its way around, and it's <a
+            href="/open-source-pdf-editor/">the one we'd point at ourselves</a>.
+          - >-
+            <strong>If it does upload, what happens next?</strong> A site processing files on a
+            server should say plainly how long it keeps them and who can reach them. Vagueness here
+            is itself an answer.
+          - >-
+            <strong>Is the email step doing anything?</strong> Being asked for an address to receive
+            a file you just provided is a marketing step wearing a technical costume.
+          - >-
+            <strong>Can you check the claims?</strong> Open source means the privacy promise is
+            inspectable rather than just stated. It's not a guarantee on its own, but it changes
+            what kind of promise it is.
+      - kind: 'prose'
+        text: >-
+          None of this is an argument that server-based tools are bad. Plenty are run carefully by
+          people who take it seriously. It's just that for something as ordinary as adding your name
+          to a form, there's no reason the document needs to travel at all.
+  - sketch: 'waves'
+    icon: 'PenTool'
+    iconPos: 'cl'
+    kicker: 'Worth knowing'
+    heading: 'Two different things are called "signing a PDF"'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Nearly everyone searching for this wants an <strong>electronic signature</strong>: your
+          signature, visibly on the page, so you can send the form back. That's what this tool
+          makes, and it's what schools, landlords, clinics and employers are asking for when they
+          say "sign and return".
+      - kind: 'prose'
+        text: >-
+          A <strong>digital signature</strong> is a different, more specialised thing: a
+          cryptographic certificate embedded in the file that proves who signed it and that nothing
+          has changed since. Some formal filings and regulated industries require one. PDkef doesn't
+          produce those, and any tool claiming to do it for free without knowing your identity is
+          worth a second look, because issuing that certificate is the entire cost.
+      - kind: 'prose'
+        text: >-
+          If your document mentions a digital certificate or a qualified signature, you need the
+          second kind and should ask whoever sent it what they accept. Otherwise, the first kind is
+          what they're expecting.
+  - variant: 'highlight'
+    sketch: 'rings'
+    icon: 'MousePointerClick'
+    iconPos: 'br'
+    kicker: 'Three steps'
+    heading: 'Sign a PDF right now, no signup required'
+    blocks:
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Open the <a href="/sign/">Sign &amp; Fill tool</a></strong> and choose or drag
+            in your PDF. There's no login screen in the way.
+          - >-
+            <strong>Draw, type, or upload your signature,</strong> and fill in any text fields or
+            checkboxes the form needs while you're there.
+          - >-
+            <strong>Download the signed PDF.</strong> That's the whole process, and it's the same
+            process every time after this one.
+faq:
+  - question: 'Do I need to create an account to sign a PDF?'
+    answer: >-
+      No. There is no signup form, no email verification, and no password to set. Open the tool and
+      start signing.
+  - question: 'Will I hit a free trial limit or a paywall partway through?'
+    answer: >-
+      No. There is no trial period and no premium tier. Everything works the first time you open it
+      and every time after that, including on the fiftieth document.
+  - question: 'Do I need to give an email address to download my signed PDF?'
+    answer: >-
+      No. Signing and downloading both happen in your browser, so there is nothing to email you and
+      no address to collect. If a site asks for your email before it will hand back a file you gave
+      it, that is a lead-capture step, not a technical requirement.
+  - question: 'Is a signature I draw on screen legally valid?'
+    answer: >-
+      For everyday paperwork, a drawn or typed signature is what most organisations mean when they
+      ask you to sign and return a PDF, and it is what they receive from the vast majority of
+      people. Some formal filings instead require a certificate-based digital signature, which is a
+      different thing and needs different software. If a document specifically asks for a digital
+      certificate or a qualified signature, check with whoever sent it.
+  - question: 'If there is no account, where is my signature stored?'
+    answer: >-
+      Nowhere but your own device. The signature is drawn into the PDF you download, and any
+      in-progress work is saved locally in your browser so a crash doesn't cost you the form.
+      Nothing is sent to a server, because there is no server.
+  - question: 'Can I sign more than one PDF?'
+    answer: 'As many as you like. No daily cap, no watermark, no page limits.'
