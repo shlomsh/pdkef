@@ -45,64 +45,47 @@ Neither is blocked by anything technical.
 ### Hebrew text shaping in the export
 
 **Hebrew with nikud exports wrong in every bundled font, and the editor preview is correct, so nobody
-sees it until after they have signed something.** Root cause, evidence, the rejected alternatives and a
-working prototype are in
-**[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)** - read it before
-starting, it will save re-deriving all of this. The short version: `page.drawText()` runs the shaper and
-then discards the glyph positions it computed, so marks land by raw advance width. The fix emits each
-glyph at its shaped position using pdf-lib's public operators. No new dependency, no rasterisation, text
-stays text, measured at +454 bytes on a five-line sample.
+sees it until after they have signed something.** `page.drawText()` runs the shaper and then discards the
+glyph positions it computed, so marks land by raw advance width.
 
-Ready to pick up. Investigated 2026-08-21, nothing started, no branch (the old
-`fix/hebrew-pdf-shaping` is retired - see "Decisions" below). Do the work on `main`.
+**The design is settled and validated against the real modules** - helper signatures, the drop-in points
+in `serialize`, the fallback, the comb fix and both guards are written out in
+**[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)**, with the numbers behind
+each choice. Read it first and follow it; these tasks are execution. If something in it turns out to be
+wrong, say so rather than redesigning around it silently.
 
-**Definition of done for the epic as a whole**, on top of each task's own acceptance below:
+Do the work on `main`. Investigated and validated 2026-08-21, nothing implemented.
 
-1. **Correct in a real browser, not just in Node.** The prototype has only ever run under Node. Nothing
-   here counts as verified until `npm run build && npm run preview` has produced an actually-downloaded
-   PDF from the Sign tool with pointed Hebrew in it.
-2. **Nothing regresses for the common case.** Latin and unpointed Hebrew must render identically to
-   today and extract identically under `pdftotext`. This was measured to be true of the approach; it
-   still has to be true of the implementation.
-3. **All seven catalogued Hebrew fonts pass, or a font is dropped from the catalogue.** Fixing six and
-   leaving one broken is not done. The sanctioned exit for a stubborn font is removing it from
-   `HEBREW_CAPABLE_FONTS`, never a special-case path and never an image fallback.
-4. **The guard outlives the fix.** H3 must be able to fail. A parity harness that passes because it
-   compares nothing is worse than none, so it has to be shown red against a deliberately broken build
-   before it is trusted.
-5. Standard gates green: `npm test`, `npm run typecheck`, `npm run test:css`, `npm run test:e2e`, and
+**Definition of done for the epic:**
+
+1. Pointed Hebrew renders in the download exactly as it does in the editor, in all seven
+   `HEBREW_CAPABLE_FONTS`, checked on a real PDF downloaded from `npm run build && npm run preview`.
+   Node-only verification does not count - none of this has run in a browser yet.
+2. Latin and unpointed Hebrew render and extract (`pdftotext`) identically to today.
+3. H1 through H4 all land. H1 alone leaves comb fields broken; H4 alone leaves them shaped wrong.
+4. Both guards can fail: revert a line of H1 and watch H2 go red, widen a tolerance and watch H3 go red.
+5. Standard gates green: `npm test`, `npm run typecheck`, `npm run test:css`, `npm run test:e2e`, plus
    the CSP/SEO/page-weight guards.
 
-- **H1. Emit shaped glyph positions from `text.ts`'s `serialize`.** The core change, and the only one
-  that has to land for the defect to be fixed. Replace `page.drawText(line, ...)` with per-glyph
-  emission via `setTextMatrix` / `setTextRise` / `showText` / `pushOperators`, all exported from the
-  `@cantoo/pdf-lib` root. *Acceptance:* pointed Hebrew matches the editor in all seven fonts; RTL
-  right-edge anchoring and multi-line spacing behave exactly as before; the per-font baseline math
-  (`baselineOffset`, `textBoxPaddingEm`) is untouched; and the no-batching rule is enforced by a comment
-  explaining why, because the next reader will want to add it back. **Do not batch** - see the hazard in
-  CLAUDE.md §5, it fails silently.
-- **H2. Unit tests for the emission.** `src/editor/registry/text.test.ts` currently asserts against
-  `page.drawText` for the comb path, so it needs a mock that captures `pushOperators` instead.
-  *Acceptance:* covers a mark getting its own positioned run at the right rise, RTL anchoring holding the
-  right edge fixed, and an unmarked string's pen positions summing to the advance total. Each assertion
-  must fail if the corresponding line of H1 is reverted - write them against the broken build first.
-- **H3. Per-font parity guard.** One Playwright spec (keep e2e sparse, roughly 1:10). *Design note worth
-  following:* render the exported PDF with pdf.js **in the same browser** that draws the reference text,
-  rather than comparing against poppler. Same rasterizer on both sides collapses the antialiasing noise
-  that made the throwaway harness unusable, and needs no external binary in CI. *Acceptance:* iterates
-  `HEBREW_CAPABLE_FONTS` so adding a font automatically gets covered; uses per-font baselines, never one
-  global threshold (thin faces sit far lower on any pixel metric - see the measurement pitfalls in the
-  design record); and has been demonstrated failing.
-- **H4. Decide the comb path.** Comb cells position one character each on purpose, and kerning is
-  meaningless there, so H1 may not apply. Unknown: what `combCharacters()` does with a base letter and
-  its mark - if it splits them into separate cells, pointed Hebrew in a comb field is broken in a second,
-  unrelated way. *Acceptance:* either fixed, or the limitation is recorded here with the reason. Do not
-  leave it unexamined.
-- **H5. Optional: keep extraction clean on pointed text.** Per-glyph positioning makes `pdftotext`
-  insert stray spaces around nikud (Latin and unpointed Hebrew are unaffected, verified). Emitting `TJ`
-  with inline adjustments inside one run instead of a fresh `Tm` per glyph should fix it; marks with a
-  `yOffset` still need `Ts`. *Only worth doing if extraction quality on pointed text turns out to
-  matter* - do not block H1 on it.
+- **H1. Add `shapedWidth` and `drawShapedRun`, and call them from `text.ts`'s `serialize`.** Both helpers
+  are written out in the design record; copy them. Replace the two `page.drawText(...)` calls (the
+  per-line one and the per-comb-cell one) per "How it drops into `serialize`". Keep every surrounding
+  geometry expression untouched. Use the shaped width for the RTL anchor, not `widthOfTextAtSize`. Keep
+  the `null` fallback to today's `drawText` path. **Do not batch glyphs into a shared run** - it fails
+  silently, see the CLAUDE.md §5 hazard, and leave a comment saying so.
+- **H2. Unit-test the emission (Guard B).** Mock page is `{ node, pushOperators }`; assert each `Tm`
+  x-position equals the running sum of fontkit's `xAdvance` plus that glyph's `xOffset`, and that the
+  `Tm` count equals the glyph count. Validated to match exactly, so assert equality, not a tolerance.
+  `src/editor/registry/text.test.ts` asserts against `page.drawText` for the comb path today and will
+  need the new mock.
+- **H3. Font parity test (Guard A).** One Playwright spec iterating `HEBREW_CAPABLE_FONTS`: fontkit's
+  total shaped advance versus the browser's `measureText`, per-font tolerance (0.0% for six of them,
+  0.7% for Playpen Sans Hebrew). No rasterisation, no pixel diffing - the design record says why that
+  was rejected.
+- **H4. Split comb cells on grapheme clusters.** `combCharacters()` in `src/lib/comb.js` splits on code
+  points, so every nikud mark gets its own box. Replace with the `/\P{M}\p{M}*/gu` match in the design
+  record. Independent of H1 and still broken without it. Check `combCellCount`'s callers, since a
+  pointed word now needs fewer cells than it has code points.
 
 ### Known small defects
 
