@@ -239,6 +239,15 @@ status feedback.
   - Any subsequent mutation of files (adding, removing, reordering, or sorting) resets the state to `'idle'` and revokes/clears the generated `downloadUrl`.
 - **Fonts must render identically on screen and in the export**: `src/lib/fonts.js` owns the catalogue and `resolveFontFamily(family, text)`, which both `TextNode.jsx` (editor), `SignatureDialog.jsx` (typed signatures), and `src/editor/registry/text.ts` (export) call — never bypass it by rendering `element.fontFamily` directly. Reason: the editor loads each TTF via `@font-face` and the browser silently substitutes a *system* font per character for glyphs the file lacks, while a PDF embeds one font per run with no fallback, so a missing glyph exports as an empty rectangle. That mismatch is invisible in the app and only shows up in the downloaded file; it shipped once as Latin-only Heebo/Assistant builds turning Hebrew into boxes. Latin-only handwriting faces (Caveat, Dancing Script, Great Vibes, Pacifico, Sacramento) have no Hebrew glyphs by design, so Hebrew in them substitutes to Gveret Levin (handwriting) or Arimo (upright), for the whole element rather than per character so both sides can agree exactly. `src/lib/fontCoverage.test.js` checks the real asset bytes of every family claimed Hebrew-capable — if you add a font, add it to the catalogue and let that test judge it.
 
+  **Glyph coverage is only half of it: the export also has to place the glyphs where the shaper says.**
+  `page.drawText()` does not, which is why Hebrew with nikud currently exports wrong in every font (full
+  analysis and the fix in **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)**).
+  Two standing rules come out of it. First, **the catalogue is ours to curate**: we owe correct output
+  for the fonts we ship, not for every font that exists, so a font that cannot be made to match the
+  editor gets dropped or marked Latin-only rather than given a special path. Second, **never fix a
+  rendering mismatch by rasterising text to an image** - it makes the download stop being text
+  (no selection, search, copy or accessibility) to paper over a positioning bug.
+
 ## Privacy invariants
 
 - No `fetch`/`XHR` of file bytes, ever. No third-party scripts or tracking of PDF content. Only same-origin Vercel Web Analytics is enabled for basic page views.
@@ -582,6 +591,16 @@ and fails if it calls `onChange`/`dispatch`/`setState` directly.
 - **Creation defaults are per tool family, not one global color bucket.** Text, symbols, lines and
   shapes use the remembered drawing/text color. Whiteout uses its own remembered whiteout color and must
   not inherit the active text or shape color.
+- **`page.drawText()` throws away the shaping it just computed.** pdf-lib's `encodeText` calls
+  `font.layout()` (full GSUB/GPOS, so it picks the right glyphs) and then keeps only `glyphs[].id`,
+  discarding the `positions` array that says where each mark attaches. The PDF places everything by the
+  `/W` widths instead, so Hebrew vowel points land wrong and, in the worst font, letters overlap. The
+  shaping is not missing, it is discarded, so the fix is to emit each glyph at its shaped position, not
+  to rasterise. **Do not batch glyphs into a shared `showText` run** as an optimisation: a batched run
+  advances by `/W`, not by the shaper's advances, and where they disagree the rest of the run silently
+  drifts. Guarding the batch against the glyph's `hmtx` advance does not catch it. Full analysis,
+  including why HarfBuzz WASM is not needed and how to calibrate a parity harness, in
+  **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)**.
 - **Some editor bugs require a browser, not jsdom.** Unit tests are the first guardrail for pure math,
   but jsdom cannot verify rendered toolbar overlap, real `getBoundingClientRect()` relationships after
   CSS/Floating UI, or whether the toolbar follows a DOM-mutated drag before `pointerup`.

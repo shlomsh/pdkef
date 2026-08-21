@@ -15,7 +15,7 @@ reference implementation of a finished tool.
 
 ## Open work
 
-Four items. Nothing structural is outstanding; see "Migration status" below for why.
+Five items. Nothing structural is outstanding; see "Migration status" below for why.
 
 ### Launch / SEO
 
@@ -41,6 +41,68 @@ Neither is blocked by anything technical.
   `pdfDocument`, so only the affected canvas swaps; (3) scope to `type:'delete'` only, since
   blackout/blur/whiteout already preview accurately and cheaply via their overlay div. Delete is the one
   mode where looking right requires the object to actually be absent rather than covered.
+
+### Hebrew text shaping in the export
+
+**Hebrew with nikud exports wrong in every bundled font, and the editor preview is correct, so nobody
+sees it until after they have signed something.** Root cause, evidence, the rejected alternatives and a
+working prototype are in
+**[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)** - read it before
+starting, it will save re-deriving all of this. The short version: `page.drawText()` runs the shaper and
+then discards the glyph positions it computed, so marks land by raw advance width. The fix emits each
+glyph at its shaped position using pdf-lib's public operators. No new dependency, no rasterisation, text
+stays text, measured at +454 bytes on a five-line sample.
+
+Ready to pick up. Investigated 2026-08-21, nothing started, no branch (the old
+`fix/hebrew-pdf-shaping` is retired - see "Decisions" below). Do the work on `main`.
+
+**Definition of done for the epic as a whole**, on top of each task's own acceptance below:
+
+1. **Correct in a real browser, not just in Node.** The prototype has only ever run under Node. Nothing
+   here counts as verified until `npm run build && npm run preview` has produced an actually-downloaded
+   PDF from the Sign tool with pointed Hebrew in it.
+2. **Nothing regresses for the common case.** Latin and unpointed Hebrew must render identically to
+   today and extract identically under `pdftotext`. This was measured to be true of the approach; it
+   still has to be true of the implementation.
+3. **All seven catalogued Hebrew fonts pass, or a font is dropped from the catalogue.** Fixing six and
+   leaving one broken is not done. The sanctioned exit for a stubborn font is removing it from
+   `HEBREW_CAPABLE_FONTS`, never a special-case path and never an image fallback.
+4. **The guard outlives the fix.** H3 must be able to fail. A parity harness that passes because it
+   compares nothing is worse than none, so it has to be shown red against a deliberately broken build
+   before it is trusted.
+5. Standard gates green: `npm test`, `npm run typecheck`, `npm run test:css`, `npm run test:e2e`, and
+   the CSP/SEO/page-weight guards.
+
+- **H1. Emit shaped glyph positions from `text.ts`'s `serialize`.** The core change, and the only one
+  that has to land for the defect to be fixed. Replace `page.drawText(line, ...)` with per-glyph
+  emission via `setTextMatrix` / `setTextRise` / `showText` / `pushOperators`, all exported from the
+  `@cantoo/pdf-lib` root. *Acceptance:* pointed Hebrew matches the editor in all seven fonts; RTL
+  right-edge anchoring and multi-line spacing behave exactly as before; the per-font baseline math
+  (`baselineOffset`, `textBoxPaddingEm`) is untouched; and the no-batching rule is enforced by a comment
+  explaining why, because the next reader will want to add it back. **Do not batch** - see the hazard in
+  CLAUDE.md §5, it fails silently.
+- **H2. Unit tests for the emission.** `src/editor/registry/text.test.ts` currently asserts against
+  `page.drawText` for the comb path, so it needs a mock that captures `pushOperators` instead.
+  *Acceptance:* covers a mark getting its own positioned run at the right rise, RTL anchoring holding the
+  right edge fixed, and an unmarked string's pen positions summing to the advance total. Each assertion
+  must fail if the corresponding line of H1 is reverted - write them against the broken build first.
+- **H3. Per-font parity guard.** One Playwright spec (keep e2e sparse, roughly 1:10). *Design note worth
+  following:* render the exported PDF with pdf.js **in the same browser** that draws the reference text,
+  rather than comparing against poppler. Same rasterizer on both sides collapses the antialiasing noise
+  that made the throwaway harness unusable, and needs no external binary in CI. *Acceptance:* iterates
+  `HEBREW_CAPABLE_FONTS` so adding a font automatically gets covered; uses per-font baselines, never one
+  global threshold (thin faces sit far lower on any pixel metric - see the measurement pitfalls in the
+  design record); and has been demonstrated failing.
+- **H4. Decide the comb path.** Comb cells position one character each on purpose, and kerning is
+  meaningless there, so H1 may not apply. Unknown: what `combCharacters()` does with a base letter and
+  its mark - if it splits them into separate cells, pointed Hebrew in a comb field is broken in a second,
+  unrelated way. *Acceptance:* either fixed, or the limitation is recorded here with the reason. Do not
+  leave it unexamined.
+- **H5. Optional: keep extraction clean on pointed text.** Per-glyph positioning makes `pdftotext`
+  insert stray spaces around nikud (Latin and unpointed Hebrew are unaffected, verified). Emitting `TJ`
+  with inline adjustments inside one run instead of a fresh `Tm` per glyph should fix it; marks with a
+  `yOffset` still need `Ts`. *Only worth doing if extraction quality on pointed text turns out to
+  matter* - do not block H1 on it.
 
 ### Known small defects
 
@@ -152,6 +214,19 @@ problem. Only same-origin Vercel Analytics remains, and `connect-src` is back to
 **HowTo structured data was removed on purpose** (Google deprecated the rich result in 2023) and must
 not be re-added. FAQ schema only.
 
+**`fix/hebrew-pdf-shaping` was retired rather than rebased, and rasterised text was rejected outright.**
+The branch (head `d47ca5f`, 2026-07-06) fixed Hebrew shaping by rendering text to a canvas and embedding
+it as a PNG, which matches the editor exactly because the output *is* the browser's rendering - and
+stops the download being text: no selection, search, copy or accessibility, on a much heavier file. Its
+own commit message called it not production-ready and left the decision open. The decision is now made:
+**no image fallback, not even for a single stubborn font.** The investigation on 2026-08-21 also found
+the fix is far cheaper than the branch assumed (pdf-lib discards shaping it has already computed), so
+there was nothing on the branch worth rebasing after seven weeks of drift. It is preserved as the tag
+`archive/hebrew-pdf-shaping`. **Do not merge it** - besides the rasterisation it carries an unrelated
+Google Analytics integration that reopens `script-src` and `connect-src` to Google origins, which
+contradicts the GA decision recorded above. Full reasoning:
+[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md).
+
 ---
 
 ## Post-mortems whose lessons are still live
@@ -213,12 +288,6 @@ implementation spec for already-shipped work. One list, or the extra ones lie.
 
 ## Parked, deliberately
 
-**Hebrew/RTL PDF text shaping** - branch `fix/hebrew-pdf-shaping`, head `d47ca5f`, untouched since
-2026-07-06 and explicitly marked not production-ready. This is a rendering-correctness feature, not a
-maintainability refactor, so it belonged to no migration lane and blocked none of them. Keep it parked
-with no worktree. When revisited, rebase onto the headless editor core so the shaping logic has a stable
-seam; do not resurrect the stale branch in place against the current editor.
-
 **IndexNow** (faster Bing/Yandex indexing) - skipped, low priority.
 
 **An in-app feedback form** - rejected to avoid loosening `connect-src 'self'`. Feedback ships as footer
@@ -236,6 +305,9 @@ links to GitHub Issues and Discussions instead, which adds zero network surface.
 - **[docs/E2.3-editor-css-modules-plan.md](./docs/E2.3-editor-css-modules-plan.md)** - the 78-class
   editor ownership inventory. Its job ended with the migration; the standing guard is
   `scripts/check-editor-global-css.js`.
+- **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)** - why exported Hebrew
+  does not match the editor, the fix, the rejected alternatives (image, HarfBuzz WASM, presentation
+  forms), and the measurement pitfalls that produced confidently wrong readings along the way.
 - **[docs/view-density-control-spec.md](./docs/view-density-control-spec.md)** - the Relaxed / Condensed
   / Full screen control, why density is a global preference and why only Sign and Redact expose it.
 - **[seo-audit-output/](./seo-audit-output/)** - SEO strategy and reference material.
