@@ -45,38 +45,68 @@ Everything needed is exported from the `@cantoo/pdf-lib` package root - `setText
 `showText`, `pushOperators` - so there is no fork and no new dependency. fontkit is already a
 dependency and already runs on this path.
 
-The prototype below produced output matching the editor for all seven catalogued Hebrew fonts:
+**This design is validated, not proposed.** It was run against the real `src/lib/comb.js`,
+`src/lib/fonts.js`, `src/lib/signHelpers.js` and `src/constants/signGeometry.js`, through a port of
+`text.ts`'s `serialize`, covering multi-line RTL pointed Hebrew, Latin, both comb paths, and the
+Latin-only-font substitution path (Pacifico asked to render Hebrew, which `resolveFontFamily` sends to
+Gveret Levin). All produced correct PDFs. What is left is implementation, not investigation.
+
+Two helpers do the work. `shapedWidth` returns `null` for a font whose fontkit instance is unreachable,
+which is the caller's signal to use today's path unchanged:
 
 ```js
-// Real, searchable text - every glyph placed where the shaper says it goes.
 const gidHex = id => id.toString(16).toUpperCase().padStart(4, '0');
 
-export function drawShapedText(page, { text, pdfFont, fkFont, size, rightEdge, y, color }) {
-  const { glyphs, positions } = fkFont.layout(text);
-  const scale = size / fkFont.unitsPerEm;
-  const total = positions.reduce((s, p) => s + p.xAdvance, 0) * scale;
+// Shaped width in points, or null when this font can't be shaped - the caller
+// must then fall back to page.drawText(). Reaching the fontkit instance through
+// pdfFont.embedder.font is an internal field, and is exactly how sign.js's
+// baselineOffset() already reads ascent/descent, guard and all.
+export function shapedWidth(pdfFont, text, size) {
+  const fk = pdfFont?.embedder?.font;
+  if (!fk?.unitsPerEm) return null;
+  const { positions } = fk.layout(text);
+  return positions.reduce((s, p) => s + p.xAdvance, 0) * size / fk.unitsPerEm;
+}
 
+// Emits `text` with every glyph at its shaped position. `x` is the LEFT edge;
+// callers that anchor a right edge (RTL, comb cells) subtract shapedWidth first.
+export function drawShapedRun(page, { text, pdfFont, size, x, y, color }) {
+  const fk = pdfFont.embedder.font;
+  const { glyphs, positions } = fk.layout(text);
+  const scale = size / fk.unitsPerEm;
   const fontKey = page.node.newFontDictionary(pdfFont.name, pdfFont.ref);
-  const out = [ops.pushGraphicsState(), ops.beginText(),
-               ops.setFillingColor(color), ops.setFontAndSize(fontKey, size)];
-
-  let pen = rightEdge - total;                     // RTL: anchor the right edge
+  const out = [pushGraphicsState(), beginText(), setFillingColor(color), setFontAndSize(fontKey, size)];
+  let pen = x;
   glyphs.forEach((glyph, i) => {
     const { xOffset, yOffset, xAdvance } = positions[i];
     const rise = yOffset * scale;
-    out.push(ops.setTextMatrix(1, 0, 0, 1, pen + xOffset * scale, y));
-    if (rise) out.push(ops.setTextRise(rise));
-    out.push(ops.showText(PDFHexString.of(gidHex(glyph.id))));
-    if (rise) out.push(ops.setTextRise(0));
+    out.push(setTextMatrix(1, 0, 0, 1, pen + xOffset * scale, y));
+    if (rise) out.push(setTextRise(rise));
+    out.push(showText(PDFHexString.of(gidHex(glyph.id))));
+    if (rise) out.push(setTextRise(0));
     pen += xAdvance * scale;
   });
-
-  out.push(ops.endText(), ops.popGraphicsState());
+  out.push(endText(), popGraphicsState());
   page.pushOperators(...out);
 }
 ```
 
 Cost measured on a five-line sample: **+454 bytes**. Text stays real text (see "Text extraction" below).
+
+### How it drops into `serialize`
+
+Nothing about the surrounding geometry changes. `baselineAdjustedY`, `textBoxPaddingEm`,
+`DEFAULT_LINE_HEIGHT_EM`, the multi-line split and the RTL anchor all stay exactly as they are. Only the
+two `page.drawText(...)` calls are replaced:
+
+- **Plain lines.** Per line, `const lineWidth = shapedWidth(resolvedFont, line, size)`. If it is `null`,
+  keep today's `drawText` call verbatim. Otherwise `drawShapedRun` at `isRtl ? pdfX - lineWidth : pdfX`.
+- **Comb cells.** Same substitution per cell, with the cell's shaped width used to centre it
+  (`x: center - cellWidth / 2`) instead of `widthOfTextAtSize`.
+
+**Use the shaped width, not `widthOfTextAtSize`, for the RTL anchor.** The two disagree - on Playpen Sans
+Hebrew by 52 font units on one sample - because `widthOfTextAtSize` sums `hmtx` advances while the shaper
+reports what it will actually use. The shaped total is the one the editor agrees with.
 
 ### Do not batch glyphs into shared runs
 
@@ -89,6 +119,30 @@ Guarding the batch by comparing the shaped advance against the glyph's `hmtx` ad
 it**, which was verified: the `/W` array pdf-lib writes can disagree with `hmtx` for reasons that check
 does not model. Position every glyph individually. It is the only version proven correct across the
 catalogue, and it costs nothing worth optimising (see the byte figure above).
+
+## Comb fields are broken a second, separate way
+
+Found while validating the above, and it is a real defect, not a theory. `combCharacters()` is
+`Array.from(text)`, which splits on **code points**, so every nikud mark becomes its own comb cell:
+
+```
+"שָׁלוֹם"  by code point -> ["ש","ָ","ׁ","ל","ו","ֹ","ם"]   // marks stranded in their own boxes
+          by cluster    -> ["שָׁ","ל","וֹ","ם"]              // correct
+```
+
+Rendered, the code-point version puts a lone dot and a lone kamatz in boxes of their own. This is
+independent of the shaping bug and survives fixing it.
+
+The fix is to split on grapheme clusters - a base character plus any combining marks that follow it:
+
+```js
+Array.from((element?.text || '').replace(/\r?\n/g, '').matchAll(/\P{M}\p{M}*/gu), m => m[0])
+```
+
+A plain regex rather than `Intl.Segmenter`: it needs no availability check, and `\p{M}` is precisely the
+category in question. Validated to produce the four cells above and to render them correctly through
+`drawShapedRun`. Note this changes `combCellCount` for pointed text, which is the point - a pointed word
+needs fewer boxes than it has code points.
 
 ## Why not an image
 
@@ -136,15 +190,39 @@ As measured, no font needs dropping: per-glyph positioning fixes all seven, Play
   positioned run and the extractor reads the offset as a gap. The words are still there and still
   searchable without their points.
 
-A possible refinement, not built: emit `TJ` with inline adjustments inside one run rather than a fresh
-`Tm` per glyph, so an extractor sees contiguous text. Marks with a `yOffset` still need `Ts`. Treat this
-as an improvement to chase only if extraction quality on pointed text turns out to matter.
+**Decided: accept it.** The words remain present and searchable without their points, which is how Hebrew
+is searched in practice, and the alternative is a wrong-looking document. A `TJ`-with-inline-adjustments
+emission would likely tidy it up (marks with a `yOffset` would still need `Ts`), but it trades a real
+rendering fix for a cosmetic extraction one. Not on the backlog; reopen only if someone reports it.
 
-## Measurement pitfalls
+## The two guards, and the one that was rejected
 
-An automated parity harness was prototyped (render each font both ways, compare inked pixels as IoU).
-It is **not calibrated** and its absolute numbers should not be trusted as a verdict. Three traps, all
-of which produced confidently wrong readings before being caught:
+Correctness here is a chain of two claims, and each half has its own cheap, deterministic check. Both
+were run; neither needs rasterisation.
+
+**Guard B - the export honours the shaper.** A pure unit test, no browser. Pass a mock page
+(`{ node, pushOperators }`) to `drawShapedRun`, then read the captured operators: `op.name` stringifies
+to `Tm` / `Tj` / `Ts` and `op.args` to the operands. Assert every `Tm` x-position equals the running sum
+of fontkit's `xAdvance` plus that glyph's `xOffset`. Validated on `שָׁלוֹם` in Heebo: seven glyphs, **max
+deviation 0.00e+0, exact**. This is also the regression test for the no-batching rule, because a batched
+run emits fewer `Tm`s than there are glyphs.
+
+**Guard A - our shaper agrees with the browser.** Needs a browser, so it belongs in Playwright. For each
+family in `HEBREW_CAPABLE_FONTS`, compare fontkit's total shaped advance against the same string's
+`measureText` width in the page. Measured today: **0.0% on six of seven, 0.7% on Playpen Sans Hebrew**,
+so the tolerance is per font. This is the check that would catch a newly added font whose shaping fontkit
+reads differently from the browser, which is the scenario the catalogue rule exists for.
+
+**Rejected: pixel-diffing the rendered output.** Tempting, and it was prototyped as an IoU of inked
+pixels. It compares two different rasterizers (poppler against Chromium), so its noise floor sits around
+80-88% and varies per font - a hairline face shifted 4px looks perfect and scores terribly. Calibrating
+that per font is a maintenance burden that buys little over Guards A and B together. Do not revive it
+without a reason; if the pixel path is ever wanted, render the PDF with pdf.js **inside the same browser**
+that draws the reference so there is only one rasterizer in play.
+
+### Measurement pitfalls, if a pixel harness is ever built anyway
+
+The prototype produced three confidently wrong readings before each of these was caught:
 
 1. **Mask on luminance, not alpha.** The comparison canvas is filled white first, so every pixel is
    fully opaque and an alpha test matches the entire page. This scored every font at ~2% and looked like
