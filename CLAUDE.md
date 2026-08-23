@@ -239,9 +239,15 @@ status feedback.
   - Any subsequent mutation of files (adding, removing, reordering, or sorting) resets the state to `'idle'` and revokes/clears the generated `downloadUrl`.
 - **Fonts must render identically on screen and in the export**: `src/lib/fonts.js` owns the catalogue and `resolveFontFamily(family, text)`, which both `TextNode.jsx` (editor), `SignatureDialog.jsx` (typed signatures), and `src/editor/registry/text.ts` (export) call — never bypass it by rendering `element.fontFamily` directly. Reason: the editor loads each TTF via `@font-face` and the browser silently substitutes a *system* font per character for glyphs the file lacks, while a PDF embeds one font per run with no fallback, so a missing glyph exports as an empty rectangle. That mismatch is invisible in the app and only shows up in the downloaded file; it shipped once as Latin-only Heebo/Assistant builds turning Hebrew into boxes. Latin-only handwriting faces (Caveat, Dancing Script, Great Vibes, Pacifico, Sacramento) have no Hebrew glyphs by design, so Hebrew in them substitutes to Gveret Levin (handwriting) or Arimo (upright), for the whole element rather than per character so both sides can agree exactly. `src/lib/fontCoverage.test.js` checks the real asset bytes of every family claimed Hebrew-capable — if you add a font, add it to the catalogue and let that test judge it.
 
-  **Glyph coverage is only half of it: the export also has to place the glyphs where the shaper says.**
-  `page.drawText()` does not, which is why Hebrew with nikud currently exports wrong in every font (full
-  analysis and the fix in **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)**).
+  **Glyph coverage is one stage of five, and the export only has two of them.** Drawing text correctly
+  is normalization, bidi, itemization, shaping, positioning. The export has shaping (fontkit) and, since
+  the layer-5 fix, positioning. It has no normalization stage (so nikud can land outside its letter), no
+  bidi stage (so `1,250` can export as `052,1`, which changes what a signed document *says*), and only a
+  per-element itemization stage (so Arabic, Thai and emoji export as nothing at all - measured, all seven
+  fonts). **These present as unrelated bugs and are not**, and swapping fontkit for a bigger shaper fixes
+  exactly one of the three, which makes it the most expensive wrong move available. Full analysis, the
+  per-font measurements, and the task breakdown in
+  **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)**.
   Two standing rules come out of it. First, **the catalogue is ours to curate**: we owe correct output
   for the fonts we ship, not for every font that exists, so a font that cannot be made to match the
   editor gets dropped or marked Latin-only rather than given a special path. Second, **never fix a

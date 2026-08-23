@@ -42,52 +42,139 @@ Neither is blocked by anything technical.
   blackout/blur/whiteout already preview accurately and cheaply via their overlay div. Delete is the one
   mode where looking right requires the object to actually be absent rather than covered.
 
-### Hebrew text shaping in the export
+### Hebrew text export: the three missing pipeline layers
 
-**Hebrew with nikud exports wrong in every bundled font, and the editor preview is correct, so nobody
-sees it until after they have signed something.** `page.drawText()` runs the shaper and then discards the
-glyph positions it computed, so marks land by raw advance width.
+**Reframed 2026-08-22, and the reframing is the point.** Three defects were found in the Hebrew export
+(vowel points in the wrong place, letters in the wrong order, text disappearing entirely). They look
+unrelated. They are not. **The export does not have a text pipeline; it has a shaper and a painter.**
+Drawing text correctly is five stages, and the export has stages 4 and 5:
 
-**The design is settled and validated against the real modules** - helper signatures, the drop-in points
-in `serialize`, the fallback, the comb fix and both guards are written out in
-**[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)**, with the numbers behind
-each choice. Read it first and follow it; these tasks are execution. If something in it turns out to be
-wrong, say so rather than redesigning around it silently.
+| # | stage | have it? | defect when missing |
+|---|---|---|---|
+| 1 | Normalization | **no** | nikud lands outside its letter |
+| 2 | Bidi (UAX#9) | **no** | `1,250` exports as `052,1` |
+| 3 | Itemization (script/direction/**font** runs) | **partial** | Arabic exports as nothing at all |
+| 4 | Shaping | yes (fontkit) | - |
+| 5 | Positioning | yes, as of the layer-5 fix below | marks placed by `/W` advance |
 
-Do the work on `main`. Investigated and validated 2026-08-21, nothing implemented.
+**Not one of these is a bug inside fontkit, and swapping the shaper fixes exactly one of the three.**
+Read **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)** before starting: it
+carries the measurements behind every claim here, the per-font tables, the mechanism, and three
+superseded "why not" sections that are kept deliberately so the reasoning is not re-derived. If
+something in it turns out to be wrong, say so rather than redesigning around it silently.
 
-**Definition of done for the epic:**
+The framing earns its keep by predicting: **layer 3 was found by asking what a missing itemization
+stage would look like, then looking.** It took one command. Arabic is lost in all seven fonts.
 
-1. Pointed Hebrew renders in the download exactly as it does in the editor, in all seven
-   `HEBREW_CAPABLE_FONTS`, checked on a real PDF downloaded from `npm run build && npm run preview`.
-   Node-only verification does not count - none of this has run in a browser yet.
-2. Latin and unpointed Hebrew render and extract (`pdftotext`) identically to today.
-3. H1 through H4 all land. H1 alone leaves comb fields broken; H4 alone leaves them shaped wrong.
-4. Both guards can fail: revert a line of H1 and watch H2 go red, widen a tolerance and watch H3 go red.
+Do the work on `main`. Layer 5 landed 2026-08-21 (see "Known small defects"). H5 through H8 below are
+open, ordered by what the failure does to the document rather than by how visible it is.
+
+**Definition of done for the epic** (one sentence, and it is provable rather than hopeful):
+
+> **Every text the editor can display either exports faithfully, or is refused with a clear message.
+> There is no third outcome.**
+
+1. Every character the editor renders either appears in the download or is refused before download,
+   never silently dropped (H5).
+2. A line mixing Hebrew with Latin or with digits exports in the same visual order the editor shows,
+   verified on a real download from `npm run build && npm run preview`, not in Node (H6).
+3. Pointed Hebrew renders in the download as the editor renders it, in all seven
+   `HEBREW_CAPABLE_FONTS`. **Arimo and Tinos currently fail this** and are the two to check (H7).
+4. Every guard can fail: break the layer it guards and watch it go red. A guard that cannot fail is the
+   specific failure mode this epic already hit twice (H8).
 5. Standard gates green: `npm test`, `npm run typecheck`, `npm run test:css`, `npm run test:e2e`, plus
    the CSP/SEO/page-weight guards.
 
-- **H1. Add `shapedWidth` and `drawShapedRun`, and call them from `text.ts`'s `serialize`.** Both helpers
-  are written out in the design record; copy them. Replace the two `page.drawText(...)` calls (the
-  per-line one and the per-comb-cell one) per "How it drops into `serialize`". Keep every surrounding
-  geometry expression untouched. Use the shaped width for the RTL anchor, not `widthOfTextAtSize`. Keep
-  the `null` fallback to today's `drawText` path. **Do not batch glyphs into a shared run** - it fails
-  silently, see the CLAUDE.md §5 hazard, and leave a comment saying so.
-- **H2. Unit-test the emission (Guard B).** Mock page is `{ node, pushOperators }`; assert each `Tm`
-  x-position equals the running sum of fontkit's `xAdvance` plus that glyph's `xOffset`, and that the
-  `Tm` count equals the glyph count. Validated to match exactly, so assert equality, not a tolerance.
-  `src/editor/registry/text.test.ts` asserts against `page.drawText` for the comb path today and will
-  need the new mock.
-- **H3. Font parity test (Guard A).** One Playwright spec iterating `HEBREW_CAPABLE_FONTS`: fontkit's
-  total shaped advance versus the browser's `measureText`, per-font tolerance (0.0% for six of them,
-  0.7% for Playpen Sans Hebrew). No rasterisation, no pixel diffing - the design record says why that
-  was rejected.
-- **H4. Split comb cells on grapheme clusters.** `combCharacters()` in `src/lib/comb.js` splits on code
-  points, so every nikud mark gets its own box. Replace with the `/\P{M}\p{M}*/gu` match in the design
-  record. Independent of H1 and still broken without it. Check `combCellCount`'s callers, since a
-  pointed word now needs fewer cells than it has code points.
+- **H5. Layer 3: refuse characters no resolved font can draw.** Cheapest of the three and the one that
+  makes the epic's definition of done provable, so do it first. `font.layout()` returns glyph id 0
+  (`.notdef`) for an uncovered character; measured, `مرحبا` is **all `.notdef` in all seven fonts**, and
+  emoji and Thai go the same way, while the editor shows them correctly via the browser's per-character
+  system-font fallback. **Do not build a font fallback engine and do not bundle a face per script** -
+  the set of scripts is open and page weight is budgeted. Detect and tell the user before they download.
+  Follow `src/lib/fontCoverage.test.js`'s existing precedent of judging coverage against real asset
+  bytes. Copy must follow CLAUDE.md's voice: an honest limitation, not an error scolding the user.
+- **H6. Layer 2: bidi.** Highest-damage defect in the epic: it changes what the document *says*, and it
+  needs no Latin character to trigger. Measured, typed then exported: `תאריך 21/08/2026` becomes
+  `6202/80/12`, `טלפון 054-1234567` becomes `7654321-450`, `סכום 1,250 שח` becomes `052,1`,
+  `רחוב 17` becomes `71`. **Use a real UAX#9 implementation, do not hand-roll run splitting** - it fails
+  exactly on these weak-directional digit cases. `bidi-js` (MIT, 12KB minified) is already in the tree
+  transitively via jsdom, so its licence and audit story are known. **Approved as a direct runtime
+  dependency 2026-08-22**, subject to the usual `npm audit` pass against the Astro pin and a
+  `npm run test:weight` check. **Resolve with the paragraph direction `getEffectiveTextDirection`
+  returns, never with the library's auto-detection** - the editor's textarea carries an explicit `dir`,
+  so auto-detection agrees on the easy strings and diverges on exactly the ambiguous ones; see the
+  design record's "The paragraph direction is not ours to auto-detect". Split each line into runs, call the
+  existing `shapedWidth`/`drawShapedRun` **once per run** instead of once per line, and place runs by
+  resolved visual order (UAX#9 rule L2), not logical order. Pass `direction` explicitly to `layout()` so
+  fontkit stops guessing per run; whether that alone suppresses the digit reversal is **worth measuring
+  first** (`script` and `language` alone were measured and change nothing). Confirm whether comb fields
+  need this at all before assuming they do.
+- **H7. Layer 1: composition before shaping.** The browser composes a base and its point into a
+  precomposed glyph; fontkit does not, so the point paints at the cluster origin. Measured: in Arimo the
+  dagesh of `בְּ` lands with **0%** of its ink inside the letter, in Tinos **33%**; the other five
+  survive by glyph design rather than by correctness. **Run `hb-shape --font-file=public/fonts/Arimo-Regular.ttf --unicodes=05D1,05B0,05BC`
+  first** (needs `brew install harfbuzz`) - it pins the mechanism, and the design record says what each
+  possible output means for the shape of the fix. Expected fix: NFC, plus the Hebrew presentation-form
+  table (~40 entries) that NFC deliberately excludes, gated on the font actually having a glyph for the
+  composed character. Latin needs only NFC (verified).
+- **H8. Guards that can fail.** *(Partly addressed 2026-08-22: `e2e/sign/hebrew-font-parity.spec.js` now
+  shapes through `resolveBidiRuns` with per-run direction, so it exercises the path `serialize` actually
+  uses instead of a `layout()` call that stopped existing when layer 2 landed; it asserts the face really
+  loaded; and it carries a `test.fixme` for the space-crossing case that turns green when H9 lands. The
+  mark-placement half below is still entirely open.)* Guard A (total advance) and Guard B (faithful transcription) are both
+  blind to every defect above: Hebrew combining marks have `xAdvance` 0 in all seven fonts, so Guard A
+  reads 0.0% agreement with every mark misplaced. Add, per the design record's "A guard that can see a
+  misplaced mark": **order-insensitivity** over an enumerated cluster corpus (no browser, targets layer
+  1 exactly), **mark containment** (pure arithmetic, per-font tolerance), and a small **browser
+  reference anchor**. Every browser-side font test must force `document.fonts.load()` **and assert the
+  measurement discriminates** - seven fonts must produce seven distinct signatures. A probe that skipped
+  that produced a clean, confident, entirely meaningless table during this investigation, and the
+  repo has already hit the same class once before with 0x0 jsdom rects.
+
+- **H9. Layer 4: shape per whitespace segment, not per line.** Found 2026-08-22 while checking whether
+  any font should be dropped, and it is the cheapest fix in the epic. Blink shapes and caches text
+  **word by word** (its ShapeCache), so any font feature whose context crosses a space never fires in
+  the browser, while fontkit shapes the whole line and fires it. Measured over 25 realistic form
+  strings: Arimo and Tinos each disagree with the browser on 2 of 25 whole-line (`Tel Aviv` is off by
+  113 font units from a kern pair spanning the space), and **shaping per whitespace segment takes six
+  of the seven fonts to exact agreement**. Slots into H6's per-run loop: bidi already splits a line into
+  runs, this splits those runs further. **Two honest bounds to write into the guard, not discover
+  later:** parity here is parity with *Chrome specifically*, since word-by-word shaping is Blink's
+  caching strategy rather than a spec; and advance parity is necessary but not sufficient, because two
+  fonts can agree on width while choosing different glyphs.
+
+- **H10 (decision, not code). Drop or demote Playpen Sans Hebrew.** The first font the curation rule
+  should actually act on, and the only one that H9 does not rescue. It is a handwriting face carrying
+  `calt` with 959 glyphs, using **three different glyph ids for a single final mem** depending on
+  context, and fontkit and HarfBuzz walk that contextual substitution differently - so the export draws
+  **different letterforms** than the editor showed. Measured: 22 of 25 strings disagree whole-line
+  (worst 2.68%), and still 4 of 15 after per-segment shaping, because the remaining disagreement is
+  *within* a word. **This is a divergence inside the shaper, so no pipeline stage fixes it**; the only
+  alternatives are bundling HarfBuzz WASM for one decorative font, or dropping it. Owner's call:
+  drop it, or keep it and say in the UI that it is approximate. **Also check Gveret Levin before
+  trusting it** - it carries `calt` too and reads 0/25 on advances, but advance parity does not prove
+  glyph parity, and it is the Hebrew handwriting fallback. Use the Tier 3 pixel probe, not the advance
+  guard.
 
 ### Known small defects
+
+- ~~**Hebrew text shaping in the export.**~~ **Fixed 2026-08-21.** Pointed Hebrew exported wrong in
+  every bundled font because `page.drawText()` ran the shaper and then discarded the glyph positions it
+  computed, so marks landed by raw advance width; comb fields had a second, independent bug where
+  `combCharacters()` split on code points and stranded every nikud mark in a cell of its own. Fixed per
+  the design record: `shapedWidth`/`drawShapedRun` in `src/editor/registry/text.ts` emit each glyph at
+  its shaped position (falling back to `page.drawText()` for a font with no reachable fontkit instance),
+  and `combCharacters()` in `src/lib/comb.js` now splits on grapheme clusters. Both guards landed and
+  were proven capable of failing: `src/editor/registry/textShaping.test.js` (Guard B, unit) and
+  `e2e/sign/hebrew-font-parity.spec.js` (Guard A, Playwright). Verified in a real `npm run build && npm
+  run preview` download across all seven `HEBREW_CAPABLE_FONTS`. Full design and the numbers behind each
+  choice stay in [docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md).
+  **Correction 2026-08-22: "export matches the editor preview exactly" was too strong a claim, and this
+  entry said it.** That verification was done by eye, and it missed that Arimo and Tinos still place the
+  dagesh outside its letter - a separate defect one layer up (H7 above), not a failure of this fix. The
+  fix itself stands and is a strict improvement. The lesson is the reason H8 exists: the guards that
+  shipped with this entry could not have caught what the eye missed either.
+  **This is layer 5 of five**; see "Hebrew text export: the three missing pipeline layers" above.
 
 - ~~`.list-hint` is dead CSS still in `global.css`~~ **Fixed.** Deleted the 5 dead lines, and the stale
   "left alone" comment in `FileList.module.css` that referenced it.
@@ -289,8 +376,11 @@ links to GitHub Issues and Discussions instead, which adds zero network surface.
   editor ownership inventory. Its job ended with the migration; the standing guard is
   `scripts/check-editor-global-css.js`.
 - **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)** - why exported Hebrew
-  does not match the editor, the fix, the rejected alternatives (image, HarfBuzz WASM, presentation
-  forms), and the measurement pitfalls that produced confidently wrong readings along the way.
+  does not match the editor. The framing to take from it: the export has a shaper and a painter, not a
+  text pipeline, and each defect found is one of the five stages it is missing rather than a bug in
+  fontkit. Also the rejected alternatives (image, HarfBuzz WASM, presentation forms, all three now
+  annotated with what their measurements could not see) and the measurement pitfalls that produced
+  confidently wrong readings along the way.
 - **[docs/view-density-control-spec.md](./docs/view-density-control-spec.md)** - the Relaxed / Condensed
   / Full screen control, why density is a global preference and why only Sign and Redact expose it.
 - **[seo-audit-output/](./seo-audit-output/)** - SEO strategy and reference material.

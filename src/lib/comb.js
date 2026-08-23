@@ -33,9 +33,25 @@ export function isComb(element) {
 /**
  * The characters a comb lays out: newlines collapse away, because a comb is a
  * single row of boxes and a second line has nowhere to go.
+ *
+ * Split on grapheme clusters (a base character plus any combining marks that
+ * follow it), not code points - splitting on code points strands nikud in a
+ * cell of its own instead of the letter it points, which is wrong even before
+ * the glyph is positioned. A plain regex rather than `Intl.Segmenter`: it
+ * needs no availability check, and `\p{M}` is exactly the category in
+ * question. See docs/hebrew-text-shaping-export.md.
+ *
+ * The `\p{M}+` alternative comes first so a combining mark with no preceding
+ * base character (e.g. a comb field typed starting with a nikud mark) still
+ * becomes its own cluster instead of being dropped: `\P{M}\p{M}*` alone
+ * requires a base before any mark, so at the very start of the string it
+ * matches nothing at position 0 and the regex engine skips straight past the
+ * orphan mark to the next real base character, silently losing it. That is
+ * character *loss*, not just misplacement - worse, and this is the fix for it.
  */
 export function combCharacters(element) {
-  return Array.from((element?.text || '').replace(/\r?\n/g, ''));
+  const text = (element?.text || '').replace(/\r?\n/g, '');
+  return Array.from(text.matchAll(/\p{M}+|\P{M}\p{M}*/gu), (m) => m[0]);
 }
 
 /**

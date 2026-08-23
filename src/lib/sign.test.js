@@ -1,14 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { 
+import {
   signPdf,
   hexToRgbFractions,
   getEffectiveTextDirection,
   uniqueId,
-  seedUniqueId
+  seedUniqueId,
+  UnrepresentableTextError
 } from './sign.js';
 import { percentToPoints } from './coords.js';
+import { combCellCount, combCharacters } from './comb.js';
 
 function getFixtureFile(name = 'num-1.pdf') {
   const filePath = path.resolve(__dirname, './__fixtures__', name);
@@ -153,6 +155,97 @@ describe('sign.js signPdf', () => {
     const requestedFiles = global.fetch.mock.calls.map(([url]) => String(url));
     expect(requestedFiles.some((u) => u.includes('Caveat-Bold.ttf'))).toBe(true);
     expect(requestedFiles.some((u) => u.includes('Caveat-Regular.ttf'))).toBe(true);
+  });
+
+  describe('refuses rather than silently drop characters no bundled font can draw (H5)', () => {
+    it('throws UnrepresentableTextError naming the characters, instead of returning a PDF missing them', async () => {
+      const file = getFixtureFile();
+      const element = {
+        id: 'el-arabic',
+        type: 'text',
+        pageIndex: 0,
+        left: 10,
+        top: 10,
+        text: 'مرحبا', // Arabic - .notdef in every bundled font
+        fontFamily: 'Heebo',
+        fontSize: 20,
+        color: '#000000'
+      };
+
+      await expect(signPdf(file, [element])).rejects.toBeInstanceOf(UnrepresentableTextError);
+      const error = await signPdf(file, [element]).catch((e) => e);
+      expect(error.characters).toEqual(['م', 'ر', 'ح', 'ب', 'ا']);
+    });
+
+    it('reports which page to look on, so a long document is actionable', async () => {
+      const file = getFixtureFile();
+      const element = {
+        id: 'el-arabic', type: 'text', pageIndex: 0, left: 10, top: 10,
+        text: 'مرحبا', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
+      };
+      const error = await signPdf(file, [element]).catch((e) => e);
+      // 1-based, matching what the page navigation shows the user.
+      expect(error.pageNumbers).toEqual([1]);
+    });
+
+    it('judges only the comb cells that are actually drawn, not the whole string', async () => {
+      const file = getFixtureFile();
+      // A comb renders slice(0, cellCount) and ignores the overflow, so an
+      // unrepresentable character past the last cell never reaches the page
+      // and must not refuse the document.
+      const element = {
+        id: 'el-comb', type: 'text', pageIndex: 0, left: 10, top: 10,
+        width: 20, comb: true, combCells: 4,
+        text: 'שלום مرحبا', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
+      };
+      const combCells = combCellCount(element);
+      // Non-vacuity: the Arabic really is beyond the drawn cells, and really
+      // is unrepresentable - otherwise this passes for the wrong reason.
+      expect(combCharacters(element).slice(0, combCells).join('')).not.toContain('م');
+      expect(combCharacters(element).length).toBeGreaterThan(combCells);
+
+      await expect(signPdf(file, [element])).resolves.toBeInstanceOf(Blob);
+    });
+
+    it('refuses the whole document rather than writing the elements that come before the bad one', async () => {
+      const file = getFixtureFile();
+      const goodElement = {
+        id: 'el-good', type: 'text', pageIndex: 0, left: 10, top: 10,
+        text: 'שלום', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
+      };
+      const badElement = {
+        id: 'el-bad', type: 'text', pageIndex: 0, left: 10, top: 60,
+        text: 'مرحبا', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
+      };
+
+      // The good element is first in the array; if the pre-pass only checked
+      // as it went (or ran after serializing), this would resolve with a PDF
+      // that already has "שלום" baked in rather than refusing outright.
+      await expect(signPdf(file, [goodElement, badElement])).rejects.toBeInstanceOf(UnrepresentableTextError);
+    });
+
+    it('does not flag ordinary Hebrew, Latin or digits - no false positive', async () => {
+      const file = getFixtureFile();
+      const element = {
+        id: 'el-clean', type: 'text', pageIndex: 0, left: 10, top: 10,
+        text: 'רחוב 17, Tel Aviv', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
+      };
+
+      const blob = await signPdf(file, [element]);
+      expect(blob).toBeInstanceOf(Blob);
+    });
+
+    it('reports only the one unrepresentable character in an otherwise-clean Hebrew line', async () => {
+      const file = getFixtureFile();
+      const element = {
+        id: 'el-emoji', type: 'text', pageIndex: 0, left: 10, top: 10,
+        text: 'שלום 😀', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
+      };
+
+      const error = await signPdf(file, [element]).catch((e) => e);
+      expect(error).toBeInstanceOf(UnrepresentableTextError);
+      expect(error.characters).toEqual(['😀']);
+    });
   });
 });
 
