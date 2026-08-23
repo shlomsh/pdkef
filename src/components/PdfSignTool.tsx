@@ -93,6 +93,10 @@ function PdfSignToolInner() {
   // user already dialed in instead of resetting to the default each time.
   const [lastSymbolWidth, setLastSymbolWidth] = useState(DEFAULT_SYMBOL_WIDTH_PCT);
 
+  // Last symbol mark (check/x/dot) picked, remembered across new placements so
+  // switching to X for one field doesn't silently reset to check for the next
+  const [lastSymbolMark, setLastSymbolMark] = useState('check');
+
   // Last signature size (width as a % of page width), remembered across new
   // placements so dropping the same signature repeatedly on a form keeps the
   // size the user already dialed in instead of resetting to the default each time.
@@ -301,6 +305,16 @@ function PdfSignToolInner() {
     }
   }, []);
 
+  // Load last-used symbol mark from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('pdf-toolkit:lastSymbolMark');
+      if (stored === 'check' || stored === 'x' || stored === 'dot') setLastSymbolMark(stored);
+    } catch (e) {
+      console.error('Failed to load last symbol mark from localStorage:', e);
+    }
+  }, []);
+
   // Load last-used signature width from localStorage on mount
   useEffect(() => {
     try {
@@ -364,6 +378,16 @@ function PdfSignToolInner() {
       localStorage.setItem('pdf-toolkit:lastSymbolWidth', String(width));
     } catch (e) {
       console.error('Failed to persist last symbol width to localStorage:', e);
+    }
+  };
+
+  // Remember the mark last chosen for a symbol, for future placements
+  const rememberSymbolMark = (mark: string) => {
+    setLastSymbolMark(mark);
+    try {
+      localStorage.setItem('pdf-toolkit:lastSymbolMark', mark);
+    } catch (e) {
+      console.error('Failed to persist last symbol mark to localStorage:', e);
     }
   };
 
@@ -750,8 +774,8 @@ function PdfSignToolInner() {
       {hasFiles && status !== 'loading' && (
         <SignDefaultsContext.Provider
           value={{
-            lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastDirection, lastThickness, lastSymbolWidth, lastSignatureWidth,
-            rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSignatureWidth
+            lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastDirection, lastThickness, lastSymbolWidth, lastSymbolMark, lastSignatureWidth,
+            rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth
           }}
         >
           <SavedSignaturesContext.Provider

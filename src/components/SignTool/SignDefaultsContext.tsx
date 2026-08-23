@@ -19,6 +19,7 @@ export interface SignDefaultsContextValue {
   lastDirection: string | null;
   lastThickness: number;
   lastSymbolWidth: number;
+  lastSymbolMark: string;
   lastSignatureWidth: number;
   rememberColor: (color: string) => void;
   rememberWhiteoutColor: (color: string) => void;
@@ -27,6 +28,7 @@ export interface SignDefaultsContextValue {
   rememberDirection: (textDirection: string) => void;
   rememberThickness: (strokeWidth: number) => void;
   rememberSymbolWidth: (width: number) => void;
+  rememberSymbolMark: (mark: string) => void;
   rememberSignatureWidth: (width: number) => void;
 }
 
@@ -46,6 +48,7 @@ export const SignDefaultsContext = createContext<SignDefaultsContextValue>({
   lastDirection: null,
   lastThickness: DEFAULT_STROKE_WIDTH,
   lastSymbolWidth: DEFAULT_SYMBOL_WIDTH_PCT,
+  lastSymbolMark: 'check',
   lastSignatureWidth: DEFAULT_START_WIDTH_PCT,
   rememberColor: noop,
   rememberWhiteoutColor: noop,
@@ -54,6 +57,7 @@ export const SignDefaultsContext = createContext<SignDefaultsContextValue>({
   rememberDirection: noop,
   rememberThickness: noop,
   rememberSymbolWidth: noop,
+  rememberSymbolMark: noop,
   rememberSignatureWidth: noop
 });
 

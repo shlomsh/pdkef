@@ -25,9 +25,9 @@ export const symbolDefinition: ElementDefinition<SymbolElement> = {
     && hasNumber(value, 'pageIndex') && hasBoxGeometry(value),
   creation: {
     mode: 'point',
-    create: ({ id, pageIndex, point, color, symbolWidth = 0, symbolHeight = 0 }) => ({
+    create: ({ id, pageIndex, point, color, symbolWidth = 0, symbolHeight = 0, symbolMark = 'check' }) => ({
       id, type: 'symbol', pageIndex, left: point.left - symbolWidth / 2, top: point.top - symbolHeight / 2,
-      width: symbolWidth, height: symbolHeight, mark: 'check', color,
+      width: symbolWidth, height: symbolHeight, mark: symbolMark, color,
     }),
   },
   render: ({ element }) => h(SymbolNode, { element, isActive: false, onResizeStart: () => {} }),

@@ -36,6 +36,7 @@ import {
  * @param {number}       params.initialFontSize     - last remembered font size for new text elements
  * @param {string|null}  params.initialDirection    - last remembered text direction ('ltr'|'rtl'|null)
  * @param {number}       params.initialSymbolWidth  - last remembered symbol width (% of page width)
+ * @param {string}       params.initialSymbolMark   - last remembered symbol mark ('check'|'x'|'dot')
  * @param {Array}        params.pageSizes           - per-page { width, height } in PDF points
  */
 export default function useWorkspaceGestures({
@@ -54,6 +55,7 @@ export default function useWorkspaceGestures({
   initialFontSize = DEFAULT_FONT_SIZE_PT,
   initialDirection = null,
   initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
+  initialSymbolMark = 'check',
   pageSizes = [],
 }) {
   const {
@@ -111,6 +113,7 @@ export default function useWorkspaceGestures({
       direction: initialDirection,
       symbolWidth,
       symbolHeight: getWidthPercentToHeightPercent(symbolWidth, ASPECT_RATIO_SYMBOL, container),
+      symbolMark: initialSymbolMark,
       textHeight,
     });
     dispatch({ type: 'ADD_ELEMENT', payload: newEl });
