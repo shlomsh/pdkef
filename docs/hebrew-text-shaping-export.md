@@ -851,6 +851,32 @@ update moves the reference out from under us, and it is the only one that checks
 name claims. It is the probe described above, non-vacuity assertion included, and without that assertion
 it is worse than no test.
 
+### The platform decides what an advance guard can prove (found in CI, 2026-08-23)
+
+Guard A passed on macOS and failed 20 of 21 cases the first time it ran on the Linux CI runner. Nothing
+was wrong with the export. **Chromium quantizes every glyph advance to a whole pixel when font hinting
+is on**, which is the default on the runner and not on macOS, and the error accumulates per glyph:
+every `measureText` result came back an exact integer, and the drift reached **2.416px on a 9-glyph
+string**. No fixed percentage absorbs that without also going blind to real divergence.
+
+Two things came out of fixing it, and the second one matters more than the first.
+
+1. **Ask for unhinted metrics** (`ctx.textRendering = 'geometricPrecision'`), because a PDF has no
+   hinting and unhinted advances are the thing actually worth comparing. Then **derive the tolerance
+   from the measurement rather than the platform**: an integral width across a multi-glyph string means
+   the platform quantized, so the bound becomes the quantization itself, half a pixel per glyph. On a
+   subpixel platform the guard demands exact agreement, because that is what six of the seven fonts
+   deliver.
+2. **Sharpening the measurement immediately caught a real defect.** With unhinted metrics, Playpen Sans
+   Hebrew diverges by **2.304px on `שלום עולם` at 32px**, where the old hinted measurement had reported
+   agreement. The guard had been reporting a pass on a font already known to be wrong, purely because
+   the measurement was too coarse to see it. That is the same lesson as the vacuous font-loading probe
+   and the 0x0 jsdom rects, in a third costume: **a guard is only as good as the resolution of what it
+   measures, and a green run proves nothing about the part it cannot resolve.**
+
+Playpen is now carried in the spec as a named `KNOWN_DIVERGENCE_PX` entry rather than a tolerance, so a
+regression past its measured figure still fails, and the entry disappears when H10 is decided.
+
 **Still rejected: cross-rasterizer pixel diffing.** The reasoning in "the one that was rejected" above is
 unchanged and the numbers here agree with it. Tier 3 is not that: it compares Chromium against Chromium.
 
