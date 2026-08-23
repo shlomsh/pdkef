@@ -29,6 +29,24 @@ describe('comb layout', () => {
     expect(combCharacters({ text: '27\n05' })).toEqual(['2', '7', '0', '5']);
   });
 
+  it('splits on grapheme clusters, not code points, so a nikud mark stays in its base letter\'s cell', () => {
+    // "שָׁלוֹם" (shalom, pointed) is 7 code points but 4 letters - a kamatz
+    // and shin dot both combine onto the shin, and a holam combines onto the
+    // vav. Splitting on code points would strand the marks in cells of their
+    // own; docs/hebrew-text-shaping-export.md.
+    expect(combCharacters({ text: 'שָׁלוֹם' })).toEqual(['שָׁ', 'ל', 'וֹ', 'ם']);
+    expect(combCellCount({ type: 'text', width: 10, text: 'שָׁלוֹם' })).toBe(4);
+  });
+
+  it('keeps a leading orphan mark as its own cluster instead of dropping it (small defect #3)', () => {
+    // A kamatz with no preceding base character - e.g. a comb field that
+    // starts mid-word on a pointed nikud. `\P{M}\p{M}*` alone requires a base
+    // before any mark, so it matches nothing at position 0 and the regex
+    // engine skips straight to "ש", silently losing the kamatz - character
+    // loss, not just misplacement. See docs/hebrew-text-shaping-export.md.
+    expect(combCharacters({ text: 'ָשלום' })).toEqual(['ָ', 'ש', 'ל', 'ו', 'ם']);
+  });
+
   it('targets cell centres rather than the outer edges', () => {
     // The distinction that makes a comb work: with 8 cells the first glyph sits
     // at 1/16 of the width, not at 0, so it lands inside its box rather than on

@@ -33,7 +33,8 @@ export default function PdfWorkspace({
   isFullscreen,
   placeSignatureAt,
   canSharePdf = false,
-  shareReady = false
+  shareReady = false,
+  errorDetail = null
 }: {
   status: string;
   isPseudoFullscreen: boolean;
@@ -55,6 +56,8 @@ export default function PdfWorkspace({
   placeSignatureAt: (...args: any[]) => void;
   canSharePdf?: boolean;
   shareReady?: boolean;
+  /** Overrides the default error copy below with a specific, nameable reason. */
+  errorDetail?: string | null;
 }) {
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
   const {
@@ -296,7 +299,7 @@ export default function PdfWorkspace({
             <circle cx="12" cy="16" r="1" fill="currentColor" />
           </svg>
           <span>
-            <strong>Signing failed.</strong> The PDF may be password-protected or encrypted.
+            <strong>Signing stopped.</strong> {errorDetail || 'The PDF may be password-protected or encrypted.'}
           </span>
         </div>
       )}

@@ -6,7 +6,7 @@ import { SignDefaultsContext } from './SignTool/SignDefaultsContext.tsx';
 import { SavedSignaturesContext } from './SignTool/SavedSignaturesContext.tsx';
 import PdfWorkspace from './SignTool/PdfWorkspace.tsx';
 import SignatureDialog from './SignatureDialog.tsx';
-import { uniqueId, seedUniqueId, signPdf } from '../lib/sign.js';
+import { uniqueId, seedUniqueId, signPdf, UnrepresentableTextError } from '../lib/sign.js';
 import { widthPercentToHeightPercent } from '../lib/coords.js';
 import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
@@ -18,6 +18,25 @@ import UndoHistoryModal from './UndoHistoryModal.tsx';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import { describeFile } from '../lib/format.js';
 import useCurrentPage from '../lib/useCurrentPage.js';
+
+// The detail shown in PdfWorkspace's error block. Null falls back to its
+// default "may be password-protected or encrypted" copy - only signPdf's H5
+// refusal (docs/hebrew-text-shaping-export.md, "Layer 3") gets a specific
+// one, since that failure is a deliberate, nameable refusal rather than a
+// corrupt or locked source file.
+function describeSignFailure(err: unknown): string | null {
+  if (err instanceof UnrepresentableTextError) {
+    // Name where to look. A refusal that does not say which page leaves the
+    // user hunting through a long document for a character they may not be
+    // able to see.
+    const pages = err.pageNumbers ?? [];
+    const where = pages.length === 0 ? ''
+      : pages.length === 1 ? ` on page ${pages[0]}`
+      : ` on pages ${pages.slice(0, -1).join(', ')} and ${pages[pages.length - 1]}`;
+    return `The font you picked has no match for: ${err.characters.join(', ')}. Change the font for that text${where}, or remove those characters, then save again.`;
+  }
+  return null;
+}
 
 export default function PdfSignTool() {
   return (
@@ -35,6 +54,11 @@ function PdfSignToolInner() {
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
   const setSelectedTool = (tool: string | null) => dispatch({ type: 'SET_TOOL', payload: tool });
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
+  // Overrides the generic "may be password-protected or encrypted" copy in
+  // PdfWorkspace's error block when signPdf refused for a specific, nameable
+  // reason (docs/hebrew-text-shaping-export.md, "Layer 3"). Null means show
+  // the generic message.
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [undoModalOpen, setUndoModalOpen] = useState(false);
@@ -665,7 +689,9 @@ function PdfSignToolInner() {
     } catch (err) {
       console.error(err);
       setStatus('error');
-      setAnnouncement('Failed to write and export PDF document.');
+      const detail = describeSignFailure(err);
+      setErrorDetail(detail);
+      setAnnouncement(detail ? `Signing stopped. ${detail}` : 'Failed to write and export PDF document.');
     }
   };
 
@@ -688,7 +714,9 @@ function PdfSignToolInner() {
     } catch (err) {
       console.error(err);
       setStatus('error');
-      setAnnouncement('Failed to write and export PDF document.');
+      const detail = describeSignFailure(err);
+      setErrorDetail(detail);
+      setAnnouncement(detail ? `Signing stopped. ${detail}` : 'Failed to write and export PDF document.');
     }
   };
 
@@ -750,6 +778,7 @@ function PdfSignToolInner() {
               placeSignatureAt={placeSignatureAt}
               canSharePdf={canSharePdf}
               shareReady={shareReady}
+              errorDetail={errorDetail}
             />
           </SavedSignaturesContext.Provider>
         </SignDefaultsContext.Provider>
