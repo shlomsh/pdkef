@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
 import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../constants/signGeometry.js';
 import {
+  RETIRED_FONTS,
   FONT_VERTICAL_METRICS,
   HANDWRITING_FONTS,
   HEBREW_CAPABLE_FONTS,
@@ -138,5 +139,42 @@ describe('textBoxPaddingEm', () => {
   it('scales with how far a font\'s metrics overshoot the line box', () => {
     expect(textBoxPaddingEm('Pacifico')).toBeGreaterThan(textBoxPaddingEm('Heebo'));
     expect(textBoxPaddingEm('Heebo')).toBeGreaterThan(textBoxPaddingEm('Arimo'));
+  });
+});
+
+/**
+ * Dropping a font is not the same as deleting its name: drafts persist for 14
+ * days and keep arriving with the family the user picked. An unmapped retired
+ * name reopens the exact editor/export divergence this module exists to close.
+ */
+describe('retired fonts', () => {
+  const FONT_DIR = join(process.cwd(), 'public', 'fonts');
+
+  it('maps a retired family to a replacement we still ship, for Latin as well as Hebrew', () => {
+    for (const [retired, replacement] of Object.entries(RETIRED_FONTS)) {
+      // Non-vacuity: the retired name must genuinely be gone, or this passes
+      // while proving nothing.
+      expect(HANDWRITING_FONTS).not.toContain(retired);
+      expect(TEXT_FONTS).not.toContain(retired);
+      expect(HEBREW_CAPABLE_FONTS).not.toContain(retired);
+
+      // Both sides land on the replacement whatever the script, so a restored
+      // draft cannot render one way on screen and another in the download.
+      expect(resolveFontFamily(retired, 'Shlomi Shahar')).toBe(replacement);
+      expect(resolveFontFamily(retired, 'שלום')).toBe(replacement);
+
+      // And the replacement is a font we actually ship, with a file on disk.
+      expect([...HANDWRITING_FONTS, ...TEXT_FONTS]).toContain(replacement);
+      expect(existsSync(join(FONT_DIR, `${replacement.replace(/\s+/g, '')}-Regular.ttf`))).toBe(true);
+    }
+  });
+
+  it('has no stale asset or @font-face left for a retired family', () => {
+    const css = readFileSync(join(process.cwd(), 'src', 'styles', 'global.css'), 'utf8');
+    for (const retired of Object.keys(RETIRED_FONTS)) {
+      const base = retired.replace(/\s+/g, '');
+      expect(css).not.toContain(retired);
+      expect(existsSync(join(FONT_DIR, `${base}-Regular.ttf`))).toBe(false);
+    }
   });
 });

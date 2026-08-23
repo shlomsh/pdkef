@@ -143,18 +143,18 @@ open, ordered by what the failure does to the document rather than by how visibl
   caching strategy rather than a spec; and advance parity is necessary but not sufficient, because two
   fonts can agree on width while choosing different glyphs.
 
-- **H10 (decision, not code). Drop or demote Playpen Sans Hebrew.** The first font the curation rule
-  should actually act on, and the only one that H9 does not rescue. It is a handwriting face carrying
-  `calt` with 959 glyphs, using **three different glyph ids for a single final mem** depending on
-  context, and fontkit and HarfBuzz walk that contextual substitution differently - so the export draws
-  **different letterforms** than the editor showed. Measured: 22 of 25 strings disagree whole-line
-  (worst 2.68%), and still 4 of 15 after per-segment shaping, because the remaining disagreement is
-  *within* a word. **This is a divergence inside the shaper, so no pipeline stage fixes it**; the only
-  alternatives are bundling HarfBuzz WASM for one decorative font, or dropping it. Owner's call:
-  drop it, or keep it and say in the UI that it is approximate. **Also check Gveret Levin before
-  trusting it** - it carries `calt` too and reads 0/25 on advances, but advance parity does not prove
-  glyph parity, and it is the Hebrew handwriting fallback. Use the Tier 3 pixel probe, not the advance
-  guard.
+- ~~**H10. Drop or demote Playpen Sans Hebrew.**~~ **Done 2026-08-23: dropped.** It was a handwriting
+  face carrying `calt`, which fontkit and HarfBuzz resolve differently, so the export drew different
+  letterforms than the editor showed - 22 of 25 realistic strings disagreed, and 2.304px on two words
+  once the parity guard measured unhinted. A divergence inside the shaper, so no pipeline stage fixed
+  it, and the alternative was bundling a second shaper for one decorative font. **The part that would
+  have been a bug is deleting the name**: drafts persist 14 days and keep arriving with the family the
+  user picked, so `RETIRED_FONTS` in `src/lib/fonts.js` maps it to Gveret Levin and `resolveFontFamily`
+  applies that first, keeping both sides on the same face. Also removed: the `@font-face`, the TTF, the
+  licence entries, and the parity guard's per-font exemption - **the guard now has no exemptions, and a
+  font needing one again is the signal to ask whether we should ship it.** Gveret Levin carries `calt`
+  too and agrees on advances, but advance parity is not glyph parity: it still wants the Tier 3 pixel
+  check under H8 before it is fully trusted.
 
 ### Known small defects
 

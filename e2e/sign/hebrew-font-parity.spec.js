@@ -59,23 +59,6 @@ const SAMPLES = {
 const UNHINTED_TOLERANCE_PX = 0.05;
 const HINTED_TOLERANCE_PX_PER_GLYPH = 0.5;
 
-/**
- * **Not a tolerance. A recorded measurement of a font we know is wrong.**
- *
- * Playpen Sans Hebrew is a handwriting face carrying `calt`, and fontkit and
- * HarfBuzz resolve its contextual alternates differently, so the export draws
- * different letterforms than the editor. Measured with unhinted metrics:
- * 2.304px on `שלום עולם` at 32px, and 22 of 25 realistic strings disagree.
- * No pipeline stage fixes this - it is a divergence inside the shaper.
- *
- * The entry exists so a known-open decision does not sit on CI as a red build,
- * and it is deliberately snug: a regression past this figure still fails.
- * **When H10 is decided this entry goes away** - either the font is dropped, or
- * we accept the divergence and say so in the UI.
- */
-const KNOWN_DIVERGENCE_PX = {
-  'Playpen Sans Hebrew': 3,
-};
 
 // Mirrors what text.ts's serialize actually does: resolve bidi runs, shape
 // each run with its own direction, sum. The previous version called
@@ -128,8 +111,11 @@ test.describe('Hebrew font shaping parity (Guard A)', () => {
         // An integral width across a multi-glyph string means the platform
         // quantized each advance; a subpixel one means it did not.
         const hinted = Number.isInteger(browserWidth) && glyphCount > 1;
-        const platformTolerancePx = hinted ? HINTED_TOLERANCE_PX_PER_GLYPH * glyphCount : UNHINTED_TOLERANCE_PX;
-        const tolerancePx = Math.max(platformTolerancePx, KNOWN_DIVERGENCE_PX[family] ?? 0);
+        // No per-font exemptions. The one font that needed one was dropped
+        // from the catalogue instead (Playpen Sans Hebrew, 2026-08-23) - see
+        // RETIRED_FONTS in src/lib/fonts.js. If a font ever needs an exemption
+        // here again, that is the signal to ask whether we should ship it.
+        const tolerancePx = hinted ? HINTED_TOLERANCE_PX_PER_GLYPH * glyphCount : UNHINTED_TOLERANCE_PX;
         expect(
           Math.abs(browserWidth - fontkitWidth),
           `${family} (${label}): browser measureText ${browserWidth.toFixed(3)}px vs fontkit shaped advance ${fontkitWidth.toFixed(3)}px `

@@ -243,8 +243,8 @@ status feedback.
   is normalization, bidi, itemization, shaping, positioning. The export has shaping (fontkit) and, since
   the layer-5 fix, positioning. It has no normalization stage (so nikud can land outside its letter), no
   bidi stage (so `1,250` can export as `052,1`, which changes what a signed document *says*), and only a
-  per-element itemization stage (so Arabic, Thai and emoji export as nothing at all - measured, all seven
-  fonts). **These present as unrelated bugs and are not**, and swapping fontkit for a bigger shaper fixes
+  per-element itemization stage (so Arabic, Thai and emoji export as nothing at all - measured, every
+  bundled font). **These present as unrelated bugs and are not**, and swapping fontkit for a bigger shaper fixes
   exactly one of the three, which makes it the most expensive wrong move available. Full analysis, the
   per-font measurements, and the task breakdown in
   **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)**.

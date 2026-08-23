@@ -232,8 +232,9 @@ path. "Fix some clusters and miss others" describes the status quo, not the prop
 
 ## The font catalogue is ours to curate
 
-`HEBREW_CAPABLE_FONTS` in `src/lib/fonts.js` is a closed, deliberate list of seven: Arimo, Tinos,
-Cousine, Assistant, Heebo, Gveret Levin, Playpen Sans Hebrew. We decide what is on it. **We do not owe
+`HEBREW_CAPABLE_FONTS` in `src/lib/fonts.js` is a closed, deliberate list, **six since 2026-08-23**:
+Arimo, Tinos, Cousine, Assistant, Heebo, Gveret Levin. Playpen Sans Hebrew was the seventh and was
+dropped, which is the rule below being used rather than merely stated. We decide what is on it. **We do not owe
 correct output for every font that exists, only for the ones we ship** - so when a font cannot be made
 to agree with the editor, the answer is to drop it or mark it Latin-only, not to build a special path
 around it. `src/lib/fontCoverage.test.js` already sets this precedent by judging Hebrew capability
@@ -759,7 +760,7 @@ section is about. **Gveret Levin reads 0/25 and still deserves a glyph-level che
 trusted, because it is the Hebrew handwriting fallback and its `calt` may simply be picking equal-width
 alternates. Use the Tier 3 pixel probe, not the advance guard.
 
-### Playpen Sans Hebrew is the first font the curation rule should actually drop
+### Playpen Sans Hebrew was the first font the curation rule actually dropped (done 2026-08-23)
 
 Playpen is a handwriting face whose whole appeal is that letters vary. It carries `calt` and 959 glyphs,
 and uses **three different glyph ids for a single final mem** depending on context. fontkit and HarfBuzz
@@ -770,9 +771,21 @@ disagreement is *within* a word.
 That is a divergence inside the shaper. No pipeline stage fixes it. The only two options are to bundle
 HarfBuzz for the sake of one decorative font, or to drop the font.
 
-**Recommendation: drop it, or mark it approximate and say so in the UI.** This is exactly the case "The
-font catalogue is ours to curate" was written for, and it is the first font to actually trigger it. We
-owe correct output for the fonts we ship, and this one cannot be made correct at a proportionate price.
+**Decided 2026-08-23: dropped.** This is exactly the case "The font catalogue is ours to curate" was
+written for, and it is the first font to actually trigger it. We owe correct output for the fonts we
+ship, and this one could not be made correct at a proportionate price.
+
+What dropping it involved, because **deleting the name is the part that would have been a bug**: drafts
+persist for 14 days and keep arriving with the family the user picked, so a retired name outlives its
+files. Unmapped, it reproduces the very divergence this document is about - the editor falls back per
+character to a system font while the export, unable to fetch the missing TTF, falls back to Arimo.
+`RETIRED_FONTS` in `src/lib/fonts.js` maps it to Gveret Levin, the other bundled handwriting face with
+Hebrew coverage, and `resolveFontFamily` applies that before anything else, so both sides land on the
+same face. Removed alongside: the `@font-face` rule, the TTF, the licence entries on `/licenses/` and in
+`THIRD_PARTY_LICENSES.md`, and the parity guard's per-font exemption - **the guard now has no
+exemptions at all, and a font needing one again is the signal to ask whether we should ship it.**
+
+The measurements above are left as they were taken, against the seven-font catalogue of the time.
 
 ## Why no engine swap fixes this
 
