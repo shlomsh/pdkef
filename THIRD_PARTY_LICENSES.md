@@ -221,7 +221,6 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Great Vibes (<https://fonts.google.com/specimen/Great+Vibes>)
 - Gveret Levin (<https://fonts.google.com/specimen/Gveret+Levin>)
 - Pacifico (<https://fonts.google.com/specimen/Pacifico>)
-- Playpen Sans (<https://fonts.google.com/specimen/Playpen+Sans>)
 - Sacramento (<https://fonts.google.com/specimen/Sacramento>)
 
 ```

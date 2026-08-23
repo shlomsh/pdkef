@@ -15,7 +15,7 @@
 
 import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../constants/signGeometry.js';
 
-export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Pacifico', 'Playpen Sans Hebrew', 'Sacramento'];
+export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Pacifico', 'Sacramento'];
 export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo'];
 
 /**
@@ -49,7 +49,6 @@ export const FONT_VERTICAL_METRICS = {
   'Great Vibes': { ascent: 0.851, descent: 0.401 },
   'Gveret Levin': { ascent: 0.990, descent: 0.310 },
   Pacifico: { ascent: 1.303, descent: 0.453 },
-  'Playpen Sans Hebrew': { ascent: 1.070, descent: 0.460 },
   Sacramento: { ascent: 0.930, descent: 0.529 },
 };
 
@@ -77,7 +76,34 @@ export function textBoxPaddingEm(fontFamily) {
  * Bundled families whose TTFs carry Hebrew glyphs. Verified against the real
  * asset bytes by src/lib/fontCoverage.test.js — update both together.
  */
-export const HEBREW_CAPABLE_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Gveret Levin', 'Playpen Sans Hebrew'];
+export const HEBREW_CAPABLE_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Gveret Levin'];
+
+/**
+ * Families we used to ship, mapped to what replaces them.
+ *
+ * **Dropping a font is not the same as deleting its name.** Drafts persist for
+ * 14 days and carry the family the user picked, so a retired name keeps
+ * arriving after the files are gone. Left unmapped it produces exactly the bug
+ * this whole area exists to close: the editor falls back per character to some
+ * system font while the export, unable to fetch the missing TTF, falls back to
+ * Arimo, so the screen and the download disagree again.
+ *
+ * Mapping is applied first thing in `resolveFontFamily`, so both sides land on
+ * the same face without either of them needing to know the font ever existed.
+ *
+ * **Playpen Sans Hebrew, dropped 2026-08-23.** A handwriting face carrying
+ * `calt`, which fontkit and HarfBuzz resolve differently, so the export drew
+ * different letterforms than the editor showed - 22 of 25 realistic strings
+ * disagreed, and 2.304px on two words with unhinted metrics. No pipeline stage
+ * fixes a divergence inside the shaper, and the alternative was bundling a
+ * second shaper for one decorative font. Replaced by Gveret Levin, the other
+ * bundled handwriting face with Hebrew coverage, so a restored draft keeps its
+ * handwritten character. Full reasoning in
+ * docs/hebrew-text-shaping-export.md.
+ */
+export const RETIRED_FONTS = {
+  'Playpen Sans Hebrew': 'Gveret Levin',
+};
 
 /** Hebrew block plus the presentation forms (ligatures like ﬠ, vowelled variants). */
 const HEBREW_PATTERN = /[\u0590-\u05FF\uFB1D-\uFB4F]/;
@@ -106,13 +132,19 @@ export function supportsHebrew(fontFamily) {
  * the editor and the PDF would have to agree on where every run starts. One
  * family per box is what both sides can guarantee identically.
  *
+ * A family we have since retired (see RETIRED_FONTS) is mapped to its
+ * replacement before anything else happens, so a draft saved against a font
+ * that no longer ships still renders identically on both sides.
+ *
  * @param {string} [fontFamily] - the family the user chose; falls back to the
  *   Hebrew-capable default below when unset, so callers may pass undefined
  * @param {string} text       - the element's current content
  * @returns {string} the family to render and embed
  */
 export function resolveFontFamily(fontFamily, text) {
-  const family = fontFamily || HEBREW_FALLBACK_TEXT;
+  // Retired families first, so everything below sees only a family we ship.
+  const requested = RETIRED_FONTS[fontFamily] || fontFamily;
+  const family = requested || HEBREW_FALLBACK_TEXT;
   if (!containsHebrew(text) || supportsHebrew(family)) return family;
   return HANDWRITING_FONTS.includes(family) ? HEBREW_FALLBACK_HANDWRITING : HEBREW_FALLBACK_TEXT;
 }

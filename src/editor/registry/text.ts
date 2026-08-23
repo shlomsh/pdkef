@@ -48,9 +48,9 @@ export function fontkitFont(pdfFont: PDFFont | null): FontkitFont | null {
  * actually typed) and removing everything else in those categories outright.
  *
  * These are exactly the characters this catalogue's coverage is shakiest on
- * - TAB is missing from every bundled font, and Gveret Levin/Playpen Sans
- * Hebrew are also missing soft hyphen, ZWSP/ZWNJ/ZWJ, LRM/RLM, word joiner,
- * BOM and the embedding-direction controls (measured with
+ * - TAB is missing from every bundled font, and Gveret Levin and Heebo are
+ * also missing soft hyphen, ZWSP, LRM/RLM, word joiner, BOM and the
+ * embedding-direction controls (measured with
  * `hasGlyphForCodePoint`, the same way `fontCoverage.test.js` judges Hebrew
  * coverage). LRM/RLM specifically ride along invisibly in Hebrew text copied
  * from the web, Word or WhatsApp - exactly how this app's users get their
@@ -198,9 +198,10 @@ function fontDictionaryKey(page: PDFPage, pdfFont: PDFFont): PDFName {
  * a whole line, does fire it. Measured: `Tel Aviv` in Arimo comes out 113 font
  * units narrower than the browser draws it, purely from a kern pair spanning
  * the space, while `Tel`, `Av` and a lone space each match exactly. Shaping per
- * segment takes six of the seven catalogued fonts to exact agreement with the
- * browser (Playpen Sans Hebrew is the exception, and is a catalogue decision
- * rather than a pipeline one - see docs/hebrew-text-shaping-export.md).
+ * segment brings every catalogued font to exact agreement with the browser.
+ * (It took six of seven when measured; the seventh disagreed for a reason no
+ * pipeline stage could fix and was dropped from the catalogue instead - see
+ * RETIRED_FONTS in src/lib/fonts.js and docs/hebrew-text-shaping-export.md.)
  *
  * **An RTL run's segments are reversed**, which is UAX#9 rule L2 applied again
  * at segment granularity: the first-typed word belongs at the right-hand end.
