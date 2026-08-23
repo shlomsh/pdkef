@@ -32,6 +32,7 @@ function defaultDefaults(overrides = {}) {
     lastDirection: null,
     lastThickness: 3,
     lastSymbolWidth: 5,
+    lastSymbolMark: 'check',
     rememberColor: vi.fn(),
     rememberWhiteoutColor: vi.fn(),
     rememberFont: vi.fn(),
@@ -39,6 +40,7 @@ function defaultDefaults(overrides = {}) {
     rememberDirection: vi.fn(),
     rememberThickness: vi.fn(),
     rememberSymbolWidth: vi.fn(),
+    rememberSymbolMark: vi.fn(),
     ...overrides
   };
 }
@@ -311,6 +313,64 @@ describe('PdfWorkspace Component', () => {
     // Bug: a resized symbol must set the size for the next one placed, so
     // repeated check marks don't each need re-sizing by hand.
     expect(rememberSymbolWidth).toHaveBeenCalledWith(15);
+  });
+
+  it('remembers a switched symbol mark for the next placed symbol', () => {
+    const dispatch = vi.fn();
+    const rememberSymbolMark = vi.fn();
+    const state = {
+      selectedTool: null,
+      elements: [{
+        id: 'symbol-1',
+        type: 'symbol',
+        pageIndex: 0,
+        left: 20,
+        top: 20,
+        width: 5,
+        height: 5,
+        mark: 'check',
+        color: '#000000'
+      }],
+      activeElementId: 'symbol-1',
+      actionHistory: []
+    };
+
+    host = mountWorkspace({ state, dispatch, defaults: { rememberSymbolMark } });
+
+    const xButton = host.querySelector('button[title="X mark"]');
+    expect(xButton).not.toBeNull();
+
+    act(() => {
+      xButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    // Bug: switching a placed symbol from check to X must set the mark for the
+    // next one placed, so it doesn't silently reset to check.
+    expect(rememberSymbolMark).toHaveBeenCalledWith('x');
+  });
+
+  it('places a new symbol with the last remembered mark, not always a check mark', () => {
+    const dispatch = vi.fn();
+    const state = {
+      selectedTool: 'symbol',
+      elements: [],
+      activeElementId: null,
+      actionHistory: []
+    };
+
+    host = mountWorkspace({ state, dispatch, defaults: { lastSymbolMark: 'x' } });
+
+    const overlay = host.querySelector(`.${workspaceStyles['page-overlay']}`);
+    overlay.getBoundingClientRect = () => ({
+      left: 0, top: 0, width: 1000, height: 1000, right: 1000, bottom: 1000
+    });
+
+    act(() => {
+      overlay.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 300, clientY: 300 }));
+    });
+
+    const added = dispatch.mock.calls.find(([action]) => action.type === 'ADD_ELEMENT')?.[0].payload;
+    expect(added?.mark).toBe('x');
   });
 
   it('remembers edited text size, color, and typed direction for the next text element', () => {

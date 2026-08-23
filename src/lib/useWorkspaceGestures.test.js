@@ -259,6 +259,15 @@ describe('useWorkspaceGestures – symbol remembered settings', () => {
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     expect(firstAddElement(dispatch).width).toBe(DEFAULT_SYMBOL_WIDTH_PCT);
   });
+
+  it('applies the last remembered mark to a new symbol, not always a check mark', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'symbol',
+      initialSymbolMark: 'x',
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch)).toMatchObject({ type: 'symbol', mark: 'x' });
+  });
 });
 
 // ---------------------------------------------------------------------------

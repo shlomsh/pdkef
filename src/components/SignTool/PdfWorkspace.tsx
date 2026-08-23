@@ -61,8 +61,8 @@ export default function PdfWorkspace({
 }) {
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
   const {
-    lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastDirection, lastThickness, lastSymbolWidth,
-    rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSignatureWidth
+    lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastDirection, lastThickness, lastSymbolWidth, lastSymbolMark,
+    rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth
   } = useSignDefaults();
   const { activeSignature } = useSavedSignatures();
   const activeElement = elements.find((el) => el.id === activeElementId);
@@ -89,6 +89,7 @@ export default function PdfWorkspace({
     initialFontSize: activeTextElement?.fontSize || lastFontSize,
     initialDirection: initialTextDirection,
     initialSymbolWidth: lastSymbolWidth,
+    initialSymbolMark: lastSymbolMark,
     pageSizes,
   });
 
@@ -128,6 +129,9 @@ export default function PdfWorkspace({
     // A resized symbol sets the size for the next one placed, so repeated marks
     // (check, x, dot) don't have to be re-sized one by one.
     if (element?.type === 'symbol' && fields.width !== undefined) rememberSymbolWidth?.(fields.width);
+    // A switched symbol mark (check/x/dot) sets the mark for the next one
+    // placed, so it doesn't silently reset to the check mark default.
+    if (element?.type === 'symbol' && fields.mark !== undefined) rememberSymbolMark?.(fields.mark);
     // A resized signature sets the size for the next one placed, so signing
     // multiple fields on the same form doesn't require re-sizing every time.
     if (element?.type === 'signature' && fields.width !== undefined) rememberSignatureWidth?.(fields.width);
@@ -139,7 +143,7 @@ export default function PdfWorkspace({
         if (typedDirection) rememberDirection(typedDirection);
       }
     }
-  }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSignatureWidth]);
+  }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth]);
 
   const makeOnSelect = useCallback((id: string) => (e: Event) => {
     e.stopPropagation();
