@@ -47,7 +47,7 @@ export const tools = [
     toolName: 'Sign & Fill PDF',
     h1: 'Sign PDF Free: Fill & Sign Forms in Your Browser',
     subhead:
-      'You can fill out and sign a PDF here without ever printing or scanning it. Tick checkboxes, type text, and add your signature to any PDF, from school consent slips to contracts and applications. Your progress auto-saves on your device, so a crash or accidental refresh never loses your work.',
+      'You can fill out and sign a PDF here without ever printing or scanning it. Tick checkboxes, type text, and add your signature to any PDF, from school consent slips to contracts and applications, in Hebrew, Ukrainian, Thai, or any Latin-script language. Your progress auto-saves on your device, so a crash or accidental refresh never loses your work.',
     ariaLabel: 'PDF sign tool',
     aboutHeading: 'How to fill and sign PDF files',
     aboutLead:
@@ -89,6 +89,10 @@ export const tools = [
       {
         question: 'Can I fill and sign a PDF in Hebrew (חתימה על PDF)?',
         answer: 'Yes. Hebrew works end to end. Type into a text box and it grows leftward from a fixed right edge, the way right-to-left text actually behaves. The fonts offered for Hebrew are bundled with the tool and checked against their real glyph coverage, so what you see on screen is what gets embedded in the file you download, with no empty rectangles where the letters should be. You can also type your signature in a Hebrew handwriting font rather than drawing it.',
+      },
+      {
+        question: 'Can I type Ukrainian or Thai text when signing a PDF?',
+        answer: 'Yes. Ukrainian (Cyrillic) text uses PT Sans, and Thai text uses Mali, a handwriting-style font you can also use for a typed signature. Both are bundled with the tool and checked against their real glyph coverage, so what you see on screen is what gets embedded in the file you download.',
       },
     ],
   },

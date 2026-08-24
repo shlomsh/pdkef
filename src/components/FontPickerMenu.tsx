@@ -14,6 +14,8 @@ const STANDARD_FONTS = [
   { value: 'Arimo', label: 'Arimo (Helvetica)', css: "'Arimo', Helvetica, Arial, sans-serif" },
   { value: 'Assistant', label: 'Hebrew (Assistant)', css: "'Assistant', sans-serif" },
   { value: 'Heebo', label: 'Hebrew (Heebo)', css: "'Heebo', sans-serif" },
+  { value: 'Alef', label: 'Hebrew (Alef)', css: "'Alef', sans-serif" },
+  { value: 'PT Sans', label: 'Cyrillic (PT Sans)', css: "'PT Sans', sans-serif" },
   { value: 'Tinos', label: 'Tinos (Times Roman)', css: "'Tinos', 'Times New Roman', Times, serif" },
   { value: 'Cousine', label: 'Cousine (Courier)', css: "'Cousine', 'Courier New', Courier, monospace" }
 ];

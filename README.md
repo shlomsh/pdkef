@@ -12,6 +12,8 @@ Then I wanted to share it. I believe simple tools like these should be free and 
 
 **Your work survives a crash, without a server.** The Sign and Redact editors autosave your in-progress edits (the annotations and redaction boxes, plus the source file) to local browser storage as you work, and silently restore them when you reopen the tool. Most online PDF editors can't offer crash recovery without keeping a copy of your file on their servers; because PDkef stores the draft on your own device, you get "pick up where you left off" without a single byte leaving your machine. The draft is cleared only when you choose Start over.
 
+**Type in your own alphabet.** The Sign tool's text boxes and typed signatures work in Hebrew, Ukrainian (Cyrillic), and Thai, alongside Latin. Each bundled font is checked against its real glyph coverage, so what you see on screen is what ends up embedded in the PDF you download.
+
 **Free, actually free.** No signup wall, no "3 free merges then pay," no watermark stamped across your output. It's free because it costs me almost nothing to run - static files on a CDN, no server to scale, no storage to pay for.
 
 **Open source so you don't have to take my word for it.** Every claim above - no uploads, no tracking, no network calls - is something you can verify yourself by reading the code, not something you have to trust a privacy policy to be true. MIT licensed, fork it, audit it, run it yourself.

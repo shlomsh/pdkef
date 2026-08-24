@@ -8,8 +8,11 @@
  * Latin-only builds of Heebo and Assistant shipped unnoticed: nothing in the
  * app can see the gap, only the downloaded file shows it.
  *
- * So assert it against the real asset bytes: every font the picker offers for
- * Hebrew must actually carry Hebrew glyphs.
+ * So assert it against the real asset bytes: every general-purpose text font
+ * the picker offers must actually carry Hebrew glyphs. The one deliberate
+ * exception is a font added purely to signal support for a different script
+ * (e.g. PT Sans for Cyrillic) — see NON_HEBREW_SCRIPT_FONTS below, which
+ * relies on resolveFontFamily's generic fallback instead.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
@@ -37,6 +40,16 @@ const HEBREW_EXTRAS = [0x05b0, 0x05f3, 0x20aa];
  */
 const HEBREW_CAPABLE_FAMILIES = HEBREW_CAPABLE_FONTS;
 
+/**
+ * TEXT_FONTS members added for a script other than Hebrew, which
+ * intentionally carry no Hebrew glyphs of their own. resolveFontFamily's
+ * generic fallback substitutes HEBREW_FALLBACK_TEXT for these when Hebrew
+ * text is typed into them — checked in fonts.test.js's "always resolves to a
+ * font that can actually render the text" — so they don't need to appear in
+ * HEBREW_CAPABLE_FONTS the way the general-purpose text fonts do.
+ */
+const NON_HEBREW_SCRIPT_FONTS = ['PT Sans'];
+
 const STYLES = ['Regular', 'Bold', 'Italic', 'BoldItalic'];
 
 /** Mirrors loadCustomFont's naming scheme in sign.js. */
@@ -52,8 +65,9 @@ function characterSetOf(file) {
 }
 
 describe('bundled fonts offered for Hebrew', () => {
-  it('claims Hebrew support for every text font the picker offers', () => {
-    expect(TEXT_FONTS.filter((family) => !HEBREW_CAPABLE_FONTS.includes(family))).toEqual([]);
+  it('claims Hebrew support for every general-purpose text font the picker offers', () => {
+    const generalTextFonts = TEXT_FONTS.filter((family) => !NON_HEBREW_SCRIPT_FONTS.includes(family));
+    expect(generalTextFonts.filter((family) => !HEBREW_CAPABLE_FONTS.includes(family))).toEqual([]);
   });
 
   it('substitutes in fonts that are themselves Hebrew-capable', () => {
