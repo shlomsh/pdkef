@@ -15,8 +15,8 @@
 
 import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../constants/signGeometry.js';
 
-export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Pacifico', 'Sacramento'];
-export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo'];
+export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Mali', 'Pacifico', 'Sacramento'];
+export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans'];
 
 /**
  * Real ascent/descent for every bundled family, as a fraction of the em —
@@ -48,8 +48,11 @@ export const FONT_VERTICAL_METRICS = {
   'Dancing Script': { ascent: 0.920, descent: 0.280 },
   'Great Vibes': { ascent: 0.851, descent: 0.401 },
   'Gveret Levin': { ascent: 0.990, descent: 0.310 },
+  Mali: { ascent: 1.050, descent: 0.250 },
   Pacifico: { ascent: 1.303, descent: 0.453 },
   Sacramento: { ascent: 0.930, descent: 0.529 },
+  Alef: { ascent: 1.009, descent: 0.353 },
+  'PT Sans': { ascent: 1.018, descent: 0.276 },
 };
 
 // Slack on top of the computed overhang: the metrics are the font's design
@@ -76,7 +79,7 @@ export function textBoxPaddingEm(fontFamily) {
  * Bundled families whose TTFs carry Hebrew glyphs. Verified against the real
  * asset bytes by src/lib/fontCoverage.test.js — update both together.
  */
-export const HEBREW_CAPABLE_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Gveret Levin'];
+export const HEBREW_CAPABLE_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Gveret Levin', 'Alef'];
 
 /**
  * Families we used to ship, mapped to what replaces them.

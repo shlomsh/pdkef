@@ -15,7 +15,7 @@ reference implementation of a finished tool.
 
 ## Open work
 
-Five items. Nothing structural is outstanding; see "Migration status" below for why.
+Six items. Nothing structural is outstanding; see "Migration status" below for why.
 
 ### Launch / SEO
 
@@ -207,6 +207,101 @@ open, ordered by what the failure does to the document rather than by how visibl
   (files that don't know about each other). Forcing it in means duplicating the switcher three times
   or inventing a "type family" concept that exists nowhere else. Left as-is; not worth the complexity
   it would add.
+
+### Internationalization: fonts for scripts beyond Hebrew/Latin
+
+**Opened 2026-08-24**, from two asks in the same session: adding more fonts to the existing Hebrew/Latin
+catalogue, and separately wanting handwriting support for India and Thailand. Cross-checked against the
+top countries in Vercel Analytics (Israel, USA, India, UK, Philippines, Canada, Malaysia, Singapore, UAE,
+Afghanistan, China, Ireland, Jordan, Ukraine) to prioritize by real traffic rather than guessing. Every
+verdict below is measured, not assumed - each one either ran through the same checks that already gate the
+Hebrew catalogue (license, `calt` absence, glyph coverage, fontkit-vs-browser advance parity) or hit a
+concrete, reproducible failure.
+
+**Ready to ship, already verified:**
+
+- **Alef** (Hebrew sans, SIL OFL 1.1, self-hosted from `google/fonts` `ofl/alef/`). Passed every check
+  `fontCoverage.test.js` and Guard A already apply to the catalogue: full Hebrew alphabet + finals + sheva
+  + geresh + shekel in both Regular and Bold; no `calt` (the exact feature that got Playpen Sans Hebrew
+  dropped, H10 above); `ccmp` already composes bet+dagesh into precomposed U+FB31 cleanly, which neither
+  Arimo nor Tinos do; ascent/descent (1.009/0.353 em) in line with the rest of the catalogue; and a real
+  browser-vs-fontkit parity check (Alef loaded via `@font-face` data URI, measured with
+  `canvas.measureText` under `geometricPrecision`) came back **exact, 0.000px, on all three Guard A
+  samples** (pointed, mixed-with-digits, spaced) - better than Arimo/Tinos, which still disagree on dagesh
+  placement (H7). Ships only Regular + Bold, same as Assistant and Heebo already do; no italic file
+  needed. To land: two TTFs into `public/fonts/`, two `@font-face` rules in `global.css`, an entry in
+  `TEXT_FONTS`/`HEBREW_CAPABLE_FONTS`/`FONT_VERTICAL_METRICS` in `src/lib/fonts.js`, and license entries
+  in `THIRD_PARTY_LICENSES.md` + `/licenses/`.
+
+**Verified, no task needed:**
+
+- **French-Canadian and Irish diacritics (Canada, Ireland), Filipino/Tagalog (Philippines), Malay
+  (Malaysia).** Checked `characterSet` on all five existing Latin/Hebrew families
+  (Arimo/Tinos/Cousine/Assistant/Heebo) against each language's actual accented set - é/è/ê/ë/î/ï/ô/ö/ù/û
+  /ü/ç/œ for French, á/é/í/ó/ú for Irish, ñ for Filipino, unmodified Latin for Malay. **Full coverage on
+  every family, no gaps.** These four languages need no new font work; closing this out rather than
+  leaving a placeholder verification task on the board.
+
+**Proposed candidates, verified, awaiting approval before implementation:**
+
+- **PT Sans, for Ukrainian (Cyrillic) - Ukraine.** SIL OFL 1.1 (ParaType, self-hosted from `google/fonts`
+  `ofl/ptsans/`), ships proper static Regular/Bold/Italic/BoldItalic files - same naming pattern as
+  Arimo/Tinos, no variable-font instancing needed. Checked: full 33-letter Ukrainian alphabet (upper +
+  lower) in both weights; no `calt`; ascent/descent (1.018/0.276 em) in line with the catalogue; a
+  combining-acute stress mark (used in dictionaries/learning material) composes to 2 glyphs with no
+  `.notdef`. Real browser-vs-fontkit parity check on three realistic samples (a greeting, a street
+  address, a Latin+Cyrillic mixed line) came back **exact agreement (sub-0.001px) on all three** - same
+  clean result as Alef. Purpose-built for Cyrillic+Latin harmony, which is also why it's a common choice
+  for Russian/Ukrainian government and web use. **Not yet added to the repo or catalogue - this is the
+  candidate to approve, not a landed change.**
+- **Mali, for Thai handwriting - explicitly requested.** SIL OFL 1.1, self-hosted from `google/fonts`
+  `ofl/mali/`, ships the widest weight range of the five Thai handwriting families checked (ExtraLight
+  through Bold, each with a true italic). Checked against all five OFL Thai handwriting candidates
+  found (Charm, Charmonman, Itim, Mali, Sriracha): full consonant/vowel/tone-mark coverage and no
+  `@pdf-lib/fontkit` crash on any of them, but **Charmonman carries `calt`** - the same feature class
+  that got Playpen Sans Hebrew dropped (H10) - making it the one to avoid; the other four are `calt`-free
+  with proper `mark`+`mkmk` GPOS anchoring for Thai's double-mark stacking (a consonant can carry an
+  above-vowel and a tone mark simultaneously). Mali's real browser-vs-fontkit parity check on three
+  realistic samples (a greeting, a name field, a Latin+Thai mixed line) came back **exact agreement
+  (sub-0.001px) on all three**. **Sriracha is the runner-up** if a more explicitly cursive/connected look
+  is wanted over Mali's rounded loopy style - also `calt`-free, also not yet parity-tested, single weight
+  only (same one-weight precedent as Pacifico/Sacramento/Great Vibes). **Not yet added to the repo or
+  catalogue - this is the candidate to approve, not a landed change.**
+
+**Not addable right now - structural blockers, not curation calls:**
+
+- **Devanagari / Hindi (India).** Tested directly: `Kalam-Regular.ttf` (OFL, the Google Fonts family that
+  actually supports Devanagari handwriting) crashes `@pdf-lib/fontkit`'s `layout()` outright -
+  `ReferenceError: regeneratorRuntime is not defined`, thrown from `setupSyllables` inside the bundled
+  Indic shaping state machine. **This reproduces on a single bare consonant with no marks at all** (`क`
+  alone), not just on reordering or conjunct cases - the shaper cannot process Devanagari at all today,
+  before any question of correctness. This is a different, deeper problem than the three missing Hebrew
+  layers above: those are missing pipeline *stages* on top of a working shaper; this is the shaper itself
+  throwing. Needs its own investigation (patch or polyfill `@pdf-lib/fontkit`, or shape Indic scripts
+  through a different path) before any font-picking work is worth doing. India's other major languages
+  (Bengali, Tamil, Telugu, Gujarati, Punjabi) are also complex reordering/conjunct scripts and are assumed
+  to hit the same class of failure until proven otherwise - **not verified individually, don't assume one
+  working means the others do.** English, India's other official language, is already fully covered.
+- **Arabic (UAE, Jordan) and Dari/Pashto (Afghanistan, Perso-Arabic script).** Already documented as
+  blocked under H5 above: `مرحبا` renders as all-`.notdef` in every one of the seven bundled fonts today,
+  because Arabic is a joining script (`init`/`medi`/`fina` positional forms, cursive connections) and
+  itemization/shaping for that doesn't exist in this pipeline. This is exactly the gap
+  `docs/hebrew-text-shaping-export.md`'s "Why no engine swap fixes this" section names as the trigger that
+  would justify reconsidering a bundled HarfBuzz: Hebrew is non-joining and non-reordering, and "the
+  argument expires the day the catalogue adds Arabic or an Indic script." India and this land on the same
+  conclusion independently.
+- **Chinese (China; sizeable minority language in Singapore and Malaysia).** Not a shaping problem at all
+  - it's a page-weight problem. A full-coverage CJK font is routinely 5-20MB unsubsetted, against a
+  per-page budget (`check-page-weight.js`) built around a handful of Latin/Hebrew TTFs. The export's font
+  embedding also deliberately runs with `subset: false` today (see "Small defects in the shipped emission
+  code" in the design doc - turning subsetting on would silently corrupt shaped glyph runs), so "just
+  subset the font" isn't a quick fix either; it's a separate embedding-path project.
+
+Three concrete font additions are now proposed and fully verified against the existing catalogue's own
+checks: **Alef** (Hebrew), **PT Sans** (Ukrainian/Cyrillic), **Mali** (Thai handwriting). None are landed
+- each needs a go/no-go before any TTF, `@font-face` rule, or catalogue entry is added. Devanagari,
+Arabic/Perso-Arabic, and Chinese stay parked until their respective structural blockers (fontkit's Indic
+shaper crashing, no Arabic joining support, no font subsetting) are worth taking on as their own projects.
 
 ---
 

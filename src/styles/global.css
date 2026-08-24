@@ -76,6 +76,12 @@
   src: url('/fonts/GveretLevin-Regular.ttf') format('truetype');
 }
 @font-face {
+  font-family: 'Mali';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Mali-Regular.ttf') format('truetype');
+}
+@font-face {
   font-family: 'Pacifico';
   font-style: normal;
   font-weight: 400;
@@ -184,6 +190,42 @@
   font-style: normal;
   font-weight: 700;
   src: url('/fonts/Heebo-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Alef';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Alef-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Alef';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Alef-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/PTSans-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/PTSans-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'PT Sans';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/PTSans-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'PT Sans';
+  font-style: italic;
+  font-weight: 700;
+  src: url('/fonts/PTSans-BoldItalic.ttf') format('truetype');
 }
 
 :root {

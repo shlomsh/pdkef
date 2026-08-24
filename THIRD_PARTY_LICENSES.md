@@ -220,8 +220,21 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Dancing Script (<https://fonts.google.com/specimen/Dancing+Script>)
 - Great Vibes (<https://fonts.google.com/specimen/Great+Vibes>)
 - Gveret Levin (<https://fonts.google.com/specimen/Gveret+Levin>)
+- Mali (<https://fonts.google.com/specimen/Mali>)
 - Pacifico (<https://fonts.google.com/specimen/Pacifico>)
 - Sacramento (<https://fonts.google.com/specimen/Sacramento>)
+
+```
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+```
+
+## Text Fonts — SIL Open Font License (OFL-1.1)
+
+The following fonts are distributed under the SIL Open Font License, Version 1.1:
+- Alef (<https://fonts.google.com/specimen/Alef>)
+- PT Sans (<https://fonts.google.com/specimen/PT+Sans>)
 
 ```
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
