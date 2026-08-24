@@ -112,9 +112,13 @@ open, ordered by what the failure does to the document rather than by how visibl
 - **H7. Layer 1: composition before shaping.** The browser composes a base and its point into a
   precomposed glyph; fontkit does not, so the point paints at the cluster origin. Measured: in Arimo the
   dagesh of `בְּ` lands with **0%** of its ink inside the letter, in Tinos **33%**; the other five
-  survive by glyph design rather than by correctness. **Run `hb-shape --font-file=public/fonts/Arimo-Regular.ttf --unicodes=05D1,05B0,05BC`
-  first** (needs `brew install harfbuzz`) - it pins the mechanism, and the design record says what each
-  possible output means for the shape of the fix. Expected fix: NFC, plus the Hebrew presentation-form
+  survive by glyph design rather than by correctness. Pinning HarfBuzz's exact internal route is **useful, not
+  blocking**: the behaviour is already established by measurement (the browser renders all three input
+  orders pixel-identically in every bundled font), so the pre-pass can be designed against that and
+  validated by the guards. If a reference engine is wanted, take it as a **devDependency**
+  (`harfbuzzjs`, MIT, 1.2MB unpacked) rather than a machine-local `brew install harfbuzz` - versioned
+  with the repo, reproducible, runnable in CI, and it ships nothing to users. See H8, which is the
+  stronger reason to have it. Expected fix: NFC, plus the Hebrew presentation-form
   table (~40 entries) that NFC deliberately excludes, gated on the font actually having a glyph for the
   composed character. Latin needs only NFC (verified).
 - **H8. Guards that can fail.** *(Partly addressed 2026-08-22: `e2e/sign/hebrew-font-parity.spec.js` now
@@ -126,7 +130,14 @@ open, ordered by what the failure does to the document rather than by how visibl
   reads 0.0% agreement with every mark misplaced. Add, per the design record's "A guard that can see a
   misplaced mark": **order-insensitivity** over an enumerated cluster corpus (no browser, targets layer
   1 exactly), **mark containment** (pure arithmetic, per-font tolerance), and a small **browser
-  reference anchor**. Every browser-side font test must force `document.fonts.load()` **and assert the
+  reference anchor**.
+  **Consider a real HarfBuzz oracle for this, as a devDependency only.** `harfbuzzjs` (MIT, 1.2MB
+  unpacked) shapes the same strings the export shapes and reports glyph ids and per-glyph positions, so
+  the guard could assert per-glyph parity across the whole enumerated corpus instead of inferring it
+  from advances - the one thing no current guard can do. **This is not the rejected "bundle HarfBuzz"
+  option**: as a dev dependency it never reaches a user, costs zero page weight, and leaves fontkit as
+  the shipped shaper. It buys the oracle without the payload, which is a different trade from the one
+  argued down in the design record. Every browser-side font test must force `document.fonts.load()` **and assert the
   measurement discriminates** - seven fonts must produce seven distinct signatures. A probe that skipped
   that produced a clean, confident, entirely meaningless table during this investigation, and the
   repo has already hit the same class once before with 0x0 jsdom rects.
