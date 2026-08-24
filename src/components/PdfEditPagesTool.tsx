@@ -48,6 +48,13 @@ export default function PdfEditPagesTool() {
       dragClass: styles['is-dragging'],
       // Use the drag handle so rotate/remove clicks don't start drags
       handle: `.${styles['page-drag-handle']}`,
+      // Always use SortableJS's own clone/ghost pipeline instead of native HTML5
+      // drag-and-drop. Native DnD only leaves the dragClass on the source element
+      // for a single tick before swapping to ghostClass, so on a real mouse drag
+      // the styled "lifted card" look never renders - only the browser's own
+      // unstyled translucent drag image does. forceFallback makes desktop and
+      // touch dragging go through the same styled path.
+      forceFallback: true,
       onEnd(evt: Sortable.SortableEvent) {
         if (evt.oldIndex === evt.newIndex || evt.oldIndex == null || evt.newIndex == null) return;
         setPages((current) => {
@@ -273,10 +280,13 @@ export default function PdfEditPagesTool() {
                         aria-hidden="true"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <svg width="16" height="10" viewBox="0 0 16 10" fill="currentColor">
-                          <rect x="0" y="0" width="16" height="1.5" rx="0.75"/>
-                          <rect x="0" y="4.25" width="16" height="1.5" rx="0.75"/>
-                          <rect x="0" y="8.5" width="16" height="1.5" rx="0.75"/>
+                        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <circle cx="5" cy="3" r="1.4" fill="currentColor" />
+                          <circle cx="11" cy="3" r="1.4" fill="currentColor" />
+                          <circle cx="5" cy="8" r="1.4" fill="currentColor" />
+                          <circle cx="11" cy="8" r="1.4" fill="currentColor" />
+                          <circle cx="5" cy="13" r="1.4" fill="currentColor" />
+                          <circle cx="11" cy="13" r="1.4" fill="currentColor" />
                         </svg>
                       </span>
 

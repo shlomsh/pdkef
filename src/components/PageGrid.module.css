@@ -118,11 +118,13 @@
   box-shadow: 0 1px 4px var(--color-primary-ring);
 }
 
-/* Drag handle - full-width top bar on each page card */
+/* Drag handle - full-width top bar on each page card. Height is a real
+   44px touch target (WCAG 2.5.5 AAA / Apple HIG - same bar the merge tool's
+   .drag-handle already holds itself to), not a decorative sliver. */
 .page-drag-handle {
   width: calc(100% + 1rem);
   margin: -0.75rem -0.5rem 0;
-  height: 22px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -181,12 +183,15 @@
 }
 
 /* SortableJS states for the page grid */
-/* Ghost = the placeholder left behind while dragging - make it invisible
-   so the grid doesn't show a jarring empty hole */
-.pages-grid .is-ghost {
-  opacity: 0;
-  border: none;
-  background: transparent;
+/* Ghost = the drop placeholder left behind while dragging - a dimmed, dashed
+   outline showing where the card will land (mirrors FileList.module.css's
+   .is-ghost). The extra .page-card in the selector raises specificity above
+   .page-card.is-selected / .page-card.is-removed so the placeholder always
+   reads as neutral, regardless of the dragged page's own state. */
+.pages-grid .page-card.is-ghost {
+  opacity: 0.35;
+  border: 1px dashed var(--color-primary);
+  background: var(--color-primary-soft);
   box-shadow: none;
   pointer-events: none;
 }
@@ -199,13 +204,19 @@
   z-index: 10;
 }
 
-/* Dragging clone floating over the grid */
+/* Dragging clone floating over the grid. transition: none is load-bearing:
+   this clone is a cloneNode() of a .page-card, so without it the card's own
+   `transition: all 0.2s` (meant for hover/select) inherits onto the clone and
+   smooths every per-frame transform update SortableJS writes to follow the
+   cursor - the clone visibly lags ~200ms behind the pointer, reading as
+   "sticky" dragging instead of 1:1 tracking. */
 .pages-grid .is-dragging {
   opacity: 0.95;
   transform: scale(1.04) rotate(-0.5deg);
   box-shadow: 0 12px 28px -4px var(--color-primary-ring), var(--shadow-lg);
   cursor: grabbing;
   z-index: 100;
+  transition: none;
 }
 
 .grid-actions {
