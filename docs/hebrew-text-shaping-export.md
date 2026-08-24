@@ -528,9 +528,22 @@ HarfBuzz is. One command settles it and neither `hb-shape` nor `uharfbuzz` is in
 hb-shape --font-file=public/fonts/Arimo-Regular.ttf --unicodes=05D1,05B0,05BC
 ```
 
-Run it before building the pre-pass. If the output is one `bet_dagesh`-ish glyph, it composes and the
-pre-pass should compose. If it is three glyphs with a positioned dagesh, HarfBuzz is doing something
-else and the pre-pass would be the wrong shape.
+Useful before building the pre-pass, but **not a prerequisite**, and worth being precise about why: the
+*behaviour* is already established by measurement (all three input orders render pixel-identically in
+every bundled font), so the pre-pass can be designed against that observable and validated by the
+guards. What the command adds is the internal route, which would tell us whether the pre-pass should
+compose or do something else.
+
+**Prefer a devDependency over a system install.** `harfbuzzjs` (MIT, ~1.2MB unpacked) answers the same
+question, and unlike `brew install harfbuzz` it is versioned with the repo, reproducible on any machine,
+and runnable in CI. It also **ships nothing to users** - a dev dependency is not bundled, costs zero page
+weight, and leaves fontkit as the shipped shaper.
+
+That distinction matters because it is a genuinely different trade from the one argued down in "Why not
+HarfBuzz WASM" above. That section rejected *shipping* a second shaper to every visitor for the sake of
+parity. Using HarfBuzz **as a test oracle** keeps the payload argument intact while buying the one thing
+no current guard can do: per-glyph parity across an enumerated corpus, rather than parity inferred from
+advances that marks contribute nothing to. See "A guard that can see a misplaced mark".
 
 ### It is not an Arimo quirk, and Tinos is also wrong
 
