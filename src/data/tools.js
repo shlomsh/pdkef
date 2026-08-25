@@ -72,10 +72,10 @@ export const tools = [
     // this card is the one that says where the tool stops.
     languages: {
       tag: 'Languages',
-      heading: 'Type in your own language, and get it back in the file',
+      heading: 'Supports a wide range of languages, with more on the way',
       lead:
-        'Filling a PDF in a language other than English usually goes wrong in the same quiet way. Your browser borrows a system font for any letter your chosen font is missing, so the text looks perfect while you work and arrives as a row of empty boxes in the downloaded file. PDkef checks every character against the font it is actually going to embed, and switches to one that can draw it before you get there.',
-      supportedHeading: 'Works today',
+        "Hebrew, Hindi, Thai, Ukrainian, Greek, Arabic, and every Latin-script language work end to end here, so what you type is exactly what ends up in your downloaded file. I'm adding more as I go.",
+      supportedHeading: 'Supported now',
       supported: [
         {
           native: 'עברית',
@@ -113,9 +113,9 @@ export const tools = [
           note: "Almarai. Letters join and change shape depending on their neighbours the way handwritten Arabic actually connects, mandatory ligatures like لا are formed, and a text box grows leftward from a fixed right edge, the same right-to-left behaviour Hebrew gets.",
         },
       ],
-      notYetHeading: 'Not yet, and the tool tells you while you type',
+      notYetHeading: 'More on the way',
       notYet:
-        "Dari and Pashto, Chinese, Japanese, Korean and emoji have no bundled font that can draw them, and India's other scripts, including Bengali, Tamil and Telugu, are not covered either. Type any of them and a notice appears as you type, naming the exact characters, so you find out then instead of after filling in a whole form. Chinese, Japanese and Korean need font subsetting to keep the download from ballooning, which is open work rather than a closed door.",
+        "Dari and Pashto, Chinese, Japanese, Korean, emoji, and India's other scripts (Bengali, Tamil, Telugu) aren't there yet. Type any of them today and the tool lets you know as you go, naming the exact characters, so you find out before you fill in a whole form, not after.",
     },
     steps: [
       { title: 'Upload your form', text: 'Select or drag-and-drop the PDF document you want to fill and sign.' },
