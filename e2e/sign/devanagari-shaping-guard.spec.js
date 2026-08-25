@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { build } from 'esbuild';
 import { existsSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DEVANAGARI_CORPUS } from './fixtures/devanagariCorpus.js';
+import { CONSONANTS, DEVANAGARI_CORPUS } from './fixtures/devanagariCorpus.js';
 
 /**
  * Devanagari correctness guard for the Kalam catalogue candidate
@@ -40,10 +40,13 @@ const CANVAS_H = 200;
 // A pixel-diff test must prove it can discriminate before it's trusted (the
 // repo has hit meaningless-green-probe bugs from 0x0 jsdom rects and
 // unloaded fonts before - see H8 in TODO.md). The self-consistency noise
-// floor - the same single already-correct glyph rendered once via fillText
-// and once via the identical Path2D reconstruction path, zero shaping
-// involved - sets the bound every real case is judged against, rather than a
-// number picked in advance.
+// floor - the max, across every base consonant, of that consonant rendered
+// once via fillText and once via the identical Path2D reconstruction path
+// with zero shaping involved - sets the bound every real case is judged
+// against, rather than a number picked in advance. See the fuller comment at
+// its computation site for why this is a max over the alphabet and not one
+// glyph: a single calibration glyph shipped here first and broke in CI on a
+// different rendering environment than the one it was written against.
 const NOISE_FLOOR_MULTIPLIER = 1.5;
 // Absolute floor under the multiplier: a noise floor near 0% (possible on a
 // crisp headless render) would make the multiplier demand near-pixel-perfect
@@ -98,7 +101,7 @@ test.describe('Devanagari shaping correctness guard (Kalam candidate)', () => {
     await page.goto('/sign');
     await page.addScriptTag({ url: `/${BUNDLE_FILENAME}` });
 
-    const result = await page.evaluate(async ({ corpus, size, w, h, family }) => {
+    const result = await page.evaluate(async ({ corpus, consonants, size, w, h, family }) => {
       // FontFace, not a CSS @font-face rule: the app's style-src CSP has no
       // 'unsafe-inline' and this guard has no reason to add a hash for a
       // test-only style block. The FontFace API governs canvas text exactly
@@ -167,16 +170,31 @@ test.describe('Devanagari shaping correctness guard (Kalam candidate)', () => {
         return unionInked ? (100 * diffCount / unionInked) : 0;
       }
 
-      // Noise floor: one already-correct glyph (bare KA, no shaping
-      // decisions involved), rendered via fillText and via the identical
-      // Path2D reconstruction path. Any nonzero result here is pure
-      // antialiasing/hinting difference between the two rendering methods,
-      // not a shaping defect - it calibrates the tolerance every real case
-      // is judged against instead of asserting a number chosen in advance.
-      const baseGlyphs = shape('क');
-      const baseNative = drawNative('क');
-      const baseRecon = drawReconstruction(baseGlyphs);
-      const noiseFloorPct = pixelDiffPct(ink(baseNative.ctx), ink(baseRecon.ctx));
+      // Noise floor: the MAXIMUM zero-shaping diff across every base
+      // consonant (each rendered alone, one glyph, no shaping decision
+      // involved), via fillText and via the identical Path2D reconstruction
+      // path. Any nonzero result here is pure antialiasing/hinting difference
+      // between the two rendering methods, not a shaping defect.
+      //
+      // A single calibration glyph (this guard's first version used bare
+      // KA) is exactly the fragility the Arabic guard hit and fixed the same
+      // way (see its own module doc): a lone glyph can land anywhere in a
+      // font's real per-glyph noise range by chance, and that range moves
+      // with the rendering environment. Measured directly: this guard passed
+      // locally on macOS Chromium against KA alone, then failed in CI's
+      // Linux Chromium, where KA alone rendered at 0.10% - collapsing
+      // tolerance to the 3% floor - while the true noise ceiling for this
+      // font's more detailed glyphs (the two-part ो/ौ split matras) sits
+      // around 3-3.7%, pure antialiasing, zero shaping involved. Calibrating
+      // against the alphabet's max fixes both: it reflects the font's real
+      // ceiling on any platform, not one glyph's luck on one platform.
+      const alphabetDiffs = consonants.map((consonant) => {
+        const glyphs = shape(consonant);
+        const native = drawNative(consonant);
+        const recon = drawReconstruction(glyphs);
+        return pixelDiffPct(ink(native.ctx), ink(recon.ctx));
+      });
+      const noiseFloorPct = Math.max(...alphabetDiffs);
 
       const cases = corpus.map(({ id, text }) => {
         const glyphs = shape(text);
@@ -193,7 +211,7 @@ test.describe('Devanagari shaping correctness guard (Kalam candidate)', () => {
       });
 
       return { noiseFloorPct, cases };
-    }, { corpus: DEVANAGARI_CORPUS, size: SIZE, w: CANVAS_W, h: CANVAS_H, family: 'KalamGuardTest' });
+    }, { corpus: DEVANAGARI_CORPUS, consonants: CONSONANTS, size: SIZE, w: CANVAS_W, h: CANVAS_H, family: 'KalamGuardTest' });
 
     const tolerancePct = Math.max(MIN_TOLERANCE_PCT, result.noiseFloorPct * NOISE_FLOOR_MULTIPLIER);
     const failures = result.cases.filter((c) => c.diffPct > tolerancePct);
