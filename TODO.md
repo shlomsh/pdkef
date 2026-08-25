@@ -517,14 +517,15 @@ explicitly cursive style is ever wanted, but nothing currently proposes swapping
   code" in the design doc - turning subsetting on would silently corrupt shaped glyph runs), so "just
   subset the font" isn't a quick fix either; it's a separate embedding-path project.
 
-Four font additions have landed: **Alef** (Hebrew), **PT Sans** (Ukrainian/Cyrillic), **Mali** (Thai
-handwriting), and **Kalam** (Devanagari/Hindi handwriting) - each went through the same license/`calt`/
-glyph-coverage/parity checks, and Kalam additionally needed (and got) its own crash fix and a
-purpose-built enumerated-corpus correctness guard before landing, since Devanagari's reordering and
-conjunct-formation questions have no Hebrew equivalent to reuse. Arabic/Perso-Arabic and Chinese stay
-parked until their respective structural blockers (no Arabic joining support, no font subsetting) are
-worth taking on as their own projects - Devanagari's blocker (fontkit's Indic shaper crashing) turned out
-to be the cheap kind and is resolved.
+Five font additions have landed: **Alef** (Hebrew), **PT Sans** (Ukrainian/Cyrillic), **Mali** (Thai
+handwriting), **Kalam** (Devanagari/Hindi handwriting), and **Almarai** (Arabic) - each went through the
+same license/`calt`/glyph-coverage/parity checks, and Kalam and Almarai additionally needed (and got)
+their own enumerated-corpus correctness guard before landing, since Devanagari's reordering/
+conjunct-formation questions and Arabic's joining/ligature questions have no Hebrew equivalent to reuse.
+Both scripts' apparent structural blockers turned out to be the cheap kind: Devanagari's was fontkit's
+Indic shaper crashing on a missing polyfill, Arabic's was nobody having tried fontkit's already-ported
+`ArabicShaper` state machine. Perso-Arabic (Dari/Pashto) and Chinese/Japanese/Korean/emoji remain open -
+see "Open follow-ups, 2026-08-25" below for what's actually left on each.
 
 **The support is now said out loud on the Sign page.** Fixing the fallback only helps someone who
 already trusted the tool enough to type in their language and hit Download; the analytics say a large
@@ -577,6 +578,89 @@ than shipped, since the handwriting faces genuinely have no ł, š, ă or ż.
   probe in `fontCoverage.test.js`. Pashto remains genuinely blocked - a direct check found Almarai missing
   8 of 9 Pashto-specific letters (ټ ډ ړ ږ ښ ګ ڼ ې). Worth a real follow-up given how cheap the remaining
   work looks; not proposed as shipped until it clears the same bar Arabic did.
+
+**Open follow-ups, 2026-08-25: making the next font additions cheaper, and what's next.** Prompted by the
+Sign page's own "Coming soon" copy (`tool.languages.notYet` in `src/data/tools.js`) turning into a real
+action list rather than staying prose. Split into infrastructure (do once, benefits every future addition)
+and content (the actual next scripts/fonts), because conflating them is how "add Bengali" quietly becomes
+"design a corpus-guard framework and add Bengali."
+
+*Infrastructure:*
+
+- ~~**Shared shaping-guard test harness.**~~ **Landed 2026-08-25.** `devanagari-shaping-guard.spec.js` and
+  `arabic-shaping-guard.spec.js` were ~265 lines each and ~90% identical: the esbuild fontkit bundling, the
+  canvas pixel-diff-against-native-rendering method, and the "calibrate a noise floor from a measured
+  maximum, never pick a tolerance in advance" discipline were copy-pasted between them, differing only in
+  font file, LTR-vs-RTL anchoring, and the corpus/calibration data. Extracted into
+  `e2e/sign/fixtures/shapingGuardHarness.js` (`buildFontkitBundle`/`removeFontkitBundle` for the node side,
+  `runShapingGuardInPage` for the in-browser shape/reconstruct/pixel-diff work, `createShapingGuardTest` to
+  wire a `test.describe` block from a config object). Both existing specs now reduce to ~90 lines of
+  config plus their own script-specific reasoning (kept in full - the calibration-set stories, the RTL
+  anchoring calibration bug, the sabotage-testing notes are all still there, just no longer copy-pasted
+  alongside the mechanics that don't change). Verified as a non-regression, not assumed: both specs rerun
+  against the real built site and passed at their original counts, **185/185 Devanagari, 131/131 Arabic**,
+  0 failing either way. A third script's guard is now "write a corpus file + pick a calibration set +
+  supply geometry," not "write another 265-line Playwright file by hand."
+- **Corpus-builder helpers.** `devanagariCorpus.js` and `arabicCorpus.js` each hand-roll their own
+  cross-product/grouping bookkeeping (`CONSONANTS.flatMap(...)`, `{id, text}` shaping) even though the
+  *pattern* - "every base crossed with every mark," "every letter in each of its positional forms," "a
+  curated word list" - repeats. A small `e2e/sign/fixtures/corpusHelpers.js` (`crossProduct(bases, marks,
+  idFn)`, `positionalForms(letters, joiner)`, `wordList(entries)`) would remove that bookkeeping from the
+  next corpus file. **Does not remove the actual work**: the linguistic rules (which conjuncts, which
+  reordering axes, which positional forms) still have to come from someone who knows the script, the same
+  way Devanagari's pre-base-vowel/reph/subjoined-RA axes and Arabic's joining/ligature/diacritic axes did.
+- **A cheap pre-screen script for font candidates**, before spending guard-level effort on one.
+  `scripts/screen-font-candidate.mjs <ttf-path> <unicode-range>` reporting: license file presence next to
+  the font, whether the font's GSUB table carries `calt` (today this is eyeballed by hand - it's exactly
+  the feature that got Playpen Sans Hebrew dropped from the catalogue, see `fonts.js`'s `RETIRED_FONTS`
+  comment), and full-vs-partial character-set coverage of the target block (`fontkit.create(bytes)
+  .characterSet`, the same primitive `fontCoverage.test.js` already uses). Lets 3-4 candidates be triaged
+  in seconds so only real contenders reach the expensive parity-guard stage - Almarai's addition alone
+  evaluated six named candidates (Noto Naskh Arabic, Amiri, Cairo, Almarai, Lateef, Scheherazade New) by
+  hand before picking one.
+- **Verify `FONT_VERTICAL_METRICS` against real font bytes, not just transcribe it by hand.**
+  `fonts.js`'s `FONT_VERTICAL_METRICS` table (ascent/descent per family, used by `textBoxPaddingEm` to keep
+  a text box from clipping ascenders/descenders) is hand-read from each TTF's `hhea` table and hardcoded.
+  `fontCoverage.test.js` already re-derives glyph coverage from real bytes and fails the build on drift;
+  add the same discipline here - a case that reads real ascent/descent via fontkit for every bundled family
+  and asserts it matches the hardcoded table, so a stale or typo'd entry fails loudly the moment a font file
+  changes instead of silently clipping text forever.
+- **Fold the above into one "adding a font" checklist** in `docs/hebrew-text-shaping-export.md`, so the
+  next addition follows a written list (screen candidates -> verify metrics -> write/extend a corpus with
+  the helpers -> run the guard via the shared harness -> update `SCRIPT_FALLBACKS` + `fontCoverage.test.js`
+  probes + `tool.languages` copy + FAQ) instead of re-deriving the Kalam/Almarai process from TODO.md prose
+  each time.
+
+*Content - the next scripts, roughly by how much of the above they actually need:*
+
+- **Dari (Afghanistan, Persian/Farsi script).** The groundwork is already done and unclaimed (see the
+  Almarai Farsi/Urdu finding above): Persian's extra letters (پ چ ژ گ) sit inside Almarai's covered main
+  Arabic block, `hasGlyphForCodePoint` confirmed real glyphs for all of them, positional shaping spot-checked
+  correctly, and Extended Arabic-Indic (Farsi) digits ۰-۹ are fully covered. What's missing before this can
+  actually be claimed: a `fontCoverage.test.js` probe for Persian's extra letters (mirroring the existing
+  `SCRIPT_FALLBACKS` probes), a small corpus extending `arabicCorpus.js`'s groups with the Persian-specific
+  letters and Farsi digits run through the (now shared) guard harness, and a bidi check against real Farsi
+  content - Persian mixes its own digit block with Arabic text in ways the Arabic bidi verification never
+  exercised. Lowest-effort item on this list because the font decision is already made.
+- **Pashto (Afghanistan) remains genuinely blocked on Almarai** - a direct check found it missing 8 of 9
+  Pashto-specific letters (ټ ډ ړ ږ ښ ګ ڼ ې). Needs its own font search (screened per the pre-screen script
+  above once it exists) covering Arabic Extended-A, then its own full verification run - it does not inherit
+  Almarai's or Dari's.
+- **Bengali, Tamil, Telugu** (the three named in the Sign page's own "Coming soon" copy) **and Gujarati,
+  Punjabi** (flagged as untouched during the Devanagari spike but not currently promised anywhere). Each is
+  its own complex script with its own reordering/conjunct/joining rules - the corpus-builder helpers above
+  remove the bookkeeping, not the linguistics, so each is still a real project: pick and screen a candidate
+  font, work out that script's actual shaping axes (a Bengali speaker or reference grammar, not a guess),
+  build its corpus, run it through the shared harness, verify vertical metrics, update the catalogue and the
+  Sign page copy. Priced at roughly what Devanagari cost before the harness extraction, minus the ~265 lines
+  of Playwright boilerplate each no longer has to write by hand.
+- **A second font choice for scripts that already work, no guard needed.** Non-reordering scripts (Hebrew,
+  Cyrillic, Greek, Thai, every Latin-script language) only need `fontCoverage.test.js`'s coverage checks plus
+  Guard A/B parity, the bar Alef/PT Sans/Mali cleared without a corpus guard. Concrete candidates worth
+  screening: Sriracha for a second Thai handwriting option (already recorded above as a same-day,
+  `calt`-free runner-up to Mali, not yet parity-tested); a second Ukrainian/Cyrillic face; a second Hebrew
+  handwriting option; a couple more Latin handwriting styles. Lower priority than the scripts above - these
+  add choice to something that already works, rather than closing a "not yet" gap.
 
 ---
 
