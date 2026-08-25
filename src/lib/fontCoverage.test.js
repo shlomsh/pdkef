@@ -183,3 +183,36 @@ describe('SCRIPT_FALLBACKS', () => {
     },
   );
 });
+
+/**
+ * Dari/Farsi rides the existing Arabic row with no new SCRIPT_FALLBACKS entry:
+ * Persian's four extra letters (پ چ ژ گ) and the Extended Arabic-Indic
+ * (Persian) digit block ۰-۹ both sit inside the *main* Arabic block
+ * (U+0600-06FF) the Arabic pattern already matches, so Dari/Farsi text
+ * already resolves to Almarai today via that one row - see TODO.md's "Almarai
+ * may already cover Farsi and Urdu's extra letters" finding. This describe
+ * checks that claim against the real font bytes rather than leaving it as an
+ * unverified aside: the SCRIPT_FALLBACKS suite above only probes the plain
+ * Arabic string 'مرحبا', which never exercises these codepoints, so nothing
+ * upstream would fail if Almarai quietly lost one of them.
+ *
+ * Pashto is NOT covered here on purpose - a direct check found Almarai
+ * missing 8 of 9 Pashto-specific letters (ټ ډ ړ ږ ښ ګ ڼ ې), so Pashto stays
+ * unclaimed and unrouted until it gets its own font.
+ */
+describe('Dari/Farsi letters and digits (Almarai, via the existing Arabic fallback row)', () => {
+  const PERSIAN_LETTERS = ['پ', 'چ', 'ژ', 'گ'];
+  const PERSIAN_DIGITS = '۰۱۲۳۴۵۶۷۸۹'.split('');
+
+  it('Almarai has real glyphs for every Persian-specific letter', () => {
+    const charset = characterSetOf('Almarai-Regular.ttf');
+    const missing = PERSIAN_LETTERS.filter((letter) => !charset.has(letter.codePointAt(0)));
+    expect(missing).toEqual([]);
+  });
+
+  it('Almarai has real glyphs for every Extended Arabic-Indic (Persian) digit', () => {
+    const charset = characterSetOf('Almarai-Regular.ttf');
+    const missing = PERSIAN_DIGITS.filter((digit) => !charset.has(digit.codePointAt(0)));
+    expect(missing).toEqual([]);
+  });
+});

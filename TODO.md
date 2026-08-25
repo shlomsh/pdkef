@@ -517,6 +517,49 @@ explicitly cursive style is ever wanted, but nothing currently proposes swapping
   code" in the design doc - turning subsetting on would silently corrupt shaped glyph runs), so "just
   subset the font" isn't a quick fix either; it's a separate embedding-path project.
 
+  **Measured 2026-08-25, and the conclusion is "build-time subsetting, not runtime" - read this before
+  starting CJK.** A spike tried to lift the `subset: false` coupling by having `drawShapedRun` drive
+  `CustomFontSubsetEmbedder`'s own private `subset.includeGlyph()`/`glyphIdMap` machinery per glyph (it
+  bypasses `encodeText`, which is the only thing that normally calls `includeGlyph`, because it needs each
+  glyph's own shaped position). **That approach was reverted, and the `assertNotSubsetEmbedded` guard put
+  back**, because the runtime subsetter in the pinned `@pdf-lib/fontkit@1.1.1` (a frozen 2020 fork) is
+  broken for exactly the fonts CJK needs:
+  - **Arimo** (TrueType `glyf`, static, Latin) subsets **correctly**: 284,925 -> 5,612 bytes, `pdftotext`
+    identical, `pdftoppm` renders byte-identical PNGs (same MD5). This is the result that made the
+    approach look viable, and it does not generalise.
+  - **Noto Sans JP OTF** (CFF outlines, so `Font.createSubset()` returns `CFFSubset`, a completely
+    different code path from Arimo's `TTFSubset`) produces a font file poppler rejects: `Syntax Error:
+    Embedded font file may be invalid`, `Couldn't create a font for 'NotoSansJP-Regular-...'`,
+    `non-embedded font using identity encoding`.
+  - **Noto Sans JP variable TTF** (`glyf` + `gvar`/`fvar`; Google Fonts ships only the variable build now)
+    subsets to **visibly broken output** - most glyphs dropped from the page entirely, only a few
+    rendering.
+  - **The CFF case nearly passed as a false positive, which is the part worth remembering.** `pdftotext`
+    extracted the correct string and the rendered PNGs looked right - because poppler had silently
+    substituted a *system* Japanese font after rejecting the embedded one. Only `pdftoppm`'s stderr
+    revealed it. This is the same shape of meaningless-green-probe failure as the stale `FontFace` in the
+    Arabic guard and the 0x0 jsdom rects (H8): **for any CJK verification, treat `pdftoppm`/`pdftotext`
+    stderr as a failure signal, not just the extracted text or a pixel diff.**
+
+  **Recommended approach when this is picked up: pre-subset at build time with `pyftsubset` (fonttools)
+  and ship a static TTF.** That sidesteps the broken runtime subsetter completely - `subset: false` stays,
+  `drawShapedRun` is untouched, the guard stays. The character set is principled rather than arbitrary:
+  jōyō kanji (2,136, the standard taught set) + jinmeiyō kanji (863, the set *legally permitted in
+  Japanese personal names*, which is precisely what a form-filling tool needs) + kana + punctuation +
+  Latin/digits, so roughly 3,200 of Noto Sans JP's 17,936 glyphs, estimated 800KB-1.5MB, lazy-loaded only
+  when that font is picked (Kalam already ships at 427KB for comparison). Anything outside the shipped
+  subset hits the existing while-typing "no bundled font can draw this" notice, which is the designed
+  behaviour rather than a new failure mode. **Chinese, Japanese and Korean need three separate fonts** -
+  Han unification means they share codepoints but render regionally different glyph shapes, so one file
+  cannot honestly serve all three. Noto Sans JP/SC/KR are all SIL OFL 1.1 (license verified in hand from
+  the `notofonts/noto-cjk` release and the `google/fonts` OFL repo).
+
+  Two alternatives considered and not recommended: swapping to upstream `foliojs/fontkit@2.x` (likely
+  fixes the subsetter, but TODO.md already records it is not a drop-in - `@cantoo/pdf-lib`'s embedder
+  reaches into `@pdf-lib/fontkit`-specific internals - so it is an engine swap, a much bigger project);
+  and hunting for a font whose *runtime* subsetting happens to work (unbounded search, and the result
+  would rest on private-API reflection that breaks silently on any pdf-lib upgrade).
+
 Five font additions have landed: **Alef** (Hebrew), **PT Sans** (Ukrainian/Cyrillic), **Mali** (Thai
 handwriting), **Kalam** (Devanagari/Hindi handwriting), and **Almarai** (Arabic) - each went through the
 same license/`calt`/glyph-coverage/parity checks, and Kalam and Almarai additionally needed (and got)
@@ -633,15 +676,36 @@ and content (the actual next scripts/fonts), because conflating them is how "add
 
 *Content - the next scripts, roughly by how much of the above they actually need:*
 
-- **Dari (Afghanistan, Persian/Farsi script).** The groundwork is already done and unclaimed (see the
-  Almarai Farsi/Urdu finding above): Persian's extra letters (پ چ ژ گ) sit inside Almarai's covered main
-  Arabic block, `hasGlyphForCodePoint` confirmed real glyphs for all of them, positional shaping spot-checked
-  correctly, and Extended Arabic-Indic (Farsi) digits ۰-۹ are fully covered. What's missing before this can
-  actually be claimed: a `fontCoverage.test.js` probe for Persian's extra letters (mirroring the existing
-  `SCRIPT_FALLBACKS` probes), a small corpus extending `arabicCorpus.js`'s groups with the Persian-specific
-  letters and Farsi digits run through the (now shared) guard harness, and a bidi check against real Farsi
-  content - Persian mixes its own digit block with Arabic text in ways the Arabic bidi verification never
-  exercised. Lowest-effort item on this list because the font decision is already made.
+- ~~**Dari (Afghanistan, Persian/Farsi script).**~~ **Landed 2026-08-25.** The groundwork was already done
+  and unclaimed (see the Almarai Farsi/Urdu finding above): Persian's extra letters (پ چ ژ گ) sit inside
+  Almarai's covered main Arabic block, `hasGlyphForCodePoint` had confirmed real glyphs for all of them,
+  and positional shaping was spot-checked correctly. What was missing has now landed:
+  - **`fontCoverage.test.js`** gained a dedicated describe block verifying Almarai's real glyph coverage for
+    all four Persian-specific letters and the full Extended Arabic-Indic (Persian) digit block ۰-۹, checked
+    against real font bytes rather than left as an unverified aside from the earlier finding.
+  - **`arabicCorpus.js`'s guard now covers Persian too**, not a separate guard file - one font, one shaper,
+    so `persianPositionalFormsCases`/`persianNonJoiningFormsCases`/`persianRealisticCases` were added into
+    `ARABIC_CORPUS` directly. Joining behaviour was verified against the real font before writing the corpus
+    (the same discipline the Arabic corpus itself used): `پ`/`چ`/`گ` each shape to four distinct glyphs
+    (dual-joining, like their Arabic base letters ب/ج/ک), `ژ` shapes to only two (right-joining/non-joining,
+    like its base ز). Extended corpus run through the shared harness (the extraction two items up): **151/151
+    passing** (131 original Arabic + 20 new Persian cases), 0 failing, same tolerance the Arabic-only run
+    used.
+  - **The bidi question was measured, not assumed - and the assumption would have been wrong to make.**
+    Persian's own digit block (۰-۹) is Unicode Bidi_Class **EN**, not **AN** like Arabic's own digit block
+    (٠-٩) - genuinely different starting classification. Ran real Dari strings (a date, an amount, a
+    trailing Latin name) through `resolveBidiRuns` before writing any assertion: UAX#9 rule W2 reclassifies
+    an EN digit run to AN when the nearest preceding strong character is AL (which Dari text always is
+    here), so the digit run still comes out grouped and un-reversed exactly like Arabic's own AN digits -
+    but that is bidi-js's real resolution, not a hand-derived certainty. Added as permanent regression cases
+    in `bidiRuns.test.js` rather than left as a one-off check.
+  - **Sign page copy updated**: Dari/Farsi moved from `notYet` into `languages.supported` in
+    `src/data/tools.js`, with a new FAQ entry, and the "not yet" FAQ reworded to drop Dari and keep Pashto/
+    CJK/emoji. Verified against the real built HTML and JSON-LD (`npm run build`), not just the source
+    file - both render the new copy correctly, including the Persian-letter and digit strings.
+  - **Full verification pass**: `npm test` (856/856), `npm run test:seo`, `npm run test:css`, `npm run
+    test:weight`, `npm run test:csp`, and the full `e2e/sign/` Playwright suite (39/39) all pass.
+  - **Pashto is still not covered by any of this** - see below, it needs its own font.
 - **Pashto (Afghanistan) remains genuinely blocked on Almarai** - a direct check found it missing 8 of 9
   Pashto-specific letters (ټ ډ ړ ږ ښ ګ ڼ ې). Needs its own font search (screened per the pre-screen script
   above once it exists) covering Arabic Extended-A, then its own full verification run - it does not inherit
@@ -661,6 +725,16 @@ and content (the actual next scripts/fonts), because conflating them is how "add
   `calt`-free runner-up to Mali, not yet parity-tested); a second Ukrainian/Cyrillic face; a second Hebrew
   handwriting option; a couple more Latin handwriting styles. Lower priority than the scripts above - these
   add choice to something that already works, rather than closing a "not yet" gap.
+- **Chinese, Japanese, Korean** - its own session, and the approach is already decided by measurement:
+  build-time subsetting with `pyftsubset`, **not** the runtime subsetter, which was spiked on 2026-08-25
+  and found broken for both CFF and variable-TTF CJK builds. Full findings, the recommended character
+  set, and the false-positive hazard that nearly hid the failure are in the Chinese entry above - read it
+  before starting, it is the difference between a day and a week.
+- **Emoji** is not a subsetting problem and should not be bundled into the CJK work. Colour emoji fonts
+  use `COLR`/`CBDT` bitmap or layered-glyph formats, which pdf-lib's outline-glyph embedder has no path
+  for at all - so this is a different question (probably: draw emoji as embedded images rather than font
+  glyphs, which the codebase already knows how to do for signature images) and deserves its own
+  evaluation rather than inheriting CJK's answer. Not yet investigated.
 
 ---
 

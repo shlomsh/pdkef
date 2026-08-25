@@ -130,10 +130,57 @@ export const realisticStringsCases = [
   { id: 'word:kitab', text: 'كتاب' }, // "book"
 ];
 
+/**
+ * Dari/Farsi cases, included in ARABIC_CORPUS rather than a separate corpus
+ * file - Dari renders through the same Almarai font and the same
+ * `ArabicShaper` fontkit uses for Arabic (Unicode's joining classes don't
+ * distinguish "Arabic" from "Persian" letters, only joining behaviour - see
+ * TODO.md's "Almarai may already cover Farsi and Urdu's extra letters"
+ * finding), so one guard covers both rather than duplicating the harness
+ * config for a font this corpus already exercises.
+ *
+ * Joining behaviour verified directly against Almarai with fontkit before
+ * writing these groups, the same discipline `positionalFormsCases`'s doc
+ * comment above describes for the Arabic alphabet: `پ` (pe), `چ` (che) and
+ * `گ` (gaf) each shape to four distinct glyph ids across isolated/initial/
+ * medial/final, i.e. dual-joining, matching their Arabic base-letter shapes
+ * (ب, ج, ک). `ژ` (zhe) shapes to only two distinct ids - isolated and
+ * initial share one glyph, medial and final share another - confirming it is
+ * right-joining/non-joining like its Arabic base shape (ز), never taking an
+ * initial or medial form of its own.
+ */
+const PERSIAN_DUAL_JOINING_LETTERS = ['پ', 'چ', 'گ'];
+const PERSIAN_NON_JOINING_LETTERS = ['ژ'];
+
+export const persianPositionalFormsCases = PERSIAN_DUAL_JOINING_LETTERS.flatMap((letter) => ([
+  { id: `persian-isolated:${letter}`, text: letter },
+  { id: `persian-initial:${letter}`, text: letter + TATWEEL },
+  { id: `persian-medial:${letter}`, text: TATWEEL + letter + TATWEEL },
+  { id: `persian-final:${letter}`, text: TATWEEL + letter },
+]));
+
+export const persianNonJoiningFormsCases = PERSIAN_NON_JOINING_LETTERS.flatMap((letter) => ([
+  { id: `persian-isolated:${letter}`, text: letter },
+  { id: `persian-final:${letter}`, text: TATWEEL + letter },
+]));
+
+/** Curated real Dari/Farsi words, one per Persian-specific letter plus a longer realistic case. */
+export const persianRealisticCases = [
+  { id: 'persian-word:pedar', text: 'پدر' }, // "father" - pe
+  { id: 'persian-word:chai', text: 'چای' }, // "tea" - che
+  { id: 'persian-word:gol', text: 'گل' }, // "flower" - gaf
+  { id: 'persian-word:mozheh', text: 'مژه' }, // "eyelash" - zhe mid-word, a non-joining letter in real running text
+  { id: 'persian-word:dari', text: 'دری' }, // the language's own name
+  { id: 'persian-word:afghanistan', text: 'افغانستان' },
+];
+
 export const ARABIC_CORPUS = [
   ...positionalFormsCases,
   ...nonJoiningFormsCases,
   ...lamAlefLigatureCases,
   ...diacriticsCases,
   ...realisticStringsCases,
+  ...persianPositionalFormsCases,
+  ...persianNonJoiningFormsCases,
+  ...persianRealisticCases,
 ];
