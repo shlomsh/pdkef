@@ -10,6 +10,7 @@ import BaseLayout from './BaseLayout.astro';
 import SeoSchema from '../components/SeoSchema.astro';
 import ToolHero from '../components/ToolHero.astro';
 import AppBar from '../components/AppBar.astro';
+import ToolLanguagesCard from '../components/ToolLanguagesCard.astro';
 import ToolAboutCard from '../components/ToolAboutCard.astro';
 import ToolFaqCard from '../components/ToolFaqCard.astro';
 import RelatedGuides from '../components/RelatedGuides.astro';
@@ -75,6 +76,12 @@ const { tool } = Astro.props;
       </section>
     </main>
   </div>
+
+  {/* Only Sign declares `languages` today; every other tool renders nothing
+      here. It goes above "How it works" because "will my language come out
+      right" is the question that decides whether the rest of the page
+      matters. */}
+  {tool.languages && <ToolLanguagesCard languages={tool.languages} />}
 
   <ToolAboutCard
     icon={tool.icon}

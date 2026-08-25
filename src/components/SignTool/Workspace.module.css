@@ -27,3 +27,46 @@
 .export-action { flex: 1; }
 .export-share { color: var(--color-primary); background: var(--color-surface); border-color: var(--color-primary); }
 .export-share:hover { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); }
+
+/* The font notices (coverage warning + substitution aside), overlaid on the
+   top of the document rather than flowed above it.
+
+   `height: 0` is the whole point: these appear and disappear while the user is
+   typing, and the aside also toggles on every selection change, so any layout
+   space they took would shift every page down under the caret mid-word. Taking
+   no space at all means the document never moves.
+
+   Sticky so they stay reachable on a long form - a notice about page 5 is
+   useless rendered above page 1. The offset clears the sticky toolbar above
+   (which sits at `top: 1rem`); --editor-notice-top exists so that figure can be
+   tuned in one place if the toolbar's height changes.
+
+   pointer-events are off on the wrapper so the invisible zero-height box can
+   never swallow a click meant for the page beneath it, and back on for the
+   notices themselves so their text stays selectable. */
+.font-notices {
+  --editor-notice-top: 5.5rem;
+  position: sticky;
+  top: var(--editor-notice-top);
+  z-index: 4;
+  width: 100%;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.font-notices-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.font-notices-inner > * {
+  margin: 0;
+  pointer-events: auto;
+  box-shadow: var(--shadow-md);
+}

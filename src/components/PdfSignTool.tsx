@@ -7,6 +7,7 @@ import { SavedSignaturesContext } from './SignTool/SavedSignaturesContext.tsx';
 import PdfWorkspace from './SignTool/PdfWorkspace.tsx';
 import SignatureDialog from './SignatureDialog.tsx';
 import { uniqueId, seedUniqueId, signPdf, UnrepresentableTextError } from '../lib/sign.js';
+import { describeUnrepresentableText } from '../lib/textCoverage.js';
 import { widthPercentToHeightPercent } from '../lib/coords.js';
 import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
@@ -26,14 +27,10 @@ import useCurrentPage from '../lib/useCurrentPage.js';
 // corrupt or locked source file.
 function describeSignFailure(err: unknown): string | null {
   if (err instanceof UnrepresentableTextError) {
-    // Name where to look. A refusal that does not say which page leaves the
-    // user hunting through a long document for a character they may not be
-    // able to see.
-    const pages = err.pageNumbers ?? [];
-    const where = pages.length === 0 ? ''
-      : pages.length === 1 ? ` on page ${pages[0]}`
-      : ` on pages ${pages.slice(0, -1).join(', ')} and ${pages[pages.length - 1]}`;
-    return `The font you picked has no match for: ${err.characters.join(', ')}. Change the font for that text${where}, or remove those characters, then save again.`;
+    // Worded by textCoverage.js, the same module the while-typing warning
+    // reads from, so the heads-up and the refusal can never name different
+    // characters or point at different pages.
+    return describeUnrepresentableText(err.characters, err.pageNumbers ?? [], { saving: true });
   }
   return null;
 }

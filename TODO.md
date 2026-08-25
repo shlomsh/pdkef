@@ -85,14 +85,17 @@ open, ordered by what the failure does to the document rather than by how visibl
 5. Standard gates green: `npm test`, `npm run typecheck`, `npm run test:css`, `npm run test:e2e`, plus
    the CSP/SEO/page-weight guards.
 
-- **H5. Layer 3: refuse characters no resolved font can draw.** Cheapest of the three and the one that
-  makes the epic's definition of done provable, so do it first. `font.layout()` returns glyph id 0
-  (`.notdef`) for an uncovered character; measured, `مرحبا` is **all `.notdef` in all seven fonts**, and
-  emoji and Thai go the same way, while the editor shows them correctly via the browser's per-character
-  system-font fallback. **Do not build a font fallback engine and do not bundle a face per script** -
-  the set of scripts is open and page weight is budgeted. Detect and tell the user before they download.
-  Follow `src/lib/fontCoverage.test.js`'s existing precedent of judging coverage against real asset
-  bytes. Copy must follow CLAUDE.md's voice: an honest limitation, not an error scolding the user.
+- ~~**H5. Layer 3: refuse characters no resolved font can draw.**~~ **Done - found already live and
+  verified 2026-08-24, TODO.md just never struck it through.** `unrepresentableCharacters` in
+  `src/editor/registry/text.ts` is wired into both `signPdf` (`src/lib/sign.js`, refuses at save) and
+  `liveFontCoverage.js` (checks while typing, before save). Confirmed with a real repro, not just reading
+  the code: loaded a genuine Hindi government PDF into the live Sign tool, typed Devanagari text with a
+  bundled font selected (Mali, which has zero Devanagari glyphs), clicked Download, and got **"Signing
+  stopped. The font you picked has no match for: न, म, स, ्, त, े, भ, ा, र. Change the font for that text
+  on page 1, or remove those characters, then save again."** - a refusal, not a silently corrupted export,
+  and the copy matches CLAUDE.md's voice exactly as this item asked for. This generalizes to any script no
+  bundled font covers, not just Devanagari or Arabic - it's why the Devanagari section below no longer
+  says this infrastructure doesn't exist.
 - **H6. Layer 2: bidi.** Highest-damage defect in the epic: it changes what the document *says*, and it
   needs no Latin character to trigger. Measured, typed then exported: `תאריך 21/08/2026` becomes
   `6202/80/12`, `טלפון 054-1234567` becomes `7654321-450`, `סכום 1,250 שח` becomes `052,1`,
@@ -218,20 +221,51 @@ verdict below is measured, not assumed - each one either ran through the same ch
 Hebrew catalogue (license, `calt` absence, glyph coverage, fontkit-vs-browser advance parity) or hit a
 concrete, reproducible failure.
 
-**Ready to ship, already verified:**
+**Landed:**
 
-- **Alef** (Hebrew sans, SIL OFL 1.1, self-hosted from `google/fonts` `ofl/alef/`). Passed every check
-  `fontCoverage.test.js` and Guard A already apply to the catalogue: full Hebrew alphabet + finals + sheva
-  + geresh + shekel in both Regular and Bold; no `calt` (the exact feature that got Playpen Sans Hebrew
-  dropped, H10 above); `ccmp` already composes bet+dagesh into precomposed U+FB31 cleanly, which neither
-  Arimo nor Tinos do; ascent/descent (1.009/0.353 em) in line with the rest of the catalogue; and a real
-  browser-vs-fontkit parity check (Alef loaded via `@font-face` data URI, measured with
-  `canvas.measureText` under `geometricPrecision`) came back **exact, 0.000px, on all three Guard A
-  samples** (pointed, mixed-with-digits, spaced) - better than Arimo/Tinos, which still disagree on dagesh
-  placement (H7). Ships only Regular + Bold, same as Assistant and Heebo already do; no italic file
-  needed. To land: two TTFs into `public/fonts/`, two `@font-face` rules in `global.css`, an entry in
-  `TEXT_FONTS`/`HEBREW_CAPABLE_FONTS`/`FONT_VERTICAL_METRICS` in `src/lib/fonts.js`, and license entries
-  in `THIRD_PARTY_LICENSES.md` + `/licenses/`.
+- **Script-aware font fallback, so no supported language hits a wall** - 2026-08-25. The gap this closes
+  is that **the Sign editor is not truly WYSIWYG for non-Latin text**: it paints through `@font-face`,
+  where the browser borrows a *system* font per character for glyphs the chosen file lacks, while the
+  PDF embeds one font per element with no fallback. So the editor confidently displayed text the
+  exporter could not reproduce, and the user only found out at Download, with the document already
+  finished. Everything below follows from that one root cause.
+  - `resolveFontFamily` in `src/lib/fonts.js` was already the single function the editor and the
+    exporter both call so the two agree, but it only knew about **Hebrew**. It is now driven by
+    `SCRIPT_FALLBACKS`, one row per script (pattern, capable fonts, handwriting and text fallback).
+    The Hebrew row reproduces the old behavior exactly, so the app's largest non-Latin market is
+    unchanged; Devanagari, Thai, Cyrillic and Greek are new rows.
+  - **Measured, not assumed**, against the real font bytes: Devanagari is Kalam only; Thai is Mali only;
+    Cyrillic is Arimo/Tinos/Cousine/PT Sans; Greek is Arimo/Tinos/Cousine; Arabic is nothing.
+  - **This was never only a Hindi problem, and finding that was the point of measuring.** Thai had the
+    identical bug: Mali shipped 2026-08-24 and was advertised on the Sign page, but nothing routed Thai
+    text to it, so typing Thai in the default font walled exactly like Hindi. Cyrillic walled in any
+    handwriting or Hebrew-only font. `fontCoverage.test.js` now verifies every row against the shipped
+    TTFs **both ways** - every font listed can really draw the script, and every font left off really
+    cannot. That second half is the one that fails when a face is bundled but left unrouted, and it was
+    proven to fail by sabotage before being trusted.
+  - **A substitution is explained, never silent.** `resolveFontSubstitution` returns which script forced
+    the change, and the editor says so: "Arimo has no Devanagari letters, so this text box is using
+    Kalam instead. Your download will look exactly like this."
+  - **`liveFontCoverage.js` was fully written and unit-tested but had no call site anywhere** - the
+    while-typing check existed and had simply never been wired up. It is now, debounced, document-wide,
+    via `useFontCoverageNotice.js`. What is left after substitution is only the genuinely undrawable
+    (Arabic, CJK, emoji), and that now warns **while typing** instead of at Download.
+  - **The save-time refusal stays as the backstop** and cannot drift from the warning: the element walk
+    and both message strings moved into `src/lib/textCoverage.js`, which `signPdf` and the editor both
+    call, differing only in how they load a font.
+  - Verified end to end in the real app on a genuine Hindi government PDF: Devanagari and Thai in the
+    untouched default font, and Ukrainian in Caveat, all auto-resolve, show the notice, and **download
+    successfully**; the downloaded PDF embeds Kalam, Mali and PT Sans as CID TrueType with ToUnicode,
+    and all three strings extract with `pdftotext` as real searchable text. Arabic warns while typing
+    and still refuses at save.
+- **Alef, PT Sans, Mali** - added 2026-08-24 ("Add Alef, PT Sans, and Mali to the font catalogue"). Alef
+  is a third Hebrew font choice; PT Sans is the first font supporting Ukrainian (Cyrillic); Mali is the
+  first supporting Thai, as both a text font and a typed-signature handwriting font. Each passed every
+  check `fontCoverage.test.js` and Guard A already apply to the catalogue (license, no `calt`, real glyph
+  coverage, vertical metrics from the real `hhea` table); Alef additionally passed Guard A itself at
+  exact 0.000px agreement across all three samples.
+- **Kalam** (Devanagari/Hindi handwriting, SIL OFL 1.1) - added 2026-08-25. See the Devanagari writeup
+  below for the full path from "not addable" to landed.
 
 **Verified, no task needed:**
 
@@ -242,54 +276,240 @@ concrete, reproducible failure.
   every family, no gaps.** These four languages need no new font work; closing this out rather than
   leaving a placeholder verification task on the board.
 
-**Proposed candidates, verified, awaiting approval before implementation:**
-
-- **PT Sans, for Ukrainian (Cyrillic) - Ukraine.** SIL OFL 1.1 (ParaType, self-hosted from `google/fonts`
-  `ofl/ptsans/`), ships proper static Regular/Bold/Italic/BoldItalic files - same naming pattern as
-  Arimo/Tinos, no variable-font instancing needed. Checked: full 33-letter Ukrainian alphabet (upper +
-  lower) in both weights; no `calt`; ascent/descent (1.018/0.276 em) in line with the catalogue; a
-  combining-acute stress mark (used in dictionaries/learning material) composes to 2 glyphs with no
-  `.notdef`. Real browser-vs-fontkit parity check on three realistic samples (a greeting, a street
-  address, a Latin+Cyrillic mixed line) came back **exact agreement (sub-0.001px) on all three** - same
-  clean result as Alef. Purpose-built for Cyrillic+Latin harmony, which is also why it's a common choice
-  for Russian/Ukrainian government and web use. **Not yet added to the repo or catalogue - this is the
-  candidate to approve, not a landed change.**
-- **Mali, for Thai handwriting - explicitly requested.** SIL OFL 1.1, self-hosted from `google/fonts`
-  `ofl/mali/`, ships the widest weight range of the five Thai handwriting families checked (ExtraLight
-  through Bold, each with a true italic). Checked against all five OFL Thai handwriting candidates
-  found (Charm, Charmonman, Itim, Mali, Sriracha): full consonant/vowel/tone-mark coverage and no
-  `@pdf-lib/fontkit` crash on any of them, but **Charmonman carries `calt`** - the same feature class
-  that got Playpen Sans Hebrew dropped (H10) - making it the one to avoid; the other four are `calt`-free
-  with proper `mark`+`mkmk` GPOS anchoring for Thai's double-mark stacking (a consonant can carry an
-  above-vowel and a tone mark simultaneously). Mali's real browser-vs-fontkit parity check on three
-  realistic samples (a greeting, a name field, a Latin+Thai mixed line) came back **exact agreement
-  (sub-0.001px) on all three**. **Sriracha is the runner-up** if a more explicitly cursive/connected look
-  is wanted over Mali's rounded loopy style - also `calt`-free, also not yet parity-tested, single weight
-  only (same one-weight precedent as Pacifico/Sacramento/Great Vibes). **Not yet added to the repo or
-  catalogue - this is the candidate to approve, not a landed change.**
+**Verified but not yet approved for implementation:** none currently open - Alef, PT Sans and Mali were
+the only entries in this category and all three landed 2026-08-24 (see "Landed" above). Sriracha remains
+a documented runner-up to Mali (same-day Thai handwriting look, `calt`-free, not parity-tested) if a more
+explicitly cursive style is ever wanted, but nothing currently proposes swapping it in.
 
 **Not addable right now - structural blockers, not curation calls:**
 
-- **Devanagari / Hindi (India).** Tested directly: `Kalam-Regular.ttf` (OFL, the Google Fonts family that
-  actually supports Devanagari handwriting) crashes `@pdf-lib/fontkit`'s `layout()` outright -
-  `ReferenceError: regeneratorRuntime is not defined`, thrown from `setupSyllables` inside the bundled
-  Indic shaping state machine. **This reproduces on a single bare consonant with no marks at all** (`क`
-  alone), not just on reordering or conjunct cases - the shaper cannot process Devanagari at all today,
-  before any question of correctness. This is a different, deeper problem than the three missing Hebrew
-  layers above: those are missing pipeline *stages* on top of a working shaper; this is the shaper itself
-  throwing. Needs its own investigation (patch or polyfill `@pdf-lib/fontkit`, or shape Indic scripts
-  through a different path) before any font-picking work is worth doing. India's other major languages
-  (Bengali, Tamil, Telugu, Gujarati, Punjabi) are also complex reordering/conjunct scripts and are assumed
-  to hit the same class of failure until proven otherwise - **not verified individually, don't assume one
-  working means the others do.** English, India's other official language, is already fully covered.
-- **Arabic (UAE, Jordan) and Dari/Pashto (Afghanistan, Perso-Arabic script).** Already documented as
-  blocked under H5 above: `مرحبا` renders as all-`.notdef` in every one of the seven bundled fonts today,
-  because Arabic is a joining script (`init`/`medi`/`fina` positional forms, cursive connections) and
-  itemization/shaping for that doesn't exist in this pipeline. This is exactly the gap
-  `docs/hebrew-text-shaping-export.md`'s "Why no engine swap fixes this" section names as the trigger that
-  would justify reconsidering a bundled HarfBuzz: Hebrew is non-joining and non-reordering, and "the
-  argument expires the day the catalogue adds Arabic or an Indic script." India and this land on the same
-  conclusion independently.
+- ~~**Devanagari / Hindi (India).**~~ **Landed 2026-08-25 - Kalam added to the catalogue.** What follows
+  is the path from "not addable" to shipped, kept for the reasoning rather than as an open item. A
+  follow-up spike on 2026-08-24 first re-confirmed the earlier finding that `@pdf-lib/fontkit`'s
+  `layout()` threw `ReferenceError: regeneratorRuntime is not defined` on Devanagari - still crashed,
+  unpatched, on a single bare consonant `क` with no marks. Then fixed:
+
+  - **The crash was the cheap kind.** `regeneratorRuntime is not defined` is the standard symptom of
+    Babel-transpiled generator code with no `regenerator-runtime` polyfill loaded - `setupSyllables`,
+    fontkit's Indic syllable state machine, is written with generators. A single
+    `import 'regenerator-runtime/runtime.js'` before the first `layout()` call makes the crash disappear
+    completely, verified directly against the pinned `@pdf-lib/fontkit@1.1.1` (the only version published
+    to that package - it's a frozen 2020 fork, nothing newer to upgrade to). No patch, no fork, no
+    `patch-package`. `regenerator-runtime` is MIT, ~3KB, dependency-free. **Context, not the fix used
+    here:** upstream `foliojs/fontkit@2.0.4` (actively maintained through 2024, a different package from
+    the pinned fork) does not crash at all, even with no polyfill - it appears to have dropped the
+    Babel-generator build that needs one. That package is not a drop-in replacement (`@cantoo/pdf-lib`'s
+    embedder reaches into `@pdf-lib/fontkit`-specific internals - see `pdfFont.embedder.font` in the
+    design doc), so swapping engines was not pursued; it's recorded because it confirms the crash is a
+    build artifact of an abandoned fork, not a real limit on JS shaping Devanagari.
+  - **Correctness, tested against a real browser, not assumed.** Once the crash is gone, does fontkit
+    shape Devanagari *correctly* - pre-base vowel-sign reordering and conjunct formation, the two axes
+    Hebrew never needed (see `docs/hebrew-text-shaping-export.md`, "Why no engine swap fixes this": the
+    Hebrew argument for skipping HarfBuzz is explicitly scoped to non-reordering, non-joining scripts and
+    named Devanagari as the day it expires). Method mirrored the design doc's Layer-1 browser harness
+    (embed the TTF via `@font-face` data URI, force-load with `document.fonts.load`, assert the probe
+    discriminates before trusting it) but adapted for what Devanagari actually needs checked, since
+    Hebrew's canonical-reordering Tier 1 guard doesn't port - Devanagari's vowel-sign/consonant order in
+    Unicode is fixed, not ambiguous, so the question isn't order-insensitivity, it's "does our shaper's
+    glyph selection and visual order match the browser's own shaping of the identical string." Built a
+    second harness for that: shape each string with fontkit, get back glyph IDs, positions and each
+    glyph's SVG outline (`glyph.path.toSVG()`), reconstruct the shaped result on a `<canvas>` with `Path2D`
+    at fontkit's reported positions, and pixel-diff that against the *same browser's* native `fillText()`
+    of the identical string in the identical font - one rasterizer, Chromium against Chromium, same
+    discipline as the design doc's rejected-cross-rasterizer lesson. **Six strings against
+    `Kalam-Regular.ttf`** (OFL, the one Google Fonts family that actually supports Devanagari
+    handwriting): `कि` (pre-base vowel sign I - visual order must put the vowel sign before the
+    consonant), `क्ष` (KA+virama+SSA conjunct ligature), `र्क` (RA+virama+KA - reph, which repositions
+    above the *following* consonant, a different rule from the mid-word case), `शर्मा` inside a full
+    name+surname string (RA+virama+consonant *not* syllable-initial, correctly *not* repositioned - the
+    two RA cases disagree with each other and fontkit got both right), `क्या` (conjunct plus a trailing
+    vowel sign) and `दिन` (a plain three-letter word). Every one of the six: **native `measureText` width
+    and fontkit's total shaped advance agreed exactly, to the reported precision, on every string** (e.g.
+    104.10 vs 104.10, 78.30 vs 78.30), and pixel disagreement between the native render and the
+    fontkit-reconstructed render landed at 4.25-6.59%, against a **measured self-consistency noise floor
+    of 4.82%** (the same single already-correct glyph, rendered once via `fillText` and once via the
+    `Path2D` reconstruction path with zero shaping involved - pure antialiasing/hinting difference between
+    the two rendering methods). Every case sits inside that noise band; none of the six show a
+    shaping-attributable divergence.
+  - **A finding that narrows the risk further: mixed Devanagari+Latin+digit lines do not hit the Hebrew
+    bidi bug (Layer 2 in the design doc) at all.** Hebrew is Unicode Bidi_Class R/AL; a mixed
+    Hebrew+Latin+digit line gets misjudged as one direction and reverses the other, which is why
+    `תאריך 21/08/2026` exports as `6202/80/12 ךיראת`. **Devanagari is Bidi_Class L, the same class as
+    Latin.** Tested directly: `राम शर्मा, दिनांक 24/08/2026` and `संख्या 1,250 रुपये` (a name, a date, an
+    amount) both come out of `layout()` with every digit and Latin character in untouched logical order -
+    there is no whole-string RTL judgment to trigger the reversal, because there is nothing RTL in the
+    string. This is a property of the script's bidi class, not of anything this app built, and it does not
+    generalize to Arabic (Bidi_Class AL) or to a script mixed with actual RTL content. **Kalam also has
+    full ASCII Latin+digit coverage**, so a mixed line stays in one font - it does not hit the
+    whole-element-font-swap path `resolveFontFamily` uses for Hebrew-in-a-Latin-only-face.
+  - **What this spike was not (historical - the gap this bullet describes is closed, see the follow-up
+    session below).** Not a production-grade guard suite, and not equivalent to the bar Alef/PT
+    Sans/Mali cleared before being proposed above. Six strings in one font is a spike-level correctness
+    check, not an enumerated corpus - Hebrew's Tier 1 covers a few thousand systematically-generated
+    base+mark combinations per font precisely because "looked fine on some examples" is what let Playpen
+    Sans Hebrew's `calt` divergence through undetected for months. A real Devanagari guard would need its
+    own enumerated corpus (common consonant+matra pairs, reph vs. mid-word RA+virama, the more frequent
+    conjuncts) and to run in CI via Playwright, not a one-off scratch harness. **Correction, 2026-08-24:
+    Layer 3 (refuse characters no bundled font can draw) already exists and is live** -
+    `unrepresentableCharacters` (`src/editor/registry/text.ts`), wired into both `signPdf` and
+    `liveFontCoverage.js`, confirmed with a real repro against this exact document (see H5 above, now
+    struck through). Typing Devanagari today with any bundled font already gets a clean, honest refusal
+    naming the missing characters rather than a corrupted export - so this was never actually blocking a
+    Devanagari addition, and the guard work still needed (below) is about *correctness*, not *safety*.
+    **Only `Kalam-Regular.ttf` was tested.** The catalogue-is-ours-to-curate rule
+    applies per font, not per script: a second Devanagari face would need this exact verification run
+    again, not inherit Kalam's result. And **India's other major languages (Bengali, Tamil, Telugu,
+    Gujarati, Punjabi) are untouched by this spike** - each is its own complex script with its own
+    reordering/conjunct/joining rules and its own fontkit behavior to verify; nothing here implies they
+    also work. English, India's other official language, is already fully covered.
+  - **Recommendation at the time of this spike: worth a real follow-up, not ready to propose as a
+    catalogue candidate yet - since resolved, see below.** The
+    structural blocker (crash) that stopped this cold last time is resolved and cheaply so, and the safety
+    net (Layer 3, confirmed live above) was never actually missing - so nothing here was blocked on
+    infrastructure that doesn't exist. **Follow-up session, 2026-08-25 - all four remaining steps done,
+    guard passed cleanly, font landed:**
+    1. **Enumerated-corpus guard built**, not another spike: `e2e/sign/fixtures/devanagariCorpus.js`
+       systematically generates 185 cases across the axes Devanagari actually needs checked - every one of
+       the 33 base consonants x the 3 vowel signs with a pre-base visual component (ि, ो, ौ - 99 cases),
+       reph (RA+virama+consonant, syllable-initial) for every following consonant (32 cases), subjoined RA
+       (consonant+virama+RA, RA *not* syllable-initial - the `शर्मा` rule, the opposite order of reph and a
+       different rule) for every preceding consonant (32 cases), and 22 curated common conjuncts
+       (क्ष, ज्ञ, स्त, ष्ट, etc.) not already covered by the RA-based groups. `e2e/sign/devanagari-shaping-guard.spec.js`
+       runs the same pixel-diff-against-native-Chromium-rendering method as the 6-string spike, scaled up:
+       fontkit shapes each string, gets reconstructed via `Path2D` at fontkit's reported positions, and is
+       pixel-diffed against the same browser's own `fillText()` of the identical string. Tolerance is
+       derived per run from a measured noise floor (one already-correct glyph, `fillText` vs. the identical
+       `Path2D` path, zero shaping involved), not a number picked in advance - matching
+       `hebrew-font-parity.spec.js`'s discipline. **Result: 185/185 passed, 0 failing**, noise floor 6.79%,
+       tolerance 10.18%, worst real case 8.28% (`RA+virama+थ`) - comfortably inside tolerance with real
+       margin, not sitting on the edge. Verified the guard can actually fail, not just pass vacuously: sabotaging
+       the reconstruction (reversing glyph draw order) made it fail loudly before reverting - the same "a
+       guard that cannot fail" discipline H8 exists for.
+    2. **`regenerator-runtime` wired for real.** Installed as a real (non-dev) dependency and imported at
+       the top of `src/editor/registry/text.ts` - the one file that calls `fk.layout()` in production code
+       (`shapedWidth`, `drawShapedRun`). `unrepresentableCharacters` (the Layer 3 coverage check) never
+       calls `layout()` at all - it uses `hasGlyphForCodePoint` - so it was never at crash risk; the crash
+       only lived on the serialize/export path, which is exactly where the import now sits. Verified
+       `npm run build` and `npm run test:weight` are unaffected: worst page (`/sign/`) is 42,308 of a 48,000
+       brotli budget, comfortable margin for a ~3KB dependency.
+    3. Only after the guard passed cleanly: **Kalam added to the catalogue**, following the exact
+       Alef/PT Sans/Mali pattern - `public/fonts/Kalam-Regular.ttf` (Regular only, matching Mali's
+       precedent for a handwriting-style addition), one `@font-face` rule in `global.css`, an entry in
+       `HANDWRITING_FONTS`/`FONT_VERTICAL_METRICS` in `src/lib/fonts.js` (real ascent/descent 1.063/0.531
+       from the `hhea` table), and license entries in `THIRD_PARTY_LICENSES.md` + `/licenses/` (real
+       copyright line from Kalam's own `OFL.txt`: "Copyright (c) 2014, Indian Type Foundry"). Classified as
+       handwriting (not a `TEXT_FONTS`/`STANDARD_FONTS` entry) after actually rendering it side by side with
+       Mali - Kalam is a clearly cursive/slanted face, so it needed no manual `FontPickerMenu.tsx` edit
+       (auto-derived via `HANDWRITING_OPTIONS`, the same as Mali; this is the failure mode the first Alef
+       pass hit and had to fix after the fact). **Not added to `HEBREW_CAPABLE_FONTS`** - confirmed via
+       `hasGlyphForCodePoint` that Kalam carries no Hebrew glyphs at all.
+    4. **End-to-end verified in the real running app**, not just the guard: loaded the same real Hindi
+       government PDF, typed `नमस्ते भारत शर्मा क्षत्रिय २०२६` (covering नमस्ते's conjunct+vowel-sign, भारत's
+       post-base vowel sign, शर्मा's reph, क्षत्रिय's ligature conjunct plus pre-base vowel sign, and
+       Devanagari digits) with Kalam selected, and downloaded. The refusal from H5 no longer fires; the
+       downloaded PDF (captured via `URL.createObjectURL` interception, decoded, rendered with `pdftoppm`)
+       shows real, legible, correctly-shaped vector text - not a rasterized image, not corrupted, not
+       refused.
+- ~~**Arabic (UAE, Jordan) remains blocked**, unlike Devanagari - a joining script, deeper gap than
+  Devanagari's.~~ **Landed 2026-08-25 - Almarai added to the catalogue.** What follows is the path from
+  "not addable" to shipped.
+
+  - **The premise in the paragraph this replaces was wrong, and it was wrong in a specific, checkable
+    way.** "Itemization/shaping for that doesn't exist in this pipeline" assumed fontkit had no joining
+    support at all. It does: `node_modules/@pdf-lib/fontkit/dist/fontkit.umd.js` carries an `ArabicShaper`
+    class (`arab`, `mong`, `syrc`, `'nko '`, `phag`, `mand`, `mani`, `phlp` all route to it), explicitly
+    ported from HarfBuzz's `hb-ot-shape-complex-arabic.cc` - a real joining state machine driven by
+    `ArabicShaping.txt`'s classes (dual-joining, right-joining, transparent), assigning `isol`/`init`/
+    `medi`/`fina` GSUB features per glyph before the normal feature-application pass runs. It needs no
+    generator polyfill (unlike the Indic shaper Kalam's crash fix was about) and was never gated behind
+    anything - the gap was that nobody had tried it, not that it was missing. Verified directly against a
+    candidate font before writing a single line of catalogue code: `font.layout('مرحبا')` on a plain
+    Naskh/sans face returns `[uniFE8E(alef-fina), uniFE92(beh-medi), uniFEA3(hah-init), uniFEAE(reh-fina),
+    uniFEE3(meem-init)]` - the exact positional forms Arabic joining rules predict by hand, letter by
+    letter, with no font-specific coaching.
+  - **License and font selection, evaluated against real bytes, not marketing copy.** Candidates fetched
+    directly from the `google/fonts` OFL repo (real `OFL.txt` in hand for each, not assumed): Noto Naskh
+    Arabic, Amiri, Cairo, Almarai, Lateef, Scheherazade New. Two were excluded on sight: Lateef and
+    Scheherazade New both carry `calt` (contextual alternates, `cv44`/`cv48`/... stylistic-variant sets) -
+    exactly the feature class that got Playpen Sans Hebrew dropped from this catalogue (`docs/hebrew-text-
+    shaping-export.md`: "fontkit and HarfBuzz walk that contextual substitution differently"), so both were
+    rejected on that precedent alone, without needing to run them through the guard. Noto Naskh Arabic and
+    Cairo are variable-font-only in the current google/fonts repo (no static `Regular` file), which would
+    have required a font-instancing step with no precedent anywhere in this catalogue. **Almarai
+    (`Copyright 2019 The Almarai Project Authors (https://github.com/JuergenWillrodt/Almarai)`, SIL OFL
+    1.1)** was chosen: a static Regular file already exists, no `calt`, no `curs` (the GPOS cursive-
+    attachment feature Amiri carries but fontkit's shaper plan never requests - would have been silently
+    inert in our pipeline but potentially live in the browser's own renderer, a divergence risk not worth
+    taking when a cleaner candidate exists), full ASCII Latin + Western digit + harakat + Arabic-Indic
+    digit + mandatory-ligature coverage, 579 glyphs, 152KB Regular / 157KB Bold (both shipped - see the
+    bold-weight note below) - the smallest, structurally simplest candidate that cleared every check, which
+    is also the lowest-risk one for a shaper this codebase has never exercised before. Amiri (431KB, the
+    next-cleanest candidate, genuinely excellent classical Naskh) was the closest runner-up and is recorded
+    here in case Almarai's plain-geometric-sans character is ever wanted alongside a more traditional
+    Naskh face - it would need its own full verification run, not inherit Almarai's.
+  - **Bold shipped alongside Regular, unlike Kalam's Regular-only precedent, for a specific reason:**
+    `ElementToolbar.tsx` exposes a real bold toggle, and without a bundled `Almarai-Bold.ttf` the browser's
+    default `font-synthesis: weight` (never disabled anywhere in this codebase) would synthesize a fake
+    bold on screen while `loadCustomFont`'s fallback (`sign.js`) silently downgrades the export to Regular
+    - screen and PDF would disagree on the one axis this whole module exists to keep honest. Fetched
+    `Almarai-Bold.ttf` from the same google/fonts OFL directory, same license, same real ascent/descent
+    (`0.905`/`0.211`, identical to Regular - weights within a family share vertical metrics, matching the
+    existing convention).
+  - **The correctness guard, and a real calibration bug it surfaced before it surfaced anything about
+    Arabic.** Built `e2e/sign/fixtures/arabicCorpus.js` (131 systematically-generated cases: every
+    dual-joining letter forced into isolated/initial/medial/final form via a tatweel anchor - verified by
+    hand against fontkit's own state-machine output before trusting the corpus, e.g. `بـ`/`ـب`/`ـبـ`
+    resolve to BEH's initial/final/medial glyphs exactly as Unicode's joining rules predict; the six
+    right-joining-only letters `ا د ذ ر ز و` in their two available forms; all four mandatory lam-alef
+    ligatures `لا لأ لإ لآ`; harakat on both a dual-joining and a non-joining base letter; ten curated real
+    words/phrases) and `e2e/sign/arabic-shaping-guard.spec.js`, mirroring the Devanagari guard's
+    pixel-diff-against-native-Chromium-rendering method. **First run: 100/131 failing**, including
+    single-letter isolated-form cases with exactly one glyph and zero shaping decisions involved -
+    `isolated:ب` alone failed, which is the "the guard is broken, not the shaper" tell (nothing shapes a
+    lone glyph wrong). Diagnosed rather than dismissed: shaped advance widths agreed with the browser's own
+    `measureText` to five decimal places on every single case, so the divergence was pixels, not geometry.
+    Measured the zero-shaping isolated-form diff across the whole 28-letter alphabet and found it ranges
+    **0.63% (ا, one straight stroke) to 11.44% (ز, a thin curve plus a small dot)** - Arabic letterforms in
+    this font vary far more in fine detail than Devanagari's or Latin's, so the Devanagari guard's method
+    (one calibration glyph) landed on an unrepresentative pick (`م` at 5.45%, below the alphabet's own
+    ceiling) and manufactured false failures across half the alphabet. Fixed by calibrating the noise floor
+    against the **maximum** zero-shaping diff across the whole alphabet rather than one glyph - the same
+    "assert a probe discriminates before trusting it" principle this codebase already applies elsewhere,
+    adapted to what Arabic's letterform variance actually needs. **After the fix: 131/131 passing**, noise
+    floor 12.91%, tolerance 19.37%. Proved the guard can still fail, not just pass by construction:
+    sabotaged the reconstruction (reversed glyph draw order, the same sabotage Kalam's guard used) and got
+    75/131 failing before reverting.
+  - **Bidi findings on Arabic specifically (Bidi_Class AL, not R), checked because a bidi bug changes what
+    a signed document says.** Calibration first caught a second, unrelated harness bug worth recording:
+    an early right-anchored native-vs-reconstruction comparison showed 70-85% disagreement on pure single
+    words, which turned out to be a stale `FontFace` registered on a page navigated away from since -
+    "native" was silently measuring a system fallback font, not Almarai, the exact hazard CLAUDE.md's
+    Layer-1-harness section warns about. With the font correctly loaded, mixed-content testing (both
+    interactively against `resolveBidiRuns` directly and via a full native-Chromium `dir="rtl"` comparison)
+    found **no AL-specific divergence**: `مرحبا 1250` (Western digits, EN), `مرحبا ١٢٥٠` (Arabic-Indic
+    digits, AN - the specific case W2/W3 govern, since AN only exists after AL/AN context), `المبلغ
+    1,250.50 ريال` (thousands separator, decimal point, trailing currency word) and `50% الخصم` (leading
+    percent-prefixed number) all produced run structures bidi-js resolved identically in shape to the
+    equivalent Hebrew strings - the AN digit run comes out un-reversed and correctly grouped with its
+    trailing/leading neutral punctuation, same as EN. The one string that looked wrong on first read
+    (`مرحبا أحمد 1250 ١٢٥٠ Ahmed` exports as `Ahmed ١٢٥٠ 1250 مرحبا أحمد` left to right, not the
+    naively-expected `1250 ١٢٥٠ Ahmed أحمد مرحبا`) was checked against a plain native `<div dir="rtl">`
+    and `<textarea dir="rtl">` with the identical string and no app code involved at all - **Chrome's own
+    bidi resolution produces the identical order**, which means a by-hand UAX#9 derivation was the thing
+    that was wrong, not the app; bidi is exactly hard enough by hand that this codebase delegates it to a
+    certified library rather than re-deriving it, and this is a concrete instance of why.
+  - **End-to-end verified in the real running app, not just the guard**: uploaded a fixture PDF to `/sign`,
+    typed `مرحبا أحمد 1250 ١٢٥٠ Ahmed` (a lam-alef-hamza name, Western and Arabic-Indic digits, a Latin
+    name) with the default Arimo selected, and confirmed the font picker showed the auto-substituted
+    "Arabic (Almarai)" with no coverage-warning text on the page. Downloaded, and the exported PDF (decoded
+    and rendered with `pdftoppm`) shows real, legible, correctly-joined vector text, in the exact visual
+    order the native-browser bidi check above predicts - not rasterized, not corrupted, not refused, and
+    `pdftotext` extracts it as real searchable text matching that same order.
+  - **Dari/Pashto (Afghanistan, Perso-Arabic script) remain out of scope for this addition.** Almarai
+    targets Modern Standard Arabic; the `SCRIPT_FALLBACKS` pattern deliberately excludes Arabic Supplement
+    (U+0750-077F) and Arabic Extended, which carry the Persian/Urdu/Sindhi-only letterforms those languages
+    need and this font was never built to draw - see the pattern's own comment in `fonts.js`. A Perso-
+    Arabic addition would need its own font and its own verification run, not inherit this one.
 - **Chinese (China; sizeable minority language in Singapore and Malaysia).** Not a shaping problem at all
   - it's a page-weight problem. A full-coverage CJK font is routinely 5-20MB unsubsetted, against a
   per-page budget (`check-page-weight.js`) built around a handful of Latin/Hebrew TTFs. The export's font
@@ -297,11 +517,66 @@ concrete, reproducible failure.
   code" in the design doc - turning subsetting on would silently corrupt shaped glyph runs), so "just
   subset the font" isn't a quick fix either; it's a separate embedding-path project.
 
-Three concrete font additions are now proposed and fully verified against the existing catalogue's own
-checks: **Alef** (Hebrew), **PT Sans** (Ukrainian/Cyrillic), **Mali** (Thai handwriting). None are landed
-- each needs a go/no-go before any TTF, `@font-face` rule, or catalogue entry is added. Devanagari,
-Arabic/Perso-Arabic, and Chinese stay parked until their respective structural blockers (fontkit's Indic
-shaper crashing, no Arabic joining support, no font subsetting) are worth taking on as their own projects.
+Four font additions have landed: **Alef** (Hebrew), **PT Sans** (Ukrainian/Cyrillic), **Mali** (Thai
+handwriting), and **Kalam** (Devanagari/Hindi handwriting) - each went through the same license/`calt`/
+glyph-coverage/parity checks, and Kalam additionally needed (and got) its own crash fix and a
+purpose-built enumerated-corpus correctness guard before landing, since Devanagari's reordering and
+conjunct-formation questions have no Hebrew equivalent to reuse. Arabic/Perso-Arabic and Chinese stay
+parked until their respective structural blockers (no Arabic joining support, no font subsetting) are
+worth taking on as their own projects - Devanagari's blocker (fontkit's Indic shaper crashing) turned out
+to be the cheap kind and is resolved.
+
+**The support is now said out loud on the Sign page.** Fixing the fallback only helps someone who
+already trusted the tool enough to type in their language and hit Download; the analytics say a large
+share of visitors come from Israel, India, Ukraine, the Philippines, Malaysia, the UAE, Jordan,
+Afghanistan and China, and nothing above the fold told any of them whether their script would survive.
+So `tool.languages` in `src/data/tools.js` now drives `ToolLanguagesCard.astro`, rendered by
+`ToolPageLayout.astro` directly below the tool and above "How it works" - the first card on the page,
+because "will my language come out right" decides whether the rest of it matters. Sign is the only tool
+that declares it (it is the only one where you type your own text into the file).
+
+Two things about it are deliberate. **Half the card is the "not yet" half**: Arabic, Perso-Arabic, CJK,
+emoji and India's non-Devanagari scripts are named, with why and what the tool does instead (a notice
+while typing, not a refusal at Download), and there is a matching FAQ entry so the FAQPage schema says
+it too. Naming the gap is what makes the other half believable, and those are real visitors, not a
+hypothetical. And **the native names render in the visitor's own system font**, not the bundled TTF for
+that script - Kalam alone is 427KB, and half a megabyte of webfont so a card can show one word would tax
+every visitor to prove a point to a few. Every claim on the card is backed by `SCRIPT_FALLBACKS` and
+checked against the real font bytes by `fontCoverage.test.js`; the two per-font claims that were *not*
+(full Greek coverage, full Latin Extended in the handwriting faces) were measured and reworded rather
+than shipped, since the handwriting faces genuinely have no ł, š, ă or ż.
+
+**Open follow-ups from the fallback work:**
+
+- **An upright Devanagari and Thai text face.** Both scripts have exactly one bundled face and both are
+  handwriting, so an upright font (Tinos, say) resolves to a handwritten one for the whole element.
+  That is still far better than a wall, and the notice explains it, but it is the one visibly awkward
+  outcome the fallback can produce. Each candidate needs its own full verification run per the
+  catalogue-is-ours-to-curate rule - for Devanagari that means re-running the 185-case shaping guard.
+- **The save-time refusal replaces the whole editor view** (`status === 'error'` in `PdfWorkspace.tsx`
+  renders instead of the pages, not beside them), so a refused download hides the document the user was
+  working on until they act. Pre-existing, and much rarer now that the same problem is surfaced while
+  typing, but it is the wrong shape for a recoverable error. Noticed while verifying this work; not
+  changed here because it is a separate UX decision.
+- **A newly created text element inherits `lastDirection`**, so a box created right after typing Arabic
+  starts RTL even when the next thing typed is Cyrillic or Latin. Pre-existing and unrelated to fonts;
+  recorded because it was visible during this verification and looks like a bug from the outside.
+- **Almarai may already cover Farsi and Urdu's extra letters, unverified.** Checked in passing while
+  choosing the Arabic pattern's block boundaries: Persian's four extra letters (پ چ ژ گ) and five common
+  Urdu-specific letters (ٹ ڈ ڑ ں ے) all sit inside the *main* Arabic block (U+0600-06FF), not the excluded
+  Arabic Supplement, so Almarai already has real glyphs for them (`hasGlyphForCodePoint` confirmed all
+  nine), Extended Arabic-Indic (Farsi) digits ۰-۹ are fully covered too, and a spot check of `پ` in
+  isolated/initial/medial/final position shapes to four distinct, correct positional glyphs the same way
+  the Arabic corpus's letters do - because Unicode's joining classes, which fontkit's `ArabicShaper` reads
+  from real `ArabicShaping.txt` data, don't distinguish "Arabic" from "Persian" letters, only joining
+  behavior. This means basic Farsi/Urdu text may already resolve to Almarai and export correctly today,
+  entirely as a side effect - the `SCRIPT_FALLBACKS` Arabic pattern makes no script distinction within the
+  main block. **Not claimed anywhere and not landed as a feature**, because it has none of what actually
+  shipping Arabic needed: no corpus, no bidi check against Farsi/Urdu content (Persian in particular mixes
+  its own digit block with Arabic text in ways worth checking, not assumed from the Arabic case), no
+  probe in `fontCoverage.test.js`. Pashto remains genuinely blocked - a direct check found Almarai missing
+  8 of 9 Pashto-specific letters (ټ ډ ړ ږ ښ ګ ڼ ې). Worth a real follow-up given how cheap the remaining
+  work looks; not proposed as shipped until it clears the same bar Arabic did.
 
 ---
 

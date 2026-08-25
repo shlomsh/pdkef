@@ -3,6 +3,7 @@ import ColorPickerMenu from './ColorPickerMenu.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
 import { getEffectiveTextDirection } from '../lib/sign.js';
+import { resolveFontFamily } from '../lib/fonts.js';
 import { combCellCount, isComb } from '../lib/comb.js';
 import { MAX_COMB_CELLS } from '../constants/signGeometry.js';
 import styles from './EditorControls.module.css';
@@ -37,7 +38,8 @@ export default function ElementToolbar({
       {element.type === 'text' && (
         <>
           <FontPickerMenu
-            value={element.fontFamily || 'Arimo'}
+            value={resolveFontFamily(element.fontFamily, element.text)}
+            text={element.text}
             onChange={(fontFamily: string) => onChange({ fontFamily })}
           />
           <div className={styles.divider} />

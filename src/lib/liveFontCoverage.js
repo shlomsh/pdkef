@@ -1,6 +1,7 @@
 import fontkit from '@pdf-lib/fontkit';
 import { resolveFontFamily } from './fonts.js';
 import { unrepresentableCharacters } from '../editor/registry/text.ts';
+import { findUnrepresentableCharacters } from './textCoverage.js';
 
 /**
  * Live coverage checking for the editor, so a character no bundled font can
@@ -80,6 +81,44 @@ export async function unsupportedCharacters(text, { fontFamily, fontWeight, font
     return unrepresentableCharacters({ embedder: { font } }, value);
   } catch {
     return [];
+  }
+}
+
+/**
+ * The characters across a whole document that no bundled font can draw, for
+ * the editor to warn about while the user is still typing.
+ *
+ * Runs the same policy `signPdf` refuses on - `findUnrepresentableCharacters`
+ * in textCoverage.js - differing only in how a font is loaded: fetched and
+ * parsed here, embedded by pdf-lib there. That shared call is what guarantees
+ * the warning and the refusal never disagree.
+ *
+ * Because the policy resolves each element through `resolveFontFamily` first,
+ * anything a script substitution already rescued (Hindi, Thai, Hebrew,
+ * Ukrainian) never reaches this list. What is left is the genuinely
+ * undrawable: Arabic, CJK, emoji.
+ *
+ * Returns `[]` on any loading failure, same as `unsupportedCharacters` above:
+ * a font that will not load is a different problem, and this must never invent
+ * a warning out of its own failure.
+ */
+export async function unsupportedCharactersInDocument(elements) {
+  try {
+    return await findUnrepresentableCharacters(elements, async (family, fontWeight, fontStyle) => {
+      try {
+        const font = await loadInstance(fileNameFor(family, fontWeight, fontStyle));
+        return { embedder: { font } };
+      } catch {
+        try {
+          const font = await loadInstance(fileNameFor(family, undefined, undefined));
+          return { embedder: { font } };
+        } catch {
+          return null;
+        }
+      }
+    });
+  } catch {
+    return { characters: [], pageNumbers: [] };
   }
 }
 

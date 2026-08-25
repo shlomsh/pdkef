@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import Popover from './Popover.tsx';
 import styles from './EditorControls.module.css';
 import { HANDWRITING_FONTS } from '../lib/sign.js';
+import { resolveFontSubstitution } from '../lib/fonts.js';
 
 // CSS font-family value to preview each option in its own font. All values
 // are real bundled TTFs (see sign.js's FONT_FILES / global.css's @font-face
@@ -16,6 +17,7 @@ const STANDARD_FONTS = [
   { value: 'Heebo', label: 'Hebrew (Heebo)', css: "'Heebo', sans-serif" },
   { value: 'Alef', label: 'Hebrew (Alef)', css: "'Alef', sans-serif" },
   { value: 'PT Sans', label: 'Cyrillic (PT Sans)', css: "'PT Sans', sans-serif" },
+  { value: 'Almarai', label: 'Arabic (Almarai)', css: "'Almarai', sans-serif" },
   { value: 'Tinos', label: 'Tinos (Times Roman)', css: "'Tinos', 'Times New Roman', Times, serif" },
   { value: 'Cousine', label: 'Cousine (Courier)', css: "'Cousine', 'Courier New', Courier, monospace" }
 ];
@@ -33,10 +35,44 @@ const FONT_OPTIONS = [...STANDARD_FONTS, ...HANDWRITING_OPTIONS];
 // Compact "Aa" trigger + popover list, replacing a native <select> whose
 // selected-option text (e.g. "Hebrew (Assistant)") was long enough to force
 // the whole per-element floating toolbar wide on its own.
-export default function FontPickerMenu({ value, onChange }: { value?: string; onChange: (font: string) => void }) {
+//
+// `value` is the EFFECTIVE font (resolveFontFamily's output, passed in by
+// ElementToolbar) so the checkmark lands on what's actually rendered and
+// embedded, never on a picked font that got silently substituted. `text` is
+// the element's current content — each option re-runs the same substitution
+// rule against it (resolveFontSubstitution) so a font that can't draw this
+// text is labeled right here, using the exact rule that decided the
+// substitution, rather than a second guess at it.
+export default function FontPickerMenu({ value, text, onChange }: { value?: string; text?: string; onChange: (font: string) => void }) {
   const [open, setOpen] = useState(false);
 
   const current = FONT_OPTIONS.find((f) => f.value === value) || FONT_OPTIONS[0];
+
+  const renderOption = (f: { value: string; label: string; css: string }) => {
+    const { script } = resolveFontSubstitution(f.value, text || '');
+    const isActive = f.value === current.value;
+    const classNames = [
+      styles['font-menu-item'],
+      isActive && styles.active,
+      script && styles['font-menu-item-unsupported']
+    ].filter(Boolean).join(' ');
+    return (
+      <button
+        key={f.value}
+        type="button"
+        role="menuitem"
+        className={classNames}
+        style={{ fontFamily: f.css }}
+        onClick={() => {
+          onChange(f.value);
+          setOpen(false);
+        }}
+      >
+        {f.label}
+        {script && <span className={styles['font-menu-item-note']}> · no {script}</span>}
+      </button>
+    );
+  };
 
   return (
     <Popover
@@ -56,37 +92,9 @@ export default function FontPickerMenu({ value, onChange }: { value?: string; on
       }
       content={
         <div className={`${styles.popover} ${styles['font-menu']}`} role="menu">
-          {STANDARD_FONTS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              role="menuitem"
-              className={`${styles['font-menu-item']}${f.value === current.value ? ` ${styles.active}` : ''}`}
-              style={{ fontFamily: f.css }}
-              onClick={() => {
-                onChange(f.value);
-                setOpen(false);
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
+          {STANDARD_FONTS.map(renderOption)}
           <div className={styles['font-menu-group-label']}>Handwriting</div>
-          {HANDWRITING_OPTIONS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              role="menuitem"
-              className={`${styles['font-menu-item']}${f.value === current.value ? ` ${styles.active}` : ''}`}
-              style={{ fontFamily: f.css }}
-              onClick={() => {
-                onChange(f.value);
-                setOpen(false);
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
+          {HANDWRITING_OPTIONS.map(renderOption)}
         </div>
       }
     />
