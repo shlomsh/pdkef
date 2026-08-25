@@ -112,10 +112,15 @@ export const tools = [
           name: 'Arabic',
           note: "Almarai. Letters join and change shape depending on their neighbours the way handwritten Arabic actually connects, mandatory ligatures like لا are formed, and a text box grows leftward from a fixed right edge, the same right-to-left behaviour Hebrew gets.",
         },
+        {
+          native: 'دری',
+          name: 'Dari and Farsi',
+          note: "The same Almarai font Arabic uses, which also carries Dari and Farsi's extra letters (پ, چ, ژ, گ) and their own ۰-۹ digits. Letters join the same way Arabic does, and a text box grows leftward from a fixed right edge.",
+        },
       ],
       notYetHeading: 'More on the way',
       notYet:
-        "Dari and Pashto, Chinese, Japanese, Korean, emoji, and India's other scripts (Bengali, Tamil, Telugu) aren't there yet. Type any of them today and the tool lets you know as you go, naming the exact characters, so you find out before you fill in a whole form, not after.",
+        "Pashto, Chinese, Japanese, Korean, emoji, and India's other scripts (Bengali, Tamil, Telugu) aren't there yet. Type any of them today and the tool lets you know as you go, naming the exact characters, so you find out before you fill in a whole form, not after.",
     },
     steps: [
       { title: 'Upload your form', text: 'Select or drag-and-drop the PDF document you want to fill and sign.' },
@@ -162,8 +167,12 @@ export const tools = [
         answer: 'Yes. Type Arabic into a text box and letters join and change shape depending on their neighbours, the way handwritten Arabic actually connects, with ligatures like لا formed correctly. The box grows leftward from a fixed right edge, the same right-to-left behaviour Hebrew gets, and what you see on screen is what gets embedded in the file you download.',
       },
       {
-        question: 'Can I sign a PDF in Chinese, Dari or Pashto?',
-        answer: 'Not yet, and the tool is upfront about it rather than letting you find out at the end. No bundled font can draw Chinese, Japanese, Korean, Dari, Pashto or emoji, so if you type any of them a notice appears while you type and names the exact characters. Chinese, Japanese and Korean fonts need subsetting first so the download does not balloon, and Dari and Pashto need letters the bundled Arabic font was not built to draw. Both are open work. Everything else on this page, including Hebrew, Arabic, Hindi, Thai, Ukrainian, Greek and every Latin-script language, works end to end today.',
+        question: 'Can I fill and sign a PDF in Dari or Farsi (دری/فارسی)?',
+        answer: "Yes. Dari and Farsi use the same Almarai font as Arabic, which also carries their extra letters (پ, چ, ژ, گ) and their own ۰-۹ digits. Letters join the same way Arabic does, and the box grows leftward from a fixed right edge, so what you see on screen is what gets embedded in the file you download.",
+      },
+      {
+        question: 'Can I sign a PDF in Chinese or Pashto?',
+        answer: 'Not yet, and the tool is upfront about it rather than letting you find out at the end. No bundled font can draw Chinese, Japanese, Korean, Pashto or emoji, so if you type any of them a notice appears while you type and names the exact characters. Chinese, Japanese and Korean fonts need subsetting first so the download does not balloon, and Pashto needs letters the bundled Arabic font was not built to draw. Both are open work. Everything else on this page, including Hebrew, Arabic, Dari, Farsi, Hindi, Thai, Ukrainian, Greek and every Latin-script language, works end to end today.',
       },
     ],
   },

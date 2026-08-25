@@ -69,6 +69,11 @@ import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
  * are the ones where joining is a no-op: isolated forms and the non-joining
  * letters. **Result at last run: 131/131 passing**, noise floor 12.91%,
  * tolerance 19.37%.
+ *
+ * **Extended 2026-08-25 to cover Dari/Farsi**, added to `ARABIC_CORPUS`
+ * rather than a new guard file - see `persianPositionalFormsCases`/
+ * `persianNonJoiningFormsCases`/`persianRealisticCases` in
+ * `./fixtures/arabicCorpus.js` for why one guard covers both scripts.
  */
 
 const ALPHABET = [...DUAL_JOINING_LETTERS, ...NON_JOINING_LETTERS];

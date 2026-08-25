@@ -92,6 +92,37 @@ describe('resolveBidiRuns', () => {
     });
   });
 
+  describe('Dari/Farsi (Bidi_Class AL, same as Arabic; Persian digits are a different raw class, checked rather than assumed)', () => {
+    // Persian's own digit block (۰-۹, U+06F0-06F9) is Bidi_Class EN, NOT AN
+    // like Arabic's own digit block (٠-٩) - a genuinely different starting
+    // classification, not something to assume behaves like the Arabic case.
+    // Measured directly before writing these assertions: UAX#9 rule W2
+    // reclassifies a European Number to Arabic Number when the nearest
+    // preceding strong type is AL, which Dari text always is here, so the
+    // digit run still comes out grouped and un-reversed exactly like
+    // Arabic's own AN digits and Hebrew's EN digits - but that convergence
+    // is a fact about bidi-js's real resolution, not a hand-derived
+    // certainty, which is exactly why this module delegates to a certified
+    // library instead of re-deriving UAX#9 (see the module doc above).
+    it('keeps a Dari date in its typed digit order', () => {
+      const runs = resolveBidiRuns('تاریخ ۲۱/۰۸/۱۴۰۵', 'rtl');
+      expect(runs.map((r) => r.text)).toEqual(['۲۱/۰۸/۱۴۰۵', 'تاریخ ']);
+      expect(runs.map((r) => r.direction)).toEqual(['ltr', 'rtl']);
+    });
+
+    it('keeps a Dari amount in its typed digit order, with a Dari word on both sides', () => {
+      const runs = resolveBidiRuns('مبلغ ۱۲۵۰ افغانی', 'rtl');
+      expect(runs.map((r) => r.text)).toEqual([' افغانی', '۱۲۵۰', 'مبلغ ']);
+      expect(runs.map((r) => r.direction)).toEqual(['rtl', 'ltr', 'rtl']);
+    });
+
+    it('keeps a trailing Latin name un-reversed after Dari text', () => {
+      const runs = resolveBidiRuns('سلام Ahmad', 'rtl');
+      expect(runs.map((r) => r.text)).toEqual(['Ahmad', 'سلام ']);
+      expect(runs.map((r) => r.direction)).toEqual(['ltr', 'rtl']);
+    });
+  });
+
   describe('the paragraph direction is fixed by the caller, never auto-detected per line', () => {
     // This is the correctness detail the task exists to pin: the editor
     // resolves bidi with the *element's* effective direction (one fixed
