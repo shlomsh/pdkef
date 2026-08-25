@@ -23,6 +23,8 @@
 .font-menu-item { text-align: left; border: none; background: transparent; color: var(--color-text); font-size: .85rem; padding: .4rem .6rem; border-radius: var(--radius-sm); cursor: pointer; }
 .font-menu-item:hover { background: var(--color-surface-sunken); }
 .font-menu-item.active { background: var(--color-primary-soft); color: var(--color-primary); font-weight: 600; }
+.font-menu-item-unsupported { color: var(--color-muted); }
+.font-menu-item-note { font-family: initial; font-style: normal; font-size: .78em; font-weight: 400; color: var(--color-muted); }
 .font-menu-group-label { padding: .4rem .6rem .15rem; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--color-muted-light); }
 .divider { width: 1px; height: 20px; background: rgba(255,255,255,.2); margin: 0 4px; }
 .menu-item { display: flex; align-items: center; width: 100%; padding: 0.5rem; border: none; background: transparent; color: var(--color-text); font-size: 14px; font-family: inherit; cursor: pointer; border-radius: var(--radius-sm); transition: background 0.15s ease; gap: 0.5rem; text-align: left; }

@@ -213,6 +213,38 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## regenerator-runtime (0.14.1) — MIT
+
+<https://github.com/facebook/regenerator>
+
+Loaded before any text shaping: `@pdf-lib/fontkit`'s Indic syllable state
+machine is Babel-transpiled generator code, which throws
+`regeneratorRuntime is not defined` without this polyfill.
+
+```
+MIT License
+
+Copyright (c) 2014-present, Facebook, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ## Handwriting Fonts — SIL Open Font License (OFL-1.1)
 
 The following fonts are distributed under the SIL Open Font License, Version 1.1:
@@ -220,6 +252,7 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Dancing Script (<https://fonts.google.com/specimen/Dancing+Script>)
 - Great Vibes (<https://fonts.google.com/specimen/Great+Vibes>)
 - Gveret Levin (<https://fonts.google.com/specimen/Gveret+Levin>)
+- Kalam (<https://fonts.google.com/specimen/Kalam>)
 - Mali (<https://fonts.google.com/specimen/Mali>)
 - Pacifico (<https://fonts.google.com/specimen/Pacifico>)
 - Sacramento (<https://fonts.google.com/specimen/Sacramento>)
@@ -235,6 +268,7 @@ http://scripts.sil.org/OFL
 The following fonts are distributed under the SIL Open Font License, Version 1.1:
 - Alef (<https://fonts.google.com/specimen/Alef>)
 - PT Sans (<https://fonts.google.com/specimen/PT+Sans>)
+- Almarai (<https://fonts.google.com/specimen/Almarai>)
 
 ```
 This Font Software is licensed under the SIL Open Font License, Version 1.1.

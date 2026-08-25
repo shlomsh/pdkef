@@ -2,10 +2,8 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { percentToPoints } from './coords.js';
 import { getElementDefinition } from '../editor/registry/index.ts';
-import { unrepresentableCharacters } from '../editor/registry/text.ts';
-import { combCellCount, combCharacters, isComb } from './comb.js';
+import { findUnrepresentableCharacters } from './textCoverage.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../constants/signGeometry.js';
-import { resolveFontFamily } from './fonts.js';
 
 export { detectTextDirection, getEffectiveTextDirection, hexToRgbFractions, tintImageDataUrl } from './signHelpers.js';
 
@@ -52,51 +50,10 @@ export function seedUniqueId(elements) {
   if (max + 1 > nextId) nextId = max + 1;
 }
 
-/**
- * Every character across every text element that its resolved, embedded font
- * has no glyph for - deduplicated, first-seen order across the whole
- * document (see docs/hebrew-text-shaping-export.md, "Layer 3: characters no
- * bundled font can draw are silently dropped"). Checked against
- * `resolveFontFamily`'s result, not the family the user picked, because that
- * is the font `serialize` will actually embed - a Latin-only face typed with
- * Hebrew is already swapped for a Hebrew-capable one by the time this runs.
- *
- * Comb fields are elements of `type: 'text'` too (see comb.js), so they get
- * no separate check - `element.text` is their content either way.
- *
- * Skips an element whose font fails to load entirely (loadCustomFont ->
- * null): this pre-pass only judges character coverage, and a font that never
- * loaded is a different failure `serialize` already surfaces on its own.
- */
-async function findUnrepresentableCharacters(elements, loadCustomFont) {
-  const seen = new Set();
-  const missing = [];
-  const pages = new Set();
-  for (const element of elements) {
-    if (element.type !== 'text') continue;
-    const textValue = (element.text || '').trim();
-    if (!textValue) continue;
-    const embeddedFamily = resolveFontFamily(element.fontFamily, textValue);
-    const resolvedFont = (await loadCustomFont(embeddedFamily, element.fontWeight, element.fontStyle))
-      || (await loadCustomFont('Arimo', element.fontWeight, element.fontStyle));
-    if (!resolvedFont) continue;
-    // Judge only what will actually be drawn. A comb field renders
-    // `slice(0, cellCount)` and silently ignores the rest, so checking the
-    // whole string would refuse a document over a character that was never
-    // going to reach the page - see text.ts's comb branch.
-    const drawnText = isComb(element)
-      ? combCharacters(element).slice(0, combCellCount(element)).join('')
-      : textValue;
-    const found = unrepresentableCharacters(resolvedFont, drawnText);
-    if (found.length > 0) pages.add((element.pageIndex ?? 0) + 1);
-    for (const ch of found) {
-      if (seen.has(ch)) continue;
-      seen.add(ch);
-      missing.push(ch);
-    }
-  }
-  return { characters: missing, pageNumbers: [...pages].sort((a, b) => a - b) };
-}
+// The coverage policy - which elements get judged, which of their characters
+// actually reach the page, and which font each resolves to - lives in
+// textCoverage.js, so the editor's while-typing warning runs the exact same
+// rule as this refusal. See that file's header for why the two must not fork.
 
 function baselineOffsetEm(pdfFont, lineHeightEm = DEFAULT_LINE_HEIGHT_EM) {
   try {

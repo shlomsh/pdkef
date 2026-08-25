@@ -19,9 +19,11 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
 import {
+  HANDWRITING_FONTS,
   HEBREW_CAPABLE_FONTS,
   HEBREW_FALLBACK_HANDWRITING,
   HEBREW_FALLBACK_TEXT,
+  SCRIPT_FALLBACKS,
   TEXT_FONTS,
 } from './fonts.js';
 
@@ -48,7 +50,7 @@ const HEBREW_CAPABLE_FAMILIES = HEBREW_CAPABLE_FONTS;
  * font that can actually render the text" — so they don't need to appear in
  * HEBREW_CAPABLE_FONTS the way the general-purpose text fonts do.
  */
-const NON_HEBREW_SCRIPT_FONTS = ['PT Sans'];
+const NON_HEBREW_SCRIPT_FONTS = ['PT Sans', 'Almarai'];
 
 const STYLES = ['Regular', 'Bold', 'Italic', 'BoldItalic'];
 
@@ -98,4 +100,86 @@ describe('bundled fonts offered for Hebrew', () => {
     expect(charset.has('A'.codePointAt(0))).toBe(true);
     expect(charset.has('0'.codePointAt(0))).toBe(true);
   });
+});
+
+/**
+ * SCRIPT_FALLBACKS is what stops a language hitting a wall at download time,
+ * and every `capable` list in it is a claim about real font bytes. Checked here
+ * against the shipped TTFs, both halves:
+ *
+ *  - every font a row calls capable really does cover that script, so a
+ *    substitution can never land on a font that cannot draw the text; and
+ *  - every font a row leaves *off* really cannot, which is the non-vacuity
+ *    half. Without it a row listing nothing (or listing everything) would pass
+ *    while proving nothing - the exact failure mode that let Thai ship bundled
+ *    but unrouted, with Mali sitting in the catalogue unreachable by Thai text.
+ */
+describe('SCRIPT_FALLBACKS', () => {
+  // One representative string per script, in the language we actually claim.
+  //
+  // `coversAll` judges a font by whether it covers EVERY character of its
+  // probe, so "capable" is strictly a claim about the probe, not about the
+  // whole Unicode block. That biases safely in one direction: a font missing
+  // one probe character (Greek's precomposed ά, U+03AC, is the likely case) is
+  // excluded from `capable` and substituted away even though it might have
+  // rendered the user's actual text. The result is a font that definitely
+  // works rather than one that might, which is the right way round - but it
+  // does mean a probe change can silently widen or narrow a `capable` list, so
+  // change these strings deliberately.
+  const PROBES = {
+    Hebrew: 'שלום',
+    Devanagari: 'नमस्ते',
+    Thai: 'สวัสดี',
+    Cyrillic: 'Привіт',
+    Greek: 'Ελλάδα',
+    Arabic: 'مرحبا',
+  };
+
+  const BUNDLED = [...TEXT_FONTS, ...HANDWRITING_FONTS];
+
+  function coversAll(family, probe) {
+    const charset = characterSetOf(`${family.replace(/\s+/g, '')}-Regular.ttf`);
+    return Array.from(probe).every((ch) => charset.has(ch.codePointAt(0)));
+  }
+
+  it('has a probe for every row, so no row goes unchecked', () => {
+    expect(SCRIPT_FALLBACKS.map((row) => row.name).sort()).toEqual(Object.keys(PROBES).sort());
+  });
+
+  it.each(SCRIPT_FALLBACKS.map((row) => [row.name, row]))(
+    '%s: every font listed capable really covers the script',
+    (name, row) => {
+      const liars = row.capable.filter((family) => !coversAll(family, PROBES[name]));
+      expect(liars).toEqual([]);
+    },
+  );
+
+  // The half that can actually fail when a font is added and the table is not
+  // updated - which is how a bundled face ends up unreachable by the script it
+  // was added for.
+  it.each(SCRIPT_FALLBACKS.map((row) => [row.name, row]))(
+    '%s: no bundled font left off the list can secretly draw it',
+    (name, row) => {
+      const missed = BUNDLED.filter((family) => !row.capable.includes(family) && coversAll(family, PROBES[name]));
+      expect(missed).toEqual([]);
+    },
+  );
+
+  it.each(SCRIPT_FALLBACKS.map((row) => [row.name, row]))(
+    '%s: both fallback targets are themselves capable, which is what makes resolution idempotent',
+    (name, row) => {
+      expect(row.capable).toContain(row.handwriting);
+      expect(row.capable).toContain(row.text);
+    },
+  );
+
+  it.each(SCRIPT_FALLBACKS.map((row) => [row.name, row]))(
+    '%s: both fallback targets are fonts we actually ship, with a file on disk',
+    (name, row) => {
+      for (const target of [row.handwriting, row.text]) {
+        expect(BUNDLED).toContain(target);
+        expect(existsSync(join(FONT_DIR, `${target.replace(/\s+/g, '')}-Regular.ttf`))).toBe(true);
+      }
+    },
+  );
 });

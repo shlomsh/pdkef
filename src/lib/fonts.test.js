@@ -1,9 +1,12 @@
 /**
- * The Hebrew substitution rule shared by the editor and the exporter.
+ * The script substitution rule shared by the editor and the exporter.
  *
  * The whole point of the rule is that both sides answer identically, so the
  * screen and the downloaded PDF agree. See fonts.js for why the browser's own
  * per-character fallback cannot be relied on here.
+ *
+ * Coverage of the SCRIPT_FALLBACKS table against the real font bytes lives in
+ * fontCoverage.test.js; this file tests the resolution *rule* built on it.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
@@ -15,12 +18,24 @@ import {
   FONT_VERTICAL_METRICS,
   HANDWRITING_FONTS,
   HEBREW_CAPABLE_FONTS,
+  SCRIPT_FALLBACKS,
   TEXT_FONTS,
   containsHebrew,
   resolveFontFamily,
+  resolveFontSubstitution,
   supportsHebrew,
   textBoxPaddingEm,
 } from './fonts.js';
+
+// One representative string per script, matching fontCoverage.test.js's probes.
+const SCRIPT_PROBES = {
+  Hebrew: 'שלום',
+  Devanagari: 'नमस्ते',
+  Thai: 'สวัสดี',
+  Cyrillic: 'Привіт',
+  Greek: 'Ελλάδα',
+  Arabic: 'مرحبا',
+};
 
 describe('containsHebrew', () => {
   it.each([
@@ -76,6 +91,91 @@ describe('resolveFontFamily', () => {
     for (const family of [...TEXT_FONTS, ...HANDWRITING_FONTS]) {
       const once = resolveFontFamily(family, 'שלום');
       expect(resolveFontFamily(once, 'שלום')).toBe(once);
+    }
+  });
+});
+
+/**
+ * The same two guarantees Hebrew has always had, now owed to every script in
+ * the table. These are what turn "the download refused" into "the box quietly
+ * used a font that works": whatever the user picked, resolution has to land on
+ * a font that can actually draw what they typed, and land there in one step.
+ */
+describe('resolveFontFamily across every script in SCRIPT_FALLBACKS', () => {
+  const rows = SCRIPT_FALLBACKS.map((row) => [row.name, row]);
+
+  it.each(rows)('%s: resolves every bundled font to one that can draw the script', (name, row) => {
+    const stranded = [...TEXT_FONTS, ...HANDWRITING_FONTS]
+      .filter((family) => !row.capable.includes(resolveFontFamily(family, SCRIPT_PROBES[name])));
+    expect(stranded).toEqual([]);
+  });
+
+  it.each(rows)('%s: is idempotent, so the exporter re-resolving the editor’s choice is a no-op', (name) => {
+    for (const family of [...TEXT_FONTS, ...HANDWRITING_FONTS]) {
+      const once = resolveFontFamily(family, SCRIPT_PROBES[name]);
+      expect(resolveFontFamily(once, SCRIPT_PROBES[name])).toBe(once);
+    }
+  });
+
+  it.each(rows)('%s: leaves a font that already covers the script alone', (name, row) => {
+    for (const family of row.capable) {
+      expect(resolveFontFamily(family, SCRIPT_PROBES[name])).toBe(family);
+    }
+  });
+
+  // The cases that used to hit a wall at download time. Each is a real user
+  // path: the default font is Arimo, and a handwriting font is what someone
+  // picks for a signature-ish field.
+  it('rescues the scripts that had no font of their own before', () => {
+    expect(resolveFontFamily('Arimo', 'नमस्ते भारत')).toBe('Kalam');
+    expect(resolveFontFamily('Arimo', 'สวัสดี')).toBe('Mali');
+    expect(resolveFontFamily('Caveat', 'नमस्ते')).toBe('Kalam');
+    expect(resolveFontFamily('Caveat', 'สวัสดี')).toBe('Mali');
+    // Cyrillic and Greek only need rescuing from a font without them; Arimo
+    // has both, so it must be left alone rather than swapped for no reason.
+    expect(resolveFontFamily('Caveat', 'Привіт')).toBe('PT Sans');
+    expect(resolveFontFamily('Assistant', 'Привіт')).toBe('PT Sans');
+    expect(resolveFontFamily('Arimo', 'Привіт')).toBe('Arimo');
+    expect(resolveFontFamily('Pacifico', 'Ελλάδα')).toBe('Arimo');
+    expect(resolveFontFamily('Arimo', 'Ελλάδα')).toBe('Arimo');
+  });
+
+  // One element embeds exactly one font, so a line mixing two scripts that both
+  // need substituting has no answer that satisfies both. Resolving by table
+  // order at least makes it deterministic and identical on both sides; the
+  // leftover characters are then caught by the live coverage check while typing
+  // and refused by signPdf, rather than silently exported as empty boxes.
+  it('resolves mixed scripts deterministically, by table order', () => {
+    const mixed = 'שלום नमस्ते';
+    expect(resolveFontFamily('Arimo', mixed)).toBe(resolveFontFamily('Arimo', mixed));
+    const first = SCRIPT_FALLBACKS.find((row) => row.pattern.test(mixed));
+    expect(first.name).toBe('Hebrew');
+    expect(resolveFontFamily('Arimo', mixed)).toBe('Arimo');
+  });
+});
+
+describe('resolveFontSubstitution', () => {
+  it('reports no substitution when the picked font can draw the text', () => {
+    expect(resolveFontSubstitution('Arimo', 'Hello')).toEqual({ family: 'Arimo', requested: 'Arimo', script: null });
+    expect(resolveFontSubstitution('Arimo', 'שלום')).toEqual({ family: 'Arimo', requested: 'Arimo', script: null });
+    expect(resolveFontSubstitution('Kalam', 'नमस्ते')).toEqual({ family: 'Kalam', requested: 'Kalam', script: null });
+  });
+
+  it('names the script that forced a change, so the editor can explain it', () => {
+    expect(resolveFontSubstitution('Arimo', 'नमस्ते')).toEqual({ family: 'Kalam', requested: 'Arimo', script: 'Devanagari' });
+    expect(resolveFontSubstitution('Caveat', 'สวัสดี')).toEqual({ family: 'Mali', requested: 'Caveat', script: 'Thai' });
+    expect(resolveFontSubstitution('Caveat', 'שלום')).toEqual({ family: 'Gveret Levin', requested: 'Caveat', script: 'Hebrew' });
+  });
+
+  it('reports the replacement, not the retired name, as what was requested', () => {
+    expect(resolveFontSubstitution('Playpen Sans Hebrew', 'שלום').requested).toBe('Gveret Levin');
+  });
+
+  it('agrees with resolveFontFamily on every bundled font and script', () => {
+    for (const family of [...TEXT_FONTS, ...HANDWRITING_FONTS]) {
+      for (const probe of Object.values(SCRIPT_PROBES)) {
+        expect(resolveFontSubstitution(family, probe).family).toBe(resolveFontFamily(family, probe));
+      }
     }
   });
 });

@@ -47,7 +47,7 @@ export const tools = [
     toolName: 'Sign & Fill PDF',
     h1: 'Sign PDF Free: Fill & Sign Forms in Your Browser',
     subhead:
-      'You can fill out and sign a PDF here without ever printing or scanning it. Tick checkboxes, type text, and add your signature to any PDF, from school consent slips to contracts and applications, in Hebrew, Ukrainian, Thai, or any Latin-script language. Your progress auto-saves on your device, so a crash or accidental refresh never loses your work.',
+      'You can fill out and sign a PDF here without ever printing or scanning it. Tick checkboxes, type text, and add your signature to any PDF, from school consent slips to contracts and applications, in Hebrew, Ukrainian, Thai, Hindi, or any Latin-script language. Your progress auto-saves on your device, so a crash or accidental refresh never loses your work.',
     ariaLabel: 'PDF sign tool',
     aboutHeading: 'How to fill and sign PDF files',
     aboutLead:
@@ -58,6 +58,65 @@ export const tools = [
     aboutIconPos: 'tr',
     faqSketch: 'arcs',
     faqIconPos: 'bl',
+    // Which languages actually survive the download, stated plainly (see
+    // ToolLanguagesCard.astro). Only the Sign tool declares this: it is the
+    // one tool where you type your own text into the file, so it is the only
+    // one where a missing glyph can ruin the result. Every claim here is
+    // backed by src/lib/fonts.js's SCRIPT_FALLBACKS table, which
+    // src/lib/fontCoverage.test.js checks against the real font bytes in both
+    // directions, so a script listed here that a bundled font cannot draw
+    // fails the build rather than surprising someone at Download.
+    //
+    // `notYet` is not a disclaimer to be trimmed later. The scripts in it are
+    // the ones people actually arrive here typing, and the honest version of
+    // this card is the one that says where the tool stops.
+    languages: {
+      tag: 'Languages',
+      heading: 'Type in your own language, and get it back in the file',
+      lead:
+        'Filling a PDF in a language other than English usually goes wrong in the same quiet way. Your browser borrows a system font for any letter your chosen font is missing, so the text looks perfect while you work and arrives as a row of empty boxes in the downloaded file. PDkef checks every character against the font it is actually going to embed, and switches to one that can draw it before you get there.',
+      supportedHeading: 'Works today',
+      supported: [
+        {
+          native: 'עברית',
+          name: 'Hebrew',
+          note: 'Six text fonts, plus Gveret Levin for a handwritten signature. Vowel points are positioned rather than just shown on screen, and a text box grows leftward from a fixed right edge, the way right-to-left text really behaves.',
+        },
+        {
+          native: 'हिन्दी',
+          name: 'Hindi and Devanagari',
+          note: 'Kalam, a handwriting face that also works for a typed signature. Conjunct letters and vowel signs are reordered and shaped correctly in the download, which is the part most tools get wrong.',
+        },
+        {
+          native: 'ไทย',
+          name: 'Thai',
+          note: 'Mali, which doubles as a typed-signature font. Tone marks and the vowels that sit above and below the line land where they belong.',
+        },
+        {
+          native: 'Українська',
+          name: 'Ukrainian and other Cyrillic',
+          note: 'PT Sans, including the Ukrainian letters ї, є, і and ґ that some fonts quietly leave out.',
+        },
+        {
+          native: 'Ελληνικά',
+          name: 'Greek',
+          note: 'Arimo, Tinos and Cousine all carry Greek, checked against the real font file rather than taken on trust.',
+        },
+        {
+          native: 'English, Filipino, Bahasa Melayu, Gaeilge',
+          name: 'Every Latin-script language',
+          note: 'All seven text fonts, plus seven handwriting faces for a typed signature. Everyday accents work throughout. A few of the handwriting faces have no ł, š, ă or ż, and the tool names the character rather than letting it slip into the download.',
+        },
+        {
+          native: 'العربية',
+          name: 'Arabic',
+          note: "Almarai. Letters join and change shape depending on their neighbours the way handwritten Arabic actually connects, mandatory ligatures like لا are formed, and a text box grows leftward from a fixed right edge, the same right-to-left behaviour Hebrew gets.",
+        },
+      ],
+      notYetHeading: 'Not yet, and the tool tells you while you type',
+      notYet:
+        "Dari and Pashto, Chinese, Japanese, Korean and emoji have no bundled font that can draw them, and India's other scripts, including Bengali, Tamil and Telugu, are not covered either. Type any of them and a notice appears as you type, naming the exact characters, so you find out then instead of after filling in a whole form. Chinese, Japanese and Korean need font subsetting to keep the download from ballooning, which is open work rather than a closed door.",
+    },
     steps: [
       { title: 'Upload your form', text: 'Select or drag-and-drop the PDF document you want to fill and sign.' },
       { title: 'Add text & signatures', text: 'Click to place text blocks, symbols, or signatures on the pages.' },
@@ -93,6 +152,18 @@ export const tools = [
       {
         question: 'Can I type Ukrainian or Thai text when signing a PDF?',
         answer: 'Yes. Ukrainian (Cyrillic) text uses PT Sans, and Thai text uses Mali, a handwriting-style font you can also use for a typed signature. Both are bundled with the tool and checked against their real glyph coverage, so what you see on screen is what gets embedded in the file you download.',
+      },
+      {
+        question: 'Can I fill and sign a PDF in Hindi (हिन्दी में PDF पर हस्ताक्षर)?',
+        answer: 'Yes. Type Devanagari text into a text box or use it for a typed signature with the bundled Kalam font. Conjunct letters and vowel signs are shaped and positioned correctly, not just displayed on screen, so what you see is what gets embedded in the file you download.',
+      },
+      {
+        question: 'Can I fill and sign a PDF in Arabic (التوقيع على PDF بالعربية)?',
+        answer: 'Yes. Type Arabic into a text box and letters join and change shape depending on their neighbours, the way handwritten Arabic actually connects, with ligatures like لا formed correctly. The box grows leftward from a fixed right edge, the same right-to-left behaviour Hebrew gets, and what you see on screen is what gets embedded in the file you download.',
+      },
+      {
+        question: 'Can I sign a PDF in Chinese, Dari or Pashto?',
+        answer: 'Not yet, and the tool is upfront about it rather than letting you find out at the end. No bundled font can draw Chinese, Japanese, Korean, Dari, Pashto or emoji, so if you type any of them a notice appears while you type and names the exact characters. Chinese, Japanese and Korean fonts need subsetting first so the download does not balloon, and Dari and Pashto need letters the bundled Arabic font was not built to draw. Both are open work. Everything else on this page, including Hebrew, Arabic, Hindi, Thai, Ukrainian, Greek and every Latin-script language, works end to end today.',
       },
     ],
   },

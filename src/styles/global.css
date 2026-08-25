@@ -76,6 +76,12 @@
   src: url('/fonts/GveretLevin-Regular.ttf') format('truetype');
 }
 @font-face {
+  font-family: 'Kalam';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Kalam-Regular.ttf') format('truetype');
+}
+@font-face {
   font-family: 'Mali';
   font-style: normal;
   font-weight: 400;
@@ -226,6 +232,18 @@
   font-style: italic;
   font-weight: 700;
   src: url('/fonts/PTSans-BoldItalic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Almarai';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Almarai-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Almarai';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Almarai-Bold.ttf') format('truetype');
 }
 
 :root {

@@ -15,8 +15,8 @@
 
 import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../constants/signGeometry.js';
 
-export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Mali', 'Pacifico', 'Sacramento'];
-export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans'];
+export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Kalam', 'Mali', 'Pacifico', 'Sacramento'];
+export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Almarai'];
 
 /**
  * Real ascent/descent for every bundled family, as a fraction of the em —
@@ -48,11 +48,13 @@ export const FONT_VERTICAL_METRICS = {
   'Dancing Script': { ascent: 0.920, descent: 0.280 },
   'Great Vibes': { ascent: 0.851, descent: 0.401 },
   'Gveret Levin': { ascent: 0.990, descent: 0.310 },
+  Kalam: { ascent: 1.063, descent: 0.531 },
   Mali: { ascent: 1.050, descent: 0.250 },
   Pacifico: { ascent: 1.303, descent: 0.453 },
   Sacramento: { ascent: 0.930, descent: 0.529 },
   Alef: { ascent: 1.009, descent: 0.353 },
   'PT Sans': { ascent: 1.018, descent: 0.276 },
+  Almarai: { ascent: 0.905, descent: 0.211 },
 };
 
 // Slack on top of the computed overhang: the metrics are the font's design
@@ -120,6 +122,115 @@ const HEBREW_PATTERN = /[\u0590-\u05FF\uFB1D-\uFB4F]/;
 export const HEBREW_FALLBACK_HANDWRITING = 'Gveret Levin';
 export const HEBREW_FALLBACK_TEXT = 'Arimo';
 
+/** The family everything falls back to when nothing was picked at all. */
+const DEFAULT_FAMILY = HEBREW_FALLBACK_TEXT;
+
+/**
+ * Every script that needs a font substitution, and what to substitute.
+ *
+ * **This table is the whole "no language hits a wall" mechanism.** The editor
+ * paints text through `@font-face`, where the browser silently borrows a
+ * *system* font per character for glyphs the chosen file lacks, so Hindi, Thai
+ * and Ukrainian all look perfect on screen in a font that cannot draw a single
+ * one of them. A PDF embeds one font per element with no fallback, so that same
+ * text would export as empty rectangles, and before this table the user only
+ * found out when `signPdf` refused the download. Substituting here, on the one
+ * code path both the editor and the exporter call, is what keeps the screen and
+ * the download honest without ever stopping the user.
+ *
+ * `capable` is a claim about real font bytes, so it is verified against the
+ * shipped TTFs by src/lib/fontCoverage.test.js - including the non-vacuity
+ * half, that a font left *off* a list genuinely cannot draw that script.
+ * Update the table and that test together.
+ *
+ * **Each pattern covers its script's main block only**, deliberately: the
+ * bundled faces are checked against that block, so widening a pattern to a
+ * range no bundled font actually covers would substitute a font that still
+ * cannot draw the text. Characters outside these blocks - Cyrillic Supplement
+ * (U+0500-052F), polytonic Greek (U+1F00-1FFF), Devanagari Extended
+ * (U+A8E0-A8FF) - therefore fall through to the coverage check and are
+ * refused by name rather than silently substituted. Polytonic Greek is the
+ * only realistic one, and it still matches here on its unaccented base
+ * letters. Widen a range only together with a font that genuinely covers it.
+ *
+ * Two consequences worth stating rather than leaving to be discovered:
+ *
+ * - **Order decides mixed scripts.** Text carrying two scripts that both need
+ *   substituting resolves by the first row that matches, because one element
+ *   embeds exactly one font and there is no second choice to give. The other
+ *   script's characters then have no glyph, which liveFontCoverage.js surfaces
+ *   while typing and `signPdf` still refuses on.
+ * - **A fallback can change a font's character, not just its name.** Cyrillic
+ *   and Greek have no handwriting-capable face in the catalogue, so a
+ *   handwriting font resolves to an upright one; Devanagari and Thai have
+ *   exactly one face each and both are handwriting, so an upright font
+ *   resolves to a handwritten one for the whole element. That is the honest
+ *   best available rather than a wall, and it is why an upright Devanagari and
+ *   Thai text face is a live follow-up (see TODO.md).
+ */
+export const SCRIPT_FALLBACKS = [
+  {
+    name: 'Hebrew',
+    pattern: HEBREW_PATTERN,
+    capable: HEBREW_CAPABLE_FONTS,
+    handwriting: HEBREW_FALLBACK_HANDWRITING,
+    text: HEBREW_FALLBACK_TEXT,
+  },
+  {
+    name: 'Devanagari',
+    pattern: /[\u0900-\u097F]/,
+    capable: ['Kalam'],
+    handwriting: 'Kalam',
+    text: 'Kalam',
+  },
+  {
+    name: 'Thai',
+    pattern: /[\u0E00-\u0E7F]/,
+    capable: ['Mali'],
+    handwriting: 'Mali',
+    text: 'Mali',
+  },
+  {
+    name: 'Cyrillic',
+    pattern: /[\u0400-\u04FF]/,
+    capable: ['Arimo', 'Tinos', 'Cousine', 'PT Sans'],
+    handwriting: 'PT Sans',
+    text: 'PT Sans',
+  },
+  {
+    name: 'Greek',
+    pattern: /[\u0370-\u03FF]/,
+    capable: ['Arimo', 'Tinos', 'Cousine'],
+    handwriting: 'Arimo',
+    text: 'Arimo',
+  },
+  {
+    // Arabic main block plus the two presentation-form ranges (Arabic
+    // Presentation Forms-A and -B) - alternate encodings of the same
+    // standard Arabic letters, which a typed/pasted string can carry even
+    // though a user never types them directly (older IMEs, or text copied
+    // out of a presentation-form-encoded PDF, hand them over
+    // pre-substituted). Deliberately excludes Arabic Supplement
+    // (U+0750-077F) and Arabic Extended-A/B - those hold Persian/Urdu/Sindhi
+    // -only letters for the Perso-Arabic scripts TODO.md documents as still
+    // blocked (no bundled font targets them), so including that range here
+    // would trigger a substitution attempt Almarai cannot honor. Like every
+    // other row, this is the script's *main* block, not full coverage of it
+    // - Almarai, like every existing "capable" font for its own script, does
+    // not carry every codepoint in these ranges (Quranic annotation marks,
+    // Arabic Extended digits), only the modern-Arabic subset it was
+    // designed for. The per-character check on save
+    // (findUnrepresentableCharacters) still refuses a document naming
+    // whatever specific character neither the request nor this fallback can
+    // draw, exactly as it does for every other script.
+    name: 'Arabic',
+    pattern: /[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/,
+    capable: ['Almarai'],
+    handwriting: 'Almarai',
+    text: 'Almarai',
+  },
+];
+
 export function containsHebrew(text) {
   return HEBREW_PATTERN.test(text || '');
 }
@@ -129,25 +240,44 @@ export function supportsHebrew(fontFamily) {
 }
 
 /**
- * The family that should actually render `text`, given the family the user
- * picked. Substitutes a whole element at a time rather than a character at a
- * time: a run-by-run split would render "רחוב 17" in two different faces, and
- * the editor and the PDF would have to agree on where every run starts. One
- * family per box is what both sides can guarantee identically.
+ * The family that should actually render `text`, plus enough context to say
+ * *why* it changed - so the editor can explain a substitution to the user
+ * without re-deriving the rule and drifting from it.
+ *
+ * Substitutes a whole element at a time rather than a character at a time: a
+ * run-by-run split would render "רחוב 17" in two different faces, and the
+ * editor and the PDF would have to agree on where every run starts. One family
+ * per box is what both sides can guarantee identically.
  *
  * A family we have since retired (see RETIRED_FONTS) is mapped to its
  * replacement before anything else happens, so a draft saved against a font
  * that no longer ships still renders identically on both sides.
  *
- * @param {string} [fontFamily] - the family the user chose; falls back to the
- *   Hebrew-capable default below when unset, so callers may pass undefined
- * @param {string} text       - the element's current content
+ * @param {string} [fontFamily] - the family the user chose; falls back to
+ *   DEFAULT_FAMILY when unset, so callers may pass undefined
+ * @param {string} text - the element's current content
+ * @returns {{ family: string, requested: string, script: string|null }}
+ *   `family` is what to render and embed; `script` names the script that
+ *   forced the change, or is null when nothing was substituted.
+ */
+export function resolveFontSubstitution(fontFamily, text) {
+  // Retired families first, so everything below sees only a family we ship.
+  const requested = RETIRED_FONTS[fontFamily] || fontFamily || DEFAULT_FAMILY;
+  const script = SCRIPT_FALLBACKS.find((entry) => entry.pattern.test(text || ''));
+  if (!script || script.capable.includes(requested)) return { family: requested, requested, script: null };
+  const family = HANDWRITING_FONTS.includes(requested) ? script.handwriting : script.text;
+  return { family, requested, script: script.name };
+}
+
+/**
+ * The family to render and embed for `text`. A thin wrapper over
+ * `resolveFontSubstitution` so the rule has exactly one implementation - the
+ * editor, the exporter and both coverage checks all land here.
+ *
+ * @param {string} [fontFamily] - the family the user chose
+ * @param {string} text - the element's current content
  * @returns {string} the family to render and embed
  */
 export function resolveFontFamily(fontFamily, text) {
-  // Retired families first, so everything below sees only a family we ship.
-  const requested = RETIRED_FONTS[fontFamily] || fontFamily;
-  const family = requested || HEBREW_FALLBACK_TEXT;
-  if (!containsHebrew(text) || supportsHebrew(family)) return family;
-  return HANDWRITING_FONTS.includes(family) ? HEBREW_FALLBACK_HANDWRITING : HEBREW_FALLBACK_TEXT;
+  return resolveFontSubstitution(fontFamily, text).family;
 }

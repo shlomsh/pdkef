@@ -161,12 +161,12 @@ describe('sign.js signPdf', () => {
     it('throws UnrepresentableTextError naming the characters, instead of returning a PDF missing them', async () => {
       const file = getFixtureFile();
       const element = {
-        id: 'el-arabic',
+        id: 'el-chinese',
         type: 'text',
         pageIndex: 0,
         left: 10,
         top: 10,
-        text: 'مرحبا', // Arabic - .notdef in every bundled font
+        text: '你好吗呀吧', // Chinese - no bundled font carries CJK glyphs (see TODO.md, page-weight blocker)
         fontFamily: 'Heebo',
         fontSize: 20,
         color: '#000000'
@@ -174,14 +174,14 @@ describe('sign.js signPdf', () => {
 
       await expect(signPdf(file, [element])).rejects.toBeInstanceOf(UnrepresentableTextError);
       const error = await signPdf(file, [element]).catch((e) => e);
-      expect(error.characters).toEqual(['م', 'ر', 'ح', 'ب', 'ا']);
+      expect(error.characters).toEqual(['你', '好', '吗', '呀', '吧']);
     });
 
     it('reports which page to look on, so a long document is actionable', async () => {
       const file = getFixtureFile();
       const element = {
-        id: 'el-arabic', type: 'text', pageIndex: 0, left: 10, top: 10,
-        text: 'مرحبا', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
+        id: 'el-chinese', type: 'text', pageIndex: 0, left: 10, top: 10,
+        text: '你好吗呀吧', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
       };
       const error = await signPdf(file, [element]).catch((e) => e);
       // 1-based, matching what the page navigation shows the user.
@@ -196,12 +196,12 @@ describe('sign.js signPdf', () => {
       const element = {
         id: 'el-comb', type: 'text', pageIndex: 0, left: 10, top: 10,
         width: 20, comb: true, combCells: 4,
-        text: 'שלום مرحبا', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
+        text: 'שלום 你好吗呀吧', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
       };
       const combCells = combCellCount(element);
-      // Non-vacuity: the Arabic really is beyond the drawn cells, and really
+      // Non-vacuity: the Chinese really is beyond the drawn cells, and really
       // is unrepresentable - otherwise this passes for the wrong reason.
-      expect(combCharacters(element).slice(0, combCells).join('')).not.toContain('م');
+      expect(combCharacters(element).slice(0, combCells).join('')).not.toContain('你');
       expect(combCharacters(element).length).toBeGreaterThan(combCells);
 
       await expect(signPdf(file, [element])).resolves.toBeInstanceOf(Blob);
@@ -215,7 +215,7 @@ describe('sign.js signPdf', () => {
       };
       const badElement = {
         id: 'el-bad', type: 'text', pageIndex: 0, left: 10, top: 60,
-        text: 'مرحبا', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
+        text: '你好吗呀吧', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
       };
 
       // The good element is first in the array; if the pre-pass only checked

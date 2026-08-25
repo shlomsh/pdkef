@@ -10,6 +10,9 @@ import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
 import { detectTextDirection } from '../../lib/signHelpers.js';
+import useFontCoverageNotice from '../../lib/useFontCoverageNotice.js';
+import { resolveFontSubstitution } from '../../lib/fonts.js';
+import { describeFontSubstitution } from '../../lib/textCoverage.js';
 import pdfToolStyles from '../PdfTool.module.css';
 import workspaceStyles from './Workspace.module.css';
 
@@ -67,6 +70,21 @@ export default function PdfWorkspace({
   const { activeSignature } = useSavedSignatures();
   const activeElement = elements.find((el) => el.id === activeElementId);
   const activeTextElement = activeElement?.type === 'text' ? activeElement : null;
+
+  // Two things worth saying about fonts before the user reaches Download,
+  // rather than at it. Both exist because the editor is not truly WYSIWYG for
+  // non-Latin text: the browser borrows a system font per character for glyphs
+  // the chosen file lacks, so text can look perfect on screen and be
+  // impossible to embed.
+  //
+  // The warning is document-wide, because it mirrors exactly what signPdf
+  // would refuse on and a character two pages away still stops the download.
+  // The substitution aside is tied to the selected box, because that is the
+  // one whose font just visibly changed under the user.
+  const coverageWarning = useFontCoverageNotice(elements);
+  const substitutionNotice = activeTextElement
+    ? describeFontSubstitution(resolveFontSubstitution(activeTextElement.fontFamily, activeTextElement.text))
+    : '';
   const initialTextDirection =
     activeTextElement
       ? detectTextDirection(activeTextElement.text) || activeTextElement.textDirection || lastDirection
@@ -209,6 +227,46 @@ export default function PdfWorkspace({
             canSharePdf={canSharePdf}
             shareReady={shareReady}
           />
+
+          {/* Font notices - see coverageWarning / substitutionNotice above.
+              Three things about this block are deliberate:
+
+              The region is ALWAYS mounted, and only its contents change. An
+              aria-live region is announced reliably only when it was already
+              in the accessibility tree before the text arrived, so a <p> that
+              mounts together with its own message frequently announces
+              nothing. role="status" rather than "alert" because neither of
+              these is an error, and neither should interrupt a screen reader
+              mid-word while someone is typing.
+
+              Both messages can show at once. They are about different things -
+              the warning is document-wide, the aside is about the selected box
+              - so treating them as alternatives meant one stray Arabic
+              character on page 1 silently suppressed every substitution
+              explanation for the rest of the session, which is exactly the
+              "a substitution must be explained, never silent" promise in
+              CLAUDE.md being quietly broken.
+
+              And the region is overlaid rather than flowed (see the CSS): a
+              notice that takes layout space pushes every page down at the
+              moment it appears, which is while the user is mid-keystroke in
+              the very box that triggered it, moving the box out from under
+              their caret. The aside toggles on selection changes too, so in
+              flow it would shift the document on every click between boxes. */}
+          <div className={workspaceStyles['font-notices']} role="status" aria-live="polite">
+            <div className={workspaceStyles['font-notices-inner']}>
+              {coverageWarning && (
+                <p className={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`}>
+                  {coverageWarning}
+                </p>
+              )}
+              {substitutionNotice && (
+                <p className={pdfToolStyles['hint-message']}>
+                  {substitutionNotice}
+                </p>
+              )}
+            </div>
+          </div>
 
           {/* PDF Pages rendering container */}
           <div className={workspaceStyles['pages-container']} onClick={deactivateAll}>

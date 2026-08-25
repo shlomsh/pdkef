@@ -1,3 +1,13 @@
+// fontkit's Indic syllable-state-machine shaping (`setupSyllables`, used by
+// `layout()` below for any Devanagari-eligible text) is written with
+// generators, and the pinned `@pdf-lib/fontkit@1.1.1` build has no polyfill
+// loaded for them - without this, shaping Devanagari throws `ReferenceError:
+// regeneratorRuntime is not defined` (measured against Kalam-Regular.ttf; see
+// TODO.md, "Internationalization: fonts for scripts beyond Hebrew/Latin").
+// Must run before the first `fk.layout()` call below, so it's imported here
+// rather than at a call site - this file is the only place in production code
+// that calls `layout()` (shapedWidth, drawShapedRun).
+import 'regenerator-runtime/runtime.js';
 import type { ElementDefinition } from './types.ts';
 import type { TextElement } from '../../lib/editorModel.ts';
 import { h } from 'preact';

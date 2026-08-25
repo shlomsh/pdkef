@@ -1,0 +1,73 @@
+---
+// The "which languages actually survive the download" card, rendered directly
+// below the tool (see ToolPageLayout.astro) for any tool whose registry entry
+// declares `languages`. Today that is Sign alone, because it is the only tool
+// where the user types their own text into the file.
+//
+// It sits above the "How it works" card on purpose. Someone who arrives
+// wanting to fill a form in Hebrew, Hindi, Thai or Ukrainian is asking one
+// question before any other, and until now the only place that answered it was
+// an FAQ entry most of the way down the page. Half the card is spent saying
+// where the tool stops, which is the half that earns the other half.
+//
+// Content-only, static, zero JS: this is SEO surface (CLAUDE.md Part II 1.1),
+// so it is authored in the registry and rendered at build time. The native
+// names deliberately render in the visitor's own system font rather than the
+// bundled TTF for that script - Kalam alone is 427KB, and downloading half a
+// megabyte of webfont so a card can show one word would tax every visitor to
+// prove a point to a few.
+import FeatureCard from './FeatureCard.astro';
+import CardDecor from './CardDecor.astro';
+import { Languages } from 'lucide-preact';
+
+interface Language {
+  native: string;
+  name: string;
+  note: string;
+}
+
+interface Props {
+  languages: {
+    tag?: string;
+    heading: string;
+    lead: string;
+    supportedHeading: string;
+    supported: Language[];
+    notYetHeading: string;
+    notYet: string;
+  };
+  sketch?: 'arcs' | 'waves' | 'rings' | 'grid';
+  iconPos?: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl';
+}
+
+const { languages, sketch = 'grid', iconPos = 'cr' } = Astro.props;
+const { tag = 'Languages', heading, lead, supportedHeading, supported, notYetHeading, notYet } = languages;
+---
+
+<FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+  <CardDecor sketch={sketch} icon={Languages} iconPos={iconPos} iconSize={280} />
+  <div>
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">{tag}</span>
+    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">{heading}</h2>
+    <p class="mb-6 mt-0 max-w-[68ch] text-[1.05rem] leading-[1.6] text-[var(--color-text)]">{lead}</p>
+
+    <h3 class="mb-4 mt-0 text-[1.05rem] font-bold text-[var(--color-text)]">{supportedHeading}</h3>
+    <ul class="m-0 grid list-none grid-cols-2 gap-x-12 gap-y-8 p-0 max-[768px]:grid-cols-1 max-[768px]:gap-6">
+      {supported.map((language) => (
+        <li class="border-l-[3px] border-l-[var(--color-primary)] pl-5">
+          {/* lang="" is unset on purpose: these are language *names*, and the
+              surrounding page is English. Marking each one up as its own
+              language would have a screen reader switch voice mid-list. */}
+          <p class="mb-1 mt-0 text-[1.15rem] font-bold leading-[1.5] text-[var(--color-text)]">{language.native}</p>
+          <p class="mb-1 mt-0 text-[0.85rem] font-semibold uppercase text-[var(--color-primary)]">{language.name}</p>
+          <p class="m-0 text-[0.95rem] leading-[1.5] text-[var(--color-muted)]">{language.note}</p>
+        </li>
+      ))}
+    </ul>
+
+    <section class="mt-7 border-t border-[var(--color-border)] pt-7">
+      <h3 class="mb-3 mt-0 text-[1.05rem] font-bold text-[var(--color-text)]">{notYetHeading}</h3>
+      <p class="m-0 max-w-[68ch] text-base leading-[1.7] text-[var(--color-muted)]">{notYet}</p>
+    </section>
+  </div>
+</FeatureCard>
