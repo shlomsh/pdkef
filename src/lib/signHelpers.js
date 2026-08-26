@@ -1,4 +1,11 @@
-const STRONG_DIRECTION_CHAR = /[A-Za-z\u0591-\u07FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
+// "First strong character", per UAX #9: a run's direction comes from its first
+// character that has an inherent one, and *every* letter has one - not just the
+// Latin and Hebrew/Arabic ranges this used to list. Devanagari, Thai, Cyrillic,
+// Greek and CJK were all missing, so they matched nothing here, detection
+// returned null, and the element silently inherited the direction of whatever
+// was edited before it. Typing Hebrew and then Devanagari left the new box
+// right-anchored, right-aligned and the RTL toggle lit up for no visible reason.
+const STRONG_DIRECTION_CHAR = /\p{L}/u;
 const RTL_CHAR = /[\u0591-\u07FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
 // Digits and the punctuation an ID number or date is made of (327-69-8221,
 // 27/05/2008). None of it has an inherent direction, so without this a field

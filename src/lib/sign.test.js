@@ -296,6 +296,15 @@ describe('sign.js pure functions', () => {
       expect(getEffectiveTextDirection({ type: 'text', text: '27/05/2008', textDirection: 'rtl' })).toBe('ltr');
     });
 
+    it('should treat every non-RTL script as left-to-right, not just Latin', () => {
+      // Devanagari/Thai/Cyrillic/Greek/CJK have no RTL character in them, so
+      // they must resolve to ltr on their own rather than inheriting the
+      // direction of the element edited before them.
+      for (const text of ['नमस्ते भारत', 'สวัสดี', 'Привет', 'Γειά σου', 'こんにちは']) {
+        expect(getEffectiveTextDirection({ type: 'text', text, textDirection: 'rtl' })).toBe('ltr');
+      }
+    });
+
     it('should let typed language direction override the fallback direction', () => {
       expect(getEffectiveTextDirection({ type: 'text', text: 'Hello', textDirection: 'rtl' })).toBe('ltr');
       expect(getEffectiveTextDirection({ type: 'text', text: 'שלום', textDirection: 'ltr' })).toBe('rtl');
