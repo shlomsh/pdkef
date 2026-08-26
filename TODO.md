@@ -19,11 +19,17 @@ Six items. Nothing structural is outstanding; see "Migration status" below for w
 
 ### Launch / SEO
 
-Neither is blocked by anything technical.
+**Effectively shipped, one page short.** Both items below were open when this section was last
+written; checking the actual state (2026-08-26) found seven of the eight `src/content/content-pages/`
+entries already live, registered in `src/data/contentPages.js` with a hub, sitemap priority and
+changefreq, and cross-linked - not still-open work.
 
-- **Long-tail landing pages.** `/sign-pdf-no-signup`, `/offline-pdf-form-filler`,
-  `/open-source-pdf-editor`.
-- **OS-specific how-to guides**, internally linking into the tools. No outbound promo links.
+- **Long-tail landing pages.** `/sign-pdf-no-signup/`, `/open-source-pdf-editor/` (the two named here
+  originally), plus `/install-pdf-app/` and `/permanently-delete-text-from-pdf/` (added later, same
+  registry) are all live. **`/offline-pdf-form-filler` was never built** - zero references anywhere in
+  `src/` or `public/` - and is the one real remaining item here.
+- **OS-specific how-to guides**, internally linking into the tools, no outbound promo links: done. All
+  four (`how-to-sign-a-pdf-on-{mac,windows,android,iphone}`) exist and are registered.
 
 ### Editor / UX
 
@@ -51,7 +57,7 @@ Drawing text correctly is five stages, and the export has stages 4 and 5:
 
 | # | stage | have it? | defect when missing |
 |---|---|---|---|
-| 1 | Normalization | **no** | nikud lands outside its letter |
+| 1 | Normalization | yes, as of H7 (below) | nikud lands outside its letter |
 | 2 | Bidi (UAX#9) | **no** | `1,250` exports as `052,1` |
 | 3 | Itemization (script/direction/**font** runs) | **partial** | Arabic exports as nothing at all |
 | 4 | Shaping | yes (fontkit) | - |
@@ -66,8 +72,8 @@ something in it turns out to be wrong, say so rather than redesigning around it 
 The framing earns its keep by predicting: **layer 3 was found by asking what a missing itemization
 stage would look like, then looking.** It took one command. Arabic is lost in all seven fonts.
 
-Do the work on `main`. Layer 5 landed 2026-08-21 (see "Known small defects"). H5 through H8 below are
-open, ordered by what the failure does to the document rather than by how visible it is.
+Do the work on `main`. Layer 5 landed 2026-08-21 (see "Known small defects"); H7, H8 and H9 landed
+2026-08-26. Ordered below by what the failure does to the document rather than by how visible it is.
 
 **Definition of done for the epic** (one sentence, and it is provable rather than hopeful):
 
@@ -79,7 +85,8 @@ open, ordered by what the failure does to the document rather than by how visibl
 2. A line mixing Hebrew with Latin or with digits exports in the same visual order the editor shows,
    verified on a real download from `npm run build && npm run preview`, not in Node (H6).
 3. Pointed Hebrew renders in the download as the editor renders it, in all seven
-   `HEBREW_CAPABLE_FONTS`. **Arimo and Tinos currently fail this** and are the two to check (H7).
+   `HEBREW_CAPABLE_FONTS`. **Done (H7)** - Arimo and Tinos were the two that failed, at 0% and 33% mark
+   containment; a narrow, named, eight-combination exception remains (see H8) rather than full parity.
 4. Every guard can fail: break the layer it guards and watch it go red. A guard that cannot fail is the
    specific failure mode this epic already hit twice (H8).
 5. Standard gates green: `npm test`, `npm run typecheck`, `npm run test:css`, `npm run test:e2e`, plus
@@ -112,48 +119,66 @@ open, ordered by what the failure does to the document rather than by how visibl
   fontkit stops guessing per run; whether that alone suppresses the digit reversal is **worth measuring
   first** (`script` and `language` alone were measured and change nothing). Confirm whether comb fields
   need this at all before assuming they do.
-- **H7. Layer 1: composition before shaping.** The browser composes a base and its point into a
-  precomposed glyph; fontkit does not, so the point paints at the cluster origin. Measured: in Arimo the
-  dagesh of `בְּ` lands with **0%** of its ink inside the letter, in Tinos **33%**; the other five
-  survive by glyph design rather than by correctness. Pinning HarfBuzz's exact internal route is **useful, not
-  blocking**: the behaviour is already established by measurement (the browser renders all three input
-  orders pixel-identically in every bundled font), so the pre-pass can be designed against that and
-  validated by the guards. If a reference engine is wanted, take it as a **devDependency**
-  (`harfbuzzjs`, MIT, 1.2MB unpacked) rather than a machine-local `brew install harfbuzz` - versioned
-  with the repo, reproducible, runnable in CI, and it ships nothing to users. See H8, which is the
-  stronger reason to have it. Expected fix: NFC, plus the Hebrew presentation-form
-  table (~40 entries) that NFC deliberately excludes, gated on the font actually having a glyph for the
-  composed character. Latin needs only NFC (verified).
-- **H8. Guards that can fail.** *(Partly addressed 2026-08-22: `e2e/sign/hebrew-font-parity.spec.js` now
-  shapes through `resolveBidiRuns` with per-run direction, so it exercises the path `serialize` actually
-  uses instead of a `layout()` call that stopped existing when layer 2 landed; it asserts the face really
-  loaded; and it carries a `test.fixme` for the space-crossing case that turns green when H9 lands. The
-  mark-placement half below is still entirely open.)* Guard A (total advance) and Guard B (faithful transcription) are both
-  blind to every defect above: Hebrew combining marks have `xAdvance` 0 in all seven fonts, so Guard A
-  reads 0.0% agreement with every mark misplaced. Add, per the design record's "A guard that can see a
-  misplaced mark": **order-insensitivity** over an enumerated cluster corpus (no browser, targets layer
-  1 exactly), **mark containment** (pure arithmetic, per-font tolerance), and a small **browser
-  reference anchor**.
-  **Consider a real HarfBuzz oracle for this, as a devDependency only.** `harfbuzzjs` (MIT, 1.2MB
-  unpacked) shapes the same strings the export shapes and reports glyph ids and per-glyph positions, so
-  the guard could assert per-glyph parity across the whole enumerated corpus instead of inferring it
-  from advances - the one thing no current guard can do. **This is not the rejected "bundle HarfBuzz"
-  option**: as a dev dependency it never reaches a user, costs zero page weight, and leaves fontkit as
-  the shipped shaper. It buys the oracle without the payload, which is a different trade from the one
-  argued down in the design record. Every browser-side font test must force `document.fonts.load()` **and assert the
-  measurement discriminates** - seven fonts must produce seven distinct signatures. A probe that skipped
-  that produced a clean, confident, entirely meaningless table during this investigation, and the
-  repo has already hit the same class once before with 0x0 jsdom rects.
-
-- **H9. Layer 4: shape per whitespace segment, not per line.** Found 2026-08-22 while checking whether
-  any font should be dropped, and it is the cheapest fix in the epic. Blink shapes and caches text
-  **word by word** (its ShapeCache), so any font feature whose context crosses a space never fires in
-  the browser, while fontkit shapes the whole line and fires it. Measured over 25 realistic form
-  strings: Arimo and Tinos each disagree with the browser on 2 of 25 whole-line (`Tel Aviv` is off by
-  113 font units from a kern pair spanning the space), and **shaping per whitespace segment takes six
-  of the seven fonts to exact agreement**. Slots into H6's per-run loop: bidi already splits a line into
-  runs, this splits those runs further. **Two honest bounds to write into the guard, not discover
-  later:** parity here is parity with *Chrome specifically*, since word-by-word shaping is Blink's
+- ~~**H7. Layer 1: composition before shaping.**~~ **Done 2026-08-26.** The browser composes a base and
+  its point into a precomposed glyph; fontkit ran no composition step, so the point painted at the
+  cluster origin. Measured: in Arimo the dagesh of `בְּ` landed with **0%** of its ink inside the letter,
+  in Tinos **33%**. Fixed per the design record: `composeHebrewClusters` in `src/lib/hebrewComposition.js`
+  runs NFC (undoing any precomposed paste and canonically reordering marks - the step that makes typed,
+  reordered and precomposed input all collapse to one string before composition ever runs) and then
+  recomposes the 34 Hebrew presentation forms (U+FB1D-FB4E) NFC's own Composition Exclusion Table
+  deliberately leaves decomposed, gated on the font actually having a glyph for the composed character
+  (the same gate HarfBuzz's own Hebrew composer uses). **The table is derived from the platform's own
+  NFD/NFKD decomposition data at module load, not hand-transcribed** - a codepoint qualifies only when
+  its NFD equals its NFKD, which is exactly "true canonical decomposition, not the `<font>` alternate-glyph
+  compatibility mappings at FB20-FB29 or the FB4F ligature". A composable mark is not always adjacent to
+  its base (`בְּ`'s sheva, ccc 10, sits between the base and dagesh, ccc 21), so the algorithm replicates
+  the "blocked" rule from the Unicode canonical composition algorithm (UAX #15 D117) rather than matching
+  adjacent pairs only, extending a composed form past any earlier mark whose combining class is lower.
+  Wired into both `shapedWidth` and `drawShapedRun` in `src/editor/registry/text.ts`, ahead of
+  `fk.layout()`, so both the per-line and per-comb-cell callers get it without `serialize` having to know.
+  `harfbuzzjs` was considered as a devDependency oracle but turned out unnecessary: fontkit's own
+  behaviour under composition was directly measurable and verifiable against the guards below.
+- ~~**H8. Guards that can fail.**~~ **Done 2026-08-26**, all three tiers from the design record's "A guard
+  that can see a misplaced mark": **Tier 1** (order-insensitivity, no browser) and **Tier 2** (mark
+  containment, pure arithmetic) live in `src/editor/registry/hebrewMarkPlacement.test.js`, calling the
+  real `drawShapedRun` (not a bypassed `layout()` call, the exact mistake Guard A made once already) for
+  every entry in the enumerated corpus (`src/lib/hebrewCombiningCorpus.js`, generated from the same
+  presentation-form table H7 uses) across all seven `HEBREW_CAPABLE_FONTS`. **Tier 3** (small browser
+  reference anchor) is `e2e/sign/hebrew-composition-guard.spec.js`: a handful of clusters per font,
+  asserting Chromium itself renders every canonical ordering pixel-identically - it checks the browser
+  against itself, not against the export, which is what makes it the guard that fails if a browser
+  update moves the reference out from under this fix.
+  **Proven capable of failing, twice.** Before H7 landed, Tier 1/2 failed 310 of 483 cases through the
+  real, unfixed `drawShapedRun` - not a contrived setup. After the fix, a deliberate no-op sabotage of
+  `composeHebrewClusters` reproduced 240 failures; Tier 3 was sabotaged the same way (one variant
+  substituted with an unrelated string) and failed in every font before being reverted.
+  **One narrow, real, measured exception found while building Tier 2, not swept under a loose tolerance.**
+  Composing a presentation form from a narrow base letter (yod, vav, zayin, final kaf) plus dagesh, or
+  vav plus holam, can change that glyph's own metrics enough that SHEVA's existing GPOS anchor - tuned
+  for the plain, uncomposed base - lands partly or wholly outside the composed glyph in a specific
+  (font, letter) pair: Arimo (yod+hiriq, yod+dagesh), Tinos (final kaf+dagesh), Cousine (vav+dagesh,
+  zayin+dagesh, yod+dagesh, nun+dagesh), Alef (vav+holam) - eight of 238 font×entry combinations. This is
+  a font-authored anchor/ligature-attachment gap for a glyph real documents essentially never asked these
+  fonts to host a second mark on before this fix started reaching it, not a regression in the composition
+  algorithm itself: SHEVA is never the mark H7 actually composes in any of these cases (Tier 1 already
+  proves the mark H7 targets - dagesh/holam - lands correctly and order-insensitively in every font), and
+  OpenType mark attachment is declarative font data read identically by any conformant shaper, so a
+  browser reads the exact same anchor. Named and pinned in `hebrewMarkPlacement.test.js`'s
+  `KNOWN_SHEVA_DIVERGENCE` (mirroring `RETIRED_FONTS`/`KNOWN_DIVERGENCE_PX`'s precedent) at today's exact
+  measured value, so any further regression still fails. **Not investigated further, and worth a look**:
+  whether this is a genuine font GPOS gap or a fontkit mark-to-ligature-attachment limitation relative to
+  HarfBuzz's fuller cluster-tracking (a plausible, narrower version of "Why no engine swap fixes this" -
+  worth checking with a real browser render of these eight specific clusters before assuming either way).
+- ~~**H9. Layer 4: shape per whitespace segment, not per line.**~~ **Done - landed before this entry was
+  updated, TODO.md just never struck it through.** Verified 2026-08-26: `toShapingSegments` is wired into
+  `serialize`'s per-line run processing in `src/editor/registry/text.ts`, and the `test.fixme` H8's entry above once referenced
+  is gone from `hebrew-font-parity.spec.js`. Found 2026-08-22 while checking whether any font should be
+  dropped: Blink shapes and caches text **word by word** (its ShapeCache), so any font feature whose
+  context crosses a space never fires in the browser, while fontkit shapes the whole line and fires it.
+  Measured over 25 realistic form strings: Arimo and Tinos each disagreed with the browser on 2 of 25
+  whole-line (`Tel Aviv` was off by 113 font units from a kern pair spanning the space), and shaping per
+  whitespace segment took six of the seven fonts to exact agreement. Two honest bounds this fix does not
+  claim past: parity here is parity with *Chrome specifically*, since word-by-word shaping is Blink's
   caching strategy rather than a spec; and advance parity is necessary but not sufficient, because two
   fonts can agree on width while choosing different glyphs.
 

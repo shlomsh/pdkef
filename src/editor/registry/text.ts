@@ -23,6 +23,7 @@ import { COMB_MIN_CELL_EM, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_P
 import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM } from '../../constants/signGeometry.js';
 import { combCellCount, combCharacters, combCellCenterFraction, isComb } from '../../lib/comb.js';
 import { resolveBidiRuns } from '../../lib/bidiRuns.js';
+import { composeHebrewClusters } from '../../lib/hebrewComposition.js';
 import { getEffectiveTextDirection, hexToRgbFractions } from '../../lib/signHelpers.js';
 import { resolveFontFamily, textBoxPaddingEm } from '../../lib/fonts.js';
 import type { TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch, WidthFloorInput, WidthResizeInput, WidthResizePatch } from './types.ts';
@@ -198,6 +199,16 @@ function fontDictionaryKey(page: PDFPage, pdfFont: PDFFont): PDFName {
  * single-direction string); pass it for a run produced by
  * `resolveBidiRuns()` (src/lib/bidiRuns.js), which already knows the run's
  * true direction and must not leave fontkit to re-derive it.
+ *
+ * Both this and `drawShapedRun` below run `text` through
+ * `composeHebrewClusters` (src/lib/hebrewComposition.js) before handing it to
+ * `fk.layout()` - fontkit runs no composition step of its own, so a Hebrew
+ * point separated from its base by another mark (`בְּ`'s sheva sitting
+ * between the base and dagesh) never reaches the presentation-form glyph the
+ * browser composes it into, and paints at the cluster origin instead. See
+ * docs/hebrew-text-shaping-export.md, "Layer 1". Applied here rather than
+ * once in `serialize` so both the per-line and per-comb-cell callers get it
+ * for free.
  */
 /**
  * Splits one resolved bidi run into the segments the browser would shape
@@ -232,7 +243,8 @@ function toShapingSegments(run: { text: string; direction: 'ltr' | 'rtl' }): { t
 export function shapedWidth(pdfFont: PDFFont | null, text: string, size: number, direction?: BidiDirection): number | null {
   const fk = fontkitFont(pdfFont);
   if (!fk) return null;
-  const { positions } = fk.layout(text, undefined, undefined, undefined, direction);
+  const composedText = composeHebrewClusters(text, (cp) => fk.hasGlyphForCodePoint(cp));
+  const { positions } = fk.layout(composedText, undefined, undefined, undefined, direction);
   return positions.reduce((sum, p) => sum + p.xAdvance, 0) * size / fk.unitsPerEm;
 }
 
@@ -252,7 +264,8 @@ export function drawShapedRun(page: PDFPage, { text, pdfFont, size, x, y, color,
   const fk = fontkitFont(pdfFont);
   if (!fk) throw new Error('drawShapedRun requires a font with a reachable fontkit instance');
   assertNotSubsetEmbedded(pdfFont);
-  const { glyphs, positions } = fk.layout(text, undefined, undefined, undefined, direction);
+  const composedText = composeHebrewClusters(text, (cp) => fk.hasGlyphForCodePoint(cp));
+  const { glyphs, positions } = fk.layout(composedText, undefined, undefined, undefined, direction);
   const scale = size / fk.unitsPerEm;
   const fontKey = fontDictionaryKey(page, pdfFont);
   const ops = [pushGraphicsState(), beginText(), setFillingColor(color), setFontAndSize(fontKey, size)];
