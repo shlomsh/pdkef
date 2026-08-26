@@ -14,6 +14,7 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { drawShapedRun, normalizeTabsForBidi, shapedWidth, stripInvisibleFormatting, unrepresentableCharacters } from './text.ts';
 import { resolveBidiRuns } from '../../lib/bidiRuns.js';
+import { composeHebrewClusters } from '../../lib/hebrewComposition.js';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 
@@ -37,8 +38,13 @@ describe('drawShapedRun', () => {
   it('places every glyph at the shaper\'s exact position - one Tm per glyph, none batched', async () => {
     const font = await embedHeebo();
     const fk = font.embedder.font;
-    const text = 'שָׁלוֹם'; // shalom with nikud - 7 glyphs, marks carry a nonzero xOffset
-    const { glyphs, positions } = fk.layout(text);
+    const text = 'שָׁלוֹם'; // shalom with nikud
+    // drawShapedRun composes Hebrew presentation forms before shaping (H7 -
+    // see hebrewComposition.js), so the "expected" reference has to be
+    // shaped from the same composed text, not the raw typed one: vav+holam
+    // here composes to FB4B, so this is fewer than the 7 raw codepoints.
+    const composedText = composeHebrewClusters(text, (cp) => fk.hasGlyphForCodePoint(cp));
+    const { glyphs, positions } = fk.layout(composedText);
     const size = 24;
     const scale = size / fk.unitsPerEm;
     const startX = 100;
@@ -67,7 +73,8 @@ describe('drawShapedRun', () => {
     const font = await embedHeebo();
     const fk = font.embedder.font;
     const text = 'שָׁלוֹם';
-    const { positions } = fk.layout(text);
+    const composedText = composeHebrewClusters(text, (cp) => fk.hasGlyphForCodePoint(cp));
+    const { positions } = fk.layout(composedText);
     const hasRise = positions.some((p) => p.yOffset !== 0);
 
     const page = mockPage();
