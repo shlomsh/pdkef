@@ -34,3 +34,12 @@ jobs:
       with:
         name: regenerated-export-render-baseline
         path: e2e/sign/fixtures/exportRenderBaseline.json
+
+    # Artifact download goes through Azure Blob Storage, which this session's
+    # network policy can't reach - print the file straight into the job log
+    # (fetchable via the Actions API) as a fallback retrieval path.
+    - name: Print regenerated baseline to log
+      run: |
+        echo "===BASELINE-START==="
+        cat e2e/sign/fixtures/exportRenderBaseline.json
+        echo "===BASELINE-END==="
