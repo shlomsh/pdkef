@@ -113,16 +113,43 @@ describe('drawShapedRun', () => {
     expect(pageB.node.newFontDictionary).toHaveBeenCalledTimes(1);
   });
 
-  it('refuses to run against a subset-embedded font instead of silently emitting wrong glyph ids (small defect #2)', async () => {
+  it('emits ids remapped through the subset embedder, not raw fontkit glyph ids, against a subset-embedded font (small defect #2)', async () => {
     const doc = await PDFDocument.create();
     doc.registerFontkit(fontkit);
     const subsetFont = await doc.embedFont(
       new Uint8Array(readFileSync(join(FONT_DIR, 'Heebo-Regular.ttf'))),
       { subset: true },
     );
+    const fk = subsetFont.embedder.font;
+    const text = 'שלום';
+    const composedText = composeHebrewClusters(text, (cp) => fk.hasGlyphForCodePoint(cp));
+    const { glyphs: rawGlyphs } = fk.layout(composedText);
 
-    expect(() => drawShapedRun(mockPage(subsetFont), { text: 'שלום', pdfFont: subsetFont, size: 24, x: 0, y: 0, color: rgb(0, 0, 0) }))
-      .toThrow(/subset/i);
+    const page = mockPage(subsetFont);
+    drawShapedRun(page, { text, pdfFont: subsetFont, size: 24, x: 0, y: 0, color: rgb(0, 0, 0) });
+
+    const embedder = subsetFont.embedder;
+    const tjOps = page.pushOperators.mock.calls[0].filter((op) => op.name === 'Tj');
+    expect(tjOps).toHaveLength(rawGlyphs.length);
+    tjOps.forEach((op, i) => {
+      // The emitted hex code must be the subset-local id the embedder assigned
+      // via includeGlyph(), not the raw fontkit glyph id - and that id must
+      // have actually been registered into embedder.glyphIdMap by
+      // remapGlyphForSubset (mirroring what encodeText() does internally),
+      // otherwise computeWidths()/createCmap() would silently produce a
+      // wrong /W array and ToUnicode CMap for this glyph.
+      const rawGlyph = rawGlyphs[i];
+      const expectedSubsetId = embedder.glyphIdMap.get(rawGlyph.id);
+      expect(expectedSubsetId).toBeDefined();
+      const emittedHex = op.args[0].value;
+      const emittedId = parseInt(emittedHex, 16);
+      expect(emittedId).toBe(expectedSubsetId);
+      // And the subset id must differ from the raw id whenever fontkit's own
+      // subset numbering (1-based, in registration order) doesn't coincide
+      // with the font's original glyph id - i.e. this really is a remap, not
+      // an accidental passthrough for this particular font/string.
+      expect(embedder.glyphs[expectedSubsetId - 1]).toBe(rawGlyph);
+    });
   });
 
   it('threads an explicit `direction` through to fontkit\'s layout() instead of silently ignoring it (H6)', async () => {

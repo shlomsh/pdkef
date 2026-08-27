@@ -78,7 +78,7 @@ export async function signPdf(file, elements, onProgress) {
     if (loadedFonts[fileName]) return loadedFonts[fileName];
     const res = await fetch(`/fonts/${fileName}`);
     if (!res.ok) throw new Error(`${fileName}: ${res.status}`);
-    const customFont = await pdfDoc.embedFont(await res.arrayBuffer());
+    const customFont = await pdfDoc.embedFont(await res.arrayBuffer(), { subset: true });
     loadedFonts[fileName] = customFont;
     return customFont;
   };

@@ -46,6 +46,13 @@ jobs:
     - name: Verify every class string resolves to CSS
       run: node scripts/check-class-resolution.js
 
+    # Source-side, so it needs no build. Guards the fontkit TTF subsetter (used by
+    # sign.js's `{ subset: true }` font embedding) against unaligned `glyf` outlines,
+    # which subset into corrupt/missing glyphs in the exported PDF. See the script's
+    # header comment for the Kalam-Regular/Kalam-Bold incident this catches.
+    - name: Verify bundled font glyf alignment
+      run: npm run test:fonts
+
     - name: Build
       run: npm run build
 
