@@ -1,0 +1,251 @@
+/* @font-face declarations for the bundled type catalogue (src/lib/fonts.js).
+   Split out of global.css (2026-08-27): these 38 rules / ~5.4KB are only ever
+   needed where the editor actually renders text in one of these families -
+   the Sign editor's text elements (SignTool/nodes/TextNode.tsx), typed
+   signatures (SignatureDialog.tsx), and the font picker's own previews
+   (FontPickerMenu.tsx, reached from ElementToolbar.tsx). Redact has no text
+   element type (`type` is blackout/blur/whiteout/delete - see
+   PdfRedactTool.tsx) and imports none of those components, so it never
+   needed these rules.
+
+   global.css inlines into all 20 built pages (build.inlineStylesheets:
+   'always' - see astro.config.mjs and CLAUDE.md Part II §5, do not flip
+   that). Every rule added there is paid for by every page. This file is
+   imported only from src/pages/sign.astro, so it inlines into /sign/'s own
+   bundle and nowhere else - verify with a grep over dist/ after a build
+   rather than trusting this comment. If a font, style dialog, or picker
+   preview surfaces text in a bundled family, keep the row in fonts.js's
+   SCRIPT_FALLBACKS honest (see CLAUDE.md) and keep its @font-face here, not
+   back in global.css. */
+
+/* --- Handwriting Fonts --- */
+@font-face {
+  font-family: 'Caveat';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Caveat-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Caveat';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Caveat-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Dancing Script';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/DancingScript-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Dancing Script';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/DancingScript-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Great Vibes';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/GreatVibes-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Gveret Levin';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/GveretLevin-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Kalam';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Kalam-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Kalam';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Kalam-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Mali';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Mali-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Mali';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Mali-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Mali';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/Mali-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Mali';
+  font-style: italic;
+  font-weight: 700;
+  src: url('/fonts/Mali-BoldItalic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Pacifico';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Pacifico-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Sacramento';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Sacramento-Regular.ttf') format('truetype');
+}
+
+/* --- Text tool fonts --- */
+@font-face {
+  font-family: 'Arimo';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Arimo-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Arimo';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Arimo-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Arimo';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/Arimo-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Arimo';
+  font-style: italic;
+  font-weight: 700;
+  src: url('/fonts/Arimo-BoldItalic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Tinos';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Tinos-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Tinos';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Tinos-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Tinos';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/Tinos-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Tinos';
+  font-style: italic;
+  font-weight: 700;
+  src: url('/fonts/Tinos-BoldItalic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Cousine';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Cousine-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Cousine';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Cousine-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Cousine';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/Cousine-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Cousine';
+  font-style: italic;
+  font-weight: 700;
+  src: url('/fonts/Cousine-BoldItalic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Assistant';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Assistant-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Assistant';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Assistant-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Heebo';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Heebo-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Heebo';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Heebo-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Alef';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Alef-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Alef';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Alef-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/PTSans-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/PTSans-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'PT Sans';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/PTSans-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'PT Sans';
+  font-style: italic;
+  font-weight: 700;
+  src: url('/fonts/PTSans-BoldItalic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Almarai';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Almarai-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Almarai';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Almarai-Bold.ttf') format('truetype');
+}

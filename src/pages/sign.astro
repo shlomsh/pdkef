@@ -2,6 +2,10 @@
 import ToolPageLayout from '../layouts/ToolPageLayout.astro';
 import PdfSignTool from '../components/PdfSignTool.tsx';
 import { toolsBySlug } from '../data/tools.js';
+// Only /sign/ renders text in the bundled font catalogue (typed signatures,
+// text elements, the font picker) - see editorFonts.css's header comment.
+// Scoped here, not in ToolPageLayout, so the other 19 pages don't inline it.
+import '../styles/editorFonts.css';
 
 const tool = toolsBySlug['sign'];
 ---

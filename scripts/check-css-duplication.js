@@ -108,7 +108,22 @@ const distDir = path.join(__dirname, '..', 'dist');
 // re-based (saying so, as above) whenever pages are added. It is not a measure of
 // style quality on its own; MAX_PAGE_DEAD_BYTES and MAX_SINGLE_PAGE_UTILITIES
 // below are the two here that are page-count-invariant and do measure that.
-const MAX_DUPLICATION_FACTOR = 9.85;
+//
+// Lowered again (9.85x -> 9.15x) on 2026-08-27 after the 38 @font-face rules
+// (5,374 bytes) in global.css moved to src/styles/editorFonts.css, imported
+// only from sign.astro. Six of those rules had just been added (Almarai, for
+// Dari/Farsi) and pushed the previously-passing 9.85x limit to 9.88x - global
+// rules are shared-stylesheet bytes multiplied by all 20 pages same as any
+// other rule, and these were only ever needed on /sign/. Measured after the
+// move: 9.10x (998,544 bytes shipped / 109,671 bytes distinct, page count
+// unchanged at 20), so the limit is set just above that at 9.15x. Distinct
+// bytes did not change (109,671 -> 109,671): moving a rule to a different
+// file doesn't touch how many distinct bytes exist site-wide, only how many
+// pages pay for it. MAX_PAGE_DEAD_BYTES and MAX_SINGLE_PAGE_UTILITIES are
+// unmoved: @font-face rules have no class selector, so they were never
+// counted in either metric (measured identical before/after: 28,513 /
+// 131) and this change has nothing to say about them.
+const MAX_DUPLICATION_FACTOR = 9.15;
 const MAX_PAGE_DEAD_BYTES = 29_000;
 const MAX_SINGLE_PAGE_UTILITIES = 148;
 
