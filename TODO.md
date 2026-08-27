@@ -264,28 +264,63 @@ scripts have no proof.**
 Ordered below so every task leaves the repo better than it found it and can be the last one. Nothing
 before W9 depends on W9, and W4 through W8 are independent of each other.
 
-- **W1. Render the produced PDF and look at the ink.** The guard that does not exist. `sign.test.js`
-  already parses exported bytes with pdf.js and reads text items, so "no test touches the export" is not
-  true - but **nothing renders the output and compares it**, and that is the failure class this project
-  has been bitten by four times (a substituted font, a corrupted `glyf`, a subset missing composite
-  components, a subset missing a glyph - every one of them passing `pdffonts`, `pdftotext` and a zero
-  exit code). Build a small element corpus, run `signPdf`, rasterise with **pdf.js inside the same
-  browser** that draws the reference, compare against per-case baselines. **Never use "is there ink" as a
-  pass condition**: `.notdef` is commonly a filled box that draws *more* ink than the glyph it replaced,
-  so a regression can raise the number. Carry a non-vacuity assertion (distinct cases must produce
-  distinct signatures) - the same assertion that caught the font-loading probe comparing one system font
-  against itself seven times. Do not revive cross-rasteriser diffing (poppler against Chromium); its
-  measured noise floor is 80-88% and per font. **First, because it is the safety net that makes every
-  task below revertible with confidence.**
-- **W2. Close the NFC coverage seam.** A live silent-content-loss bug, measured on `main` 2026-08-27.
-  `unrepresentableCharacters` judges coverage *before* `composeHebrewClusters`, which opens with
-  `text.normalize('NFC')` - and NFC is not Hebrew-specific. Reproduced: `שלום ά` (Hebrew plus a
-  *decomposed* Greek alpha-with-tonos) resolves to Heebo, passes the coverage check because Heebo has
-  both α and U+0301, then NFC composes U+03AC, which Heebo does not have, and one `.notdef` ships in a
-  signed document. The mirror case is a false refusal: Alef has no U+FB1D glyph but does have its
-  decomposition, so a pasted U+FB1D is refused today while the drawing path would have handled it. One
-  root cause: **coverage must be judged against the string that reaches `layout()`, never the string that
-  was typed.** One function's input plus a test in each direction.
+- ~~**W1. Render the produced PDF and look at the ink.**~~ **Done 2026-08-27.** New guard under
+  `e2e/sign/`: `export-render-guard.spec.js`, `fixtures/exportRenderHarness.js`,
+  `fixtures/exportRenderCorpus.js`, `fixtures/exportRenderBaseline.json`. Bundles the real `signPdf`
+  (plus pdf-lib and pdf.js) with esbuild into the built `dist/`, loads it via a same-origin
+  `<script src>` under the app's CSP (the same trick, and the same reason, as `shapingGuardHarness.js`),
+  builds a blank 420x260pt page per case, runs `signPdf`, rasterises page 1 with pdf.js in the same
+  browser at 3x, and reduces the page to a 48x24 grid of per-cell mean ink quantised to one byte, stored
+  base64 as a committed baseline. 21 cases. Distance metric is a symmetric difference normalised by ink
+  present, the same shape as `shapingGuardHarness.js`'s `pixelDiffPct`, one level coarser. Determinism
+  measured in-session (every case exported and rasterised twice): noise floor 0.00%. `MIN_TOLERANCE_PCT`
+  is 12.5, calibrated rather than declared: with no Linux or Docker available locally, re-rendering the
+  whole corpus at 1.01x scale (max 5.43%, worst case `hebrew-heebo`) and translating the render by 0.5
+  and 1 device pixel (max 4.17% and 8.18%, worst case `comb-ltr` both times) stood in for cross-rasteriser
+  difference. Worst overall 8.18%, times a 1.5x multiplier, rounded to 12.5. **Worth recording:** the
+  originally declared floor of 8 did not clear the measured proxy (8.18 > 8) - an unmeasured floor had
+  been sitting just under the noise it was meant to absorb, green locally and red in CI. `NON_VACUITY_MARGIN
+  = 2` is derived, not chosen: by the triangle inequality, distinct cases stay strictly closer to their
+  own baseline than to any other case's only when distinct cases sit more than 2x tolerance apart; the
+  spec asserts that property directly, not only through the closest-pair proxy. Final run: closest
+  distinct pair `hebrew-arimo`/`mixed-rtl-paragraph` at 31.65% (2.5x tolerance). The non-vacuity
+  assertion caught a real defect on its very first capture, and it was in the corpus rather than the
+  product: for an RTL element `element.left` is the box's right anchor edge, so every Hebrew and Arabic
+  case had been anchored at 8% of the page and drawn growing leftward off the sheet, leaving only a
+  clipped tail - two different RTL strings reduced to the same fragment and read as 0.00% apart. An "is
+  there ink?" pass condition would have called that green. **Stated limitation:** at a 12.5% relative
+  tolerance a defect smaller than roughly an eighth of a case's ink passes - a combining mark a point off
+  its base, a fractional baseline shift, a moved kern pair, none of these are reported. That is a
+  division of labour with the per-script shaping guards, which resolve far finer differences because
+  they calibrate in-session and never leave the browser, but which compare fontkit against Chrome before
+  a PDF exists and never look at the file. A green run here is not evidence of shaping fidelity, and no
+  per-script guard should be retired because this exists.
+- ~~**W2. Close the NFC coverage seam.**~~ **Done 2026-08-27.** `unrepresentableCharacters` in
+  `src/editor/registry/text.ts` now judges coverage against the string that reaches fontkit's `layout()`:
+  split on `/\r?\n/` first, then per line `composeHebrewClusters(stripInvisibleFormatting(line),
+  thisFontsHasGlyph)`. `resolveBidiRuns` is deliberately not pulled in - bidi reorders and splits but
+  changes no characters, so it cannot affect a character-set question. Measured before/after on the real
+  bundled TTFs: `'שלום ' + U+03B1 U+0301` (decomposed Greek alpha plus combining acute) in Heebo was
+  `[]`, now reports U+03AC (Heebo has U+03B1 and U+0301 but not U+03AC). `String.fromCodePoint(0xFB1D)`
+  pasted, in Alef, was refused, now `[]` (Alef lacks U+FB1D but has U+05D9 and U+05B4, and the
+  composition gate correctly leaves it decomposed). Tests added in two places deliberately:
+  `src/editor/registry/textShaping.test.js` gets a "the normalization seam" describe block for the
+  low-level function, `src/lib/textCoverage.test.js` gets "the normalization seam, at policy level" for
+  `findUnrepresentableCharacters`, the shared rule both `signPdf`'s refusal and the editor's
+  while-typing notice run through. Both directions in both places, each test asserting its own premise
+  against the real font bytes. **W2 turns a silent loss into a refusal, not into a working export** -
+  `שלום ά` in Heebo now stops the download. That is the fail-safe property the design record argues for;
+  W3's coverage-first rule is what later turns it into a correct substitution to Arimo, which covers
+  both. The policy-level test carries a comment saying its assertion is meant to change under W3. One
+  correction for whoever writes W3's tests: the literal character 'יִ' is already decomposed (U+05D9
+  U+05B4) and does not reproduce the false-refusal case - `String.fromCodePoint(0xfb1d)` is required. A
+  newline-boundary regression test was deliberately not added: no bundled font has a Hebrew
+  presentation-form glyph while lacking the corresponding isolated combining mark, so no real case can
+  distinguish per-line from glued-line composition; the per-line split is implemented anyway because it
+  matches `serialize`'s own per-line contract. The comb path in `src/lib/textCoverage.js` was checked and
+  deliberately not changed: `combCharacters()` splits on grapheme clusters, so a cell boundary can never
+  fall inside a base-plus-marks run, and joining cells with '' reconstructs exactly what per-cell
+  composition would produce.
 - **W3. The coverage-first selection rule.** Replace `resolveFontSubstitution`. Today a mixed-script
   element resolves by whichever `SCRIPT_FALLBACKS` row matches first, which is why `שלום Hello مرحبا` is
   refused - Hebrew is row 1, Hebrew-capable fonts have no Arabic. Under a coverage rule it would be
@@ -365,25 +400,32 @@ before W9 depends on W9, and W4 through W8 are independent of each other.
   answered - there is nothing contextual there. A naive comparison that forgets to reverse the expected
   sequence makes *every* RTL string look contextually substituted; that mistake was made and caught while
   writing the spike.
-- **W9. The open architecture decision, deliberately not pre-empted.** Coverage is necessary, not
-  sufficient: constraint 1 guarantees the same font *file* on both sides, never the same output from it.
-  Two live options, both written up in full in the design record with costs, and Shlomi asked to see both
-  rather than have one picked:
-  - **Keep two engines, harden the guards.** Add `harfbuzzjs` as a **devDependency oracle** (ships
-    nothing, zero page weight, versioned with the repo, answers per-glyph parity questions no shipped
-    guard can) and extend the guard map to Thai, Cyrillic and Greek. Cost: the table above stays the
-    shape it is, forever, one guard per `(font, script)` pair.
-  - **Paint the editor from the exporter's own shaper** - `fk.layout()` plus `glyph.path.toSVG()` into a
-    `Path2D` layer, textarea kept transparent as the input and accessibility layer. **The only option
-    that makes agreement structural**, and not speculative: `shapingGuardHarness` already does exactly
-    this reconstruction in a browser, and `TextNode` already ships the layering pattern (comb mode stacks
-    a display layer, sets `color: 'transparent'`, keeps `caretColor`). Costs, plainly: caret and
-    selection geometry still come from the textarea and drift by exactly the divergence magnitude (0.0%
-    on six of seven Hebrew fonts today, non-zero on the `calt` faces); IME composition needs a fallback
-    to browser rendering for the duration of the session; and intrinsic sizing has to move off
-    `.text-measure` onto `shapedWidth`, which is the change with the most knock-on surface (RTL
-    anchoring, comb width floor, resize). Bundle cost is zero - fontkit is already loaded in the editor.
-    Land Sign only, behind a flag; revertible by deleting the paint layer and un-hiding the text.
+- ~~**W9. The open architecture decision, deliberately not pre-empted.**~~ **Decided 2026-08-27: Option A
+  - keep two engines, harden the guards.** Coverage is necessary, not sufficient: constraint 1 guarantees
+  the same font *file* on both sides, never the same output from it. Two live options were written up in
+  full in the design record with costs, and Shlomi picked between them rather than have one pre-empted:
+  - **Chosen - keep two engines, harden the guards.** His reasoning, in his own words: "this is a form
+    filling and signing app, not a freeform paint tool." A form field and a signature line are short,
+    known strings, mostly the user's own name and a consent form's words, not arbitrary prose in an
+    arbitrary font - the general-editor argument for making agreement structural weighs less here than it
+    would in a freeform tool. On what counts as good enough: "if the overall diffs are small it is good
+    enough." **The acceptance criterion for a `(font, script)` pair changes accordingly**: no longer pixel
+    parity with the browser, but **no wrong letterforms and no missing text**. A small measured
+    divergence in placement is acceptable; a glyph-level difference is not - exactly the line the Playpen
+    Sans Hebrew removal already drew (dropped because fontkit and HarfBuzz chose different letterforms
+    from its `calt`, not because it was a couple of pixels off). **Scope of the hardening: a few simple
+    tests**, deliberately proportionate - not a new dependency, not an architectural change. Concretely:
+    extend the existing `shapingGuardHarness` (already does per-script pixel parity in a browser, at zero
+    new dependency cost) to the map's unproven pairs - Latin (the four `calt` faces, W8 above), Thai,
+    Cyrillic and Greek. The `harfbuzzjs` **devDependency oracle** from the write-up below was considered
+    and **not** adopted: it ships nothing and costs zero page weight, but the existing harness
+    already answers the parity question it would answer, which is why "a few simple tests" was sufficient
+    scope. §1.3's guard map in the design record stays a correctness obligation, not a quality dashboard
+    - that demotion was the other option's consequence, and it was not taken.
+  - **Not chosen, kept as backlog - paint the editor from the exporter's own shaper.** Not rejected on its
+    merits; recorded below as a separate backlog item so it is a real tracked item rather than a sentence
+    buried in this strikethrough. See that entry and design-record §5 Option 2 / §6.2 for the full
+    write-up, costs, and what would justify reopening it.
 
   **Ruled out, so it is not reopened.** *Browser authoritative* is not an option at all: no browser API
   yields glyph IDs (`measureText` gives advances; SVG's `getStartPositionOfChar` gives per-*character*
@@ -398,6 +440,15 @@ before W9 depends on W9, and W4 through W8 are independent of each other.
   referenced from the HTML, and a WASM shaper would be a runtime `import()` like pdfjs and fontkit
   already are - so "it fits the 48,000 budget" would be true and misleading. The real number is bytes to
   a user on top of the ~614KB brotli the editor already lazy-loads.
+- **W10. Backlog (deferred by W9, not rejected): paint the editor from the exporter's own shaper.** The
+  structural alternative to W9's chosen hardening - `fk.layout()` plus `glyph.path.toSVG()` into a
+  `Path2D` layer over a transparent, `caretColor`-preserving textarea, making agreement between editor and
+  export structural rather than proven per font per script. Full write-up, costs (caret/selection drift,
+  an IME fallback, moving intrinsic sizing off the browser onto `shapedWidth`) and what it does and does
+  not fix: design record §5 Option 2, §6.2, §6.3, §6.4. Worth doing if a bundled face is found to draw
+  genuinely different letterforms between fontkit and HarfBuzz (a real Playpen repeat) that the catalogue
+  wants to keep rather than drop - at that point the disagreement has to be resolved structurally instead
+  of by curation, and the argument that decided W9 no longer holds.
 
 ### Known small defects
 

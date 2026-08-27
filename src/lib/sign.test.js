@@ -138,13 +138,17 @@ describe('sign.js signPdf', () => {
       left: 10,
       top: 10,
       text: 'Signed',
-      fontFamily: 'Caveat',
+      // Caveat, Dancing Script, Kalam and Mali all ship real Bold files now
+      // (see CLAUDE.md's font-face guidance), so this fallback path needs a
+      // family that genuinely still has none anywhere upstream. Great Vibes
+      // and Sacramento (and Gveret Levin, Pacifico) qualify.
+      fontFamily: 'Great Vibes',
       fontWeight: 'bold',
       fontSize: 20,
       color: '#000000'
     };
 
-    // Should not throw despite Caveat-Bold.ttf not existing in public/fonts/.
+    // Should not throw despite GreatVibes-Bold.ttf not existing in public/fonts/.
     const blob = await signPdf(file, [element]);
     expect(blob).toBeInstanceOf(Blob);
 
@@ -153,8 +157,8 @@ describe('sign.js signPdf', () => {
     // (proving it didn't just silently fall through to a Helvetica StandardFont
     // with zero custom-font fetches).
     const requestedFiles = global.fetch.mock.calls.map(([url]) => String(url));
-    expect(requestedFiles.some((u) => u.includes('Caveat-Bold.ttf'))).toBe(true);
-    expect(requestedFiles.some((u) => u.includes('Caveat-Regular.ttf'))).toBe(true);
+    expect(requestedFiles.some((u) => u.includes('GreatVibes-Bold.ttf'))).toBe(true);
+    expect(requestedFiles.some((u) => u.includes('GreatVibes-Regular.ttf'))).toBe(true);
   });
 
   describe('refuses rather than silently drop characters no bundled font can draw (H5)', () => {

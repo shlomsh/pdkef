@@ -1,9 +1,10 @@
+import { useId } from 'preact/hooks';
 import { PilcrowLeft, PilcrowRight } from 'lucide-preact';
 import ColorPickerMenu from './ColorPickerMenu.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
 import { getEffectiveTextDirection } from '../lib/sign.js';
-import { resolveFontFamily } from '../lib/fonts.js';
+import { resolveFontFamily, hasRealFace } from '../lib/fonts.js';
 import { combCellCount, isComb } from '../lib/comb.js';
 import { MAX_COMB_CELLS } from '../constants/signGeometry.js';
 import styles from './EditorControls.module.css';
@@ -33,12 +34,47 @@ export default function ElementToolbar({
   const isDrawnShape = actualType === 'ellipse' || actualType === 'rectangle';
   const buttonClass = (active = false, danger = false) => [styles['element-button'], active && styles.active, danger && styles['element-button-danger']].filter(Boolean).join(' ');
 
+  // The family that will actually render and embed - not necessarily
+  // element.fontFamily itself, which may have been substituted (§3.2) or
+  // point at a retired name. Bold/Italic availability is a property of this
+  // family's real files, computed once and reused below rather than calling
+  // resolveFontFamily twice.
+  const effectiveFamily = element.type === 'text' ? resolveFontFamily(element.fontFamily, element.text) : undefined;
+  const currentWeight = element.fontWeight === 'bold' ? 'bold' : 'normal';
+  const currentStyle = element.fontStyle === 'italic' ? 'italic' : 'normal';
+  // Checked against the *other* axis's current value, not just 'normal',
+  // so a family that ships Bold and Italic separately but not BoldItalic
+  // (none do today, but hasRealFace doesn't assume that) is judged by the
+  // exact file a click would actually request.
+  const canBold = element.type === 'text' && hasRealFace(effectiveFamily || '', 'bold', currentStyle);
+  const canItalic = element.type === 'text' && hasRealFace(effectiveFamily || '', currentWeight, 'italic');
+  // W5 (docs/wysiwyg-text-architecture.md §3.4): with only Regular declared,
+  // the browser synthesises Bold/Italic on screen while the export 404s and
+  // silently falls back to Regular - bold on screen, upright in the download.
+  // Blocking the request here is what closes that gap; loadCustomFont's
+  // fallback stays as the runtime safety net, not the first line of defense.
+  const boldReasonId = useId();
+  const italicReasonId = useId();
+
+  // Edge case: a saved draft (drafts persist 14 days) or a family switch can
+  // leave fontWeight/fontStyle 'bold'/'italic' on a family with no real face
+  // for it - pre-W5 elements, or the user toggled Bold then picked a
+  // Regular-only display face. Deliberately not rewritten here: the element
+  // is left as it was saved (no silent data change on the user's behalf,
+  // and the underlying value still matters if they switch back to a family
+  // that does have the face). What changes is only the toolbar's own
+  // display - a disabled control must never also read as pressed, so
+  // "active" is gated on the face actually existing, not on the stored flag
+  // alone.
+  const boldActive = currentWeight === 'bold' && canBold;
+  const italicActive = currentStyle === 'italic' && canItalic;
+
   return (
     <>
       {element.type === 'text' && (
         <>
           <FontPickerMenu
-            value={resolveFontFamily(element.fontFamily, element.text)}
+            value={effectiveFamily}
             text={element.text}
             onChange={(fontFamily: string) => onChange({ fontFamily })}
           />
@@ -62,19 +98,25 @@ export default function ElementToolbar({
           <div className={styles.divider} />
           <button
             type="button"
-            className={buttonClass(element.fontWeight === 'bold')}
-            onClick={() => onChange({ fontWeight: element.fontWeight === 'bold' ? 'normal' : 'bold' })}
-            title="Bold"
+            className={buttonClass(boldActive)}
+            disabled={!canBold}
+            onClick={() => onChange({ fontWeight: currentWeight === 'bold' ? 'normal' : 'bold' })}
+            title={canBold ? 'Bold' : `${effectiveFamily} has no bold version`}
+            aria-describedby={canBold ? undefined : boldReasonId}
           >
             <b>B</b>
+            {!canBold && <span id={boldReasonId} className="sr-only">{effectiveFamily} has no bold version</span>}
           </button>
           <button
             type="button"
-            className={buttonClass(element.fontStyle === 'italic')}
-            onClick={() => onChange({ fontStyle: element.fontStyle === 'italic' ? 'normal' : 'italic' })}
-            title="Italic"
+            className={buttonClass(italicActive)}
+            disabled={!canItalic}
+            onClick={() => onChange({ fontStyle: currentStyle === 'italic' ? 'normal' : 'italic' })}
+            title={canItalic ? 'Italic' : `${effectiveFamily} has no italic version`}
+            aria-describedby={canItalic ? undefined : italicReasonId}
           >
             <i>I</i>
+            {!canItalic && <span id={italicReasonId} className="sr-only">{effectiveFamily} has no italic version</span>}
           </button>
           <div className={styles.divider} />
           <button

@@ -333,6 +333,49 @@ describe('invisible formatting characters', () => {
 });
 
 /**
+ * The NFC seam (docs/wysiwyg-text-architecture.md §1.4/§3.1): coverage must
+ * be judged against the string that reaches `layout()`, which has been
+ * through `composeHebrewClusters` - and that function opens with
+ * `text.normalize('NFC')`, which is not Hebrew-specific. Checking the typed
+ * string instead of the composed one can silently pass a character the font
+ * cannot draw (composition introduces a codepoint), or falsely refuse one it
+ * can (composition is gated on the font's own glyph, so it correctly leaves
+ * a font-missing presentation form decomposed - a form the check must credit
+ * the font for, not the literal presentation-form codepoint it never draws).
+ */
+describe('the normalization seam', () => {
+  it('reports the NFC-composed character, not the decomposed pair that was actually typed - a silent loss without this', async () => {
+    const font = await embedHeebo();
+    const fk = font.embedder.font;
+    // Decomposed Greek alpha + combining acute, exactly as it arrives from a
+    // macOS filesystem path or some IMEs - NOT the precomposed U+03AC.
+    const text = 'שלום ' + String.fromCodePoint(0x03b1, 0x0301);
+    // Non-vacuity: Heebo has both halves the user actually typed...
+    expect(fk.hasGlyphForCodePoint(0x03b1)).toBe(true);
+    expect(fk.hasGlyphForCodePoint(0x0301)).toBe(true);
+    // ...but not the codepoint NFC composes them into, which is what
+    // fontkit's layout() is actually handed.
+    expect(fk.hasGlyphForCodePoint(0x03ac)).toBe(false);
+    expect(unrepresentableCharacters(font, text)).toEqual([String.fromCodePoint(0x03ac)]);
+  });
+
+  it('does not refuse a pasted Hebrew presentation form the font would have drawn decomposed', async () => {
+    const font = await embedFont('Alef-Regular.ttf');
+    const fk = font.embedder.font;
+    // The precomposed yod-hiriq presentation form, as it arrives when pasted
+    // rather than typed letter by letter.
+    const presentationForm = String.fromCodePoint(0xfb1d);
+    // Non-vacuity: Alef genuinely lacks the precomposed glyph...
+    expect(fk.hasGlyphForCodePoint(0xfb1d)).toBe(false);
+    // ...but has both halves of the decomposition composeHebrewClusters
+    // leaves behind once its own hasGlyph gate blocks recomposing them.
+    expect(fk.hasGlyphForCodePoint(0x05d9)).toBe(true);
+    expect(fk.hasGlyphForCodePoint(0x05b4)).toBe(true);
+    expect(unrepresentableCharacters(font, presentationForm)).toEqual([]);
+  });
+});
+
+/**
  * The strip must run AFTER bidi, never before: LRM/RLM and the embedding
  * controls are `\p{Cf}`, and they are the input UAX#9 reads. Stripping first
  * reintroduces exactly the editor/export ordering divergence layer 2 closed.

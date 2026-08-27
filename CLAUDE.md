@@ -663,7 +663,12 @@ Run by `ci.yml`; see Part I "Commands" for the npm scripts.
 7. **Gesture golden rule** (`check-gesture-golden-rule.js`) - §4, statically enforced.
 8. **Playwright e2e** - reserved for what jsdom cannot prove (rendered rects, drag-time toolbar
    following, page-edge behavior, hydration/CSP flows). Keep the suite sparse, roughly one e2e test per
-   ten unit/component tests, under `e2e/<module>/`. Includes a site-wide CSP smoke sweep.
+   ten unit/component tests, under `e2e/<module>/`. Includes a site-wide CSP smoke sweep. Also includes
+   `export-render-guard.spec.js` (landed as W1 of the WYSIWYG text epic, see TODO.md): runs the real
+   `signPdf` in-browser and rasterises the produced PDF with pdf.js to compare against per-case baselines.
+   One rasteriser only (never poppler against Chromium - measured cross-rasteriser noise is 80-88%), and
+   never "is there ink" as a pass condition, since `.notdef` commonly draws more ink than the glyph it
+   replaced.
 
 ## 7. Anti-patterns (a change doing any of these is wrong)
 

@@ -47,7 +47,9 @@ describe('ElementToolbar font picker wiring', () => {
     const gveretItem = items.find((el) => el.textContent?.startsWith('Gveret Levin'))!;
 
     expect(caveatItem.className).not.toMatch(/active/);
-    expect(caveatItem.textContent).toContain('no Hebrew');
+    // Contract change (W3): the note names the missing characters, not a
+    // script name, but Caveat must still be marked unable to draw this text.
+    expect(caveatItem.textContent).toContain("can't draw");
     expect(gveretItem.className).toMatch(/active/);
   });
 
@@ -61,5 +63,98 @@ describe('ElementToolbar font picker wiring', () => {
     const caveatItem = items.find((el) => el.textContent?.startsWith('Caveat'))!;
     expect(caveatItem.className).toMatch(/active/);
     expect(caveatItem.textContent).not.toContain('no ');
+  });
+});
+
+// W5 (docs/wysiwyg-text-architecture.md §3.4): Bold/Italic must be disabled,
+// not synthesised-looking, on a family with no real face for that style -
+// this used to render bold on screen and upright in the download.
+describe('ElementToolbar Bold/Italic honesty (W5)', () => {
+  let container: HTMLDivElement | null;
+
+  afterEach(() => {
+    if (container) {
+      act(() => render(null, container as any));
+      container.remove();
+      container = null;
+    }
+    document.body.innerHTML = '';
+  });
+
+  function mount(element: any, onChange = (_changes: any) => {}) {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(
+        <ElementToolbar element={element} onChange={onChange} onClone={() => {}} onDelete={() => {}} />,
+        container as any
+      );
+    });
+    return {
+      bold: container.querySelector('button[title*="old"]') as HTMLButtonElement,
+      italic: container.querySelector('button[title*="talic"]') as HTMLButtonElement,
+    };
+  }
+
+  it('disables Bold and Italic on Great Vibes, a Regular-only face, and explains why', () => {
+    const element = { id: 'e1', type: 'text', fontFamily: 'Great Vibes', text: 'Signed' };
+    const { bold, italic } = mount(element);
+
+    expect(bold.disabled).toBe(true);
+    expect(italic.disabled).toBe(true);
+    expect(bold.title).toBe('Great Vibes has no bold version');
+    expect(italic.title).toBe('Great Vibes has no italic version');
+
+    // Reachable by a screen reader via aria-describedby, not colour or title
+    // alone.
+    const boldReasonId = bold.getAttribute('aria-describedby')!;
+    expect(boldReasonId).toBeTruthy();
+    expect(document.getElementById(boldReasonId)?.textContent).toBe('Great Vibes has no bold version');
+  });
+
+  it('enables Bold but disables Italic on Caveat, which W4 gave a Bold but no Italic', () => {
+    const element = { id: 'e2', type: 'text', fontFamily: 'Caveat', text: 'Hello' };
+    const { bold, italic } = mount(element);
+
+    expect(bold.disabled).toBe(false);
+    expect(bold.title).toBe('Bold');
+    expect(italic.disabled).toBe(true);
+    expect(italic.title).toBe('Caveat has no italic version');
+  });
+
+  it('leaves Bold/Italic enabled on a family that ships every style (Arimo)', () => {
+    const element = { id: 'e3', type: 'text', fontFamily: 'Arimo', text: 'Hello' };
+    const { bold, italic } = mount(element);
+
+    expect(bold.disabled).toBe(false);
+    expect(italic.disabled).toBe(false);
+    expect(bold.hasAttribute('aria-describedby')).toBe(false);
+    expect(italic.hasAttribute('aria-describedby')).toBe(false);
+  });
+
+  // Edge case: a draft saved before W5 (drafts persist 14 days), or a family
+  // switch that left fontWeight 'bold' behind, can leave an element "bold"
+  // on a family with no real bold face. The stored value is left alone (no
+  // silent rewrite of what the user saved) but the disabled control must
+  // never also read as pressed - that combination is the one state this
+  // control must never show.
+  it('never shows Bold as pressed while it is disabled, even if the element was already marked bold', () => {
+    const element = { id: 'e4', type: 'text', fontFamily: 'Great Vibes', text: 'Signed', fontWeight: 'bold' };
+    const { bold } = mount(element);
+
+    expect(bold.disabled).toBe(true);
+    expect(bold.className).not.toMatch(/active/);
+  });
+
+  it('clicking Bold toggles fontWeight when a real bold face exists', () => {
+    const element = { id: 'e5', type: 'text', fontFamily: 'Arimo', text: 'Hello' };
+    let changes: any = null;
+    const { bold } = mount(element, (c) => { changes = c; });
+
+    act(() => {
+      bold.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(changes).toEqual({ fontWeight: 'bold' });
   });
 });

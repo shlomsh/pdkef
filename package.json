@@ -16,7 +16,8 @@
     "test:gesture-golden-rule": "node scripts/check-gesture-golden-rule.js",
     "test:seo": "node scripts/verify-seo.js",
     "test:css": "node scripts/check-class-resolution.js && node scripts/check-editor-global-css.js && node scripts/check-dead-utilities.js && node scripts/check-css-duplication.js",
-    "test:weight": "node scripts/check-page-weight.js"
+    "test:weight": "node scripts/check-page-weight.js",
+    "generate:font-coverage": "node scripts/generate-font-coverage.mjs"
   },
   "dependencies": {
     "@astrojs/preact": "^6.0.0",

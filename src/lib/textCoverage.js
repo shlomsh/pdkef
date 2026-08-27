@@ -62,7 +62,7 @@ export async function findUnrepresentableCharacters(elements, loadFont) {
     if (element.type !== 'text') continue;
     const textValue = (element.text || '').trim();
     if (!textValue) continue;
-    const embeddedFamily = resolveFontFamily(element.fontFamily, textValue);
+    const embeddedFamily = resolveFontFamily(element.fontFamily, textValue, element.fontWeight, element.fontStyle);
     const resolvedFont = (await loadFont(embeddedFamily, element.fontWeight, element.fontStyle))
       || (await loadFont('Arimo', element.fontWeight, element.fontStyle));
     if (!resolvedFont) continue;
@@ -81,25 +81,28 @@ export async function findUnrepresentableCharacters(elements, loadFont) {
 }
 
 /**
- * The aside shown when a script substitution changed the font under the user.
+ * The aside shown when a coverage substitution changed the font under the
+ * user.
  *
  * The swap itself is visible the moment they type - the box re-renders in the
  * new face - so this only has to answer "why did that just happen", calmly and
  * without implying they did something wrong. Empty string when nothing was
  * substituted, so the caller can render it or not on truthiness alone.
  *
- * @param {{ requested: string, family: string, script: string|null }} substitution
+ * Names the actual characters the requested family could not draw, from
+ * `missing` (docs/wysiwyg-text-architecture.md §3.5), rather than naming a
+ * script the way this used to ("Arimo has no Hebrew letters"). That claim was
+ * a guess derived from which SCRIPT_FALLBACKS row matched, and it was
+ * provably wrong on mixed-script text - naming the characters is simply what
+ * is true, on every input, with nothing to approximate.
+ *
+ * @param {{ requested: string, family: string, missing: string[] }} substitution
  *   as returned by `resolveFontSubstitution` in fonts.js
  */
-export function describeFontSubstitution({ requested, family, script }) {
-  if (!script || family === requested) return '';
-  // Says what font the download uses, not that the download will match the
-  // screen. The stronger claim is briefly false on mixed-script text: in
-  // `שלום Привіт` the Hebrew substitution resolves first, and the Cyrillic
-  // that Gveret Levin cannot draw is only reported once the coverage check
-  // has finished its debounce, so for one beat this notice would be promising
-  // fidelity the document does not have.
-  return `${requested} has no ${script} letters, so this text box is using ${family} instead. ${family} is what will be embedded in your download.`;
+export function describeFontSubstitution({ requested, family, missing }) {
+  if (family === requested) return '';
+  const list = missing.join(', ');
+  return `${requested} has no match for: ${list}, so this text box is using ${family} instead. ${family} is what will be embedded in your download.`;
 }
 
 /**

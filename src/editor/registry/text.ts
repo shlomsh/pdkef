@@ -52,69 +52,47 @@ export function fontkitFont(pdfFont: PDFFont | null): FontkitFont | null {
   return fk?.unitsPerEm ? fk : null;
 }
 
-/**
- * Strips Unicode control (`\p{Cc}`) and format (`\p{Cf}`) characters from
- * `text`, mapping TAB to a single space (the editor's own textarea gives it
- * visible width, so dropping it outright would close up a gap the user
- * actually typed) and removing everything else in those categories outright.
- *
- * These are exactly the characters this catalogue's coverage is shakiest on
- * - TAB is missing from every bundled font, and Gveret Levin and Heebo are
- * also missing soft hyphen, ZWSP, LRM/RLM, word joiner, BOM and the
- * embedding-direction controls (measured with
- * `hasGlyphForCodePoint`, the same way `fontCoverage.test.js` judges Hebrew
- * coverage). LRM/RLM specifically ride along invisibly in Hebrew text copied
- * from the web, Word or WhatsApp - exactly how this app's users get their
- * text - so without this, `unrepresentableCharacters` below would refuse a
- * whole document over a character the user cannot see, find, or delete.
- * Verified separately: fontkit's `layout()` substitutes a harmless
- * zero-width space glyph for most of these (they are Unicode
- * "default-ignorable" format characters), but not for TAB, which is a
- * control character rather than a format one and does draw a literal
- * `.notdef` glyph if it reaches `layout()` unstripped.
- *
- * Applied on both the coverage check and wherever shaped text is actually
- * measured/drawn (`serialize`, below) via this one function, so the two can
- * never disagree - stripping only in the coverage check would let a document
- * pass and still draw whatever this was meant to keep off the page.
- *
- * Callers that care about real line breaks must split on `\r?\n` *before*
- * calling this, not after: `\n`/`\r` are themselves `\p{Cc}` and would
- * otherwise be stripped before there is anything left to split on.
- */
-export function stripInvisibleFormatting(text: string): string {
-  return text.replace(/[\p{Cc}\p{Cf}]/gu, (ch) => (ch === '\t' ? ' ' : ''));
-}
-
-/**
- * The half of the strip that is safe to run BEFORE bidi resolution: TAB
- * becomes a space and nothing else changes.
- *
- * **`stripInvisibleFormatting` must never run before `resolveBidiRuns`.**
- * LRM/RLM (U+200E/200F) and the embedding controls (U+202A-202E, U+2066-2069)
- * are `\p{Cf}`, and they are the characters that *steer* UAX#9 - removing them
- * first deletes the input the algorithm is supposed to read. Measured on
- * `"הקובץ ‎(v2)‎ מוכן"`, which is ordinary text pasted from Word or WhatsApp:
- * with the marks it resolves the way the editor shows it, and stripped first
- * it resolves to `") מוכןv2הקובץ ("` - the parentheses torn off `v2` and
- * thrown to opposite ends of the line.
- *
- * So the order is: normalize TAB, resolve bidi with the marks intact, then
- * strip each resolved run (UAX#9 rule X9 removes the controls from display
- * once they have done their job). `serialize` below does exactly that.
- */
-export function normalizeTabsForBidi(text: string): string {
-  return text.replace(/\t/g, ' ');
-}
+// stripInvisibleFormatting and normalizeTabsForBidi used to live here, but
+// fonts.js needs them too (for `covers()`, see docs/wysiwyg-text-architecture.md
+// §3.1/§3.2) and this file already imports fonts.js - so they moved to the
+// dependency-free src/lib/textTransforms.js to break the cycle. Re-exported
+// here verbatim so no existing call site or test has to change.
+import { stripInvisibleFormatting, normalizeTabsForBidi, findMissingGlyphs } from '../../lib/textTransforms.js';
+export { stripInvisibleFormatting, normalizeTabsForBidi, findMissingGlyphs };
 
 /**
  * Characters in `text` this font has no glyph for, deduplicated and in first-
  * seen order - empty when every character is covered, or when this font has
  * no reachable fontkit instance (the caller then has no way to know, and
  * `serialize`'s own drawText fallback is what runs in that case anyway).
- * Checks `text` after `stripInvisibleFormatting` (above), so a control or
- * format character that never reaches the page is never a reason to refuse
- * one either.
+ *
+ * Judges coverage against the string that will actually reach `layout()`,
+ * never the string the user typed - see docs/wysiwyg-text-architecture.md
+ * §3.1 for the full five-step chain and §1.4 for the bug this closes (the
+ * "NFC seam"). Steps 2 (`normalizeTabsForBidi`) and 3 (`resolveBidiRuns`)
+ * change no characters (TAB->space aside, which stripping already treats as
+ * one), so this function only has to redo steps 1, 4 and 5: split on real
+ * line breaks first (a caller must not have already glued lines together -
+ * `\n`/`\r` are themselves `\p{Cc}` and stripping first would erase the seam
+ * a composition could otherwise cross), strip invisible formatting per line,
+ * then run `composeHebrewClusters` per line exactly as `serialize` below
+ * does for its own per-line/per-run text, with THIS font's own
+ * `hasGlyphForCodePoint` as the composition gate.
+ *
+ * That last step is the one that was missing, and it cuts both ways.
+ * `composeHebrewClusters` opens with `text.normalize('NFC')`, which is not
+ * Hebrew-specific - it composes every canonical sequence in the string, not
+ * only Hebrew ones. Skipping it here meant this check could pass a string
+ * NFC then silently breaks (decomposed Latin/Greek input, e.g. alpha +
+ * combining acute, composes to a precomposed codepoint this font may lack -
+ * a character present at typing time and gone from the download with no
+ * warning), and could just as easily refuse a string NFC would have fixed
+ * (a pasted Hebrew presentation form this font lacks a glyph for, but whose
+ * decomposition - what `composeHebrewClusters` actually leaves behind when
+ * the font can't draw the composed form - it has). Both were measured on
+ * `main` before this fix; see the design doc for the exact before/after
+ * values. Do not "simplify" this back to checking the typed string - that
+ * is the seam.
  *
  * Checked with `hasGlyphForCodePoint`, not by running `layout()` and looking
  * for glyph id 0 - `fontCoverage.test.js` already judges Hebrew coverage this
@@ -128,14 +106,7 @@ export function normalizeTabsForBidi(text: string): string {
 export function unrepresentableCharacters(pdfFont: PDFFont | null, text: string): string[] {
   const fk = fontkitFont(pdfFont);
   if (!fk) return [];
-  const seen = new Set<string>();
-  const missing: string[] = [];
-  for (const ch of Array.from(stripInvisibleFormatting(text))) {
-    if (seen.has(ch)) continue;
-    seen.add(ch);
-    if (!fk.hasGlyphForCodePoint(ch.codePointAt(0) as number)) missing.push(ch);
-  }
-  return missing;
+  return findMissingGlyphs(text, (cp: number) => fk.hasGlyphForCodePoint(cp));
 }
 
 const gidHex = (id: number) => id.toString(16).toUpperCase().padStart(4, '0');
@@ -380,7 +351,7 @@ export const textDefinition: ElementDefinition<TextElement> = {
     const fontSizeInPoints = fontSize || DEFAULT_FONT_SIZE_PT;
     // Same substitution the editor renders with, so the download matches the
     // screen even when the picked font has no glyph for what was typed.
-    const embeddedFamily = resolveFontFamily(fontFamily, textValue);
+    const embeddedFamily = resolveFontFamily(fontFamily, textValue, fontWeight, fontStyle);
     const resolvedFont = (await loadCustomFont(embeddedFamily, fontWeight, fontStyle)) || (await loadCustomFont('Arimo', fontWeight, fontStyle));
     if (!resolvedFont) throw new Error('Unable to load a PDF font for text export');
     const { r, g, b } = hexToRgbFractions(color);
