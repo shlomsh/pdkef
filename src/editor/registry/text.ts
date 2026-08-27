@@ -15,8 +15,9 @@ import {
   PDFHexString, rgb,
   beginText, endText, popGraphicsState, pushGraphicsState,
   setFillingColor, setFontAndSize, setTextMatrix, setTextRise, showText,
+  PDFOperator, PDFOperatorNames, PDFName, endMarkedContent,
 } from '@cantoo/pdf-lib';
-import type { Color, PDFFont, PDFName, PDFPage } from '@cantoo/pdf-lib';
+import type { Color, PDFFont, PDFPage } from '@cantoo/pdf-lib';
 import TextNode from '../../components/SignTool/nodes/TextNode.tsx';
 import { hasNumber, hasString, isRecord } from './schema.ts';
 import { COMB_MIN_CELL_EM, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
@@ -230,6 +231,60 @@ export function shapedWidth(pdfFont: PDFFont | null, text: string, size: number,
  * and drifts silently wherever the two disagree (see
  * docs/hebrew-text-shaping-export.md - this mangled Playpen Sans Hebrew in
  * the first prototype, and guarding against hmtx advance did not catch it).
+ *
+ * The whole run is also wrapped in a `/Span <</ActualText …>> BDC … EMC`
+ * marked-content sequence (W6, docs/wysiwyg-text-architecture.md §7). Why
+ * this exists, and why it can't be done a cheaper way: overriding the
+ * ToUnicode CMap looks like the obvious fix for extracted text disagreeing
+ * with what was typed, but that table is whole-font (built once from
+ * `allGlyphsInFontSortedById()`), so it can express only "glyph N means
+ * character C" - never "*this occurrence* of glyph N, in this run, came from
+ * these characters". `/ActualText` is the only PDF mechanism that attaches
+ * text to a *span* rather than to a glyph identity, and it needs nothing
+ * beyond @cantoo/pdf-lib's package-root exports (`PDFOperator`,
+ * `PDFOperatorNames`, `PDFName`, `endMarkedContent`) - no embedder
+ * internals, no fork.
+ *
+ * Measured 2026-08-27 on `בְּרֵאשִׁית` (11 typed codepoints) in Arimo: without
+ * this, `pdftotext` extracted the composed presentation forms plus stray
+ * spaces, and pdf.js extracted a decomposed, per-cluster-reordered string -
+ * both extractors already disagreed with the typed text before this, so
+ * composition was only one contributor. With this wrapper, `pdftotext`
+ * becomes byte-identical to a single-`Tj` `page.drawText()` control; pdf.js
+ * ignores `/ActualText` entirely and is unaffected either way.
+ *
+ * WHICH READERS THIS ACTUALLY BUYS ANYTHING FOR, measured 2026-08-27 on the
+ * same string, because "extraction now returns what you typed" is only true
+ * of some of them: poppler (`pdftotext` 26.04.0) honours the field and is
+ * fixed by this. pdf.js does not read it. **macOS PDFKit - which is what
+ * Preview and Quick Look copy text with - does not read it either**, and
+ * still yields the composed presentation forms plus stray spaces
+ * (`FB31 0020 05B0 …`) exactly as before. Adobe Acrobat is still unmeasured;
+ * no copy was installed on the machine this was measured on. So this is a
+ * strict improvement for one reader family and a no-op for the rest, never a
+ * regression for any - and the honest claim is "poppler-family extractors",
+ * not "extraction".
+ *
+ * ORDER IS A DECISION AGAINST A READER, NOT AGAINST THE SPEC: `pdftotext`
+ * runs its own bidi analysis over the `/ActualText` string, and does so
+ * assuming - as it may for ordinary RTL content-stream text, which is
+ * conventionally stored in the same left-to-right *visual* paint order this
+ * function already emits glyphs in - that the string is already visual, not
+ * logical. Feeding it the spec-conformant *logical* (typed) order therefore
+ * makes it emit the text backwards (measured: same 11 codepoints, reversed).
+ * pdf.js never reads the field, so it can't be harmed by this choice either
+ * way. Visual order is free to produce - reverse the logical run for an RTL
+ * run, keep it as-is for LTR - because it is exactly the order fontkit's own
+ * `layout()` already emits glyphs in for a `direction: 'rtl'` call. If a
+ * conformant reader that reads `/ActualText` *logically* turns up, that is
+ * the moment to revisit this, not a reason it should have been avoided now.
+ *
+ * The text captured for `/ActualText` is `text` - the caller's TYPED
+ * substring for this run, before `composeHebrewClusters` runs on it below -
+ * not `composedText`. The whole point of this feature is that extraction
+ * returns what the user typed, not the presentation-form clusters shaping
+ * needed to draw the ink correctly; composition stays for drawing (it is
+ * what makes the ink correct) but must not leak into what a reader extracts.
  */
 export function drawShapedRun(page: PDFPage, { text, pdfFont, size, x, y, color, direction }: { text: string; pdfFont: PDFFont; size: number; x: number; y: number; color: Color; direction?: BidiDirection }): void {
   const fk = fontkitFont(pdfFont);
@@ -239,7 +294,22 @@ export function drawShapedRun(page: PDFPage, { text, pdfFont, size, x, y, color,
   const { glyphs, positions } = fk.layout(composedText, undefined, undefined, undefined, direction);
   const scale = size / fk.unitsPerEm;
   const fontKey = fontDictionaryKey(page, pdfFont);
-  const ops = [pushGraphicsState(), beginText(), setFillingColor(color), setFontAndSize(fontKey, size)];
+  // Visual order: the typed (uncomposed) text, reversed per-codepoint for an
+  // RTL run - see the doc comment above for why this is the order pdftotext
+  // expects, and why it's free (fontkit already emits RTL glyphs this way).
+  const actualText = direction === 'rtl' ? Array.from(text).reverse().join('') : text;
+  const actualTextProps = page.doc.context.obj({ ActualText: PDFHexString.fromText(actualText) });
+  // @cantoo/pdf-lib's own `PDFOperatorArg` type omits `PDFDict` even though a
+  // dict is a legitimate direct BDC operand per the PDF spec (12.6.6.19), and
+  // `PDFDict` implements the same `toString`/`copyBytesInto` contract every
+  // other operand type does - this is a type omission upstream, not a runtime
+  // restriction; verified by reading the produced bytes back (see
+  // textShaping.test.js).
+  const beginSpan = PDFOperator.of(
+    PDFOperatorNames.BeginMarkedContentSequence,
+    [PDFName.of('Span'), actualTextProps] as unknown as Parameters<typeof PDFOperator.of>[1],
+  );
+  const ops = [pushGraphicsState(), beginSpan, beginText(), setFillingColor(color), setFontAndSize(fontKey, size)];
   let pen = x;
   glyphs.forEach((glyph, i) => {
     const { xOffset, yOffset, xAdvance } = positions[i];
@@ -250,7 +320,7 @@ export function drawShapedRun(page: PDFPage, { text, pdfFont, size, x, y, color,
     if (rise) ops.push(setTextRise(0));
     pen += xAdvance * scale;
   });
-  ops.push(endText(), popGraphicsState());
+  ops.push(endText(), endMarkedContent(), popGraphicsState());
   page.pushOperators(...ops);
 }
 

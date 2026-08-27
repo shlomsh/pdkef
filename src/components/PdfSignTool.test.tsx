@@ -435,8 +435,16 @@ describe('PdfSignTool UI flow', () => {
     
     const page = await pdf.getPage(1);
     const textContent = await page.getTextContent();
-    const extractedText = textContent.items.map(item => item.str).join(' ');
-    
+    // Join with '' rather than a literal space: W6's per-run
+    // /Span <</ActualText>> BDC...EMC wrapper (text.ts's drawShapedRun) is a
+    // marked-content boundary, so pdf.js now reports "John" and "Doe" as
+    // separate items around their own already-present " " item (rather than
+    // merging the whole run into one "John Doe" item as it did before) -
+    // joining with an extra space would double it up. Collapse whitespace
+    // afterwards so the assertion stays robust to pdf.js's own item
+    // granularity, which this test isn't asserting on.
+    const extractedText = textContent.items.map(item => item.str).join('').replace(/\s+/g, ' ');
+
     expect(extractedText).toContain('1');
     expect(extractedText).toContain('John Doe');
     
