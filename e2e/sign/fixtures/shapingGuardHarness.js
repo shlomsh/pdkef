@@ -124,7 +124,16 @@ export function removeFontkitBundle(bundlePath) {
  *
  * @param {object} config
  * @param {{id: string, text: string}[]} config.corpus
- * @param {string[]} config.calibrationSet
+ * @param {string[]} [config.calibrationSet] - fixed calibration strings. Mutually
+ *   exclusive with `autoCalibrate`; exactly one of the two must be given.
+ * @param {boolean} [config.autoCalibrate] - self-calibrating mode (see
+ *   `partitionBySubstitution` below): partitions `corpus` itself into
+ *   non-substituting strings (used as the calibration set) and substituting
+ *   strings (used as the cases under test), instead of taking a hand-picked
+ *   `calibrationSet`. Use this when the corpus is long, realistic strings
+ *   rather than single glyphs, so the calibration set has the same kind of
+ *   ink as what it's calibrating - see latin-shaping-guard.spec.js for why
+ *   single-character calibration understates noise on thin handwriting faces.
  * @param {string} config.fontUrl - same-origin path, e.g. '/fonts/Kalam-Regular.ttf'
  * @param {string} config.family - a test-only FontFace family name
  * @param {number} config.size
@@ -135,7 +144,7 @@ export function removeFontkitBundle(bundlePath) {
  * @param {'ltr'|'rtl'} config.direction
  */
 export async function runShapingGuardInPage({
-  corpus, calibrationSet, fontUrl, family, size, canvasWidth, canvasHeight, anchorX, baselineY, direction,
+  corpus, calibrationSet, autoCalibrate, fontUrl, family, size, canvasWidth, canvasHeight, anchorX, baselineY, direction,
 }) {
   // FontFace, not a CSS @font-face rule: canvas text only needs the FontFace
   // registered, not a stylesheet, and the app's style-src CSP has no reason
@@ -151,6 +160,21 @@ export async function runShapingGuardInPage({
 
   const fk = window.__fontkit.create(fontBytes);
   const rtl = direction === 'rtl';
+
+  // Does fontkit's shaper apply any contextual substitution (calt, liga, ...)
+  // to this string, or does it choose exactly the glyph a plain per-codepoint
+  // cmap lookup would? Same method the module doc and the Latin guard's
+  // module comment describe: shape once with layout(), look up each codepoint
+  // once with glyphForCodePoint(), and compare glyph id sequences. Equal
+  // sequences mean no contextual decision was made for this string in this
+  // font, so any pixel diff on it is pure rendering noise, not a letterform
+  // disagreement - exactly the property a calibration string needs.
+  function substituted(text) {
+    const shapedIds = fk.layout(text).glyphs.map((g) => g.id);
+    const plainIds = Array.from(text).map((ch) => fk.glyphForCodePoint(ch.codePointAt(0)).id);
+    if (shapedIds.length !== plainIds.length) return true;
+    return shapedIds.some((id, i) => id !== plainIds[i]);
+  }
 
   function shape(text) {
     // Explicit direction on the RTL side, matching how the export path calls
@@ -229,6 +253,32 @@ export async function runShapingGuardInPage({
     };
   }
 
+  if (autoCalibrate) {
+    // Partition the corpus itself rather than take a hand-picked calibration
+    // set: strings fontkit shapes identically to a plain cmap lookup are the
+    // calibration set (realistic ink, zero shaping ambiguity by
+    // construction); strings it substitutes on are the actual cases under
+    // test, because those are the only ones where fontkit and the browser
+    // could disagree on a letterform. Returned as counts/ids rather than
+    // judged here, so the Node side can fail loudly on the degenerate cases
+    // (too few or zero non-substituting strings) before spending an
+    // `expect()` on a meaningless comparison.
+    const nonSubstituting = [];
+    const substituting = [];
+    for (const entry of corpus) {
+      (substituted(entry.text) ? substituting : nonSubstituting).push(entry);
+    }
+    return {
+      autoCalibrate: true,
+      nonSubstitutingCount: nonSubstituting.length,
+      substitutingCount: substituting.length,
+      noiseFloorPct: nonSubstituting.length
+        ? Math.max(...nonSubstituting.map((entry) => evalOne(entry.text).diffPct))
+        : 0,
+      cases: substituting.map(({ id, text }) => ({ id, ...evalOne(text) })),
+    };
+  }
+
   const noiseFloorPct = Math.max(...calibrationSet.map((text) => evalOne(text).diffPct));
   const cases = corpus.map(({ id, text }) => ({ id, ...evalOne(text) }));
 
@@ -254,9 +304,25 @@ export async function runShapingGuardInPage({
  * @param {number} config.anchorX
  * @param {number} config.baselineY
  * @param {{id: string, text: string}[]} config.corpus
- * @param {string[]} config.calibrationSet
+ * @param {string[]} [config.calibrationSet] - see `runShapingGuardInPage`'s doc.
+ *   Exactly one of `calibrationSet`/`autoCalibrate` must be given.
+ * @param {boolean} [config.autoCalibrate] - see `runShapingGuardInPage`'s doc.
+ * @param {number} [config.minNonSubstitutingCount] - only used with
+ *   `autoCalibrate`; default 5. Below this, the corpus doesn't have enough
+ *   zero-ambiguity strings to calibrate a noise floor from, and the test
+ *   fails explaining that rather than calibrating from too few samples.
  * @param {number} [config.noiseFloorMultiplier] - default 1.5, matching both existing guards
  * @param {number} config.minTolerancePct - absolute floor under the multiplier; see each spec's own reasoning for its value
+ * @param {string} [config.bundleFilename] - overrides the default
+ *   `__e2e-<scriptName>-fontkit-bundle.js` derived filename. Needed when more
+ *   than one guard shares a `scriptName` - four Latin `calt`-face guards
+ *   (Pacifico, Caveat, Great Vibes, Dancing Script; see
+ *   latin-shaping-guard.spec.js) all say "Latin" and would otherwise collide
+ *   on the same file, and `beforeAll`/`afterAll` are registered per call at
+ *   file scope, not nested under a shared describe, so two guards racing on
+ *   one path can delete the bundle out from under the other's still-running
+ *   test. Defaults to exactly the prior expression, so every existing
+ *   single-guard-per-script caller (Devanagari, Arabic) is unaffected.
  * @param {import('@playwright/test').test} test
  * @param {import('@playwright/test').expect} expect
  */
@@ -272,12 +338,18 @@ export function createShapingGuardTest({
   baselineY,
   corpus,
   calibrationSet,
+  autoCalibrate = false,
+  minNonSubstitutingCount = 5,
   noiseFloorMultiplier = 1.5,
   minTolerancePct,
+  bundleFilename = `__e2e-${scriptName.toLowerCase()}-fontkit-bundle.js`,
   test,
   expect,
 }) {
-  const bundleFilename = `__e2e-${scriptName.toLowerCase()}-fontkit-bundle.js`;
+  if (!calibrationSet === !autoCalibrate) {
+    throw new Error(`${scriptName}/${candidateName}: pass exactly one of calibrationSet or autoCalibrate`);
+  }
+
   let bundlePath;
 
   test.beforeAll(async () => {
@@ -289,13 +361,18 @@ export function createShapingGuardTest({
   });
 
   test.describe(`${scriptName} shaping correctness guard (${candidateName} candidate)`, () => {
-    test(`fontkit's shaped ${candidateName} output pixel-matches the browser's own rendering across ${corpus.length} generated cases`, async ({ page }) => {
+    const title = autoCalibrate
+      ? `fontkit's shaped ${candidateName} output pixel-matches the browser's own rendering on every corpus string where fontkit applied a contextual substitution`
+      : `fontkit's shaped ${candidateName} output pixel-matches the browser's own rendering across ${corpus.length} generated cases`;
+
+    test(title, async ({ page }) => {
       await page.goto('/sign');
       await page.addScriptTag({ url: `/${bundleFilename}` });
 
       const result = await page.evaluate(runShapingGuardInPage, {
         corpus,
         calibrationSet,
+        autoCalibrate,
         fontUrl: `/fonts/${fontFileName}`,
         family: `${candidateName}GuardTest`,
         size,
@@ -305,6 +382,24 @@ export function createShapingGuardTest({
         baselineY,
         direction,
       });
+
+      if (autoCalibrate) {
+        console.log(`${scriptName}/${candidateName} guard (self-calibrating): ${result.nonSubstitutingCount} non-substituting (calibration), ${result.substitutingCount} substituting (under test), of ${corpus.length} corpus strings`);
+        // A face with too few zero-ambiguity strings to calibrate from would
+        // silently calibrate off a handful of samples, or - at zero - divide
+        // by nothing meaningful. Fail explicitly instead of computing a
+        // tolerance that looks real but isn't backed by enough evidence.
+        if (result.nonSubstitutingCount < minNonSubstitutingCount) {
+          expect(result.nonSubstitutingCount, `${scriptName}/${candidateName}: only ${result.nonSubstitutingCount} of ${corpus.length} corpus strings shape with no substitution (need >= ${minNonSubstitutingCount} to calibrate a noise floor). Extend the corpus with strings that provably don't substitute in this font, or supply a hand-picked calibrationSet instead.`).toBeGreaterThanOrEqual(minNonSubstitutingCount);
+        }
+        // Zero substituting strings means this run tested nothing - every
+        // corpus string shaped identically to a plain cmap lookup, so there
+        // was no case where fontkit and the browser could have disagreed on
+        // a letterform. That is a fact worth knowing, not a pass.
+        if (result.substitutingCount === 0) {
+          expect(result.substitutingCount, `${scriptName}/${candidateName}: 0 of ${corpus.length} corpus strings trigger any contextual substitution in fontkit, so this guard has nothing to test for this face - it is not proof of agreement. Extend the corpus with strings known to trigger this face's calt/liga features, or drop this face from the guard with that reasoning recorded.`).toBeGreaterThan(0);
+        }
+      }
 
       const tolerancePct = Math.max(minTolerancePct, result.noiseFloorPct * noiseFloorMultiplier);
       const failures = result.cases.filter((c) => c.diffPct > tolerancePct);
