@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
+import { PRECACHED_FONTS, shouldPrecache } from '../../scripts/precacheFilter.mjs';
 
 const workerSource = fs.readFileSync(path.join(process.cwd(), 'public/sw.js'), 'utf8');
 
@@ -164,5 +165,53 @@ describe('offline-first service worker', () => {
     });
 
     expect(await response.text()).toBe('cached home');
+  });
+});
+
+/**
+ * The precache manifest deliberately leaves the font catalogue out.
+ *
+ * Fonts are declared with `@font-face` and a browser fetches a TTF only when
+ * a rule matches text, so precaching all of them spent a visitor's bandwidth
+ * on files almost none of them select: 8.42 MB of fonts inside a 12.16 MB
+ * precache, against a 3.74 MB non-font payload. The pair of tests below is
+ * what keeps the two halves of that decision honest, because dropping the
+ * fonts is only safe while the fetch handler still picks them up on demand.
+ */
+describe('precache manifest font policy', () => {
+  const names = { manifestName: 'precache-manifest.json', workerName: 'sw.js' };
+
+  it('leaves the font catalogue out, so a visitor does not download faces they never pick', () => {
+    expect(shouldPrecache('fonts/Pacifico-Regular.ttf', names)).toBe(false);
+    expect(shouldPrecache('fonts/Kalam-Bold.ttf', names)).toBe(false);
+    expect(shouldPrecache('fonts/NotoSansJP-Regular.ttf', names)).toBe(false);
+  });
+
+  it('keeps the default family, because an offline first session has no font to embed otherwise', () => {
+    // DEFAULT_FAMILY in src/lib/fonts.js. Without this one file, signPdf's
+    // fetch fails offline, loadCustomFont returns null, and serialize throws
+    // rather than degrading to something upright.
+    expect(PRECACHED_FONTS).toEqual(['fonts/Arimo-Regular.ttf']);
+    expect(shouldPrecache('fonts/Arimo-Regular.ttf', names)).toBe(true);
+  });
+
+  it('still precaches everything that is not a font, and never the manifest or the worker', () => {
+    expect(shouldPrecache('index.html', names)).toBe(true);
+    expect(shouldPrecache('_astro/pdf.worker.min.abc123.mjs', names)).toBe(true);
+    expect(shouldPrecache('sign/index.html', names)).toBe(true);
+    // A 404 on the manifest is what tells an orphaned worker to uninstall, so
+    // caching either of these would defeat that.
+    expect(shouldPrecache('precache-manifest.json', names)).toBe(false);
+    expect(shouldPrecache('sw.js', names)).toBe(false);
+  });
+
+  it('caches a font on first use, which is what makes leaving it out of the precache safe', async () => {
+    const worker = createWorker(vi.fn(async () => new Response('font bytes')));
+    const request = { method: 'GET', mode: 'no-cors', url: 'https://pdkef.test/fonts/Pacifico-Regular.ttf' };
+
+    const { response } = await dispatchFetch(worker, request);
+
+    expect(await response.text()).toBe('font bytes');
+    expect(worker.entries.has('https://pdkef.test/fonts/Pacifico-Regular.ttf')).toBe(true);
   });
 });

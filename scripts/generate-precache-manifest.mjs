@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { shouldPrecache } from './precacheFilter.mjs';
 
 const distDir = path.join(process.cwd(), 'dist');
 const manifestName = 'precache-manifest.json';
@@ -29,7 +30,7 @@ if (!fs.existsSync(distDir)) {
 const files = walk(distDir)
   .filter((filePath) => {
     const relative = path.relative(distDir, filePath).split(path.sep).join('/');
-    return relative !== manifestName && relative !== workerName;
+    return shouldPrecache(relative, { manifestName, workerName });
   })
   .sort();
 
