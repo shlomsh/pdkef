@@ -49,12 +49,18 @@ export default function FontPickerMenu({ value, text, onChange }: { value?: stri
   const current = FONT_OPTIONS.find((f) => f.value === value) || FONT_OPTIONS[0];
 
   const renderOption = (f: { value: string; label: string; css: string }) => {
-    const { script } = resolveFontSubstitution(f.value, text || '');
+    // W3 (docs/wysiwyg-text-architecture.md §3.2): resolveFontSubstitution
+    // now judges real glyph coverage rather than naming a script row, so
+    // "picking this font would change under the text" is `family !== f.value`
+    // (a substitution would happen), and `missing` names the characters that
+    // forced it.
+    const { family, missing } = resolveFontSubstitution(f.value, text || '');
+    const wouldSubstitute = family !== f.value;
     const isActive = f.value === current.value;
     const classNames = [
       styles['font-menu-item'],
       isActive && styles.active,
-      script && styles['font-menu-item-unsupported']
+      wouldSubstitute && styles['font-menu-item-unsupported']
     ].filter(Boolean).join(' ');
     return (
       <button
@@ -69,7 +75,7 @@ export default function FontPickerMenu({ value, text, onChange }: { value?: stri
         }}
       >
         {f.label}
-        {script && <span className={styles['font-menu-item-note']}> · no {script}</span>}
+        {wouldSubstitute && <span className={styles['font-menu-item-note']}> · can't draw {missing.join(', ')}</span>}
       </button>
     );
   };

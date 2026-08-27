@@ -14,6 +14,8 @@
  */
 
 import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../constants/signGeometry.js';
+import { FONT_COVERAGE_FILES, fontFileHasGlyph } from './fontCoverageTable.js';
+import { findMissingGlyphs } from './textTransforms.js';
 
 export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Kalam', 'Mali', 'Pacifico', 'Sacramento'];
 export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Almarai'];
@@ -77,9 +79,14 @@ export function textBoxPaddingEm(fontFamily) {
   return Math.max(TEXT_BOX_PADDING_EM, overhang + VERTICAL_METRICS_SLACK_EM);
 }
 
+
 /**
- * Bundled families whose TTFs carry Hebrew glyphs. Verified against the real
- * asset bytes by src/lib/fontCoverage.test.js — update both together.
+ * Bundled families whose Regular TTF carries Hebrew glyphs. This used to feed
+ * SCRIPT_FALLBACKS' Hebrew row (see git history); that row is gone, replaced
+ * by the coverage rule below, but this list is still exported and still
+ * verified against the real asset bytes by src/lib/fontCoverage.test.js and
+ * src/editor/registry/hebrewMarkPlacement.test.js's mark-placement guard, so
+ * it stays as a plain, hand-checked fact about the catalogue.
  */
 export const HEBREW_CAPABLE_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Gveret Levin', 'Alef'];
 
@@ -110,133 +117,125 @@ export const RETIRED_FONTS = {
   'Playpen Sans Hebrew': 'Gveret Levin',
 };
 
-/** Hebrew block plus the presentation forms (ligatures like ﬠ, vowelled variants). */
-const HEBREW_PATTERN = /[\u0590-\u05FF\uFB1D-\uFB4F]/;
-
-/**
- * Stand-ins for the families that have no Hebrew glyphs at all. Caveat and the
- * other Latin handwriting faces were never drawn with an aleph — there is no
- * "complete" build to ship — so Hebrew borrows a bundled face of the same
- * character instead: handwriting for handwriting, upright for upright.
- */
-export const HEBREW_FALLBACK_HANDWRITING = 'Gveret Levin';
-export const HEBREW_FALLBACK_TEXT = 'Arimo';
-
 /** The family everything falls back to when nothing was picked at all. */
-const DEFAULT_FAMILY = HEBREW_FALLBACK_TEXT;
+const DEFAULT_FAMILY = 'Arimo';
 
 /**
- * Every script that needs a font substitution, and what to substitute.
+ * One style tag per catalogue family (docs/wysiwyg-text-architecture.md
+ * §3.3): `handwriting` for the eight signature-style faces, and `sans`/
+ * `serif`/`mono` for the eight text faces, grouped the way a font picker
+ * already groups them visually.
  *
- * **This table is the whole "no language hits a wall" mechanism.** The editor
- * paints text through `@font-face`, where the browser silently borrows a
- * *system* font per character for glyphs the chosen file lacks, so Hindi, Thai
- * and Ukrainian all look perfect on screen in a font that cannot draw a single
- * one of them. A PDF embeds one font per element with no fallback, so that same
- * text would export as empty rectangles, and before this table the user only
- * found out when `signPdf` refused the download. Substituting here, on the one
- * code path both the editor and the exporter call, is what keeps the screen and
- * the download honest without ever stopping the user.
- *
- * `capable` is a claim about real font bytes, so it is verified against the
- * shipped TTFs by src/lib/fontCoverage.test.js - including the non-vacuity
- * half, that a font left *off* a list genuinely cannot draw that script.
- * Update the table and that test together.
- *
- * **Each pattern covers its script's main block only**, deliberately: the
- * bundled faces are checked against that block, so widening a pattern to a
- * range no bundled font actually covers would substitute a font that still
- * cannot draw the text. Characters outside these blocks - Cyrillic Supplement
- * (U+0500-052F), polytonic Greek (U+1F00-1FFF), Devanagari Extended
- * (U+A8E0-A8FF) - therefore fall through to the coverage check and are
- * refused by name rather than silently substituted. Polytonic Greek is the
- * only realistic one, and it still matches here on its unaccented base
- * letters. Widen a range only together with a font that genuinely covers it.
- *
- * Two consequences worth stating rather than leaving to be discovered:
- *
- * - **Order decides mixed scripts.** Text carrying two scripts that both need
- *   substituting resolves by the first row that matches, because one element
- *   embeds exactly one font and there is no second choice to give. The other
- *   script's characters then have no glyph, which liveFontCoverage.js surfaces
- *   while typing and `signPdf` still refuses on.
- * - **A fallback can change a font's character, not just its name.** Cyrillic
- *   and Greek have no handwriting-capable face in the catalogue, so a
- *   handwriting font resolves to an upright one; Devanagari and Thai have
- *   exactly one face each and both are handwriting, so an upright font
- *   resolves to a handwritten one for the whole element. That is the honest
- *   best available rather than a wall, and it is why an upright Devanagari and
- *   Thai text face is a live follow-up (see TODO.md).
+ * This changes nothing about today's output - Tinos is the only serif and
+ * Cousine the only mono, so neither ever has a same-tag alternative to prefer
+ * - and that is the point. It makes `resolveFontSubstitution`'s ordering rule
+ * *right* rather than *accidentally* right, so the day a second serif or a
+ * second Hebrew-capable handwriting face joins the catalogue, substitution
+ * prefers it automatically instead of falling through to catalogue order.
  */
-export const SCRIPT_FALLBACKS = [
-  {
-    name: 'Hebrew',
-    pattern: HEBREW_PATTERN,
-    capable: HEBREW_CAPABLE_FONTS,
-    handwriting: HEBREW_FALLBACK_HANDWRITING,
-    text: HEBREW_FALLBACK_TEXT,
-  },
-  {
-    name: 'Devanagari',
-    pattern: /[\u0900-\u097F]/,
-    capable: ['Kalam'],
-    handwriting: 'Kalam',
-    text: 'Kalam',
-  },
-  {
-    name: 'Thai',
-    pattern: /[\u0E00-\u0E7F]/,
-    capable: ['Mali'],
-    handwriting: 'Mali',
-    text: 'Mali',
-  },
-  {
-    name: 'Cyrillic',
-    pattern: /[\u0400-\u04FF]/,
-    capable: ['Arimo', 'Tinos', 'Cousine', 'PT Sans'],
-    handwriting: 'PT Sans',
-    text: 'PT Sans',
-  },
-  {
-    name: 'Greek',
-    pattern: /[\u0370-\u03FF]/,
-    capable: ['Arimo', 'Tinos', 'Cousine'],
-    handwriting: 'Arimo',
-    text: 'Arimo',
-  },
-  {
-    // Arabic main block plus the two presentation-form ranges (Arabic
-    // Presentation Forms-A and -B) - alternate encodings of the same
-    // standard Arabic letters, which a typed/pasted string can carry even
-    // though a user never types them directly (older IMEs, or text copied
-    // out of a presentation-form-encoded PDF, hand them over
-    // pre-substituted). Deliberately excludes Arabic Supplement
-    // (U+0750-077F) and Arabic Extended-A/B - those hold Persian/Urdu/Sindhi
-    // -only letters for the Perso-Arabic scripts TODO.md documents as still
-    // blocked (no bundled font targets them), so including that range here
-    // would trigger a substitution attempt Almarai cannot honor. Like every
-    // other row, this is the script's *main* block, not full coverage of it
-    // - Almarai, like every existing "capable" font for its own script, does
-    // not carry every codepoint in these ranges (Quranic annotation marks,
-    // Arabic Extended digits), only the modern-Arabic subset it was
-    // designed for. The per-character check on save
-    // (findUnrepresentableCharacters) still refuses a document naming
-    // whatever specific character neither the request nor this fallback can
-    // draw, exactly as it does for every other script.
-    name: 'Arabic',
-    pattern: /[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/,
-    capable: ['Almarai'],
-    handwriting: 'Almarai',
-    text: 'Almarai',
-  },
-];
+const SANS_STYLE_FONTS = ['Arimo', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Almarai'];
+const SERIF_STYLE_FONTS = ['Tinos'];
+const MONO_STYLE_FONTS = ['Cousine'];
 
-export function containsHebrew(text) {
-  return HEBREW_PATTERN.test(text || '');
+export const FONT_STYLE_TAGS = Object.fromEntries([
+  ...HANDWRITING_FONTS.map((family) => [family, 'handwriting']),
+  ...SANS_STYLE_FONTS.map((family) => [family, 'sans']),
+  ...SERIF_STYLE_FONTS.map((family) => [family, 'serif']),
+  ...MONO_STYLE_FONTS.map((family) => [family, 'mono']),
+]);
+
+/**
+ * Every family the catalogue offers, in a fixed order used as the last
+ * tiebreaker when more than one candidate covers a piece of text.
+ */
+const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
+
+const FONT_FILE_STYLE_SUFFIX = { normal: { normal: 'Regular', italic: 'Italic' }, bold: { normal: 'Bold', italic: 'BoldItalic' } };
+
+/**
+ * The filename `loadCustomFont()` (src/lib/sign.js) would *request* for
+ * `(family, weight, style)`, before any 404 fallback - i.e. the file that
+ * actually carries this exact weight/style, not whatever ends up embedded.
+ * Same naming scheme as fontCoverageTable.js's keys:
+ * "${family without spaces}-${Regular|Bold|Italic|BoldItalic}.ttf".
+ */
+function requestedFontFile(family, weight, style) {
+  const base = (family || '').replace(/\s+/g, '');
+  const requestedStyle = FONT_FILE_STYLE_SUFFIX[weight === 'bold' ? 'bold' : 'normal'][style === 'italic' ? 'italic' : 'normal'];
+  return `${base}-${requestedStyle}.ttf`;
 }
 
-export function supportsHebrew(fontFamily) {
-  return HEBREW_CAPABLE_FONTS.includes(fontFamily);
+/**
+ * Does a real file exist for this exact `(family, weight, style)` - not a
+ * fallback, the actual face? Driven by `FONT_COVERAGE_FILES`, generated by
+ * scripts/generate-font-coverage.mjs from the real bytes in public/fonts/,
+ * so this can never go stale against what is actually bundled the way a
+ * hand-maintained "which families have bold" list would.
+ *
+ * This is the predicate the picker uses to decide whether Bold/Italic is
+ * offered at all (docs/wysiwyg-text-architecture.md §3.4, W5). It answers a
+ * different question than `covers()` below: `covers()` asks "does the file
+ * that will actually be embedded (falling back to Regular if needed) draw
+ * this text", which is always true once a font falls back to Regular, since
+ * Regular exists for every family. `hasRealFace` asks "is there a face at
+ * all", which is what `loadCustomFont`'s silent 404-to-Regular fallback
+ * cannot answer for itself - the whole reason "bold X" used to render bold
+ * on screen and upright in the download.
+ *
+ * @param {string} family
+ * @param {string} weight - 'normal' | 'bold'
+ * @param {string} style - 'normal' | 'italic'
+ * @returns {boolean}
+ */
+export function hasRealFace(family, weight, style) {
+  return FONT_COVERAGE_FILES.includes(requestedFontFile(family, weight, style));
+}
+
+/**
+ * The exact filename that will actually be embedded for `(family, weight,
+ * style)` - mirroring src/lib/sign.js's `loadCustomFont()` fallback chain
+ * (request the specific weight/style file, fall back to `-Regular.ttf` if it
+ * 404s) without doing any network I/O. `FONT_COVERAGE_FILES` is generated
+ * from the same public/fonts/ directory `loadCustomFont` fetches from, so
+ * "is this file in the table" is exactly "would this fetch succeed".
+ *
+ * Judging coverage against this filename, not against `family` alone, is
+ * what makes `covers()` answer the question that matters: a bold request for
+ * a family with no bold face embeds the *Regular* file, so a glyph the
+ * Regular file lacks is genuinely missing even if some other weight of the
+ * family would have had it.
+ */
+function embeddedFontFile(family, weight, style) {
+  const requested = requestedFontFile(family, weight, style);
+  if (hasRealFace(family, weight, style)) return requested;
+  return requestedFontFile(family, 'normal', 'normal');
+}
+
+/**
+ * Does `family`, at `(weight, style)`, have a glyph for every character of
+ * `text`, once `text` has gone through the same normalize/strip/compose chain
+ * that will actually reach the shaper? See
+ * docs/wysiwyg-text-architecture.md §3.1 for the exact five steps and why
+ * each one matters; `findMissingGlyphs` (src/lib/textTransforms.js) is that
+ * chain's one implementation, shared with `unrepresentableCharacters` in
+ * src/editor/registry/text.ts so the two can never diverge.
+ *
+ * Deliberately does not fall back to another family when the requested
+ * `(weight, style)` file does not exist - see `embeddedFontFile` above and
+ * §3.4: that is the picker's job (W5, not this), and doing it here would
+ * quietly trade "bold Caveat" for "bold Arimo", losing the handwriting
+ * character to honour a checkbox.
+ *
+ * @param {string} family
+ * @param {string} weight - 'normal' | 'bold'
+ * @param {string} style - 'normal' | 'italic'
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function covers(family, weight, style, text) {
+  if (!text) return true;
+  const file = embeddedFontFile(family, weight, style);
+  return findMissingGlyphs(text, (cp) => fontFileHasGlyph(file, cp)).length === 0;
 }
 
 /**
@@ -244,29 +243,88 @@ export function supportsHebrew(fontFamily) {
  * *why* it changed - so the editor can explain a substitution to the user
  * without re-deriving the rule and drifting from it.
  *
+ * This is the coverage-first rule from docs/wysiwyg-text-architecture.md §3.2,
+ * replacing the old per-script SCRIPT_FALLBACKS table (removed - see git
+ * history). The table's failure mode was row order: text mixing two scripts
+ * that both needed substituting always resolved by whichever row matched
+ * first, which could refuse a document a bundled font genuinely could have
+ * drawn (`שלום Привіт` in Heebo used to be refused outright, because the
+ * Hebrew row matched first and Heebo already passed it - see §3.6). Judging
+ * real glyph coverage instead removes that accident.
+ *
+ * 1. A family we have since retired (see RETIRED_FONTS) is mapped to its
+ *    replacement first, so a draft saved against a font that no longer ships
+ *    still renders identically on both sides.
+ * 2. If the requested family already covers the text, it is left alone.
+ * 3. Otherwise every catalogue family that covers the text is a candidate,
+ *    ranked by: same style tag as requested (handwriting/sans/serif/mono),
+ *    then same class (handwriting vs upright), then catalogue order - see
+ *    §3.3. The best-ranked candidate wins, and `missing` names what the
+ *    requested family itself could not draw (for `describeFontSubstitution`).
+ * 4. If no catalogue family covers the whole text - two scripts with no
+ *    shared font, e.g. Hebrew and Arabic - the requested family is kept
+ *    rather than substituting to something arbitrary, and `missing` names
+ *    the characters that genuinely no bundled family can draw. `signPdf`'s
+ *    own refusal (via findUnrepresentableCharacters, judged against this same
+ *    `family`) remains the backstop that actually stops the download.
+ *
  * Substitutes a whole element at a time rather than a character at a time: a
  * run-by-run split would render "רחוב 17" in two different faces, and the
- * editor and the PDF would have to agree on where every run starts. One family
- * per box is what both sides can guarantee identically.
- *
- * A family we have since retired (see RETIRED_FONTS) is mapped to its
- * replacement before anything else happens, so a draft saved against a font
- * that no longer ships still renders identically on both sides.
+ * editor and the PDF would have to agree on where every run starts. One
+ * family per box is what both sides can guarantee identically.
  *
  * @param {string} [fontFamily] - the family the user chose; falls back to
  *   DEFAULT_FAMILY when unset, so callers may pass undefined
  * @param {string} text - the element's current content
- * @returns {{ family: string, requested: string, script: string|null }}
- *   `family` is what to render and embed; `script` names the script that
- *   forced the change, or is null when nothing was substituted.
+ * @param {string} [weight] - 'normal' | 'bold'
+ * @param {string} [style] - 'normal' | 'italic'
+ * @returns {{ family: string, requested: string, missing: string[] }}
+ *   `family` is what to render and embed; `missing` is empty when nothing
+ *   was substituted and non-empty otherwise, naming what forced the change.
  */
-export function resolveFontSubstitution(fontFamily, text) {
+export function resolveFontSubstitution(fontFamily, text, weight = 'normal', style = 'normal') {
   // Retired families first, so everything below sees only a family we ship.
   const requested = RETIRED_FONTS[fontFamily] || fontFamily || DEFAULT_FAMILY;
-  const script = SCRIPT_FALLBACKS.find((entry) => entry.pattern.test(text || ''));
-  if (!script || script.capable.includes(requested)) return { family: requested, requested, script: null };
-  const family = HANDWRITING_FONTS.includes(requested) ? script.handwriting : script.text;
-  return { family, requested, script: script.name };
+  const value = text || '';
+
+  if (covers(requested, weight, style, value)) return { family: requested, requested, missing: [] };
+
+  const requestedFile = embeddedFontFile(requested, weight, style);
+  const requestedMissing = findMissingGlyphs(value, (cp) => fontFileHasGlyph(requestedFile, cp));
+
+  const requestedTag = FONT_STYLE_TAGS[requested];
+  const requestedIsHandwriting = HANDWRITING_FONTS.includes(requested);
+  const candidates = CATALOGUE.filter((family) => covers(family, weight, style, value));
+
+  if (candidates.length > 0) {
+    const ranked = [...candidates].sort((a, b) => {
+      const tagRank = (f) => (FONT_STYLE_TAGS[f] === requestedTag ? 0 : 1);
+      const classRank = (f) => (HANDWRITING_FONTS.includes(f) === requestedIsHandwriting ? 0 : 1);
+      return tagRank(a) - tagRank(b)
+        || classRank(a) - classRank(b)
+        || CATALOGUE.indexOf(a) - CATALOGUE.indexOf(b);
+    });
+    return { family: ranked[0], requested, missing: requestedMissing };
+  }
+
+  // No single catalogue family covers the whole string - two scripts with no
+  // shared font. `family` stays `requested` (nothing better exists to switch
+  // to), so `missing` must name what *that* family cannot draw - i.e. what
+  // will actually be absent from the download if the user proceeds. That is
+  // exactly `requestedMissing`, already computed above.
+  //
+  // This is a deliberate narrowing from "characters no catalogue family can
+  // draw" (a fact about the whole catalogue, useful for a coverage report,
+  // not about this element). The wider phrasing went empty on mixed-script
+  // text like Hebrew+Arabic: Arimo can draw the Hebrew and Almarai can draw
+  // the Arabic, so no single character is uncoverable *by some font*, even
+  // though no font covers the whole string - exactly the case where the user
+  // most needs telling. Naming what the kept family can't draw also keeps
+  // this in lockstep with findUnrepresentableCharacters, which judges against
+  // the same embedded family signPdf will actually use - see the header of
+  // textCoverage.js for why the notice and the save-time refusal must never
+  // name different characters.
+  return { family: requested, requested, missing: requestedMissing };
 }
 
 /**
@@ -276,8 +334,10 @@ export function resolveFontSubstitution(fontFamily, text) {
  *
  * @param {string} [fontFamily] - the family the user chose
  * @param {string} text - the element's current content
+ * @param {string} [weight] - 'normal' | 'bold'
+ * @param {string} [style] - 'normal' | 'italic'
  * @returns {string} the family to render and embed
  */
-export function resolveFontFamily(fontFamily, text) {
-  return resolveFontSubstitution(fontFamily, text).family;
+export function resolveFontFamily(fontFamily, text, weight = 'normal', style = 'normal') {
+  return resolveFontSubstitution(fontFamily, text, weight, style).family;
 }

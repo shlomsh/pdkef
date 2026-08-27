@@ -1,11 +1,12 @@
 /**
- * The script substitution rule shared by the editor and the exporter.
+ * The coverage-first font resolution rule shared by the editor and the
+ * exporter (docs/wysiwyg-text-architecture.md §3.2).
  *
  * The whole point of the rule is that both sides answer identically, so the
  * screen and the downloaded PDF agree. See fonts.js for why the browser's own
  * per-character fallback cannot be relied on here.
  *
- * Coverage of the SCRIPT_FALLBACKS table against the real font bytes lives in
+ * Coverage of the resolver against the real font bytes lives in
  * fontCoverage.test.js; this file tests the resolution *rule* built on it.
  */
 import { describe, it, expect } from 'vitest';
@@ -16,14 +17,13 @@ import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../constants/signGe
 import {
   RETIRED_FONTS,
   FONT_VERTICAL_METRICS,
+  FONT_STYLE_TAGS,
   HANDWRITING_FONTS,
   HEBREW_CAPABLE_FONTS,
-  SCRIPT_FALLBACKS,
   TEXT_FONTS,
-  containsHebrew,
+  covers,
   resolveFontFamily,
   resolveFontSubstitution,
-  supportsHebrew,
   textBoxPaddingEm,
 } from './fonts.js';
 
@@ -37,18 +37,39 @@ const SCRIPT_PROBES = {
   Arabic: 'مرحبا',
 };
 
-describe('containsHebrew', () => {
-  it.each([
-    ['שלום', true],
-    ['שלומי שמש 1975', true],
-    ['רחוב 17', true],
-    ['ﬡ', true], // presentation form
-    ['hello', false],
-    ['1975', false],
-    ['', false],
-    [undefined, false],
-  ])('%s -> %s', (text, expected) => {
-    expect(containsHebrew(text)).toBe(expected);
+describe('covers', () => {
+  it('is true for plain Latin text in every bundled font', () => {
+    for (const family of [...TEXT_FONTS, ...HANDWRITING_FONTS]) {
+      expect(covers(family, 'normal', 'normal', 'Shlomi Shemesh 1975')).toBe(true);
+    }
+  });
+
+  it('is true for empty or unset text regardless of family', () => {
+    expect(covers('Caveat', 'normal', 'normal', '')).toBe(true);
+    expect(covers('Caveat', 'normal', 'normal', undefined)).toBe(true);
+  });
+
+  it('is false when the family genuinely lacks a script', () => {
+    expect(covers('Caveat', 'normal', 'normal', 'שלום')).toBe(false);
+    expect(covers('Heebo', 'normal', 'normal', 'Привіт')).toBe(false);
+  });
+
+  it('is true for a script-specific family on its own script', () => {
+    for (const family of HEBREW_CAPABLE_FONTS) {
+      expect(covers(family, 'normal', 'normal', 'שלום')).toBe(true);
+    }
+  });
+
+  // §3.4: coverage is judged against the file that will really be embedded.
+  // Caveat, Dancing Script, Kalam and Mali picked up real Bold faces (and
+  // Mali real Italic/BoldItalic faces too), but Great Vibes still has no
+  // bold anywhere upstream, so "bold Great Vibes" must still be judged
+  // against GreatVibes-Regular.ttf (loadCustomFont's own fallback) - which
+  // covers Latin - not treated as uncovered just because
+  // GreatVibes-Bold.ttf doesn't exist.
+  it('falls back to the Regular file when the requested weight/style file does not exist, same as loadCustomFont', () => {
+    expect(existsSync(join(process.cwd(), 'public', 'fonts', 'GreatVibes-Bold.ttf'))).toBe(false);
+    expect(covers('Great Vibes', 'bold', 'normal', 'Shlomi')).toBe(true);
   });
 });
 
@@ -83,7 +104,7 @@ describe('resolveFontFamily', () => {
 
   it('always resolves to a font that can actually render the text', () => {
     for (const family of [...TEXT_FONTS, ...HANDWRITING_FONTS]) {
-      expect(supportsHebrew(resolveFontFamily(family, 'שלום'))).toBe(true);
+      expect(covers(resolveFontFamily(family, 'שלום'), 'normal', 'normal', 'שלום')).toBe(true);
     }
   });
 
@@ -96,30 +117,32 @@ describe('resolveFontFamily', () => {
 });
 
 /**
- * The same two guarantees Hebrew has always had, now owed to every script in
- * the table. These are what turn "the download refused" into "the box quietly
- * used a font that works": whatever the user picked, resolution has to land on
- * a font that can actually draw what they typed, and land there in one step.
+ * The same guarantees every script now gets, because the rule is no longer
+ * per-script: whatever the user picked, resolution has to land on a font
+ * that can actually draw what they typed, and land there in one step.
  */
-describe('resolveFontFamily across every script in SCRIPT_FALLBACKS', () => {
-  const rows = SCRIPT_FALLBACKS.map((row) => [row.name, row]);
+describe('resolveFontFamily across every script the catalogue covers', () => {
+  const rows = Object.entries(SCRIPT_PROBES);
 
-  it.each(rows)('%s: resolves every bundled font to one that can draw the script', (name, row) => {
-    const stranded = [...TEXT_FONTS, ...HANDWRITING_FONTS]
-      .filter((family) => !row.capable.includes(resolveFontFamily(family, SCRIPT_PROBES[name])));
-    expect(stranded).toEqual([]);
-  });
-
-  it.each(rows)('%s: is idempotent, so the exporter re-resolving the editor’s choice is a no-op', (name) => {
+  it.each(rows)('%s: resolves every bundled font to one that covers the probe', (_name, probe) => {
     for (const family of [...TEXT_FONTS, ...HANDWRITING_FONTS]) {
-      const once = resolveFontFamily(family, SCRIPT_PROBES[name]);
-      expect(resolveFontFamily(once, SCRIPT_PROBES[name])).toBe(once);
+      const resolved = resolveFontFamily(family, probe);
+      expect(covers(resolved, 'normal', 'normal', probe)).toBe(true);
     }
   });
 
-  it.each(rows)('%s: leaves a font that already covers the script alone', (name, row) => {
-    for (const family of row.capable) {
-      expect(resolveFontFamily(family, SCRIPT_PROBES[name])).toBe(family);
+  it.each(rows)('%s: is idempotent, so the exporter re-resolving the editor’s choice is a no-op', (_name, probe) => {
+    for (const family of [...TEXT_FONTS, ...HANDWRITING_FONTS]) {
+      const once = resolveFontFamily(family, probe);
+      expect(resolveFontFamily(once, probe)).toBe(once);
+    }
+  });
+
+  it.each(rows)('%s: leaves a font that already covers the probe alone', (_name, probe) => {
+    for (const family of [...TEXT_FONTS, ...HANDWRITING_FONTS]) {
+      if (covers(family, 'normal', 'normal', probe)) {
+        expect(resolveFontFamily(family, probe)).toBe(family);
+      }
     }
   });
 
@@ -133,38 +156,45 @@ describe('resolveFontFamily across every script in SCRIPT_FALLBACKS', () => {
     expect(resolveFontFamily('Caveat', 'สวัสดี')).toBe('Mali');
     // Cyrillic and Greek only need rescuing from a font without them; Arimo
     // has both, so it must be left alone rather than swapped for no reason.
-    expect(resolveFontFamily('Caveat', 'Привіт')).toBe('PT Sans');
-    expect(resolveFontFamily('Assistant', 'Привіт')).toBe('PT Sans');
+    // Under the coverage rule (unlike the old per-script table, which special-
+    // cased PT Sans as Cyrillic's designated fallback) any Cyrillic-capable
+    // catalogue family is a valid candidate and Arimo, first in catalogue
+    // order among sans-tagged candidates and already the default family,
+    // wins the tiebreak - see §3.2/§3.3.
+    expect(resolveFontFamily('Caveat', 'Привіт')).toBe('Arimo');
+    expect(resolveFontFamily('Assistant', 'Привіт')).toBe('Arimo');
     expect(resolveFontFamily('Arimo', 'Привіт')).toBe('Arimo');
     expect(resolveFontFamily('Pacifico', 'Ελλάδα')).toBe('Arimo');
     expect(resolveFontFamily('Arimo', 'Ελλάδα')).toBe('Arimo');
   });
 
-  // One element embeds exactly one font, so a line mixing two scripts that both
-  // need substituting has no answer that satisfies both. Resolving by table
-  // order at least makes it deterministic and identical on both sides; the
-  // leftover characters are then caught by the live coverage check while typing
-  // and refused by signPdf, rather than silently exported as empty boxes.
-  it('resolves mixed scripts deterministically, by table order', () => {
+  it('resolves mixed scripts deterministically', () => {
     const mixed = 'שלום नमस्ते';
     expect(resolveFontFamily('Arimo', mixed)).toBe(resolveFontFamily('Arimo', mixed));
-    const first = SCRIPT_FALLBACKS.find((row) => row.pattern.test(mixed));
-    expect(first.name).toBe('Hebrew');
-    expect(resolveFontFamily('Arimo', mixed)).toBe('Arimo');
   });
 });
 
 describe('resolveFontSubstitution', () => {
   it('reports no substitution when the picked font can draw the text', () => {
-    expect(resolveFontSubstitution('Arimo', 'Hello')).toEqual({ family: 'Arimo', requested: 'Arimo', script: null });
-    expect(resolveFontSubstitution('Arimo', 'שלום')).toEqual({ family: 'Arimo', requested: 'Arimo', script: null });
-    expect(resolveFontSubstitution('Kalam', 'नमस्ते')).toEqual({ family: 'Kalam', requested: 'Kalam', script: null });
+    expect(resolveFontSubstitution('Arimo', 'Hello')).toEqual({ family: 'Arimo', requested: 'Arimo', missing: [] });
+    expect(resolveFontSubstitution('Arimo', 'שלום')).toEqual({ family: 'Arimo', requested: 'Arimo', missing: [] });
+    expect(resolveFontSubstitution('Kalam', 'नमस्ते')).toEqual({ family: 'Kalam', requested: 'Kalam', missing: [] });
   });
 
-  it('names the script that forced a change, so the editor can explain it', () => {
-    expect(resolveFontSubstitution('Arimo', 'नमस्ते')).toEqual({ family: 'Kalam', requested: 'Arimo', script: 'Devanagari' });
-    expect(resolveFontSubstitution('Caveat', 'สวัสดี')).toEqual({ family: 'Mali', requested: 'Caveat', script: 'Thai' });
-    expect(resolveFontSubstitution('Caveat', 'שלום')).toEqual({ family: 'Gveret Levin', requested: 'Caveat', script: 'Hebrew' });
+  it('names the characters that forced a change, so the editor can explain it', () => {
+    const devanagari = resolveFontSubstitution('Arimo', 'नमस्ते');
+    expect(devanagari.family).toBe('Kalam');
+    expect(devanagari.requested).toBe('Arimo');
+    expect(devanagari.missing.length).toBeGreaterThan(0);
+    for (const ch of devanagari.missing) expect('नमस्ते').toContain(ch);
+
+    const thai = resolveFontSubstitution('Caveat', 'สวัสดี');
+    expect(thai.family).toBe('Mali');
+    expect(thai.missing.length).toBeGreaterThan(0);
+
+    const hebrew = resolveFontSubstitution('Caveat', 'שלום');
+    expect(hebrew.family).toBe('Gveret Levin');
+    expect(hebrew.missing.length).toBeGreaterThan(0);
   });
 
   it('reports the replacement, not the retired name, as what was requested', () => {
@@ -178,13 +208,72 @@ describe('resolveFontSubstitution', () => {
       }
     }
   });
+
+  // §3.4: covers() is judged against the file that will really be embedded,
+  // and a missing weight/style face is never substituted away to a different
+  // family (that would trade the handwriting character for a checkbox).
+  it('never substitutes families just because a bold/italic face is missing', () => {
+    const bold = resolveFontSubstitution('Caveat', 'Signed', 'bold', 'normal');
+    expect(bold.family).toBe('Caveat');
+    expect(bold.missing).toEqual([]);
+  });
+
+  // §3.6 C2: when no single catalogue family covers the whole string, `missing`
+  // must name what the KEPT family (`family`, which equals `requested` here)
+  // actually can't draw - not "characters no family anywhere can draw", which
+  // goes empty exactly when the user most needs a warning (a family exists per
+  // script, just not one family for both).
+  describe('when no catalogue family covers the whole string', () => {
+    it('reports the characters the kept family cannot draw, for mixed scripts with no shared font', () => {
+      const mixed = resolveFontSubstitution('Arimo', 'שלום Hello مرحبا');
+      expect(mixed.family).toBe('Arimo');
+      expect(mixed.requested).toBe('Arimo');
+      // Arimo can draw the Hebrew and Latin; only the Arabic is missing.
+      expect(mixed.missing.length).toBeGreaterThan(0);
+      for (const ch of mixed.missing) expect('مرحبا').toContain(ch);
+      expect(mixed.missing).not.toEqual(expect.arrayContaining(['ש', 'ל', 'ו', 'ם']));
+    });
+
+    it('is unchanged for a script no bundled font can draw at all (CJK)', () => {
+      const cjk = resolveFontSubstitution('Arimo', '你好');
+      expect(cjk.family).toBe('Arimo');
+      expect(cjk.requested).toBe('Arimo');
+      expect(cjk.missing).toEqual(['你', '好']);
+    });
+  });
+});
+
+/**
+ * §3.3: the style tag exists so substitution prefers a same-character
+ * replacement (handwriting for handwriting, sans for sans) over an arbitrary
+ * catalogue-order pick.
+ */
+describe('FONT_STYLE_TAGS', () => {
+  it('tags every catalogue family', () => {
+    for (const family of [...HANDWRITING_FONTS, ...TEXT_FONTS]) {
+      expect(FONT_STYLE_TAGS[family]).toBeDefined();
+    }
+  });
+
+  it('tags every handwriting font as handwriting', () => {
+    for (const family of HANDWRITING_FONTS) {
+      expect(FONT_STYLE_TAGS[family]).toBe('handwriting');
+    }
+  });
+
+  it('Tinos is the lone serif and Cousine the lone mono - changes nothing today, on purpose (§3.3)', () => {
+    expect(FONT_STYLE_TAGS.Tinos).toBe('serif');
+    expect(FONT_STYLE_TAGS.Cousine).toBe('mono');
+    expect(Object.values(FONT_STYLE_TAGS).filter((tag) => tag === 'serif')).toEqual(['serif']);
+    expect(Object.values(FONT_STYLE_TAGS).filter((tag) => tag === 'mono')).toEqual(['mono']);
+  });
 });
 
 /**
  * FONT_VERTICAL_METRICS is a hardcoded snapshot of each bundled TTF's hhea
  * ascent/descent — checked against the real asset bytes the same way
- * fontCoverage.test.js checks Hebrew glyph coverage, so a swapped font file
- * can't silently drift the table stale and let a clipped ascender back in.
+ * fontCoverage.test.js checks glyph coverage, so a swapped font file can't
+ * silently drift the table stale and let a clipped ascender back in.
  */
 describe('FONT_VERTICAL_METRICS', () => {
   const FONT_DIR = join(process.cwd(), 'public', 'fonts');

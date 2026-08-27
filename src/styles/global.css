@@ -58,10 +58,22 @@
   src: url('/fonts/Caveat-Regular.ttf') format('truetype');
 }
 @font-face {
+  font-family: 'Caveat';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Caveat-Bold.ttf') format('truetype');
+}
+@font-face {
   font-family: 'Dancing Script';
   font-style: normal;
   font-weight: 400;
   src: url('/fonts/DancingScript-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Dancing Script';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/DancingScript-Bold.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Great Vibes';
@@ -82,10 +94,34 @@
   src: url('/fonts/Kalam-Regular.ttf') format('truetype');
 }
 @font-face {
+  font-family: 'Kalam';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Kalam-Bold.ttf') format('truetype');
+}
+@font-face {
   font-family: 'Mali';
   font-style: normal;
   font-weight: 400;
   src: url('/fonts/Mali-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Mali';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Mali-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Mali';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/Mali-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Mali';
+  font-style: italic;
+  font-weight: 700;
+  src: url('/fonts/Mali-BoldItalic.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Pacifico';

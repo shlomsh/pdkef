@@ -47,7 +47,7 @@ export const tools = [
     toolName: 'Sign & Fill PDF',
     h1: 'Sign PDF Free: Fill & Sign Forms in Your Browser',
     subhead:
-      'You can fill out and sign a PDF here without ever printing or scanning it. Tick checkboxes, type text, and add your signature to any PDF, from school consent slips to contracts and applications, in Hebrew, Ukrainian, Thai, Hindi, or any Latin-script language. Your progress auto-saves on your device, so a crash or accidental refresh never loses your work.',
+      'You can fill out and sign a PDF here without ever printing or scanning it. Tick checkboxes, type text, and add your signature to any PDF, from school consent slips to contracts and applications, in Hebrew, Russian, Ukrainian, Thai, Hindi, or any Latin-script language. Your progress auto-saves on your device, so a crash or accidental refresh never loses your work.',
     ariaLabel: 'PDF sign tool',
     aboutHeading: 'How to fill and sign PDF files',
     aboutLead:
@@ -74,7 +74,7 @@ export const tools = [
       tag: 'Languages',
       heading: 'Supports a wide range of languages, with more on the way',
       lead:
-        "Hebrew, Hindi, Thai, Ukrainian, Greek, Arabic, and every Latin-script language work end to end here, so what you type is exactly what ends up in your downloaded file. I'm adding more as I go.",
+        "Hebrew, Hindi, Thai, Russian, Ukrainian, Greek, Arabic, and every Latin-script language work end to end here, so what you type is exactly what ends up in your downloaded file. I'm adding more as I go.",
       supportedHeading: 'Supported now',
       supported: [
         {
@@ -93,9 +93,9 @@ export const tools = [
           note: 'Mali, which doubles as a typed-signature font. Tone marks and the vowels that sit above and below the line land where they belong.',
         },
         {
-          native: 'Українська',
-          name: 'Ukrainian and other Cyrillic',
-          note: 'PT Sans, including the Ukrainian letters ї, є, і and ґ that some fonts quietly leave out.',
+          native: 'Русский, Українська',
+          name: 'Russian, Ukrainian, and other Cyrillic',
+          note: 'PT Sans, including the Ukrainian letters ї, є, і and ґ that some fonts quietly leave out. There is no handwriting-style Cyrillic face yet, so a typed signature comes out upright rather than cursive.',
         },
         {
           native: 'Ελληνικά',
@@ -155,8 +155,8 @@ export const tools = [
         answer: 'Yes. Hebrew works end to end. Type into a text box and it grows leftward from a fixed right edge, the way right-to-left text actually behaves. The fonts offered for Hebrew are bundled with the tool and checked against their real glyph coverage, so what you see on screen is what gets embedded in the file you download, with no empty rectangles where the letters should be. You can also type your signature in a Hebrew handwriting font rather than drawing it.',
       },
       {
-        question: 'Can I type Ukrainian or Thai text when signing a PDF?',
-        answer: 'Yes. Ukrainian (Cyrillic) text uses PT Sans, and Thai text uses Mali, a handwriting-style font you can also use for a typed signature. Both are bundled with the tool and checked against their real glyph coverage, so what you see on screen is what gets embedded in the file you download.',
+        question: 'Can I type Russian, Ukrainian, or Thai text when signing a PDF?',
+        answer: 'Yes. Russian, Ukrainian, and other Cyrillic text uses PT Sans, and Thai text uses Mali, a handwriting-style font you can also use for a typed signature. Both are bundled with the tool and checked against their real glyph coverage, so what you see on screen is what gets embedded in the file you download.',
       },
       {
         question: 'Can I fill and sign a PDF in Hindi (हिन्दी में PDF पर हस्ताक्षर)?',
@@ -172,7 +172,7 @@ export const tools = [
       },
       {
         question: 'Can I sign a PDF in Chinese or Pashto?',
-        answer: 'Not yet, and the tool is upfront about it rather than letting you find out at the end. No bundled font can draw Chinese, Japanese, Korean, Pashto or emoji, so if you type any of them a notice appears while you type and names the exact characters. Chinese, Japanese and Korean fonts need subsetting first so the download does not balloon, and Pashto needs letters the bundled Arabic font was not built to draw. Both are open work. Everything else on this page, including Hebrew, Arabic, Dari, Farsi, Hindi, Thai, Ukrainian, Greek and every Latin-script language, works end to end today.',
+        answer: 'Not yet, and the tool is upfront about it rather than letting you find out at the end. No bundled font can draw Chinese, Japanese, Korean, Pashto or emoji, so if you type any of them a notice appears while you type and names the exact characters. Chinese, Japanese and Korean fonts need subsetting first so the download does not balloon, and Pashto needs letters the bundled Arabic font was not built to draw. Both are open work. Everything else on this page, including Hebrew, Arabic, Dari, Farsi, Hindi, Thai, Russian, Ukrainian, Greek and every Latin-script language, works end to end today.',
       },
     ],
   },

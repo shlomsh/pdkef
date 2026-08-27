@@ -2,6 +2,8 @@
 .element-button { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; border: none; background: transparent; color: var(--color-surface); border-radius: 4px; cursor: pointer; font-size: .8rem; font-weight: 500; padding: 0 4px; }
 .element-button:hover { background: rgba(255,255,255,.15); }
 .element-button.active { background: var(--color-primary); }
+.element-button:disabled { opacity: .35; cursor: not-allowed; }
+.element-button:disabled:hover { background: transparent; }
 .element-button-danger:hover { background: var(--color-danger); }
 .color-menu, .font-menu { min-width: 0; width: max-content; padding: .5rem; }
 .shapes-menu { min-width: 140px; border-radius: 12px; padding: .25rem; }

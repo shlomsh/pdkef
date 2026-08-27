@@ -8,11 +8,21 @@
  * Latin-only builds of Heebo and Assistant shipped unnoticed: nothing in the
  * app can see the gap, only the downloaded file shows it.
  *
- * So assert it against the real asset bytes: every general-purpose text font
- * the picker offers must actually carry Hebrew glyphs. The one deliberate
- * exception is a font added purely to signal support for a different script
- * (e.g. PT Sans for Cyrillic) — see NON_HEBREW_SCRIPT_FONTS below, which
- * relies on resolveFontFamily's generic fallback instead.
+ * W3 (docs/wysiwyg-text-architecture.md §3) replaced the old per-script
+ * SCRIPT_FALLBACKS table - a hand-maintained claim about which fonts could
+ * draw which script - with a coverage-first resolver that reads the real font
+ * bytes at resolution time. There is no longer a claims table to check
+ * against the bytes; the thing that must be checked against the bytes is the
+ * resolver itself. This file does two things:
+ *
+ *  - `covers` is not vacuous: it is cross-checked, per bundled family and per
+ *    script probe, against an independent charset read straight from the
+ *    real TTFs (not against anything fonts.js computes) - in both
+ *    directions, so a `covers()` that always said yes, or always said no,
+ *    would fail here immediately.
+ *  - `resolveFontSubstitution` always lands on a family that genuinely covers
+ *    the text, or genuinely reports what nothing can draw - never a third,
+ *    silent outcome - pinned against the exact cases §3.6 predicted.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
@@ -21,36 +31,19 @@ import fontkit from '@pdf-lib/fontkit';
 import {
   HANDWRITING_FONTS,
   HEBREW_CAPABLE_FONTS,
-  HEBREW_FALLBACK_HANDWRITING,
-  HEBREW_FALLBACK_TEXT,
-  SCRIPT_FALLBACKS,
   TEXT_FONTS,
+  covers,
+  hasRealFace,
+  resolveFontSubstitution,
 } from './fonts.js';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
+const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
 
 // Every letter including the five final forms.
 const HEBREW_ALPHABET = 'אבגדהוזחטיכלמנסעפצקרשתםןץףך'.split('');
 // Nikud (sheva), geresh, and the shekel sign — common in filled Hebrew forms.
 const HEBREW_EXTRAS = [0x05b0, 0x05f3, 0x20aa];
-
-/**
- * Every family fonts.js claims can render Hebrew — including the two stand-ins
- * resolveFontFamily substitutes in, which are the last line of defence and so
- * must hold up. The claim is a hardcoded list there; this checks it against the
- * actual bytes on disk.
- */
-const HEBREW_CAPABLE_FAMILIES = HEBREW_CAPABLE_FONTS;
-
-/**
- * TEXT_FONTS members added for a script other than Hebrew, which
- * intentionally carry no Hebrew glyphs of their own. resolveFontFamily's
- * generic fallback substitutes HEBREW_FALLBACK_TEXT for these when Hebrew
- * text is typed into them — checked in fonts.test.js's "always resolves to a
- * font that can actually render the text" — so they don't need to appear in
- * HEBREW_CAPABLE_FONTS the way the general-purpose text fonts do.
- */
-const NON_HEBREW_SCRIPT_FONTS = ['PT Sans', 'Almarai'];
 
 const STYLES = ['Regular', 'Bold', 'Italic', 'BoldItalic'];
 
@@ -62,26 +55,29 @@ function variantFiles(family) {
     .filter((file) => existsSync(join(FONT_DIR, file)));
 }
 
+const charsetCache = new Map();
 function characterSetOf(file) {
-  return new Set(fontkit.create(readFileSync(join(FONT_DIR, file))).characterSet);
+  if (!charsetCache.has(file)) {
+    charsetCache.set(file, new Set(fontkit.create(readFileSync(join(FONT_DIR, file))).characterSet));
+  }
+  return charsetCache.get(file);
+}
+
+/** Independent oracle: does family's Regular file, read straight off disk,
+ * have a glyph for every character of `text`? Deliberately reimplemented
+ * here rather than calling into fonts.js, so this can actually catch a
+ * `covers()` that lies. */
+function reallyCovers(family, text) {
+  const charset = characterSetOf(`${family.replace(/\s+/g, '')}-Regular.ttf`);
+  return Array.from(text).every((ch) => charset.has(ch.codePointAt(0)));
 }
 
 describe('bundled fonts offered for Hebrew', () => {
-  it('claims Hebrew support for every general-purpose text font the picker offers', () => {
-    const generalTextFonts = TEXT_FONTS.filter((family) => !NON_HEBREW_SCRIPT_FONTS.includes(family));
-    expect(generalTextFonts.filter((family) => !HEBREW_CAPABLE_FONTS.includes(family))).toEqual([]);
-  });
-
-  it('substitutes in fonts that are themselves Hebrew-capable', () => {
-    expect(HEBREW_CAPABLE_FONTS).toContain(HEBREW_FALLBACK_TEXT);
-    expect(HEBREW_CAPABLE_FONTS).toContain(HEBREW_FALLBACK_HANDWRITING);
-  });
-
-  it.each(HEBREW_CAPABLE_FAMILIES)('%s ships at least a Regular file', (family) => {
+  it.each(HEBREW_CAPABLE_FONTS)('%s ships at least a Regular file', (family) => {
     expect(variantFiles(family)).toContain(`${family.replace(/\s+/g, '')}-Regular.ttf`);
   });
 
-  it.each(HEBREW_CAPABLE_FAMILIES.flatMap(variantFiles))(
+  it.each(HEBREW_CAPABLE_FONTS.flatMap(variantFiles))(
     '%s covers the Hebrew alphabet, nikud, geresh, and the shekel sign',
     (file) => {
       const charset = characterSetOf(file);
@@ -95,7 +91,7 @@ describe('bundled fonts offered for Hebrew', () => {
 
   // Latin has to survive in the same file: Hebrew forms are full of digits,
   // and a mixed line is embedded as one font.
-  it.each(HEBREW_CAPABLE_FAMILIES.flatMap(variantFiles))('%s also covers Latin letters and digits', (file) => {
+  it.each(HEBREW_CAPABLE_FONTS.flatMap(variantFiles))('%s also covers Latin letters and digits', (file) => {
     const charset = characterSetOf(file);
     expect(charset.has('A'.codePointAt(0))).toBe(true);
     expect(charset.has('0'.codePointAt(0))).toBe(true);
@@ -103,29 +99,21 @@ describe('bundled fonts offered for Hebrew', () => {
 });
 
 /**
- * SCRIPT_FALLBACKS is what stops a language hitting a wall at download time,
- * and every `capable` list in it is a claim about real font bytes. Checked here
- * against the shipped TTFs, both halves:
+ * `covers()` is the whole substitution mechanism now - every claim
+ * `resolveFontSubstitution` makes is only as good as this predicate. Checked
+ * here against the shipped TTFs, both halves, the same non-vacuity discipline
+ * the old SCRIPT_FALLBACKS check used:
  *
- *  - every font a row calls capable really does cover that script, so a
+ *  - every family `covers()` says yes to really does have every glyph, so a
  *    substitution can never land on a font that cannot draw the text; and
- *  - every font a row leaves *off* really cannot, which is the non-vacuity
- *    half. Without it a row listing nothing (or listing everything) would pass
- *    while proving nothing - the exact failure mode that let Thai ship bundled
- *    but unrouted, with Mali sitting in the catalogue unreachable by Thai text.
+ *  - every family `covers()` says no to really is missing at least one glyph
+ *    - the non-vacuity half. Without it, a `covers()` that always returned
+ *    true (or always false) would pass every one-directional assertion here
+ *    while proving nothing - the exact failure mode that let Thai ship
+ *    bundled but unrouted under the old table.
  */
-describe('SCRIPT_FALLBACKS', () => {
+describe('covers is not vacuous', () => {
   // One representative string per script, in the language we actually claim.
-  //
-  // `coversAll` judges a font by whether it covers EVERY character of its
-  // probe, so "capable" is strictly a claim about the probe, not about the
-  // whole Unicode block. That biases safely in one direction: a font missing
-  // one probe character (Greek's precomposed ά, U+03AC, is the likely case) is
-  // excluded from `capable` and substituted away even though it might have
-  // rendered the user's actual text. The result is a font that definitely
-  // works rather than one that might, which is the right way round - but it
-  // does mean a probe change can silently widen or narrow a `capable` list, so
-  // change these strings deliberately.
   const PROBES = {
     Hebrew: 'שלום',
     Devanagari: 'नमस्ते',
@@ -135,72 +123,169 @@ describe('SCRIPT_FALLBACKS', () => {
     Arabic: 'مرحبا',
   };
 
-  const BUNDLED = [...TEXT_FONTS, ...HANDWRITING_FONTS];
-
-  function coversAll(family, probe) {
-    const charset = characterSetOf(`${family.replace(/\s+/g, '')}-Regular.ttf`);
-    return Array.from(probe).every((ch) => charset.has(ch.codePointAt(0)));
-  }
-
-  it('has a probe for every row, so no row goes unchecked', () => {
-    expect(SCRIPT_FALLBACKS.map((row) => row.name).sort()).toEqual(Object.keys(PROBES).sort());
+  it.each(Object.entries(PROBES))('%s: covers() agrees with the real font bytes for every bundled family', (_name, probe) => {
+    for (const family of CATALOGUE) {
+      expect(covers(family, 'normal', 'normal', probe)).toBe(reallyCovers(family, probe));
+    }
   });
 
-  it.each(SCRIPT_FALLBACKS.map((row) => [row.name, row]))(
-    '%s: every font listed capable really covers the script',
-    (name, row) => {
-      const liars = row.capable.filter((family) => !coversAll(family, PROBES[name]));
-      expect(liars).toEqual([]);
-    },
-  );
+  it.each(Object.entries(PROBES))('%s: at least one bundled family covers it, and at least one genuinely does not', (_name, probe) => {
+    const covering = CATALOGUE.filter((family) => reallyCovers(family, probe));
+    const notCovering = CATALOGUE.filter((family) => !reallyCovers(family, probe));
+    // Non-vacuity for the probe set itself: if every family covered or none
+    // did, the "both halves" check above wouldn't be exercising both halves.
+    expect(covering.length).toBeGreaterThan(0);
+    expect(notCovering.length).toBeGreaterThan(0);
+  });
+});
 
-  // The half that can actually fail when a font is added and the table is not
-  // updated - which is how a bundled face ends up unreachable by the script it
-  // was added for.
-  it.each(SCRIPT_FALLBACKS.map((row) => [row.name, row]))(
-    '%s: no bundled font left off the list can secretly draw it',
-    (name, row) => {
-      const missed = BUNDLED.filter((family) => !row.capable.includes(family) && coversAll(family, PROBES[name]));
-      expect(missed).toEqual([]);
-    },
-  );
-
-  it.each(SCRIPT_FALLBACKS.map((row) => [row.name, row]))(
-    '%s: both fallback targets are themselves capable, which is what makes resolution idempotent',
-    (name, row) => {
-      expect(row.capable).toContain(row.handwriting);
-      expect(row.capable).toContain(row.text);
-    },
-  );
-
-  it.each(SCRIPT_FALLBACKS.map((row) => [row.name, row]))(
-    '%s: both fallback targets are fonts we actually ship, with a file on disk',
-    (name, row) => {
-      for (const target of [row.handwriting, row.text]) {
-        expect(BUNDLED).toContain(target);
-        expect(existsSync(join(FONT_DIR, `${target.replace(/\s+/g, '')}-Regular.ttf`))).toBe(true);
-      }
-    },
+/**
+ * W5 (docs/wysiwyg-text-architecture.md §3.4): the guard that would have
+ * caught synthetic bold on the day it shipped. `ElementToolbar.tsx` uses
+ * `hasRealFace` to decide whether to offer Bold/Italic at all - if that ever
+ * said yes for a `(family, weight, style)` with no real file, the picker
+ * would let the user request a face `loadCustomFont` can't deliver, right
+ * back to bold-on-screen-upright-in-the-download. `hasRealFace` is driven by
+ * the generated `FONT_COVERAGE_FILES`, so this is really asking whether the
+ * generator and `existsSync` still agree - but that agreement is exactly the
+ * thing that must never silently drift.
+ */
+describe('W5: every (family, weight, style) the picker could offer has a real file', () => {
+  const STYLE_COMBOS = [['normal', 'normal'], ['bold', 'normal'], ['normal', 'italic'], ['bold', 'italic']];
+  it.each(CATALOGUE.flatMap((family) => STYLE_COMBOS.map(([weight, style]) => [family, weight, style])))(
+    '%s bold=%s italic=%s',
+    (family, weight, style) => {
+      if (!hasRealFace(family, weight, style)) return; // the picker disables it - nothing offered, nothing to check
+      const suffix = weight === 'bold' ? (style === 'italic' ? 'BoldItalic' : 'Bold') : (style === 'italic' ? 'Italic' : 'Regular');
+      const file = `${family.replace(/\s+/g, '')}-${suffix}.ttf`;
+      expect(existsSync(join(FONT_DIR, file))).toBe(true);
+    }
   );
 });
 
 /**
- * Dari/Farsi rides the existing Arabic row with no new SCRIPT_FALLBACKS entry:
+ * The rule from docs/wysiwyg-text-architecture.md §3.2, pinned against the
+ * exact cases §3.6 measured and predicted. Each row states what the resolver
+ * must do, checked two ways: does its pick genuinely cover the (composed)
+ * text, per the same independent oracle above, and is the outcome one of
+ * exactly the two the rule allows (a genuinely-covering family, or an honest
+ * "nothing covers this")?
+ */
+describe('resolveFontSubstitution: every outcome is either a real cover or an honest refusal, never a third thing', () => {
+  const CASES = [
+    ['plain Latin', 'Arimo', 'Hello world'],
+    ['plain Hebrew', 'Heebo', 'שלום עולם'],
+    ['plain Devanagari', 'Kalam', 'नमस्ते'],
+    ['Hebrew in a Latin handwriting font', 'Caveat', 'שלום'],
+    ['Devanagari in the default font', 'Arimo', 'नमस्ते भारत'],
+    ['Thai in the default font', 'Arimo', 'สวัสดี'],
+    ['Cyrillic in a Hebrew-only font', 'Heebo', 'Привіт'],
+    ['Greek in a handwriting font', 'Pacifico', 'Ελλάδα'],
+  ];
+
+  it.each(CASES)('%s', (_label, family, text) => {
+    const { family: resolved } = resolveFontSubstitution(family, text);
+    if (reallyCovers(resolved, text)) {
+      // Case 2 (left alone) or case 3 (substituted): either way, a real pick.
+      return;
+    }
+    // Case 4: nothing the resolver could offer covers the whole string, so it
+    // kept the requested family. Verify that honestly - every catalogue
+    // family must genuinely fail to cover the text too, or this would be a
+    // silent third outcome instead of the honest refusal the rule promises.
+    expect(resolved).toBe(family);
+    for (const badFamily of CATALOGUE) {
+      expect(reallyCovers(badFamily, text)).toBe(false);
+    }
+  });
+});
+
+/**
+ * §3.6's table, verbatim: the exact behaviour change the coverage rule makes
+ * over the retired per-script table. Each of these was a refusal before W3;
+ * measuring what the resolver now returns is the point of this suite, so
+ * these values are pinned rather than guessed at.
+ */
+describe('§3.6: what the rule changes, case by case', () => {
+  it('שלום Привіт in Heebo: today refused, now drawn in a family that covers both, substitution explained', () => {
+    const result = resolveFontSubstitution('Heebo', 'שלום Привіт');
+    expect(result.family).not.toBe('Heebo');
+    expect(reallyCovers(result.family, 'שלום Привіт')).toBe(true);
+    expect(result.missing.length).toBeGreaterThan(0);
+  });
+
+  it('שלום Привіт in Gveret Levin: same rescue, and missing must name the Cyrillic the handwriting face could not draw', () => {
+    const result = resolveFontSubstitution('Gveret Levin', 'שלום Привіт');
+    expect(reallyCovers(result.family, 'שלום Привіт')).toBe(true);
+    // The handwriting face has Hebrew but not Cyrillic, so what it could not
+    // draw is exactly the Cyrillic letters, not the Hebrew ones.
+    for (const ch of result.missing) expect('Привіт').toContain(ch);
+    expect(result.missing.length).toBeGreaterThan(0);
+  });
+
+  it('שלום ά (decomposed alpha + combining acute) in Heebo: silently lost before W2, refused after W2, now resolved', () => {
+    const decomposed = `שלום ${String.fromCodePoint(0x03b1, 0x0301)}`;
+    const result = resolveFontSubstitution('Heebo', decomposed);
+    // NFC composes alpha+acute to U+03AC before coverage is judged (§3.1
+    // step 5) - Heebo lacks it, so a family that has it must be picked.
+    expect(reallyCovers(result.family, decomposed)).toBe(true);
+    expect(result.family).not.toBe('Heebo');
+  });
+
+  it('שלום Hello مرحبا: still uncovered, because genuinely no bundled family covers Hebrew and Arabic together', () => {
+    const text = 'שלום Hello مرحبا';
+    expect(CATALOGUE.some((family) => reallyCovers(family, text))).toBe(false);
+    const result = resolveFontSubstitution('Arimo', text);
+    // No candidate covers the whole string, so the rule keeps the requested
+    // family rather than picking an arbitrary one - signPdf's own refusal
+    // (judged against this same family) is what actually stops the download.
+    expect(result.family).toBe('Arimo');
+  });
+
+  it('שלום + Thai: still uncovered, no bundled family covers both', () => {
+    const text = 'שלום สวัสดี';
+    expect(CATALOGUE.some((family) => reallyCovers(family, text))).toBe(false);
+    const result = resolveFontSubstitution('Arimo', text);
+    expect(result.family).toBe('Arimo');
+  });
+
+  it('Ω in an otherwise-Latin box requested as Heebo: substitutes, because Heebo\'s Greek coverage is genuinely partial', () => {
+    const text = `Hello ${String.fromCodePoint(0x03a9)}`; // Ω, U+03A9
+    expect(reallyCovers('Heebo', text)).toBe(false);
+    const result = resolveFontSubstitution('Heebo', text);
+    expect(result.family).not.toBe('Heebo');
+    expect(reallyCovers(result.family, text)).toBe(true);
+  });
+
+  it('bold Signed in Great Vibes: exports upright before W3 (silent); now the weight is simply not honoured, no family swap - W5 disables the checkbox', () => {
+    // §3.4: covers() judges the file that will really be embedded
+    // (GreatVibes-Regular.ttf, since Great Vibes has no bold face anywhere
+    // upstream), and that file covers plain Latin - so no substitution
+    // happens. Whether the picker stops offering Bold on this family at all
+    // is W5, not this resolver. (Caveat, Dancing Script, Kalam and Mali used
+    // to illustrate this same case, but they now ship real Bold faces, so
+    // this case moved to a family that genuinely still has none.)
+    expect(existsSync(join(FONT_DIR, 'GreatVibes-Bold.ttf'))).toBe(false);
+    const result = resolveFontSubstitution('Great Vibes', 'Signed', 'bold', 'normal');
+    expect(result.family).toBe('Great Vibes');
+    expect(result.missing).toEqual([]);
+  });
+});
+
+/**
+ * Dari/Farsi rides the existing Arabic coverage with no extra machinery:
  * Persian's four extra letters (پ چ ژ گ) and the Extended Arabic-Indic
  * (Persian) digit block ۰-۹ both sit inside the *main* Arabic block
- * (U+0600-06FF) the Arabic pattern already matches, so Dari/Farsi text
- * already resolves to Almarai today via that one row - see TODO.md's "Almarai
+ * (U+0600-06FF), which Almarai's real bytes cover - see TODO.md's "Almarai
  * may already cover Farsi and Urdu's extra letters" finding. This describe
- * checks that claim against the real font bytes rather than leaving it as an
- * unverified aside: the SCRIPT_FALLBACKS suite above only probes the plain
- * Arabic string 'مرحبا', which never exercises these codepoints, so nothing
- * upstream would fail if Almarai quietly lost one of them.
+ * checks that claim against the real font bytes directly, since neither
+ * suite above probes these specific codepoints.
  *
  * Pashto is NOT covered here on purpose - a direct check found Almarai
  * missing 8 of 9 Pashto-specific letters (ټ ډ ړ ږ ښ ګ ڼ ې), so Pashto stays
  * unclaimed and unrouted until it gets its own font.
  */
-describe('Dari/Farsi letters and digits (Almarai, via the existing Arabic fallback row)', () => {
+describe('Dari/Farsi letters and digits (Almarai)', () => {
   const PERSIAN_LETTERS = ['پ', 'چ', 'ژ', 'گ'];
   const PERSIAN_DIGITS = '۰۱۲۳۴۵۶۷۸۹'.split('');
 

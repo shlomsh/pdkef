@@ -85,8 +85,9 @@ brief that commissioned this work.
    ([textShaping.test.js:113](../src/editor/registry/textShaping.test.js#L113)), which embeds a real
    subset font and asserts the throw. And "no existing test measures exported PDF bytes" is not quite
    right either: `sign.test.js` parses the produced blob with pdf.js and reads its text items
-   ([sign.test.js:39-51](../src/lib/sign.test.js#L39)). What is genuinely true, and is the real gap, is
-   **nothing renders the produced PDF and looks at the ink.**
+   ([sign.test.js:39-51](../src/lib/sign.test.js#L39)). What was genuinely true when this was written was
+   **nothing renders the produced PDF and looks at the ink** - closed 2026-08-27 (W1) by
+   `e2e/sign/export-render-guard.spec.js`; see §8 Stage 1.
 
 ## 1.3 The guard map, and the reason it is the strongest argument in this document
 
@@ -201,6 +202,16 @@ have decomposed it under NFC and drawn it correctly.
 
 **Both have one root cause and one fix: coverage must be judged against the string that reaches
 `layout()`, never the string that was typed.** §3.1 makes that part of the rule.
+
+**Closed 2026-08-27 (W2).** `unrepresentableCharacters` in `src/editor/registry/text.ts` now splits on
+`/\r?\n/` and judges each line as `composeHebrewClusters(stripInvisibleFormatting(line),
+thisFontsHasGlyph)` - the same string `layout()` receives. The measurement above still stands as the
+reproduction that motivated the fix: `שלום ά` in Heebo now reports `[U+03AC]` instead of `[]`, and the
+mirror case, pasted U+FB1D in Alef, now reports `[]` instead of a refusal. Tests live in
+`src/editor/registry/textShaping.test.js` ("the normalization seam") and `src/lib/textCoverage.test.js`
+("the normalization seam, at policy level"), both directions, both against the real font bytes. See
+§8 Stage 2 and `TODO.md`'s W2 entry for the full record, including the note that 'יִ' will not reproduce
+the false-refusal case - `String.fromCodePoint(0xfb1d)` is required.
 
 ## 1.5 The app already ships the opposite answer, on purpose
 
@@ -622,7 +633,12 @@ promise.
 
 ## 6.2 The choice: what underwrites stage 4, shaping
 
-Per instruction, both are written up in full above rather than picked here. The decision is between:
+**Resolved 2026-08-27, by the repo owner. Option A - keep two engines, harden the guards - is chosen.**
+Option 2 (paint the editor from the exporter's own shaper) is not rejected on its merits; it stays
+recorded below as future backlog, to be revisited if the evidence changes (see the note at the end of
+this section for what would justify that).
+
+The two options, as they were put to the owner:
 
 - **Option 1 + HarfBuzz as a dev oracle.** Keep two engines, keep proving agreement per font per script,
   and make the proof cheaper. Cost: §1.3's table stays the shape it is. Latin in the four `calt` faces
@@ -632,12 +648,47 @@ Per instruction, both are written up in full above rather than picked here. The 
   an IME fallback, and moving intrinsic sizing off the browser. The promise becomes "what you see is what
   we drew", underwritten by construction.
 
-**If I had to pick, I would pick Option 2, staged last, after everything in §7 that does not depend on
-it.** The argument is §1.3, not elegance: the empirical-proof model is not being sustained, and the
-place it is least sustained is the signature faces drawing people's names. Option 2 does not make that
-risk smaller. It makes it stop being a correctness risk.
+This document's own recommendation, stated above before the decision was made, was Option 2, staged
+last: the empirical-proof model is not being sustained, and the place it is least sustained is the
+signature faces drawing people's names. That argument was heard. It was not the deciding one, because it
+weighs the two options as if either could be the final answer for what this document's own §1 opens
+with: a general text editor. This is not that. The owner's own framing:
+
+> "this is a form filling and signing app, not a freeform paint tool"
+
+A form field and a signature line are short, known strings, mostly the user's own name and the words of
+a consent form, not arbitrary prose in an arbitrary font. The product's shape outweighs the elegance
+argument for Option 2, and the owner said so directly - the bar for "harden what exists" is lower than
+the bar for "make agreement structural," on what this app actually asks text to do.
+
+**What "harden the guards" means here, and it is deliberately proportionate:** a few simple tests, not a
+new dependency and not an architectural change. Concretely, that is stage 9 as rewritten in §8 below -
+using the harness this repo already has, `e2e/sign/fixtures/shapingGuardHarness.js`, which already does
+per-script pixel parity in a browser at no new dependency cost. The `harfbuzzjs` devDependency oracle
+from Option 1's write-up above was considered and **not** adopted; it is recorded as available, not
+chosen, because the existing harness already answers the question it would answer, for the one cost the
+owner asked to pay.
+
+**The acceptance criterion changes as a direct consequence, and this is the part worth stating
+precisely.** It is no longer "pixel parity with the browser." It is **no wrong letterforms and no
+missing text**. A small measured divergence in placement is acceptable; a *glyph-level* difference is
+not. That is exactly the line the Playpen Sans Hebrew removal already drew: Playpen was dropped because
+fontkit and HarfBuzz chose different letterforms from its `calt`, not because it was a couple of pixels
+off. Under this decision, a face that is slightly off in placement stays in the catalogue; a face that
+draws different letters does not. §1.3's guard map stays a correctness obligation under this criterion,
+not a quality dashboard - that demotion was Option 2's consequence (§6.3, §9 guardrail 6), and Option 2
+was not taken.
+
+**What would justify reopening Option 2:** evidence that changes the shape of the risk above, for
+example a bundled face that turns out to draw genuinely different letterforms between fontkit and
+HarfBuzz (a real Playpen repeat) and that the catalogue wants to keep anyway rather than drop, so the
+disagreement has to be resolved structurally instead of by curation. Absent that, Option 2 stays
+recorded, not scheduled.
 
 ## 6.3 What the recommendation does not fix
+
+**This section describes Option 2, which was not chosen (§6.2) - moot for now, kept because it is part
+of the reasoning trail and because Option 2 remains backlog.**
 
 Stated plainly, because each of these will otherwise be discovered later and read as a regression.
 
@@ -654,6 +705,8 @@ Stated plainly, because each of these will otherwise be discovered later and rea
   not a deletion.
 
 ## 6.4 What it forecloses
+
+**Also Option 2, also moot for now (§6.2) - kept for the same reason as §6.3.**
 
 - **Per-run itemization, permanently.** Already foreclosed by constraint 1; Option 2 makes it structural
   rather than a policy, because the painted layer draws one font.
@@ -716,31 +769,41 @@ before stage 9 depends on stage 9 landing, and stages 4 through 8 are independen
 
 ### Stage 1 - Render the PDF and look at it
 
-The guard that does not exist. Build a small corpus of elements, run `signPdf`, rasterise the result with
-**pdf.js inside the same browser** that draws the reference (never poppler against Chromium - that is the
-cross-rasteriser comparison the design record rejected on measured noise floors of 80-88%), and compare
-ink against a stored baseline.
+**Landed 2026-08-27 (W1).** `e2e/sign/export-render-guard.spec.js`, with `fixtures/exportRenderHarness.js`,
+`fixtures/exportRenderCorpus.js` and `fixtures/exportRenderBaseline.json`, bundles the real `signPdf`
+into `dist/` and runs it in the browser, rasterising with pdf.js at 3x against a 48x24 per-cell mean-ink
+baseline over 21 cases (never poppler against Chromium - that is the cross-rasteriser comparison the
+design record rejected on measured noise floors of 80-88%). `MIN_TOLERANCE_PCT` was calibrated, not
+declared, against an in-browser proxy for cross-rasteriser noise (worst measured 8.18%, times 1.5,
+rounded to 12.5) - the originally declared floor of 8 did not clear that proxy. Full record, including
+the non-vacuity assertion catching a real RTL anchoring defect in the corpus on its first run, in
+`TODO.md`'s W1 entry.
 
-**Buys:** the first check on the artifact users actually receive. It is what would have caught the CJK
+**Bought:** the first check on the artifact users actually receive. It is what would have caught the CJK
 subsetter corruption, which passed `pdffonts`, `pdftotext` and a zero exit code while rendering broken.
-**It is also the safety net that makes every later stage revertible with confidence**, which is why it is
-first.
+**It is also the safety net that makes every later stage revertible with confidence**, which is why it
+was done first.
 
-**Non-negotiable in its design:** never use "is there ink?" as a pass condition. `.notdef` is commonly a
-filled box that draws *more* ink than the glyph it replaced, so a regression can raise the number.
-Compare against a per-case baseline, and carry a non-vacuity assertion (distinct cases must produce
-distinct signatures) - the exact assertion that caught the font-loading probe comparing one system font
-against itself seven times.
+**Non-negotiable in its design, and held to:** never use "is there ink?" as a pass condition. `.notdef` is
+commonly a filled box that draws *more* ink than the glyph it replaced, so a regression can raise the
+number. Compares against a per-case baseline, and carries a non-vacuity assertion (distinct cases must
+produce distinct signatures) - the exact assertion that caught the font-loading probe comparing one
+system font against itself seven times, and the one that caught the RTL anchoring defect above.
 
-**Abandonable?** It is pure addition. Stopping here leaves the repo with a guard it did not have.
+**Stated limitation, not fixed by this stage:** at 12.5% relative tolerance a defect smaller than roughly
+an eighth of a case's ink passes undetected. This guard is a division of labour with the per-script
+shaping guards, not a replacement for them.
 
 ### Stage 2 - Close the NFC seam
 
-Judge coverage against the string that reaches `layout()` (§3.1). One function's input, one test per
-direction: the silent loss (`שלום ά` in Heebo) and the false refusal (U+FB1D in Alef).
+**Landed 2026-08-27 (W2).** Coverage in `src/editor/registry/text.ts` is now judged against the string
+that reaches `layout()` (§3.1): split on `/\r?\n/`, then `composeHebrewClusters` per line. Tests in both
+directions, in both `textShaping.test.js` and `textCoverage.test.js`, against the real font bytes. Full
+record in §1.4 above and in `TODO.md`'s W2 entry.
 
-**Buys:** removes the last known path to a silently missing character. **Abandonable?** It is a bug fix;
-there is nothing to abandon.
+**Bought:** removes the last known path to a silently missing character - as a refusal, not a fix; W2
+turns the silent loss into a stopped download. **Note for what comes next:** the coverage-first rule in
+Stage 3 is what turns that refusal into a correct substitution.
 
 ### Stage 3 - The coverage-first selection rule
 
@@ -813,26 +876,38 @@ answerable in a minute rather than a session. **Abandonable?** Yes; it is a scri
 ### Stage 8 - Latin parity for the four `calt` faces
 
 Run the existing `shapingGuardHarness` on Pacifico, Caveat, Great Vibes and Dancing Script over a Latin
-name corpus. This is Option 1's outstanding debt and it is owed regardless of which way §6.2 goes: if
-Option 2 is chosen it becomes the quality check that decides whether those faces stay; if Option 1 is
-chosen it is the correctness gate that should already exist.
+name corpus. §6.2 resolved the branch this stage used to be conditional on: Option A (keep two engines,
+harden the guards) was chosen, so this is not an optional quality check waiting on a future decision, it
+is **the correctness gate that should already exist**, owed now.
 
 **Buys:** the answer to the sharpest unknown in §1.3. Possible outcomes: all four agree (the risk was
 theoretical, record it and move on), or one does not, in which case the catalogue rule applies exactly as
 it did to Playpen. **Abandonable?** It is a measurement; its output is knowledge either way.
 
-### Stage 9 - The decision from §6.2
+### Stage 9 - The decision from §6.2, applied
 
-If Option 2: paint the text element from `fk.layout()` + `glyph.path.toSVG()`, behind a flag, textarea
-transparent with `caretColor` preserved, `aria-hidden` on the painted layer, `shapedWidth` driving
-intrinsic size, and a composition-session fallback to browser rendering. Land Sign only; Redact has no
-text elements.
+§6.2 resolved this stage: **Option A.** The guard map's unproven pairs get proof, using the harness this
+repo already has - `e2e/sign/fixtures/shapingGuardHarness.js`, which already does per-script pixel parity
+in a browser at no new dependency cost. That is what "a few simple tests" means concretely: extend the
+guard map to the pairs §1.3 lists as unproven - Latin (folded into stage 8 above, since it is the same
+harness and the same four faces), Thai, Cyrillic and Greek - each getting a `shapingGuardHarness` run
+against its capable families. No new dependency, no architectural change.
 
-If Option 1: add `harfbuzzjs` as a **devDependency** oracle and extend the guard map to Thai, Cyrillic
-and Greek.
+The `harfbuzzjs` **devDependency** oracle from Option 1's write-up in §5 was considered and is **not**
+adopted. It is recorded as available, not chosen: the existing harness already answers the parity
+question it would answer, at zero additional dependency cost, which is the whole reason "a few simple
+tests" was sufficient scope for this decision.
 
-**Abandonable?** Option 2 is revertible by deleting the paint layer and un-hiding the textarea's text,
-which is why it goes last and behind a flag. Option 1 is additive by construction.
+**Option 2's stage is deferred to backlog, not deleted.** If reopened: paint the text element from
+`fk.layout()` + `glyph.path.toSVG()`, behind a flag, textarea transparent with `caretColor` preserved,
+`aria-hidden` on the painted layer, `shapedWidth` driving intrinsic size, and a composition-session
+fallback to browser rendering. Land Sign only; Redact has no text elements. See §6.2 for what evidence
+would justify reopening it - in short, a bundled face found to draw genuinely different letterforms
+(a real Playpen repeat) that the catalogue wants to keep rather than drop.
+
+**Abandonable?** The chosen branch is additive by construction - guard files added to an existing
+harness, nothing to revert. The deferred Option 2 branch remains revertible by deleting the paint layer
+and un-hiding the textarea's text, which is why it would still land behind a flag if it is ever taken up.
 
 ---
 
@@ -841,7 +916,8 @@ which is why it goes last and behind a flag. Option 1 is additive by constructio
 Beyond the existing seven CI checks, and beyond stage 1 above.
 
 1. **A render-and-compare guard on the produced PDF** (stage 1). One rasteriser, per-case baselines, a
-   non-vacuity assertion, and never "is there ink" as a pass condition.
+   non-vacuity assertion, and never "is there ink" as a pass condition. **Exists**, landed 2026-08-27 (W1)
+   as `e2e/sign/export-render-guard.spec.js` plus its `fixtures/exportRender*` files - see §8 Stage 1.
 2. **A resolver guard, judged against the real font bytes.** `fontCoverage.test.js` today verifies the
    catalogue's *claims*. The coverage rule makes claims unnecessary - the resolver reads the bytes - so
    the test should verify the *resolver*: for an enumerated set of script combinations, assert it returns
@@ -849,18 +925,20 @@ Beyond the existing seven CI checks, and beyond stage 1 above.
    outcome. Keep the non-vacuity half: a family the resolver does **not** pick for a combination must
    genuinely be unable to draw it.
 3. **A normalization-seam test.** Both directions of §1.4, named as such, so the fix cannot be undone by
-   someone tidying the coverage check back to "check the typed string".
+   someone tidying the coverage check back to "check the typed string". **Exists**, landed 2026-08-27 (W2)
+   as the "normalization seam" describe blocks in `src/editor/registry/textShaping.test.js` and
+   `src/lib/textCoverage.test.js` - see §8 Stage 2.
 4. **An extraction guard.** Round-trip the produced PDF through both `pdftotext` and pdf.js and assert
    the codepoint sequence against the typed text. Two extractors, because §7 shows they disagree with
    each other and a single-extractor guard would have called today's behaviour fine.
 5. **A style-availability guard.** Assert every `(family, weight, style)` the picker offers has a real
    file in `public/fonts/`. This is the check that would have caught synthetic bold on the day it
    shipped, and it is three lines.
-6. **Extend the guard map, or retire it deliberately.** Under Option 1, Latin (the four `calt` faces),
-   Thai, Cyrillic and Greek each need a `shapingGuardHarness` run, and the map in §1.3 belongs in CI as a
-   completeness check - a `(family, script)` pair with no guard should be a named, listed exemption
-   rather than a silence. Under Option 2, the same map becomes a quality dashboard and the exemptions
-   stop being correctness debt; say so explicitly rather than letting the guards quietly rot.
+6. **Extend the guard map to CI-enforced completeness.** §6.2 resolved this to Option A: Latin (the four
+   `calt` faces), Thai, Cyrillic and Greek each need a `shapingGuardHarness` run, and the map in §1.3
+   becomes a **CI completeness check** - a `(family, script)` pair with no guard must be a named, listed
+   exemption rather than a silence. This is a correctness gate, not a quality dashboard, because Option 2
+   (which would have made it a dashboard, §8 stage 9 / §6.3) was not taken.
 7. **Keep the two existing rules that are easy to lose.** `assertNotSubsetEmbedded` must keep its test
    (it has one; the brief thought it did not, which is how a guard dies). And the no-batching rule in
    `drawShapedRun` must keep its test, because a batched run advances by `/W` rather than by the shaper's

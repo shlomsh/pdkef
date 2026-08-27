@@ -53,7 +53,7 @@ describe('FontPickerMenu', () => {
     expect(gveretItem.className).toMatch(/active/);
   });
 
-  it('marks Caveat as lacking Hebrew and leaves Gveret Levin unmarked', () => {
+  it('marks Caveat as unable to draw the Hebrew text and leaves Gveret Levin unmarked', () => {
     const hebrewText = 'שלום עולם';
     const effective = resolveFontFamily('Caveat', hebrewText);
     const menu = openMenu(effective, hebrewText);
@@ -62,10 +62,16 @@ describe('FontPickerMenu', () => {
     const caveatItem = items.find((el) => el.textContent?.startsWith('Caveat'))!;
     const gveretItem = items.find((el) => el.textContent?.startsWith('Gveret Levin'))!;
 
-    expect(caveatItem.textContent).toContain('no Hebrew');
+    // Contract change (W3): the note now names the actual missing characters
+    // instead of a script name, but it must still single out Caveat as unable
+    // to draw this text and leave the effective font unmarked.
+    expect(caveatItem.textContent).toContain("can't draw");
+    for (const ch of new Set(hebrewText.replace(/\s/g, ''))) {
+      expect(caveatItem.textContent).toContain(ch);
+    }
     expect(caveatItem.className).toMatch(/unsupported/);
 
-    expect(gveretItem.textContent).not.toContain('no Hebrew');
+    expect(gveretItem.textContent).not.toContain("can't draw");
     expect(gveretItem.className).not.toMatch(/unsupported/);
   });
 
@@ -100,13 +106,17 @@ describe('FontPickerMenu', () => {
     const arimoItem = items.find((el) => el.textContent?.startsWith('Arimo'))!;
 
     expect(kalamItem.className).toMatch(/active/);
-    expect(kalamItem.textContent).not.toContain('no Devanagari');
+    expect(kalamItem.textContent).not.toContain("can't draw");
 
+    // Contract change (W3): the note names the missing characters, not a
+    // script name — but every non-Devanagari option must still be marked
+    // unsupported for this text, proving the check is script-general rather
+    // than a Hebrew-only special case.
     expect(caveatItem.className).toMatch(/unsupported/);
-    expect(caveatItem.textContent).toContain('no Devanagari');
+    expect(caveatItem.textContent).toContain("can't draw");
 
     expect(arimoItem.className).toMatch(/unsupported/);
-    expect(arimoItem.textContent).toContain('no Devanagari');
+    expect(arimoItem.textContent).toContain("can't draw");
   });
 
   it('shows the effective font in the trigger title, not the requested one', () => {
