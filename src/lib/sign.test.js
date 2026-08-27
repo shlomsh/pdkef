@@ -1,5 +1,7 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
+import { execFileSync } from 'child_process';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import {
   signPdf,
@@ -334,5 +336,134 @@ describe('sign.js pure functions', () => {
       const nextId = uniqueId();
       expect(nextId).toBe('el-12');
     });
+  });
+
+  /**
+   * W6 extraction guard (docs/wysiwyg-text-architecture.md §7, §9 guardrail
+   * 4): round-trip the produced PDF through BOTH `pdftotext` and pdf.js and
+   * assert the extracted codepoint sequence against the typed text. Two
+   * extractors on purpose - §7 measured that they disagree with each other,
+   * so a single-extractor guard would have called today's pre-W6 behaviour
+   * fine.
+   *
+   * What each extractor is actually held to, and why the two assertions
+   * differ:
+   *
+   * - `pdftotext` is the extractor `/ActualText` was written for (poppler
+   *   runs its own bidi over the field - see drawShapedRun's doc comment in
+   *   text.ts). Every corpus case below is asserted to extract EXACTLY the
+   *   typed text (mod the directional formatting characters, U+202A-U+202E
+   *   / U+2066-U+2069, that `pdftotext -layout` itself inserts around a
+   *   bidi run for terminal display - those are pdftotext's own presentation
+   *   marks, never present in what was typed, and stripping them is the
+   *   correct normalization for a content comparison, not a weakening of it).
+   *   This is the actual thing W6 buys.
+   * - pdf.js IGNORES `/ActualText` entirely (§7), so this guard cannot and
+   *   does not assert pdf.js output equals the typed text for every case -
+   *   that would be asserting something W6 does not and cannot fix, and
+   *   would misrepresent the feature. Latin and Arabic here have no
+   *   composition/reordering step to disagree over, so pdf.js's answer does
+   *   already equal the typed text and is asserted as such (a real
+   *   regression signal: if this ever stops holding, drawShapedRun's glyph
+   *   draw order changed). Hebrew and the mixed-direction case are asserted
+   *   against pdf.js's exact KNOWN-DIVERGENT output (decomposed marks
+   *   reordered per cluster; bidi runs concatenated in visual, not typed,
+   *   order) - unchanged before and after W6, and pinned here so a future
+   *   change can't silently make it worse without a failing test noticing.
+   */
+  describe('W6 /ActualText extraction guard (docs/wysiwyg-text-architecture.md §7)', () => {
+    // This describe block sits under 'sign.js pure functions', not
+    // 'sign.js signPdf', so it needs its own font-fetch mocking rather than
+    // relying on that other describe's beforeEach/afterEach.
+    let restoreFetch;
+    beforeEach(() => { restoreFetch = mockFontFetch(); });
+    afterEach(() => { restoreFetch(); });
+
+    // Bidi formatting characters pdftotext's own `-layout` mode inserts
+    // around a directional run for terminal display - not content, and never
+    // present in typed text. Stripping them is what makes the comparison
+    // honest rather than the comparison finding a false negative.
+    const BIDI_FORMATTING_CHARS = /[‎‏‪-‮⁦-⁩]/g;
+
+    let pdftotextAvailable = false;
+    try {
+      execFileSync('which', ['pdftotext'], { stdio: 'ignore' });
+      pdftotextAvailable = true;
+    } catch {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[W6 extraction guard] `pdftotext` (poppler-utils) not found on PATH - ' +
+        'the pdftotext half of this guard is SKIPPED, not faked. Install ' +
+        'poppler-utils (e.g. `brew install poppler`) to run it locally; ' +
+        'adding it as a CI dependency is a decision for a human, not this test.',
+      );
+    }
+    const itPdftotext = pdftotextAvailable ? it : it.skip;
+
+    function extractPdftotextText(buffer) {
+      const tmpPath = path.join(os.tmpdir(), `pdkef-w6-${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`);
+      fs.writeFileSync(tmpPath, buffer);
+      try {
+        const raw = execFileSync('pdftotext', ['-layout', tmpPath, '-'], { encoding: 'utf8' });
+        return raw.replace(BIDI_FORMATTING_CHARS, '');
+      } finally {
+        fs.unlinkSync(tmpPath);
+      }
+    }
+
+    // num-1.pdf (the fixture every case below signs onto) already carries a
+    // baked-in "1" text item of its own (see getFixtureFile's doc comment
+    // elsewhere in this file) - pdf.js reports it as items[0], with an empty
+    // items[1] pdf.js itself inserts between text runs. Drop both so only
+    // the glyphs this test actually drew are compared.
+    function drawnPdfJsItems(items) {
+      return items.filter((item) => item.str !== '').slice(1);
+    }
+
+    const corpus = [
+      // The measured case from §7: Hebrew niqud, composed to presentation
+      // forms for shaping and decomposed again for extraction.
+      { name: 'Hebrew (בְּרֵאשִׁית, Arimo)', text: 'בְּרֵאשִׁית', fontFamily: 'Arimo', textDirection: 'rtl', pdfJsExpected: 'ּבְרֵאׁשִית' },
+      // Plain LTR Latin: no composition, no bidi reordering - both
+      // extractors should already agree with the typed text on this one.
+      { name: 'Latin (Hello World, Arimo)', text: 'Hello World', fontFamily: 'Arimo', textDirection: 'ltr', pdfJsExpected: 'Hello World' },
+      // Mixed-direction (H6's own corpus): an RTL paragraph with an embedded
+      // LTR digit run. pdftotext must recover the typed logical order;
+      // pdf.js concatenates in VISUAL draw order (digits, then the Hebrew
+      // word), which is why its expected string here is NOT the typed one.
+      { name: 'mixed direction (רחוב 17, Heebo)', text: 'רחוב 17', fontFamily: 'Heebo', textDirection: 'rtl', pdfJsExpected: '17 רחוב' },
+      // Arabic: RTL, no niqud-style marks to reorder in this word, so both
+      // extractors already agree with the typed text.
+      { name: 'Arabic (مرحبا, Almarai)', text: 'مرحبا', fontFamily: 'Almarai', textDirection: 'rtl', pdfJsExpected: 'مرحبا' },
+    ];
+
+    for (const testCase of corpus) {
+      describe(testCase.name, () => {
+        itPdftotext('extracts exactly the typed text via pdftotext', async () => {
+          const file = getFixtureFile();
+          const element = {
+            id: 'el-w6', type: 'text', pageIndex: 0, left: 50, top: 10,
+            text: testCase.text, textDirection: testCase.textDirection,
+            fontFamily: testCase.fontFamily, fontSize: 20, color: '#000000',
+          };
+          const blob = await signPdf(file, [element]);
+          const extracted = extractPdftotextText(Buffer.from(await blob.arrayBuffer()));
+          expect(extracted).toContain(testCase.text);
+        });
+
+        it('matches pdf.js\'s known extraction (unaffected by /ActualText, which pdf.js ignores)', async () => {
+          const file = getFixtureFile();
+          const element = {
+            id: 'el-w6', type: 'text', pageIndex: 0, left: 50, top: 10,
+            text: testCase.text, textDirection: testCase.textDirection,
+            fontFamily: testCase.fontFamily, fontSize: 20, color: '#000000',
+          };
+          const blob = await signPdf(file, [element]);
+          const items = await getTextItems(blob);
+          const joined = drawnPdfJsItems(items).map((item) => item.str).join('');
+          expect(joined).toBe(testCase.pdfJsExpected);
+        });
+      });
+    }
   });
 });
