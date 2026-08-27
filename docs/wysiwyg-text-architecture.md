@@ -85,7 +85,9 @@ brief that commissioned this work.
    ([textShaping.test.js:113](../src/editor/registry/textShaping.test.js#L113)), which embeds a real
    subset font and asserts the throw. And "no existing test measures exported PDF bytes" is not quite
    right either: `sign.test.js` parses the produced blob with pdf.js and reads its text items
-   ([sign.test.js:39-51](../src/lib/sign.test.js#L39)). What was genuinely true when this was written was
+   ([sign.test.js:39-51](../src/lib/sign.test.js#L39)). (`assertNotSubsetEmbedded` was later replaced by
+   `remapGlyphForSubset` when subsetting shipped - see §4.2's correction and item 7 of §9; the test moved
+   with it.) What was genuinely true when this was written was
    **nothing renders the produced PDF and looks at the ink** - closed 2026-08-27 (W1) by
    `e2e/sign/export-render-guard.spec.js`; see §8 Stage 1.
 
@@ -99,7 +101,7 @@ agrees with the browser:
 |---|---|---|
 | **Latin** | all 16 | **none** |
 | Hebrew | Arimo, Tinos, Cousine, Assistant, Heebo, Alef, Gveret Levin (7) | Guard A advances (3 strings, browser), Tier 1/2 (full enumerated cluster corpus, unit), Tier 3 (browser order-insensitivity) |
-| Arabic + Perso-Arabic | Almarai (1) | 131-case pixel guard vs native Chromium |
+| Arabic + Perso-Arabic | Almarai (1) | 151-case pixel guard vs native Chromium |
 | Devanagari | Kalam (1) | 185-case pixel guard vs native Chromium |
 | **Thai** | Mali (1) | **none** |
 | **Cyrillic** | Arimo, Tinos, Cousine, PT Sans (4) | **none** |
@@ -303,8 +305,23 @@ resolveFont(requested, weight, style, text) ->
 ```
 
 Step 5 keeps the requested family rather than substituting something arbitrary, so the editor keeps
-rendering what the user picked while the live notice names what will stop the download. `signPdf`'s
-refusal is unchanged and remains the backstop.
+rendering what the user picked.
+
+**Correction (2026-08-27): `missing` here is not the live notice, and the original wording of this
+section implied it was.** `resolveFontSubstitution`'s `missing` (in both step 4 and step 5) is what
+`describeFontSubstitution` reads to explain a font *change* - "Arimo has no match for: X, so this text
+box is using Alef instead" - and it fires whenever `family !== requested`, including the ordinary
+successful-substitution case where nothing is actually at risk. It is not, and was never routed as,
+the "this will stop the download" warning. That warning is a separate computation on a separate path:
+`useFontCoverageNotice` calls `unsupportedCharactersInDocument` (`liveFontCoverage.js`), which calls
+`findUnrepresentableCharacters` in `textCoverage.js`, which resolves each element's family via
+`resolveFontFamily` (the thin wrapper that returns just `resolveFontSubstitution(...).family`, discarding
+`missing`) and then re-derives coverage from scratch against the *actually loaded* font instance via
+`unrepresentableCharacters` in `src/editor/registry/text.ts` - not from anything `resolveFontSubstitution`
+returned. `describeUnrepresentableText` renders that result, in a calmer while-typing wording or the
+save-time refusal wording. `signPdf`'s refusal is unchanged and remains the backstop, built from the same
+`findUnrepresentableCharacters` call so the two can never name different characters (see the header
+comment of `textCoverage.js`).
 
 **Step 2 has a subtlety worth stating rather than discovering.** The composition step is gated on the
 font's own glyph set, so `lookupText` is different per candidate font. Computing it once against
@@ -438,11 +455,39 @@ is. So: *is there an OFL or Apache-2.0 face carrying both Hebrew and Arabic in o
 quality?* That is one afternoon of screening, and the existing pre-screen plus the Arabic and Hebrew
 guard harnesses already exist to judge the answer.
 
-**CJK.** Not a coverage question, a size and subsetting question, and TODO.md already has the answer
-(build-time `pyftsubset`, not the runtime subsetter). Note that TODO's diagnosis of *why* the runtime
-subsetter fails - CFF outlines and variable builds - is wrong: the brief records that the corruption
-reproduces on a static, `glyf`-only, non-variable font. The recommendation survives; the reason does not.
-Treat the confident claims around it with the same suspicion.
+**CJK.** Not a coverage question, a size question. TODO.md's recommendation (build-time `pyftsubset`, not
+the runtime subsetter) stands, but for a different reason than either document originally gave.
+
+**Correction (2026-08-27): both this document's and TODO's diagnosis of the 2026-08-25 CJK spike were
+wrong, and wrong in the same way - generalising from a sample of one font.** This document's line above
+used to say TODO's "CFF outlines and variable builds" diagnosis was wrong because the corruption
+reproduces on a static, `glyf`-only, non-variable font, and told the reader to treat the confident claims
+around it with the same suspicion. That was true as far as it went (Kalam is exactly such a font, and
+that finding is real) but stopped one step short of the actual variable: what breaks fontkit's TTF
+subsetter is a `glyf` table whose outlines are not 2-byte aligned, not `glyf`-vs-`CFF` or static-vs-
+variable at all. Of the 38 bundled fonts, only Kalam Regular and Bold were affected - `.notdef` was 51
+bytes, an odd length, which threw off 528 of 1,028 `loca` offsets and corrupted every glyph read after the
+first misaligned one. Fonts sharing Kalam's `indexToLocFormat` (Arimo, Tinos, Cousine, PT Sans,
+Caveat-Bold) are unaffected, which is exactly why "glyf, static" as a category was the wrong generalisation
+too - it is a per-file byte-layout accident, not a property of a format or a build. Fix: repad with
+fontTools (`font['glyf'].padding = 4`); verified byte-identical outlines, metrics and cmap on the other
+1,027 Kalam glyphs, and the W1 export render guard (§8 Stage 1) returned to 0 drifted cases against its
+untouched baseline. `scripts/check-font-glyf-alignment.js` (`npm run test:fonts`) now fails the build on
+any unaligned bundled font. Subsetting now ships for real: `sign.js` embeds with `{ subset: true }`, and
+`remapGlyphForSubset` in `src/editor/registry/text.ts` does the subset embedder's own bookkeeping per
+shaped glyph, since
+`drawShapedRun` bypasses `encodeText` (the only thing that normally drives that bookkeeping) to keep each
+glyph's shaped position. A signed PDF with one Arimo text box went from 279 KB to 5.7 KB.
+
+The same misalignment defect turned up again in the CJK spike's own Noto Sans JP subsets (1,788 and 1,832
+odd `loca` offsets across the two weights checked), where it reduced 郎 in 山田太郎 to an empty glyph -
+repadded the same way. What survives from the original CJK finding is the size argument, now stronger for
+it: pre-subsetting at build time with `pyftsubset` is not a workaround for a broken runtime subsetter (the
+runtime subsetter works, once the font it is handed is aligned), it is because a full CJK face is 5-20MB
+and a Japanese name only needs a few thousand glyphs from it - and the two compose, since a build-time
+subset that passes the alignment guard gets subsetted again at export, down to roughly 900 bytes for four
+kanji. Full account, including why "the corruption reproduces on a glyf-only font" was itself a
+correct-but-incomplete finding, is in `TODO.md`'s CJK entries.
 
 **Emoji.** A different problem entirely (`COLR`/`CBDT` colour formats, which pdf-lib's outline embedder
 has no path to) and it should not inherit CJK's answer. The app already knows how to embed an image.
@@ -468,10 +513,11 @@ someone wrote that guard.
 
 **What it fixes:** nothing by itself. It detects.
 
-**Cost:** the honest number is in §1.3. The Arabic guard is 131 generated cases plus a calibration
-exercise; Devanagari is 185; both took a session each even after the shared harness removed ~265 lines of
-Playwright boilerplate. Five of seven shipped scripts never got one. Every new font multiplies by every
-script it covers.
+**Cost:** the honest number is in §1.3. The Arabic guard is 151 generated cases (131 original Arabic plus
+20 added for Persian/Dari, which landed on the same corpus and guard once Dari shipped 2026-08-25) plus a
+calibration exercise; Devanagari is 185; both took a session each even after the shared harness removed
+~265 lines of Playwright boilerplate. Five of seven shipped scripts never got one. Every new font
+multiplies by every script it covers.
 
 **Which scripts it keeps out of reach:** none, strictly. It keeps them *expensive*. The practical effect
 is that the guard gets written after a bug report, which means the first users of a script are the guard.
@@ -943,6 +989,14 @@ Beyond the existing seven CI checks, and beyond stage 1 above.
    (it has one; the brief thought it did not, which is how a guard dies). And the no-batching rule in
    `drawShapedRun` must keep its test, because a batched run advances by `/W` rather than by the shaper's
    advances and drifts silently - guarding it against `hmtx` was tried and does not catch it.
+
+   **Correction 2026-08-27:** `assertNotSubsetEmbedded` no longer exists. Subsetting shipped (see the
+   correction in §4.2), so the function it guarded against became the function we want, and it was
+   replaced by `remapGlyphForSubset` in `text.ts`. The *rule* survives the rename and is the more
+   important half: `remapGlyphForSubset` still **throws** if it meets a subset embedder whose private
+   bookkeeping fields it cannot find, because emitting a raw glyph id against a subsetted font draws
+   plausible-looking wrong glyphs rather than failing. Its test moved with it, and now asserts the
+   remapped ids rather than the throw. The no-batching rule is untouched.
 
 ---
 

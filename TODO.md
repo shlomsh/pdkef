@@ -790,12 +790,17 @@ explicitly cursive style is ever wanted, but nothing currently proposes swapping
     (U+0750-077F) and Arabic Extended, which carry the Persian/Urdu/Sindhi-only letterforms those languages
     need and this font was never built to draw - see the pattern's own comment in `fonts.js`. A Perso-
     Arabic addition would need its own font and its own verification run, not inherit this one.
-- **Chinese (China; sizeable minority language in Singapore and Malaysia).** Not a shaping problem at all
-  - it's a page-weight problem. A full-coverage CJK font is routinely 5-20MB unsubsetted, against a
-  per-page budget (`check-page-weight.js`) built around a handful of Latin/Hebrew TTFs. The export's font
-  embedding also deliberately runs with `subset: false` today (see "Small defects in the shipped emission
-  code" in the design doc - turning subsetting on would silently corrupt shaped glyph runs), so "just
-  subset the font" isn't a quick fix either; it's a separate embedding-path project.
+- **Chinese (China; sizeable minority language in Singapore and Malaysia).** Not a shaping problem - it's
+  a page-weight problem. A full-coverage CJK font is routinely 5-20MB unsubsetted, against a per-page
+  budget (`check-page-weight.js`) built around a handful of Latin/Hebrew TTFs. **This paragraph used to
+  say the export ran with `subset: false` and that turning subsetting on would silently corrupt shaped
+  glyph runs, so "just subset the font" wasn't a quick fix. That is now out of date: subsetting shipped
+  2026-08-27** (see the correction below and `src/lib/sign.js`/`src/editor/registry/text.ts`), so
+  a bundled CJK font's runs would subset correctly on export like everything else does. What is still
+  true, and still the actual blocker, is the page-weight one: even subsetted-at-export, a full Noto Sans
+  JP/SC/KR file still has to be *fetched* in full before that per-download subsetting can run, and 5-20MB
+  fetched on pick is not something this app's page-weight budget or lazy-load pattern is built for -
+  hence still recommending a build-time pre-subset below.
 
   **Measured 2026-08-25, and the conclusion is "build-time subsetting, not runtime" - read this before
   starting CJK.** A spike tried to lift the `subset: false` coupling by having `drawShapedRun` drive
@@ -822,8 +827,9 @@ explicitly cursive style is ever wanted, but nothing currently proposes swapping
     stderr as a failure signal, not just the extracted text or a pixel diff.**
 
   **Recommended approach when this is picked up: pre-subset at build time with `pyftsubset` (fonttools)
-  and ship a static TTF.** That sidesteps the broken runtime subsetter completely - `subset: false` stays,
-  `drawShapedRun` is untouched, the guard stays. The character set is principled rather than arbitrary:
+  and ship a static TTF.** *(Superseded in part - see the "Correction 2026-08-27" below: the runtime
+  subsetter is not broken, `subset: false` no longer stays, and the reason to still pre-subset at build
+  time is page weight on fetch, not this.)* The character set is principled rather than arbitrary:
   jōyō kanji (2,136, the standard taught set) + jinmeiyō kanji (863, the set *legally permitted in
   Japanese personal names*, which is precisely what a form-filling tool needs) + kana + punctuation +
   Latin/digits, so roughly 3,200 of Noto Sans JP's 17,936 glyphs, estimated 800KB-1.5MB, lazy-loaded only
@@ -839,6 +845,60 @@ explicitly cursive style is ever wanted, but nothing currently proposes swapping
   reaches into `@pdf-lib/fontkit`-specific internals - so it is an engine swap, a much bigger project);
   and hunting for a font whose *runtime* subsetting happens to work (unbounded search, and the result
   would rest on private-API reflection that breaks silently on any pdf-lib upgrade).
+
+  **Correction 2026-08-27: the diagnosis above was wrong, and runtime subsetting has since shipped -
+  read this before trusting the "broken for exactly the fonts CJK needs" framing above.** The 2026-08-25
+  spike was picked back up once W1's export render guard existed to tell correct output from plausible
+  output, which is exactly what this entry itself says was missing at the time ("there was no way to
+  tell correct output from plausible output"). It ran, and found the earlier diagnosis was a
+  generalisation from one font, not a property of CFF or of variable builds:
+  - **What actually breaks fontkit's TTF subsetter is a `glyf` table whose outlines are not 2-byte
+    aligned**, full stop - not outline format, not static-vs-variable. It reads each outline at the
+    offset `loca` gives it, so one odd-length glyph misaligns the read of everything after it.
+  - Of the 38 bundled fonts, only **Kalam Regular and Bold** were affected: `.notdef` was 51 bytes (odd),
+    so 528 of 1,028 `loca` offsets were odd and 40/40 sampled glyphs came back corrupt. The other 36
+    files, including every other `glyf`-outline font in the catalogue, were clean.
+  - **Outline format does not predict this.** Arimo, Tinos, Cousine, PT Sans and Caveat-Bold share
+    Kalam's `indexToLocFormat` and are all fine - so "Arimo subsets correctly and does not generalise"
+    was true, but the reason given for why it didn't generalise (CFF vs `glyf`, static vs variable) was
+    itself the wrong axis.
+  - Fix: repad with fontTools (`font['glyf'].padding = 4`). All 1,027 Kalam outlines, its metrics and its
+    cmap are byte-identical after repadding, which is the proof nothing visual changed - and the W1
+    export render guard (closed 2026-08-27, see "Stage 1" in the design doc) returned to 0 drifted cases
+    against its untouched baseline, having caught this as exactly one drifted case out of 21
+    (`devanagari-kalam`, 26.10% against a 12.50% tolerance) on its first real run. **This is the
+    concrete answer to "there was no way to tell correct output from plausible output": there is now.**
+  - `scripts/check-font-glyf-alignment.js` (`npm run test:fonts`, wired into CI) fails the build on any
+    unaligned bundled font, so this class of corruption cannot silently ship again.
+  - **Subsetting now ships.** `src/lib/sign.js` embeds with `{ subset: true }`; `remapGlyphForSubset` in
+    `src/editor/registry/text.ts` does the subset embedder's own bookkeeping (`includeGlyph`, `glyphs`,
+    `glyphIdMap`, `glyphCache.invalidate()`) per shaped glyph, since `drawShapedRun` bypasses `encodeText`
+    to keep each glyph's shaped position and must therefore replicate what `encodeText` would have done.
+    It throws rather than falling back if a pdf-lib upgrade renames those private fields - the exact
+    failure mode this whole guard chain exists to make impossible is a raw id silently drawing the wrong
+    glyph against a subsetted font. A signed PDF with one Arimo text box went from 279 KB to 5.7 KB; Arimo
+    + Heebo + Pacifico from 348 KB to 11 KB.
+  - The same misalignment defect was then found and fixed in the CJK spike's own Noto Sans JP subsets
+    (1,788 and 1,832 odd `loca` offsets across the weights checked), where it reduced 郎 in 山田太郎 to
+    an empty glyph - a name silently losing a character, and the same shape of bug `docs/
+    wysiwyg-text-architecture.md` independently found while correcting its own version of this same
+    diagnosis. Repadded the same way; unaffected otherwise (the advance-parity guard is unchanged at
+    3,600 cases per weight, worst delta 0.000134px).
+  - **What survives for CJK, and what changes:** the recommendation above (pre-subset at build time with
+    `pyftsubset`) still stands, but not because the runtime subsetter is broken - it works, once the font
+    handed to it is aligned. It stands because a full-coverage CJK face is still 5-20MB and this tool
+    still only needs the few thousand glyphs a Japanese name uses, and the two now *compose*: a
+    build-time subset that passes the alignment guard gets subsetted again at export, down to roughly
+    900 bytes for four kanji. Re-verify any pre-subset TTF against `check-font-glyf-alignment.js` before
+    shipping it - `pyftsubset` output is exactly the kind of generated file this guard exists to catch.
+  - Also worth recording: the CJK spike's stated merge blocker at the time (the precache manifest pushing
+    ~1.27MB gzipped of fonts at every visitor) no longer applies - fonts are no longer precached at all
+    (see the "Stop precaching 8.42 MB of fonts nobody asked for" commit), independent of this fix.
+  - `docs/wysiwyg-text-architecture.md` made the same category error in the opposite direction (blamed
+    "glyf-only, non-variable" as disproving TODO's CFF/variable claim, which was also incomplete) and has
+    been corrected there too. Both documents generalised from a sample of one font; neither named
+    alignment. Worth remembering next time a runtime library "is broken for" some class of input based on
+    one example: check whether the input itself is malformed before blaming the class.
 
 Five font additions have landed: **Alef** (Hebrew), **PT Sans** (Ukrainian/Cyrillic), **Mali** (Thai
 handwriting), **Kalam** (Devanagari/Hindi handwriting), and **Almarai** (Arabic) - each went through the
@@ -1005,11 +1065,16 @@ and content (the actual next scripts/fonts), because conflating them is how "add
   `calt`-free runner-up to Mali, not yet parity-tested); a second Ukrainian/Cyrillic face; a second Hebrew
   handwriting option; a couple more Latin handwriting styles. Lower priority than the scripts above - these
   add choice to something that already works, rather than closing a "not yet" gap.
-- **Chinese, Japanese, Korean** - its own session, and the approach is already decided by measurement:
-  build-time subsetting with `pyftsubset`, **not** the runtime subsetter, which was spiked on 2026-08-25
-  and found broken for both CFF and variable-TTF CJK builds. Full findings, the recommended character
-  set, and the false-positive hazard that nearly hid the failure are in the Chinese entry above - read it
-  before starting, it is the difference between a day and a week.
+- **Chinese, Japanese, Korean** - its own session. The approach is still build-time subsetting with
+  `pyftsubset`, but the reason changed 2026-08-27: the runtime subsetter turned out not to be broken (the
+  2026-08-25 spike's "broken for both CFF and variable-TTF CJK builds" diagnosis was a font-alignment bug
+  misread as a format bug - see the "Correction 2026-08-27" in the Chinese entry above), it works and now
+  ships for every other bundled font. Build-time pre-subsetting is still the right call because a
+  full-coverage CJK face is still 5-20MB to *fetch* before any subsetting can happen, which this app's
+  page-weight budget and lazy-load pattern cannot absorb at pick time - not because the runtime step would
+  corrupt it. Full findings, the recommended character set, and the false-positive hazard that nearly hid
+  the original misdiagnosis are in the Chinese entry above - read it before starting, it is the difference
+  between a day and a week.
 - **Emoji** is not a subsetting problem and should not be bundled into the CJK work. Colour emoji fonts
   use `COLR`/`CBDT` bitmap or layered-glyph formats, which pdf-lib's outline-glyph embedder has no path
   for at all - so this is a different question (probably: draw emoji as embedded images rather than font
