@@ -46,7 +46,7 @@ export const LANGUAGE_COVERAGE = {
   "latin": {
     label: "Latin",
     requiredCodePointCount: 52,
-    full: [{ family: "Caveat", style: "handwriting" }, { family: "Dancing Script", style: "handwriting" }, { family: "Great Vibes", style: "handwriting" }, { family: "Gveret Levin", style: "handwriting" }, { family: "Kalam", style: "handwriting" }, { family: "Mali", style: "handwriting" }, { family: "Pacifico", style: "handwriting" }, { family: "Sacramento", style: "handwriting" }, { family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }, { family: "Assistant", style: "upright" }, { family: "Heebo", style: "upright" }, { family: "Alef", style: "upright" }, { family: "PT Sans", style: "upright" }, { family: "Almarai", style: "upright" }],
+    full: [{ family: "Caveat", style: "handwriting" }, { family: "Dancing Script", style: "handwriting" }, { family: "Great Vibes", style: "handwriting" }, { family: "Gveret Levin", style: "handwriting" }, { family: "Kalam", style: "handwriting" }, { family: "Mali", style: "handwriting" }, { family: "Pacifico", style: "handwriting" }, { family: "Sacramento", style: "handwriting" }, { family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }, { family: "Assistant", style: "upright" }, { family: "Heebo", style: "upright" }, { family: "Alef", style: "upright" }, { family: "PT Sans", style: "upright" }, { family: "Almarai", style: "upright" }, { family: "Noto Sans JP", style: "upright" }],
     partial: [],
   },
   "latinExt": {
@@ -131,6 +131,12 @@ export const LANGUAGE_COVERAGE = {
     label: "Thai",
     requiredCodePointCount: 83,
     full: [{ family: "Mali", style: "handwriting" }],
+    partial: [],
+  },
+  "japanese": {
+    label: "Japanese (kana + common punctuation only - see comment above, kanji not modeled here)",
+    requiredCodePointCount: 184,
+    full: [{ family: "Noto Sans JP", style: "upright" }],
     partial: [],
   },
 };

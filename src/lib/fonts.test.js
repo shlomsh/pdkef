@@ -22,6 +22,7 @@ import {
   HEBREW_CAPABLE_FONTS,
   TEXT_FONTS,
   covers,
+  hasRealFace,
   resolveFontFamily,
   resolveFontSubstitution,
   textBoxPaddingEm,
@@ -367,5 +368,58 @@ describe('retired fonts', () => {
       expect(css).not.toContain(retired);
       expect(existsSync(join(FONT_DIR, `${base}-Regular.ttf`))).toBe(false);
     }
+  });
+});
+
+/**
+ * Noto Sans JP: an upright text face (not handwriting), Regular and Bold
+ * only, no italic. Most of the catalogue-wide tests above already exercise
+ * it automatically since it's just another TEXT_FONTS entry - these pin the
+ * facts specific to it: no real italic face exists (so the toolbar's italic
+ * button must disable itself), it isn't tagged as a handwriting font, and
+ * kana typed in some other font actually resolves here.
+ */
+describe('Noto Sans JP', () => {
+  const kana = 'こんにちは';
+
+  it('is a text font, not a handwriting font', () => {
+    expect(TEXT_FONTS).toContain('Noto Sans JP');
+    expect(HANDWRITING_FONTS).not.toContain('Noto Sans JP');
+    expect(FONT_STYLE_TAGS['Noto Sans JP']).toBe('sans');
+  });
+
+  it('has no real italic face in either weight, so hasRealFace reports false', () => {
+    expect(hasRealFace('Noto Sans JP', 'normal', 'italic')).toBe(false);
+    expect(hasRealFace('Noto Sans JP', 'bold', 'italic')).toBe(false);
+  });
+
+  it('has real Regular and Bold faces', () => {
+    expect(hasRealFace('Noto Sans JP', 'normal', 'normal')).toBe(true);
+    expect(hasRealFace('Noto Sans JP', 'bold', 'normal')).toBe(true);
+  });
+
+  it('covers kana', () => {
+    expect(covers('Noto Sans JP', 'normal', 'normal', kana)).toBe(true);
+  });
+
+  it('is left alone when already picked for kana text', () => {
+    expect(resolveFontFamily('Noto Sans JP', kana)).toBe('Noto Sans JP');
+  });
+
+  it('is what kana resolves to from a font that cannot draw it, and the substitution is explained', () => {
+    const result = resolveFontSubstitution('Arimo', kana);
+    expect(result.family).toBe('Noto Sans JP');
+    expect(result.requested).toBe('Arimo');
+    expect(result.missing.length).toBeGreaterThan(0);
+  });
+
+  // There is no handwriting-style Japanese face in the catalogue (the same
+  // situation Cyrillic is already in - see the Sign Languages card copy), so
+  // a typed Japanese signature comes out upright rather than cursive: even
+  // starting from a handwriting font, kana resolves to the one upright face
+  // that can draw it, never to some other handwriting font that can't.
+  it('has no handwriting alternative, so kana in a handwriting font also resolves upright', () => {
+    expect(resolveFontFamily('Caveat', kana)).toBe('Noto Sans JP');
+    expect(resolveFontFamily('Gveret Levin', kana)).toBe('Noto Sans JP');
   });
 });
