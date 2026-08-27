@@ -2,6 +2,8 @@ name: Regenerate export-render-guard baseline (temporary, manual)
 
 on:
   workflow_dispatch: {}
+  push:
+    branches: [ "claude/fix-e2e-ci-n8gk74" ]
 
 jobs:
   regen:
