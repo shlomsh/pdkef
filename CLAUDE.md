@@ -243,6 +243,26 @@ status feedback.
 
   **Two rules follow from the table, and both are about not lying to the user.** A substitution must be *explained*, never silent - `resolveFontSubstitution` returns the script that forced the change and the editor shows a notice, because the font visibly changes under the user as they type. And when no bundled font can draw something at all (Arabic, CJK, emoji), the honest answer is still a refusal, but it belongs **while they are typing**, not at Download: `src/lib/textCoverage.js` owns the element walk and both message strings, and `signPdf` and the editor's `useFontCoverageNotice.js` both call it so the warning and the refusal can never name different characters or different pages.
 
+  **Fonts are subsetted on export, and that is a recent inversion of a long-standing invariant.**
+  `signPdf` embeds with `{ subset: true }`, so a downloaded PDF carries only the glyphs it draws: one
+  Arimo text box went from 279 KB to 5.7 KB, and Arimo + Heebo + Pacifico together from 348 KB to
+  11 KB. Two rules hold it up. First, `drawShapedRun` emits glyph ids itself rather than going through
+  `encodeText`, so it must do the subset embedder's own bookkeeping - `includeGlyph` for the remapped
+  id, plus `glyphs`, `glyphIdMap` and `glyphCache.invalidate()`, which are what the `/W` widths and the
+  ToUnicode CMap are later built from. `remapGlyphForSubset` in `text.ts` does all four and **throws**
+  if a pdf-lib upgrade renames any of them; do not soften that into a fallback, because emitting a raw
+  id against a subsetted font draws plausible-looking wrong glyphs rather than failing.
+  Second, **fontkit's TTF subsetter cannot read unaligned glyph outlines**. Kalam shipped with a
+  51-byte (odd) `.notdef`, and since every subset includes glyph 0, every glyph after it was garbage -
+  which reached the W1 render guard as one drifted case out of 21 and nothing else. It was repadded
+  (`font['glyf'].padding = 4` in fontTools; outlines, metrics and cmap all verified byte-identical
+  across all 1,027 glyphs) and `npm run test:fonts` now fails the build on any unaligned bundled font.
+  The lesson generalises past this one bug: **outline format does not predict whether a font subsets
+  correctly.** Five other bundled families share Kalam's `indexToLocFormat` and are all fine. Test the
+  font, not the format - and note that the older records disagree about this (TODO.md blames CFF and
+  variable builds, the design record says corruption reproduces on a static `glyf` font). Both
+  generalised from one sample; alignment was the actual variable.
+
   **Glyph coverage is one stage of five, and all five now exist.** Drawing text correctly is
   normalization, bidi, itemization, shaping, positioning. The export has normalization
   (`composeHebrewClusters`, NFC plus gated Hebrew presentation-form recomposition), bidi
@@ -669,6 +689,9 @@ Run by `ci.yml`; see Part I "Commands" for the npm scripts.
    One rasteriser only (never poppler against Chromium - measured cross-rasteriser noise is 80-88%), and
    never "is there ink" as a pass condition, since `.notdef` commonly draws more ink than the glyph it
    replaced.
+9. **Bundled font `glyf` alignment** (`check-font-glyf-alignment.js`, `npm run test:fonts`) - no bundled
+   TTF may have an odd `loca` offset. See "Fonts are subsetted on export" below for why an unaligned
+   font silently corrupts the download.
 
 ## 7. Anti-patterns (a change doing any of these is wrong)
 

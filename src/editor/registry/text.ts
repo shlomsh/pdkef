@@ -113,24 +113,74 @@ export function unrepresentableCharacters(pdfFont: PDFFont | null, text: string)
 const gidHex = (id: number) => id.toString(16).toUpperCase().padStart(4, '0');
 
 /**
- * `drawShapedRun` below emits raw fontkit glyph ids (`gidHex(glyph.id)`)
- * straight into the PDF, which is only valid because `embedFont()` defaults
- * to `subset: false` (@cantoo/pdf-lib's `CustomFontEmbedder.encodeText` does
- * the same - see its source). A *subset* embedder
- * (`CustomFontSubsetEmbedder`) remaps every id through `includeGlyph()`,
- * which is also what registers a glyph into the subset in the first place,
- * so a raw id emitted here would silently point at the wrong glyph (or none)
- * against a subset font's `/Differences`. Neither class is part of pdf-lib's
- * public API, so this can't `instanceof`-check against it - `subset` is set
- * only in `CustomFontSubsetEmbedder`'s constructor, which is what the guard
- * below actually detects. This should never fire today; it exists so turning
- * subsetting on later fails loudly here instead of drifting silently.
+ * `drawShapedRun` below emits one glyph id per shaped glyph straight into the
+ * PDF as a hex-string `Tj` operand. Since `sign.js`'s `embedFont()` now always
+ * passes `{ subset: true }`, every embedded font is a
+ * `CustomFontSubsetEmbedder`, and a *subset* embedder does not use the raw
+ * fontkit glyph id (`glyph.id`) as the PDF glyph index at all - it builds its
+ * own compacted glyph table on the fly and only ever includes the glyphs this
+ * document actually draws.
+ *
+ * `remapGlyphForSubset` reproduces the embedder's own bookkeeping
+ * (`CustomFontSubsetEmbedder.encodeText` in
+ * `node_modules/@cantoo/pdf-lib/cjs/core/embedders/CustomFontSubsetEmbedder.js`,
+ * read directly rather than guessed) so a glyph shaped here lands in the
+ * subset exactly as if `encodeText` itself had processed it:
+ *
+ *  1. `subset.includeGlyph(glyph)` registers the glyph in the subset (or
+ *     finds it already there) and returns its **new**, subset-local id - this
+ *     is the id that must be emitted, never `glyph.id`.
+ *  2. `this.glyphs[subsetGlyphId - 1] = glyph` populates the embedder's own
+ *     glyph list, which `computeWidths()` and `createCmap()` (base class,
+ *     `CustomFontEmbedder.js` lines ~125/168/175) read back later when the
+ *     document is serialized - skipping this produces a `/W` array and
+ *     ToUnicode CMap that silently omit or misdescribe this glyph.
+ *  3. `this.glyphIdMap.set(glyph.id, subsetGlyphId)` backs the embedder's own
+ *     `glyphId()` lookup, which `createCmap()` calls per glyph.
+ *  4. `this.glyphCache.invalidate()` must run after glyphs are added, or a
+ *     later read (from the same embedder, e.g. a second `drawShapedRun` call
+ *     on a different page) can serve a stale cached list.
+ *
+ * These four steps are exactly what `encodeText` does per glyph plus once
+ * after the loop; this function is the equivalent for a caller (this file)
+ * that shapes and positions glyphs itself instead of calling `encodeText`.
+ *
+ * Falls back to the raw `glyph.id` for a non-subset embedder (`subset` is
+ * only ever set by `CustomFontSubsetEmbedder`'s constructor, so its presence
+ * is what distinguishes the two - neither class is part of pdf-lib's public
+ * API, so this can't `instanceof`-check against it), which keeps this working
+ * if a caller ever embeds with `{ subset: false }` again.
  */
-function assertNotSubsetEmbedded(pdfFont: PDFFont): void {
-  const embedder = (pdfFont as unknown as { embedder?: { subset?: unknown } }).embedder;
-  if (embedder && 'subset' in embedder) {
-    throw new Error('drawShapedRun emits raw fontkit glyph IDs and cannot be used with a subset-embedded font (embedFont(..., { subset: true })) - see the comment on assertNotSubsetEmbedded in text.ts');
+function remapGlyphForSubset(pdfFont: PDFFont, glyph: { id: number }): number {
+  const embedder = (pdfFont as unknown as {
+    embedder?: {
+      subset?: { includeGlyph: (glyph: unknown) => number };
+      glyphs?: unknown[];
+      glyphIdMap?: Map<number, number>;
+      glyphCache?: { invalidate: () => void };
+    };
+  }).embedder;
+  if (embedder?.subset) {
+    // A subset embedder whose bookkeeping fields we cannot find is the one
+    // case that must never fall through to `glyph.id`: the font IS being
+    // subsetted, so a raw id points at whatever glyph happens to occupy that
+    // slot in the compacted table - silent, plausible-looking wrong glyphs in
+    // the download. That is precisely the corruption the old
+    // `assertNotSubsetEmbedded` guard existed to prevent, and it would return
+    // the moment a pdf-lib upgrade renames one of these private fields. Fail
+    // loudly instead.
+    if (!embedder.glyphs || !embedder.glyphIdMap || !embedder.glyphCache) {
+      throw new Error('drawShapedRun found a subset-embedded font whose glyph bookkeeping (glyphs/glyphIdMap/glyphCache) is missing - @cantoo/pdf-lib\'s CustomFontSubsetEmbedder internals have changed shape. See remapGlyphForSubset in text.ts; emitting raw glyph ids here would silently draw the wrong glyphs.');
+    }
+    const subsetGlyphId = embedder.subset.includeGlyph(glyph);
+    embedder.glyphs[subsetGlyphId - 1] = glyph;
+    embedder.glyphIdMap.set(glyph.id, subsetGlyphId);
+    embedder.glyphCache.invalidate();
+    return subsetGlyphId;
   }
+  // No `subset` at all means a plain CustomFontEmbedder, where the raw
+  // fontkit id IS the PDF glyph index (its own `encodeText` emits it too).
+  return glyph.id;
 }
 
 /**
@@ -289,7 +339,6 @@ export function shapedWidth(pdfFont: PDFFont | null, text: string, size: number,
 export function drawShapedRun(page: PDFPage, { text, pdfFont, size, x, y, color, direction }: { text: string; pdfFont: PDFFont; size: number; x: number; y: number; color: Color; direction?: BidiDirection }): void {
   const fk = fontkitFont(pdfFont);
   if (!fk) throw new Error('drawShapedRun requires a font with a reachable fontkit instance');
-  assertNotSubsetEmbedded(pdfFont);
   const composedText = composeHebrewClusters(text, (cp) => fk.hasGlyphForCodePoint(cp));
   const { glyphs, positions } = fk.layout(composedText, undefined, undefined, undefined, direction);
   const scale = size / fk.unitsPerEm;
@@ -316,7 +365,7 @@ export function drawShapedRun(page: PDFPage, { text, pdfFont, size, x, y, color,
     const rise = yOffset * scale;
     ops.push(setTextMatrix(1, 0, 0, 1, pen + xOffset * scale, y));
     if (rise) ops.push(setTextRise(rise));
-    ops.push(showText(PDFHexString.of(gidHex(glyph.id))));
+    ops.push(showText(PDFHexString.of(gidHex(remapGlyphForSubset(pdfFont, glyph)))));
     if (rise) ops.push(setTextRise(0));
     pen += xAdvance * scale;
   });

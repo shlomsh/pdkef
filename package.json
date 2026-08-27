@@ -17,6 +17,7 @@
     "test:seo": "node scripts/verify-seo.js",
     "test:css": "node scripts/check-class-resolution.js && node scripts/check-editor-global-css.js && node scripts/check-dead-utilities.js && node scripts/check-css-duplication.js",
     "test:weight": "node scripts/check-page-weight.js",
+    "test:fonts": "node scripts/check-font-glyf-alignment.js",
     "generate:font-coverage": "node scripts/generate-font-coverage.mjs",
     "generate:font-coverage-report": "node scripts/generate-font-coverage-report.mjs"
   },
