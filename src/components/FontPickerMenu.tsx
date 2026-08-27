@@ -5,8 +5,8 @@ import { HANDWRITING_FONTS } from '../lib/sign.js';
 import { resolveFontSubstitution } from '../lib/fonts.js';
 
 // CSS font-family value to preview each option in its own font. All values
-// are real bundled TTFs (see sign.js's FONT_FILES / global.css's @font-face
-// rules) — every option is embedded verbatim into the exported PDF, so there's
+// are real bundled TTFs (see sign.js's FONT_FILES / editorFonts.css's
+// @font-face rules) — every option is embedded verbatim into the exported PDF, so there's
 // no separate "standard font" code path with different glyph coverage than
 // what's shown on screen (Arimo/Tinos/Cousine are metric-compatible with
 // Helvetica/Times New Roman/Courier New but, unlike pdf-lib's StandardFonts,

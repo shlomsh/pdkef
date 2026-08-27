@@ -359,7 +359,9 @@ describe('retired fonts', () => {
   });
 
   it('has no stale asset or @font-face left for a retired family', () => {
-    const css = readFileSync(join(process.cwd(), 'src', 'styles', 'global.css'), 'utf8');
+    // @font-face rules moved to editorFonts.css (only /sign/ needs them, see
+    // that file's header comment) - check there, not global.css.
+    const css = readFileSync(join(process.cwd(), 'src', 'styles', 'editorFonts.css'), 'utf8');
     for (const retired of Object.keys(RETIRED_FONTS)) {
       const base = retired.replace(/\s+/g, '');
       expect(css).not.toContain(retired);
