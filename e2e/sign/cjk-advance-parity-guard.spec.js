@@ -67,7 +67,7 @@ test.describe('Japanese advance-width parity guard (Noto Sans JP)', () => {
 
       // Runs entirely in the page (serialized by source), so it must stay self
       // contained - no closure over this module's scope.
-      const result = await page.evaluate(async ({ strings, url, family, size }) => {
+      const result = await page.evaluate(async ({ strings, url, family, size, controlUrl, controlFamily }) => {
         const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
         const fontFace = new FontFace(family, bytes.buffer);
         await fontFace.load();
@@ -85,9 +85,27 @@ test.describe('Japanese advance-width parity guard (Noto Sans JP)', () => {
 
         // Assert the probe discriminates before trusting a green result: a
         // different font must measure differently, or `ctx.font` never took.
+        // The control used to be the generic `sans-serif` keyword measuring
+        // Japanese text, but that compares two things that can legitimately
+        // agree for reasons that have nothing to do with whether `ctx.font`
+        // applied: on a Linux CI box with a Noto CJK package installed (a
+        // common side effect of `playwright install --with-deps`), a Latin
+        // control font's *own* CJK fallback is that same system Noto font,
+        // and it can measure within 0.01px of our bundled Noto Sans JP
+        // regardless of which font `ctx` actually used - the check was
+        // comparing two glyph-fallback paths that happened to converge, not
+        // proving our FontFace was the one drawing. A Latin string sidesteps
+        // fallback entirely: both fonts carry real, non-substituted Latin
+        // glyphs, so if their design metrics didn't differ measurably here,
+        // canvas font selection - not just Japanese fallback - would be
+        // broken, which is the actual thing this probe needs to catch.
+        const controlBytes = new Uint8Array(await (await fetch(controlUrl)).arrayBuffer());
+        const controlFace = new FontFace(controlFamily, controlBytes.buffer);
+        await controlFace.load();
+        document.fonts.add(controlFace);
         const control = document.createElement('canvas').getContext('2d');
-        control.font = `${size}px sans-serif`;
-        const discriminates = Math.abs(control.measureText('山田太郎').width - ctx.measureText('山田太郎').width) > 0.01;
+        control.font = `${size}px "${controlFamily}"`;
+        const discriminates = Math.abs(control.measureText('Yamada Taro').width - ctx.measureText('Yamada Taro').width) > 0.01;
 
         const measure = (text) => {
           const { glyphs, positions } = fk.layout(text);
@@ -101,7 +119,14 @@ test.describe('Japanese advance-width parity guard (Noto Sans JP)', () => {
           .filter((cp) => fk.hasGlyphForCodePoint(cp))
           .map((cp) => String.fromCodePoint(cp));
         return { discriminates, coverage: chars.length, cases: chars.concat(strings).map(measure) };
-      }, { strings: STRINGS, url: `/fonts/NotoSansJP-${weight}.ttf`, family: `NotoSansJP${weight}Guard`, size: SIZE });
+      }, {
+        strings: STRINGS,
+        url: `/fonts/NotoSansJP-${weight}.ttf`,
+        family: `NotoSansJP${weight}Guard`,
+        size: SIZE,
+        controlUrl: '/fonts/Arimo-Regular.ttf',
+        controlFamily: 'CjkGuardControlArimo',
+      });
 
       const overTolerance = result.cases.filter((c) => c.delta > MAX_DELTA_PX);
       const substituted = result.cases.filter((c) => c.glyphs !== c.chars);
