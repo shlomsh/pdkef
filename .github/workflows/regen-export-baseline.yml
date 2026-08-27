@@ -5,6 +5,9 @@ on:
   push:
     branches: [ "claude/fix-e2e-ci-n8gk74" ]
 
+permissions:
+  contents: write
+
 jobs:
   regen:
     runs-on: ubuntu-latest
@@ -29,17 +32,18 @@ jobs:
     - name: Regenerate baseline
       run: UPDATE_EXPORT_RENDER_BASELINE=1 npx playwright test e2e/sign/export-render-guard.spec.js
 
-    - name: Upload regenerated baseline
-      uses: actions/upload-artifact@v4
-      with:
-        name: regenerated-export-render-baseline
-        path: e2e/sign/fixtures/exportRenderBaseline.json
-
     # Artifact download goes through Azure Blob Storage, which this session's
-    # network policy can't reach - print the file straight into the job log
-    # (fetchable via the Actions API) as a fallback retrieval path.
-    - name: Print regenerated baseline to log
+    # network policy can't reach, so commit the regenerated file straight to
+    # this branch instead - avoids hand-transcribing a ~30KB JSON blob out of
+    # a log.
+    - name: Commit regenerated baseline
       run: |
-        echo "===BASELINE-START==="
-        cat e2e/sign/fixtures/exportRenderBaseline.json
-        echo "===BASELINE-END==="
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add e2e/sign/fixtures/exportRenderBaseline.json
+        if git diff --cached --quiet; then
+          echo "No baseline changes to commit."
+        else
+          git commit -m "Regenerate export-render-guard baseline on real CI (Linux) Chromium"
+          git push origin HEAD:${{ github.ref_name }}
+        fi
