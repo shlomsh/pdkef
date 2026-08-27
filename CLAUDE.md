@@ -243,20 +243,28 @@ status feedback.
 
   **Two rules follow from the table, and both are about not lying to the user.** A substitution must be *explained*, never silent - `resolveFontSubstitution` returns the script that forced the change and the editor shows a notice, because the font visibly changes under the user as they type. And when no bundled font can draw something at all (Arabic, CJK, emoji), the honest answer is still a refusal, but it belongs **while they are typing**, not at Download: `src/lib/textCoverage.js` owns the element walk and both message strings, and `signPdf` and the editor's `useFontCoverageNotice.js` both call it so the warning and the refusal can never name different characters or different pages.
 
-  **Glyph coverage is one stage of five, and the export only has two of them.** Drawing text correctly
-  is normalization, bidi, itemization, shaping, positioning. The export has shaping (fontkit) and, since
-  the layer-5 fix, positioning. It has no normalization stage (so nikud can land outside its letter), no
-  bidi stage (so `1,250` can export as `052,1`, which changes what a signed document *says*), and only a
-  per-element itemization stage (so Arabic, Thai and emoji export as nothing at all - measured, every
-  bundled font). **These present as unrelated bugs and are not**, and swapping fontkit for a bigger shaper fixes
-  exactly one of the three, which makes it the most expensive wrong move available. Full analysis, the
-  per-font measurements, and the task breakdown in
-  **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)**.
-  Two standing rules come out of it. First, **the catalogue is ours to curate**: we owe correct output
+  **Glyph coverage is one stage of five, and all five now exist.** Drawing text correctly is
+  normalization, bidi, itemization, shaping, positioning. The export has normalization
+  (`composeHebrewClusters`, NFC plus gated Hebrew presentation-form recomposition), bidi
+  (`resolveBidiRuns`, UAX#9 via `bidi-js`, resolved with the element's explicit paragraph direction and
+  never auto-detected), element-level itemization plus a refusal for anything no font covers, shaping
+  (fontkit, per bidi run then per whitespace segment) and positioning (per-glyph `Tm`/`Tj`/`Ts`).
+  **These once presented as unrelated bugs and were not**, and swapping fontkit for a bigger shaper would
+  have fixed exactly one of the three, which is why it was the most expensive wrong move available.
+  Full analysis and the per-font measurements are in
+  **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)** - **note that document
+  is stale on current state** (its layer 1/2/3 headers still say "open" and all three shipped);
+  **[docs/wysiwyg-text-architecture.md](./docs/wysiwyg-text-architecture.md)** supersedes it there and
+  carries the map verified from code.
+  Three standing rules come out of it. First, **the catalogue is ours to curate**: we owe correct output
   for the fonts we ship, not for every font that exists, so a font that cannot be made to match the
   editor gets dropped or marked Latin-only rather than given a special path. Second, **never fix a
   rendering mismatch by rasterising text to an image** - it makes the download stop being text
-  (no selection, search, copy or accessibility) to paper over a positioning bug.
+  (no selection, search, copy or accessibility) to paper over a positioning bug. Third, and this is the
+  one that is easy to lose: **having all five stages is not agreement.** The editor is still Chrome and
+  the exporter is still fontkit, so shaping specifically is proven per font, per script, by a guard - and
+  five of the seven shipped scripts do not have one. Do not read a green run on Hebrew as a statement
+  about Latin.
 
 ## Privacy invariants
 
