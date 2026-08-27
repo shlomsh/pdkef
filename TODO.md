@@ -15,7 +15,9 @@ reference implementation of a finished tool.
 
 ## Open work
 
-Six items. Nothing structural is outstanding; see "Migration status" below for why.
+Nothing structural is outstanding; see "Migration status" below for why. The three largest open areas
+are Redact's live delete preview, the WYSIWYG text architecture (a new epic, opened 2026-08-27), and the
+internationalization backlog.
 
 ### Launch / SEO
 
@@ -48,18 +50,22 @@ changefreq, and cross-linked - not still-open work.
   blackout/blur/whiteout already preview accurately and cheaply via their overlay div. Delete is the one
   mode where looking right requires the object to actually be absent rather than covered.
 
-### Hebrew text export: the three missing pipeline layers
+### Hebrew text export: the three missing pipeline layers ~~(all five layers now exist)~~
+
+**Closed 2026-08-27.** All five stages are implemented and verified from code. This section stays for the
+reasoning trail; the current-state map, and what is still open above the pipeline, moved to the WYSIWYG
+epic below.
 
 **Reframed 2026-08-22, and the reframing is the point.** Three defects were found in the Hebrew export
 (vowel points in the wrong place, letters in the wrong order, text disappearing entirely). They look
-unrelated. They are not. **The export does not have a text pipeline; it has a shaper and a painter.**
-Drawing text correctly is five stages, and the export has stages 4 and 5:
+unrelated. They are not. **The export did not have a text pipeline; it had a shaper and a painter.**
+Drawing text correctly is five stages, and the export had stages 4 and 5:
 
 | # | stage | have it? | defect when missing |
 |---|---|---|---|
 | 1 | Normalization | yes, as of H7 (below) | nikud lands outside its letter |
-| 2 | Bidi (UAX#9) | **no** | `1,250` exports as `052,1` |
-| 3 | Itemization (script/direction/**font** runs) | **partial** | Arabic exports as nothing at all |
+| 2 | Bidi (UAX#9) | yes, as of H6 (`f10af8e`, 2026-08-23) | `1,250` exports as `052,1` |
+| 3 | Itemization (script/direction/**font** runs) | element-level, plus a refusal (H5) | Arabic exports as nothing at all |
 | 4 | Shaping | yes (fontkit) | - |
 | 5 | Positioning | yes, as of the layer-5 fix below | marks placed by `/W` advance |
 
@@ -83,7 +89,7 @@ Do the work on `main`. Layer 5 landed 2026-08-21 (see "Known small defects"); H7
 1. Every character the editor renders either appears in the download or is refused before download,
    never silently dropped (H5).
 2. A line mixing Hebrew with Latin or with digits exports in the same visual order the editor shows,
-   verified on a real download from `npm run build && npm run preview`, not in Node (H6).
+   verified on a real download from `npm run build && npm run preview`, not in Node. **Done (H6).**
 3. Pointed Hebrew renders in the download as the editor renders it, in all seven
    `HEBREW_CAPABLE_FONTS`. **Done (H7)** - Arimo and Tinos were the two that failed, at 0% and 33% mark
    containment; a narrow, named, eight-combination exception remains (see H8) rather than full parity.
@@ -103,7 +109,19 @@ Do the work on `main`. Layer 5 landed 2026-08-21 (see "Known small defects"); H7
   and the copy matches CLAUDE.md's voice exactly as this item asked for. This generalizes to any script no
   bundled font covers, not just Devanagari or Arabic - it's why the Devanagari section below no longer
   says this infrastructure doesn't exist.
-- **H6. Layer 2: bidi.** Highest-damage defect in the epic: it changes what the document *says*, and it
+- ~~**H6. Layer 2: bidi.**~~ **Done 2026-08-23 in `f10af8e`, "Give the Hebrew export the pipeline layers
+  it never had" - this entry and the stage table above both stayed open for four days after it shipped,
+  which is how the design record and `CLAUDE.md` came to carry the same stale claim.** `src/lib/bidiRuns.js`
+  wraps `bidi-js`'s certified UAX#9 embedding-level computation and rule-L2 reordering, deriving run
+  *order* from its character-level output while leaving each run's own text in logical order (fontkit
+  reverses an RTL run internally, and pre-reversing it would corrupt mark attachment). Wired into
+  `serialize` at `src/editor/registry/text.ts`, once per run instead of once per line, with the paragraph
+  direction taken from `getEffectiveTextDirection` and never auto-detected. Comb fields deliberately skip
+  it (each cell is one grapheme cluster placed by cell index, so there is no run order to resolve).
+  Verified 2026-08-27 against a real download: 9 of 10 measured strings match a Chromium reference render,
+  and the tenth is Almarai collapsing `ريال` into one word-level ligature, which renders correctly and is
+  a paint-order reconstruction artifact rather than a bidi defect. The original writeup follows.
+  Highest-damage defect in the epic: it changes what the document *says*, and it
   needs no Latin character to trigger. Measured, typed then exported: `תאריך 21/08/2026` becomes
   `6202/80/12`, `טלפון 054-1234567` becomes `7654321-450`, `סכום 1,250 שח` becomes `052,1`,
   `רחוב 17` becomes `71`. **Use a real UAX#9 implementation, do not hand-roll run splitting** - it fails
@@ -194,6 +212,192 @@ Do the work on `main`. Layer 5 landed 2026-08-21 (see "Known small defects"); H7
   font needing one again is the signal to ask whether we should ship it.** Gveret Levin carries `calt`
   too and agrees on advances, but advance parity is not glyph parity: it still wants the Tier 3 pixel
   check under H8 before it is fully trusted.
+
+### WYSIWYG text: what the two engines actually guarantee
+
+**Opened 2026-08-27**, from an architecture spike. The Hebrew epic above closed the five pipeline stages.
+This one is about the thing that was never a stage: **two rendering engines draw the same text and nothing
+structurally guarantees they agree.** The editor paints HTML through Chrome (its shaper, its bidi, its
+per-character fallback to *system* fonts); the exporter draws with fontkit, one embedded font per element,
+no fallback. Everything in `SCRIPT_FALLBACKS` is mitigation for that gap, not a fix for it, which is why
+every new script has needed its own bespoke correctness guard.
+
+Read **[docs/wysiwyg-text-architecture.md](./docs/wysiwyg-text-architecture.md)** before starting
+anything below. It carries the current-state map (verified from code, with file:line), the five options
+and their real costs, and the measurements behind every claim here. Three product constraints are fixed
+and are not up for relitigation: **one font face per text element** (family, weight, style, size, colour
+uniform - the element is the atomic unit), **coverage-based rather than script-based selection**, and
+**error as early as possible** while typing, with the save-time refusal kept as the backstop. Those
+foreclose per-run itemization, which is the approach every server-side competitor uses.
+
+**The one finding that should change how this backlog is read.** Under the constraints, a
+`(family, script)` pair is drawable if and only if that file covers that script. Measured against the real
+asset bytes, and cross-referenced against what actually proves each pair agrees with the browser:
+
+| script | families that can draw it | agreement proof today |
+|---|---|---|
+| **Latin** | all 16 | **none** |
+| Hebrew | Arimo, Tinos, Cousine, Assistant, Heebo, Alef, Gveret Levin | Guard A, Tier 1/2/3 |
+| Arabic + Perso-Arabic | Almarai | 131-case pixel guard |
+| Devanagari | Kalam | 185-case pixel guard |
+| **Thai** | Mali | **none** |
+| **Cyrillic** | Arimo, Tinos, Cousine, PT Sans | **none** |
+| **Greek** | Arimo, Tinos, Cousine | **none** |
+
+`hebrew-font-parity.spec.js` iterates `HEBREW_CAPABLE_FONTS`, so Guard A has never run on Caveat, Dancing
+Script, Great Vibes, Kalam, Mali, Pacifico, PT Sans, Sacramento or Almarai at all. And Latin is not the
+safe script it looks like: **Pacifico, Caveat, Great Vibes and Dancing Script apply contextual
+substitution (`calt`) to ordinary names** - Pacifico on every sample tested, including `Sarah Levi` and
+`David Cohen`. `calt` walked differently by fontkit and HarfBuzz is the exact and sole reason Playpen Sans
+Hebrew was dropped. These are the signature faces, drawing the one string a signing tool exists to draw,
+and nobody has ever run that test on them.
+
+So the per-font-empirical-proof model is not failing through negligence. It is failing because the cost
+per pair is high enough that it only gets paid for a script that visibly broke. **Five of seven shipped
+scripts have no proof.**
+
+**Definition of done for the epic**, and it is the same shape as the Hebrew epic's, one clause wider:
+
+> **Every text the editor can display either exports faithfully, or is refused with a clear message,
+> and "faithfully" is something the repo can prove rather than something nobody has reported.**
+
+Ordered below so every task leaves the repo better than it found it and can be the last one. Nothing
+before W9 depends on W9, and W4 through W8 are independent of each other.
+
+- **W1. Render the produced PDF and look at the ink.** The guard that does not exist. `sign.test.js`
+  already parses exported bytes with pdf.js and reads text items, so "no test touches the export" is not
+  true - but **nothing renders the output and compares it**, and that is the failure class this project
+  has been bitten by four times (a substituted font, a corrupted `glyf`, a subset missing composite
+  components, a subset missing a glyph - every one of them passing `pdffonts`, `pdftotext` and a zero
+  exit code). Build a small element corpus, run `signPdf`, rasterise with **pdf.js inside the same
+  browser** that draws the reference, compare against per-case baselines. **Never use "is there ink" as a
+  pass condition**: `.notdef` is commonly a filled box that draws *more* ink than the glyph it replaced,
+  so a regression can raise the number. Carry a non-vacuity assertion (distinct cases must produce
+  distinct signatures) - the same assertion that caught the font-loading probe comparing one system font
+  against itself seven times. Do not revive cross-rasteriser diffing (poppler against Chromium); its
+  measured noise floor is 80-88% and per font. **First, because it is the safety net that makes every
+  task below revertible with confidence.**
+- **W2. Close the NFC coverage seam.** A live silent-content-loss bug, measured on `main` 2026-08-27.
+  `unrepresentableCharacters` judges coverage *before* `composeHebrewClusters`, which opens with
+  `text.normalize('NFC')` - and NFC is not Hebrew-specific. Reproduced: `שלום ά` (Hebrew plus a
+  *decomposed* Greek alpha-with-tonos) resolves to Heebo, passes the coverage check because Heebo has
+  both α and U+0301, then NFC composes U+03AC, which Heebo does not have, and one `.notdef` ships in a
+  signed document. The mirror case is a false refusal: Alef has no U+FB1D glyph but does have its
+  decomposition, so a pasted U+FB1D is refused today while the drawing path would have handled it. One
+  root cause: **coverage must be judged against the string that reaches `layout()`, never the string that
+  was typed.** One function's input plus a test in each direction.
+- **W3. The coverage-first selection rule.** Replace `resolveFontSubstitution`. Today a mixed-script
+  element resolves by whichever `SCRIPT_FALLBACKS` row matches first, which is why `שלום Hello مرحبا` is
+  refused - Hebrew is row 1, Hebrew-capable fonts have no Arabic. Under a coverage rule it would be
+  refused because *genuinely no bundled family covers Hebrew and Arabic*: same outcome, honest reasoning,
+  and it converts a permanent architectural wall into a catalogue question. It also **widens what works
+  and narrows nothing**: `שלום Привіт` in Heebo or Gveret Levin is refused today and becomes a drawn,
+  explained substitution to Arimo. Preference order is the user's own choice if it covers, then a covering
+  family with the same **style tag** (`handwriting`/`sans`/`serif`/`mono`, one new catalogue field), then
+  same class, then catalogue order. Compute the post-normalization lookup string **per candidate**, since
+  composition is gated on each font's own glyph set. Rework `fontCoverage.test.js` from "does the
+  `capable` list match the bytes" to "does the resolver's answer match the bytes", keeping the non-vacuity
+  half. `describeFontSubstitution` can then name the characters the picked family could not draw instead
+  of guessing a script, which is what makes its own doc comment's admitted "briefly false on mixed-script
+  text" go away.
+- **W4. Source the bold and italic faces the catalogue is missing.** *Added at Shlomi's ask, and it comes
+  before W5 deliberately: do not just block what we lack, pick fonts that have these capabilities in the
+  first place.* Eight families ship Regular only (Caveat, Dancing Script, Great Vibes, Gveret Levin,
+  Kalam, Mali, Pacifico, Sacramento) and four more ship no Italic - but that list was built from what is
+  in `public/fonts/`, never from what the upstream projects actually publish. **Check upstream
+  availability first, and treat this as unverified until checked:** several are believed to publish more
+  than we ship (Caveat and Dancing Script as variable fonts spanning 400-700, Kalam with a Bold, Mali
+  with a wide weight range *and* italics). If that holds, most of the gap is four downloads, not four
+  disabled buttons. Then sort the remainder into three buckets: (1) **available upstream** - download,
+  add the `@font-face` rules and the licence entries, extend `FONT_VERTICAL_METRICS` if the weight's
+  `hhea` differs, and run the new face through the same admission checks any font gets; (2) **correct to
+  have no such face** - Hebrew and Arabic do not use italic, so Assistant, Heebo, Alef and Almarai are
+  not missing anything and the honest answer is to disable, not to go shopping; (3) **genuinely
+  single-weight display faces** (likely Pacifico, Great Vibes, Sacramento, Gveret Levin) - either disable,
+  or find a *different* face covering the same style niche that ships all four. That third bucket is the
+  actual point: **weight and style coverage becomes something we select fonts for, not something we
+  discover afterwards.** Record it as an admission criterion in the "adding a font" checklist, and note
+  that `HANDWRITING_FONTS` currently reads as eight equal choices when it is eight Regular-only ones.
+- **W5. Honest weight and style.** `ElementToolbar.tsx` offers Bold and Italic on every family
+  unconditionally. With only a 400/normal `@font-face` declared the browser **synthesises** the style;
+  `loadCustomFont` 404s on `Caveat-Bold.ttf` and falls back to `Caveat-Regular.ttf`. **So bold Caveat is
+  bold on screen and upright in the download** - a WYSIWYG divergence that lives above all five pipeline
+  stages and that no existing guard can see. `sign.test.js` even tests the fallback, as a thing that
+  should not throw, without noticing what it creates. Extend `covers()` to `(family, weight, style)` and
+  have the picker disable what has no real file, with a reason in the app's voice, over whatever W4 could
+  not fill. Deliberately **not** substituting family for a missing weight: "bold Caveat" would become
+  "bold Arimo", losing the handwriting character to honour a checkbox. Faux-styling the PDF (text render
+  mode 2 plus a line width; a shear in the text matrix) is the recorded reversible alternative, and it
+  buys a new parity problem - matching Chrome's synthesis parameters - so it is not the first move.
+  Add the three-line guard: every `(family, weight, style)` the picker offers has a real file.
+- **W6. `/ActualText` per shaped run.** Settles the H2 trade, and the finding is bigger and cheaper than
+  it looked. Measured on `בְּרֵאשִׁית` in Arimo: today's per-glyph emission extracts from `pdftotext` as
+  composed presentation forms **plus** the stray spaces the design record accepted, and from pdf.js as a
+  reordered decomposition - **both extractors already disagree with the typed text, and composition is
+  only one contributor.** Wrapping each shaped run in `/Span <</ActualText …>> BDC … EMC` makes
+  `pdftotext` byte-identical to the known-good single-`Tj` control, using **package-root exports only**
+  (`PDFOperator`, `PDFOperatorNames`, `PDFName`, `endMarkedContent`) - no fork, no embedder internals.
+  That matters because the obvious fix cannot work: the ToUnicode CMap is whole-font, built from
+  `allGlyphsInFontSortedById()`, so it cannot express "this occurrence came from these characters".
+  **The catch, and it is a real decision:** poppler runs its own bidi over `ActualText` and therefore
+  wants it in *visual* order; the spec-conformant *logical* order makes poppler emit the string backwards.
+  pdf.js ignores the field entirely so cannot be harmed either way. Recommendation is visual order (which
+  is free - it is the order fontkit already emits glyphs in), recorded as a decision against a reader
+  rather than against the spec. **Measure Acrobat and macOS Preview before shipping.** Composition itself
+  stays: it is what makes the ink correct.
+- **W7. The catalogue coverage report.** A build-time artifact enumerating which script combinations the
+  catalogue can draw and which it cannot, generated from the real font bytes rather than from a claim, and
+  feeding the Sign page's Languages card so the public "not yet" list cannot drift from the code. Makes
+  "should we add a font" a data question permanently, and makes the Hebrew-plus-Arabic decision answerable
+  in a minute instead of a session. Today's answer, for the record: Hebrew+Latin has seven options
+  including one handwriting face; Arabic+Latin has one; Hebrew+Cyrillic and Hebrew+Greek have three each;
+  **Hebrew+Arabic has none**, and that is the one combination where a single OFL or Apache-2.0 face
+  plausibly exists and would unlock a real use case in this app's own country. DejaVu Sans is the obvious
+  candidate and its licence is the blocker to check first, not its coverage; Noto is script-split by
+  design and is therefore not a candidate however good it is.
+- **W8. Latin parity for the four `calt` faces.** Run the existing `shapingGuardHarness` on Pacifico,
+  Caveat, Great Vibes and Dancing Script over a Latin name corpus. This is owed regardless of how W9 goes:
+  under the status quo it is the correctness gate that should already exist, and under the structural
+  option it becomes the quality check that decides whether those faces stay. Either outcome is knowledge -
+  all four agree and the risk was theoretical, or one does not and the curation rule applies exactly as it
+  did to Playpen. **One correction to save a re-derivation:** Gveret Levin's `calt` fires on neither
+  Hebrew nor Latin, so the design record's standing note that it "deserves a glyph-level check" is
+  answered - there is nothing contextual there. A naive comparison that forgets to reverse the expected
+  sequence makes *every* RTL string look contextually substituted; that mistake was made and caught while
+  writing the spike.
+- **W9. The open architecture decision, deliberately not pre-empted.** Coverage is necessary, not
+  sufficient: constraint 1 guarantees the same font *file* on both sides, never the same output from it.
+  Two live options, both written up in full in the design record with costs, and Shlomi asked to see both
+  rather than have one picked:
+  - **Keep two engines, harden the guards.** Add `harfbuzzjs` as a **devDependency oracle** (ships
+    nothing, zero page weight, versioned with the repo, answers per-glyph parity questions no shipped
+    guard can) and extend the guard map to Thai, Cyrillic and Greek. Cost: the table above stays the
+    shape it is, forever, one guard per `(font, script)` pair.
+  - **Paint the editor from the exporter's own shaper** - `fk.layout()` plus `glyph.path.toSVG()` into a
+    `Path2D` layer, textarea kept transparent as the input and accessibility layer. **The only option
+    that makes agreement structural**, and not speculative: `shapingGuardHarness` already does exactly
+    this reconstruction in a browser, and `TextNode` already ships the layering pattern (comb mode stacks
+    a display layer, sets `color: 'transparent'`, keeps `caretColor`). Costs, plainly: caret and
+    selection geometry still come from the textarea and drift by exactly the divergence magnitude (0.0%
+    on six of seven Hebrew fonts today, non-zero on the `calt` faces); IME composition needs a fallback
+    to browser rendering for the duration of the session; and intrinsic sizing has to move off
+    `.text-measure` onto `shapedWidth`, which is the change with the most knock-on surface (RTL
+    anchoring, comb width floor, resize). Bundle cost is zero - fontkit is already loaded in the editor.
+    Land Sign only, behind a flag; revertible by deleting the paint layer and un-hiding the text.
+
+  **Ruled out, so it is not reopened.** *Browser authoritative* is not an option at all: no browser API
+  yields glyph IDs (`measureText` gives advances; SVG's `getStartPositionOfChar` gives per-*character*
+  geometry, so the browser can say **where** and never **what**), which means the only way to make the
+  browser's rendering authoritative inside the PDF is to ship its pixels - rasterisation, already
+  permanently ruled out. **"Browser authoritative" and "rasterise the text" are the same option, and the
+  decision was already taken**; typed signatures are that option, taken deliberately, in the one place
+  losing selectability is acceptable. *Shipping HarfBuzz to users* is also not "one shaper on both
+  sides": fontkit cannot be removed (`@cantoo/pdf-lib`'s embedder is built on it), so the cost is
+  additive, and Blink's own segmentation and normalization still sit above Chrome's HarfBuzz. It fixes
+  one stage of five. Note also that `check-page-weight.js` would not see it - it counts `/_astro/*.js`
+  referenced from the HTML, and a WASM shaper would be a runtime `import()` like pdfjs and fontkit
+  already are - so "it fits the 48,000 budget" would be true and misleading. The real number is bytes to
+  a user on top of the ~614KB brotli the editor already lazy-loads.
 
 ### Known small defects
 
@@ -940,11 +1144,22 @@ links to GitHub Issues and Discussions instead, which adds zero network surface.
   editor ownership inventory. Its job ended with the migration; the standing guard is
   `scripts/check-editor-global-css.js`.
 - **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)** - why exported Hebrew
-  does not match the editor. The framing to take from it: the export has a shaper and a painter, not a
-  text pipeline, and each defect found is one of the five stages it is missing rather than a bug in
+  did not match the editor. The framing to take from it: the export had a shaper and a painter, not a
+  text pipeline, and each defect found is one of the five stages it was missing rather than a bug in
   fontkit. Also the rejected alternatives (image, HarfBuzz WASM, presentation forms, all three now
   annotated with what their measurements could not see) and the measurement pitfalls that produced
-  confidently wrong readings along the way.
+  confidently wrong readings along the way. **Stale on current state and left that way on purpose**: its
+  layer 1, 2 and 3 headers still say "open" and all three shipped, and its `HEBREW_CAPABLE_FONTS` count
+  is one behind (Alef). Read it for the reasoning trail and the per-font measurements; read the record
+  below for what is true today.
+- **[docs/wysiwyg-text-architecture.md](./docs/wysiwyg-text-architecture.md)** - what pdkef can promise
+  for WYSIWYG text with no server. Supersedes the record above on current state: a five-stage map of both
+  sides verified from code with file:line, the guard map showing five of seven shipped scripts have no
+  agreement proof, the coverage-first selection rule, the measured font coverage matrix, and the five
+  architecture options with their real costs. Two things to take from it before touching this area: the
+  two products in the competitor study **fail in opposite directions** (pdkef refuses and ships nothing;
+  the server-side tool ships something partially wrong), and **"browser authoritative" and "rasterise
+  the text" are the same option**, so that door is already closed.
 - **[docs/view-density-control-spec.md](./docs/view-density-control-spec.md)** - the Relaxed / Condensed
   / Full screen control, why density is a global preference and why only Sign and Redact expose it.
 - **[seo-audit-output/](./seo-audit-output/)** - SEO strategy and reference material.
