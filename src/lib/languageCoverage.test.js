@@ -82,6 +82,15 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(LANGUAGE_COVERAGE.farsi.full.map((f) => f.family)).toEqual(['Almarai']);
     expect(supportedNote('Dari and Farsi')).toContain('Almarai');
   });
+
+  it('Japanese: exactly Noto Sans JP for kana, matching LANGUAGE_COVERAGE.japanese.full', () => {
+    expect(LANGUAGE_COVERAGE.japanese.full.map((f) => f.family)).toEqual(['Noto Sans JP']);
+    const note = supportedNote('Japanese');
+    expect(note).toContain('Noto Sans JP');
+    expect(note).toContain('jōyō');
+    expect(note).toContain('jinmeiyō');
+    expect(note).toContain('no handwriting-style Japanese face');
+  });
 });
 
 describe('Sign Languages card: combination claims implied by the copy', () => {
@@ -105,17 +114,29 @@ describe('Sign Languages card: "not yet" list is still true', () => {
     // means a language quietly gaining a report row - the generator's own
     // signal that some font now covers it - would show up as a new key this
     // list does not know about, rather than silently going unnoticed.
-    const notYetIds = ['zh', 'ja', 'ko', 'emoji', 'bn', 'ta', 'te', 'ps'];
+    const notYetIds = ['zh', 'ko', 'emoji', 'bn', 'ta', 'te', 'ps'];
     for (const id of notYetIds) {
       expect(LANGUAGE_COVERAGE[id]).toBeUndefined();
     }
   });
 
-  it("the notYet copy still names Pashto, CJK, emoji and India's other scripts", () => {
+  it("the notYet copy still names Pashto, Chinese, Korean, emoji and India's other scripts, and does not list Japanese as unavailable", () => {
     const notYet = signLanguages.notYet;
-    for (const term of ['Pashto', 'Chinese', 'Japanese', 'Korean', 'emoji', 'Bengali', 'Tamil', 'Telugu']) {
+    for (const term of ['Pashto', 'Chinese', 'Korean', 'emoji', 'Bengali', 'Tamil', 'Telugu']) {
       expect(notYet).toContain(term);
     }
+    // Only the opening clause - the one that says what "aren't there yet" -
+    // is checked for Japanese. The copy after it mentions Japanese on
+    // purpose: Han unification means a Chinese word built from characters
+    // that are also on the Japanese kanji lists draws in Noto Sans JP, in the
+    // Japanese shapes, so Chinese is genuinely half-covered and saying which
+    // half needs naming the font that covers it. A blunt `not.toContain`
+    // over the whole string forbids explaining that, which is how honest
+    // copy loses to a test that was only ever meant to catch Japanese still
+    // being listed as missing.
+    const unavailableClause = notYet.split(/(?<=\.)\s/)[0];
+    expect(unavailableClause).toContain('Pashto');
+    expect(unavailableClause).not.toContain('Japanese');
   });
 });
 

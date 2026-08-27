@@ -1,5 +1,5 @@
 /* @font-face declarations for the bundled type catalogue (src/lib/fonts.js).
-   Split out of global.css (2026-08-27): these 38 rules / ~5.4KB are only ever
+   Split out of global.css (2026-08-27): these 42 rules / ~5.7KB are only ever
    needed where the editor actually renders text in one of these families -
    the Sign editor's text elements (SignTool/nodes/TextNode.tsx), typed
    signatures (SignatureDialog.tsx), and the font picker's own previews
@@ -248,4 +248,16 @@
   font-style: normal;
   font-weight: 700;
   src: url('/fonts/Almarai-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/NotoSansJP-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/NotoSansJP-Bold.ttf') format('truetype');
 }

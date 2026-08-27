@@ -113,7 +113,7 @@ export const tools = [
         {
           native: 'English, Filipino, Bahasa Melayu, Gaeilge',
           name: 'Every Latin-script language',
-          note: 'All eight text fonts, plus eight handwriting faces for a typed signature. Everyday accents work throughout. A few of the handwriting faces have no ł, š, ă or ż, and the tool names the character rather than letting it slip into the download.',
+          note: 'All nine text fonts, plus eight handwriting faces for a typed signature. Everyday accents work throughout. A few of the handwriting faces have no ł, š, ă or ż, and the tool names the character rather than letting it slip into the download.',
         },
         {
           native: 'العربية',
@@ -125,10 +125,15 @@ export const tools = [
           name: 'Dari and Farsi',
           note: "The same Almarai font Arabic uses, which also carries Dari and Farsi's extra letters (پ, چ, ژ, گ) and their own ۰-۹ digits. Letters join the same way Arabic does, and a text box grows leftward from a fixed right edge.",
         },
+        {
+          native: '日本語',
+          name: 'Japanese',
+          note: "Noto Sans JP, covering hiragana, katakana, and the two government kanji lists: jōyō (2,136 characters taught for general use) and jinmeiyō (863 more permitted in personal names), 2,999 kanji in total rather than all of Unicode's Han. There is no handwriting-style Japanese face yet, so a typed signature comes out upright rather than cursive.",
+        },
       ],
       notYetHeading: 'More on the way',
       notYet:
-        "Pashto, Chinese, Japanese, Korean, emoji, and India's other scripts (Bengali, Tamil, Telugu) aren't there yet. Type any of them today and the tool lets you know as you go, naming the exact characters, so you find out before you fill in a whole form, not after.",
+        "Pashto, Korean, emoji, and India's other scripts (Bengali, Tamil, Telugu) aren't there yet. Chinese is only half there: the characters it shares with Japanese will draw, in the Japanese shapes, and the rest will not. Type any of these today and the tool lets you know as you go, naming the exact characters, so you find out before you fill in a whole form, not after.",
     },
     steps: [
       { title: 'Upload your form', text: 'Select or drag-and-drop the PDF document you want to fill and sign.' },
@@ -179,8 +184,12 @@ export const tools = [
         answer: "Yes. Dari and Farsi use the same Almarai font as Arabic, which also carries their extra letters (پ, چ, ژ, گ) and their own ۰-۹ digits. Letters join the same way Arabic does, and the box grows leftward from a fixed right edge, so what you see on screen is what gets embedded in the file you download.",
       },
       {
+        question: 'Can I fill and sign a PDF in Japanese (PDFに日本語で署名)?',
+        answer: "Yes, within a defined scope: Noto Sans JP draws hiragana, katakana, and the jōyō and jinmeiyō kanji, the two government-published lists (2,999 kanji) taught for general use and permitted in personal names. Kanji outside those lists is not there yet, and the tool tells you as you type rather than at download time. There is no handwriting-style Japanese face, so a typed signature comes out upright, not cursive.",
+      },
+      {
         question: 'Can I sign a PDF in Chinese or Pashto?',
-        answer: 'Not yet, and the tool is upfront about it rather than letting you find out at the end. No bundled font can draw Chinese, Japanese, Korean, Pashto or emoji, so if you type any of them a notice appears while you type and names the exact characters. Chinese, Japanese and Korean fonts need subsetting first so the download does not balloon, and Pashto needs letters the bundled Arabic font was not built to draw. Both are open work. Everything else on this page, including Hebrew, Arabic, Dari, Farsi, Hindi, Thai, Russian, Ukrainian, Greek and every Latin-script language, works end to end today.',
+        answer: 'Not properly yet, and there is one honest wrinkle worth knowing. Japanese and Chinese share thousands of characters, so a Chinese word built from characters that are also on the Japanese kanji lists will draw in the Japanese font, in the Japanese shapes for those characters, which are not always the shapes a Chinese reader expects. Anything outside those lists, and Korean, Pashto and emoji, cannot be drawn at all, and a notice names the exact characters while you type rather than at the end. Proper Simplified and Traditional Chinese and Korean faces are the next thing being added, since each needs its own file for exactly the reason above. Pashto needs letters the bundled Arabic font was not built to draw. Everything else on this page, including Hebrew, Arabic, Dari, Farsi, Hindi, Thai, Russian, Ukrainian, Greek, Japanese and every Latin-script language, works end to end today.',
       },
     ],
   },

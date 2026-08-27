@@ -128,6 +128,30 @@ const THAI_VOWELS_TONES = rangeOf(0x0e2f, 0x0e3a).map((cp) => String.fromCodePoi
 const THAI_LEADING_AND_MARKS = rangeOf(0x0e40, 0x0e4e).map((cp) => String.fromCodePoint(cp)).join('');
 const THAI_DIGITS = '๐๑๒๓๔๕๖๗๘๙';
 
+// Japanese: hiragana, katakana and the common CJK/fullwidth punctuation an
+// ordinary Japanese sentence uses - deliberately NOT the kanji a real
+// sentence also needs. "Japanese" has no single alphabet the way Hebrew or
+// Devanagari do: the honest requirement for kanji is Japan's two
+// government-published lists (jōyō, 2,136 characters taught for general use,
+// and jinmeiyō, 863 more permitted specifically in personal names), not
+// Unicode's ~97,000-codepoint Han repertoire, and there is no compact way to
+// spell either government list as a literal string or a handful of
+// rangeOf() calls the way every other language block in this file does.
+// Rather than fake completeness with a handful of probe kanji (the exact
+// mistake this file's header warns against - a boolean "covers Japanese"
+// derived from one probe character is a lie the moment a real document needs
+// a second one), kanji is left out of the measured "required" set entirely
+// and disclosed here, the same way HEBREW_NIQUD above discloses meteg/rafe
+// and DEVANAGARI_CONSONANTS discloses the two Dravidian-loan exclusions.
+// src/data/tools.js's Sign languages card states the kanji scope (jōyō +
+// jinmeiyō, 2,999 characters, via the bundled Noto Sans JP subset) as prose
+// rather than as something this report measures - it cannot verify a claim
+// it has no data to check, and README/CLAUDE.md say so plainly instead of
+// letting "full" imply more than kana.
+const JAPANESE_HIRAGANA = rangeOf(0x3041, 0x3096).map((cp) => String.fromCodePoint(cp)).join('');
+const JAPANESE_KATAKANA = [...rangeOf(0x30a1, 0x30fa), 0x30fc].map((cp) => String.fromCodePoint(cp)).join(''); // ァ..ヺ + ー (prolonged sound mark)
+const JAPANESE_PUNCTUATION = '、。「」『』・'; // U+3001 U+3002 U+300C U+300D U+300E U+300F U+30FB
+
 /**
  * @typedef {Object} LanguageDef
  * @property {string} label
@@ -163,6 +187,10 @@ export const LANGUAGES = {
   thai: {
     label: 'Thai',
     codePoints: codePointsOf(THAI_CONSONANTS + THAI_VOWELS_TONES + THAI_LEADING_AND_MARKS + THAI_DIGITS),
+  },
+  japanese: {
+    label: 'Japanese (kana + common punctuation only - see comment above, kanji not modeled here)',
+    codePoints: codePointsOf(JAPANESE_HIRAGANA + JAPANESE_KATAKANA + JAPANESE_PUNCTUATION),
   },
 };
 
