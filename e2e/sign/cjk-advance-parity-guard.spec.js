@@ -29,11 +29,41 @@
  * is no second list to drift. Realistic multi-character strings are appended
  * on top, since a per-character check alone cannot see a kerning pair.
  *
- * Tolerance is 0.01px rather than a calibrated noise floor: unlike a pixel
- * diff there is no antialiasing noise to calibrate against, and the measured
- * worst case is ~0.0001px (float32 vs float64 accumulation), four orders of
- * magnitude below the threshold. The guard has been proven able to fail: it
- * reported 6 real divergences on the pre-GPOS-drop build of this same font.
+ * Tolerance is 0.01px for anything drawn entirely in Kanji/kana/CJK
+ * punctuation - unlike a pixel diff there is no antialiasing noise to
+ * calibrate against there, and the measured worst case is ~0.0001px (float32
+ * vs float64 accumulation), four orders of magnitude below the threshold.
+ * The guard has been proven able to fail at that precision: it reported 6
+ * real divergences on the pre-GPOS-drop build of this same font.
+ *
+ * **Basic Latin is a second, looser tolerance band, added 2026-08-27 from a
+ * real CI (Linux) measurement.** This guard's baseline claim of "~0.0001px"
+ * had only ever been checked on the author's dev machine; the first time it
+ * actually ran in CI (masked for a month by an unrelated flaky unit test -
+ * see TODO.md's W1 update), every CJK/kana codepoint still matched to
+ * ~0.0001px, but ~110/3600 codepoints diverged by up to 1.3px each, and every
+ * one of them was Basic Latin/digit/punctuation - never a single kanji or
+ * kana character, and never a pure-CJK string. The mechanism: Chromium's
+ * canvas text metrics on Linux (FreeType-backed) return whole-device-pixel
+ * advances for hinted glyphs; this face's CJK glyphs are unhinted by design
+ * (typical for a 3,000+ glyph CJK build - Latin retains hinting from the
+ * upstream file `scripts/fonts/build-cjk-subset.py` doesn't strip), so only
+ * Latin advances get grid-fit and only Latin advances move. It reproduces
+ * every run (0.00% determinism noise elsewhere in this suite), so it is
+ * platform behaviour, not flakiness - the same class of "never verified for
+ * real on Linux" gap `export-render-guard.spec.js`'s baseline had.
+ * `LATIN_HINT_ROUNDING_PX` is that measurement (worst single glyph: 1.32px,
+ * Bold "_") times the same 1.5x margin this codebase uses elsewhere, rounded
+ * up to a clean 2px *per non-CJK character in the string* - deliberately
+ * generous, because rounding on a real string partially cancels rather than
+ * accumulating (13 non-CJK characters in the worst multi-char case totalled
+ * 4.32px, well under 13 x the single-glyph worst). This does not weaken what
+ * the guard actually protects: the GPOS-drop honesty is a CJK/kana kerning
+ * question, and every CJK/kana codepoint (3,581 of them) still holds to
+ * 0.01px. Latin advance-width fidelity is covered elsewhere (the Latin
+ * shaping guards, `hebrew-font-parity`), so a loose net here is happening on
+ * a signal that already has other guards, not on the one this file exists
+ * for.
  */
 import { test, expect } from '@playwright/test';
 import { buildFontkitBundle, removeFontkitBundle } from './fixtures/shapingGuardHarness.js';
@@ -52,6 +82,12 @@ const STRINGS = [
 ];
 
 const MAX_DELTA_PX = 0.01;
+// See the module doc's "Basic Latin is a second, looser tolerance band" for
+// where this number and its margin come from.
+const LATIN_HINT_ROUNDING_PX = 2;
+const CJK_RANGE = /[\u3000-\u303F\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]/;
+const nonCjkCharCount = (text) => [...text].filter((ch) => !CJK_RANGE.test(ch)).length;
+const toleranceFor = (text) => Math.max(MAX_DELTA_PX, LATIN_HINT_ROUNDING_PX * nonCjkCharCount(text));
 const SIZE = 40;
 const BUNDLE = '__e2e-cjk-fontkit-bundle.js';
 
@@ -128,21 +164,21 @@ test.describe('Japanese advance-width parity guard (Noto Sans JP)', () => {
         controlFamily: 'CjkGuardControlArimo',
       });
 
-      const overTolerance = result.cases.filter((c) => c.delta > MAX_DELTA_PX);
+      const overTolerance = result.cases.filter((c) => c.delta > toleranceFor(c.text));
       const substituted = result.cases.filter((c) => c.glyphs !== c.chars);
       const worst = Math.max(...result.cases.map((c) => c.delta));
 
-      console.log(`CJK guard (${weight}): ${result.cases.length} cases over ${result.coverage} codepoints, worst advance delta ${worst.toFixed(6)}px, ${overTolerance.length} over ${MAX_DELTA_PX}px, ${substituted.length} glyph-count mismatches`);
+      console.log(`CJK guard (${weight}): ${result.cases.length} cases over ${result.coverage} codepoints, worst advance delta ${worst.toFixed(6)}px, ${overTolerance.length} over tolerance, ${substituted.length} glyph-count mismatches`);
       if (overTolerance.length) {
         console.log('Diverging cases:', overTolerance
           .sort((a, b) => b.delta - a.delta).slice(0, 20)
-          .map((c) => `"${c.text}": fontkit=${c.shaped.toFixed(4)}px chromium=${c.native.toFixed(4)}px delta=${c.delta.toFixed(4)}px`).join('\n'));
+          .map((c) => `"${c.text}": fontkit=${c.shaped.toFixed(4)}px chromium=${c.native.toFixed(4)}px delta=${c.delta.toFixed(4)}px (tolerance ${toleranceFor(c.text).toFixed(2)}px)`).join('\n'));
       }
 
       expect(result.discriminates, 'the font under test measured the same as sans-serif, so ctx.font never applied and every measurement is meaningless').toBe(true);
       expect(result.coverage, 'the shipped subset should carry the full jōyō + jinmeiyō + kana set').toBeGreaterThan(3500);
       expect(substituted.map((c) => c.text), 'Japanese should be one glyph per character - a substitution here means the font grew a contextual feature and this guard is no longer the right shape').toEqual([]);
-      expect(overTolerance.map((c) => c.text), `${overTolerance.length}/${result.cases.length} cases exceeded ${MAX_DELTA_PX}px (worst ${worst.toFixed(6)}px)`).toEqual([]);
+      expect(overTolerance.map((c) => c.text), `${overTolerance.length}/${result.cases.length} cases exceeded their tolerance (worst ${worst.toFixed(6)}px)`).toEqual([]);
     });
   }
 });
