@@ -468,6 +468,25 @@ before W9 depends on W9, and W4 through W8 are independent of each other.
 
 ### Known small defects
 
+- **The export render guard drifted twice in one full-suite run, then stopped.** Observed 2026-08-28 on
+  macOS: `npm run test:e2e` reported `23 cases ... 2 drifted`, and the same suite run twice more
+  immediately afterwards reported `0 drifted`, as did the spec run on its own. So it is intermittent
+  and full-suite-only, not a baseline mismatch and not a real regression - the determinism check inside
+  the guard (each case exported and rasterised twice) reads 0.00% every time, which is what makes this
+  odd: whatever moves is stable *within* a run and varies *between* runs.
+  Worth chasing rather than shrugging off, because an intermittently red guard is how a real drift gets
+  waved through as "that flaky one". Two leads. **First**, the baseline was recaptured on Linux CI
+  (79eb235) while this observation is macOS, so the cases that drift are probably the two cursive faces
+  whose Linux-vs-macOS antialiasing gap was already measured at 13.68% (Caveat) and 17.61%
+  (Great Vibes) against a 12.5% tolerance - close enough that load could push them across. **Second**,
+  the full suite runs the shaping guards in the same worker, and one of those was found on the same day
+  to be corrupting fontkit state across calls (fixed in f8778b0); this may be a second instance of
+  cross-test contamination rather than the same one.
+  The fix to reach for is probably **per-platform tolerance or per-platform baselines**, not a wider
+  global tolerance: 12.5% was derived from a 1px-translation proxy and widening it blindly costs the
+  guard its power to see a one-glyph substitution, which is the thing it exists for.
+
+
 - ~~**The font coverage table ships CJK to everyone, and 92% of it is CJK.**~~ **Fixed 2026-08-28**
   (`24b6da0`). `src/lib/fontCoverageTable.js` was range-encoded from the real font bytes and is imported
   by `fonts.js`, so it reaches the browser in the editor's lazy chunk. It was 3,230 brotli bytes with 16
@@ -1220,10 +1239,41 @@ and content (the actual next scripts/fonts), because conflating them is how "add
     `@font-face` pair in `editorFonts.css`, and `STANDARD_FONTS` in `FontPickerMenu.tsx`. That last one
     is now guarded: `FontPickerMenu.test.tsx`'s "stays in sync with the font catalogue" fails in both
     directions, so a family added to the catalogue and forgotten in the picker names itself.
-  - **Before any of the three become selectable**, read the export-render-corpus gap in the next entry.
+  - **Before any of the three become selectable**, read the two entries below: the font-registry debt
+    (three families times five hand-edited steps) and the export-render-corpus gap.
   - **The decision this entry is waiting on** is whether to finish the wiring or pull the six files back
     out until someone does. Leaving them in the tree indefinitely is the one option that keeps the
     coverage-table cost without the feature.
+
+- **Adding a font is a checklist, not a registry, and the last-mile steps were the unguarded ones.**
+  Part II §3 of CLAUDE.md requires a registry for element types ("adding a type touches only new
+  files"), and `boxResize.ts` even has a CI-enforced single owner. Fonts never got that treatment.
+  Adding one means parallel edits in `fonts.js` (`TEXT_FONTS`, `SANS_STYLE_FONTS`,
+  `FONT_VERTICAL_METRICS`), `editorFonts.css`, `FontPickerMenu.tsx`, `scripts/font-languages.mjs` and
+  the Sign card copy in `tools.js`, plus two regenerated files and an e2e guard.
+  **The compensating design is a guard per step rather than a registry**, which is defensible - the
+  data genuinely lives in CSS, in JS and in generated tables, and no single format holds all of it.
+  What was wrong was that the guard set had holes, and both holes were *last mile*: the steps between
+  "the font works" and "a user can reach it correctly". Both are closed now (`FontPickerMenu.test.tsx`
+  checks the picker against the catalogue in both directions; `fonts.test.js` checks `editorFonts.css`
+  against the exporter's own filename derivation).
+
+- **The deeper version: the editor and the exporter bind family name to file by two independent routes.**
+  The editor goes through CSS (`font-family` -> an `@font-face` rule -> a `url()`); the exporter never
+  reads CSS at all (`loadCustomFont` in `sign.js` strips the spaces from the family string, appends a
+  weight/style suffix, and fetches that). Neither derives from the other, and the filename convention is
+  restated in five places: `loadCustomFont`, `requestedFontFile`, the `fontCoverageTable` keys, the
+  `url()`s in `editorFonts.css`, and the generator scripts.
+  **Measured, not theorised:** deleting both `@font-face` rules for a shipped, selectable font left the
+  entire unit suite green. The download stays correct and the editor silently falls back to whatever the
+  browser substitutes, which is precisely the screen/export divergence the whole module exists to
+  prevent, arriving through the one step that had no guard.
+  That is now ratcheted rather than fixed. **The structural fix is one manifest** of
+  `family -> { file per weight/style }` that `editorFonts.css` is generated from and `loadCustomFont`
+  reads, collapsing four of the edits above into one and giving the convention a single owner the way
+  box resize has one. Not urgent while the ratchets hold. Worth doing around the next two or three
+  fonts, and worth doing *before* any attempt to wire SC/TC/KR, since that is three families times five
+  steps.
 
 - **The export render guard has no CJK case, and its own rules say it should.**
   `e2e/sign/fixtures/exportRenderCorpus.js` states that it carries "one case per shipped script", and it
