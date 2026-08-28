@@ -12,6 +12,15 @@
  * and SCRIPT_FALLBACKS, just against the new table instead of a hand-written
  * list.
  *
+ * The table is a hybrid encoding (ranges, plus a base64 bitmap for a block
+ * where ranges are pathological - see the generated file's header), so this
+ * re-derives both halves here rather than importing the generator's own
+ * encoder: a guard that reuses the code it is guarding cannot notice the
+ * encoder and the reader disagreeing. The bitmap-encoded block additionally
+ * gets an exhaustive, every-codepoint check against fontkit below, because a
+ * single flipped bit is one character that silently starts rendering as
+ * .notdef or starts being wrongly refused while typing.
+ *
  * It also proves, rather than assumes, that fontkit's two coverage APIs
  * agree (characterSet, which the generator uses because it is cheap to
  * enumerate, and hasGlyphForCodePoint, which is what a per-character lookup
@@ -25,7 +34,13 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
-import { FONT_COVERAGE, FONT_COVERAGE_FILES, fontFileHasGlyph } from './fontCoverageTable.js';
+import {
+  COVERAGE_BITMAP_BLOCKS,
+  FONT_COVERAGE,
+  FONT_COVERAGE_BITMAPS,
+  FONT_COVERAGE_FILES,
+  fontFileHasGlyph,
+} from './fontCoverageTable.js';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 
@@ -43,6 +58,45 @@ function toRanges(codePoints) {
   return ranges;
 }
 
+function formatRanges(ranges) {
+  return `[${ranges.map(([a, b]) => `[${a},${b}]`).join(',')}]`;
+}
+
+function toBitmap(codePoints, start, end) {
+  const bytes = Buffer.alloc(Math.ceil((end - start + 1) / 8));
+  for (const cp of codePoints) {
+    if (cp < start || cp > end) continue;
+    const bit = cp - start;
+    bytes[bit >> 3] |= 1 << (bit & 7);
+  }
+  return bytes.toString('base64');
+}
+
+/**
+ * Mirrors the generator's chooseEncoding(): for every candidate block, encode
+ * it both ways and keep the shorter source text, moving those codepoints out
+ * of the range list when the bitmap wins.
+ */
+function encodeCoverage(covered) {
+  const bitmaps = [];
+  let remaining = covered;
+  for (const [start, end] of COVERAGE_BITMAP_BLOCKS) {
+    const inBlock = remaining.filter((cp) => cp >= start && cp <= end);
+    const asRanges = formatRanges(toRanges(inBlock));
+    const asBitmap = toBitmap(inBlock, start, end);
+    if (asBitmap.length + 2 < asRanges.length) {
+      bitmaps.push(asBitmap);
+      remaining = remaining.filter((cp) => cp < start || cp > end);
+    } else {
+      bitmaps.push(null);
+    }
+  }
+  return {
+    ranges: toRanges(remaining),
+    bitmaps: bitmaps.some((b) => b !== null) ? bitmaps : null,
+  };
+}
+
 const realFontFiles = readdirSync(FONT_DIR).filter((name) => name.endsWith('.ttf')).sort();
 
 /** One fontkit instance per real file, reused across every describe block below. */
@@ -55,8 +109,9 @@ describe('fontCoverageTable is not stale', () => {
     expect([...FONT_COVERAGE_FILES].sort()).toEqual(realFontFiles);
   });
 
-  it('matches a fresh range-encoding of every font file exactly - if this fails, run npm run generate:font-coverage and commit the result', () => {
+  it('matches a fresh encoding of every font file exactly - if this fails, run npm run generate:font-coverage and commit the result', () => {
     const freshTable = {};
+    const freshBitmaps = {};
     for (const file of realFontFiles) {
       const font = realFonts[file];
       // Mirrors the generator's own filter: characterSet alone is not the
@@ -66,9 +121,53 @@ describe('fontCoverageTable is not stale', () => {
       // "fontFileHasGlyph agrees with fontkit" and non-vacuity blocks below
       // for the assertions that prove this rather than assume it.
       const covered = font.characterSet.filter((cp) => font.hasGlyphForCodePoint(cp));
-      freshTable[file] = toRanges(covered);
+      const encoded = encodeCoverage(covered);
+      freshTable[file] = encoded.ranges;
+      if (encoded.bitmaps) freshBitmaps[file] = encoded.bitmaps;
     }
     expect(FONT_COVERAGE).toEqual(freshTable);
+    expect(FONT_COVERAGE_BITMAPS).toEqual(freshBitmaps);
+  });
+
+  it('never has a file whose ranges overlap a block its own bitmap owns', () => {
+    for (const [file, bitmaps] of Object.entries(FONT_COVERAGE_BITMAPS)) {
+      bitmaps.forEach((base64, i) => {
+        if (!base64) return;
+        const [start, end] = COVERAGE_BITMAP_BLOCKS[i];
+        for (const [rangeStart, rangeEnd] of FONT_COVERAGE[file]) {
+          expect(rangeStart > end || rangeEnd < start).toBe(true);
+        }
+      });
+    }
+  });
+
+  it('bitmap-encodes some block for at least one file, so the bitmap path is actually exercised', () => {
+    // Non-vacuity for every bitmap assertion in this file: if the encoder ever
+    // stopped choosing a bitmap, the checks above would all pass trivially
+    // against two empty objects.
+    expect(Object.keys(FONT_COVERAGE_BITMAPS).length).toBeGreaterThan(0);
+  });
+});
+
+describe('bitmap-encoded blocks agree with fontkit on every codepoint, not a sample', () => {
+  const bitmapFiles = Object.keys(FONT_COVERAGE_BITMAPS);
+
+  it.each(bitmapFiles)('%s: every codepoint of every bitmap-encoded block matches hasGlyphForCodePoint', (file) => {
+    const font = realFonts[file];
+    FONT_COVERAGE_BITMAPS[file].forEach((base64, i) => {
+      if (!base64) return;
+      const [start, end] = COVERAGE_BITMAP_BLOCKS[i];
+      let covered = 0;
+      for (let cp = start; cp <= end; cp += 1) {
+        const expected = font.hasGlyphForCodePoint(cp);
+        if (expected) covered += 1;
+        expect(fontFileHasGlyph(file, cp)).toBe(expected);
+      }
+      // Both directions have to be non-empty or the loop above proves nothing:
+      // an all-zero bitmap would satisfy it for a font with no Han at all.
+      expect(covered).toBeGreaterThan(0);
+      expect(covered).toBeLessThan(end - start + 1);
+    });
   });
 });
 
