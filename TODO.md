@@ -1359,7 +1359,14 @@ and content (the actual next scripts/fonts), because conflating them is how "add
   joyo/jinmeiyo subset so `signPdf` does not refuse) and `bengali-noto-sans-bengali` (প্রিয়া, carrying a
   ra-phala conjunct and a pre-base vowel sign, and deliberately avoiding the three clusters `f8778b0`
   named as known fontkit/Chromium divergences - baselining a known-divergent cluster would enshrine it as
-  correct). Add SC/TC/KR cases in the same shape whenever those are wired.
+  correct).
+  **Still open, and now actionable rather than hypothetical: Simplified Chinese, Traditional Chinese and
+  Korean were wired in 2026-08-28 (see the "Chinese, Japanese and Korean" entry above) and still have no
+  corpus case.** Add `chinese-simplified-noto-sans-sc` / `chinese-traditional-noto-sans-tc` /
+  `korean-noto-sans-kr` in the same shape as the two above - a real word or short phrase inside each
+  font's measured coverage (SC ~7,945 Han characters, TC ~11,147, KR full Hangul, see `fonts.js`'s
+  `FONT_VERTICAL_METRICS` comment) - once a CI baseline capture is available (see the next entry: this
+  needs to run on Linux CI, not locally, the same requirement that applied to the JP/Bengali cases above).
   **The baseline entries for both were captured on macOS and every other entry in that file is from
   Linux CI (`79eb235`), so regenerate on CI before trusting a green run** - see the next entry, which is
   what this work turned up and is the more important finding.
