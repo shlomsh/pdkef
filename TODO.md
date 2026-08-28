@@ -452,6 +452,25 @@ before W9 depends on W9, and W4 through W8 are independent of each other.
 
 ### Known small defects
 
+- **The font coverage table ships CJK to everyone, and 92% of it is CJK.** `src/lib/fontCoverageTable.js`
+  is range-encoded from the real font bytes and imported by `fonts.js`, so it reaches the browser in the
+  editor's lazy chunk. It was 3,230 brotli bytes with 16 files. Japanese took it to 8,916; Simplified,
+  Traditional and Korean took it to **25,519**, of which the four CJK families are 23,529 (SC 8,786,
+  TC 9,083, JP 5,435, KR 225 - Hangul is one contiguous block and costs nothing). Everything else in the
+  catalogue put together is about 2KB. So someone signing a form in English downloads roughly 23KB of
+  coverage data for four fonts they will never open.
+  **The measured fix, which does not touch any architecture:** encode Han coverage as a bitmap over
+  U+3400-9FFF instead of a range list. Scattered sets defeat range encoding and suit a bitmap exactly.
+  Measured per file: SC 8,786 -> 2,389, TC 9,083 -> 2,499, JP 5,435 -> 1,566, and the whole table lands
+  near 12KB rather than 25.5KB. `covers()` stays synchronous and pure - it becomes a bit test instead of
+  a binary search - so the reason the table was built this way in the first place (keeping
+  `resolveFontFamily` out of `TextNode`'s render path as an async call) still holds.
+  **The alternative to resist:** making coverage lazy per family. It is the theoretically right answer
+  and it makes `covers()` async, which is the exact change W3 measured and rejected. Do the encoding
+  first; revisit laziness only if a fifth CJK family ever lands.
+  Not urgent: it is a lazy chunk, `check-page-weight.js` does not count it, and no gate fails today.
+  Worth doing before the next large-coverage font, since the growth is superlinear in character-set size.
+
 - ~~**Hebrew text shaping in the export.**~~ **Fixed 2026-08-21.** Pointed Hebrew exported wrong in
   every bundled font because `page.drawText()` ran the shaper and then discarded the glyph positions it
   computed, so marks landed by raw advance width; comb fields had a second, independent bug where
