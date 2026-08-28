@@ -96,6 +96,34 @@ describe('bundled fonts offered for Hebrew', () => {
     expect(charset.has('A'.codePointAt(0))).toBe(true);
     expect(charset.has('0'.codePointAt(0))).toBe(true);
   });
+
+  // The reverse half. Everything above only checks that HEBREW_CAPABLE_FONTS
+  // is not lying upward (every listed family really does cover Hebrew) - it
+  // says nothing about a family left OFF the list that actually can draw
+  // Hebrew too. That is exactly CLAUDE.md's "every font left off cannot draw
+  // the script" half, the one that catches a bundled-but-unrouted face (the
+  // Thai-shipped-unrouted failure mode, applied here to Hebrew instead). This
+  // list is hand-written on purpose (see fonts.js's comment above the
+  // export) - checking it against the real bytes both ways is what keeps a
+  // hand-written claim honest without turning it into a derived, tautological
+  // list.
+  it('every catalogue family left off HEBREW_CAPABLE_FONTS genuinely lacks the Hebrew alphabet', () => {
+    const unlisted = CATALOGUE.filter((family) => !HEBREW_CAPABLE_FONTS.includes(family));
+    // Non-vacuity for the split itself: if HEBREW_CAPABLE_FONTS were the
+    // whole catalogue (or empty), this loop would check nothing (or the
+    // "every listed family covers Hebrew" tests above would check nothing) -
+    // either way, one direction would be vacuous.
+    expect(unlisted.length).toBeGreaterThan(0);
+    expect(HEBREW_CAPABLE_FONTS.length).toBeGreaterThan(0);
+
+    for (const family of unlisted) {
+      const charset = characterSetOf(`${family.replace(/\s+/g, '')}-Regular.ttf`);
+      const hasFullHebrewSet =
+        HEBREW_ALPHABET.every((letter) => charset.has(letter.codePointAt(0))) &&
+        HEBREW_EXTRAS.every((code) => charset.has(code));
+      expect(hasFullHebrewSet, `${family} is not in HEBREW_CAPABLE_FONTS but its Regular file covers the full Hebrew alphabet`).toBe(false);
+    }
+  });
 });
 
 /**
@@ -114,6 +142,28 @@ describe('bundled fonts offered for Hebrew', () => {
  */
 describe('covers is not vacuous', () => {
   // One representative string per script, in the language we actually claim.
+  //
+  // The four scripts below (Japanese, Bengali, Vietnamese, Urdu) were added
+  // when the Sign page's language claims grew to twelve but this probe set
+  // stayed at six - the exact gap "Thai shipped bundled but unrouted" warns
+  // about, just not yet triggered a second time. Each string is chosen to
+  // exercise what actually distinguishes the claim, not just "some script
+  // character":
+  //  - Japanese: 山田太郎, a stock example name (the Japanese equivalent of
+  //    "John Doe") - all three characters are jōyō kanji, so this probes the
+  //    kanji claim in src/data/tools.js's Japanese note, not just kana.
+  //  - Bengali: নমস্কার ("namaskar", a common greeting) - a real word, not a
+  //    synthetic pangram.
+  //  - Vietnamese: Cảm ơn ("thank you") - carries both a stacked-diacritic
+  //    vowel (ả, Latin Extended Additional) and the bare ơ (Latin Extended-A),
+  //    the two codepoint groups scripts/font-languages.mjs defines Vietnamese
+  //    coverage from, so a font with only plain Latin accents cannot fake a
+  //    pass on this probe.
+  //  - Urdu: نہیں ("no") - a common word built from ہ (heh goal) and ں (noon
+  //    ghunna), two of the seven letters Urdu needs that Arabic itself has no
+  //    glyph for at all (see URDU_EXTRA_LETTERS in font-languages.mjs). Using
+  //    plain Arabic-only text here would only re-probe the Arabic row above,
+  //    not the thing that makes the Urdu claim a separate, checkable fact.
   const PROBES = {
     Hebrew: 'שלום',
     Devanagari: 'नमस्ते',
@@ -121,6 +171,10 @@ describe('covers is not vacuous', () => {
     Cyrillic: 'Привіт',
     Greek: 'Ελλάδα',
     Arabic: 'مرحبا',
+    Japanese: '山田太郎',
+    Bengali: 'নমস্কার',
+    Vietnamese: 'Cảm ơn',
+    Urdu: 'نہیں',
   };
 
   it.each(Object.entries(PROBES))('%s: covers() agrees with the real font bytes for every bundled family', (_name, probe) => {

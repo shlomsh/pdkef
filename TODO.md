@@ -468,24 +468,23 @@ before W9 depends on W9, and W4 through W8 are independent of each other.
 
 ### Known small defects
 
-- **The export render guard drifted twice in one full-suite run, then stopped.** Observed 2026-08-28 on
-  macOS: `npm run test:e2e` reported `23 cases ... 2 drifted`, and the same suite run twice more
-  immediately afterwards reported `0 drifted`, as did the spec run on its own. So it is intermittent
-  and full-suite-only, not a baseline mismatch and not a real regression - the determinism check inside
-  the guard (each case exported and rasterised twice) reads 0.00% every time, which is what makes this
-  odd: whatever moves is stable *within* a run and varies *between* runs.
-  Worth chasing rather than shrugging off, because an intermittently red guard is how a real drift gets
-  waved through as "that flaky one". Two leads. **First**, the baseline was recaptured on Linux CI
-  (79eb235) while this observation is macOS, so the cases that drift are probably the two cursive faces
-  whose Linux-vs-macOS antialiasing gap was already measured at 13.68% (Caveat) and 17.61%
-  (Great Vibes) against a 12.5% tolerance - close enough that load could push them across. **Second**,
-  the full suite runs the shaping guards in the same worker, and one of those was found on the same day
-  to be corrupting fontkit state across calls (fixed in f8778b0); this may be a second instance of
-  cross-test contamination rather than the same one.
-  The fix to reach for is probably **per-platform tolerance or per-platform baselines**, not a wider
-  global tolerance: 12.5% was derived from a 1px-translation proxy and widening it blindly costs the
-  guard its power to see a one-glyph substitution, which is the thing it exists for.
-
+- **The export render guard is red on macOS and green on Linux, deterministically.** Its baseline was
+  recaptured on Linux CI (79eb235) because it had never actually run there; on macOS it now fails on
+  exactly two cases, every time: `latin-caveat` at 13.68% and `latin-great-vibes` at 17.61% against a
+  12.50% tolerance. Those are the same two numbers the recapture commit measured going the other way,
+  so this is one gap seen from both ends: cross-platform antialiasing on thin cursive strokes, on the
+  only two faces in the corpus thin enough to feel it. Every other case, including the two just added
+  for Japanese and Bengali, matches on both platforms.
+  **Correction to an earlier version of this entry, which called it intermittent.** It is not. The runs
+  that read 0 drifted were taken while the baseline file was being edited by a concurrent session; with
+  a settled tree it reproduces on every run. An "intermittent" label would have sent the next person
+  hunting for a race that does not exist.
+  **The fix to reach for is per-platform, not a wider tolerance.** 12.5% was derived from a
+  1px-translation proxy, and widening it globally costs the guard the power to see a single substituted
+  glyph, which is the thing it exists for. Either record which platform a baseline was captured on and
+  carry a documented per-platform allowance for it, or keep two baselines. Until then the guard is
+  authoritative in CI and a known false red locally, which is a bad state to leave for long: a guard
+  developers learn to ignore has already stopped working.
 
 - ~~**The font coverage table ships CJK to everyone, and 92% of it is CJK.**~~ **Fixed 2026-08-28**
   (`24b6da0`). `src/lib/fontCoverageTable.js` was range-encoded from the real font bytes and is imported
@@ -1245,6 +1244,32 @@ and content (the actual next scripts/fonts), because conflating them is how "add
     out until someone does. Leaving them in the tree indefinitely is the one option that keeps the
     coverage-table cost without the feature.
 
+- **The export render guard's cross-platform tolerance was calibrated by proxy, and the real number is
+  higher. The guard is red on a macOS dev machine at HEAD, and was before any of this work.**
+  `exportRenderHarness.js` sets `MIN_TOLERANCE_PCT = 12.5` to absorb rendering noise *between machines*,
+  and its own header is honest that the figure was never measured: the baseline is captured on Linux CI,
+  developers run macOS, "there is no Docker on this project's dev machine, so the real number was not
+  available", and same-machine render-scale and sub-pixel perturbations stood in for it instead.
+  Measured 2026-08-28, by accident, while adding the Japanese and Bengali cases: running the guard on
+  macOS against HEAD's Linux baseline, **with no local changes at all**, fails on two cases -
+  `latin-caveat` at 13.68% and `latin-great-vibes` at 17.61%, against a 12.50% tolerance. Every case
+  differs by 6.7% to 17.6%. The determinism noise floor is 0.00%, so this is not run flakiness: two
+  captures in the same run were pixel-identical. It is a real, reproducible macOS-vs-Linux gap, and the
+  two cases that exceed the floor are both thin, loopy handwriting faces - the most hinting-sensitive
+  things in the catalogue, and the two `fonts.js` already flags as needing the most vertical slack.
+  `thai-mali` is a near miss at 12.195%, inside the tolerance by three hundredths of a percent.
+  **What this means, and what it does not.** It does not mean the guard is wrong; the guard is doing
+  exactly what it was built to do, and it caught a divergence its own author predicted it could not
+  measure. It does mean the guard is **effectively CI-only today**: a developer who runs it locally sees
+  two red cases that are not regressions, which is the fastest way to teach a team to ignore a red guard.
+  **Do not fix this by raising `MIN_TOLERANCE_PCT` to fit.** 17.61% is one sample from one machine pair,
+  and the harness's own non-vacuity property needs the closest distinct pair to stay above
+  `2 x tolerance`; that pair is currently 31.65%, so a tolerance above ~15.8% starts eating the property
+  that makes the guard meaningful at all. The honest options are to measure the real floor across both
+  platforms and re-derive the constant from it, or to make the guard skip (not fail) off-CI with a
+  message saying why. Either beats a number that reads as validated when it was not, which is a hazard
+  the harness header already warns about in a different context.
+
 - **Adding a font is a checklist, not a registry, and the last-mile steps were the unguarded ones.**
   Part II §3 of CLAUDE.md requires a registry for element types ("adding a type touches only new
   files"), and `boxResize.ts` even has a CI-enforced single owner. Fonts never got that treatment.
@@ -1289,9 +1314,15 @@ and content (the actual next scripts/fonts), because conflating them is how "add
   pre-GPOS-drop JP build. What it does not do is look at ink, which is what catches a corrupted `glyf`
   or a subset missing composite components - exactly the failure class that `988667c` found in the
   spike's own JP subsets.
-  **So the work is one corpus case plus a baseline capture** (`textCase('japanese-noto-sans-jp', ...)`,
-  then re-run the guard to store it), not a second shaping harness. Do it before SC/TC/KR are wired, and
-  add their cases in the same pass.
+  **Done 2026-08-28**, as one corpus case each rather than a second shaping harness:
+  `japanese-noto-sans-jp` (佐藤さくら, kanji surname plus hiragana given name, every character inside the
+  joyo/jinmeiyo subset so `signPdf` does not refuse) and `bengali-noto-sans-bengali` (প্রিয়া, carrying a
+  ra-phala conjunct and a pre-base vowel sign, and deliberately avoiding the three clusters `f8778b0`
+  named as known fontkit/Chromium divergences - baselining a known-divergent cluster would enshrine it as
+  correct). Add SC/TC/KR cases in the same shape whenever those are wired.
+  **The baseline entries for both were captured on macOS and every other entry in that file is from
+  Linux CI (`79eb235`), so regenerate on CI before trusting a green run** - see the next entry, which is
+  what this work turned up and is the more important finding.
 
 - **Emoji** is not a subsetting problem and should not be bundled into the CJK work. Colour emoji fonts
   use `COLR`/`CBDT` bitmap or layered-glyph formats, which pdf-lib's outline-glyph embedder has no path
