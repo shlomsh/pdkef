@@ -18,7 +18,7 @@ import { FONT_COVERAGE_FILES, fontFileHasGlyph } from './fontCoverageTable.js';
 import { findMissingGlyphs } from './textTransforms.js';
 
 export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Kalam', 'Mali', 'Pacifico', 'Sacramento'];
-export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Scheherazade New', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Noto Sans Gurmukhi', 'Noto Sans Telugu', 'Noto Sans Tamil'];
+export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Scheherazade New', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Mukta Mahee', 'Anek Telugu', 'Noto Sans Tamil'];
 
 /**
  * Real ascent/descent for every bundled family, as a fraction of the em —
@@ -70,8 +70,16 @@ export const FONT_VERTICAL_METRICS = {
   'Noto Sans TC': { ascent: 1.160, descent: 0.288 },
   'Noto Sans KR': { ascent: 1.160, descent: 0.288 },
   'Noto Sans Bengali': { ascent: 0.917, descent: 0.408 },
-  'Noto Sans Gurmukhi': { ascent: 0.896, descent: 0.408 },
-  'Noto Sans Telugu': { ascent: 0.869, descent: 0.483 },
+  // Mukta Mahee and Anek Telugu are NOT the Noto Sans faces for their scripts,
+  // and that is a measured decision, not a preference - see TODO.md's Punjabi/
+  // Telugu entry. fontkit crashes outright shaping Noto Sans Gurmukhi (203 of
+  // 500 generated cases, and most ordinary words including ਸਿੰਘ "Singh") and
+  // Noto Sans Telugu (the consonant+virama+RA conjunct, so ఆంధ్రప్రదేశ్
+  // "Andhra Pradesh" fails), with the same uncaught
+  // `Cannot read properties of null (reading 'xCoordinate')` inside
+  // GPOSProcessor.getAnchor that already blocks Noto Nastaliq Urdu.
+  'Mukta Mahee': { ascent: 1.130, descent: 0.532 },
+  'Anek Telugu': { ascent: 0.900, descent: 0.600 },
   'Noto Sans Tamil': { ascent: 0.870, descent: 0.370 },
 };
 
@@ -162,7 +170,7 @@ const DEFAULT_FAMILY = 'Arimo';
  * second Hebrew-capable handwriting face joins the catalogue, substitution
  * prefers it automatically instead of falling through to catalogue order.
  */
-const SANS_STYLE_FONTS = ['Arimo', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Noto Sans Gurmukhi', 'Noto Sans Telugu', 'Noto Sans Tamil'];
+const SANS_STYLE_FONTS = ['Arimo', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Mukta Mahee', 'Anek Telugu', 'Noto Sans Tamil'];
 // Scheherazade New is a traditional Naskh, not a geometric sans the way
 // Almarai (the face it replaced) was - it belongs with Tinos's serif
 // character, not the sans bucket. Nothing else in the catalogue draws

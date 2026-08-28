@@ -264,6 +264,33 @@ status feedback.
   claiming parity we do not have. If a fourth appears, or if a future font refresh widens these,
   re-open the drop-or-keep decision instead of extending the exclusion list.
 
+  **A font's Noto face is not automatically the right one, and "does fontkit crash on it" is the first
+  thing to measure.** Punjabi and Telugu (landed 2026-08-28) both ship on a **non-Noto** face, because
+  fontkit throws an uncaught `Cannot read properties of null (reading 'xCoordinate')` inside
+  `GPOSProcessor.getAnchor` on Noto Sans Gurmukhi (203 of 500 generated cases, and most ordinary words -
+  ਸਿੰਘ "Singh" included) and on Noto Sans Telugu (4 of 630, all consonant+virama+RA, which is ప్ర, which
+  is in ఆంధ్రప్రదేశ్). **This is the same crash that blocks Noto Nastaliq Urdu**, so it is a general
+  fontkit limit, not a Nastaliq quirk. Two things make it worth a standing rule rather than a footnote.
+  First, it **reaches the real export path**: `signPdf` rejects with that raw `TypeError`, not a clean
+  `UnrepresentableTextError`, so shipping it means a crashing Download rather than an honest refusal -
+  the one outcome this whole module exists to prevent. Second, it is **invisible to every other check** -
+  coverage is full, the `glyf` alignment guard passes, the font is real and OFL and looks correct in the
+  browser, because Chromium's shaper has no such problem. Only running the generated corpus through
+  fontkit finds it. So: **before wiring any new font, shape the whole corpus through fontkit and count
+  the crashes.** It costs one script and it eliminated two candidates here. Replacements are screened the
+  way the Arabic candidates were (Mukta Mahee for Punjabi, Anek Telugu for Telugu; Noto Sans Tamil needed
+  no screening and shipped as-is), and the Sign card *says* why the font is not the expected Noto one
+  rather than quietly substituting - `languageCoverage.test.js` pins that explanation.
+
+  **The four Brahmic guards and what each actually proves.** Bengali is a fixed calibration set
+  (259/259); Gurmukhi (140/140), Telugu (486/486) and Tamil (265/265) use `autoCalibrate`, which
+  partitions the corpus by fontkit's own substituted/not-substituted judgment instead of a hand-picked
+  set. That choice is deliberate and worth keeping: Bengali's calibration set could be hand-built because
+  its akhn/blwf/vatu/pstf/rphf features were readable straight off the font's GSUB table, and this
+  project has no equivalent in-house reference for the other three - so hand-classifying "which cases
+  have no shaping ambiguity" would have been a guess, and a wrong guess there produces a falsely wide
+  tolerance rather than a visible failure. Let the harness partition it.
+
   **Fonts are subsetted on export, and that is a recent inversion of a long-standing invariant.**
   `signPdf` embeds with `{ subset: true }`, so a downloaded PDF carries only the glyphs it draws: one
   Arimo text box went from 279 KB to 5.7 KB, and Arimo + Heebo + Pacifico together from 348 KB to

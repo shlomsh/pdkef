@@ -286,16 +286,26 @@ asset bytes, and cross-referenced against what actually proves each pair agrees 
 
 | script | families that can draw it | agreement proof today |
 |---|---|---|
-| **Latin** | all 16 | **none** |
+| **Latin** | all 16 | Pacifico/Great Vibes/Dancing Script self-calibrating guard; **Caveat still red** (`test.fixme`) |
 | Hebrew | Arimo, Tinos, Cousine, Assistant, Heebo, Alef, Gveret Levin | Guard A, Tier 1/2/3 |
-| Arabic + Perso-Arabic | Almarai | 131-case pixel guard |
+| Arabic + Perso-Arabic | Scheherazade New | 151-case pixel guard + 22-case Pashto guard |
 | Devanagari | Kalam | 185-case pixel guard |
+| Bengali | Noto Sans Bengali | 259-case pixel guard (3 named divergences excluded) |
+| Gurmukhi | Mukta Mahee | 140-case self-calibrating pixel guard |
+| Telugu | Anek Telugu | 486-case self-calibrating pixel guard |
+| Tamil | Noto Sans Tamil | 265-case self-calibrating pixel guard |
+| CJK | Noto Sans JP/SC/TC/KR | advance-parity guard |
 | **Thai** | Mali | **none** |
 | **Cyrillic** | Arimo, Tinos, Cousine, PT Sans | **none** |
 | **Greek** | Arimo, Tinos, Cousine | **none** |
 
+*(Table refreshed 2026-08-28. The rows without proof are now Thai, Cyrillic and Greek - three, not
+five, and all three are non-reordering, non-joining scripts, which is the category the Hebrew design
+doc's argument for skipping a second shaper was explicitly scoped to. That is a reason to rank them
+below a new script, not a reason to call them proven.)*
+
 `hebrew-font-parity.spec.js` iterates `HEBREW_CAPABLE_FONTS`, so Guard A has never run on Caveat, Dancing
-Script, Great Vibes, Kalam, Mali, Pacifico, PT Sans, Sacramento or Almarai at all. And Latin is not the
+Script, Great Vibes, Kalam, Mali, Pacifico, PT Sans, Sacramento or Scheherazade New at all. And Latin is not the
 safe script it looks like: **Pacifico, Caveat, Great Vibes and Dancing Script apply contextual
 substitution (`calt`) to ordinary names** - Pacifico on every sample tested, including `Sarah Levi` and
 `David Cohen`. `calt` walked differently by fontkit and HarfBuzz is the exact and sole reason Playpen Sans
@@ -303,8 +313,9 @@ Hebrew was dropped. These are the signature faces, drawing the one string a sign
 and nobody has ever run that test on them.
 
 So the per-font-empirical-proof model is not failing through negligence. It is failing because the cost
-per pair is high enough that it only gets paid for a script that visibly broke. **Five of seven shipped
-scripts have no proof.**
+per pair is high enough that it only gets paid for a script that visibly broke. **Three of eleven
+shipped scripts still have no proof** (down from five of seven when this was written - every script
+added since has landed with its guard, which is the pattern to keep).
 
 **Definition of done for the epic**, and it is the same shape as the Hebrew epic's, one clause wider:
 
@@ -672,7 +683,7 @@ before W9 depends on W9, and W4 through W8 are independent of each other.
 - **India's remaining scripts: the largest opportunity by volume, and the most fragmented.** India is
   about 10% of traffic. Hindi and Marathi already work through Kalam, and Urdu through Almarai, but six
   scripts are at **zero coverage** and each one is its own font, its own guard and its own copy:
-  **Bengali** (~285M speakers, seventh worldwide - in progress), **Punjabi/Gurmukhi** (~113M),
+  **Bengali** (~285M speakers, seventh worldwide), **Punjabi/Gurmukhi** (~113M),
   **Telugu** (~96M), **Tamil** (~87M, and also an official language of Singapore and Malaysia, so it
   serves three countries on the traffic list), **Gujarati** (~62M), **Kannada** (~44M), plus **Odia**.
   Noto covers all of them under OFL.
@@ -688,6 +699,45 @@ before W9 depends on W9, and W4 through W8 are independent of each other.
   Do them in speaker order and stop when the return flattens - each one is a font, a pixel guard, a
   `scripts/font-languages.mjs` entry, a `FontPickerMenu` line and honest copy, and none of that is
   reusable between scripts except the pattern.
+
+  **Landed 2026-08-28 - Bengali, Punjabi, Telugu and Tamil are all live, and the headline finding is
+  that "Noto covers all of them under OFL" was true about coverage and false about shaping.** Coverage
+  was never the constraint for any of the four. Shaping was, and it eliminated two of the four Noto
+  faces outright:
+  - **Noto Sans Gurmukhi is unusable**, and not marginally: fontkit throws an uncaught
+    `Cannot read properties of null (reading 'xCoordinate')` inside `GPOSProcessor.getAnchor` on 203 of
+    500 generated cases (every vowel sign except AA/I/II on most consonants) and on most ordinary words,
+    including ਸਿੰਘ "Singh" and ਗੁਰੂ "Guru". **This is the same crash that blocks Noto Nastaliq Urdu**
+    (see the Pashto entry above), which is the first evidence it is a general fontkit limit rather than
+    a Nastaliq-specific one.
+  - **Noto Sans Telugu is unusable for a narrower but not obscure reason**: the same crash on
+    consonant+virama+RA, 4 of 630 cases - but that cluster is ప్ర, which is in ఆంధ్రప్రదేశ్, the state's
+    own name. Noto Serif Telugu fails the identical four, so this is a Noto-family fault, not a Telugu one.
+  - Both were **confirmed to reach the real export path**, not just the guard harness: `signPdf` on a
+    one-element document rejects with that raw `TypeError` rather than a clean `UnrepresentableTextError`,
+    so shipping either would have meant a crashing Download button rather than an honest refusal. Both
+    were also confirmed **not** to be an artifact of instancing the variable font to static Regular/Bold -
+    the upstream variable files crash identically.
+  - **Replacements were screened the way the Arabic candidates were**, against the generated corpus
+    rather than by reputation. Four OFL Gurmukhi faces (Mukta Mahee, Anek Gurmukhi, Noto Serif Gurmukhi,
+    Baloo Paaji 2) and six OFL Telugu faces all shape their full corpus without crashing, so the fault is
+    specific to those two Noto Sans files. **Mukta Mahee** (Ek Type) took Punjabi: real static Regular and
+    Bold, full coverage plus Latin, `loca` already aligned. **Anek Telugu** took Telugu: full coverage
+    including the ten Telugu digits that ruled out Hind Guntur, and it needed the same Kalam `glyf`
+    padding = 4 repad (505 and 550 odd offsets), verified outline-, cmap- and metrics-identical across all
+    738 outlined glyphs. **Noto Sans Tamil needed no screening at all** - it shapes all 329 cases cleanly.
+  - **Guards, all self-calibrating** (`autoCalibrate`, since the project has no in-house shaping
+    reference for these three scripts the way Bengali's GSUB features could be read directly):
+    Gurmukhi 140/140 (floor 12.88%), Telugu 486/486 (floor 10.47%), Tamil 265/265 (floor 8.49%). Bengali's
+    259/259 still passes unchanged.
+  - `scripts/font-languages.mjs` gained `punjabi`, `telugu` and `tamil` definitions and all three report
+    full coverage with exactly one family each. The Sign card, its intro sentence and its "More on the
+    way" line were updated, and `languageCoverage.test.js` pins each new claim - including that the card
+    *explains* why Punjabi and Telugu are not on their Noto faces, rather than quietly shipping a
+    different font than a reader would expect.
+  **Still open from the original six: Gujarati (~62M), Kannada (~44M), Odia**, plus Malayalam (its own
+  entry above). **Screen the Noto face against a generated corpus before assuming it works** - that is
+  the cheap step that would have caught both failures above before any wiring was done.
 
 **Opened 2026-08-24**, from two asks in the same session: adding more fonts to the existing Hebrew/Latin
 catalogue, and separately wanting handwriting support for India and Thailand. Cross-checked against the

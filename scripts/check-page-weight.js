@@ -91,8 +91,22 @@ const distDir = path.join(__dirname, '..', 'dist');
  * but raising it.
  */
 
-// Worst measured page is /sign/ at 39,984 brotli (23,910 document + 16,074 JS).
-const MAX_FIRST_LOAD_BROTLI = 48_000;
+// Worst measured page is /sign/ at 48,863 brotli (31,230 document + 17,633 JS).
+//
+// Raised from 48,000 on 2026-08-28, deliberately and for a feature, which is
+// what this budget is for (see the header above - it is not a ratchet). Two
+// things moved it. It was already 135 bytes over at the previous commit, from
+// the Languages card work; then Punjabi, Telugu and Tamil landed, and each new
+// language is a card entry whose note explains what actually works in that
+// script - the Punjabi and Telugu ones also have to explain why the font is
+// not that script's Noto face (see CLAUDE.md's font section). That is 728
+// bytes brotli of static, crawlable copy on the one page it belongs on, which
+// is the SEO surface earning its keep rather than a regression.
+//
+// The JS half has not moved at all (17,633 both before and after): the fonts
+// themselves are fetched on demand and never counted here, so adding a script
+// costs page weight only in the copy that describes it.
+const MAX_FIRST_LOAD_BROTLI = 49_500;
 
 // Worst measured page is / at 4,586 raw bytes: the app bar logo (1,342 at 2x)
 // plus the home hero logo (3,244 at 2x). Every other page carries the app bar
