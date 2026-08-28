@@ -272,6 +272,16 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Mukta Mahee (<https://fonts.google.com/specimen/Mukta+Mahee>)
 - Anek Telugu (<https://fonts.google.com/specimen/Anek+Telugu>)
 - Noto Sans Tamil (<https://fonts.google.com/specimen/Noto+Sans+Tamil>)
+- Arimo (<https://fonts.google.com/specimen/Arimo>)
+- Tinos (<https://fonts.google.com/specimen/Tinos>)
+- Cousine (<https://fonts.google.com/specimen/Cousine>)
+- Assistant (<https://fonts.google.com/specimen/Assistant>)
+- Heebo (<https://fonts.google.com/specimen/Heebo>)
+- Noto Sans JP (<https://fonts.google.com/specimen/Noto+Sans+JP>)
+- Noto Sans SC (<https://fonts.google.com/specimen/Noto+Sans+SC>)
+- Noto Sans TC (<https://fonts.google.com/specimen/Noto+Sans+TC>)
+- Noto Sans KR (<https://fonts.google.com/specimen/Noto+Sans+KR>)
+- Noto Sans Bengali (<https://fonts.google.com/specimen/Noto+Sans+Bengali>)
 
 ```
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
