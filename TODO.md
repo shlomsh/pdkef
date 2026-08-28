@@ -487,6 +487,24 @@ before W9 depends on W9, and W4 through W8 are independent of each other.
 
 ### Known small defects
 
+- **The CSS-duplication and page-weight budgets are down to single-digit-percent headroom, and a
+  Sign-page change can now tip them on its own.** Measured 2026-08-28 while adding the Languages
+  card's per-language accordion (`ToolLanguagesCard.astro`, native `<details>`/`<summary>`, no JS):
+  that change alone passes both guards with real margin (`test:css` 28,846/29,000 bytes on
+  `/licenses/`; `test:weight` 47,991/48,000 bytes on `/sign/`), reusing existing utility classes
+  wherever one already matched and a plain CSS-drawn chevron instead of a per-row SVG icon
+  specifically to protect the ratchet. But `main` at the time (`6365486`) already sat at
+  47,776/48,000 on `/sign/` before that change - only 224 bytes of headroom - and the Sign editor's
+  own concurrent WIP (new bundled fonts, new shaping-guard fixtures) pushed `/sign/`'s eager JS up on
+  its own. The two independently-fine changes combined push both guards red: `test:css` 29,021/29,000
+  (21 over) and `test:weight` 48,141/48,000 (141 over). Neither side regressed by itself; the budgets
+  are just no longer wide enough to absorb two small, legitimate additions landing close together.
+  **Not fixed here** - fixing it means either trimming real bytes from what's already shipping (the
+  38 `@font-face` rules noted as a known follow-up under commit `4cb9255`, or the CJK coverage-table
+  encoding, are the two largest known levers) or deliberately raising the limits in
+  `check-css-duplication.js`/`check-page-weight.js` and saying what justified it - not something to
+  do reflexively the next time a guard goes red on an unrelated change.
+
 - **The export render guard is red on macOS and green on Linux, deterministically.** Its baseline was
   recaptured on Linux CI (79eb235) because it had never actually run there; on macOS it now fails on
   exactly two cases, every time: `latin-caveat` at 13.68% and `latin-great-vibes` at 17.61% against a

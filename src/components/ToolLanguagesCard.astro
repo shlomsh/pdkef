@@ -40,7 +40,12 @@ interface Props {
   iconPos?: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl';
 }
 
-const { languages, sketch = 'grid', iconPos = 'cr' } = Astro.props;
+// 'rings' (concentric circles rippling out from a corner) reads as a globe /
+// worldwide-reach motif, which fits a languages card far better than 'grid'
+// did - the grid lines were also fighting the two-column text list for the
+// reader's eye, since both are made of straight horizontal/vertical lines at
+// a similar weight.
+const { languages, sketch = 'rings', iconPos = 'cr' } = Astro.props;
 const { tag = 'Languages', heading, lead, supportedHeading, supported, notYetHeading, notYet } = languages;
 ---
 
@@ -51,16 +56,37 @@ const { tag = 'Languages', heading, lead, supportedHeading, supported, notYetHea
     <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">{heading}</h2>
     <p class="mb-6 mt-0 max-w-[68ch] text-[1.05rem] leading-[1.6] text-[var(--color-text)]">{lead}</p>
 
-    <h3 class="mb-4 mt-0 text-[1.05rem] font-bold text-[var(--color-text)]">{supportedHeading}</h3>
+    <h3 class="mb-1 mt-0 text-[1.05rem] font-bold text-[var(--color-text)]">{supportedHeading}</h3>
+    <p class="m-0 mb-4 text-[0.9rem] text-[var(--color-muted)]">Tap a language to read the detail.</p>
+    {/* Each row is a native, JS-free <details>/<summary> disclosure: the note
+        is real static HTML from the first render, present for a crawler and a
+        screen reader whether or not it is visually open, exactly like the
+        FAQ disclosure below. The closed row (native name, flags, script name)
+        is held to one fixed height via min-h so the list reads as a single
+        scannable grid rather than a page of paragraphs - open one and only
+        that row grows; its neighbours hold their place. */}
     <ul class="m-0 grid list-none grid-cols-2 gap-x-12 gap-y-8 p-0 max-[768px]:grid-cols-1 max-[768px]:gap-6">
       {supported.map((language) => (
-        <li class="border-l-[3px] border-l-[var(--color-primary)] pl-5">
-          {/* lang="" is unset on purpose: these are language *names*, and the
-              surrounding page is English. Marking each one up as its own
-              language would have a screen reader switch voice mid-list. */}
-          <p class="mb-1 mt-0 text-[1.15rem] font-bold leading-[1.5] text-[var(--color-text)]">{language.native}</p>
-          <p class="mb-1 mt-0 text-[0.85rem] font-semibold uppercase text-[var(--color-primary)]">{language.name}</p>
-          <p class="m-0 text-[0.95rem] leading-[1.5] text-[var(--color-muted)]">{language.note}</p>
+        <li class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]">
+          <details class="group">
+            <summary
+              class="flex min-h-[4.75rem] cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden"
+            >
+              {/* lang="" is unset on purpose: these are language *names*, and
+                  the surrounding page is English. Marking each one up as its
+                  own language would have a screen reader switch voice
+                  mid-list. */}
+              <span class="min-w-0">
+                <p class="mb-1 mt-0 text-[1.15rem] font-bold text-[var(--color-text)]">{language.native}</p>
+                <p class="m-0 text-[0.78rem] font-semibold uppercase text-[var(--color-primary)]">{language.name}</p>
+              </span>
+              <span
+                aria-hidden="true"
+                class="size-2 shrink-0 rotate-45 border-b-2 border-r-2 border-[var(--color-muted)] transition-transform duration-200 group-open:-rotate-[135deg]"
+              ></span>
+            </summary>
+            <p class="m-0 border-t border-[var(--color-border)] px-4 py-3 text-[0.95rem] leading-[1.55] text-[var(--color-muted)]">{language.note}</p>
+          </details>
         </li>
       ))}
     </ul>
