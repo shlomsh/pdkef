@@ -158,6 +158,10 @@ export async function runShapingGuardInPage({
     throw new Error(`${family} did not load; measurement would be against a fallback font`);
   }
 
+  // Read-only metadata (unitsPerEm never changes and is never touched by the
+  // corruption below), so one shared instance is fine for this alone. Every
+  // *shaping* call below gets its own fresh instance instead - see the note
+  // on `shape()`.
   const fk = window.__fontkit.create(fontBytes);
   const rtl = direction === 'rtl';
 
@@ -169,22 +173,52 @@ export async function runShapingGuardInPage({
   // sequences mean no contextual decision was made for this string in this
   // font, so any pixel diff on it is pure rendering noise, not a letterform
   // disagreement - exactly the property a calibration string needs.
+  //
+  // Fresh `fontkit.create()` per call, same reason `shape()` below takes one
+  // fresh per call - see that comment.
   function substituted(text) {
-    const shapedIds = fk.layout(text).glyphs.map((g) => g.id);
-    const plainIds = Array.from(text).map((ch) => fk.glyphForCodePoint(ch.codePointAt(0)).id);
+    const localFk = window.__fontkit.create(fontBytes);
+    const shapedIds = localFk.layout(text).glyphs.map((g) => g.id);
+    const plainIds = Array.from(text).map((ch) => localFk.glyphForCodePoint(ch.codePointAt(0)).id);
     if (shapedIds.length !== plainIds.length) return true;
     return shapedIds.some((id, i) => id !== plainIds[i]);
   }
 
+  // A fresh `fontkit.create()` per call, not one shared instance reused
+  // across the whole run. Found empirically while adding the Bengali guard:
+  // accessing `glyph.path` (needed below to reconstruct the glyph outline on
+  // canvas) on certain glyphs left the shared Font object's internal state
+  // such that a *later*, unrelated `layout()` call on a completely different
+  // string returned a wrong glyph sequence - e.g. shaping "ঢা" alone and in
+  // isolation always produced the correct two glyphs, but the same call
+  // after this function had already drawn roughly a dozen other Bengali
+  // strings from the same Font object inserted a spurious dotted-circle
+  // glyph (fontkit's "this mark has no valid base" glyph), as if the AA
+  // vowel sign had stopped being recognized as attached to its consonant.
+  // Bisected to reproduce from `.path` access alone (not from `layout()`
+  // calls by themselves, however many - a loop of bare `layout()` calls with
+  // no `.path` access never corrupts anything) and to require no specific
+  // *pair* of strings, only "some earlier `.path` access happened on this
+  // instance" - consistent with an internal cache keyed too coarsely inside
+  // fontkit's own glyph/outline handling, not a Noto Sans Bengali defect and
+  // not a real disagreement between fontkit's shaper and Chromium's. It also
+  // does not reach production: `signPdf`'s actual embedding path never calls
+  // `.path` (pdf-lib copies `glyf` bytes directly), so this is a hazard of
+  // this test harness's canvas-reconstruction method, not of the exported
+  // PDF. A fresh instance per call costs a cheap re-parse (hundreds of calls
+  // per guard run, well under a second total) and fully isolates each
+  // measurement from every other one, which is what "does fontkit's shaped
+  // output for *this* string match" should mean.
   function shape(text) {
+    const localFk = window.__fontkit.create(fontBytes);
     // Explicit direction on the RTL side, matching how the export path calls
     // layout() on a run resolveBidiRuns has already classified (see
     // src/editor/registry/text.ts) rather than leaving fontkit to guess.
     // Left undefined on the LTR side - Devanagari is Bidi_Class L and never
     // needed this.
     const { glyphs, positions } = rtl
-      ? fk.layout(text, undefined, undefined, undefined, 'rtl')
-      : fk.layout(text);
+      ? localFk.layout(text, undefined, undefined, undefined, 'rtl')
+      : localFk.layout(text);
     return glyphs.map((g, i) => ({ path: g.path.toSVG(), pos: positions[i] }));
   }
 

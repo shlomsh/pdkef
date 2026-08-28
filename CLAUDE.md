@@ -243,6 +243,21 @@ status feedback.
 
   **Two rules follow from the table, and both are about not lying to the user.** A substitution must be *explained*, never silent - `resolveFontSubstitution` returns the script that forced the change and the editor shows a notice, because the font visibly changes under the user as they type. And when no bundled font can draw something at all (Arabic, CJK, emoji), the honest answer is still a refusal, but it belongs **while they are typing**, not at Download: `src/lib/textCoverage.js` owns the element walk and both message strings, and `signPdf` and the editor's `useFontCoverageNotice.js` both call it so the warning and the refusal can never name different characters or different pages.
 
+  **Bengali ships with three named shaper disagreements, and that is a curation decision, not an
+  oversight.** `e2e/sign/bengali-shaping-guard.spec.js` pixel-checks 262 generated cases against
+  Chromium; 259 match. The three that do not are listed by id in `KNOWN_FONTKIT_DIVERGENCES` in
+  `e2e/sign/fixtures/bengaliCorpus.js` with their measurements: ট্র and ঠ্র place the zero-advance
+  ra-phala tail differently against a retroflex half-form (about 42% pixel diff at an *identical*
+  advance width, so a positioning disagreement rather than a missing glyph, and the other eight
+  consonants tested pass), and ক্ক is a GSUB gap where fontkit emits three unligated glyphs with a
+  visible virama at 161.4px where Chromium ligates to 78.9px. They are excluded from the enforced
+  corpus so the guard still protects the other 259, and each exclusion is named rather than dropped.
+  **The precedent this is measured against is Playpen Sans Hebrew, which was removed from the
+  catalogue entirely for an 88% systemic disagreement.** 1.1% across three narrow, enumerable clusters
+  is a different thing, and the Sign page's Bengali FAQ names all three to the user rather than
+  claiming parity we do not have. If a fourth appears, or if a future font refresh widens these,
+  re-open the drop-or-keep decision instead of extending the exclusion list.
+
   **Fonts are subsetted on export, and that is a recent inversion of a long-standing invariant.**
   `signPdf` embeds with `{ subset: true }`, so a downloaded PDF carries only the glyphs it draws: one
   Arimo text box went from 279 KB to 5.7 KB, and Arimo + Heebo + Pacifico together from 348 KB to

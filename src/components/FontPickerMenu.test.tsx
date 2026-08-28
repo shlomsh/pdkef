@@ -7,7 +7,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach } from 'vitest';
 import FontPickerMenu from './FontPickerMenu.tsx';
-import { resolveFontFamily } from '../lib/fonts.js';
+import { resolveFontFamily, HANDWRITING_FONTS, TEXT_FONTS } from '../lib/fonts.js';
 
 describe('FontPickerMenu', () => {
   let container: HTMLDivElement | null;
@@ -144,5 +144,39 @@ describe('FontPickerMenu', () => {
 
     expect(caveatItem.disabled).toBe(false);
     expect(caveatItem.getAttribute('aria-disabled')).not.toBe('true');
+  });
+  // A font can be complete - built, aligned, parity-guarded, in the catalogue,
+  // with an @font-face rule - and still be unreachable, because this component
+  // keeps its own hand-written STANDARD_FONTS list beside `TEXT_FONTS`. Nothing
+  // checked the two against each other, so the last step of adding a font was
+  // also the easiest one to forget, and its only symptom is an option that
+  // isn't there. These two assertions are that check, in both directions.
+  describe('stays in sync with the font catalogue', () => {
+    const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
+
+    function menuLabels() {
+      const menu = openMenu('Arimo', '');
+      return Array.from(menu.querySelectorAll('[role="menuitem"]')).map(
+        (el) => el.textContent ?? ''
+      );
+    }
+
+    it('offers every family in the catalogue', () => {
+      const labels = menuLabels();
+      const missing = CATALOGUE.filter(
+        (family) => !labels.some((label) => label.includes(family))
+      );
+      expect(missing).toEqual([]);
+    });
+
+    it('offers nothing that is not in the catalogue', () => {
+      // The reverse direction: an option naming a family the catalogue dropped
+      // would render through a @font-face rule that no longer exists and embed
+      // as something else entirely.
+      const orphans = menuLabels().filter(
+        (label) => !CATALOGUE.some((family) => label.includes(family))
+      );
+      expect(orphans).toEqual([]);
+    });
   });
 });
