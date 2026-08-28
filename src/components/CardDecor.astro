@@ -2,10 +2,10 @@
 // Decorative, theme-colored geometric line sketch + an oversized watermark
 // icon, both tucked behind card content. Swap `sketch` and `iconPos` per card to keep
 // pages visually distinct while sharing one implementation.
-//   sketch: 'arcs' | 'waves' | 'rings' | 'grid'
+//   sketch: 'arcs' | 'waves' | 'rings' | 'grid' | 'meridian'
 //   iconPos: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl'
 interface Props {
-  sketch?: 'arcs' | 'waves' | 'rings' | 'grid';
+  sketch?: 'arcs' | 'waves' | 'rings' | 'grid' | 'meridian';
   icon?: any;
   iconPos?: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl';
   iconSize?: number;
@@ -21,10 +21,26 @@ const gridStep = 48;
 const gridX = Array.from({ length: Math.floor(480 / gridStep) + 1 }, (_, i) => i * gridStep);
 const gridY = Array.from({ length: Math.floor(360 / gridStep) + 1 }, (_, i) => i * gridStep);
 
+// 'meridian': a globe's longitude lines (rather than the 'rings' full circles)
+// fanning from the same bottom-left anchor, with a handful of native-script
+// glyphs scattered over them - the two ideas the languages card actually
+// needs to evoke (worldwide reach, many scripts) rather than one generic globe.
+const meridianRx = [40, 100, 170, 250];
+const scriptGlyphs = [
+  { ch: '文', x: 60, y: 90, size: 60, rotate: -6 },
+  { ch: 'א', x: 190, y: 56, size: 54, rotate: 0 },
+  { ch: 'अ', x: 34, y: 210, size: 58, rotate: 0 },
+  { ch: 'ع', x: 150, y: 250, size: 66, rotate: 5 },
+  { ch: 'ก', x: 260, y: 170, size: 50, rotate: 0 },
+  { ch: 'ñ', x: 90, y: 305, size: 46, rotate: 0 },
+  { ch: '한', x: 250, y: 300, size: 50, rotate: -4 },
+];
+
 const sketchClasses = {
   arcs: '[mask-image:radial-gradient(135%_135%_at_90%_8%,#000_34%,transparent_100%)] [-webkit-mask-image:radial-gradient(135%_135%_at_90%_8%,#000_34%,transparent_100%)]',
   grid: '[mask-image:radial-gradient(135%_135%_at_90%_8%,#000_34%,transparent_100%)] [-webkit-mask-image:radial-gradient(135%_135%_at_90%_8%,#000_34%,transparent_100%)]',
   rings: '[mask-image:radial-gradient(120%_120%_at_6%_96%,#000_30%,transparent_100%)] [-webkit-mask-image:radial-gradient(120%_120%_at_6%_96%,#000_30%,transparent_100%)]',
+  meridian: '[mask-image:radial-gradient(120%_120%_at_6%_96%,#000_30%,transparent_100%)] [-webkit-mask-image:radial-gradient(120%_120%_at_6%_96%,#000_30%,transparent_100%)]',
   waves: '[mask-image:linear-gradient(180deg,#000,transparent_88%)] [-webkit-mask-image:linear-gradient(180deg,#000,transparent_88%)]',
 };
 
@@ -61,6 +77,27 @@ const iconPositionClasses = {
         {gridX.map((x) => <line x1={x} y1="0" x2={x} y2="360" />)}
         {gridY.map((y) => <line x1="0" y1={y} x2="480" y2={y} />)}
       </g>
+    )}
+
+    {sketch === 'meridian' && (
+      <>
+        <g fill="none" stroke="currentColor" stroke-width="1.25" stroke-opacity="0.14">
+          {meridianRx.map((rx) => <ellipse cx="34" cy="332" rx={rx} ry="325" />)}
+          <ellipse cx="34" cy="332" rx="325" ry="180" />
+        </g>
+        <g fill="currentColor" fill-opacity="0.13" font-family="Georgia, serif">
+          {scriptGlyphs.map((g) => (
+            <text
+              x={g.x}
+              y={g.y}
+              font-size={g.size}
+              transform={g.rotate ? `rotate(${g.rotate} ${g.x} ${g.y})` : undefined}
+            >
+              {g.ch}
+            </text>
+          ))}
+        </g>
+      </>
     )}
   </svg>
 </div>
