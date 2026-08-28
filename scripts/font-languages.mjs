@@ -44,6 +44,20 @@
  * - Devanagari: the independent vowels, standard consonants, vowel signs
  *   (matras), virama, anusvara/visarga/candrabindu and digits a Hindi
  *   sentence needs - not the wider block's Marathi/Sanskrit-only letters.
+ *   Marathi is kept as its own language definition even though it needs no
+ *   codepoint this file doesn't already list for Hindi: ळ (U+0933) and ऱ
+ *   (U+0931), the two letters that set Marathi apart, already sit inside
+ *   DEVANAGARI_CONSONANTS' U+0915-0939 range and are not among its two
+ *   exclusions, so "covers Marathi" is a genuinely separate, checkable claim
+ *   from "covers Hindi" even though the two share one codepoint set.
+ * - Urdu: the same 28 base Arabic letters plus the four Perso-Arabic extra
+ *   letters Farsi also needs, plus seven letters Arabic itself has no glyph
+ *   for at all, plus Urdu's own ۰-۹ digits (identical code points to
+ *   Farsi's) - kept as its own language for the same reason Farsi/Dari is:
+ *   these are exactly the glyphs Arabic coverage alone does not prove.
+ * - Vietnamese: every tone-and-diacritic Latin letter modern Vietnamese
+ *   writing needs, upper and lower case, defined as its own self-contained
+ *   set the way every language here is (not a diff against `latinExt`).
  * - Thai: consonants, vowels (pre/post/above/below), tone marks and digits.
  * - Latin: plain ASCII upper/lower, the shared baseline every "+Latin"
  *   combination is judged against.
@@ -51,6 +65,13 @@
  *   accented Latin letters common across French/German/Spanish/Portuguese/
  *   Scandinavian/Turkish text. This one is deliberately a sample, not a
  *   claim of completeness - said plainly here rather than left implicit.
+ * - Bengali: independent vowels, standard consonants, khanda ta, vowel signs
+ *   (matras), candrabindu/anusvara/visarga/nukta/virama and digits a Bengali
+ *   sentence needs - not the wider Unicode block's unassigned reserved slots.
+ *   Assamese is kept as its own language definition (Bengali's set plus RA ৰ
+ *   and VA ৱ, the two letters distinguishing it), since the catalogue's one
+ *   Bengali-script font happens to carry both and that is worth stating as
+ *   its own measured claim rather than folding silently into "Bengali".
  */
 
 /** Turns a literal string of characters into a sorted, de-duplicated codepoint array. */
@@ -91,6 +112,16 @@ const ARABIC_LETTERS = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي
 const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩';
 const PERSO_ARABIC_EXTRA_LETTERS = 'پچژگی'; // pe, che, zhe, gaf, Farsi yeh
 const PERSO_ARABIC_DIGITS = '۰۱۲۳۴۵۶۷۸۹'; // Extended Arabic-Indic (Farsi/Dari) digits
+
+// Urdu: the same 28 base Arabic letters and hamza forms, the four extra
+// Perso-Arabic letters Farsi also needs (pe/che/zhe/gaf, plus the Farsi/Urdu
+// yeh), seven letters Arabic has no glyph for at all - the retroflex tteh
+// (ٹ), ddal (ڈ), rreh (ڑ), noon ghunna (ں), yeh barree (ے), heh goal (ہ) and
+// teh marbuta goal (ۃ) - and Urdu's own ۰-۹ digits, which are the identical
+// code points to Farsi's Extended Arabic-Indic digit block above (Urdu and
+// Farsi share that digit set even though the two languages otherwise diverge
+// in which extra letters they need beyond base Arabic).
+const URDU_EXTRA_LETTERS = 'ٹڈڑںےہۃ';
 
 const RUSSIAN = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя';
 const UKRAINIAN = 'АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя';
@@ -152,6 +183,49 @@ const JAPANESE_HIRAGANA = rangeOf(0x3041, 0x3096).map((cp) => String.fromCodePoi
 const JAPANESE_KATAKANA = [...rangeOf(0x30a1, 0x30fa), 0x30fc].map((cp) => String.fromCodePoint(cp)).join(''); // ァ..ヺ + ー (prolonged sound mark)
 const JAPANESE_PUNCTUATION = '、。「」『』・'; // U+3001 U+3002 U+300C U+300D U+300E U+300F U+30FB
 
+// Independent vowels, standard consonants, khanda ta, vowel signs (matras),
+// candrabindu/anusvara/visarga/nukta/virama and digits - the set an ordinary
+// Bengali sentence needs, not the full Unicode Bengali block (which also
+// carries Assamese-only letters and reserved/unassigned codepoints most
+// fonts never claim to draw).
+const BENGALI_VOWELS = 'অআইঈউঊঋএঐওঔ'; // 11 independent vowels. Deliberately excludes
+// vocalic L (ঌ U+098C) and vocalic LL (ৡ U+09E1), Sanskrit-loan letters
+// modern Bengali does not teach as part of its alphabet - the same exclusion
+// DEVANAGARI_VOWELS above makes for its own vocalic-L letter.
+// ক..হ, minus four codepoints Unicode leaves unassigned in this range
+// (0x09A9, 0x09B1, 0x09B3-0x09B5 - reserved slots for retroflex letters
+// Bengali's block, unlike Devanagari's, never assigned at all, not
+// assigned-but-excluded the way DEVANAGARI_CONSONANTS' two exclusions are).
+const BENGALI_CONSONANTS = rangeOf(0x0995, 0x09b9)
+  .filter((cp) => ![0x09a9, 0x09b1, 0x09b3, 0x09b4, 0x09b5].includes(cp))
+  .map((cp) => String.fromCodePoint(cp))
+  .join('');
+const BENGALI_KHANDA_TA = 'ৎ'; // U+09CE - outside the consonant range above, taught as its own letter
+const BENGALI_VOWEL_SIGNS = 'ািীুূৃেৈোৌ'; // matras, including the AA sign া
+const BENGALI_MARKS = 'ঁংঃ' + '়' + '্'; // candrabindu, anusvara, visarga, nukta (ড়/ঢ়/য় are base+nukta sequences, not precomposed codepoints), virama
+const BENGALI_DIGITS = '০১২৩৪৫৬৭৮৯';
+// The two letters that distinguish Assamese from Bengali proper - RA (ৰ,
+// replacing র) and VA (ৱ). Kept separate from BENGALI_* rather than folded
+// in, so "covers Bengali" and "covers Assamese" stay two different claims -
+// see CLAUDE.md's Bengali entry for why this line exists at all.
+const ASSAMESE_EXTRA_LETTERS = 'ৰৱ';
+
+// Vietnamese: every accented/tone-marked Latin letter modern Vietnamese
+// writing needs, upper and lower case, defined as its own self-contained set
+// the way every language row in this file is (not a diff against
+// `latinExt`, even though some of these letters happen to also appear
+// there). Six tones (unmarked, grave, acute, hook above, tilde, dot below)
+// apply to twelve vowel graphemes (a ă â e ê i o ô ơ u ư y). The stacked
+// circumflex/breve-plus-tone forms and the hook-above/dot-below forms on
+// plain vowels all live in one contiguous Unicode block, Latin Extended
+// Additional U+1EA0-U+1EF9 (45 letters x upper/lower - Ạ ạ Ả ả Ấ ấ ... Ỹ ỹ);
+// the plain grave/acute/tilde/circumflex forms (à á ã â and so on) and the
+// bare ă/ơ/ư/đ live in Latin-1 Supplement, Latin Extended-A and Latin
+// Extended-B and are spelled out directly below.
+const VIETNAMESE_STACKED = rangeOf(0x1ea0, 0x1ef9).map((cp) => String.fromCodePoint(cp)).join('');
+const VIETNAMESE_PLAIN_ACCENTED =
+  'ĂăÂâÊêÔôƠơƯưĐđÀàÁáÃãÈèÉéÌìÍíÒòÓóÕõÙùÚúÝý';
+
 /**
  * @typedef {Object} LanguageDef
  * @property {string} label
@@ -172,6 +246,15 @@ export const LANGUAGES = {
       ...codePointsOf(PERSO_ARABIC_DIGITS),
     ].sort((a, b) => a - b),
   },
+  urdu: {
+    label: 'Urdu',
+    codePoints: [
+      ...codePointsOf(ARABIC_LETTERS),
+      ...codePointsOf(PERSO_ARABIC_EXTRA_LETTERS),
+      ...codePointsOf(URDU_EXTRA_LETTERS),
+      ...codePointsOf(PERSO_ARABIC_DIGITS),
+    ].sort((a, b) => a - b),
+  },
   cyrillicRussian: { label: 'Russian', codePoints: codePointsOf(RUSSIAN) },
   cyrillicUkrainian: { label: 'Ukrainian', codePoints: codePointsOf(UKRAINIAN) },
   cyrillicBelarusian: { label: 'Belarusian', codePoints: codePointsOf(BELARUSIAN) },
@@ -184,6 +267,13 @@ export const LANGUAGES = {
     label: 'Devanagari (Hindi)',
     codePoints: codePointsOf(DEVANAGARI_VOWELS + DEVANAGARI_CONSONANTS + DEVANAGARI_MATRAS + DEVANAGARI_MARKS + DEVANAGARI_DIGITS),
   },
+  marathi: {
+    label: 'Marathi (Devanagari + ळ, ऱ)',
+    // Same set as `devanagari` - ळ (U+0933) and ऱ (U+0931) already sit inside
+    // DEVANAGARI_CONSONANTS' range and are not among its two exclusions - but
+    // named separately so "covers Marathi" is its own stated, checkable claim.
+    codePoints: codePointsOf(DEVANAGARI_VOWELS + DEVANAGARI_CONSONANTS + DEVANAGARI_MATRAS + DEVANAGARI_MARKS + DEVANAGARI_DIGITS),
+  },
   thai: {
     label: 'Thai',
     codePoints: codePointsOf(THAI_CONSONANTS + THAI_VOWELS_TONES + THAI_LEADING_AND_MARKS + THAI_DIGITS),
@@ -191,6 +281,18 @@ export const LANGUAGES = {
   japanese: {
     label: 'Japanese (kana + common punctuation only - see comment above, kanji not modeled here)',
     codePoints: codePointsOf(JAPANESE_HIRAGANA + JAPANESE_KATAKANA + JAPANESE_PUNCTUATION),
+  },
+  bengali: {
+    label: 'Bengali (Bangla)',
+    codePoints: codePointsOf(BENGALI_VOWELS + BENGALI_CONSONANTS + BENGALI_KHANDA_TA + BENGALI_VOWEL_SIGNS + BENGALI_MARKS + BENGALI_DIGITS),
+  },
+  assamese: {
+    label: "Assamese (shares the Bengali script and this table's Bengali set, plus RA ৰ and VA ৱ)",
+    codePoints: codePointsOf(BENGALI_VOWELS + BENGALI_CONSONANTS + BENGALI_KHANDA_TA + BENGALI_VOWEL_SIGNS + BENGALI_MARKS + BENGALI_DIGITS + ASSAMESE_EXTRA_LETTERS),
+  },
+  vietnamese: {
+    label: 'Vietnamese',
+    codePoints: [...new Set([...codePointsOf(VIETNAMESE_STACKED), ...codePointsOf(VIETNAMESE_PLAIN_ACCENTED)])].sort((a, b) => a - b),
   },
 };
 
