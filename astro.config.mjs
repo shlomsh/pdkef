@@ -14,6 +14,12 @@ export default defineConfig({
   site: 'https://pdkef.com',
   output: 'static',
   integrations: [preact({ compat: true })],
+  // Shiki emits token colours as style attributes, which strict CSP blocks.
+  // Prism uses CSS classes instead; add a Prism stylesheet if fenced Markdown
+  // code blocks are introduced in the future.
+  markdown: {
+    syntaxHighlight: 'prism',
+  },
   build: {
     // Every page carries its whole stylesheet inline. This looks wasteful and is
     // measured to be correct anyway, so do not "fix" it: 'auto' was built and
