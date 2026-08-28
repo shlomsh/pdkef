@@ -621,6 +621,21 @@ before W9 depends on W9, and W4 through W8 are independent of each other.
   changes visibly**. Budget the `RETIRED_FONTS` rename, a re-run of the Arabic guard against the new
   bundled file, and 580KB for Bold against Almarai's 149KB.
 
+  **Landed 2026-08-28 - Almarai retired, Scheherazade New takes its place.** `RETIRED_FONTS.Almarai`
+  maps to it in `src/lib/fonts.js`, so a draft saved under the old name still renders and exports
+  identically. The `glyf` padding fix was applied and verified outline-identical across all 1,822/1,805
+  glyphs in Regular/Bold before bundling (`npm run test:fonts` passes on both files). The 151-case
+  Arabic/Farsi/Urdu guard now runs against Scheherazade New instead of Almarai, and a new 22-case Pashto
+  corpus (`PASHTO_CORPUS` in `e2e/sign/fixtures/arabicCorpus.js`) runs as its own guard in the same spec
+  file, both against the bundled file rather than a scratch candidate. `scripts/font-languages.mjs` gained
+  a `pashto` language definition (base Arabic + Farsi's four extras + the eleven Pashto letters), and the
+  generated coverage report shows it at full coverage. The Sign page's languages card and FAQ (
+  `src/data/tools.js`) got Pashto's own line and its own FAQ entry, and every Arabic/Dari/Urdu mention was
+  renamed from Almarai to Scheherazade New; `licenses.astro` swapped the OFL attribution accordingly. Not
+  yet re-verified: the export-render-guard's `arabic-almarai` baseline case (renamed
+  `arabic-scheherazade-new`) needs a fresh capture, since the letterforms genuinely changed - see the W1
+  guard's own instructions for `UPDATE_EXPORT_RENDER_BASELINE=1`.
+
   **Urdu in Nastaliq is now a separate, blocked project - do not bundle it with Pashto.** Noto Nastaliq
   Urdu does not merely fail the pixel guard: **fontkit crashes shaping it**, an uncaught
   `Cannot read properties of null (reading 'xCoordinate')` inside `GPOSProcessor.getAnchor`. That is an
@@ -1234,34 +1249,40 @@ and content (the actual next scripts/fonts), because conflating them is how "add
   `calt`-free runner-up to Mali, not yet parity-tested); a second Ukrainian/Cyrillic face; a second Hebrew
   handwriting option; a couple more Latin handwriting styles. Lower priority than the scripts above - these
   add choice to something that already works, rather than closing a "not yet" gap.
-- **Chinese, Japanese and Korean: Japanese shipped, the other three are built and dormant.**
-  Superseded the "its own session" framing this entry used to carry; the session happened
-  (2026-08-27/28, commits `988667c`..`527a2d4`) and stopped halfway on purpose.
-  - **Japanese is live.** `Noto Sans JP` is in `TEXT_FONTS`, `SANS_STYLE_FONTS`,
-    `FONT_VERTICAL_METRICS`, `editorFonts.css`'s `@font-face` rules and `FontPickerMenu.tsx`'s
-    `STANDARD_FONTS`. A user can pick it and download with it today.
-  - **Simplified, Traditional and Korean are built, committed and unreachable.** The six TTFs sit in
-    `public/fonts/` (18.3 MB), their coverage is in `fontCoverageTable.js`, and they pass both the
-    alignment guard and `cjk-advance-parity-guard.spec.js`. None of them appears in `TEXT_FONTS`,
-    `SANS_STYLE_FONTS`, `FONT_VERTICAL_METRICS`, `editorFonts.css` or the picker. Nothing is broken;
-    there is simply no way to select them.
-  - **What the dormancy costs, and what it does not.** The 18.3 MB is deploy weight only:
-    `precacheFilter.mjs` excludes everything under `fonts/` except `Arimo-Regular.ttf`, and a browser
-    fetches a TTF only when an `@font-face` rule matches, so no visitor downloads a byte of these.
-    What *is* being paid is coverage data: their rows are in `fontCoverageTable.js`, which every editor
-    session downloads, for three fonts nobody can choose. The bitmap re-encoding recorded under "The
-    font coverage table ships CJK to everyone" cut that table from 25,667 to 11,941 brotli and takes
-    most of the sting out of it, but it does not make the rows earn their place.
-  - **Wiring one family is five edits**, and the fifth is the one that used to be silent: `TEXT_FONTS`,
-    `SANS_STYLE_FONTS`, `FONT_VERTICAL_METRICS` (measured, not guessed - JP is 1.160/0.288), an
-    `@font-face` pair in `editorFonts.css`, and `STANDARD_FONTS` in `FontPickerMenu.tsx`. That last one
-    is now guarded: `FontPickerMenu.test.tsx`'s "stays in sync with the font catalogue" fails in both
-    directions, so a family added to the catalogue and forgotten in the picker names itself.
-  - **Before any of the three become selectable**, read the two entries below: the font-registry debt
-    (three families times five hand-edited steps) and the export-render-corpus gap.
-  - **The decision this entry is waiting on** is whether to finish the wiring or pull the six files back
-    out until someone does. Leaving them in the tree indefinitely is the one option that keeps the
-    coverage-table cost without the feature.
+- **Chinese, Japanese and Korean: all four families are live.** Japanese shipped 2026-08-27/28
+  (commits `988667c`..`527a2d4`); Simplified Chinese, Traditional Chinese and Korean were wired in the
+  same shape 2026-08-28, closing the "built and dormant" gap this entry used to describe.
+  - **All four are live.** `Noto Sans JP`, `Noto Sans SC`, `Noto Sans TC` and `Noto Sans KR` are in
+    `TEXT_FONTS`, `SANS_STYLE_FONTS`, `FONT_VERTICAL_METRICS`, `editorFonts.css`'s `@font-face` rules
+    and `FontPickerMenu.tsx`'s `STANDARD_FONTS`. A user can pick any of them and download with it today.
+  - **The five-edits wiring measured true for all three at once**, and the numbers came out identical to
+    Japanese's: `FONT_VERTICAL_METRICS` for SC/TC/KR is 1.160/0.288 across every weight, measured via
+    `@pdf-lib/fontkit` rather than assumed - all four Noto CJK regional families share one vertical-metrics
+    design, so this was a real check that happened to confirm a guess, not a guess left unchecked.
+  - **Korean got the precise "full" treatment Devanagari/Thai/Bengali get, not Japanese's prose-only
+    one.** `scripts/font-languages.mjs` now has a `korean` row (the full modern Hangul syllable block,
+    U+AC00-U+D7A3, all 11,172 precomposed syllables, plus compatibility jamo) because Hangul, unlike Han,
+    is a genuinely closed contiguous set - `LANGUAGE_COVERAGE.korean.full` is `['Noto Sans KR']`, a
+    measured claim, not a curated-subset one. Chinese stays prose-only in the Sign languages card, the
+    same way Japanese kanji is, for the same reason: Han has no compact alphabet to check against.
+    Measured directly against the font bytes instead: Noto Sans SC covers ~7,945 Han characters, Noto
+    Sans TC ~11,147 - real curated subsets, not all of Unicode's ~97,000 Han codepoints.
+  - **Han unification did not go away, it became opt-in.** `fonts.js`'s `CATALOGUE` array is the
+    tiebreaker `resolveFontSubstitution` uses when more than one family covers a piece of text, and Noto
+    Sans JP/SC/TC share thousands of Han codepoints. JP sits first in that array (it shipped first), so
+    typed Chinese resolves to Japanese letterforms by default unless the user explicitly picks Simplified
+    or Traditional Chinese from the font picker - there is no signal in the text itself that says which
+    region is meant, so explicit selection is the only correct fix, not a ranking change. Documented in
+    `fonts.js`'s `CATALOGUE` comment and disclosed in the Sign languages card's Chinese entry and its FAQ
+    answer, the same way the Urdu/Nastaliq caveat is disclosed rather than hidden.
+  - **Test fixtures that relied on "Chinese/CJK is universally undrawable" had to move to emoji.** Several
+    unit tests (`fonts.test.js`, `textCoverage.test.js`, `sign.test.js`, `liveFontCoverage.test.js`) used
+    Chinese or Korean text as their "nothing can draw this" case; wiring SC/TC/KR in made those assertions
+    false the same way `988667c`'s own Japanese fixture went stale. Emoji is the fixture now, since it is
+    not a subsetting problem this work touches (see the Emoji entry below).
+  - **Still open:** the export-render-corpus gap below has no SC/TC/KR case yet (Japanese and Bengali do);
+    the font-registry-debt entry's "worth doing before wiring SC/TC/KR" note applies in hindsight rather
+    than having been done first - three more families landed via the checklist, not the one-manifest fix.
 
 - **The export render guard's cross-platform tolerance was calibrated by proxy, and the real number is
   higher. The guard is red on a macOS dev machine at HEAD, and was before any of this work.**
