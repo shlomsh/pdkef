@@ -24,6 +24,7 @@ const DEBOUNCE_MS = 300;
 
 export default function useFontCoverageNotice(elements) {
   const [message, setMessage] = useState('');
+  const [elementCharacters, setElementCharacters] = useState({});
   // Guards against an out-of-order result: clearTimeout cancels a pending
   // check, but one already past its timer and awaiting a font fetch cannot be
   // cancelled, and must not be allowed to overwrite a newer answer.
@@ -65,15 +66,17 @@ export default function useFontCoverageNotice(elements) {
     const id = ++runId.current;
     if (!signature) {
       setMessage('');
+      setElementCharacters({});
       return undefined;
     }
     const timer = setTimeout(async () => {
       // `elements` is intentionally read from the render that produced this
       // signature: the signature already encodes every field the check reads,
       // so that snapshot is the one this result belongs to.
-      const { characters, pageNumbers } = await unsupportedCharactersInDocument(elements);
+      const { characters, pageNumbers, elementCharacters: nextElementCharacters = {} } = await unsupportedCharactersInDocument(elements);
       if (id !== runId.current) return;
       setMessage(characters.length > 0 ? describeUnrepresentableText(characters, pageNumbers) : '');
+      setElementCharacters(nextElementCharacters);
     }, DEBOUNCE_MS);
     // Bumping here too retires a check that already fired and is awaiting its
     // font fetch, which clearTimeout can no longer reach - including on
@@ -81,5 +84,5 @@ export default function useFontCoverageNotice(elements) {
     return () => { clearTimeout(timer); runId.current += 1; };
   }, [signature]);
 
-  return message;
+  return { message, elementCharacters };
 }
