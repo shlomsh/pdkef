@@ -36,16 +36,17 @@ interface Props {
     notYetHeading: string;
     notYet: string;
   };
-  sketch?: 'arcs' | 'waves' | 'rings' | 'grid';
+  sketch?: 'arcs' | 'waves' | 'rings' | 'grid' | 'meridian';
   iconPos?: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl';
 }
 
-// 'rings' (concentric circles rippling out from a corner) reads as a globe /
-// worldwide-reach motif, which fits a languages card far better than 'grid'
-// did - the grid lines were also fighting the two-column text list for the
-// reader's eye, since both are made of straight horizontal/vertical lines at
-// a similar weight.
-const { languages, sketch = 'rings', iconPos = 'cr' } = Astro.props;
+// 'meridian' (longitude lines fanning from a corner, plus a scatter of native
+// script glyphs) reads as both halves of what this card is actually about -
+// worldwide reach and many scripts - where the earlier 'rings' (plain
+// concentric circles) only carried the globe half. 'grid' was rejected before
+// that: its straight lines fought the two-column text list for the reader's
+// eye, since both are made of horizontal/vertical lines at a similar weight.
+const { languages, sketch = 'meridian', iconPos = 'cr' } = Astro.props;
 const { tag = 'Languages', heading, lead, supportedHeading, supported, notYetHeading, notYet } = languages;
 ---
 
@@ -67,7 +68,7 @@ const { tag = 'Languages', heading, lead, supportedHeading, supported, notYetHea
         that row grows; its neighbours hold their place. */}
     <ul class="m-0 grid list-none grid-cols-2 gap-x-12 gap-y-8 p-0 max-[768px]:grid-cols-1 max-[768px]:gap-6">
       {supported.map((language) => (
-        <li class="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <li class="self-start overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]">
           <details class="group">
             <summary
               class="flex min-h-[4.75rem] cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden"
