@@ -19,6 +19,7 @@ const STANDARD_FONTS = [
   { value: 'PT Sans', label: 'Cyrillic (PT Sans)', css: "'PT Sans', sans-serif" },
   { value: 'Almarai', label: 'Arabic (Almarai)', css: "'Almarai', sans-serif" },
   { value: 'Noto Sans JP', label: 'Japanese (Noto Sans JP)', css: "'Noto Sans JP', sans-serif" },
+  { value: 'Noto Sans Bengali', label: 'Bengali (Noto Sans Bengali)', css: "'Noto Sans Bengali', sans-serif" },
   { value: 'Tinos', label: 'Tinos (Times Roman)', css: "'Tinos', 'Times New Roman', Times, serif" },
   { value: 'Cousine', label: 'Cousine (Courier)', css: "'Cousine', 'Courier New', Courier, monospace" }
 ];

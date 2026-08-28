@@ -18,7 +18,7 @@ import { FONT_COVERAGE_FILES, fontFileHasGlyph } from './fontCoverageTable.js';
 import { findMissingGlyphs } from './textTransforms.js';
 
 export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Kalam', 'Mali', 'Pacifico', 'Sacramento'];
-export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Almarai', 'Noto Sans JP'];
+export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Almarai', 'Noto Sans JP', 'Noto Sans Bengali'];
 
 /**
  * Real ascent/descent for every bundled family, as a fraction of the em —
@@ -58,6 +58,7 @@ export const FONT_VERTICAL_METRICS = {
   'PT Sans': { ascent: 1.018, descent: 0.276 },
   Almarai: { ascent: 0.905, descent: 0.211 },
   'Noto Sans JP': { ascent: 1.160, descent: 0.288 },
+  'Noto Sans Bengali': { ascent: 0.917, descent: 0.408 },
 };
 
 // Slack on top of the computed overhang: the metrics are the font's design
@@ -134,7 +135,7 @@ const DEFAULT_FAMILY = 'Arimo';
  * second Hebrew-capable handwriting face joins the catalogue, substitution
  * prefers it automatically instead of falling through to catalogue order.
  */
-const SANS_STYLE_FONTS = ['Arimo', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Almarai', 'Noto Sans JP'];
+const SANS_STYLE_FONTS = ['Arimo', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Almarai', 'Noto Sans JP', 'Noto Sans Bengali'];
 const SERIF_STYLE_FONTS = ['Tinos'];
 const MONO_STYLE_FONTS = ['Cousine'];
 

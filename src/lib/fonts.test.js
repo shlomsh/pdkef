@@ -423,3 +423,140 @@ describe('Noto Sans JP', () => {
     expect(resolveFontFamily('Gveret Levin', kana)).toBe('Noto Sans JP');
   });
 });
+
+/**
+ * Noto Sans Bengali: an upright text face (not handwriting), Regular and
+ * Bold only, no italic - the same shape of pin as the Noto Sans JP block
+ * above. `bengaliText` mixes an independent vowel, a reph cluster (র্ক) and
+ * a conjunct (ক্ষ) so a plain cmap-only stub font would already fail
+ * `covers`, not just a font missing the whole block.
+ */
+describe('Noto Sans Bengali', () => {
+  const bengaliText = 'আমার নাম র্ক ক্ষ';
+
+  it('is a text font, not a handwriting font', () => {
+    expect(TEXT_FONTS).toContain('Noto Sans Bengali');
+    expect(HANDWRITING_FONTS).not.toContain('Noto Sans Bengali');
+    expect(FONT_STYLE_TAGS['Noto Sans Bengali']).toBe('sans');
+  });
+
+  it('has no real italic face in either weight, so hasRealFace reports false', () => {
+    expect(hasRealFace('Noto Sans Bengali', 'normal', 'italic')).toBe(false);
+    expect(hasRealFace('Noto Sans Bengali', 'bold', 'italic')).toBe(false);
+  });
+
+  it('has real Regular and Bold faces', () => {
+    expect(hasRealFace('Noto Sans Bengali', 'normal', 'normal')).toBe(true);
+    expect(hasRealFace('Noto Sans Bengali', 'bold', 'normal')).toBe(true);
+  });
+
+  it('covers Bengali text, including reph and conjunct clusters', () => {
+    expect(covers('Noto Sans Bengali', 'normal', 'normal', bengaliText)).toBe(true);
+  });
+
+  it("covers Assamese's two extra letters, RA (ৰ) and VA (ৱ)", () => {
+    expect(covers('Noto Sans Bengali', 'normal', 'normal', 'ৰ ৱ')).toBe(true);
+  });
+
+  it('is left alone when already picked for Bengali text', () => {
+    expect(resolveFontFamily('Noto Sans Bengali', bengaliText)).toBe('Noto Sans Bengali');
+  });
+
+  it('is what Bengali text resolves to from a font that cannot draw it, and the substitution is explained', () => {
+    const result = resolveFontSubstitution('Arimo', bengaliText);
+    expect(result.family).toBe('Noto Sans Bengali');
+    expect(result.requested).toBe('Arimo');
+    expect(result.missing.length).toBeGreaterThan(0);
+  });
+
+  // No handwriting-style Bengali face exists in the catalogue, so a typed
+  // Bengali signature comes out upright - the same admission Cyrillic and
+  // Japanese already make.
+  it('has no handwriting alternative, so Bengali in a handwriting font also resolves upright', () => {
+    expect(resolveFontFamily('Caveat', bengaliText)).toBe('Noto Sans Bengali');
+    expect(resolveFontFamily('Gveret Levin', bengaliText)).toBe('Noto Sans Bengali');
+  });
+});
+
+/**
+ * The editor and the exporter reach the same TTF by two completely
+ * independent routes, and nothing used to check that they agree.
+ *
+ *  - The editor renders through CSS: `font-family: 'Noto Sans Bengali'`
+ *    resolves via an `@font-face` rule in editorFonts.css to a `url()`.
+ *  - The exporter never reads CSS. `loadCustomFont` (sign.js) derives the
+ *    filename from the family string itself - strip the spaces, append the
+ *    weight/style suffix - and fetches it.
+ *
+ * So a family can be complete on the export side and silently wrong on the
+ * screen side. Deleting both `@font-face` rules for a shipped, selectable
+ * font left the whole unit suite green: the editor would paint Bengali in
+ * whatever the browser substituted while the download embedded the real face,
+ * which is precisely the screen/export divergence this module exists to
+ * prevent, arriving through the one step that had no guard.
+ *
+ * These are ratchets rather than repairs - all five passed when written. Each
+ * one names a different way the two routes can disagree.
+ */
+describe('editorFonts.css declares exactly the faces the exporter will fetch', () => {
+  const WEIGHT_KEYWORD = { '400': 'normal', '700': 'bold' };
+
+  function fileSuffix(weight, style) {
+    if (weight === 'bold') return style === 'italic' ? 'BoldItalic' : 'Bold';
+    return style === 'italic' ? 'Italic' : 'Regular';
+  }
+
+  const css = readFileSync(join(process.cwd(), 'src', 'styles', 'editorFonts.css'), 'utf8');
+  const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map(([, body]) => ({
+    family: (body.match(/font-family:\s*'([^']+)'/) || [])[1],
+    weight: WEIGHT_KEYWORD[(body.match(/font-weight:\s*([^;]+);/) || [])[1]?.trim()],
+    style: (body.match(/font-style:\s*([^;]+);/) || [])[1]?.trim(),
+    url: (body.match(/url\('([^']+)'\)/) || [])[1],
+  }));
+
+  const catalogue = [...HANDWRITING_FONTS, ...TEXT_FONTS];
+
+  it('parses as well-formed rules, so the assertions below are not passing on an empty list', () => {
+    expect(faces.length).toBeGreaterThan(catalogue.length);
+    expect(faces.filter((f) => !f.family || !f.weight || !f.style || !f.url)).toEqual([]);
+  });
+
+  it('declares every catalogue family, so nothing ships selectable but unstyled', () => {
+    const undeclared = catalogue.filter((family) => !faces.some((f) => f.family === family));
+    expect(undeclared).toEqual([]);
+  });
+
+  it('declares nothing outside the catalogue, so a dropped family leaves no rule behind', () => {
+    const orphans = [...new Set(faces.map((f) => f.family))].filter((family) => !catalogue.includes(family));
+    expect(orphans).toEqual([]);
+  });
+
+  it('points every rule at the exact file loadCustomFont would derive for that family and face', () => {
+    const mismatched = faces.filter(
+      (f) => f.url !== `/fonts/${f.family.replace(/\s+/g, '')}-${fileSuffix(f.weight, f.style)}.ttf`
+    );
+    expect(mismatched).toEqual([]);
+  });
+
+  it('never declares a face with no real file, which the browser would synthesize and the exporter would not', () => {
+    // A CSS bold rule pointing at a file that does not exist makes the browser
+    // fake the weight while `loadCustomFont` falls back to Regular. Both
+    // "work", and they disagree.
+    expect(faces.filter((f) => !hasRealFace(f.family, f.weight, f.style))).toEqual([]);
+  });
+
+  it('declares a rule for every real face on disk, so no bundled weight is reachable only in the download', () => {
+    const unreachable = [];
+    for (const family of catalogue) {
+      for (const weight of ['normal', 'bold']) {
+        for (const style of ['normal', 'italic']) {
+          if (!hasRealFace(family, weight, style)) continue;
+          if (!faces.some((f) => f.family === family && f.weight === weight && f.style === style)) {
+            unreachable.push(`${family} ${weight} ${style}`);
+          }
+        }
+      }
+    }
+    expect(unreachable).toEqual([]);
+  });
+});
