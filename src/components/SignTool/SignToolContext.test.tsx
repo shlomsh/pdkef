@@ -7,6 +7,7 @@ describe('SignToolContext Reducer', () => {
     selectedTool: null,
     elements: [],
     activeElementId: null,
+    editingElementId: null,
     actionHistory: []
   };
 
@@ -152,9 +153,40 @@ describe('SignToolContext Reducer', () => {
       expect(next.editingElementId).toBe('el-1');
     });
 
-    it('replacing the document closes the session', () => {
+    it('replacing the document clears selection and closes the session', () => {
       const next = reducer(editing, { type: 'SET_ELEMENTS', payload: [] });
+      expect(next.activeElementId).toBeNull();
       expect(next.editingElementId).toBeNull();
+    });
+
+    it.each([
+      { type: 'DELETE_ELEMENT', payload: 'el-1' },
+      { type: 'UNDO' }
+    ])('$type closes the session when it removes the edited element', (action) => {
+      const state = {
+        ...editing,
+        elements: [{ id: 'el-1', type: 'text' }],
+        actionHistory: [{ id: 'act-1', elementId: 'el-1', type: 'ADD_TEXT' }]
+      };
+      const next = reducer(state, action);
+      expect(next.elements).toEqual([]);
+      expect(next.activeElementId).toBeNull();
+      expect(next.editingElementId).toBeNull();
+    });
+
+    it.each([
+      { type: 'DELETE_ELEMENT', payload: 'el-2' },
+      { type: 'UNDO' }
+    ])('$type preserves the session when it removes another element', (action) => {
+      const state = {
+        ...editing,
+        elements: [{ id: 'el-1', type: 'text' }, { id: 'el-2', type: 'text' }],
+        actionHistory: [{ id: 'act-2', elementId: 'el-2', type: 'ADD_TEXT' }]
+      };
+      const next = reducer(state, action);
+      expect(next.elements.map(el => el.id)).toEqual(['el-1']);
+      expect(next.activeElementId).toBe('el-1');
+      expect(next.editingElementId).toBe('el-1');
     });
   });
 

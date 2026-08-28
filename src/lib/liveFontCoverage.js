@@ -51,7 +51,15 @@ async function loadInstance(fileName) {
     return fontkit.create(new Uint8Array(await res.arrayBuffer()));
   })();
   instances.set(fileName, pending);
-  return pending;
+  try {
+    return await pending;
+  } catch (error) {
+    // An offline/network failure must not disable coverage checks for the
+    // rest of the session. Retain pending/successful deduplication, and do
+    // not let an older rejection evict a newer entry after a cache reset.
+    if (instances.get(fileName) === pending) instances.delete(fileName);
+    throw error;
+  }
 }
 
 /**

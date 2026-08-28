@@ -5,6 +5,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import PdfSignTool from './PdfSignTool.tsx';
+import * as signModule from '../lib/sign.js';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
@@ -107,6 +108,74 @@ describe('PdfSignTool UI flow', () => {
     const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
     expect(fileBar).not.toBeNull();
     expect(fileBar.textContent).toContain('test_agreement.pdf');
+  });
+
+  it.each([
+    ['download', 'Save your changes and download the signed PDF', () => new signModule.UnrepresentableTextError(['\u{1F600}'], [1]), '\u{1F600}'],
+    ['share preparation', 'Save your changes to share the signed PDF', () => new Error('Export failed'), 'Your edits are still here']
+  ])('keeps the editor usable after a %s failure and allows a corrected retry', async (mode, title, makeError, errorText) => {
+    const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share');
+    const originalCanShare = Object.getOwnPropertyDescriptor(navigator, 'canShare');
+    Object.defineProperty(navigator, 'share', { configurable: true, value: vi.fn(async () => {}) });
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
+    const signedBlob = new Blob(['signed test result'], { type: 'application/pdf' });
+    const sign = vi.spyOn(signModule, 'signPdf')
+      .mockRejectedValueOnce(makeError())
+      .mockResolvedValueOnce(signedBlob);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const createUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:signed-test');
+
+    try {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      await act(async () => { render(<PdfSignTool />, container); });
+      await act(async () => {
+        setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('retry.pdf')]);
+        await new Promise(resolve => setTimeout(resolve, 50));
+      });
+      const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
+      const wrapper = container.querySelector(`.${workspaceStyles['page-wrapper']}`);
+      const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+      wrapper.getBoundingClientRect = () => pageRect;
+      overlay.getBoundingClientRect = () => pageRect;
+      await act(async () => {
+        Array.from(container.querySelectorAll(`.${toolbarStyles.button}`))
+          .find(button => button.textContent.includes('Text')).click();
+      });
+      await act(async () => {
+        overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
+      });
+      const textInput = container.querySelector('[data-editor-text-input]');
+      await act(async () => {
+        textInput.value = '\u{1F600}';
+        textInput.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await act(async () => { container.querySelector(`button[title="${title}"]`).click(); });
+
+      expect(sign).toHaveBeenCalledTimes(1);
+      expect(container.querySelector(`.${workspaceStyles['page-wrapper']}`)).toBe(wrapper);
+      expect(container.querySelector('[data-editor-text-input]')).toBe(textInput);
+      expect(textInput.value).toBe('\u{1F600}');
+      expect(container.querySelector('[role="alert"]').textContent).toContain(errorText);
+
+      await act(async () => {
+        textInput.value = 'Corrected text';
+        textInput.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await act(async () => { container.querySelector(`button[title="${title}"]`).click(); });
+      expect(sign).toHaveBeenCalledTimes(2);
+      expect(sign.mock.calls[1][1][0].text).toBe('Corrected text');
+      expect(container.querySelector('[role="alert"]')).toBeNull();
+      expect(container.querySelector('[data-editor-text-input]').value).toBe('Corrected text');
+      if (mode === 'download') expect(createUrl).toHaveBeenCalledWith(signedBlob);
+      else expect(container.querySelector('button[title="Share the signed PDF"]')).not.toBeNull();
+    } finally {
+      if (originalShare) Object.defineProperty(navigator, 'share', originalShare);
+      else delete navigator.share;
+      if (originalCanShare) Object.defineProperty(navigator, 'canShare', originalCanShare);
+      else delete navigator.canShare;
+    }
   });
 
   it('loads saved signatures from localStorage on mount', async () => {

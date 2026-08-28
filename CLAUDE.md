@@ -15,13 +15,19 @@ Two other files remain, each with a distinct audience:
 
 `docs/` holds detailed design records for individual pieces of work, linked from where they matter.
 
+The confirmed Sign Tool scope is recorded in
+[docs/sign-tool-product-decisions.md](./docs/sign-tool-product-decisions.md): languages in PDF
+content, text-derived direction with an English/LTR default, one language per text element,
+Chrome acceptance, offline processing, shared user-scoped storage, and anonymous maintenance
+telemetry. Consult it before reviving assumptions from older proposals. Task state remains in TODO.
+
 ---
 
 # Part I - Working in this repo today
 
 ## What this is
 
-A 100% client-side, no-backend static web app that provides a suite of PDF tools (Merge, Split, Remove Pages, Compress, PDF to Image, Sign, Unlock) in the browser, optimized to rank for specific PDF manipulation SEO keywords. There is no server component and never should be — files must never leave the user's device. This is the central product constraint; do not introduce any upload/API call that sends file contents off-device. Every runtime dependency is MIT or Apache-2.0 licensed (no AGPL/commercial libraries) and makes zero network calls of its own.
+A 100% client-side, no-backend static web app that provides a suite of PDF tools (Merge, Split, Remove Pages, Compress, PDF to Image, Sign, Unlock) in the browser, optimized to rank for specific PDF manipulation SEO keywords. There is no PDF processing server: files must never leave the user's device. This is the central product constraint; do not introduce any upload/API call that sends file contents off-device. Processing must work offline once required assets are provisioned. Anonymous maintenance telemetry is permitted under the privacy invariants below and must never block the tools. Runtime code dependencies must be MIT or Apache-2.0 licensed (no AGPL/commercial libraries).
 
 ### Implementation status (Phase 1)
 
@@ -303,8 +309,9 @@ status feedback.
 
 ## Privacy invariants
 
-- No `fetch`/`XHR` of file bytes, ever. No third-party scripts or tracking of PDF content. Only same-origin Vercel Web Analytics is enabled for basic page views.
-- No cookies, no accounts, no server-side logging — there is no server.
+- No `fetch`/`XHR` of file bytes, ever. No tracking of PDF content or user identity. The current integration is same-origin Vercel Web Analytics for basic page views.
+- Anonymous usage/error telemetry is permitted for maintenance, with an explicit allowlist and sanitized codes: no filenames, entered text, signatures, document/user IDs, or raw exception payloads. See [the confirmed scope](./docs/sign-tool-product-decisions.md). Telemetry must not block offline processing.
+- No cookies or accounts and no PDF processing backend. Permission for anonymous telemetry does not authorize content logging or user tracking.
 - A strict CSP locks down `connect-src 'self'` (no external script/connect origins) as a browser-enforced backstop against an accidental external call being added later. See "Content-Security-Policy" below for how it's actually wired — it's split across two layers, not a single static header.
 
 ## Content-Security-Policy (read this before touching CSP, scripts, or astro.config.mjs)

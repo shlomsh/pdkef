@@ -70,8 +70,27 @@ describe('unsupportedCharacters (live editor check)', () => {
   });
 
   it('fetches each font file once and reuses the parsed instance', async () => {
+    await Promise.all([
+      unsupportedCharacters('\u05e9\u05dc\u05d5\u05dd', { fontFamily: 'Heebo' }),
+      unsupportedCharacters('\u05e2\u05d5\u05dc\u05dd', { fontFamily: 'Heebo' })
+    ]);
     await unsupportedCharacters('\u05e9\u05dc\u05d5\u05dd', { fontFamily: 'Heebo' });
-    await unsupportedCharacters('\u05e2\u05d5\u05dc\u05dd', { fontFamily: 'Heebo' });
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('rechecks real font coverage after an offline fetch fails, then caches the recovery', async () => {
+    const fetchFont = globalThis.fetch;
+    let online = false;
+    vi.stubGlobal('fetch', vi.fn((url) => online
+      ? fetchFont(url)
+      : Promise.reject(new TypeError('Failed to fetch'))));
+
+    expect(await unsupportedCharacters('\u{1F600}', { fontFamily: 'Heebo' })).toEqual([]);
+    online = true;
+    expect(await unsupportedCharacters('\u{1F600}', { fontFamily: 'Heebo' })).toEqual(['\u{1F600}']);
+
+    const callsAfterRecovery = globalThis.fetch.mock.calls.length;
+    await unsupportedCharacters('\u{1F600}', { fontFamily: 'Heebo' });
+    expect(globalThis.fetch).toHaveBeenCalledTimes(callsAfterRecovery);
   });
 });

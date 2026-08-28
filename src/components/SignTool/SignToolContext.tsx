@@ -84,6 +84,7 @@ export function reducer(state: SignToolState, action: any): SignToolState {
       return {
         ...state,
         elements: action.payload,
+        activeElementId: null,
         editingElementId: null
       };
     case 'ADD_ELEMENT':
@@ -101,7 +102,9 @@ export function reducer(state: SignToolState, action: any): SignToolState {
     case 'DELETE_ELEMENT':
       return {
         ...state,
-        elements: state.elements.filter(el => el.id !== action.payload)
+        elements: state.elements.filter(el => el.id !== action.payload),
+        activeElementId: state.activeElementId === action.payload ? null : state.activeElementId,
+        editingElementId: state.editingElementId === action.payload ? null : state.editingElementId
       };
     // Every element on one page at once (the page header's "Clear page"). The
     // caller logs it with a snapshot, so UNDO restores the whole page the same
@@ -198,6 +201,7 @@ export function reducer(state: SignToolState, action: any): SignToolState {
         ...state,
         elements: state.elements.filter(el => el.id !== lastAction.elementId),
         activeElementId: state.activeElementId === lastAction.elementId ? null : state.activeElementId,
+        editingElementId: state.editingElementId === lastAction.elementId ? null : state.editingElementId,
         actionHistory: state.actionHistory.slice(1)
       };
     }

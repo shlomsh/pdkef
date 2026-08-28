@@ -353,7 +353,7 @@ export default function PdfWorkspace({
       )}
 
       {/* Error Message */}
-      {status === 'error' && (
+      {(status === 'error' || errorDetail) && (
         <div className={`${pdfToolStyles['error-message']} ${pdfToolStyles['error-message--full-width']}`} role="alert">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
