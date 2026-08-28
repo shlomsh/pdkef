@@ -181,39 +181,41 @@ describe('Sign Languages card: combination claims implied by the copy', () => {
 });
 
 describe('Sign Languages card: "not yet" list is still true', () => {
-  it('none of the named not-yet scripts (India\'s other scripts aside) appear as a LANGUAGE_COVERAGE id with any coverage', () => {
+  it('none of the named not-yet scripts appear as a LANGUAGE_COVERAGE id with any coverage', () => {
     // These ids are deliberately NOT in scripts/font-languages.mjs at all -
-    // the report has no row for emoji/Tamil/Telugu because no bundled family
-    // draws any of them (see docs/wysiwyg-text-architecture.md §4.2).
-    // Japanese, Bengali, Korean and Pashto did have ids like these once and
-    // were removed from this list when their own catalogue rows landed -
-    // Chinese never got one (it has no compact alphabet the way Korean's
-    // Hangul does, see fonts.js's CATALOGUE comment and font-languages.mjs's
-    // header), so 'zh' was never a real id and its absence here is
-    // definitional, not a graduation. Asserting the real ids' absence means a
-    // language quietly gaining a report row - the generator's own signal
-    // that some font now covers it - would show up as a new key this list
-    // does not know about, rather than silently going unnoticed.
-    const notYetIds = ['emoji', 'ta', 'te'];
+    // the report has no row for emoji or for India's remaining scripts
+    // because no bundled family draws any of them (see
+    // docs/wysiwyg-text-architecture.md §4.2). Japanese, Bengali, Korean,
+    // Pashto and - as of 2026-08-28 - Tamil, Telugu and Punjabi did have ids
+    // like these once and were removed from this list when their own
+    // catalogue rows landed. Chinese never got one (it has no compact
+    // alphabet the way Korean's Hangul does, see fonts.js's CATALOGUE
+    // comment and font-languages.mjs's header), so 'zh' was never a real id
+    // and its absence here is definitional, not a graduation. Asserting the
+    // real ids' absence means a language quietly gaining a report row - the
+    // generator's own signal that some font now covers it - would show up as
+    // a new key this list does not know about, rather than silently going
+    // unnoticed.
+    const notYetIds = ['emoji', 'gu', 'kn', 'or', 'ml'];
     for (const id of notYetIds) {
       expect(LANGUAGE_COVERAGE[id]).toBeUndefined();
     }
   });
 
-  it("the notYet copy names emoji and India's other remaining scripts, and does not list Japanese, Bengali, Chinese, Korean or Pashto as unavailable", () => {
+  it("the notYet copy names emoji and India's remaining scripts, and does not list any script the catalogue now covers as unavailable", () => {
     const notYet = signLanguages.notYet;
     expect(notYet.toLowerCase()).toContain('emoji');
-    for (const term of ['Tamil', 'Telugu']) {
+    for (const term of ['Gujarati', 'Kannada', 'Odia', 'Malayalam']) {
       expect(notYet).toContain(term);
     }
-    // All five graduated out of this list (each has its own "supported" card
-    // entry now, plus a LANGUAGE_COVERAGE row for every one of them except
-    // Chinese, which has no compact alphabet to check against - the same
-    // reason Japanese kanji has none). Unlike the old half-covered Chinese
-    // wrinkle this list used to carry, there is no remaining nuance to
-    // preserve here: the whole notYet string should simply no longer name
-    // any of the five.
-    for (const term of ['Japanese', 'Bengali', 'Chinese', 'Korean', 'Pashto']) {
+    // All eight graduated out of this list (each has its own "supported"
+    // card entry now, plus a LANGUAGE_COVERAGE row for every one of them
+    // except Chinese, which has no compact alphabet to check against - the
+    // same reason Japanese kanji has none). Unlike the old half-covered
+    // Chinese wrinkle this list used to carry, there is no remaining nuance
+    // to preserve here: the whole notYet string should simply no longer name
+    // any of the eight.
+    for (const term of ['Japanese', 'Bengali', 'Chinese', 'Korean', 'Pashto', 'Tamil', 'Telugu', 'Punjabi']) {
       expect(notYet).not.toContain(term);
     }
   });
@@ -254,6 +256,49 @@ describe('Chinese, Simplified and Traditional', () => {
     expect(note).toContain('11,100');
     expect(note).toContain('Japanese');
     expect(note.toLowerCase()).toContain('no handwriting');
+  });
+});
+
+/**
+ * Punjabi, Telugu and Tamil (landed 2026-08-28). Each is an upright text
+ * face with no handwriting counterpart, the same shape of pin as the
+ * Japanese/Bengali/Korean blocks above.
+ *
+ * Two of the three are pinned on something the others are not: the family is
+ * deliberately NOT that script's Noto Sans face, because fontkit crashes
+ * shaping Noto Sans Gurmukhi and Noto Sans Telugu (see the module docs in
+ * e2e/sign/fixtures/gurmukhiCorpus.js and teluguCorpus.js for the
+ * measurements, and TODO.md's entry for the decision). The card says so in
+ * its own words rather than quietly shipping a different font than a reader
+ * would expect, so these assert the card keeps explaining it.
+ */
+describe('Punjabi, Telugu and Tamil', () => {
+  it('Telugu: exactly Anek Telugu, and the card explains why it is not the Noto face', () => {
+    expect(LANGUAGE_COVERAGE.telugu.full.map((f) => f.family)).toEqual(['Anek Telugu']);
+    const note = supportedNote('Telugu');
+    expect(note).toContain('Anek Telugu');
+    expect(note).toContain('Noto Sans Telugu');
+    expect(note.toLowerCase()).toContain('no handwriting-style telugu face');
+  });
+
+  it('Punjabi: exactly Mukta Mahee, and the card explains why it is not the Noto face', () => {
+    expect(LANGUAGE_COVERAGE.punjabi.full.map((f) => f.family)).toEqual(['Mukta Mahee']);
+    const note = supportedNote('Punjabi');
+    expect(note).toContain('Mukta Mahee');
+    expect(note).toContain('Noto Sans Gurmukhi');
+    expect(note.toLowerCase()).toContain('no handwriting-style gurmukhi face');
+  });
+
+  it('Tamil: exactly Noto Sans Tamil, and the card names the countries beyond India', () => {
+    expect(LANGUAGE_COVERAGE.tamil.full.map((f) => f.family)).toEqual(['Noto Sans Tamil']);
+    const note = supportedNote('Tamil');
+    expect(note).toContain('Noto Sans Tamil');
+    // Tamil is official in three countries on the traffic list, which is why
+    // it outranked larger scripts in TODO.md's ordering - the card says so.
+    for (const country of ['Sri Lanka', 'Singapore', 'Malaysia']) {
+      expect(note).toContain(country);
+    }
+    expect(note.toLowerCase()).toContain('no handwriting-style tamil face');
   });
 });
 

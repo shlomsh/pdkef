@@ -87,6 +87,13 @@
  *   Han, and Noto Sans KR's coverage of it can be stated as a clean "full"
  *   claim rather than a curated subset, the same shape of claim Devanagari
  *   and Thai above get.
+ * - Punjabi (Gurmukhi), Telugu and Tamil: each one's ordinary modern
+ *   alphabet - independent vowels, consonants, vowel signs, the marks that
+ *   language actually needs, and its digits - defined at the constants
+ *   below, where the per-language exclusions and their reasons are recorded.
+ *   Tamil is the one language in this file whose consonants are a literal
+ *   list rather than a Unicode range, because modern Tamil genuinely has no
+ *   contiguous consonant block: see TAMIL_CONSONANTS.
  * - Chinese (Simplified and Traditional) is deliberately NOT a row here, for
  *   the same reason Japanese kanji above is not one: Han has no compact,
  *   closed alphabet the way every other language in this file does, and a
@@ -251,6 +258,64 @@ const ASSAMESE_EXTRA_LETTERS = 'ৰৱ';
 const KOREAN_HANGUL_SYLLABLES = rangeOf(0xac00, 0xd7a3).map((cp) => String.fromCodePoint(cp)).join('');
 const KOREAN_COMPAT_JAMO = rangeOf(0x3131, 0x318e).map((cp) => String.fromCodePoint(cp)).join('');
 
+// Punjabi (Gurmukhi): the ten independent vowels, the 33 assigned base
+// consonants (four codepoints inside U+0A15-U+0A39 - U+0A29, U+0A31, U+0A34,
+// U+0A37 - are unassigned in Unicode's Gurmukhi block, the same shape of gap
+// DEVANAGARI_CONSONANTS documents for its own mirrored range), the five
+// atomic nukta letters Gurmukhi gets its own codepoints for (ਖ਼ ਗ਼ ਜ਼ ੜ ਫ਼ -
+// unlike Bengali, which writes its equivalents as base+nukta sequences), the
+// nine vowel signs, bindi/visarga/nukta/virama, tippi and addak (the
+// nasalization and gemination marks ordinary Punjabi needs constantly - ਸਿੰਘ
+// "Singh", ਪੱਗ "pagg"), the two bearer letters iri and ura, and the digits.
+// Adak bindi (U+0A01), udaat (U+0A51), yakash (U+0A75) and the abbreviation
+// sign (U+0A76) are excluded as historical or Sikh-scripture-specific, the
+// same judgment HEBREW_NIQUD makes about meteg and rafe.
+const GURMUKHI_VOWELS = 'ਅਆਇਈਉਊਏਐਓਔ';
+const GURMUKHI_CONSONANTS = rangeOf(0x0a15, 0x0a39)
+  .filter((cp) => ![0x0a29, 0x0a31, 0x0a34, 0x0a37].includes(cp))
+  .map((cp) => String.fromCodePoint(cp))
+  .join('');
+const GURMUKHI_NUKTA_LETTERS = 'ਖ਼ਗ਼ਜ਼ੜਫ਼';
+const GURMUKHI_VOWEL_SIGNS = 'ਾਿੀੁੂੇੈੋੌ';
+const GURMUKHI_MARKS = 'ਂਃ਼੍ੰੱੲੳ'; // bindi, visarga, nukta, virama, tippi, addak, iri, ura
+const GURMUKHI_DIGITS = '੦੧੨੩੪੫੬੭੮੯';
+
+// Telugu: the independent vowels, the 36 assigned base consonants (one gap,
+// U+0C29, unassigned), the twelve vowel signs an ordinary Telugu sentence
+// needs, candrabindu/anusvara/visarga, virama, the two length marks, and the
+// digits. Deliberately excludes the vocalic L/LL letters and signs, the
+// archaic dialectal letters Unicode 6.0 added at U+0C58-U+0C5D, and the
+// fraction/era signs at U+0C77-U+0C7F - historical or specialist, not
+// ordinary modern Telugu form-filling text, the same exclusion
+// DEVANAGARI_VOWELS and BENGALI_VOWELS make for their own vocalic-L letters.
+const TELUGU_VOWELS = 'అఆఇఈఉఊఋఎఏఐఒఓఔ';
+const TELUGU_CONSONANTS = rangeOf(0x0c15, 0x0c39)
+  .filter((cp) => cp !== 0x0c29)
+  .map((cp) => String.fromCodePoint(cp))
+  .join('');
+const TELUGU_VOWEL_SIGNS = 'ాిీుూృెేైొోౌ';
+const TELUGU_MARKS = 'ఁంః' + '్' + 'ౕౖ'; // candrabindu, anusvara, visarga, virama, length mark, AI length mark
+const TELUGU_DIGITS = '౦౧౨౩౪౫౬౭౮౯';
+
+// Tamil: unlike every other Brahmic language in this file, Tamil's consonant
+// inventory is NOT a contiguous Unicode range - modern Tamil uses only 18
+// native consonants (it has no separate letters for voiced or aspirated
+// stops; one letter covers several sounds by context) plus the five
+// "Grantha" letters (ஜ ஶ ஷ ஸ ஹ) ordinary modern print uses for Sanskrit and
+// English loanwords (ஜனவரி "January", ஹலோ "hello"). So this is a literal
+// list of 23 letters, not a range with exclusions. ஃ (aytham) is counted
+// among the vowels, which is how Tamil grammar teaches it (the 13th "uyir
+// ezhuthu"), and it appears in ordinary loanword transliteration (ஃபோன்
+// "phone"). Both AU orthographies are required: the single reformed
+// codepoint ௌ and the older two-piece style's AU length mark ௗ. Excludes the
+// Tamil number/fraction/calendar signs (U+0BF0-U+0BFA), ௐ (OM) and the
+// Sanskrit-loan anusvara ஂ as specialist or religious-symbol usage.
+const TAMIL_VOWELS = 'அஆஇஈஉஊஎஏஐஒஓஔஃ';
+const TAMIL_CONSONANTS = 'கஙசஜஞடணதநனபமயரறலளழவஶஷஸஹ';
+const TAMIL_VOWEL_SIGNS = 'ாிீுூெேைொோௌௗ';
+const TAMIL_MARKS = '்'; // pulli (virama)
+const TAMIL_DIGITS = '௦௧௨௩௪௫௬௭௮௯';
+
 // Vietnamese: every accented/tone-marked Latin letter modern Vietnamese
 // writing needs, upper and lower case, defined as its own self-contained set
 // the way every language row in this file is (not a diff against
@@ -347,6 +412,18 @@ export const LANGUAGES = {
   korean: {
     label: 'Korean (Hangul)',
     codePoints: codePointsOf(KOREAN_HANGUL_SYLLABLES + KOREAN_COMPAT_JAMO),
+  },
+  punjabi: {
+    label: 'Punjabi (Gurmukhi)',
+    codePoints: codePointsOf(GURMUKHI_VOWELS + GURMUKHI_CONSONANTS + GURMUKHI_NUKTA_LETTERS + GURMUKHI_VOWEL_SIGNS + GURMUKHI_MARKS + GURMUKHI_DIGITS),
+  },
+  telugu: {
+    label: 'Telugu',
+    codePoints: codePointsOf(TELUGU_VOWELS + TELUGU_CONSONANTS + TELUGU_VOWEL_SIGNS + TELUGU_MARKS + TELUGU_DIGITS),
+  },
+  tamil: {
+    label: 'Tamil',
+    codePoints: codePointsOf(TAMIL_VOWELS + TAMIL_CONSONANTS + TAMIL_VOWEL_SIGNS + TAMIL_MARKS + TAMIL_DIGITS),
   },
 };
 

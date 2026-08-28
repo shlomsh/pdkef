@@ -268,7 +268,10 @@ http://scripts.sil.org/OFL
 The following fonts are distributed under the SIL Open Font License, Version 1.1:
 - Alef (<https://fonts.google.com/specimen/Alef>)
 - PT Sans (<https://fonts.google.com/specimen/PT+Sans>)
-- Almarai (<https://fonts.google.com/specimen/Almarai>)
+- Scheherazade New (<https://fonts.google.com/specimen/Scheherazade+New>)
+- Mukta Mahee (<https://fonts.google.com/specimen/Mukta+Mahee>)
+- Anek Telugu (<https://fonts.google.com/specimen/Anek+Telugu>)
+- Noto Sans Tamil (<https://fonts.google.com/specimen/Noto+Sans+Tamil>)
 
 ```
 This Font Software is licensed under the SIL Open Font License, Version 1.1.

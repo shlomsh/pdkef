@@ -82,7 +82,7 @@ export const tools = [
       tag: 'Languages',
       heading: 'Supports a wide range of languages, with more on the way',
       lead:
-        "Hebrew, Hindi, Marathi, Thai, Russian, Ukrainian, Greek, Arabic, Urdu, Vietnamese, and every Latin-script language work end to end here, so what you type is exactly what ends up in your downloaded file. I'm adding more as I go.",
+        "Hebrew, Hindi, Marathi, Bengali, Tamil, Telugu, Punjabi, Thai, Russian, Ukrainian, Greek, Arabic, Urdu, Vietnamese, and every Latin-script language work end to end here, so what you type is exactly what ends up in your downloaded file. I'm adding more as I go.",
       supportedHeading: 'Supported now',
       // Ordered by roughly how many people speak each language, most to
       // least, so the card leads with what the most visitors are searching
@@ -94,7 +94,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 16 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 16 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 16 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: nine of the 16 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -115,6 +115,21 @@ export const tools = [
           native: 'বাংলা 🇧🇩🇮🇳',
           name: 'Bengali',
           note: "Fill a Bengali form and sign your name in Bengali, in Noto Sans Bengali. Conjunct letters, reph, and vowel signs like ি that you type after a consonant but that belong before it are reordered and reshaped for the download, not just on screen. Three rare clusters are known to draw a little differently in the file than they do on screen, and they are named in the FAQ below rather than left for you to find. The same font carries Assamese's two extra letters, ৰ and ৱ, so Assamese works too. There is no handwriting-style Bengali face yet, so a typed signature comes out upright rather than cursive.",
+        },
+        {
+          native: 'తెలుగు 🇮🇳',
+          name: 'Telugu',
+          note: "Fill a Telugu form and sign your name in Telugu, in Anek Telugu. The below-base consonant forms a virama produces, and vowel signs that move around the letter they attach to, are reordered and reshaped for the download rather than only on screen. Worth saying why this is not the Noto face the other scripts here use: Noto Sans Telugu miscrafts the ప్ర cluster badly enough to break the download, and that cluster is in ఆంధ్రప్రదేశ్ itself, so I picked a face that draws it correctly instead. There is no handwriting-style Telugu face yet, so a typed signature comes out upright rather than cursive.",
+        },
+        {
+          native: 'தமிழ் 🇮🇳🇱🇰🇸🇬',
+          name: 'Tamil',
+          note: "Fill a Tamil form and sign your name in Tamil, in Noto Sans Tamil, which also serves Sri Lanka, Singapore and Malaysia where Tamil is an official language. Vowel signs that you type after a consonant but that belong before it are reordered for the download, and the fused traditional ligatures ordinary Tamil print uses (ங்க, ஞ்ச, ண்ட, ந்த, ன்ற, and ஸ்ரீ in a name) are formed rather than left as separate letters. The five Grantha letters loanwords need (ஜ, ஶ, ஷ, ஸ, ஹ) are there too, so ஜனவரி sets properly. There is no handwriting-style Tamil face yet, so a typed signature comes out upright rather than cursive.",
+        },
+        {
+          native: 'ਪੰਜਾਬੀ 🇮🇳🇵🇰',
+          name: 'Punjabi',
+          note: "Fill a Punjabi form and sign your name in Gurmukhi, in Mukta Mahee. Tippi and addak, the marks ਸਿੰਘ and ਪੱਗ depend on, sit where they belong, the pairin forms that hang below a letter are drawn as such, and ਿ is moved in front of its consonant for the download. The five letters Gurmukhi gives their own code points (ਖ਼, ਗ਼, ਜ਼, ੜ, ਫ਼) are all there. This is not the Noto face for the same reason Telugu is not: Noto Sans Gurmukhi breaks the download on most ordinary words, ਸਿੰਘ included. There is no handwriting-style Gurmukhi face yet, so a typed signature comes out upright rather than cursive.",
         },
         {
           native: 'Русский, Українська 🇷🇺🇺🇦🇧🇬',
@@ -169,7 +184,7 @@ export const tools = [
       ],
       notYetHeading: 'More on the way',
       notYet:
-        "Tamil, Telugu and emoji are not there yet, and a Nastaliq face so Urdu can be set the way Urdu is normally written is the other thing I would like to add. If you type something the tool cannot draw, it tells you as you go and names the exact characters, so you find out while you are typing rather than after you have filled in a whole form and downloaded it.",
+        "Gujarati, Kannada, Odia, Malayalam and emoji are not there yet, and a Nastaliq face so Urdu can be set the way Urdu is normally written is the other thing I would like to add. If you type something the tool cannot draw, it tells you as you go and names the exact characters, so you find out while you are typing rather than after you have filled in a whole form and downloaded it.",
     },
     steps: [
       { title: 'Upload your form', text: 'Select or drag-and-drop the PDF document you want to fill and sign.' },
