@@ -418,7 +418,12 @@ describe('PdfSignTool UI flow', () => {
     
     await act(async () => {
       saveButton.click();
-      await new Promise(resolve => setTimeout(resolve, 100)); // wait for saving to resolve
+      // Poll instead of a fixed delay: signPdf's duration isn't bounded, and a
+      // fixed 100ms wait flaked under CI's slower/contended runners.
+      const deadline = Date.now() + 5000;
+      while (savedBlob === null && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
     });
     
     expect(savedBlob).not.toBeNull();
