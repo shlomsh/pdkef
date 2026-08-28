@@ -452,24 +452,48 @@ before W9 depends on W9, and W4 through W8 are independent of each other.
 
 ### Known small defects
 
-- **The font coverage table ships CJK to everyone, and 92% of it is CJK.** `src/lib/fontCoverageTable.js`
-  is range-encoded from the real font bytes and imported by `fonts.js`, so it reaches the browser in the
-  editor's lazy chunk. It was 3,230 brotli bytes with 16 files. Japanese took it to 8,916; Simplified,
-  Traditional and Korean took it to **25,519**, of which the four CJK families are 23,529 (SC 8,786,
-  TC 9,083, JP 5,435, KR 225 - Hangul is one contiguous block and costs nothing). Everything else in the
-  catalogue put together is about 2KB. So someone signing a form in English downloads roughly 23KB of
-  coverage data for four fonts they will never open.
-  **The measured fix, which does not touch any architecture:** encode Han coverage as a bitmap over
-  U+3400-9FFF instead of a range list. Scattered sets defeat range encoding and suit a bitmap exactly.
-  Measured per file: SC 8,786 -> 2,389, TC 9,083 -> 2,499, JP 5,435 -> 1,566, and the whole table lands
-  near 12KB rather than 25.5KB. `covers()` stays synchronous and pure - it becomes a bit test instead of
-  a binary search - so the reason the table was built this way in the first place (keeping
-  `resolveFontFamily` out of `TextNode`'s render path as an async call) still holds.
-  **The alternative to resist:** making coverage lazy per family. It is the theoretically right answer
-  and it makes `covers()` async, which is the exact change W3 measured and rejected. Do the encoding
-  first; revisit laziness only if a fifth CJK family ever lands.
-  Not urgent: it is a lazy chunk, `check-page-weight.js` does not count it, and no gate fails today.
-  Worth doing before the next large-coverage font, since the growth is superlinear in character-set size.
+- ~~**The font coverage table ships CJK to everyone, and 92% of it is CJK.**~~ **Fixed 2026-08-28**
+  (`24b6da0`). `src/lib/fontCoverageTable.js` was range-encoded from the real font bytes and is imported
+  by `fonts.js`, so it reaches the browser in the editor's lazy chunk. It was 3,230 brotli bytes with 16
+  files; Japanese took it to 8,916, and Simplified, Traditional and Korean to **25,667** (the entry
+  originally recorded 25,519, measured before Bengali landed), of which the four CJK families were about
+  21KB. Everything else in the catalogue put together is about 2KB. So someone signing a form in English
+  downloaded roughly 23KB of coverage data for four fonts they will never open.
+  **Fixed as measured, by encoding a block as a bitmap when a bitmap is smaller: 25,667 -> 11,941
+  brotli** (SC 7,732 -> 2,905, TC 8,085 -> 2,570, JP 5,077 -> 1,708; those are marginal per-family
+  figures, so they do not sum to the total). Ranges are optimal for the contiguous case almost every
+  script is and pathological for Han - Noto Sans TC covers 11,147 codepoints of U+3400-U+9FFF in 4,210
+  separate ranges, so nearly every "range" is one character paying for two numbers and three bytes of
+  punctuation. Korean needed nothing and got nothing: Hangul is one contiguous run outside the block, so
+  its share is empty and `[]` beats 4,608 zero bits.
+  **Three things it deliberately is not**, each of which was the tempting wrong turn. It is not a
+  replacement for ranges: `chooseEncoding()` in the generator encodes each candidate block both ways and
+  keeps the shorter source text, so no font is ever hand-classified as "a CJK font" and a future
+  scattered block qualifies on its own measurement rather than on someone remembering to add it. It is
+  not laziness: `covers()` stays synchronous and pure, a bit test instead of a binary search, because
+  `resolveFontFamily` sits in `TextNode`'s render path and W3 already measured and rejected making it
+  async - revisit that only if a fifth CJK family ever lands. And it is not a re-derivation: it is a
+  lossless re-encoding of the same answers, which was checked rather than asserted (below).
+  **The equivalence proof is the part worth keeping.** Every answer of the old table was captured across
+  the full Unicode range for all 48 files and replayed against the new one: **53,477,376 comparisons, 0
+  differing answers**, 118,426 true answers on both sides. Sampling would not have been enough - a single
+  flipped bit is one character that silently starts rendering as `.notdef`, or starts being wrongly
+  refused while typing, and nothing else in the app would say why. `fontCoverageTable.test.js` now
+  re-derives the hybrid encoding independently instead of importing the generator's encoder (a guard that
+  reuses the code it guards cannot notice the encoder and the reader disagreeing) and checks every
+  codepoint of every bitmap block against fontkit in both directions; it was proven capable of failing by
+  flipping one bit in the committed table.
+
+- **The Han bitmap block is a candidate list of one, and the next scattered script should be measured,
+  not assumed.** `BITMAP_CANDIDATE_BLOCKS` in `scripts/generate-font-coverage.mjs` currently holds
+  `[0x3400, 0x9fff]` only. The bitmap's cost is fixed at 4,608 source characters per block per file
+  regardless of how much of it a font covers, which is exactly why it is a candidate list rather than a
+  rule applied everywhere: for a font with no Han the bitmap would be 4,608 characters of zeros where
+  the range list is `[]`. The crossover is around 330 ranges in a block. So when a script lands whose
+  coverage is scattered rather than contiguous - CJK Compatibility Ideographs, Extension B, or a font
+  that subsets a large block sparsely - add the block to that list and let the generator decide per file.
+  Nothing needs deciding today: the six Brahmic scripts in the internationalization backlog are small and
+  contiguous, and range encoding is the right answer for all of them.
 
 - ~~**Hebrew text shaping in the export.**~~ **Fixed 2026-08-21.** Pointed Hebrew exported wrong in
   every bundled font because `page.drawText()` ran the shaper and then discarded the glyph positions it
@@ -511,6 +535,73 @@ before W9 depends on W9, and W4 through W8 are independent of each other.
   it would add.
 
 ### Internationalization: fonts for scripts beyond Hebrew/Latin
+
+- **Pashto (پښتو): eleven letters, and the cheapest language gap on the board.** Afghanistan is a real
+  traffic source and Pashto is one of its two official languages; Dari already works, through Almarai,
+  and Pashto fails on exactly eleven characters, each verified absent from **every one of the 46 bundled
+  files**: ټ U+067C, ځ U+0681, څ U+0685, ډ U+0689, ړ U+0693, ږ U+0696, ښ U+069A, ګ U+06AB, ڼ U+06BC,
+  ې U+06D0, ۍ U+06CD. Everything else in the Pashto alphabet is already there (Almarai scores 34/45).
+  This is the only unsupported language in the top-traffic countries where the fix is plausibly a
+  **different Arabic face rather than a new script**, so it should be screened before committing to
+  another Brahmic font. The question to answer first: is there one OFL or Apache-2.0 Arabic face that
+  carries Arabic **plus** Farsi/Dari **plus** Pashto **plus** Urdu, so it replaces Almarai rather than
+  joining it? Noto Naskh Arabic and Noto Sans Arabic are the obvious candidates and both are OFL.
+  Replacing Almarai is not free: it is the only Arabic face in the catalogue, so a swap needs the
+  151-case Arabic pixel guard re-run against the new face, and `RETIRED_FONTS` in `src/lib/fonts.js`
+  exists for exactly this kind of rename. Adding a second Arabic face instead is cheaper to land and
+  leaves two faces where one would do.
+  **Screened 2026-08-28, and the answer is Scheherazade New.** Five OFL candidates were measured from
+  real cmap bytes and run through the 151-case Arabic pixel guard plus a new 22-case Pashto corpus
+  covering all eleven letters isolated and joined. Coverage was never the differentiator - all five
+  draw every Arabic, Farsi/Dari, Urdu and Pashto codepoint. Shaping was.
+  - **Scheherazade New** (SIL, OFL 1.1): 151/151 and 22/22. The recommendation. 324KB Regular, 580KB
+    Bold, real named instances. `loca` unaligned (1,049 and 815 odd offsets), so it needs the same
+    `glyf` padding = 4 fix Kalam got, verified outline-identical before landing.
+  - **Amiri** (OFL 1.1): also 151/151 and 22/22, but reads as calligraphic and formal, which is wrong
+    for a form-filling tool. Keep as the fallback if Scheherazade New disappoints in use.
+  - **Noto Naskh Arabic** and **Noto Sans Arabic**: both 150/151, failing the *same* case - `بَّ`, beh
+    with shadda and fatha stacked. Naskh misses narrowly (23.01% against 22.35%), Sans by a wider
+    margin (29.47% against 17.30%). One specific disagreement about stacked diacritics, not flakiness.
+    Noto Sans Arabic is the only candidate whose `loca` is already aligned.
+  **Cost of the swap, which is not just a bug fix:** Scheherazade New is a heavier, more traditional
+  Naskh than Almarai's geometric modern face, so **every existing Arabic, Dari and Farsi user's output
+  changes visibly**. Budget the `RETIRED_FONTS` rename, a re-run of the Arabic guard against the new
+  bundled file, and 580KB for Bold against Almarai's 149KB.
+
+  **Urdu in Nastaliq is now a separate, blocked project - do not bundle it with Pashto.** Noto Nastaliq
+  Urdu does not merely fail the pixel guard: **fontkit crashes shaping it**, an uncaught
+  `Cannot read properties of null (reading 'xCoordinate')` inside `GPOSProcessor.getAnchor`. That is an
+  engine limit, not a tolerance question, and it puts Nastaliq in HarfBuzz-WASM territory - the option
+  docs/hebrew-text-shaping-export.md argues against for Hebrew. Until then Urdu stays correctly joined
+  and fully covered in Naskh, which is what the Sign page now says.
+
+
+- **Malayalam (മലയാളം): zero coverage, and it is a UAE and India language, not only an India one.**
+  Measured 0/49 characters across every bundled font. Noto Sans Malayalam is OFL. It is a Brahmic script
+  with conjuncts and vowel reordering, so it needs the **pixel** guard (`shapingGuardHarness.js`, the
+  Devanagari/Kalam model at 185 cases), never the CJK advance-parity guard - the two shapers can pick a
+  different glyph and only pixels catch that. Note that Malayalam has both traditional and reformed
+  orthographies, which differ in how conjuncts are written; pick one deliberately and say which.
+
+- **India's remaining scripts: the largest opportunity by volume, and the most fragmented.** India is
+  about 10% of traffic. Hindi and Marathi already work through Kalam, and Urdu through Almarai, but six
+  scripts are at **zero coverage** and each one is its own font, its own guard and its own copy:
+  **Bengali** (~285M speakers, seventh worldwide - in progress), **Punjabi/Gurmukhi** (~113M),
+  **Telugu** (~96M), **Tamil** (~87M, and also an official language of Singapore and Malaysia, so it
+  serves three countries on the traffic list), **Gujarati** (~62M), **Kannada** (~44M), plus **Odia**.
+  Noto covers all of them under OFL.
+  Two things to decide once, before the second one is built, rather than per script. **First, whether
+  each script gets its own family or whether one face can carry several** - Noto is script-split by
+  design, so the honest expectation is one file per script, and at roughly 400KB each that is repo
+  weight rather than page weight, since fonts load on demand and are no longer precached. **Second, what
+  this does to `src/lib/fontCoverageTable.js`**, which ships to every editor visitor: see the "font
+  coverage table ships CJK to everyone" entry under "Known small defects". Brahmic scripts are small and
+  contiguous, so each should cost far less than a CJK family, but six of them still add up and the
+  bitmap re-encoding has landed, so a contiguous Brahmic script now costs about what Bengali does
+  (141 brotli bytes), not what a CJK family used to.
+  Do them in speaker order and stop when the return flattens - each one is a font, a pixel guard, a
+  `scripts/font-languages.mjs` entry, a `FontPickerMenu` line and honest copy, and none of that is
+  reusable between scripts except the pattern.
 
 **Opened 2026-08-24**, from two asks in the same session: adding more fonts to the existing Hebrew/Latin
 catalogue, and separately wanting handwriting support for India and Thailand. Cross-checked against the
@@ -1069,6 +1160,12 @@ and content (the actual next scripts/fonts), because conflating them is how "add
   Pashto-specific letters (ټ ډ ړ ږ ښ ګ ڼ ې). Needs its own font search (screened per the pre-screen script
   above once it exists) covering Arabic Extended-A, then its own full verification run - it does not inherit
   Almarai's or Dari's.
+  **Correction 2026-08-28:** the count was low. Re-measured against `src/lib/fontCoverageTable.js` (the
+  generated table, so all 46 bundled files rather than a spot check), Pashto is missing **eleven**
+  letters, not eight: the list above plus ځ U+0681, څ U+0685 and ۍ U+06CD, and each of the eleven is
+  absent from *every* bundled file, not only Almarai. The conclusion stands and gets stronger. The live
+  entry is under "Internationalization" above, which also raises the question this one does not: whether
+  one Arabic face could replace Almarai and serve Arabic, Dari/Farsi, Pashto and Urdu together.
 - **Bengali, Tamil, Telugu** (the three named in the Sign page's own "Coming soon" copy) **and Gujarati,
   Punjabi** (flagged as untouched during the Devanagari spike but not currently promised anywhere). Each is
   its own complex script with its own reordering/conjunct/joining rules - the corpus-builder helpers above
@@ -1084,16 +1181,52 @@ and content (the actual next scripts/fonts), because conflating them is how "add
   `calt`-free runner-up to Mali, not yet parity-tested); a second Ukrainian/Cyrillic face; a second Hebrew
   handwriting option; a couple more Latin handwriting styles. Lower priority than the scripts above - these
   add choice to something that already works, rather than closing a "not yet" gap.
-- **Chinese, Japanese, Korean** - its own session. The approach is still build-time subsetting with
-  `pyftsubset`, but the reason changed 2026-08-27: the runtime subsetter turned out not to be broken (the
-  2026-08-25 spike's "broken for both CFF and variable-TTF CJK builds" diagnosis was a font-alignment bug
-  misread as a format bug - see the "Correction 2026-08-27" in the Chinese entry above), it works and now
-  ships for every other bundled font. Build-time pre-subsetting is still the right call because a
-  full-coverage CJK face is still 5-20MB to *fetch* before any subsetting can happen, which this app's
-  page-weight budget and lazy-load pattern cannot absorb at pick time - not because the runtime step would
-  corrupt it. Full findings, the recommended character set, and the false-positive hazard that nearly hid
-  the original misdiagnosis are in the Chinese entry above - read it before starting, it is the difference
-  between a day and a week.
+- **Chinese, Japanese and Korean: Japanese shipped, the other three are built and dormant.**
+  Superseded the "its own session" framing this entry used to carry; the session happened
+  (2026-08-27/28, commits `988667c`..`527a2d4`) and stopped halfway on purpose.
+  - **Japanese is live.** `Noto Sans JP` is in `TEXT_FONTS`, `SANS_STYLE_FONTS`,
+    `FONT_VERTICAL_METRICS`, `editorFonts.css`'s `@font-face` rules and `FontPickerMenu.tsx`'s
+    `STANDARD_FONTS`. A user can pick it and download with it today.
+  - **Simplified, Traditional and Korean are built, committed and unreachable.** The six TTFs sit in
+    `public/fonts/` (18.3 MB), their coverage is in `fontCoverageTable.js`, and they pass both the
+    alignment guard and `cjk-advance-parity-guard.spec.js`. None of them appears in `TEXT_FONTS`,
+    `SANS_STYLE_FONTS`, `FONT_VERTICAL_METRICS`, `editorFonts.css` or the picker. Nothing is broken;
+    there is simply no way to select them.
+  - **What the dormancy costs, and what it does not.** The 18.3 MB is deploy weight only:
+    `precacheFilter.mjs` excludes everything under `fonts/` except `Arimo-Regular.ttf`, and a browser
+    fetches a TTF only when an `@font-face` rule matches, so no visitor downloads a byte of these.
+    What *is* being paid is coverage data: their rows are in `fontCoverageTable.js`, which every editor
+    session downloads, for three fonts nobody can choose. The bitmap re-encoding recorded under "The
+    font coverage table ships CJK to everyone" cut that table from 25,667 to 11,941 brotli and takes
+    most of the sting out of it, but it does not make the rows earn their place.
+  - **Wiring one family is five edits**, and the fifth is the one that used to be silent: `TEXT_FONTS`,
+    `SANS_STYLE_FONTS`, `FONT_VERTICAL_METRICS` (measured, not guessed - JP is 1.160/0.288), an
+    `@font-face` pair in `editorFonts.css`, and `STANDARD_FONTS` in `FontPickerMenu.tsx`. That last one
+    is now guarded: `FontPickerMenu.test.tsx`'s "stays in sync with the font catalogue" fails in both
+    directions, so a family added to the catalogue and forgotten in the picker names itself.
+  - **Before any of the three become selectable**, read the export-render-corpus gap in the next entry.
+  - **The decision this entry is waiting on** is whether to finish the wiring or pull the six files back
+    out until someone does. Leaving them in the tree indefinitely is the one option that keeps the
+    coverage-table cost without the feature.
+
+- **The export render guard has no CJK case, and its own rules say it should.**
+  `e2e/sign/fixtures/exportRenderCorpus.js` states that it carries "one case per shipped script", and it
+  does for Latin, Hebrew, Arabic, Devanagari, Thai, Cyrillic and Greek. Japanese has been a shipped,
+  selectable script since `bebc24b` and has no case, so the one guard that rasterises what the user
+  actually receives has never looked at it.
+  **This is a smaller gap than it first sounds, and worth stating why so it is not over-fixed.**
+  `cjk-advance-parity-guard.spec.js` is a deliberate substitute, not an oversight: it argues that the
+  failure mode a pixel diff exists to catch (a shaper picking the *wrong glyph* through reordering or
+  joining) has no CJK analogue, and it closes that off independently by asserting
+  `glyphs.length === [...text].length` on every case, over each family's whole shipped cmap, so a
+  substitution firing is a failure rather than an assumption. It also proved it can fail, on the
+  pre-GPOS-drop JP build. What it does not do is look at ink, which is what catches a corrupted `glyf`
+  or a subset missing composite components - exactly the failure class that `988667c` found in the
+  spike's own JP subsets.
+  **So the work is one corpus case plus a baseline capture** (`textCase('japanese-noto-sans-jp', ...)`,
+  then re-run the guard to store it), not a second shaping harness. Do it before SC/TC/KR are wired, and
+  add their cases in the same pass.
+
 - **Emoji** is not a subsetting problem and should not be bundled into the CJK work. Colour emoji fonts
   use `COLR`/`CBDT` bitmap or layered-glyph formats, which pdf-lib's outline-glyph embedder has no path
   for at all - so this is a different question (probably: draw emoji as embedded images rather than font

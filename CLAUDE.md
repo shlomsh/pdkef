@@ -696,6 +696,13 @@ Run by `ci.yml`; see Part I "Commands" for the npm scripts.
    pages, and a guard whose whole job is first-load weight said nothing because it only looked at
    `.js`. Images referenced from CSS `url()` are still invisible here.
 7. **Gesture golden rule** (`check-gesture-golden-rule.js`) - §4, statically enforced.
+**A Playwright test that fetches more than one dynamically-served asset must block service workers.**
+`test.use({ serviceWorkers: 'block' })`. The app's own production service worker takes control partway
+through a page load and then serves fetches from inside its own execution context, where `page.route()`
+cannot see them - so an interception that works for the first asset silently 404s on the second. Found
+while screening candidate Arabic fonts against the preview build, and it costs an hour to diagnose
+because the first fetch succeeding makes the interception look correct.
+
 8. **Playwright e2e** - reserved for what jsdom cannot prove (rendered rects, drag-time toolbar
    following, page-edge behavior, hydration/CSP flows). Keep the suite sparse, roughly one e2e test per
    ten unit/component tests, under `e2e/<module>/`. Includes a site-wide CSP smoke sweep. Also includes
