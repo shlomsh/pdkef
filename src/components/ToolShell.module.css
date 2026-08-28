@@ -134,9 +134,21 @@
   white-space: nowrap;
 }
 
+.pending {
+  composes: saved;
+  color: var(--color-muted);
+}
+
+.error {
+  composes: saved;
+  color: var(--color-danger);
+}
+
 /* Separator between the pages/size text and the draft-saved chip, drawn only
    when both are present so neither needs to carry punctuation itself. */
-.meta-text + .saved::before {
+.meta-text + .saved::before,
+.meta-text + .pending::before,
+.meta-text + .error::before {
   content: '·';
   margin-right: 0.3rem;
   color: var(--color-muted);

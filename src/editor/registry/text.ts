@@ -465,7 +465,11 @@ export const textDefinition: ElementDefinition<TextElement> = {
   render: ({ element, onChange, onSelect, pageWidthPoints }) => h(TextNode, { element, onChange, onSelect, pageWidthPoints, isActive: false, isEditing: false, onBeginEdit: () => {}, onResizeStart: () => {} }),
   serialize: async (element, { page, pdfWidth, pdfX, pdfY, loadCustomFont, baselineOffset }) => {
     const { text, fontSize, fontFamily, fontWeight, fontStyle, color } = element;
-    const textValue = (text || '').trim();
+    // Whitespace belongs to a text element's layout: a leading space changes
+    // its anchored edge, trailing spaces carry intended width, and an empty
+    // physical line advances the following line. Only a truly empty value has
+    // no text to serialize.
+    const textValue = text || '';
     if (!textValue) return;
     const fontSizeInPoints = fontSize || DEFAULT_FONT_SIZE_PT;
     // Same substitution the editor renders with, so the download matches the
@@ -539,8 +543,11 @@ export const textDefinition: ElementDefinition<TextElement> = {
       // resolved visual order - this is the same per-glyph-position
       // machinery as before, just called once per run instead of once per
       // line.
-      // Strip only after bidi has read the marks (UAX#9 X9 removes them from
-      // display once resolved), and drop any run left with nothing to draw.
+      // Remove unsafe controls only after bidi has read the marks. Format
+      // controls stay in the run for shaping and `/ActualText`; they are not
+      // coverage failures merely because a font has no visible glyph for one.
+      // A blank physical line intentionally yields no runs but retains its
+      // lineIndex, preserving the authored vertical gap.
       const runs = resolveBidiRuns(line, paragraphDirection)
         .map((run) => ({ ...run, text: stripInvisibleFormatting(run.text) }))
         .filter((run) => run.text !== '')

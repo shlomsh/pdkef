@@ -60,7 +60,10 @@ export async function findUnrepresentableCharacters(elements, loadFont) {
   const pages = new Set();
   for (const element of elements || []) {
     if (element.type !== 'text') continue;
-    const textValue = (element.text || '').trim();
+    // Match text serialization: authored leading/trailing whitespace and
+    // blank lines are layout, not disposable input. Only a genuinely empty
+    // element has nothing that can need coverage.
+    const textValue = element.text || '';
     if (!textValue) continue;
     const embeddedFamily = resolveFontFamily(element.fontFamily, textValue, element.fontWeight, element.fontStyle);
     const resolvedFont = (await loadFont(embeddedFamily, element.fontWeight, element.fontStyle))

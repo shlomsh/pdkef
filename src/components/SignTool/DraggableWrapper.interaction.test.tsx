@@ -202,10 +202,10 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       expect(useFloatingCalls[0].placement).toBe('top-end');
     });
 
-    it('uses the remembered direction only while the text has no strong language direction yet', () => {
+    it('uses LTR placement for an empty legacy RTL field', () => {
       const emptyRtlElement = { id: 'el-empty-rtl', type: 'text', left: 70, top: 40, text: '', textDirection: 'rtl', fontSize: 12 };
       mountInPageWrapper(emptyRtlElement, { isActive: true });
-      expect(useFloatingCalls[0].placement).toBe('top-end');
+      expect(useFloatingCalls[0].placement).toBe('top-start');
     });
 
     it('keeps the toolbar above the element for both text directions instead of falling underneath it', () => {

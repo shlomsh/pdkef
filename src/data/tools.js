@@ -47,7 +47,7 @@ export const tools = [
     toolName: 'Sign & Fill PDF',
     h1: 'Sign PDF Free: Fill & Sign Forms in Your Browser',
     subhead:
-      'You can fill out and sign a PDF here without ever printing or scanning it. Tick checkboxes, type text, and add your signature to any PDF, from school consent slips to contracts and applications, in Hebrew, Arabic, Urdu, Japanese, Bengali, Hindi, Vietnamese, Thai, Russian, Ukrainian, Greek, or any Latin-script language. Your progress auto-saves on your device, so a crash or accidental refresh never loses your work.',
+      'You can fill out and sign a PDF here without ever printing or scanning it. Tick checkboxes, type text, and add your signature to any PDF, from school consent slips to contracts and applications, in Hebrew, Arabic, Urdu, Japanese, Chinese, Korean, Bengali, Hindi, Vietnamese, Thai, Russian, Ukrainian, Greek, or any Latin-script language. Your progress auto-saves on your device, so a crash or accidental refresh never loses your work.',
     ariaLabel: 'PDF sign tool',
     aboutHeading: 'How to fill and sign PDF files',
     aboutLead:
@@ -84,71 +84,92 @@ export const tools = [
       lead:
         "Hebrew, Hindi, Marathi, Thai, Russian, Ukrainian, Greek, Arabic, Urdu, Vietnamese, and every Latin-script language work end to end here, so what you type is exactly what ends up in your downloaded file. I'm adding more as I go.",
       supportedHeading: 'Supported now',
+      // Ordered by roughly how many people speak each language, most to
+      // least, so the card leads with what the most visitors are searching
+      // for. Flags are a visual cue, not a claim of exclusivity - up to three
+      // per entry, picked for the countries with the most speakers of that
+      // language (or, for a script bucket like Latin or Cyrillic, the
+      // countries behind its biggest constituent languages).
       supported: [
         {
-          native: 'עברית',
-          name: 'Hebrew',
-          note: 'Six text fonts, plus Gveret Levin for a handwritten signature. Vowel points are positioned rather than just shown on screen, and a text box grows leftward from a fixed right edge, the way right-to-left text really behaves.',
-        },
-        {
-          native: 'हिन्दी, मराठी',
-          name: 'Hindi, Marathi, and Devanagari',
-          note: 'Kalam, a handwriting face that also works for a typed signature. Conjunct letters and vowel signs are reordered and shaped correctly in the download, which is the part most tools get wrong. The same file also carries ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi works too.',
-        },
-        {
-          native: 'ไทย',
-          name: 'Thai',
-          note: 'Mali, which doubles as a typed-signature font. Tone marks and the vowels that sit above and below the line land where they belong.',
-        },
-        {
-          native: 'Русский, Українська',
-          name: 'Russian, Ukrainian, and other Cyrillic',
-          note: 'PT Sans, including the Ukrainian letters ї, є, і and ґ that some fonts quietly leave out. There is no handwriting-style Cyrillic face yet, so a typed signature comes out upright rather than cursive.',
-        },
-        {
-          native: 'Ελληνικά',
-          name: 'Greek',
-          note: 'Arimo, Tinos and Cousine all carry Greek, checked against the real font file rather than taken on trust.',
-        },
-        {
-          native: 'English, Filipino, Bahasa Melayu, Gaeilge',
+          native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All ten text fonts, plus eight handwriting faces for a typed signature. Accented letters are where the choice narrows rather than disappears: seven of the ten text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to choose from than a name without. Vietnamese narrows it further again and has its own line. The tool names any character it cannot draw while you type, rather than letting it slip into the download.',
+          note: 'All 16 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 16 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
-          native: 'Tiếng Việt',
-          name: 'Vietnamese',
-          note: 'Arimo, Tinos, Cousine and Mali, checked letter by letter against the real font files rather than assumed from general Latin coverage: every tone-and-diacritic vowel (ạ ả ấ ầ ẩ ẫ ậ ắ ằ ẳ ẵ ặ and the rest) is there. Mali doubles as a typed-signature font. The other bundled fonts do not carry Vietnamese, so they are left off the typed-signature list for it.',
+          native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
+          name: 'Chinese, Simplified and Traditional',
+          note: "Fill a Chinese form and sign your name in Chinese, Simplified or Traditional, each with its own face since the shapes genuinely differ: Noto Sans SC covers close to 7,900 of the most common Simplified characters, Noto Sans TC close to 11,100 Traditional ones, curated subsets rather than all of Unicode's roughly 97,000 Han characters, the same shape of limit Japanese kanji has here. One wrinkle worth knowing: Chinese shares thousands of characters with Japanese, so typing Chinese while a non-Chinese font is selected can draw those shared characters in Japanese shapes. Pick Simplified or Traditional Chinese in the font menu and you get the shapes a Chinese reader expects. There is no handwriting-style Chinese face yet, so a typed signature comes out upright rather than cursive.",
         },
         {
-          native: 'العربية',
+          native: 'हिन्दी, मराठी 🇮🇳🇳🇵',
+          name: 'Hindi, Marathi, and Devanagari',
+          note: 'Fill a form and sign your name in Hindi or Marathi, in Kalam, a handwriting face that doubles as a typed signature. Conjunct letters and vowel signs are reordered and reshaped for the download, which is the part most tools quietly get wrong. Kalam also carries ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi is not an afterthought here.',
+        },
+        {
+          native: 'العربية 🇪🇬🇸🇦🇲🇦',
           name: 'Arabic',
-          note: "Almarai. Letters join and change shape depending on their neighbours the way handwritten Arabic actually connects, mandatory ligatures like لا are formed, and a text box grows leftward from a fixed right edge, the same right-to-left behaviour Hebrew gets.",
+          note: 'Fill an Arabic form and sign your name in Arabic, set in Scheherazade New, a traditional Naskh face. Letters join and change shape depending on their neighbours, the way handwritten Arabic actually connects, mandatory ligatures like لا are formed, and a text box grows leftward from a fixed right edge, the same right-to-left behaviour Hebrew gets.',
         },
         {
-          native: 'دری',
-          name: 'Dari and Farsi',
-          note: "The same Almarai font Arabic uses, which also carries Dari and Farsi's extra letters (پ, چ, ژ, گ) and their own ۰-۹ digits. Letters join the same way Arabic does, and a text box grows leftward from a fixed right edge.",
-        },
-        {
-          native: 'اردو',
-          name: 'Urdu',
-          note: "The same Almarai font, which also carries the letters Arabic lacks (ٹ, ڈ, ڑ, ں, ے, ہ, ۃ) and Urdu's own ۰-۹ digits. One honest caveat: Urdu is conventionally set in Nastaliq, a sloped, cascading calligraphic style, and Almarai is a Naskh (upright) design. The text is fully legible and correctly joined, but it will look to an Urdu reader roughly the way Japanese glyph shapes look to a Chinese reader here, drawn in a real but unfamiliar style.",
-        },
-        {
-          native: '日本語',
-          name: 'Japanese',
-          note: "Noto Sans JP, covering hiragana, katakana, and the two government kanji lists: jōyō (2,136 characters taught for general use) and jinmeiyō (863 more permitted in personal names), 2,999 kanji in total rather than all of Unicode's Han. There is no handwriting-style Japanese face yet, so a typed signature comes out upright rather than cursive.",
-        },
-        {
-          native: 'বাংলা',
+          native: 'বাংলা 🇧🇩🇮🇳',
           name: 'Bengali',
-          note: "Noto Sans Bengali. Conjunct letters, reph and vowel signs like ি that are typed after their consonant but drawn before it are reordered and shaped in the download, not just displayed on screen. Three rare clusters are known to draw a little differently in the download than on screen, and they are listed in the FAQ below rather than left for you to find. The same font also carries Assamese's two extra letters, ৰ and ৱ, so Assamese works too even though the tool doesn't yet have its own line for it. There is no handwriting-style Bengali face yet, so a typed signature comes out upright rather than cursive.",
+          note: "Fill a Bengali form and sign your name in Bengali, in Noto Sans Bengali. Conjunct letters, reph, and vowel signs like ি that you type after a consonant but that belong before it are reordered and reshaped for the download, not just on screen. Three rare clusters are known to draw a little differently in the file than they do on screen, and they are named in the FAQ below rather than left for you to find. The same font carries Assamese's two extra letters, ৰ and ৱ, so Assamese works too. There is no handwriting-style Bengali face yet, so a typed signature comes out upright rather than cursive.",
+        },
+        {
+          native: 'Русский, Українська 🇷🇺🇺🇦🇧🇬',
+          name: 'Russian, Ukrainian, and other Cyrillic',
+          note: 'Fill a form and sign your name in Russian, Ukrainian, Bulgarian, Serbian and the other Cyrillic languages, in PT Sans, which carries the Ukrainian letters ї, є, і and ґ that some fonts quietly leave out. There is no handwriting-style Cyrillic face here yet, so a typed signature comes out upright rather than cursive.',
+        },
+        {
+          native: 'اردو 🇵🇰🇮🇳',
+          name: 'Urdu',
+          note: "Fill an Urdu form and sign your name in Urdu, in that same Scheherazade New face, which carries the letters Arabic lacks (ٹ, ڈ, ڑ, ں, ے, ہ, ۃ) and Urdu's own ۰-۹ digits. One thing worth saying plainly: Urdu is conventionally set in Nastaliq, a sloped, cascading calligraphic style, and Scheherazade New is a Naskh (upright) design. Your text is fully legible and correctly joined, but it will read to an Urdu eye as a real style worn in the wrong setting. A Nastaliq face is on my list.",
+        },
+        {
+          native: '日本語 🇯🇵',
+          name: 'Japanese',
+          note: "Fill a Japanese form and sign your name in Japanese, in Noto Sans JP, covering hiragana, katakana, and both government kanji lists: jōyō (the 2,136 taught for general use) and jinmeiyō (863 more allowed in personal names), 2,999 kanji rather than all of Unicode's Han. There is no handwriting-style Japanese face yet, so a typed signature comes out upright rather than cursive.",
+        },
+        {
+          native: 'دری 🇮🇷🇦🇫',
+          name: 'Dari and Farsi',
+          note: "Fill a form and sign your name in Dari or Farsi. The same Scheherazade New face Arabic uses carries their extra letters (پ, چ, ژ, گ) and their own ۰-۹ digits, letters join the way Arabic does, and a text box grows leftward from a fixed right edge.",
+        },
+        {
+          native: 'Tiếng Việt 🇻🇳',
+          name: 'Vietnamese',
+          note: 'Fill a Vietnamese form and sign your name in Vietnamese, in Arimo, Tinos, Cousine or Mali, with Mali doubling as a typed-signature face. I checked these letter by letter against the real font files rather than assuming general Latin coverage carried over: every tone-and-diacritic vowel (ạ ả ấ ầ ẩ ẫ ậ ắ ằ ẳ ẵ ặ and the rest) is there. The other bundled fonts do not carry Vietnamese, so they are left off its list.',
+        },
+        {
+          native: '한국어 🇰🇷',
+          name: 'Korean',
+          note: 'Fill a Korean form and sign your name in Korean, in Noto Sans KR, which covers the complete modern Hangul block, all 11,172 precomposed syllables plus the individual jamo, so any Korean sentence draws in full rather than from a curated subset. There is no handwriting-style Korean face yet, so a typed signature comes out upright rather than cursive.',
+        },
+        {
+          native: 'ไทย 🇹🇭',
+          name: 'Thai',
+          note: 'Fill a Thai form and sign your name in Thai, in Mali, which doubles as a typed-signature face. Tone marks and the vowels that sit above and below the line land where they belong instead of drifting off the letter.',
+        },
+        {
+          native: 'پښتو 🇦🇫🇵🇰',
+          name: 'Pashto',
+          note: 'Fill a Pashto form and sign your name in Pashto. Scheherazade New carries the eleven letters (ټ, ځ, څ, ډ, ړ, ږ, ښ, ګ, ڼ, ې, ۍ) that make Pashto script-complete, which nothing bundled here could draw until recently. Letters join the way Arabic does, and a text box grows leftward from a fixed right edge.',
+        },
+        {
+          native: 'Ελληνικά 🇬🇷🇨🇾',
+          name: 'Greek',
+          note: "Fill a Greek form and sign your name in Greek, in Arimo, Tinos or Cousine. I checked all three against the real font file rather than taking the label's word for it.",
+        },
+        {
+          native: 'עברית 🇮🇱',
+          name: 'Hebrew',
+          note: 'Fill in a Hebrew form and sign your name in Hebrew, and what you typed is what lands in the downloaded file. Six text fonts to choose from, plus Gveret Levin if you want the signature handwritten. Vowel points are placed properly rather than just shown on screen, and a text box grows leftward from a fixed right edge, the way right-to-left writing actually behaves.',
         },
       ],
       notYetHeading: 'More on the way',
       notYet:
-        "Pashto, Korean, emoji, and India's other scripts (Tamil, Telugu) aren't there yet. Chinese is only half there: the characters it shares with Japanese will draw, in the Japanese shapes, and the rest will not. Type any of these today and the tool lets you know as you go, naming the exact characters, so you find out before you fill in a whole form, not after.",
+        "Tamil, Telugu and emoji are not there yet, and a Nastaliq face so Urdu can be set the way Urdu is normally written is the other thing I would like to add. If you type something the tool cannot draw, it tells you as you go and names the exact characters, so you find out while you are typing rather than after you have filled in a whole form and downloaded it.",
     },
     steps: [
       { title: 'Upload your form', text: 'Select or drag-and-drop the PDF document you want to fill and sign.' },
@@ -196,11 +217,15 @@ export const tools = [
       },
       {
         question: 'Can I fill and sign a PDF in Dari or Farsi (دری/فارسی)?',
-        answer: "Yes. Dari and Farsi use the same Almarai font as Arabic, which also carries their extra letters (پ, چ, ژ, گ) and their own ۰-۹ digits. Letters join the same way Arabic does, and the box grows leftward from a fixed right edge, so what you see on screen is what gets embedded in the file you download.",
+        answer: "Yes. Dari and Farsi use the same Scheherazade New font as Arabic, which also carries their extra letters (پ, چ, ژ, گ) and their own ۰-۹ digits. Letters join the same way Arabic does, and the box grows leftward from a fixed right edge, so what you see on screen is what gets embedded in the file you download.",
       },
       {
         question: 'Can I fill and sign a PDF in Urdu (اردو میں PDF پر دستخط)?',
-        answer: "Yes, with one honest caveat worth knowing before you rely on it. Urdu uses the same Almarai font as Arabic, which also carries the letters Arabic lacks (ٹ, ڈ, ڑ, ں, ے, ہ, ۃ) and Urdu's own ۰-۹ digits, so text joins correctly and nothing is missing. But Urdu is conventionally set in Nastaliq, a sloped, cascading calligraphic style, and Almarai is Naskh, an upright style, the same family Arabic and Farsi use here. The result is fully legible and correctly joined, just in an unfamiliar style, similar to how Japanese kanji shapes look to a Chinese reader on this page.",
+        answer: "Yes, with one honest caveat worth knowing before you rely on it. Urdu uses the same Scheherazade New font as Arabic, which also carries the letters Arabic lacks (ٹ, ڈ, ڑ, ں, ے, ہ, ۃ) and Urdu's own ۰-۹ digits, so text joins correctly and nothing is missing. But Urdu is conventionally set in Nastaliq, a sloped, cascading calligraphic style, and Scheherazade New is Naskh, an upright style, the same family Arabic and Farsi use here. The result is fully legible and correctly joined, just in an unfamiliar style, similar to how Japanese kanji shapes look to a Chinese reader on this page.",
+      },
+      {
+        question: 'Can I fill and sign a PDF in Pashto (پښتو کې PDF لاسلیک)?',
+        answer: "Yes. Pashto used to be missing eleven letters (ټ, ځ, څ, ډ, ړ, ږ, ښ, ګ, ڼ, ې, ۍ) from every bundled font, including the Arabic one, so it has its own answer here rather than sharing Arabic's. Scheherazade New, the font Arabic, Dari and Farsi also use on this page, draws all eleven, so a Pashto word joins and shapes correctly and what you see on screen is what gets embedded in the file you download.",
       },
       {
         question: 'Can I type Vietnamese (chữ ký PDF bằng tiếng Việt) when signing a PDF?',
@@ -215,8 +240,12 @@ export const tools = [
         answer: "Yes. Bengali is a complex script, where a vowel sign like ি is typed after its consonant but has to be drawn before it, and consonant clusters form ligatures rather than sitting side by side - the bundled Noto Sans Bengali font handles both, so what you see on screen is what gets embedded in the file you download. Three clusters are the exception and we would rather name them than let you discover them: ট্র and ঠ্র place their ra-mark slightly differently in the download, and ক্ক comes out as two letters with a visible virama instead of a single joined form. Everything else in a 262-case check matched the screen exactly. Assamese, which shares almost all of the same script, also works: the same font carries its two extra letters, ৰ and ৱ. There is no handwriting-style Bengali face yet, so a typed signature comes out upright, not cursive.",
       },
       {
-        question: 'Can I sign a PDF in Chinese or Pashto?',
-        answer: 'Not properly yet, and there is one honest wrinkle worth knowing. Japanese and Chinese share thousands of characters, so a Chinese word built from characters that are also on the Japanese kanji lists will draw in the Japanese font, in the Japanese shapes for those characters, which are not always the shapes a Chinese reader expects. Anything outside those lists, and Korean, Pashto and emoji, cannot be drawn at all, and a notice names the exact characters while you type rather than at the end. Proper Simplified and Traditional Chinese and Korean faces are the next thing being added, since each needs its own file for exactly the reason above. Pashto needs letters the bundled Arabic font was not built to draw. Everything else on this page, including Hebrew, Arabic, Dari, Farsi, Urdu, Hindi, Marathi, Thai, Russian, Ukrainian, Greek, Japanese, Bengali, Vietnamese and every Latin-script language, works end to end today.',
+        question: 'Can I fill and sign a PDF in Chinese (简体中文/繁體中文)?',
+        answer: "Yes, in two separate fonts because the letterforms genuinely differ: Noto Sans SC draws close to 7,900 of the most common Simplified characters, and Noto Sans TC draws close to 11,100 of the most common Traditional characters - real curated subsets, not all of Unicode's roughly 97,000 Han codepoints, the same shape of limit Japanese kanji has on this page. One honest wrinkle: Chinese shares thousands of characters with Japanese, so if you type Chinese while a non-Chinese font is still selected, the tool may draw the shared characters in Noto Sans JP's Japanese shapes instead of Chinese ones. Pick Simplified or Traditional Chinese from the font picker to get the shapes you expect. There is no handwriting-style Chinese face yet, so a typed signature comes out upright, not cursive.",
+      },
+      {
+        question: 'Can I fill and sign a PDF in Korean (한국어 PDF 서명)?',
+        answer: 'Yes, in full. Noto Sans KR covers every one of the 11,172 precomposed Hangul syllables plus the individual jamo, so unlike Chinese or Japanese kanji here, there is no partial-coverage caveat to make: modern Korean writing does not use Hanja day to day, so the whole modern alphabet is one closed, contiguous set and the bundled font draws all of it. There is no handwriting-style Korean face yet, so a typed signature comes out upright, not cursive.',
       },
     ],
   },

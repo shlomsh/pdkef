@@ -249,7 +249,7 @@ export default function PdfRedactTool() {
     await loadPdf(selected, bytes, {});
   };
 
-  const { clearDraft, isRestoring } = useEditorDraftPersistence({
+  const { clearDraft, isRestoring, draftSaveState } = useEditorDraftPersistence({
     tool: 'redact',
     file,
     fileBytes: fileBytesRef.current,
@@ -487,7 +487,7 @@ export default function PdfRedactTool() {
       emptyStateMessage="Select or drop a PDF to redact"
       fileLabel={file?.name}
       fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null)}
-      draftSaved={status === 'editing'}
+      draftSaveState={draftSaveState}
       hasWork={elements.length > 0}
       workNoun="your redaction boxes"
       ownsShell

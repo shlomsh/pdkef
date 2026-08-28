@@ -57,7 +57,7 @@ export default function useFontCoverageNotice(elements) {
   // let the warning and signPdf's refusal disagree. **Anything
   // findUnrepresentableCharacters reads belongs in this key.**
   const signature = (elements || [])
-    .filter((el) => el.type === 'text' && (el.text || '').trim())
+    .filter((el) => el.type === 'text' && (el.text || '') !== '')
     .map((el) => [el.id, el.pageIndex, el.fontFamily, el.fontWeight, el.fontStyle, el.width, el.combCells, el.text].join('\u0000'))
     .join('\u0001');
 

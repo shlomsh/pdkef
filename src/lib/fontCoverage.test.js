@@ -330,27 +330,26 @@ describe('§3.6: what the rule changes, case by case', () => {
  * Dari/Farsi rides the existing Arabic coverage with no extra machinery:
  * Persian's four extra letters (پ چ ژ گ) and the Extended Arabic-Indic
  * (Persian) digit block ۰-۹ both sit inside the *main* Arabic block
- * (U+0600-06FF), which Almarai's real bytes cover - see TODO.md's "Almarai
- * may already cover Farsi and Urdu's extra letters" finding. This describe
- * checks that claim against the real font bytes directly, since neither
- * suite above probes these specific codepoints.
+ * (U+0600-06FF). Keep this direct real-byte check when the bundled Arabic
+ * face changes: the replacement must retain these letters and digits,
+ * independently of the generated coverage table.
  *
- * Pashto is NOT covered here on purpose - a direct check found Almarai
- * missing 8 of 9 Pashto-specific letters (ټ ډ ړ ږ ښ ګ ڼ ې), so Pashto stays
- * unclaimed and unrouted until it gets its own font.
+ * Scheherazade New replaced Almarai to extend Pashto coverage. The broader
+ * language matrix tests that addition separately; these assertions protect
+ * the existing Persian coverage during that migration.
  */
-describe('Dari/Farsi letters and digits (Almarai)', () => {
+describe('Dari/Farsi letters and digits (Scheherazade New)', () => {
   const PERSIAN_LETTERS = ['پ', 'چ', 'ژ', 'گ'];
   const PERSIAN_DIGITS = '۰۱۲۳۴۵۶۷۸۹'.split('');
 
-  it('Almarai has real glyphs for every Persian-specific letter', () => {
-    const charset = characterSetOf('Almarai-Regular.ttf');
+  it('Scheherazade New has real glyphs for every Persian-specific letter', () => {
+    const charset = characterSetOf('ScheherazadeNew-Regular.ttf');
     const missing = PERSIAN_LETTERS.filter((letter) => !charset.has(letter.codePointAt(0)));
     expect(missing).toEqual([]);
   });
 
-  it('Almarai has real glyphs for every Extended Arabic-Indic (Persian) digit', () => {
-    const charset = characterSetOf('Almarai-Regular.ttf');
+  it('Scheherazade New has real glyphs for every Extended Arabic-Indic (Persian) digit', () => {
+    const charset = characterSetOf('ScheherazadeNew-Regular.ttf');
     const missing = PERSIAN_DIGITS.filter((digit) => !charset.has(digit.codePointAt(0)));
     expect(missing).toEqual([]);
   });

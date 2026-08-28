@@ -164,15 +164,20 @@ describe('sign.js signPdf', () => {
   });
 
   describe('refuses rather than silently drop characters no bundled font can draw (H5)', () => {
+    // Chinese, then Pashto, were this suite's example in turn, and each
+    // stopped being genuinely unrepresentable as its font landed (Noto Sans
+    // SC/TC covering shared Han characters, see fonts.js's CATALOGUE comment;
+    // Scheherazade New covering Pashto's eleven extra letters). Emoji is the
+    // one fixture stable against the catalogue growing (see TODO.md).
     it('throws UnrepresentableTextError naming the characters, instead of returning a PDF missing them', async () => {
       const file = getFixtureFile();
       const element = {
-        id: 'el-chinese',
+        id: 'el-emoji',
         type: 'text',
         pageIndex: 0,
         left: 10,
         top: 10,
-        text: '你好吗呀吧', // Chinese - no bundled font carries CJK glyphs (see TODO.md, page-weight blocker)
+        text: '😀🎉',
         fontFamily: 'Heebo',
         fontSize: 20,
         color: '#000000'
@@ -180,14 +185,14 @@ describe('sign.js signPdf', () => {
 
       await expect(signPdf(file, [element])).rejects.toBeInstanceOf(UnrepresentableTextError);
       const error = await signPdf(file, [element]).catch((e) => e);
-      expect(error.characters).toEqual(['你', '好', '吗', '呀', '吧']);
+      expect(error.characters).toEqual(['😀', '🎉']);
     });
 
     it('reports which page to look on, so a long document is actionable', async () => {
       const file = getFixtureFile();
       const element = {
-        id: 'el-chinese', type: 'text', pageIndex: 0, left: 10, top: 10,
-        text: '你好吗呀吧', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
+        id: 'el-emoji', type: 'text', pageIndex: 0, left: 10, top: 10,
+        text: '😀🎉', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
       };
       const error = await signPdf(file, [element]).catch((e) => e);
       // 1-based, matching what the page navigation shows the user.
@@ -202,12 +207,12 @@ describe('sign.js signPdf', () => {
       const element = {
         id: 'el-comb', type: 'text', pageIndex: 0, left: 10, top: 10,
         width: 20, comb: true, combCells: 4,
-        text: 'שלום 你好吗呀吧', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
+        text: 'שלום 😀🎉', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
       };
       const combCells = combCellCount(element);
-      // Non-vacuity: the Chinese really is beyond the drawn cells, and really
+      // Non-vacuity: the emoji really is beyond the drawn cells, and really
       // is unrepresentable - otherwise this passes for the wrong reason.
-      expect(combCharacters(element).slice(0, combCells).join('')).not.toContain('你');
+      expect(combCharacters(element).slice(0, combCells).join('')).not.toContain('😀');
       expect(combCharacters(element).length).toBeGreaterThan(combCells);
 
       await expect(signPdf(file, [element])).resolves.toBeInstanceOf(Blob);
@@ -221,7 +226,7 @@ describe('sign.js signPdf', () => {
       };
       const badElement = {
         id: 'el-bad', type: 'text', pageIndex: 0, left: 10, top: 60,
-        text: '你好吗呀吧', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
+        text: '😀🎉', fontFamily: 'Heebo', fontSize: 20, color: '#000000'
       };
 
       // The good element is first in the array; if the pre-pass only checked
@@ -289,8 +294,8 @@ describe('sign.js pure functions', () => {
       expect(getEffectiveTextDirection({ type: 'text', text: 'مرحبا' })).toBe('rtl');
     });
 
-    it('should use textDirection only as a fallback before any text is typed', () => {
-      expect(getEffectiveTextDirection({ type: 'text', text: '', textDirection: 'rtl' })).toBe('rtl');
+    it('uses English/LTR for empty legacy text even when it stores RTL direction', () => {
+      expect(getEffectiveTextDirection({ type: 'text', text: '', textDirection: 'rtl' })).toBe('ltr');
     });
 
     it('should render digits and date/ID punctuation left-to-right regardless of a stale or inherited textDirection', () => {

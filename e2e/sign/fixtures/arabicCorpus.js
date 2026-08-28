@@ -132,16 +132,18 @@ export const realisticStringsCases = [
 
 /**
  * Dari/Farsi cases, included in ARABIC_CORPUS rather than a separate corpus
- * file - Dari renders through the same Almarai font and the same
- * `ArabicShaper` fontkit uses for Arabic (Unicode's joining classes don't
- * distinguish "Arabic" from "Persian" letters, only joining behaviour - see
- * TODO.md's "Almarai may already cover Farsi and Urdu's extra letters"
- * finding), so one guard covers both rather than duplicating the harness
- * config for a font this corpus already exercises.
+ * file - Dari renders through the same Scheherazade New font (Almarai's
+ * replacement, see TODO.md's Pashto entry and RETIRED_FONTS in
+ * src/lib/fonts.js) and the same `ArabicShaper` fontkit uses for Arabic
+ * (Unicode's joining classes don't distinguish "Arabic" from "Persian"
+ * letters, only joining behaviour - see TODO.md's "Almarai may already cover
+ * Farsi and Urdu's extra letters" finding, which held for Scheherazade New
+ * too), so one guard covers both rather than duplicating the harness config
+ * for a font this corpus already exercises.
  *
- * Joining behaviour verified directly against Almarai with fontkit before
- * writing these groups, the same discipline `positionalFormsCases`'s doc
- * comment above describes for the Arabic alphabet: `پ` (pe), `چ` (che) and
+ * Joining behaviour verified directly against the bundled font with fontkit
+ * before writing these groups, the same discipline `positionalFormsCases`'s
+ * doc comment above describes for the Arabic alphabet: `پ` (pe), `چ` (che) and
  * `گ` (gaf) each shape to four distinct glyph ids across isolated/initial/
  * medial/final, i.e. dual-joining, matching their Arabic base-letter shapes
  * (ب, ج, ک). `ژ` (zhe) shapes to only two distinct ids - isolated and
@@ -184,3 +186,26 @@ export const ARABIC_CORPUS = [
   ...persianNonJoiningFormsCases,
   ...persianRealisticCases,
 ];
+
+/**
+ * The eleven letters that make Pashto script-complete and that no bundled
+ * font could draw before Scheherazade New replaced Almarai (TODO.md's
+ * Pashto entry): ttee, dhah, tteh with a ring, ddal, rre, rre with dot
+ * above, seen with a small v, gaf, nnoon, yeh with a small v, and yeh with
+ * tail - ټ ځ څ ډ ړ ږ ښ ګ ڼ ې ۍ.
+ *
+ * Kept as its own corpus rather than folded into ARABIC_CORPUS: these
+ * letters have no Arabic joining-rule equivalent to verify against (unlike
+ * `positionalFormsCases` above, which checks dual-joining letters fontkit
+ * has always been able to shape), so the only thing worth checking here is
+ * that Scheherazade New draws each one at all, isolated and in a joined
+ * two-letter pair - matching the corpus the candidate screening spec used
+ * (see git history of arabic-candidate-font-screen.spec.js, the throwaway
+ * spec that picked this font in the first place).
+ */
+const PASHTO_EXTRA_LETTERS = ['ټ', 'ځ', 'څ', 'ډ', 'ړ', 'ږ', 'ښ', 'ګ', 'ڼ', 'ې', 'ۍ'];
+
+export const PASHTO_CORPUS = PASHTO_EXTRA_LETTERS.flatMap((letter) => ([
+  { id: `pashto-isolated:${letter}`, text: letter },
+  { id: `pashto-joined:${letter}+ا`, text: `${letter}ا` },
+]));

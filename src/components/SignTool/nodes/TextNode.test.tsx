@@ -85,6 +85,31 @@ describe('TextNode component', () => {
     expect(onChange).toHaveBeenCalledWith({ text: 'User typed this' });
   });
 
+  it('derives direction from typed text across neutral, RTL, and digit-only transitions', () => {
+    const renderNode = (text) => {
+      act(() => {
+        render(
+          <TextNode
+            element={{ text, textDirection: 'rtl', fontSize: 12 }}
+            isActive={true}
+            isEditing={true}
+            onChange={() => {}}
+            onSelect={() => {}}
+            onResizeStart={() => {}}
+            pageWidthPoints={600}
+          />,
+          host
+        );
+      });
+      return host.querySelector('textarea');
+    };
+
+    host = mount(<div />);
+    expect(renderNode('').dir).toBe('ltr');
+    expect(renderNode('مرحبا').dir).toBe('rtl');
+    expect(renderNode('27/05/2008').dir).toBe('ltr');
+  });
+
   it('triggers onSelect when textarea receives focus', () => {
     const element = { text: 'Focus test', fontSize: 12 };
     const onSelect = vi.fn();

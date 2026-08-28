@@ -17,9 +17,15 @@ const STANDARD_FONTS = [
   { value: 'Heebo', label: 'Hebrew (Heebo)', css: "'Heebo', sans-serif" },
   { value: 'Alef', label: 'Hebrew (Alef)', css: "'Alef', sans-serif" },
   { value: 'PT Sans', label: 'Cyrillic (PT Sans)', css: "'PT Sans', sans-serif" },
-  { value: 'Almarai', label: 'Arabic (Almarai)', css: "'Almarai', sans-serif" },
+  { value: 'Scheherazade New', label: 'Arabic (Scheherazade New)', css: "'Scheherazade New', serif" },
   { value: 'Noto Sans JP', label: 'Japanese (Noto Sans JP)', css: "'Noto Sans JP', sans-serif" },
+  { value: 'Noto Sans SC', label: 'Chinese, Simplified (Noto Sans SC)', css: "'Noto Sans SC', sans-serif" },
+  { value: 'Noto Sans TC', label: 'Chinese, Traditional (Noto Sans TC)', css: "'Noto Sans TC', sans-serif" },
+  { value: 'Noto Sans KR', label: 'Korean (Noto Sans KR)', css: "'Noto Sans KR', sans-serif" },
   { value: 'Noto Sans Bengali', label: 'Bengali (Noto Sans Bengali)', css: "'Noto Sans Bengali', sans-serif" },
+  { value: 'Noto Sans Gurmukhi', label: 'Punjabi (Noto Sans Gurmukhi)', css: "'Noto Sans Gurmukhi', sans-serif" },
+  { value: 'Noto Sans Telugu', label: 'Telugu (Noto Sans Telugu)', css: "'Noto Sans Telugu', sans-serif" },
+  { value: 'Noto Sans Tamil', label: 'Tamil (Noto Sans Tamil)', css: "'Noto Sans Tamil', sans-serif" },
   { value: 'Tinos', label: 'Tinos (Times Roman)', css: "'Tinos', 'Times New Roman', Times, serif" },
   { value: 'Cousine', label: 'Cousine (Courier)', css: "'Cousine', 'Courier New', Courier, monospace" }
 ];

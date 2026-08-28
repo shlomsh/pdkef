@@ -238,16 +238,16 @@
   src: url('/fonts/PTSans-BoldItalic.ttf') format('truetype');
 }
 @font-face {
-  font-family: 'Almarai';
+  font-family: 'Scheherazade New';
   font-style: normal;
   font-weight: 400;
-  src: url('/fonts/Almarai-Regular.ttf') format('truetype');
+  src: url('/fonts/ScheherazadeNew-Regular.ttf') format('truetype');
 }
 @font-face {
-  font-family: 'Almarai';
+  font-family: 'Scheherazade New';
   font-style: normal;
   font-weight: 700;
-  src: url('/fonts/Almarai-Bold.ttf') format('truetype');
+  src: url('/fonts/ScheherazadeNew-Bold.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Noto Sans JP';
@@ -262,6 +262,42 @@
   src: url('/fonts/NotoSansJP-Bold.ttf') format('truetype');
 }
 @font-face {
+  font-family: 'Noto Sans SC';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/NotoSansSC-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans SC';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/NotoSansSC-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans TC';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/NotoSansTC-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans TC';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/NotoSansTC-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans KR';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/NotoSansKR-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans KR';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/NotoSansKR-Bold.ttf') format('truetype');
+}
+@font-face {
   font-family: 'Noto Sans Bengali';
   font-style: normal;
   font-weight: 400;
@@ -272,4 +308,40 @@
   font-style: normal;
   font-weight: 700;
   src: url('/fonts/NotoSansBengali-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans Gurmukhi';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/NotoSansGurmukhi-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans Gurmukhi';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/NotoSansGurmukhi-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans Telugu';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/NotoSansTelugu-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans Telugu';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/NotoSansTelugu-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans Tamil';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/NotoSansTamil-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans Tamil';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/NotoSansTamil-Bold.ttf') format('truetype');
 }

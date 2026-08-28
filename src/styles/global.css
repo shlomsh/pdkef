@@ -50,7 +50,7 @@
 @source not "../../docs/**";
 @source not "../../*.html";
 
-/* The bundled @font-face catalogue (Caveat, Assistant, Almarai, etc.) used to
+/* The bundled @font-face catalogue (Caveat, Assistant, Scheherazade New, etc.) used to
    live here and was paid for by every page via build.inlineStylesheets:
    'always'. It only matters where the editor renders text in one of these
    families - the Sign editor, typed signatures, the font picker - so it now

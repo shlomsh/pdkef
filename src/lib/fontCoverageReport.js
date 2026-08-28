@@ -46,14 +46,14 @@ export const LANGUAGE_COVERAGE = {
   "latin": {
     label: "Latin",
     requiredCodePointCount: 52,
-    full: [{ family: "Caveat", style: "handwriting" }, { family: "Dancing Script", style: "handwriting" }, { family: "Great Vibes", style: "handwriting" }, { family: "Gveret Levin", style: "handwriting" }, { family: "Kalam", style: "handwriting" }, { family: "Mali", style: "handwriting" }, { family: "Pacifico", style: "handwriting" }, { family: "Sacramento", style: "handwriting" }, { family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }, { family: "Assistant", style: "upright" }, { family: "Heebo", style: "upright" }, { family: "Alef", style: "upright" }, { family: "PT Sans", style: "upright" }, { family: "Almarai", style: "upright" }, { family: "Noto Sans JP", style: "upright" }, { family: "Noto Sans Bengali", style: "upright" }],
+    full: [{ family: "Caveat", style: "handwriting" }, { family: "Dancing Script", style: "handwriting" }, { family: "Great Vibes", style: "handwriting" }, { family: "Gveret Levin", style: "handwriting" }, { family: "Kalam", style: "handwriting" }, { family: "Mali", style: "handwriting" }, { family: "Pacifico", style: "handwriting" }, { family: "Sacramento", style: "handwriting" }, { family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }, { family: "Assistant", style: "upright" }, { family: "Heebo", style: "upright" }, { family: "Alef", style: "upright" }, { family: "PT Sans", style: "upright" }, { family: "Scheherazade New", style: "upright" }, { family: "Noto Sans JP", style: "upright" }, { family: "Noto Sans SC", style: "upright" }, { family: "Noto Sans TC", style: "upright" }, { family: "Noto Sans KR", style: "upright" }, { family: "Noto Sans Bengali", style: "upright" }, { family: "Noto Sans Gurmukhi", style: "upright" }, { family: "Noto Sans Telugu", style: "upright" }, { family: "Noto Sans Tamil", style: "upright" }],
     partial: [],
   },
   "latinExt": {
     label: "Latin Extended (accented, representative sample)",
     requiredCodePointCount: 80,
-    full: [{ family: "Kalam", style: "handwriting" }, { family: "Mali", style: "handwriting" }, { family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }, { family: "Heebo", style: "upright" }, { family: "Alef", style: "upright" }, { family: "PT Sans", style: "upright" }, { family: "Noto Sans Bengali", style: "upright" }],
-    partial: [{ family: "Caveat", style: "handwriting", fraction: 0.738 }, { family: "Dancing Script", style: "handwriting", fraction: 0.738 }, { family: "Great Vibes", style: "handwriting", fraction: 0.738 }, { family: "Pacifico", style: "handwriting", fraction: 0.738 }, { family: "Sacramento", style: "handwriting", fraction: 0.738 }, { family: "Assistant", style: "upright", fraction: 0.875 }, { family: "Almarai", style: "upright", fraction: 0.713 }],
+    full: [{ family: "Kalam", style: "handwriting" }, { family: "Mali", style: "handwriting" }, { family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }, { family: "Heebo", style: "upright" }, { family: "Alef", style: "upright" }, { family: "PT Sans", style: "upright" }, { family: "Noto Sans Bengali", style: "upright" }, { family: "Noto Sans Gurmukhi", style: "upright" }, { family: "Noto Sans Telugu", style: "upright" }, { family: "Noto Sans Tamil", style: "upright" }],
+    partial: [{ family: "Caveat", style: "handwriting", fraction: 0.738 }, { family: "Dancing Script", style: "handwriting", fraction: 0.738 }, { family: "Great Vibes", style: "handwriting", fraction: 0.738 }, { family: "Pacifico", style: "handwriting", fraction: 0.738 }, { family: "Sacramento", style: "handwriting", fraction: 0.738 }, { family: "Assistant", style: "upright", fraction: 0.875 }, { family: "Scheherazade New", style: "upright", fraction: 0.8 }],
   },
   "hebrew": {
     label: "Hebrew",
@@ -64,19 +64,25 @@ export const LANGUAGE_COVERAGE = {
   "arabic": {
     label: "Arabic",
     requiredCodePointCount: 45,
-    full: [{ family: "Almarai", style: "upright" }],
+    full: [{ family: "Scheherazade New", style: "upright" }],
     partial: [],
   },
   "farsi": {
     label: "Farsi / Dari (Perso-Arabic)",
     requiredCodePointCount: 50,
-    full: [{ family: "Almarai", style: "upright" }],
+    full: [{ family: "Scheherazade New", style: "upright" }],
     partial: [],
   },
   "urdu": {
     label: "Urdu",
     requiredCodePointCount: 57,
-    full: [{ family: "Almarai", style: "upright" }],
+    full: [{ family: "Scheherazade New", style: "upright" }],
+    partial: [],
+  },
+  "pashto": {
+    label: "Pashto",
+    requiredCodePointCount: 61,
+    full: [{ family: "Scheherazade New", style: "upright" }],
     partial: [],
   },
   "cyrillicRussian": {
@@ -125,7 +131,7 @@ export const LANGUAGE_COVERAGE = {
     label: "Greek",
     requiredCodePointCount: 66,
     full: [{ family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }],
-    partial: [{ family: "Kalam", style: "handwriting", fraction: 0.015 }, { family: "Mali", style: "handwriting", fraction: 0.061 }, { family: "Assistant", style: "upright", fraction: 0.045 }, { family: "Heebo", style: "upright", fraction: 0.015 }, { family: "PT Sans", style: "upright", fraction: 0.061 }],
+    partial: [{ family: "Kalam", style: "handwriting", fraction: 0.015 }, { family: "Mali", style: "handwriting", fraction: 0.061 }, { family: "Assistant", style: "upright", fraction: 0.045 }, { family: "Heebo", style: "upright", fraction: 0.015 }, { family: "PT Sans", style: "upright", fraction: 0.061 }, { family: "Scheherazade New", style: "upright", fraction: 0.015 }],
   },
   "devanagari": {
     label: "Devanagari (Hindi)",
@@ -149,7 +155,7 @@ export const LANGUAGE_COVERAGE = {
     label: "Japanese (kana + common punctuation only - see comment above, kanji not modeled here)",
     requiredCodePointCount: 184,
     full: [{ family: "Noto Sans JP", style: "upright" }],
-    partial: [],
+    partial: [{ family: "Noto Sans SC", style: "upright", fraction: 0.033 }, { family: "Noto Sans TC", style: "upright", fraction: 0.033 }, { family: "Noto Sans KR", style: "upright", fraction: 0.033 }],
   },
   "bengali": {
     label: "Bengali (Bangla)",
@@ -167,7 +173,13 @@ export const LANGUAGE_COVERAGE = {
     label: "Vietnamese",
     requiredCodePointCount: 130,
     full: [{ family: "Mali", style: "handwriting" }, { family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }],
-    partial: [{ family: "Caveat", style: "handwriting", fraction: 0.254 }, { family: "Dancing Script", style: "handwriting", fraction: 0.246 }, { family: "Great Vibes", style: "handwriting", fraction: 0.254 }, { family: "Kalam", style: "handwriting", fraction: 0.277 }, { family: "Pacifico", style: "handwriting", fraction: 0.246 }, { family: "Sacramento", style: "handwriting", fraction: 0.246 }, { family: "Assistant", style: "upright", fraction: 0.308 }, { family: "Heebo", style: "upright", fraction: 0.292 }, { family: "Alef", style: "upright", fraction: 0.292 }, { family: "PT Sans", style: "upright", fraction: 0.277 }, { family: "Almarai", style: "upright", fraction: 0.246 }, { family: "Noto Sans Bengali", style: "upright", fraction: 0.292 }],
+    partial: [{ family: "Caveat", style: "handwriting", fraction: 0.254 }, { family: "Dancing Script", style: "handwriting", fraction: 0.246 }, { family: "Great Vibes", style: "handwriting", fraction: 0.254 }, { family: "Kalam", style: "handwriting", fraction: 0.277 }, { family: "Pacifico", style: "handwriting", fraction: 0.246 }, { family: "Sacramento", style: "handwriting", fraction: 0.246 }, { family: "Assistant", style: "upright", fraction: 0.308 }, { family: "Heebo", style: "upright", fraction: 0.292 }, { family: "Alef", style: "upright", fraction: 0.292 }, { family: "PT Sans", style: "upright", fraction: 0.277 }, { family: "Scheherazade New", style: "upright", fraction: 0.246 }, { family: "Noto Sans Bengali", style: "upright", fraction: 0.292 }, { family: "Noto Sans Gurmukhi", style: "upright", fraction: 0.292 }, { family: "Noto Sans Telugu", style: "upright", fraction: 0.292 }, { family: "Noto Sans Tamil", style: "upright", fraction: 0.292 }],
+  },
+  "korean": {
+    label: "Korean (Hangul)",
+    requiredCodePointCount: 11266,
+    full: [{ family: "Noto Sans KR", style: "upright" }],
+    partial: [],
   },
 };
 
@@ -181,7 +193,7 @@ export const LANGUAGE_COVERAGE = {
  */
 export const COMBINATION_COVERAGE = [
   { a: "hebrew", b: "latin", aLabel: "Hebrew", bLabel: "Latin", families: [{ family: "Gveret Levin", style: "handwriting" }, { family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }, { family: "Assistant", style: "upright" }, { family: "Heebo", style: "upright" }, { family: "Alef", style: "upright" }] },
-  { a: "arabic", b: "latin", aLabel: "Arabic", bLabel: "Latin", families: [{ family: "Almarai", style: "upright" }] },
+  { a: "arabic", b: "latin", aLabel: "Arabic", bLabel: "Latin", families: [{ family: "Scheherazade New", style: "upright" }] },
   { a: "cyrillicRussian", b: "latin", aLabel: "Russian", bLabel: "Latin", families: [{ family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }, { family: "PT Sans", style: "upright" }] },
   { a: "greek", b: "latin", aLabel: "Greek", bLabel: "Latin", families: [{ family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }] },
   { a: "hebrew", b: "cyrillicRussian", aLabel: "Hebrew", bLabel: "Russian", families: [{ family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }] },

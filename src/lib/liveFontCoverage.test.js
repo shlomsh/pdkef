@@ -30,14 +30,15 @@ afterEach(() => {
 });
 
 describe('unsupportedCharacters (live editor check)', () => {
-  it('flags Chinese while the user is typing, in the font the export would embed', async () => {
-    // No bundled font carries CJK glyphs at all (TODO.md's page-weight
-    // blocker) - Arabic used to be this test's example, but Almarai now
-    // covers it, so this checks a script that is still genuinely
-    // unrepresentable in every font, the same way liveFontCoverage.js and
-    // signPdf must never disagree on what "unrepresentable" means.
-    expect(await unsupportedCharacters('\u4f60\u597d\u5417\u5440\u5427', { fontFamily: 'Heebo' }))
-      .toEqual(['\u4f60', '\u597d', '\u5417', '\u5440', '\u5427']);
+  it('flags emoji while the user is typing, in the font the export would embed', async () => {
+    // Arabic, then Chinese, then Pashto were each this test's example in
+    // turn, and each stopped being genuinely unrepresentable as its font
+    // landed (Almarai gaining Arabic; Noto Sans SC/TC covering shared Han
+    // characters, see fonts.js's CATALOGUE comment; Scheherazade New
+    // covering Pashto's eleven extra letters). Emoji remains the one
+    // fixture stable against the catalogue growing (see TODO.md).
+    expect(await unsupportedCharacters('\ud83d\ude00\ud83c\udf89', { fontFamily: 'Heebo' }))
+      .toEqual(['\ud83d\ude00', '\ud83c\udf89']);
   });
 
   it('flags an emoji mixed into otherwise fine Hebrew', async () => {

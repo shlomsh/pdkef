@@ -1,3 +1,4 @@
+import { useMemo } from 'preact/hooks';
 import { useDraftPersistence } from '../../lib/useDraftPersistence.js';
 import { takeHandoff } from '../../lib/draftStore.js';
 
@@ -46,13 +47,18 @@ export function useEditorDraftPersistence({
   const fileFrom = (record: DraftRecord) =>
     new File([record.fileBytes], record.fileName, { type: record.fileType || 'application/pdf' });
 
+  // `extra` participates in the autosave revision. Keep its identity tied to
+  // actual history changes, otherwise a save-state rerender would look like a
+  // new edit and schedule another write forever.
+  const extra = useMemo(() => ({ actionHistory }), [actionHistory]);
+
   return useDraftPersistence({
     tool,
     enabled: true,
     file,
     fileBytes,
     elements,
-    extra: { actionHistory },
+    extra,
     status,
     // A pending handoff is a file the user dropped on the home page one
     // navigation ago, so it opens ahead of any draft. Resolving it *before*

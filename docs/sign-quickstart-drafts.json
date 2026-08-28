@@ -1,0 +1,144 @@
+{
+  "pageId": "sign-quickstart",
+  "sourceVersion": "sign-docs-2026-08-28-v1",
+  "status": "draft",
+  "publish": false,
+  "scope": "Selected documentation only. These are adaptations of a corrected English source, not complete translations of the current Sign page. The editor remains English.",
+  "reviewRequired": ["product accuracy", "native-language editorial review", "privacy wording", "rendered layout and bidi"],
+  "sourceFiles": ["src/data/tools.js", "src/components/SignTool/SignToolbar.tsx", "docs/sign-tool-product-decisions.md"],
+  "locales": {
+    "en": {
+      "nativeName": "English",
+      "dir": "ltr",
+      "reviewed": false,
+      "title": "How to fill and sign a PDF",
+      "intro": "Add text and a visible electronic signature to your PDF in your browser. You do not need an account.",
+      "editorNotice": "These instructions explain the English editor. Changing the documentation language does not translate your PDF.",
+      "steps": [
+        "Choose a PDF from your device, or drag it into the tool.",
+        "Add text, marks, or a signature where needed. Draw your signature, type it, or choose a signature image from your device.",
+        "Check every page. Review names, numbers, text direction, and the position of each item.",
+        "Select Download to save the completed PDF. Open the downloaded file and check it before sharing."
+      ],
+      "privacy": "PDF processing happens on your device. Your PDF contents and signature are not uploaded for processing. Site analytics are separate from PDF processing.",
+      "drafts": "The editor attempts to save your work in this browser on this device. Saving depends on browser storage being available; clearing or losing that storage can remove your draft. Download a copy of important work.",
+      "offline": "Offline use requires the app and the assets needed for your document to be available locally. Loading the page once does not guarantee that every language font is ready offline.",
+      "languageSupport": "Documentation language and PDF text support are different. Read the font and language limitations, and check the downloaded PDF for missing characters or unexpected letter shapes.",
+      "signatureType": "This tool adds a visible electronic signature. It does not create a certificate-based digital signature. Check which type the document recipient requires."
+    },
+    "he": {
+      "nativeName": "עברית",
+      "dir": "rtl",
+      "reviewed": false,
+      "title": "איך למלא ולחתום על קובץ PDF",
+      "intro": "אפשר להוסיף טקסט וחתימה אלקטרונית גלויה לקובץ PDF ישירות בדפדפן, ללא יצירת חשבון.",
+      "editorNotice": "ההוראות כאן מתייחסות לעורך באנגלית. שינוי שפת ההוראות אינו מתרגם את קובץ ה-PDF שלכם.",
+      "steps": [
+        "בחרו קובץ PDF מהמכשיר, או גררו אותו אל הכלי.",
+        "הוסיפו טקסט, סימונים או חתימה במקומות הדרושים. אפשר לצייר חתימה, להקליד אותה או לבחור תמונת חתימה מהמכשיר.",
+        "בדקו כל עמוד. ודאו שהשמות, המספרים, כיוון הטקסט והמיקום של כל פריט נכונים.",
+        "בחרו Download כדי לשמור את הקובץ המלא. פתחו את הקובץ שהורדתם ובדקו אותו לפני השיתוף."
+      ],
+      "privacy": "עיבוד ה-PDF מתבצע במכשיר שלכם. תוכן הקובץ והחתימה אינם נשלחים לשרת לצורך העיבוד. מדידת השימוש באתר נפרדת מעיבוד ה-PDF.",
+      "drafts": "העורך מנסה לשמור את העבודה בדפדפן הזה ובמכשיר הזה. השמירה תלויה בזמינות האחסון בדפדפן; ניקוי האחסון או אובדנו עלולים למחוק את הטיוטה. הורידו עותק של עבודה חשובה.",
+      "offline": "שימוש ללא חיבור לאינטרנט מחייב שהיישום והמשאבים הדרושים למסמך יהיו זמינים במכשיר. טעינה אחת של העמוד אינה מבטיחה שכל גופני השפות זמינים לשימוש לא מקוון.",
+      "languageSupport": "שפת ההוראות והתמיכה בטקסט בתוך ה-PDF הן שני דברים שונים. קראו את מגבלות הגופנים והשפות, ובדקו בקובץ שהורדתם שאין תווים חסרים או צורות אותיות בלתי צפויות.",
+      "signatureType": "הכלי מוסיף חתימה אלקטרונית גלויה. הוא אינו יוצר חתימה דיגיטלית המבוססת על תעודה. בדקו איזה סוג חתימה נדרש אצל מקבל המסמך."
+    },
+    "hi": {
+      "nativeName": "हिन्दी",
+      "dir": "ltr",
+      "reviewed": false,
+      "title": "PDF कैसे भरें और उस पर हस्ताक्षर करें",
+      "intro": "अपने ब्राउज़र में PDF पर टेक्स्ट और दिखाई देने वाला इलेक्ट्रॉनिक हस्ताक्षर जोड़ें। खाता बनाने की ज़रूरत नहीं है।",
+      "editorNotice": "ये निर्देश अंग्रेज़ी में उपलब्ध एडिटर के लिए हैं। निर्देशों की भाषा बदलने से आपके PDF का अनुवाद नहीं होता।",
+      "steps": [
+        "अपने डिवाइस से PDF चुनें या उसे खींचकर टूल में छोड़ें।",
+        "जहाँ ज़रूरत हो, टेक्स्ट, निशान या हस्ताक्षर जोड़ें। हस्ताक्षर बनाएँ, टाइप करें या अपने डिवाइस से हस्ताक्षर की तस्वीर चुनें।",
+        "हर पेज जाँचें। नाम, संख्याएँ, टेक्स्ट की दिशा और हर आइटम की जगह सही होने की पुष्टि करें।",
+        "पूरा किया हुआ PDF सहेजने के लिए Download चुनें। डाउनलोड की गई फ़ाइल साझा करने से पहले उसे खोलकर जाँचें।"
+      ],
+      "privacy": "PDF की प्रोसेसिंग आपके डिवाइस पर होती है। आपके PDF की सामग्री और हस्ताक्षर प्रोसेसिंग के लिए अपलोड नहीं किए जाते। वेबसाइट के उपयोग का विश्लेषण PDF प्रोसेसिंग से अलग है।",
+      "drafts": "एडिटर इसी डिवाइस के इसी ब्राउज़र में आपका काम सहेजने की कोशिश करता है। इसके लिए ब्राउज़र स्टोरेज उपलब्ध होना ज़रूरी है; स्टोरेज मिटने या उपलब्ध न रहने पर ड्राफ़्ट हट सकता है। ज़रूरी काम की एक कॉपी डाउनलोड कर लें।",
+      "offline": "ऑफ़लाइन इस्तेमाल के लिए ऐप और आपके दस्तावेज़ के लिए ज़रूरी संसाधन डिवाइस पर उपलब्ध होने चाहिए। पेज एक बार खोल लेने से यह तय नहीं होता कि हर भाषा का फ़ॉन्ट ऑफ़लाइन उपलब्ध है।",
+      "languageSupport": "निर्देशों की भाषा और PDF के भीतर टेक्स्ट का समर्थन अलग चीज़ें हैं। फ़ॉन्ट और भाषा की सीमाएँ पढ़ें। डाउनलोड किए गए PDF में गायब अक्षर या अक्षरों के अप्रत्याशित आकार जाँचें।",
+      "signatureType": "यह टूल दिखाई देने वाला इलेक्ट्रॉनिक हस्ताक्षर जोड़ता है। यह प्रमाणपत्र-आधारित डिजिटल हस्ताक्षर नहीं बनाता। दस्तावेज़ प्राप्त करने वाले से पूछें कि किस प्रकार का हस्ताक्षर चाहिए।"
+    },
+    "ar": {
+      "nativeName": "العربية",
+      "dir": "rtl",
+      "reviewed": false,
+      "title": "كيفية تعبئة ملف PDF وتوقيعه",
+      "intro": "أضف نصًا وتوقيعًا إلكترونيًا مرئيًا إلى ملف PDF في متصفحك. لا تحتاج إلى إنشاء حساب.",
+      "editorNotice": "تشرح هذه التعليمات استخدام المحرر ذي الواجهة الإنجليزية. تغيير لغة التعليمات لا يترجم ملف PDF الخاص بك.",
+      "steps": [
+        "اختر ملف PDF من جهازك، أو اسحبه إلى الأداة.",
+        "أضف النصوص أو العلامات أو التوقيع في المواضع المطلوبة. يمكنك رسم توقيعك أو كتابته أو اختيار صورة توقيع من جهازك.",
+        "راجع كل صفحة. تحقق من الأسماء والأرقام واتجاه النص وموضع كل عنصر.",
+        "اختر Download لحفظ ملف PDF المكتمل. افتح الملف الذي نزلته وراجعه قبل مشاركته."
+      ],
+      "privacy": "تتم معالجة ملف PDF على جهازك. لا يتم رفع محتويات الملف أو توقيعك لإجراء المعالجة. تحليلات استخدام الموقع منفصلة عن معالجة ملفات PDF.",
+      "drafts": "يحاول المحرر حفظ عملك في هذا المتصفح على هذا الجهاز. يعتمد الحفظ على توفر مساحة التخزين في المتصفح؛ وقد يؤدي مسحها أو فقدانها إلى حذف المسودة. نزّل نسخة من عملك المهم.",
+      "offline": "يتطلب الاستخدام دون اتصال توفر التطبيق والموارد اللازمة لمستندك محليًا على الجهاز. تحميل الصفحة مرة واحدة لا يضمن توفر خطوط جميع اللغات دون اتصال.",
+      "languageSupport": "لغة التعليمات ودعم النص داخل ملف PDF أمران مختلفان. اقرأ حدود دعم الخطوط واللغات، وتحقق من عدم وجود أحرف مفقودة أو أشكال حروف غير متوقعة في الملف الذي نزلته.",
+      "signatureType": "تضيف هذه الأداة توقيعًا إلكترونيًا مرئيًا. ولا تنشئ توقيعًا رقميًا قائمًا على شهادة. تحقق من نوع التوقيع الذي تطلبه الجهة المستلمة للمستند."
+    },
+    "fr-CA": {
+      "nativeName": "Français (Canada)",
+      "dir": "ltr",
+      "reviewed": false,
+      "title": "Comment remplir et signer un PDF",
+      "intro": "Ajoutez du texte et une signature électronique visible à votre PDF dans votre navigateur. Aucun compte n’est nécessaire.",
+      "editorNotice": "Ces instructions expliquent l’utilisation de l’éditeur en anglais. Changer la langue des instructions ne traduit pas votre PDF.",
+      "steps": [
+        "Choisissez un PDF sur votre appareil ou faites-le glisser dans l’outil.",
+        "Ajoutez du texte, des marques ou une signature aux endroits voulus. Dessinez votre signature, tapez-la ou choisissez une image de signature sur votre appareil.",
+        "Vérifiez chaque page. Contrôlez les noms, les nombres, le sens du texte et la position de chaque élément.",
+        "Sélectionnez Download pour enregistrer le PDF rempli. Ouvrez le fichier téléchargé et vérifiez-le avant de le partager."
+      ],
+      "privacy": "Le traitement du PDF s’effectue sur votre appareil. Le contenu du PDF et votre signature ne sont pas envoyés à un serveur pour le traitement. L’analyse de l’utilisation du site est distincte du traitement des PDF.",
+      "drafts": "L’éditeur tente d’enregistrer votre travail dans ce navigateur, sur cet appareil. L’enregistrement dépend de la disponibilité du stockage du navigateur; l’effacement ou la perte de ce stockage peut supprimer votre brouillon. Téléchargez une copie de tout travail important.",
+      "offline": "L’utilisation hors ligne exige que l’application et les ressources nécessaires à votre document soient disponibles sur l’appareil. Charger la page une fois ne garantit pas que toutes les polices de langues sont disponibles hors ligne.",
+      "languageSupport": "La langue des instructions et la prise en charge du texte dans le PDF sont deux choses différentes. Consultez les limites des polices et des langues, puis vérifiez le PDF téléchargé pour repérer les caractères manquants ou les formes de lettres inattendues.",
+      "signatureType": "Cet outil ajoute une signature électronique visible. Il ne crée pas de signature numérique fondée sur un certificat. Vérifiez le type de signature exigé par le destinataire du document."
+    },
+    "zh-Hans": {
+      "nativeName": "简体中文",
+      "dir": "ltr",
+      "reviewed": false,
+      "title": "如何填写 PDF 并添加签名",
+      "intro": "直接在浏览器中为 PDF 添加文字和可见的电子签名，无需注册账号。",
+      "editorNotice": "本说明介绍的是英文界面编辑器。更改说明语言不会翻译您的 PDF。",
+      "steps": [
+        "从设备中选择 PDF 文件，或将文件拖入工具。",
+        "在需要的位置添加文字、标记或签名。您可以手绘签名、输入签名，或从设备中选择签名图片。",
+        "逐页检查姓名、数字、文字方向和各个项目的位置。",
+        "选择 Download 保存填写完成的 PDF。分享前，请打开下载的文件并检查。"
+      ],
+      "privacy": "PDF 处理在您的设备上进行，不会为了处理文件而上传 PDF 内容或签名。网站使用情况分析与 PDF 处理是两回事。",
+      "drafts": "编辑器会尝试将您的工作保存在此设备的当前浏览器中。保存需要浏览器存储可用；清除或丢失该存储可能会删除草稿。请下载重要工作的副本。",
+      "offline": "离线使用需要应用及文档所需的资源已保存在设备本地。仅打开过一次页面，并不能保证所有语言字体都可离线使用。",
+      "languageSupport": "说明语言与 PDF 文字支持是两回事。请阅读字体和语言的限制，并检查下载的 PDF 是否有缺字或字形异常。",
+      "signatureType": "此工具添加的是可见的电子签名，不会创建基于证书的数字签名。请确认文档接收方要求哪种签名。"
+    },
+    "es-CO": {
+      "nativeName": "Español (Colombia)",
+      "dir": "ltr",
+      "reviewed": false,
+      "title": "Cómo llenar y firmar un PDF",
+      "intro": "Agrega texto y una firma electrónica visible a tu PDF desde el navegador. No necesitas crear una cuenta.",
+      "editorNotice": "Estas instrucciones explican cómo usar el editor en inglés. Cambiar el idioma de las instrucciones no traduce tu PDF.",
+      "steps": [
+        "Selecciona un PDF de tu dispositivo o arrástralo a la herramienta.",
+        "Agrega texto, marcas o una firma donde sea necesario. Puedes dibujar tu firma, escribirla o elegir una imagen de tu firma desde el dispositivo.",
+        "Revisa cada página. Verifica los nombres, los números, la dirección del texto y la posición de cada elemento.",
+        "Selecciona Download para guardar el PDF completo. Abre el archivo descargado y revísalo antes de compartirlo."
+      ],
+      "privacy": "El PDF se procesa en tu dispositivo. El contenido del archivo y tu firma no se suben a un servidor para procesarlos. El análisis del uso del sitio es independiente del procesamiento del PDF.",
+      "drafts": "El editor intenta guardar tu trabajo en este navegador y en este dispositivo. El guardado depende de que el almacenamiento del navegador esté disponible; si se borra o se pierde, el borrador puede desaparecer. Descarga una copia de los trabajos importantes.",
+      "offline": "Para usar la herramienta sin conexión, la aplicación y los recursos que necesita tu documento deben estar disponibles en el dispositivo. Abrir la página una vez no garantiza que todas las fuentes de idiomas estén disponibles sin conexión.",
+      "languageSupport": "El idioma de las instrucciones y la compatibilidad del texto dentro del PDF son cosas distintas. Consulta las limitaciones de fuentes e idiomas y revisa el PDF descargado para detectar caracteres faltantes o formas de letras inesperadas.",
+      "signatureType": "Esta herramienta agrega una firma electrónica visible. No crea una firma digital basada en un certificado. Confirma qué tipo de firma exige quien recibirá el documento."
+    }
+  }
+}

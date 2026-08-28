@@ -37,12 +37,12 @@ the larger findings; completing them does not close those larger tasks.
 | SIGN-01 | P1 / quick win | Done 2026-08-28 | **Recover after export failure.** `PdfSignTool.tsx`, `SignTool/PdfWorkspace.tsx`: pages and edits remain mounted, export errors include recovery guidance, and correction/retry works through both share preparation and download. Errors clear on retry or replacement; load failures retain their separate status. Component regressions exercise failed export, edit, and successful retry without reloading. |
 | SIGN-02 | P2 / quick win | Done 2026-08-28 | **Repair selection/editing invariants.** `SignToolContext.tsx`: delete/undo clear references to removed elements; replacing a document clears selection and editing; operations on other elements preserve the current edit session. Reducer tests cover each path. This does not expand undo scope. |
 | SIGN-03 | P2 / quick win | Done 2026-08-28 | **Retry failed live font loads.** `liveFontCoverage.js`: rejected promises are evicted while pending/successful loads stay deduplicated. A subsequent coverage check recovers after connectivity returns. Tests use real font bytes, concurrent requests, and an outage/recovery sequence. Full offline provisioning remains SIGN-07. |
-| SIGN-04 | P1 / near term | Open | **Preserve Unicode content and whitespace.** `editor/registry/text.ts`, text normalization/export: replace blanket control/format stripping with a documented policy that preserves shaping joiners; remove destructive layout trimming. Prove Persian ZWNJ, combining marks, leading spaces, and blank lines through export and text extraction. Do not rasterize real text. |
+| SIGN-04 | P1 / near term | In progress | **Preserve Unicode content and whitespace.** `editor/registry/text.ts`, text normalization/export: replace blanket control/format stripping with a documented policy that preserves shaping joiners; remove destructive layout trimming. Prove Persian ZWNJ, combining marks, leading spaces, and blank lines through export and text extraction. Do not rasterize real text. |
 | SIGN-05 | P1 / near term | Open | **One page-coordinate transform.** `coords.js`, `PdfPageCanvas`, registry serializers: model crop boxes and rotations explicitly; use the same forward/inverse transform for placement, preview, export, and hit testing. Verify all element types on 0/90/180/270-degree and cropped fixtures. |
-| SIGN-06 | P1 / near term | Open | **Report actual draft-save state.** `PdfSignTool.tsx`, `useAutoSave`, `draftStore`: replace `draftSaved={status === 'editing'}` with revision-aware pending/saved/error state; handle failed writes and flush safely. A quota/storage failure must never say the draft is saved. |
+| SIGN-06 | P1 / near term | In progress | **Report actual draft-save state.** `PdfSignTool.tsx`, `useAutoSave`, `draftStore`: replace `draftSaved={status === 'editing'}` with revision-aware pending/saved/error state; handle failed writes and flush safely. A quota/storage failure must never say the draft is saved. |
 | SIGN-07 | P1 / near term | Open | **Make the offline requirement testable.** Service worker, precache generator, fonts/PDF worker loaders: define asset provisioning and offline-ready status for every advertised workflow/language; version caches by asset content, including unchanged font URLs. Chrome tests must disconnect the network and open/edit/export using provisioned assets, then test upgrades without losing drafts. Current Arimo-only font precache is not full language support. |
 | SIGN-08 | P1 / near term | Open | **Share the effective typography descriptor.** `fonts.js`, text renderer/serializer, font picker, `SignatureDialog`: resolve face, available weight/style, size, and direction once for preview and export. Unsupported styles must not silently export differently. Typed signatures must await fonts and fit their canvas without clipping. Extend the existing WYSIWYG epic rather than introducing a second engine. |
-| SIGN-09 | P1 / near term | Open | **Direction defaults and grapheme-safe input.** `textDirection`, text creation, comb input/layout: infer direction from typed content; empty or digit-only new fields default LTR instead of inheriting the previous field. Preserve digit order. Replace base-plus-mark splitting with grapheme-aware handling; verify Indic conjuncts, RTL punctuation, and Chrome IME input. Single-language elements do not require arbitrary mixed-language runs. |
+| SIGN-09 | P1 / near term | In progress (direction defaults only) | **Direction defaults and grapheme-safe input.** `textDirection`, text creation, comb input/layout: infer direction from typed content; empty or digit-only new fields default LTR instead of inheriting the previous field. Preserve digit order. Replace base-plus-mark splitting with grapheme-aware handling; verify Indic conjuncts, RTL punctuation, and Chrome IME input. Single-language elements do not require arbitrary mixed-language runs. |
 | SIGN-10 | P2 / near term | Open | **A language/font source of truth and acceptance matrix.** Consolidate duplicated catalogue, CSS, coverage, licensing and precache metadata into one font manifest, continuing the existing language catalogue work. Name popular languages and regional variants in rollout order; test real font coverage, shaping, visual output, and searchable text in Chrome for supported styles. Reconcile in-flight font migrations and stale fixtures without widening visual tolerances to hide failures. |
 | SIGN-11 | P2 / near term | Open | **Versioned, validated shared persistence.** `draftStore`, saved signatures/preferences: choose the local user boundary, validate records on read, migrate schema versions, and coordinate same-user tabs with revisions and explicit conflict handling. Store source PDF bytes once per document, not on every edit. Test corrupt/older records, concurrent tabs, deletion, and unavailable storage. No account/backend requirement is implied. |
 | SIGN-12 | P2 / near term | Open | **Make required undo dependable.** Reducer/action history: represent add/delete with atomic commands including original stacking positions; define clear-page and selective-history semantics. Test add-delete-undo chains and restored z-order. Undo for typing, moving, and styling is optional P3 work until approved. |
@@ -387,85 +387,54 @@ before W9 depends on W9, and W4 through W8 are independent of each other.
   deliberately not changed: `combCharacters()` splits on grapheme clusters, so a cell boundary can never
   fall inside a base-plus-marks run, and joining cells with '' reconstructs exactly what per-cell
   composition would produce.
-- **W3. The coverage-first selection rule.** Replace `resolveFontSubstitution`. Today a mixed-script
-  element resolves by whichever `SCRIPT_FALLBACKS` row matches first, which is why `שלום Hello مرحبا` is
-  refused - Hebrew is row 1, Hebrew-capable fonts have no Arabic. Under a coverage rule it would be
-  refused because *genuinely no bundled family covers Hebrew and Arabic*: same outcome, honest reasoning,
-  and it converts a permanent architectural wall into a catalogue question. It also **widens what works
-  and narrows nothing**: `שלום Привіт` in Heebo or Gveret Levin is refused today and becomes a drawn,
-  explained substitution to Arimo. Preference order is the user's own choice if it covers, then a covering
-  family with the same **style tag** (`handwriting`/`sans`/`serif`/`mono`, one new catalogue field), then
-  same class, then catalogue order. Compute the post-normalization lookup string **per candidate**, since
-  composition is gated on each font's own glyph set. Rework `fontCoverage.test.js` from "does the
-  `capable` list match the bytes" to "does the resolver's answer match the bytes", keeping the non-vacuity
-  half. `describeFontSubstitution` can then name the characters the picked family could not draw instead
-  of guessing a script, which is what makes its own doc comment's admitted "briefly false on mixed-script
-  text" go away.
-- **W4. Source the bold and italic faces the catalogue is missing.** *Added at Shlomi's ask, and it comes
-  before W5 deliberately: do not just block what we lack, pick fonts that have these capabilities in the
-  first place.* Eight families ship Regular only (Caveat, Dancing Script, Great Vibes, Gveret Levin,
-  Kalam, Mali, Pacifico, Sacramento) and four more ship no Italic - but that list was built from what is
-  in `public/fonts/`, never from what the upstream projects actually publish. **Check upstream
-  availability first, and treat this as unverified until checked:** several are believed to publish more
-  than we ship (Caveat and Dancing Script as variable fonts spanning 400-700, Kalam with a Bold, Mali
-  with a wide weight range *and* italics). If that holds, most of the gap is four downloads, not four
-  disabled buttons. Then sort the remainder into three buckets: (1) **available upstream** - download,
-  add the `@font-face` rules and the licence entries, extend `FONT_VERTICAL_METRICS` if the weight's
-  `hhea` differs, and run the new face through the same admission checks any font gets; (2) **correct to
-  have no such face** - Hebrew and Arabic do not use italic, so Assistant, Heebo, Alef and Almarai are
-  not missing anything and the honest answer is to disable, not to go shopping; (3) **genuinely
-  single-weight display faces** (likely Pacifico, Great Vibes, Sacramento, Gveret Levin) - either disable,
-  or find a *different* face covering the same style niche that ships all four. That third bucket is the
-  actual point: **weight and style coverage becomes something we select fonts for, not something we
-  discover afterwards.** Record it as an admission criterion in the "adding a font" checklist, and note
-  that `HANDWRITING_FONTS` currently reads as eight equal choices when it is eight Regular-only ones.
-- **W5. Honest weight and style.** `ElementToolbar.tsx` offers Bold and Italic on every family
-  unconditionally. With only a 400/normal `@font-face` declared the browser **synthesises** the style;
-  `loadCustomFont` 404s on `Caveat-Bold.ttf` and falls back to `Caveat-Regular.ttf`. **So bold Caveat is
-  bold on screen and upright in the download** - a WYSIWYG divergence that lives above all five pipeline
-  stages and that no existing guard can see. `sign.test.js` even tests the fallback, as a thing that
-  should not throw, without noticing what it creates. Extend `covers()` to `(family, weight, style)` and
-  have the picker disable what has no real file, with a reason in the app's voice, over whatever W4 could
-  not fill. Deliberately **not** substituting family for a missing weight: "bold Caveat" would become
-  "bold Arimo", losing the handwriting character to honour a checkbox. Faux-styling the PDF (text render
-  mode 2 plus a line width; a shear in the text matrix) is the recorded reversible alternative, and it
-  buys a new parity problem - matching Chrome's synthesis parameters - so it is not the first move.
-  Add the three-line guard: every `(family, weight, style)` the picker offers has a real file.
-- **W6. `/ActualText` per shaped run.** Settles the H2 trade, and the finding is bigger and cheaper than
-  it looked. Measured on `בְּרֵאשִׁית` in Arimo: today's per-glyph emission extracts from `pdftotext` as
-  composed presentation forms **plus** the stray spaces the design record accepted, and from pdf.js as a
-  reordered decomposition - **both extractors already disagree with the typed text, and composition is
-  only one contributor.** Wrapping each shaped run in `/Span <</ActualText …>> BDC … EMC` makes
-  `pdftotext` byte-identical to the known-good single-`Tj` control, using **package-root exports only**
-  (`PDFOperator`, `PDFOperatorNames`, `PDFName`, `endMarkedContent`) - no fork, no embedder internals.
-  That matters because the obvious fix cannot work: the ToUnicode CMap is whole-font, built from
-  `allGlyphsInFontSortedById()`, so it cannot express "this occurrence came from these characters".
-  **The catch, and it is a real decision:** poppler runs its own bidi over `ActualText` and therefore
-  wants it in *visual* order; the spec-conformant *logical* order makes poppler emit the string backwards.
-  pdf.js ignores the field entirely so cannot be harmed either way. Recommendation is visual order (which
-  is free - it is the order fontkit already emits glyphs in), recorded as a decision against a reader
-  rather than against the spec. **Measure Acrobat and macOS Preview before shipping.** Composition itself
-  stays: it is what makes the ink correct.
-- **W7. The catalogue coverage report.** A build-time artifact enumerating which script combinations the
-  catalogue can draw and which it cannot, generated from the real font bytes rather than from a claim, and
-  feeding the Sign page's Languages card so the public "not yet" list cannot drift from the code. Makes
-  "should we add a font" a data question permanently, and makes the Hebrew-plus-Arabic decision answerable
-  in a minute instead of a session. Today's answer, for the record: Hebrew+Latin has seven options
-  including one handwriting face; Arabic+Latin has one; Hebrew+Cyrillic and Hebrew+Greek have three each;
-  **Hebrew+Arabic has none**, and that is the one combination where a single OFL or Apache-2.0 face
-  plausibly exists and would unlock a real use case in this app's own country. DejaVu Sans is the obvious
-  candidate and its licence is the blocker to check first, not its coverage; Noto is script-split by
-  design and is therefore not a candidate however good it is.
-- **W8. Latin parity for the four `calt` faces.** Run the existing `shapingGuardHarness` on Pacifico,
-  Caveat, Great Vibes and Dancing Script over a Latin name corpus. This is owed regardless of how W9 goes:
-  under the status quo it is the correctness gate that should already exist, and under the structural
-  option it becomes the quality check that decides whether those faces stay. Either outcome is knowledge -
-  all four agree and the risk was theoretical, or one does not and the curation rule applies exactly as it
-  did to Playpen. **One correction to save a re-derivation:** Gveret Levin's `calt` fires on neither
-  Hebrew nor Latin, so the design record's standing note that it "deserves a glyph-level check" is
-  answered - there is nothing contextual there. A naive comparison that forgets to reverse the expected
-  sequence makes *every* RTL string look contextually substituted; that mistake was made and caught while
-  writing the spike.
+- ~~**W3. The coverage-first selection rule.**~~ **Done 2026-08-27** (`4cb9255`, "Judge font coverage by
+  the bytes, not by a script-pattern table (W2-W5)"). `resolveFontSubstitution` in `src/lib/fonts.js` now
+  filters the catalogue by real coverage (via the range-encoded `fontCoverageTable.js`) rather than a
+  hand-ordered `SCRIPT_FALLBACKS` regex table, ranks candidates by style tag then handwriting-class then
+  catalogue order, and computes the post-normalization lookup per candidate. `שלום Привіт` in Heebo now
+  draws (substituted to Arimo, explained) instead of being refused; a genuinely uncoverable mix like
+  Hebrew+Arabic still refuses, but for the honest reason. `fontCoverage.test.js` was reworked to check the
+  resolver's answer against the real bytes rather than a static capability list.
+- ~~**W4. Source the bold and italic faces the catalogue is missing.**~~ **Done 2026-08-27** (`4cb9255`,
+  same commit as W3/W5). Checked upstream first as instructed: added six real faces bundled from each
+  font's own project repo (not the variable binaries google/fonts ships) - Caveat-Bold, DancingScript-Bold,
+  Kalam-Bold, and Mali's Bold/Italic/BoldItalic (verified as true -10° italics, not synthesized obliques),
+  all OFL 1.1. Confirmed Alef/Almarai/Assistant/Heebo correctly have no italic (Hebrew/Arabic typography,
+  not a gap). Pacifico, Great Vibes, Sacramento and Gveret Levin stayed single-weight display faces and
+  were left disabled rather than chasing a replacement face - the "either disable" branch of bucket 3.
+- ~~**W5. Honest weight and style.**~~ **Done 2026-08-27** (`4cb9255`, same commit). `covers()` now takes
+  `(family, weight, style, text)`; a new `hasRealFace(family, weight, style)`, driven by the generated
+  `FONT_COVERAGE_FILES` table, drives `ElementToolbar.tsx`'s Bold/Italic controls so a missing file
+  disables the control (reachable by screen reader) instead of silently synthesizing on screen while
+  404-falling-back to Regular in the export. Deliberately does not substitute family for a missing weight.
+  Guarded by `fontCoverage.test.js`: every `(family, weight, style)` the picker can offer has a real file.
+- ~~**W6. `/ActualText` per shaped run.**~~ **Done 2026-08-27** (`bb6f2f4`, "Tell a reader what was typed,
+  not what was drawn"). Each shaped run in `src/editor/registry/text.ts` now draws inside a
+  `/Span <</ActualText …>> BDC … EMC` sequence, package-root pdf-lib exports only, no fork. Order is
+  visual (free - fontkit's own glyph emission order), chosen against poppler's own bidi pass rather than
+  the spec's logical order. Measured impact honestly: fixes `pdftotext` extraction (poppler honours the
+  field), a no-op for pdf.js and macOS PDFKit/Preview (both ignore `/ActualText`), Acrobat unmeasured (none
+  installed). The e2e guard uses both extractors since only the Hebrew case discriminates the feature.
+- ~~**W7. The catalogue coverage report.**~~ **Done 2026-08-27** (`5b20b85`, "Make 'should we add a font'
+  a query instead of a session"). `scripts/generate-font-coverage-report.mjs` generates
+  `src/lib/fontCoverageReport.js` from the real range-encoded coverage table - which families draw each of
+  16 languages and each of seven script combinations, judged against real alphabets rather than probe
+  codepoints. Confirmed the standing answer: Hebrew+Arabic is the one combination with zero covering
+  families (still open - see the DejaVu Sans / licence-first note below, unchanged). Never imported by a
+  bundle (Node/build-time only, zero page weight); the Sign page's Languages copy stays curated prose kept
+  honest against the report by `languageCoverage.test.js`.
+- ~~**W8. Latin parity for the four `calt` faces.**~~ **Done 2026-08-27** (`89c5fcf`, "Run the shaping
+  guard on the four signature faces at last"). `e2e/sign/latin-shaping-guard.spec.js` runs
+  `shapingGuardHarness` on Pacifico, Caveat, Great Vibes and Dancing Script over a Latin name corpus, with
+  calibration derived from the corpus's own non-substituting strings (the first version's single-character
+  calibration was proven vacuous - antialiasing-dominated on thin strokes, unable to fail). Pacifico, Great
+  Vibes and Dancing Script pass clean. **Caveat is `test.fixme`**, not because of a confirmed letterform
+  disagreement - the one flagged case ("Alexandra Whitfield") was re-measured via advance-width
+  discrimination and Chrome's `fi`/`O'Brien` measurements match fontkit's shaped widths to floating-point
+  precision, so both engines apply the same ligature - but because the pixel metric sits near-saturated on
+  this face (a zero-substitution control alone measures 41.12%), so the guard cannot currently discriminate
+  a real divergence from noise in the 40-65% band. Recorded as fact, catalogue decision left open. Gveret
+  Levin's `calt` was confirmed to fire on neither Hebrew nor Latin, closing the design record's open note.
 - ~~**W9. The open architecture decision, deliberately not pre-empted.**~~ **Decided 2026-08-27: Option A
   - keep two engines, harden the guards.** Coverage is necessary, not sufficient: constraint 1 guarantees
   the same font *file* on both sides, never the same output from it. Two live options were written up in
