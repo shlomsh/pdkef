@@ -8,16 +8,66 @@ Guidance for working in the repo (commands, invariants, the design standard, bra
 [CLAUDE.md](./CLAUDE.md). [README.md](./README.md) is the human-facing project landing page.
 
 **The hard constraint on every task, unchanged: no file bytes ever leave the device.** No `fetch`/`XHR`
-of PDF contents, no third-party API, no server. `PdfMergeTool.tsx` + `src/lib/merge.js` remain the
+of PDF contents, no third-party processing API, no PDF processing server. Anonymous maintenance
+telemetry is permitted only within the documented privacy constraints. `PdfMergeTool.tsx` + `src/lib/merge.js` remain the
 reference implementation of a finished tool.
 
 ---
 
 ## Open work
 
-Nothing structural is outstanding; see "Migration status" below for why. The three largest open areas
-are Redact's live delete preview, the WYSIWYG text architecture (a new epic, opened 2026-08-27), and the
-internationalization backlog.
+The earlier migration is complete; this does not mean architectural debt is closed. Current work
+includes the prioritized Sign review below, Redact's live delete preview, the WYSIWYG text epic,
+and the PDF-language backlog. Older sections retain supporting evidence and implementation history.
+
+### Sign Tool architecture review (2026-08-28)
+
+Product answers are persisted in [the decision record](./docs/sign-tool-product-decisions.md).
+Here “language support” means PDF content, not translated UI. One language per text element plus
+digits, content-derived direction with English/LTR default, Chrome, offline tools, shared storage
+within the current user scope, and anonymous maintenance telemetry are the agreed constraints.
+
+**Priority:** P1 = document fidelity, recovery, or an explicit product requirement; P2 = reliability
+and maintainability; P3 = optional expansion. Order within a phase follows the table. Owners below
+are module boundaries, not assignments to people. Quick wins are deliberately small subsets of
+the larger findings; completing them does not close those larger tasks.
+
+| ID | Priority / phase | State | Task, owner, and acceptance condition |
+| --- | --- | --- | --- |
+| SIGN-01 | P1 / quick win | Done 2026-08-28 | **Recover after export failure.** `PdfSignTool.tsx`, `SignTool/PdfWorkspace.tsx`: pages and edits remain mounted, export errors include recovery guidance, and correction/retry works through both share preparation and download. Errors clear on retry or replacement; load failures retain their separate status. Component regressions exercise failed export, edit, and successful retry without reloading. |
+| SIGN-02 | P2 / quick win | Done 2026-08-28 | **Repair selection/editing invariants.** `SignToolContext.tsx`: delete/undo clear references to removed elements; replacing a document clears selection and editing; operations on other elements preserve the current edit session. Reducer tests cover each path. This does not expand undo scope. |
+| SIGN-03 | P2 / quick win | Done 2026-08-28 | **Retry failed live font loads.** `liveFontCoverage.js`: rejected promises are evicted while pending/successful loads stay deduplicated. A subsequent coverage check recovers after connectivity returns. Tests use real font bytes, concurrent requests, and an outage/recovery sequence. Full offline provisioning remains SIGN-07. |
+| SIGN-04 | P1 / near term | Open | **Preserve Unicode content and whitespace.** `editor/registry/text.ts`, text normalization/export: replace blanket control/format stripping with a documented policy that preserves shaping joiners; remove destructive layout trimming. Prove Persian ZWNJ, combining marks, leading spaces, and blank lines through export and text extraction. Do not rasterize real text. |
+| SIGN-05 | P1 / near term | Open | **One page-coordinate transform.** `coords.js`, `PdfPageCanvas`, registry serializers: model crop boxes and rotations explicitly; use the same forward/inverse transform for placement, preview, export, and hit testing. Verify all element types on 0/90/180/270-degree and cropped fixtures. |
+| SIGN-06 | P1 / near term | Open | **Report actual draft-save state.** `PdfSignTool.tsx`, `useAutoSave`, `draftStore`: replace `draftSaved={status === 'editing'}` with revision-aware pending/saved/error state; handle failed writes and flush safely. A quota/storage failure must never say the draft is saved. |
+| SIGN-07 | P1 / near term | Open | **Make the offline requirement testable.** Service worker, precache generator, fonts/PDF worker loaders: define asset provisioning and offline-ready status for every advertised workflow/language; version caches by asset content, including unchanged font URLs. Chrome tests must disconnect the network and open/edit/export using provisioned assets, then test upgrades without losing drafts. Current Arimo-only font precache is not full language support. |
+| SIGN-08 | P1 / near term | Open | **Share the effective typography descriptor.** `fonts.js`, text renderer/serializer, font picker, `SignatureDialog`: resolve face, available weight/style, size, and direction once for preview and export. Unsupported styles must not silently export differently. Typed signatures must await fonts and fit their canvas without clipping. Extend the existing WYSIWYG epic rather than introducing a second engine. |
+| SIGN-09 | P1 / near term | Open | **Direction defaults and grapheme-safe input.** `textDirection`, text creation, comb input/layout: infer direction from typed content; empty or digit-only new fields default LTR instead of inheriting the previous field. Preserve digit order. Replace base-plus-mark splitting with grapheme-aware handling; verify Indic conjuncts, RTL punctuation, and Chrome IME input. Single-language elements do not require arbitrary mixed-language runs. |
+| SIGN-10 | P2 / near term | Open | **A language/font source of truth and acceptance matrix.** Consolidate duplicated catalogue, CSS, coverage, licensing and precache metadata into one font manifest, continuing the existing language catalogue work. Name popular languages and regional variants in rollout order; test real font coverage, shaping, visual output, and searchable text in Chrome for supported styles. Reconcile in-flight font migrations and stale fixtures without widening visual tolerances to hide failures. |
+| SIGN-11 | P2 / near term | Open | **Versioned, validated shared persistence.** `draftStore`, saved signatures/preferences: choose the local user boundary, validate records on read, migrate schema versions, and coordinate same-user tabs with revisions and explicit conflict handling. Store source PDF bytes once per document, not on every edit. Test corrupt/older records, concurrent tabs, deletion, and unavailable storage. No account/backend requirement is implied. |
+| SIGN-12 | P2 / near term | Open | **Make required undo dependable.** Reducer/action history: represent add/delete with atomic commands including original stacking positions; define clear-page and selective-history semantics. Test add-delete-undo chains and restored z-order. Undo for typing, moving, and styling is optional P3 work until approved. |
+| SIGN-13 | P2 / near term | Open | **Anonymous usage and error maintenance signals.** Define a reviewed event allowlist, sanitized error taxonomy, coarse timing buckets, retention, and disclosure. Add privacy tests proving no PDF/text/signature/filename/user or document IDs enter payloads and offline failure has no effect. Prefer stable error codes over raw exception messages. Existing page-view analytics is not sufficient error monitoring. |
+| SIGN-14 | P2 / longer term | Open | **Separate editor core, UI, and export adapters incrementally.** Break registry/UI import cycles and the `actionHistory` to `sign` dependency; type commands and serializer contracts at runtime boundaries. Isolate export state with revision/race protection and lazy-load PDF serialization dependencies. Keep existing DOM gesture commits and reuse current registry tests. |
+| SIGN-15 | P2 / longer term | Open | **Bound document/render/gesture lifecycles.** Own and cancel PDF loading/render tasks, handle interrupted gestures, and add page virtualization/indexed element lookup only after measuring large Chrome documents. Verify replacement/unmount does not leave tasks or stale writes alive. |
+| SIGN-16 | P2 / near term | Open | **Trustworthy delivery checks and docs.** Count transitive static imports in the page-weight gate, remove duplicated CI builds where safe, and align README commands/Node requirements/privacy with reality. Document layer ownership, persistence/export contracts, language fixtures, and baseline generation. Keep Chromium output tests and production CSP checks as release gates; platform baseline differences require investigation, not blanket tolerance increases. |
+
+**Deferred unless scope changes (P3):** translated interface/locale switching, arbitrary multilingual
+rich-text runs within one element, non-Chrome release gates, and full edit/move/style undo. Decisions
+still needed for language rollout, regional Han selection, offline provisioning, local user scope,
+and telemetry governance are listed in the decision record. Existing detailed epics below remain
+the implementation evidence; this table supplies their priority under the confirmed product scope.
+
+**Quick-win verification (2026-08-28):** the new regressions reproduced six failing cases before
+the fixes. Afterwards, all **54 focused tests** passed across `PdfSignTool.test.tsx`,
+`SignToolContext.test.tsx`, and `liveFontCoverage.test.js`. The full suite finished with
+**1,675 passing / 3 failing** tests: the pre-existing failures are two `fontCoverage.test.js`
+cases opening the removed `Almarai-Regular.ttf` and one `fontCoverageTable.test.js` case looking
+up that removed font. These remain part of SIGN-10; no font migration or baseline was changed by
+the quick wins. Type check passed (0 errors, 23 hints), production build passed, and CSP, CSS,
+gesture and font-alignment guards passed. The focused production Chromium run passed **5/5**:
+`e2e/sign/sign-editor.spec.js` and `e2e/csp-smoke.spec.js`. The full visual-language E2E matrix was
+not rerun for these changes. The export-retry regressions stub the exporter to control failure;
+existing real-PDF export/extraction tests also ran in the focused component suite.
 
 ### Launch / SEO
 

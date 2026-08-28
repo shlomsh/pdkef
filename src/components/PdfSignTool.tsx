@@ -20,19 +20,17 @@ import ConfirmDialog from './ConfirmDialog.tsx';
 import { describeFile } from '../lib/format.js';
 import useCurrentPage from '../lib/useCurrentPage.js';
 
-// The detail shown in PdfWorkspace's error block. Null falls back to its
-// default "may be password-protected or encrypted" copy - only signPdf's H5
-// refusal (docs/hebrew-text-shaping-export.md, "Layer 3") gets a specific
-// one, since that failure is a deliberate, nameable refusal rather than a
-// corrupt or locked source file.
-function describeSignFailure(err: unknown): string | null {
+// Recoverable export failures keep the editor open. Name unsupported text
+// precisely; other failures explain that the user can retry without losing
+// their edits. Document-load errors use the workspace's separate default copy.
+function describeSignFailure(err: unknown): string {
   if (err instanceof UnrepresentableTextError) {
     // Worded by textCoverage.js, the same module the while-typing warning
     // reads from, so the heads-up and the refusal can never name different
     // characters or point at different pages.
     return describeUnrepresentableText(err.characters, err.pageNumbers ?? [], { saving: true });
   }
-  return null;
+  return 'Could not export the PDF. Your edits are still here. Try again.';
 }
 
 export default function PdfSignTool() {
@@ -51,10 +49,8 @@ function PdfSignToolInner() {
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
   const setSelectedTool = (tool: string | null) => dispatch({ type: 'SET_TOOL', payload: tool });
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
-  // Overrides the generic "may be password-protected or encrypted" copy in
-  // PdfWorkspace's error block when signPdf refused for a specific, nameable
-  // reason (docs/hebrew-text-shaping-export.md, "Layer 3"). Null means show
-  // the generic message.
+  // Export errors are recoverable without unmounting the editor. A failed
+  // document load still uses status='error' with the workspace's load copy.
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -460,6 +456,7 @@ function PdfSignToolInner() {
       file: selected, bytes, restored, loadIdRef, clearDraft, setStatus, setAnnouncement,
       initialize: () => {
         setFile(selected);
+        setErrorDetail(null);
         setProgress(0);
         dispatch({ type: 'SET_ELEMENTS', payload: presetElements });
         dispatch({ type: 'SET_ACTION_HISTORY', payload: preset.actionHistory || [] });
@@ -687,6 +684,7 @@ function PdfSignToolInner() {
   // Apply signing and prepare the PDF for sharing or downloading.
   const handleSavePdf = async () => {
     if (!file) return;
+    setErrorDetail(null);
     setStatus('signing');
     setProgress(0);
     setAnnouncement('Writing signatures and text layers into PDF...');
@@ -709,14 +707,15 @@ function PdfSignToolInner() {
       setAnnouncement('PDF signed successfully. Download started.');
     } catch (err) {
       console.error(err);
-      setStatus('error');
+      setStatus('editing');
       const detail = describeSignFailure(err);
       setErrorDetail(detail);
-      setAnnouncement(detail ? `Signing stopped. ${detail}` : 'Failed to write and export PDF document.');
+      setAnnouncement(`Signing stopped. ${detail}`);
     }
   };
 
   const handleDownloadPdf = async () => {
+    setErrorDetail(null);
     if (downloadPrepared()) {
       setAnnouncement('Download started.');
       return;
@@ -734,10 +733,10 @@ function PdfSignToolInner() {
       setAnnouncement('PDF signed successfully. Download started.');
     } catch (err) {
       console.error(err);
-      setStatus('error');
+      setStatus('editing');
       const detail = describeSignFailure(err);
       setErrorDetail(detail);
-      setAnnouncement(detail ? `Signing stopped. ${detail}` : 'Failed to write and export PDF document.');
+      setAnnouncement(`Signing stopped. ${detail}`);
     }
   };
 
