@@ -130,10 +130,22 @@ describe('text serialize font choice', () => {
     expect(latin.requested[0]).toBe('Caveat');
   });
 
-  it('draws nothing at all for empty text', async () => {
-    const { page, requested } = await serializeWith({ ...base, fontFamily: 'Caveat', text: '   ' });
+  it('draws nothing at all for a genuinely empty text value', async () => {
+    const { page, requested } = await serializeWith({ ...base, fontFamily: 'Caveat', text: '' });
     expect(requested).toEqual([]);
     expect(page.drawText).not.toHaveBeenCalled();
+  });
+
+  it('keeps leading/trailing spaces and blank physical lines in export layout', async () => {
+    const { page } = await serializeWith({ ...base, fontFamily: 'Arimo', text: ' lead \n\ntrail ' });
+    // The fallback font in this focused serializer harness leaves text whole,
+    // which makes the exact strings and their baselines observable without
+    // duplicating fontkit's shaping implementation in the test.
+    expect(page.drawText.mock.calls.map(([value]) => value)).toEqual([' lead ', 'trail ']);
+    const [first, second] = page.drawText.mock.calls.map(([, options]) => options.y);
+    // One blank line remains between the two inked lines, so the baseline
+    // advances twice at the editor's 1.2em line height (12pt * 1.2 * 2).
+    expect(first - second).toBeCloseTo(28.8);
   });
 });
 

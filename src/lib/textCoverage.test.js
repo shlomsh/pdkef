@@ -34,7 +34,7 @@ const text = (over) => ({ type: 'text', id: 'a', pageIndex: 0, fontFamily: 'Arim
 describe('findUnrepresentableCharacters', () => {
   it('stays quiet on text every bundled font can draw', async () => {
     const found = await findUnrepresentableCharacters([text({ text: 'Shlomi Shemesh 1975' })], loadFont);
-    expect(found).toEqual({ characters: [], pageNumbers: [] });
+    expect(found).toEqual({ characters: [], pageNumbers: [], elementCharacters: {} });
   });
 
   // The point of running the policy through resolveFontFamily: by the time
@@ -75,7 +75,7 @@ describe('findUnrepresentableCharacters', () => {
       { type: 'signature', id: 's', pageIndex: 0 },
       text({ id: 'blank', text: '   ' }),
     ], loadFont);
-    expect(found).toEqual({ characters: [], pageNumbers: [] });
+    expect(found).toEqual({ characters: [], pageNumbers: [], elementCharacters: {} });
   });
 
   // A comb renders slice(0, cellCount) and silently drops the rest, so judging
@@ -96,7 +96,7 @@ describe('findUnrepresentableCharacters', () => {
 
   it('skips an element whose font will not load rather than inventing a warning', async () => {
     const found = await findUnrepresentableCharacters([text({ text: '😀🎉' })], async () => null);
-    expect(found).toEqual({ characters: [], pageNumbers: [] });
+    expect(found).toEqual({ characters: [], pageNumbers: [], elementCharacters: {} });
   });
 });
 
@@ -131,7 +131,7 @@ describe('the normalization seam, at policy level', () => {
     expect(substitution.missing).toEqual(['ά']);
 
     const found = await findUnrepresentableCharacters([text({ text: value, fontFamily: 'Heebo', pageIndex: 2 })], loadFont);
-    expect(found).toEqual({ characters: [], pageNumbers: [] });
+    expect(found).toEqual({ characters: [], pageNumbers: [], elementCharacters: {} });
   });
 
   it('a pasted Hebrew presentation form the font cannot draw is allowed once its decomposition is', async () => {
@@ -146,7 +146,7 @@ describe('the normalization seam, at policy level', () => {
 
     const pasted = String.fromCodePoint(0xfb1d); // precomposed yod-with-hiriq, as it arrives pasted
     const found = await findUnrepresentableCharacters([text({ text: pasted, fontFamily: 'Alef' })], loadFont);
-    expect(found).toEqual({ characters: [], pageNumbers: [] });
+    expect(found).toEqual({ characters: [], pageNumbers: [], elementCharacters: {} });
   });
 });
 

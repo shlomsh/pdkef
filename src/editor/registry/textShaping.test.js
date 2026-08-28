@@ -317,6 +317,8 @@ describe('shapedWidth', () => {
 describe('invisible formatting characters', () => {
   const RLM = '\u200F';
   const ZWSP = '\u200B';
+  const ZWJ = '\u200D';
+  const ZWNJ = '\u200C';
 
   it('does not refuse Hebrew carrying an invisible RLM', async () => {
     const font = await embedFont('GveretLevin-Regular.ttf');
@@ -331,6 +333,20 @@ describe('invisible formatting characters', () => {
     const font = await embedFont('GveretLevin-Regular.ttf');
     expect(font.embedder.font.hasGlyphForCodePoint(0x200b)).toBe(false);
     expect(unrepresentableCharacters(font, `שלום${ZWSP}עולם`)).toEqual([]);
+  });
+
+  it('keeps joiners for shaping and searchable text while excluding them from glyph coverage', async () => {
+    const font = await embedFont('GveretLevin-Regular.ttf');
+    const fk = font.embedder.font;
+    const typed = `a${ZWJ}b${ZWNJ}c`;
+
+    // Non-vacuity: the face really has no glyph for these controls. The
+    // coverage rule must waive that absence without deleting the controls
+    // before a shaper or /ActualText can use them.
+    expect(fk.hasGlyphForCodePoint(0x200d)).toBe(false);
+    expect(fk.hasGlyphForCodePoint(0x200c)).toBe(false);
+    expect(unrepresentableCharacters(font, typed)).toEqual([]);
+    expect(stripInvisibleFormatting(typed)).toBe(typed);
   });
 
   it('does not refuse a TAB, and keeps its gap as a space rather than a .notdef box', async () => {
@@ -432,11 +448,11 @@ describe('directional marks survive into bidi resolution', () => {
     expect(normalizeTabsForBidi('a\tb')).toBe('a b');
   });
 
-  it('strips the marks from each run once bidi has read them', () => {
+  it('keeps directional marks in resolved runs for searchable text', () => {
     const runs = resolveBidiRuns(typed, 'rtl')
       .map((run) => stripInvisibleFormatting(run.text))
       .filter((text) => text !== '');
-    expect(runs.join('')).not.toContain(LRM);
+    expect(runs.join('')).toContain(LRM);
     expect(runs.join('')).toContain('(v2)');
   });
 });

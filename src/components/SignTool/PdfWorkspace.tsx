@@ -81,7 +81,7 @@ export default function PdfWorkspace({
   // would refuse on and a character two pages away still stops the download.
   // The substitution aside is tied to the selected box, because that is the
   // one whose font just visibly changed under the user.
-  const coverageWarning = useFontCoverageNotice(elements);
+  const { message: coverageWarning, elementCharacters: unsupportedByElement } = useFontCoverageNotice(elements);
   const substitutionNotice = activeTextElement
     ? describeFontSubstitution(resolveFontSubstitution(activeTextElement.fontFamily, activeTextElement.text))
     : '';
@@ -310,6 +310,7 @@ export default function PdfWorkspace({
                           onDelete={makeOnDelete(el.id)}
                           onClone={makeOnClone(el.id, el.pageIndex, el.type)}
                           pageWidthPoints={size.width}
+                          unsupportedCharacters={unsupportedByElement[el.id]}
                         >
                           {getElementDefinition(el.type).render({
                             element: el,

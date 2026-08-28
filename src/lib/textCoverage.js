@@ -58,6 +58,10 @@ export async function findUnrepresentableCharacters(elements, loadFont) {
   const seen = new Set();
   const missing = [];
   const pages = new Set();
+  // Keep the global summary for save-time validation, but retain the source
+  // element too. The editor can then warn at the text box being edited rather
+  // than making someone hunt for it from a page-level banner.
+  const elementCharacters = {};
   for (const element of elements || []) {
     if (element.type !== 'text') continue;
     // Match text serialization: authored leading/trailing whitespace and
@@ -73,14 +77,21 @@ export async function findUnrepresentableCharacters(elements, loadFont) {
       ? combCharacters(element).slice(0, combCellCount(element)).join('')
       : textValue;
     const found = unrepresentableCharacters(resolvedFont, drawnText);
-    if (found.length > 0) pages.add((element.pageIndex ?? 0) + 1);
+    if (found.length > 0) {
+      pages.add((element.pageIndex ?? 0) + 1);
+      if (element.id != null) elementCharacters[element.id] = found;
+    }
     for (const ch of found) {
       if (seen.has(ch)) continue;
       seen.add(ch);
       missing.push(ch);
     }
   }
-  return { characters: missing, pageNumbers: [...pages].sort((a, b) => a - b) };
+  return {
+    characters: missing,
+    pageNumbers: [...pages].sort((a, b) => a - b),
+    elementCharacters,
+  };
 }
 
 /**

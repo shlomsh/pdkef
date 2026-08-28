@@ -23,7 +23,7 @@ const { default: useFontCoverageNotice } = await import('./useFontCoverageNotice
 // No @testing-library/preact-hooks in this repo - same tiny-harness pattern as
 // useCurrentPage.test.jsx.
 function Harness({ apiRef, elements }) {
-  apiRef.current = { message: useFontCoverageNotice(elements) };
+  apiRef.current = useFontCoverageNotice(elements);
   return null;
 }
 
