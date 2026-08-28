@@ -288,7 +288,23 @@ before W9 depends on W9, and W4 through W8 are independent of each other.
   product: for an RTL element `element.left` is the box's right anchor edge, so every Hebrew and Arabic
   case had been anchored at 8% of the page and drawn growing leftward off the sheet, leaving only a
   clipped tail - two different RTL strings reduced to the same fragment and read as 0.00% apart. An "is
-  there ink?" pass condition would have called that green. **Stated limitation:** at a 12.5% relative
+  there ink?" pass condition would have called that green. **Update 2026-08-27, the Linux gap closed:**
+  this guard's baseline was captured on macOS and had never actually run in CI - masked for a month by an
+  unrelated flaky unit test that failed before the job reached the e2e step. Once that test was fixed,
+  CI's real Linux/Chromium run drifted two cursive cases past the proxy-calibrated floor (`latin-caveat`
+  13.68%, `latin-great-vibes` 17.61%), while the rest of the 21-case corpus and the closest-distinct-pair
+  number (31.60%, matching the 31.65% recorded above) held steady - the signature of real cross-platform
+  antialiasing noise on thin strokes, not a regression, and exactly the scenario this section's tolerance
+  discussion anticipated but could not measure for real. Raising `MIN_TOLERANCE_PCT` to cover it was not
+  an option: at 2x the two closest-pair cases sit only 31.60% apart, capping tolerance below what the
+  real Linux delta needed. Recaptured the baseline for real on CI (Linux, matching Chromium) instead of
+  guessing at a bigger proxy-derived number. Also fixed a second, unrelated guard the same masked run
+  exposed: `cjk-advance-parity-guard.spec.js`'s "did the FontFace really apply" sanity check compared
+  against generic `sans-serif` measuring Japanese text, which on a CI box with a Noto CJK package
+  installed (a `playwright install --with-deps` side effect) measures the same as the bundled font and
+  false-flags a correctly-applied font as never having loaded. Switched the control to a Latin string
+  against the bundled Arimo face, which sidesteps CJK fallback entirely.
+  **Stated limitation:** at a 12.5% relative
   tolerance a defect smaller than roughly an eighth of a case's ink passes - a combining mark a point off
   its base, a fractional baseline shift, a moved kern pair, none of these are reported. That is a
   division of labour with the per-script shaping guards, which resolve far finer differences because
