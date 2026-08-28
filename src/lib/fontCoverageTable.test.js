@@ -215,7 +215,7 @@ describe('non-vacuity: the table says false for codepoints a font genuinely lack
     { file: 'Pacifico-Regular.ttf', codePoint: HEBREW_ALEF, label: 'Hebrew alef in Pacifico (Latin-only handwriting face)' },
     { file: 'Arimo-Regular.ttf', codePoint: ARABIC_ALEF, label: 'Arabic alef in Arimo (no Arabic coverage)' },
     { file: 'Arimo-Regular.ttf', codePoint: CJK_SAMPLE, label: 'CJK ideograph in Arimo' },
-    { file: 'Almarai-Regular.ttf', codePoint: CJK_SAMPLE, label: 'CJK ideograph in Almarai' },
+    { file: 'ScheherazadeNew-Regular.ttf', codePoint: CJK_SAMPLE, label: 'CJK ideograph in Scheherazade New' },
     { file: 'Arimo-Regular.ttf', codePoint: EMOJI_SAMPLE, label: 'emoji in Arimo' },
     { file: 'Heebo-Regular.ttf', codePoint: EMOJI_SAMPLE, label: 'emoji in Heebo' },
     { file: 'Assistant-Regular.ttf', codePoint: ARABIC_ALEF, label: 'Arabic alef in Assistant (Hebrew-capable, not Arabic-capable)' },

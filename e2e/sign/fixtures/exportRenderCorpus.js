@@ -105,7 +105,7 @@ export const EXPORT_RENDER_CORPUS = [
   textCase('mixed-ltr-paragraph', 'Tel Aviv שלום', { fontFamily: 'Arimo', textDirection: 'ltr' }),
 
   // --- The scripts with no agreement proof today, one case each.
-  textCase('arabic-almarai', 'مرحبا', { fontFamily: 'Almarai', left: RTL_ANCHOR }),
+  textCase('arabic-scheherazade-new', 'مرحبا', { fontFamily: 'Scheherazade New', left: RTL_ANCHOR }),
   textCase('devanagari-kalam', 'नमस्ते', { fontFamily: 'Kalam' }),
   textCase('thai-mali', 'สวัสดี', { fontFamily: 'Mali' }),
   textCase('cyrillic-pt-sans', 'Привіт', { fontFamily: 'PT Sans' }),

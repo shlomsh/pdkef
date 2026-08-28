@@ -64,7 +64,7 @@ export default function PdfWorkspace({
 }) {
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
   const {
-    lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastDirection, lastThickness, lastSymbolWidth, lastSymbolMark,
+    lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastThickness, lastSymbolWidth, lastSymbolMark,
     rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth
   } = useSignDefaults();
   const { activeSignature } = useSavedSignatures();
@@ -85,10 +85,10 @@ export default function PdfWorkspace({
   const substitutionNotice = activeTextElement
     ? describeFontSubstitution(resolveFontSubstitution(activeTextElement.fontFamily, activeTextElement.text))
     : '';
-  const initialTextDirection =
-    activeTextElement
-      ? detectTextDirection(activeTextElement.text) || activeTextElement.textDirection || lastDirection
-      : lastDirection;
+  // A fresh field starts from the product's English/LTR default. Direction is
+  // then derived from what is typed into that field; it must never inherit the
+  // language/direction of a selected or previously edited text element.
+  const initialTextDirection = 'ltr';
 
   // --- Gesture handlers (extracted) ---
   const { handlePageClick, handleOverlayPointerDown } = useWorkspaceGestures({

@@ -235,11 +235,14 @@ describe('resolveFontSubstitution', () => {
       expect(mixed.missing).not.toEqual(expect.arrayContaining(['ש', 'ל', 'ו', 'ם']));
     });
 
-    it('is unchanged for a script no bundled font can draw at all (CJK)', () => {
-      const cjk = resolveFontSubstitution('Arimo', '你好');
-      expect(cjk.family).toBe('Arimo');
-      expect(cjk.requested).toBe('Arimo');
-      expect(cjk.missing).toEqual(['你', '好']);
+    // Was '你好' (CJK) until Noto Sans SC/TC were wired in and made it
+    // drawable - exactly the drift bebc24b's Japanese fixture hit first. Emoji
+    // remains genuinely uncoverable by any bundled family (see TODO.md).
+    it('is unchanged for a script no bundled font can draw at all (emoji)', () => {
+      const emoji = resolveFontSubstitution('Arimo', '😀🎉');
+      expect(emoji.family).toBe('Arimo');
+      expect(emoji.requested).toBe('Arimo');
+      expect(emoji.missing).toEqual(['😀', '🎉']);
     });
   });
 });
@@ -262,11 +265,15 @@ describe('FONT_STYLE_TAGS', () => {
     }
   });
 
-  it('Tinos is the lone serif and Cousine the lone mono - changes nothing today, on purpose (§3.3)', () => {
-    expect(FONT_STYLE_TAGS.Tinos).toBe('serif');
+  it('Cousine is the lone mono - changes nothing today, on purpose (§3.3)', () => {
     expect(FONT_STYLE_TAGS.Cousine).toBe('mono');
-    expect(Object.values(FONT_STYLE_TAGS).filter((tag) => tag === 'serif')).toEqual(['serif']);
     expect(Object.values(FONT_STYLE_TAGS).filter((tag) => tag === 'mono')).toEqual(['mono']);
+  });
+
+  it('Tinos and Scheherazade New are serif, and never compete - no text covers both Latin and Arabic scripts', () => {
+    expect(FONT_STYLE_TAGS.Tinos).toBe('serif');
+    expect(FONT_STYLE_TAGS['Scheherazade New']).toBe('serif');
+    expect(Object.values(FONT_STYLE_TAGS).filter((tag) => tag === 'serif')).toEqual(['serif', 'serif']);
   });
 });
 
@@ -340,7 +347,17 @@ describe('textBoxPaddingEm', () => {
 describe('retired fonts', () => {
   const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 
-  it('maps a retired family to a replacement we still ship, for Latin as well as Hebrew', () => {
+  // Each retired family's own native-script sample - Playpen Sans Hebrew was
+  // dropped for a Hebrew shaping bug, so its replacement (Gveret Levin) must
+  // still resolve Hebrew; Almarai was dropped for an Arabic-script gap
+  // (Pashto), so its replacement (Scheherazade New) is judged on Arabic, not
+  // Hebrew, which it was never expected to draw either.
+  const NATIVE_SAMPLE_BY_RETIRED = {
+    'Playpen Sans Hebrew': 'שלום',
+    Almarai: 'مرحبا',
+  };
+
+  it('maps a retired family to a replacement we still ship, for Latin as well as its native script', () => {
     for (const [retired, replacement] of Object.entries(RETIRED_FONTS)) {
       // Non-vacuity: the retired name must genuinely be gone, or this passes
       // while proving nothing.
@@ -348,10 +365,13 @@ describe('retired fonts', () => {
       expect(TEXT_FONTS).not.toContain(retired);
       expect(HEBREW_CAPABLE_FONTS).not.toContain(retired);
 
+      const nativeSample = NATIVE_SAMPLE_BY_RETIRED[retired];
+      expect(nativeSample, `add a native-script sample for "${retired}" to NATIVE_SAMPLE_BY_RETIRED above`).toBeDefined();
+
       // Both sides land on the replacement whatever the script, so a restored
       // draft cannot render one way on screen and another in the download.
       expect(resolveFontFamily(retired, 'Shlomi Shahar')).toBe(replacement);
-      expect(resolveFontFamily(retired, 'שלום')).toBe(replacement);
+      expect(resolveFontFamily(retired, nativeSample)).toBe(replacement);
 
       // And the replacement is a font we actually ship, with a file on disk.
       expect([...HANDWRITING_FONTS, ...TEXT_FONTS]).toContain(replacement);

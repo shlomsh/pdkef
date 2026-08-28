@@ -52,16 +52,19 @@ describe('findUnrepresentableCharacters', () => {
     expect(found.characters).toEqual([]);
   });
 
+  // Was '한글' (Hangul) until Noto Sans KR was wired in and made it drawable
+  // - the same drift fonts.test.js hit on its own CJK fixture. Emoji remains
+  // genuinely uncoverable by any bundled family (see TODO.md).
   it('flags what no bundled font can draw, and says which page', async () => {
-    const found = await findUnrepresentableCharacters([text({ text: '한글', pageIndex: 2 })], loadFont);
+    const found = await findUnrepresentableCharacters([text({ text: '😀🎉', pageIndex: 2 })], loadFont);
     expect(found.characters.length).toBeGreaterThan(0);
     expect(found.pageNumbers).toEqual([3]);
   });
 
   it('deduplicates across elements, in first-seen order, and collects every page', async () => {
     const found = await findUnrepresentableCharacters([
-      text({ id: 'a', text: '한글', pageIndex: 0 }),
-      text({ id: 'b', text: '한글', pageIndex: 4 }),
+      text({ id: 'a', text: '😀🎉', pageIndex: 0 }),
+      text({ id: 'b', text: '😀🎉', pageIndex: 4 }),
     ], loadFont);
     expect(new Set(found.characters).size).toBe(found.characters.length);
     expect(found.pageNumbers).toEqual([1, 5]);
@@ -79,7 +82,7 @@ describe('findUnrepresentableCharacters', () => {
   // the whole string would refuse a document over a character that was never
   // going to reach the page.
   it('judges only the comb cells that actually render', async () => {
-    const content = 'ab한글';
+    const content = 'ab😀';
     const comb = text({ text: content, width: 40, combCells: 2 });
     const found = await findUnrepresentableCharacters([comb], loadFont);
     expect(found.characters).toEqual([]);
@@ -92,7 +95,7 @@ describe('findUnrepresentableCharacters', () => {
   });
 
   it('skips an element whose font will not load rather than inventing a warning', async () => {
-    const found = await findUnrepresentableCharacters([text({ text: '한글' })], async () => null);
+    const found = await findUnrepresentableCharacters([text({ text: '😀🎉' })], async () => null);
     expect(found).toEqual({ characters: [], pageNumbers: [] });
   });
 });

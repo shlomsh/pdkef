@@ -15,7 +15,7 @@ interface ToolShellContextValue {
   requestClear: () => void;
   fileLabel?: string;
   fileMeta?: string;
-  draftSaved?: boolean;
+  draftSaveState?: 'idle' | 'pending' | 'saved' | 'error';
   multiple?: boolean;
 }
 
@@ -114,7 +114,14 @@ export function useToolShell() {
  * it.
  */
 export default function ToolShell({ editor = false, status = null, children }: { editor?: boolean; status?: ComponentChildren; children?: ComponentChildren }) {
-  const { fileLabel, fileMeta, draftSaved, multiple } = useToolShell();
+  const { fileLabel, fileMeta, draftSaveState = 'idle', multiple } = useToolShell();
+  const draftStatus = draftSaveState === 'saved'
+    ? { label: 'Draft saved', className: styles.saved }
+    : draftSaveState === 'pending'
+      ? { label: 'Saving draft…', className: styles.pending }
+      : draftSaveState === 'error'
+        ? { label: 'Draft not saved', className: styles.error }
+        : null;
 
   return (
     <div class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}`} data-tool-shell>
@@ -135,15 +142,17 @@ export default function ToolShell({ editor = false, status = null, children }: {
           <span class={styles.name}>
             {fileLabel || (multiple ? 'Files loaded' : 'PDF loaded')}
           </span>
-          {(fileMeta || draftSaved) && (
+          {(fileMeta || draftStatus) && (
             <span class={styles.meta}>
               {fileMeta && <span class={styles['meta-text']}>{fileMeta}</span>}
-              {draftSaved && (
-                <span class={styles.saved}>
-                  <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M3 8.5l3 3 7-7.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                  Draft saved
+              {draftStatus && (
+                <span class={draftStatus.className} role={draftSaveState === 'error' ? 'alert' : undefined}>
+                  {draftSaveState === 'saved' && (
+                    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M3 8.5l3 3 7-7.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  )}
+                  {draftStatus.label}
                 </span>
               )}
             </span>

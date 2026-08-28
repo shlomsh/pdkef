@@ -59,6 +59,10 @@ describe('SignToolbar Component', () => {
     const buttons = container.querySelectorAll(`.${styles.button}`);
     expect(buttons.length).toBeGreaterThan(0);
 
+    const labels = Array.from(buttons, button => button.querySelector(`.${styles.label}`).textContent.trim());
+    expect(labels.slice(0, 7)).toEqual(['Text', 'Symbols', 'Shapes', 'Whiteout', 'Sign', 'Undo', 'Feedback']);
+    expect(labels.at(-1)).toBe('Download');
+
     const textBtn = Array.from(buttons).find(b => b.textContent.includes('Text') || b.querySelector('svg'));
     expect(textBtn).not.toBeUndefined();
 

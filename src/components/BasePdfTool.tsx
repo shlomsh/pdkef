@@ -24,7 +24,7 @@ interface BasePdfToolProps {
   emptyStateMessage?: string;
   fileLabel?: string;
   fileMeta?: string;
-  draftSaved?: boolean;
+  draftSaveState?: 'idle' | 'pending' | 'saved' | 'error';
   hasWork?: boolean;
   workNoun?: string;
   onClearAll?: () => void;
@@ -54,7 +54,7 @@ export default function BasePdfTool({
   emptyStateMessage,
   fileLabel,
   fileMeta,
-  draftSaved = false,
+  draftSaveState = 'idle',
   /* Is there anything a replacement would destroy? False skips the
      confirmation entirely: nothing has been done to this file yet, so asking
      would be noise. */
@@ -204,7 +204,7 @@ export default function BasePdfTool({
     onClearAll?.();
   };
 
-  const shell = { fileLabel, fileMeta, draftSaved, multiple, requestReplace, requestClear };
+  const shell = { fileLabel, fileMeta, draftSaveState, multiple, requestReplace, requestClear };
 
   return (
     <ToolShellContext.Provider value={shell}>
@@ -294,7 +294,7 @@ export default function BasePdfTool({
           <>Choosing another file closes </>
         )}
         <span class={dialogStyles['confirm-file']}>{fileLabel || 'the current PDF'}</span> and discards {workNoun}.
-        That can’t be undone.{draftSaved ? ' Your saved draft goes with it.' : ''}
+        That can’t be undone.{draftSaveState === 'saved' ? ' Your saved draft goes with it.' : ''}
       </ConfirmDialog>
 
       <ConfirmDialog

@@ -24,7 +24,12 @@ export function detectTextDirection(text) {
 }
 
 export function getEffectiveTextDirection(element) {
-  return detectTextDirection(element.text) || element.textDirection || 'ltr';
+  // `textDirection` is retained on elements for backwards-compatible draft
+  // data and the creation model, but it must not become an inherited language
+  // choice. A blank, punctuation-only, or digit-only field has no typed
+  // language to follow, so product policy makes it English/LTR even if an
+  // older saved element happens to carry `textDirection: 'rtl'`.
+  return detectTextDirection(element.text) || 'ltr';
 }
 
 export function hexToRgbFractions(hex, fallback = '#000000') {

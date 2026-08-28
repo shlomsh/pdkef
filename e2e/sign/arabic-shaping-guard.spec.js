@@ -1,11 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { ARABIC_CORPUS, DUAL_JOINING_LETTERS, NON_JOINING_LETTERS } from './fixtures/arabicCorpus.js';
+import { ARABIC_CORPUS, PASHTO_CORPUS, DUAL_JOINING_LETTERS, NON_JOINING_LETTERS } from './fixtures/arabicCorpus.js';
 import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
 
 /**
- * Arabic correctness guard for the Almarai catalogue candidate (TODO.md,
- * "Internationalization: fonts for scripts beyond Hebrew/Latin", the Arabic
- * entry). Modeled on devanagari-shaping-guard.spec.js's method, and now
+ * Arabic correctness guard for the Scheherazade New catalogue candidate
+ * (TODO.md, "Internationalization: fonts for scripts beyond Hebrew/Latin",
+ * the Pashto entry - Scheherazade New replaced Almarai 2026-08-28 after a
+ * five-candidate screening found it the only face that also draws Pashto's
+ * eleven missing letters; see RETIRED_FONTS in src/lib/fonts.js). Modeled on
+ * devanagari-shaping-guard.spec.js's method, and now
  * built on the same shared harness (`./fixtures/shapingGuardHarness.js`) -
  * but Arabic's correctness question is different from Devanagari's: it is
  * *joining* (does fontkit's ArabicShaper pick the right init/medi/fina/isol
@@ -80,8 +83,8 @@ const ALPHABET = [...DUAL_JOINING_LETTERS, ...NON_JOINING_LETTERS];
 
 createShapingGuardTest({
   scriptName: 'Arabic',
-  candidateName: 'Almarai',
-  fontFileName: 'Almarai-Regular.ttf',
+  candidateName: 'Scheherazade New',
+  fontFileName: 'ScheherazadeNew-Regular.ttf',
   direction: 'rtl',
   size: 80,
   canvasWidth: 600,
@@ -91,6 +94,33 @@ createShapingGuardTest({
   corpus: ARABIC_CORPUS,
   calibrationSet: ALPHABET,
   minTolerancePct: 3,
+  test,
+  expect,
+});
+
+/**
+ * Pashto's eleven letters, screened separately from the rest of ARABIC_CORPUS
+ * (see PASHTO_CORPUS's doc comment in ./fixtures/arabicCorpus.js) because
+ * they have no Arabic joining-rule equivalent to check against - only
+ * whether Scheherazade New draws them at all, isolated and joined. Uses its
+ * own `bundleFilename` so this test's fontkit bundle doesn't race the Arabic
+ * guard's above (see createShapingGuardTest's doc comment on why two guards
+ * sharing one bundle path is unsafe).
+ */
+createShapingGuardTest({
+  scriptName: 'Pashto',
+  candidateName: 'Scheherazade New',
+  fontFileName: 'ScheherazadeNew-Regular.ttf',
+  direction: 'rtl',
+  size: 80,
+  canvasWidth: 600,
+  canvasHeight: 200,
+  anchorX: 570,
+  baselineY: 130,
+  corpus: PASHTO_CORPUS,
+  calibrationSet: ALPHABET,
+  minTolerancePct: 3,
+  bundleFilename: '__e2e-pashto-fontkit-bundle.js',
   test,
   expect,
 });

@@ -502,7 +502,7 @@ function PdfSignToolInner() {
   };
 
   // Setup draft persistence hook
-  const { clearDraft, isRestoring } = useEditorDraftPersistence({
+  const { clearDraft, isRestoring, draftSaveState } = useEditorDraftPersistence({
     tool: 'sign',
     file,
     fileBytes: fileBytesRef.current,
@@ -761,7 +761,7 @@ function PdfSignToolInner() {
       multiple={false}
       fileLabel={file?.name}
       fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null)}
-      draftSaved={status === 'editing'}
+      draftSaveState={draftSaveState}
       hasWork={elements.length > 0}
       workNoun="your annotations"
       ownsShell

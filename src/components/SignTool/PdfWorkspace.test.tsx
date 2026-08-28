@@ -443,6 +443,32 @@ describe('PdfWorkspace Component', () => {
     expect(rememberDirection).toHaveBeenCalledWith('ltr');
   });
 
+  it('creates a new text field LTR after an RTL field instead of inheriting its direction', () => {
+    const dispatch = vi.fn();
+    const state = {
+      selectedTool: 'text',
+      elements: [{
+        id: 'rtl-text', type: 'text', pageIndex: 0, left: 70, top: 20,
+        text: 'שלום', fontSize: 12, fontFamily: 'Arimo', textDirection: 'rtl'
+      }],
+      activeElementId: 'rtl-text',
+      actionHistory: []
+    };
+
+    host = mountWorkspace({ state, dispatch, defaults: { lastDirection: 'rtl' } });
+    const overlay = host.querySelector(`.${workspaceStyles['page-overlay']}`);
+    overlay.getBoundingClientRect = () => ({
+      left: 0, top: 0, width: 1000, height: 1000, right: 1000, bottom: 1000
+    });
+
+    act(() => {
+      overlay.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 300, clientY: 300 }));
+    });
+
+    const added = dispatch.mock.calls.find(([action]) => action.type === 'ADD_ELEMENT')?.[0].payload;
+    expect(added).toMatchObject({ type: 'text', text: '', textDirection: 'ltr' });
+  });
+
   it('remembers edited shape thickness for the next placed shape', () => {
     const dispatch = vi.fn();
     const rememberThickness = vi.fn();

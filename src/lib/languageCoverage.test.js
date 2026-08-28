@@ -107,24 +107,34 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(note).not.toContain('accents work throughout');
   });
 
-  it('Arabic: exactly Almarai, matching LANGUAGE_COVERAGE.arabic.full', () => {
-    expect(LANGUAGE_COVERAGE.arabic.full.map((f) => f.family)).toEqual(['Almarai']);
-    expect(supportedNote('Arabic')).toContain('Almarai');
+  it('Arabic: exactly Scheherazade New, matching LANGUAGE_COVERAGE.arabic.full', () => {
+    expect(LANGUAGE_COVERAGE.arabic.full.map((f) => f.family)).toEqual(['Scheherazade New']);
+    expect(supportedNote('Arabic')).toContain('Scheherazade New');
   });
 
-  it('Dari and Farsi: exactly Almarai, matching LANGUAGE_COVERAGE.farsi.full', () => {
-    expect(LANGUAGE_COVERAGE.farsi.full.map((f) => f.family)).toEqual(['Almarai']);
-    expect(supportedNote('Dari and Farsi')).toContain('Almarai');
+  it('Dari and Farsi: exactly Scheherazade New, matching LANGUAGE_COVERAGE.farsi.full', () => {
+    expect(LANGUAGE_COVERAGE.farsi.full.map((f) => f.family)).toEqual(['Scheherazade New']);
+    expect(supportedNote('Dari and Farsi')).toContain('Scheherazade New');
   });
 
-  it('Urdu: exactly Almarai, matching LANGUAGE_COVERAGE.urdu.full, and the note states the Nastaliq/Naskh caveat', () => {
-    expect(LANGUAGE_COVERAGE.urdu.full.map((f) => f.family)).toEqual(['Almarai']);
+  it('Urdu: exactly Scheherazade New, matching LANGUAGE_COVERAGE.urdu.full, and the note states the Nastaliq/Naskh caveat', () => {
+    expect(LANGUAGE_COVERAGE.urdu.full.map((f) => f.family)).toEqual(['Scheherazade New']);
     const note = supportedNote('Urdu');
-    expect(note).toContain('Almarai');
+    expect(note).toContain('Scheherazade New');
     // The caveat is the point of this claim, not a footnote - never let the
     // copy shrink to an unqualified "we support Urdu".
     expect(note).toContain('Nastaliq');
     expect(note).toContain('Naskh');
+  });
+
+  it('Pashto: exactly Scheherazade New, matching LANGUAGE_COVERAGE.pashto.full', () => {
+    expect(LANGUAGE_COVERAGE.pashto.full.map((f) => f.family)).toEqual(['Scheherazade New']);
+    const note = supportedNote('Pashto');
+    expect(note).toContain('Scheherazade New');
+    // The eleven letters are the entire reason Pashto has its own line and
+    // its own font swap - never let the copy shrink to an unqualified claim.
+    expect(note).toContain('ټ');
+    expect(note).toContain('ۍ');
   });
 
   it('Vietnamese: exactly Arimo, Tinos, Cousine and Mali, matching LANGUAGE_COVERAGE.vietnamese.full', () => {
@@ -171,44 +181,79 @@ describe('Sign Languages card: combination claims implied by the copy', () => {
 });
 
 describe('Sign Languages card: "not yet" list is still true', () => {
-  it('none of the named not-yet scripts (CJK, Perso-Arabic extras aside, Devanagari-family scripts other than Hindi) appear as a LANGUAGE_COVERAGE id with any coverage', () => {
+  it('none of the named not-yet scripts (India\'s other scripts aside) appear as a LANGUAGE_COVERAGE id with any coverage', () => {
     // These ids are deliberately NOT in scripts/font-languages.mjs at all -
-    // the report has no row for Chinese/Korean/emoji/Tamil/Telugu/Pashto
-    // because no bundled family draws any of them (see
-    // docs/wysiwyg-text-architecture.md §4.2; Japanese and Bengali did have
-    // ids like these once and were removed from this list when their own
-    // catalogue rows landed). Asserting their absence here
-    // means a language quietly gaining a report row - the generator's own
-    // signal that some font now covers it - would show up as a new key this
-    // list does not know about, rather than silently going unnoticed.
-    const notYetIds = ['zh', 'ko', 'emoji', 'ta', 'te', 'ps'];
+    // the report has no row for emoji/Tamil/Telugu because no bundled family
+    // draws any of them (see docs/wysiwyg-text-architecture.md §4.2).
+    // Japanese, Bengali, Korean and Pashto did have ids like these once and
+    // were removed from this list when their own catalogue rows landed -
+    // Chinese never got one (it has no compact alphabet the way Korean's
+    // Hangul does, see fonts.js's CATALOGUE comment and font-languages.mjs's
+    // header), so 'zh' was never a real id and its absence here is
+    // definitional, not a graduation. Asserting the real ids' absence means a
+    // language quietly gaining a report row - the generator's own signal
+    // that some font now covers it - would show up as a new key this list
+    // does not know about, rather than silently going unnoticed.
+    const notYetIds = ['emoji', 'ta', 'te'];
     for (const id of notYetIds) {
       expect(LANGUAGE_COVERAGE[id]).toBeUndefined();
     }
   });
 
-  it("the notYet copy still names Pashto, Chinese, Korean, emoji and India's other remaining scripts, and does not list Japanese or Bengali as unavailable", () => {
+  it("the notYet copy names emoji and India's other remaining scripts, and does not list Japanese, Bengali, Chinese, Korean or Pashto as unavailable", () => {
     const notYet = signLanguages.notYet;
-    for (const term of ['Pashto', 'Chinese', 'Korean', 'emoji', 'Tamil', 'Telugu']) {
+    expect(notYet.toLowerCase()).toContain('emoji');
+    for (const term of ['Tamil', 'Telugu']) {
       expect(notYet).toContain(term);
     }
-    // Only the opening clause - the one that says what "aren't there yet" -
-    // is checked for Japanese. The copy after it mentions Japanese on
-    // purpose: Han unification means a Chinese word built from characters
-    // that are also on the Japanese kanji lists draws in Noto Sans JP, in the
-    // Japanese shapes, so Chinese is genuinely half-covered and saying which
-    // half needs naming the font that covers it. A blunt `not.toContain`
-    // over the whole string forbids explaining that, which is how honest
-    // copy loses to a test that was only ever meant to catch Japanese still
-    // being listed as missing.
-    const unavailableClause = notYet.split(/(?<=\.)\s/)[0];
-    expect(unavailableClause).toContain('Pashto');
-    expect(unavailableClause).not.toContain('Japanese');
-    // Bengali graduated out of this list entirely (it has its own
-    // LANGUAGE_COVERAGE row and its own "supported" card entry now), so
-    // unlike Japanese/Chinese there is no half-covered nuance to preserve -
-    // the whole notYet string should simply no longer name it.
-    expect(notYet).not.toContain('Bengali');
+    // All five graduated out of this list (each has its own "supported" card
+    // entry now, plus a LANGUAGE_COVERAGE row for every one of them except
+    // Chinese, which has no compact alphabet to check against - the same
+    // reason Japanese kanji has none). Unlike the old half-covered Chinese
+    // wrinkle this list used to carry, there is no remaining nuance to
+    // preserve here: the whole notYet string should simply no longer name
+    // any of the five.
+    for (const term of ['Japanese', 'Bengali', 'Chinese', 'Korean', 'Pashto']) {
+      expect(notYet).not.toContain(term);
+    }
+  });
+});
+
+/**
+ * Korean: an upright text face (not handwriting), the same shape of pin as
+ * the Japanese/Bengali blocks above - except Korean genuinely has no
+ * partial-coverage nuance to state, since Hangul (unlike Han or Hebrew
+ * niqud) is a closed, contiguous block. Kept as its own describe rather than
+ * folded into the "supported" loop above, matching Japanese and Bengali's
+ * own dedicated blocks.
+ */
+describe('Korean', () => {
+  it('exactly Noto Sans KR, matching LANGUAGE_COVERAGE.korean.full - full Hangul, not a curated subset', () => {
+    expect(LANGUAGE_COVERAGE.korean.full.map((f) => f.family)).toEqual(['Noto Sans KR']);
+    const note = supportedNote('Korean');
+    expect(note).toContain('Noto Sans KR');
+    expect(note).toContain('11,172');
+    expect(note).toContain('no handwriting-style Korean face');
+  });
+});
+
+/**
+ * Chinese has no LANGUAGE_COVERAGE row (see the "not yet" describe above and
+ * fonts.js's CATALOGUE comment) - there is no compact alphabet to check
+ * "full" against the way Korean's Hangul or Japanese's kana are, the same
+ * reason Japanese kanji is prose-only in the "Japanese" block above. These
+ * pin the measured counts and the Han-unification caveat directly, since
+ * nothing else can verify this card against the font bytes.
+ */
+describe('Chinese, Simplified and Traditional', () => {
+  it('names both fonts, the measured counts, and the shared-with-Japanese substitution caveat', () => {
+    const note = supportedNote('Chinese, Simplified and Traditional');
+    expect(note).toContain('Noto Sans SC');
+    expect(note).toContain('Noto Sans TC');
+    expect(note).toContain('7,900');
+    expect(note).toContain('11,100');
+    expect(note).toContain('Japanese');
+    expect(note.toLowerCase()).toContain('no handwriting');
   });
 });
 

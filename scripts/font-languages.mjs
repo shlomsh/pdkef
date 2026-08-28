@@ -55,6 +55,12 @@
  *   for at all, plus Urdu's own ۰-۹ digits (identical code points to
  *   Farsi's) - kept as its own language for the same reason Farsi/Dari is:
  *   these are exactly the glyphs Arabic coverage alone does not prove.
+ * - Pashto: the same 28 base Arabic letters plus the four Perso-Arabic extra
+ *   letters Farsi also needs, plus the eleven letters that make Pashto
+ *   script-complete and that no bundled font drew before Scheherazade New
+ *   (ټ ځ څ ډ ړ ږ ښ ګ ڼ ې ۍ - see TODO.md's Pashto entry), reusing Farsi's
+ *   Extended Arabic-Indic digit block since no Pashto-specific digit set is
+ *   modeled here yet.
  * - Vietnamese: every tone-and-diacritic Latin letter modern Vietnamese
  *   writing needs, upper and lower case, defined as its own self-contained
  *   set the way every language here is (not a diff against `latinExt`).
@@ -72,6 +78,25 @@
  *   and VA ৱ, the two letters distinguishing it), since the catalogue's one
  *   Bengali-script font happens to carry both and that is worth stating as
  *   its own measured claim rather than folding silently into "Bengali".
+ * - Korean: the modern Hangul syllable block (U+AC00-U+D7A3, all 11,172
+ *   precomposed syllables) plus the compatibility jamo block a Korean
+ *   keyboard actually types (U+3131-U+318E). Unlike Japanese/Chinese below,
+ *   this is a genuinely closed, contiguous set - modern Korean orthography
+ *   does not use Hanja (Chinese characters) in ordinary writing, so there is
+ *   no open-ended "which characters count" question the way there is for
+ *   Han, and Noto Sans KR's coverage of it can be stated as a clean "full"
+ *   claim rather than a curated subset, the same shape of claim Devanagari
+ *   and Thai above get.
+ * - Chinese (Simplified and Traditional) is deliberately NOT a row here, for
+ *   the same reason Japanese kanji above is not one: Han has no compact,
+ *   closed alphabet the way every other language in this file does, and a
+ *   probe-character claim would be exactly the lie this file's header warns
+ *   against. Noto Sans SC and Noto Sans TC each carry a large, real, but
+ *   curated subset - measured directly against the font bytes at roughly
+ *   7,945 and 11,147 Han characters respectively, not derived from a named
+ *   government list the way jōyō/jinmeiyō are - stated as prose in
+ *   src/data/tools.js's Sign languages card, the same way jōyō/jinmeiyō are,
+ *   because this file has no data to check the claim against either.
  */
 
 /** Turns a literal string of characters into a sorted, de-duplicated codepoint array. */
@@ -122,6 +147,15 @@ const PERSO_ARABIC_DIGITS = '۰۱۲۳۴۵۶۷۸۹'; // Extended Arabic-Indic (Fa
 // Farsi share that digit set even though the two languages otherwise diverge
 // in which extra letters they need beyond base Arabic).
 const URDU_EXTRA_LETTERS = 'ٹڈڑںےہۃ';
+
+// Pashto: the eleven letters TODO.md names as the only gap between Almarai's
+// Arabic coverage and a script-complete Pashto alphabet - ttee (ټ), dhal
+// variant hah (ځ), tsse (څ), ddal (ډ), rre (ړ), rre with dot above (ږ), seen
+// with dot below/above (ښ), gaf (ګ), nnoon (ڼ), yeh with small v (ې) and yeh
+// with tail (ۍ). Everything else in the Pashto alphabet is already the base
+// Arabic set plus Farsi's four Perso-Arabic extras (Pashto shares those with
+// Dari, its co-official partner in Afghanistan).
+const PASHTO_EXTRA_LETTERS = 'ټځڅډړږښګڼېۍ';
 
 const RUSSIAN = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя';
 const UKRAINIAN = 'АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя';
@@ -210,6 +244,13 @@ const BENGALI_DIGITS = '০১২৩৪৫৬৭৮৯';
 // see CLAUDE.md's Bengali entry for why this line exists at all.
 const ASSAMESE_EXTRA_LETTERS = 'ৰৱ';
 
+// Korean: every modern Hangul syllable (U+AC00-U+D7A3, 11,172 precomposed
+// blocks) plus the compatibility jamo a Korean keyboard actually types
+// (U+3131-U+318E). A closed, contiguous set - see the file-header note on
+// why this can be a clean "full" claim the way Han cannot.
+const KOREAN_HANGUL_SYLLABLES = rangeOf(0xac00, 0xd7a3).map((cp) => String.fromCodePoint(cp)).join('');
+const KOREAN_COMPAT_JAMO = rangeOf(0x3131, 0x318e).map((cp) => String.fromCodePoint(cp)).join('');
+
 // Vietnamese: every accented/tone-marked Latin letter modern Vietnamese
 // writing needs, upper and lower case, defined as its own self-contained set
 // the way every language row in this file is (not a diff against
@@ -255,6 +296,15 @@ export const LANGUAGES = {
       ...codePointsOf(PERSO_ARABIC_DIGITS),
     ].sort((a, b) => a - b),
   },
+  pashto: {
+    label: 'Pashto',
+    codePoints: [
+      ...codePointsOf(ARABIC_LETTERS),
+      ...codePointsOf(PERSO_ARABIC_EXTRA_LETTERS),
+      ...codePointsOf(PASHTO_EXTRA_LETTERS),
+      ...codePointsOf(PERSO_ARABIC_DIGITS),
+    ].sort((a, b) => a - b),
+  },
   cyrillicRussian: { label: 'Russian', codePoints: codePointsOf(RUSSIAN) },
   cyrillicUkrainian: { label: 'Ukrainian', codePoints: codePointsOf(UKRAINIAN) },
   cyrillicBelarusian: { label: 'Belarusian', codePoints: codePointsOf(BELARUSIAN) },
@@ -293,6 +343,10 @@ export const LANGUAGES = {
   vietnamese: {
     label: 'Vietnamese',
     codePoints: [...new Set([...codePointsOf(VIETNAMESE_STACKED), ...codePointsOf(VIETNAMESE_PLAIN_ACCENTED)])].sort((a, b) => a - b),
+  },
+  korean: {
+    label: 'Korean (Hangul)',
+    codePoints: codePointsOf(KOREAN_HANGUL_SYLLABLES + KOREAN_COMPAT_JAMO),
   },
 };
 

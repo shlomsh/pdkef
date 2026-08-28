@@ -18,7 +18,7 @@ import { FONT_COVERAGE_FILES, fontFileHasGlyph } from './fontCoverageTable.js';
 import { findMissingGlyphs } from './textTransforms.js';
 
 export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Kalam', 'Mali', 'Pacifico', 'Sacramento'];
-export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Almarai', 'Noto Sans JP', 'Noto Sans Bengali'];
+export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Scheherazade New', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Noto Sans Gurmukhi', 'Noto Sans Telugu', 'Noto Sans Tamil'];
 
 /**
  * Real ascent/descent for every bundled family, as a fraction of the em —
@@ -56,9 +56,23 @@ export const FONT_VERTICAL_METRICS = {
   Sacramento: { ascent: 0.930, descent: 0.529 },
   Alef: { ascent: 1.009, descent: 0.353 },
   'PT Sans': { ascent: 1.018, descent: 0.276 },
-  Almarai: { ascent: 0.905, descent: 0.211 },
+  // A traditional Naskh, not Almarai's geometric-sans hhea numbers it
+  // replaced (0.905/0.211) - Scheherazade New's much taller design box
+  // (ascent+descent = 2.04em) is what a script drawing stacked harakat above
+  // and below the baseline actually needs; textBoxPaddingEm() below turns
+  // this into real box padding rather than clipping diacritics.
+  'Scheherazade New': { ascent: 1.343, descent: 0.697 },
   'Noto Sans JP': { ascent: 1.160, descent: 0.288 },
+  // Simplified/Traditional Chinese and Korean share JP's exact hhea numbers -
+  // all four are built from the same Noto CJK vertical-metrics design, not a
+  // coincidence worth re-deriving per family.
+  'Noto Sans SC': { ascent: 1.160, descent: 0.288 },
+  'Noto Sans TC': { ascent: 1.160, descent: 0.288 },
+  'Noto Sans KR': { ascent: 1.160, descent: 0.288 },
   'Noto Sans Bengali': { ascent: 0.917, descent: 0.408 },
+  'Noto Sans Gurmukhi': { ascent: 0.896, descent: 0.408 },
+  'Noto Sans Telugu': { ascent: 0.869, descent: 0.483 },
+  'Noto Sans Tamil': { ascent: 0.870, descent: 0.370 },
 };
 
 // Slack on top of the computed overhang: the metrics are the font's design
@@ -114,9 +128,22 @@ export const HEBREW_CAPABLE_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', '
  * bundled handwriting face with Hebrew coverage, so a restored draft keeps its
  * handwritten character. Full reasoning in
  * docs/hebrew-text-shaping-export.md.
+ *
+ * **Almarai, dropped 2026-08-28.** Not a shaping bug, a screened upgrade: TODO.md's
+ * Pashto entry found eleven Pashto letters (ټ ځ څ ډ ړ ږ ښ ګ ڼ ې ۍ) absent from
+ * every bundled font including Almarai, and the question was whether a single
+ * face could carry Arabic, Farsi/Dari, Urdu *and* Pashto so the catalogue keeps
+ * one Arabic face rather than gaining a second. Five OFL candidates were run
+ * through the 151-case Arabic pixel guard plus a new 22-case Pashto corpus;
+ * Scheherazade New passed both cleanly (Amiri did too but reads as calligraphic,
+ * wrong for a form-filling tool; both Noto Arabic faces failed the same
+ * stacked-diacritic case). This is a heavier, more traditional Naskh than
+ * Almarai's geometric-sans face, so every existing Arabic/Dari/Farsi user's
+ * output changes visibly - a real cost, paid once, for Pashto to work at all.
  */
 export const RETIRED_FONTS = {
   'Playpen Sans Hebrew': 'Gveret Levin',
+  Almarai: 'Scheherazade New',
 };
 
 /** The family everything falls back to when nothing was picked at all. */
@@ -135,8 +162,15 @@ const DEFAULT_FAMILY = 'Arimo';
  * second Hebrew-capable handwriting face joins the catalogue, substitution
  * prefers it automatically instead of falling through to catalogue order.
  */
-const SANS_STYLE_FONTS = ['Arimo', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Almarai', 'Noto Sans JP', 'Noto Sans Bengali'];
-const SERIF_STYLE_FONTS = ['Tinos'];
+const SANS_STYLE_FONTS = ['Arimo', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Noto Sans Gurmukhi', 'Noto Sans Telugu', 'Noto Sans Tamil'];
+// Scheherazade New is a traditional Naskh, not a geometric sans the way
+// Almarai (the face it replaced) was - it belongs with Tinos's serif
+// character, not the sans bucket. Nothing else in the catalogue draws
+// Arabic, so this tag never actually competes against a same-script
+// alternative today; it exists so the day a second Arabic-capable face
+// joins, the ranking in resolveFontSubstitution prefers the one that
+// actually matches, instead of an accidental catalogue-order tiebreak.
+const SERIF_STYLE_FONTS = ['Tinos', 'Scheherazade New'];
 const MONO_STYLE_FONTS = ['Cousine'];
 
 export const FONT_STYLE_TAGS = Object.fromEntries([
@@ -149,6 +183,25 @@ export const FONT_STYLE_TAGS = Object.fromEntries([
 /**
  * Every family the catalogue offers, in a fixed order used as the last
  * tiebreaker when more than one candidate covers a piece of text.
+ *
+ * Han unification makes this tiebreaker load-bearing in a way it isn't
+ * anywhere else in the catalogue: Noto Sans JP, SC, TC and KR share the same
+ * Unicode codepoints for thousands of Han characters, so a piece of Chinese
+ * text typed into a non-CJK font (the common case - nobody starts from the
+ * Chinese font unless they already know to pick it) can be "covered" by all
+ * four at once, and `resolveFontSubstitution` has no signal for which region
+ * the writer means - it ranks by style tag, then handwriting-class, then
+ * this array's order, none of which encode "this is Chinese, not Japanese".
+ * JP is listed first only because it shipped first (see TODO.md's Chinese
+ * entry); that means a Chinese sentence built entirely from joyo/jinmeiyo
+ * kanji still silently resolves to Japanese letterforms unless the user
+ * explicitly picks Noto Sans SC or TC, exactly the "half there, wrong
+ * shapes" problem SC/TC were added to fix, now just opt-in instead of
+ * unfixable. There is no ranking signal available here that would resolve it
+ * automatically - explicit selection is the only correct signal, so the
+ * FAQ/Sign languages copy says so rather than claiming the ambiguity is
+ * gone. Korean shares nothing with the other three (Hangul sits outside the
+ * Han block), so it has no version of this problem.
  */
 const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
 
@@ -318,8 +371,8 @@ export function resolveFontSubstitution(fontFamily, text, weight = 'normal', sty
   // This is a deliberate narrowing from "characters no catalogue family can
   // draw" (a fact about the whole catalogue, useful for a coverage report,
   // not about this element). The wider phrasing went empty on mixed-script
-  // text like Hebrew+Arabic: Arimo can draw the Hebrew and Almarai can draw
-  // the Arabic, so no single character is uncoverable *by some font*, even
+  // text like Hebrew+Arabic: Arimo can draw the Hebrew and Scheherazade New
+  // can draw the Arabic, so no single character is uncoverable *by some font*, even
   // though no font covers the whole string - exactly the case where the user
   // most needs telling. Naming what the kept family can't draw also keeps
   // this in lockstep with findUnrepresentableCharacters, which judges against

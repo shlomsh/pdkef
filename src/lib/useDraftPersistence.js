@@ -28,7 +28,10 @@ export const RESTORE_TIMEOUT_MS = 4000;
  * @param {() => Promise<boolean>} [opts.beforeRestore] - runs first on mount; return
  *   true to claim the load (a pending home-page handoff) and skip the draft restore
  * @param {(record: object) => void} opts.onRestore - rehydrate the tool from a draft
- * @returns {{ clearDraft: () => Promise<void>, isRestoring: boolean }} isRestoring
+ * @returns {{ clearDraft: () => Promise<void>, isRestoring: boolean,
+ *   draftSaveState: 'idle'|'pending'|'saved'|'error', draftSaveRevision: number }}
+ *   `draftSaveState` describes the current revision only. In particular, a
+ *   scheduled or failed write is never reported as saved.
  *   starts true only when draftStore's synchronous hint (hasDraftHint) says a
  *   draft is likely, and flips false once the real restore settles or
  *   RESTORE_TIMEOUT_MS elapses - the caller's cue to hold off on an empty state
@@ -53,6 +56,23 @@ export function useDraftPersistence({
   const latest = useRef({});
   latest.current = { tool, enabled, file, fileBytes, elements, extra, status };
 
+  // Each distinct editor snapshot gets a monotonically increasing revision.
+  // IndexedDB writes cannot be cancelled once started, so completions must prove
+  // they still belong to the live snapshot before changing the visible state.
+  const revisionRef = useRef(0);
+  const sourceRef = useRef(null);
+  const source = { tool, enabled, file, fileBytes, elements, extra, status };
+  const sourceChanged = !sourceRef.current || Object.keys(source).some(
+    (key) => sourceRef.current[key] !== source[key],
+  );
+  if (sourceChanged) {
+    sourceRef.current = source;
+    revisionRef.current += 1;
+  }
+  const currentRevision = revisionRef.current;
+  const [saveState, setSaveState] = useState({ state: 'idle', revision: 0 });
+  const writePromisesRef = useRef(new Map());
+
   const [isRestoring, setIsRestoring] = useState(() => enabled && hasDraftHint(tool));
 
   // Page-1 preview for the home page's resume card, rendered once per loaded
@@ -61,8 +81,8 @@ export function useDraftPersistence({
   // PDF page every few keystrokes to produce a byte-identical image.
   const previewRef = useRef(null);
 
-  const buildRecord = () => {
-    const { file, fileBytes, elements, extra } = latest.current;
+  const buildRecord = (values = latest.current) => {
+    const { file, fileBytes, elements, extra } = values;
     if (!file || !fileBytes) return null;
     return {
       fileName: file.name,
@@ -74,6 +94,30 @@ export function useDraftPersistence({
       extra: extra || {},
       preview: previewRef.current || undefined
     };
+  };
+
+  const persist = (revision, record) => {
+    if (writePromisesRef.current.has(revision)) {
+      return writePromisesRef.current.get(revision);
+    }
+    const write = Promise.resolve()
+      .then(() => saveDraft(tool, record))
+      .then((saved) => saved === true)
+      .catch(() => false)
+      .then((saved) => {
+        // A prior file or edit may have completed after this write started.
+        // It remains stored as a best-effort older revision, but must not make
+        // the newer editor state claim it has been saved.
+        if (revision === revisionRef.current) {
+          setSaveState({ state: saved ? 'saved' : 'error', revision });
+        }
+        return saved;
+      })
+      .finally(() => {
+        writePromisesRef.current.delete(revision);
+      });
+    writePromisesRef.current.set(revision, write);
+    return write;
   };
 
   // Restore on mount.
@@ -153,13 +197,18 @@ export function useDraftPersistence({
   // Debounced autosave on edit-state changes while editing.
   useEffect(() => {
     if (!enabled || status !== 'editing' || !file || !fileBytes) return;
+    const revision = currentRevision;
+    // Capture the rendered values. Reading `latest` when the debounce fires
+    // would let an old timer write a newer edit under the wrong revision.
+    const record = buildRecord(source);
+    if (!record) return;
+    setSaveState({ state: 'pending', revision });
     const timer = setTimeout(() => {
-      const record = buildRecord();
-      if (record) saveDraft(tool, record);
+      persist(revision, record);
     }, 700);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, tool, status, file, fileBytes, elements, extra]);
+  }, [enabled, tool, status, file, fileBytes, elements, extra, currentRevision]);
 
   // Best-effort immediate flush when the tab is hidden or being unloaded.
   useEffect(() => {
@@ -167,8 +216,12 @@ export function useDraftPersistence({
     const flush = () => {
       const { status } = latest.current;
       if (status !== 'editing') return;
+      const revision = revisionRef.current;
       const record = buildRecord();
-      if (record) saveDraft(tool, record);
+      if (record) {
+        setSaveState({ state: 'pending', revision });
+        persist(revision, record);
+      }
     };
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') flush();
@@ -182,7 +235,20 @@ export function useDraftPersistence({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, tool]);
 
-  const clearDraft = () => deleteDraft(tool);
+  const clearDraft = () => {
+    // A replacement clears the stored record while its next file is still
+    // loading. Invalidate any completion from the outgoing file immediately.
+    revisionRef.current += 1;
+    return deleteDraft(tool);
+  };
 
-  return { clearDraft, isRestoring };
+  const canPersist = enabled && status === 'editing' && !!file && !!fileBytes;
+  // sourceChanged runs during render, before an old promise can paint its
+  // completion. Derive pending for the new snapshot until its effect records
+  // the same state, so there is no transient stale "Draft saved" chip.
+  const draftSaveState = saveState.revision === currentRevision
+    ? saveState.state
+    : (canPersist ? 'pending' : 'idle');
+
+  return { clearDraft, isRestoring, draftSaveState, draftSaveRevision: currentRevision };
 }
