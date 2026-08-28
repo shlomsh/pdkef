@@ -111,6 +111,39 @@ export const EXPORT_RENDER_CORPUS = [
   textCase('cyrillic-pt-sans', 'Привіт', { fontFamily: 'PT Sans' }),
   textCase('greek-tinos', 'Καλημέρα', { fontFamily: 'Tinos' }),
 
+  // --- Japanese and Bengali: shipped, user-selectable scripts this guard has
+  // never had a case for, until now. Both already have a dedicated shaping
+  // guard, but neither looks at ink: cjk-advance-parity-guard.spec.js is a
+  // metrics check (fontkit advance widths vs Chromium), deliberately so,
+  // because CJK has no reordering or joining for a pixel diff to resolve that
+  // widths cannot; bengali-shaping-guard.spec.js compares fontkit against
+  // Chromium before a PDF exists, the same division of labour every other
+  // script's guard keeps with this one (see exportRenderHarness.js's "What
+  // this guard cannot see"). Neither would catch a corrupted `glyf` table or a
+  // subset missing composite components - exactly the failure class commit
+  // 988667c found in this project's own Japanese subsets, and exactly what
+  // this guard exists to see on the file a user actually receives.
+  //
+  // Kanji surname (佐藤) + hiragana given name (さくら), a short, realistic
+  // form-field name that exercises both scripts the Noto Sans JP subset
+  // carries. Every character here sits inside that subset's joyo/jinmeiyo
+  // kanji lists (verified with fonts.js's covers() before this case was
+  // added) - a character outside them makes signPdf REFUSE, which does not
+  // belong in this corpus (see the file header).
+  textCase('japanese-noto-sans-jp', '佐藤さくら', { fontFamily: 'Noto Sans JP' }),
+
+  // Bengali. প্রিয়া ("Priya", a real word and a common name) carries both of
+  // the script's hard parts in four characters: ্র is a ra-phala conjunct
+  // (consonant + virama + RA, drawn as one attached diagonal stroke, not two
+  // letters), and ি is a pre-base vowel sign - typed after its consonant,
+  // drawn before it. Both clusters are confirmed inside the *known-good* 259
+  // of bengaliCorpus.js's 262 enumerated cases, not one of the three named
+  // fontkit/Chromium divergences that file excludes
+  // (KNOWN_FONTKIT_DIVERGENCES: ট্র, ঠ্র, ক্ক). Baking a known-divergent
+  // cluster into this guard's baseline would make "wrong" the thing every
+  // future run gets measured against, which a stored baseline must never do.
+  textCase('bengali-noto-sans-bengali', 'প্রিয়া', { fontFamily: 'Noto Sans Bengali' }),
+
   // --- The comb path: positions by cell index, skips bidi, has its own
   // geometry. `width` is what makes an element a comb (see comb.js).
   textCase('comb-ltr', 'AB12', { fontFamily: 'Arimo', width: 40, combCells: 6 }),
