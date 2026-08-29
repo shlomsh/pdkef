@@ -111,9 +111,9 @@ describe('PdfSignTool UI flow', () => {
   });
 
   it.each([
-    ['download', 'Save your changes and download the signed PDF', () => new signModule.UnrepresentableTextError(['\u{1F600}'], [1]), '\u{1F600}'],
-    ['share preparation', 'Save your changes to share the signed PDF', () => new Error('Export failed'), 'Your edits are still here']
-  ])('keeps the editor usable after a %s failure and allows a corrected retry', async (mode, title, makeError, errorText) => {
+    ['download', 'Save your changes and download the signed PDF', () => new signModule.UnrepresentableTextError(['\u{1F600}'], [1]), '\u{1F600}', 'Initial text'],
+    ['share preparation', 'Save your changes to share the signed PDF', () => new Error('Export failed'), 'Your edits are still here', 'Initial text']
+  ])('keeps the editor usable after a %s failure and allows a corrected retry', async (mode, title, makeError, errorText, initialText) => {
     const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share');
     const originalCanShare = Object.getOwnPropertyDescriptor(navigator, 'canShare');
     Object.defineProperty(navigator, 'share', { configurable: true, value: vi.fn(async () => {}) });
@@ -148,7 +148,10 @@ describe('PdfSignTool UI flow', () => {
       });
       const textInput = container.querySelector('[data-editor-text-input]');
       await act(async () => {
-        textInput.value = '\u{1F600}';
+        // Export is intentionally disabled for text that the bundled fonts
+        // cannot represent. Keep this flow's input exportable so the mocked
+        // signPdf rejection exercises recovery rather than the preflight.
+        textInput.value = initialText;
         textInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
       await act(async () => { container.querySelector(`button[title="${title}"]`).click(); });
@@ -156,7 +159,7 @@ describe('PdfSignTool UI flow', () => {
       expect(sign).toHaveBeenCalledTimes(1);
       expect(container.querySelector(`.${workspaceStyles['page-wrapper']}`)).toBe(wrapper);
       expect(container.querySelector('[data-editor-text-input]')).toBe(textInput);
-      expect(textInput.value).toBe('\u{1F600}');
+      expect(textInput.value).toBe(initialText);
       expect(container.querySelector('[role="alert"]').textContent).toContain(errorText);
 
       await act(async () => {
