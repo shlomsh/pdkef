@@ -152,12 +152,15 @@ describe('resolveFontFamily across every script the catalogue covers', () => {
   // path: the default font is Arimo, and a handwriting font is what someone
   // picks for a signature-ish field.
   it('rescues the scripts that had no font of their own before', () => {
-    // Arimo is sans/upright, and since FONT-08a (Mukta) the Devanagari
-    // candidates include an upright face - it wins the tagRank/classRank tie
-    // over Kalam (handwriting), matching Arimo's own style. Requesting from a
-    // handwriting font still lands on Kalam - see the next assertion.
+    // FONT-08a added an upright face for both scripts: Mukta for Devanagari,
+    // IBM Plex Sans Thai for Thai, each alongside the pre-existing
+    // handwriting face (Kalam, Mali). Arimo is itself sans/upright, so the
+    // coverage rule's style-tag-then-class ranking (§3.2/§3.3) now prefers
+    // the upright candidate over the handwriting one for both scripts.
+    // Requesting from a handwriting font still lands on the handwriting
+    // candidate - see the next two assertions.
     expect(resolveFontFamily('Arimo', 'नमस्ते भारत')).toBe('Mukta');
-    expect(resolveFontFamily('Arimo', 'สวัสดี')).toBe('Mali');
+    expect(resolveFontFamily('Arimo', 'สวัสดี')).toBe('IBM Plex Sans Thai');
     expect(resolveFontFamily('Caveat', 'नमस्ते')).toBe('Kalam');
     expect(resolveFontFamily('Caveat', 'สวัสดี')).toBe('Mali');
     // Cyrillic and Greek only need rescuing from a font without them; Arimo

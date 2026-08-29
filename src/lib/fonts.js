@@ -18,7 +18,7 @@ import { FONT_COVERAGE_FILES, fontFileHasGlyph } from './fontCoverageTable.js';
 import { findMissingGlyphs } from './textTransforms.js';
 
 export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Kalam', 'Mali', 'Pacifico', 'Sacramento'];
-export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Scheherazade New', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Mukta Mahee', 'Anek Telugu', 'Noto Sans Tamil', 'Mukta'];
+export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Scheherazade New', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Mukta Mahee', 'Anek Telugu', 'Noto Sans Tamil', 'Mukta', 'IBM Plex Sans Thai'];
 
 /**
  * Real ascent/descent for every bundled family, as a fraction of the em —
@@ -88,6 +88,12 @@ export const FONT_VERTICAL_METRICS = {
   // not a coincidence, both are cut from the same family's vertical-metrics
   // design.
   Mukta: { ascent: 1.130, descent: 0.532 },
+  // IBM Plex Sans Thai (FONT-08a) - Thai's first upright/text-style face,
+  // added alongside the existing handwriting-only Mali. Real Regular/Bold
+  // hhea numbers; Sarabun and Kanit were tried first and both failed the
+  // fontkit-vs-browser advance-parity check (Guard A) on ordinary Thai
+  // words, so this is not the top-ranked candidate on record - see TODO.md.
+  'IBM Plex Sans Thai': { ascent: 1.116, descent: 0.534 },
 };
 
 // Slack on top of the computed overhang: the metrics are the font's design
@@ -177,7 +183,7 @@ const DEFAULT_FAMILY = 'Arimo';
  * second Hebrew-capable handwriting face joins the catalogue, substitution
  * prefers it automatically instead of falling through to catalogue order.
  */
-const SANS_STYLE_FONTS = ['Arimo', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Mukta Mahee', 'Anek Telugu', 'Noto Sans Tamil', 'Mukta'];
+const SANS_STYLE_FONTS = ['Arimo', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Mukta Mahee', 'Anek Telugu', 'Noto Sans Tamil', 'Mukta', 'IBM Plex Sans Thai'];
 // Scheherazade New is a traditional Naskh, not a geometric sans the way
 // Almarai (the face it replaced) was - it belongs with Tinos's serif
 // character, not the sans bucket. Nothing else in the catalogue draws

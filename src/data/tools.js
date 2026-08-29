@@ -94,7 +94,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 17 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 17 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 18 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 18 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -164,7 +164,7 @@ export const tools = [
         {
           native: 'ไทย 🇹🇭',
           name: 'Thai',
-          note: 'Fill a Thai form and sign your name in Thai, in Mali, which doubles as a typed-signature face. Tone marks and the vowels that sit above and below the line land where they belong instead of drifting off the letter.',
+          note: 'Fill a Thai form in IBM Plex Sans Thai, an upright text face, or sign your name in Mali, a handwriting face that doubles as a typed signature. Tone marks and the vowels that sit above and below the line land where they belong instead of drifting off the letter, in either font.',
         },
         {
           native: 'پښتو 🇦🇫🇵🇰',
@@ -228,7 +228,7 @@ export const tools = [
       },
       {
         question: 'Can I type Russian, Ukrainian, or Thai text when signing a PDF?',
-        answer: 'Yes. Russian, Ukrainian, and other Cyrillic text uses PT Sans, and Thai text uses Mali, a handwriting-style font you can also use for a typed signature. Both are bundled with the tool and checked against their real glyph coverage, so what you see on screen is what gets embedded in the file you download.',
+        answer: 'Yes. Russian, Ukrainian, and other Cyrillic text uses PT Sans. Thai has two choices: IBM Plex Sans Thai, an upright font for filling in forms, and Mali, a handwriting-style font you can also use for a typed signature. All three are bundled with the tool and checked against their real glyph coverage, so what you see on screen is what gets embedded in the file you download.',
       },
       {
         question: 'Can I fill and sign a PDF in Hindi or Marathi (हिन्दी या मराठी में PDF पर हस्ताक्षर)?',
