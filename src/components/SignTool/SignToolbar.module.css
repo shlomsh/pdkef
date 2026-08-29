@@ -73,6 +73,11 @@
 .download:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); color: var(--color-surface); }
 .share { color: var(--color-primary); border-color: var(--color-primary); }
 .share:hover { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); }
+/* Export preflight can deliberately block Download and Share. Their branded
+   variants set their own fills, so a generic button disabled rule would be too
+   weak here and leave a disabled primary action looking clickable. */
+.button:disabled, .download:disabled, .share:disabled { color: var(--color-muted); background: var(--color-surface-sunken); border-color: var(--color-border); box-shadow: none; cursor: not-allowed; opacity: .7; }
+.button:disabled:hover, .download:disabled:hover, .share:disabled:hover { color: var(--color-muted); background: var(--color-surface-sunken); border-color: var(--color-border); }
 /* The row's standout treatment. Named for the job it does, not for the colour
    it happens to be: the control wearing it is not reporting success, it is the
    one the eye should find first among nine identical squares, and a retheme

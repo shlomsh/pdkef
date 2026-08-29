@@ -6,6 +6,7 @@ import ViewControl from '../ViewControl.tsx';
 import Popover from '../Popover.tsx';
 import EditorToolStatus from '../EditorToolStatus.tsx';
 import ArmHint from '../ArmHint.tsx';
+import ExportReadinessNotice from './ExportReadinessNotice.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../ToolShell.tsx';
 import { makeArmTool, useAutoArmHint } from '../../lib/toolArming.js';
 import styles from './SignToolbar.module.css';
@@ -49,7 +50,10 @@ export default function SignToolbar({
   onSharePdf,
   canSharePdf = false,
   shareReady = false,
-  exporting = false
+  exporting = false,
+  exportBlocked = false,
+  exportIssueCount = 0,
+  onReviewExportIssues = () => {}
 }: {
   setAnnouncement: (msg: string) => void;
   setDialogOpen: (open: boolean) => void;
@@ -65,12 +69,18 @@ export default function SignToolbar({
   /** True while a signed PDF is being generated - guards Save/Share/Download
    * against re-entry so a second click can't start an overlapping export. */
   exporting?: boolean;
+  /** Preflight result supplied by the workspace; the toolbar never re-checks text. */
+  exportBlocked?: boolean;
+  exportIssueCount?: number;
+  onReviewExportIssues?: () => void;
 }) {
   const { state, dispatch } = useSignTool();
   const selectedTool = state.selectedTool;
   const toolLocked = state.toolLocked;
   const { requestReplace } = useToolShell();
   const { savedSignatures, activeSignature, setActiveSignature, onDeleteSavedSignature } = useSavedSignatures();
+  const exportDisabled = exporting || exportBlocked;
+  const blockedExportTitle = `${exportIssueCount} text field${exportIssueCount === 1 ? '' : 's'} need${exportIssueCount === 1 ? 's' : ''} attention before download or sharing`;
 
   const [showSigDropdown, setShowSigDropdown] = useState(false);
   const [showShapesDropdown, setShowShapesDropdown] = useState(false);
@@ -519,8 +529,9 @@ export default function SignToolbar({
               type="button"
               className={`${styles.button} ${styles.share}`}
               onClick={shareReady ? onSharePdf : onSavePdf}
-              disabled={exporting}
-              title={shareReady ? 'Share the signed PDF' : 'Save your changes to share the signed PDF'}
+              disabled={exportDisabled}
+              title={exportBlocked ? blockedExportTitle : (shareReady ? 'Share the signed PDF' : 'Save your changes to share the signed PDF')}
+              aria-describedby={exportBlocked ? 'sign-export-readiness' : undefined}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="18" cy="5" r="3" />
@@ -537,8 +548,9 @@ export default function SignToolbar({
             type="button"
             className={`${styles.button} ${styles.download}${canSharePdf ? ` ${styles['desktop-download']}` : ''}`}
             onClick={onDownloadPdf}
-            disabled={exporting}
-            title="Save your changes and download the signed PDF"
+            disabled={exportDisabled}
+            title={exportBlocked ? blockedExportTitle : 'Save your changes and download the signed PDF'}
+            aria-describedby={exportBlocked ? 'sign-export-readiness' : undefined}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2v-4" />
@@ -548,6 +560,7 @@ export default function SignToolbar({
             <span className={styles.label}>Download</span>
           </button>
         </div>
+        {exportBlocked && <ExportReadinessNotice fieldCount={exportIssueCount} onReview={onReviewExportIssues} />}
       </ToolShell>
     </>
   );
