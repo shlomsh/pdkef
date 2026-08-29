@@ -4,21 +4,22 @@ import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
 import { HEBREW_CAPABLE_FONTS } from '../../src/lib/fonts.js';
 import { resolveBidiRuns } from '../../src/lib/bidiRuns.js';
+import { WYSIWYG_STRING_BY_ID } from '../../src/test/fixtures/wysiwygStrings.js';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 const SIZE = 32;
 
-// Two samples, both deliberately free of spaces - see the H9 note below.
+// Three samples, with spaces deliberately included where H9 needs them.
 const SAMPLES = {
   // Pointed Hebrew: the case the layer-5 shaping fix addressed.
-  pointed: { text: 'שָׁלוֹם', direction: 'rtl' },
+  pointed: { text: WYSIWYG_STRING_BY_ID.H2.text, direction: 'rtl' },
   // Hebrew abutting digits: exercises the layer-2 run splitting, which the
   // old version of this guard did not reach at all.
   mixed: { text: 'רחוב17', direction: 'rtl' },
   // Two words with a space: exercises H9's per-segment shaping. This is the
   // case that failed before H9, and it is the one that regresses first if
   // anyone reverts to shaping a whole line in one call.
-  spaced: { text: 'שלום עולם', direction: 'rtl' },
+  spaced: { text: WYSIWYG_STRING_BY_ID.H1.text, direction: 'rtl' },
 };
 
 /**

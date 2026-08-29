@@ -34,8 +34,9 @@ export const isDocumentationPreview = () =>
 // the virtual module and the literal string `astro:content` reached Node's ESM
 // loader at prerender time - ERR_UNSUPPORTED_ESM_URL_SCHEME, "Received protocol
 // 'astro:'", which fails the build on the first page that renders
-// DocumentationCoverage. A literal specifier is still lazy (the module loads
-// only when this function is called) but Vite resolves it at build time.
+// The specifier stays literal so Vite resolves the virtual module at build
+// time. This code runs only while Astro generates article routes and never
+// enters a tool's client bundle.
 async function collections() {
   const { getCollection } = (await import('astro:content')) as unknown as {
     getCollection: (name: string) => Promise<Array<{ id: string; data: Record<string, any> }>>;
@@ -107,6 +108,15 @@ export async function getDocumentationContext(pageId: string, requestedLocale: s
       (variant.status === 'english' || variant.status === 'published') &&
       getDocumentationLocale(variant.locale)!.hreflang,
   );
+  const alternates = publishedAlternates.length > 1
+    ? [
+        ...publishedAlternates.map((variant) => ({
+          lang: getDocumentationLocale(variant.locale)!.hreflang!,
+          href: variant.path,
+        })),
+        { lang: 'x-default', href: english.path },
+      ]
+    : [];
 
   return {
     entry: effective.entry!,
@@ -122,10 +132,7 @@ export async function getDocumentationContext(pageId: string, requestedLocale: s
       nativeName: getDocumentationLocale(variant.locale)!.nativeName,
       isCurrent: variant.locale === effective.locale,
     })),
-    alternates: publishedAlternates.map((variant) => ({
-      lang: getDocumentationLocale(variant.locale)!.hreflang!,
-      href: variant.path,
-    })),
+    alternates,
     resolveDocumentationLink: (targetPageId: string, targetLocale = effective.locale) =>
       resolveDocumentationLink(targetPageId, targetLocale, allVariants),
   };

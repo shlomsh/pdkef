@@ -33,7 +33,7 @@ describe('ElementToolbar font picker wiring', () => {
     act(() => {
       trigger.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    return { trigger, menu: document.body.querySelector('[role="menu"]') as HTMLElement };
+    return { trigger, menu: document.body.querySelector('[data-font-picker-menu]') as HTMLElement };
   }
 
   it('highlights the effective font (Gveret Levin) when Caveat is picked but the text is Hebrew', () => {
@@ -42,14 +42,16 @@ describe('ElementToolbar font picker wiring', () => {
 
     expect(trigger.title).toBe('Font: Gveret Levin');
 
-    const items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
+    const items = Array.from(menu.querySelectorAll('[role="option"]'));
     const caveatItem = items.find((el) => el.textContent?.startsWith('Caveat'))!;
     const gveretItem = items.find((el) => el.textContent?.startsWith('Gveret Levin'))!;
 
     expect(caveatItem.className).not.toMatch(/active/);
-    // Contract change (W3): the note names the missing characters, not a
-    // script name, but Caveat must still be marked unable to draw this text.
-    expect(caveatItem.textContent).toContain('Missing');
+    // The note keeps the authored phrase readable (including its space), while
+    // still explaining the fallback chosen for this option.
+    expect(caveatItem.textContent).toContain('Some characters in');
+    expect(caveatItem.textContent).toContain('שלום עולם');
+    expect(caveatItem.textContent).toContain('Using Gveret Levin instead.');
     expect(gveretItem.className).toMatch(/active/);
   });
 
@@ -59,7 +61,7 @@ describe('ElementToolbar font picker wiring', () => {
 
     expect(trigger.title).toBe('Font: Caveat');
 
-    const items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
+    const items = Array.from(menu.querySelectorAll('[role="option"]'));
     const caveatItem = items.find((el) => el.textContent?.startsWith('Caveat'))!;
     expect(caveatItem.className).toMatch(/active/);
     expect(caveatItem.textContent).not.toContain('no ');

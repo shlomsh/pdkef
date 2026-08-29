@@ -56,6 +56,8 @@
  * file only has to generate the inputs, not judge the outputs.
  */
 
+import { WYSIWYG_ARABIC_SHAPING_CASES } from '../../../src/test/fixtures/wysiwygStrings.js';
+
 const TATWEEL = 'ـ'; // U+0640, dedicated joiner/elongation character, no letter identity of its own
 
 // The 22 letters that are "dual-joining" - they can take all four positional
@@ -130,6 +132,15 @@ export const realisticStringsCases = [
   { id: 'word:kitab', text: 'كتاب' }, // "book"
 ];
 
+// Verbatim user-supplied, single-direction form strings. A4-A6 mix Arabic
+// with numeric/Latin runs and are covered by bidiRuns.test.js instead: this
+// guard intentionally shapes one whole RTL run, while production splits those
+// inputs into bidi runs before shaping.
+export const suppliedWysiwygCases = WYSIWYG_ARABIC_SHAPING_CASES.map(({ id, text }) => ({
+  id: `wysiwyg:${id}`,
+  text,
+}));
+
 /**
  * Dari/Farsi cases, included in ARABIC_CORPUS rather than a separate corpus
  * file - Dari renders through the same Scheherazade New font (Almarai's
@@ -182,6 +193,7 @@ export const ARABIC_CORPUS = [
   ...lamAlefLigatureCases,
   ...diacriticsCases,
   ...realisticStringsCases,
+  ...suppliedWysiwygCases,
   ...persianPositionalFormsCases,
   ...persianNonJoiningFormsCases,
   ...persianRealisticCases,
