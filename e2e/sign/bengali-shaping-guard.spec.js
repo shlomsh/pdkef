@@ -32,14 +32,15 @@ import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
  * reorders and never triggers a conjunct in Bengali either, so it carries
  * no shaping ambiguity and is not circular with anything this guard judges.
  *
- * **Three real, measured fontkit-vs-Chromium disagreements were found and
- * are excluded from the corpus, not tuned away** - see
+ * **Six real, measured fontkit-vs-Chromium disagreements are excluded from
+ * the corpus, not tuned away** - see
  * `KNOWN_FONTKIT_DIVERGENCES` in `./fixtures/bengaliCorpus.js` for the exact
- * cases and measurements (two retroflex-consonant ra-phala positioning
- * cases, one doubled-consonant conjunct fontkit fails to ligate). Both were
- * confirmed real by isolating each case with a *fresh* fontkit Font
- * instance (see the next paragraph for why that isolation mattered) before
- * concluding it wasn't the same artifact.
+ * cases and measurements (three cases where fontkit misplaces a component
+ * part attached to a retroflex consonant, one doubled-consonant conjunct
+ * fontkit fails to ligate, one conjunct fontkit draws without its headline, and
+ * one whose ink is right but whose advance is 18% short). Each was confirmed real by isolating the case with a *fresh*
+ * fontkit Font instance (see the next paragraph for why that isolation
+ * mattered) before concluding it wasn't the same artifact.
  *
  * **A second, unrelated thing looked like a shaper disagreement and
  * was not one.** Building this guard, `ঢা` (a single consonant + the plain
@@ -62,14 +63,42 @@ import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
  * call), which is why this file does not special-case `ঢা` and every other
  * guard using the harness still passes at its original count.
  *
- * **Result at last run: 259/259 passed** (three known-divergent cases
- * excluded, see above), noise floor 9.65%, tolerance 14.48%.
+ * **Re-geometried 2026-08-29 (SIGN-19).** The size below is 400px rather than
+ * 100px, for the reason set out in the "Two artefacts" note in
+ * `./fixtures/shapingGuardHarness.js`: above Skia's bitmap-glyph limit
+ * (~256px) `fillText` and `Path2D` go through one rasteriser instead of two,
+ * and the rasteriser half of the noise stops existing. Measured here: floor
+ * 9.65% -> 0.00% on macOS, 5.52% -> 1.41% on Linux. Noto Sans Bengali is
+ * already clean at 300px where Scheherazade New is not, which is the second,
+ * independent confirmation of where that threshold sits.
+ *
+ * **Raising the size surfaced a divergence the old geometry hid**, which is
+ * the point of raising it: `preBaseVowel:ট+vowelSignI` sat at 13.78% against a
+ * 14.48% tolerance on macOS - passing by 0.7 points, which was never evidence
+ * of anything - and it is a real disagreement. It is now a named entry in
+ * `KNOWN_FONTKIT_DIVERGENCES` with the rest.
+ *
+ * **The calibration set now spans the corpus's glyph counts.** It used to be
+ * one- and two-glyph strings only while the corpus runs to three, and a floor
+ * measured on shorter ink than it judges is an under-measurement - that is
+ * half of what made this guard read differently on the two platforms. Plain
+ * consonant runs are the right filler: Bengali consonants with no virama
+ * between them form no conjunct, so a run of two or three carries no shaping
+ * ambiguity (verified - they report `substituted: false` at every length), and
+ * the harness now asserts that for every calibration string rather than
+ * trusting this paragraph.
+ *
+ * **Result at last run: 256/256 passed** (six known-divergent cases excluded,
+ * see `KNOWN_FONTKIT_DIVERGENCES`).
  */
 
 const CALIBRATION_VOWEL_SIGN = 'া'; // plain post-base AA - not pre-base, not tested by the corpus itself
 const CALIBRATION_SET = [
   ...CONSONANTS,
   ...CONSONANTS.map((consonant) => consonant + CALIBRATION_VOWEL_SIGN),
+  // Three-glyph ink, to match the corpus's longest cases. Consonants with no
+  // virama between them never form a conjunct, so these shape one-to-one.
+  ...CONSONANTS.map((consonant, i) => consonant + CONSONANTS[(i + 1) % CONSONANTS.length] + CONSONANTS[(i + 2) % CONSONANTS.length]),
 ];
 
 createShapingGuardTest({
@@ -77,11 +106,11 @@ createShapingGuardTest({
   candidateName: 'NotoSansBengali',
   fontFileName: 'NotoSansBengali-Regular.ttf',
   direction: 'ltr',
-  size: 100,
-  canvasWidth: 500,
-  canvasHeight: 200,
-  anchorX: 20,
-  baselineY: 120,
+  size: 400,
+  canvasWidth: 2000,
+  canvasHeight: 800,
+  anchorX: 80,
+  baselineY: 480,
   corpus: BENGALI_CORPUS,
   calibrationSet: CALIBRATION_SET,
   minTolerancePct: 4,

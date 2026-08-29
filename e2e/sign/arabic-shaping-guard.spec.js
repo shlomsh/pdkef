@@ -77,20 +77,53 @@ import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
  * rather than a new guard file - see `persianPositionalFormsCases`/
  * `persianNonJoiningFormsCases`/`persianRealisticCases` in
  * `./fixtures/arabicCorpus.js` for why one guard covers both scripts.
+ *
+ * **Re-geometried 2026-08-29 (SIGN-19), because this guard passed on macOS and
+ * failed 18/151 on the Linux CI runner.** The size below is 320px rather than
+ * 80px and the canvas grew with it. That is not cosmetic: above Skia's
+ * bitmap-glyph size limit (~256px) `fillText` rasterises through the same path
+ * rasteriser `Path2D` uses, so the rasteriser half of the disagreement stops
+ * existing. Measured on this corpus: the noise floor drops 14.89% -> 0.00% on
+ * macOS and 2.76% -> 0.00% on Linux, so the tolerance falls from 22.33% to the
+ * 3% declared minimum - **a 7x tightening, not a loosening** - while the
+ * sabotage control (shaping every character in isolation, i.e. no joining at
+ * all) still fails 119 of 151 cases. 240px was measured too and is NOT enough
+ * (floor 5.79%), which is what locates the threshold. See the "Two artefacts"
+ * note in `./fixtures/shapingGuardHarness.js` for the second artefact, the one
+ * that could not be removed and is measured instead.
+ *
+ * **The calibration set is still the alphabet, and that is now a stated
+ * limit rather than an oversight.** Arabic joins, so every multi-glyph string
+ * shapes through a substitution and there is no such thing as multi-glyph
+ * zero-ambiguity Arabic ink to calibrate a pen-accumulation floor from - this
+ * was measured, not assumed: runs of "non-joining" letters report
+ * `substituted: true` from two letters upward. That is exactly why the
+ * harness measures the accumulation term separately, off the reconstruction's
+ * own rounded self rather than off a calibration string.
  */
 
 const ALPHABET = [...DUAL_JOINING_LETTERS, ...NON_JOINING_LETTERS];
+
+/**
+ * Shared by both guards below. 320px clears Skia's bitmap-glyph limit (see the
+ * module doc); the canvas is 4x the old 600x200 so the widest corpus string
+ * (`phrase:jumhuriya`, 1,932px at this size) still fits inside `anchorX`, which
+ * the harness now asserts rather than leaving to inspection.
+ */
+const GEOMETRY = {
+  size: 320,
+  canvasWidth: 2400,
+  canvasHeight: 800,
+  anchorX: 2280, // canvasWidth - 120, the right anchor edge text grows leftward from
+  baselineY: 520,
+};
 
 createShapingGuardTest({
   scriptName: 'Arabic',
   candidateName: 'Scheherazade New',
   fontFileName: 'ScheherazadeNew-Regular.ttf',
   direction: 'rtl',
-  size: 80,
-  canvasWidth: 600,
-  canvasHeight: 200,
-  anchorX: 570, // CANVAS_W (600) - 30, the right anchor edge text grows leftward from
-  baselineY: 130,
+  ...GEOMETRY,
   corpus: ARABIC_CORPUS,
   calibrationSet: ALPHABET,
   minTolerancePct: 3,
@@ -112,11 +145,7 @@ createShapingGuardTest({
   candidateName: 'Scheherazade New',
   fontFileName: 'ScheherazadeNew-Regular.ttf',
   direction: 'rtl',
-  size: 80,
-  canvasWidth: 600,
-  canvasHeight: 200,
-  anchorX: 570,
-  baselineY: 130,
+  ...GEOMETRY,
   corpus: PASHTO_CORPUS,
   calibrationSet: ALPHABET,
   minTolerancePct: 3,

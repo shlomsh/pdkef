@@ -135,12 +135,12 @@ export const conjunctCases = [
 ];
 
 /**
- * Three real, measured fontkit-vs-Chromium disagreements, found while
- * building this guard - not a harness artifact (see
- * shapingGuardHarness.js's `shape()` comment for the *other* thing that
- * looked like one and wasn't real) and not tuned away by loosening
- * tolerance, per CLAUDE.md's standing rule that a shaper disagreement is a
- * finding, not something to paper over.
+ * Six real, measured fontkit-vs-Chromium disagreements, found while building
+ * this guard and while re-geometrying it under SIGN-19 - not harness artifacts
+ * (see shapingGuardHarness.js's `shape()` comment for the *other* thing that
+ * looked like one and wasn't real) and not tuned away by loosening tolerance,
+ * per CLAUDE.md's standing rule that a shaper disagreement is a finding, not
+ * something to paper over.
  *
  * - `raphala:ট+virama+RA` ("ট্র") and `raphala:ঠ+virama+RA` ("ঠ্র"): both
  *   pixel-diff around 42% against Chromium's native rendering at IDENTICAL
@@ -151,22 +151,89 @@ export const conjunctCases = [
  *   tested (দ, ধ, ন, ত, থ, ড, ঢ, ণ) all pass, so this is narrow to these two
  *   retroflex letters specifically, not systemic to ra-phala as a feature.
  * - `conjunct:kka` ("ক্ক", doubled KA): fontkit falls back to three
- *   unligated glyphs (KA, visible virama, KA - total advance 161.4px at this
- *   guard's geometry) where Chromium renders a compact ligated conjunct at
+ *   unligated glyphs (KA, visible virama, KA - total advance 161.4px at the
+ *   old 100px geometry) where Chromium renders a compact ligated conjunct at
  *   78.9px, essentially one KA's width - a real GSUB feature-application
  *   gap (fontkit isn't triggering the conjunct-forming feature for this
  *   specific doubled consonant, though it does for others tested here, e.g.
  *   গ্গ, ম্ম, প্প - own exploration, not part of this corpus).
+ * - `conjunct:ska` ("স্ক", SA + virama + KA), added 2026-08-29 under SIGN-19.
+ *   **The most visible of the five, and the one that reaches the download.**
+ *   fontkit emits `uni09B809CD.half` + `baphalabeng.alt4` + `uni0995.part`
+ *   and no `headlinebeng.*` component, so the conjunct is drawn **without the
+ *   headline segment over its right-hand KA part**, and that part renders as a
+ *   detached blob instead of a connected hook - confirmed by eye at 400px, not
+ *   inferred from a percentage. Its total advance is 64.00px against
+ *   Chromium's 74.50px, a **14% under-report**, which in an exported PDF puts
+ *   whatever follows 10.5px too far left. Both numbers are identical on macOS
+ *   and Linux (Linux reads 75.00 only because it rounds advances to whole
+ *   pixels), so this is the font/shaper, not a platform. Pixel diff 7.5% at a
+ *   0.00% noise floor. The neighbouring conjuncts that share its first two
+ *   glyphs are fine (`স্ব` agrees to 0.5px, `স্ত` and `শ্চ` exactly), so this
+ *   is one cluster, not a broken feature.
+ * - `preBaseVowel:ট+vowelSignI` ("টি"), added 2026-08-29 under SIGN-19.
+ *   Advance agrees exactly (325.20px both sides at 400px), and the pre-base
+ *   reordering itself is right - fontkit does put the I-sign first. The
+ *   disagreement is in where the `uni099F.flag` component lands on the
+ *   retroflex TTA body, so the letter is subtly malformed rather than
+ *   mis-ordered. 8.7% (macOS) / 9.2% (Linux) against a 4% tolerance. **This
+ *   one was hiding**: at the old 100px geometry it measured 13.78% against a
+ *   14.48% tolerance and "passed" by 0.7 points, which is why the guard now
+ *   renders large enough for the rasteriser noise to stop covering it.
+ * - `conjunct:ddha` ("দ্ধ"), added 2026-08-29 under SIGN-19, and the odd one
+ *   out: **its ink is right and its advance is not.** fontkit draws the
+ *   conjunct essentially as Chromium does (4.59% pixel diff) but reports
+ *   212.40px against Chromium's 258.00px at the 400px geometry - a 45.6px,
+ *   18% under-report, thirty times what whole-pixel advance rounding could
+ *   explain for three glyphs, and identical on both platforms. In an export
+ *   that pulls whatever follows 45px too far left.
  *
- * Excluded from the enforced corpus below rather than left in to fail the
- * guard permanently, so the guard still protects the 259 cases that
- * genuinely pixel-match. Each excluded id is named here, not silently
- * dropped, so this list itself is the disclosure - see CLAUDE.md's Bengali
- * entry for the full write-up and the decision to ship the font anyway
- * (1.1% of generated cases, narrow and specific, against Playpen Sans
- * Hebrew's 88% systemic disagreement that got that face dropped entirely).
+ *   It is excluded here because a pixel diff of one string in isolation is
+ *   simply the wrong instrument for it - the disagreement lives in trailing
+ *   advance, where there is no ink to differ - so its 4.59% is a near-miss on
+ *   a measurement that was never going to resolve it properly. It is not the
+ *   only case of its kind: `হ্ন` (53.40 vs 74.40px) and `ক্ত` (71.00 vs
+ *   91.00px) at the old geometry are the same defect and are **still in the
+ *   enforced corpus**, passing at 6.16% and 7.27% because their ink matches.
+ *   Closing that hole needs an advance-parity assertion beside the pixel one,
+ *   which is **SIGN-20**; until it exists, do not read this corpus's green as
+ *   a statement about cluster advances.
+ *
+ * **The keep-or-drop decision, re-opened as CLAUDE.md requires and re-taken:
+ * keep the font.** The rule there is that a fourth divergence re-opens the
+ * question rather than extending this list silently, so: six of 262 generated
+ * cases is **2.3%** - and the honest figure is eight, because `হ্ন` and `ক্ত`
+ * carry the same advance defect as `দ্ধ` and are only passing because this
+ * guard cannot see it (SIGN-20). Against the 88% systemic disagreement that
+ * got Playpen Sans Hebrew dropped from the catalogue outright, 3% is still a
+ * different kind of finding. They stay narrow and enumerable, and they
+ * are not scattered - they fall into two named groups. **Three (ট্র, ঠ্র, টি)
+ * are fontkit misplacing a component part attached to a retroflex consonant**,
+ * and **three (স্ক, দ্ধ, and ক্ক in its own way) are conjunct assembly**, where
+ * fontkit omits a component or fails to ligate. Two bounded weaknesses, not a
+ * general failure of Indic shaping.
+ *
+ * Bengali and Assamese users are better served by a font that draws 256 of 262
+ * clusters correctly and names the rest than by having no Bengali at all, which
+ * is the only alternative - there is no second OFL Bengali face that fontkit
+ * shapes better (Noto is the reference implementation for this script). What is
+ * NOT acceptable is shipping them unmentioned, so they are named to the user in
+ * the Sign page's Bengali FAQ, `স্ক` included because it is the one somebody
+ * could actually notice in their own document.
+ *
+ * **This list is now at the size where the next finding should change the
+ * answer, not extend the list.** If a seventh appears - or if SIGN-20 lands and
+ * shows the advance class is wider than the three clusters named here - re-open
+ * the drop-or-keep question properly rather than adding a line.
  */
-export const KNOWN_FONTKIT_DIVERGENCES = ['raphala:ট+virama+RA', 'raphala:ঠ+virama+RA', 'conjunct:kka'];
+export const KNOWN_FONTKIT_DIVERGENCES = [
+  'raphala:ট+virama+RA',
+  'raphala:ঠ+virama+RA',
+  'conjunct:kka',
+  'conjunct:ska',
+  'preBaseVowel:ট+vowelSignI',
+  'conjunct:ddha',
+];
 
 export const BENGALI_CORPUS = [
   ...preBaseVowelCases,

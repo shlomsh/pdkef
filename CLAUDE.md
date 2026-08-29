@@ -261,20 +261,26 @@ status feedback.
   side without the other. (The former `useFontCoverageNotice.js` hook is gone; do not reintroduce a third
   path.)
 
-  **Bengali ships with three named shaper disagreements, and that is a curation decision, not an
+  **Bengali ships with six named shaper disagreements, and that is a curation decision, not an
   oversight.** `e2e/sign/bengali-shaping-guard.spec.js` pixel-checks 262 generated cases against
-  Chromium; 259 match. The three that do not are listed by id in `KNOWN_FONTKIT_DIVERGENCES` in
-  `e2e/sign/fixtures/bengaliCorpus.js` with their measurements: ট্র and ঠ্র place the zero-advance
-  ra-phala tail differently against a retroflex half-form (about 42% pixel diff at an *identical*
-  advance width, so a positioning disagreement rather than a missing glyph, and the other eight
-  consonants tested pass), and ক্ক is a GSUB gap where fontkit emits three unligated glyphs with a
-  visible virama at 161.4px where Chromium ligates to 78.9px. They are excluded from the enforced
-  corpus so the guard still protects the other 259, and each exclusion is named rather than dropped.
-  **The precedent this is measured against is Playpen Sans Hebrew, which was removed from the
-  catalogue entirely for an 88% systemic disagreement.** 1.1% across three narrow, enumerable clusters
-  is a different thing, and the Sign page's Bengali FAQ names all three to the user rather than
-  claiming parity we do not have. If a fourth appears, or if a future font refresh widens these,
-  re-open the drop-or-keep decision instead of extending the exclusion list.
+  Chromium; 256 match. The six that do not are listed by id in `KNOWN_FONTKIT_DIVERGENCES` in
+  `e2e/sign/fixtures/bengaliCorpus.js` with their measurements, and they fall into two named groups.
+  **Component placement on a retroflex consonant:** ট্র and ঠ্র place the zero-advance ra-phala tail
+  differently against a retroflex half-form (about 42% pixel diff at an *identical* advance width, so
+  a positioning disagreement rather than a missing glyph, and the other eight consonants tested pass),
+  and টি misplaces the TTA flag at an exactly matching advance. **Conjunct assembly:** ক্ক is a GSUB
+  gap where fontkit emits three unligated glyphs with a visible virama at 161.4px where Chromium
+  ligates to 78.9px; স্ক is drawn with no headline component over its KA part and under-reports its
+  advance by 14%; and দ্ধ draws correctly but reports an 18%-short advance. They are excluded from the
+  enforced corpus so the guard still protects the other 256, and each exclusion is named rather than
+  dropped. **The precedent this is measured against is Playpen Sans Hebrew, which was removed from the
+  catalogue entirely for an 88% systemic disagreement.** 2.3% across six narrow, enumerable clusters in
+  two named groups is a different thing, and the Sign page's Bengali FAQ names all six to the user
+  rather than claiming parity we do not have. **The list is now at the size where the next finding
+  should change the answer rather than extend it**: if a seventh appears, or if SIGN-20 shows the
+  advance class is wider than the clusters named here, re-open the drop-or-keep decision instead of
+  adding a line. Note also that দ্ধ's defect is one this pixel guard is structurally poor at seeing -
+  হ্ন and ক্ত carry the same advance error and still pass, because their ink matches (SIGN-20).
 
   **A font's Noto face is not automatically the right one, and "does fontkit crash on it" is the first
   thing to measure.** Punjabi and Telugu (landed 2026-08-28) both ship on a **non-Noto** face, because
@@ -345,6 +351,21 @@ status feedback.
   the exporter is still fontkit, so shaping specifically is proven per font, per script, by a guard - and
   five of the seven shipped scripts do not have one. Do not read a green run on Hebrew as a statement
   about Latin.
+
+  **And be precise about which platform a guard proves agreement on.** The per-font shaping guards
+  compare fontkit against *the browser that runs them*, so what they prove is agreement on the machine
+  that ran them - which, for a release, means the `ubuntu-latest` CI runner, since that is what gates
+  `main`. That used to be a much weaker statement than it looked: the guards passed on macOS and failed
+  on Linux on the same commit, because the comparison was picking up two artefacts of the measuring
+  browser rather than of the exported PDF (SIGN-19). Both are now removed or measured, so the Arabic,
+  Pashto and Bengali guards give the same verdict on both platforms and a green run means the same
+  thing wherever it happened. Two caveats survive that fix and should not be quietly dropped. The
+  **exported-PDF render guard is different**: its baseline is platform-bound, pinned to the CI runner,
+  and it **skips** on a developer's machine - so a green local `npm run test:e2e` has not run it at all,
+  and only CI's green covers it. And **there are no Linux users** - macOS, Windows, iPhone and Android
+  are the platforms, Linux is the build machine - so where the runner's rasteriser differs from a
+  user's, the runner is an instrument to correct, never a fidelity target to calibrate towards. Full
+  record: [docs/shaping-guard-platform-calibration.md](./docs/shaping-guard-platform-calibration.md).
 
 ## Privacy invariants
 

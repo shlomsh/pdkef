@@ -114,7 +114,7 @@ export const tools = [
         {
           native: 'বাংলা 🇧🇩🇮🇳',
           name: 'Bengali',
-          note: "Fill a Bengali form and sign your name in Bengali, in Noto Sans Bengali. Conjunct letters, reph, and vowel signs like ি that you type after a consonant but that belong before it are reordered and reshaped for the download, not just on screen. Three rare clusters are known to draw a little differently in the file than they do on screen, and they are named in the FAQ below rather than left for you to find. The same font carries Assamese's two extra letters, ৰ and ৱ, so Assamese works too. There is no handwriting-style Bengali face yet, so a typed signature comes out upright rather than cursive.",
+          note: "Fill a Bengali form and sign your name in Bengali, in Noto Sans Bengali. Conjunct letters, reph, and vowel signs like ি that you type after a consonant but that belong before it are reordered and reshaped for the download, not just on screen. Six rare clusters are known to draw a little differently in the file than they do on screen, and they are named in the FAQ below rather than left for you to find. The same font carries Assamese's two extra letters, ৰ and ৱ, so Assamese works too. There is no handwriting-style Bengali face yet, so a typed signature comes out upright rather than cursive.",
         },
         {
           native: 'తెలుగు 🇮🇳',
@@ -260,7 +260,7 @@ export const tools = [
       },
       {
         question: 'Can I fill and sign a PDF in Bengali (পিডিএফে বাংলায় স্বাক্ষর)?',
-        answer: "Yes. Bengali is a complex script, where a vowel sign like ি is typed after its consonant but has to be drawn before it, and consonant clusters form ligatures rather than sitting side by side - the bundled Noto Sans Bengali font handles both, so what you see on screen is what gets embedded in the file you download. Three clusters are the exception and we would rather name them than let you discover them: ট্র and ঠ্র place their ra-mark slightly differently in the download, and ক্ক comes out as two letters with a visible virama instead of a single joined form. Everything else in a 262-case check matched the screen exactly. Assamese, which shares almost all of the same script, also works: the same font carries its two extra letters, ৰ and ৱ. There is no handwriting-style Bengali face yet, so a typed signature comes out upright, not cursive.",
+        answer: "Yes. Bengali is a complex script, where a vowel sign like ি is typed after its consonant but has to be drawn before it, and consonant clusters form ligatures rather than sitting side by side - the bundled Noto Sans Bengali font handles both, so what you see on screen is what gets embedded in the file you download. Six clusters are the exception and we would rather name them than let you discover them: ট্র, ঠ্র and টি are drawn with one of their parts slightly out of place, ক্ক comes out as two letters with a visible virama instead of a single joined form, স্ক loses the bar across its top, and দ্ধ draws correctly but leaves too little room after itself, so the next letter can sit too close. Everything else in a 262-case check matched the screen exactly. Assamese, which shares almost all of the same script, also works: the same font carries its two extra letters, ৰ and ৱ. There is no handwriting-style Bengali face yet, so a typed signature comes out upright, not cursive.",
       },
       {
         question: 'Can I fill and sign a PDF in Chinese (简体中文/繁體中文)?',

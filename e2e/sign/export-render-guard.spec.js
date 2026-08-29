@@ -26,6 +26,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { EXPORT_RENDER_CORPUS } from './fixtures/exportRenderCorpus.js';
 import {
+  BASELINE_PLATFORM,
   GRID_COLS, GRID_ROWS, NON_VACUITY_MARGIN, PAGE_HEIGHT_PT, PAGE_WIDTH_PT, RENDER_SCALE,
   baselineFormatMatches, buildSignBundle, captureSignaturesInPage, findPdfWorkerUrl,
   judgeCases, readBaseline, removeSignBundle, writeBaseline,
@@ -34,6 +35,7 @@ import {
 const BUNDLE_FILENAME = '__e2e-export-render-bundle.js';
 const BASELINE_PATH = join(fileURLToPath(new URL('./fixtures/', import.meta.url)), 'exportRenderBaseline.json');
 const UPDATING = process.env.UPDATE_EXPORT_RENDER_BASELINE === '1';
+const ON_BASELINE_PLATFORM = process.platform === BASELINE_PLATFORM;
 
 let bundlePath;
 
@@ -49,6 +51,20 @@ test.describe('Exported PDF render guard', () => {
   // Each case exports and rasterises twice (the determinism measurement), so
   // the corpus is ~2x its length in full pdf.js render passes.
   test.setTimeout(180_000);
+
+  // Font rasterisation differs between operating systems by more than this
+  // guard's tolerance, so the stored baseline is only comparable with a run on
+  // the platform that captured it. Skipping off-platform is deliberate: see
+  // BASELINE_PLATFORM in exportRenderHarness.js for the measurement behind it
+  // and why widening the tolerance instead was rejected.
+  test.skip(
+    !ON_BASELINE_PLATFORM,
+    `Exported PDF render guard runs on ${BASELINE_PLATFORM} only (this is ${process.platform}). `
+    + 'Its baseline is platform-bound - font rasterisation differs across operating systems by more than '
+    + 'the 12.50% tolerance (measured: 13.68% and 17.61% on the two handwriting faces), while signPdf itself '
+    + 'is byte-identical on both. A local run would report drift that is not a regression, so it reports '
+    + 'nothing instead. This guard is enforced in CI.',
+  );
 
   test(`the ink signPdf draws matches its baseline across ${EXPORT_RENDER_CORPUS.length} cases`, async ({ page }) => {
     const workerSrc = findPdfWorkerUrl();
@@ -66,12 +82,23 @@ test.describe('Exported PDF render guard', () => {
     });
 
     if (UPDATING) {
+      // Guarded rather than trusted to discipline: capturing on the wrong
+      // platform silently rewrites every signature and makes the next CI run
+      // read as a whole-corpus regression in signPdf.
+      expect(
+        process.platform,
+        `Refusing to capture a baseline on ${process.platform}. This guard's baseline is platform-bound and must be captured on ${BASELINE_PLATFORM} - see "Regenerating the baseline" in exportRenderHarness.js.`,
+      ).toBe(BASELINE_PLATFORM);
       writeBaseline(BASELINE_PATH, results);
       console.log(`Wrote ${results.length} baseline signatures to ${BASELINE_PATH}. Review the diff - a baseline change is a change to what users receive.`);
     }
 
     const baseline = readBaseline(BASELINE_PATH);
     expect(baseline, `No baseline at ${BASELINE_PATH}. Capture one with UPDATE_EXPORT_RENDER_BASELINE=1 and review it before committing.`).not.toBeNull();
+    expect(
+      baseline.platform ?? BASELINE_PLATFORM,
+      'The stored baseline was captured on a different platform than this run, so its numbers describe a different rasteriser rather than a different PDF. Recapture it on the baseline platform.',
+    ).toBe(process.platform);
     expect(
       baselineFormatMatches(baseline),
       'The stored baseline was captured with a different signature recipe (page size, render scale or grid), so its numbers are not comparable with these. Recapture it with UPDATE_EXPORT_RENDER_BASELINE=1 rather than reading the differences as regressions.',

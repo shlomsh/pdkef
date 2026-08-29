@@ -168,6 +168,17 @@
  *
  *     UPDATE_EXPORT_RENDER_BASELINE=1 npx playwright test e2e/sign/export-render-guard
  *
+ * **Only on `BASELINE_PLATFORM` (see below), never on whatever machine is
+ * handy.** Running that command on macOS rewrites every signature with macOS
+ * rasterisation and the next CI run reports the whole corpus as drifted - which
+ * looks like a regression in `signPdf` and is not one. The guard refuses to
+ * capture off-platform for that reason.
+ *
+ * In practice that means capturing it in CI. The workflow has a
+ * `update-export-render-baseline` input for this: run the CI workflow manually
+ * with it set, and the job prints the new baseline file for review before it is
+ * committed. Reviewing it is the point.
+ *
  * Review the diff. A baseline change is a change to what users receive, so
  * "the guard went red so I regenerated it" is the one workflow this file
  * exists to prevent - the whole point of a stored baseline is that somebody
@@ -196,6 +207,43 @@ export const GRID_ROWS = 24;
  * above it means the floor is wrong.
  */
 export const MIN_TOLERANCE_PCT = 12.5;
+
+/**
+ * The one platform this guard's baseline is captured on and compared against.
+ *
+ * The "Tolerance" section above set `MIN_TOLERANCE_PCT` from a *proxy* for
+ * cross-machine rasteriser noise, because there was no Linux to measure on. It
+ * has since been measured for real (SIGN-19, 2026-08-29): with a macOS-captured
+ * baseline, the Linux runner reports `latin-caveat` at **13.68%** and
+ * `latin-great-vibes` at **17.61%**, both above the 12.50% tolerance, while the
+ * determinism floor is **0.00% on both platforms**. That last number is what
+ * settles the diagnosis: `signPdf` produces byte-identical output on both
+ * machines, so nothing about the artifact changed - only the rasterisation of
+ * two thin handwriting faces did. The proxy under-estimated the real noise.
+ *
+ * There were two ways out and only one of them is honest. Raising
+ * `MIN_TOLERANCE_PCT` to cover 17.61% means 26.4% at the 1.5x multiplier, more
+ * than double today's slack, on a guard whose stated sensitivity limit is
+ * already "a defect smaller than an eighth of a case's ink passes" - it would
+ * blind the guard to most of the class it exists for. Pinning the platform
+ * removes the term instead of absorbing it, and costs nothing real, because
+ * this guard is a *change detector* for `signPdf`'s output rather than a claim
+ * about any particular machine's rendering. So the tolerance stays at 12.50%
+ * and the platform is fixed.
+ *
+ * Linux is the pin because CI is what gates a release. It is emphatically NOT
+ * the pin because it renders the way users do - **there are no Linux users**;
+ * it is the build machine. Nothing here should be read as a statement about
+ * what a Mac, Windows, iPhone or Android user sees.
+ *
+ * The consequence, stated plainly because it is a real loss: this guard
+ * **skips** on a developer's machine rather than running with a baseline it
+ * cannot be compared against. A skip is the honest report - a red run everyone
+ * learns to ignore is worse, and a green run against a mismatched baseline
+ * would be worse still. Capture with `UPDATE_EXPORT_RENDER_BASELINE=1` on
+ * Linux only; see "Regenerating the baseline" below.
+ */
+export const BASELINE_PLATFORM = 'linux';
 
 /**
  * How far apart two distinct cases must sit, as a multiple of tolerance.
@@ -425,6 +473,14 @@ export function writeBaseline(baselinePath, results) {
       gridCols: GRID_COLS,
       gridRows: GRID_ROWS,
     },
+    // The platform that actually captured it - `process.platform`, not
+    // BASELINE_PLATFORM, so the file records what happened rather than what
+    // was supposed to happen. Font rasterisation differs between operating
+    // systems by more than this guard's tolerance (measured: 13.68% and 17.61%
+    // for the two handwriting faces, against a 12.50% tolerance), so a
+    // baseline is only comparable with a run on the same platform. See
+    // BASELINE_PLATFORM below.
+    platform: process.platform,
     cases: Object.fromEntries(results.map(({ id, signature }) => [id, signature])),
   };
   writeFileSync(baselinePath, `${JSON.stringify(payload, null, 2)}\n`);
