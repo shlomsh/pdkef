@@ -1,0 +1,6 @@
+.notice { display: flex; flex: 1 0 100%; align-items: center; gap: .5rem; width: 100%; padding: .55rem .7rem; border: 1px solid color-mix(in srgb, var(--color-danger) 28%, transparent); border-radius: var(--radius-sm); background: var(--color-danger-soft); color: var(--color-danger); font-size: .82rem; line-height: 1.35; }
+.notice svg { flex: 0 0 auto; }
+.notice span { flex: 1 1 12rem; min-width: 0; }
+.notice button { margin-inline-start: auto; flex: 0 0 auto; border: 0; padding: .1rem; background: transparent; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.notice button:focus-visible { outline: none; box-shadow: var(--shadow-focus); border-radius: 2px; }
+@media (max-width: 420px) { .notice { flex-wrap: wrap; } .notice button { margin-inline-start: 1.5rem; } }

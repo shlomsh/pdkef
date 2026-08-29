@@ -469,6 +469,38 @@ describe('PdfWorkspace Component', () => {
     expect(added).toMatchObject({ type: 'text', text: '', textDirection: 'ltr' });
   });
 
+  it('coordinates both export locations from one blocking-field preflight and reviews the first field', () => {
+    const dispatch = vi.fn();
+    const setAnnouncement = vi.fn();
+    const state = {
+      selectedTool: null,
+      elements: [
+        { id: 'needs-font', type: 'text', pageIndex: 0, left: 20, top: 20, text: '😀', fontFamily: 'Arimo', fontSize: 12 },
+        { id: 'safe', type: 'text', pageIndex: 0, left: 40, top: 40, text: 'Name', fontFamily: 'Arimo', fontSize: 12 },
+      ],
+      activeElementId: null,
+      actionHistory: []
+    };
+
+    host = mountWorkspace({ state, dispatch, props: { canSharePdf: true, setAnnouncement } });
+
+    const notice = host.querySelector('[data-sign-export-readiness]');
+    expect(notice?.textContent).toContain('1 text field needs attention');
+    expect(notice?.textContent).not.toContain('😀');
+
+    const topExportButtons = host.querySelectorAll('button[aria-describedby="sign-export-readiness"]');
+    expect(topExportButtons).toHaveLength(4);
+    Array.from(topExportButtons).forEach((button) => expect((button as HTMLButtonElement).disabled).toBe(true));
+
+    const reviewButton = Array.from(notice!.querySelectorAll('button')).find((button) => button.textContent === 'Review fields');
+    act(() => {
+      reviewButton!.click();
+    });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'needs-font' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_EDITING_ELEMENT_ID', payload: 'needs-font' });
+    expect(setAnnouncement).toHaveBeenCalledWith('Showing the first text field that needs attention.');
+  });
+
   it('remembers edited shape thickness for the next placed shape', () => {
     const dispatch = vi.fn();
     const rememberThickness = vi.fn();
