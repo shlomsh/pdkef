@@ -337,6 +337,41 @@ status feedback.
   size, and their greens are in exactly the category Bengali's was. Re-screening them is a one-line
   geometry change per guard and is the cheap move before leaning on those scripts or adding a language.
 
+  **Adding a font: the work required.** Derived from what the last additions actually touched, because
+  the expensive failures here have all been *omissions* rather than mistakes. Do these as one unit.
+
+  1. **Screen the candidate** against the three checks above, plus license (OFL 1.1 or Apache-2.0 only,
+     copyright line taken from the font's own `OFL.txt`, never paraphrased) and static-vs-variable.
+  2. **Add the TTFs to `public/fonts/`** and run `npm run test:fonts`. If the `glyf` table is unaligned,
+     repad to `padding = 4` in fontTools and verify outlines, metrics and cmap are byte-identical across
+     every glyph - roughly half the Brahmic faces landed so far needed this.
+  3. **Register it in `src/lib/fonts.js`** (`HANDWRITING_FONTS` or `TEXT_FONTS`) and add an `@font-face`
+     to `src/styles/editorFonts.css`. Add it to `src/components/FontPickerMenu.tsx` if it needs a label.
+  4. **For a new script, add a `SCRIPT_FALLBACKS` row.** A bundled-but-unrouted face is the exact bug
+     that module exists to prevent - Mali shipped advertised for Thai with no row and still died at
+     download. `fontCoverage.test.js` judges the row in both directions against the real bytes.
+  5. **Update `scripts/font-languages.mjs`** if the font brings a new language or character set, then
+     **regenerate both derived files and commit them**: `npm run generate:font-coverage` writes
+     `src/lib/fontCoverageTable.js`, and `npm run generate:font-coverage-report` writes
+     `src/lib/fontCoverageReport.js`. Both are marked GENERATED - do not hand-edit; their tests
+     regenerate in memory and fail on any disagreement.
+  6. **Add a per-script shaping guard** (corpus + spec on `shapingGuardHarness.js`) **rendered above
+     ~256px**, and record its measured floor, tolerance and sabotage-control result in the spec's module
+     doc. A guard whose sabotage control cannot fail it is measuring nothing.
+  7. **Add an `exportRenderCorpus.js` case, and recapture the baseline** - `exportRenderBaseline.json` is
+     **runner-pinned** and can no longer be captured on a dev machine, so run the CI workflow manually
+     with the `update-export-render-baseline` input and commit the printed file after reviewing the
+     diff. **This is the step that has already been missed once**: FONT-05 added three CJK cases without
+     baselines and CI went red on "these corpus cases have no baseline, so nothing checked them". Expect
+     the diff to be purely additive; existing signatures changing means a rendering change to look at,
+     not a baseline to rubber-stamp.
+  8. **Add the attribution** to `THIRD_PARTY_LICENSES.md` and `src/pages/licenses.astro`
+     (`fontAttribution.test.js` pins this), and **update the user-facing copy** in `src/data/tools.js` -
+     the language list, the per-language note, and the FAQ answer. Any known divergence must be named to
+     the user there, not left for them to find.
+  9. **Check page weight.** Fonts load on demand rather than being precached wholesale, but repo weight
+     and per-font download size still count; flag anything oversized rather than landing it quietly.
+
   **The four Brahmic guards and what each actually proves.** Bengali is a fixed calibration set
   (259/259); Gurmukhi (140/140), Telugu (486/486) and Tamil (265/265) use `autoCalibrate`, which
   partitions the corpus by fontkit's own substituted/not-substituted judgment instead of a hand-picked
