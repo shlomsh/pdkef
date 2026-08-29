@@ -282,6 +282,7 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Noto Sans TC (<https://fonts.google.com/specimen/Noto+Sans+TC>)
 - Noto Sans KR (<https://fonts.google.com/specimen/Noto+Sans+KR>)
 - Noto Sans Bengali (<https://fonts.google.com/specimen/Noto+Sans+Bengali>)
+- Mukta (<https://fonts.google.com/specimen/Mukta>)
 
 ```
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
