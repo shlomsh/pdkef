@@ -26,4 +26,4 @@
 .export-actions { display: flex; gap: var(--space-3); width: 100%; margin-top: 2rem; }
 .export-action { flex: 1; }
 .export-share { color: var(--color-primary); background: var(--color-surface); border-color: var(--color-primary); }
-.export-share:hover { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); }
+.export-share:hover:not(:disabled) { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); }

@@ -2,7 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach } from 'vitest';
-import Popover from './Popover.tsx';
+import Popover, { createPopoverMiddleware } from './Popover.tsx';
 
 describe('Popover Component', () => {
   let container;
@@ -52,5 +52,16 @@ describe('Popover Component', () => {
     
     // It should NOT be in the immediate container
     expect(container.querySelector('#popover-content')).toBeNull();
+  });
+
+  it('can keep a dynamic picker anchored while its content changes height', () => {
+    const middleware = createPopoverMiddleware(5, true);
+    expect(middleware.map((entry) => entry.name)).toEqual(['offset', 'shift']);
+    // Floating UI stores middleware options as the first tuple item.
+    expect(middleware[1].options[0]).toEqual({ mainAxis: false, crossAxis: true, padding: 5 });
+  });
+
+  it('keeps normal popovers collision-aware by default', () => {
+    expect(createPopoverMiddleware().map((entry) => entry.name)).toEqual(['offset', 'flip', 'shift']);
   });
 });

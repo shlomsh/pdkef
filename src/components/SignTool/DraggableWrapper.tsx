@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'preact/hooks';
+import { useRef, useEffect, useState } from 'preact/hooks';
 import { useFloating, offset, shift, autoUpdate } from '@floating-ui/react';
 import useDraggableElement from '../../lib/useDraggableElement.js';
 import useElementResize from '../../lib/useElementResize.js';
@@ -38,6 +38,13 @@ export default function DraggableWrapper({
   children?: ComponentChildren;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
+  // Font browsing is intentionally local and temporary. Hovering a picker row
+  // must repaint the element without writing a draft/update or creating undo
+  // history; only the picker's click flows through the real onChange callback.
+  const [previewFontFamily, setPreviewFontFamily] = useState<string | null>(null);
+  const renderedElement = previewFontFamily && element.type === 'text'
+    ? { ...element, fontFamily: previewFontFamily }
+    : element;
 
   // The element measures and positions itself relative to the page wrapper it lives
   // inside, found via the DOM rather than passed down as a prop. Passing the wrapper
@@ -188,6 +195,8 @@ export default function DraggableWrapper({
         <ElementToolbar
           element={element}
           onChange={onChange}
+          onPreviewFont={setPreviewFontFamily}
+          onPreviewFontEnd={() => setPreviewFontFamily(null)}
           onClone={onClone}
           onDelete={onDelete}
         />
@@ -195,6 +204,7 @@ export default function DraggableWrapper({
 
       {/* Render element depending on type */}
       {toChildArray(children).map((child: any) => cloneElement(child, {
+        element: renderedElement,
         isActive,
         isEditing,
         onBeginEdit,

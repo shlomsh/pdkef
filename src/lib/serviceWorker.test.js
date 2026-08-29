@@ -168,37 +168,42 @@ describe('offline-first service worker', () => {
   });
 });
 
-/**
- * The precache manifest deliberately leaves the font catalogue out.
- *
- * Fonts are declared with `@font-face` and a browser fetches a TTF only when
- * a rule matches text, so precaching all of them spent a visitor's bandwidth
- * on files almost none of them select: 8.42 MB of fonts inside a 12.16 MB
- * precache, against a 3.74 MB non-font payload. The pair of tests below is
- * what keeps the two halves of that decision honest, because dropping the
- * fonts is only safe while the fetch handler still picks them up on demand.
- */
-describe('precache manifest font policy', () => {
+/** Installation is deliberately tiny; route assets cache on first use. */
+describe('precache manifest delivery policy', () => {
   const names = { manifestName: 'precache-manifest.json', workerName: 'sw.js' };
 
-  it('leaves the font catalogue out, so a visitor does not download faces they never pick', () => {
+  it('does not preload any font, including Sign defaults, on unrelated tools', () => {
+    expect(PRECACHED_FONTS).toEqual([]);
+    expect(shouldPrecache('fonts/Arimo-Regular.ttf', names)).toBe(false);
     expect(shouldPrecache('fonts/Pacifico-Regular.ttf', names)).toBe(false);
     expect(shouldPrecache('fonts/Kalam-Bold.ttf', names)).toBe(false);
     expect(shouldPrecache('fonts/NotoSansJP-Regular.ttf', names)).toBe(false);
   });
 
-  it('keeps the default family, because an offline first session has no font to embed otherwise', () => {
-    // DEFAULT_FAMILY in src/lib/fonts.js. Without this one file, signPdf's
-    // fetch fails offline, loadCustomFont returns null, and serialize throws
-    // rather than degrading to something upright.
-    expect(PRECACHED_FONTS).toEqual(['fonts/Arimo-Regular.ttf']);
-    expect(shouldPrecache('fonts/Arimo-Regular.ttf', names)).toBe(true);
+  it('precaches only the root fallback, not any current or future documentation route', () => {
+    expect(shouldPrecache('index.html', names)).toBe(true);
+    expect(shouldPrecache('sign/index.html', names)).toBe(false);
+    expect(shouldPrecache('pdf-to-image/index.html', names)).toBe(false);
+    // Existing documentation from before the redaction guide follows the same
+    // policy. The filter is allow-list based, so a future route is lazy too.
+    expect(shouldPrecache('install-pdf-app/index.html', names)).toBe(false);
+    expect(shouldPrecache('open-source-pdf-editor/index.html', names)).toBe(false);
+    expect(shouldPrecache('how-to-sign-a-pdf-on-iphone/index.html', names)).toBe(false);
+    expect(shouldPrecache('blur-vs-blackout-vs-delete-pdf/index.html', names)).toBe(false);
+    expect(shouldPrecache('future-documentation-page/index.html', names)).toBe(false);
+    expect(shouldPrecache('de/pdf-unterschreiben/index.html', names)).toBe(false);
   });
 
-  it('still precaches everything that is not a font, and never the manifest or the worker', () => {
-    expect(shouldPrecache('index.html', names)).toBe(true);
-    expect(shouldPrecache('_astro/pdf.worker.min.abc123.mjs', names)).toBe(true);
-    expect(shouldPrecache('sign/index.html', names)).toBe(true);
+  it('does not preload documentation media or downloadable examples', () => {
+    expect(shouldPrecache('images/redaction-guide/delete.jpg', names)).toBe(false);
+    expect(shouldPrecache('images/redaction-guide/sample.pdf', names)).toBe(false);
+    expect(shouldPrecache('images/another-guide/example.webp', names)).toBe(false);
+    expect(shouldPrecache('downloads/documentation-example.pdf', names)).toBe(false);
+  });
+
+  it('loads application chunks on demand and never caches the manifest or worker as entries', () => {
+    expect(shouldPrecache('_astro/pdf.worker.min.abc123.mjs', names)).toBe(false);
+    expect(shouldPrecache('_astro/PdfToImageTool.abc123.js', names)).toBe(false);
     // A 404 on the manifest is what tells an orphaned worker to uninstall, so
     // caching either of these would defeat that.
     expect(shouldPrecache('precache-manifest.json', names)).toBe(false);

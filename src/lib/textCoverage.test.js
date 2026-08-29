@@ -222,7 +222,10 @@ describe('describeFontSubstitution', () => {
     const substitution = resolveFontSubstitution('Arimo', 'नमस्ते');
     const message = describeFontSubstitution(substitution);
     expect(message).toContain('Arimo');
-    expect(message).toContain('Kalam');
+    // Since FONT-08a, Arimo (sans/upright) substitutes to Mukta (sans/
+    // upright) rather than Kalam (handwriting) - see fonts.test.js for the
+    // ranking rule.
+    expect(message).toContain('Mukta');
     for (const ch of substitution.missing) expect(message).toContain(ch);
   });
 

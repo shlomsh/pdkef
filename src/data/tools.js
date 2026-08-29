@@ -94,7 +94,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 17 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: nine of the 17 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 18 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 18 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -104,7 +104,7 @@ export const tools = [
         {
           native: 'हिन्दी, मराठी 🇮🇳🇳🇵',
           name: 'Hindi, Marathi, and Devanagari',
-          note: 'Fill a form and sign your name in Hindi or Marathi, in Kalam, a handwriting face that doubles as a typed signature. Conjunct letters and vowel signs are reordered and reshaped for the download, which is the part most tools quietly get wrong. Kalam also carries ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi is not an afterthought here.',
+          note: 'Fill a form and sign your name in Hindi or Marathi, in Kalam if you want a handwritten look or Mukta for plain upright text, either of which also works for a typed signature. Conjunct letters and vowel signs are reordered and reshaped for the download, which is the part most tools quietly get wrong. Both fonts carry ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi is not an afterthought here.',
         },
         {
           native: 'العربية 🇪🇬🇸🇦🇲🇦',
@@ -232,7 +232,7 @@ export const tools = [
       },
       {
         question: 'Can I fill and sign a PDF in Hindi or Marathi (हिन्दी या मराठी में PDF पर हस्ताक्षर)?',
-        answer: 'Yes, both. Type Devanagari text into a text box or use it for a typed signature with the bundled Kalam font. Conjunct letters and vowel signs are shaped and positioned correctly, not just displayed on screen, so what you see is what gets embedded in the file you download. The same font also carries ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi works exactly the same way.',
+        answer: 'Yes, both. Type Devanagari text into a text box, in Kalam for a handwritten look or Mukta for plain upright text, and either one also works for a typed signature. Conjunct letters and vowel signs are shaped and positioned correctly, not just displayed on screen, so what you see is what gets embedded in the file you download. Both fonts also carry ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi works exactly the same way.',
       },
       {
         question: 'Can I fill and sign a PDF in Arabic (التوقيع على PDF بالعربية)?',
@@ -292,9 +292,9 @@ export const tools = [
     subhead:
       'Blur part of a PDF, black out private details, or delete selectable text and images. Choose a solid blackout for sensitive information. Marked pages flatten automatically when you download. Free, open source, and your file stays on your device.',
     ariaLabel: 'Redact PDF tool',
-    aboutHeading: 'How to blur or black out text in a PDF',
+    aboutHeading: 'How to delete, white out, black out or blur PDF content',
     aboutLead:
-      'Use Blur for a visual effect or Blackout for private details, on typed PDFs or scans. Delete is also here for removing selectable elements; it is a cleanup tool, not a secure data scrub.',
+      'Choose the result you want. Delete removes a selected text or image element from the PDF page. Whiteout clears an area visually, Blackout creates a solid cover, and Blur softens visual detail. Blackout, Whiteout and Blur work on typed PDFs and scans.',
     freeNoteLead:
       'Blur or black out PDFs for free, with no signup, watermark, or daily cap. Your file and saved draft stay on your device. For examples and the trade-offs, see <a class="font-medium text-[var(--color-primary)]" href="/blur-vs-blackout-vs-delete-pdf/">Blur, Blackout or Delete: the visual guide</a>. Want to work offline? <a class="font-medium text-[var(--color-primary)]" href="/install-pdf-app/">Install PDkef</a> and let its required assets load before disconnecting.',
     aboutSketch: 'grid',
@@ -303,15 +303,15 @@ export const tools = [
     faqIconPos: 'bl',
     steps: [
       { title: 'Open your PDF', text: 'Choose a PDF from your device or drag it into the tool. It opens in your browser without being uploaded.' },
-      { title: 'Choose Blur or Blackout', text: 'Click and drag over the complete area you want covered. Pick the tool again for another box, or keep it on for several. Use a solid blackout for confidential details.' },
-      { title: 'Download and check', text: 'Choose Download. Pages with Blur, Blackout or Whiteout become flat images automatically, with no separate box or original text layer underneath. Reopen the new copy and review every marked page before sharing.' },
+      { title: 'Choose the result', text: 'Use Delete to click a highlighted text or image element. Use Whiteout, Blackout or Blur to drag over an area. You can mix the tools in the same PDF.' },
+      { title: 'Download your changed PDF', text: 'Delete removes the selected element from the page. Pages with Blur, Blackout or Whiteout flatten automatically into one image, making that export a one-way change with no selectable or searchable text on the marked page.' },
     ],
     faq: [
       { question: 'How can I blur text in a PDF for free?', answer: 'Choose your PDF, select Blur, and click and drag across the area. Adjust the box, then choose Download. There is no signup, upload, or watermark. The marked page is flattened automatically. Blur is a visual mask; use Blackout for confidential text.' },
       { question: 'How do I black out text in a PDF for free?', answer: 'Open your PDF, select Blackout, and draw a box over the full text or image. Repeat on every page that needs it, then choose Download. PDkef bakes the boxes into images of the marked pages, without copying their original text layers underneath. It also works on scans.' },
       { question: 'Can someone remove the blur or black box after download?', answer: 'There is no separate box to lift off a flattened page: the exported page is a single image. Blur still leaves altered pixels that may reveal clues, so it is not a substitute for a solid blackout. Check repeated details and hidden information elsewhere in the PDF too.' },
-      { question: 'Can I delete text or images from a PDF instead of covering them?', answer: 'Yes. Choose Delete and click or tap a highlighted text block or image. Download removes its drawing instructions from the active page and keeps other text selectable. Original streams or image data can remain in the file, so use Delete for cleanup, not confidential redaction. Use Blackout for sensitive details.' },
-      { question: 'Do I need to flatten the PDF separately?', answer: 'No. Download and preparing a file with Share automatically flatten pages with Blur, Blackout or Whiteout. Pages with only Delete edits are not flattened. Flattening removes selectable text across the whole marked page, can increase file size, and is not a complete hidden-data sanitization check.' },
+      { question: 'Can I delete text or images from a PDF instead of covering them?', answer: 'Yes. Choose Delete and click or tap a highlighted text block or image. Download creates a new PDF with that selected element removed from the page while the surrounding page content stays in place and remains selectable. This is useful for deleting a prefilled form value before entering replacement text with Sign & Fill PDF.' },
+      { question: 'Do I need to flatten the PDF separately?', answer: 'No. Download and preparing a file with Share automatically flatten pages with Blur, Blackout or Whiteout. The marked page becomes one image, its text is no longer selectable or searchable, and the export cannot be reversed back into the original page elements. Pages with Delete edits only are not flattened, so their remaining text stays selectable.' },
       { question: 'Can I blur a PDF on my phone or work offline?', answer: 'Yes. Open the tool in your phone browser, choose the PDF, and zoom before drawing a box. For offline use, install PDkef and let its required assets load while connected. Try opening and exporting a sample with the connection off before relying on it offline.' },
       { question: 'Are my files uploaded, and is the tool open source?', answer: 'Your PDF is processed in your browser and is not uploaded to a server. PDkef is free and open source under the MIT license, with no account or watermark. Saved drafts stay in this browser on your device.' },
       { question: 'What happens to my original PDF and saved draft?', answer: 'Download creates a new PDF; it does not overwrite your original or clear your draft. When browser storage is available, your source PDF and edits auto-save locally so you can resume. Drafts expire after 14 days without a save and are checked when loaded. On a shared device, clear site data when finished; that also removes saved drafts and preferences.' },
