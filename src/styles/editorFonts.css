@@ -345,3 +345,15 @@
   font-weight: 700;
   src: url('/fonts/NotoSansTamil-Bold.ttf') format('truetype');
 }
+@font-face {
+  font-family: 'IBM Plex Sans Thai';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/IBMPlexSansThai-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'IBM Plex Sans Thai';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/IBMPlexSansThai-Bold.ttf') format('truetype');
+}

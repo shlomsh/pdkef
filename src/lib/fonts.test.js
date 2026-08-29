@@ -153,7 +153,13 @@ describe('resolveFontFamily across every script the catalogue covers', () => {
   // picks for a signature-ish field.
   it('rescues the scripts that had no font of their own before', () => {
     expect(resolveFontFamily('Arimo', 'नमस्ते भारत')).toBe('Kalam');
-    expect(resolveFontFamily('Arimo', 'สวัสดี')).toBe('Mali');
+    // FONT-08a: IBM Plex Sans Thai (sans, upright) now covers Thai alongside
+    // Mali (handwriting). Arimo is itself sans/upright, so the coverage
+    // rule's style-tag-then-class ranking (§3.2/§3.3) now prefers IBM Plex
+    // Sans Thai over Mali here - Mali remains the pick below when the
+    // *requesting* font is handwriting (Caveat), since Mali's tag matches
+    // that request and IBM Plex Sans Thai's does not.
+    expect(resolveFontFamily('Arimo', 'สวัสดี')).toBe('IBM Plex Sans Thai');
     expect(resolveFontFamily('Caveat', 'नमस्ते')).toBe('Kalam');
     expect(resolveFontFamily('Caveat', 'สวัสดี')).toBe('Mali');
     // Cyrillic and Greek only need rescuing from a font without them; Arimo

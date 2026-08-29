@@ -26,6 +26,7 @@ const STANDARD_FONTS = [
   { value: 'Mukta Mahee', label: 'Punjabi (Mukta Mahee)', css: "'Mukta Mahee', sans-serif" },
   { value: 'Anek Telugu', label: 'Telugu (Anek Telugu)', css: "'Anek Telugu', sans-serif" },
   { value: 'Noto Sans Tamil', label: 'Tamil (Noto Sans Tamil)', css: "'Noto Sans Tamil', sans-serif" },
+  { value: 'IBM Plex Sans Thai', label: 'Thai (IBM Plex Sans Thai)', css: "'IBM Plex Sans Thai', sans-serif" },
   { value: 'Tinos', label: 'Tinos (Times Roman)', css: "'Tinos', 'Times New Roman', Times, serif" },
   { value: 'Cousine', label: 'Cousine (Courier)', css: "'Cousine', 'Courier New', Courier, monospace" }
 ];
