@@ -82,7 +82,7 @@ export const tools = [
       tag: 'Languages',
       heading: 'Supports a wide range of languages, with more on the way',
       lead:
-        "Hebrew, Hindi, Marathi, Bengali, Tamil, Telugu, Punjabi, Thai, Russian, Ukrainian, Greek, Arabic, Urdu, Vietnamese, and every Latin-script language work end to end here, so what you type is exactly what ends up in your downloaded file. I'm adding more as I go.",
+        "Hebrew, Hindi, Marathi, Bengali, Tamil, Telugu, Punjabi, Malayalam, Thai, Russian, Ukrainian, Greek, Arabic, Urdu, Vietnamese, and every Latin-script language work end to end here, so what you type is exactly what ends up in your downloaded file. I'm adding more as I go.",
       supportedHeading: 'Supported now',
       // Ordered by roughly how many people speak each language, most to
       // least, so the card leads with what the most visitors are searching
@@ -94,7 +94,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 18 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 18 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 19 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 19 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -181,10 +181,15 @@ export const tools = [
           name: 'Hebrew',
           note: 'Fill in a Hebrew form and sign your name in Hebrew, and what you typed is what lands in the downloaded file. Six text fonts to choose from, plus Gveret Levin if you want the signature handwritten. Vowel points are placed properly rather than just shown on screen, and a text box grows leftward from a fixed right edge, the way right-to-left writing actually behaves.',
         },
+        {
+          native: 'മലയാളം 🇮🇳🇦🇪',
+          name: 'Malayalam',
+          note: "Fill a Malayalam form and sign your name in Malayalam, in Anek Malayalam, which also serves the large Malayali community across the UAE and the rest of the Gulf. Vowel signs that move before or wrap around the consonant they attach to are reordered and reshaped for the download, and chillu letters, the consonant-final forms unique to this script (word endings like ...ൻ or ...ൾ), draw and cluster correctly too. Worth saying why this is not the Noto face the other scripts here use: Noto Sans Malayalam breaks on reph, the RA-plus-virama pattern that spells an initial r before a consonant cluster, so I picked a face that draws it correctly instead. This is set to modern, reformed spelling (the standard since 1971), not the older traditionally-ligated style. There is no handwriting-style Malayalam face yet, so a typed signature comes out upright rather than cursive.",
+        },
       ],
       notYetHeading: 'More on the way',
       notYet:
-        "Gujarati, Kannada, Odia, Malayalam and emoji are not there yet, and a Nastaliq face so Urdu can be set the way Urdu is normally written is the other thing I would like to add. If you type something the tool cannot draw, it tells you as you go and names the exact characters, so you find out while you are typing rather than after you have filled in a whole form and downloaded it.",
+        "Gujarati, Kannada, Odia and emoji are not there yet, and a Nastaliq face so Urdu can be set the way Urdu is normally written is the other thing I would like to add. If you type something the tool cannot draw, it tells you as you go and names the exact characters, so you find out while you are typing rather than after you have filled in a whole form and downloaded it.",
     },
     steps: [
       { title: 'Open your form', text: 'Save the PDF from WhatsApp or email to your device, then choose it here or drag it into the tool. It is not uploaded.' },

@@ -319,6 +319,39 @@ const TAMIL_VOWEL_SIGNS = 'ாிீுூெேைொோௌௗ';
 const TAMIL_MARKS = '்'; // pulli (virama)
 const TAMIL_DIGITS = '௦௧௨௩௪௫௬௭௮௯';
 
+// Malayalam: 14 independent vowels (U+0D05-U+0D14, minus the two reserved
+// codepoints U+0D0D/U+0D11 in that range), 36 base consonants (U+0D15-U+0D39,
+// minus U+0D29 NNNA and U+0D3A TTTA, both marked "scholarly use only" in the
+// Unicode 17.0 chart - unlike Devanagari, Malayalam assigns ള/ഴ/റ to real,
+// ordinary letters rather than leaving them reserved, so only these two need
+// excluding), the vowel signs an ordinary sentence needs, candrabindu/
+// anusvara/visarga/virama, and the digits.
+//
+// AU is a deliberate, documented choice, not an oversight: only the reformed/
+// modern spelling (U+0D57, the AU length mark used alone - "used alone to
+// write the /au/ dependent vowel in modern texts" per the Unicode chart) is
+// included. The precomposed archaic form (ൌ, U+0D4C, "archaic form of the
+// /au/ dependent vowel") is deliberately excluded, matching the same
+// reformed-orthography decision documented in
+// e2e/sign/fixtures/malayalamCorpus.js - this file and that corpus must
+// agree on which spelling counts as "Malayalam support", not just on the
+// glyphs available.
+//
+// Chillu letters (ൺ ൻ ർ ൽ ൾ ൿ, U+0D7A-U+0D7F) are a Malayalam-specific class
+// of consonant-final "dead consonant" forms with no equivalent in any other
+// language in this file, and are ordinary, frequent modern spelling (word-
+// final -ൻ/-ൾ/-ർ), not a specialist inclusion - so they are part of the
+// required set, not an optional extra.
+const MALAYALAM_VOWELS = 'അആഇഈഉഊഋഌഎഏഐഒഓഔ';
+const MALAYALAM_CONSONANTS = rangeOf(0x0d15, 0x0d3a)
+  .filter((cp) => cp !== 0x0d29 && cp !== 0x0d3a)
+  .map((cp) => String.fromCodePoint(cp))
+  .join('');
+const MALAYALAM_VOWEL_SIGNS = 'ാിീുൂൃെേൈൊോൗ'; // AA I II U UU vocalicR E EE AI O OO + reformed AU (length mark alone)
+const MALAYALAM_MARKS = 'ഁംഃ' + '്'; // candrabindu, anusvara, visarga, virama
+const MALAYALAM_CHILLU = 'ൺൻർൽൾൿ';
+const MALAYALAM_DIGITS = '൦൧൨൩൪൫൬൭൮൯';
+
 // Vietnamese: every accented/tone-marked Latin letter modern Vietnamese
 // writing needs, upper and lower case, defined as its own self-contained set
 // the way every language row in this file is (not a diff against
@@ -427,6 +460,10 @@ export const LANGUAGES = {
   tamil: {
     label: 'Tamil',
     codePoints: codePointsOf(TAMIL_VOWELS + TAMIL_CONSONANTS + TAMIL_VOWEL_SIGNS + TAMIL_MARKS + TAMIL_DIGITS),
+  },
+  malayalam: {
+    label: 'Malayalam',
+    codePoints: codePointsOf(MALAYALAM_VOWELS + MALAYALAM_CONSONANTS + MALAYALAM_VOWEL_SIGNS + MALAYALAM_MARKS + MALAYALAM_CHILLU + MALAYALAM_DIGITS),
   },
 };
 

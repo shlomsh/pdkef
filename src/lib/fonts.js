@@ -18,7 +18,7 @@ import { FONT_COVERAGE_FILES, fontFileHasGlyph } from './fontCoverageTable.js';
 import { findMissingGlyphs } from './textTransforms.js';
 
 export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Kalam', 'Mali', 'Pacifico', 'Sacramento'];
-export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Scheherazade New', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Mukta Mahee', 'Anek Telugu', 'Noto Sans Tamil', 'Mukta', 'IBM Plex Sans Thai'];
+export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Scheherazade New', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Mukta Mahee', 'Anek Telugu', 'Noto Sans Tamil', 'Mukta', 'IBM Plex Sans Thai', 'Anek Malayalam'];
 
 /**
  * Real ascent/descent for every bundled family, as a fraction of the em —
@@ -94,6 +94,14 @@ export const FONT_VERTICAL_METRICS = {
   // fontkit-vs-browser advance-parity check (Guard A) on ordinary Thai
   // words, so this is not the top-ranked candidate on record - see TODO.md.
   'IBM Plex Sans Thai': { ascent: 1.116, descent: 0.534 },
+  // Anek Malayalam (FONT-03) - not Noto Sans Malayalam, which is disqualified:
+  // fontkit's GPOSProcessor.getAnchor crashes on 33/35 reph cases (RA+virama+
+  // consonant, syllable-initial - not a rare pattern, it is how Malayalam
+  // spells an initial /r/ before a cluster), the same fault class that
+  // already ruled out the default Noto faces for Gurmukhi and Telugu. Anek
+  // Malayalam is from the same Ek Type family as Anek Telugu and crashes on
+  // 0/478 generated cases. See malayalamCorpus.js/malayalam-shaping-guard.spec.js.
+  'Anek Malayalam': { ascent: 1.018, descent: 0.415 },
 };
 
 // Slack on top of the computed overhang: the metrics are the font's design
@@ -183,7 +191,7 @@ const DEFAULT_FAMILY = 'Arimo';
  * second Hebrew-capable handwriting face joins the catalogue, substitution
  * prefers it automatically instead of falling through to catalogue order.
  */
-const SANS_STYLE_FONTS = ['Arimo', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Mukta Mahee', 'Anek Telugu', 'Noto Sans Tamil', 'Mukta', 'IBM Plex Sans Thai'];
+const SANS_STYLE_FONTS = ['Arimo', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Mukta Mahee', 'Anek Telugu', 'Noto Sans Tamil', 'Mukta', 'IBM Plex Sans Thai', 'Anek Malayalam'];
 // Scheherazade New is a traditional Naskh, not a geometric sans the way
 // Almarai (the face it replaced) was - it belongs with Tinos's serif
 // character, not the sans bucket. Nothing else in the catalogue draws

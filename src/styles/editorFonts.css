@@ -369,3 +369,15 @@
   font-weight: 700;
   src: url('/fonts/IBMPlexSansThai-Bold.ttf') format('truetype');
 }
+@font-face {
+  font-family: 'Anek Malayalam';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/AnekMalayalam-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Anek Malayalam';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/AnekMalayalam-Bold.ttf') format('truetype');
+}
