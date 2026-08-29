@@ -23,6 +23,7 @@ const STANDARD_FONTS = [
   { value: 'Noto Sans TC', label: 'Chinese, Traditional (Noto Sans TC)', css: "'Noto Sans TC', sans-serif" },
   { value: 'Noto Sans KR', label: 'Korean (Noto Sans KR)', css: "'Noto Sans KR', sans-serif" },
   { value: 'Noto Sans Bengali', label: 'Bengali (Noto Sans Bengali)', css: "'Noto Sans Bengali', sans-serif" },
+  { value: 'Mukta', label: 'Hindi, Marathi (Mukta)', css: "'Mukta', sans-serif" },
   { value: 'Mukta Mahee', label: 'Punjabi (Mukta Mahee)', css: "'Mukta Mahee', sans-serif" },
   { value: 'Anek Telugu', label: 'Telugu (Anek Telugu)', css: "'Anek Telugu', sans-serif" },
   { value: 'Noto Sans Tamil', label: 'Tamil (Noto Sans Tamil)', css: "'Noto Sans Tamil', sans-serif" },

@@ -184,9 +184,12 @@ const DEVANAGARI_VOWELS = 'अआइईउऊऋएऐओऔ';
 // Dravidian-loanword letters (Unicode's block is not Hindi-specific), not
 // part of the standard Hindi consonant inventory, which represents the same
 // sounds via nukta combinations when it needs them at all. Excluding them
-// is what made Kalam - the catalogue's only Devanagari-capable face - read
+// is what made Kalam - the catalogue's first Devanagari-capable face - read
 // as "full" rather than 0.973 partial on two letters no ordinary Hindi
-// sentence uses; see the REPORT BACK notes for the measured numbers.
+// sentence uses; see the REPORT BACK notes for the measured numbers. Mukta
+// (FONT-08a, upright, added alongside Kalam) also reads "full" against this
+// same exclusion - measured separately, not inherited from Kalam's result,
+// per the catalogue-is-ours-to-curate rule (CLAUDE.md).
 const DEVANAGARI_CONSONANTS = rangeOf(0x0915, 0x0939)
   .filter((cp) => cp !== 0x0929 && cp !== 0x0934)
   .map((cp) => String.fromCodePoint(cp))
