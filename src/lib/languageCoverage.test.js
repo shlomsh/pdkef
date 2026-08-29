@@ -208,17 +208,17 @@ describe('Sign Languages card: "not yet" list is still true', () => {
   it("the notYet copy names emoji and India's remaining scripts, and does not list any script the catalogue now covers as unavailable", () => {
     const notYet = signLanguages.notYet;
     expect(notYet.toLowerCase()).toContain('emoji');
-    for (const term of ['Gujarati', 'Kannada', 'Odia', 'Malayalam']) {
+    for (const term of ['Gujarati', 'Kannada', 'Odia']) {
       expect(notYet).toContain(term);
     }
-    // All eight graduated out of this list (each has its own "supported"
+    // All nine graduated out of this list (each has its own "supported"
     // card entry now, plus a LANGUAGE_COVERAGE row for every one of them
     // except Chinese, which has no compact alphabet to check against - the
     // same reason Japanese kanji has none). Unlike the old half-covered
     // Chinese wrinkle this list used to carry, there is no remaining nuance
     // to preserve here: the whole notYet string should simply no longer name
-    // any of the eight.
-    for (const term of ['Japanese', 'Bengali', 'Chinese', 'Korean', 'Pashto', 'Tamil', 'Telugu', 'Punjabi']) {
+    // any of the nine.
+    for (const term of ['Japanese', 'Bengali', 'Chinese', 'Korean', 'Pashto', 'Tamil', 'Telugu', 'Punjabi', 'Malayalam']) {
       expect(notYet).not.toContain(term);
     }
   });
@@ -302,6 +302,24 @@ describe('Punjabi, Telugu and Tamil', () => {
       expect(note).toContain(country);
     }
     expect(note.toLowerCase()).toContain('no handwriting-style tamil face');
+  });
+});
+
+/**
+ * Malayalam (FONT-03, landed after Punjabi/Telugu/Tamil). Same shape of pin
+ * as Telugu/Punjabi above: the family is deliberately NOT Noto Sans
+ * Malayalam, because fontkit's GPOSProcessor.getAnchor crashes on 33/35 reph
+ * cases (RA+virama+consonant, syllable-initial - not a rare pattern, see
+ * e2e/sign/fixtures/malayalamCorpus.js's module doc for the measurements).
+ */
+describe('Malayalam', () => {
+  it('Malayalam: exactly Anek Malayalam, and the card explains why it is not the Noto face and names the UAE/Gulf audience', () => {
+    expect(LANGUAGE_COVERAGE.malayalam.full.map((f) => f.family)).toEqual(['Anek Malayalam']);
+    const note = supportedNote('Malayalam');
+    expect(note).toContain('Anek Malayalam');
+    expect(note).toContain('Noto Sans Malayalam');
+    expect(note).toContain('UAE');
+    expect(note.toLowerCase()).toContain('no handwriting-style malayalam face');
   });
 });
 
