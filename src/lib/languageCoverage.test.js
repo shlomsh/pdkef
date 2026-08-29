@@ -52,9 +52,11 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(note).toContain('ऱ');
   });
 
-  it('Thai: exactly Mali, matching LANGUAGE_COVERAGE.thai.full', () => {
-    expect(LANGUAGE_COVERAGE.thai.full.map((f) => f.family)).toEqual(['Mali']);
-    expect(supportedNote('Thai')).toContain('Mali');
+  it('Thai: Mali and IBM Plex Sans Thai, matching LANGUAGE_COVERAGE.thai.full', () => {
+    expect(LANGUAGE_COVERAGE.thai.full.map((f) => f.family).sort()).toEqual(['IBM Plex Sans Thai', 'Mali']);
+    const note = supportedNote('Thai');
+    expect(note).toContain('Mali');
+    expect(note).toContain('IBM Plex Sans Thai');
   });
 
   it('Russian/Ukrainian/other Cyrillic: PT Sans is one of the anchor families, and none of the anchor is handwriting', () => {
