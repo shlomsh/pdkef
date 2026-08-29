@@ -300,6 +300,43 @@ status feedback.
   no screening and shipped as-is), and the Sign card *says* why the font is not the expected Noto one
   rather than quietly substituting - `languageCoverage.test.js` pins that explanation.
 
+  **Font screening protocol: three independent checks, and a candidate that clears one has not been
+  screened.** Learned the expensive way across the Gurmukhi/Telugu crashes and SIGN-19.
+  (1) **Does fontkit crash on it?** Shape the whole generated corpus through fontkit and count uncaught
+  throws - the paragraph above. (2) **Does fontkit pick the same glyphs as Chromium?** The per-script
+  pixel guard - but that guard only means something if it renders **above ~256px**, because below Skia's
+  bitmap-glyph limit `fillText` draws cached bitmaps while the guard's reconstruction fills outlines
+  through `Path2D`, and the two rasterisers disagree enough to swamp real findings. (3) **Does fontkit
+  report the same advances as Chromium?** **Nothing checks this yet - SIGN-20.** A pixel diff is close to
+  blind to it, because an advance error lives in the trailing space *after* the ink: Bengali হ্ন is 21px
+  (28%) short at a 6.16% pixel diff and ক্ত is 20px short at 7.27%, and both still pass the enforced
+  corpus. In an export that overlaps whatever follows. Until SIGN-20 lands, do not read a green shaping
+  guard as a statement about cluster advances.
+
+  **Handwriting faces are the hard case, and thin ones are the hardest.** They are the noisiest under
+  every pixel comparison here - the only two exported-PDF render baseline cases that ever drifted across
+  platforms were Caveat and Great Vibes - and they carry a failure the upright faces do not: Caveat's
+  `measureText` disagrees with fontkit's summed advances by **5.1px on "Sarah Levi"** on macOS, which is
+  kerning one side applies and the other does not. So screen a handwriting candidate for **kerning
+  parity**, not just glyph coverage and shaping. The Latin/Caveat guard is already `test.skip`ped as red
+  for a related reason; do not read the other Latin guards' green as covering it.
+
+  **Separating a real advance divergence from the browser's own rounding has a clean bound**, established
+  under SIGN-19: whole-pixel advance rounding can move a cluster by at most `glyphCount x 0.5px`, so
+  anything past that is the font or the shaper. Checked against every known case, it separates them
+  cleanly (হ্ন 21px against a 1.5px bound; `phrase:jumhuriya` 2.008px against an 8.5px bound).
+
+  **Every font accepted before 2026-08-29 was screened against a tolerance loose enough to hide a real
+  divergence, so re-screen before trusting an old green.** The Arabic guard's tolerance was **22.33%** -
+  it admitted roughly a quarter of the pixels differing - and Bengali's was 14.48%. This is not
+  theoretical: fixing the geometry immediately surfaced two real divergences in a face that had been
+  shipping as clean (`টি` had been *passing by 0.7 points* and is genuinely malformed; `স্ক` is drawn with
+  no bar across its top), taking Noto Sans Bengali's known-divergence list from three entries to six
+  without the font changing at all. **Arabic, Pashto and Bengali have been re-measured at the new
+  geometry; Devanagari, Tamil, Telugu and Gurmukhi have not** - they still run at the old small render
+  size, and their greens are in exactly the category Bengali's was. Re-screening them is a one-line
+  geometry change per guard and is the cheap move before leaning on those scripts or adding a language.
+
   **The four Brahmic guards and what each actually proves.** Bengali is a fixed calibration set
   (259/259); Gurmukhi (140/140), Telugu (486/486) and Tamil (265/265) use `autoCalibrate`, which
   partitions the corpus by fontkit's own substituted/not-substituted judgment instead of a hand-picked
