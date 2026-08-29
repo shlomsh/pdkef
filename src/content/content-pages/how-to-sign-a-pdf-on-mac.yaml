@@ -1,116 +1,155 @@
-title: 'How to Sign a PDF on Mac | PDkef'
+title: 'How to Sign a PDF on Mac for Free | PDkef'
 description: >-
-  Sign a PDF on Mac in Safari or Chrome. Preview handles a signature well but stops at flat scans
-  and checkboxes - here is what each one can do, and how to fill in the rest.
+  Sign a PDF on Mac for free in Safari or Chrome. Add text and a signature without uploading your
+  document, or use Preview. No signup or watermark.
 breadcrumb: 'Mac'
 icon: 'Laptop'
 kicker: 'macOS, right in the browser'
-h1: 'How to Sign a PDF on Mac'
+h1: 'How to Sign a PDF on Mac for Free'
 subhead: >-
-  Your Mac can already sign a PDF, and for a signature on its own, Preview does the job well. It
-  gets awkward the moment the form is a scan with checkboxes. Here's what each approach covers, and
-  a way to finish the parts Preview leaves you nudging into place.
+  Your Mac can already fill and sign PDFs with Preview. If you prefer a browser, PDkef lets you
+  add text, check marks, and a drawn, typed, or image signature in Safari or Chrome. It is free,
+  with no signup or watermark, and your document is processed on your Mac.
 primaryCta:
   href: '/sign/'
-  label: 'Sign a PDF now'
+  label: 'Sign a PDF on Mac'
 sections:
   - variant: 'highlight'
     sketch: 'arcs'
     icon: 'Laptop'
     iconPos: 'tr'
     kicker: 'Four steps'
-    heading: 'Sign a PDF on Mac'
+    heading: 'Sign a PDF on your Mac in Safari or Chrome'
     blocks:
       - kind: 'steps'
         items:
           - >-
-            <strong>Open <a href="/sign/">pdkef.com/sign</a></strong> in Safari or Chrome.
+            <strong>Save the PDF from Mail, WhatsApp, or your browser.</strong> Choose a folder
+            you can find in Finder, such as Downloads, and keep the original copy.
           - >-
-            <strong>Drag the PDF in</strong> from Finder, or from the Downloads stack in your Dock
-            if it just arrived by email.
+            <strong>Open <a href="/sign/">pdkef.com/sign</a> in Safari or Chrome.</strong> Drag
+            the PDF from Finder into the tool, or select it with the file picker.
           - >-
-            <strong>Fill in the form, then add your signature.</strong> Draw it with the trackpad,
-            type it in a handwriting font, or upload a photo of one. Text and checkboxes go anywhere
-            on the page, so a scan is no harder than a proper form.
+            <strong>Add your answers and signature.</strong> Place text and check marks on the
+            page. Draw your signature with the trackpad, type it, or choose a signature image, then
+            position and resize it to fit.
           - >-
-            <strong>Download it.</strong> The finished PDF saves to Downloads as a new file, leaving
-            your original alone.
+            <strong>Download and review the finished PDF.</strong> The name begins with
+            "signed_". Open that copy, check every page, and attach it to your reply. Your original
+            file stays unchanged.
   - sketch: 'grid'
     icon: 'FileEdit'
     iconPos: 'br'
     kicker: 'Preview, side by side'
-    heading: 'What Preview already handles, and where it stops'
+    heading: 'What Preview on Mac already handles'
     blocks:
       - kind: 'prose'
         text: >-
-          Preview's Markup toolbar can capture a signature from your trackpad, your camera, or your
-          iPhone, and it fills properly fillable PDFs without complaint. The gap opens up with flat
-          documents: a scanned consent form, or a PDF exported so its fields are baked into the
-          page. Preview can only float text on top of those, one box at a time.
+          Preview can fill supported form fields, add text boxes to flat pages, and capture a
+          signature from a trackpad, camera, iPhone, or iPad. It also offers AutoFill for contact
+          details in supported forms. Apple's <a href="https://support.apple.com/guide/preview/fill-out-and-sign-pdf-forms-prvw35725/mac" target="_blank" rel="noopener noreferrer">Preview signing guide</a>
+          explains those options. You do not need another tool if Preview already fits the job.
       - kind: 'compare'
         builtInLabel: 'Preview'
         caption: >-
-          Both run on your Mac with nothing uploaded, so this is about what each one can reach, not
-          about privacy.
+          Both workflows can use a PDF stored on your Mac. The main choice is how you prefer to add
+          and position your answers.
         rows:
           - task: 'Add a handwritten signature'
-            builtIn: 'Yes, via Markup'
-            here: 'Draw, type, or upload one'
-          - task: 'Fill a form that has real fillable fields'
-            builtIn: 'Yes'
-            here: 'Yes'
-          - task: 'Fill a flat or scanned form'
-            builtIn: 'Only by placing text boxes by hand'
-            here: 'Type straight onto the page'
-          - task: 'Tick a checkbox on a scanned form'
-            builtIn: ''
-            here: 'Yes'
-          - task: 'Permanently remove text from a page'
-            builtIn: ''
-            here: 'Yes'
-          - task: 'Pick it up on a Windows PC or Android phone'
-            builtIn: ''
-            here: 'Same tool, any browser'
+            builtIn: 'Capture with trackpad, camera, iPhone, or iPad'
+            here: 'Draw, type, or choose a signature image'
+          - task: 'Complete a form with fillable fields'
+            builtIn: 'Fill supported fields; AutoFill where available'
+            here: 'Place text and check marks on the page'
+          - task: 'Add text to a flat or scanned form'
+            builtIn: 'Add and position a text box'
+            here: 'Click the page to add a text box'
+          - task: 'Mark a checkbox on a scanned form'
+            builtIn: 'Draw a tick or place an X with Markup'
+            here: 'Place a check mark or cross'
+          - task: 'Redact sensitive text before sharing'
+            builtIn: 'Use Redaction Selection in Markup'
+            here: 'Use the separate PDF redaction tool'
+      - kind: 'prose'
+        text: >-
+          Preview also has a <a href="https://support.apple.com/guide/preview/annotate-a-pdf-prvw11580/mac" target="_blank" rel="noopener noreferrer">Redaction Selection tool</a>
+          for permanently removing selected text. In PDkef, use the <a href="/redact/">Redact PDF
+          tool</a> when you need to hide details in a shared copy. A drawn shape placed over text
+          is not the same as removing it from the file.
   - sketch: 'rings'
     icon: 'Lightbulb'
     iconPos: 'cl'
-    kicker: 'Worth saying plainly'
-    heading: 'When you should just use Preview'
+    kicker: 'The built-in route'
+    heading: 'How to add a signature with Preview'
+    blocks:
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Open the PDF in Preview.</strong> If another app opens it, Control-click the
+            file in Finder and choose Open With, then Preview.
+          - >-
+            <strong>Show the Markup toolbar and choose Sign.</strong> Select a saved signature,
+            or create one with the trackpad, camera, or a compatible iPhone or iPad.
+          - >-
+            <strong>Place the signature and save a copy.</strong> Drag it to the signature line,
+            resize it with the handles, and check the finished document before sharing it.
+      - kind: 'prose'
+        text: >-
+          Prefer a typed signature or a signature image you already have? Open the PDF in
+          <a href="/sign/">PDkef's signing tool</a> instead. Either way, follow the recipient's
+          instructions if they request a particular signing method. Adding a visible signature does
+          not create a certificate-based digital signature.
+  - sketch: 'waves'
+    icon: 'ShieldCheck'
+    iconPos: 'cl'
+    kicker: 'Your file, your Mac'
+    heading: 'Free, open source, and available offline'
     blocks:
       - kind: 'prose'
         text: >-
-          If the document needs your signature and nothing else, open it in Preview and use the
-          signature you already saved there. It's two clicks, it's built into the Mac you're sitting
-          at, and no website is going to beat that. Come here when the form fights back: a scan that
-          won't take text, checkboxes that aren't real checkboxes, something you need <a
-          href="/permanently-delete-text-from-pdf/">actually removed from the file</a> rather than
-          covered over, or a form you started on the Mac and have to finish on a borrowed Windows
-          laptop.
+          PDkef processes the PDF locally, with no document upload, signup, or watermark. It is
+          <a href="/open-source-pdf-editor/">open source under the MIT license</a>. Drafts and
+          saved signatures stay in the browser you use; they do not automatically follow you to
+          another Mac or your phone.
+      - kind: 'prose'
+        text: >-
+          To work without a connection, <a href="/install-pdf-app/">install PDkef while online</a>
+          and let the required assets download. Test your chosen font and an export before going
+          offline. Keep the source PDF available locally too, and check your save location if you
+          do not want the finished copy in a folder that syncs to iCloud.
 faq:
-  - question: 'Do I need Preview or Adobe Acrobat to sign a PDF on Mac?'
+  - question: 'How do I sign a PDF on my Mac for free?'
     answer: >-
-      No. This runs in Safari or Chrome, so there's nothing else to open. Preview is genuinely good
-      for adding a signature, so if that's all you need, it's already on your Mac and worth using.
-  - question: 'Preview lets me sign. Why would I use anything else?'
+      Use Preview's Markup signature tool, or open PDkef in Safari or Chrome. In PDkef, choose the
+      PDF, add a drawn, typed, or image signature, then download the signed copy. No account,
+      subscription, or watermark is required.
+  - question: 'Can Preview fill forms and sign PDFs without another app?'
     answer: >-
-      Mostly for flat forms. If the PDF has real fillable fields, Preview fills them fine. If it's a
-      scan or a flattened export - which is what most forms sent over email or WhatsApp are -
-      Preview can only float text boxes on top, so you end up nudging each one into place by hand,
-      and there's no way to tick an actual checkbox.
-  - question: 'Can I draw my signature with the trackpad?'
+      Yes. Preview fills supported form fields, adds text boxes to flat pages, and captures and
+      places signatures. AutoFill is available for compatible forms. You can also draw a tick or
+      place an X on a scanned checkbox; it does not need to be an interactive field.
+  - question: 'Can I draw my signature with a Mac trackpad?'
     answer: >-
-      Yes. You can draw it with the trackpad, type it in a handwriting-style font, or upload a photo
-      of a signature you already have. Trackpad drawing is steadier if you zoom in first and sign
-      larger than you think you need to.
-  - question: 'Does this work in Safari, or only Chrome?'
+      Yes. In PDkef, draw in the signature dialog, then place and resize it on the PDF. You can
+      also type your name or choose a signature image. Preview has its own trackpad signature
+      capture if you prefer the built-in app.
+  - question: 'Does PDkef work in Safari on Mac?'
     answer: >-
-      Both, along with Firefox and Edge. Use whichever browser you already have the PDF open in.
-  - question: 'Where does the signed PDF end up?'
+      Yes. Open the signing tool in Safari or Chrome and choose your PDF. No browser extension is
+      needed. For offline use, prepare the app and required assets while connected and test an
+      export before you disconnect.
+  - question: 'Where is the signed PDF saved on Mac?'
     answer: >-
-      In your Downloads folder, as a new file. The original is untouched, so if you get something
-      wrong you still have the copy you started from.
-  - question: 'If I start a form on my Mac, can I finish it on my iPhone?'
+      In your browser's download folder, usually Downloads, or the location you choose when
+      prompted. Its name begins with "signed_". Open that copy to check it, then attach it to
+      your reply in Mail or WhatsApp.
+  - question: 'Can I start on Mac and continue the same draft on iPhone?'
     answer: >-
-      Not the same half-finished copy, no. Your progress is saved on the Mac you're working on, in
-      that browser, because nothing is uploaded to a server that could sync it. You can absolutely
-      use the tool on your iPhone, but you'd start that form from the top.
+      Drafts do not sync between devices or browsers. Download the work you want to keep and
+      transfer that PDF yourself, then open it on the other device to add more. Earlier additions
+      are part of the exported PDF, not the original editable draft.
+  - question: 'Does PDkef fill the PDF''s actual form fields?'
+    answer: >-
+      PDkef places text and check marks on the page rather than updating interactive field
+      values. If the recipient needs the form's field data or a built-in submit button, use a
+      compatible form reader such as Preview where that form is supported.

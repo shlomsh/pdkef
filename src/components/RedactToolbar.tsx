@@ -35,7 +35,8 @@ export default function RedactToolbar({
   shareReady = false,
   elementsCount,
   actionHistory,
-  setUndoModalOpen
+  setUndoModalOpen,
+  exporting = false
 }: {
   activeStyle: string | null;
   toolLocked: boolean;
@@ -53,6 +54,9 @@ export default function RedactToolbar({
   elementsCount: number;
   actionHistory: any[];
   setUndoModalOpen: (open: boolean) => void;
+  /** True while a redacted PDF is being generated - guards Download/Share
+   * against re-entry so a second click can't start an overlapping export. */
+  exporting?: boolean;
 }) {
   const { requestReplace } = useToolShell();
 
@@ -214,7 +218,7 @@ export default function RedactToolbar({
           type="button"
           className={`${styles.button} ${styles.download}${canSharePdf ? ` ${styles['desktop-download']}` : ''}`}
           onClick={handleDownloadPdf}
-          disabled={elementsCount === 0}
+          disabled={elementsCount === 0 || exporting}
           title={elementsCount === 0 ? 'Add at least one redaction box first' : 'Apply redactions and download'}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -230,7 +234,7 @@ export default function RedactToolbar({
             type="button"
             className={`${styles.button} ${styles.share}`}
             onClick={shareReady ? handleSharePdf : handlePrepareShare}
-            disabled={elementsCount === 0}
+            disabled={elementsCount === 0 || exporting}
             title={elementsCount === 0
               ? 'Add at least one redaction box first'
               : (shareReady ? 'Share the redacted PDF' : 'Apply redactions and prepare the PDF for sharing')}

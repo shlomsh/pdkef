@@ -1,6 +1,4 @@
 import { MAX_SYMBOL_SIGNATURE_WIDTH_PCT, MIN_STANDARD_WIDTH_PCT } from '../../constants/signGeometry.js';
-import { h } from 'preact';
-import SignatureNode from '../../components/SignTool/nodes/SignatureNode.tsx';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { tintImageDataUrl } from '../../lib/signHelpers.js';
 import { percentToPoints } from '../../lib/coords.js';
@@ -23,7 +21,6 @@ export const signatureDefinition: ElementDefinition<SignatureElement> = {
   schema: (value): value is SignatureElement => isRecord(value) && value.type === 'signature' && hasString(value, 'id')
     && hasNumber(value, 'pageIndex') && hasBoxGeometry(value) && hasString(value, 'dataUrl'),
   creation: { mode: 'external' },
-  render: ({ element }) => h(SignatureNode, { element, isActive: false, onResizeStart: () => {} }),
   serialize: async (element, { pdfDoc, page, pdfWidth, pdfHeight, pdfX, pdfY }) => {
     const { dataUrl, width, height, color } = element;
     const sourceDataUrl = color && color !== '#000000' ? await tintImageDataUrl(dataUrl, color) : dataUrl;

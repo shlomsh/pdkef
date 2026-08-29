@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
 import BasePdfTool from './BasePdfTool.tsx';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
-import { uniqueId, seedUniqueId } from '../lib/sign.js';
+import { uniqueId, seedUniqueId } from '../editor/model/ids.ts';
 import { applyPageEdits } from '../lib/applyPageEdits.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { startGesture } from '../editor/gestures/controller.ts';
@@ -31,6 +31,10 @@ export default function PdfRedactTool() {
   const [pdfDocument, setPdfDocument] = useState<any>(null);
   const [elements, setElements] = useState<any[]>([]); // Array of { id, pageIndex, left, top, width, height }
   const [status, setStatus] = useState('idle'); // idle | loading | editing | redacting | error
+  // Export errors are recoverable without unmounting the editor - status stays
+  // 'editing' and this renders alongside the workspace. A failed document load
+  // still uses status='error', which unmounts the workspace (see below).
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const { canSharePdf, shareReady, prepare, clearPrepared, download, sharePrepared } = usePdfShare();
@@ -215,6 +219,7 @@ export default function PdfRedactTool() {
       file: selected, bytes, restored, loadIdRef, clearDraft, setStatus, setAnnouncement,
       initialize: () => {
         setFile(selected);
+        setErrorDetail(null);
         setProgress(0);
         setElements(presetElements);
         setActionHistory(preset.actionHistory || []);
@@ -439,7 +444,8 @@ export default function PdfRedactTool() {
       setAnnouncement('Please add at least one redaction box.');
       return;
     }
-    
+
+    setErrorDetail(null);
     setStatus('redacting');
     setProgress(0);
     const hasBoxes = elements.some((el) => el.type !== 'delete');
@@ -461,8 +467,14 @@ export default function PdfRedactTool() {
       }
     } catch (err) {
       console.error(err);
-      setStatus('error');
-      setAnnouncement('Failed to redact PDF document.');
+      // Recoverable: keep the workspace mounted so the boxes that caused the
+      // failure are still there to fix, instead of unmounting the editor
+      // behind a dead-end error screen (status='error' is reserved for a
+      // failed document load, which never gets this far).
+      setStatus('editing');
+      const detail = 'Could not export the PDF. Your edits are still here. Try again.';
+      setErrorDetail(detail);
+      setAnnouncement(`Redaction stopped. ${detail}`);
     }
   };
 
@@ -525,6 +537,7 @@ export default function PdfRedactTool() {
             elementsCount={elements.length}
             actionHistory={actionHistory}
             setUndoModalOpen={setUndoModalOpen}
+            exporting={status === 'redacting'}
           />
 
           <div className={workspaceStyles['pages-container']}>
@@ -609,6 +622,14 @@ export default function PdfRedactTool() {
               </div>
             ))}
           </div>
+
+          {/* Export error - recoverable, so it renders alongside the still-mounted
+              workspace instead of replacing it (see handleSavePdf's catch). */}
+          {errorDetail && (
+            <ErrorMessage title="Redaction stopped." fullWidth>
+              {errorDetail}
+            </ErrorMessage>
+          )}
         </div>
       )}
 

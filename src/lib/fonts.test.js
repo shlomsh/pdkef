@@ -14,6 +14,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
 import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../constants/signGeometry.js';
+import { WYSIWYG_STRING_CASES } from '../test/fixtures/wysiwygStrings.js';
 import {
   RETIRED_FONTS,
   FONT_VERTICAL_METRICS,
@@ -209,6 +210,17 @@ describe('resolveFontSubstitution', () => {
       }
     }
   });
+
+  it.each(WYSIWYG_STRING_CASES.map(({ id, text, family, support }) => [id, text, family, support]))(
+    '%s: resolves the supplied WYSIWYG string deterministically from the default font',
+    (_id, text, expectedFamily, expectedSupport) => {
+      const resolution = resolveFontSubstitution('Arimo', text);
+      expect(resolution.family).toBe(expectedFamily);
+      expect(resolveFontFamily('Arimo', text)).toBe(expectedFamily);
+      expect(covers(expectedFamily, 'normal', 'normal', text)).toBe(expectedSupport !== 'incompatible');
+      expect(resolution.missing.length === 0).toBe(expectedSupport === 'supported');
+    },
+  );
 
   // §3.4: covers() is judged against the file that will really be embedded,
   // and a missing weight/style face is never substituted away to a different

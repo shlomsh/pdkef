@@ -3,16 +3,13 @@ import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS } from '../../constants
 import PdfPageCanvas from '../PdfPageCanvas.tsx';
 import EditorPageHeader from '../EditorPageHeader.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
-import { getElementDefinition } from '../../editor/registry/index.ts';
+import { getElementRenderer } from '../../editor/registry/renderers.ts';
 import { useSignTool } from './SignToolContext.tsx';
 import { useSignDefaults } from './SignDefaultsContext.tsx';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
 import { detectTextDirection } from '../../lib/signHelpers.js';
-import useFontCoverageNotice from '../../lib/useFontCoverageNotice.js';
-import { resolveFontSubstitution } from '../../lib/fonts.js';
-import { describeFontSubstitution } from '../../lib/textCoverage.js';
 import pdfToolStyles from '../PdfTool.module.css';
 import workspaceStyles from './Workspace.module.css';
 
@@ -71,20 +68,6 @@ export default function PdfWorkspace({
   const activeElement = elements.find((el) => el.id === activeElementId);
   const activeTextElement = activeElement?.type === 'text' ? activeElement : null;
 
-  // Two things worth saying about fonts before the user reaches Download,
-  // rather than at it. Both exist because the editor is not truly WYSIWYG for
-  // non-Latin text: the browser borrows a system font per character for glyphs
-  // the chosen file lacks, so text can look perfect on screen and be
-  // impossible to embed.
-  //
-  // The warning is document-wide, because it mirrors exactly what signPdf
-  // would refuse on and a character two pages away still stops the download.
-  // The substitution aside is tied to the selected box, because that is the
-  // one whose font just visibly changed under the user.
-  const { message: coverageWarning, elementCharacters: unsupportedByElement } = useFontCoverageNotice(elements);
-  const substitutionNotice = activeTextElement
-    ? describeFontSubstitution(resolveFontSubstitution(activeTextElement.fontFamily, activeTextElement.text))
-    : '';
   // A fresh field starts from the product's English/LTR default. Direction is
   // then derived from what is typed into that field; it must never inherit the
   // language/direction of a selected or previously edited text element.
@@ -226,47 +209,8 @@ export default function PdfWorkspace({
             onSharePdf={handleSharePdf}
             canSharePdf={canSharePdf}
             shareReady={shareReady}
+            exporting={status === 'signing'}
           />
-
-          {/* Font notices - see coverageWarning / substitutionNotice above.
-              Three things about this block are deliberate:
-
-              The region is ALWAYS mounted, and only its contents change. An
-              aria-live region is announced reliably only when it was already
-              in the accessibility tree before the text arrived, so a <p> that
-              mounts together with its own message frequently announces
-              nothing. role="status" rather than "alert" because neither of
-              these is an error, and neither should interrupt a screen reader
-              mid-word while someone is typing.
-
-              Both messages can show at once. They are about different things -
-              the warning is document-wide, the aside is about the selected box
-              - so treating them as alternatives meant one stray Arabic
-              character on page 1 silently suppressed every substitution
-              explanation for the rest of the session, which is exactly the
-              "a substitution must be explained, never silent" promise in
-              CLAUDE.md being quietly broken.
-
-              And the region is overlaid rather than flowed (see the CSS): a
-              notice that takes layout space pushes every page down at the
-              moment it appears, which is while the user is mid-keystroke in
-              the very box that triggered it, moving the box out from under
-              their caret. The aside toggles on selection changes too, so in
-              flow it would shift the document on every click between boxes. */}
-          <div className={workspaceStyles['font-notices']} role="status" aria-live="polite">
-            <div className={workspaceStyles['font-notices-inner']}>
-              {coverageWarning && (
-                <p className={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`}>
-                  {coverageWarning}
-                </p>
-              )}
-              {substitutionNotice && (
-                <p className={pdfToolStyles['hint-message']}>
-                  {substitutionNotice}
-                </p>
-              )}
-            </div>
-          </div>
 
           {/* PDF Pages rendering container */}
           <div className={workspaceStyles['pages-container']} onClick={deactivateAll}>
@@ -310,9 +254,8 @@ export default function PdfWorkspace({
                           onDelete={makeOnDelete(el.id)}
                           onClone={makeOnClone(el.id, el.pageIndex, el.type)}
                           pageWidthPoints={size.width}
-                          unsupportedCharacters={unsupportedByElement[el.id]}
                         >
-                          {getElementDefinition(el.type).render({
+                          {getElementRenderer(el.type)({
                             element: el,
                             onChange: makeOnChange(el.id),
                             onSelect: makeOnSelect(el.id),
@@ -329,11 +272,11 @@ export default function PdfWorkspace({
 
           {/* Complete signing button */}
           <div className={workspaceStyles['export-actions']}>
-            <button type="button" className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']}`} onClick={handleDownloadPdf}>
+            <button type="button" className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']}`} onClick={handleDownloadPdf} disabled={status === 'signing'}>
               Download
             </button>
             {canSharePdf && (
-              <button type="button" className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']} ${workspaceStyles['export-share']}`} onClick={shareReady ? handleSharePdf : handleSavePdf}>
+              <button type="button" className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']} ${workspaceStyles['export-share']}`} onClick={shareReady ? handleSharePdf : handleSavePdf} disabled={status === 'signing'}>
                 {shareReady ? 'Share now' : 'Share'}
               </button>
             )}

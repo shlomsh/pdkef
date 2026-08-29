@@ -30,7 +30,6 @@
    visible either way. */
 .text-input { display: block; border: none; background: transparent; color: inherit; outline: none; resize: none; overflow: visible; width: 100%; height: 100%; min-width: 0; }
 .text-input::placeholder { color: inherit; opacity: .45; }
-.coverage-warning { position: absolute; top: calc(100% + 6px); left: 0; z-index: 11; width: max-content; max-width: min(22rem, 90vw); margin: 0; padding: .4rem .55rem; border: 1px solid var(--color-danger, #b42318); border-radius: var(--radius-sm); background: var(--color-surface); box-shadow: var(--shadow-md); color: var(--color-danger, #b42318); font: 600 .75rem/1.35 system-ui, sans-serif; pointer-events: none; }
 /* A text box that is selected but not being edited. Pointer events pass through
    to the wrapper, so the click selects and drags the element instead of placing
    a caret; entering the edit session (double-click, Enter) drops this class. */

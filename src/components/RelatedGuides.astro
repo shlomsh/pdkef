@@ -29,23 +29,29 @@ import { contentPagesForTool } from '../data/contentPages.js';
 interface Props {
   currentSlug: string;
   heading?: string;
+  locale?: string;
+  labels?: Record<string, string>;
+  resolveLink?: (pageId: string, locale: string) => { href: string; fallback?: boolean };
 }
 
-const { currentSlug, heading = 'Guides for this tool' } = Astro.props;
+const { currentSlug, heading, locale = 'en', labels = {}, resolveLink } = Astro.props;
+const resolvedHeading = heading ?? labels.relatedHeading ?? 'Guides for this tool';
 const related = contentPagesForTool(currentSlug);
 ---
 
 {related.length > 0 && (
   <section class="related-guides" aria-labelledby="related-guides-heading">
     <div class="related-guides-head">
-      <span class="related-guides-kicker">More on this tool</span>
-      <h2 id="related-guides-heading">{heading}</h2>
+      <span class="related-guides-kicker">{labels.relatedKicker ?? 'More on this tool'}</span>
+      <h2 id="related-guides-heading">{resolvedHeading}</h2>
     </div>
 
     <ul class="related-guides-grid">
-      {related.map((page) => (
-        <li>
-          <a href={page.href} class="related-guides-card">
+      {related.map((page) => {
+        const pageId = page.href.replace(/^\//, '').replace(/\/$/, '');
+        const link = resolveLink?.(pageId, locale);
+        return <li>
+          <a href={link?.href ?? page.href} class="related-guides-card">
             <span class="related-guides-icon">
               <page.icon strokeWidth={1.5} />
             </span>
@@ -54,8 +60,8 @@ const related = contentPagesForTool(currentSlug);
               <span class="related-guides-blurb">{page.blurb}</span>
             </span>
           </a>
-        </li>
-      ))}
+        </li>;
+      })}
     </ul>
   </section>
 )}

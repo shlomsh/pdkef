@@ -6,10 +6,15 @@ interface Props {
   title: string;
   description: string;
   noindex?: boolean;
+  lang?: string;
+  dir?: 'ltr' | 'rtl';
+  canonical?: string;
+  alternates?: { lang?: string; hreflang?: string; href: string }[];
+  socialImageAlt?: string;
 }
 
-const { title, description, noindex = false } = Astro.props;
-const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const { title, description, noindex = false, lang = 'en', dir = 'ltr', canonical, alternates = [], socialImageAlt = 'PDkef - free PDF tools that run entirely in your browser.' } = Astro.props;
+const canonicalURL = canonical ? new URL(canonical, Astro.site) : new URL(Astro.url.pathname, Astro.site);
 
 // The social card, run through Astro's image pipeline rather than served raw
 // from public/. Two reasons it goes through getImage() instead of a plain
@@ -26,7 +31,7 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={lang} dir={dir}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -35,6 +40,7 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex, follow" />}
     <link rel="canonical" href={canonicalURL} />
+    {alternates.map((alternate) => <link rel="alternate" hreflang={alternate.hreflang ?? alternate.lang} href={new URL(alternate.href, Astro.site)} />)}
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -46,14 +52,14 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content={String(ogImage.attributes.width ?? ogImage.options.width)} />
     <meta property="og:image:height" content={String(ogImage.attributes.height ?? ogImage.options.height)} />
-    <meta property="og:image:alt" content="PDkef - free PDF tools that run entirely in your browser." />
+    <meta property="og:image:alt" content={socialImageAlt} />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageURL} />
-    <meta name="twitter:image:alt" content="PDkef - free PDF tools that run entirely in your browser." />
+    <meta name="twitter:image:alt" content={socialImageAlt} />
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />

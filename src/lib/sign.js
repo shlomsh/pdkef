@@ -38,18 +38,6 @@ export class UnrepresentableTextError extends Error {
   }
 }
 
-let nextId = 0;
-export function uniqueId() { return `el-${nextId++}`; }
-
-export function seedUniqueId(elements) {
-  let max = -1;
-  for (const el of elements || []) {
-    const match = /^el-(\d+)$/.exec(el?.id || '');
-    if (match) max = Math.max(max, parseInt(match[1], 10));
-  }
-  if (max + 1 > nextId) nextId = max + 1;
-}
-
 // The coverage policy - which elements get judged, which of their characters
 // actually reach the page, and which font each resolves to - lives in
 // textCoverage.js, so the editor's while-typing warning runs the exact same

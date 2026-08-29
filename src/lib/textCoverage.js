@@ -13,14 +13,12 @@
  *  - **this file** - the *policy*: which elements get judged, which of their
  *    characters actually reach the page, and which font each one resolves to.
  *
- * The policy is what must never fork. `signPdf` refuses a download using it,
- * and the editor warns while typing using it; if those two ever disagree, the
- * editor either nags about a document that would export fine or stays quiet
- * about one that is about to be refused. Both call `findUnrepresentableCharacters`
- * below and differ only in how they load a font, which is the `loadFont`
- * argument.
+ * Export validation checks actual font bytes here. Editing feedback derives
+ * synchronously from the generated glyph data in textFontSupport.js. Both use
+ * fonts.js for resolution, textForCoverage for comb truncation, and the same
+ * findMissingGlyphs transforms; tests compare their answers against real TTFs.
  */
-import { combCellCount, combCharacters, isComb } from './comb.js';
+import { textForCoverage } from './comb.js';
 import { resolveFontFamily } from './fonts.js';
 import { unrepresentableCharacters } from '../editor/registry/text.ts';
 
@@ -33,9 +31,9 @@ import { unrepresentableCharacters } from '../editor/registry/text.ts';
  * because that is the font the export will actually embed: a Latin-only face
  * typed with Hebrew, or any face typed with Hindi or Thai, has already been
  * swapped for one that can draw it by the time this runs. That ordering is
- * what makes this check narrow - it only ever reports characters no bundled
- * font can draw *at all* (Arabic, CJK, emoji), never ones a substitution
- * already rescued.
+ * what makes this check narrow: it reports missing characters in the resolved
+ * font, including mixed scripts with no single shared family, but never ones
+ * a complete-text substitution already rescued.
  *
  * Comb fields are elements of `type: 'text'` too (see comb.js), so they get no
  * separate pass; only the cells that actually render are judged, since a comb
@@ -73,9 +71,7 @@ export async function findUnrepresentableCharacters(elements, loadFont) {
     const resolvedFont = (await loadFont(embeddedFamily, element.fontWeight, element.fontStyle))
       || (await loadFont('Arimo', element.fontWeight, element.fontStyle));
     if (!resolvedFont) continue;
-    const drawnText = isComb(element)
-      ? combCharacters(element).slice(0, combCellCount(element)).join('')
-      : textValue;
+    const drawnText = textForCoverage(element);
     const found = unrepresentableCharacters(resolvedFont, drawnText);
     if (found.length > 0) {
       pages.add((element.pageIndex ?? 0) + 1);
@@ -139,6 +135,6 @@ export function describeUnrepresentableText(characters, pageNumbers = [], { savi
       : ` on pages ${pageNumbers.slice(0, -1).join(', ')} and ${pageNumbers[pageNumbers.length - 1]}`;
   const list = characters.join(', ');
   return saving
-    ? `The font you picked has no match for: ${list}. Change the font for that text${where}, or remove those characters, then save again.`
-    : `None of the bundled fonts can draw: ${list}. That text${where} will stop the download, so it is worth swapping those characters now.`;
+    ? `Some text${where} needs attention: ${list}. Select its text box for font suggestions. You may need separate text boxes for different fonts, or to replace these characters, then save again.`
+    : `Some characters${where} need a different font: ${list}. Select the marked text box for help choosing fonts or separating the text into boxes.`;
 }

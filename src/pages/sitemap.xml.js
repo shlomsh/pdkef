@@ -5,11 +5,18 @@
 // comes from its registry with its own priority/changefreq.
 import { tools } from '../data/tools.js';
 import { contentPages } from '../data/contentPages.js';
+import { getCollection } from 'astro:content';
+import { documentationPath } from '../data/documentationLocales';
 
 const FALLBACK_SITE = 'https://pdkef.com';
 
-export function GET({ site }) {
+export async function GET({ site }) {
   const base = (site ? site.href : FALLBACK_SITE).replace(/\/$/, '');
+  // Draft translations are deliberately review-only, including when a local
+  // preview build renders them. A sitemap is a publication declaration.
+  const publishedLocalizedPages = (await getCollection('localizedPages')).filter(
+    (entry) => entry.data.status === 'published',
+  );
 
   const urls = [
     { loc: `${base}/`, changefreq: 'monthly', priority: '1.0' },
@@ -22,6 +29,11 @@ export function GET({ site }) {
       loc: `${base}${page.href}`,
       changefreq: page.sitemapChangefreq,
       priority: page.sitemapPriority,
+    })),
+    ...publishedLocalizedPages.map((entry) => ({
+      loc: `${base}${documentationPath(entry.data.pageId, entry.data.locale)}`,
+      changefreq: 'monthly',
+      priority: '0.5',
     })),
   ];
 

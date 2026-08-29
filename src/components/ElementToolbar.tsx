@@ -5,7 +5,7 @@ import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
 import { getEffectiveTextDirection } from '../lib/sign.js';
 import { resolveFontFamily, hasRealFace } from '../lib/fonts.js';
-import { combCellCount, isComb } from '../lib/comb.js';
+import { combCellCount, isComb, textForCoverage } from '../lib/comb.js';
 import { MAX_COMB_CELLS } from '../constants/signGeometry.js';
 import styles from './EditorControls.module.css';
 
@@ -39,9 +39,9 @@ export default function ElementToolbar({
   // point at a retired name. Bold/Italic availability is a property of this
   // family's real files, computed once and reused below rather than calling
   // resolveFontFamily twice.
-  const effectiveFamily = element.type === 'text' ? resolveFontFamily(element.fontFamily, element.text) : undefined;
   const currentWeight = element.fontWeight === 'bold' ? 'bold' : 'normal';
   const currentStyle = element.fontStyle === 'italic' ? 'italic' : 'normal';
+  const effectiveFamily = element.type === 'text' ? resolveFontFamily(element.fontFamily, element.text, currentWeight, currentStyle) : undefined;
   // Checked against the *other* axis's current value, not just 'normal',
   // so a family that ships Bold and Italic separately but not BoldItalic
   // (none do today, but hasRealFace doesn't assume that) is judged by the
@@ -76,6 +76,9 @@ export default function ElementToolbar({
           <FontPickerMenu
             value={effectiveFamily}
             text={element.text}
+            drawnText={textForCoverage(element)}
+            fontWeight={currentWeight}
+            fontStyle={currentStyle}
             onChange={(fontFamily: string) => onChange({ fontFamily })}
           />
           <div className={styles.divider} />
@@ -121,13 +124,14 @@ export default function ElementToolbar({
           <div className={styles.divider} />
           <button
             type="button"
-            className={buttonClass(textDirection === 'rtl')}
+            // This describes the detected writing direction; it is not a
+            // selected formatting option. In particular, RTL text should not
+            // make the control look persistently pressed for Hebrew/Arabic
+            // users.
+            className={buttonClass()}
             onClick={() => onChange({ textDirection: textDirection === 'rtl' ? 'ltr' : 'rtl' })}
-            title={
-              textDirection === 'rtl'
-                ? 'Right-to-left text (Hebrew/Arabic), click to switch to left-to-right'
-                : 'Left-to-right text, click to switch to right-to-left (Hebrew/Arabic)'
-            }
+            title={textDirection === 'rtl' ? 'Right-to-left text (Hebrew/Arabic)' : 'Left-to-right text'}
+            aria-label={textDirection === 'rtl' ? 'Text direction: right to left' : 'Text direction: left to right'}
           >
             {textDirection === 'rtl' ? (
               <PilcrowLeft size={14} strokeWidth={2.5} />

@@ -6,7 +6,10 @@
 // was edited before it. Typing Hebrew and then Devanagari left the new box
 // right-anchored, right-aligned and the RTL toggle lit up for no visible reason.
 const STRONG_DIRECTION_CHAR = /\p{L}/u;
-const RTL_CHAR = /[\u0591-\u07FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
+// Includes Arabic Extended-A/B as well as the Hebrew/Arabic presentation
+// forms. The former were missing from the original range, so a letter such as
+// U+08A0 was incorrectly treated as LTR.
+const RTL_CHAR = /[\u0591-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
 // Digits and the punctuation an ID number or date is made of (327-69-8221,
 // 27/05/2008). None of it has an inherent direction, so without this a field
 // like that would silently inherit whatever direction the *previous* element

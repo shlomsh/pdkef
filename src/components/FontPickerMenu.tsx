@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks';
 import Popover from './Popover.tsx';
 import styles from './EditorControls.module.css';
 import { HANDWRITING_FONTS } from '../lib/sign.js';
-import { resolveFontSubstitution } from '../lib/fonts.js';
+import { getFontSupport, getTextFontSupport, describeTextFontSupport, quoteText } from '../lib/textFontSupport.js';
 
 // CSS font-family value to preview each option in its own font. All values
 // are real bundled TTFs (see sign.js's FONT_FILES / editorFonts.css's
@@ -51,30 +51,44 @@ const FONT_OPTIONS = [...STANDARD_FONTS, ...HANDWRITING_OPTIONS];
 // rule against it (resolveFontSubstitution) so a font that can't draw this
 // text is labeled right here, using the exact rule that decided the
 // substitution, rather than a second guess at it.
-export default function FontPickerMenu({ value, text, onChange }: { value?: string; text?: string; onChange: (font: string) => void }) {
+export default function FontPickerMenu({ value, text = '', drawnText = text, fontWeight = 'normal', fontStyle = 'normal', onChange }: {
+  value?: string;
+  text?: string;
+  drawnText?: string;
+  fontWeight?: string;
+  fontStyle?: string;
+  onChange: (font: string) => void;
+}) {
   const [open, setOpen] = useState(false);
 
   const current = FONT_OPTIONS.find((f) => f.value === value) || FONT_OPTIONS[0];
+  // Compute once per render, and only while open. The closed menus on other
+  // elements must not scan every font on every keystroke.
+  const options = open ? FONT_OPTIONS.map((font) => ({
+    ...font,
+    support: getFontSupport(font.value, text, fontWeight, fontStyle, drawnText),
+  })) : [];
+  const hasMatchingFont = options.some(({ support }) => support.missing.length === 0);
+  const repairGuidance = open && !hasMatchingFont
+    ? describeTextFontSupport(getTextFontSupport({ text: drawnText, fontFamily: value, fontWeight, fontStyle }))
+    : '';
 
-  const renderOption = (f: { value: string; label: string; css: string }) => {
-    // W3 (docs/wysiwyg-text-architecture.md §3.2): resolveFontSubstitution
-    // now judges real glyph coverage rather than naming a script row, so
-    // "picking this font would change under the text" is `family !== f.value`
-    // (a substitution would happen), and `missing` names the characters that
-    // forced it.
-    const { family, missing } = resolveFontSubstitution(f.value, text || '');
-    const wouldSubstitute = family !== f.value;
+  const renderOption = (f: typeof options[number]) => {
+    const { family, missing, status } = f.support;
+    const incomplete = missing.length > 0;
     const isActive = f.value === current.value;
     const classNames = [
       styles['font-menu-item'],
       isActive && styles.active,
-      wouldSubstitute && styles['font-menu-item-unsupported']
+      incomplete && styles['font-menu-item-unsupported']
     ].filter(Boolean).join(' ');
     return (
       <button
         key={f.value}
         type="button"
         role="menuitem"
+        aria-current={isActive ? 'true' : undefined}
+        data-font-support={status}
         className={classNames}
         style={{ fontFamily: f.css }}
         onClick={() => {
@@ -83,7 +97,11 @@ export default function FontPickerMenu({ value, text, onChange }: { value?: stri
         }}
       >
         {f.label}
-        {wouldSubstitute && <span className={styles['font-menu-item-note']}> · can't draw {missing.join(', ')}</span>}
+        {drawnText && <span className={styles['font-menu-item-note']}>
+          {incomplete
+            ? `Missing ${quoteText(missing.join(''))}. ${status === 'fallback' ? `Uses ${family} automatically.` : 'Does not include all your text.'}`
+            : 'Includes all your text'}
+        </span>}
       </button>
     );
   };
@@ -106,9 +124,14 @@ export default function FontPickerMenu({ value, text, onChange }: { value?: stri
       }
       content={
         <div className={`${styles.popover} ${styles['font-menu']}`} role="menu">
-          {STANDARD_FONTS.map(renderOption)}
+          {drawnText && <p className={styles['font-menu-help']} role="presentation">
+            {hasMatchingFont
+              ? 'Fonts marked “Includes all your text” work as chosen. Other choices use the matching font shown.'
+              : repairGuidance}
+          </p>}
+          {options.slice(0, STANDARD_FONTS.length).map(renderOption)}
           <div className={styles['font-menu-group-label']}>Handwriting</div>
-          {HANDWRITING_OPTIONS.map(renderOption)}
+          {options.slice(STANDARD_FONTS.length).map(renderOption)}
         </div>
       }
     />

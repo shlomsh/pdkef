@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { WYSIWYG_STRING_BY_ID } from '../test/fixtures/wysiwygStrings.js';
 import { resolveBidiRuns } from './bidiRuns.js';
 
 describe('resolveBidiRuns', () => {
@@ -49,6 +50,23 @@ describe('resolveBidiRuns', () => {
       const runs = resolveBidiRuns('רחוב 17', 'rtl');
       expect(runs.map((r) => r.text)).toEqual(['17', 'רחוב ']);
       expect(runs.map((r) => r.direction)).toEqual(['ltr', 'rtl']);
+    });
+  });
+
+  describe('user-supplied WYSIWYG mixed-direction strings', () => {
+    const cases = [
+      ['H3', [['21/08/2026', 'ltr'], ['תאריך ', 'rtl']]],
+      ['H4', [[' ש"ח', 'rtl'], ['1,250.50', 'ltr'], ['סכום ', 'rtl']]],
+      ['H5', [[' כתובת', 'rtl'], ['David Cohen', 'ltr'], ['שם: ', 'rtl']]],
+      ['A4', [[' ريال', 'rtl'], ['1,250.50', 'ltr'], ['المبلغ ', 'rtl']]],
+      ['A5', [['٢١/٠٨/٢٠٢٦', 'ltr'], ['التاريخ ', 'rtl']]],
+      ['A6', [['Ahmed', 'ltr'], [' ', 'rtl'], ['١٢٥٠', 'ltr'], [' ', 'rtl'], ['1250', 'ltr'], ['مرحبا أحمد ', 'rtl']]],
+      ['C2', [[' مرحبا', 'rtl'], ['Hello', 'ltr'], ['שלום ', 'rtl']]],
+    ];
+
+    it.each(cases)('%s: preserves token order while resolving visual runs', (id, expected) => {
+      const runs = resolveBidiRuns(WYSIWYG_STRING_BY_ID[id].text, 'rtl');
+      expect(runs.map(({ text, direction }) => [text, direction])).toEqual(expected);
     });
   });
 

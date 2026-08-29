@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">How PDF flattening works when you download</title>
+  <desc id="desc">Before download, the redaction mark is an editable box over the page. During download, PDkef turns each page with a blur, blackout or whiteout mark into one image. The downloaded copy has no separate box to lift and no original text layer on that page. Blur can still reveal patterns; use a solid cover for sensitive text.</desc>
+  <defs>
+    <pattern id="pixels" x="0" y="0" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M7 0H0V7" fill="none" stroke="#c4e1e6" stroke-width="0.4"/></pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#3e7c8d"/></marker>
+  </defs>
+  <rect width="1200" height="560" rx="24" fill="#f4f9fa"/>
+  <g font-family="Inter, Arial, sans-serif" fill="#23404a">
+    <text x="46" y="54" font-size="25" font-weight="700">The last step happens when you download.</text>
+    <text x="46" y="85" font-size="16" fill="#54707c">A diagram of a page with a solid blackout mark. No extra Flatten button needed.</text>
+    <rect x="46" y="115" width="480" height="326" rx="16" fill="#fff" stroke="#c4e1e6"/>
+    <rect x="674" y="115" width="480" height="326" rx="16" fill="#fff" stroke="#c4e1e6"/>
+    <text x="72" y="153" font-size="18" font-weight="700">In the editor</text>
+    <text x="72" y="178" font-size="14" fill="#54707c">The cover is still an editable box.</text>
+    <text x="700" y="153" font-size="18" font-weight="700">In the downloaded copy</text>
+    <text x="700" y="178" font-size="14" fill="#54707c">This edited page is one flattened image.</text>
+    <rect x="97" y="227" width="323" height="171" rx="5" fill="#e6f1f3" stroke="#c4e1e6"/>
+    <rect x="81" y="210" width="323" height="171" rx="5" fill="#fff" stroke="#a4ccd9"/>
+    <text x="103" y="242" font-size="12" font-weight="700" fill="#54707c">SAMPLE DOCUMENT</text>
+    <path d="M103 261H372M103 337H372M103 354H274" stroke="#c4e1e6" stroke-width="6"/>
+    <text x="103" y="304" font-size="14" fill="#54707c">Reference</text>
+    <text x="193" y="304" font-size="14">DEMO-4826</text>
+    <rect x="224" y="264" width="162" height="30" rx="1" fill="#23404a" stroke="#3e7c8d" stroke-width="2"/>
+    <g fill="#fff" stroke="#3e7c8d" stroke-width="2"><rect x="220" y="260" width="8" height="8"/><rect x="382" y="260" width="8" height="8"/><rect x="220" y="290" width="8" height="8"/><rect x="382" y="290" width="8" height="8"/></g>
+    <path d="M276 313L276 321L389 321" stroke="#54707c" fill="none" stroke-width="1.5"/>
+    <text x="395" y="326" font-size="11" fill="#54707c">separate</text>
+    <text x="395" y="340" font-size="11" fill="#54707c">layers</text>
+    <path d="M550 275H649" stroke="#3e7c8d" stroke-width="3" marker-end="url(#arrow)"/>
+    <text x="600" y="249" font-size="14" font-weight="700" text-anchor="middle">Download</text>
+    <text x="600" y="304" font-size="12" fill="#54707c" text-anchor="middle">automatic</text>
+    <rect x="749" y="210" width="330" height="171" rx="5" fill="#fff" stroke="#a4ccd9"/>
+    <text x="771" y="242" font-size="12" font-weight="700" fill="#54707c">SAMPLE DOCUMENT</text>
+    <path d="M771 261H1047M771 337H1047M771 354H942" stroke="#c4e1e6" stroke-width="6"/>
+    <text x="771" y="304" font-size="14" fill="#54707c">Reference</text>
+    <rect x="861" y="281" width="162" height="30" rx="1" fill="#23404a"/>
+    <rect x="749" y="210" width="330" height="171" rx="5" fill="url(#pixels)"/>
+    <text x="914" y="408" font-size="13" fill="#54707c" text-anchor="middle">No separate box to lift. No original text layer here.</text>
+    <circle cx="58" cy="481" r="12" fill="#e6f1f3"/>
+    <text x="58" y="486" font-size="15" font-weight="700" text-anchor="middle" fill="#3e7c8d">i</text>
+    <text x="81" y="487" font-size="16">Flattening applies to pages with Blur, Blackout or Whiteout marks.</text>
+    <text x="81" y="516" font-size="15" fill="#54707c">Blur can still reveal visual patterns. Use a solid cover for sensitive text, then review the export.</text>
+  </g>
+</svg>

@@ -1,0 +1,111 @@
+{
+  "sourceVersion": "device-docs-2026-08-28-v1",
+  "status": "draft",
+  "publish": false,
+  "scope": "Adapted quick-start excerpts for two separate guides, not complete article translations. PDF editor labels remain English. All destinations are semantic page IDs to be resolved to a published locale or an explicitly labeled English fallback.",
+  "reviewRequired": ["product accuracy", "native-language editorial review", "actual Android and iPhone workflow verification", "download and sharing behavior", "rendered layout and bidi"],
+  "pages": [
+    {
+      "pageId": "how-to-sign-a-pdf-on-android",
+      "sourceFile": "src/content/content-pages/how-to-sign-a-pdf-on-android.yaml",
+      "device": "android",
+      "ctaPageId": "sign",
+      "relatedPageIds": ["how-to-sign-a-pdf-on-iphone", "how-to-sign-a-pdf-on-windows", "how-to-sign-a-pdf-on-mac", "install-pdf-app", "sign-pdf-no-signup"],
+      "locales": {
+        "en": {
+          "dir": "ltr",
+          "reviewed": false,
+          "title": "How to fill and sign a PDF on Android",
+          "intro": "Start with a PDF you can select from your device. These instructions describe the English editor; your browser and file-picker labels may use another language.",
+          "steps": [
+            "Save the PDF attachment from your email or messaging app to a location you can find on your device.",
+            "Open PDkef’s Sign & Fill tool in Chrome. Use the file picker to select the saved PDF.",
+            "Add the text, marks, and signature you need. Review every page and check names, numbers, and placement.",
+            "Select Download. Find the completed PDF in your browser’s downloads or the save location you selected. Open and check it before attaching it to your reply."
+          ],
+          "storageNote": "The editor may save a draft in this browser. Downloading does not mean that the local draft has been deleted. A draft does not automatically sync to another device.",
+          "ctaLabel": "Open the Sign & Fill tool"
+        },
+        "he": {
+          "dir": "rtl",
+          "reviewed": false,
+          "title": "איך למלא ולחתום על קובץ PDF באנדרואיד",
+          "intro": "התחילו מקובץ PDF שאפשר לבחור מהמכשיר. ההוראות מתייחסות לעורך באנגלית; הדפדפן וחלון בחירת הקבצים עשויים להציג שמות בשפה אחרת.",
+          "steps": [
+            "שמרו את קובץ ה-PDF המצורף מהדוא״ל או מאפליקציית ההודעות במקום שתוכלו למצוא במכשיר.",
+            "פתחו את כלי המילוי והחתימה של PDkef ב-Chrome. השתמשו בחלון בחירת הקבצים כדי לבחור את הקובץ ששמרתם.",
+            "הוסיפו את הטקסט, הסימונים והחתימה הדרושים. עברו על כל העמודים ובדקו שמות, מספרים ומיקומים.",
+            "בחרו Download. מצאו את הקובץ המלא בהורדות הדפדפן או במיקום שבחרתם לשמירה. פתחו ובדקו אותו לפני צירופו לתשובה."
+          ],
+          "storageNote": "העורך עשוי לשמור טיוטה בדפדפן הזה. הורדת הקובץ אינה מוחקת בהכרח את הטיוטה המקומית. טיוטה אינה מסתנכרנת אוטומטית למכשיר אחר.",
+          "ctaLabel": "פתיחת כלי המילוי והחתימה"
+        },
+        "hi": {
+          "dir": "ltr",
+          "reviewed": false,
+          "title": "Android पर PDF कैसे भरें और उस पर हस्ताक्षर करें",
+          "intro": "पहले ऐसा PDF तैयार रखें जिसे आप अपने डिवाइस से चुन सकें। ये निर्देश अंग्रेज़ी एडिटर के लिए हैं; आपके ब्राउज़र और फ़ाइल चुनने वाली विंडो के नाम दूसरी भाषा में हो सकते हैं।",
+          "steps": [
+            "ईमेल या मैसेजिंग ऐप से मिला PDF अटैचमेंट अपने डिवाइस पर ऐसी जगह सहेजें जहाँ आप उसे ढूँढ सकें।",
+            "Chrome में PDkef का Sign & Fill टूल खोलें। फ़ाइल चुनने वाली विंडो से सहेजा हुआ PDF चुनें।",
+            "ज़रूरी टेक्स्ट, निशान और हस्ताक्षर जोड़ें। हर पेज पर नाम, संख्याएँ और उनकी जगह जाँचें।",
+            "Download चुनें। पूरा किया हुआ PDF ब्राउज़र के डाउनलोड या अपनी चुनी हुई जगह पर ढूँढें। जवाब में अटैच करने से पहले फ़ाइल खोलकर जाँचें।"
+          ],
+          "storageNote": "एडिटर इस ब्राउज़र में ड्राफ़्ट सहेज सकता है। फ़ाइल डाउनलोड करने का मतलब यह नहीं है कि स्थानीय ड्राफ़्ट मिट गया है। ड्राफ़्ट दूसरे डिवाइस पर अपने आप सिंक नहीं होता।",
+          "ctaLabel": "Sign & Fill टूल खोलें"
+        }
+      }
+    },
+    {
+      "pageId": "how-to-sign-a-pdf-on-iphone",
+      "sourceFile": "src/content/content-pages/how-to-sign-a-pdf-on-iphone.yaml",
+      "device": "iphone",
+      "ctaPageId": "sign",
+      "relatedPageIds": ["how-to-sign-a-pdf-on-android", "how-to-sign-a-pdf-on-windows", "how-to-sign-a-pdf-on-mac", "install-pdf-app", "sign-pdf-no-signup"],
+      "locales": {
+        "en": {
+          "dir": "ltr",
+          "reviewed": false,
+          "title": "How to fill and sign a PDF on iPhone",
+          "intro": "Keep the PDF in a location you can find in Files. These instructions describe the English editor; iPhone menu labels may be in your device’s language.",
+          "steps": [
+            "Save the PDF attachment to Files using the options available in the app that received it. Remember the folder you chose.",
+            "Open PDkef’s Sign & Fill tool in Safari. Use the file picker to find and select that PDF.",
+            "Add the text, marks, and signature you need. Review each page before downloading.",
+            "Select Download and follow any save prompt. Locate the completed file using Safari’s downloads or Files, open it, and check it before sharing it back."
+          ],
+          "storageNote": "A draft saved in this browser does not automatically appear on another device or in another browser. Keep a downloaded copy of important work.",
+          "ctaLabel": "Open the Sign & Fill tool"
+        },
+        "he": {
+          "dir": "rtl",
+          "reviewed": false,
+          "title": "איך למלא ולחתום על קובץ PDF באייפון",
+          "intro": "שמרו את קובץ ה-PDF במקום שתוכלו למצוא ביישום הקבצים. ההוראות מתייחסות לעורך באנגלית; שמות התפריטים באייפון עשויים להופיע בשפת המכשיר.",
+          "steps": [
+            "שמרו את קובץ ה-PDF המצורף ביישום הקבצים באמצעות האפשרויות שבאפליקציה שבה התקבל. זכרו באיזו תיקייה שמרתם אותו.",
+            "פתחו את כלי המילוי והחתימה של PDkef ב-Safari. השתמשו בחלון בחירת הקבצים כדי למצוא ולבחור את הקובץ.",
+            "הוסיפו את הטקסט, הסימונים והחתימה הדרושים. בדקו כל עמוד לפני ההורדה.",
+            "בחרו Download ופעלו לפי בקשת השמירה, אם תופיע. מצאו את הקובץ המלא בהורדות של Safari או ביישום הקבצים, פתחו ובדקו אותו לפני שתשלחו אותו בחזרה."
+          ],
+          "storageNote": "טיוטה שנשמרה בדפדפן הזה אינה מופיעה אוטומטית במכשיר אחר או בדפדפן אחר. שמרו עותק שהורדתם של עבודה חשובה.",
+          "ctaLabel": "פתיחת כלי המילוי והחתימה"
+        },
+        "hi": {
+          "dir": "ltr",
+          "reviewed": false,
+          "title": "iPhone पर PDF कैसे भरें और उस पर हस्ताक्षर करें",
+          "intro": "PDF को ऐसी जगह रखें जहाँ आप उसे Files ऐप में ढूँढ सकें। ये निर्देश अंग्रेज़ी एडिटर के लिए हैं; iPhone के मेनू आपके डिवाइस की भाषा में हो सकते हैं।",
+          "steps": [
+            "जिस ऐप में PDF अटैचमेंट मिला है, उसके उपलब्ध विकल्पों से फ़ाइल को Files में सहेजें। चुना हुआ फ़ोल्डर याद रखें।",
+            "Safari में PDkef का Sign & Fill टूल खोलें। फ़ाइल चुनने वाली विंडो में PDF ढूँढकर चुनें।",
+            "ज़रूरी टेक्स्ट, निशान और हस्ताक्षर जोड़ें। डाउनलोड करने से पहले हर पेज जाँचें।",
+            "Download चुनें और सहेजने का संदेश आए तो उसका पालन करें। Safari के डाउनलोड या Files में पूरा किया हुआ PDF ढूँढें। वापस साझा करने से पहले फ़ाइल खोलकर जाँचें।"
+          ],
+          "storageNote": "इस ब्राउज़र में सहेजा गया ड्राफ़्ट दूसरे डिवाइस या दूसरे ब्राउज़र में अपने आप नहीं दिखाई देता। ज़रूरी काम की डाउनलोड की हुई कॉपी रखें।",
+          "ctaLabel": "Sign & Fill टूल खोलें"
+        }
+      }
+    }
+  ]
+}

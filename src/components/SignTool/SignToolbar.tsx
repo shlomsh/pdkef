@@ -48,7 +48,8 @@ export default function SignToolbar({
   onDownloadPdf,
   onSharePdf,
   canSharePdf = false,
-  shareReady = false
+  shareReady = false,
+  exporting = false
 }: {
   setAnnouncement: (msg: string) => void;
   setDialogOpen: (open: boolean) => void;
@@ -61,6 +62,9 @@ export default function SignToolbar({
   onSharePdf: () => void;
   canSharePdf?: boolean;
   shareReady?: boolean;
+  /** True while a signed PDF is being generated - guards Save/Share/Download
+   * against re-entry so a second click can't start an overlapping export. */
+  exporting?: boolean;
 }) {
   const { state, dispatch } = useSignTool();
   const selectedTool = state.selectedTool;
@@ -515,6 +519,7 @@ export default function SignToolbar({
               type="button"
               className={`${styles.button} ${styles.share}`}
               onClick={shareReady ? onSharePdf : onSavePdf}
+              disabled={exporting}
               title={shareReady ? 'Share the signed PDF' : 'Save your changes to share the signed PDF'}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -532,6 +537,7 @@ export default function SignToolbar({
             type="button"
             className={`${styles.button} ${styles.download}${canSharePdf ? ` ${styles['desktop-download']}` : ''}`}
             onClick={onDownloadPdf}
+            disabled={exporting}
             title="Save your changes and download the signed PDF"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

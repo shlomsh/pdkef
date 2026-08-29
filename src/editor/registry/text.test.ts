@@ -144,8 +144,8 @@ describe('text serialize font choice', () => {
     expect(page.drawText.mock.calls.map(([value]) => value)).toEqual([' lead ', 'trail ']);
     const [first, second] = page.drawText.mock.calls.map(([, options]) => options.y);
     // One blank line remains between the two inked lines, so the baseline
-    // advances twice at the editor's 1.2em line height (12pt * 1.2 * 2).
-    expect(first - second).toBeCloseTo(28.8);
+    // advances twice at the shared 1.05em line height (12pt * 1.05 * 2).
+    expect(first - second).toBeCloseTo(25.2);
   });
 });
 

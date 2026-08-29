@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import TextNode from './TextNode.tsx';
 import workspaceStyles from '../Workspace.module.css';
 import elementStyles from '../EditorElement.module.css';
+import { WYSIWYG_STRING_CASES } from '../../../test/fixtures/wysiwygStrings.js';
 
 function mount(vnode) {
   const host = document.createElement('div');
@@ -22,6 +23,7 @@ describe('TextNode component', () => {
 
   afterEach(() => {
     if (host) {
+      act(() => render(null, host));
       document.body.removeChild(host);
       host = null;
     }
@@ -110,6 +112,33 @@ describe('TextNode component', () => {
     expect(renderNode('27/05/2008').dir).toBe('ltr');
   });
 
+  it.each(WYSIWYG_STRING_CASES.map(({ id, text, direction, family, support }) => [id, text, direction, family, support]))(
+    '%s: renders the supplied string with editor/export direction and font agreement',
+    (_id, text, direction, family, support) => {
+      host = mount(
+        <TextNode
+          element={{ type: 'text', text, fontFamily: 'Arimo', fontSize: 16 }}
+          isActive={false}
+          isEditing={false}
+          onChange={() => {}}
+          onSelect={() => {}}
+          onBeginEdit={() => {}}
+          onResizeStart={() => {}}
+          pageWidthPoints={600}
+        />,
+      );
+
+      const input = host.querySelector('[data-editor-text-input]');
+      const measure = host.querySelector('[data-editor-text-measure]');
+      expect(input.value).toBe(text);
+      expect(input.dir).toBe(direction);
+      expect(measure.dir).toBe(direction);
+      expect(input.style.fontFamily.replace(/"/g, '')).toBe(family);
+      expect(measure.style.fontFamily.replace(/"/g, '')).toBe(family);
+      expect(input.getAttribute('aria-invalid')).toBe(support === 'incompatible' ? 'true' : null);
+    },
+  );
+
   it('triggers onSelect when textarea receives focus', () => {
     const element = { text: 'Focus test', fontSize: 12 };
     const onSelect = vi.fn();
@@ -127,7 +156,7 @@ describe('TextNode component', () => {
 
     const textarea = host.querySelector('textarea');
     act(() => {
-      textarea.dispatchEvent(new Event('focus', { bubbles: true }));
+      textarea.focus();
     });
 
     expect(onSelect).toHaveBeenCalledTimes(1);
@@ -152,6 +181,67 @@ describe('TextNode component', () => {
     expect(textarea.selectionStart).toBe(5);
     expect(textarea.selectionEnd).toBe(5);
     expect(textarea.readOnly).toBe(false);
+  });
+
+  it('updates local feedback immediately as text is corrected, without replacing the input or losing its caret', () => {
+    const element = { type: 'text', fontFamily: 'Assistant', text: 'שלום Hello مرحبا', fontSize: 12 };
+    const show = (changes = {}, active = true) => <TextNode
+      element={{ ...element, ...changes }} isActive={active} isEditing={active}
+      onChange={() => {}} onSelect={() => {}} onBeginEdit={() => {}}
+      onResizeStart={() => {}} pageWidthPoints={600}
+    />;
+    host = mount(show());
+    const input = host.querySelector('textarea');
+    const notice = host.querySelector('[data-editor-font-notice]');
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(notice.textContent).toContain('separate text boxes');
+    expect(notice.textContent).toContain('Assistant');
+    expect(notice.textContent).toContain('Scheherazade New');
+    expect(document.activeElement).toBe(input);
+    // The browser applies an edit before the parent's controlled render.
+    input.value = 'שלום Hello';
+    input.setSelectionRange(3, 3);
+
+    act(() => render(show({ text: 'שלום Hello' }), host));
+    expect(host.querySelector('textarea')).toBe(input);
+    expect(input.hasAttribute('aria-invalid')).toBe(false);
+    expect(host.querySelector('[data-editor-font-notice]')).toBeNull();
+    expect(document.activeElement).toBe(input);
+    expect(input.selectionStart).toBe(3);
+
+    act(() => render(show({ text: 'Hello مرحبا' }), host));
+    expect(input.style.fontFamily).toContain('Scheherazade New');
+    expect(host.querySelector('[data-editor-font-notice]').textContent).toContain('Using Scheherazade New');
+    expect(input.hasAttribute('aria-invalid')).toBe(false);
+  });
+
+  it('keeps an actionable marker on an unselected incompatible box', () => {
+    const onBeginEdit = vi.fn();
+    host = mount(<TextNode
+      element={{ text: 'שלום مرحبا', fontFamily: 'Arimo' }} isActive={false} isEditing={false}
+      onChange={() => {}} onSelect={() => {}} onBeginEdit={onBeginEdit}
+      onResizeStart={() => {}} pageWidthPoints={600}
+    />);
+    const notice = host.querySelector('[data-editor-font-notice]');
+    const button = notice.querySelector('button');
+    expect(button.textContent).toBe('');
+    expect(button.getAttribute('aria-label')).toContain('Select for font suggestions');
+    expect(notice.getAttribute('data-editor-font-marker-side')).toBe('left');
+    act(() => button.click());
+    expect(onBeginEdit).toHaveBeenCalledOnce();
+  });
+
+  it('puts the inactive marker at the bottom end for both text directions', () => {
+    const show = (element) => <TextNode
+      element={element} isActive={false} isEditing={false}
+      onChange={() => {}} onSelect={() => {}} onBeginEdit={() => {}}
+      onResizeStart={() => {}} pageWidthPoints={600}
+    />;
+    host = mount(show({ text: 'Hello 😀', fontFamily: 'Arimo' }));
+    expect(host.querySelector('[data-editor-font-marker-side]').getAttribute('data-editor-font-marker-side')).toBe('right');
+
+    act(() => render(show({ text: 'שלום مرحبا', fontFamily: 'Arimo' }), host));
+    expect(host.querySelector('[data-editor-font-marker-side]').getAttribute('data-editor-font-marker-side')).toBe('left');
   });
 
   it('stays inert while selected but not editing, so the click selects instead of typing', () => {

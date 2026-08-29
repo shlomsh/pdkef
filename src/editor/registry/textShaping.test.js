@@ -349,6 +349,20 @@ describe('invisible formatting characters', () => {
     expect(stripInvisibleFormatting(typed)).toBe(typed);
   });
 
+  it('preserves a Persian ZWNJ that changes the real Arabic shaping result', async () => {
+    const font = await embedFont('ScheherazadeNew-Regular.ttf');
+    const fk = font.embedder.font;
+    const typed = 'می\u200Cروم';
+    const withoutJoiner = typed.replace('\u200C', '');
+
+    expect(stripInvisibleFormatting(typed)).toBe(typed);
+    expect(unrepresentableCharacters(font, typed)).toEqual([]);
+    const shapedIds = (value) => fk.layout(value, undefined, undefined, undefined, 'rtl').glyphs.map((glyph) => glyph.id);
+    // Non-vacuity: deleting the authored ZWNJ selects different joining forms
+    // for the letters on either side in the font the exporter really embeds.
+    expect(shapedIds(typed)).not.toEqual(shapedIds(withoutJoiner));
+  });
+
   it('does not refuse a TAB, and keeps its gap as a space rather than a .notdef box', async () => {
     const font = await embedFont('Arimo-Regular.ttf');
     const fk = font.embedder.font;
@@ -432,15 +446,16 @@ describe('directional marks survive into bidi resolution', () => {
   // parenthesised Latin token that the author isolated with LRM marks.
   const typed = `הקובץ ${LRM}(v2)${LRM} מוכן`;
   const visual = (line) => resolveBidiRuns(line, 'rtl').map((run) => run.text).join('');
+  const withoutFormatControls = (line) => line.replace(/\p{Cf}/gu, '');
 
   it('keeps the parenthesised Latin token together', () => {
     // Non-vacuity: the marks genuinely change the resolved order here, so a
     // pipeline that discards them cannot accidentally pass this test.
-    expect(visual(typed)).not.toEqual(visual(stripInvisibleFormatting(typed)));
+    expect(visual(typed)).not.toEqual(visual(withoutFormatControls(typed)));
     // With the marks intact the parentheses stay wrapped around "v2".
     expect(visual(typed)).toContain('(v2)');
     // Stripped first, they are torn off and land at opposite ends of the line.
-    expect(visual(stripInvisibleFormatting(typed))).not.toContain('(v2)');
+    expect(visual(withoutFormatControls(typed))).not.toContain('(v2)');
   });
 
   it('normalizeTabsForBidi leaves directional marks alone', () => {

@@ -1,4 +1,4 @@
-import { uniqueId } from './sign.js';
+import { uniqueId } from '../editor/model/ids.ts';
 
 // One entry in a tool's undo-able action log (see useUndoShortcut.js and
 // UndoHistoryModal.tsx). Both the Sign and Redact tools log two kinds of

@@ -49,7 +49,7 @@ describe('ElementToolbar font picker wiring', () => {
     expect(caveatItem.className).not.toMatch(/active/);
     // Contract change (W3): the note names the missing characters, not a
     // script name, but Caveat must still be marked unable to draw this text.
-    expect(caveatItem.textContent).toContain("can't draw");
+    expect(caveatItem.textContent).toContain('Missing');
     expect(gveretItem.className).toMatch(/active/);
   });
 
@@ -63,6 +63,49 @@ describe('ElementToolbar font picker wiring', () => {
     const caveatItem = items.find((el) => el.textContent?.startsWith('Caveat'))!;
     expect(caveatItem.className).toMatch(/active/);
     expect(caveatItem.textContent).not.toContain('no ');
+  });
+});
+
+describe('ElementToolbar text direction indicator', () => {
+  let container: HTMLDivElement | null;
+
+  afterEach(() => {
+    if (container) {
+      act(() => render(null, container as any));
+      container.remove();
+      container = null;
+    }
+    document.body.innerHTML = '';
+  });
+
+  function mountDirectionButton(text: string) {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(
+        <ElementToolbar element={{ id: 'direction', type: 'text', text, fontFamily: 'Arimo' }} onChange={() => {}} onClone={() => {}} onDelete={() => {}} />,
+        container as any
+      );
+    });
+    return container.querySelector('button[title^="Right-to-left text"], button[title^="Left-to-right text"]') as HTMLButtonElement;
+  }
+
+  it('shows the RTL icon without presenting it as a selected formatting state', () => {
+    const button = mountDirectionButton('שלום');
+
+    expect(button.title).toBe('Right-to-left text (Hebrew/Arabic)');
+    expect(button.getAttribute('aria-label')).toBe('Text direction: right to left');
+    expect(button.className).not.toMatch(/active/);
+    expect(button.querySelector('svg')?.getAttribute('class')).toContain('pilcrow-left');
+  });
+
+  it('shows the LTR icon without presenting it as a selected formatting state', () => {
+    const button = mountDirectionButton('Hello');
+
+    expect(button.title).toBe('Left-to-right text');
+    expect(button.getAttribute('aria-label')).toBe('Text direction: left to right');
+    expect(button.className).not.toMatch(/active/);
+    expect(button.querySelector('svg')?.getAttribute('class')).toContain('pilcrow-right');
   });
 });
 

@@ -12,35 +12,40 @@ import { guides } from '../data/contentPages.js';
 
 interface Props {
   currentHref: string;
+  locale?: string;
+  labels?: Record<string, string>;
+  resolveLink?: (pageId: string, locale: string) => { href: string; fallback?: boolean };
 }
 
-const { currentHref } = Astro.props;
+const { currentHref, locale = 'en', labels = {}, resolveLink } = Astro.props;
 const others = guides.filter((guide) => guide.href !== currentHref);
 ---
 
 <section class="mx-auto mb-16 w-full max-w-[1080px] px-6 min-[768px]:mb-24" aria-labelledby="other-guides-heading">
   <div class="mb-6 text-center">
-    <h2 id="other-guides-heading" class="m-0 text-[1.15rem] font-bold text-[var(--color-text)]">Signing on a different device?</h2>
+    <h2 id="other-guides-heading" class="m-0 text-[1.15rem] font-bold text-[var(--color-text)]">{labels.otherDevices ?? 'Signing on a different device?'}</h2>
   </div>
   <ul class="m-0 flex list-none flex-wrap justify-center gap-3 p-0">
-    {others.map((guide) => (
-      <li class="m-0 p-0">
+    {others.map((guide) => {
+      const pageId = guide.href.replace(/^\//, '').replace(/\/$/, '');
+      const link = resolveLink?.(pageId, locale);
+      return <li class="m-0 p-0">
         <a
-          href={guide.href}
+          href={link?.href ?? guide.href}
           class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-[0.9rem] font-medium text-[var(--color-text)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)]"
         >
           <guide.icon size={16} strokeWidth={1.75} class="text-[var(--color-primary)]" />
           {guide.label}
         </a>
-      </li>
-    ))}
+      </li>;
+    })}
     <li class="m-0 p-0">
       <a
         href="/sign/"
         class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-primary-tint)] bg-[var(--color-primary-soft)] px-4 py-2 text-[0.9rem] font-medium text-[var(--color-primary)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)]"
       >
         <FileSignature size={16} strokeWidth={1.75} />
-        Open the Sign &amp; Fill tool
+        {labels.openSignTool ?? 'Open the Sign & Fill tool'}
       </a>
     </li>
   </ul>

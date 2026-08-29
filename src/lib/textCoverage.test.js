@@ -11,7 +11,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
+import { WYSIWYG_STRING_CASES } from '../test/fixtures/wysiwygStrings.js';
 import { resolveFontSubstitution } from './fonts.js';
+import { getTextFontSupport, describeTextFontSupport } from './textFontSupport.js';
 import {
   describeFontSubstitution,
   describeUnrepresentableText,
@@ -31,11 +33,67 @@ async function loadFont(family) {
 
 const text = (over) => ({ type: 'text', id: 'a', pageIndex: 0, fontFamily: 'Arimo', text: '', ...over });
 
+describe('editing-time font support', () => {
+  it('offers renderable separate boxes for the mixed-language example, preserving every character', async () => {
+    const element = text({ fontFamily: 'Assistant', text: 'שלום Hello مرحبا' });
+    const support = getTextFontSupport(element);
+    expect(support.status).toBe('incompatible');
+    expect(support.family).toBe('Assistant');
+    expect(support.pieces).toEqual([
+      { text: 'שלום Hello ', family: 'Assistant' },
+      { text: 'مرحبا', family: 'Scheherazade New' },
+    ]);
+    expect(support.pieces.map((piece) => piece.text).join('')).toBe(element.text);
+    const repaired = support.pieces.map((piece) => text({ text: piece.text, fontFamily: piece.family }));
+    expect((await findUnrepresentableCharacters(repaired, loadFont)).characters).toEqual([]);
+    expect(describeTextFontSupport(support)).toContain('separate text boxes');
+    expect(describeTextFontSupport(support)).not.toMatch(/download|supported text/);
+  });
+
+  it.each(['שלוםمرحبا', 'שָׁלוֹם Hello مَرْحَبًا', 'שלום\nمرحبا'])('keeps graphemes intact and recommends real fonts for %s', async (value) => {
+    const support = getTextFontSupport(text({ text: value }));
+    expect(support.pieces.map((piece) => piece.text).join('')).toBe(value);
+    expect(support.pieces.every((piece) => piece.family)).toBe(true);
+    const repaired = support.pieces.map((piece) => text({ text: piece.text, fontFamily: piece.family }));
+    expect((await findUnrepresentableCharacters(repaired, loadFont)).characters).toEqual([]);
+  });
+
+  it('does not promise that splitting will fix an unavailable character', () => {
+    const support = getTextFontSupport(text({ text: 'Hello 😀' }));
+    const message = describeTextFontSupport(support);
+    expect(message).toContain('😀');
+    expect(message).toContain('replace or remove');
+    expect(message).not.toContain('separate text boxes');
+  });
+
+  it.each(['Hello', 'שלום Hello مرحبا', 'Hello مرحبا', '😀', '\uFB1D', 'ab😀'])('agrees with actual export glyph checks for %s, including comb truncation', async (value) => {
+    for (const width of [0, 40]) {
+      const element = text({ text: value, width, combCells: 2 });
+      const support = getTextFontSupport(element);
+      const exported = await findUnrepresentableCharacters([element], loadFont);
+      expect(support.remaining).toEqual(exported.characters);
+    }
+  });
+});
+
 describe('findUnrepresentableCharacters', () => {
   it('stays quiet on text every bundled font can draw', async () => {
     const found = await findUnrepresentableCharacters([text({ text: 'Shlomi Shemesh 1975' })], loadFont);
     expect(found).toEqual({ characters: [], pageNumbers: [], elementCharacters: {} });
   });
+
+  it.each(WYSIWYG_STRING_CASES.map(({ id, text, support }) => [id, text, support]))(
+    '%s: agrees with the real embedded font bytes for the supplied WYSIWYG string',
+    async (_id, value, expectedSupport) => {
+      const found = await findUnrepresentableCharacters([text({ text: value })], loadFont);
+      if (expectedSupport === 'incompatible') {
+        expect(found.characters).toEqual(['م', 'ر', 'ح', 'ب', 'ا']);
+        expect(found.elementCharacters).toEqual({ a: ['م', 'ر', 'ح', 'ب', 'ا'] });
+      } else {
+        expect(found).toEqual({ characters: [], pageNumbers: [], elementCharacters: {} });
+      }
+    },
+  );
 
   // The point of running the policy through resolveFontFamily: by the time
   // this check happens the script substitution has already rescued the text,

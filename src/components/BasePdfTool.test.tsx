@@ -141,7 +141,7 @@ describe('BasePdfTool', () => {
       multiple: false,
       fileLabel: 'contract.pdf',
       fileMeta: '2 pages · 1.4 MB',
-      draftSaved: true,
+      draftSaveState: 'saved',
     });
     expect(container.textContent).toContain('2 pages · 1.4 MB');
     expect(container.textContent).toContain('Draft saved');
@@ -335,7 +335,7 @@ describe('BasePdfTool', () => {
       multiple: false,
       fileLabel: 'contract.pdf',
       hasWork: true,
-      draftSaved: true,
+      draftSaveState: 'saved',
     });
 
     selectFile(container.querySelector('input[type="file"]'));

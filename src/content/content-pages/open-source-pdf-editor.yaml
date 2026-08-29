@@ -29,22 +29,23 @@ sections:
           and a privacy policy, and no way to tell the difference.
       - kind: 'prose'
         text: >-
-          PDkef is architecturally incapable of the thing it promises not to do: there is no server
-          to upload to. The <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener
-          noreferrer">source is on GitHub</a> under the MIT license so you can confirm that, but you
-          don't have to read a line of it. The next card is a faster test.
+          PDkef processes PDFs in your browser without a PDF processing backend. The <a
+          href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">source
+          is on GitHub</a> so you can inspect how files are handled. Site usage analytics are
+          separate from PDF processing; running locally does not mean the site makes no requests.
   - variant: 'highlight'
     sketch: 'rings'
     icon: 'WifiOff'
     iconPos: 'br'
     kicker: 'One minute, no code'
-    heading: 'Prove it to yourself: use it with the network switched off'
+    heading: 'Check local processing with the network switched off'
     blocks:
       - kind: 'prose'
         text: >-
-          This is the test worth knowing, because it works on any web tool, not just this one.
-          Software that secretly uploads your file cannot function without a connection. Take the
-          connection away and watch what happens.
+          An offline test checks whether a task can finish without a processing server. First make
+          sure the tool and its required fonts and assets are available locally. This test alone
+          does not prove that software never queues data to send later; that needs a separate
+          review of its code and network behavior.
       - kind: 'steps'
         items:
           - '<strong>Open any tool here</strong> and let the page finish loading.'
@@ -62,10 +63,10 @@ sections:
           href="/install-pdf-app/">install it and use it on a plane</a>.
       - kind: 'prose'
         text: >-
-          That isn't left to good intentions either. The site ships a Content Security Policy with
-          <strong>connect-src 'self'</strong>, which instructs your browser to refuse any connection
-          to another origin. If a future change ever tried to send your document somewhere, the
-          browser would block it rather than trust us to have got it right.
+          The site's Content Security Policy uses <strong>connect-src 'self'</strong> to restrict
+          scripted connections to this site's origin. Same-origin requests are still allowed, so
+          this is a safeguard, not proof that uploads are impossible. Keeping PDF contents out of
+          network requests remains a requirement for the code itself.
   - sketch: 'grid'
     icon: 'GitFork'
     iconPos: 'tr'
@@ -97,9 +98,9 @@ faq:
       Apache 2.0 too, which is a deliberate constraint rather than a coincidence.
   - question: 'How can I verify that my files really are not uploaded?'
     answer: >-
-      The fastest way takes about a minute and doesn't involve reading any code: open your browser's
-      developer tools, switch the Network tab to Offline, then load a PDF, sign it, and download it.
-      It all still works. A tool that sent your file to a server could not do that.
+      Once the required assets are cached, try opening, editing, and downloading a sample PDF
+      with the network disconnected. This checks local processing. To check that no document data
+      is sent when online or after reconnecting, inspect the source and network requests too.
   - question: 'Can I self-host it or run my own copy?'
     answer: >-
       Yes. Clone the repository, run npm install and npm run build, and serve the dist folder from

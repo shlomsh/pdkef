@@ -10,7 +10,6 @@
 import 'regenerator-runtime/runtime.js';
 import type { ElementDefinition } from './types.ts';
 import type { TextElement } from '../../lib/editorModel.ts';
-import { h } from 'preact';
 import {
   PDFHexString, rgb,
   beginText, endText, popGraphicsState, pushGraphicsState,
@@ -18,7 +17,6 @@ import {
   PDFOperator, PDFOperatorNames, PDFName, endMarkedContent,
 } from '@cantoo/pdf-lib';
 import type { Color, PDFFont, PDFPage } from '@cantoo/pdf-lib';
-import TextNode from '../../components/SignTool/nodes/TextNode.tsx';
 import { hasNumber, hasString, isRecord } from './schema.ts';
 import { COMB_MIN_CELL_EM, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
 import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM } from '../../constants/signGeometry.js';
@@ -460,9 +458,6 @@ export const textDefinition: ElementDefinition<TextElement> = {
       ...(direction != null ? { textDirection: direction } : {}),
     }),
   },
-  // isActive/isEditing/onBeginEdit are placeholders: DraggableWrapper injects the
-  // real values via cloneElement, the same channel onResizeStart arrives on.
-  render: ({ element, onChange, onSelect, pageWidthPoints }) => h(TextNode, { element, onChange, onSelect, pageWidthPoints, isActive: false, isEditing: false, onBeginEdit: () => {}, onResizeStart: () => {} }),
   serialize: async (element, { page, pdfWidth, pdfX, pdfY, loadCustomFont, baselineOffset }) => {
     const { text, fontSize, fontFamily, fontWeight, fontStyle, color } = element;
     // Whitespace belongs to a text element's layout: a leading space changes
