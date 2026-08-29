@@ -24,7 +24,6 @@ export default function DraggableWrapper({
   onDelete,
   onClone,
   pageWidthPoints,
-  unsupportedCharacters = [],
   children
 }: {
   element: any;
@@ -36,8 +35,6 @@ export default function DraggableWrapper({
   onDelete: (...args: any[]) => void;
   onClone: (...args: any[]) => void;
   pageWidthPoints: number;
-  /** Characters that look fine in the browser but cannot be embedded on export. */
-  unsupportedCharacters?: string[];
   children?: ComponentChildren;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
@@ -205,11 +202,6 @@ export default function DraggableWrapper({
         handlePointerDown,
         isSpanResizing
       }))}
-      {unsupportedCharacters.length > 0 && (
-        <p className={elementStyles['coverage-warning']} role="status">
-          Can’t download: replace {unsupportedCharacters.join(', ')} or use supported text.
-        </p>
-      )}
     </div>
   );
 }

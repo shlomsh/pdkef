@@ -296,9 +296,14 @@ function embeddedFontFile(family, weight, style) {
  * @returns {boolean}
  */
 export function covers(family, weight, style, text) {
-  if (!text) return true;
+  return missingGlyphs(family, weight, style, text).length === 0;
+}
+
+/** Missing characters in this face, before any automatic family fallback. */
+export function missingGlyphs(family, weight, style, text) {
+  if (!text) return [];
   const file = embeddedFontFile(family, weight, style);
-  return findMissingGlyphs(text, (cp) => fontFileHasGlyph(file, cp)).length === 0;
+  return findMissingGlyphs(text, (cp) => fontFileHasGlyph(file, cp));
 }
 
 /**
@@ -352,8 +357,7 @@ export function resolveFontSubstitution(fontFamily, text, weight = 'normal', sty
 
   if (covers(requested, weight, style, value)) return { family: requested, requested, missing: [] };
 
-  const requestedFile = embeddedFontFile(requested, weight, style);
-  const requestedMissing = findMissingGlyphs(value, (cp) => fontFileHasGlyph(requestedFile, cp));
+  const requestedMissing = missingGlyphs(requested, weight, style, value);
 
   const requestedTag = FONT_STYLE_TAGS[requested];
   const requestedIsHandwriting = HANDWRITING_FONTS.includes(requested);

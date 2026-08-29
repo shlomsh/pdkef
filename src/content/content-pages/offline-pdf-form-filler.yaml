@@ -1,0 +1,153 @@
+title: 'Offline PDF Form Filler | PDkef'
+description: >-
+  Fill out a PDF form with no internet connection and nothing uploaded, even a scan or a form with
+  no real fillable fields. Type or check a box right on the page, then download, all in your browser.
+breadcrumb: 'Form filler'
+icon: 'WifiOff'
+kicker: 'No connection required'
+h1: 'Fill Out a PDF Form With No Internet Connection'
+subhead: >-
+  Most "online form filler" tools are an upload box wearing a form icon: your PDF still goes to a
+  server, so a bad signal breaks them at the worst moment. This one never uploads anything, so it
+  never needed a connection to fill a form in the first place, only to load the page the first time.
+primaryCta:
+  href: '/sign/'
+  label: 'Fill a PDF form'
+sections:
+  - sketch: 'waves'
+    icon: 'WifiOff'
+    iconPos: 'tr'
+    kicker: 'Why it matters'
+    heading: 'Two different reasons "no signal" breaks most form fillers'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          The first reason is the obvious one: a tool that fills your form on someone else's server
+          needs to get your file there first. No connection, no upload, no filled form, and it tends
+          to fail three fields from the end rather than at the start. This tool reads, edits and
+          writes the PDF using your own device's processing power, so there is no request that can
+          time out, because there was never a request.
+      - kind: 'prose'
+        text: >-
+          The second reason is less obvious and just as common: plenty of tools that call themselves
+          form fillers only work on a PDF that already has real, built-in fillable fields, the kind
+          you get from a form designed in Acrobat. A huge share of the forms people actually need to
+          fill are not that. A consent slip forwarded as a flat PDF. A government form somebody
+          scanned. Neither has a single fillable field in it, and a tool built only around detecting
+          fields has nothing to detect.
+  - variant: 'highlight'
+    sketch: 'grid'
+    icon: 'MousePointerClick'
+    iconPos: 'br'
+    kicker: 'Three steps'
+    heading: 'Type directly onto the page'
+    blocks:
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Open the <a href="/sign/">Sign &amp; Fill tool</a></strong> and choose or drag in
+            your PDF. Once the page itself has loaded once, this step works with no connection too.
+          - >-
+            <strong>Pick Text, click where an answer belongs, and type.</strong> Use Symbols for a
+            checkmark on a checkbox, or the Signature tool for your name. Drag anything afterward to
+            nudge it into place.
+          - >-
+            <strong>Download the finished PDF.</strong> Nothing is sent anywhere to produce it; your
+            device builds the file and hands it straight to you.
+      - kind: 'prose'
+        text: >-
+          Because you're placing what you type directly onto the page rather than searching for a
+          field to jump into, the steps are identical whether the form has real fields, is a flat
+          PDF, or is a photo of a paper one. There is nothing to detect, so there is nothing that can
+          fail to detect it.
+  - sketch: 'rings'
+    icon: 'ListChecks'
+    iconPos: 'cl'
+    kicker: 'Any kind of form'
+    heading: 'It doesn''t matter what kind of PDF you were sent'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          "Form filler" usually implies the software finds the blanks for you. This one doesn't try
+          to find them: you look at the page the way you would on paper, and put your answer where it
+          belongs. That's a lower bar to clear, and it's also why it works on every kind of form
+          below rather than only the well-behaved one.
+      - kind: 'columns'
+        items:
+          - icon: 'ListChecks'
+            title: 'A scanned form'
+            body: >-
+              A photo or scan has no text in it at all, just pixels shaped like text. There's nothing
+              for any tool to detect. <strong>Click where an answer goes and type</strong>; that's
+              the only method that was ever going to work here.
+          - icon: 'FileEdit'
+            title: 'A flat digital PDF'
+            body: >-
+              Most consent slips, letters and one-off forms are exported without any fields built in.
+              <strong>Same method as a scan</strong>: click, type, move on. Nothing to configure
+              first.
+          - icon: 'MousePointerClick'
+            title: 'Real fillable fields'
+            body: >-
+              A PDF actually built with form fields in Acrobat or similar. <strong>You can still type
+              directly over each one</strong>, though there's no Tab-to-next-field yet, so you click
+              each one by hand rather than tabbing through in order.
+      - kind: 'prose'
+        text: >-
+          One thing worth knowing plainly: what you type is drawn directly onto the page, the same
+          way a signature is, rather than written into the PDF's own interactive field data. Anyone
+          who opens, views or prints the file sees exactly what you typed, in the right place. What it
+          doesn't do is set the stored value of a form field the PDF format defines separately, so a
+          script or system built to specifically read a PDF's field data (rather than its page
+          content) won't find one there. For filling out and sending a form, this distinction rarely
+          matters. It's the honest reason to mention it anyway.
+  - sketch: 'arcs'
+    icon: 'HardDriveDownload'
+    iconPos: 'tr'
+    kicker: 'What "offline" means here'
+    heading: 'One page load, and then the wifi can go'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          The first visit needs a connection, to fetch the tool itself. After that, or once you've
+          <a href="/install-pdf-app/">installed it like a regular app</a>, it keeps working with none
+          at all, because filling and signing a PDF was never something this needed a server for. You
+          can <a href="/open-source-pdf-editor/">check that claim yourself in about a minute</a>
+          rather than take it on faith.
+      - kind: 'prose'
+        text: >-
+          Long forms rarely get finished in one sitting, so your progress is saved to your own device
+          as you go, not to a server. Close the tab, lose the connection, or let your battery die
+          partway through, and your answers, checkmarks and signature are still there when you come
+          back.
+faq:
+  - question: 'Do I need an internet connection to fill out a PDF form?'
+    answer: >-
+      Only once, to load the tool for the first time. After that, filling in a form, checking a box,
+      signing it and downloading the result all happen on your own device, so a lost connection
+      doesn't stop any of it.
+  - question: 'Can it fill a form that has no real fillable fields, like a scan?'
+    answer: >-
+      Yes, and this covers most of the forms people actually deal with. Since nothing is being
+      detected, only placed, a scanned form, a flat PDF with no fields, and a properly built fillable
+      form all work the same way: click where an answer belongs and type.
+  - question: "Does it fill in the PDF's actual form field data, or just place text on the page?"
+    answer: >-
+      It places text and marks directly on the page, the same way a signature is added, rather than
+      setting the stored value of the PDF's own form fields. Every viewer, printer and reader sees
+      what you typed in the right place. A system built to read a PDF's field data specifically,
+      rather than its page content, will not find anything there.
+  - question: 'Can I check boxes on a form, not just type text?'
+    answer: >-
+      Yes. The Symbols tool includes a checkmark you can place over any checkbox, alongside plain
+      text and your signature, so a form with tick boxes and written answers can be finished in one
+      pass.
+  - question: 'Is my PDF uploaded anywhere while I fill it out?'
+    answer: >-
+      No. The file never leaves your device at any point, online or offline. Everything from opening
+      the PDF to producing the finished download happens using your own browser's processing power.
+  - question: 'What happens if my browser crashes while filling out a long form?'
+    answer: >-
+      Your progress is saved to your device automatically as you work, not just at the end, so
+      reopening the tool restores the form and everything you'd already filled in. Nothing is lost by
+      a crash, a closed tab, or a dead battery.

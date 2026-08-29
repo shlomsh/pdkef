@@ -49,6 +49,16 @@
 @source not "../../**/*.md";
 @source not "../../docs/**";
 @source not "../../*.html";
+/* Same rule, different directory: the impeccable plugin under .github/skills/
+   ships an anti-pattern detector whose rule tables carry literal Tailwind class
+   strings as data (bg-[#f5f0e6], bg-clip-text, break-all, inline-grid,
+   capitalize, lowercase, ...). Tailwind's scan cannot tell a rule table from a
+   template, so it compiled all of them into the one stylesheet every page
+   inlines: 905 distinct bytes, x21 pages = 19,005 bytes shipped for classes no
+   page uses. Measured 2026-08-28 - removing it took /licenses/ dead bytes from
+   29,021 to 28,116 and 118 brotli bytes off /sign/. The .md rule above already
+   covered .github's agent files; this covers its scripts. */
+@source not "../../.github/**";
 
 /* The bundled @font-face catalogue (Caveat, Assistant, Scheherazade New, etc.) used to
    live here and was paid for by every page via build.inlineStylesheets:

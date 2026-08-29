@@ -18,23 +18,26 @@ interface Props {
   heading?: string;
   sketch?: 'arcs' | 'waves' | 'rings' | 'grid';
   iconPos?: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl';
+  labels?: { tag?: string; heading?: string };
 }
 
 const {
   faq,
   icon = HelpCircle,
-  tag = 'Got questions?',
-  heading = 'Frequently asked questions',
+  tag,
+  heading,
   sketch = 'rings',
   iconPos = 'br',
 } = Astro.props;
+const faqTag = tag ?? Astro.props.labels?.tag ?? 'Got questions?';
+const faqHeading = heading ?? Astro.props.labels?.heading ?? 'Frequently asked questions';
 ---
 
 <FeatureCard class="relative isolate mb-16 overflow-hidden min-[768px]:mb-24">
   <CardDecor sketch={sketch} icon={icon} iconPos={iconPos} iconSize={240} />
   <div class="mb-12 text-center">
-    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">{tag}</span>
-    <h2 class="m-0 text-[1.6rem] font-bold text-[var(--color-text)]">{heading}</h2>
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">{faqTag}</span>
+    <h2 class="m-0 text-[1.6rem] font-bold text-[var(--color-text)]">{faqHeading}</h2>
   </div>
   <div class="grid grid-cols-2 gap-x-12 gap-y-8 max-[768px]:grid-cols-1 max-[768px]:gap-6">
     {faq.map((item) => (

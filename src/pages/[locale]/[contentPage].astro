@@ -1,0 +1,64 @@
+---
+import ContentPageLayout from '../../layouts/ContentPageLayout.astro';
+import ContentPage from '../../components/ContentPage.astro';
+import { CONTENT_ICONS } from '../../data/contentIcons';
+import { documentationLocales, getDocumentationLocaleByPrefix } from '../../data/documentationLocales';
+import { getDocumentationContext, getDocumentationVariants } from '../../lib/documentation';
+
+export async function getStaticPaths() {
+  const variants = await getDocumentationVariants();
+  return variants
+    .filter((variant) => variant.locale !== 'en')
+    .map((variant) => {
+      const locale = documentationLocales.find((record) => record.id === variant.locale)!;
+      return {
+        params: { locale: locale.prefix, contentPage: variant.pageId },
+        props: { pageId: variant.pageId, localeId: variant.locale },
+      };
+    });
+}
+
+const { pageId, localeId } = Astro.props;
+const routeLocale = getDocumentationLocaleByPrefix(Astro.params.locale ?? '');
+if (!routeLocale || routeLocale.id !== localeId) {
+  throw new Error(`Invalid documentation locale route: ${Astro.params.locale}`);
+}
+
+const context = await getDocumentationContext(pageId, localeId);
+const entry: any = context.entry;
+const page = entry.data;
+const labels: Record<string, string> = context.effectiveLocale === 'he' ? {
+  language: 'שפה',
+  otherDevices: 'חותמים במכשיר אחר?',
+  openSignTool: 'פתיחת כלי החתימה והמילוי (באנגלית)',
+} : {};
+---
+
+<ContentPageLayout
+  title={page.title}
+  description={page.description}
+  breadcrumb={page.breadcrumb}
+  icon={CONTENT_ICONS[page.icon as keyof typeof CONTENT_ICONS]}
+  kicker={page.kicker}
+  h1={page.h1}
+  subhead={page.subhead}
+  primaryCta={page.primaryCta}
+  faq={page.faq}
+  lang={context.lang}
+  dir={context.dir}
+  canonical={context.path}
+  alternates={context.preview ? [] : context.alternates}
+  noindex={context.preview}
+  locale={context.effectiveLocale}
+  variants={context.variants}
+  preview={context.preview}
+  labels={labels}
+>
+  <ContentPage
+    entry={entry}
+    pageId={pageId}
+    locale={context.effectiveLocale}
+    labels={labels}
+    resolveLink={(targetPageId, targetLocale) => context.resolveDocumentationLink(targetPageId, targetLocale as any)}
+  />
+</ContentPageLayout>

@@ -1,7 +1,5 @@
 import { MAX_SYMBOL_SIGNATURE_WIDTH_PCT, MIN_SYMBOL_WIDTH_PX } from '../../constants/signGeometry.js';
-import { h } from 'preact';
 import { LineCapStyle, rgb } from '@cantoo/pdf-lib';
-import SymbolNode from '../../components/SignTool/nodes/SymbolNode.tsx';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';
 import { percentToPoints } from '../../lib/coords.js';
@@ -30,7 +28,6 @@ export const symbolDefinition: ElementDefinition<SymbolElement> = {
       width: symbolWidth, height: symbolHeight, mark: symbolMark, color,
     }),
   },
-  render: ({ element }) => h(SymbolNode, { element, isActive: false, onResizeStart: () => {} }),
   serialize: (element, { page, pdfWidth, pdfHeight, pdfX, pdfY }) => {
     const { width, height, color, mark } = element;
     const widthPoints = percentToPoints(width, pdfWidth);

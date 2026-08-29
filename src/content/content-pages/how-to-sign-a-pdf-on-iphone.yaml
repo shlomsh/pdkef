@@ -1,117 +1,149 @@
-title: 'How to Sign a PDF on iPhone (No App Needed) | PDkef'
+title: 'How to Sign a PDF on iPhone for Free | PDkef'
 description: >-
-  Sign a PDF on iPhone or iPad in Safari. Markup can scribble a signature but not fill a form - here
-  is what each one covers, and how to tick checkboxes and type on a scan.
+  Sign a PDF on iPhone for free in Safari. Save a WhatsApp attachment, fill it in, and send the
+  signed PDF back. No signup, watermark, or document upload.
 breadcrumb: 'iPhone'
 icon: 'Smartphone'
 kicker: 'iPhone, right in Safari'
-h1: 'How to Sign a PDF on iPhone'
+h1: 'How to Sign a PDF on iPhone for Free'
 subhead: >-
-  Markup in the Files app will happily scribble a signature onto a page, and for that alone it's
-  excellent. It has no idea what a checkbox is, though. Here's what each approach covers, and how to
-  fill in an actual form from your phone without installing anything.
+  You can sign a PDF on your iPhone without printing it or installing another app. Save the
+  attachment to Files, open it in PDkef, add your answers and signature, then send it back. The
+  signing is free and happens on your phone. Apple's own PDF tools are an option too.
 primaryCta:
   href: '/sign/'
-  label: 'Sign a PDF now'
+  label: 'Sign a PDF on iPhone'
 sections:
   - variant: 'highlight'
     sketch: 'arcs'
     icon: 'Smartphone'
     iconPos: 'tr'
     kicker: 'Four steps'
-    heading: 'Sign a PDF on iPhone'
+    heading: 'Fill and sign a PDF in Safari on iPhone'
     blocks:
       - kind: 'steps'
         items:
           - >-
-            <strong>Save the PDF to Files first.</strong> Open the attachment in Mail or WhatsApp,
-            tap Share, then "Save to Files". This is the step most people miss.
+            <strong>Save the attachment to Files.</strong> Open the PDF, tap Share, then Save to
+            Files. Choose On My iPhone if you want a local folder rather than iCloud Drive.
           - >-
-            <strong>Open <a href="/sign/">pdkef.com/sign</a> in Safari</strong> and tap to choose
-            that file.
+            <strong>Open <a href="/sign/">pdkef.com/sign</a> in Safari.</strong> Tap to choose a
+            file, choose Browse if needed, and select the PDF from the folder you just used.
           - >-
-            <strong>Fill it in, then sign.</strong> Pinch to zoom before placing anything small.
-            Draw your signature with a finger or Apple Pencil, or type it in a handwriting font if
-            the finger version isn't cooperating.
+            <strong>Fill it in, then add your signature.</strong> Place text and check marks where
+            needed. Draw your signature with a finger, type it, or choose an image of a signature.
           - >-
-            <strong>Download and share it back.</strong> The finished PDF lands in Files, ready to
-            send straight back to whoever asked for it.
+            <strong>Download the finished PDF.</strong> Look for the new file beginning with
+            "signed_" in Files. If Safari opens a preview instead, use Share, then Save to Files.
+            Open the saved copy and check every page before sending it.
+  - sketch: 'waves'
+    icon: 'FileEdit'
+    iconPos: 'cl'
+    kicker: 'The WhatsApp form'
+    heading: 'How to sign a PDF sent through WhatsApp on iPhone'
+    blocks:
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Open the PDF in the WhatsApp chat.</strong> Tap Share, choose Save to Files,
+            and pick a folder you can find again. Keep the original attachment as your starting copy.
+          - >-
+            <strong>Choose the saved file in <a href="/sign/">the signing tool</a>.</strong>
+            Fill in the requested details, add the date and signature, then download the new PDF.
+          - >-
+            <strong>Send the signed copy back as a document.</strong> In WhatsApp, open the chat's
+            attachment menu, choose Document, and browse to the new file in Files. Select the name
+            beginning with "signed_" and check it before sending.
+      - kind: 'prose'
+        text: >-
+          You can also use <strong>Share</strong> in PDkef when Safari supports it. Tap Share to
+          prepare the finished PDF, then <strong>Share now</strong> to open the share sheet and
+          choose WhatsApp. If WhatsApp is not offered, save the PDF to Files and attach it from the
+          chat. Sending the PDF keeps the full document together.
   - sketch: 'grid'
     icon: 'PenLine'
     iconPos: 'br'
-    kicker: 'Markup, side by side'
-    heading: 'Where Markup stops being enough'
+    kicker: 'Apple tools, side by side'
+    heading: 'Signing with Files, Markup, or Preview on iPhone'
     blocks:
       - kind: 'prose'
         text: >-
-          Markup is built into Files, Mail and Photos, and its signature tool is genuinely one of
-          the better ones on any platform. It's an annotation tool, though: it draws on top of a
-          page rather than understanding what's on it. That distinction is invisible until the page
-          is a scanned form and you need an X inside a small square.
+          Your iPhone already has useful PDF tools. Apple's <a href="https://support.apple.com/guide/iphone/fill-forms-sign-documents-create-signatures-iph1d3607e5c/ios" target="_blank" rel="noopener noreferrer">form filling and Markup tools</a>
+          can add text and signatures, and AutoFill can use saved contact details in supported
+          forms. On iOS 26, <a href="https://support.apple.com/guide/iphone/fill-out-and-sign-pdf-forms-iphd7e3c0c74/ios" target="_blank" rel="noopener noreferrer">Preview also fills and signs PDFs</a>.
+          If those do what you need, use them. PDkef offers another workflow in Safari.
       - kind: 'compare'
-        builtInLabel: 'Markup (Files)'
+        builtInLabel: 'Apple PDF tools'
         caption: >-
-          Both run on the phone itself with nothing uploaded, so this is about what each one can do,
-          not about privacy.
+          The available controls depend on your iOS version and the app opening the document.
         rows:
           - task: 'Add a handwritten signature'
-            builtIn: 'Yes, Markup has a signature tool'
-            here: 'Draw, type, or upload a photo of one'
-          - task: 'Fill a form that has real fillable fields'
-            builtIn: 'Yes'
-            here: 'Yes'
-          - task: 'Type onto a flat or scanned form'
-            builtIn: 'Only as a floating text label you drag into place'
-            here: 'Tap where you want it and type'
-          - task: 'Tick a checkbox on a scanned form'
-            builtIn: ''
-            here: 'Yes'
-          - task: 'Permanently remove text from a page'
-            builtIn: ''
-            here: 'Yes'
-          - task: 'Keep going if the form takes two sittings'
-            builtIn: ''
-            here: 'Your progress is saved on the phone'
+            builtIn: 'Add or reuse a signature with Markup'
+            here: 'Draw, type, or choose a signature image'
+          - task: 'Complete a supported PDF form'
+            builtIn: 'Form filling and AutoFill'
+            here: 'Place text and check marks on the page'
+          - task: 'Add text to a flat or scanned form'
+            builtIn: 'Add and position a text form box'
+            here: 'Tap the page to add a text box'
+          - task: 'Mark a checkbox on a scanned form'
+            builtIn: 'Draw a tick or place an X with Markup'
+            here: 'Place a check mark or cross'
   - sketch: 'rings'
-    icon: 'Lightbulb'
+    icon: 'ShieldCheck'
     iconPos: 'cl'
-    kicker: 'Worth saying plainly'
-    heading: 'When Markup is the right answer'
+    kicker: 'Useful beyond one signature'
+    heading: 'Free signing, with your PDF kept on your phone'
     blocks:
       - kind: 'prose'
         text: >-
-          A permission slip that needs a signature at the bottom and nothing else? Use Markup. It's
-          already on the phone, it's faster than opening a browser, and the result is the same. Come
-          here when the form has fields to complete, boxes to tick, or something on it you need <a
-          href="/permanently-delete-text-from-pdf/">genuinely removed rather than covered up</a>. If
-          it's a form you'll be at for a while, this one also <a
-          href="/install-pdf-app/">saves your progress as you go</a>, so a phone call
-          halfway through doesn't cost you the work.
+          There is no signup or watermark. PDkef processes the file locally and is
+          <a href="/open-source-pdf-editor/">open source under the MIT license</a>. Your browser
+          can keep a draft and saved signatures for next time. Where you save or share the finished
+          document is your choice; selecting iCloud Drive or WhatsApp uses that service.
+      - kind: 'prose'
+        text: >-
+          Need it without a connection? <a href="/install-pdf-app/">Install PDkef for offline use</a>
+          while connected, let its assets finish downloading, and test an export with your chosen
+          font. If you need to remove personal details before sharing a copy, the
+          <a href="/redact/">PDF redaction tool</a> can black them out before you send it.
 faq:
-  - question: 'Do I need to download an app from the App Store?'
+  - question: 'Do I need an App Store download to sign a PDF on iPhone?'
     answer: >-
-      No. It runs inside Safari, so there is nothing to install, no permissions to grant, and
-      nothing left on your phone afterwards unless you choose to add it to your Home Screen.
-  - question: 'The Files app can already mark up a PDF. Why not just use that?'
+      No. PDkef runs in Safari with no account or subscription. Your iPhone also has built-in
+      signing tools through Markup and, on iOS 26, Preview. A draft and saved signatures may remain
+      locally in Safari for next time.
+  - question: 'How do I sign a PDF file sent through WhatsApp on iPhone?'
     answer: >-
-      For a signature on its own, do. Markup has a proper signature tool and it's two taps away. It
-      just doesn't understand forms: there's no way to tick a real checkbox, and typed text becomes
-      a floating label you drag into position, which is fiddly work on a phone-sized page.
-  - question: 'How do I get a PDF from WhatsApp or Mail into the tool?'
+      Open the attachment in WhatsApp, tap Share, and choose Save to Files. Select that PDF in
+      PDkef, add your signature, and download it. Then attach the new file beginning with "signed_"
+      as a Document in the WhatsApp chat. Do not forward the unsigned original.
+  - question: 'Can I fill and sign the PDF with Apple''s own tools instead?'
     answer: >-
-      Open the attachment, tap the Share button, and choose "Save to Files". Then in the tool, tap
-      to choose a file and pick it from Files. You can also long-press the attachment and share it
-      straight across.
+      Yes. Apple supports form filling, text boxes, AutoFill in compatible forms, and signatures
+      through its PDF tools. Preview on iOS 26 also handles these tasks. The available controls
+      depend on your iOS version and the document, so choose the tool that fits your form.
   - question: 'Does this work on iPad too?'
     answer: >-
-      Yes, the same way. An iPad is the nicer of the two for this, and with an Apple Pencil the
-      drawn signature looks like it was signed on paper.
-  - question: 'Where does the signed PDF get saved?'
+      Yes. Open PDkef in Safari on iPad and choose the PDF from Files. You can draw a signature with
+      a finger or, on a compatible iPad, an Apple Pencil. Apple Pencil does not work with iPhone.
+  - question: 'Where does Safari save my signed PDF?'
     answer: >-
-      To the Files app, in whichever folder Safari is set to use for downloads. From there you can
-      share it, mail it, or drop it back into the chat it arrived from.
-  - question: 'My finger signature looks terrible. Any way to fix that?'
+      Check Safari's Downloads and the Files app. The folder depends on your Safari download
+      settings and can be in iCloud Drive or On My iPhone. If the PDF opens in a preview, tap Share
+      and Save to Files to choose the folder yourself.
+  - question: 'Can I sign offline on my iPhone?'
     answer: >-
-      Two, and both help. Zoom in and sign much larger than the space you actually need, since
-      scaling down hides the wobble. Or skip drawing entirely and type your name in a
-      handwriting-style font, which is accepted for most everyday forms.
+      Yes, once the app and required assets are available offline. Install while connected and
+      test an export with your chosen font first. Keep the source PDF downloaded on the phone too.
+      Sending the result through WhatsApp or email still needs a connection.
+  - question: 'Can I type my signature instead of drawing with my finger?'
+    answer: >-
+      Yes. You can type your name or choose an image of your signature. To improve a drawn
+      signature, draw it larger and resize it on the page. Follow the recipient's instructions if
+      they require a specific signature method or signing service.
+  - question: 'Does PDkef update the PDF''s interactive form fields?'
+    answer: >-
+      It adds text, check marks, and signatures to the page rather than populating interactive
+      field values. If the recipient requires the original form's fields or submit button to work,
+      use a compatible form reader for that document.

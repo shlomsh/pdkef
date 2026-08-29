@@ -65,6 +65,13 @@ export function combCellCount(element) {
   return Math.max(1, combCharacters(element).length);
 }
 
+/** The portion of a text element that reaches the page, shared by coverage UIs and export validation. */
+export function textForCoverage(element) {
+  return isComb(element)
+    ? combCharacters(element).slice(0, combCellCount(element)).join('')
+    : (element.text || '');
+}
+
 /**
  * Centre of cell `index` as a fraction of the comb's width. Characters past the
  * last cell have no box to sit in, so callers stop at `combCellCount`.

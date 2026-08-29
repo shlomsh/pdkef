@@ -72,3 +72,31 @@ test('centres each tool hero icon on the first line of its title', async ({ page
     }
   }
 });
+
+test('redaction guide images load without page overflow on desktop and mobile', async ({ page }) => {
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/blur-vs-blackout-vs-delete-pdf/');
+
+    const figures = page.locator('main figure img');
+    expect(await figures.count()).toBeGreaterThanOrEqual(3);
+    for (const figure of await figures.all()) {
+      await figure.scrollIntoViewIfNeeded();
+      await expect.poll(() => figure.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
+      const dimensions = await figure.evaluate((img) => ({
+        expectedRatio: Number(img.getAttribute('width')) / Number(img.getAttribute('height')),
+        actualRatio: img.naturalWidth / img.naturalHeight,
+      }));
+      expect(dimensions.actualRatio).toBeCloseTo(dimensions.expectedRatio, 2);
+    }
+
+    const pageOverflows = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    expect(pageOverflows, `Guide overflows the ${width}px viewport`).toBe(false);
+    // The guide carries more than one comparison table, so assert each of them
+    // rather than a bare getByRole('table') - that resolves to several elements
+    // and fails Playwright's strict mode rather than the layout it is checking.
+    const tables = page.getByRole('table');
+    expect(await tables.count()).toBeGreaterThanOrEqual(2);
+    for (const table of await tables.all()) await expect(table).toBeVisible();
+  }
+});

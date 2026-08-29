@@ -8,7 +8,10 @@ export default defineConfig({
       react: 'preact/compat',
       'react-dom/test-utils': 'preact/test-utils',
       'react-dom': 'preact/compat',
-      'react/jsx-runtime': 'preact/jsx-runtime'
+      'react/jsx-runtime': 'preact/jsx-runtime',
+      // Build-only virtual module; see the stub for why documentation.ts has to
+      // name it with a literal specifier that Vitest then cannot resolve.
+      'astro:content': new URL('./src/test/astroContentStub.js', import.meta.url).pathname
     }
   },
   test: {

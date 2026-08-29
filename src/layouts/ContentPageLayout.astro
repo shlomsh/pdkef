@@ -10,6 +10,7 @@ import AppBar from '../components/AppBar.astro';
 import ToolFaqCard from '../components/ToolFaqCard.astro';
 import ToolCrossLinks from '../components/ToolCrossLinks.astro';
 import Footer from '../components/Footer.astro';
+import DocumentationLanguageSelector from '../components/DocumentationLanguageSelector.astro';
 import '../styles/global.css';
 
 interface FaqItem {
@@ -31,6 +32,15 @@ interface Props {
   subhead: string;
   primaryCta: Cta;
   faq: FaqItem[];
+  lang?: string;
+  dir?: 'ltr' | 'rtl';
+  canonical?: string;
+  alternates?: { lang?: string; hreflang?: string; href: string }[];
+  noindex?: boolean;
+  locale?: string;
+  variants?: { locale?: string; lang?: string; path?: string; href?: string; label?: string; nativeName?: string; isCurrent?: boolean }[];
+  preview?: boolean;
+  labels?: Record<string, string>;
 }
 
 const {
@@ -44,15 +54,27 @@ const {
   subhead,
   primaryCta,
   faq,
+  lang = 'en', dir = 'ltr', canonical, alternates, noindex = false, locale = 'en', variants = [], preview = false, labels = {},
 } = Astro.props;
+const hebrewLabels = {
+  language: 'שפה', homeAriaLabel: 'דף הבית של PDkef, כל הכלים', onDevice: 'במכשיר שלך',
+  previewNotice: 'תרגום בתצוגה מקדימה לבדיקת דוברי עברית. דף זה אינו מאונדקס.',
+  faqTag: 'יש שאלות?', faqHeading: 'שאלות נפוצות', otherDevices: 'חותמים במכשיר אחר?',
+  openSignTool: 'פתיחת כלי החתימה והמילוי (באנגלית)', relatedKicker: 'עוד על הכלי הזה',
+  relatedHeading: 'מדריכים לכלי זה', builtWith: 'נבנה עם', by: 'על ידי',
+  socialImageAlt: 'PDkef - כלים חינמיים ל-PDF שפועלים במלואם בדפדפן שלך.',
+};
+const uiLabels = lang === 'he' ? { ...hebrewLabels, ...labels } : labels;
 ---
 
-<BaseLayout title={title} description={description}>
+<BaseLayout title={title} description={description} lang={lang} dir={dir} canonical={canonical} alternates={alternates} noindex={noindex} socialImageAlt={uiLabels.socialImageAlt}>
   <Fragment slot="head">
     <SeoSchema name={schemaName} description={description} faq={faq} />
   </Fragment>
 
-  <AppBar toolName={breadcrumb} />
+  <AppBar toolName={breadcrumb} labels={uiLabels} />
+
+  {preview && <aside class="mx-auto mt-4 max-w-[720px] rounded-[var(--radius-md)] border border-[var(--color-primary-tint)] bg-[var(--color-primary-soft)] px-4 py-3 text-center text-[0.9rem] text-[var(--color-text)]" role="status">{uiLabels.previewNotice ?? 'Preview translation for native review. This page is not indexed.'}</aside>}
 
   {/* No CTA button in the hero, deliberately. Every one of these pages makes a
       case first (what the platform's own tool covers, where it stops, when to
@@ -71,6 +93,8 @@ const {
     <p class="mx-auto mb-0 mt-0 max-w-[56ch] text-[1.02rem] leading-[1.6] text-[var(--color-muted)]">{subhead}</p>
   </header>
 
+  <DocumentationLanguageSelector variants={variants} currentLocale={locale} label={uiLabels.language ?? 'Language'} />
+
   <main>
     <slot />
   </main>
@@ -84,9 +108,9 @@ const {
     </a>
   </section>
 
-  <ToolFaqCard faq={faq} />
+  <ToolFaqCard faq={faq} labels={{ tag: uiLabels.faqTag, heading: uiLabels.faqHeading }} />
 
   <ToolCrossLinks currentSlug="" />
 
-  <Footer />
+  <Footer labels={uiLabels} />
 </BaseLayout>

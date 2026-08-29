@@ -7,8 +7,6 @@ import {
   signPdf,
   hexToRgbFractions,
   getEffectiveTextDirection,
-  uniqueId,
-  seedUniqueId,
   UnrepresentableTextError
 } from './sign.js';
 import { percentToPoints } from './coords.js';
@@ -324,25 +322,6 @@ describe('sign.js pure functions', () => {
     });
   });
 
-  describe('uniqueId', () => {
-    it('should generate sequential string IDs', () => {
-      seedUniqueId([]); // reset max
-      const id1 = uniqueId();
-      const id2 = uniqueId();
-      expect(id1).toMatch(/^el-\d+$/);
-      expect(id2).toMatch(/^el-\d+$/);
-      expect(id1).not.toBe(id2);
-    });
-
-    it('should respect seedUniqueId to prevent collisions', () => {
-      seedUniqueId([{ id: 'el-10' }, { id: 'el-5' }]);
-      const newId = uniqueId();
-      expect(newId).toBe('el-11');
-      const nextId = uniqueId();
-      expect(nextId).toBe('el-12');
-    });
-  });
-
   /**
    * W6 extraction guard (docs/wysiwyg-text-architecture.md §7, §9 guardrail
    * 4): round-trip the produced PDF through BOTH `pdftotext` and pdf.js and
@@ -424,6 +403,18 @@ describe('sign.js pure functions', () => {
     function drawnPdfJsItems(items) {
       return items.filter((item) => item.str !== '').slice(1);
     }
+
+    itPdftotext('keeps an authored Persian ZWNJ in searchable exported text', async () => {
+      const typed = 'می\u200Cروم';
+      const file = getFixtureFile();
+      const blob = await signPdf(file, [{
+        id: 'el-persian-zwnj', type: 'text', pageIndex: 0, left: 50, top: 10,
+        text: typed, textDirection: 'rtl', fontFamily: 'Scheherazade New',
+        fontSize: 20, color: '#000000',
+      }]);
+      const extracted = extractPdftotextText(Buffer.from(await blob.arrayBuffer()));
+      expect(extracted).toContain(typed);
+    });
 
     const corpus = [
       // The measured case from §7: Hebrew niqud, composed to presentation

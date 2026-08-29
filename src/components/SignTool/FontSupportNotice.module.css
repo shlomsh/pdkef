@@ -1,0 +1,8 @@
+.notice { z-index: 11; touch-action: auto; }
+.detail { width: max-content; max-width: min(23rem, calc(100vw - 24px)); padding: .55rem .7rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); box-shadow: var(--shadow-md); font: 400 .8rem/1.5 system-ui, sans-serif; text-align: left; white-space: normal; overflow-wrap: anywhere; cursor: default; user-select: text; }
+.detail.warning { border-color: var(--color-danger); }
+.detail p { margin: 0; }
+.marker { width: 24px; height: 24px; }
+.marker-button { display: grid; place-items: center; width: 24px; height: 24px; margin: 0; padding: 0; border: 2px solid var(--color-surface); border-radius: 50%; background: var(--color-danger); color: var(--color-surface); box-shadow: 0 2px 7px rgba(106, 23, 31, .28); cursor: pointer; }
+.marker-button:hover { transform: scale(1.08); }
+.marker-button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }

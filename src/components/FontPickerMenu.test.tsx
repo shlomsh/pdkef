@@ -5,7 +5,7 @@
 // the exporter use, so the three can never disagree.
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, afterEach } from 'vitest';
+import { describe, expect, it, afterEach, vi } from 'vitest';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import { resolveFontFamily, HANDWRITING_FONTS, TEXT_FONTS } from '../lib/fonts.js';
 
@@ -21,12 +21,12 @@ describe('FontPickerMenu', () => {
     document.body.innerHTML = '';
   });
 
-  function openMenu(value: string, text: string) {
+  function openMenu(value: string, text: string, extra = {}) {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
       render(
-        <FontPickerMenu value={value} text={text} onChange={() => {}} />,
+        <FontPickerMenu value={value} text={text} onChange={() => {}} {...extra} />,
         container as any
       );
     });
@@ -65,13 +65,13 @@ describe('FontPickerMenu', () => {
     // Contract change (W3): the note now names the actual missing characters
     // instead of a script name, but it must still single out Caveat as unable
     // to draw this text and leave the effective font unmarked.
-    expect(caveatItem.textContent).toContain("can't draw");
+    expect(caveatItem.textContent).toContain('Missing');
     for (const ch of new Set(hebrewText.replace(/\s/g, ''))) {
       expect(caveatItem.textContent).toContain(ch);
     }
     expect(caveatItem.className).toMatch(/unsupported/);
 
-    expect(gveretItem.textContent).not.toContain("can't draw");
+    expect(gveretItem.textContent).toContain('Includes all your text');
     expect(gveretItem.className).not.toMatch(/unsupported/);
   });
 
@@ -106,17 +106,17 @@ describe('FontPickerMenu', () => {
     const arimoItem = items.find((el) => el.textContent?.startsWith('Arimo'))!;
 
     expect(kalamItem.className).toMatch(/active/);
-    expect(kalamItem.textContent).not.toContain("can't draw");
+    expect(kalamItem.textContent).toContain('Includes all your text');
 
     // Contract change (W3): the note names the missing characters, not a
     // script name — but every non-Devanagari option must still be marked
     // unsupported for this text, proving the check is script-general rather
     // than a Hebrew-only special case.
     expect(caveatItem.className).toMatch(/unsupported/);
-    expect(caveatItem.textContent).toContain("can't draw");
+    expect(caveatItem.textContent).toContain('Missing');
 
     expect(arimoItem.className).toMatch(/unsupported/);
-    expect(arimoItem.textContent).toContain("can't draw");
+    expect(arimoItem.textContent).toContain('Missing');
   });
 
   it('shows the effective font in the trigger title, not the requested one', () => {
@@ -144,6 +144,28 @@ describe('FontPickerMenu', () => {
 
     expect(caveatItem.disabled).toBe(false);
     expect(caveatItem.getAttribute('aria-disabled')).not.toBe('true');
+  });
+
+  it('marks every option for Hebrew + English + Arabic even when no fallback exists', () => {
+    const menu = openMenu('Assistant', 'שלום Hello مرحبا');
+    expect(menu.textContent).toContain('No single available font includes all this text');
+    const items = [...menu.querySelectorAll('[role="menuitem"]')];
+    expect(items.every((item) => item.getAttribute('data-font-support') === 'incompatible')).toBe(true);
+    expect(items.every((item) => item.textContent?.includes('Missing'))).toBe(true);
+    expect(menu.textContent).not.toContain('automatically');
+    const assistant = items.find((item) => item.textContent?.startsWith('Hebrew (Assistant)'))!;
+    const arabic = items.find((item) => item.textContent?.startsWith('Arabic (Scheherazade New)'))!;
+    expect(assistant.textContent).toContain('مرحبا');
+    expect(arabic.textContent).toContain('שלום');
+  });
+
+  it('explains the automatic fallback before selecting a font', () => {
+    const onChange = vi.fn();
+    const menu = openMenu('Arimo', 'Hello مرحبا', { onChange });
+    const arimo = [...menu.querySelectorAll('[role="menuitem"]')].find((item) => item.textContent?.startsWith('Arimo'))!;
+    expect(arimo.textContent).toContain('Uses Scheherazade New automatically');
+    act(() => { (arimo as HTMLButtonElement).click(); });
+    expect(onChange).toHaveBeenCalledWith('Arimo');
   });
   // A font can be complete - built, aligned, parity-guarded, in the catalogue,
   // with an @font-face rule - and still be unreachable, because this component

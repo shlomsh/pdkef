@@ -3,7 +3,7 @@ import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react
 import { TOOLBAR_FLOATING_OFFSET } from '../constants/signGeometry.js';
 import ElementToolbar from './ElementToolbar.tsx';
 import ElementResizers from './ElementResizers.tsx';
-import { getElementDefinition } from '../editor/registry/index.ts';
+import { getElementRenderer } from '../editor/registry/renderers.ts';
 import useDraggableElement from '../lib/useDraggableElement.js';
 import useElementResize from '../lib/useElementResize.js';
 import elementStyles from './SignTool/EditorElement.module.css';
@@ -86,7 +86,7 @@ export default function RedactBox({
 
   const isWhiteout = el.type === 'whiteout';
   const hasShapeHandles = true;
-  const surface = getElementDefinition(el.type).render({
+  const surface = getElementRenderer(el.type)({
     element: el,
     onChange: () => {},
     onSelect: () => {},
@@ -95,7 +95,7 @@ export default function RedactBox({
   });
 
   // Fill/blur/border for every redaction type is owned solely by `surface`
-  // (renderRedactionSurface, via the registry's render()) - the host div
+  // (renderRedactionSurface, via getElementRenderer()) - the host div
   // below carries only geometry, interaction chrome, and a selection class
   // (E7.4). Whiteout's border is selection/hover-state-driven, so that part
   // lives in PdfRedactTool.module.css's `.redact-box--whiteout` rules rather

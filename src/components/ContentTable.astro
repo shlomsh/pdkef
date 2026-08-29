@@ -1,0 +1,30 @@
+---
+interface Props {
+  caption: string;
+  headers: string[];
+  rows: string[][];
+}
+const { caption, headers, rows } = Astro.props;
+---
+
+<div class="content-table-scroll" role="region" aria-label={caption} tabindex="0">
+  <table>
+    <caption>{caption}</caption>
+    <thead><tr>{headers.map((header) => <th scope="col">{header}</th>)}</tr></thead>
+    <tbody>
+      {rows.map((row) => <tr>{row.map((cell, index) => index === 0 ? <th scope="row">{cell}</th> : <td>{cell}</td>)}</tr>)}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .content-table-scroll { overflow-x: auto; margin-bottom: 1.5rem; }
+  .content-table-scroll:last-child { margin-bottom: 0; }
+  .content-table-scroll:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 4px; }
+  table { width: 100%; min-width: 580px; border-collapse: collapse; text-align: left; }
+  caption { margin-bottom: 0.75rem; text-align: left; font-size: 0.9rem; line-height: 1.6; color: var(--color-muted); }
+  th, td { padding: 0.85rem; border-bottom: 1px solid var(--color-border); vertical-align: top; font-size: 0.92rem; line-height: 1.6; color: var(--color-text); }
+  thead th { background: var(--color-primary-soft); font-weight: 700; }
+  tbody th { font-weight: 600; }
+  tbody td { color: var(--color-muted); }
+</style>

@@ -1,117 +1,140 @@
-title: 'How to Sign a PDF on Windows (No Install) | PDkef'
+title: 'How to Sign a PDF on a Windows Computer for Free | PDkef'
 description: >-
-  Sign a PDF on Windows without printing and scanning it. Edge can draw on a page but not much more
-  - here is what it covers, and how to fill the rest in Chrome or Edge, free.
+  Sign a PDF on your Windows computer for free in Chrome or Edge. Add text and a signature, then
+  download it. No signup, watermark, or document upload.
 breadcrumb: 'Windows'
 icon: 'Monitor'
 kicker: 'Windows, no install'
-h1: 'How to Sign a PDF on Windows'
+h1: 'How to Sign a PDF on a Windows Computer'
 subhead: >-
-  Windows has no equivalent of Preview, which is why signing a PDF on a PC so often ends with
-  printing the page, signing it by hand, and scanning it back in. You can skip all of that in the
-  browser you already have open.
+  You can sign a PDF on your computer without printing and scanning it. Open PDkef in Chrome or
+  Edge, choose the document, add your answers and signature, and download the finished copy. It is
+  free, and the PDF is processed on your PC.
 primaryCta:
   href: '/sign/'
-  label: 'Sign a PDF now'
+  label: 'Sign a PDF on your computer'
 sections:
   - variant: 'highlight'
     sketch: 'arcs'
     icon: 'Monitor'
     iconPos: 'tr'
     kicker: 'Four steps'
-    heading: 'Sign a PDF on Windows'
+    heading: 'Sign a PDF on your computer in four steps'
     blocks:
       - kind: 'steps'
         items:
           - >-
-            <strong>Open <a href="/sign/">pdkef.com/sign</a></strong> in Chrome or Edge.
+            <strong>Save the PDF from email or WhatsApp.</strong> Put it in a folder you can find
+            again, such as Downloads. Keep the original in case you need to start over.
           - >-
-            <strong>Drag the PDF in</strong> from File Explorer, or straight out of the Downloads
-            bar if it just came in by email.
+            <strong>Open <a href="/sign/">pdkef.com/sign</a> in Chrome or Edge.</strong> Drag the
+            PDF from File Explorer into the tool, or choose it with the file picker.
           - >-
-            <strong>Fill in the fields, then add your signature.</strong> Draw it with the mouse,
-            trackpad, touchscreen or pen, type it in a handwriting font, or upload a photo of one
-            you signed on paper.
+            <strong>Add your details, then your signature.</strong> Place text and check marks on
+            the page. Draw with a mouse, trackpad, touchscreen, or pen; type your signature; or choose
+            an image of one you signed on paper.
           - >-
-            <strong>Download it.</strong> The signed PDF lands in Downloads as a new file, next to
-            your untouched original.
+            <strong>Download and review the new PDF.</strong> Its name begins with "signed_".
+            Check all pages, then attach that file to your email or WhatsApp reply. The original
+            stays unchanged.
   - sketch: 'grid'
     icon: 'Monitor'
     iconPos: 'br'
     kicker: 'Edge, side by side'
-    heading: 'How far Edge''s own PDF tools get you'
+    heading: 'Can Microsoft Edge sign a PDF too?'
     blocks:
       - kind: 'prose'
         text: >-
-          Edge opens PDFs by default on Windows and has a small annotation toolbar of its own. It's
-          genuinely useful for marking up a document you're reviewing. It was built for annotating
-          rather than for completing forms, though, and the difference shows the moment the thing in
-          front of you is a scanned page with boxes to tick.
+          Yes. Edge's <a href="https://learn.microsoft.com/en-us/deployedge/microsoft-edge-pdf" target="_blank" rel="noopener noreferrer">PDF reader supports basic form filling and inking</a>,
+          so you can use its Draw tool for a signature. It also has <a href="https://www.microsoft.com/en-us/edge/features/pdf-reader" target="_blank" rel="noopener noreferrer">Add text for blank areas</a>.
+          Those tools may be all you need. PDkef is another option when you want to type a signature,
+          choose a signature image, or use the same editor on your phone.
       - kind: 'compare'
         builtInLabel: 'Microsoft Edge'
         caption: >-
-          Both run locally on your PC with nothing uploaded, so this is about what each one can do,
-          not about privacy.
+          You can work with a local PDF in either workflow. Choose the controls that suit the form.
         rows:
           - task: 'Add a handwritten signature'
-            builtIn: 'Freehand ink only, with the Draw pen'
-            here: 'Draw it, type it, or upload a photo of one'
-          - task: 'Fill a form that has real fillable fields'
-            builtIn: 'Yes'
-            here: 'Yes'
+            builtIn: 'Draw with the inking tool'
+            here: 'Draw, type, or choose a signature image'
+          - task: 'Complete a form with fillable fields'
+            builtIn: 'Basic form filling; XFA forms are not supported'
+            here: 'Place text and check marks on the page'
           - task: 'Type onto a flat or scanned form'
-            builtIn: 'Possible, but sizing and alignment are fiddly'
-            here: 'Click where you want it and type'
-          - task: 'Tick a checkbox on a scanned form'
-            builtIn: ''
-            here: 'Yes'
-          - task: 'Reorder or delete pages before you send it'
-            builtIn: ''
-            here: 'Yes'
-          - task: 'Permanently remove text from a page'
-            builtIn: ''
-            here: 'Yes'
+            builtIn: 'Use Add text and position the text box'
+            here: 'Click the page to add a text box'
+          - task: 'Mark a checkbox on a scanned form'
+            builtIn: 'Draw a tick or add an X'
+            here: 'Place a check mark or cross'
   - sketch: 'waves'
     icon: 'Printer'
     iconPos: 'cl'
-    kicker: 'The habit worth dropping'
-    heading: 'Print, sign, scan is a workaround, not a standard'
+    kicker: 'Before you send it'
+    heading: 'Return the signed PDF without a print and scan detour'
     blocks:
       - kind: 'prose'
         text: >-
-          Almost nobody prefers printing a form out. It survives because Windows never shipped an
-          answer to this, so it became the thing you fall back on when a deadline is closer than a
-          solution. The scan that comes back is heavier, often crooked, and no longer real text,
-          which matters if anyone downstream needs to search or copy from it.
+          Working directly on the PDF avoids making a new scan of every page. It does not turn an
+          existing scan into searchable text, but it lets you add the answers and signature without
+          another trip through a printer. If you were sent photos instead of a PDF, use
+          <a href="/image-to-pdf/">Image to PDF</a> first.
       - kind: 'prose'
         text: >-
-          Signing on screen keeps the file a proper PDF the whole way through. If the scan already
-          happened and you're working from a photographed page, that's fine too, you can <a
-          href="/image-to-pdf/">turn the photos back into a PDF</a> first and carry on from there.
+          Open the downloaded copy before sending it: check the signature, dates, checkboxes, and
+          page order. PDkef adds a visible signature, not a certificate-based digital signature or
+          identity check. If the sender asks for a specific signing service or method, follow those
+          instructions. Need to hide personal details in a shared copy? Use the
+          <a href="/redact/">PDF redaction tool</a> before sending it.
+  - sketch: 'rings'
+    icon: 'ShieldCheck'
+    iconPos: 'cl'
+    kicker: 'No account needed'
+    heading: 'Free signing on your PC, including offline use'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          PDkef is free, with no signup or watermark, and <a href="/open-source-pdf-editor/">open
+          source under the MIT license</a>. The PDF and signature are processed on your computer.
+          Drafts and saved signatures can stay in the browser, so use a personal browser profile
+          for documents you would not leave on a shared desk.
+      - kind: 'prose'
+        text: >-
+          To use it without a connection, <a href="/install-pdf-app/">install PDkef while online</a>
+          and let the required assets download. Test an export with your chosen font before going
+          offline. You can finish the document locally and send it when you are connected again.
 faq:
-  - question: 'Do I need to install any software on Windows to sign a PDF?'
+  - question: 'How do I sign a PDF on my computer for free?'
     answer: >-
-      No. It's a website that runs in the browser tab you already have open, so there's nothing to
-      download, nothing to keep updated, and no admin password to talk a work laptop into accepting.
-  - question: 'Edge can already draw on a PDF. Isn''t that enough?'
+      Open PDkef's signing tool in Chrome or Edge, choose the PDF, add your details and signature,
+      and download the finished file. There is no signup, subscription, or watermark. You can also
+      use Microsoft Edge's Draw tool if a handwritten mark is all you need.
+  - question: 'Do I need to install software on Windows to sign a PDF?'
     answer: >-
-      It is, for a quick scribble. Edge's Draw pen is freehand ink, so a signature comes out as
-      whatever your mouse managed, and there's no way to type into a scanned form or tick a real
-      checkbox. If the document is a form rather than a page to initial, you'll hit that ceiling
-      quickly.
-  - question: 'Do I still need to print, sign, and scan it back in?'
+      No. PDkef works in a browser without an extension or desktop installation. Installing it as
+      a web app is optional and useful for offline access. On a managed work computer, your
+      organization's browser and file policies still apply.
+  - question: 'Can I add text and a signature with Microsoft Edge?'
     answer: >-
-      No, and that's mostly what this page exists to spare you. Printing and scanning is the
-      standard Windows workaround because nothing in Windows itself signs a PDF, not because the
-      result is any better. A signature added on-screen is cleaner and stays a real, selectable PDF.
-  - question: 'Does this work in both Chrome and Edge?'
+      Yes. Edge has basic PDF form filling, an Add text tool for blank areas, and a Draw tool for
+      handwriting. PDkef also lets you type a signature or choose an existing signature image.
+      Choose whichever workflow fits the document.
+  - question: 'Can I use a touchscreen or pen instead of a mouse?'
     answer: >-
-      Yes, and in Firefox. There is no browser-specific setup, and nothing to enable first.
-  - question: 'Can I sign with a touchscreen or a pen instead of a mouse?'
+      Yes. You can draw with a mouse, trackpad, touchscreen, or compatible stylus. Draw the
+      signature at a comfortable size, then resize it on the PDF. Typing your name or choosing a
+      signature image is also available.
+  - question: 'Where does the signed PDF go on Windows?'
     answer: >-
-      Yes. Drawing works the same with a mouse, a trackpad, a touchscreen, or a stylus. On a Surface
-      or any pen-enabled laptop, the pen gives by far the most natural-looking signature.
-  - question: 'Where does the signed file go?'
+      It goes to the browser's download location, usually Downloads, or the folder you choose when
+      prompted. The name begins with "signed_" and the original file is not overwritten. Attach
+      that new file when replying by email or WhatsApp.
+  - question: 'Does PDkef create a certificate-based digital signature?'
     answer: >-
-      To your Downloads folder, as a new file alongside the original. Nothing overwrites what you
-      started with.
+      No. It adds a visible signature to the PDF and does not provide a signing certificate,
+      identity verification, or a signing audit trail. If the recipient requests one of those,
+      use the signing method they specify.
+  - question: 'Does this populate the PDF''s interactive form fields?'
+    answer: >-
+      PDkef adds text and check marks to the page rather than writing values into interactive
+      form fields. If a form needs its built-in submit button or the recipient needs field data,
+      use a compatible form reader for that PDF.

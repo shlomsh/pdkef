@@ -1,0 +1,227 @@
+title: 'Blur, Blackout or Delete PDF Text: A Visual Guide | PDkef'
+description: >-
+  Compare Blur, Blackout, Whiteout and Delete for PDF text and images. See real examples, choose the
+  right result, and understand irreversible flattening. Free and private.
+breadcrumb: 'PDF redaction guide'
+icon: 'Layers'
+kicker: 'Choose the result you want'
+h1: 'Blur, Blackout, Whiteout or Delete PDF Text?'
+subhead: >-
+  Four tools, four useful results. Remove an element, clear a field for replacement text, show that
+  information was withheld, or soften part of a page. This visual guide shows each option in the
+  real editor, then explains what flattening changes when you download.
+primaryCta:
+  href: '/redact/'
+  label: 'Open the free PDF redaction tool'
+sections:
+  - variant: 'highlight'
+    sketch: 'grid'
+    icon: 'Layers'
+    iconPos: 'tr'
+    kicker: 'Start with the outcome'
+    heading: 'What do you want the finished PDF to look like?'
+    blocks:
+      - kind: 'table'
+        caption: 'The same editor gives you four different ways to change a PDF page.'
+        headers: ['Tool', 'Choose it when you want to', 'A practical example', 'What happens on Download']
+        rows:
+          - ['Delete', 'Remove an existing text or image element', 'Remove a prefilled answer before entering a new one', 'The selected element is deleted from the page; the rest stays selectable']
+          - ['Whiteout', 'Cover an area with a clean, page-colored box', 'Hide an old form value and type a replacement over the cleared field', 'The marked page is flattened into one image']
+          - ['Blackout', 'Cover an area with a clear solid redaction', 'Black out a name, reference number, address, or part of a scan', 'The marked page is flattened into one image']
+          - ['Blur', 'Soften visual detail while leaving context visible', 'Blur a face, signature, screenshot detail, or draft note', 'The marked page is flattened into one image']
+      - kind: 'prose'
+        text: >-
+          There is no single “best” option because these are different jobs. <strong>Delete changes
+          the page content.</strong> Whiteout, Blackout and Blur change how an area looks. The
+          <a href="/redact/">Redact tool</a> puts all four in one place so you can choose per item,
+          and even combine them on one document.
+  - sketch: 'arcs'
+    icon: 'Trash2'
+    iconPos: 'br'
+    kicker: 'Use case: replace prefilled data'
+    heading: 'Delete the old value, then enter the new one'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          A form arrives with an old email address already on the page. Choose <strong>Delete</strong>
+          and click the highlighted value. The selected element is removed from the PDF page. The
+          field label, lines and all other page text stay in place and remain selectable.
+      - kind: 'image'
+        src: '/images/redaction-guide/delete.jpg'
+        alt: 'Real PDkef editor showing an existing email address selected with the Delete tool'
+        width: 640
+        height: 555
+        caption: >-
+          <strong>Delete removes the selected element from the page.</strong> Here the old email is
+          marked for deletion while the form around it remains normal PDF content.
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Choose Delete.</strong> The editor highlights the text and image elements it can
+            remove. Click the complete element you want gone.
+          - >-
+            <strong>Download the edited PDF.</strong> The selected value is deleted from that page.
+            Delete-only pages keep the rest of their text selectable and searchable.
+          - >-
+            <strong>Open the result in <a href="/sign/">Sign &amp; Fill PDF</a>.</strong> Add the new
+            value in the cleared space, position it, and download the completed form.
+      - kind: 'prose'
+        text: >-
+          This also works for removing an outdated heading, an old price, a duplicated line, a logo,
+          or a picture you no longer want on the page. A scan is usually one large image rather than
+          separate words, so use Whiteout when you only need to clear one part of a scanned form.
+  - sketch: 'waves'
+    icon: 'FileEdit'
+    iconPos: 'tr'
+    kicker: 'Use case: clear and write over'
+    heading: 'Whiteout gives you a clean surface for replacement text'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Whiteout is the visual alternative. Draw a white box over the old answer, download the
+          flattened page, then add a new answer with <a href="/sign/">Sign &amp; Fill PDF</a>. It is
+          especially useful when the old value is part of a scan and cannot be selected as its own
+          text element.
+      - kind: 'image'
+        src: '/images/redaction-guide/whiteout.jpg'
+        alt: 'Real PDkef editor showing a whiteout box clearing a prefilled email field'
+        width: 640
+        height: 555
+        caption: >-
+          <strong>Whiteout covers the old value and leaves a clean-looking field.</strong> Unlike
+          Delete, it becomes part of a flattened page image when you download.
+      - kind: 'prose'
+        text: >-
+          Choose between them by result: <strong>Delete</strong> when you want the element gone and
+          the rest of the PDF page preserved as searchable content. <strong>Whiteout</strong> when
+          you want a clean visual patch, including on scanned or image-based pages.
+  - sketch: 'rings'
+    icon: 'ShieldCheck'
+    iconPos: 'cl'
+    kicker: 'Use case: make the omission visible'
+    heading: 'Blackout clearly shows that content was removed from view'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Blackout is intentionally visible. Use it when the reader should understand that a name,
+          number, address, paragraph, or image region was withheld. Because you draw over an area,
+          it works on normal PDFs and scanned pages alike.
+      - kind: 'image'
+        src: '/images/redaction-guide/blackout.jpg'
+        alt: 'Real PDkef editor showing a solid blackout over a fictional document reference'
+        width: 640
+        height: 555
+        caption: >-
+          <strong>Blackout creates an unmistakable solid cover.</strong> This example combines a
+          whiteout on one field with a blackout on a reference, showing how tools can be mixed.
+      - kind: 'steps'
+        items:
+          - '<strong>Choose Blackout</strong> and drag across the full area you want covered.'
+          - '<strong>Repeat wherever needed.</strong> Pick Blackout again, or keep the tool on for several areas.'
+          - '<strong>Download.</strong> Every page carrying a Blackout, Whiteout or Blur mark is flattened automatically.'
+  - sketch: 'grid'
+    icon: 'Droplets'
+    iconPos: 'br'
+    kicker: 'Use case: soften visual detail'
+    heading: 'Blur keeps the shape and context of an area'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Blur is useful when a hard rectangle would dominate the page. Soften a face in a photo,
+          a handwritten signature, a screenshot detail, a draft note, or any area that should stay
+          visually present without being the focus.
+      - kind: 'image'
+        src: '/images/redaction-guide/blur.jpg'
+        alt: 'Real PDkef editor showing the Blur tool softening a fictional internal note'
+        width: 640
+        height: 555
+        caption: >-
+          <strong>Blur softens the selected region while preserving its visual footprint.</strong>
+          The box remains adjustable in the editor and is baked into the page on Download.
+      - kind: 'prose'
+        text: >-
+          Blur is a design choice rather than a substitute for Blackout. Choose the result that fits
+          your document: softened context with Blur, an explicit solid cover with Blackout, a clean
+          patch with Whiteout, or actual element removal with Delete.
+  - variant: 'highlight'
+    sketch: 'arcs'
+    icon: 'Download'
+    iconPos: 'tr'
+    kicker: 'The irreversible export choice'
+    heading: 'Flattening makes the marked page one-way'
+    blocks:
+      - kind: 'image'
+        src: '/images/redaction-guide/flatten.svg'
+        alt: 'Diagram showing an editable blackout box becoming part of one flattened page image during download'
+        width: 1200
+        height: 560
+        caption: >-
+          <strong>No separate Flatten button is required.</strong> Download automatically flattens
+          pages that contain Blur, Blackout or Whiteout marks.
+      - kind: 'prose'
+        text: >-
+          Before Download, the cover or blur is an editable object: move it, resize it, recolor a
+          Whiteout, or undo it. During Download, PDkef renders the page and its marks together into
+          <strong>one page image</strong>. In that exported PDF the mask is no longer a separate
+          object, so the action is intentionally one-way.
+      - kind: 'table'
+        caption: 'Flattening changes the whole marked page, not only the box.'
+        headers: ['After Download', 'Page with Delete only', 'Page with Whiteout, Blackout or Blur']
+        rows:
+          - ['Selected change', 'The selected element is deleted', 'The visual mark is baked into the page image']
+          - ['Other text', 'Stays selectable and searchable', 'Becomes pixels and is no longer searchable or selectable']
+          - ['Can the edit be moved later?', 'The element is already gone from the exported page', 'No; the mark is part of the flattened page image']
+          - ['Best fit', 'Removing or replacing page elements', 'Creating a final, fixed visual result']
+      - kind: 'prose'
+        text: >-
+          Keep the original when you may need another version. Your browser draft remains separate
+          from the downloaded result, so you can return to the editor, adjust the marks, and export a
+          new copy without changing the one you already downloaded.
+  - sketch: 'waves'
+    icon: 'WifiOff'
+    iconPos: 'cl'
+    kicker: 'Free, private, open source'
+    heading: 'Try every option without uploading the PDF'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          The tool is free, has no account or watermark, and processes the PDF in your browser. The
+          code is open source under the MIT license. You can
+          <a href="/open-source-pdf-editor/">check how local processing works</a> or
+          <a href="/install-pdf-app/">install PDkef for offline use</a> after the required assets
+          have loaded.
+      - kind: 'prose'
+        text: >-
+          Ready to choose by result? <a href="/redact/">Open Redact &amp; Blur PDF</a>, try the tools
+          on a sample, and download a new copy when it looks the way you want.
+faq:
+  - question: 'What does Delete do in a PDF?'
+    answer: >-
+      Delete removes the selected text or image element from the PDF page. The surrounding page
+      content remains in place, selectable and searchable. Use it to remove or replace prefilled
+      form data, outdated text, a logo, a picture, or another element you no longer want.
+  - question: 'Should I use Delete or Whiteout to replace a form value?'
+    answer: >-
+      Use Delete when the old value is highlighted as its own removable element and you want it
+      gone from the page. Use Whiteout when you want to cover the area with a clean patch, especially
+      on a scan. Download the result, then use Sign & Fill PDF to enter the replacement value.
+  - question: 'What is the difference between Blackout and Blur?'
+    answer: >-
+      Blackout creates a solid, unmistakable cover that shows information was withheld. Blur softens
+      an area while keeping its shape and surrounding visual context. Both are adjustable in the
+      editor and become part of a flattened page image when downloaded.
+  - question: 'What does flattening a PDF page do?'
+    answer: >-
+      Flattening renders a page and its Whiteout, Blackout or Blur marks into one page image. The
+      marks cannot be moved in the downloaded copy, and the page text is no longer selectable or
+      searchable. PDkef does this automatically when you download a page carrying those marks.
+  - question: 'Does Delete flatten the PDF page?'
+    answer: >-
+      No. A page with Delete edits only is not flattened. The selected element is removed and the
+      rest of the page remains normal selectable PDF content. If the same page also has Whiteout,
+      Blackout or Blur, that page is flattened on Download.
+  - question: 'Can I combine Delete, Whiteout, Blackout and Blur in one PDF?'
+    answer: >-
+      Yes. Choose the result you want for each part of the document. You might delete an old form
+      value, white out another field, black out a reference, and blur a photo detail before
+      downloading one finished PDF.

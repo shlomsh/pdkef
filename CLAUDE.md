@@ -247,7 +247,19 @@ status feedback.
 
   **The substitution is table-driven, and the table is the feature, not a detail.** `SCRIPT_FALLBACKS` in `fonts.js` carries one row per script (Hebrew, Devanagari, Thai, Cyrillic, Greek): a pattern, the fonts that can actually draw it, and a handwriting and an upright fallback. Hebrew is just the first row. **Adding a font for a new script is not finished until it has a row** - Mali shipped bundled and advertised for Thai with no row, so Thai text still resolved to a font without Thai glyphs and still died at download, which is exactly the bug the whole module exists to prevent. `fontCoverage.test.js` verifies every row against the real TTFs in both directions: every font listed can draw the script, and **every font left off cannot**. That second assertion is the one that catches a bundled-but-unrouted face, so do not weaken it into a one-way check.
 
-  **Two rules follow from the table, and both are about not lying to the user.** A substitution must be *explained*, never silent - `resolveFontSubstitution` returns the script that forced the change and the editor shows a notice, because the font visibly changes under the user as they type. And when no bundled font can draw something at all (Arabic, CJK, emoji), the honest answer is still a refusal, but it belongs **while they are typing**, not at Download: `src/lib/textCoverage.js` owns the element walk and both message strings, and `signPdf` and the editor's `useFontCoverageNotice.js` both call it so the warning and the refusal can never name different characters or different pages.
+  **Two rules follow from the table, and both are about not lying to the user.** A substitution must be *explained*, never silent - `resolveFontSubstitution` returns the script that forced the change and the editor shows a notice, because the font visibly changes under the user as they type. And when no bundled font can draw something at all (Arabic, CJK, emoji), the honest answer is still a refusal, but it belongs **while they are typing**, not at Download. That
+  guarantee is now split across two modules that must keep agreeing. `src/lib/textCoverage.js` is the
+  *export* side: it walks the document against the real font bytes, owns the document-level message
+  strings, and is what `signPdf` refuses with. `src/lib/textFontSupport.js` is the *editing* side: a
+  synchronous presentation model derived from the generated glyph data in `fonts.js`, rendered by
+  `FontPickerMenu.tsx` and by `TextNode.tsx` through `SignTool/FontSupportNotice.tsx`, so a text box can
+  be marked as needing attention while it is being typed into. **Neither is allowed to answer a coverage
+  question on its own terms:** both resolve the family through `fonts.js`, both truncate comb fields
+  through `textForCoverage` in `comb.js`, and both run the same missing-glyph transforms, which is what
+  keeps the live notice and the refusal from naming different characters. `textCoverage.test.js` compares
+  the two answers against real TTFs; that comparison is the guard, so do not add a coverage rule to one
+  side without the other. (The former `useFontCoverageNotice.js` hook is gone; do not reintroduce a third
+  path.)
 
   **Bengali ships with three named shaper disagreements, and that is a curation decision, not an
   oversight.** `e2e/sign/bengali-shaping-guard.spec.js` pixel-checks 262 generated cases against

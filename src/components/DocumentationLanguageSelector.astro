@@ -1,0 +1,49 @@
+---
+/** A no-JavaScript, same-article language picker for documentation pages. */
+interface Variant {
+  locale?: string;
+  lang?: string;
+  path?: string;
+  href?: string;
+  label?: string;
+  nativeName?: string;
+  isCurrent?: boolean;
+}
+interface Props {
+  variants?: Variant[];
+  currentLocale?: string;
+  label?: string;
+}
+const { variants = [], currentLocale = 'en', label = 'Language' } = Astro.props;
+const available = variants.filter((variant) => (variant.path ?? variant.href) && (variant.locale ?? variant.lang));
+const nativeNames: Record<string, string> = { en: 'English', he: 'עברית' };
+---
+
+{available.length > 1 && (
+  <nav class="documentation-languages" aria-label={label}>
+    <span class="documentation-languages-label">{label}</span>
+    <ul>
+      {available.map((variant) => {
+        const locale = variant.locale ?? variant.lang ?? 'en';
+        const href = variant.path ?? variant.href ?? '/';
+        const name = variant.nativeName ?? variant.label ?? nativeNames[locale] ?? locale;
+        const current = variant.isCurrent ?? locale === currentLocale;
+        return (
+          <li>
+            {current ? <span aria-current="page" lang={locale}>{name}</span> : <a href={href} lang={locale}>{name}</a>}
+          </li>
+        );
+      })}
+    </ul>
+  </nav>
+)}
+
+<style>
+  .documentation-languages { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:.5rem; margin:0 auto 1.25rem; padding-inline:1.5rem; color:var(--color-muted); font-size:.86rem; }
+  .documentation-languages-label { font-weight:600; color:var(--color-text); }
+  .documentation-languages ul { display:flex; flex-wrap:wrap; justify-content:center; gap:.25rem; margin:0; padding:0; list-style:none; }
+  .documentation-languages a, .documentation-languages [aria-current='page'] { display:inline-block; border-radius:var(--radius-pill); padding:.25rem .55rem; }
+  .documentation-languages a { color:var(--color-primary); text-decoration:none; }
+  .documentation-languages a:hover, .documentation-languages a:focus-visible { background:var(--color-primary-soft); text-decoration:underline; }
+  .documentation-languages [aria-current='page'] { background:var(--color-primary-soft); color:var(--color-text); font-weight:600; }
+</style>

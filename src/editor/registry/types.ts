@@ -1,5 +1,4 @@
 import type { EditorElement, ElementType } from '../../lib/editorModel.ts';
-import type { ComponentChildren } from 'preact';
 import type { PDFDocument, PDFFont, PDFPage } from '@cantoo/pdf-lib';
 
 /** The specific union member for a given `ElementType` literal, e.g. `ElementForType<'text'>` is `TextElement`. */
@@ -199,7 +198,6 @@ export interface ElementDefinition<T extends EditorElement = EditorElement> {
     mode: CreationMode;
     create?: (context: CreateContext) => T;
   };
-  render: (context: NodeRenderContext<T>) => ComponentChildren;
   serialize: (element: T, context: SerializeContext) => SerializeResult;
   /** DraggableWrapper's element-root className/style/interactivity contract for this type. */
   view?: ViewFlags;

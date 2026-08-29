@@ -725,10 +725,19 @@ describe('PdfSignTool UI flow', () => {
     const editedTextInput = textInputs[0];
     const nextTextInput = textInputs[1];
 
-    expect(nextTextInput.getAttribute('dir')).toBe('rtl');
-    expect(nextTextInput.style.textAlign).toBe('right');
+    // A new field has no typed language yet, so it uses the product's
+    // English/LTR default rather than inheriting the previous Hebrew field.
+    expect(nextTextInput.getAttribute('dir')).toBe('ltr');
+    expect(nextTextInput.style.textAlign).toBe('left');
     expect(nextTextInput.style.color).toBe('rgb(216, 52, 43)');
     expect(nextTextInput.style.fontSize).toBe(editedTextInput.style.fontSize);
+
+    await act(async () => {
+      nextTextInput.value = '27/05/2008';
+      nextTextInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(nextTextInput.getAttribute('dir')).toBe('ltr');
+    expect(nextTextInput.style.textAlign).toBe('left');
   });
 
   // The reported bug: a text box could not be removed from the keyboard at all,

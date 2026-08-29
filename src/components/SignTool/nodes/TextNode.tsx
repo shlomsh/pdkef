@@ -1,9 +1,11 @@
-import { useState, useLayoutEffect, useRef, useEffect } from 'preact/hooks';
+import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'preact/hooks';
 import ElementResizers from '../../ElementResizers.tsx';
 import usePdfCoordinates from '../../../lib/usePdfCoordinates.js';
 import { getEffectiveTextDirection } from '../../../lib/signHelpers.js';
 import { DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
-import { resolveFontFamily, textBoxPaddingEm } from '../../../lib/fonts.js';
+import { textBoxPaddingEm } from '../../../lib/fonts.js';
+import { getTextFontSupport, describeTextFontSupport } from '../../../lib/textFontSupport.js';
+import FontSupportNotice from '../FontSupportNotice.tsx';
 import { combLayout, isComb } from '../../../lib/comb.js';
 import workspaceStyles from '../Workspace.module.css';
 import elementStyles from '../EditorElement.module.css';
@@ -63,7 +65,13 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   // Render the family the exporter will embed, not the one that was picked, so
   // the browser never quietly patches in a system font for glyphs the chosen
   // file lacks — that fallback is what a PDF cannot reproduce.
-  const renderedFontFamily = resolveFontFamily(element.fontFamily, element.text);
+  const support = useMemo(() => getTextFontSupport({ ...element, type: 'text' }), [
+    element.text, element.fontFamily, element.fontWeight, element.fontStyle, element.width, element.combCells,
+  ]);
+  const renderedFontFamily = support.family;
+  const fontMessage = describeTextFontSupport(support);
+  const fontDescriptionId = useId();
+  const needsAttention = support.status === 'incompatible';
   // Some bundled faces (script/handwriting fonts, and Heebo among the plain
   // ones) have a real ascent+descent bigger than DEFAULT_LINE_HEIGHT_EM, so
   // they paint outside the CSS line box - and the textarea painting them
@@ -175,6 +183,8 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           cols={1}
           className={`${elementStyles['text-input']}${isEditing ? '' : ` ${elementStyles['text-input-inert']}`}`}
           data-editor-text-input
+          aria-invalid={needsAttention || undefined}
+          aria-describedby={fontMessage ? fontDescriptionId : undefined}
           readOnly={!isEditing}
           tabIndex={isEditing ? undefined : -1}
           value={element.text}
@@ -195,6 +205,19 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           }}
         />
       </div>
+      {/* Mounted before text changes so assistive technology announces updates.
+          Only the selected box speaks; inactive problems retain a local badge. */}
+      <span id={fontDescriptionId} className="sr-only" role={isActive ? 'status' : undefined} aria-live={isActive ? 'polite' : 'off'}>
+        {fontMessage}
+      </span>
+      {fontMessage && (isActive || needsAttention) && <FontSupportNotice
+        reference={textRef}
+        message={fontMessage}
+        needsAttention={needsAttention}
+        isActive={isActive}
+        onEdit={onBeginEdit}
+        direction={textDirection}
+      />}
       <ElementResizers
         // Older text fixtures predate the flat `type` discriminant. The node
         // itself is the authoritative type boundary, so preserve that input

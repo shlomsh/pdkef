@@ -20,6 +20,8 @@ function getHtmlFiles(dir, fileList = []) {
 
 const htmlFiles = getHtmlFiles(distDir);
 let hasError = false;
+const pagesByCanonical = new Map();
+const alternateLinks = [];
 
 for (const file of htmlFiles) {
   const relPath = path.relative(process.cwd(), file);
@@ -44,6 +46,29 @@ for (const file of htmlFiles) {
   if (!document.querySelector('title')) error(`Missing <title>`);
   if (!document.querySelector('meta[name="description"]')) error(`Missing meta description`);
   if (!document.querySelector('link[rel="canonical"]')) error(`Missing canonical link`);
+  const canonical = document.querySelector('link[rel="canonical"]')?.href;
+  if (canonical) pagesByCanonical.set(canonical, { relPath, document });
+
+  const html = document.documentElement;
+  const isLocalizedDocumentation = /^dist\/[a-z]{2,3}(?:-[A-Za-z0-9]+)?\//.test(relPath);
+  if (isLocalizedDocumentation) {
+    if (!html.getAttribute('lang')) error('Localized documentation is missing html lang');
+    if (!['ltr', 'rtl'].includes(html.getAttribute('dir') || 'ltr')) error('html dir must be ltr or rtl');
+  }
+
+  const isNoindex = Boolean(document.querySelector('meta[name="robots"][content*="noindex"]'));
+  const alternates = Array.from(document.querySelectorAll('link[rel="alternate"][hreflang]'));
+  if (isNoindex && alternates.length > 0) {
+    error('Noindex preview page must not advertise hreflang alternates');
+  }
+  alternates.forEach((link) => {
+    alternateLinks.push({
+      relPath,
+      canonical,
+      hreflang: link.getAttribute('hreflang'),
+      href: link.href,
+    });
+  });
 
   // 3. OG/Twitter present
   const ogTags = ['og:title', 'og:description', 'og:url', 'og:type'];
@@ -90,11 +115,42 @@ for (const file of htmlFiles) {
         }
       }
     }
+    const schemaAnswers = faqSchema.mainEntity.map((entry) => entry.acceptedAnswer?.text?.trim());
+    const pageAnswers = Array.from(document.querySelectorAll('.faq-item p, .faq-card p')).map((node) => node.textContent.trim());
+    if (pageAnswers.length === schemaAnswers.length) {
+      schemaAnswers.forEach((answer, index) => {
+        if (answer !== pageAnswers[index]) error(`FAQ schema answer mismatch at index ${index}`);
+      });
+    }
   } else {
     const pageQuestionsNodes = document.querySelectorAll('.faq-item h3, .faq-card h3');
     if (pageQuestionsNodes.length > 0) {
       error(`Page has FAQ elements but no FAQPage JSON-LD`);
     }
+  }
+}
+
+// hreflang groups must be reciprocal and must point at a real self-canonical
+// document. This intentionally does not require every language on every page:
+// publication is per article, not per locale.
+for (const alternate of alternateLinks) {
+  if (!alternate.href || alternate.hreflang === 'x-default') continue;
+  const target = pagesByCanonical.get(alternate.href);
+  if (!target) {
+    console.error(`[ERROR] ${alternate.relPath}: hreflang ${alternate.hreflang} target is not a built canonical page: ${alternate.href}`);
+    hasError = true;
+    continue;
+  }
+  if (alternate.canonical && !alternateLinks.some(
+    (candidate) => candidate.canonical === alternate.href && candidate.href === alternate.canonical,
+  )) {
+    console.error(`[ERROR] ${alternate.relPath}: hreflang ${alternate.hreflang} target does not link back reciprocally`);
+    hasError = true;
+  }
+  const targetLanguage = target.document.documentElement.getAttribute('lang');
+  if (targetLanguage && targetLanguage !== alternate.hreflang) {
+    console.error(`[ERROR] ${alternate.relPath}: hreflang ${alternate.hreflang} does not match target html lang ${targetLanguage}`);
+    hasError = true;
   }
 }
 

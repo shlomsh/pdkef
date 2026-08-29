@@ -120,4 +120,31 @@ describe('useDraftPersistence - save outcome reporting', () => {
     expect(saveDraft).not.toHaveBeenCalled();
     expect(apiRef.current.result.draftSaveState).toBe('idle');
   });
+
+  it('does not let an older successful write mark a newer failed revision saved', async () => {
+    let finishFirst;
+    saveDraft
+      .mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }))
+      .mockResolvedValueOnce(false);
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    const firstRevision = apiRef.current.result.draftSaveRevision;
+    await flushDebounceAndMicrotasks();
+
+    act(() => {
+      render(<Harness apiRef={apiRef} props={{ ...props, elements: [{ id: 'newer-edit' }] }} />, container);
+    });
+    expect(apiRef.current.result.draftSaveRevision).toBeGreaterThan(firstRevision);
+    await flushDebounceAndMicrotasks();
+    expect(apiRef.current.result.draftSaveState).toBe('error');
+
+    await act(async () => {
+      finishFirst(true);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(apiRef.current.result.draftSaveState).toBe('error');
+  });
 });

@@ -18,7 +18,18 @@
 // tools.js's gridDescription. `label` stays the short form OtherGuides.astro
 // uses for its OS-switcher pills, where the "Signing on a different device?"
 // heading already supplies the context a bare "Windows" needs.
-import { Monitor, Laptop, Smartphone, TabletSmartphone, UserX, Download, Code2, Trash2 } from 'lucide-preact';
+import {
+  Monitor,
+  Laptop,
+  Smartphone,
+  TabletSmartphone,
+  UserX,
+  Download,
+  Code2,
+  Trash2,
+  WifiOff,
+  Layers,
+} from 'lucide-preact';
 
 export const landingPages = [
   {
@@ -40,6 +51,15 @@ export const landingPages = [
     sitemapChangefreq: 'monthly',
   },
   {
+    href: '/offline-pdf-form-filler/',
+    label: 'Filling a form offline',
+    blurb: 'No upload, and it works on scans and flat PDFs with no real fields at all.',
+    icon: WifiOff,
+    hub: 'sign',
+    sitemapPriority: '0.6',
+    sitemapChangefreq: 'monthly',
+  },
+  {
     href: '/open-source-pdf-editor/',
     label: 'Open source & how to verify it',
     blurb: 'MIT licensed, plus a one-minute test that proves nothing uploads.',
@@ -49,9 +69,18 @@ export const landingPages = [
     sitemapChangefreq: 'monthly',
   },
   {
+    href: '/blur-vs-blackout-vs-delete-pdf/',
+    label: 'Blur, blackout, or delete?',
+    blurb: 'A visual guide to each option, with automatic flattening explained.',
+    icon: Layers,
+    hub: 'redact',
+    sitemapPriority: '0.6',
+    sitemapChangefreq: 'monthly',
+  },
+  {
     href: '/permanently-delete-text-from-pdf/',
-    label: 'Deleting text for real',
-    blurb: "Why a black box doesn't remove anything underneath, and what does.",
+    label: 'Delete text and images from a PDF',
+    blurb: 'Remove selectable elements, keep the remaining text, and know the limits.',
     icon: Trash2,
     hub: 'redact',
     sitemapPriority: '0.6',

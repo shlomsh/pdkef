@@ -6,7 +6,8 @@ import { SignDefaultsContext } from './SignTool/SignDefaultsContext.tsx';
 import { SavedSignaturesContext } from './SignTool/SavedSignaturesContext.tsx';
 import PdfWorkspace from './SignTool/PdfWorkspace.tsx';
 import SignatureDialog from './SignatureDialog.tsx';
-import { uniqueId, seedUniqueId, signPdf, UnrepresentableTextError } from '../lib/sign.js';
+import { signPdf, UnrepresentableTextError } from '../lib/sign.js';
+import { uniqueId, seedUniqueId } from '../editor/model/ids.ts';
 import { describeUnrepresentableText } from '../lib/textCoverage.js';
 import { widthPercentToHeightPercent } from '../lib/coords.js';
 import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../constants/signGeometry.js';
@@ -681,8 +682,11 @@ function PdfSignToolInner() {
     };
   }, [activeElementId, elements]);
 
-  // Apply signing and prepare the PDF for sharing or downloading.
-  const handleSavePdf = async () => {
+  // Shared by both export actions below: signs the PDF and hands the result to
+  // `onSigned`, which decides what to do with it (share vs. plain download).
+  // Status/progress/error handling lives here once so the two actions can't
+  // drift on how a failure recovers.
+  const runExport = async (onSigned: (signedBlob: Blob, filename: string) => void) => {
     if (!file) return;
     setErrorDetail(null);
     setStatus('signing');
@@ -691,20 +695,7 @@ function PdfSignToolInner() {
 
     try {
       const signedBlob = await signPdf(file, elements, (p: number) => setProgress(p));
-      const filename = `signed_${file.name}`;
-      if (prepare(signedBlob, filename)) {
-        // navigator.share() needs a fresh user activation. PDF generation is
-        // asynchronous, so retain the File and let the next tap open the
-        // native share sheet instead of risking a browser-blocked request.
-        setStatus('editing');
-        setAnnouncement('Your signed PDF is ready to share.');
-        return;
-      }
-
-      download(signedBlob, filename);
-
-      setStatus('editing');
-      setAnnouncement('PDF signed successfully. Download started.');
+      onSigned(signedBlob, `signed_${file.name}`);
     } catch (err) {
       console.error(err);
       setStatus('editing');
@@ -714,30 +705,34 @@ function PdfSignToolInner() {
     }
   };
 
-  const handleDownloadPdf = async () => {
+  // Apply signing and prepare the PDF for sharing or downloading.
+  const handleSavePdf = () => runExport((signedBlob, filename) => {
+    if (prepare(signedBlob, filename)) {
+      // navigator.share() needs a fresh user activation. PDF generation is
+      // asynchronous, so retain the File and let the next tap open the
+      // native share sheet instead of risking a browser-blocked request.
+      setStatus('editing');
+      setAnnouncement('Your signed PDF is ready to share.');
+      return;
+    }
+
+    download(signedBlob, filename);
+    setStatus('editing');
+    setAnnouncement('PDF signed successfully. Download started.');
+  });
+
+  const handleDownloadPdf = () => {
     setErrorDetail(null);
     if (downloadPrepared()) {
       setAnnouncement('Download started.');
       return;
     }
 
-    if (!file) return;
-    setStatus('signing');
-    setProgress(0);
-    setAnnouncement('Writing signatures and text layers into PDF...');
-
-    try {
-      const signedBlob = await signPdf(file, elements, (p: number) => setProgress(p));
-      download(signedBlob, `signed_${file.name}`);
+    runExport((signedBlob, filename) => {
+      download(signedBlob, filename);
       setStatus('editing');
       setAnnouncement('PDF signed successfully. Download started.');
-    } catch (err) {
-      console.error(err);
-      setStatus('editing');
-      const detail = describeSignFailure(err);
-      setErrorDetail(detail);
-      setAnnouncement(`Signing stopped. ${detail}`);
-    }
+    });
   };
 
   const handleSharePdf = async () => {

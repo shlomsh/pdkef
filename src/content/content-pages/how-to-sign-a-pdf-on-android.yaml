@@ -1,118 +1,146 @@
-title: 'How to Sign a PDF on Android (No App Needed) | PDkef'
+title: 'How to Sign a PDF on Android for Free | PDkef'
 description: >-
-  Sign a PDF on Android in Chrome, with no app to install. What your phone can already do varies by
-  handset - here is how to fill a form, tick checkboxes, and sign it for free.
+  Sign a PDF on Android for free in Chrome. Fill a form, add your signature, and send it back on
+  WhatsApp. No signup or watermark; your PDF stays on your device.
 breadcrumb: 'Android'
 icon: 'TabletSmartphone'
 kicker: 'Android, right in Chrome'
-h1: 'How to Sign a PDF on Android'
+h1: 'How to Sign a PDF on Android for Free'
 subhead: >-
-  Android has no single built-in PDF editor, so what your phone can do with a form depends on which
-  app happens to open it. Chrome is the one thing every Android device has, and it turns out to be
-  enough.
+  A form arrives on your phone. You can fill it in, add your signature, and send a finished PDF
+  back without printing anything. Open PDkef in Chrome, choose the file, and work on it locally.
+  No account, subscription, or watermark.
 primaryCta:
   href: '/sign/'
-  label: 'Sign a PDF now'
+  label: 'Sign a PDF on Android'
 sections:
   - variant: 'highlight'
     sketch: 'arcs'
     icon: 'TabletSmartphone'
     iconPos: 'tr'
     kicker: 'Four steps'
-    heading: 'Sign a PDF on Android'
+    heading: 'Fill and sign a PDF on your Android phone'
     blocks:
       - kind: 'steps'
         items:
           - >-
-            <strong>Download the PDF first</strong> from Gmail, WhatsApp or wherever it arrived, so
-            it's sitting in your Downloads folder.
+            <strong>Save the PDF on your phone.</strong> Download the attachment from email or
+            WhatsApp, then find it in your file manager. The folder depends on the app that saved it.
           - >-
-            <strong>Open <a href="/sign/">pdkef.com/sign</a> in Chrome</strong> and tap to choose
-            that file.
+            <strong>Open <a href="/sign/">pdkef.com/sign</a> in Chrome.</strong> Tap to choose a
+            file, then select the PDF from Recents, Downloads, or the folder where you saved it.
           - >-
-            <strong>Fill it in, then sign.</strong> Pinch to zoom before placing anything small.
-            Draw your signature with a finger or a stylus, or type it in a handwriting font.
+            <strong>Add your answers and signature.</strong> Place text and check marks on the
+            page. Draw your signature with a finger or stylus, type it, or choose a signature image.
           - >-
-            <strong>Download it.</strong> The finished PDF goes back to Downloads, ready to attach
-            to your reply.
+            <strong>Tap Download and check the new PDF.</strong> The filename starts with
+            "signed_". Open it to check the signature, dates, and every page before sending it back.
+  - sketch: 'waves'
+    icon: 'FileEdit'
+    iconPos: 'cl'
+    kicker: 'From chat to finished form'
+    heading: 'How to sign a PDF sent through WhatsApp on Android'
+    blocks:
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Download the attachment in the chat.</strong> Search for its filename in your
+            file manager. Once you find it, use Copy to if you want a copy in Downloads. A WhatsApp
+            download is not always saved in that folder automatically.
+          - >-
+            <strong>Choose that PDF in <a href="/sign/">the signing tool</a>.</strong> Add the
+            requested information and your signature, then download the finished copy.
+          - >-
+            <strong>Attach the new PDF to your reply.</strong> Return to the WhatsApp chat, open
+            the attachment menu, choose Document, and select the file beginning with "signed_".
+            Check the filename before sending so you do not return the unsigned original.
+      - kind: 'prose'
+        text: >-
+          If the tool shows <strong>Share</strong>, you can use that too: tap it to prepare the PDF,
+          then tap <strong>Share now</strong> and choose WhatsApp. Download remains available if
+          your browser does not support file sharing. Send the PDF itself so the recipient gets all
+          its pages, not just a screenshot of the signature.
   - sketch: 'grid'
     icon: 'TabletSmartphone'
     iconPos: 'br'
-    kicker: 'Your phone''s own tools, side by side'
-    heading: 'Why the answer is different on every Android phone'
+    kicker: 'Tools you may already have'
+    heading: 'What Android PDF apps can already do'
     blocks:
       - kind: 'prose'
         text: >-
-          There's no Android equivalent of Preview or Markup, so the PDF opens in whatever viewer
-          your phone shipped with or you installed at some point. Some can draw on a page. Some are
-          read-only. A Samsung with a stylus can do rather more than a budget handset. That
-          variation is the real problem on Android, and it's why the built-in column below has to be
-          answered with "it depends".
+          Check the app that opens your PDF before looking for another one. Google Drive can
+          <a href="https://support.google.com/drive/answer/9463834" target="_blank" rel="noopener noreferrer">fill supported PDF forms</a>
+          and <a href="https://support.google.com/drive/answer/13207179" target="_blank" rel="noopener noreferrer">draw on a PDF with a finger or stylus</a>.
+          Other viewers offer different tools. PDkef gives you text, check marks, and several ways
+          to add a signature in a browser, including on scanned forms with no interactive fields.
       - kind: 'compare'
-        builtInLabel: 'Your phone''s viewer'
+        builtInLabel: 'Android PDF apps'
         caption: >-
-          Both run on the phone itself with nothing uploaded, so this is about what each one can do,
-          not about privacy.
+          Android apps vary by version and device. Check the controls and save location in the app
+          opening your PDF.
         rows:
           - task: 'Add a handwritten signature'
-            builtIn: 'Freehand pen, if your viewer app has one'
-            here: 'Draw, type, or upload a photo of one'
-          - task: 'Fill a form that has real fillable fields'
-            builtIn: 'Depends entirely on the app'
-            here: 'Yes'
+            builtIn: 'Draw with a pen tool where supported'
+            here: 'Draw, type, or choose a signature image'
+          - task: 'Complete a form with fillable fields'
+            builtIn: 'Google Drive supports compatible form fields'
+            here: 'Place text and check marks on the page'
           - task: 'Type onto a flat or scanned form'
-            builtIn: 'A floating text box at best'
-            here: 'Tap where you want it and type'
-          - task: 'Tick a checkbox on a scanned form'
-            builtIn: ''
-            here: 'Yes'
-          - task: 'Permanently remove text from a page'
-            builtIn: ''
-            here: 'Yes'
-          - task: 'Keep going if the form takes two sittings'
-            builtIn: ''
-            here: 'Your progress is saved on the phone'
-  - sketch: 'waves'
+            builtIn: 'Look for an Add text or annotation tool'
+            here: 'Tap the page to add a text box'
+          - task: 'Mark a checkbox on a scanned form'
+            builtIn: 'Draw a tick in a viewer with a pen tool'
+            here: 'Place a check mark or cross'
+  - sketch: 'rings'
     icon: 'ShieldCheck'
     iconPos: 'cl'
-    kicker: 'One less thing installed'
-    heading: 'A signed form isn''t worth a permanent app'
+    kicker: 'Free, with your files kept local'
+    heading: 'A browser tool you can keep using offline'
     blocks:
       - kind: 'prose'
         text: >-
-          Signing a PDF is usually a once-every-few-months errand: a school form, a rental
-          agreement, something a bank needed yesterday. Installing an app for that means granting it
-          access to your files and then leaving it on the phone long after the form is sent.
+          PDkef processes the PDF and signature on your phone, with no document upload. It is free,
+          with no signup or watermark, and the code is <a href="/open-source-pdf-editor/">open
+          source under the MIT license</a>. Drafts and saved signatures can remain in this browser,
+          so use your own browser profile for personal forms.
       - kind: 'prose'
         text: >-
-          A browser tab asks for none of that. Your document is opened by Chrome, worked on by
-          Chrome, and saved back by Chrome, without ever being uploaded anywhere. If it does turn
-          out to be a regular errand, you can <a href="/install-pdf-app/">add it to your
-          home screen</a> and it works with no connection at all.
+          For repeat use, <a href="/install-pdf-app/">install PDkef for offline use</a> while you
+          have a connection and let the required assets finish downloading. Try your usual font
+          and a test export before going offline. Before forwarding a form, you can also use the
+          <a href="/redact/">PDF redaction tool</a> to black out details the recipient does not need.
 faq:
   - question: 'Do I need to install an app to sign a PDF on Android?'
     answer: >-
-      No. It works inside Chrome, so there is nothing to fetch from the Play Store, no storage
-      permission to grant, and nothing left behind on your phone afterwards.
-  - question: 'Why does signing a PDF feel harder on Android than on an iPhone?'
+      No. Open PDkef in Chrome and choose your PDF. There is no Play Store download, account, or
+      subscription required. The browser may retain a local draft and saved signatures; it does
+      not upload them to PDkef.
+  - question: 'How do I sign a PDF file sent through WhatsApp?'
     answer: >-
-      Because Android doesn't ship one PDF editor the way iOS ships Markup. Whatever opens your PDF
-      is whichever app happens to be installed, so what you can do with it varies from phone to
-      phone. A browser is the one thing every Android device has, which is why this approach works
-      the same everywhere.
-  - question: 'How do I get a PDF from WhatsApp or Gmail into the tool?'
+      Download the attachment and locate it in your phone's file manager. Open it in PDkef, add
+      your signature, and download the new PDF. In WhatsApp, choose Document from the attachment
+      menu and select the file beginning with "signed_", not the original attachment.
+  - question: 'How do I sign a document on Android if it is a photo?'
     answer: >-
-      Download the attachment first, which puts it in your Downloads folder. Then open the tool, tap
-      to choose a file, and pick it from there.
-  - question: 'Do I need to create an account or start a subscription?'
+      Convert the photo to a PDF with PDkef's Image to PDF tool, then open that PDF in the signing
+      tool. Check that all the pages are present and readable before adding your signature.
+  - question: 'Where is my signed PDF on Android?'
     answer: >-
-      No. There is no account, no email address, and no trial that runs out partway through a form.
-      The whole thing is free every time.
-  - question: 'Will there be a watermark on my downloaded file?'
+      Look in Chrome's Downloads or your file manager's Recents and Downloads views. The file
+      starts with "signed_" followed by the original name. If you used Share instead, the chosen
+      app handles the file and may not save an extra copy in Downloads.
+  - question: 'Can I sign a PDF on Android without an internet connection?'
     answer: >-
-      No. What you download is your document, with your signature on it and nothing added.
-  - question: 'My finger signature looks like a scribble. What helps?'
+      Yes, after the app and the assets you need have been saved for offline use. Install it while
+      connected and test an export with your chosen font before going offline. Receiving or sending
+      a file through WhatsApp or email still needs a connection.
+  - question: 'How can I make my finger signature easier to read?'
     answer: >-
-      Pinch to zoom in and sign much bigger than the space needs, since shrinking it down hides most
-      of the wobble. If your phone came with a stylus, use it. Failing both, type your name in a
-      handwriting-style font, which is fine for most everyday forms.
+      Draw it larger in the signature area, then resize it on the page. A stylus can help. You can
+      also type your name or choose a photo of a signature. Follow the recipient's instructions if
+      they require a particular signature method.
+  - question: 'Does this fill the PDF''s interactive form fields?'
+    answer: >-
+      PDkef places text, check marks, and signatures on the page. It does not populate the PDF's
+      underlying interactive form fields. If the recipient needs those field values or a form's
+      built-in submit button, use a compatible form reader instead.
