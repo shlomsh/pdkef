@@ -50,10 +50,21 @@ import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
  * glyph draw order this way still passed at 0 failing, floor 61.91%. To
  * prove this guard can fail, corrupt only the corpus-side shaping (not a
  * function calibration also calls) - that reproduces 131/185 failing with
- * the floor unchanged. **Result at last run: 185/185 passed, 0 failing**,
- * noise floor 6.79%, tolerance 10.18%, worst real case 8.28%
- * (`RA+virama+थ`) - comfortably inside tolerance with real margin, not
- * sitting on the edge.
+ * the floor unchanged.
+ *
+ * **Render-size correction, 2026-08-29 (found while screening Mukta for
+ * FONT-08a).** This guard originally rendered at 100px, well under Skia's
+ * ~256px bitmap-glyph cache limit - the same class of geometry gap SIGN-19
+ * found and fixed for the Arabic and Bengali guards (Bengali's known-
+ * divergence list grew from 3 to 6 entries once re-measured correctly). This
+ * guard had not been re-measured since. Bumped to 400px (a uniform 4x scale
+ * of the original 100/500/200/20/120 geometry, matching Bengali's own fix)
+ * and re-run: **185/185 still passes, 0 failing, at a floor that collapsed
+ * to 0.04%** (tolerance floored at the 4% minimum) - the old 6.79%/10.18%
+ * floor/tolerance was mostly the removable rasteriser-mismatch artefact
+ * SIGN-19 describes, not real Devanagari shaping noise, and no new
+ * divergence surfaced once it was removed. Telugu/Gurmukhi/Tamil remain at
+ * the old 100px geometry and are out of scope here - see TODO.md.
  */
 
 const CALIBRATION_VOWEL_SIGN = 'ा'; // plain post-base AA - not pre-base, not tested by the corpus itself
@@ -67,11 +78,19 @@ createShapingGuardTest({
   candidateName: 'Kalam',
   fontFileName: 'Kalam-Regular.ttf',
   direction: 'ltr',
-  size: 100,
-  canvasWidth: 500,
-  canvasHeight: 200,
-  anchorX: 20,
-  baselineY: 120,
+  // 400px clears Skia's bitmap-glyph limit (~256px - see the "Two artefacts"
+  // note in shapingGuardHarness.js and docs/shaping-guard-platform-
+  // calibration.md); canvas dims are a uniform 4x scale-up of this guard's
+  // original 100/500/200/20/120 geometry, matching the fix already applied to
+  // the Arabic and Bengali guards under SIGN-19. This guard had NOT been
+  // re-measured at the corrected geometry until FONT-08a's Mukta screening
+  // caught it - Telugu/Gurmukhi/Tamil are in the same unfixed state and are
+  // out of scope here (see TODO.md).
+  size: 400,
+  canvasWidth: 2000,
+  canvasHeight: 800,
+  anchorX: 80,
+  baselineY: 480,
   corpus: DEVANAGARI_CORPUS,
   calibrationSet: CALIBRATION_SET,
   // Ceiling actually observed across two real CI runs of the six failing
