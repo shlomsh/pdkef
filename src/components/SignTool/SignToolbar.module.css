@@ -258,8 +258,57 @@
      wrap under the uncorrected 5-per-row share as 4+4+1. This shipped exactly
      that way once already, reproduced deterministically (every run, not an
      intermittent flake) against a real build and caught by CI. */
+  /* Sign's tenth control is the only one that does not act on the document, so
+     below 251px it stands down and lets the nine that do take the three-way
+     split above. Ten cannot be balanced here at all: the 44px touch floor caps
+     the line at four regardless of --controls-per-row, and greedy flex turns
+     ten into 4+4+2 at a cap of four or five and 3+3+3+1 at three, while the
+     balanced 4+3+3 is unreachable at every cap. Nine, by contrast, lands
+     exactly - 3 * 71.2 + 2 * 4.8 = 223.2px at a 320px viewport, the full
+     content box, with a 71.2px target instead of 44px.
+     `[data-optional-control]` rather than a class because CSS Modules hash
+     `styles.*`, so this has to be nameable from the counting selectors below
+     too, exactly the reason `[role="radiogroup"]` stands in for `.segmented`
+     further up. Feedback is not lost, it stays in the site footer on every
+     page ("Report a bug", "Feedback & ideas"), which is what makes hiding it
+     acceptable here - this band is not only 320px-class hardware, it is also
+     where a current phone lands at 115-125% browser zoom and where WCAG
+     1.4.10's 320px reflow case sits, so the control has to remain reachable
+     somewhere. Do not extend this to a control that edits the document, and
+     do not reach for `.desktop-download`'s 920px media query instead: that
+     would strip Feedback from every phone and tablet to fix a band none of
+     them are in.
+     The `display: none` is necessary but NOT sufficient. `:nth-child(n of ...)`
+     counts DOM children whatever their rendering, so a hidden tenth control
+     still reads as ten and keeps the cap at five - which is the whole shape of
+     the bug this fixes. The exclusion below is the half that actually re-arms
+     the nine-control rule. Redact has no such control, so `:not(...)` is inert
+     there and both tools keep one code path. */
   @container toolbar (max-width: 251px) {
     .toolbar:has(> :nth-child(9 of :not(.desktop-download):not([role="radiogroup"]))):not(:has(> :nth-child(10 of :not(.desktop-download):not([role="radiogroup"])))) > * { --controls-per-row: 3; }
+  }
+
+  /* 239.2px is where ten controls stop fitting five to a line at the touch
+     floor (5 * 44 + 4 * 4.8), and it is deliberately NOT the 251px above.
+     251px is nine's clamp point, and reusing it would hide Feedback across a
+     12px band (336-347px viewport) where ten still fit perfectly well as 5+5 -
+     which on real hardware is an iPhone SE 2nd/3rd gen at 110% zoom losing a
+     control for no reason. Container queries match the CONTENT box, so these
+     figures are content width: this fires at a 335px viewport, 251px fires at
+     347px. Getting that wrong is easy and silent, since the border box is what
+     you measure in devtools.
+     The exclusion below lives in THIS query and not the one above, and the
+     pairing is load-bearing in both directions. Between 239px and 251px
+     Feedback is still visible, so it must still be COUNTED - excluding it
+     there would fire the three-way split on a toolbar showing ten, giving
+     3+3+3+1, the exact stranded row all of this exists to prevent. Below
+     239px it is hidden, so it must NOT be counted, or the toolbar reads as ten
+     and keeps the five-per-row share while only nine render. `display: none`
+     alone never changes `:nth-child(n of ...)`, which counts DOM children
+     whatever their rendering. */
+  @container toolbar (max-width: 239px) {
+    [data-optional-control] { display: none; }
+    .toolbar:has(> :nth-child(9 of :not(.desktop-download):not([role="radiogroup"]):not([data-optional-control]))):not(:has(> :nth-child(10 of :not(.desktop-download):not([role="radiogroup"]):not([data-optional-control])))) > * { --controls-per-row: 3; }
   }
 }
 
