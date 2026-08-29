@@ -106,9 +106,10 @@ const ALPHABET = [...DUAL_JOINING_LETTERS, ...NON_JOINING_LETTERS];
 
 /**
  * Shared by both guards below. 320px clears Skia's bitmap-glyph limit (see the
- * module doc); the canvas is 4x the old 600x200 so the widest corpus string
- * (`phrase:jumhuriya`, 1,932px at this size) still fits inside `anchorX`, which
- * the harness now asserts rather than leaving to inspection.
+ * module doc); the canvas is 4x the old 600x200 so the widest single-direction
+ * corpus string still fits inside `anchorX`, which the harness now asserts
+ * rather than leaving to inspection. Mixed-direction supplied cases live in
+ * the bidi guard, not this whole-run shaping guard.
  */
 const GEOMETRY = {
   size: 320,

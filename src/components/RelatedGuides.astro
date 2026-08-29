@@ -35,14 +35,13 @@ interface Props {
 }
 
 const { currentSlug, heading, locale = 'en', labels = {}, resolveLink } = Astro.props;
-const resolvedHeading = heading ?? labels.relatedHeading ?? 'Guides for this tool';
+const resolvedHeading = heading ?? labels.relatedHeading ?? 'Documentation';
 const related = contentPagesForTool(currentSlug);
 ---
 
 {related.length > 0 && (
   <section class="related-guides" aria-labelledby="related-guides-heading">
     <div class="related-guides-head">
-      <span class="related-guides-kicker">{labels.relatedKicker ?? 'More on this tool'}</span>
       <h2 id="related-guides-heading">{resolvedHeading}</h2>
     </div>
 
@@ -84,15 +83,6 @@ const related = contentPagesForTool(currentSlug);
   .related-guides-head {
     margin-bottom: 2rem;
     text-align: center;
-  }
-
-  .related-guides-kicker {
-    display: inline-block;
-    margin-bottom: 0.5rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: var(--color-primary);
   }
 
   .related-guides-head h2 {

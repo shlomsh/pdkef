@@ -40,14 +40,17 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(note).toContain('Gveret Levin');
   });
 
-  it('Hindi, Marathi, and Devanagari: exactly Kalam, matching LANGUAGE_COVERAGE.devanagari.full and .marathi.full', () => {
-    expect(LANGUAGE_COVERAGE.devanagari.full.map((f) => f.family)).toEqual(['Kalam']);
+  it('Hindi, Marathi, and Devanagari: Kalam and Mukta, matching LANGUAGE_COVERAGE.devanagari.full and .marathi.full', () => {
+    // FONT-08a: Mukta (upright) joined the previously Kalam-only (handwriting)
+    // Devanagari row, closing the "no upright option at all" gap.
+    expect(LANGUAGE_COVERAGE.devanagari.full.map((f) => f.family)).toEqual(['Kalam', 'Mukta']);
     // Marathi is a separate report row (Devanagari's set - ळ/ऱ already sit
     // inside it, see scripts/font-languages.mjs) so a font that covered Hindi
     // but not those two letters would show up here as a real disagreement.
-    expect(LANGUAGE_COVERAGE.marathi.full.map((f) => f.family)).toEqual(['Kalam']);
+    expect(LANGUAGE_COVERAGE.marathi.full.map((f) => f.family)).toEqual(['Kalam', 'Mukta']);
     const note = supportedNote('Hindi, Marathi, and Devanagari');
     expect(note).toContain('Kalam');
+    expect(note).toContain('Mukta');
     expect(note).toContain('ळ');
     expect(note).toContain('ऱ');
   });

@@ -144,6 +144,35 @@ export const EXPORT_RENDER_CORPUS = [
   // future run gets measured against, which a stored baseline must never do.
   textCase('bengali-noto-sans-bengali', 'প্রিয়া', { fontFamily: 'Noto Sans Bengali' }),
 
+  // --- Simplified Chinese, Traditional Chinese and Korean (FONT-05): shipped,
+  // user-selectable scripts this guard has never had a case for. Like
+  // Japanese above, `cjk-advance-parity-guard.spec.js` already proves the
+  // shaper picks the right glyph (no reordering/joining for CJK to disagree
+  // about), so these three cases exist purely to catch what that metrics
+  // check cannot see on the file a user actually receives - a corrupted
+  // `glyf` table or a subset missing composite components. No shaping stress
+  // test is needed here (see the Japanese/Bengali comment above for why that
+  // distinction matters); common, unambiguous words are the safer choice.
+  //
+  // 你好 ("nǐ hǎo", "hello") - the two most common characters in Simplified
+  // Chinese. Both confirmed present via fontkit's hasGlyphForCodePoint()
+  // against the real public/fonts/NotoSansSC-Regular.ttf bytes before this
+  // case was added, the same verification method the Bengali case used.
+  textCase('chinese-simplified-noto-sans-sc', '你好', { fontFamily: 'Noto Sans SC' }),
+
+  // 謝謝 ("xièxiè", "thank you") - a common, everyday word, written with the
+  // Traditional-specific form of 謝 (Simplified: 谢), so this case is not a
+  // duplicate of the SC case above at the glyph level either. Confirmed
+  // present via fontkit against the real NotoSansTC-Regular.ttf bytes.
+  textCase('chinese-traditional-noto-sans-tc', '謝謝', { fontFamily: 'Noto Sans TC' }),
+
+  // 안녕하세요 ("annyeonghaseyo", "hello", the common formal greeting) - five
+  // precomposed Hangul syllables, all inside the modern syllable block
+  // Noto Sans KR covers in full (font-languages.mjs's `korean` entry).
+  // Confirmed present via fontkit against the real NotoSansKR-Regular.ttf
+  // bytes.
+  textCase('korean-noto-sans-kr', '안녕하세요', { fontFamily: 'Noto Sans KR' }),
+
   // --- The comb path: positions by cell index, skips bidi, has its own
   // geometry. `width` is what makes an element a comb (see comb.js).
   textCase('comb-ltr', 'AB12', { fontFamily: 'Arimo', width: 40, combCells: 6 }),

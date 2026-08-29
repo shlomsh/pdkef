@@ -12,11 +12,15 @@ import styles from './EditorControls.module.css';
 export default function ElementToolbar({
   element,
   onChange,
+  onPreviewFont,
+  onPreviewFontEnd,
   onClone,
   onDelete
 }: {
   element: any;
   onChange: (changes: any) => void;
+  onPreviewFont?: (fontFamily: string) => void;
+  onPreviewFontEnd?: () => void;
   onClone: (...args: any[]) => void;
   onDelete: (...args: any[]) => void;
 }) {
@@ -80,6 +84,8 @@ export default function ElementToolbar({
             fontWeight={currentWeight}
             fontStyle={currentStyle}
             onChange={(fontFamily: string) => onChange({ fontFamily })}
+            onPreview={onPreviewFont}
+            onPreviewEnd={onPreviewFontEnd}
           />
           <div className={styles.divider} />
           <button

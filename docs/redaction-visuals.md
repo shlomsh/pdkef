@@ -12,6 +12,10 @@ The accompanying SVG is an explanatory diagram, **not** a screenshot. It uses PD
 
 | Asset | Intrinsic dimensions | Suggested alt text |
 | --- | --- | --- |
+| `/images/redaction-guide/delete.jpg` | 640 × 555 | Real PDkef editor showing an existing email address selected with the Delete tool. |
+| `/images/redaction-guide/whiteout.jpg` | 640 × 555 | Real PDkef editor showing a whiteout box clearing a prefilled email field. |
+| `/images/redaction-guide/blackout.jpg` | 640 × 555 | Real PDkef editor showing a solid blackout over a fictional document reference. |
+| `/images/redaction-guide/blur.jpg` | 640 × 555 | Real PDkef editor showing the Blur tool softening a fictional internal note. |
 | `/images/redaction-guide/flatten.svg` | 1200 × 560 | Diagram showing an editable blackout box becoming part of one flattened page image when the PDF is downloaded. |
 | `/images/redaction-guide/sample.pdf` | One page, 680 × 500 PDF points | Download a fictional sample PDF to try the redaction tools. |
 
@@ -20,8 +24,8 @@ The accompanying SVG is an explanatory diagram, **not** a screenshot. It uses PD
 - Blur, Blackout and Whiteout are editable marks while in the editor.
 - Download automatically flattens pages with these marks. There is no separate Flatten button.
 - Pages with no such marks are not automatically rasterized.
-- Flattening removes the separate editable cover and original text layer from a rasterized page. It does not make blurred pixels safe for secrets; visual patterns may remain.
-- Delete is useful for document cleanup. It is not a sanitization guarantee: residual source streams or resources may remain in a Delete-only file.
+- Flattening makes the exported marked page one image. Its text is no longer selectable or searchable, and the export is a one-way action.
+- Delete removes the selected text or image element from the PDF page while keeping the surrounding page content intact.
 - Review the downloaded PDF before sharing. The draft on the same device is separate from the exported copy.
 
 These statements were checked against `PdfRedactTool.tsx`, `RedactToolbar.tsx`, `applyPageEdits.js`, and `redact.js`. The main task separately audited deletion behavior.
@@ -30,8 +34,8 @@ These statements were checked against `PdfRedactTool.tsx`, `RedactToolbar.tsx`, 
 
 1. Start the development server and visit `/redact/` on a fresh local origin. A previously installed service worker on another local origin can serve stale built HTML.
 2. Choose `public/images/redaction-guide/sample.pdf`.
-3. Select Blur and drag around the example email. Select Blackout and drag around the demo reference. Select Delete and click the highlighted draft-note text run.
-4. Capture the actual editor through Browser's screenshot API. Crop to the toolbar and document, preserving all visible UI pixels. Optimize to WebP with the existing `sharp` dependency, without overlaying fabricated labels.
+3. Capture Delete, Whiteout, Blackout and Blur as separate, outcome-focused examples.
+4. Capture the actual editor through Browser's screenshot API. Crop to the toolbar and document, preserving all visible UI pixels. Optimize the screenshots without overlaying fabricated labels.
 5. For the conceptual SVG, render with `sharp` and inspect the resulting PNG for layout and legibility.
 
 The SVG was rendered to a 1200 × 560 PNG and visually inspected. A silent video was not produced: the supported browser surface provides screenshots, not a recording API. A sequence of real screenshots and the lightweight diagram avoids shipping a fabricated video.

@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'preact/hooks';
+import { useRef, useCallback, useMemo } from 'preact/hooks';
 import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS } from '../../constants/signGeometry.js';
 import PdfPageCanvas from '../PdfPageCanvas.tsx';
 import EditorPageHeader from '../EditorPageHeader.tsx';
@@ -10,6 +10,7 @@ import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
 import { detectTextDirection } from '../../lib/signHelpers.js';
+import { getSignExportReadiness } from '../../lib/signExportReadiness.ts';
 import pdfToolStyles from '../PdfTool.module.css';
 import workspaceStyles from './Workspace.module.css';
 
@@ -67,6 +68,10 @@ export default function PdfWorkspace({
   const { activeSignature } = useSavedSignatures();
   const activeElement = elements.find((el) => el.id === activeElementId);
   const activeTextElement = activeElement?.type === 'text' ? activeElement : null;
+  // One preflight projection feeds every export affordance. It is intentionally
+  // derived here, where the top toolbar, bottom actions, and review navigation
+  // meet, rather than recreated in each of those presentation components.
+  const exportReadiness = useMemo(() => getSignExportReadiness(elements), [elements]);
 
   // A fresh field starts from the product's English/LTR default. Direction is
   // then derived from what is typed into that field; it must never inherit the
@@ -171,6 +176,21 @@ export default function PdfWorkspace({
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
   }, [dispatch]);
 
+  const reviewExportIssues = useCallback(() => {
+    const firstIssueId = exportReadiness.blockingElementIds[0];
+    if (!firstIssueId) return;
+    dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: firstIssueId });
+    // The in-place notice then expands from its existing marker and exposes the
+    // font suggestions, rather than sending the user to a selected-but-silent box.
+    dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: firstIssueId });
+    setAnnouncement('Showing the first text field that needs attention.');
+    const target = Array.from(document.querySelectorAll('[data-editor-element-id]'))
+      .find((node) => node.getAttribute('data-editor-element-id') === firstIssueId) as HTMLElement | undefined;
+    if (typeof target?.scrollIntoView === 'function') {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [dispatch, exportReadiness.blockingElementIds, setAnnouncement]);
+
   // "Clear page" (the page header, same action the Redact editor has): removes
   // one page's annotations and leaves every other page alone. Logged with the
   // removed elements as its snapshot, so it undoes in one step like a delete.
@@ -210,6 +230,9 @@ export default function PdfWorkspace({
             canSharePdf={canSharePdf}
             shareReady={shareReady}
             exporting={status === 'signing'}
+            exportBlocked={exportReadiness.blocked}
+            exportIssueCount={exportReadiness.blockingFieldCount}
+            onReviewExportIssues={reviewExportIssues}
           />
 
           {/* PDF Pages rendering container */}
@@ -272,11 +295,11 @@ export default function PdfWorkspace({
 
           {/* Complete signing button */}
           <div className={workspaceStyles['export-actions']}>
-            <button type="button" className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']}`} onClick={handleDownloadPdf} disabled={status === 'signing'}>
+            <button type="button" className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']}`} onClick={handleDownloadPdf} disabled={status === 'signing' || exportReadiness.blocked} aria-describedby={exportReadiness.blocked ? 'sign-export-readiness' : undefined}>
               Download
             </button>
             {canSharePdf && (
-              <button type="button" className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']} ${workspaceStyles['export-share']}`} onClick={shareReady ? handleSharePdf : handleSavePdf} disabled={status === 'signing'}>
+              <button type="button" className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']} ${workspaceStyles['export-share']}`} onClick={shareReady ? handleSharePdf : handleSavePdf} disabled={status === 'signing' || exportReadiness.blocked} aria-describedby={exportReadiness.blocked ? 'sign-export-readiness' : undefined}>
                 {shareReady ? 'Share now' : 'Share'}
               </button>
             )}

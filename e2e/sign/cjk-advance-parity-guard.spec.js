@@ -67,6 +67,7 @@
  */
 import { test, expect } from '@playwright/test';
 import { buildFontkitBundle, removeFontkitBundle } from './fixtures/shapingGuardHarness.js';
+import { WYSIWYG_STRING_BY_ID } from '../../src/test/fixtures/wysiwygStrings.js';
 
 /**
  * Strings a per-character sweep cannot cover: kerning only exists between a
@@ -79,6 +80,7 @@ const FAMILIES = [
     file: 'NotoSansJP',
     minCoverage: 3500,
     strings: [
+      WYSIWYG_STRING_BY_ID.C3.text,
       '山田太郎', 'やまだたろう', 'ヤマダタロウ', 'たろ', 'アイ',
       '東京都渋谷区', '住所: 東京都渋谷区1-2-3', '電話 03-1234-5678',
       '〒150-0001', '令和8年8月26日', '株式会社テスト', '金額 1,250円',
