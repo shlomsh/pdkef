@@ -152,7 +152,11 @@ describe('resolveFontFamily across every script the catalogue covers', () => {
   // path: the default font is Arimo, and a handwriting font is what someone
   // picks for a signature-ish field.
   it('rescues the scripts that had no font of their own before', () => {
-    expect(resolveFontFamily('Arimo', 'नमस्ते भारत')).toBe('Kalam');
+    // Arimo is sans/upright, and since FONT-08a (Mukta) the Devanagari
+    // candidates include an upright face - it wins the tagRank/classRank tie
+    // over Kalam (handwriting), matching Arimo's own style. Requesting from a
+    // handwriting font still lands on Kalam - see the next assertion.
+    expect(resolveFontFamily('Arimo', 'नमस्ते भारत')).toBe('Mukta');
     expect(resolveFontFamily('Arimo', 'สวัสดี')).toBe('Mali');
     expect(resolveFontFamily('Caveat', 'नमस्ते')).toBe('Kalam');
     expect(resolveFontFamily('Caveat', 'สวัสดี')).toBe('Mali');
@@ -184,8 +188,11 @@ describe('resolveFontSubstitution', () => {
   });
 
   it('names the characters that forced a change, so the editor can explain it', () => {
+    // Arimo (sans/upright) substitutes to Mukta (sans/upright), not Kalam
+    // (handwriting) - same tagRank/classRank tiebreak as the resolveFontFamily
+    // test above, since FONT-08a added an upright Devanagari candidate.
     const devanagari = resolveFontSubstitution('Arimo', 'नमस्ते');
-    expect(devanagari.family).toBe('Kalam');
+    expect(devanagari.family).toBe('Mukta');
     expect(devanagari.requested).toBe('Arimo');
     expect(devanagari.missing.length).toBeGreaterThan(0);
     for (const ch of devanagari.missing) expect('नमस्ते').toContain(ch);

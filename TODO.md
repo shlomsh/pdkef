@@ -695,7 +695,7 @@ editor work; the prose below the table is supporting evidence and history for ea
 | FONT-05 | P2 | Open | **Export-render-guard corpus cases for Simplified Chinese, Traditional Chinese and Korean** (`chinese-simplified-noto-sans-sc`, `chinese-traditional-noto-sans-tc`, `korean-noto-sans-kr`), matching the Japanese/Bengali cases already landed. **Depends on FONT-01** - baselines must be captured on Linux CI, not a local macOS run, and the guard's tolerance needs to be trustworthy before adding cases that will be judged against it. |
 | FONT-06 | P3 | Open, blocked | **Urdu in Nastaliq.** `fontkit` crashes shaping Noto Nastaliq Urdu (`GPOSProcessor.getAnchor`, the same fault class as the old Gurmukhi/Telugu Noto Sans crashes) - an engine limit, not a tolerance question. Blocked on a HarfBuzz-WASM decision, which `docs/hebrew-text-shaping-export.md` already argues against for Hebrew on similar grounds. No user-facing gap today: Urdu is fully served in Naskh (Scheherazade New); this ticket is only about adding the calligraphic Nastaliq style. Do not bundle with FONT-08's research - it needs an engine decision, not a font swap. |
 | FONT-07 | P3 | Open, not started | **Emoji.** A different problem from CJK subsetting: colour emoji (`COLR`/`CBDT`/layered-glyph formats) has no path through pdf-lib's outline-glyph embedder. Likely solution is image-embedding (the app already knows how to embed signature images), not font-embedding. Needs its own evaluation from scratch. |
-| FONT-08 | P3 | Open | **Second-font / missing-style research across every single-font script.** Two distinct gaps: **(a) no upright/text-style option at all** - Devanagari and Thai each have exactly one bundled face (Kalam, Mali) and both are handwriting, so an upright choice currently resolves the whole element to a handwritten look; this is the one "visibly awkward" outcome the fallback system can produce, per the open follow-up on record. **(b) single-font scripts with no second choice for variety** - Bengali, Punjabi/Gurmukhi, Telugu, Tamil, the Arabic family (Scheherazade New), Japanese, Chinese SC/TC, Korean, plus Cyrillic and Greek (both text-only today, no handwriting option either). Named-but-unscreened candidates already on record: Sriracha (2nd Thai handwriting, same-day runner-up to Mali), a 2nd Cyrillic face, a 2nd Hebrew handwriting face, more Latin handwriting styles. **Research rules and the exact current catalogue to screen against: [docs/font-candidate-research-brief.md](./docs/font-candidate-research-brief.md).** |
+| FONT-08 | P3 | Open (FONT-08a Devanagari half landed 2026-08-29) | **Second-font / missing-style research across every single-font script.** Two distinct gaps: **(a) no upright/text-style option at all** - Devanagari and Thai each had exactly one bundled face (Kalam, Mali) and both are handwriting, so an upright choice used to resolve the whole element to a handwritten look. **Devanagari's half of this is now closed - see the Mukta writeup below.** Thai (Mali) remains open. **(b) single-font scripts with no second choice for variety** - Bengali, Punjabi/Gurmukhi, Telugu, Tamil, the Arabic family (Scheherazade New), Japanese, Chinese SC/TC, Korean, plus Cyrillic and Greek (both text-only today, no handwriting option either). Named-but-unscreened candidates already on record: Sriracha (2nd Thai handwriting, same-day runner-up to Mali), a 2nd Cyrillic face, a 2nd Hebrew handwriting face, more Latin handwriting styles. **Research rules and the exact current catalogue to screen against: [docs/font-candidate-research-brief.md](./docs/font-candidate-research-brief.md).** |
 
 - **Pashto (پښتو): eleven letters, and the cheapest language gap on the board.** Afghanistan is a real
   traffic source and Pashto is one of its two official languages; Dari already works, through Almarai,
@@ -1015,6 +1015,69 @@ explicitly cursive style is ever wanted, but nothing currently proposes swapping
        downloaded PDF (captured via `URL.createObjectURL` interception, decoded, rendered with `pdftoppm`)
        shows real, legible, correctly-shaped vector text - not a rasterized image, not corrupted, not
        refused.
+- ~~**FONT-08a, Devanagari half: no upright/text-style option** - Kalam is handwriting-only, so picking
+  an upright font for Devanagari text silently substituted the whole element to a handwritten look.~~
+  **Landed 2026-08-29 - Mukta added to the catalogue, closing the Devanagari half of FONT-08a. Thai
+  (Mali) remains open.** Screened per
+  [docs/font-candidate-research-brief.md](./docs/font-candidate-research-brief.md)'s rules, top pick of
+  a three-candidate ranked shortlist (Mukta > Anek Devanagari > Hind), not tried further once it passed:
+  - **License and provenance.** Mukta (Ek Type, OFL 1.1). Fetched real static Regular/Bold TTFs from the
+    `google/fonts` mirror (`ofl/mukta/`, the same distribution source the already-bundled Mukta Mahee
+    came from) rather than trusting the Fonts.google.com listing page - the source repo itself
+    (`github.com/EkType/Mukta`) turned out to hold only FontLab/TTX build sources, no compiled TTF, so
+    the mirror is the actual license-bearing distribution. Copyright line read directly from the
+    fetched `OFL.txt` and cross-checked against the font's own embedded name-table string (both say
+    "Copyright (c) 2014, Girish Dalvi, Ek Type. All rights reserved.") - same foundry, and (measured
+    from the real `hhea` table) the exact same ascent/descent as the already-bundled Mukta Mahee.
+  - **Fontkit-crash screen: 0/185.** Ran the full 185-case `devanagariCorpus.js` corpus through
+    `@pdf-lib/fontkit`'s `layout()` (with the `regenerator-runtime` polyfill Kalam's spike already
+    established as needed) - zero crashes, zero empty-glyph results, both before and after the `glyf`
+    repad below. No Gurmukhi/Telugu-class `GPOSProcessor.getAnchor` failure.
+  - **`glyf` alignment: failed as shipped, fixed and re-verified.** Both TTFs had the same defect Kalam,
+    Scheherazade New and Anek Telugu needed fixing (`indexToLocFormat` 1, ~707/1369 and ~655/1369 odd
+    `loca` offsets) - would have failed `check-font-glyf-alignment.js` and corrupted the subsetted
+    download. Repadded with fontTools (`font['glyf'].padding = 4`) and verified byte-identical outlines
+    (0/1368 glyph mismatches, per-glyph coordinate/flag/component comparison), cmap and hmtx across both
+    weights before overwriting the bundled files - same verification method as the prior three repads.
+  - **Pixel-diff corpus guard: 185/185 passed, and this is where a real gap in the existing guard was
+    found and fixed, not just Mukta being screened.** The pre-existing Kalam guard
+    (`devanagari-shaping-guard.spec.js`) was still rendering at its original 100px, well under Skia's
+    ~256px bitmap-glyph cache limit - the same geometry gap SIGN-19 found and fixed for the Arabic and
+    Bengali guards (where re-measuring at the correct size grew Bengali's known-divergence list from 3
+    to 6 real entries) but had never been applied here. Fixed both the new Mukta guard and the existing
+    Kalam guard to the same 400px/4x geometry Bengali's fix used (`devanagari-mukta-shaping-guard.spec.js`,
+    a separate spec file per script per the `latin-shaping-guard.spec.js` multi-candidate precedent,
+    since the two guards run against different font files and need distinct bundle filenames). Re-run at
+    the corrected geometry: **Mukta 185/185, floor 0.00%, tolerance floored at the 4% minimum; Kalam
+    185/185, floor 0.04%** (both were previously reporting floors of 7-12%, most of which was the
+    removable rasteriser-mismatch artefact, not real shaping noise) - no new divergence surfaced on
+    either font once the artefact was removed, unlike Bengali's experience. Telugu/Gurmukhi/Tamil remain
+    at the old 100px geometry and are explicitly out of scope here - worth a dedicated pass.
+  - **Advance parity, spot-checked (SIGN-20-style, not the full harness).** Compared fontkit's summed
+    shaped glyph advances against this same browser's `measureText` on the identical string, across all
+    185 corpus cases at the corrected geometry - the check the pixel-diff guard alone cannot make
+    (CLAUDE.md's Bengali writeup: a cluster can pass the pixel check while measurably under-advancing).
+    **All 185 cases matched to 0.000px**, comfortably inside SIGN-19's `glyphCount x 0.5px` rounding
+    bound. A one-off screening check, not wired as a standing assertion - that remains SIGN-20's scope.
+  - **Coverage and metrics, from real bytes.** 127/128 of the Devanagari block (U+0900-097F) - the one
+    gap is U+0978, a rare Marwari letter outside `font-languages.mjs`'s Hindi-standard consonant set (the
+    same kind of exclusion Kalam already gets, not a defect); full Devanagari digits (10/10) and full
+    Latin ASCII (95/95), so a mixed Hindi/English/digit line stays in one font. `hhea` ascent 1.130,
+    descent 0.532 (unitsPerEm 1000) - read from the font, not transcribed.
+  - **Wired into the catalogue**: `public/fonts/Mukta-{Regular,Bold}.ttf` (repadded), `TEXT_FONTS` +
+    `SANS_STYLE_FONTS` + `FONT_VERTICAL_METRICS` in `fonts.js`, `@font-face` rules in `editorFonts.css`,
+    a `FontPickerMenu.tsx` entry, `THIRD_PARTY_LICENSES.md` + `/licenses/` (real copyright line above),
+    the Sign page's Hindi/Marathi languages-card note and FAQ answer in `tools.js` (now names both fonts
+    rather than describing Devanagari as handwriting-only), and a stale "Kalam is the catalogue's only
+    Devanagari-capable face" comment in `scripts/font-languages.mjs` corrected. Regenerated
+    `fontCoverageTable.js` and `fontCoverageReport.js`; both now report `devanagari.full` and
+    `marathi.full` as `[Kalam, Mukta]`. **One measured behavior change worth naming**: because Mukta
+    (sans/upright) now exists as a Devanagari candidate, `resolveFontSubstitution` requesting from an
+    upright font (e.g. Arimo, the default) for Devanagari text now lands on Mukta instead of Kalam - the
+    tagRank/classRank tiebreak correctly preferring the same-style candidate, exactly FONT-08a's intent.
+    Requesting from a handwriting font (e.g. Caveat) still lands on Kalam. Three unit tests updated to
+    match (`fonts.test.js`, `textCoverage.test.js`, `languageCoverage.test.js`); full suite (1811 tests)
+    and all of `test:css`/`test:csp`/`test:seo`/`test:fonts` pass.
 - ~~**Arabic (UAE, Jordan) remains blocked**, unlike Devanagari - a joining script, deeper gap than
   Devanagari's.~~ **Landed 2026-08-25 - Almarai added to the catalogue.** What follows is the path from
   "not addable" to shipped.
