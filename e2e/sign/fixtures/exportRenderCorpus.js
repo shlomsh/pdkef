@@ -173,6 +173,23 @@ export const EXPORT_RENDER_CORPUS = [
   // bytes.
   textCase('korean-noto-sans-kr', '안녕하세요', { fontFamily: 'Noto Sans KR' }),
 
+  // Malayalam (FONT-03): shipped, user-selectable script this guard has
+  // never had a case for. Like Bengali/CJK above, `malayalam-shaping-guard.
+  // spec.js` already proves fontkit picks the same glyphs as Chromium
+  // (245/245, self-calibrating, zero named divergences) before a PDF exists,
+  // so this case exists purely to catch what that guard cannot see on the
+  // file a user actually receives - a corrupted `glyf` table or a subset
+  // missing composite components.
+  //
+  // നമസ്കാരം ("namaskaram", the common greeting) carries a genuine conjunct:
+  // സ്ക is സ (SA) + ് (virama) + ക (KA), reordered and drawn as an attached
+  // cluster rather than three separate letters. Every code point confirmed
+  // present via fontkit's hasGlyphForCodePoint() against the real bundled
+  // public/fonts/AnekMalayalam-Regular.ttf bytes (fontkit.create(readFileSync
+  // (...)), not .openSync), the same verification method every other case in
+  // this file used.
+  textCase('malayalam-anek-malayalam', 'നമസ്കാരം', { fontFamily: 'Anek Malayalam' }),
+
   // --- The comb path: positions by cell index, skips bidi, has its own
   // geometry. `width` is what makes an element a comb (see comb.js).
   textCase('comb-ltr', 'AB12', { fontFamily: 'Arimo', width: 40, combCells: 6 }),
