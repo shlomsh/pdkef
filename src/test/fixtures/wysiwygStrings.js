@@ -32,3 +32,11 @@ export const WYSIWYG_STRING_BY_ID = Object.freeze(Object.fromEntries(
 export const WYSIWYG_ARABIC_CASES = Object.freeze(
   WYSIWYG_STRING_CASES.filter(({ id }) => id.startsWith('A')),
 );
+
+// A4-A6 deliberately mix RTL letters with numeric or Latin runs. They belong
+// in the bidi-run tests, which mirror production's per-run shaping. The Arabic
+// pixel guard shapes one whole RTL run by design, so feeding those mixed cases
+// to it would test a pipeline the app does not use.
+export const WYSIWYG_ARABIC_SHAPING_CASES = Object.freeze(
+  WYSIWYG_ARABIC_CASES.filter(({ id }) => !['A4', 'A5', 'A6'].includes(id)),
+);

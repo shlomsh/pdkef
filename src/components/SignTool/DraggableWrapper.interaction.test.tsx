@@ -4,6 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import TextNode from './nodes/TextNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
+import { FONT_PREVIEW_DELAY_MS } from '../FontPickerMenu.tsx';
 import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../../constants/signGeometry.js';
 
 // This file covers CLAUDE.md Part II §6 guardrail #4 / TODO.md: the
@@ -80,8 +81,45 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     act(() => render(null, container));
     container.remove();
+  });
+
+  describe('font picker preview', () => {
+    it('repaints the real text node after the hover delay without committing, then restores it when the menu closes', () => {
+      vi.useFakeTimers();
+      const onChange = vi.fn();
+      const element = { id: 'font-preview', type: 'text', left: 20, top: 10, text: 'Hello', fontFamily: 'Arimo', fontSize: 16 };
+      const { box } = mountInPageWrapper(element, { isActive: true, onChange });
+      const input = box.querySelector('[data-editor-text-input]');
+      expect(input.style.fontFamily).toBe('Arimo');
+
+      act(() => box.querySelector('button[title^="Font:"]').click());
+      const caveat = document.body.querySelector('[data-font-name="Caveat"]');
+      act(() => caveat.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true })));
+      act(() => vi.advanceTimersByTime(FONT_PREVIEW_DELAY_MS));
+
+      expect(input.style.fontFamily).toBe('Caveat');
+      expect(onChange).not.toHaveBeenCalled();
+
+      act(() => box.querySelector('button[title^="Font:"]').click());
+      expect(input.style.fontFamily).toBe('Arimo');
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('commits exactly once on click and closes the picker', () => {
+      const onChange = vi.fn();
+      const element = { id: 'font-commit', type: 'text', left: 20, top: 10, text: 'Hello', fontFamily: 'Arimo', fontSize: 16 };
+      const { box } = mountInPageWrapper(element, { isActive: true, onChange });
+
+      act(() => box.querySelector('button[title^="Font:"]').click());
+      act(() => (document.body.querySelector('[data-font-name="Caveat"]') as HTMLButtonElement).click());
+
+      expect(onChange).toHaveBeenCalledOnce();
+      expect(onChange).toHaveBeenCalledWith({ fontFamily: 'Caveat' });
+      expect(document.body.querySelector('[data-font-picker-menu]')).toBeNull();
+    });
   });
 
   function mountInPageWrapper(element, { isActive = true, pageWidthPoints = 612, onChange = () => {} } = {}) {

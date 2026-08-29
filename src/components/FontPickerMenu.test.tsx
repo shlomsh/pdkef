@@ -1,18 +1,14 @@
-// Guards the picker/notice contradiction bug: the font picker must reflect
-// the EFFECTIVE font (resolveFontFamily's output), not the raw pick, and
-// must mark any option that would be substituted away for the current text —
-// using the exact same rule (resolveFontSubstitution) the on-page notice and
-// the exporter use, so the three can never disagree.
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, afterEach, vi } from 'vitest';
-import FontPickerMenu from './FontPickerMenu.tsx';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import FontPickerMenu, { FONT_PREVIEW_DELAY_MS } from './FontPickerMenu.tsx';
 import { resolveFontFamily, HANDWRITING_FONTS, TEXT_FONTS } from '../lib/fonts.js';
 
 describe('FontPickerMenu', () => {
   let container: HTMLDivElement | null;
 
   afterEach(() => {
+    vi.useRealTimers();
     if (container) {
       act(() => render(null, container as any));
       container.remove();
@@ -27,178 +23,181 @@ describe('FontPickerMenu', () => {
     act(() => {
       render(
         <FontPickerMenu value={value} text={text} onChange={() => {}} {...extra} />,
-        container as any
+        container as any,
       );
     });
     act(() => {
-      (container as HTMLDivElement).querySelector('button')!.dispatchEvent(
-        new MouseEvent('click', { bubbles: true })
-      );
+      container!.querySelector('button')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
-    return document.body.querySelector('[role="menu"]') as HTMLElement;
+    return document.body.querySelector('[data-font-picker-menu]') as HTMLElement;
   }
 
-  it('checks the effective font (Gveret Levin), not the requested one (Caveat), for Hebrew text', () => {
-    const hebrewText = 'שלום עולם';
-    const effective = resolveFontFamily('Caveat', hebrewText);
+  const options = (menu: HTMLElement) => [...menu.querySelectorAll('[role="option"]')] as HTMLButtonElement[];
+  const option = (menu: HTMLElement, family: string) => menu.querySelector(`[data-font-name="${family}"]`) as HTMLButtonElement;
+
+  it('checks the effective font rather than the requested font', () => {
+    const text = 'שלום עולם';
+    const effective = resolveFontFamily('Caveat', text);
     expect(effective).toBe('Gveret Levin');
 
-    const menu = openMenu(effective, hebrewText);
-    const items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
-
-    const caveatItem = items.find((el) => el.textContent?.startsWith('Caveat'))!;
-    const gveretItem = items.find((el) => el.textContent?.startsWith('Gveret Levin'))!;
-
-    expect(caveatItem.className).not.toMatch(/active/);
-    expect(gveretItem.className).toMatch(/active/);
+    const menu = openMenu(effective, text);
+    expect(option(menu, 'Caveat').getAttribute('aria-selected')).toBe('false');
+    expect(option(menu, 'Gveret Levin').getAttribute('aria-selected')).toBe('true');
   });
 
-  it('marks Caveat as unable to draw the Hebrew text and leaves Gveret Levin unmarked', () => {
-    const hebrewText = 'שלום עולם';
-    const effective = resolveFontFamily('Caveat', hebrewText);
-    const menu = openMenu(effective, hebrewText);
-    const items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
+  it('leaves supported rows uncluttered and annotates only incomplete rows', () => {
+    const text = 'שלום עולם';
+    const menu = openMenu(resolveFontFamily('Caveat', text), text);
+    const caveat = option(menu, 'Caveat');
+    const gveret = option(menu, 'Gveret Levin');
 
-    const caveatItem = items.find((el) => el.textContent?.startsWith('Caveat'))!;
-    const gveretItem = items.find((el) => el.textContent?.startsWith('Gveret Levin'))!;
-
-    // Contract change (W3): the note now names the actual missing characters
-    // instead of a script name, but it must still single out Caveat as unable
-    // to draw this text and leave the effective font unmarked.
-    expect(caveatItem.textContent).toContain('Missing');
-    for (const ch of new Set(hebrewText.replace(/\s/g, ''))) {
-      expect(caveatItem.textContent).toContain(ch);
-    }
-    expect(caveatItem.className).toMatch(/unsupported/);
-
-    expect(gveretItem.textContent).toContain('Includes all your text');
-    expect(gveretItem.className).not.toMatch(/unsupported/);
+    expect(caveat.textContent).toContain('Some characters in');
+    expect(caveat.textContent).toContain('שלום עולם');
+    expect(caveat.textContent).toContain('aren’t available in Caveat.');
+    expect(caveat.textContent).toContain('Using Gveret Levin instead.');
+    expect(caveat.className).toMatch(/unsupported/);
+    expect(gveret.textContent).toBe('Gveret Levin');
+    expect(gveret.className).not.toMatch(/unsupported/);
+    expect(menu.textContent).not.toContain('Includes all your text');
+    expect(menu.textContent).not.toContain('Fonts marked');
   });
 
-  it('marks nothing and checks the requested font for plain Latin text', () => {
-    const latinText = 'Hello world';
-    const effective = resolveFontFamily('Caveat', latinText);
-    expect(effective).toBe('Caveat'); // no substitution needed
+  it('keeps spaces in the quoted text and uses a single ellipsis for long text', () => {
+    const text = 'שלום עולם '.repeat(6);
+    const menu = openMenu('Caveat', text);
+    const caveat = option(menu, 'Caveat');
 
-    const menu = openMenu(effective, latinText);
-    const items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
-
-    const caveatItem = items.find((el) => el.textContent?.startsWith('Caveat'))!;
-    expect(caveatItem.className).toMatch(/active/);
-    expect(caveatItem.className).not.toMatch(/unsupported/);
-
-    for (const item of items) {
-      expect(item.textContent).not.toContain('no ');
-      expect(item.className).not.toMatch(/unsupported/);
-    }
+    expect(caveat.textContent).toContain('שלום עולם');
+    expect(caveat.textContent).toContain('…');
+    expect(caveat.textContent).not.toContain('שלוםע');
   });
 
-  it('is script-general: Devanagari text checks Kalam and marks every other option', () => {
-    const devanagariText = 'नमस्ते';
-    const effective = resolveFontFamily('Caveat', devanagariText);
-    expect(effective).toBe('Kalam');
+  it('uses canonical family names in one alphabetical list', () => {
+    const menu = openMenu('Arimo', 'Hello');
+    const names = options(menu).map((item) => item.dataset.fontName!);
+    const catalogue = [...new Set([...TEXT_FONTS, ...HANDWRITING_FONTS])];
+    const sorted = [...catalogue].sort(new Intl.Collator('en', { sensitivity: 'base' }).compare);
 
-    const menu = openMenu(effective, devanagariText);
-    const items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
-
-    const kalamItem = items.find((el) => el.textContent?.startsWith('Kalam'))!;
-    const caveatItem = items.find((el) => el.textContent?.startsWith('Caveat'))!;
-    const arimoItem = items.find((el) => el.textContent?.startsWith('Arimo'))!;
-
-    expect(kalamItem.className).toMatch(/active/);
-    expect(kalamItem.textContent).toContain('Includes all your text');
-
-    // Contract change (W3): the note names the missing characters, not a
-    // script name — but every non-Devanagari option must still be marked
-    // unsupported for this text, proving the check is script-general rather
-    // than a Hebrew-only special case.
-    expect(caveatItem.className).toMatch(/unsupported/);
-    expect(caveatItem.textContent).toContain('Missing');
-
-    expect(arimoItem.className).toMatch(/unsupported/);
-    expect(arimoItem.textContent).toContain('Missing');
+    expect(names).toEqual(sorted);
+    expect(names).toHaveLength(catalogue.length);
+    expect(options(menu).map((item) => item.childNodes[0].textContent)).toEqual(names);
+    expect(menu.textContent).not.toContain('Hebrew (');
+    expect(menu.textContent).not.toContain('Arabic (');
+    expect(menu.textContent).not.toContain('Helvetica');
   });
 
-  it('shows the effective font in the trigger title, not the requested one', () => {
-    const hebrewText = 'שלום עולם';
-    const effective = resolveFontFamily('Caveat', hebrewText);
-    container = document.createElement('div');
-    document.body.appendChild(container);
+  it('filters case-insensitively by font family name and shows an empty result', () => {
+    const menu = openMenu('Arimo', 'Hello');
+    const search = menu.querySelector('input[type="search"]') as HTMLInputElement;
+    expect(document.activeElement).toBe(search);
+
     act(() => {
-      render(
-        <FontPickerMenu value={effective} text={hebrewText} onChange={() => {}} />,
-        container as any
-      );
+      search.value = 'noto sans j';
+      search.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    const trigger = container.querySelector('button')!;
-    expect(trigger.title).toContain('Gveret Levin');
-    expect(trigger.title).not.toContain('Caveat');
+    expect(options(menu).map((item) => item.dataset.fontName)).toEqual(['Noto Sans JP']);
+
+    act(() => {
+      search.value = 'no such face';
+      search.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(options(menu)).toEqual([]);
+    expect(menu.textContent).toContain('No fonts found.');
   });
 
-  it('keeps unsupported rows clickable (not aria-disabled/disabled)', () => {
-    const hebrewText = 'שלום עולם';
-    const effective = resolveFontFamily('Caveat', hebrewText);
-    const menu = openMenu(effective, hebrewText);
-    const items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
-    const caveatItem = items.find((el) => el.textContent?.startsWith('Caveat'))! as HTMLButtonElement;
+  it('previews after a short hover delay without committing', () => {
+    vi.useFakeTimers();
+    const onPreview = vi.fn();
+    const onChange = vi.fn();
+    const menu = openMenu('Arimo', 'Hello', { onPreview, onChange });
+    const caveat = option(menu, 'Caveat');
 
-    expect(caveatItem.disabled).toBe(false);
-    expect(caveatItem.getAttribute('aria-disabled')).not.toBe('true');
+    act(() => { caveat.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true })); });
+    act(() => { vi.advanceTimersByTime(FONT_PREVIEW_DELAY_MS - 1); });
+    expect(onPreview).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(onPreview).toHaveBeenCalledWith('Caveat');
+    expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('marks every option for Hebrew + English + Arabic even when no fallback exists', () => {
-    const menu = openMenu('Assistant', 'שלום Hello مرحبا');
-    expect(menu.textContent).toContain('No single available font includes all this text');
-    const items = [...menu.querySelectorAll('[role="menuitem"]')];
-    expect(items.every((item) => item.getAttribute('data-font-support') === 'incompatible')).toBe(true);
-    expect(items.every((item) => item.textContent?.includes('Missing'))).toBe(true);
-    expect(menu.textContent).not.toContain('automatically');
-    const assistant = items.find((item) => item.textContent?.startsWith('Hebrew (Assistant)'))!;
-    const arabic = items.find((item) => item.textContent?.startsWith('Arabic (Scheherazade New)'))!;
-    expect(assistant.textContent).toContain('مرحبا');
-    expect(arabic.textContent).toContain('שלום');
+  it('cancels a pending preview when the pointer moves to another font', () => {
+    vi.useFakeTimers();
+    const onPreview = vi.fn();
+    const menu = openMenu('Arimo', 'Hello', { onPreview });
+
+    act(() => { option(menu, 'Caveat').dispatchEvent(new MouseEvent('mouseenter', { bubbles: true })); });
+    act(() => { vi.advanceTimersByTime(FONT_PREVIEW_DELAY_MS / 2); });
+    act(() => { option(menu, 'Tinos').dispatchEvent(new MouseEvent('mouseenter', { bubbles: true })); });
+    act(() => { vi.advanceTimersByTime(FONT_PREVIEW_DELAY_MS); });
+
+    expect(onPreview).toHaveBeenCalledTimes(1);
+    expect(onPreview).toHaveBeenCalledWith('Tinos');
   });
 
-  it('explains the automatic fallback before selecting a font', () => {
+  it('does not preview a row that the pointer leaves before the delay', () => {
+    vi.useFakeTimers();
+    const onPreview = vi.fn();
+    const menu = openMenu('Arimo', 'Hello', { onPreview });
+    const caveat = option(menu, 'Caveat');
+
+    act(() => { caveat.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true })); });
+    act(() => { caveat.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true })); });
+    act(() => { vi.advanceTimersByTime(FONT_PREVIEW_DELAY_MS); });
+
+    expect(onPreview).not.toHaveBeenCalled();
+  });
+
+  it('restores the committed preview when the pointer leaves the picker', () => {
+    const onPreviewEnd = vi.fn();
+    const menu = openMenu('Arimo', 'Hello', { onPreviewEnd });
+
+    act(() => { menu.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true })); });
+    expect(onPreviewEnd).toHaveBeenCalledOnce();
+  });
+
+  it('click commits the font, clears the preview, and closes the picker', () => {
+    const onChange = vi.fn();
+    const onPreviewEnd = vi.fn();
+    const menu = openMenu('Arimo', 'Hello', { onChange, onPreviewEnd });
+
+    act(() => option(menu, 'Caveat').click());
+    expect(onChange).toHaveBeenCalledOnce();
+    expect(onChange).toHaveBeenCalledWith('Caveat');
+    expect(onPreviewEnd).toHaveBeenCalledOnce();
+    expect(document.body.querySelector('[data-font-picker-menu]')).toBeNull();
+  });
+
+  it('keeps incomplete rows selectable and explains their actual fallback', () => {
     const onChange = vi.fn();
     const menu = openMenu('Arimo', 'Hello مرحبا', { onChange });
-    const arimo = [...menu.querySelectorAll('[role="menuitem"]')].find((item) => item.textContent?.startsWith('Arimo'))!;
-    expect(arimo.textContent).toContain('Uses Scheherazade New automatically');
-    act(() => { (arimo as HTMLButtonElement).click(); });
+    const arimo = option(menu, 'Arimo');
+
+    expect(arimo.disabled).toBe(false);
+    expect(arimo.getAttribute('aria-disabled')).not.toBe('true');
+    expect(arimo.textContent).toContain('Some characters in');
+    expect(arimo.textContent).toContain('Hello مرحبا');
+    expect(arimo.textContent).toContain('Using Scheherazade New instead.');
+    act(() => arimo.click());
     expect(onChange).toHaveBeenCalledWith('Arimo');
   });
-  // A font can be complete - built, aligned, parity-guarded, in the catalogue,
-  // with an @font-face rule - and still be unreachable, because this component
-  // keeps its own hand-written STANDARD_FONTS list beside `TEXT_FONTS`. Nothing
-  // checked the two against each other, so the last step of adding a font was
-  // also the easiest one to forget, and its only symptom is an option that
-  // isn't there. These two assertions are that check, in both directions.
-  describe('stays in sync with the font catalogue', () => {
-    const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
 
-    function menuLabels() {
-      const menu = openMenu('Arimo', '');
-      return Array.from(menu.querySelectorAll('[role="menuitem"]')).map(
-        (el) => el.textContent ?? ''
-      );
-    }
+  it('annotates every row when no single font includes a mixed-script string', () => {
+    const menu = openMenu('Assistant', 'שלום Hello مرحبا');
+    const items = options(menu);
+    expect(items.every((item) => item.dataset.fontSupport === 'incompatible')).toBe(true);
+    expect(items.every((item) => item.textContent?.includes('Some characters in'))).toBe(true);
+    expect(option(menu, 'Assistant').textContent).toContain('مرحبا');
+    expect(option(menu, 'Scheherazade New').textContent).toContain('שלום');
+  });
 
-    it('offers every family in the catalogue', () => {
-      const labels = menuLabels();
-      const missing = CATALOGUE.filter(
-        (family) => !labels.some((label) => label.includes(family))
-      );
-      expect(missing).toEqual([]);
-    });
-
-    it('offers nothing that is not in the catalogue', () => {
-      // The reverse direction: an option naming a family the catalogue dropped
-      // would render through a @font-face rule that no longer exists and embed
-      // as something else entirely.
-      const orphans = menuLabels().filter(
-        (label) => !CATALOGUE.some((family) => label.includes(family))
-      );
-      expect(orphans).toEqual([]);
-    });
+  it('shows the effective canonical family in the trigger title', () => {
+    const text = 'שלום עולם';
+    const effective = resolveFontFamily('Caveat', text);
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<FontPickerMenu value={effective} text={text} onChange={() => {}} />, container as any));
+    expect(container.querySelector('button')!.title).toBe('Font: Gveret Levin');
   });
 });

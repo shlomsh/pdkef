@@ -3,8 +3,8 @@
 // own cache and no two builds ever share one.
 //
 // Strategy:
-//   - The built application shell is precached during install, best-effort per
-//     URL (see precacheAppShell).
+//   - Only the root offline fallback is precached during install. Every tool,
+//     documentation page, script, image, and font loads and caches on demand.
 //   - HTML navigations are cache-first and refresh in the background, so a
 //     returning visitor can reopen the app when the server is unavailable.
 //   - Other same-origin assets are cache-first after precache or first use.
@@ -22,9 +22,8 @@ const PRECACHE_MANIFEST_URL = '/precache-manifest.json';
 // precache entry with no second chance at runtime.
 const REQUIRED_URL = '/';
 
-// Precaching covers the whole build, which is hundreds of requests. Firing them
-// all at once is what makes a phone on a weak connection drop some of them, so
-// they go through a small pool instead.
+// Kept as a bounded worker even though the minimal manifest currently contains
+// one URL, so a future shared shell asset cannot create a request burst.
 const PRECACHE_CONCURRENCY = 6;
 
 // Raised when this origin serves no build manifest at all — a 404, not a
@@ -85,14 +84,8 @@ async function precacheAppShell() {
   const urls = await loadPrecacheManifest();
   const cache = await caches.open(CACHE_VERSION);
 
-  // Per-URL tolerance is deliberate. This precaches every page, font and worker
-  // chunk in the build, so on a weak connection something will eventually fail,
-  // and an earlier version failed the whole install on the first bad response.
-  // The visitor then got no offline shell at all and re-downloaded the entire
-  // site on their next visit, silently, forever. Anything missed here still
-  // resolves over the network on demand and is cached on first use by the fetch
-  // handler below, so a miss costs nothing but the offline guarantee for that
-  // one asset.
+  // Per-URL tolerance is retained for future shared shell assets. The root
+  // fallback is mandatory; anything else loads and caches on demand.
   const missed = [];
   await forEachLimited(urls, PRECACHE_CONCURRENCY, async (url) => {
     try {
