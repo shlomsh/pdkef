@@ -94,7 +94,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 16 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: nine of the 16 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 17 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 17 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -104,7 +104,7 @@ export const tools = [
         {
           native: 'हिन्दी, मराठी 🇮🇳🇳🇵',
           name: 'Hindi, Marathi, and Devanagari',
-          note: 'Fill a form and sign your name in Hindi or Marathi, in Kalam, a handwriting face that doubles as a typed signature. Conjunct letters and vowel signs are reordered and reshaped for the download, which is the part most tools quietly get wrong. Kalam also carries ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi is not an afterthought here.',
+          note: 'Fill a form and sign your name in Hindi or Marathi, in Kalam if you want a handwritten look or Mukta for plain upright text, either of which also works for a typed signature. Conjunct letters and vowel signs are reordered and reshaped for the download, which is the part most tools quietly get wrong. Both fonts carry ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi is not an afterthought here.',
         },
         {
           native: 'العربية 🇪🇬🇸🇦🇲🇦',
@@ -232,7 +232,7 @@ export const tools = [
       },
       {
         question: 'Can I fill and sign a PDF in Hindi or Marathi (हिन्दी या मराठी में PDF पर हस्ताक्षर)?',
-        answer: 'Yes, both. Type Devanagari text into a text box or use it for a typed signature with the bundled Kalam font. Conjunct letters and vowel signs are shaped and positioned correctly, not just displayed on screen, so what you see is what gets embedded in the file you download. The same font also carries ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi works exactly the same way.',
+        answer: 'Yes, both. Type Devanagari text into a text box, in Kalam for a handwritten look or Mukta for plain upright text, and either one also works for a typed signature. Conjunct letters and vowel signs are shaped and positioned correctly, not just displayed on screen, so what you see is what gets embedded in the file you download. Both fonts also carry ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi works exactly the same way.',
       },
       {
         question: 'Can I fill and sign a PDF in Arabic (التوقيع على PDF بالعربية)?',
