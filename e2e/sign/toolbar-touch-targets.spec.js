@@ -42,8 +42,13 @@ async function readToolbar(page) {
   return page.evaluate(() => {
     const toolbar = document.querySelector('[role="toolbar"]');
     const toolbarRect = toolbar.getBoundingClientRect();
+    // Not every control is a <button> or wraps one: Sign's Feedback control is a
+    // bare <a class=button> that opens a GitHub issue. Reading only buttons made
+    // this helper silently DROP it, so a real 4+4+2 wrap was reported as 4+3+2 -
+    // a wrong shape, from a row the helper could not see. Take the child itself
+    // whenever it is already a control, and only reach inside for wrappers.
     const controls = [...toolbar.children]
-      .map((child) => (child.tagName === 'BUTTON' ? child : child.querySelector('button')))
+      .map((child) => (child.tagName === 'BUTTON' || child.tagName === 'A' ? child : child.querySelector('button, a')))
       .filter((button) => button && button.offsetParent !== null)
       .map((button) => {
         const rect = button.getBoundingClientRect();
