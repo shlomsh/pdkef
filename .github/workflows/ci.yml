@@ -5,6 +5,18 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  # The exported-PDF render guard's baseline is platform-bound and must be
+  # captured on this runner, never on a developer's machine - see
+  # BASELINE_PLATFORM in e2e/sign/fixtures/exportRenderHarness.js. Running the
+  # workflow manually with this input set captures it here and prints it for
+  # review; it is never committed automatically, because the whole point of a
+  # stored baseline is that somebody looks at the diff.
+  workflow_dispatch:
+    inputs:
+      update-export-render-baseline:
+        description: "Recapture the exported-PDF render baseline on this runner and print it"
+        type: boolean
+        default: false
 
 jobs:
   test:
@@ -73,6 +85,22 @@ jobs:
 
     - name: Run Playwright e2e tests
       run: npm run test:e2e
+
+    # Prints the recaptured baseline rather than committing it. Review the
+    # decoded file before it lands: a baseline change is a change to what users
+    # receive.
+    - name: Recapture exported-PDF render baseline (manual runs only)
+      # always(), because a step's `if` otherwise still implies success() and
+      # the e2e step above is exactly the one expected to be red when a
+      # baseline needs recapturing.
+      if: ${{ always() && inputs.update-export-render-baseline }}
+      env:
+        UPDATE_EXPORT_RENDER_BASELINE: '1'
+      run: |
+        npx playwright test e2e/sign/export-render-guard --reporter=list || true
+        echo "BASELINE_GZ_B64_START"
+        gzip -9 -c e2e/sign/fixtures/exportRenderBaseline.json | base64 -w 3000
+        echo "BASELINE_GZ_B64_END"
 
     - name: Upload Playwright artifacts
       if: failure()

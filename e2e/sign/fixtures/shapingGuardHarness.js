@@ -56,6 +56,50 @@
  * spec decides what belongs in it (see the module doc in each spec file for
  * why its particular set is the right shape of noise to calibrate against),
  * and this harness only has to take the max diff across whatever it's given.
+ *
+ * ## Two artefacts, measured separately (SIGN-19)
+ *
+ * These guards read differently on macOS and on the Linux CI runner, and the
+ * reason is two distinct artefacts of the measuring instrument, not one. Both
+ * were measured on both platforms on `b4ffd96`; the full record, including the
+ * configurations that were tried and rejected, is in
+ * `docs/shaping-guard-platform-calibration.md`. Neither is a property of the
+ * exported PDF, and **there are no Linux users** - Linux is the build machine -
+ * so where the runner's rasteriser disagrees with a user's, the runner is the
+ * instrument to correct, never the fidelity target to calibrate towards.
+ *
+ * 1. **Glyph rasteriser mismatch.** `fillText` normally draws from Skia's
+ *    cached glyph bitmaps while the reconstruction fills outlines through
+ *    `Path2D`, so the two disagree along every antialiased edge. This is the
+ *    dominant term on macOS (Arabic floor 14.89%) and small on Linux (2.76%).
+ *    It is **removed by rendering large**: above Skia's bitmap-glyph size
+ *    limit (~256px) `fillText` itself rasterises via paths, so both sides go
+ *    through one rasteriser and the floor collapses to **0.00% on both
+ *    platforms**. Confirmed independently by two fonts - Scheherazade New is
+ *    clean at 320px but not at 240px, Noto Sans Bengali is already clean at
+ *    300px - which is why the guards below render at 320px and 400px rather
+ *    than at a size chosen for legibility. Do not lower these sizes back
+ *    toward a "normal" one; the size is doing load-bearing work.
+ *
+ * 2. **Advance quantisation.** Linux Chromium reports whole-pixel
+ *    `measureText` advances (FreeType hinting), so it places each glyph up to
+ *    a pixel away from the shaped position; macOS reports advances that match
+ *    fontkit's to floating-point precision (measured: widthDiff 0.00 on
+ *    151/151 Arabic cases). The error accumulates with glyph count, which is
+ *    exactly what a single-glyph calibration set cannot see - on Linux at the
+ *    old size the measured diff on zero-ambiguity ink ran 1.35% at one glyph
+ *    to 17.13% at seventeen, against a calibrated floor of 2.76%. This one is
+ *    **not removable**: it survives every render size and every flag tried
+ *    (`--enable-font-subpixel-positioning`, deviceScaleFactor 2,
+ *    `--force-device-scale-factor=2`; 40/40 sampled strings integral in all of
+ *    them). So it is measured instead, by `measureDisplacementFloorPct`, and
+ *    admitted into the floor - and it measures to zero on a platform that does
+ *    not quantise, so it costs macOS nothing.
+ *
+ * The rule that follows, and the one to keep: **an artefact gets removed from
+ * the instrument if it can be, and measured if it cannot. It never gets
+ * absorbed into a hand-picked tolerance.** `minTolerancePct` is a floor under
+ * the measurement, not a substitute for it.
  */
 import { existsSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -243,11 +287,28 @@ export async function runShapingGuardInPage({
     return { ctx, width: ctx.measureText(text).width };
   }
 
-  function drawReconstruction(glyphList, totalWidth) {
+  // `quantizeAdvances` reproduces what a browser that hints advances to whole
+  // pixels does to glyph positions (see `measureDisplacementFloorPct` below
+  // and this file's "Two artefacts" note): every glyph's advance is rounded,
+  // and - since RTL anchors from the right - the run starts from the rounded
+  // total rather than the exact one, so the whole-string offset is reproduced
+  // as well as the per-glyph jitter. Modelling only the jitter under-measures
+  // the artefact, which is how the first version of this floor left five
+  // Arabic/Pashto cases failing on ~1px of width disagreement.
+  //
+  // Only ever used to measure that artefact's cost against the
+  // reconstruction's own unrounded self - never to judge fontkit.
+  function drawReconstruction(glyphList, totalWidth, quantizeAdvances = false) {
     const ctx = makeCanvas();
     ctx.fillStyle = 'white'; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     const scale = size / fk.unitsPerEm;
-    const start = rtl ? anchorX - totalWidth : anchorX;
+    const advanceOf = (g) => (quantizeAdvances
+      ? Math.round(g.pos.xAdvance * scale)
+      : g.pos.xAdvance * scale);
+    const runWidth = quantizeAdvances
+      ? glyphList.reduce((sum, g) => sum + advanceOf(g), 0)
+      : totalWidth;
+    const start = rtl ? anchorX - runWidth : anchorX;
     let pen = start;
     for (const g of glyphList) {
       ctx.save();
@@ -256,7 +317,7 @@ export async function runShapingGuardInPage({
       ctx.fillStyle = 'black';
       ctx.fill(new Path2D(g.path));
       ctx.restore();
-      pen += g.pos.xAdvance * scale;
+      pen += advanceOf(g);
     }
     return { ctx, width: pen - start };
   }
@@ -277,6 +338,13 @@ export async function runShapingGuardInPage({
     const native = drawNative(text);
     const recon = drawReconstruction(glyphs, native.width);
     const diffPct = pixelDiffPct(ink(native.ctx), ink(recon.ctx));
+    // Clipping check. Every string has to fit the canvas, or the comparison
+    // silently runs on partial ink and both sides agree about the part that
+    // was cut off - a guard measuring less than it claims to. This is cheap
+    // and catches a corpus or a geometry change that outgrew its canvas.
+    const overflowsCanvas = rtl
+      ? anchorX - native.width < 0 || anchorX > canvasWidth
+      : anchorX + native.width > canvasWidth;
     return {
       text,
       diffPct,
@@ -284,7 +352,55 @@ export async function runShapingGuardInPage({
       glyphCount: glyphs.length,
       nativeWidth: native.width,
       reconWidth: recon.width,
+      overflowsCanvas,
     };
+  }
+
+  /**
+   * The cost, in this guard's own metric, of the browser rounding each glyph's
+   * pen position to a whole pixel.
+   *
+   * Measured by rendering each string's reconstruction twice from the SAME
+   * fontkit output - once at fontkit's exact positions, once with every glyph
+   * advance rounded to a whole pixel the way a hinting rasteriser reports them
+   * - and diffing those two against each other. The native rendering is not
+   * involved, so this can be measured over the corpus itself without
+   * circularity: it asks "what does whole-pixel placement cost on this ink",
+   * not "is fontkit right".
+   *
+   * Zero on a platform whose `measureText` is fractional, because there the
+   * browser is not rounding and there is no artefact to admit. Detected rather
+   * than assumed - see `browserQuantizesAdvances` below.
+   */
+  function measureDisplacementFloorPct(strings) {
+    let worst = 0;
+    const scale = size / fk.unitsPerEm;
+    for (const text of strings) {
+      const glyphs = shape(text);
+      if (glyphs.length < 2) continue; // a single glyph has no pen to accumulate
+      // Each placement model anchors from its OWN total, so the comparison is
+      // "same glyphs, two placement models" and never touches the native
+      // rendering. That is what keeps it non-circular, and it is why this may
+      // be measured over the corpus rather than only over calibration ink.
+      const exactWidth = glyphs.reduce((sum, g) => sum + g.pos.xAdvance * scale, 0);
+      const exact = drawReconstruction(glyphs, exactWidth);
+      const rounded = drawReconstruction(glyphs, exactWidth, true);
+      worst = Math.max(worst, pixelDiffPct(ink(exact.ctx), ink(rounded.ctx)));
+    }
+    return worst;
+  }
+
+  // Does this browser report whole-pixel advances? Sampled rather than
+  // declared, because it is a platform property that no command-line flag
+  // was found to change (see the SIGN-19 record in
+  // docs/shaping-guard-platform-calibration.md).
+  function browserQuantizesAdvances(strings) {
+    const sample = strings.slice(0, 40);
+    if (!sample.length) return false;
+    return sample.every((text) => {
+      const w = drawNative(text).width;
+      return Math.abs(w - Math.round(w)) < 1e-9;
+    });
   }
 
   if (autoCalibrate) {
@@ -302,21 +418,41 @@ export async function runShapingGuardInPage({
     for (const entry of corpus) {
       (substituted(entry.text) ? substituting : nonSubstituting).push(entry);
     }
+    const quantizes = browserQuantizesAdvances(corpus.map((entry) => entry.text));
     return {
       autoCalibrate: true,
       nonSubstitutingCount: nonSubstituting.length,
       substitutingCount: substituting.length,
-      noiseFloorPct: nonSubstituting.length
+      rasterFloorPct: nonSubstituting.length
         ? Math.max(...nonSubstituting.map((entry) => evalOne(entry.text).diffPct))
         : 0,
+      quantizesAdvances: quantizes,
+      displacementFloorPct: quantizes ? measureDisplacementFloorPct(corpus.map((entry) => entry.text)) : 0,
       cases: substituting.map(({ id, text }) => ({ id, ...evalOne(text) })),
+      calibrationCases: nonSubstituting.map(({ id, text }) => ({ id, ...evalOne(text) })),
     };
   }
 
-  const noiseFloorPct = Math.max(...calibrationSet.map((text) => evalOne(text).diffPct));
+  const calibrationCases = calibrationSet.map((text) => ({
+    id: `calibration:${text}`,
+    ...evalOne(text),
+    substituted: substituted(text),
+  }));
   const cases = corpus.map(({ id, text }) => ({ id, ...evalOne(text) }));
+  const quantizes = browserQuantizesAdvances(corpus.map((entry) => entry.text));
 
-  return { noiseFloorPct, cases };
+  return {
+    rasterFloorPct: Math.max(...calibrationCases.map((c) => c.diffPct)),
+    quantizesAdvances: quantizes,
+    // Measured over the corpus, not the calibration set, on purpose: for a
+    // joining script every multi-glyph string substitutes, so there is no
+    // multi-glyph calibration ink to measure a pen-accumulation artefact on.
+    // This measurement never touches the native rendering, so using the
+    // corpus for it is not circular. See `measureDisplacementFloorPct`.
+    displacementFloorPct: quantizes ? measureDisplacementFloorPct(corpus.map((entry) => entry.text)) : 0,
+    cases,
+    calibrationCases,
+  };
 }
 
 /**
@@ -417,6 +553,24 @@ export function createShapingGuardTest({
         direction,
       });
 
+      // Nothing may be judged on ink the canvas cut off.
+      const clipped = [...result.cases, ...(result.calibrationCases || [])].filter((c) => c.overflowsCanvas);
+      expect(
+        clipped.map((c) => c.id),
+        `${scriptName}/${candidateName}: these strings do not fit the ${canvasWidth}x${canvasHeight} canvas at size ${size}, so both renderings agree about ink that was never drawn and the comparison understates any disagreement. Widen the canvas (and move anchorX with it) rather than leaving them clipped.`,
+      ).toEqual([]);
+
+      // A hand-picked calibration string that shapes through a contextual
+      // substitution is not zero-ambiguity ink, so a floor measured from it
+      // could be absorbing a real letterform disagreement instead of noise.
+      if (!autoCalibrate) {
+        const ambiguous = result.calibrationCases.filter((c) => c.substituted);
+        expect(
+          ambiguous.map((c) => c.text),
+          `${scriptName}/${candidateName}: these calibration strings shape through a contextual substitution, so they are not the zero-shaping-ambiguity ink a noise floor has to be measured from - a real disagreement on one of them would silently raise the tolerance that is supposed to catch it. Replace them, or move this guard to autoCalibrate.`,
+        ).toEqual([]);
+      }
+
       if (autoCalibrate) {
         console.log(`${scriptName}/${candidateName} guard (self-calibrating): ${result.nonSubstitutingCount} non-substituting (calibration), ${result.substitutingCount} substituting (under test), of ${corpus.length} corpus strings`);
         // A face with too few zero-ambiguity strings to calibrate from would
@@ -435,15 +589,23 @@ export function createShapingGuardTest({
         }
       }
 
-      const tolerancePct = Math.max(minTolerancePct, result.noiseFloorPct * noiseFloorMultiplier);
+      // The floor is the worse of the two measured artefacts, each of which is
+      // measured rather than declared and each of which is zero on a platform
+      // that does not have it. See the "Two artefacts" note at the top.
+      const noiseFloorPct = Math.max(result.rasterFloorPct, result.displacementFloorPct);
+      const tolerancePct = Math.max(minTolerancePct, noiseFloorPct * noiseFloorMultiplier);
       const failures = result.cases.filter((c) => c.diffPct > tolerancePct);
 
-      console.log(`${scriptName} guard: ${result.cases.length} cases, noise floor ${result.noiseFloorPct.toFixed(2)}%, tolerance ${tolerancePct.toFixed(2)}%, ${failures.length} failing`);
+      console.log(`${scriptName} guard: ${result.cases.length} cases, `
+        + `rasteriser floor ${result.rasterFloorPct.toFixed(2)}%, `
+        + `advance-quantisation floor ${result.displacementFloorPct.toFixed(2)}% `
+        + `(browser quantises advances: ${result.quantizesAdvances}), `
+        + `noise floor ${noiseFloorPct.toFixed(2)}%, tolerance ${tolerancePct.toFixed(2)}%, ${failures.length} failing`);
       if (failures.length) {
         console.log('Failing cases:', failures.map((f) => `${f.id} "${f.text}": diff=${f.diffPct.toFixed(2)}% widthDiff=${f.widthDiff.toFixed(2)}px glyphs=${f.glyphCount} nativeWidth=${f.nativeWidth.toFixed(2)} reconWidth=${f.reconWidth.toFixed(2)}`).join('\n'));
       }
 
-      expect(failures, `${failures.length}/${result.cases.length} cases exceeded tolerance (noise floor ${result.noiseFloorPct.toFixed(2)}%, tolerance ${tolerancePct.toFixed(2)}%): ${failures.map((f) => f.id).join(', ')}`).toEqual([]);
+      expect(failures, `${failures.length}/${result.cases.length} cases exceeded tolerance (rasteriser floor ${result.rasterFloorPct.toFixed(2)}%, advance-quantisation floor ${result.displacementFloorPct.toFixed(2)}%, tolerance ${tolerancePct.toFixed(2)}%): ${failures.map((f) => f.id).join(', ')}`).toEqual([]);
     });
   });
 }
