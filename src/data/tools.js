@@ -139,7 +139,7 @@ export const tools = [
         {
           native: 'اردو 🇵🇰🇮🇳',
           name: 'Urdu',
-          note: "Fill an Urdu form and sign your name in Urdu, in that same Scheherazade New face, which carries the letters Arabic lacks (ٹ, ڈ, ڑ, ں, ے, ہ, ۃ) and Urdu's own ۰-۹ digits. One thing worth saying plainly: Urdu is conventionally set in Nastaliq, a sloped, cascading calligraphic style, and Scheherazade New is a Naskh (upright) design. Your text is fully legible and correctly joined, but it will read to an Urdu eye as a real style worn in the wrong setting. A Nastaliq face is on my list.",
+          note: "Fill an Urdu form and sign your name in Urdu, in that same Scheherazade New face, which carries the letters Arabic lacks (ٹ, ڈ, ڑ, ں, ے, ہ, ۃ) and Urdu's own ۰-۹ digits. Urdu is conventionally set in Nastaliq, a sloped, cascading calligraphic style; Scheherazade New is instead a Naskh (upright) design. The text is fully legible and correctly joined in that single supported style.",
         },
         {
           native: '日本語 🇯🇵',
@@ -189,7 +189,7 @@ export const tools = [
       ],
       notYetHeading: 'More on the way',
       notYet:
-        "Gujarati, Kannada, Odia and emoji are not there yet, and a Nastaliq face so Urdu can be set the way Urdu is normally written is the other thing I would like to add. If you type something the tool cannot draw, it tells you as you go and names the exact characters, so you find out while you are typing rather than after you have filled in a whole form and downloaded it.",
+        "Gujarati, Kannada, Odia and emoji are not there yet. If you type something the tool cannot draw, it tells you as you go and names the exact characters, so you find out while you are typing rather than after you have filled in a whole form and downloaded it.",
     },
     steps: [
       { title: 'Open your form', text: 'Save the PDF from WhatsApp or email to your device, then choose it here or drag it into the tool. It is not uploaded.' },

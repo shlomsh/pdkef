@@ -62,8 +62,8 @@ in TODO.md's internationalization epic for the discipline this is extracted from
    don't just repeat the font's own marketing description.
 10. **No engine-swap workarounds.** If a candidate crashes fontkit, the answer is a different candidate,
     not a HarfBuzz-WASM proposal - see `docs/hebrew-text-shaping-export.md`'s argument against an engine
-    swap for Hebrew, which generalizes here. The one case currently being weighed against that rule is
-    Urdu/Nastaliq (FONT-06), and it is deliberately out of scope for this brief.
+    swap for Hebrew, which generalizes here. Urdu/Nastaliq (FONT-06) was the former exception; it is
+    retired because Scheherazade New already serves Urdu, and remains out of scope for this brief.
 
 ## Report format per candidate
 
