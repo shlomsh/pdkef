@@ -201,6 +201,39 @@ test.describe('Sign editor browser guardrails', () => {
     await expect(input).toBeFocused();
   });
 
+  // A controlled textarea must not discard Chrome's in-progress IME candidate
+  // when it re-renders. This is a real Chromium composition sequence, not a
+  // synthetic DOM event: the DevTools Input domain drives the same candidate
+  // text path used by an IME. The Devanagari cluster is intentionally built in
+  // two updates, as a phonetic/mobile keyboard commonly does.
+  test('keeps an in-progress Indic IME composition intact', async ({ page }) => {
+    await openSignTool(page);
+
+    const element = await addText(page, '', 0.4, 0.4);
+    const input = element.locator('[data-editor-text-input]');
+    await expect(input).toBeFocused();
+
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.imeSetComposition', {
+      text: 'क्',
+      selectionStart: 2,
+      selectionEnd: 2,
+    });
+    await expect(input).toHaveValue('क्');
+
+    await cdp.send('Input.imeSetComposition', {
+      text: 'क्ष',
+      selectionStart: 3,
+      selectionEnd: 3,
+    });
+    await expect(input).toHaveValue('क्ष');
+    await expect(input).toHaveAttribute('dir', 'ltr');
+
+    await cdp.send('Input.insertText', { text: 'क्ष' });
+    await expect(input).toHaveValue('क्ष');
+    await expect(input).toBeFocused();
+  });
+
   test('keeps toolbar positioning stable and whiteout defaults separate in the real browser', async ({ page }) => {
     await openSignTool(page);
 
