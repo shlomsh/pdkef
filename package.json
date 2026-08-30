@@ -20,7 +20,8 @@
     "test:fonts": "node scripts/check-font-glyf-alignment.js",
     "generate:font-coverage": "node scripts/generate-font-coverage.mjs",
     "generate:font-coverage-report": "node scripts/generate-font-coverage-report.mjs",
-    "generate:backlog": "node scripts/generate-backlog.mjs"
+    "generate:backlog": "node scripts/generate-backlog.mjs",
+    "backlog:serve": "node scripts/serve-backlog-board.mjs"
   },
   "dependencies": {
     "@astrojs/preact": "^6.0.0",
