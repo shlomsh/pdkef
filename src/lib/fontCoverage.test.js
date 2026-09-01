@@ -35,7 +35,7 @@ import {
   covers,
   hasRealFace,
   resolveFontSubstitution,
-} from './fonts.js';
+} from '../editor/text/fonts.js';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];

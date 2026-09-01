@@ -11,6 +11,7 @@ import elementStyles from './EditorElement.module.css';
 
 import { cloneElement, toChildArray } from 'preact';
 import type { ComponentChildren } from 'preact';
+import type { PageGeometry } from '../../editor/geometry/coords.ts';
 
 export default function DraggableWrapper({
   element,
@@ -24,6 +25,7 @@ export default function DraggableWrapper({
   onDelete,
   onClone,
   pageWidthPoints,
+  pageGeometry,
   children
 }: {
   element: any;
@@ -35,6 +37,7 @@ export default function DraggableWrapper({
   onDelete: (...args: any[]) => void;
   onClone: (...args: any[]) => void;
   pageWidthPoints: number;
+  pageGeometry?: PageGeometry;
   children?: ComponentChildren;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
@@ -68,6 +71,7 @@ export default function DraggableWrapper({
     element,
     elementRef,
     getPageWrapper,
+    pageGeometry,
     onSelect,
     onChange,
   });
@@ -78,6 +82,7 @@ export default function DraggableWrapper({
     elementRef,
     getPageWrapper,
     pageWidthPoints,
+    pageGeometry,
     onChange,
   });
 

@@ -1,5 +1,6 @@
-import type { EditorElement, ElementType } from '../../lib/editorModel.ts';
+import type { EditorElement, ElementType } from '../model/editorModel.ts';
 import type { PDFDocument, PDFFont, PDFPage } from '@cantoo/pdf-lib';
+import type { PageGeometry } from '../geometry/coords.ts';
 
 /** The specific union member for a given `ElementType` literal, e.g. `ElementForType<'text'>` is `TextElement`. */
 export type ElementForType<K extends ElementType> = Extract<EditorElement, { type: K }>;
@@ -19,6 +20,8 @@ export interface SerializeContext {
   pdfHeight: number;
   pdfX: number;
   pdfY: number;
+  /** The explicit rotated/cropped page frame shared with preview and gestures. */
+  pageGeometry?: PageGeometry;
   loadCustomFont: (family: string, weight?: string, style?: string) => Promise<PDFFont | null>;
   baselineOffset: (font: PDFFont | null) => number;
   /** Redact's page-scoped destructive flatten pass requests an instruction instead. */

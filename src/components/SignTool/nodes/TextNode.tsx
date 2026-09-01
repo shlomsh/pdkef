@@ -3,10 +3,11 @@ import ElementResizers from '../../ElementResizers.tsx';
 import usePdfCoordinates from '../../../lib/usePdfCoordinates.js';
 import { getEffectiveTextDirection } from '../../../lib/signHelpers.js';
 import { DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
-import { textBoxPaddingEm } from '../../../lib/fonts.js';
-import { getTextFontSupport, describeTextFontSupport } from '../../../lib/textFontSupport.js';
+import { textBoxPaddingEm } from '../../../editor/text/fonts.js';
+import { getTextFontSupport } from '../../../editor/text/textFontSupport.js';
+import { describeTextFontSupport } from '../textMessages.ts';
 import FontSupportNotice from '../FontSupportNotice.tsx';
-import { combLayout, isComb } from '../../../lib/comb.js';
+import { combLayout, isComb } from '../../../editor/text/comb.js';
 import workspaceStyles from '../Workspace.module.css';
 import elementStyles from '../EditorElement.module.css';
 

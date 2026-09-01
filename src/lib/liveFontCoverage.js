@@ -1,7 +1,7 @@
 import fontkit from '@pdf-lib/fontkit';
-import { resolveFontFamily } from './fonts.js';
+import { resolveFontFamily } from '../editor/text/fonts.js';
 import { unrepresentableCharacters } from '../editor/registry/text.ts';
-import { findUnrepresentableCharacters } from './textCoverage.js';
+import { findUnrepresentableCharacters } from '../editor/text/textCoverage.js';
 
 /**
  * Live coverage checking for the editor, so a character no bundled font can

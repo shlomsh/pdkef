@@ -22,7 +22,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { fontFileHasGlyph } from './fontCoverageTable.js';
-import { HANDWRITING_FONTS, TEXT_FONTS } from './fonts.js';
+import { HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
 import { LANGUAGES, CYRILLIC_ANCHOR_LANGUAGES, NAMED_COMBINATIONS } from '../../scripts/font-languages.mjs';
 import { LANGUAGE_COVERAGE, COMBINATION_COVERAGE, CYRILLIC_ANCHOR } from './fontCoverageReport.js';
 

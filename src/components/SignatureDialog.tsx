@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'preact/hooks';
 import SignaturePad from 'signature_pad';
 import ColorPicker from './ColorPicker.tsx';
 import { HANDWRITING_FONTS } from '../lib/sign.js';
-import { resolveFontFamily } from '../lib/fonts.js';
+import { resolveFontFamily } from '../editor/text/fonts.js';
 import styles from './SignatureDialog.module.css';
 import dialogStyles from './Dialog.module.css';
 

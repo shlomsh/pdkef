@@ -9,7 +9,7 @@
 // that calls `layout()` (shapedWidth, drawShapedRun).
 import 'regenerator-runtime/runtime.js';
 import type { ElementDefinition } from './types.ts';
-import type { TextElement } from '../../lib/editorModel.ts';
+import type { TextElement } from '../model/editorModel.ts';
 import {
   PDFHexString, rgb,
   beginText, endText, popGraphicsState, pushGraphicsState,
@@ -20,11 +20,11 @@ import type { Color, PDFFont, PDFPage } from '@cantoo/pdf-lib';
 import { hasNumber, hasString, isRecord } from './schema.ts';
 import { COMB_MIN_CELL_EM, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
 import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM } from '../../constants/signGeometry.js';
-import { combCellCount, combCharacters, combCellCenterFraction, isComb } from '../../lib/comb.js';
-import { resolveBidiRuns } from '../../lib/bidiRuns.js';
-import { composeHebrewClusters } from '../../lib/hebrewComposition.js';
+import { combCellCount, combCharacters, combCellCenterFraction, isComb } from '../text/comb.js';
+import { resolveBidiRuns } from '../text/bidiRuns.js';
+import { composeHebrewClusters } from '../text/hebrewComposition.js';
 import { getEffectiveTextDirection, hexToRgbFractions } from '../../lib/signHelpers.js';
-import { resolveFontFamily, textBoxPaddingEm } from '../../lib/fonts.js';
+import { resolveFontFamily, textBoxPaddingEm } from '../text/fonts.js';
 import type { TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch, WidthFloorInput, WidthResizeInput, WidthResizePatch } from './types.ts';
 import elementStyles from '../../components/SignTool/EditorElement.module.css';
 
@@ -56,7 +56,7 @@ export function fontkitFont(pdfFont: PDFFont | null): FontkitFont | null {
 // §3.1/§3.2) and this file already imports fonts.js - so they moved to the
 // dependency-free src/lib/textTransforms.js to break the cycle. Re-exported
 // here verbatim so no existing call site or test has to change.
-import { stripInvisibleFormatting, normalizeTabsForBidi, findMissingGlyphs } from '../../lib/textTransforms.js';
+import { stripInvisibleFormatting, normalizeTabsForBidi, findMissingGlyphs } from '../text/textTransforms.js';
 export { stripInvisibleFormatting, normalizeTabsForBidi, findMissingGlyphs };
 
 /**

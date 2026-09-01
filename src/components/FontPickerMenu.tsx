@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import Popover from './Popover.tsx';
 import styles from './EditorControls.module.css';
-import { HANDWRITING_FONTS, TEXT_FONTS } from '../lib/fonts.js';
-import { getFontSupport, quoteText } from '../lib/textFontSupport.js';
+import { HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
+import { getFontSupport } from '../editor/text/textFontSupport.js';
+import { quoteText } from './SignTool/textMessages.ts';
 
 export const FONT_PREVIEW_DELAY_MS = 120;
 

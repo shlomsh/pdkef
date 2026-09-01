@@ -13,8 +13,8 @@ import { join } from 'node:path';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { drawShapedRun, normalizeTabsForBidi, shapedWidth, stripInvisibleFormatting, unrepresentableCharacters } from './text.ts';
-import { resolveBidiRuns } from '../../lib/bidiRuns.js';
-import { composeHebrewClusters } from '../../lib/hebrewComposition.js';
+import { resolveBidiRuns } from '../text/bidiRuns.js';
+import { composeHebrewClusters } from '../text/hebrewComposition.js';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 

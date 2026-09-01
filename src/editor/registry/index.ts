@@ -1,4 +1,4 @@
-import type { ElementType } from '../../lib/editorModel.ts';
+import type { ElementType } from '../model/editorModel.ts';
 import { ellipseDefinition } from './ellipse.ts';
 import { blackoutDefinition } from './blackout.ts';
 import { blurDefinition } from './blur.ts';

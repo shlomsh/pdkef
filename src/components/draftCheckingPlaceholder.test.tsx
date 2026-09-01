@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from './PdfSignTool.tsx';
 import styles from './Dropzone.module.css';
-import { RESTORE_TIMEOUT_MS } from '../lib/useDraftPersistence.js';
+import { RESTORE_TIMEOUT_MS } from './SignTool/useDraftPersistence.js';
 
 // Coverage for the "checking draft" gate that replaces the flicker of an empty
 // dropzone briefly showing before a saved draft loads over it (see
@@ -37,7 +37,7 @@ function draftRecord(fileName) {
 let loadDraftDeferred;
 let hint;
 
-vi.mock('../lib/draftStore.js', () => ({
+vi.mock('../editor/workspace/draftStore.js', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   loadDraft: vi.fn(() => loadDraftDeferred.promise),

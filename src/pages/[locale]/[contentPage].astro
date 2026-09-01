@@ -2,8 +2,8 @@
 import ContentPageLayout from '../../layouts/ContentPageLayout.astro';
 import ContentPage from '../../components/ContentPage.astro';
 import { CONTENT_ICONS } from '../../data/contentIcons';
-import { documentationLocales, getDocumentationLocaleByPrefix } from '../../data/documentationLocales';
-import { getDocumentationContext, getDocumentationVariants } from '../../lib/documentation';
+import { documentationLocales, getDocumentationLocaleByPrefix } from '../../i18n/documentationLocales';
+import { getDocumentationContext, getDocumentationVariants } from '../../i18n/documentation';
 
 export async function getStaticPaths() {
   const variants = await getDocumentationVariants();

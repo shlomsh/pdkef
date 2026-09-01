@@ -1,6 +1,6 @@
 import { h } from 'preact';
 import type { ComponentChildren } from 'preact';
-import type { ElementType } from '../../lib/editorModel.ts';
+import type { ElementType } from '../model/editorModel.ts';
 import type { ElementForType, NodeRenderContext } from './types.ts';
 import TextNode from '../../components/SignTool/nodes/TextNode.tsx';
 import ShapeNode from '../../components/SignTool/nodes/ShapeNode.tsx';

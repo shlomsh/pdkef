@@ -1,6 +1,6 @@
 import { createDraftRetention, isDraftExpired } from './draftPolicy.js';
 
-// On-device, no-backend draft persistence for in-progress PDF edits.
+// Workspace-owned, on-device draft persistence for in-progress PDF edits.
 //
 // Uses IndexedDB (not localStorage) because drafts hold the raw PDF bytes as an
 // ArrayBuffer: localStorage is synchronous, string-only, and capped around 5MB,

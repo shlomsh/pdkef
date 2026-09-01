@@ -1,10 +1,10 @@
 import type { ElementDefinition } from './types.ts';
-import type { WhiteoutElement } from '../../lib/editorModel.ts';
+import type { WhiteoutElement } from '../model/editorModel.ts';
 import { rgb } from '@cantoo/pdf-lib';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { applyBoxResize } from './boxResize.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';
-import { percentToPoints } from '../../lib/coords.js';
+import { percentToPoints } from '../geometry/coords.js';
 export const whiteoutDefinition: ElementDefinition<WhiteoutElement> = {
   type: 'whiteout',
   schema: (value): value is WhiteoutElement => isRecord(value) && value.type === 'whiteout' && hasString(value, 'id')

@@ -1,5 +1,5 @@
 import type { ElementDefinition } from './types.ts';
-import type { BlackoutElement } from '../../lib/editorModel.ts';
+import type { BlackoutElement } from '../model/editorModel.ts';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { applyBoxResize } from './boxResize.ts';
 

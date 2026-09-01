@@ -17,7 +17,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { tools } from './../data/tools.js';
-import { HANDWRITING_FONTS, TEXT_FONTS } from './fonts.js';
+import { HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
 import { LANGUAGE_COVERAGE, COMBINATION_COVERAGE, CYRILLIC_ANCHOR } from './fontCoverageReport.js';
 
 const signLanguages = tools.find((t) => t.slug === 'sign').languages;

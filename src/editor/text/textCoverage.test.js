@@ -1,6 +1,5 @@
 /**
- * The shared coverage policy: which characters a document cannot draw, and the
- * two sentences the app says about fonts.
+ * The shared coverage policy: which characters a document cannot draw.
  *
  * Exercised against the real bundled TTFs rather than a stub font, because the
  * whole question this module answers is "does this specific file have a glyph
@@ -11,14 +10,15 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
-import { WYSIWYG_STRING_CASES } from '../test/fixtures/wysiwygStrings.js';
+import { WYSIWYG_STRING_CASES } from '../../test/fixtures/wysiwygStrings.js';
 import { resolveFontSubstitution } from './fonts.js';
-import { getTextFontSupport, describeTextFontSupport } from './textFontSupport.js';
+import { getTextFontSupport } from './textFontSupport.js';
+import { findUnrepresentableCharacters } from './textCoverage.js';
 import {
   describeFontSubstitution,
+  describeTextFontSupport,
   describeUnrepresentableText,
-  findUnrepresentableCharacters,
-} from './textCoverage.js';
+} from '../../components/SignTool/textMessages.ts';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 const cache = new Map();
@@ -229,6 +229,11 @@ describe('describeFontSubstitution', () => {
     for (const ch of substitution.missing) expect(message).toContain(ch);
   });
 
+  it('keeps the existing substitution wording while policy supplies only facts', () => {
+    expect(describeFontSubstitution({ requested: 'Arimo', family: 'Mukta', missing: ['न'] }))
+      .toBe('Arimo has no match for: न, so this text box is using Mukta instead. Mukta is what will be embedded in your download.');
+  });
+
   it('says nothing for the uncovered case too, since no substitution happened (family === requested)', () => {
     // Hebrew + Arabic: no bundled family covers both, so the rule keeps the
     // requested family rather than substituting - describeFontSubstitution's
@@ -255,6 +260,12 @@ describe('describeUnrepresentableText', () => {
   it('is a heads-up while typing and a refusal when saving', () => {
     expect(describeUnrepresentableText(['م'], [1])).not.toContain('save again');
     expect(describeUnrepresentableText(['م'], [1], { saving: true })).toContain('save again');
+  });
+
+  it('keeps the existing save-time copy while accepting policy result fields', () => {
+    const result = { characters: ['م'], pageNumbers: [2] };
+    expect(describeUnrepresentableText(result.characters, result.pageNumbers, { saving: true }))
+      .toBe('Some text on page 2 needs attention: م. Select its text box for font suggestions. You may need separate text boxes for different fonts, or to replace these characters, then save again.');
   });
 
   it('carries no em dash', () => {

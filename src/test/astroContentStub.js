@@ -1,6 +1,6 @@
 // Stub for Astro's `astro:content` virtual module under Vitest.
 //
-// `astro:content` only exists inside an Astro build. src/lib/documentation.ts
+// `astro:content` only exists inside an Astro build. src/i18n/documentation.ts
 // reaches for it with a dynamic `import('astro:content')` - a LITERAL specifier,
 // because anything Vite cannot statically see is left un-rewritten and the raw
 // string `astro:content` then reaches Node's ESM loader at prerender time

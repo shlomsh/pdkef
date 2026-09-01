@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { MAX_AGE_MS, readDraftMeta } from './draftStore.js';
 
-// readDraftMeta is the one piece of draftStore that never touches IndexedDB -
+// readDraftMeta is the one workspace-store piece that never touches IndexedDB -
 // it's a synchronous localStorage read, by design (see the file's header
 // comment on why the resume card needs it before first paint). The IndexedDB
 // half (saveDraft/loadDraft/deleteDraft) has no direct unit coverage in this

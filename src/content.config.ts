@@ -30,7 +30,7 @@ import { glob } from 'astro/loaders';
 // removal, and `astro check` flags every use of it.
 import { z } from 'astro/zod';
 import { CONTENT_ICON_NAMES } from './data/contentIcons';
-import { DOCUMENTATION_LOCALE_IDS } from './data/documentationLocales';
+import { DOCUMENTATION_LOCALE_IDS } from './i18n/documentationLocales';
 import { inlineHtmlProblems, plainTextProblems } from './lib/contentMarkup';
 
 /** Text rendered through an expression: escaped, so no markup. */

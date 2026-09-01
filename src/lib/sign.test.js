@@ -3,14 +3,16 @@ import os from 'os';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { PDFDocument, PDFName, PDFNumber, degrees } from '@cantoo/pdf-lib';
 import {
   signPdf,
   hexToRgbFractions,
   getEffectiveTextDirection,
   UnrepresentableTextError
 } from './sign.js';
-import { percentToPoints } from './coords.js';
-import { combCellCount, combCharacters } from './comb.js';
+import { percentToPoints } from '../editor/geometry/coords.js';
+import { applyAffineTransform, createPageGeometry, pageGeometryFromPdfJsPage } from '../editor/geometry/coords.js';
+import { combCellCount, combCharacters } from '../editor/text/comb.js';
 
 function getFixtureFile(name = 'num-1.pdf') {
   const filePath = path.resolve(__dirname, './__fixtures__', name);
@@ -61,6 +63,77 @@ describe('sign.js signPdf', () => {
   afterEach(() => {
     restoreFetch();
     vi.restoreAllMocks();
+  });
+
+  it('runs every element serializer through the same cropped transform at 0/90/180/270 degrees', async () => {
+    const source = await PDFDocument.create();
+    const rotations = [0, 90, 180, 270];
+    rotations.forEach((rotation) => {
+      const page = source.addPage([400, 500]);
+      page.setCropBox(40, 60, 240, 320);
+      page.setRotation(degrees(rotation));
+      page.node.set(PDFName.of('UserUnit'), PDFNumber.of(2));
+    });
+    const file = new File([await source.save()], 'rotated-cropped.pdf', { type: 'application/pdf' });
+    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+    const elements = rotations.flatMap((_, pageIndex) => [
+      { id: `text-${pageIndex}`, type: 'text', pageIndex, left: 10, top: 10, text: 'A', fontFamily: 'Arimo', fontSize: 12, color: '#000000' },
+      { id: `symbol-${pageIndex}`, type: 'symbol', pageIndex, left: 20, top: 20, width: 8, height: 8, mark: 'check', color: '#1463ff' },
+      { id: `signature-${pageIndex}`, type: 'signature', pageIndex, left: 30, top: 30, width: 12, height: 6, dataUrl: png },
+      { id: `line-${pageIndex}`, type: 'line', pageIndex, x1: 10, y1: 50, x2: 40, y2: 60, color: '#1463ff', strokeWidth: 2 },
+      { id: `rectangle-${pageIndex}`, type: 'rectangle', pageIndex, left: 45, top: 15, width: 12, height: 10, color: '#1463ff', strokeWidth: 2 },
+      { id: `ellipse-${pageIndex}`, type: 'ellipse', pageIndex, left: 60, top: 30, width: 12, height: 10, color: '#1463ff', strokeWidth: 2 },
+      { id: `whiteout-${pageIndex}`, type: 'whiteout', pageIndex, left: 70, top: 70, width: 10, height: 8, color: '#ffffff' },
+    ]);
+
+    const blob = await signPdf(file, elements);
+    const { getDocument, OPS } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const loadingTask = getDocument({
+      data: new Uint8Array(await blob.arrayBuffer()),
+      useWorkerFetch: false,
+      isEvalSupported: false,
+    });
+    const output = await loadingTask.promise;
+
+    for (let pageIndex = 0; pageIndex < rotations.length; pageIndex++) {
+      const page = await output.getPage(pageIndex + 1);
+      // Non-vacuity: pdf.js sees the intended crop and rotation in the saved
+      // document, rather than this only testing matrices detached from a PDF.
+      expect(page.view).toEqual([40, 60, 280, 380]);
+      expect(page.rotate).toBe(rotations[pageIndex]);
+      expect(pageGeometryFromPdfJsPage(page).pdfToViewport)
+        .toEqual(page.getViewport({ scale: 1 }).transform);
+
+      const geometry = createPageGeometry({
+        cropBox: { x: 40, y: 60, width: 240, height: 320 },
+        rotation: rotations[pageIndex],
+        userUnit: 2,
+      });
+      const textContent = await page.getTextContent();
+      const textItem = textContent.items.find((item) => item.str === 'A');
+      expect(textItem).toBeDefined();
+      const viewportTextOrigin = applyAffineTransform(
+        { x: textItem.transform[4], y: textItem.transform[5] },
+        geometry.pdfToViewport,
+      );
+      expect(viewportTextOrigin.x).toBeCloseTo(geometry.width * 0.1, 6);
+      expect(viewportTextOrigin.y).toBeGreaterThan(geometry.height * 0.1);
+
+      const operatorList = await page.getOperatorList();
+      const sharedTransforms = operatorList.fnArray.reduce((count, fn, index) => {
+        if (fn !== OPS.transform) return count;
+        const args = operatorList.argsArray[index];
+        const matches = geometry.editorToPdf.every((value, argIndex) =>
+          Math.abs(args[argIndex] - value) < 1e-8);
+        return count + (matches ? 1 : 0);
+      }, 0);
+      // One q/cm/.../Q frame per text, symbol, signature, line, rectangle,
+      // ellipse and whiteout serializer. A type bypassing the shared transform
+      // drops this count immediately on every affected rotation fixture.
+      expect(sharedTransforms).toBe(7);
+    }
+
+    await loadingTask.destroy();
   });
 
   it('bakes RTL text so its right edge lands at the stored `left` percent, not its left-start', async () => {

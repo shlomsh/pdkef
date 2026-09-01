@@ -3,7 +3,7 @@ import {
   documentationPath,
   getDocumentationLocale,
   type DocumentationLocaleId,
-} from '../data/documentationLocales';
+} from './documentationLocales';
 
 export type DocumentationStatus = 'draft' | 'published';
 export type DocumentationVariant = {

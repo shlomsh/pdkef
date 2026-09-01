@@ -1,4 +1,4 @@
-import { getTextFontSupport } from './textFontSupport.js';
+import { getTextFontSupport } from '../editor/text/textFontSupport.js';
 
 /**
  * The editor-side preflight state for an export. This is deliberately smaller

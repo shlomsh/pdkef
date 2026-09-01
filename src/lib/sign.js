@@ -1,8 +1,19 @@
-import { PDFDocument } from '@cantoo/pdf-lib';
+import {
+  PDFDocument,
+  PDFName,
+  PDFNumber,
+  concatTransformationMatrix,
+  popGraphicsState,
+  pushGraphicsState,
+} from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { percentToPoints } from './coords.js';
+import {
+  createPageGeometry,
+  pagePercentToEditorPoint,
+  visiblePageBox,
+} from '../editor/geometry/coords.js';
 import { getElementDefinition } from '../editor/registry/index.ts';
-import { findUnrepresentableCharacters } from './textCoverage.js';
+import { findUnrepresentableCharacters } from '../editor/text/textCoverage.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../constants/signGeometry.js';
 
 export { detectTextDirection, getEffectiveTextDirection, hexToRgbFractions, tintImageDataUrl } from './signHelpers.js';
@@ -18,7 +29,7 @@ export async function getPdfjs() {
 
 // The catalogue and the Hebrew substitution rule live in fonts.js, which the
 // editor also imports — see the note there on why both sides must share it.
-export { HANDWRITING_FONTS, TEXT_FONTS, resolveFontFamily } from './fonts.js';
+export { HANDWRITING_FONTS, TEXT_FONTS, resolveFontFamily } from '../editor/text/fonts.js';
 
 /**
  * Thrown by signPdf's coverage pre-pass (docs/hebrew-text-shaping-export.md,
@@ -53,6 +64,28 @@ function baselineOffsetEm(pdfFont, lineHeightEm = DEFAULT_LINE_HEIGHT_EM) {
     // Use the historic Helvetica fallback when fontkit metrics are unavailable.
   }
   return HELVETICA_BASELINE_OFFSET_EM;
+}
+
+// pdf-lib exposes CropBox/MediaBox/Rotate at the page API, but not /UserUnit.
+// Read that one numeric page attribute through the library's typed low-level
+// objects, including an inherited value when present. Invalid producer output
+// falls back to the PDF default of 1, matching pdf.js.
+function pageUserUnit(page) {
+  try {
+    const value = page.node.getInheritableAttribute(PDFName.of('UserUnit'));
+    const number = page.doc.context.lookupMaybe(value, PDFNumber)?.asNumber();
+    return Number.isFinite(number) && number > 0 ? number : 1;
+  } catch {
+    return 1;
+  }
+}
+
+export function pageGeometryFromPdfLibPage(page) {
+  return createPageGeometry({
+    cropBox: visiblePageBox(page.getMediaBox(), page.getCropBox()),
+    rotation: page.getRotation().angle,
+    userUnit: pageUserUnit(page),
+  });
 }
 
 // Bakes each element through its registry owner. Document loading and font caching
@@ -103,13 +136,34 @@ export async function signPdf(file, elements, onProgress) {
   for (let i = 0; i < elements.length; i++) {
     const element = elements[i];
     const page = pdfDoc.getPage(element.pageIndex);
-    const { width: pdfWidth, height: pdfHeight } = page.getSize();
-    await getElementDefinition(element.type).serialize(element, {
-      pdfDoc, page, pdfWidth, pdfHeight,
-      pdfX: percentToPoints(element.left, pdfWidth),
-      pdfY: pdfHeight - percentToPoints(element.top, pdfHeight),
-      loadCustomFont, baselineOffset: baselineOffsetEm,
-    });
+    const pageGeometry = pageGeometryFromPdfLibPage(page);
+    const { x: pdfX, y: pdfY } = pagePercentToEditorPoint({
+      x: element.left ?? element.x1 ?? 0,
+      y: element.top ?? element.y1 ?? 0,
+    }, pageGeometry);
+
+    // Every registry serializer draws in one rotation/crop-neutral editor
+    // space. This one graphics-state transform maps the complete result back
+    // to raw PDF user space; page /Rotate then displays it exactly where the
+    // pdf.js viewport and DOM overlay placed it.
+    page.pushOperators(
+      pushGraphicsState(),
+      concatTransformationMatrix(...pageGeometry.editorToPdf),
+    );
+    try {
+      await getElementDefinition(element.type).serialize(element, {
+        pdfDoc, page,
+        pdfWidth: pageGeometry.width,
+        pdfHeight: pageGeometry.height,
+        pdfX,
+        pdfY,
+        pageGeometry,
+        loadCustomFont,
+        baselineOffset: baselineOffsetEm,
+      });
+    } finally {
+      page.pushOperators(popGraphicsState());
+    }
     onProgress?.((i + 1) / elements.length);
   }
 

@@ -13,8 +13,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
-import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../constants/signGeometry.js';
-import { WYSIWYG_STRING_CASES } from '../test/fixtures/wysiwygStrings.js';
+import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
+import { WYSIWYG_STRING_CASES } from '../../test/fixtures/wysiwygStrings.js';
 import {
   RETIRED_FONTS,
   FONT_VERTICAL_METRICS,

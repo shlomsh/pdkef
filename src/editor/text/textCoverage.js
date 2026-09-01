@@ -1,7 +1,6 @@
 /**
  * @file textCoverage.js
- * @description Which characters in a document no font can draw - the one
- * implementation, shared by the save-time refusal and the while-typing warning.
+ * @description Which characters in a document no font can draw.
  *
  * **Three files sit near this name; they do different jobs.** Getting them
  * confused is easy and has bitten this area before, so:
@@ -17,10 +16,12 @@
  * synchronously from the generated glyph data in textFontSupport.js. Both use
  * fonts.js for resolution, textForCoverage for comb truncation, and the same
  * findMissingGlyphs transforms; tests compare their answers against real TTFs.
+ * This module returns facts only. Components turn those facts into localized
+ * user-facing messages one layer up.
  */
 import { textForCoverage } from './comb.js';
 import { resolveFontFamily } from './fonts.js';
-import { unrepresentableCharacters } from '../editor/registry/text.ts';
+import { unrepresentableCharacters } from '../registry/text.ts';
 
 /**
  * Every character across every text element that its resolved, embedded font
@@ -88,53 +89,4 @@ export async function findUnrepresentableCharacters(elements, loadFont) {
     pageNumbers: [...pages].sort((a, b) => a - b),
     elementCharacters,
   };
-}
-
-/**
- * The aside shown when a coverage substitution changed the font under the
- * user.
- *
- * The swap itself is visible the moment they type - the box re-renders in the
- * new face - so this only has to answer "why did that just happen", calmly and
- * without implying they did something wrong. Empty string when nothing was
- * substituted, so the caller can render it or not on truthiness alone.
- *
- * Names the actual characters the requested family could not draw, from
- * `missing` (docs/wysiwyg-text-architecture.md §3.5), rather than naming a
- * script the way this used to ("Arimo has no Hebrew letters"). That claim was
- * a guess derived from which SCRIPT_FALLBACKS row matched, and it was
- * provably wrong on mixed-script text - naming the characters is simply what
- * is true, on every input, with nothing to approximate.
- *
- * @param {{ requested: string, family: string, missing: string[] }} substitution
- *   as returned by `resolveFontSubstitution` in fonts.js
- */
-export function describeFontSubstitution({ requested, family, missing }) {
-  if (family === requested) return '';
-  const list = missing.join(', ');
-  return `${requested} has no match for: ${list}, so this text box is using ${family} instead. ${family} is what will be embedded in your download.`;
-}
-
-/**
- * The sentence shown for a coverage failure, built in one place so the
- * while-typing warning and the save-time refusal cannot word it differently.
- *
- * Naming the page matters: a document flagged without saying where leaves the
- * user hunting through a long file for a character they may not even be able
- * to see.
- *
- * @param {string[]} characters - as returned above
- * @param {number[]} [pageNumbers] - 1-based
- * @param {{ saving?: boolean }} [options] - `saving` picks the wording for the
- *   refusal at save time; the default is the calmer while-typing wording,
- *   which is a heads-up rather than a stop.
- */
-export function describeUnrepresentableText(characters, pageNumbers = [], { saving = false } = {}) {
-  const where = pageNumbers.length === 0 ? ''
-    : pageNumbers.length === 1 ? ` on page ${pageNumbers[0]}`
-      : ` on pages ${pageNumbers.slice(0, -1).join(', ')} and ${pageNumbers[pageNumbers.length - 1]}`;
-  const list = characters.join(', ');
-  return saving
-    ? `Some text${where} needs attention: ${list}. Select its text box for font suggestions. You may need separate text boxes for different fonts, or to replace these characters, then save again.`
-    : `Some characters${where} need a different font: ${list}. Select the marked text box for help choosing fonts or separating the text into boxes.`;
 }

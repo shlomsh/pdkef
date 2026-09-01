@@ -1,30 +1,33 @@
 import {
+  clientDeltaToPagePercent,
+  clientPointToPagePercent,
   pxToPercent,
-  pxDeltaToPercent,
   pxToPoints,
   scaleFactorFromPx,
   widthPercentToHeightPercent
-} from './coords.js';
+} from '../editor/geometry/coords.js';
 import { getPointerCoords } from '../editor/gestures/pointer.ts';
 
 export default function usePdfCoordinates() {
-  const getPointerPercent = (event, containerNode) => {
+  const getPointerPercent = (event, containerNode, pageGeometry) => {
     if (!containerNode) return { x: 0, y: 0 };
     const rect = containerNode.getBoundingClientRect();
     const { x: clientX, y: clientY } = getPointerCoords(event);
-    return {
-      x: pxToPercent(clientX - rect.left, rect.width),
-      y: pxToPercent(clientY - rect.top, rect.height)
-    };
+    return clientPointToPagePercent(
+      { x: clientX, y: clientY },
+      { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+      pageGeometry,
+    );
   };
 
-  const getDeltaPercent = (dx, dy, containerNode) => {
+  const getDeltaPercent = (dx, dy, containerNode, pageGeometry) => {
     if (!containerNode) return { x: 0, y: 0 };
     const rect = containerNode.getBoundingClientRect();
-    return {
-      x: pxDeltaToPercent(dx, rect.width),
-      y: pxDeltaToPercent(dy, rect.height)
-    };
+    return clientDeltaToPagePercent(
+      { x: dx, y: dy },
+      { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+      pageGeometry,
+    );
   };
 
   const getElementPercentSize = (elementNode, containerNode) => {

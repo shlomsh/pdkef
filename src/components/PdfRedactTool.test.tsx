@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { redactPdf } from '../lib/redact.js';
-import { pxToPercent, pxDeltaToPercent } from '../lib/coords.js';
+import { pxToPercent, pxDeltaToPercent } from '../editor/geometry/coords.js';
 import dropzoneStyles from './Dropzone.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
@@ -122,6 +122,22 @@ describe('PdfRedactTool UI flow', () => {
     expect(radiogroup).not.toBeNull();
     expect(radiogroup.getAttribute('aria-label')).toBe('View density');
     expect(radiogroup.querySelectorAll('[role="radio"]')).toHaveLength(3);
+  });
+
+  it('uses the shared remembered whiteout color for a newly drawn redaction', async () => {
+    localStorage.setItem('pdf-toolkit:lastWhiteoutColor', '#123456');
+
+    try {
+      const drawArea = await loadFileAndGetDrawArea();
+      await armTool('Whiteout');
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      const surface = container.querySelector('.redact-surface--whiteout');
+      expect(surface).not.toBeNull();
+      expect(surface.style.backgroundColor).toBe('rgb(18, 52, 86)');
+    } finally {
+      localStorage.removeItem('pdf-toolkit:lastWhiteoutColor');
+    }
   });
 
   it('keeps the redaction editor open after downloading', async () => {

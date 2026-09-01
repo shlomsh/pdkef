@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { documentationPath, getDocumentationLocale } from '../data/documentationLocales';
+import { documentationPath, getDocumentationLocale } from './documentationLocales';
 import { resolveDocumentationLink } from './documentation';
 
 describe('documentation locale registry', () => {

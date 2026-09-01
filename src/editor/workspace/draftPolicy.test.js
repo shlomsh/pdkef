@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MAX_AGE_MS, createDraftRetention, getDraftExpiry, isDraftExpired } from './draftPolicy.js';
 
-describe('draft retention policy', () => {
+describe('workspace draft retention policy', () => {
   it('stamps only the saved timestamp', () => {
     expect(createDraftRetention(100)).toEqual({ savedAt: 100 });
   });

@@ -1,8 +1,17 @@
 import { useRef, useEffect } from 'preact/hooks';
+import type { PageGeometry } from '../editor/geometry/coords.ts';
 import workspaceStyles from './SignTool/Workspace.module.css';
 
 // Dedicated canvas rendering component for clean lifecycles and race-free layout paints
-export default function PdfPageCanvas({ pdfDocument, pageNum }: { pdfDocument: any; pageNum: number }) {
+export default function PdfPageCanvas({
+  pdfDocument,
+  pageNum,
+  pageGeometry,
+}: {
+  pdfDocument: any;
+  pageNum: number;
+  pageGeometry?: PageGeometry;
+}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -12,7 +21,13 @@ export default function PdfPageCanvas({ pdfDocument, pageNum }: { pdfDocument: a
     const renderPage = async () => {
       try {
         const page = await pdfDocument.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 }); // sharp rendering
+        // Rotation is supplied by the same PageGeometry used by the overlay
+        // and export. CropBox is intrinsic to pdf.js's page.view, from which
+        // that geometry was built, so the canvas and overlay share one frame.
+        const viewport = page.getViewport({
+          scale: 1.5,
+          rotation: pageGeometry?.rotation ?? page.rotate,
+        }); // sharp rendering
         const canvas = canvasRef.current;
         if (!canvas || !active) return;
 
@@ -30,7 +45,7 @@ export default function PdfPageCanvas({ pdfDocument, pageNum }: { pdfDocument: a
     return () => {
       active = false;
     };
-  }, [pdfDocument, pageNum]);
+  }, [pdfDocument, pageNum, pageGeometry?.rotation]);
 
   return (
     <canvas
