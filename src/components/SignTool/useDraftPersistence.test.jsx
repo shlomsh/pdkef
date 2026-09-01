@@ -9,7 +9,7 @@ import { useDraftPersistence } from './useDraftPersistence.js';
 // this is the behavior TODO.md's SIGN-06 asked for, already implemented in
 // useDraftPersistence.js's persist(), but previously unguarded by any test.
 
-vi.mock('./draftStore.js', () => ({
+vi.mock('../../editor/workspace/draftStore.js', () => ({
   saveDraft: vi.fn(),
   loadDraft: vi.fn(() => Promise.resolve(null)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
@@ -17,11 +17,11 @@ vi.mock('./draftStore.js', () => ({
 }));
 
 // Not what this test is about - avoid a real pdf.js decode of fake PDF bytes.
-vi.mock('./thumbnails.js', () => ({
+vi.mock('../../lib/thumbnails.js', () => ({
   renderDraftPreview: vi.fn(() => Promise.resolve(null))
 }));
 
-import { saveDraft } from './draftStore.js';
+import { saveDraft } from '../../editor/workspace/draftStore.js';
 
 function Harness({ apiRef, props }) {
   apiRef.current = { result: useDraftPersistence(props) };

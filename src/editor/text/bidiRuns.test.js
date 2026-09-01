@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WYSIWYG_STRING_BY_ID } from '../test/fixtures/wysiwygStrings.js';
+import { WYSIWYG_STRING_BY_ID } from '../../test/fixtures/wysiwygStrings.js';
 import { resolveBidiRuns } from './bidiRuns.js';
 
 describe('resolveBidiRuns', () => {

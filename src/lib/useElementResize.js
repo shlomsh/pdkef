@@ -24,6 +24,7 @@ import {
  * @param {object}   params.elementRef     - ref to the element's DOM node (owned by caller)
  * @param {function} params.getPageWrapper - () => closest page-wrapper node | null
  * @param {number}   params.pageWidthPoints - page width in PDF points (0 if the caller has no notion of it - only text/centered resize read it)
+ * @param {import('../editor/geometry/coords.js').PageGeometry} [params.pageGeometry] - rotated/cropped page frame
  * @param {function} params.onChange       - called on pointer up to commit the resized geometry
  */
 export default function useElementResize({
@@ -31,6 +32,7 @@ export default function useElementResize({
   elementRef,
   getPageWrapper,
   pageWidthPoints,
+  pageGeometry,
   onChange
 }) {
   const {
@@ -142,7 +144,7 @@ export default function useElementResize({
       const normalizedDy = isTop ? -dy : dy;
 
       if (elementDefinition.resizeBehavior.applyLineResize) {
-        const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
+        const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper, pageGeometry);
         return elementDefinition.resizeBehavior.applyLineResize({
           handle,
           delta: { x: dxPercent, y: dyPercent },
@@ -151,7 +153,7 @@ export default function useElementResize({
       }
 
       if (elementDefinition.resizeBehavior.applyBoxResize) {
-        const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper);
+        const { x: dxPercent, y: dyPercent } = getDeltaPercent(rawDx, dy, pageWrapper, pageGeometry);
         return elementDefinition.resizeBehavior.applyBoxResize({
           handle,
           delta: { x: dxPercent, y: dyPercent },
@@ -163,7 +165,7 @@ export default function useElementResize({
       // Checked before applyTextResize because text declares both: the corner
       // handles still mean font size, and only the type knows which is which.
       if (elementDefinition.resizeBehavior.applyWidthResize && isWidthHandle) {
-        const { x: dxPercent } = getDeltaPercent(rawDx, 0, pageWrapper);
+        const { x: dxPercent } = getDeltaPercent(rawDx, 0, pageWrapper, pageGeometry);
         // Where the floor sits is the type's call, not this hook's - for a
         // comb it follows the cell count and font size (see combWidthFloor),
         // which is the difference between "shrink it back to about its own
@@ -201,7 +203,7 @@ export default function useElementResize({
       }
 
       if (elementDefinition.resizeBehavior.applyCenteredResize) {
-        const { x: deltaWidth } = getDeltaPercent(normalizedDx, 0, pageWrapper);
+        const { x: deltaWidth } = getDeltaPercent(normalizedDx, 0, pageWrapper, pageGeometry);
         const widthPolicy = elementDefinition.resizeBehavior.minimumWidth;
         const minWidth = widthPolicy.unit === 'pixels'
           ? getWidthPercent(widthPolicy.value, pageWrapper)

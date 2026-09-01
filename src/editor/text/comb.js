@@ -1,4 +1,4 @@
-import { MAX_COMB_CELLS } from '../constants/signGeometry.js';
+import { MAX_COMB_CELLS } from '../../constants/signGeometry.js';
 
 /**
  * Comb layout: one character per cell, centred, across an explicit width.

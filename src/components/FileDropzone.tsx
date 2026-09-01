@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { loadDraft, deleteDraft, saveHandoff, readDraftMeta } from '../lib/draftStore.js';
+import { loadDraft, deleteDraft, saveHandoff, readDraftMeta } from '../editor/workspace/draftStore.js';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import dialogStyles from './Dialog.module.css';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';

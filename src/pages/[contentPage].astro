@@ -7,7 +7,7 @@ import ContentPageLayout from '../layouts/ContentPageLayout.astro';
 import ContentPage from '../components/ContentPage.astro';
 import { CONTENT_ICONS } from '../data/contentIcons';
 import { contentPages } from '../data/contentPages.js';
-import { getDocumentationContext } from '../lib/documentation';
+import { getDocumentationContext } from '../i18n/documentation';
 
 export async function getStaticPaths() {
   const entries = await getCollection('contentPages');

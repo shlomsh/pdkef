@@ -1,5 +1,7 @@
 ---
 /** A no-JavaScript, same-article language picker for documentation pages. */
+import { getDocumentationLocale } from '../i18n/documentationLocales';
+
 interface Variant {
   locale?: string;
   lang?: string;
@@ -16,7 +18,6 @@ interface Props {
 }
 const { variants = [], currentLocale = 'en', label = 'Language' } = Astro.props;
 const available = variants.filter((variant) => (variant.path ?? variant.href) && (variant.locale ?? variant.lang));
-const nativeNames: Record<string, string> = { en: 'English', he: 'עברית' };
 ---
 
 {available.length > 1 && (
@@ -26,7 +27,7 @@ const nativeNames: Record<string, string> = { en: 'English', he: 'עברית' };
       {available.map((variant) => {
         const locale = variant.locale ?? variant.lang ?? 'en';
         const href = variant.path ?? variant.href ?? '/';
-        const name = variant.nativeName ?? variant.label ?? nativeNames[locale] ?? locale;
+        const name = variant.nativeName ?? variant.label ?? getDocumentationLocale(locale)?.nativeName ?? locale;
         const current = variant.isCurrent ?? locale === currentLocale;
         return (
           <li>

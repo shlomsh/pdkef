@@ -13,8 +13,8 @@
  * So the substitution is decided here, explicitly, and applied on both sides.
  */
 
-import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../constants/signGeometry.js';
-import { FONT_COVERAGE_FILES, fontFileHasGlyph } from './fontCoverageTable.js';
+import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
+import { FONT_COVERAGE_FILES, fontFileHasGlyph } from '../../lib/fontCoverageTable.js';
 import { findMissingGlyphs } from './textTransforms.js';
 
 export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Kalam', 'Mali', 'Pacifico', 'Sacramento'];

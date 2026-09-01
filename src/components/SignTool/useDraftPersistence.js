@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { saveDraft, loadDraft, deleteDraft, hasDraftHint } from './draftStore.js';
+import { saveDraft, loadDraft, deleteDraft, hasDraftHint } from '../../editor/workspace/draftStore.js';
 
 // Upper bound on how long the mount-time restore check may hold the caller in
 // `isRestoring` before giving up. A real IndexedDB open+read is normally
@@ -180,7 +180,7 @@ export function useDraftPersistence({
     // restore" through this hook's params just to save one decode; not worth
     // it against the restore path staying this thin.
     let cancelled = false;
-    import('./thumbnails.js')
+    import('../../lib/thumbnails.js')
       .then(({ renderDraftPreview }) => renderDraftPreview(file))
       .then((dataUrl) => {
         if (!cancelled) previewRef.current = dataUrl;

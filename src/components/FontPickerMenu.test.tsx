@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import FontPickerMenu, { FONT_PREVIEW_DELAY_MS } from './FontPickerMenu.tsx';
-import { resolveFontFamily, HANDWRITING_FONTS, TEXT_FONTS } from '../lib/fonts.js';
+import { resolveFontFamily, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
 
 describe('FontPickerMenu', () => {
   let container: HTMLDivElement | null;

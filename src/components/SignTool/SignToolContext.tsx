@@ -1,8 +1,8 @@
 import { createContext } from 'preact';
 import type { ComponentChildren } from 'preact';
 import { useReducer, useContext, useMemo } from 'preact/hooks';
-import { widthPercentToHeightPercent } from '../../lib/coords.js';
-import type { EditorElement } from '../../lib/editorModel.ts';
+import { widthPercentToHeightPercent } from '../../editor/geometry/coords.js';
+import type { EditorElement } from '../../editor/model/editorModel.ts';
 import {
   MIN_LINE_LENGTH_PCT,
   LINE_RESET_SPREAD_PCT,

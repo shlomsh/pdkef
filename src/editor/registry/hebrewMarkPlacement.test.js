@@ -32,8 +32,8 @@ import { join } from 'node:path';
 import { PDFDocument, rgb } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { drawShapedRun } from './text.ts';
-import { HEBREW_CAPABLE_FONTS } from '../../lib/fonts.js';
-import { CALIBRATION_MARK, COMPOSABLE_BASES, ORDER_VARIANT_GROUPS } from '../../lib/hebrewCombiningCorpus.js';
+import { HEBREW_CAPABLE_FONTS } from '../text/fonts.js';
+import { CALIBRATION_MARK, COMPOSABLE_BASES, ORDER_VARIANT_GROUPS } from '../text/hebrewCombiningCorpus.js';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 

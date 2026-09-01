@@ -1,9 +1,9 @@
 import type { ElementDefinition, LineResizeInput, LineResizePatch } from './types.ts';
-import type { LineElement } from '../../lib/editorModel.ts';
+import type { LineElement } from '../model/editorModel.ts';
 import { rgb } from '@cantoo/pdf-lib';
 import { hasNumber, hasString, isRecord } from './schema.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';
-import { percentToPoints } from '../../lib/coords.js';
+import { percentToPoints } from '../geometry/coords.js';
 
 export function applyLineResize({ handle, delta, start }: LineResizeInput): LineResizePatch {
   return handle === 'line-start'

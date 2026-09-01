@@ -1,6 +1,6 @@
 import { useMemo } from 'preact/hooks';
-import { useDraftPersistence } from '../../lib/useDraftPersistence.js';
-import { takeHandoff } from '../../lib/draftStore.js';
+import { useDraftPersistence } from '../../components/SignTool/useDraftPersistence.js';
+import { takeHandoff } from './draftStore.js';
 
 interface DraftRecord {
   fileName: string;

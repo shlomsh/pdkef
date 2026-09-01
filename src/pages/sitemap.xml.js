@@ -6,7 +6,7 @@
 import { tools } from '../data/tools.js';
 import { contentPages } from '../data/contentPages.js';
 import { getCollection } from 'astro:content';
-import { documentationPath } from '../data/documentationLocales';
+import { documentationPath } from '../i18n/documentationLocales';
 
 const FALLBACK_SITE = 'https://pdkef.com';
 

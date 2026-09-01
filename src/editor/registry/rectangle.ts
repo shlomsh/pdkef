@@ -1,10 +1,10 @@
 import type { ElementDefinition } from './types.ts';
-import type { RectangleElement } from '../../lib/editorModel.ts';
+import type { RectangleElement } from '../model/editorModel.ts';
 import { rgb } from '@cantoo/pdf-lib';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { applyBoxResize } from './boxResize.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';
-import { percentToPoints } from '../../lib/coords.js';
+import { percentToPoints } from '../geometry/coords.js';
 export const rectangleDefinition: ElementDefinition<RectangleElement> = {
   type: 'rectangle',
   schema: (value): value is RectangleElement => isRecord(value) && value.type === 'rectangle' && hasString(value, 'id')

@@ -76,7 +76,7 @@ export default function useWorkspaceGestures({
     if (definition.creation.mode !== 'point') {
       if (definition.creation.mode === 'external' && selectedTool === 'signature') {
         const container = e.currentTarget;
-        const { x: leftPercent, y: topPercent } = getPointerPercent(e, container);
+        const { x: leftPercent, y: topPercent } = getPointerPercent(e, container, pageSizes[pageIndex]);
         if (activeSignature) {
           placeSignatureAt(activeSignature.dataUrl, activeSignature.aspectRatio, pageIndex, leftPercent, topPercent);
           dispatch({ type: 'DISARM_TOOL' });
@@ -92,14 +92,15 @@ export default function useWorkspaceGestures({
     if (e.target.closest('[data-editor-element]')) return;
 
     const container = e.currentTarget;
-    const { x: leftPercent, y: topPercent } = getPointerPercent(e, container);
+    const pageGeometry = pageSizes[pageIndex];
+    const { x: leftPercent, y: topPercent } = getPointerPercent(e, container, pageGeometry);
 
     const id = createElementId();
     const symbolWidth = initialSymbolWidth;
     // A text box's on-screen height is its font size (points) scaled by the same
     // factor the page itself is rendered at, so as a share of the page it is just
     // em-height / page height in points — no DOM measurement needed.
-    const pageHeightPoints = pageSizes[pageIndex]?.height || PAGE_HEIGHT_DEFAULT_PTS;
+    const pageHeightPoints = pageGeometry?.height || PAGE_HEIGHT_DEFAULT_PTS;
     const textHeight = (initialFontSize * TEXT_BOX_LINE_HEIGHT_EM / pageHeightPoints) * 100;
     const newEl = definition.creation.create({
       id,
@@ -151,7 +152,8 @@ export default function useWorkspaceGestures({
 
     const tool = selectedTool;
     const container = e.currentTarget;
-    const { x: startLeftPercent, y: startTopPercent } = getPointerPercent(e, container);
+    const pageGeometry = pageSizes[pageIndex];
+    const { x: startLeftPercent, y: startTopPercent } = getPointerPercent(e, container, pageGeometry);
     const { x: clientX, y: clientY } = getPointerCoords(e);
 
     const id = createElementId();
@@ -175,7 +177,7 @@ export default function useWorkspaceGestures({
       const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
 
       if (isLineTool) {
-        const { x, y } = getPointerPercent(moveEvent, container);
+        const { x, y } = getPointerPercent(moveEvent, container, pageGeometry);
         const x2 = Math.max(0, Math.min(100, x));
         const y2 = Math.max(0, Math.min(100, y));
         return { x2, y2 };
@@ -185,6 +187,7 @@ export default function useWorkspaceGestures({
         moveX - clientX,
         moveY - clientY,
         container,
+        pageGeometry,
       );
 
       return {

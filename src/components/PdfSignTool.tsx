@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
-import type { EditorElement } from '../lib/editorModel.ts';
+import type { EditorElement } from '../editor/model/editorModel.ts';
 import BasePdfTool from './BasePdfTool.tsx';
 import { SignToolProvider, useSignTool } from './SignTool/SignToolContext.tsx';
 import { SignDefaultsContext } from './SignTool/SignDefaultsContext.tsx';
@@ -8,12 +8,14 @@ import PdfWorkspace from './SignTool/PdfWorkspace.tsx';
 import SignatureDialog from './SignatureDialog.tsx';
 import { signPdf, UnrepresentableTextError } from '../lib/sign.js';
 import { uniqueId, seedUniqueId } from '../editor/model/ids.ts';
-import { describeUnrepresentableText } from '../lib/textCoverage.js';
-import { widthPercentToHeightPercent } from '../lib/coords.js';
+import { describeUnrepresentableText } from './SignTool/textMessages.ts';
+import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../editor/geometry/coords.js';
+import type { PageGeometry } from '../editor/geometry/coords.ts';
 import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { useEditorDraftPersistence } from '../editor/workspace/useEditorDraftPersistence.ts';
-import { createActionEntry } from '../lib/actionHistory.js';
+import { getEditorPreference, setEditorPreference } from '../editor/workspace/preferenceStore.ts';
+import { createActionEntry } from '../editor/model/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import UndoHistoryModal from './UndoHistoryModal.tsx';
@@ -26,7 +28,8 @@ import useCurrentPage from '../lib/useCurrentPage.js';
 // their edits. Document-load errors use the workspace's separate default copy.
 function describeSignFailure(err: unknown): string {
   if (err instanceof UnrepresentableTextError) {
-    // Worded by textCoverage.js, the same module the while-typing warning
+    // Worded by SignTool/textMessages.ts, the same UI message module the
+    // while-typing warning
     // reads from, so the heads-up and the refusal can never name different
     // characters or point at different pages.
     return describeUnrepresentableText(err.characters, err.pageNumbers ?? [], { saving: true });
@@ -46,7 +49,7 @@ function PdfSignToolInner() {
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [pdfDocument, setPdfDocument] = useState<any>(null);
-  const [pageSizes, setPageSizes] = useState<{ width: number; height: number }[]>([]); // Array of { width, height } in PDF points
+  const [pageSizes, setPageSizes] = useState<PageGeometry[]>([]); // Rotated/cropped visible page frames in physical PDF points.
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
   const setSelectedTool = (tool: string | null) => dispatch({ type: 'SET_TOOL', payload: tool });
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
@@ -223,140 +226,87 @@ function PdfSignToolInner() {
   useUndoShortcut(undoLast);
 
 
-  // Load saved signatures from localStorage on mount
+  // Load saved signatures from workspace preferences on mount.
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('pdf-toolkit:signatures');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setSavedSignatures(parsed);
-        if (parsed.length > 0) {
-          setActiveSignature(parsed[0]);
-        }
+    const stored = getEditorPreference('savedSignatures');
+    if (stored) {
+      setSavedSignatures(stored);
+      if (stored.length > 0) {
+        setActiveSignature(stored[0]);
       }
-    } catch (e) {
-      console.error('Failed to load saved signatures from localStorage:', e);
     }
   }, []);
 
-  // Load last-used element color from localStorage on mount
+  // Load last-used element color from workspace preferences on mount.
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('pdf-toolkit:lastColor');
-      if (stored) setLastColor(stored);
-    } catch (e) {
-      console.error('Failed to load last color from localStorage:', e);
-    }
+    const stored = getEditorPreference('lastColor');
+    if (stored) setLastColor(stored);
   }, []);
 
-  // Load last-used whiteout color from localStorage on mount
+  // Load last-used whiteout color from workspace preferences on mount.
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('pdf-toolkit:lastWhiteoutColor');
-      if (stored) setLastWhiteoutColor(stored);
-    } catch (e) {
-      console.error('Failed to load last whiteout color from localStorage:', e);
-    }
+    const stored = getEditorPreference('lastWhiteoutColor');
+    if (stored) setLastWhiteoutColor(stored);
   }, []);
 
-  // Load last-used text font from localStorage on mount
+  // Load last-used text font from workspace preferences on mount.
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('pdf-toolkit:lastFont');
-      if (stored) setLastFont(stored);
-    } catch (e) {
-      console.error('Failed to load last font from localStorage:', e);
-    }
+    const stored = getEditorPreference('lastFont');
+    if (stored) setLastFont(stored);
   }, []);
 
-  // Load last-used text font size from localStorage on mount
+  // Load last-used text font size from workspace preferences on mount.
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('pdf-toolkit:lastFontSize');
-      if (stored) setLastFontSize(parseFloat(stored));
-    } catch (e) {
-      console.error('Failed to load last font size from localStorage:', e);
-    }
+    const stored = getEditorPreference('lastFontSize');
+    if (stored) setLastFontSize(stored);
   }, []);
 
-  // Load last-used text direction override from localStorage on mount
+  // Load last-used text direction override from workspace preferences on mount.
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('pdf-toolkit:lastDirection');
-      if (stored) setLastDirection(stored);
-    } catch (e) {
-      console.error('Failed to load last text direction from localStorage:', e);
-    }
+    const stored = getEditorPreference('lastDirection');
+    if (stored) setLastDirection(stored);
   }, []);
 
-  // Load last-used symbol width from localStorage on mount
+  // Load last-used symbol width from workspace preferences on mount.
   useEffect(() => {
-    try {
-      const stored = parseFloat(localStorage.getItem('pdf-toolkit:lastSymbolWidth') || '');
-      if (Number.isFinite(stored) && stored > 0) setLastSymbolWidth(stored);
-    } catch (e) {
-      console.error('Failed to load last symbol width from localStorage:', e);
-    }
+    const stored = getEditorPreference('lastSymbolWidth');
+    if (stored) setLastSymbolWidth(stored);
   }, []);
 
-  // Load last-used symbol mark from localStorage on mount
+  // Load last-used symbol mark from workspace preferences on mount.
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('pdf-toolkit:lastSymbolMark');
-      if (stored === 'check' || stored === 'x' || stored === 'dot') setLastSymbolMark(stored);
-    } catch (e) {
-      console.error('Failed to load last symbol mark from localStorage:', e);
-    }
+    const stored = getEditorPreference('lastSymbolMark');
+    if (stored) setLastSymbolMark(stored);
   }, []);
 
-  // Load last-used signature width from localStorage on mount
+  // Load last-used signature width from workspace preferences on mount.
   useEffect(() => {
-    try {
-      const stored = parseFloat(localStorage.getItem('pdf-toolkit:lastSignatureWidth') || '');
-      if (Number.isFinite(stored) && stored > 0) setLastSignatureWidth(stored);
-    } catch (e) {
-      console.error('Failed to load last signature width from localStorage:', e);
-    }
+    const stored = getEditorPreference('lastSignatureWidth');
+    if (stored) setLastSignatureWidth(stored);
   }, []);
 
   // Remember the color last picked, shared across text/symbol/signature, for future placements
   const rememberColor = (color: string) => {
     setLastColor(color);
-    try {
-      localStorage.setItem('pdf-toolkit:lastColor', color);
-    } catch (e) {
-      console.error('Failed to persist last color to localStorage:', e);
-    }
+    setEditorPreference('lastColor', color);
   };
 
   // Remember the whiteout color last picked for future placements
   const rememberWhiteoutColor = (color: string) => {
     setLastWhiteoutColor(color);
-    try {
-      localStorage.setItem('pdf-toolkit:lastWhiteoutColor', color);
-    } catch (e) {
-      console.error('Failed to persist last whiteout color to localStorage:', e);
-    }
+    setEditorPreference('lastWhiteoutColor', color);
   };
 
   // Remember the font last picked for a text element, for future placements
   const rememberFont = (fontFamily: string) => {
     setLastFont(fontFamily);
-    try {
-      localStorage.setItem('pdf-toolkit:lastFont', fontFamily);
-    } catch (e) {
-      console.error('Failed to persist last font to localStorage:', e);
-    }
+    setEditorPreference('lastFont', fontFamily);
   };
 
   // Remember the font size last picked for a text element, for future placements
   const rememberFontSize = (fontSize: number) => {
     setLastFontSize(fontSize);
-    try {
-      localStorage.setItem('pdf-toolkit:lastFontSize', String(fontSize));
-    } catch (e) {
-      console.error('Failed to persist last font size to localStorage:', e);
-    }
+    setEditorPreference('lastFontSize', fontSize);
   };
 
   // Remember the stroke thickness last picked for a shape, for future placements
@@ -368,20 +318,14 @@ function PdfSignToolInner() {
   const rememberSymbolWidth = (width: number) => {
     if (!Number.isFinite(width) || width <= 0) return;
     setLastSymbolWidth(width);
-    try {
-      localStorage.setItem('pdf-toolkit:lastSymbolWidth', String(width));
-    } catch (e) {
-      console.error('Failed to persist last symbol width to localStorage:', e);
-    }
+    setEditorPreference('lastSymbolWidth', width);
   };
 
   // Remember the mark last chosen for a symbol, for future placements
   const rememberSymbolMark = (mark: string) => {
     setLastSymbolMark(mark);
-    try {
-      localStorage.setItem('pdf-toolkit:lastSymbolMark', mark);
-    } catch (e) {
-      console.error('Failed to persist last symbol mark to localStorage:', e);
+    if (mark === 'check' || mark === 'x' || mark === 'dot') {
+      setEditorPreference('lastSymbolMark', mark);
     }
   };
 
@@ -389,21 +333,13 @@ function PdfSignToolInner() {
   const rememberSignatureWidth = (width: number) => {
     if (!Number.isFinite(width) || width <= 0) return;
     setLastSignatureWidth(width);
-    try {
-      localStorage.setItem('pdf-toolkit:lastSignatureWidth', String(width));
-    } catch (e) {
-      console.error('Failed to persist last signature width to localStorage:', e);
-    }
+    setEditorPreference('lastSignatureWidth', width);
   };
 
   // Remember the text direction last manually toggled, for future placements
   const rememberDirection = (textDirection: string) => {
     setLastDirection(textDirection);
-    try {
-      localStorage.setItem('pdf-toolkit:lastDirection', textDirection);
-    } catch (e) {
-      console.error('Failed to persist last text direction to localStorage:', e);
-    }
+    setEditorPreference('lastDirection', textDirection);
   };
 
   // Save new signature to list & localStorage
@@ -415,11 +351,7 @@ function PdfSignToolInner() {
     };
     const updated = [newSig, ...savedSignatures].slice(0, 10);
     setSavedSignatures(updated);
-    try {
-      localStorage.setItem('pdf-toolkit:signatures', JSON.stringify(updated));
-    } catch (e) {
-      console.error('Failed to persist signatures to localStorage:', e);
-    }
+    setEditorPreference('savedSignatures', updated);
     return newSig;
   };
 
@@ -433,11 +365,7 @@ function PdfSignToolInner() {
     if (!signatureToDelete) return;
     const updated = savedSignatures.filter((sig) => sig.id !== signatureToDelete);
     setSavedSignatures(updated);
-    try {
-      localStorage.setItem('pdf-toolkit:signatures', JSON.stringify(updated));
-    } catch (e) {
-      console.error('Failed to persist signatures to localStorage:', e);
-    }
+    setEditorPreference('savedSignatures', updated);
     if (activeSignature && activeSignature.id === signatureToDelete) {
       const fallback = updated.length > 0 ? updated[0] : null;
       setActiveSignature(fallback);
@@ -473,8 +401,7 @@ function PdfSignToolInner() {
         for (let i = 1; i <= doc.numPages; i++) {
           const page = await doc.getPage(i);
           if (!isCurrent()) return;
-          const { width, height } = page.getViewport({ scale: 1.0 });
-          sizes.push({ width, height });
+          sizes.push(pageGeometryFromPdfJsPage(page));
         }
         if (!isCurrent()) return;
         setPageSizes(sizes);

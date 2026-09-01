@@ -11,8 +11,14 @@ import SignToolbar from './SignToolbar.tsx';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
 import { detectTextDirection } from '../../lib/signHelpers.js';
 import { getSignExportReadiness } from '../../lib/signExportReadiness.ts';
+import { createPageGeometry } from '../../editor/geometry/coords.js';
+import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import pdfToolStyles from '../PdfTool.module.css';
 import workspaceStyles from './Workspace.module.css';
+
+const DEFAULT_PAGE_GEOMETRY = createPageGeometry({
+  cropBox: { x: 0, y: 0, width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS },
+});
 
 export default function PdfWorkspace({
   status,
@@ -41,7 +47,7 @@ export default function PdfWorkspace({
   isPseudoFullscreen: boolean;
   workspaceRef: any;
   numPages: number;
-  pageSizes: any[];
+  pageSizes: PageGeometry[];
   pdfDocument: any;
   pageWrapperRefs: any;
   setTempPlacement: (p: any) => void;
@@ -238,7 +244,7 @@ export default function PdfWorkspace({
           {/* PDF Pages rendering container */}
           <div className={workspaceStyles['pages-container']} onClick={deactivateAll}>
             {Array.from({ length: numPages }).map((_, pageIdx) => {
-              const size = pageSizes[pageIdx] || { width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS };
+              const size = pageSizes[pageIdx] || DEFAULT_PAGE_GEOMETRY;
 
               const pageElements = elements.filter((el) => el.pageIndex === pageIdx);
 
@@ -257,6 +263,7 @@ export default function PdfWorkspace({
                     <PdfPageCanvas
                       pdfDocument={pdfDocument}
                       pageNum={pageIdx + 1}
+                      pageGeometry={size}
                     />
 
                     <div
@@ -277,6 +284,7 @@ export default function PdfWorkspace({
                           onDelete={makeOnDelete(el.id)}
                           onClone={makeOnClone(el.id, el.pageIndex, el.type)}
                           pageWidthPoints={size.width}
+                          pageGeometry={size}
                         >
                           {getElementRenderer(el.type)({
                             element: el,

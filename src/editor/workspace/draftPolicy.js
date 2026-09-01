@@ -1,4 +1,4 @@
-// The retention policy for every persisted editor draft. Keep the timestamp
+// Workspace retention policy for every persisted editor draft. Keep the timestamp
 // calculation and expiry check together so a policy change applies to drafts
 // created by older versions too: only `savedAt` is persisted, never a frozen
 // `expiresAt` value.

@@ -21,7 +21,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { HANDWRITING_FONTS, TEXT_FONTS } from './fonts.js';
+import { HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
 
 const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
 

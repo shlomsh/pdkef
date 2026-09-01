@@ -8,6 +8,7 @@ import { startGesture } from '../editor/gestures/controller.ts';
 import usePdfCoordinates from '../lib/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle } from '../editor/registry/redactionSurface.ts';
 import { useEditorDraftPersistence } from '../editor/workspace/useEditorDraftPersistence.ts';
+import { getEditorPreference, setEditorPreference } from '../editor/workspace/preferenceStore.ts';
 import useDeletableObjects from '../lib/useDeletableObjects.js';
 import RedactToolbar from './RedactToolbar.tsx';
 import RedactBox from './RedactBox.tsx';
@@ -15,7 +16,7 @@ import DeleteMark from './DeleteMark.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import EditorPageHeader from './EditorPageHeader.tsx';
 import UndoHistoryModal from './UndoHistoryModal.tsx';
-import { createActionEntry } from '../lib/actionHistory.js';
+import { createActionEntry } from '../editor/model/actionHistory.js';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import ErrorMessage from './ErrorMessage.tsx';
@@ -67,17 +68,13 @@ export default function PdfRedactTool() {
   const drawingPreviewRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('pdf-toolkit:lastWhiteoutColor');
-      if (stored) setActiveColor(stored);
-    } catch (e) {}
+    const stored = getEditorPreference('lastWhiteoutColor');
+    if (stored) setActiveColor(stored);
   }, []);
 
   const rememberColor = (color: string) => {
     setActiveColor(color);
-    try {
-      localStorage.setItem('pdf-toolkit:lastWhiteoutColor', color);
-    } catch (e) {}
+    setEditorPreference('lastWhiteoutColor', color);
   };
   // Which existing box shows its delete/resize controls — set on hover (desktop) or
   // on touch/drag interaction (mobile has no hover), so the controls stay hidden

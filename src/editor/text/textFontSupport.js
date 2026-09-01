@@ -69,23 +69,3 @@ export function getTextFontSupport(element) {
     : [];
   return { ...support, pieces };
 }
-
-/** Bounded, direction-isolated text excerpts for English UI sentences. */
-export function quoteText(text) {
-  const chars = [...text.trim()];
-  return `“\u2068${chars.slice(0, 36).join('')}${chars.length > 36 ? '…' : ''}\u2069”`;
-}
-
-export function describeTextFontSupport(support) {
-  if (support.status === 'supported') return '';
-  if (support.status === 'fallback') {
-    return `Using ${support.family} so all your text is included. ${support.requested} is missing ${quoteText(support.missing.join(''))}. You can choose another matching font in the font menu.`;
-  }
-  const unavailable = support.pieces.filter((piece) => !piece.family);
-  if (unavailable.length) {
-    return `No available font includes ${quoteText(unavailable.map((piece) => piece.text).join(''))}. Please replace or remove those characters; you can keep the rest of your text.`;
-  }
-  const examples = support.pieces.slice(0, 3)
-    .map((piece) => `${quoteText(piece.text)} in ${piece.family}`).join('; ');
-  return `No single available font includes all this text. Keep the text by placing the parts in separate text boxes: ${examples}${support.pieces.length > 3 ? '; continue with the remaining parts' : ''}.`;
-}

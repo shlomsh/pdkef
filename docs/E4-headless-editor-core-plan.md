@@ -4,7 +4,7 @@
 > [TODO.md](../TODO.md). **Epic E4 is complete**; this is kept as the design record.
 > Design standard: [CLAUDE.md](../CLAUDE.md) Part II §1.2 (gesture hot path), §3.2 (editor core),
 > §3.1 (styling boundary), §4 (gesture golden rule), §5 (known hazards). **E4.1 and E4.2 are done**:
-> E4.1 introduced `src/lib/editorModel.ts` and `coords.ts`; E4.2 introduced the framework-free gesture
+> E4.1 introduced `src/editor/model/editorModel.ts` and `coords.ts`; E4.2 introduced the framework-free gesture
 > controller and pointer normaliser. This is the reference a fresh session
 > reads before touching the Sign/Redact editors.
 >
@@ -76,7 +76,7 @@ consumes them, it does not re-define them.
 
 ### 1d. The two element models are not the same shape (the E4.4 reconciliation)
 
-- **Sign** uses the [`editorModel.ts`](../src/lib/editorModel.ts) union keyed on `type`
+- **Sign** uses the [`editorModel.ts`](../src/editor/model/editorModel.ts) union keyed on `type`
   (`whiteout`, `rectangle`, …).
 - **Redact** stores `{ id, pageIndex, left, top, width, height, style, color }` where
   **`style` ∈ `blackout | blur | whiteout`** — a *different discriminant field*. `RedactBox.jsx`
@@ -98,7 +98,7 @@ Both [`PdfSignTool.jsx`](../src/components/PdfSignTool.jsx) and
   its own `useSignDraftPersistence.js` at the time of this audit; E4.4 converged both onto the shared
   [`useEditorDraftPersistence.js`](../src/editor/workspace/useEditorDraftPersistence.js)).
 - **Fullscreen** (real + `pseudo-fullscreen` fallback) and **Escape precedence** while a modal is open.
-- **Undo history** ([`actionHistory.js`](../src/lib/actionHistory.js),
+- **Undo history** ([`actionHistory.js`](../src/editor/model/actionHistory.js),
   [`useUndoShortcut.js`](../src/lib/useUndoShortcut.js), `UndoHistoryModal`).
 - **Download / continue-editing / start-over** flow and URL revocation.
 - **Native share** of the baked PDF via [`usePdfShare.js`](../src/lib/usePdfShare.js) (added on `main`
@@ -129,7 +129,7 @@ src/editor/
     document.ts         # EditorDocument: elements[], page sizes, helpers (add/update/delete/query)
     ids.ts              # uniqueId/seedUniqueId moved off sign.js (pure)
   geometry/
-    coords.ts           # (already exists as src/lib/coords.ts — move here or re-export)
+    coords.ts           # shared page-coordinate transform
     bounds.ts           # per-handle anchor-preserving clamps as pure fns (from DraggableWrapper math)
     handles.ts          # Handle = 'top'|'right'|…|'line-start'|'line-end'; edge/anchor helpers
   gestures/
