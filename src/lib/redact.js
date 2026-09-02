@@ -1,5 +1,5 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { getPdfjs } from './sign.js';
+import { getPdfjs } from '../editor/adapters/pdf/pdfjsLoader.js';
 import { getElementDefinition } from '../editor/registry/index.ts';
 
 /**
