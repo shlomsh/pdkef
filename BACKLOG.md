@@ -85,7 +85,6 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| FONT-04 | P2 | [FONT-04](backlog/tasks/FONT-04.md) · Gujarati (~62M), Kannada (~44M), Odia |
 | FONT-07 | P3 | [FONT-07](backlog/tasks/FONT-07.md) · Emoji |
 | FONT-08 | P3 | [FONT-08](backlog/tasks/FONT-08.md) · Second-font / missing-style research across every single-font script |
 
@@ -110,4 +109,5 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
+| FONT-04 | P3 | [FONT-04](backlog/tasks/FONT-04.md) · Gujarati (~62M), Kannada (~44M), Odia |
 | FONT-06 | P3 | [FONT-06](backlog/tasks/FONT-06.md) · Urdu in Nastaliq |
