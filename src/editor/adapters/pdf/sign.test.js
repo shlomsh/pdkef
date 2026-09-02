@@ -224,12 +224,10 @@ describe('sign.js signPdf', () => {
     const blob = await signPdf(file, [element]);
     expect(blob).toBeInstanceOf(Blob);
 
-    // The fallback path must have been exercised: a failed request for the
-    // Bold file, then a successful one for the Regular file of the SAME family
-    // (proving it didn't just silently fall through to a Helvetica StandardFont
-    // with zero custom-font fetches).
+    // The manifest knows the face is absent, so export goes straight to the
+    // Regular file of the SAME family without a guaranteed-404 probe.
     const requestedFiles = global.fetch.mock.calls.map(([url]) => String(url));
-    expect(requestedFiles.some((u) => u.includes('GreatVibes-Bold.ttf'))).toBe(true);
+    expect(requestedFiles.some((u) => u.includes('GreatVibes-Bold.ttf'))).toBe(false);
     expect(requestedFiles.some((u) => u.includes('GreatVibes-Regular.ttf'))).toBe(true);
   });
 
@@ -502,7 +500,7 @@ describe('sign.js pure functions', () => {
       { name: 'mixed direction (רחוב 17, Heebo)', text: 'רחוב 17', fontFamily: 'Heebo', textDirection: 'rtl', pdfJsExpected: '17 רחוב' },
       // Arabic: RTL, no niqud-style marks to reorder in this word, so both
       // extractors already agree with the typed text.
-      { name: 'Arabic (مرحبا, Almarai)', text: 'مرحبا', fontFamily: 'Almarai', textDirection: 'rtl', pdfJsExpected: 'مرحبا' },
+      { name: 'Arabic (مرحبا, Scheherazade New)', text: 'مرحبا', fontFamily: 'Scheherazade New', textDirection: 'rtl', pdfJsExpected: 'مرحبا' },
     ];
 
     for (const testCase of corpus) {

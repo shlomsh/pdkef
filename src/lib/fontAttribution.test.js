@@ -1,16 +1,14 @@
 /**
  * Every bundled font is OFL, and the OFL requires its copyright notice to
- * travel with the font. We ship that notice on two surfaces - the table on
- * /licenses/ and THIRD_PARTY_LICENSES.md - and neither one derives from the
- * font catalogue, so both are kept in step by hand.
+ * travel with the font. The canonical manifest feeds the /licenses/ table
+ * directly and generates the family lists in THIRD_PARTY_LICENSES.md.
  *
- * They were not. Ten families (Arimo, Tinos, Cousine, Assistant, Heebo, the
+ * Before the manifest, they were not. Ten families (Arimo, Tinos, Cousine, Assistant, Heebo, the
  * four Noto CJK faces and Noto Sans Bengali) shipped selectable in the Sign
  * editor while appearing on neither surface, and the markdown still credited
  * Almarai months after it was replaced by Scheherazade New. Nothing failed,
- * because nothing was looking: adding a font touches fonts.js, editorFonts.css
- * and public/fonts/, and the attribution is a separate, easily-forgotten step
- * in two more files.
+ * because nothing was looking. The manifest removes those parallel edit
+ * sites; this test now guards the generated Markdown and build-time page.
  *
  * This is the same last-mile guard as fonts.test.js's editorFonts.css block
  * and FontPickerMenu's catalogue-sync test, pointed at attribution instead of
@@ -22,16 +20,12 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
+import { FONT_MANIFEST } from '../../scripts/font-manifest.mjs';
 
 const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
 
 const astro = readFileSync(join(process.cwd(), 'src', 'pages', 'licenses.astro'), 'utf8');
 const markdown = readFileSync(join(process.cwd(), 'THIRD_PARTY_LICENSES.md'), 'utf8');
-
-// The /licenses/ table renders one row per `packages` entry. Font rows are
-// named "<family> Font"; everything else is an npm package.
-const packageNames = [...astro.matchAll(/name:\s*(['"])(.*?)\1,/g)].map(([, , name]) => name);
-const astroFonts = packageNames.filter((name) => name.endsWith(' Font')).map((name) => name.slice(0, -' Font'.length));
 
 // THIRD_PARTY_LICENSES.md groups the fonts under two OFL headings, each a
 // bullet list of "- Family (<url>)".
@@ -47,15 +41,20 @@ describe('font attribution surfaces', () => {
   // Non-vacuity: every assertion below is a set difference, so a parse that
   // silently returned nothing would make all of them pass.
   it('parses both surfaces, so the coverage assertions are not comparing empty lists', () => {
-    expect(packageNames).toContain('Astro');
-    expect(astroFonts.length).toBeGreaterThanOrEqual(CATALOGUE.length);
+    expect(astro).toContain("import { FONT_MANIFEST } from '../../scripts/font-manifest.mjs'");
+    expect(astro).toContain('FONT_MANIFEST.map');
+    expect(FONT_MANIFEST).toHaveLength(CATALOGUE.length);
     expect(markdownHandwriting).not.toBeNull();
     expect(markdownText).not.toBeNull();
     expect(markdownHandwriting.length + markdownText.length).toBeGreaterThanOrEqual(CATALOGUE.length);
   });
 
-  it('lists every catalogue family on /licenses/, so nothing ships selectable but uncredited', () => {
-    expect(CATALOGUE.filter((family) => !astroFonts.includes(family))).toEqual([]);
+  it('gives every catalogue family complete license metadata used by /licenses/', () => {
+    for (const font of FONT_MANIFEST) {
+      expect(font.license.version).toBeTruthy();
+      expect(font.license.url).toMatch(/^https:\/\//);
+      expect(font.license.copyright).toMatch(/Copyright|\(c\)|©/i);
+    }
   });
 
   it('lists every catalogue family in THIRD_PARTY_LICENSES.md, under its own kind of heading', () => {
@@ -65,7 +64,6 @@ describe('font attribution surfaces', () => {
 
   it('credits nothing we no longer ship, so a replaced family cannot outlive its removal', () => {
     const stale = (listed) => listed.filter((family) => !CATALOGUE.includes(family));
-    expect(stale(astroFonts)).toEqual([]);
     expect(stale([...markdownHandwriting, ...markdownText])).toEqual([]);
   });
 

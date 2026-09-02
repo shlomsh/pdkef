@@ -14,11 +14,12 @@
  */
 
 import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
-import { FONT_COVERAGE_FILES, fontFileHasGlyph } from '../../lib/fontCoverageTable.js';
+import { fontFileHasGlyph } from '../../lib/fontCoverageTable.js';
+import { DEFAULT_FONT_FAMILY, FONT_BY_FAMILY, FONT_MANIFEST, RETIRED_FONTS as RETIRED_FONT_MAP } from './fontManifest.js';
 import { findMissingGlyphs } from './textTransforms.js';
 
-export const HANDWRITING_FONTS = ['Caveat', 'Dancing Script', 'Great Vibes', 'Gveret Levin', 'Kalam', 'Mali', 'Pacifico', 'Sacramento'];
-export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Scheherazade New', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Mukta Mahee', 'Anek Telugu', 'Noto Sans Tamil', 'Mukta', 'IBM Plex Sans Thai', 'Anek Malayalam'];
+export const HANDWRITING_FONTS = FONT_MANIFEST.filter((font) => font.kind === 'handwriting').map((font) => font.family);
+export const TEXT_FONTS = FONT_MANIFEST.filter((font) => font.kind === 'text').map((font) => font.family);
 
 /**
  * Real ascent/descent for every bundled family, as a fraction of the em —
@@ -40,69 +41,9 @@ export const TEXT_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'A
  * actually needs, without inflating every other font's box to match the
  * worst case.
  */
-export const FONT_VERTICAL_METRICS = {
-  Arimo: { ascent: 0.905, descent: 0.212 },
-  Tinos: { ascent: 0.891, descent: 0.216 },
-  Cousine: { ascent: 0.833, descent: 0.300 },
-  Assistant: { ascent: 1.021, descent: 0.287 },
-  Heebo: { ascent: 1.048, descent: 0.421 },
-  Caveat: { ascent: 0.960, descent: 0.300 },
-  'Dancing Script': { ascent: 0.920, descent: 0.280 },
-  'Great Vibes': { ascent: 0.851, descent: 0.401 },
-  'Gveret Levin': { ascent: 0.990, descent: 0.310 },
-  Kalam: { ascent: 1.063, descent: 0.531 },
-  Mali: { ascent: 1.050, descent: 0.250 },
-  Pacifico: { ascent: 1.303, descent: 0.453 },
-  Sacramento: { ascent: 0.930, descent: 0.529 },
-  Alef: { ascent: 1.009, descent: 0.353 },
-  'PT Sans': { ascent: 1.018, descent: 0.276 },
-  // A traditional Naskh, not Almarai's geometric-sans hhea numbers it
-  // replaced (0.905/0.211) - Scheherazade New's much taller design box
-  // (ascent+descent = 2.04em) is what a script drawing stacked harakat above
-  // and below the baseline actually needs; textBoxPaddingEm() below turns
-  // this into real box padding rather than clipping diacritics.
-  'Scheherazade New': { ascent: 1.343, descent: 0.697 },
-  'Noto Sans JP': { ascent: 1.160, descent: 0.288 },
-  // Simplified/Traditional Chinese and Korean share JP's exact hhea numbers -
-  // all four are built from the same Noto CJK vertical-metrics design, not a
-  // coincidence worth re-deriving per family.
-  'Noto Sans SC': { ascent: 1.160, descent: 0.288 },
-  'Noto Sans TC': { ascent: 1.160, descent: 0.288 },
-  'Noto Sans KR': { ascent: 1.160, descent: 0.288 },
-  'Noto Sans Bengali': { ascent: 0.917, descent: 0.408 },
-  // Mukta Mahee and Anek Telugu are NOT the Noto Sans faces for their scripts,
-  // and that is a measured decision, not a preference - see TODO.md's Punjabi/
-  // Telugu entry. fontkit crashes outright shaping Noto Sans Gurmukhi (203 of
-  // 500 generated cases, and most ordinary words including ਸਿੰਘ "Singh") and
-  // Noto Sans Telugu (the consonant+virama+RA conjunct, so ఆంధ్రప్రదేశ్
-  // "Andhra Pradesh" fails), with the same uncaught
-  // `Cannot read properties of null (reading 'xCoordinate')` inside
-  // GPOSProcessor.getAnchor that already blocks Noto Nastaliq Urdu.
-  'Mukta Mahee': { ascent: 1.130, descent: 0.532 },
-  'Anek Telugu': { ascent: 0.900, descent: 0.600 },
-  'Noto Sans Tamil': { ascent: 0.870, descent: 0.370 },
-  // Mukta (FONT-08a) - the Devanagari catalogue's first upright/text-style
-  // face, added alongside the existing handwriting-only Kalam rather than
-  // replacing it. Same foundry (Ek Type) and, measured from the real hhea
-  // table, the exact same ascent/descent as the already-bundled Mukta Mahee -
-  // not a coincidence, both are cut from the same family's vertical-metrics
-  // design.
-  Mukta: { ascent: 1.130, descent: 0.532 },
-  // IBM Plex Sans Thai (FONT-08a) - Thai's first upright/text-style face,
-  // added alongside the existing handwriting-only Mali. Real Regular/Bold
-  // hhea numbers; Sarabun and Kanit were tried first and both failed the
-  // fontkit-vs-browser advance-parity check (Guard A) on ordinary Thai
-  // words, so this is not the top-ranked candidate on record - see TODO.md.
-  'IBM Plex Sans Thai': { ascent: 1.116, descent: 0.534 },
-  // Anek Malayalam (FONT-03) - not Noto Sans Malayalam, which is disqualified:
-  // fontkit's GPOSProcessor.getAnchor crashes on 33/35 reph cases (RA+virama+
-  // consonant, syllable-initial - not a rare pattern, it is how Malayalam
-  // spells an initial /r/ before a cluster), the same fault class that
-  // already ruled out the default Noto faces for Gurmukhi and Telugu. Anek
-  // Malayalam is from the same Ek Type family as Anek Telugu and crashes on
-  // 0/478 generated cases. See malayalamCorpus.js/malayalam-shaping-guard.spec.js.
-  'Anek Malayalam': { ascent: 1.018, descent: 0.415 },
-};
+export const FONT_VERTICAL_METRICS = Object.freeze(Object.fromEntries(
+  FONT_MANIFEST.map((font) => [font.family, font.metrics]),
+));
 
 // Slack on top of the computed overhang: the metrics are the font's design
 // box, but a real string can still paint past it - a flourish like Gveret
@@ -133,7 +74,9 @@ export function textBoxPaddingEm(fontFamily) {
  * src/editor/registry/hebrewMarkPlacement.test.js's mark-placement guard, so
  * it stays as a plain, hand-checked fact about the catalogue.
  */
-export const HEBREW_CAPABLE_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Gveret Levin', 'Alef'];
+export const HEBREW_CAPABLE_FONTS = FONT_MANIFEST
+  .filter((font) => font.acceptance?.hebrewMarkPlacement)
+  .map((font) => font.family);
 
 /**
  * Families we used to ship, mapped to what replaces them.
@@ -170,13 +113,10 @@ export const HEBREW_CAPABLE_FONTS = ['Arimo', 'Tinos', 'Cousine', 'Assistant', '
  * Almarai's geometric-sans face, so every existing Arabic/Dari/Farsi user's
  * output changes visibly - a real cost, paid once, for Pashto to work at all.
  */
-export const RETIRED_FONTS = {
-  'Playpen Sans Hebrew': 'Gveret Levin',
-  Almarai: 'Scheherazade New',
-};
+export const RETIRED_FONTS = RETIRED_FONT_MAP;
 
 /** The family everything falls back to when nothing was picked at all. */
-const DEFAULT_FAMILY = 'Arimo';
+const DEFAULT_FAMILY = DEFAULT_FONT_FAMILY;
 
 /**
  * One style tag per catalogue family (docs/wysiwyg-text-architecture.md
@@ -191,23 +131,9 @@ const DEFAULT_FAMILY = 'Arimo';
  * second Hebrew-capable handwriting face joins the catalogue, substitution
  * prefers it automatically instead of falling through to catalogue order.
  */
-const SANS_STYLE_FONTS = ['Arimo', 'Assistant', 'Heebo', 'Alef', 'PT Sans', 'Noto Sans JP', 'Noto Sans SC', 'Noto Sans TC', 'Noto Sans KR', 'Noto Sans Bengali', 'Mukta Mahee', 'Anek Telugu', 'Noto Sans Tamil', 'Mukta', 'IBM Plex Sans Thai', 'Anek Malayalam'];
-// Scheherazade New is a traditional Naskh, not a geometric sans the way
-// Almarai (the face it replaced) was - it belongs with Tinos's serif
-// character, not the sans bucket. Nothing else in the catalogue draws
-// Arabic, so this tag never actually competes against a same-script
-// alternative today; it exists so the day a second Arabic-capable face
-// joins, the ranking in resolveFontSubstitution prefers the one that
-// actually matches, instead of an accidental catalogue-order tiebreak.
-const SERIF_STYLE_FONTS = ['Tinos', 'Scheherazade New'];
-const MONO_STYLE_FONTS = ['Cousine'];
-
-export const FONT_STYLE_TAGS = Object.fromEntries([
-  ...HANDWRITING_FONTS.map((family) => [family, 'handwriting']),
-  ...SANS_STYLE_FONTS.map((family) => [family, 'sans']),
-  ...SERIF_STYLE_FONTS.map((family) => [family, 'serif']),
-  ...MONO_STYLE_FONTS.map((family) => [family, 'mono']),
-]);
+export const FONT_STYLE_TAGS = Object.freeze(Object.fromEntries(
+  FONT_MANIFEST.map((font) => [font.family, font.styleTag]),
+));
 
 /**
  * Every family the catalogue offers, in a fixed order used as the last
@@ -234,27 +160,24 @@ export const FONT_STYLE_TAGS = Object.fromEntries([
  */
 const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
 
-const FONT_FILE_STYLE_SUFFIX = { normal: { normal: 'Regular', italic: 'Italic' }, bold: { normal: 'Bold', italic: 'BoldItalic' } };
+const FONT_FACE_KEY = { normal: { normal: 'normal', italic: 'italic' }, bold: { normal: 'bold', italic: 'boldItalic' } };
 
 /**
  * The filename `loadCustomFont()` (src/editor/adapters/pdf/sign.js) would *request* for
  * `(family, weight, style)`, before any 404 fallback - i.e. the file that
  * actually carries this exact weight/style, not whatever ends up embedded.
- * Same naming scheme as fontCoverageTable.js's keys:
- * "${family without spaces}-${Regular|Bold|Italic|BoldItalic}.ttf".
+ * The manifest stores this explicitly rather than deriving it from a family
+ * string, so CSS, coverage, export, and the real file cannot disagree.
  */
-function requestedFontFile(family, weight, style) {
-  const base = (family || '').replace(/\s+/g, '');
-  const requestedStyle = FONT_FILE_STYLE_SUFFIX[weight === 'bold' ? 'bold' : 'normal'][style === 'italic' ? 'italic' : 'normal'];
-  return `${base}-${requestedStyle}.ttf`;
+export function requestedFontFile(family, weight = 'normal', style = 'normal') {
+  const face = FONT_FACE_KEY[weight === 'bold' ? 'bold' : 'normal'][style === 'italic' ? 'italic' : 'normal'];
+  return FONT_BY_FAMILY[family]?.faces[face] || null;
 }
 
 /**
- * Does a real file exist for this exact `(family, weight, style)` - not a
- * fallback, the actual face? Driven by `FONT_COVERAGE_FILES`, generated by
- * scripts/generate-font-coverage.mjs from the real bytes in public/fonts/,
- * so this can never go stale against what is actually bundled the way a
- * hand-maintained "which families have bold" list would.
+ * Does the canonical manifest list a real file for this exact
+ * `(family, weight, style)` - not a fallback, the actual face? Manifest-vs-
+ * disk and generated coverage checks keep this from drifting from the bytes.
  *
  * This is the predicate the picker uses to decide whether Bold/Italic is
  * offered at all (docs/wysiwyg-text-architecture.md §3.4, W5). It answers a
@@ -272,16 +195,15 @@ function requestedFontFile(family, weight, style) {
  * @returns {boolean}
  */
 export function hasRealFace(family, weight, style) {
-  return FONT_COVERAGE_FILES.includes(requestedFontFile(family, weight, style));
+  return requestedFontFile(family, weight, style) !== null;
 }
 
 /**
  * The exact filename that will actually be embedded for `(family, weight,
  * style)` - mirroring src/editor/adapters/pdf/sign.js's `loadCustomFont()` fallback chain
  * (request the specific weight/style file, fall back to `-Regular.ttf` if it
- * 404s) without doing any network I/O. `FONT_COVERAGE_FILES` is generated
- * from the same public/fonts/ directory `loadCustomFont` fetches from, so
- * "is this file in the table" is exactly "would this fetch succeed".
+ * 404s) without doing any network I/O. The exporter calls this function too,
+ * so this is one shared decision rather than a mirrored fallback chain.
  *
  * Judging coverage against this filename, not against `family` alone, is
  * what makes `covers()` answer the question that matters: a bold request for
@@ -289,10 +211,9 @@ export function hasRealFace(family, weight, style) {
  * Regular file lacks is genuinely missing even if some other weight of the
  * family would have had it.
  */
-function embeddedFontFile(family, weight, style) {
+export function embeddedFontFile(family, weight, style) {
   const requested = requestedFontFile(family, weight, style);
-  if (hasRealFace(family, weight, style)) return requested;
-  return requestedFontFile(family, 'normal', 'normal');
+  return requested || requestedFontFile(family, 'normal', 'normal');
 }
 
 /**

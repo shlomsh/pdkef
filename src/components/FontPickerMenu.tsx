@@ -1,22 +1,20 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import Popover from './Popover.tsx';
 import styles from './EditorControls.module.css';
-import { HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
+import { FONT_STYLE_TAGS, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
 import { getFontSupport } from '../editor/text/textFontSupport.js';
 import { quoteText } from './SignTool/textMessages.ts';
 
 export const FONT_PREVIEW_DELAY_MS = 120;
 
-const SERIF_FONTS = new Set(['Tinos', 'Scheherazade New']);
-const MONO_FONTS = new Set(['Cousine']);
 const collator = new Intl.Collator('en', { sensitivity: 'base' });
 
 function cssFamily(family: string) {
-  const generic = HANDWRITING_FONTS.includes(family)
+  const generic = FONT_STYLE_TAGS[family] === 'handwriting'
     ? 'cursive'
-    : MONO_FONTS.has(family)
+    : FONT_STYLE_TAGS[family] === 'mono'
       ? 'monospace'
-      : SERIF_FONTS.has(family)
+      : FONT_STYLE_TAGS[family] === 'serif'
         ? 'serif'
         : 'sans-serif';
   return `'${family}', ${generic}`;

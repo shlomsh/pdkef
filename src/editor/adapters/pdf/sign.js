@@ -14,6 +14,7 @@ import {
 } from '../../geometry/coords.js';
 import { getElementDefinition } from '../../registry/index.ts';
 import { findUnrepresentableCharacters } from '../../text/textCoverage.js';
+import { embeddedFontFile } from '../../text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../../../constants/signGeometry.js';
 
 /**
@@ -90,24 +91,16 @@ export async function signPdf(file, elements, onProgress) {
   };
 
   const loadCustomFont = async (fontFamily, fontWeight, fontStyle) => {
-    let styleStr = 'Regular';
-    if (fontWeight === 'bold' && fontStyle === 'italic') styleStr = 'BoldItalic';
-    else if (fontWeight === 'bold') styleStr = 'Bold';
-    else if (fontStyle === 'italic') styleStr = 'Italic';
-    const baseName = fontFamily.replace(/\s+/g, '');
+    const fileName = embeddedFontFile(fontFamily, fontWeight, fontStyle);
+    if (!fileName) {
+      console.warn(`Could not load unknown custom font ${fontFamily}`);
+      return null;
+    }
     try {
-      return await fetchFont(`${baseName}-${styleStr}.ttf`);
+      return await fetchFont(fileName);
     } catch (error) {
-      if (styleStr === 'Regular') {
-        console.warn(`Could not load custom font ${baseName}-${styleStr}.ttf`, error);
-        return null;
-      }
-      console.warn(`Could not load ${baseName}-${styleStr}.ttf, falling back to ${baseName}-Regular.ttf`, error);
-      try { return await fetchFont(`${baseName}-Regular.ttf`); }
-      catch (fallbackError) {
-        console.warn(`Could not load ${baseName}-Regular.ttf either`, fallbackError);
-        return null;
-      }
+      console.warn(`Could not load custom font ${fileName}`, error);
+      return null;
     }
   };
 

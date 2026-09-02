@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
 import { LANGUAGE_COVERAGE } from '../../src/lib/fontCoverageReport.js';
 import { resolveBidiRuns } from '../../src/editor/text/bidiRuns.js';
+import { requestedFontFile } from '../../src/editor/text/fonts.js';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 const SIZE = 32;
@@ -28,7 +29,7 @@ const UNHINTED_TOLERANCE_PX = 0.05;
 const HINTED_TOLERANCE_PX_PER_GLYPH = 0.5;
 
 function shapedRun(family, { text, direction }) {
-  const file = join(FONT_DIR, `${family.replace(/\s+/g, '')}-Regular.ttf`);
+  const file = join(FONT_DIR, requestedFontFile(family, 'normal', 'normal'));
   const font = fontkit.create(readFileSync(file));
   let glyphCount = 0;
   const total = resolveBidiRuns(text, direction)

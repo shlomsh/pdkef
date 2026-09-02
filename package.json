@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/generate-precache-manifest.mjs",
+    "build": "node scripts/generate-font-manifest.mjs --check && node scripts/generate-language-acceptance.mjs --check && astro build && node scripts/generate-precache-manifest.mjs",
     "preview": "astro preview",
     "typecheck": "astro check",
     "test": "vitest run",
@@ -20,6 +20,8 @@
     "test:fonts": "node scripts/check-font-glyf-alignment.js",
     "generate:font-coverage": "node scripts/generate-font-coverage.mjs",
     "generate:font-coverage-report": "node scripts/generate-font-coverage-report.mjs",
+    "generate:font-manifest": "node scripts/generate-font-manifest.mjs",
+    "generate:language-acceptance": "node scripts/generate-language-acceptance.mjs",
     "generate:backlog": "node scripts/generate-backlog.mjs",
     "backlog:serve": "node scripts/serve-backlog-board.mjs"
   },
