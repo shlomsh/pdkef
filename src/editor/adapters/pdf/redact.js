@@ -1,6 +1,6 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { getPdfjs } from '../editor/adapters/pdf/pdfjsLoader.js';
-import { getElementDefinition } from '../editor/registry/index.ts';
+import { getPdfjs } from './pdfjsLoader.js';
+import { getElementDefinition } from '../../registry/index.ts';
 
 /**
  * Applies redactions to a PDF by permanently flattening pages containing redaction marks.

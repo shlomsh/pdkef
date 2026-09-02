@@ -3,7 +3,7 @@ import { useFloating, offset, shift, autoUpdate } from '@floating-ui/react';
 import useDraggableElement from '../../lib/useDraggableElement.js';
 import useElementResize from '../../lib/useElementResize.js';
 import { getElementDefinition } from '../../editor/registry/index.ts';
-import { getEffectiveTextDirection } from '../../lib/sign.js';
+import { getEffectiveTextDirection } from '../../lib/signHelpers.js';
 import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX } from '../../constants/signGeometry.js';
 import ElementToolbar from '../ElementToolbar.tsx';
 import workspaceStyles from './Workspace.module.css';
