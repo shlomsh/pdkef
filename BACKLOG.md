@@ -93,9 +93,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| FONT-03 | P2 | [FONT-03](backlog/tasks/FONT-03.md) · Malayalam |
+_None._
 
 ### Blocked
 
@@ -106,6 +104,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | FONT-01 | P1 | [FONT-01](backlog/tasks/FONT-01.md) · Recalibrate the export-render guard's cross-platform tolerance |
+| FONT-03 | P2 | [FONT-03](backlog/tasks/FONT-03.md) · Malayalam |
 | FONT-05 | P2 | [FONT-05](backlog/tasks/FONT-05.md) · Export-render-guard corpus cases for Simplified Chinese, Traditional Chinese and Korean |
 
 ### Retired
