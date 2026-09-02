@@ -1,4 +1,4 @@
-import { redactPdf } from '../editor/adapters/pdf/redact.js';
+import { redactPdf } from './redact.js';
 import { deleteObjectsFromPdf } from './deleteObjects.js';
 
 /**
