@@ -53,9 +53,7 @@ _None._
 
 ### Open
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| ARCH-04 | P2 | [ARCH-04](backlog/tasks/ARCH-04.md) · Split PDF-library adapters out of workspace/ and lib/ |
+_None._
 
 ### In progress
 
@@ -72,6 +70,7 @@ _None._
 | ARCH-01 | P2 | [ARCH-01](backlog/tasks/ARCH-01.md) · Move editor/model out of lib/ |
 | ARCH-02 | P2 | [ARCH-02](backlog/tasks/ARCH-02.md) · Relocate the shared page-coordinate transform into editor/geometry |
 | ARCH-03 | P2 | [ARCH-03](backlog/tasks/ARCH-03.md) · Give text policy its own home, and stop composing English sentences inside it |
+| ARCH-04 | P2 | [ARCH-04](backlog/tasks/ARCH-04.md) · Split PDF-library adapters out of workspace/ and lib/ |
 | ARCH-05 | P3 | [ARCH-05](backlog/tasks/ARCH-05.md) · Move draft persistence into workspace/ |
 | ARCH-06 | P3 | [ARCH-06](backlog/tasks/ARCH-06.md) · Route Sign/Redact's own preference storage through workspace instead of raw localStorage |
 | ARCH-07 | P3 | [ARCH-07](backlog/tasks/ARCH-07.md) · Consolidate documentation locale routing under src/i18n/ |
