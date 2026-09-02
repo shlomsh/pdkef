@@ -7,7 +7,7 @@
  * src/lib/fontCoverageTable.test.js regenerates this in memory and fails if
  * it disagrees with what is committed here.
  *
- * Keyed by the exact filename src/lib/sign.js's loadCustomFont() requests -
+ * Keyed by the exact filename src/editor/adapters/pdf/sign.js's loadCustomFont() requests -
  * "${family.replace(/\s+/g, '')}-${Regular|Bold|Italic|BoldItalic}.ttf" -
  * because glyph coverage belongs to the specific (family, weight, style) file
  * that gets embedded, not to the family as a whole (see
@@ -31,7 +31,7 @@
  * fontFileHasGlyph(), which stays synchronous and pure either way.
  *
  * Measured size across all 60 bundled font files (every weight/style file in
- * public/fonts/, not just one per family): approximately 92783 raw bytes, 12423 brotli bytes.
+ * public/fonts/, not just one per family): approximately 92799 raw bytes, 12430 brotli bytes.
  */
 
 /** @type {Record<string, Array<[number, number]>>} */

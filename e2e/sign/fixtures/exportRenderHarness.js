@@ -257,7 +257,9 @@ export const NON_VACUITY_MARGIN = 2;
  * the app's CSP - the same trick, and the same reason, as
  * `shapingGuardHarness.js`'s `buildFontkitBundle`: `script-src` has no
  * `unsafe-inline`, so `page.addScriptTag({ content })` is blocked outright
- * and `'self'` is what remains.
+ * and `'self'` is what remains. The caller also has to route the request
+ * through `page.route` rather than let it hit the preview server as-is - see
+ * `buildFontkitBundle`'s doc for why the write alone 404s (SIGN-21).
  *
  * Running the *real* `signPdf` rather than a reimplementation is the entire
  * value here. It pulls in the element registry, which pulls in Preact
@@ -273,7 +275,7 @@ export async function buildSignBundle(bundleFilename) {
     stdin: {
       contents: `
         import 'regenerator-runtime/runtime.js';
-        import { signPdf } from './src/lib/sign.js';
+        import { signPdf } from './src/editor/adapters/pdf/sign.js';
         import { PDFDocument } from '@cantoo/pdf-lib';
         import * as pdfjs from 'pdfjs-dist';
         window.__exportRender = { signPdf, PDFDocument, pdfjs };

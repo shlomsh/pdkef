@@ -34,6 +34,7 @@ import {
   TEXT_FONTS,
   covers,
   hasRealFace,
+  requestedFontFile,
   resolveFontSubstitution,
 } from '../editor/text/fonts.js';
 
@@ -45,14 +46,13 @@ const HEBREW_ALPHABET = 'אבגדהוזחטיכלמנסעפצקרשתםןץףך'
 // Nikud (sheva), geresh, and the shekel sign — common in filled Hebrew forms.
 const HEBREW_EXTRAS = [0x05b0, 0x05f3, 0x20aa];
 
-const STYLES = ['Regular', 'Bold', 'Italic', 'BoldItalic'];
+const STYLE_COMBOS = [['normal', 'normal'], ['bold', 'normal'], ['normal', 'italic'], ['bold', 'italic']];
 
-/** Mirrors loadCustomFont's naming scheme in sign.js. */
+/** Reads the exact faces the canonical manifest exposes for this family. */
 function variantFiles(family) {
-  const base = family.replace(/\s+/g, '');
-  return STYLES
-    .map((style) => `${base}-${style}.ttf`)
-    .filter((file) => existsSync(join(FONT_DIR, file)));
+  return STYLE_COMBOS
+    .map(([weight, style]) => requestedFontFile(family, weight, style))
+    .filter(Boolean);
 }
 
 const charsetCache = new Map();
@@ -68,13 +68,13 @@ function characterSetOf(file) {
  * here rather than calling into fonts.js, so this can actually catch a
  * `covers()` that lies. */
 function reallyCovers(family, text) {
-  const charset = characterSetOf(`${family.replace(/\s+/g, '')}-Regular.ttf`);
+  const charset = characterSetOf(requestedFontFile(family, 'normal', 'normal'));
   return Array.from(text).every((ch) => charset.has(ch.codePointAt(0)));
 }
 
 describe('bundled fonts offered for Hebrew', () => {
   it.each(HEBREW_CAPABLE_FONTS)('%s ships at least a Regular file', (family) => {
-    expect(variantFiles(family)).toContain(`${family.replace(/\s+/g, '')}-Regular.ttf`);
+    expect(variantFiles(family)).toContain(requestedFontFile(family, 'normal', 'normal'));
   });
 
   it.each(HEBREW_CAPABLE_FONTS.flatMap(variantFiles))(
@@ -117,7 +117,7 @@ describe('bundled fonts offered for Hebrew', () => {
     expect(HEBREW_CAPABLE_FONTS.length).toBeGreaterThan(0);
 
     for (const family of unlisted) {
-      const charset = characterSetOf(`${family.replace(/\s+/g, '')}-Regular.ttf`);
+      const charset = characterSetOf(requestedFontFile(family, 'normal', 'normal'));
       const hasFullHebrewSet =
         HEBREW_ALPHABET.every((letter) => charset.has(letter.codePointAt(0))) &&
         HEBREW_EXTRAS.every((code) => charset.has(code));
@@ -200,18 +200,15 @@ describe('covers is not vacuous', () => {
  * said yes for a `(family, weight, style)` with no real file, the picker
  * would let the user request a face `loadCustomFont` can't deliver, right
  * back to bold-on-screen-upright-in-the-download. `hasRealFace` is driven by
- * the generated `FONT_COVERAGE_FILES`, so this is really asking whether the
- * generator and `existsSync` still agree - but that agreement is exactly the
- * thing that must never silently drift.
+ * the generated runtime manifest; the build's manifest check and the disk
+ * assertion below keep that list honest.
  */
 describe('W5: every (family, weight, style) the picker could offer has a real file', () => {
-  const STYLE_COMBOS = [['normal', 'normal'], ['bold', 'normal'], ['normal', 'italic'], ['bold', 'italic']];
   it.each(CATALOGUE.flatMap((family) => STYLE_COMBOS.map(([weight, style]) => [family, weight, style])))(
     '%s bold=%s italic=%s',
     (family, weight, style) => {
       if (!hasRealFace(family, weight, style)) return; // the picker disables it - nothing offered, nothing to check
-      const suffix = weight === 'bold' ? (style === 'italic' ? 'BoldItalic' : 'Bold') : (style === 'italic' ? 'Italic' : 'Regular');
-      const file = `${family.replace(/\s+/g, '')}-${suffix}.ttf`;
+      const file = requestedFontFile(family, weight, style);
       expect(existsSync(join(FONT_DIR, file))).toBe(true);
     }
   );

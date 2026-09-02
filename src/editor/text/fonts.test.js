@@ -24,8 +24,10 @@ import {
   TEXT_FONTS,
   covers,
   hasRealFace,
+  requestedFontFile,
   resolveFontFamily,
   resolveFontSubstitution,
+  resolveTypography,
   textBoxPaddingEm,
 } from './fonts.js';
 
@@ -270,6 +272,54 @@ describe('resolveFontSubstitution', () => {
 });
 
 /**
+ * SIGN-08: the one typography descriptor TextNode, ElementToolbar and
+ * text.ts's serializer all resolve through, so face/weight/style/size/padding
+ * can never be recomputed differently by one caller than another.
+ */
+describe('resolveTypography', () => {
+  it('reports the requested weight/style as-is when a real face exists', () => {
+    // Kalam ships a real Bold face (W4).
+    const typography = resolveTypography('Kalam', 'Shlomi', 'bold', 'normal', 18);
+    expect(typography.family).toBe('Kalam');
+    expect(typography.canBold).toBe(true);
+    expect(typography.weight).toBe('bold');
+    expect(typography.requestedWeight).toBe('bold');
+    expect(typography.size).toBe(18);
+  });
+
+  it('clamps weight/style to normal/upright when the resolved family has no real face for it', () => {
+    // Noto Sans JP has no italic face at all (fontCoverage.test.js).
+    const typography = resolveTypography('Noto Sans JP', 'こんにちは', 'normal', 'italic');
+    expect(typography.canItalic).toBe(false);
+    expect(typography.style).toBe('normal');
+    // The raw request is preserved separately, so a caller can still explain
+    // *why* the rendered style differs from what was asked for.
+    expect(typography.requestedStyle).toBe('italic');
+  });
+
+  it('clamps against the *resolved* family, not the requested one, when substitution changes the face', () => {
+    // Caveat has no Hebrew glyphs at all, so Hebrew text substitutes to
+    // Gveret Levin - and Gveret Levin has no real bold face either.
+    const typography = resolveTypography('Caveat', 'שלומי', 'bold', 'normal');
+    expect(typography.family).toBe('Gveret Levin');
+    expect(typography.canBold).toBe(false);
+    expect(typography.weight).toBe('normal');
+  });
+
+  it('defaults size to DEFAULT_FONT_SIZE_PT when none is given, same as the editor and the exporter', () => {
+    expect(resolveTypography('Arimo', 'hi').size).toBe(12);
+    expect(resolveTypography('Arimo', 'hi', 'normal', 'normal', 0).size).toBe(12);
+  });
+
+  it('agrees with resolveFontFamily and textBoxPaddingEm for the same inputs', () => {
+    const family = resolveFontFamily('Heebo', 'שלום', 'normal', 'normal');
+    const typography = resolveTypography('Heebo', 'שלום', 'normal', 'normal');
+    expect(typography.family).toBe(family);
+    expect(typography.paddingEm).toBe(textBoxPaddingEm(family));
+  });
+});
+
+/**
  * §3.3: the style tag exists so substitution prefers a same-character
  * replacement (handwriting for handwriting, sans for sans) over an arbitrary
  * catalogue-order pick.
@@ -309,7 +359,7 @@ describe('FONT_VERTICAL_METRICS', () => {
   const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 
   function regularFileFor(family) {
-    return `${family.replace(/\s+/g, '')}-Regular.ttf`;
+    return requestedFontFile(family, 'normal', 'normal');
   }
 
   it('covers every font the picker offers', () => {
@@ -397,7 +447,7 @@ describe('retired fonts', () => {
 
       // And the replacement is a font we actually ship, with a file on disk.
       expect([...HANDWRITING_FONTS, ...TEXT_FONTS]).toContain(replacement);
-      expect(existsSync(join(FONT_DIR, `${replacement.replace(/\s+/g, '')}-Regular.ttf`))).toBe(true);
+      expect(existsSync(join(FONT_DIR, requestedFontFile(replacement, 'normal', 'normal')))).toBe(true);
     }
   });
 
@@ -521,14 +571,13 @@ describe('Noto Sans Bengali', () => {
 });
 
 /**
- * The editor and the exporter reach the same TTF by two completely
- * independent routes, and nothing used to check that they agree.
+ * The generated CSS and exporter both consume the manifest, but a stale
+ * generated file would still give the editor and exporter different TTFs.
  *
  *  - The editor renders through CSS: `font-family: 'Noto Sans Bengali'`
  *    resolves via an `@font-face` rule in editorFonts.css to a `url()`.
- *  - The exporter never reads CSS. `loadCustomFont` (sign.js) derives the
- *    filename from the family string itself - strip the spaces, append the
- *    weight/style suffix - and fetches it.
+ *  - The exporter never reads CSS. `loadCustomFont` asks the generated
+ *    runtime manifest for the exact face filename and fetches it.
  *
  * So a family can be complete on the export side and silently wrong on the
  * screen side. Deleting both `@font-face` rules for a shipped, selectable
@@ -542,11 +591,6 @@ describe('Noto Sans Bengali', () => {
  */
 describe('editorFonts.css declares exactly the faces the exporter will fetch', () => {
   const WEIGHT_KEYWORD = { '400': 'normal', '700': 'bold' };
-
-  function fileSuffix(weight, style) {
-    if (weight === 'bold') return style === 'italic' ? 'BoldItalic' : 'Bold';
-    return style === 'italic' ? 'Italic' : 'Regular';
-  }
 
   const css = readFileSync(join(process.cwd(), 'src', 'styles', 'editorFonts.css'), 'utf8');
   const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map(([, body]) => ({
@@ -573,9 +617,9 @@ describe('editorFonts.css declares exactly the faces the exporter will fetch', (
     expect(orphans).toEqual([]);
   });
 
-  it('points every rule at the exact file loadCustomFont would derive for that family and face', () => {
+  it('points every rule at the exact file the manifest gives loadCustomFont for that family and face', () => {
     const mismatched = faces.filter(
-      (f) => f.url !== `/fonts/${f.family.replace(/\s+/g, '')}-${fileSuffix(f.weight, f.style)}.ttf`
+      (f) => f.url !== `/fonts/${requestedFontFile(f.family, f.weight, f.style)}`
     );
     expect(mismatched).toEqual([]);
   });

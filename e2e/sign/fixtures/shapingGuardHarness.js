@@ -41,6 +41,22 @@
  * already-built `dist/` the preview server serves, under a name nothing
  * else in the build produces, and fetched by URL instead.
  *
+ * **Why the fetch is also routed through `page.route`, not left to hit the
+ * preview server directly (SIGN-21).** `npm run preview` (what
+ * `playwright.config.js`'s `webServer` runs) is Vite's preview server, which
+ * serves `dist/` via `sirv` in its non-dev mode: `sirv` snapshots the
+ * directory's file list exactly once, at server startup (its `totalist`
+ * scan), and answers every request from that snapshot rather than checking
+ * the filesystem live. `buildFontkitBundle` writes the bundle in a
+ * Playwright `beforeAll`, which necessarily runs after the server this test
+ * run's `webServer` block already started - so the file is genuinely on
+ * disk but invisible to the snapshot, and `page.addScriptTag` 404s. Each
+ * caller therefore also registers `page.route('**\/' + bundleFilename, ...)`
+ * fulfilling straight from `bundlePath` before navigating, which answers the
+ * request from that same file without ever depending on the server's stale
+ * listing. The write-to-`dist`/cleanup half of the mechanism is unchanged -
+ * this only changes how the browser's request for that file is answered.
+ *
  * **The noise floor is a measured maximum over a calibration set, never a
  * fixed number.** Both existing guards learned the hard way that a single
  * calibration glyph is the wrong unit: Devanagari's first version
@@ -109,7 +125,11 @@ import { build } from 'esbuild';
  * Bundles fontkit (+ regenerator-runtime) for the browser and writes it into
  * the built `dist/` so a same-origin `<script src>` can fetch it under CSP.
  * Call from `test.beforeAll`; pair with `removeFontkitBundle` in
- * `test.afterAll`.
+ * `test.afterAll`. The returned path also has to be handed to
+ * `page.route('**\/' + bundleFilename, (route) => route.fulfill({ path }))`
+ * in each test before navigating - see this file's "Why the fetch is also
+ * routed through `page.route`" module doc for why the write alone isn't
+ * enough for the preview server to answer the request (SIGN-21).
  *
  * @param {string} bundleFilename - unique per guard, so two guards run in the
  *   same job never race on the same file.
@@ -536,6 +556,11 @@ export function createShapingGuardTest({
       : `fontkit's shaped ${candidateName} output pixel-matches the browser's own rendering across ${corpus.length} generated cases`;
 
     test(title, async ({ page }) => {
+      // See buildFontkitBundle's doc / this file's "Why the fetch is also
+      // routed through `page.route`" note (SIGN-21): the preview server's
+      // static-file listing is snapshotted before this beforeAll's bundle
+      // exists, so answer the request from the file directly.
+      await page.route(`**/${bundleFilename}`, (route) => route.fulfill({ path: bundlePath }));
       await page.goto('/sign');
       await page.addScriptTag({ url: `/${bundleFilename}` });
 

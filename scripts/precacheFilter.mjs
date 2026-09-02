@@ -1,3 +1,5 @@
+import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from './font-manifest.mjs';
+
 /**
  * Which built assets the service worker downloads before anyone asks for
  * them. Everything omitted here still enters the runtime cache on first use.
@@ -34,17 +36,20 @@
  * go to the network for, so a font a visitor actually uses is cached from
  * that first use and works offline after.
  *
- * Arimo Regular is the one exception, because it is `DEFAULT_FAMILY` in
- * src/editor/text/fonts.js - what the editor renders with before anyone
- * chooses anything. Without it, a visitor who opens Sign for the very first time
- * and goes offline before typing (or before their typed text triggers a
- * different font) has no embeddable font at all: `signPdf`'s fetch fails,
- * `loadCustomFont` returns null, and `serialize` throws rather than
- * degrading. A missing *bold* face degrades gracefully by comparison,
- * because `loadCustomFont` already falls back to Regular - which is why
- * this keep-list is one file rather than one family.
+ * The default family's normal face is the one exception, because it is what
+ * the editor renders with before anyone chooses anything (`DEFAULT_FONT_FAMILY`
+ * in font-manifest.mjs, currently Arimo). Without it, a visitor who opens
+ * Sign for the very first time and goes offline before typing (or before
+ * their typed text triggers a different font) has no embeddable font at
+ * all: `signPdf`'s fetch fails, `loadCustomFont` returns null, and
+ * `serialize` throws rather than degrading. A missing *bold* face degrades
+ * gracefully by comparison, because `loadCustomFont` already falls back to
+ * Regular - which is why this keep-list is one face rather than one family,
+ * and why it's read off `faces.normal` rather than every entry the
+ * manifest's (currently unused) `precache` flag would pull in.
  */
-export const PRECACHED_FONTS = ['fonts/Arimo-Regular.ttf'];
+const defaultFontEntry = FONT_MANIFEST.find((font) => font.family === DEFAULT_FONT_FAMILY);
+export const PRECACHED_FONTS = [`fonts/${defaultFontEntry.faces.normal}`];
 
 export function shouldPrecache(relative, { manifestName, workerName }) {
   if (relative === manifestName || relative === workerName) return false;

@@ -32,7 +32,7 @@ import { writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FONT_COVERAGE_FILES, fontFileHasGlyph } from '../src/lib/fontCoverageTable.js';
-import { HANDWRITING_FONTS, TEXT_FONTS } from '../src/lib/fonts.js';
+import { HANDWRITING_FONTS, TEXT_FONTS, requestedFontFile } from '../src/editor/text/fonts.js';
 import { LANGUAGES, CYRILLIC_ANCHOR_LANGUAGES, NAMED_COMBINATIONS } from './font-languages.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -47,7 +47,7 @@ const OUT_FILE = join(REPO_ROOT, 'src', 'lib', 'fontCoverageReport.js');
 const FAMILIES = [...HANDWRITING_FONTS, ...TEXT_FONTS];
 
 function regularFile(family) {
-  return `${family.replace(/\s+/g, '')}-Regular.ttf`;
+  return requestedFontFile(family, 'normal', 'normal');
 }
 
 function isHandwriting(family) {

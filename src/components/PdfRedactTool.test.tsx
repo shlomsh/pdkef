@@ -5,7 +5,7 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import PdfRedactTool from './PdfRedactTool.tsx';
-import { redactPdf } from '../lib/redact.js';
+import { redactPdf } from '../editor/adapters/pdf/redact.js';
 import { pxToPercent, pxDeltaToPercent } from '../editor/geometry/coords.js';
 import dropzoneStyles from './Dropzone.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
@@ -56,7 +56,7 @@ vi.mock('pdfjs-dist', () => {
   };
 });
 
-vi.mock('../lib/redact.js', () => ({
+vi.mock('../editor/adapters/pdf/redact.js', () => ({
   redactPdf: vi.fn(async () => new Blob(['redacted'], { type: 'application/pdf' }))
 }));
 
@@ -406,7 +406,7 @@ describe('PdfRedactTool UI flow', () => {
         const originalSize = fs.statSync(fixturePath).size;
         expect(capturedBlob.size).toBeLessThan(originalSize * 3);
 
-        const { extractPageObjects } = await import('../lib/pdfObjects.js');
+        const { extractPageObjects } = await import('../editor/adapters/pdf/pdfObjects.js');
         const { PDFDocument } = await import('@cantoo/pdf-lib');
         const outBytes = new Uint8Array(await capturedBlob.arrayBuffer());
         const doc = await PDFDocument.load(outBytes);

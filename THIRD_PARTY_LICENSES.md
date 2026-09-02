@@ -248,6 +248,7 @@ SOFTWARE.
 ## Handwriting Fonts — SIL Open Font License (OFL-1.1)
 
 The following fonts are distributed under the SIL Open Font License, Version 1.1:
+<!-- BEGIN GENERATED HANDWRITING FONT LIST -->
 - Caveat (<https://fonts.google.com/specimen/Caveat>)
 - Dancing Script (<https://fonts.google.com/specimen/Dancing+Script>)
 - Great Vibes (<https://fonts.google.com/specimen/Great+Vibes>)
@@ -256,6 +257,7 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Mali (<https://fonts.google.com/specimen/Mali>)
 - Pacifico (<https://fonts.google.com/specimen/Pacifico>)
 - Sacramento (<https://fonts.google.com/specimen/Sacramento>)
+<!-- END GENERATED HANDWRITING FONT LIST -->
 
 ```
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
@@ -266,25 +268,27 @@ http://scripts.sil.org/OFL
 ## Text Fonts — SIL Open Font License (OFL-1.1)
 
 The following fonts are distributed under the SIL Open Font License, Version 1.1:
-- Alef (<https://fonts.google.com/specimen/Alef>)
-- PT Sans (<https://fonts.google.com/specimen/PT+Sans>)
-- Scheherazade New (<https://fonts.google.com/specimen/Scheherazade+New>)
-- Mukta Mahee (<https://fonts.google.com/specimen/Mukta+Mahee>)
-- Anek Telugu (<https://fonts.google.com/specimen/Anek+Telugu>)
-- Noto Sans Tamil (<https://fonts.google.com/specimen/Noto+Sans+Tamil>)
+<!-- BEGIN GENERATED TEXT FONT LIST -->
 - Arimo (<https://fonts.google.com/specimen/Arimo>)
 - Tinos (<https://fonts.google.com/specimen/Tinos>)
 - Cousine (<https://fonts.google.com/specimen/Cousine>)
 - Assistant (<https://fonts.google.com/specimen/Assistant>)
 - Heebo (<https://fonts.google.com/specimen/Heebo>)
+- Alef (<https://fonts.google.com/specimen/Alef>)
+- PT Sans (<https://fonts.google.com/specimen/PT+Sans>)
+- Scheherazade New (<https://fonts.google.com/specimen/Scheherazade+New>)
 - Noto Sans JP (<https://fonts.google.com/specimen/Noto+Sans+JP>)
 - Noto Sans SC (<https://fonts.google.com/specimen/Noto+Sans+SC>)
 - Noto Sans TC (<https://fonts.google.com/specimen/Noto+Sans+TC>)
 - Noto Sans KR (<https://fonts.google.com/specimen/Noto+Sans+KR>)
 - Noto Sans Bengali (<https://fonts.google.com/specimen/Noto+Sans+Bengali>)
+- Mukta Mahee (<https://fonts.google.com/specimen/Mukta+Mahee>)
+- Anek Telugu (<https://fonts.google.com/specimen/Anek+Telugu>)
+- Noto Sans Tamil (<https://fonts.google.com/specimen/Noto+Sans+Tamil>)
 - Mukta (<https://fonts.google.com/specimen/Mukta>)
 - IBM Plex Sans Thai (<https://fonts.google.com/specimen/IBM+Plex+Sans+Thai>)
 - Anek Malayalam (<https://fonts.google.com/specimen/Anek+Malayalam>)
+<!-- END GENERATED TEXT FONT LIST -->
 
 ```
 This Font Software is licensed under the SIL Open Font License, Version 1.1.

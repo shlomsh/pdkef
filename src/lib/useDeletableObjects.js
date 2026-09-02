@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { listDeletableObjects } from './deleteObjects.js';
+import { listDeletableObjects } from '../editor/adapters/pdf/deleteObjects.js';
 
 /**
  * Finds the images and text runs the Delete tool can offer to remove, for the

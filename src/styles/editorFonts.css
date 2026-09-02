@@ -1,24 +1,8 @@
-/* @font-face declarations for the bundled type catalogue (src/lib/fonts.js).
-   Split out of global.css (2026-08-27): these 44 rules / ~7.2KB are only ever
-   needed where the editor actually renders text in one of these families -
-   the Sign editor's text elements (SignTool/nodes/TextNode.tsx), typed
-   signatures (SignatureDialog.tsx), and the font picker's own previews
-   (FontPickerMenu.tsx, reached from ElementToolbar.tsx). Redact has no text
-   element type (`type` is blackout/blur/whiteout/delete - see
-   PdfRedactTool.tsx) and imports none of those components, so it never
-   needed these rules.
+/* GENERATED FILE - do not hand-edit.
++   Produced by scripts/generate-font-manifest.mjs from scripts/font-manifest.mjs.
++   Imported only by /sign/ so these rules do not enter unrelated pages. */
 
-   global.css inlines into all 20 built pages (build.inlineStylesheets:
-   'always' - see astro.config.mjs and CLAUDE.md Part II §5, do not flip
-   that). Every rule added there is paid for by every page. This file is
-   imported only from src/pages/sign.astro, so it inlines into /sign/'s own
-   bundle and nowhere else - verify with a grep over dist/ after a build
-   rather than trusting this comment. If a font, style dialog, or picker
-   preview surfaces text in a bundled family, keep the row in fonts.js's
-   SCRIPT_FALLBACKS honest (see CLAUDE.md) and keep its @font-face here, not
-   back in global.css. */
-
-/* --- Handwriting Fonts --- */
+/* --- Handwriting fonts --- */
 @font-face {
   font-family: 'Caveat';
   font-style: normal;
@@ -104,7 +88,7 @@
   src: url('/fonts/Sacramento-Regular.ttf') format('truetype');
 }
 
-/* --- Text tool fonts --- */
+/* --- Text fonts --- */
 @font-face {
   font-family: 'Arimo';
   font-style: normal;

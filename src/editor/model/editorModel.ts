@@ -8,7 +8,7 @@
 //   - creation:  src/lib/useWorkspaceGestures.js (text/symbol/line/shape/whiteout
 //                factories) and PdfSignTool.tsx `placeSignatureAt` (signature).
 //   - rendering: src/components/SignTool/nodes/*.tsx.
-//   - export:    src/lib/sign.js `signPdf` (the bake-out reads these fields).
+//   - export:    src/editor/adapters/pdf/sign.js `signPdf` (the bake-out reads these fields).
 //   - geometry:  DraggableWrapper.tsx drag/resize (left/top/width/height percents,
 //                x1..y2 line endpoints, aspectRatio, fontSize).
 //

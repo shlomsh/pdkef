@@ -6,16 +6,15 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { PDFDocument, PDFName, PDFNumber, degrees } from '@cantoo/pdf-lib';
 import {
   signPdf,
-  hexToRgbFractions,
-  getEffectiveTextDirection,
   UnrepresentableTextError
 } from './sign.js';
-import { percentToPoints } from '../editor/geometry/coords.js';
-import { applyAffineTransform, createPageGeometry, pageGeometryFromPdfJsPage } from '../editor/geometry/coords.js';
-import { combCellCount, combCharacters } from '../editor/text/comb.js';
+import { hexToRgbFractions, getEffectiveTextDirection } from '../../../lib/signHelpers.js';
+import { percentToPoints } from '../../geometry/coords.js';
+import { applyAffineTransform, createPageGeometry, pageGeometryFromPdfJsPage } from '../../geometry/coords.js';
+import { combCellCount, combCharacters } from '../../text/comb.js';
 
 function getFixtureFile(name = 'num-1.pdf') {
-  const filePath = path.resolve(__dirname, './__fixtures__', name);
+  const filePath = path.resolve(__dirname, '../../../lib/__fixtures__', name);
   const buffer = fs.readFileSync(filePath);
   return new File([buffer], name, { type: 'application/pdf' });
 }
@@ -29,7 +28,7 @@ function mockFontFetch() {
   global.fetch = vi.fn(async (url) => {
     const match = /\/fonts\/(.+)$/.exec(String(url));
     if (!match) return originalFetch ? originalFetch(url) : Promise.reject(new Error('unexpected fetch'));
-    const filePath = path.resolve(__dirname, '../../public/fonts', match[1]);
+    const filePath = path.resolve(__dirname, '../../../../public/fonts', match[1]);
     if (!fs.existsSync(filePath)) {
       return { ok: false, status: 404, arrayBuffer: async () => new ArrayBuffer(0) };
     }
@@ -225,12 +224,10 @@ describe('sign.js signPdf', () => {
     const blob = await signPdf(file, [element]);
     expect(blob).toBeInstanceOf(Blob);
 
-    // The fallback path must have been exercised: a failed request for the
-    // Bold file, then a successful one for the Regular file of the SAME family
-    // (proving it didn't just silently fall through to a Helvetica StandardFont
-    // with zero custom-font fetches).
+    // The manifest knows the face is absent, so export goes straight to the
+    // Regular file of the SAME family without a guaranteed-404 probe.
     const requestedFiles = global.fetch.mock.calls.map(([url]) => String(url));
-    expect(requestedFiles.some((u) => u.includes('GreatVibes-Bold.ttf'))).toBe(true);
+    expect(requestedFiles.some((u) => u.includes('GreatVibes-Bold.ttf'))).toBe(false);
     expect(requestedFiles.some((u) => u.includes('GreatVibes-Regular.ttf'))).toBe(true);
   });
 
@@ -503,7 +500,7 @@ describe('sign.js pure functions', () => {
       { name: 'mixed direction (רחוב 17, Heebo)', text: 'רחוב 17', fontFamily: 'Heebo', textDirection: 'rtl', pdfJsExpected: '17 רחוב' },
       // Arabic: RTL, no niqud-style marks to reorder in this word, so both
       // extractors already agree with the typed text.
-      { name: 'Arabic (مرحبا, Almarai)', text: 'مرحبا', fontFamily: 'Almarai', textDirection: 'rtl', pdfJsExpected: 'مرحبا' },
+      { name: 'Arabic (مرحبا, Scheherazade New)', text: 'مرحبا', fontFamily: 'Scheherazade New', textDirection: 'rtl', pdfJsExpected: 'مرحبا' },
     ];
 
     for (const testCase of corpus) {
