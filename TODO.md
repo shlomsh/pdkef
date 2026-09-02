@@ -55,7 +55,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | FONT-01 | P1 | [FONT-01](backlog/tasks/FONT-01.md) · Recalibrate the export-render guard's cross-platform tolerance |
 | FONT-02 | P2 | [FONT-02](backlog/tasks/FONT-02.md) · One font manifest |
 | FONT-03 | P2 | [FONT-03](backlog/tasks/FONT-03.md) · Malayalam |
-| FONT-04 | P2 | [FONT-04](backlog/tasks/FONT-04.md) · Gujarati (~62M), Kannada (~44M), Odia |
+| FONT-04 | P3 | [FONT-04](backlog/tasks/FONT-04.md) · Gujarati (~62M), Kannada (~44M), Odia |
 | FONT-05 | P2 | [FONT-05](backlog/tasks/FONT-05.md) · Export-render-guard corpus cases for Simplified Chinese, Traditional Chinese and Korean |
 | FONT-06 | P3 | [FONT-06](backlog/tasks/FONT-06.md) · Urdu in Nastaliq |
 | FONT-07 | P3 | [FONT-07](backlog/tasks/FONT-07.md) · Emoji |
