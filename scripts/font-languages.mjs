@@ -64,6 +64,12 @@
  * - Vietnamese: every tone-and-diacritic Latin letter modern Vietnamese
  *   writing needs, upper and lower case, defined as its own self-contained
  *   set the way every language here is (not a diff against `latinExt`).
+ * - Turkish: the 29-letter modern Turkish alphabet (Latin script; Q, W and X
+ *   are not part of it), upper and lower case, defined as its own self-
+ *   contained set the same way Vietnamese is. Six letters diverge from plain
+ *   ASCII - Ç ç, Ğ ğ, İ ı, Ö ö, Ş ş, Ü ü - and three of those (Ğ ğ, İ, Ş ş)
+ *   are not in Latin-Ext's sample, so "covers Latin-Ext" does not thereby
+ *   prove "covers Turkish" the same way it does not for Vietnamese.
  * - Thai: consonants, vowels (pre/post/above/below), tone marks and digits.
  * - Latin: plain ASCII upper/lower, the shared baseline every "+Latin"
  *   combination is judged against.
@@ -368,6 +374,14 @@ const VIETNAMESE_STACKED = rangeOf(0x1ea0, 0x1ef9).map((cp) => String.fromCodePo
 const VIETNAMESE_PLAIN_ACCENTED =
   'ĂăÂâÊêÔôƠơƯưĐđÀàÁáÃãÈèÉéÌìÍíÒòÓóÕõÙùÚúÝý';
 
+// Turkish: the 29-letter modern Turkish alphabet, upper and lower case,
+// self-contained rather than diffed against `latin`/`latinExt` (same
+// convention as Vietnamese above). No Q, W or X - not part of the standard
+// alphabet. The dotted/dotless I pair is two separate letters, each with its
+// own upper and lower case: I/ı (dotless) and İ/i (dotted) are not case
+// variants of each other.
+const TURKISH = 'ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZabcçdefgğhıijklmnoöprsştuüvyz';
+
 /**
  * @typedef {Object} LanguageDef
  * @property {string} label
@@ -445,6 +459,7 @@ export const LANGUAGES = {
     label: 'Vietnamese',
     codePoints: [...new Set([...codePointsOf(VIETNAMESE_STACKED), ...codePointsOf(VIETNAMESE_PLAIN_ACCENTED)])].sort((a, b) => a - b),
   },
+  turkish: { label: 'Turkish', codePoints: codePointsOf(TURKISH) },
   korean: {
     label: 'Korean (Hangul)',
     codePoints: codePointsOf(KOREAN_HANGUL_SYLLABLES + KOREAN_COMPAT_JAMO),
