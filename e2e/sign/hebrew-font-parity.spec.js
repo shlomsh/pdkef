@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
-import { HEBREW_CAPABLE_FONTS } from '../../src/lib/fonts.js';
-import { resolveBidiRuns } from '../../src/lib/bidiRuns.js';
+import { HEBREW_CAPABLE_FONTS } from '../../src/editor/text/fonts.js';
+import { resolveBidiRuns } from '../../src/editor/text/bidiRuns.js';
 import { WYSIWYG_STRING_BY_ID } from '../../src/test/fixtures/wysiwygStrings.js';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');

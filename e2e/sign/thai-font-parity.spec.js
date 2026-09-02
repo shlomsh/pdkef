@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
 import { LANGUAGE_COVERAGE } from '../../src/lib/fontCoverageReport.js';
-import { resolveBidiRuns } from '../../src/lib/bidiRuns.js';
+import { resolveBidiRuns } from '../../src/editor/text/bidiRuns.js';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 const SIZE = 32;

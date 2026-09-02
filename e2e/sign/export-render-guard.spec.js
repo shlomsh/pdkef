@@ -68,6 +68,11 @@ test.describe('Exported PDF render guard', () => {
 
   test(`the ink signPdf draws matches its baseline across ${EXPORT_RENDER_CORPUS.length} cases`, async ({ page }) => {
     const workerSrc = findPdfWorkerUrl();
+    // SIGN-21: the preview server snapshots dist/'s file list at startup,
+    // before this file's beforeAll writes the bundle, so answer the request
+    // from that file directly instead - see shapingGuardHarness.js's
+    // buildFontkitBundle doc (the same mechanism, applied to buildSignBundle).
+    await page.route(`**/${BUNDLE_FILENAME}`, (route) => route.fulfill({ path: bundlePath }));
     await page.goto('/sign');
     await page.addScriptTag({ url: `/${BUNDLE_FILENAME}` });
 
