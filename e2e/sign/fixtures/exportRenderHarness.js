@@ -275,7 +275,7 @@ export async function buildSignBundle(bundleFilename) {
     stdin: {
       contents: `
         import 'regenerator-runtime/runtime.js';
-        import { signPdf } from './src/lib/sign.js';
+        import { signPdf } from './src/editor/adapters/pdf/sign.js';
         import { PDFDocument } from '@cantoo/pdf-lib';
         import * as pdfjs from 'pdfjs-dist';
         window.__exportRender = { signPdf, PDFDocument, pdfjs };
