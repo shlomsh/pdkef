@@ -82,7 +82,7 @@ export const tools = [
       tag: 'Languages',
       heading: 'Supports a wide range of languages, with more on the way',
       lead:
-        "Hebrew, Hindi, Marathi, Bengali, Tamil, Telugu, Punjabi, Malayalam, Thai, Russian, Ukrainian, Greek, Arabic, Urdu, Vietnamese, and every Latin-script language work end to end here, so what you type is exactly what ends up in your downloaded file. I'm adding more as I go.",
+        "Hebrew, Hindi, Marathi, Bengali, Tamil, Telugu, Punjabi, Malayalam, Thai, Russian, Ukrainian, Greek, Arabic, Urdu, Vietnamese, Turkish, and every Latin-script language work end to end here, so what you type is exactly what ends up in your downloaded file. I'm adding more as I go.",
       supportedHeading: 'Supported now',
       // Ordered by roughly how many people speak each language, most to
       // least, so the card leads with what the most visitors are searching
@@ -186,6 +186,11 @@ export const tools = [
           name: 'Malayalam',
           note: "Fill a Malayalam form and sign your name in Malayalam, in Anek Malayalam, which also serves the large Malayali community across the UAE and the rest of the Gulf. Vowel signs that move before or wrap around the consonant they attach to are reordered and reshaped for the download, and chillu letters, the consonant-final forms unique to this script (word endings like ...ൻ or ...ൾ), draw and cluster correctly too. Worth saying why this is not the Noto face the other scripts here use: Noto Sans Malayalam breaks on reph, the RA-plus-virama pattern that spells an initial r before a consonant cluster, so I picked a face that draws it correctly instead. This is set to modern, reformed spelling (the standard since 1971), not the older traditionally-ligated style. There is no handwriting-style Malayalam face yet, so a typed signature comes out upright rather than cursive.",
         },
+        {
+          native: 'Türkçe 🇹🇷',
+          name: 'Turkish',
+          note: "Fill a Turkish form and sign your name in Turkish. Ten text fonts carry the complete 29-letter alphabet, the same ten that carry the full accented set in the Latin-script note above, plus Kalam and Mali if you want a handwritten look, either of which also works for a typed signature. The three letters that set Turkish apart from plain accented Latin, Ğ, İ and Ş, are exactly what that general Latin-Ext sample does not check, so I verified them against the real font files rather than assuming coverage carried over.",
+        },
       ],
       notYetHeading: 'More on the way',
       notYet:
@@ -274,6 +279,10 @@ export const tools = [
       {
         question: 'Can I fill and sign a PDF in Korean (한국어 PDF 서명)?',
         answer: 'Yes, in full. Noto Sans KR covers every one of the 11,172 precomposed Hangul syllables plus the individual jamo, so unlike Chinese or Japanese kanji here, there is no partial-coverage caveat to make: modern Korean writing does not use Hanja day to day, so the whole modern alphabet is one closed, contiguous set and the bundled font draws all of it. There is no handwriting-style Korean face yet, so a typed signature comes out upright, not cursive.',
+      },
+      {
+        question: 'Can I type Turkish (PDF üzerinde Türkçe imza) when signing a PDF?',
+        answer: "Yes. Ten text fonts (Arimo, Tinos, Cousine, Heebo, Alef, PT Sans and others) and two handwriting faces, Kalam and Mali, carry the complete 29-letter Turkish alphabet, checked letter by letter against the real font files rather than assumed from general Latin coverage. That check matters here specifically for Ğ, İ and Ş, the three letters that make Turkish its own alphabet and that a general accented-Latin font does not necessarily draw. Kalam and Mali also work for a typed signature.",
       },
     ],
   },
