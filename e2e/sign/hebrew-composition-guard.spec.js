@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { HEBREW_CAPABLE_FONTS } from '../../src/lib/fonts.js';
-import { ORDER_VARIANT_GROUPS } from '../../src/lib/hebrewCombiningCorpus.js';
+import { HEBREW_CAPABLE_FONTS } from '../../src/editor/text/fonts.js';
+import { ORDER_VARIANT_GROUPS } from '../../src/editor/text/hebrewCombiningCorpus.js';
 
 /**
  * Tier 3 of the H8 mark-placement guard (docs/hebrew-text-shaping-export.md,
