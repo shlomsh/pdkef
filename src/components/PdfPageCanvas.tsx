@@ -18,9 +18,11 @@ export default function PdfPageCanvas({
     if (!pdfDocument || !canvasRef.current) return;
 
     let active = true;
+    let renderTask: any = null;
+    let page: any = null;
     const renderPage = async () => {
       try {
-        const page = await pdfDocument.getPage(pageNum);
+        page = await pdfDocument.getPage(pageNum);
         // Rotation is supplied by the same PageGeometry used by the overlay
         // and export. CropBox is intrinsic to pdf.js's page.view, from which
         // that geometry was built, so the canvas and overlay share one frame.
@@ -35,15 +37,23 @@ export default function PdfPageCanvas({
         canvas.height = viewport.height;
 
         const context = canvas.getContext('2d');
-        await page.render({ canvasContext: context, viewport }).promise;
+        if (!context || !active) return;
+        renderTask = page.render({ canvasContext: context, viewport });
+        await renderTask.promise;
       } catch (err) {
-        console.error(`Error rendering page ${pageNum}:`, err);
+        // Cancellation is the normal teardown path when a document/page is
+        // replaced or this canvas unmounts; only report real render failures.
+        if (active && (err as any)?.name !== 'RenderingCancelledException') {
+          console.error(`Error rendering page ${pageNum}:`, err);
+        }
       }
     };
 
     renderPage();
     return () => {
       active = false;
+      renderTask?.cancel?.();
+      page?.cleanup?.();
     };
   }, [pdfDocument, pageNum, pageGeometry?.rotation]);
 

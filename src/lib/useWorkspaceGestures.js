@@ -38,6 +38,7 @@ import {
  * @param {number}       params.initialSymbolWidth  - last remembered symbol width (% of page width)
  * @param {string}       params.initialSymbolMark   - last remembered symbol mark ('check'|'x'|'dot')
  * @param {Array}        params.pageSizes           - per-page { width, height } in PDF points
+ * @param {{ current: (() => void) | null }} [params.gestureCancelRef] - active drag cancellation owned by the workspace
  */
 export default function useWorkspaceGestures({
   selectedTool,
@@ -57,6 +58,9 @@ export default function useWorkspaceGestures({
   initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
   initialSymbolMark = 'check',
   pageSizes = [],
+  // PdfWorkspace supplies a ref it owns for component teardown. Keeping this
+  // handler factory hook-free also preserves its direct unit-test contract.
+  gestureCancelRef = { current: null },
 }) {
   const {
     getPointerCoords,
@@ -171,7 +175,8 @@ export default function useWorkspaceGestures({
       container.querySelectorAll('[data-editor-element-id]'),
     ).find((node) => node.dataset.editorElementId === id);
 
-    startGesture({
+    gestureCancelRef.current?.();
+    gestureCancelRef.current = startGesture({
       computePatch: (moveEvent) => {
       if (moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
       const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
@@ -215,6 +220,7 @@ export default function useWorkspaceGestures({
         elementNode.style.height = `${patch.height}%`;
       },
       commit: (patch) => {
+      gestureCancelRef.current = null;
       if (patch) {
         dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes: patch } });
       }
@@ -241,6 +247,11 @@ export default function useWorkspaceGestures({
         logAction('ADD_SHAPE', id, pageIndex, `Added ${tool}`);
         setAnnouncement(`Added ${tool}.`);
       }
+      },
+      cancel: () => {
+      gestureCancelRef.current = null;
+      dispatch({ type: 'DELETE_ELEMENT', payload: id });
+      dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
       },
     });
   };

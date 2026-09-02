@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../editor/gestures/controller.ts';
 import { getElementDefinition } from '../editor/registry/index.ts';
@@ -51,6 +51,9 @@ export default function useElementResize({
   // the committed element, never touches onChange. See the comment at its
   // one call site below for why this needs to exist at all.
   const [isSpanResizing, setIsSpanResizing] = useState(false);
+  const cancelResizeRef = useRef(null);
+
+  useEffect(() => () => cancelResizeRef.current?.(), []);
 
   const handleResizeStart = (e, handle = 'right') => {
     e.stopPropagation();
@@ -221,10 +224,12 @@ export default function useElementResize({
       return null;
     };
 
-    startGesture({
+    cancelResizeRef.current?.();
+    cancelResizeRef.current = startGesture({
       computePatch: handleResizeMove,
       writeDOM: paintResizePatch,
       commit: () => {
+        cancelResizeRef.current = null;
         setIsSpanResizing(false);
         if (pendingResize) {
           // `collapsed` (set by applyCombWidth - see text.ts) is a signal,
@@ -243,6 +248,11 @@ export default function useElementResize({
           onChange(collapsed ? { width: 0 } : patch);
           pendingResize = null;
         }
+      },
+      cancel: () => {
+        cancelResizeRef.current = null;
+        pendingResize = null;
+        setIsSpanResizing(false);
       },
     });
   };

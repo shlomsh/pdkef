@@ -156,7 +156,9 @@ describe('PdfSignTool UI flow', () => {
       });
       await act(async () => { container.querySelector(`button[title="${title}"]`).click(); });
 
-      expect(sign).toHaveBeenCalledTimes(1);
+      // Export code is loaded on demand, so the click starts an async module
+      // fetch before it reaches the mocked serializer.
+      await vi.waitFor(() => expect(sign).toHaveBeenCalledTimes(1));
       expect(container.querySelector(`.${workspaceStyles['page-wrapper']}`)).toBe(wrapper);
       expect(container.querySelector('[data-editor-text-input]')).toBe(textInput);
       expect(textInput.value).toBe(initialText);
@@ -167,7 +169,7 @@ describe('PdfSignTool UI flow', () => {
         textInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
       await act(async () => { container.querySelector(`button[title="${title}"]`).click(); });
-      expect(sign).toHaveBeenCalledTimes(2);
+      await vi.waitFor(() => expect(sign).toHaveBeenCalledTimes(2));
       expect(sign.mock.calls[1][1][0].text).toBe('Corrected text');
       expect(container.querySelector('[role="alert"]')).toBeNull();
       expect(container.querySelector('[data-editor-text-input]').value).toBe('Corrected text');

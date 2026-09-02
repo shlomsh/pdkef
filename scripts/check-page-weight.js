@@ -149,15 +149,16 @@ const distDir = path.join(__dirname, '..', 'dist');
 // astro-island tag and missed everything those chunks import. Nothing about
 // the shipped page changed between the previous measurement and this one.
 //
-// Set to the worst measured page plus a few percent, not the old formula's
-// ~20% feature-growth headroom - that headroom was for organic growth from
-// shipped copy, and this number's size is a fixed dependency cost (fontkit +
-// @cantoo/pdf-lib), not something to budget slack for. This is expected to
-// come DOWN once TODO.md's ARCH-03/ARCH-04 land (splitting the text-coverage
-// measurement code that must run eagerly, on every keystroke, from the
-// pdf-lib-drawing code that only runs at Download) - do not read 600,000 as
-// the new steady state to grow from.
-const MAX_FIRST_LOAD_BROTLI = 600_000;
+// SIGN-14 completed that split on 2026-09-02. The static Sign entry no longer
+// imports the export adapter or its PDF serializer; those load only after the
+// user chooses Download. The heaviest first load fell from roughly 582KB to
+// 325KB brotli. Keep generous feature headroom without letting that lazy
+// boundary disappear unnoticed.
+// SIGN-14 split the export adapter from editor hydration on 2026-09-02. The
+// heaviest first load fell from roughly 582KB to 325KB brotli; keep generous
+// feature headroom without allowing the lazy PDF serializer to become eager
+// again unnoticed.
+const MAX_FIRST_LOAD_BROTLI = 400_000;
 
 // Worst measured page is / at 4,586 raw bytes: the app bar logo (1,342 at 2x)
 // plus the home hero logo (3,244 at 2x). Every other page carries the app bar

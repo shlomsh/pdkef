@@ -6,7 +6,6 @@ import { SignDefaultsContext } from './SignTool/SignDefaultsContext.tsx';
 import { SavedSignaturesContext } from './SignTool/SavedSignaturesContext.tsx';
 import PdfWorkspace from './SignTool/PdfWorkspace.tsx';
 import SignatureDialog from './SignatureDialog.tsx';
-import { signPdf, UnrepresentableTextError } from '../editor/adapters/pdf/sign.js';
 import { uniqueId, seedUniqueId } from '../editor/model/ids.ts';
 import { describeUnrepresentableText } from './SignTool/textMessages.ts';
 import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../editor/geometry/coords.js';
@@ -27,12 +26,13 @@ import useCurrentPage from '../lib/useCurrentPage.js';
 // precisely; other failures explain that the user can retry without losing
 // their edits. Document-load errors use the workspace's separate default copy.
 function describeSignFailure(err: unknown): string {
-  if (err instanceof UnrepresentableTextError) {
+  if (err instanceof Error && err.name === 'UnrepresentableTextError') {
     // Worded by SignTool/textMessages.ts, the same UI message module the
     // while-typing warning
     // reads from, so the heads-up and the refusal can never name different
     // characters or point at different pages.
-    return describeUnrepresentableText(err.characters, err.pageNumbers ?? [], { saving: true });
+    const coverageError = err as Error & { characters: string[]; pageNumbers?: number[] };
+    return describeUnrepresentableText(coverageError.characters, coverageError.pageNumbers ?? [], { saving: true });
   }
   return 'Could not export the PDF. Your edits are still here. Try again.';
 }
@@ -114,6 +114,7 @@ function PdfSignToolInner() {
   const workspaceRef = useRef<HTMLDivElement | null>(null);
   const fileBytesRef = useRef<ArrayBuffer | null>(null);
   const loadIdRef = useRef(0);
+  const loadControllerRef = useRef<import('../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
   // Whichever of {manual file pick, draft restore} happens first (in call order) wins
   // outright; the other is skipped entirely. This closes the gap the loadId guard alone
   // doesn't cover: a slow draft restore that resolves *after* a fast manual pick has
@@ -138,6 +139,14 @@ function PdfSignToolInner() {
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // pdf.js owns worker and document resources outside Preact. Release the
+  // active one when the editor leaves the tree, rather than letting a late
+  // loading/render completion write into an unmounted workspace.
+  useEffect(() => () => {
+    loadIdRef.current++;
+    loadControllerRef.current?.cancel();
   }, []);
 
   // A prepared export is only valid for the current annotation state. Any edit
@@ -382,9 +391,12 @@ function PdfSignToolInner() {
   const loadPdf = async (selected: File, bytes: ArrayBuffer, preset: any = {}, restored = false) => {
     const presetElements = preset.elements || [];
     await loadEditorPdf({
-      file: selected, bytes, restored, loadIdRef, clearDraft, setStatus, setAnnouncement,
+      file: selected, bytes, restored, loadIdRef, loadControllerRef, clearDraft, setStatus, setAnnouncement,
       initialize: () => {
         setFile(selected);
+        setPdfDocument(null);
+        setNumPages(0);
+        setPageSizes([]);
         setErrorDetail(null);
         setProgress(0);
         dispatch({ type: 'SET_ELEMENTS', payload: presetElements });
@@ -621,6 +633,7 @@ function PdfSignToolInner() {
     setAnnouncement('Writing signatures and text layers into PDF...');
 
     try {
+      const { signPdf } = await import('../editor/adapters/pdf/sign.js');
       const signedBlob = await signPdf(file, elements, (p: number) => setProgress(p));
       onSigned(signedBlob, `signed_${file.name}`);
     } catch (err) {

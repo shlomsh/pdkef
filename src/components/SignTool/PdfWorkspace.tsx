@@ -1,4 +1,4 @@
-import { useRef, useCallback, useMemo } from 'preact/hooks';
+import { useRef, useCallback, useEffect, useMemo } from 'preact/hooks';
 import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS } from '../../constants/signGeometry.js';
 import PdfPageCanvas from '../PdfPageCanvas.tsx';
 import EditorPageHeader from '../EditorPageHeader.tsx';
@@ -66,6 +66,8 @@ export default function PdfWorkspace({
   /** Overrides the default error copy below with a specific, nameable reason. */
   errorDetail?: string | null;
 }) {
+  const placementGestureRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => placementGestureRef.current?.(), []);
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
   const {
     lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastThickness, lastSymbolWidth, lastSymbolMark,
@@ -103,6 +105,7 @@ export default function PdfWorkspace({
     initialSymbolWidth: lastSymbolWidth,
     initialSymbolMark: lastSymbolMark,
     pageSizes,
+    gestureCancelRef: placementGestureRef,
   });
 
   // --- Stable element mutation callbacks (hoisted out of the map loop) ---

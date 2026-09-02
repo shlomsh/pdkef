@@ -4,6 +4,8 @@ export interface GestureControllerOptions<P> {
   computePatch(event: GestureEvent): P;
   writeDOM(patch: P): void;
   commit(patch: P | undefined): void;
+  /** Undo imperative preview work without committing an interrupted gesture. */
+  cancel?(): void;
   target?: Window;
 }
 
@@ -18,6 +20,7 @@ export function startGesture<P>({
   computePatch,
   writeDOM,
   commit,
+  cancel: onCancel,
   target = window,
 }: GestureControllerOptions<P>) {
   let latestPatch: P | undefined;
@@ -28,20 +31,41 @@ export function startGesture<P>({
     writeDOM(latestPatch);
   };
 
-  const finish = () => {
-    if (finished) return;
-    finished = true;
+  const cleanup = () => {
     target.removeEventListener('mousemove', onMove);
     target.removeEventListener('mouseup', finish);
     target.removeEventListener('touchmove', onMove);
     target.removeEventListener('touchend', finish);
+    target.removeEventListener('touchcancel', cancel);
+    target.removeEventListener('blur', cancel);
+    target.document?.removeEventListener('visibilitychange', onVisibilityChange);
+  };
+
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    cleanup();
     commit(latestPatch);
+  };
+
+  const cancel = () => {
+    if (finished) return;
+    finished = true;
+    cleanup();
+    onCancel?.();
+  };
+
+  const onVisibilityChange = () => {
+    if (target.document?.visibilityState === 'hidden') cancel();
   };
 
   target.addEventListener('mousemove', onMove);
   target.addEventListener('mouseup', finish);
   target.addEventListener('touchmove', onMove, { passive: false });
   target.addEventListener('touchend', finish);
+  target.addEventListener('touchcancel', cancel);
+  target.addEventListener('blur', cancel);
+  target.document?.addEventListener('visibilitychange', onVisibilityChange);
 
-  return finish;
+  return cancel;
 }
