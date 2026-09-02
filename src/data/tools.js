@@ -80,9 +80,9 @@ export const tools = [
     // this card is the one that says where the tool stops.
     languages: {
       tag: 'Languages',
-      heading: 'Supports a wide range of languages, with more on the way',
+      heading: 'Supports a wide range of languages, and takes requests for more',
       lead:
-        "Hebrew, Hindi, Marathi, Bengali, Tamil, Telugu, Punjabi, Malayalam, Thai, Russian, Ukrainian, Greek, Arabic, Urdu, Vietnamese, Turkish, and every Latin-script language work end to end here, so what you type is exactly what ends up in your downloaded file. I'm adding more as I go.",
+        "Hebrew, Hindi, Marathi, Bengali, Tamil, Telugu, Punjabi, Malayalam, Thai, Russian, Ukrainian, Greek, Arabic, Urdu, Vietnamese, Turkish, and every Latin-script language work end to end here, so what you type is exactly what ends up in your downloaded file.",
       supportedHeading: 'Supported now',
       // Ordered by roughly how many people speak each language, most to
       // least, so the card leads with what the most visitors are searching
@@ -192,9 +192,9 @@ export const tools = [
           note: "Fill a Turkish form and sign your name in Turkish. Ten text fonts carry the complete 29-letter alphabet, the same ten that carry the full accented set in the Latin-script note above, plus Kalam and Mali if you want a handwritten look, either of which also works for a typed signature. The three letters that set Turkish apart from plain accented Latin, Ğ, İ and Ş, are exactly what that general Latin-Ext sample does not check, so I verified them against the real font files rather than assuming coverage carried over.",
         },
       ],
-      notYetHeading: 'More on the way',
+      notYetHeading: "Don't see your language?",
       notYet:
-        "Gujarati, Kannada, Odia and emoji are not there yet. If you type something the tool cannot draw, it tells you as you go and names the exact characters, so you find out while you are typing rather than after you have filled in a whole form and downloaded it.",
+        "Gujarati, Kannada, Odia and emoji are not there yet, and there's no fixed schedule for adding more: I build language support when someone actually asks for it rather than working ahead of any request. If yours is missing, the fastest way to get it prioritized is to ask, through Feedback & ideas or Report a bug, both linked in the footer below. If you type something the tool cannot draw, it tells you as you go and names the exact characters, so you find out while you are typing rather than after you have filled in a whole form and downloaded it.",
     },
     steps: [
       { title: 'Open your form', text: 'Save the PDF from WhatsApp or email to your device, then choose it here or drag it into the tool. It is not uploaded.' },
