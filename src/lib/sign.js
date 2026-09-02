@@ -18,15 +18,6 @@ import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../constan
 
 export { detectTextDirection, getEffectiveTextDirection, hexToRgbFractions, tintImageDataUrl } from './signHelpers.js';
 
-let pdfjsLib;
-export async function getPdfjs() {
-  if (!pdfjsLib) {
-    pdfjsLib = await import('pdfjs-dist');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href;
-  }
-  return pdfjsLib;
-}
-
 // The catalogue and the Hebrew substitution rule live in fonts.js, which the
 // editor also imports — see the note there on why both sides must share it.
 export { HANDWRITING_FONTS, TEXT_FONTS, resolveFontFamily } from '../editor/text/fonts.js';
