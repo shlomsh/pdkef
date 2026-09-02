@@ -66,6 +66,9 @@ export default function PdfRedactTool() {
   };
   const [drawingState, setDrawingState] = useState<any>(null); // { pageIndex, startX, startY, type, color }
   const drawingPreviewRef = useRef<HTMLDivElement | null>(null);
+  const cancelDrawingRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => () => cancelDrawingRef.current?.(), []);
 
   useEffect(() => {
     const stored = getEditorPreference('lastWhiteoutColor');
@@ -168,11 +171,17 @@ export default function PdfRedactTool() {
   const pageWrapperRefs = useRef<(HTMLDivElement | null)[]>([]);
   const fileBytesRef = useRef<ArrayBuffer | null>(null);
   const loadIdRef = useRef(0);
+  const loadControllerRef = useRef<import('../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
   // Whichever of {manual file pick, draft restore} happens first (in call order) wins
   // outright; the other is skipped entirely. This closes the gap the loadId guard alone
   // doesn't cover: a slow draft restore that resolves *after* a fast manual pick has
   // already finished editing would otherwise still be "the newer call" and clobber it.
   const loadStartedRef = useRef(false);
+
+  useEffect(() => () => {
+    loadIdRef.current++;
+    loadControllerRef.current?.cancel();
+  }, []);
 
   // What the Delete tool can offer to click on: images and text runs the PDF
   // itself stores as a single object, found by parsing the source file's own
@@ -210,9 +219,11 @@ export default function PdfRedactTool() {
     // renamed to `type`) and validated - see useEditorDraftPersistence.ts.
     const presetElements = preset.elements || [];
     await loadEditorPdf({
-      file: selected, bytes, restored, loadIdRef, clearDraft, setStatus, setAnnouncement,
+      file: selected, bytes, restored, loadIdRef, loadControllerRef, clearDraft, setStatus, setAnnouncement,
       initialize: () => {
         setFile(selected);
+        setPdfDocument(null);
+        setNumPages(0);
         setErrorDetail(null);
         setProgress(0);
         setElements(presetElements);
@@ -278,7 +289,8 @@ export default function PdfRedactTool() {
     const type = activeStyle;
     const color = type === 'whiteout' ? activeColor : (type === 'blackout' ? '#000000' : undefined);
     setDrawingState({ pageIndex, startX: origin.x, startY: origin.y, type, color });
-    startGesture({
+    cancelDrawingRef.current?.();
+    cancelDrawingRef.current = startGesture({
       computePatch: (moveEvent) => {
         if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
         const point = getPointerPercent(moveEvent, container);
@@ -295,6 +307,7 @@ export default function PdfRedactTool() {
         preview.style.height = `${patch.height}%`;
       },
       commit: (patch) => {
+        cancelDrawingRef.current = null;
         setDrawingState(null);
         // A press that drew nothing has not spent the tool's one placement, so
         // it stays armed - otherwise a mistimed tap would silently disarm and
@@ -305,6 +318,10 @@ export default function PdfRedactTool() {
         logAction(`ADD_${type.toUpperCase()}`, id, pageIndex, `Added ${type} box`);
         setAnnouncement(`Added ${type} box.`);
         disarmTool();
+      },
+      cancel: () => {
+        cancelDrawingRef.current = null;
+        setDrawingState(null);
       },
     });
   };

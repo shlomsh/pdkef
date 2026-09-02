@@ -1,4 +1,4 @@
-import { useRef } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../editor/gestures/controller.ts';
 import { getEffectiveTextDirection } from './signHelpers.js';
@@ -44,6 +44,9 @@ export default function useDraggableElement({
   const dragStartPos = useRef({ x: 0, y: 0, left: 0, top: 0 });
   const isDragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
+  const cancelDragRef = useRef(null);
+
+  useEffect(() => () => cancelDragRef.current?.(), []);
 
   const handlePointerDown = (e) => {
     if (
@@ -100,7 +103,8 @@ export default function useDraggableElement({
 
     isDragging.current = true;
 
-    startGesture({
+    cancelDragRef.current?.();
+    cancelDragRef.current = startGesture({
       computePatch: (moveEvent) => {
       if (moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
       const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
@@ -139,6 +143,7 @@ export default function useDraggableElement({
         }
       },
       commit: () => {
+      cancelDragRef.current = null;
       isDragging.current = false;
       if (elementRef.current) elementRef.current.style.transform = 'none';
 
@@ -173,6 +178,12 @@ export default function useDraggableElement({
         onChange({ left: newLeft, top: newTop });
       }
 
+      dragOffset.current = { x: 0, y: 0 };
+      },
+      cancel: () => {
+      cancelDragRef.current = null;
+      isDragging.current = false;
+      if (elementRef.current) elementRef.current.style.transform = 'none';
       dragOffset.current = { x: 0, y: 0 };
       },
     });

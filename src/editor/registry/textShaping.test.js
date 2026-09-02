@@ -12,7 +12,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { drawShapedRun, normalizeTabsForBidi, shapedWidth, stripInvisibleFormatting, unrepresentableCharacters } from './text.ts';
+import { normalizeTabsForBidi, shapedWidth, stripInvisibleFormatting, unrepresentableCharacters } from './text.ts';
+import { drawShapedRun } from './textPdf.ts';
 import { resolveBidiRuns } from '../text/bidiRuns.js';
 import { composeHebrewClusters } from '../text/hebrewComposition.js';
 
