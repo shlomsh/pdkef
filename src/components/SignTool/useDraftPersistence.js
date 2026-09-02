@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { saveDraft, loadDraft, deleteDraft, hasDraftHint } from '../../editor/workspace/draftStore.js';
+import { DRAFT_SCHEMA_VERSION } from '../../editor/registry/draftValidation.ts';
+
+// Clears the blocking head script's DOM hint once a real restore check has
+// settled with nothing to restore. Shared by both "no record at all" and
+// "record present but invalid" - see useEditorDraftPersistence's onRestore.
+export function clearDraftHintAttribute() {
+  document.documentElement?.removeAttribute('data-draft-hint');
+}
 
 // Upper bound on how long the mount-time restore check may hold the caller in
 // `isRestoring` before giving up. A real IndexedDB open+read is normally
@@ -92,7 +100,8 @@ export function useDraftPersistence({
       fileBytes,
       elements: elements || [],
       extra: extra || {},
-      preview: previewRef.current || undefined
+      preview: previewRef.current || undefined,
+      schemaVersion: DRAFT_SCHEMA_VERSION
     };
   };
 
@@ -155,7 +164,7 @@ export function useDraftPersistence({
         // attribute the blocking head script set from that hint before this
         // component ever mounted, so a stale hint doesn't leave the hero
         // pre-collapsed above an empty dropzone with nothing to explain it.
-        document.documentElement?.removeAttribute('data-draft-hint');
+        clearDraftHintAttribute();
       }
       stopWaiting();
     })();

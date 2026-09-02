@@ -4,8 +4,8 @@
 > [TODO.md](../TODO.md). Design standard: [CLAUDE.md](../CLAUDE.md) "Draft persistence feature"
 > (Architecture section) and the privacy invariants (no PDF content in diagnostics). This plan covers
 > the validate-on-restore + schema-version + migrate slice of SIGN-11 only — see "Out of scope" below
-> for what of SIGN-11 stays open after this lands. Not started as of 2026-08-29; written for whichever
-> agent picks up SIGN-11 next.
+> for what of SIGN-11 stays open after this lands. **Landed 2026-09-02** — see SIGN-11's task file for
+> what shipped and what of SIGN-11 remains open.
 
 ---
 
