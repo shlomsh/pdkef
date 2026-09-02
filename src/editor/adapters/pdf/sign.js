@@ -11,16 +11,10 @@ import {
   createPageGeometry,
   pagePercentToEditorPoint,
   visiblePageBox,
-} from '../editor/geometry/coords.js';
-import { getElementDefinition } from '../editor/registry/index.ts';
-import { findUnrepresentableCharacters } from '../editor/text/textCoverage.js';
-import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../constants/signGeometry.js';
-
-export { detectTextDirection, getEffectiveTextDirection, hexToRgbFractions, tintImageDataUrl } from './signHelpers.js';
-
-// The catalogue and the Hebrew substitution rule live in fonts.js, which the
-// editor also imports — see the note there on why both sides must share it.
-export { HANDWRITING_FONTS, TEXT_FONTS, resolveFontFamily } from '../editor/text/fonts.js';
+} from '../../geometry/coords.js';
+import { getElementDefinition } from '../../registry/index.ts';
+import { findUnrepresentableCharacters } from '../../text/textCoverage.js';
+import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../../../constants/signGeometry.js';
 
 /**
  * Thrown by signPdf's coverage pre-pass (docs/hebrew-text-shaping-export.md,

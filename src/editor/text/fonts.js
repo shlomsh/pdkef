@@ -237,7 +237,7 @@ const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
 const FONT_FILE_STYLE_SUFFIX = { normal: { normal: 'Regular', italic: 'Italic' }, bold: { normal: 'Bold', italic: 'BoldItalic' } };
 
 /**
- * The filename `loadCustomFont()` (src/lib/sign.js) would *request* for
+ * The filename `loadCustomFont()` (src/editor/adapters/pdf/sign.js) would *request* for
  * `(family, weight, style)`, before any 404 fallback - i.e. the file that
  * actually carries this exact weight/style, not whatever ends up embedded.
  * Same naming scheme as fontCoverageTable.js's keys:
@@ -277,7 +277,7 @@ export function hasRealFace(family, weight, style) {
 
 /**
  * The exact filename that will actually be embedded for `(family, weight,
- * style)` - mirroring src/lib/sign.js's `loadCustomFont()` fallback chain
+ * style)` - mirroring src/editor/adapters/pdf/sign.js's `loadCustomFont()` fallback chain
  * (request the specific weight/style file, fall back to `-Regular.ttf` if it
  * 404s) without doing any network I/O. `FONT_COVERAGE_FILES` is generated
  * from the same public/fonts/ directory `loadCustomFont` fetches from, so

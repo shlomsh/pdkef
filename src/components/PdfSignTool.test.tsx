@@ -5,7 +5,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import PdfSignTool from './PdfSignTool.tsx';
-import * as signModule from '../lib/sign.js';
+import * as signModule from '../editor/adapters/pdf/sign.js';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../editor/geometry/coords.js';

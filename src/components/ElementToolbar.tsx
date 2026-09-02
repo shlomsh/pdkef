@@ -3,7 +3,7 @@ import { PilcrowLeft, PilcrowRight } from 'lucide-preact';
 import ColorPickerMenu from './ColorPickerMenu.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
-import { getEffectiveTextDirection } from '../lib/sign.js';
+import { getEffectiveTextDirection } from '../lib/signHelpers.js';
 import { resolveFontFamily, hasRealFace } from '../editor/text/fonts.js';
 import { combCellCount, isComb, textForCoverage } from '../editor/text/comb.js';
 import { MAX_COMB_CELLS } from '../constants/signGeometry.js';

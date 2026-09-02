@@ -6,16 +6,15 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { PDFDocument, PDFName, PDFNumber, degrees } from '@cantoo/pdf-lib';
 import {
   signPdf,
-  hexToRgbFractions,
-  getEffectiveTextDirection,
   UnrepresentableTextError
 } from './sign.js';
-import { percentToPoints } from '../editor/geometry/coords.js';
-import { applyAffineTransform, createPageGeometry, pageGeometryFromPdfJsPage } from '../editor/geometry/coords.js';
-import { combCellCount, combCharacters } from '../editor/text/comb.js';
+import { hexToRgbFractions, getEffectiveTextDirection } from '../../../lib/signHelpers.js';
+import { percentToPoints } from '../../geometry/coords.js';
+import { applyAffineTransform, createPageGeometry, pageGeometryFromPdfJsPage } from '../../geometry/coords.js';
+import { combCellCount, combCharacters } from '../../text/comb.js';
 
 function getFixtureFile(name = 'num-1.pdf') {
-  const filePath = path.resolve(__dirname, './__fixtures__', name);
+  const filePath = path.resolve(__dirname, '../../../lib/__fixtures__', name);
   const buffer = fs.readFileSync(filePath);
   return new File([buffer], name, { type: 'application/pdf' });
 }
@@ -29,7 +28,7 @@ function mockFontFetch() {
   global.fetch = vi.fn(async (url) => {
     const match = /\/fonts\/(.+)$/.exec(String(url));
     if (!match) return originalFetch ? originalFetch(url) : Promise.reject(new Error('unexpected fetch'));
-    const filePath = path.resolve(__dirname, '../../public/fonts', match[1]);
+    const filePath = path.resolve(__dirname, '../../../../public/fonts', match[1]);
     if (!fs.existsSync(filePath)) {
       return { ok: false, status: 404, arrayBuffer: async () => new ArrayBuffer(0) };
     }
