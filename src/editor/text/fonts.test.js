@@ -24,6 +24,7 @@ import {
   TEXT_FONTS,
   covers,
   hasRealFace,
+  requestedFontFile,
   resolveFontFamily,
   resolveFontSubstitution,
   resolveTypography,
@@ -358,7 +359,7 @@ describe('FONT_VERTICAL_METRICS', () => {
   const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 
   function regularFileFor(family) {
-    return `${family.replace(/\s+/g, '')}-Regular.ttf`;
+    return requestedFontFile(family, 'normal', 'normal');
   }
 
   it('covers every font the picker offers', () => {
@@ -446,7 +447,7 @@ describe('retired fonts', () => {
 
       // And the replacement is a font we actually ship, with a file on disk.
       expect([...HANDWRITING_FONTS, ...TEXT_FONTS]).toContain(replacement);
-      expect(existsSync(join(FONT_DIR, `${replacement.replace(/\s+/g, '')}-Regular.ttf`))).toBe(true);
+      expect(existsSync(join(FONT_DIR, requestedFontFile(replacement, 'normal', 'normal')))).toBe(true);
     }
   });
 
@@ -570,14 +571,13 @@ describe('Noto Sans Bengali', () => {
 });
 
 /**
- * The editor and the exporter reach the same TTF by two completely
- * independent routes, and nothing used to check that they agree.
+ * The generated CSS and exporter both consume the manifest, but a stale
+ * generated file would still give the editor and exporter different TTFs.
  *
  *  - The editor renders through CSS: `font-family: 'Noto Sans Bengali'`
  *    resolves via an `@font-face` rule in editorFonts.css to a `url()`.
- *  - The exporter never reads CSS. `loadCustomFont` (sign.js) derives the
- *    filename from the family string itself - strip the spaces, append the
- *    weight/style suffix - and fetches it.
+ *  - The exporter never reads CSS. `loadCustomFont` asks the generated
+ *    runtime manifest for the exact face filename and fetches it.
  *
  * So a family can be complete on the export side and silently wrong on the
  * screen side. Deleting both `@font-face` rules for a shipped, selectable
@@ -591,11 +591,6 @@ describe('Noto Sans Bengali', () => {
  */
 describe('editorFonts.css declares exactly the faces the exporter will fetch', () => {
   const WEIGHT_KEYWORD = { '400': 'normal', '700': 'bold' };
-
-  function fileSuffix(weight, style) {
-    if (weight === 'bold') return style === 'italic' ? 'BoldItalic' : 'Bold';
-    return style === 'italic' ? 'Italic' : 'Regular';
-  }
 
   const css = readFileSync(join(process.cwd(), 'src', 'styles', 'editorFonts.css'), 'utf8');
   const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map(([, body]) => ({
@@ -622,9 +617,9 @@ describe('editorFonts.css declares exactly the faces the exporter will fetch', (
     expect(orphans).toEqual([]);
   });
 
-  it('points every rule at the exact file loadCustomFont would derive for that family and face', () => {
+  it('points every rule at the exact file the manifest gives loadCustomFont for that family and face', () => {
     const mismatched = faces.filter(
-      (f) => f.url !== `/fonts/${f.family.replace(/\s+/g, '')}-${fileSuffix(f.weight, f.style)}.ttf`
+      (f) => f.url !== `/fonts/${requestedFontFile(f.family, f.weight, f.style)}`
     );
     expect(mismatched).toEqual([]);
   });
