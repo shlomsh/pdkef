@@ -50,7 +50,7 @@ function PdfSignToolInner() {
   const [numPages, setNumPages] = useState(0);
   const [pdfDocument, setPdfDocument] = useState<any>(null);
   const [pageSizes, setPageSizes] = useState<PageGeometry[]>([]); // Rotated/cropped visible page frames in physical PDF points.
-  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
+  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, documentRevision }, dispatch } = useSignTool();
   const setSelectedTool = (tool: string | null) => dispatch({ type: 'SET_TOOL', payload: tool });
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
   // Export errors are recoverable without unmounting the editor. A failed
@@ -115,6 +115,12 @@ function PdfSignToolInner() {
   const fileBytesRef = useRef<ArrayBuffer | null>(null);
   const loadIdRef = useRef(0);
   const loadControllerRef = useRef<import('../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
+  const activeExportRequestRef = useRef<number | null>(null);
+  const nextExportRequestRef = useRef(0);
+  const documentRevisionRef = useRef(documentRevision);
+  const currentFileRef = useRef(file);
+  documentRevisionRef.current = documentRevision;
+  currentFileRef.current = file;
   // Whichever of {manual file pick, draft restore} happens first (in call order) wins
   // outright; the other is skipped entirely. This closes the gap the loadId guard alone
   // doesn't cover: a slow draft restore that resolves *after* a fast manual pick has
@@ -147,13 +153,20 @@ function PdfSignToolInner() {
   useEffect(() => () => {
     loadIdRef.current++;
     loadControllerRef.current?.cancel();
+    activeExportRequestRef.current = null;
   }, []);
 
-  // A prepared export is only valid for the current annotation state. Any edit
-  // requires a fresh PDF before it can be shared.
+  // A prepared export is only valid for the current annotation state. An edit
+  // also revokes a PDF currently being generated: its completion must not make
+  // an older version available for download or sharing.
   useEffect(() => {
     clearPrepared();
-  }, [file, elements, clearPrepared]);
+    if (activeExportRequestRef.current === null) return;
+    activeExportRequestRef.current = null;
+    setStatus('editing');
+    setProgress(0);
+    setAnnouncement('Your edits changed while the PDF was being prepared. Download again to create an up-to-date file.');
+  }, [file, documentRevision, clearPrepared]);
 
   // Escape precedence while the undo history is open in full screen: close the
   // modal FIRST, and only let a subsequent Escape exit full screen. Without this
@@ -627,6 +640,10 @@ function PdfSignToolInner() {
   // drift on how a failure recovers.
   const runExport = async (onSigned: (signedBlob: Blob, filename: string) => void) => {
     if (!file) return;
+    const sourceFile = file;
+    const sourceRevision = documentRevisionRef.current;
+    const requestId = ++nextExportRequestRef.current;
+    activeExportRequestRef.current = requestId;
     setErrorDetail(null);
     setStatus('signing');
     setProgress(0);
@@ -634,9 +651,17 @@ function PdfSignToolInner() {
 
     try {
       const { signPdf } = await import('../editor/adapters/pdf/sign.js');
-      const signedBlob = await signPdf(file, elements, (p: number) => setProgress(p));
-      onSigned(signedBlob, `signed_${file.name}`);
+      const signedBlob = await signPdf(sourceFile, elements, (p: number) => {
+        if (activeExportRequestRef.current === requestId && documentRevisionRef.current === sourceRevision) setProgress(p);
+      });
+      if (activeExportRequestRef.current !== requestId
+        || documentRevisionRef.current !== sourceRevision
+        || currentFileRef.current !== sourceFile) return;
+      activeExportRequestRef.current = null;
+      onSigned(signedBlob, `signed_${sourceFile.name}`);
     } catch (err) {
+      if (activeExportRequestRef.current !== requestId) return;
+      activeExportRequestRef.current = null;
       console.error(err);
       setStatus('editing');
       const detail = describeSignFailure(err);

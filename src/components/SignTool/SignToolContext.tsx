@@ -25,6 +25,8 @@ export interface SignToolState {
   activeElementId: string | null;
   editingElementId: string | null;
   actionHistory: any[];
+  /** Monotonic document version; exports must match the version they started with. */
+  documentRevision: number;
 }
 
 export interface SignToolContextValue {
@@ -56,8 +58,11 @@ const initialState: SignToolState = {
   // through SET_ACTIVE_ELEMENT_ID, so no caller has to remember to close an
   // edit session - the two cannot drift apart.
   editingElementId: null,
-  actionHistory: []
+  actionHistory: [],
+  documentRevision: 0,
 };
+
+const nextDocumentRevision = (state: SignToolState) => (state.documentRevision ?? 0) + 1;
 
 export function reducer(state: SignToolState, action: any): SignToolState {
   switch (action.type) {
@@ -85,26 +90,30 @@ export function reducer(state: SignToolState, action: any): SignToolState {
         ...state,
         elements: action.payload,
         activeElementId: null,
-        editingElementId: null
+        editingElementId: null,
+        documentRevision: nextDocumentRevision(state),
       };
     case 'ADD_ELEMENT':
       return {
         ...state,
-        elements: [...state.elements, action.payload]
+        elements: [...state.elements, action.payload],
+        documentRevision: nextDocumentRevision(state),
       };
     case 'UPDATE_ELEMENT':
       return {
         ...state,
         elements: state.elements.map(el =>
           el.id === action.payload.id ? { ...el, ...action.payload.changes } : el
-        )
+        ),
+        documentRevision: nextDocumentRevision(state),
       };
     case 'DELETE_ELEMENT':
       return {
         ...state,
         elements: state.elements.filter(el => el.id !== action.payload),
         activeElementId: state.activeElementId === action.payload ? null : state.activeElementId,
-        editingElementId: state.editingElementId === action.payload ? null : state.editingElementId
+        editingElementId: state.editingElementId === action.payload ? null : state.editingElementId,
+        documentRevision: nextDocumentRevision(state),
       };
     // Every element on one page at once (the page header's "Clear page"). The
     // caller logs it with a snapshot, so UNDO restores the whole page the same
@@ -119,7 +128,8 @@ export function reducer(state: SignToolState, action: any): SignToolState {
         ...state,
         elements: remaining,
         activeElementId: activeSurvives ? state.activeElementId : null,
-        editingElementId: activeSurvives ? state.editingElementId : null
+        editingElementId: activeSurvives ? state.editingElementId : null,
+        documentRevision: nextDocumentRevision(state),
       };
     }
     case 'SET_ACTIVE_ELEMENT_ID':
@@ -182,7 +192,8 @@ export function reducer(state: SignToolState, action: any): SignToolState {
             return { ...el, left: startLeftPercent - defW / 2, top: startTopPercent - defH / 2, width: defW, height: defH };
           }
           return el;
-        })
+        }),
+        documentRevision: nextDocumentRevision(state),
       };
     }
     case 'UNDO': {
@@ -194,7 +205,8 @@ export function reducer(state: SignToolState, action: any): SignToolState {
         return {
           ...state,
           elements: [...state.elements, ...lastAction.snapshot],
-          actionHistory: state.actionHistory.slice(1)
+          actionHistory: state.actionHistory.slice(1),
+          documentRevision: nextDocumentRevision(state),
         };
       }
       return {
@@ -202,7 +214,8 @@ export function reducer(state: SignToolState, action: any): SignToolState {
         elements: state.elements.filter(el => el.id !== lastAction.elementId),
         activeElementId: state.activeElementId === lastAction.elementId ? null : state.activeElementId,
         editingElementId: state.editingElementId === lastAction.elementId ? null : state.editingElementId,
-        actionHistory: state.actionHistory.slice(1)
+        actionHistory: state.actionHistory.slice(1),
+        documentRevision: nextDocumentRevision(state),
       };
     }
     default:

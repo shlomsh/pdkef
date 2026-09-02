@@ -1,12 +1,12 @@
 ---
 id: "SIGN-21"
 title: "Make the browser guard helpers reachable from the preview server"
-status: "done"
+status: "open"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "release-blocker"
 depends_on: []
-legacy_state: "Done 2026-09-02"
+legacy_state: "Reopened 2026-09-02 — language-acceptance bundle still 404s"
 ---
 
 # SIGN-21 · Make the browser guard helpers reachable from the preview server
@@ -22,3 +22,13 @@ Fix: kept the write-to-`dist`/cleanup mechanism exactly as it was (unique per-gu
 Found and fixed along the way, required to even get `npm run test:e2e` to collect tests: three e2e spec files (`hebrew-composition-guard.spec.js`, `hebrew-font-parity.spec.js`, `thai-font-parity.spec.js`) and `scripts/generate-font-coverage-report.mjs` still imported `src/lib/fonts.js` / `src/lib/bidiRuns.js` / `src/lib/hebrewCombiningCorpus.js`, which the prior "editor architecture relocations" work moved to `src/editor/text/`. Updated the four import paths; unrelated to the bundle-reachability bug itself but a hard blocker for proving this ticket's fix against the real suite.
 
 Verified: a full `npm run build && npm run preview` cycle is no longer needed to catch this class of bug since it's e2e-only, but `npm run test:e2e` was run to completion locally (92 tests: 90 passed, 2 skipped - the pre-existing documented Caveat `test.skip` and the export-render guard's Linux-only baseline skip on this macOS machine; 0 failed), including every previously-404ing guard (Arabic, Pashto, Bengali, Devanagari x2, Gurmukhi, Telugu, Tamil, Malayalam, every Latin candidate, and all eight CJK family/weight combinations in `cjk-advance-parity-guard.spec.js`). `npm test` (1856 tests) and `npm run test:csp` were unaffected, as expected since only e2e test-support files changed.
+
+**Reopened 2026-09-02 against `501071b`.** The fix covered the three bundle consumers
+named above but not `e2e/sign/language-acceptance.spec.js`, which also calls
+`buildSignBundle()` after the preview server starts and then loads
+`/__e2e-language-acceptance-bundle.js` without a `page.route`. A clean full run now ends
+**93 passed, 2 skipped, 1 failed** at that 404, before any of its 117 accepted
+language/face combinations are exercised. Add the missing route and centralize the
+"build a temporary bundle + make it reachable + clean it up" fixture so a future bundle
+consumer cannot omit one step. Acceptance remains a clean full `npm run test:e2e`, not a
+focused pass of the already-routed guards.

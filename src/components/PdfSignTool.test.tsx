@@ -183,6 +183,50 @@ describe('PdfSignTool UI flow', () => {
     }
   });
 
+  it('discards an export that finishes after the document changes', async () => {
+    let resolveExport;
+    const sign = vi.spyOn(signModule, 'signPdf').mockImplementation(() => new Promise((resolve) => {
+      resolveExport = resolve;
+    }));
+    const createUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:stale-export');
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    await act(async () => { render(<PdfSignTool />, container); });
+    await act(async () => {
+      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('stale.pdf')]);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
+    overlay.getBoundingClientRect = () => pageRect;
+    await act(async () => {
+      Array.from(container.querySelectorAll(`.${toolbarStyles.button}`))
+        .find(button => button.textContent.includes('Text')).click();
+    });
+    await act(async () => {
+      overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+    const textInput = container.querySelector('[data-editor-text-input]');
+    await act(async () => {
+      textInput.value = 'Original text';
+      textInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    await act(async () => { container.querySelector('button[title="Save your changes and download the signed PDF"]').click(); });
+    await vi.waitFor(() => expect(sign).toHaveBeenCalledOnce());
+
+    await act(async () => {
+      textInput.value = 'Newer text';
+      textInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => { resolveExport(new Blob(['stale result'], { type: 'application/pdf' })); });
+
+    expect(createUrl).not.toHaveBeenCalled();
+    expect(container.textContent).toContain('Your edits changed while the PDF was being prepared');
+  });
+
   it('loads saved signatures from localStorage on mount', async () => {
     const mockSignature = {
       id: 'sig-test-123',
