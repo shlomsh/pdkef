@@ -24,6 +24,14 @@ describe('SignToolContext Reducer', () => {
     expect(nextState.elements).toEqual(elements);
   });
 
+  it('increments the document revision for every change that can invalidate an export', () => {
+    const withRevision = { ...initialState, documentRevision: 7, elements: [{ id: 'el-1', type: 'text', pageIndex: 0 }] };
+    expect(reducer(withRevision, { type: 'UPDATE_ELEMENT', payload: { id: 'el-1', changes: { text: 'Changed' } } }).documentRevision).toBe(8);
+    expect(reducer(withRevision, { type: 'ADD_ELEMENT', payload: { id: 'el-2', type: 'text', pageIndex: 0 } }).documentRevision).toBe(8);
+    expect(reducer(withRevision, { type: 'DELETE_ELEMENT', payload: 'el-1' }).documentRevision).toBe(8);
+    expect(reducer(withRevision, { type: 'SET_ELEMENTS', payload: [] }).documentRevision).toBe(8);
+  });
+
   it('ADD_ELEMENT correctly modifies the array', () => {
     const newElement = { id: 'el-1', type: 'text', text: 'Hello' };
     const action = { type: 'ADD_ELEMENT', payload: newElement };

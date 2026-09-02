@@ -13,9 +13,10 @@ The canonical backlog is the task-file collection in [backlog/tasks/](backlog/ta
 | SIGN-11 | P2 | [SIGN-11](backlog/tasks/SIGN-11.md) · Versioned, validated shared persistence |
 | SIGN-12 | P2 | [SIGN-12](backlog/tasks/SIGN-12.md) · Make required undo dependable |
 | SIGN-13 | P2 | [SIGN-13](backlog/tasks/SIGN-13.md) · Anonymous usage and error maintenance signals |
-| SIGN-14 | P2 | [SIGN-14](backlog/tasks/SIGN-14.md) · Separate editor core, UI, and export adapters incrementally |
 | SIGN-16 | P2 | [SIGN-16](backlog/tasks/SIGN-16.md) · Trustworthy delivery checks and docs |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |
+| SIGN-21 | P1 | [SIGN-21](backlog/tasks/SIGN-21.md) · Make the browser guard helpers reachable from the preview server |
+| SIGN-22 | P1 | [SIGN-22](backlog/tasks/SIGN-22.md) · Restore the CSS release gate after adding language-request actions |
 
 ### In progress
 
@@ -39,11 +40,11 @@ _None._
 | SIGN-08 | P1 | [SIGN-08](backlog/tasks/SIGN-08.md) · Share the effective typography descriptor |
 | SIGN-09 | P1 | [SIGN-09](backlog/tasks/SIGN-09.md) · Direction defaults and native IME input |
 | SIGN-10 | P2 | [SIGN-10](backlog/tasks/SIGN-10.md) · A language/font source of truth and acceptance matrix |
+| SIGN-14 | P2 | [SIGN-14](backlog/tasks/SIGN-14.md) · Separate editor core, UI, and export adapters incrementally |
 | SIGN-15 | P2 | [SIGN-15](backlog/tasks/SIGN-15.md) · Bound document/render/gesture lifecycles |
 | SIGN-17 | P1 | [SIGN-17](backlog/tasks/SIGN-17.md) · Fix CI-red tests from in-flight SIGN-04/SIGN-09 direction work |
 | SIGN-18 | P1 | [SIGN-18](backlog/tasks/SIGN-18.md) · The Sign toolbar's per-row cap stopped matching when the Feedback control made it ten |
 | SIGN-19 | P1 | [SIGN-19](backlog/tasks/SIGN-19.md) · Four shaping/render guards passed on macOS and failed on Linux CI |
-| SIGN-21 | P1 | [SIGN-21](backlog/tasks/SIGN-21.md) · Make the browser guard helpers reachable from the preview server |
 
 ### Retired
 
@@ -53,7 +54,12 @@ _None._
 
 ### Open
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| ARCH-06 | P3 | [ARCH-06](backlog/tasks/ARCH-06.md) · Route Sign/Redact's own preference storage through workspace instead of raw localStorage |
+| ARCH-08 | P2 | [ARCH-08](backlog/tasks/ARCH-08.md) · Make documentation shell messages data-driven per locale |
+| ARCH-09 | P2 | [ARCH-09](backlog/tasks/ARCH-09.md) · Make translated documentation freshness enforceable |
+| ARCH-10 | P2 | [ARCH-10](backlog/tasks/ARCH-10.md) · Replace permissive editor-shell types with shared contracts |
 
 ### In progress
 
@@ -72,7 +78,6 @@ _None._
 | ARCH-03 | P2 | [ARCH-03](backlog/tasks/ARCH-03.md) · Give text policy its own home, and stop composing English sentences inside it |
 | ARCH-04 | P2 | [ARCH-04](backlog/tasks/ARCH-04.md) · Split PDF-library adapters out of workspace/ and lib/ |
 | ARCH-05 | P3 | [ARCH-05](backlog/tasks/ARCH-05.md) · Move draft persistence into workspace/ |
-| ARCH-06 | P3 | [ARCH-06](backlog/tasks/ARCH-06.md) · Route Sign/Redact's own preference storage through workspace instead of raw localStorage |
 | ARCH-07 | P3 | [ARCH-07](backlog/tasks/ARCH-07.md) · Consolidate documentation locale routing under src/i18n/ |
 
 ### Retired
