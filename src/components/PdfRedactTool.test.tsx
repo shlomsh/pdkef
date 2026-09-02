@@ -406,7 +406,7 @@ describe('PdfRedactTool UI flow', () => {
         const originalSize = fs.statSync(fixturePath).size;
         expect(capturedBlob.size).toBeLessThan(originalSize * 3);
 
-        const { extractPageObjects } = await import('../lib/pdfObjects.js');
+        const { extractPageObjects } = await import('../editor/adapters/pdf/pdfObjects.js');
         const { PDFDocument } = await import('@cantoo/pdf-lib');
         const outBytes = new Uint8Array(await capturedBlob.arrayBuffer());
         const doc = await PDFDocument.load(outBytes);

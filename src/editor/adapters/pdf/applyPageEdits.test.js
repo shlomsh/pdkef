@@ -11,7 +11,7 @@ import { applyPageEdits } from './applyPageEdits.js';
 const { redactPdf } = vi.hoisted(() => ({ redactPdf: vi.fn() }));
 const { deleteObjectsFromPdf } = vi.hoisted(() => ({ deleteObjectsFromPdf: vi.fn() }));
 
-vi.mock('../editor/adapters/pdf/redact.js', () => ({ redactPdf }));
+vi.mock('./redact.js', () => ({ redactPdf }));
 vi.mock('./deleteObjects.js', () => ({ deleteObjectsFromPdf }));
 
 const SOURCE = { name: 'source.pdf' };

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
 import BasePdfTool from './BasePdfTool.tsx';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../editor/model/ids.ts';
-import { applyPageEdits } from '../lib/applyPageEdits.js';
+import { applyPageEdits } from '../editor/adapters/pdf/applyPageEdits.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { startGesture } from '../editor/gestures/controller.ts';
 import usePdfCoordinates from '../lib/usePdfCoordinates.js';
