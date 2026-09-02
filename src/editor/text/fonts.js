@@ -13,7 +13,7 @@
  * So the substitution is decided here, explicitly, and applied on both sides.
  */
 
-import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
+import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
 import { FONT_COVERAGE_FILES, fontFileHasGlyph } from '../../lib/fontCoverageTable.js';
 import { findMissingGlyphs } from './textTransforms.js';
 
@@ -428,4 +428,64 @@ export function resolveFontSubstitution(fontFamily, text, weight = 'normal', sty
  */
 export function resolveFontFamily(fontFamily, text, weight = 'normal', style = 'normal') {
   return resolveFontSubstitution(fontFamily, text, weight, style).family;
+}
+
+/**
+ * SIGN-08: the one typography descriptor the editor and the exporter both
+ * resolve against - face, available weight/style, size and per-font padding,
+ * computed once instead of scattered across TextNode (preview),
+ * ElementToolbar (the Bold/Italic controls) and text.ts (export).
+ *
+ * The weight/style it returns are never the raw requested ones - they are
+ * clamped to whatever the *resolved* family actually has a real file for
+ * (`hasRealFace`). Before this, TextNode rendered `element.fontWeight`
+ * directly, so a stale draft (or a family switch) carrying `fontWeight:
+ * 'bold'` with no real bold face painted a browser-*synthesized* bold on
+ * screen while `text.ts` asked `loadCustomFont` for the same missing file,
+ * 404'd, and silently embedded Regular - bold in the editor, upright in the
+ * download, with nothing telling the user the two had diverged. Resolving
+ * the clamp once, here, and having both sides render/embed *that* value
+ * instead of the element's raw flags is what makes that divergence
+ * structurally impossible rather than a per-caller discipline. The element's
+ * own `fontWeight`/`fontStyle` are left on the model untouched (so switching
+ * back to a family that does have the face still works), only the rendered/
+ * embedded values are clamped.
+ *
+ * @param {string} [fontFamily] - the family the user chose
+ * @param {string} text - the element's current content
+ * @param {string} [fontWeight] - 'normal' | 'bold', as stored on the element
+ * @param {string} [fontStyle] - 'normal' | 'italic', as stored on the element
+ * @param {number} [fontSize] - the element's chosen size in points, if any
+ * @returns {{
+ *   family: string, requested: string, missing: string[],
+ *   requestedWeight: string, requestedStyle: string,
+ *   weight: string, style: string, canBold: boolean, canItalic: boolean,
+ *   paddingEm: number, size: number,
+ * }}
+ */
+export function resolveTypography(fontFamily, text, fontWeight, fontStyle, fontSize) {
+  const requestedWeight = fontWeight === 'bold' ? 'bold' : 'normal';
+  const requestedStyle = fontStyle === 'italic' ? 'italic' : 'normal';
+  const substitution = resolveFontSubstitution(fontFamily, text, requestedWeight, requestedStyle);
+  const family = substitution.family;
+  // Checked against the *other* axis's requested value, not just 'normal' -
+  // see ElementToolbar's original comment on this, preserved here now that
+  // this is where the check lives: a family that ships Bold and Italic
+  // separately but not BoldItalic (none do today, but this doesn't assume
+  // that) is judged by the exact file a click would actually request.
+  const canBold = hasRealFace(family, 'bold', requestedStyle);
+  const canItalic = hasRealFace(family, requestedWeight, 'italic');
+  return {
+    family,
+    requested: substitution.requested,
+    missing: substitution.missing,
+    requestedWeight,
+    requestedStyle,
+    weight: requestedWeight === 'bold' && canBold ? 'bold' : 'normal',
+    style: requestedStyle === 'italic' && canItalic ? 'italic' : 'normal',
+    canBold,
+    canItalic,
+    paddingEm: textBoxPaddingEm(family),
+    size: fontSize || DEFAULT_FONT_SIZE_PT,
+  };
 }

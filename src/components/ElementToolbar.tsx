@@ -4,7 +4,7 @@ import ColorPickerMenu from './ColorPickerMenu.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
 import { getEffectiveTextDirection } from '../lib/signHelpers.js';
-import { resolveFontFamily, hasRealFace } from '../editor/text/fonts.js';
+import { resolveTypography } from '../editor/text/fonts.js';
 import { combCellCount, isComb, textForCoverage } from '../editor/text/comb.js';
 import { MAX_COMB_CELLS } from '../constants/signGeometry.js';
 import styles from './EditorControls.module.css';
@@ -38,20 +38,18 @@ export default function ElementToolbar({
   const isDrawnShape = actualType === 'ellipse' || actualType === 'rectangle';
   const buttonClass = (active = false, danger = false) => [styles['element-button'], active && styles.active, danger && styles['element-button-danger']].filter(Boolean).join(' ');
 
-  // The family that will actually render and embed - not necessarily
-  // element.fontFamily itself, which may have been substituted (§3.2) or
-  // point at a retired name. Bold/Italic availability is a property of this
-  // family's real files, computed once and reused below rather than calling
-  // resolveFontFamily twice.
-  const currentWeight = element.fontWeight === 'bold' ? 'bold' : 'normal';
-  const currentStyle = element.fontStyle === 'italic' ? 'italic' : 'normal';
-  const effectiveFamily = element.type === 'text' ? resolveFontFamily(element.fontFamily, element.text, currentWeight, currentStyle) : undefined;
-  // Checked against the *other* axis's current value, not just 'normal',
-  // so a family that ships Bold and Italic separately but not BoldItalic
-  // (none do today, but hasRealFace doesn't assume that) is judged by the
-  // exact file a click would actually request.
-  const canBold = element.type === 'text' && hasRealFace(effectiveFamily || '', 'bold', currentStyle);
-  const canItalic = element.type === 'text' && hasRealFace(effectiveFamily || '', currentWeight, 'italic');
+  // SIGN-08: the same typography descriptor TextNode renders with and
+  // text.ts exports with (fonts.js) - family, and which weight/style the
+  // resolved family actually has a real file for, computed once instead of
+  // three call sites separately resolving substitution then hasRealFace.
+  const typography = element.type === 'text'
+    ? resolveTypography(element.fontFamily, element.text, element.fontWeight, element.fontStyle, element.fontSize)
+    : null;
+  const currentWeight = typography?.requestedWeight ?? 'normal';
+  const currentStyle = typography?.requestedStyle ?? 'normal';
+  const effectiveFamily = typography?.family;
+  const canBold = element.type === 'text' && !!typography?.canBold;
+  const canItalic = element.type === 'text' && !!typography?.canItalic;
   // W5 (docs/wysiwyg-text-architecture.md §3.4): with only Regular declared,
   // the browser synthesises Bold/Italic on screen while the export 404s and
   // silently falls back to Regular - bold on screen, upright in the download.
