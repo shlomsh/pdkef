@@ -159,6 +159,26 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(note).toContain('no handwriting-style Japanese face');
   });
 
+  it('Turkish: the same font list as Latin-Ext, matching LANGUAGE_COVERAGE.turkish.full', () => {
+    // Turkish's three letters not proven by Latin-Ext (Ğ, İ, Ş) happen to be
+    // drawn by exactly the same families that carry the full Latin-Ext
+    // sample - a real, checkable fact, not a coincidence to assume without
+    // checking. If a future font swap ever makes these two lists diverge,
+    // this comparison catches it rather than the note quietly going stale.
+    const turkish = LANGUAGE_COVERAGE.turkish.full.map((f) => f.family).sort();
+    const ext = LANGUAGE_COVERAGE.latinExt.full.map((f) => f.family).sort();
+    expect(turkish).toEqual(ext);
+    expect(turkish).toContain('Kalam');
+    expect(turkish).toContain('Mali');
+    const note = supportedNote('Turkish');
+    expect(note).toContain('Ten text fonts');
+    expect(note).toContain('Kalam');
+    expect(note).toContain('Mali');
+    expect(note).toContain('Ğ');
+    expect(note).toContain('İ');
+    expect(note).toContain('Ş');
+  });
+
   it('Bengali: exactly Noto Sans Bengali, matching LANGUAGE_COVERAGE.bengali.full, and the note also claims Assamese', () => {
     expect(LANGUAGE_COVERAGE.bengali.full.map((f) => f.family)).toEqual(['Noto Sans Bengali']);
     // Same font, same claim - LANGUAGE_COVERAGE.assamese is a separate report
