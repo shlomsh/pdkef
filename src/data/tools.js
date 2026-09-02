@@ -194,7 +194,9 @@ export const tools = [
       ],
       notYetHeading: "Don't see your language?",
       notYet:
-        "Gujarati, Kannada, Odia and emoji are not there yet, and there's no fixed schedule for adding more: I build language support when someone actually asks for it rather than working ahead of any request. If yours is missing, the fastest way to get it prioritized is to ask, through Feedback & ideas or Report a bug, both linked in the footer below. If you type something the tool cannot draw, it tells you as you go and names the exact characters, so you find out while you are typing rather than after you have filled in a whole form and downloaded it.",
+        "We support many of the world's most widely used languages, including right-to-left scripts, and we are always looking to broaden that coverage. If a character is not supported, the editor flags it as you type and names the exact character, so you find out before downloading your completed form.",
+      languageRequestUrl: 'https://github.com/shlomsh/pdkef/issues/new?title=%5BLanguage%20request%5D%20&body=Which%20language%20would%20you%20like%20PDkef%20to%20support%3F%0A%0AHow%20would%20you%20use%20it%3F',
+      contributeUrl: 'https://github.com/shlomsh/pdkef',
     },
     steps: [
       { title: 'Open your form', text: 'Save the PDF from WhatsApp or email to your device, then choose it here or drag it into the tool. It is not uploaded.' },
