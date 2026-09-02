@@ -26,6 +26,7 @@ import {
   hasRealFace,
   resolveFontFamily,
   resolveFontSubstitution,
+  resolveTypography,
   textBoxPaddingEm,
 } from './fonts.js';
 
@@ -266,6 +267,54 @@ describe('resolveFontSubstitution', () => {
       expect(emoji.requested).toBe('Arimo');
       expect(emoji.missing).toEqual(['😀', '🎉']);
     });
+  });
+});
+
+/**
+ * SIGN-08: the one typography descriptor TextNode, ElementToolbar and
+ * text.ts's serializer all resolve through, so face/weight/style/size/padding
+ * can never be recomputed differently by one caller than another.
+ */
+describe('resolveTypography', () => {
+  it('reports the requested weight/style as-is when a real face exists', () => {
+    // Kalam ships a real Bold face (W4).
+    const typography = resolveTypography('Kalam', 'Shlomi', 'bold', 'normal', 18);
+    expect(typography.family).toBe('Kalam');
+    expect(typography.canBold).toBe(true);
+    expect(typography.weight).toBe('bold');
+    expect(typography.requestedWeight).toBe('bold');
+    expect(typography.size).toBe(18);
+  });
+
+  it('clamps weight/style to normal/upright when the resolved family has no real face for it', () => {
+    // Noto Sans JP has no italic face at all (fontCoverage.test.js).
+    const typography = resolveTypography('Noto Sans JP', 'こんにちは', 'normal', 'italic');
+    expect(typography.canItalic).toBe(false);
+    expect(typography.style).toBe('normal');
+    // The raw request is preserved separately, so a caller can still explain
+    // *why* the rendered style differs from what was asked for.
+    expect(typography.requestedStyle).toBe('italic');
+  });
+
+  it('clamps against the *resolved* family, not the requested one, when substitution changes the face', () => {
+    // Caveat has no Hebrew glyphs at all, so Hebrew text substitutes to
+    // Gveret Levin - and Gveret Levin has no real bold face either.
+    const typography = resolveTypography('Caveat', 'שלומי', 'bold', 'normal');
+    expect(typography.family).toBe('Gveret Levin');
+    expect(typography.canBold).toBe(false);
+    expect(typography.weight).toBe('normal');
+  });
+
+  it('defaults size to DEFAULT_FONT_SIZE_PT when none is given, same as the editor and the exporter', () => {
+    expect(resolveTypography('Arimo', 'hi').size).toBe(12);
+    expect(resolveTypography('Arimo', 'hi', 'normal', 'normal', 0).size).toBe(12);
+  });
+
+  it('agrees with resolveFontFamily and textBoxPaddingEm for the same inputs', () => {
+    const family = resolveFontFamily('Heebo', 'שלום', 'normal', 'normal');
+    const typography = resolveTypography('Heebo', 'שלום', 'normal', 'normal');
+    expect(typography.family).toBe(family);
+    expect(typography.paddingEm).toBe(textBoxPaddingEm(family));
   });
 });
 

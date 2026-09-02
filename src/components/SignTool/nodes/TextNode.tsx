@@ -2,8 +2,7 @@ import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'pr
 import ElementResizers from '../../ElementResizers.tsx';
 import usePdfCoordinates from '../../../lib/usePdfCoordinates.js';
 import { getEffectiveTextDirection } from '../../../lib/signHelpers.js';
-import { DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
-import { textBoxPaddingEm } from '../../../editor/text/fonts.js';
+import { resolveTypography } from '../../../editor/text/fonts.js';
 import { getTextFontSupport } from '../../../editor/text/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';
 import FontSupportNotice from '../FontSupportNotice.tsx';
@@ -61,15 +60,28 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
     element.textDirection
   ]);
 
-  const textFontSize = (element.fontSize || DEFAULT_FONT_SIZE_PT) * scaleFactor;
   const textDirection = getEffectiveTextDirection(element);
+  // SIGN-08: the one typography descriptor shared with the exporter
+  // (registry/text.ts) and the toolbar (ElementToolbar.tsx) - face, the
+  // weight/style actually rendered (clamped to a real bundled file, never
+  // the raw element flags: a stale draft or family switch can carry
+  // `fontWeight: 'bold'` with no real bold face, and rendering that flag
+  // directly used to paint a browser-synthesized bold on screen while the
+  // export silently embedded Regular underneath it), and size.
+  const typography = useMemo(() => resolveTypography(element.fontFamily, element.text, element.fontWeight, element.fontStyle, element.fontSize), [
+    element.fontFamily, element.text, element.fontWeight, element.fontStyle, element.fontSize,
+  ]);
+  const textFontSize = typography.size * scaleFactor;
   // Render the family the exporter will embed, not the one that was picked, so
   // the browser never quietly patches in a system font for glyphs the chosen
   // file lacks — that fallback is what a PDF cannot reproduce.
   const support = useMemo(() => getTextFontSupport({ ...element, type: 'text' }), [
     element.text, element.fontFamily, element.fontWeight, element.fontStyle, element.width, element.combCells,
   ]);
-  const renderedFontFamily = support.family;
+  // Same value as support.family (both resolve through fonts.js against the
+  // same inputs) - read from the shared descriptor so there is one source for
+  // what actually renders, not two calls that merely happen to agree today.
+  const renderedFontFamily = typography.family;
   const fontMessage = describeTextFontSupport(support);
   const fontDescriptionId = useId();
   const needsAttention = support.status === 'incompatible';
@@ -79,7 +91,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   // clips to its own box regardless of `overflow`. --text-pad-em gives each
   // font exactly the padding its own metrics need (see fonts.js) instead of
   // a flat padding tight enough to clip Gveret Levin's loops or Heebo's Hebrew.
-  const textPaddingEm = textBoxPaddingEm(renderedFontFamily);
+  const textPaddingEm = typography.paddingEm;
   // Shown in the empty box, and measured to size it. One string for both, so the
   // box can never be sized against copy it isn't showing.
   const placeholder = isEditing ? 'Type your text' : 'Double-click to edit';
@@ -120,8 +132,8 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           style={{
             fontSize: `${textFontSize}px`,
             fontFamily: renderedFontFamily,
-            fontWeight: element.fontWeight || 'normal',
-            fontStyle: element.fontStyle || 'normal'
+            fontWeight: typography.weight,
+            fontStyle: typography.style
           }}
         >
           {/* Kept measuring the real text even in comb layout, where the span
@@ -145,8 +157,8 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
               // and hides it again if the drag comes back down.
               display: comb ? undefined : 'none',
               fontFamily: renderedFontFamily,
-              fontWeight: element.fontWeight || 'normal',
-              fontStyle: element.fontStyle || 'normal',
+              fontWeight: typography.weight,
+              fontStyle: typography.style,
               color: element.color || '#000000'
             }}
           >
@@ -196,8 +208,8 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
             textAlign: textDirection === 'rtl' ? 'right' : 'left',
             fontSize: `${textFontSize}px`,
             fontFamily: renderedFontFamily,
-            fontWeight: element.fontWeight || 'normal',
-            fontStyle: element.fontStyle || 'normal',
+            fontWeight: typography.weight,
+            fontStyle: typography.style,
             // In comb layout the cells above are what you see; the textarea
             // stays underneath purely to take the typing, so only its caret
             // shows through.

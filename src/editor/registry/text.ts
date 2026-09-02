@@ -19,12 +19,12 @@ import {
 import type { Color, PDFFont, PDFPage } from '@cantoo/pdf-lib';
 import { hasNumber, hasString, isRecord } from './schema.ts';
 import { COMB_MIN_CELL_EM, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
-import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM } from '../../constants/signGeometry.js';
+import { DEFAULT_LINE_HEIGHT_EM } from '../../constants/signGeometry.js';
 import { combCellCount, combCharacters, combCellCenterFraction, isComb } from '../text/comb.js';
 import { resolveBidiRuns } from '../text/bidiRuns.js';
 import { composeHebrewClusters } from '../text/hebrewComposition.js';
 import { getEffectiveTextDirection, hexToRgbFractions } from '../../lib/signHelpers.js';
-import { resolveFontFamily, textBoxPaddingEm } from '../text/fonts.js';
+import { resolveTypography } from '../text/fonts.js';
 import type { TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch, WidthFloorInput, WidthResizeInput, WidthResizePatch } from './types.ts';
 import elementStyles from '../../components/SignTool/EditorElement.module.css';
 
@@ -466,17 +466,25 @@ export const textDefinition: ElementDefinition<TextElement> = {
     // no text to serialize.
     const textValue = text || '';
     if (!textValue) return;
-    const fontSizeInPoints = fontSize || DEFAULT_FONT_SIZE_PT;
-    // Same substitution the editor renders with, so the download matches the
-    // screen even when the picked font has no glyph for what was typed.
-    const embeddedFamily = resolveFontFamily(fontFamily, textValue, fontWeight, fontStyle);
-    const resolvedFont = (await loadCustomFont(embeddedFamily, fontWeight, fontStyle)) || (await loadCustomFont('Arimo', fontWeight, fontStyle));
+    // SIGN-08: the same typography descriptor TextNode renders with and
+    // ElementToolbar gates Bold/Italic with (fonts.js) - family, size, and
+    // the weight/style clamped to a real bundled file. Embedding with the
+    // clamped values (not the element's raw fontWeight/fontStyle) is what
+    // guarantees the download never silently drops a style the editor
+    // rendered - a stale draft carrying `fontWeight: 'bold'` with no real
+    // bold face for its resolved family now exports the exact same
+    // upright-Regular text it was already shown as, rather than requesting
+    // a file that 404s and falls back underneath an unaware caller.
+    const typography = resolveTypography(fontFamily, textValue, fontWeight, fontStyle, fontSize);
+    const fontSizeInPoints = typography.size;
+    const embeddedFamily = typography.family;
+    const resolvedFont = (await loadCustomFont(embeddedFamily, typography.weight, typography.style)) || (await loadCustomFont('Arimo', 'normal', 'normal'));
     if (!resolvedFont) throw new Error('Unable to load a PDF font for text export');
     const { r, g, b } = hexToRgbFractions(color);
     // Same per-font padding the editor renders with (fonts.js), so a face
     // whose box grew to fit its own tall ascenders on screen exports at the
     // same baseline instead of drifting once the extra padding is dropped.
-    const baselineAdjustedY = pdfY - fontSizeInPoints * (baselineOffset(resolvedFont) + textBoxPaddingEm(embeddedFamily));
+    const baselineAdjustedY = pdfY - fontSizeInPoints * (baselineOffset(resolvedFont) + typography.paddingEm);
     const lineHeight = fontSizeInPoints * DEFAULT_LINE_HEIGHT_EM;
     const isRtl = getEffectiveTextDirection(element) === 'rtl';
 

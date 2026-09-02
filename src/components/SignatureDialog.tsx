@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import SignaturePad from 'signature_pad';
 import ColorPicker from './ColorPicker.tsx';
-import { HANDWRITING_FONTS, resolveFontFamily } from '../editor/text/fonts.js';
+import { HANDWRITING_FONTS, resolveFontFamily, textBoxPaddingEm } from '../editor/text/fonts.js';
+import { DEFAULT_LINE_HEIGHT_EM } from '../constants/signGeometry.js';
 import styles from './SignatureDialog.module.css';
 import dialogStyles from './Dialog.module.css';
 
@@ -271,7 +272,7 @@ export default function SignatureDialog({
   };
 
   // Save Signature Button Click
-  const handleSaveSignature = () => {
+  const handleSaveSignature = async () => {
     let finalDataUrl: string | null = null;
     let finalAspectRatio = 1;
 
@@ -292,21 +293,54 @@ export default function SignatureDialog({
     } else if (signatureMode === 'type') {
       // Type signature mode
       if (!typedName.trim()) return;
+      // Same substitution the editor and exporter use (SIGN-08), so a Hebrew
+      // signature renders identically everywhere instead of taking whichever
+      // Hebrew face the viewer's own OS happens to fall back to.
+      const family = resolveFontFamily(typeFont, typedName);
+      const fontSizePx = 44;
+      const fontSpec = `${fontSizePx}px '${family}', cursive`;
+      // The face loads lazily via @font-face; drawing before it has actually
+      // been fetched and parsed silently falls back to the generic 'cursive'
+      // font, so the saved signature could look nothing like the preview the
+      // user just picked. document.fonts.load() (unlike .check(), see
+      // liveFontCoverage.js's note on why .check() can't be used for this
+      // kind of question) actually triggers the fetch and resolves once the
+      // real face is ready to draw with.
+      if (document.fonts) {
+        try {
+          await document.fonts.load(fontSpec, typedName);
+        } catch {
+          // Offline or a slow connection: draw with whatever is already
+          // loaded rather than fail the save entirely.
+        }
+      }
+
+      const measureCanvas = document.createElement('canvas');
+      const measureCtx = measureCanvas.getContext('2d')!;
+      measureCtx.font = fontSpec;
+      const textWidth = Math.max(1, Math.ceil(measureCtx.measureText(typedName).width));
+
+      // Sized from the resolved font's own vertical metrics (fonts.js) -
+      // the same padding rule the editor's text boxes use to fit a tall
+      // ascender/descender (Gveret Levin's loops, Heebo's Hebrew) without
+      // clipping. A fixed 600x180 canvas clipped a long typed name
+      // horizontally and could clip a tall face vertically; both dimensions
+      // are now measured instead of guessed.
+      const paddingEm = textBoxPaddingEm(family);
+      const canvasHeight = Math.ceil(fontSizePx * (DEFAULT_LINE_HEIGHT_EM + paddingEm * 2));
+      const horizontalPadding = Math.ceil(fontSizePx * paddingEm * 2);
       const canvas = document.createElement('canvas');
-      canvas.width = 600;
-      canvas.height = 180;
+      canvas.width = textWidth + horizontalPadding * 2;
+      canvas.height = canvasHeight;
       const ctx = canvas.getContext('2d')!;
-      
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#000000';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      // Same substitution the editor and exporter use, so a Hebrew signature
-      // renders identically everywhere instead of taking whichever Hebrew face
-      // the viewer's own OS happens to fall back to.
-      ctx.font = `44px '${resolveFontFamily(typeFont, typedName)}', cursive`;
+      ctx.font = fontSpec;
       ctx.fillText(typedName, canvas.width / 2, canvas.height / 2);
-      
+
       const { dataUrl, aspectRatio } = trimCanvas(canvas);
       finalDataUrl = dataUrl;
       finalAspectRatio = aspectRatio;
