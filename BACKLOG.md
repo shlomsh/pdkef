@@ -10,8 +10,6 @@ The canonical backlog is the task-file collection in [backlog/tasks/](backlog/ta
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| SIGN-08 | P1 | [SIGN-08](backlog/tasks/SIGN-08.md) · Share the effective typography descriptor |
-| SIGN-10 | P2 | [SIGN-10](backlog/tasks/SIGN-10.md) · A language/font source of truth and acceptance matrix |
 | SIGN-11 | P2 | [SIGN-11](backlog/tasks/SIGN-11.md) · Versioned, validated shared persistence |
 | SIGN-12 | P2 | [SIGN-12](backlog/tasks/SIGN-12.md) · Make required undo dependable |
 | SIGN-13 | P2 | [SIGN-13](backlog/tasks/SIGN-13.md) · Anonymous usage and error maintenance signals |
@@ -19,7 +17,6 @@ The canonical backlog is the task-file collection in [backlog/tasks/](backlog/ta
 | SIGN-15 | P2 | [SIGN-15](backlog/tasks/SIGN-15.md) · Bound document/render/gesture lifecycles |
 | SIGN-16 | P2 | [SIGN-16](backlog/tasks/SIGN-16.md) · Trustworthy delivery checks and docs |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |
-| SIGN-21 | P1 | [SIGN-21](backlog/tasks/SIGN-21.md) · Make the browser guard helpers reachable from the preview server |
 
 ### In progress
 
@@ -40,10 +37,13 @@ _None._
 | SIGN-05 | P1 | [SIGN-05](backlog/tasks/SIGN-05.md) · One page-coordinate transform |
 | SIGN-06 | P1 | [SIGN-06](backlog/tasks/SIGN-06.md) · Report actual draft-save state |
 | SIGN-07 | P1 | [SIGN-07](backlog/tasks/SIGN-07.md) · Make the offline requirement testable |
+| SIGN-08 | P1 | [SIGN-08](backlog/tasks/SIGN-08.md) · Share the effective typography descriptor |
 | SIGN-09 | P1 | [SIGN-09](backlog/tasks/SIGN-09.md) · Direction defaults and native IME input |
+| SIGN-10 | P2 | [SIGN-10](backlog/tasks/SIGN-10.md) · A language/font source of truth and acceptance matrix |
 | SIGN-17 | P1 | [SIGN-17](backlog/tasks/SIGN-17.md) · Fix CI-red tests from in-flight SIGN-04/SIGN-09 direction work |
 | SIGN-18 | P1 | [SIGN-18](backlog/tasks/SIGN-18.md) · The Sign toolbar's per-row cap stopped matching when the Feedback control made it ten |
 | SIGN-19 | P1 | [SIGN-19](backlog/tasks/SIGN-19.md) · Four shaping/render guards passed on macOS and failed on Linux CI |
+| SIGN-21 | P1 | [SIGN-21](backlog/tasks/SIGN-21.md) · Make the browser guard helpers reachable from the preview server |
 
 ### Retired
 
@@ -53,9 +53,7 @@ _None._
 
 ### Open
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| ARCH-04 | P2 | [ARCH-04](backlog/tasks/ARCH-04.md) · Split PDF-library adapters out of workspace/ and lib/ |
+_None._
 
 ### In progress
 
@@ -72,6 +70,7 @@ _None._
 | ARCH-01 | P2 | [ARCH-01](backlog/tasks/ARCH-01.md) · Move editor/model out of lib/ |
 | ARCH-02 | P2 | [ARCH-02](backlog/tasks/ARCH-02.md) · Relocate the shared page-coordinate transform into editor/geometry |
 | ARCH-03 | P2 | [ARCH-03](backlog/tasks/ARCH-03.md) · Give text policy its own home, and stop composing English sentences inside it |
+| ARCH-04 | P2 | [ARCH-04](backlog/tasks/ARCH-04.md) · Split PDF-library adapters out of workspace/ and lib/ |
 | ARCH-05 | P3 | [ARCH-05](backlog/tasks/ARCH-05.md) · Move draft persistence into workspace/ |
 | ARCH-06 | P3 | [ARCH-06](backlog/tasks/ARCH-06.md) · Route Sign/Redact's own preference storage through workspace instead of raw localStorage |
 | ARCH-07 | P3 | [ARCH-07](backlog/tasks/ARCH-07.md) · Consolidate documentation locale routing under src/i18n/ |
@@ -86,7 +85,6 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| FONT-02 | P2 | [FONT-02](backlog/tasks/FONT-02.md) · One font manifest |
 | FONT-04 | P2 | [FONT-04](backlog/tasks/FONT-04.md) · Gujarati (~62M), Kannada (~44M), Odia |
 | FONT-07 | P3 | [FONT-07](backlog/tasks/FONT-07.md) · Emoji |
 | FONT-08 | P3 | [FONT-08](backlog/tasks/FONT-08.md) · Second-font / missing-style research across every single-font script |
@@ -104,6 +102,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | FONT-01 | P1 | [FONT-01](backlog/tasks/FONT-01.md) · Recalibrate the export-render guard's cross-platform tolerance |
+| FONT-02 | P2 | [FONT-02](backlog/tasks/FONT-02.md) · One font manifest |
 | FONT-03 | P2 | [FONT-03](backlog/tasks/FONT-03.md) · Malayalam |
 | FONT-05 | P2 | [FONT-05](backlog/tasks/FONT-05.md) · Export-render-guard corpus cases for Simplified Chinese, Traditional Chinese and Korean |
 

@@ -1,267 +1,62 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Footer from '../components/Footer.astro';
+import { FONT_MANIFEST } from '../../scripts/font-manifest.mjs';
 import '../styles/global.css';
 
 const title = 'Open Source Licenses - PDkef';
 const description =
   'Third-party open source software used to build PDkef, and their license terms.';
 
-const packages = [
+const softwarePackages = [
   {
-    name: 'Astro',
-    version: '7.0.3',
-    license: 'MIT',
-    url: 'https://github.com/withastro/astro',
-    copyright: 'Copyright (c) 2021 Fred K. Schott',
+    name: 'Astro', version: '7.0.3', license: 'MIT',
+    url: 'https://github.com/withastro/astro', copyright: 'Copyright (c) 2021 Fred K. Schott',
   },
   {
-    name: '@astrojs/preact',
-    version: '6.0.0',
-    license: 'MIT',
+    name: '@astrojs/preact', version: '6.0.0', license: 'MIT',
     url: 'https://github.com/withastro/astro/tree/main/packages/integrations/preact',
     copyright: 'Copyright (c) 2021 Fred K. Schott',
   },
   {
-    name: 'Preact',
-    version: '10.29.3',
-    license: 'MIT',
-    url: 'https://github.com/preactjs/preact',
-    copyright: 'Copyright (c) 2015-present Jason Miller',
+    name: 'Preact', version: '10.29.3', license: 'MIT',
+    url: 'https://github.com/preactjs/preact', copyright: 'Copyright (c) 2015-present Jason Miller',
   },
   {
-    name: '@cantoo/pdf-lib',
-    version: '2.7.1',
-    license: 'MIT',
-    url: 'https://github.com/cantoo-scribe/pdf-lib',
-    copyright: 'Copyright (c) 2019 Andrew Dillon',
+    name: '@cantoo/pdf-lib', version: '2.7.1', license: 'MIT',
+    url: 'https://github.com/cantoo-scribe/pdf-lib', copyright: 'Copyright (c) 2019 Andrew Dillon',
   },
   {
-    name: 'pdf.js (pdfjs-dist)',
-    version: '6.1.200',
-    license: 'Apache-2.0',
-    url: 'https://github.com/mozilla/pdf.js',
-    copyright: 'Copyright (c) Mozilla and individual contributors',
+    name: 'pdf.js (pdfjs-dist)', version: '6.1.200', license: 'Apache-2.0',
+    url: 'https://github.com/mozilla/pdf.js', copyright: 'Copyright (c) Mozilla and individual contributors',
   },
   {
-    name: 'SortableJS',
-    version: '1.15.7',
-    license: 'MIT',
-    url: 'https://github.com/SortableJS/Sortable',
-    copyright: 'Copyright (c) 2019 All contributors to Sortable',
+    name: 'SortableJS', version: '1.15.7', license: 'MIT',
+    url: 'https://github.com/SortableJS/Sortable', copyright: 'Copyright (c) 2019 All contributors to Sortable',
   },
   {
-    name: 'signature_pad',
-    version: '5.1.3',
-    license: 'MIT',
-    url: 'https://github.com/szimek/signature_pad',
-    copyright: 'Copyright (c) 2018 Szymon Nowak',
+    name: 'signature_pad', version: '5.1.3', license: 'MIT',
+    url: 'https://github.com/szimek/signature_pad', copyright: 'Copyright (c) 2018 Szymon Nowak',
   },
   {
-    name: '@vercel/analytics',
-    version: '2.0.1',
-    license: 'MIT',
-    url: 'https://github.com/vercel/analytics',
-    copyright: 'Copyright (c) 2026 Vercel, Inc.',
+    name: '@vercel/analytics', version: '2.0.1', license: 'MIT',
+    url: 'https://github.com/vercel/analytics', copyright: 'Copyright (c) 2026 Vercel, Inc.',
   },
   {
-    name: 'Caveat Font',
-    version: '1.1',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Caveat',
-    copyright: 'Copyright The Caveat Project Authors',
-  },
-  {
-    name: 'Dancing Script Font',
-    version: '1.1',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Dancing+Script',
-    copyright: 'Copyright The Dancing Script Project Authors',
-  },
-  {
-    name: 'Great Vibes Font',
-    version: '1.1',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Great+Vibes',
-    copyright: 'Copyright The Great Vibes Project Authors',
-  },
-  {
-    name: 'Gveret Levin Font',
-    version: '1.1',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Gveret+Levin',
-    copyright: 'Copyright The Gveret Levin Project Authors',
-  },
-  {
-    name: 'regenerator-runtime',
-    version: '0.14.1',
-    license: 'MIT',
-    url: 'https://github.com/facebook/regenerator',
-    copyright: 'Copyright (c) 2014-present, Facebook, Inc.',
-  },
-  {
-    name: 'Kalam Font',
-    version: '2.001',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Kalam',
-    copyright: 'Copyright (c) 2014, Indian Type Foundry (info@indiantypefoundry.com)',
-  },
-  {
-    name: 'Mali Font',
-    version: '1.000',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Mali',
-    copyright: 'Copyright 2018 The Mali Project Authors',
-  },
-  {
-    name: 'Pacifico Font',
-    version: '1.1',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Pacifico',
-    copyright: 'Copyright The Pacifico Project Authors',
-  },
-  {
-    name: 'Sacramento Font',
-    version: '1.1',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Sacramento',
-    copyright: 'Copyright The Sacramento Project Authors',
-  },
-  {
-    name: 'Alef Font',
-    version: '1.1',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Alef',
-    copyright: 'Copyright (c) 2012, HaGilda & Mushon Zer-Aviv (alef@hagilda.com), with Reserved Font Name Alef',
-  },
-  {
-    name: 'PT Sans Font',
-    version: '2.003',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/PT+Sans',
-    copyright: 'Copyright (c) 2010, ParaType Ltd. (http://www.paratype.com/public), with Reserved Font Names "PT Sans" and "ParaType"',
-  },
-  {
-    name: 'Scheherazade New Font',
-    version: '4.500',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Scheherazade+New',
-    copyright: 'Copyright (c) 1994-2026, SIL Global (https://www.sil.org/), with Reserved Font Names "Scheherazade" and "SIL"',
-  },
-  {
-    name: 'Mukta Mahee Font',
-    version: '2.538',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Mukta+Mahee',
-    copyright: 'Copyright (c) 2017, Ek Type. All rights reserved.',
-  },
-  {
-    name: 'Anek Telugu Font',
-    version: '1.003',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Anek+Telugu',
-    copyright: 'Copyright 2021 The Anek Project Authors (https://github.com/EkType/Anek)',
-  },
-  {
-    name: 'Noto Sans Tamil Font',
-    version: '2.004',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Noto+Sans+Tamil',
-    copyright: 'Copyright 2022 The Noto Project Authors (https://github.com/notofonts/tamil)',
-  },
-  {
-    name: 'Arimo Font',
-    version: '1.33',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Arimo',
-    copyright: 'Copyright 2020 The Arimo Project Authors (https://github.com/googlefonts/arimo)',
-  },
-  {
-    name: 'Tinos Font',
-    version: '1.340',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Tinos',
-    copyright: 'Copyright 2026 The Tinos Project Authors (https://github.com/googlefonts/tinos)',
-  },
-  {
-    name: 'Cousine Font',
-    version: '1.241',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Cousine',
-    copyright: 'Copyright 2026 The Cousine Project Authors (https://github.com/googlefonts/cousine)',
-  },
-  {
-    name: 'Assistant Font',
-    version: '3.000',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Assistant',
-    copyright:
-      "Copyright 2020 The Assistant Project Authors (https://github.com/hafontia/Assistant). Copyright 2010 The Source Sans Pro Authors (https://github.com/adobe-fonts/source-sans-pro), with Reserved Font Name 'Source'.",
-  },
-  {
-    name: 'Heebo Font',
-    version: '3.100',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Heebo',
-    copyright: 'Copyright 2014 The Heebo Project Authors (https://github.com/OdedEzer/heebo)',
-  },
-  {
-    name: 'Noto Sans JP Font',
-    version: '2.004-H2',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Noto+Sans+JP',
-    copyright: "(c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.",
-  },
-  {
-    name: 'Noto Sans SC Font',
-    version: '2.004-H2',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Noto+Sans+SC',
-    copyright: "(c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.",
-  },
-  {
-    name: 'Noto Sans TC Font',
-    version: '2.004-H2',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Noto+Sans+TC',
-    copyright: "(c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.",
-  },
-  {
-    name: 'Noto Sans KR Font',
-    version: '2.004-H2',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Noto+Sans+KR',
-    copyright: "(c) 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.",
-  },
-  {
-    name: 'Noto Sans Bengali Font',
-    version: '3.011',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Noto+Sans+Bengali',
-    copyright: 'Copyright 2025 The Noto Project Authors (https://github.com/notofonts/bengali)',
-  },
-  {
-    name: 'Mukta Font',
-    version: '2.538',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Mukta',
-    copyright: 'Copyright (c) 2014, Girish Dalvi, Ek Type. All rights reserved.',
-  },
-  {
-    name: 'IBM Plex Sans Thai Font',
-    version: '1.1',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/IBM+Plex+Sans+Thai',
-    copyright: 'Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"',
-  },
-  {
-    name: 'Anek Malayalam Font',
-    version: '1.003',
-    license: 'OFL-1.1',
-    url: 'https://fonts.google.com/specimen/Anek+Malayalam',
-    copyright: 'Copyright 2021 The Anek Project Authors (https://github.com/EkType/Anek)',
+    name: 'regenerator-runtime', version: '0.14.1', license: 'MIT',
+    url: 'https://github.com/facebook/regenerator', copyright: 'Copyright (c) 2014-present, Facebook, Inc.',
   },
 ];
+
+const fontPackages = FONT_MANIFEST.map((font) => ({
+  name: `${font.family} Font`,
+  version: font.license.version,
+  license: 'OFL-1.1',
+  url: font.license.url,
+  copyright: font.license.copyright,
+}));
+
+const packages = [...softwarePackages, ...fontPackages];
 ---
 
 <BaseLayout title={title} description={description} noindex={true}>

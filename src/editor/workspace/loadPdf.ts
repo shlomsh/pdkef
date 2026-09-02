@@ -1,4 +1,4 @@
-import { getPdfjs } from '../../lib/sign.js';
+import { getPdfjs } from '../adapters/pdf/pdfjsLoader.js';
 
 type LoadStatus = 'loading' | 'editing' | 'error';
 

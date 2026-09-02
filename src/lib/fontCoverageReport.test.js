@@ -22,14 +22,14 @@
  */
 import { describe, it, expect } from 'vitest';
 import { fontFileHasGlyph } from './fontCoverageTable.js';
-import { HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
+import { HANDWRITING_FONTS, TEXT_FONTS, requestedFontFile } from '../editor/text/fonts.js';
 import { LANGUAGES, CYRILLIC_ANCHOR_LANGUAGES, NAMED_COMBINATIONS } from '../../scripts/font-languages.mjs';
 import { LANGUAGE_COVERAGE, COMBINATION_COVERAGE, CYRILLIC_ANCHOR } from './fontCoverageReport.js';
 
 const FAMILIES = [...HANDWRITING_FONTS, ...TEXT_FONTS];
 
 function regularFile(family) {
-  return `${family.replace(/\s+/g, '')}-Regular.ttf`;
+  return requestedFontFile(family, 'normal', 'normal');
 }
 
 function isHandwriting(family) {

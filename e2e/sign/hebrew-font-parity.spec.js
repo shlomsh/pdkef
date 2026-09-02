@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
-import { HEBREW_CAPABLE_FONTS } from '../../src/editor/text/fonts.js';
+import { HEBREW_CAPABLE_FONTS, requestedFontFile } from '../../src/editor/text/fonts.js';
 import { resolveBidiRuns } from '../../src/editor/text/bidiRuns.js';
 import { WYSIWYG_STRING_BY_ID } from '../../src/test/fixtures/wysiwygStrings.js';
 
@@ -66,7 +66,7 @@ const HINTED_TOLERANCE_PX_PER_GLYPH = 0.5;
 // layout(sample) with no direction and no run splitting, so it stopped
 // exercising the production path the moment layer 2 landed.
 function shapedRun(family, { text, direction }) {
-  const file = join(FONT_DIR, `${family.replace(/\s+/g, '')}-Regular.ttf`);
+  const file = join(FONT_DIR, requestedFontFile(family, 'normal', 'normal'));
   const font = fontkit.create(readFileSync(file));
   let glyphCount = 0;
   const total = resolveBidiRuns(text, direction)

@@ -24,6 +24,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { brotliCompressSync } from 'node:zlib';
 import fontkit from '@pdf-lib/fontkit';
+import { FONT_FILES } from './font-manifest.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
@@ -129,7 +130,13 @@ function chooseEncoding(covered) {
 }
 
 function computeTable() {
-  const files = readdirSync(FONT_DIR).filter((name) => name.endsWith('.ttf')).sort();
+  const files = [...FONT_FILES].sort();
+  const diskFiles = readdirSync(FONT_DIR).filter((name) => name.endsWith('.ttf')).sort();
+  if (JSON.stringify(files) !== JSON.stringify(diskFiles)) {
+    const missing = files.filter((file) => !diskFiles.includes(file));
+    const unregistered = diskFiles.filter((file) => !files.includes(file));
+    throw new Error(`Font manifest and public/fonts disagree. Missing: ${missing.join(', ') || 'none'}. Unregistered: ${unregistered.join(', ') || 'none'}.`);
+  }
   const table = {};
   for (const file of files) {
     const bytes = readFileSync(join(FONT_DIR, file));
@@ -173,7 +180,7 @@ function generateSource(table, sizeComment) {
  * src/lib/fontCoverageTable.test.js regenerates this in memory and fails if
  * it disagrees with what is committed here.
  *
- * Keyed by the exact filename src/lib/sign.js's loadCustomFont() requests -
+ * Keyed by the exact filename src/editor/adapters/pdf/sign.js's loadCustomFont() requests -
  * "\${family.replace(/\\s+/g, '')}-\${Regular|Bold|Italic|BoldItalic}.ttf" -
  * because glyph coverage belongs to the specific (family, weight, style) file
  * that gets embedded, not to the family as a whole (see
