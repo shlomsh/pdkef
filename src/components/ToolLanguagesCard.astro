@@ -35,6 +35,8 @@ interface Props {
     supported: Language[];
     notYetHeading: string;
     notYet: string;
+    languageRequestUrl?: string;
+    contributeUrl?: string;
   };
   sketch?: 'arcs' | 'waves' | 'rings' | 'grid' | 'meridian';
   iconPos?: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl';
@@ -47,7 +49,10 @@ interface Props {
 // that: its straight lines fought the two-column text list for the reader's
 // eye, since both are made of horizontal/vertical lines at a similar weight.
 const { languages, sketch = 'meridian', iconPos = 'cr' } = Astro.props;
-const { tag = 'Languages', heading, lead, supportedHeading, supported, notYetHeading, notYet } = languages;
+const {
+  tag = 'Languages', heading, lead, supportedHeading, supported, notYetHeading, notYet,
+  languageRequestUrl, contributeUrl,
+} = languages;
 ---
 
 <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
@@ -95,6 +100,12 @@ const { tag = 'Languages', heading, lead, supportedHeading, supported, notYetHea
     <section class="mt-7 border-t border-[var(--color-border)] pt-7">
       <h3 class="mb-3 mt-0 text-[1.05rem] font-bold text-[var(--color-text)]">{notYetHeading}</h3>
       <p class="m-0 max-w-[68ch] text-base leading-[1.7] text-[var(--color-muted)]">{notYet}</p>
+      {(languageRequestUrl || contributeUrl) && (
+        <div class="mt-4 flex flex-wrap gap-3">
+          {languageRequestUrl && <a class="inline-flex items-center rounded-[var(--radius-sm)] bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--color-primary-hover)]" href={languageRequestUrl} target="_blank" rel="noopener noreferrer">Request a language</a>}
+          {contributeUrl && <a class="inline-flex items-center rounded-[var(--radius-sm)] border border-[var(--color-border-strong)] px-4 py-2 text-sm font-semibold text-[var(--color-text)] no-underline transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]" href={contributeUrl} target="_blank" rel="noopener noreferrer">Contribute on GitHub</a>}
+        </div>
+      )}
     </section>
   </div>
 </FeatureCard>

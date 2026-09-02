@@ -205,8 +205,8 @@ describe('Sign Languages card: combination claims implied by the copy', () => {
   });
 });
 
-describe('Sign Languages card: "not yet" list is still true', () => {
-  it('none of the named not-yet scripts appear as a LANGUAGE_COVERAGE id with any coverage', () => {
+describe('Sign Languages card: request and contribution path', () => {
+  it('the currently uncovered scripts do not appear as a LANGUAGE_COVERAGE id with any coverage', () => {
     // These ids are deliberately NOT in scripts/font-languages.mjs at all -
     // the report has no row for emoji or for India's remaining scripts
     // because no bundled family draws any of them (see
@@ -227,20 +227,14 @@ describe('Sign Languages card: "not yet" list is still true', () => {
     }
   });
 
-  it("the notYet copy names emoji and India's remaining scripts, and does not list any script the catalogue now covers as unavailable", () => {
+  it('emphasizes broad support without naming individual gaps, and offers direct request and contribution links', () => {
     const notYet = signLanguages.notYet;
-    expect(notYet.toLowerCase()).toContain('emoji');
-    for (const term of ['Gujarati', 'Kannada', 'Odia']) {
-      expect(notYet).toContain(term);
-    }
-    // All nine graduated out of this list (each has its own "supported"
-    // card entry now, plus a LANGUAGE_COVERAGE row for every one of them
-    // except Chinese, which has no compact alphabet to check against - the
-    // same reason Japanese kanji has none). Unlike the old half-covered
-    // Chinese wrinkle this list used to carry, there is no remaining nuance
-    // to preserve here: the whole notYet string should simply no longer name
-    // any of the nine.
-    for (const term of ['Japanese', 'Bengali', 'Chinese', 'Korean', 'Pashto', 'Tamil', 'Telugu', 'Punjabi', 'Malayalam']) {
+    expect(notYet).toContain("world's most widely used languages");
+    expect(notYet).toContain('right-to-left');
+    expect(signLanguages.languageRequestUrl).toContain('github.com/shlomsh/pdkef/issues/new');
+    expect(signLanguages.contributeUrl).toBe('https://github.com/shlomsh/pdkef');
+
+    for (const term of ['Gujarati', 'Kannada', 'Odia', 'emoji', 'Japanese', 'Bengali', 'Chinese', 'Korean', 'Pashto', 'Tamil', 'Telugu', 'Punjabi', 'Malayalam']) {
       expect(notYet).not.toContain(term);
     }
   });
