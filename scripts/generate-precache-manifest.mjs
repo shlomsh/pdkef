@@ -1,6 +1,6 @@
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { computeBuildId } from './buildId.mjs';
 import { shouldPrecache } from './precacheFilter.mjs';
 
 const distDir = path.join(process.cwd(), 'dist');
@@ -27,16 +27,26 @@ if (!fs.existsSync(distDir)) {
   throw new Error('dist/ does not exist. Run Astro build before generating the precache manifest.');
 }
 
-const files = walk(distDir)
-  .filter((filePath) => {
-    const relative = path.relative(distDir, filePath).split(path.sep).join('/');
-    return shouldPrecache(relative, { manifestName, workerName });
-  })
-  .sort();
+const allFiles = walk(distDir).sort();
+
+const files = allFiles.filter((filePath) => {
+  const relative = path.relative(distDir, filePath).split(path.sep).join('/');
+  return shouldPrecache(relative, { manifestName, workerName });
+});
 
 const urls = files.map(toPublicUrl);
 const manifest = JSON.stringify({ urls }, null, 2);
-const buildId = crypto.createHash('sha256').update(manifest).digest('hex').slice(0, 12);
+
+// Hashed from every file already in dist/ (the manifest and sw.js are written
+// below, after this), not just the precache list - see buildId.mjs for why a
+// same-URL asset (fonts, icons, other public/ files) still needs to bust the
+// cache when its content changes.
+const buildId = computeBuildId(
+  allFiles.map((filePath) => ({
+    relativePath: path.relative(distDir, filePath).split(path.sep).join('/'),
+    content: fs.readFileSync(filePath),
+  })),
+);
 
 fs.writeFileSync(path.join(distDir, manifestName), `${manifest}\n`);
 

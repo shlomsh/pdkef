@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { useDraftPersistence } from './useDraftPersistence.js';
+import { DRAFT_SCHEMA_VERSION } from '../../editor/registry/draftValidation.ts';
 
 // A storage write can fail (quota, private browsing, a closed IndexedDB
 // connection) without throwing - draftStore.saveDraft resolves `false` rather
@@ -83,6 +84,7 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
     expect(saveDraft).toHaveBeenCalled();
     expect(apiRef.current.result.draftSaveState).toBe('saved');
+    expect(saveDraft.mock.calls[0][1]).toMatchObject({ schemaVersion: DRAFT_SCHEMA_VERSION });
   });
 
   it('reports "error", never "saved", when the write fails without throwing', async () => {

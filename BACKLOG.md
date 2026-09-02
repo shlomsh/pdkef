@@ -10,7 +10,6 @@ The canonical backlog is the task-file collection in [backlog/tasks/](backlog/ta
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| SIGN-07 | P1 | [SIGN-07](backlog/tasks/SIGN-07.md) · Make the offline requirement testable |
 | SIGN-11 | P2 | [SIGN-11](backlog/tasks/SIGN-11.md) · Versioned, validated shared persistence |
 | SIGN-12 | P2 | [SIGN-12](backlog/tasks/SIGN-12.md) · Make required undo dependable |
 | SIGN-13 | P2 | [SIGN-13](backlog/tasks/SIGN-13.md) · Anonymous usage and error maintenance signals |
@@ -37,6 +36,7 @@ _None._
 | SIGN-04 | P1 | [SIGN-04](backlog/tasks/SIGN-04.md) · Preserve Unicode content and whitespace |
 | SIGN-05 | P1 | [SIGN-05](backlog/tasks/SIGN-05.md) · One page-coordinate transform |
 | SIGN-06 | P1 | [SIGN-06](backlog/tasks/SIGN-06.md) · Report actual draft-save state |
+| SIGN-07 | P1 | [SIGN-07](backlog/tasks/SIGN-07.md) · Make the offline requirement testable |
 | SIGN-08 | P1 | [SIGN-08](backlog/tasks/SIGN-08.md) · Share the effective typography descriptor |
 | SIGN-09 | P1 | [SIGN-09](backlog/tasks/SIGN-09.md) · Direction defaults and native IME input |
 | SIGN-10 | P2 | [SIGN-10](backlog/tasks/SIGN-10.md) · A language/font source of truth and acceptance matrix |

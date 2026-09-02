@@ -1,5 +1,6 @@
 import { useMemo } from 'preact/hooks';
-import { useDraftPersistence } from '../../components/SignTool/useDraftPersistence.js';
+import { clearDraftHintAttribute, useDraftPersistence } from '../../components/SignTool/useDraftPersistence.js';
+import { migrateDraftRecord, validateDraftRecord } from '../registry/draftValidation.ts';
 import { takeHandoff } from './draftStore.js';
 
 interface DraftRecord {
@@ -74,14 +75,18 @@ export function useEditorDraftPersistence({
       return true;
     },
     onRestore: (record: object) => {
-      const draft = record as DraftRecord;
       // A manual pick wins even when its ArrayBuffer or PDF load is still in flight.
       if (loadStartedRef.current) return;
+      const validated = validateDraftRecord(migrateDraftRecord(record));
+      if (!validated) {
+        clearDraftHintAttribute();
+        return;
+      }
       loadStartedRef.current = true;
       loadPdf(
-        fileFrom(draft),
-        draft.fileBytes,
-        { elements: draft.elements || [], actionHistory: draft.extra?.actionHistory || [] },
+        fileFrom(validated),
+        validated.fileBytes,
+        { elements: validated.elements, actionHistory: validated.extra?.actionHistory || [] },
         true,
       );
     },

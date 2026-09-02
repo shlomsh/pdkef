@@ -3,8 +3,14 @@
 // own cache and no two builds ever share one.
 //
 // Strategy:
-//   - Only the root offline fallback is precached during install. Every tool,
-//     documentation page, script, image, and font loads and caches on demand.
+//   - The built application shell (every page, script and style - everything
+//     except fonts) is precached during install, best-effort per URL except
+//     the root fallback (see precacheAppShell and precacheFilter.mjs). A
+//     service worker can never intercept the navigation that first registers
+//     it, so a page's own first-ever load - including a `client:load`
+//     island's hydration bundle - happens uncontrolled and uncached; without
+//     precaching the app up front, reopening any tool offline would need a
+//     second, separate online visit first just to warm it.
 //   - HTML navigations are cache-first and refresh in the background, so a
 //     returning visitor can reopen the app when the server is unavailable.
 //   - Other same-origin assets are cache-first after precache or first use.
@@ -22,8 +28,9 @@ const PRECACHE_MANIFEST_URL = '/precache-manifest.json';
 // precache entry with no second chance at runtime.
 const REQUIRED_URL = '/';
 
-// Kept as a bounded worker even though the minimal manifest currently contains
-// one URL, so a future shared shell asset cannot create a request burst.
+// Precaching covers the whole build, which is hundreds of requests. Firing
+// them all at once is what makes a phone on a weak connection drop some of
+// them, so they go through a small pool instead.
 const PRECACHE_CONCURRENCY = 6;
 
 // Raised when this origin serves no build manifest at all — a 404, not a
@@ -84,8 +91,15 @@ async function precacheAppShell() {
   const urls = await loadPrecacheManifest();
   const cache = await caches.open(CACHE_VERSION);
 
-  // Per-URL tolerance is retained for future shared shell assets. The root
-  // fallback is mandatory; anything else loads and caches on demand.
+  // Per-URL tolerance is deliberate. This precaches every page and script
+  // chunk in the build, so on a weak connection something will eventually
+  // fail, and an earlier version failed the whole install on the first bad
+  // response - the visitor then got no offline shell at all and
+  // re-downloaded the entire site on their next visit, silently, forever.
+  // Anything missed here still resolves over the network on demand and is
+  // cached on first use by the fetch handler below, so a miss costs nothing
+  // but the offline guarantee for that one asset. Only REQUIRED_URL ('/')
+  // is load-bearing enough to fail the install over.
   const missed = [];
   await forEachLimited(urls, PRECACHE_CONCURRENCY, async (url) => {
     try {
@@ -191,13 +205,29 @@ self.addEventListener('fetch', (event) => {
   // 2. Every other same-origin asset is cache-first. The build manifest has
   // already populated the essential app shell; this caches any later asset on
   // first use without making it a condition of a navigation response.
+  //
+  // Matched and stored by the URL string, not the live `request` object -
+  // load-bearing, not a style choice. Chromium fails to match a cached entry
+  // against `event.request` itself when `request.destination === 'script'`
+  // (a `<script type=module>` or, critically, a dynamic `import()` - exactly
+  // how every `client:load` island loads its own hydration bundle), even
+  // though the identical URL matches fine as a plain string against the same
+  // cache. Found precaching this app's own islands: every tool's script chunk
+  // was verifiably precached (confirmed present via `cache.keys()`), yet
+  // `cache.match(request)` still reported a miss for it alone - `image`- and
+  // other-destination requests on the same page matched normally throughout.
+  // The effect: every tool would 404 its own hydration bundle offline
+  // (`[astro-island] Error hydrating ... Failed to fetch dynamically imported
+  // module`) even with a complete, verified cache. Passing `request.url`
+  // sidesteps whatever internal state Chromium attaches to the module-loader's
+  // Request object.
   event.respondWith(
-    caches.open(CACHE_VERSION).then((cache) => cache.match(request).then((cached) => {
+    caches.open(CACHE_VERSION).then((cache) => cache.match(request.url).then((cached) => {
       if (cached) return cached;
       return fetch(request).then((response) => {
         if (response.ok) {
           const copy = response.clone();
-          cache.put(request, copy);
+          cache.put(request.url, copy);
         }
         return response;
       });

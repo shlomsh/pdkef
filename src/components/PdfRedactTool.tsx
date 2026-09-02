@@ -206,12 +206,9 @@ export default function PdfRedactTool() {
   // clobber the other's state. Tag each call with an id and ignore any state updates
   // from a call that's been superseded by a newer one.
   const loadPdf = async (selected: File, bytes: ArrayBuffer, preset: any = {}, restored = false) => {
-    // Migrate drafts written before E4.4's flat type discriminant. New state is
-    // always type-keyed; the compatibility read is intentionally at the boundary.
-    const presetElements = (preset.elements || []).map(({ style, ...element }: any) => ({
-      ...element,
-      type: element.type || style || 'blackout',
-    }));
+    // Restored drafts arrive already migrated (legacy `style`-keyed elements
+    // renamed to `type`) and validated - see useEditorDraftPersistence.ts.
+    const presetElements = preset.elements || [];
     await loadEditorPdf({
       file: selected, bytes, restored, loadIdRef, clearDraft, setStatus, setAnnouncement,
       initialize: () => {
