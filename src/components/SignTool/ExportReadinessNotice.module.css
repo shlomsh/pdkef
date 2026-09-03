@@ -1,4 +1,11 @@
-.notice { display: flex; flex: 1 0 100%; align-items: center; gap: .5rem; width: 100%; padding: .55rem .7rem; border: 1px solid color-mix(in srgb, var(--color-danger) 28%, transparent); border-radius: var(--radius-sm); background: var(--color-danger-soft); color: var(--color-danger); font-size: .82rem; line-height: 1.35; }
+/* Sits flush against the editor shell's own bottom edge (zero padding, no
+   overflow clipping - see ToolShell.module.css's .editor comment), always as
+   the last child, so its own corners have to nest inside the shell's rather
+   than carry their own radius. Square top (it meets the toolbar row's flat
+   bottom edge, not a shell corner) and bottom corners matched to the shell's
+   --radius minus its 1px border, or the notice's flatter default radius
+   visibly pokes past the shell's rounder one at both bottom corners. */
+.notice { display: flex; flex: 1 0 100%; align-items: center; gap: .5rem; width: 100%; padding: .55rem .7rem; border: 1px solid color-mix(in srgb, var(--color-danger) 28%, transparent); border-radius: 0 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px); background: var(--color-danger-soft); color: var(--color-danger); font-size: .82rem; line-height: 1.35; }
 .notice svg { flex: 0 0 auto; }
 .notice span { flex: 1 1 12rem; min-width: 0; }
 .notice button { margin-inline-start: auto; flex: 0 0 auto; border: 0; padding: .1rem; background: transparent; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
