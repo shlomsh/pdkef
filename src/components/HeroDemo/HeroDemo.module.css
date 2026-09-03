@@ -2,18 +2,23 @@
  * HeroDemo (DEMO-02): the two scroll-driven "thirty-second story" phone
  * mockups on the home page. See HeroDemo.astro's header comment for the
  * file layout, the scroll mechanic, and the 2026-09-04 product-owner
- * revision. This pass covers story one: English instead of Hebrew/RTL, and
- * a new share-sheet ending. Story two's own redesign (blur, blackout,
- * whiteout and delete, each with a real effect) lands in a follow-up pass.
+ * revision (English story one with a share-sheet ending; story two now
+ * demonstrates blur, blackout, whiteout and delete, each with a real
+ * effect).
  *
  * Colors are the Sea Glass tokens from src/styles/global.css (var(--color-*),
  * var(--shadow-*)) throughout - no hex/rgba literals - per CLAUDE.md's theme
- * rule. One exception is computed rather than hardcoded, because the thing
- * it draws (a phone's hardware bezel, its drop shadow) is not itself a
- * brand color: --phone-bezel/--phone-bezel-edge/--phone-shadow-color use
- * color-mix() to darken var(--color-text) toward black, so a retheme that
- * moves --color-text still moves these proportionally instead of leaving a
- * stray fixed dark gray behind.
+ * rule. Two exceptions are computed rather than hardcoded, both because the
+ * thing they draw (a phone's hardware bezel, its drop shadow, a share-sheet
+ * scrim) is not itself a brand color: --phone-bezel/--phone-bezel-edge/
+ * --phone-shadow-color use color-mix() to darken var(--color-text) toward
+ * black, so a retheme that moves --color-text still moves these
+ * proportionally instead of leaving a stray fixed dark gray behind. The
+ * blackout bar also reuses var(--color-text) directly rather than a new
+ * literal: it is the darkest token this palette defines, and "opaque dark
+ * bar covering text" reads correctly with it - there is no separate near-
+ * black token to reach for instead, and inventing one would violate the
+ * "every color comes from an existing --color-* property" rule.
  *
  * Sizes use var(--type-*) roles where the text plays the same part text does
  * elsewhere on the page (the h2/h3 here reuse .type-section/.type-card,
@@ -122,20 +127,20 @@
      source order so it wins for elements carrying both classes (composes
      adds the class name, not the rule's cascade position).
 
-     .track's height was raised from the original 500svh to 560svh on
-     2026-09-04: story one grew from 9 beats to 10 (added "share", the OS
-     share-sheet beat), scaled up roughly in proportion to the new beat
-     count so the average distance-per-beat - and therefore how long a
-     visitor has to read each effect - stays close to what it was before,
-     rather than the new beat simply stealing scroll distance from the old
-     ones. --track-short is unchanged in this pass; story two's own beat
-     count doesn't change until the second half of this revision. */
+     Heights were raised from the original 500svh / 340svh on 2026-09-04:
+     story one grew from 9 beats to 10 (added "share", the OS share-sheet
+     beat) and story two grew from 6 beats to 8 (added "blackout",
+     "whiteout" and "delete" alongside the renamed "blur" beat, net +2).
+     Both were scaled up roughly in proportion to their new beat count so
+     the average distance-per-beat - and therefore how long a visitor has
+     to read each effect - stays close to what it was before, rather than
+     the new beats simply stealing scroll distance from the old ones. */
   .track {
     height: 560svh;
   }
 
   .track-short {
-    height: 340svh;
+    height: 460svh;
   }
 }
 
@@ -172,8 +177,10 @@
   --p-send: 1;
   --p-sent: 1;
   --p-arrive: 1;
-  --p-blur-1: 1;
-  --p-blur-2: 1;
+  --p-blur: 1;
+  --p-blackout: 1;
+  --p-whiteout: 1;
+  --p-delete: 1;
 }
 
 .stage {
@@ -854,6 +861,56 @@
   white-space: nowrap;
 }
 
+/* tool-chips reserves a fixed-height row under the bill's panel head and
+   stacks all four labels in the same grid cell (same technique as the
+   .layers crossfade above, at a much smaller scale) rather than absolutely
+   positioning them - that sidesteps ever needing transform/filter on an
+   ancestor here, which matters given the sticky hazard documented on
+   .share-sheet above. Reserving the row's height even while every chip is
+   opacity 0 (the resting/no-JS state - see each .tool-chip-* formula)
+   avoids a layout jump when the first one fades in. */
+.tool-chips {
+  display: grid;
+  justify-items: start;
+  padding-block-start: 6px;
+  padding-inline: 14px;
+}
+
+.tool-chip {
+  grid-column: 1;
+  grid-row: 1;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  padding-block: 2px;
+  padding-inline: 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+/* Each chip is visible only for the span between the beat that names it
+   and the next beat starting - not just "from its own beat onward", since
+   every beat holds at 1 once its window passes (see the .chat-layer
+   comment above for why). Mirrors the three-layer crossfade formula at
+   chip scale. All four resolve to 0 at rest, matching "all four
+   redactions already applied, no tool actively highlighted" in the
+   finished/no-JS still. */
+.tool-chip-blur {
+  opacity: calc(var(--p-blur, 1) - var(--p-blackout, 1));
+}
+
+.tool-chip-blackout {
+  opacity: calc(var(--p-blackout, 1) - var(--p-whiteout, 1));
+}
+
+.tool-chip-whiteout {
+  opacity: calc(var(--p-whiteout, 1) - var(--p-delete, 1));
+}
+
+.tool-chip-delete {
+  opacity: calc(var(--p-delete, 1) - var(--p-send, 1));
+}
+
 .doc-line {
   display: flex;
   justify-content: space-between;
@@ -875,31 +932,75 @@
   text-align: end;
 }
 
-.line-wrap {
+/* Delete: the whole row collapses to nothing, so the rows below it close
+   up in normal flow - no absolute positioning or height trickery needed
+   beyond animating this row's own box down to zero. composes: doc-line
+   keeps the shared row look (and keeps the `.doc-line span:first-child` /
+   `:last-child` selectors above matching, since composition adds the
+   doc-line class alongside this one) right up until it collapses. p-delete
+   rising 0 -> 1 means "more deleted", so every dimension here scales by
+   (1 - p-delete): full-size at the beat's start, zero once it completes -
+   which is also why the row is already gone at rest (p-delete defaults to
+   1, the finished/no-JS state has all four redactions already applied). */
+.delete-row {
+  composes: doc-line;
+  overflow: hidden;
+  max-height: calc((1 - var(--p-delete, 1)) * 44px);
+  padding-block: calc((1 - var(--p-delete, 1)) * 9px);
+  border-block-end-width: calc((1 - var(--p-delete, 1)) * 1px);
+  opacity: calc(1 - var(--p-delete, 1));
+}
+
+/* Blur: a real filter on the innermost text span, and nothing else. This
+   is the fix for the earlier fake blur (a permanently-blurred duplicate
+   text node revealed by a clip-path wipe, sitting behind sharp readable
+   text). Applying filter directly to .blur-value is safe for the same
+   reason .share-sheet's transform is safe (see that comment above): this
+   span is a text leaf with no sticky descendant of its own, so creating a
+   containing block here cannot reach up and break .stage's sticky
+   positioning. Do not lift this filter onto .doc-line or any wrapper. */
+.blur-value {
+  filter: blur(calc(var(--p-blur, 1) * 5px));
+}
+
+/* Blackout and whiteout share one wrap/value/bar shape: an inline-block
+   value with an absolutely positioned bar drawn over it, wiped in
+   left-to-right via clip-path as its beat progresses - the same reveal
+   technique as the signature and check marks above, just via clip-path
+   instead of stroke-dashoffset. Both wraps are leaves (no sticky
+   descendants), so, as with .blur-value and .share-sheet, positioning a
+   child absolutely here carries none of the sticky-breaking risk that
+   `filter`/`transform` on an actual ancestor of .stage would. */
+.redact-wrap {
   position: relative;
   display: inline-block;
 }
 
-.line-text {
+.redact-value {
   display: inline-block;
 }
 
-.blur-text-base {
+.redact-bar-base {
   position: absolute;
   inset: 0;
-  filter: blur(5px);
-  color: var(--color-text);
-  clip-path: inset(0 100% 0 0);
 }
 
-.blur-text-1 {
-  composes: blur-text-base;
-  clip-path: inset(0 calc(100% - (var(--p-blur-1, 1) * 100%)) 0 0);
+/* Opaque dark bar wiping over the account number - see the file header for
+   why var(--color-text) stands in for "black" here. */
+.blackout-bar {
+  composes: redact-bar-base;
+  background: var(--color-text);
+  border-radius: 2px;
+  clip-path: inset(0 calc(100% - (var(--p-blackout, 1) * 100%)) 0 0);
 }
 
-.blur-text-2 {
-  composes: blur-text-base;
-  clip-path: inset(0 calc(100% - (var(--p-blur-2, 1) * 100%)) 0 0);
+/* Erased to the page background - var(--color-surface) is literally the
+   screen's own background, so as this wipes across, the value doesn't get
+   covered by a visible box, it disappears into blank paper. */
+.whiteout-bar {
+  composes: redact-bar-base;
+  background: var(--color-surface);
+  clip-path: inset(0 calc(100% - (var(--p-whiteout, 1) * 100%)) 0 0);
 }
 
 .reply-body {
