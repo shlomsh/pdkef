@@ -229,8 +229,6 @@ describe('Sign Languages card: request and contribution path', () => {
 
   it('emphasizes broad support without naming individual gaps, and offers direct request and contribution links', () => {
     const notYet = signLanguages.notYet;
-    expect(notYet).toContain("world's most widely used languages");
-    expect(notYet).toContain('right-to-left');
     expect(signLanguages.languageRequestUrl).toContain('github.com/shlomsh/pdkef/issues/new');
     expect(signLanguages.contributeUrl).toBe('https://github.com/shlomsh/pdkef');
 

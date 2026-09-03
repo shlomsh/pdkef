@@ -80,9 +80,9 @@ export const tools = [
     // this card is the one that says where the tool stops.
     languages: {
       tag: 'Languages',
-      heading: 'Supports a wide range of languages, and takes requests for more',
+      heading: 'Sign it in your own language',
       lead:
-        "Hebrew, Hindi, Marathi, Bengali, Tamil, Telugu, Punjabi, Malayalam, Thai, Russian, Ukrainian, Greek, Arabic, Urdu, Vietnamese, Turkish, and every Latin-script language work end to end here, so what you type is exactly what ends up in your downloaded file.",
+        "Conjunct letters, vowel signs, ligatures and right-to-left text are shaped for the download the same way they look on screen, so what you type is exactly what lands in your file. Tap a language below for the specifics.",
       supportedHeading: 'Supported now',
       // Ordered by roughly how many people speak each language, most to
       // least, so the card leads with what the most visitors are searching
@@ -194,7 +194,7 @@ export const tools = [
       ],
       notYetHeading: "Don't see your language?",
       notYet:
-        "We support many of the world's most widely used languages, including right-to-left scripts, and we are always looking to broaden that coverage. If a character is not supported, the editor flags it as you type and names the exact character, so you find out before downloading your completed form.",
+        "I add languages when someone actually asks for one, rather than guessing ahead of demand, so the fastest way to get yours prioritized is to ask below. And if you type a character the current fonts can't draw, the editor tells you as you go and names it, so you find out while you're still typing, not after you've filled in the whole form.",
       languageRequestUrl: 'https://github.com/shlomsh/pdkef/issues/new?title=%5BLanguage%20request%5D%20&body=Which%20language%20would%20you%20like%20PDkef%20to%20support%3F%0A%0AHow%20would%20you%20use%20it%3F',
       contributeUrl: 'https://github.com/shlomsh/pdkef',
     },
