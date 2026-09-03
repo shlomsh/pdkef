@@ -155,6 +155,22 @@ Privacy-conscious users who need to manipulate PDFs (merge, split, compress, rot
 pages, convert formats) without uploading files to a server. They trust their own device more than
 cloud services and prioritize keeping personal or sensitive documents offline.
 
+### What the home page is for (it is a router, not a tool)
+
+`/` is not the Sign tool with extra copy around it. Google indexes the nine tool routes directly and
+that is where search traffic lands, so the home page's job is to turn a visitor into a *tool user*,
+not to be a dropzone wired to one tool. Judge changes to it on that, and note that the answer is often
+the opposite of the right answer for a tool page: screens of story in front of `/sign` fight a visitor
+who arrived with intent, while on `/` they are the point.
+
+Register matters as much as content. Documentation plus a working demo is the target; a marketing pitch
+is not. Showing the thing working, beside material that explains it, is the sweet spot the voice rules
+above are trying to protect.
+
+This positioning is the reason the landing demo sits above the documentation rather than below it. The
+full reasoning, the four arguments behind it, and the conditions under which it should be re-opened are
+recorded in `backlog/tasks/DEMO-05.md`.
+
 ### Origin (the story the copy draws on)
 
 PDkef began with a real errand. My partner needed to download all her course slides into a single PDF
@@ -239,6 +255,26 @@ status feedback.
 
 ## UI & State Invariants
 
+- **The home page's first screen is one composed unit, and inserting anything into it breaks the
+  dock.** `index.astro` wraps the hero, the dropzone and the tool grid in a single
+  `min-h-[calc(100svh-3.5rem)]` flex column with `justify-center`, and pins the grid to the bottom with
+  `mt-auto`. That is deliberate: the grid reads as a macOS dock, and an experienced visitor uses it to
+  jump straight to the tool they came for, so it has to stay on the first screen. Anything added
+  *inside* that wrapper pushes the dock off the viewport and costs those visitors their shortcut. New
+  full-height sections go after the wrapper, not in it. The dropzone's `min-h-[333px]` reservation
+  inside it is a separate, load-bearing thing: `FileDropzone` is `client:only` and ships no build-time
+  HTML, so that height is what stops the first paint shifting.
+- **The demo and the dropzone have opposite rendering constraints, so they cannot simply swap.** This
+  looks like an easy conditional and is not. `FileDropzone` is `client:only` and renders nothing at
+  build time, which is fine because crawlers do not need a tool control. Marketing and demo copy is the
+  reverse: it must be server-rendered or it stops counting as the SEO surface (Part II §1.1). So a demo
+  is always present in the document, and hiding it after hydration means a returning visitor watches it
+  flash and then collapse by several screens, which is exactly the layout shift the reservation above
+  exists to prevent. Deciding before first paint needs a synchronous inline script, and hand-hashing an
+  `is:inline` script for CSP is fragile and breaks silently (see the CSP section). If a conditional is
+  genuinely wanted, **collapse rather than remove**: a class on `<html>` written by the same bundled
+  script that already registers the service worker, driving a CSS `max-height`. That keeps the markup
+  crawlable and the CSP posture intact.
 - **FAQ disclosure**: The "How it works & FAQ" content resides below the app and acts as a details-summary element. The summary contains the hero text, and a click interceptor script prevents clicks on the text from toggling the panel. Only clicking the styled `.faq-toggle` link (anchor-like visual) triggers the toggle.
 - **Merge & Download Flow**:
   - Once merging is complete, the "Merge PDFs" button turns grey (`.is-done` class) to step back, and focus is shifted to the "Download PDF" button (`ref` + `useEffect` on status change).
