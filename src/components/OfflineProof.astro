@@ -1,0 +1,59 @@
+---
+// OfflineProof (DEMO-04): the live half of "your document stays on your
+// phone." The claim itself does not need this component to say it - on the
+// home page HeroDemo already says both the claim and the airplane-mode
+// invitation, and on the Sign/Redact tool pages the app bar's "On-device"
+// badge and the invitation line beside the hero (see ToolPageLayout.astro)
+// already cover that ground. Restating the claim a third time on the same
+// page read as a pitch, not a fact - the block used to also render a `full`
+// variant with the claim sentence for exactly that reason, and it was cut
+// for stacking three statements of the same fact on one screen (DEMO-04
+// direction change). So this component's only remaining job, on every page
+// it appears on, is the part static copy cannot do: say so *while it is
+// actually true*, via navigator.onLine plus the online/offline events. It
+// renders nothing until the visitor is genuinely offline, and that is the
+// moment the claim stops being marketing.
+//
+// It is pure progressive enhancement: with JavaScript disabled the element
+// simply never gets text, which is the correct degraded state, and it never
+// blocks or delays PDF processing - it only ever reads a browser flag.
+//
+// The <script> below intentionally has no `is:inline` - Astro's CSP
+// auto-hashing only covers scripts that go through its bundling pipeline.
+// See CLAUDE.md's CSP section and BaseLayout.astro's service worker
+// registration script for the working pattern this follows.
+---
+
+<p class="type-body offline-status mx-auto max-w-[30rem] px-5 text-center font-semibold text-[var(--color-primary)]" data-offline-status aria-live="polite"></p>
+
+<style>
+  /* Collapses to nothing, padding included, in the common case (online, or
+     before the script runs). The padding lives on the same element :empty
+     hides, on purpose - an earlier version wrapped this line in a padded
+     container and only hid the line itself, so the padding stayed behind as
+     dead space even with no message to show. */
+  .offline-status {
+    margin: 0;
+  }
+
+  .offline-status:empty {
+    display: none;
+  }
+
+  .offline-status:not(:empty) {
+    padding-block: 1.5rem;
+  }
+</style>
+
+<script>
+  const statusEl = document.querySelector('[data-offline-status]');
+
+  function renderStatus() {
+    if (!statusEl) return;
+    statusEl.textContent = navigator.onLine ? '' : "You're offline right now. It still works.";
+  }
+
+  window.addEventListener('online', renderStatus);
+  window.addEventListener('offline', renderStatus);
+  renderStatus();
+</script>
