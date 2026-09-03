@@ -9,28 +9,29 @@
  *
  * Content and structure were originally ported from a standalone mockup
  * (dirE.html). Revised 2026-09-04 per product-owner review of that first
- * pass. This pass covers two of that review's four directives: (1) the hero
- * title and both captions were rewritten to carry the errand and its
- * outcome rather than describe the scroll mechanic; (2) story one moved
- * from Hebrew/RTL to English, and its arc was extended to start at the
- * incoming chat message and end at the OS share sheet - `navigator.share`,
- * what Sign actually calls - before the signed file lands back in the
- * thread. Losing the Hebrew field costs this site its one place where
- * multi-script support showed without being explained - the product
- * owner's call, made knowingly, not undone here. (A second pass covers the
- * other two directives: story two demonstrating all four redaction tools,
- * and the Sea Glass palette check.)
+ * pass, four directives: (1) the hero title and both captions were rewritten
+ * to carry the errand and its outcome rather than describe the scroll
+ * mechanic; (2) story one moved from Hebrew/RTL to English, and its arc was
+ * extended to start at the incoming chat message and end at the OS share
+ * sheet - `navigator.share`, what Sign actually calls - before the signed
+ * file lands back in the thread; (3) story two now demonstrates all four
+ * redaction tools (blur, blackout, whiteout, delete) each with a real effect
+ * and a small chip naming it, instead of one fake "blur" that was a pale
+ * highlight behind sharp text; (4) the palette stays Sea Glass throughout.
+ * Losing the Hebrew field costs this site its one place where multi-script
+ * support showed without being explained - the product owner's call, made
+ * knowingly, not undone here.
  *
  * Track one (sign) gets the longer scroll length and goes first: a field
  * trip permission slip arrives as a chat attachment, gets filled in, ticked,
  * signed, shared, and sent back in the same thread. Track two (blur) is
- * shorter and second: an email asks for a document and two sensitive lines
- * get blurred before the reply goes out. Both stories are mobile phone
- * mockups.
+ * shorter and second: a utility bill arrives by email and four lines get
+ * blurred, blacked out, whited out and deleted before the reply goes out.
+ * Both stories are mobile phone mockups.
  *
  * Scroll mechanic (ported from dirE.html, itself DEMO-05's pattern): each
  * story is a `position: sticky` panel pinned inside a much taller track
- * (560svh / 340svh, never 100vh - see CLAUDE.md's sticky-viewport-unit
+ * (560svh / 460svh, never 100vh - see CLAUDE.md's sticky-viewport-unit
  * note). ScrollDriver.tsx reads scroll position, computes 0-1 progress
  * through each track from getBoundingClientRect() every frame (never
  * accumulated, so scrolling back up genuinely un-fills the form), slices
@@ -294,9 +295,10 @@ const rootSelector = `.${styles.root}`;
 
   <div class={`${styles.track} ${styles['track-short']}`} data-hero-track="blur">
     <p class="sr-only">
-      An email asks for a document. It opens showing a customer ID and an account number. As the
-      page scrolls, both lines blur until they can't be read, and the blurred document is attached
-      to a reply and sent.
+      An email asks for a copy of a utility bill. Opening it shows several lines of billing
+      details. As the page scrolls, the customer ID blurs until it can't be read, the account
+      number is blacked out, one line is erased to blank paper, and an unrelated row is deleted so
+      the rows below close up. The cleaned-up document is then attached to a reply and sent.
     </p>
     <div class={styles.stage} data-hero-stage>
       <div class={styles.phone} aria-hidden="true">
@@ -341,20 +343,34 @@ const rootSelector = `.${styles.root}`;
 
             <div class={`${styles.layer} ${styles['bill-layer']}`}>
               <div class={styles['panel-head']}>utility-bill.pdf</div>
+              <div class={styles['tool-chips']} aria-hidden="true">
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-blur']}`}>Blur</span>
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-blackout']}`}>Blackout</span>
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-whiteout']}`}>Whiteout</span>
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-delete']}`}>Delete</span>
+              </div>
               <div class={styles['doc-body']}>
                 <div class={styles['doc-line']}><span>Service Address</span><span>14 Maple Court</span></div>
                 <div class={styles['doc-line']}>
                   <span>Customer ID</span>
-                  <span class={styles['line-wrap']}>
-                    <span class={styles['line-text']}>302-45-6789</span>
-                    <span class={styles['blur-text-1']} aria-hidden="true">302-45-6789</span>
-                  </span>
+                  <span class={styles['blur-value']}>302-45-6789</span>
                 </div>
                 <div class={styles['doc-line']}>
                   <span>Account No</span>
-                  <span class={styles['line-wrap']}>
-                    <span class={styles['line-text']}>0001 1488 25</span>
-                    <span class={styles['blur-text-2']} aria-hidden="true">0001 1488 25</span>
+                  <span class={styles['redact-wrap']}>
+                    <span class={styles['redact-value']}>0001 1488 25</span>
+                    <span class={styles['blackout-bar']} aria-hidden="true"></span>
+                  </span>
+                </div>
+                <div class={styles['delete-row']}>
+                  <span>Late Fee Note</span>
+                  <span>Includes $12 reminder fee</span>
+                </div>
+                <div class={styles['doc-line']}>
+                  <span>Meter Serial</span>
+                  <span class={styles['redact-wrap']}>
+                    <span class={styles['redact-value']}>MTR-88291</span>
+                    <span class={styles['whiteout-bar']} aria-hidden="true"></span>
                   </span>
                 </div>
                 <div class={styles['doc-line']}><span>Billing Period</span><span>Jul to Aug</span></div>
@@ -368,7 +384,7 @@ const rootSelector = `.${styles.root}`;
                 <div class={styles['attach-chip']}>
                   <span class={styles['blur-dot']} aria-hidden="true"></span>
                   <span class={styles['attach-name']}>utility-bill.pdf</span>
-                  <span class={styles['attach-tag']}>blurred</span>
+                  <span class={styles['attach-tag']}>cleaned</span>
                 </div>
                 <div class={`${styles['send-btn']} ${styles['anim-send']}`}>Send</div>
               </div>

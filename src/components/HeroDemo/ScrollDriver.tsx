@@ -51,14 +51,21 @@ const TRACKS: TrackConfig[] = [
     },
   },
   {
+    // 8 beats (was 6): "blur-1"/"blur-2" (two hardcoded instances of the
+    // same effect) were replaced by four distinct redaction tools, one
+    // beat each - "blur" (real filter: blur, see HeroDemo.module.css's
+    // .blur-value comment), "blackout", "whiteout" and "delete" - per
+    // DEMO-02 directive 3.
     key: 'blur',
     beats: {
-      arrive: [0.0, 0.1],
-      open: [0.1, 0.24],
-      'blur-1': [0.24, 0.46],
-      'blur-2': [0.46, 0.66],
-      send: [0.66, 0.86],
-      sent: [0.86, 1.0],
+      arrive: [0.0, 0.08],
+      open: [0.08, 0.18],
+      blur: [0.18, 0.34],
+      blackout: [0.34, 0.48],
+      whiteout: [0.48, 0.62],
+      delete: [0.62, 0.76],
+      send: [0.76, 0.9],
+      sent: [0.9, 1.0],
     },
   },
 ];
