@@ -304,12 +304,32 @@ body {
   border-radius: 4px;
 }
 
-/* --- Page header / hero --- */
-header:not(.tool-hero):not(.not-found-header) {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 4.5rem 1.5rem 2.25rem;
-  text-align: center;
+/* --- Page header / hero -----------------------------------------------------
+   The site default for a bare <header>, which by now only /licenses/ actually
+   is. Every other header on the site authors its own box with utilities, so two
+   things have to be true here and until now neither was.
+
+   In @layer base, not bare, for the same reason as the `a` rule above: an
+   unlayered rule beats @layer utilities however specific, so this element
+   selector silently won against every utility each page's own <header> wrote.
+   Measured at 1440px before the fix, the ten content-collection pages rendered
+   1080px wide against the `max-w-[720px]` they ask for. Layered, this loses per
+   property to a page that has an opinion and still applies to one that does not.
+
+   The paired override in the min-width:768px block below MUST keep this exact
+   selector. It used to be `header:not(.tool-hero)`, one :not() lighter, which
+   loses to this rule on specificity at every viewport, so the desktop padding it
+   defines was dead on every page it was written for and /licenses/ shipped the
+   mobile 72px/36px on a 1440px screen. Cascade layers do not rescue that: both
+   rules sit in the same layer, so specificity still decides between them. Keep
+   the two selectors identical. */
+@layer base {
+  header:not(.tool-hero):not(.not-found-header) {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 4.5rem 1.5rem 2.25rem;
+    text-align: center;
+  }
 }
 
 /* The h1/p font rules that used to live here (bare, unlayered - the exact
@@ -339,18 +359,29 @@ main {
     min-height: 100vh;
   }
 
-  /* The tool hero is excluded because it sizes its own padding with utilities,
-     and this rule silently beat every one of them. Tailwind's utilities are
-     imported into `@layer utilities`, and an unlayered rule outranks any layered
-     rule however specific, so a bare element selector here won against
-     `min-[1024px]:pt-2`. The tell was subtle: `pt-14` and `px-6` happen to
-     compute to the same 56px/24px this rule sets, so only the bottom padding
-     visibly disagreed, and every tool page shipped with 80px of hero padding on
-     desktop where 24px was intended. Anything else in this file that styles a
-     bare element the .astro surface also styles with utilities has the same
-     hazard - check the computed value, not the class list. */
-  header:not(.tool-hero) {
-    padding: 3.5rem 1.5rem 1.5rem;
+  /* The desktop half of the bare-<header> default above. Both halves must carry
+     the same selector and the same layer, and this one used to carry neither.
+     As `header:not(.tool-hero)` it sat a specificity step below its own base
+     rule, so every plain header on the site stayed at the mobile 72px/36px on
+     desktop. The one page it did reach was /404/, which the base rule excludes
+     and this one did not, so the only header it ever governed was the one that
+     did not want it: it flattened that page's own `pt-[4.5rem] pb-10` to
+     56px/24px above 768px while mobile kept 72px/40px. Both halves exclude the
+     tool hero and the 404 header now, because both size their own padding with
+     utilities.
+
+     The wider lesson, which cost a shipped bug before this one: an unlayered
+     rule outranks any @layer utilities rule however specific, so a bare element
+     selector here beats `min-[1024px]:pt-2`. The tell was subtle - `pt-14` and
+     `px-6` happen to compute to the same 56px/24px this rule sets, so only the
+     bottom padding visibly disagreed, and every tool page shipped with 80px of
+     hero padding on desktop where 24px was intended. Anything else in this file
+     that styles a bare element the .astro surface also styles with utilities has
+     the same hazard - check the computed value, not the class list. */
+  @layer base {
+    header:not(.tool-hero):not(.not-found-header) {
+      padding: 3.5rem 1.5rem 1.5rem;
+    }
   }
 
   main {
