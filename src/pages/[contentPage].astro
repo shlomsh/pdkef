@@ -8,6 +8,7 @@ import ContentPage from '../components/ContentPage.astro';
 import { CONTENT_ICONS } from '../data/contentIcons';
 import { contentPages } from '../data/contentPages.js';
 import { getDocumentationContext } from '../i18n/documentation';
+import { getDocumentationShellMessages } from '../i18n/documentationMessages';
 
 export async function getStaticPaths() {
   const entries = await getCollection('contentPages');
@@ -29,6 +30,7 @@ const { entry } = Astro.props;
 const pageId = entry.id;
 const page = entry.data;
 const context = await getDocumentationContext(pageId, 'en');
+const messages = getDocumentationShellMessages(context.effectiveLocale);
 ---
 
 <ContentPageLayout
@@ -45,11 +47,13 @@ const context = await getDocumentationContext(pageId, 'en');
   alternates={context.alternates}
   locale="en"
   variants={context.variants}
+  messages={messages}
 >
   <ContentPage
     entry={entry}
     pageId={pageId}
     locale="en"
-    resolveLink={(targetPageId, targetLocale) => context.resolveDocumentationLink(targetPageId, targetLocale as any)}
+    labels={messages}
+    resolveLink={(targetPageId: string, targetLocale: string) => context.resolveDocumentationLink(targetPageId, targetLocale)}
   />
 </ContentPageLayout>

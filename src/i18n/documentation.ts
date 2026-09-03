@@ -4,6 +4,12 @@ import {
   getDocumentationLocale,
   type DocumentationLocaleId,
 } from './documentationLocales';
+import {
+  documentationFreshness,
+  validateDocumentationTranslationFreshness,
+  type DocumentationFreshness,
+  type DocumentationSourceHash,
+} from './documentationFreshness';
 
 export type DocumentationStatus = 'draft' | 'published';
 export type DocumentationVariant = {
@@ -12,6 +18,9 @@ export type DocumentationVariant = {
   path: string;
   status: DocumentationStatus | 'english';
   preview: boolean;
+  freshness: DocumentationFreshness;
+  sourceHash?: DocumentationSourceHash;
+  expectedSourceHash?: DocumentationSourceHash;
   entry?: unknown;
 };
 
@@ -73,6 +82,32 @@ export function resolveDocumentationLink(
 export async function getDocumentationVariants(): Promise<DocumentationVariant[]> {
   const [englishEntries, localizedEntries] = await collections();
   const previewBuild = isDocumentationPreview();
+  const englishByPageId = new Map(englishEntries.map((entry) => [entry.id, entry]));
+  const localizedVariants = localizedEntries
+    .map((entry) => {
+      const english = englishByPageId.get(entry.data.pageId);
+      if (!english) {
+        throw new Error(`Localized documentation ${entry.id} references unknown English page: ${entry.data.pageId}`);
+      }
+      const { freshness, expectedSourceHash } = validateDocumentationTranslationFreshness(english.data, {
+        id: entry.id,
+        pageId: entry.data.pageId,
+        status: entry.data.status as DocumentationStatus,
+        sourceHash: entry.data.sourceHash,
+      });
+      return {
+        pageId: entry.data.pageId,
+        locale: localeId(entry.data.locale),
+        path: documentationPath(entry.data.pageId, localeId(entry.data.locale)),
+        status: entry.data.status as DocumentationStatus,
+        preview: entry.data.status === 'draft',
+        freshness,
+        sourceHash: entry.data.sourceHash as DocumentationSourceHash,
+        expectedSourceHash,
+        entry,
+      };
+    })
+    .filter((variant) => variant.status === 'published' || previewBuild);
   return [
     ...englishEntries.map((entry) => ({
       pageId: entry.id,
@@ -80,18 +115,11 @@ export async function getDocumentationVariants(): Promise<DocumentationVariant[]
       path: documentationPath(entry.id),
       status: 'english' as const,
       preview: false,
+      freshness: 'current' as const,
+      sourceHash: documentationFreshness(entry.data, undefined).expectedSourceHash,
       entry,
     })),
-    ...localizedEntries
-      .filter((entry) => entry.data.status === 'published' || previewBuild)
-      .map((entry) => ({
-        pageId: entry.data.pageId,
-        locale: localeId(entry.data.locale),
-        path: documentationPath(entry.data.pageId, localeId(entry.data.locale)),
-        status: entry.data.status as DocumentationStatus,
-        preview: entry.data.status === 'draft',
-        entry,
-      })),
+    ...localizedVariants,
   ];
 }
 
@@ -127,13 +155,14 @@ export async function getDocumentationContext(pageId: string, requestedLocale: s
     dir: getDocumentationLocale(effective.locale)!.dir,
     path: effective.path,
     preview: effective.preview,
+    freshness: effective.freshness,
     variants: variants.map((variant) => ({
       ...variant,
       nativeName: getDocumentationLocale(variant.locale)!.nativeName,
       isCurrent: variant.locale === effective.locale,
     })),
     alternates,
-    resolveDocumentationLink: (targetPageId: string, targetLocale = effective.locale) =>
+    resolveDocumentationLink: (targetPageId: string, targetLocale: string = effective.locale) =>
       resolveDocumentationLink(targetPageId, targetLocale, allVariants),
   };
 }

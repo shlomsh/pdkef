@@ -1,12 +1,12 @@
 ---
 id: "ARCH-10"
 title: "Replace permissive editor-shell types with shared contracts"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "editor-architecture"
 phase: "longer-term"
 depends_on: ["SIGN-14"]
-legacy_state: "Open — raised 2026-09-02 from architecture re-audit"
+legacy_state: "In progress — first typed action/history and pdf.js boundary slice landed 2026-09-03"
 ---
 
 # ARCH-10 · Replace permissive editor-shell types with shared contracts
@@ -24,3 +24,14 @@ at a time. Remove `@ts-nocheck` only from tests whose production contracts were 
 concrete; do not turn this into a repository-wide annotation sweep. Acceptance is that
 invalid element/action payloads fail type checking in focused compile fixtures and the
 runtime suite remains unchanged.
+
+**Progress 2026-09-03.** The first vertical slice is complete. The Sign reducer
+now accepts a discriminated `SignToolAction` union, Sign and Redact share a typed
+`ActionHistoryEntry`, and invalid delete/update payloads are compile-time test
+fixtures. The PDF loading and canvas boundary now uses pdf.js
+`PDFDocumentLoadingTask`, `PDFDocumentProxy`, `PDFPageProxy`, and `RenderTask`
+contracts instead of `any`. The full runtime suite remains green. Keep this
+ticket open for the remaining permissive editor element, gesture, node-prop,
+saved-signature, and persisted-history boundaries; migrate those as separate
+behavior slices and remove `@ts-nocheck` only where the production seam is
+concrete.

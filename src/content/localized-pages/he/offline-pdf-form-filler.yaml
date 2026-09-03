@@ -1,7 +1,7 @@
 pageId: 'offline-pdf-form-filler'
 locale: 'he'
 status: 'draft'
-sourceVersion: '2026-08-28'
+sourceHash: 'fnv1a64:19ca026f2e3606d7'
 title: 'מילוי טופס PDF ללא אינטרנט | PDkef'
 description: 'מלאו PDF מקומית בדפדפן, גם כשאין קליטה לאחר טעינה ומטמון מוצלחים. הוסיפו טקסט, סימנו תיבות והבינו את מגבלות הטיוטות והטפסים הסרוקים.'
 breadcrumb: 'מילוי ללא אינטרנט'

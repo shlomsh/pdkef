@@ -1,3 +1,4 @@
+/** @type {typeof import('pdfjs-dist') | undefined} */
 let pdfjsLib;
 export async function getPdfjs() {
   if (!pdfjsLib) {

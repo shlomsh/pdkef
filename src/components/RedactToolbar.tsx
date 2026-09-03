@@ -3,6 +3,7 @@ import EditorToolStatus from './EditorToolStatus.tsx';
 import ArmHint from './ArmHint.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from './ToolShell.tsx';
 import { makeArmTool, useAutoArmHint } from '../lib/toolArming.js';
+import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
 import styles from './SignTool/SignToolbar.module.css';
 
 // What each tool is called in front of a user and what it is waiting for -
@@ -52,7 +53,7 @@ export default function RedactToolbar({
   canSharePdf?: boolean;
   shareReady?: boolean;
   elementsCount: number;
-  actionHistory: any[];
+  actionHistory: ActionHistoryEntry[];
   setUndoModalOpen: (open: boolean) => void;
   /** True while a redacted PDF is being generated - guards Download/Share
    * against re-entry so a second click can't start an overlapping export. */

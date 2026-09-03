@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'preact/hooks';
+import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist';
 import type { PageGeometry } from '../editor/geometry/coords.ts';
 import workspaceStyles from './SignTool/Workspace.module.css';
 
@@ -8,7 +9,7 @@ export default function PdfPageCanvas({
   pageNum,
   pageGeometry,
 }: {
-  pdfDocument: any;
+  pdfDocument: PDFDocumentProxy | null;
   pageNum: number;
   pageGeometry?: PageGeometry;
 }) {
@@ -18,8 +19,8 @@ export default function PdfPageCanvas({
     if (!pdfDocument || !canvasRef.current) return;
 
     let active = true;
-    let renderTask: any = null;
-    let page: any = null;
+    let renderTask: RenderTask | null = null;
+    let page: PDFPageProxy | null = null;
     const renderPage = async () => {
       try {
         page = await pdfDocument.getPage(pageNum);
@@ -38,12 +39,12 @@ export default function PdfPageCanvas({
 
         const context = canvas.getContext('2d');
         if (!context || !active) return;
-        renderTask = page.render({ canvasContext: context, viewport });
+        renderTask = page.render({ canvas, viewport });
         await renderTask.promise;
       } catch (err) {
         // Cancellation is the normal teardown path when a document/page is
         // replaced or this canvas unmounts; only report real render failures.
-        if (active && (err as any)?.name !== 'RenderingCancelledException') {
+        if (active && (!(err instanceof Error) || err.name !== 'RenderingCancelledException')) {
           console.error(`Error rendering page ${pageNum}:`, err);
         }
       }

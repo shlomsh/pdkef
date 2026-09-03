@@ -1,4 +1,5 @@
 import { useRef, useCallback, useEffect, useMemo } from 'preact/hooks';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS } from '../../constants/signGeometry.js';
 import PdfPageCanvas from '../PdfPageCanvas.tsx';
 import EditorPageHeader from '../EditorPageHeader.tsx';
@@ -48,7 +49,7 @@ export default function PdfWorkspace({
   workspaceRef: any;
   numPages: number;
   pageSizes: PageGeometry[];
-  pdfDocument: any;
+  pdfDocument: PDFDocumentProxy | null;
   pageWrapperRefs: any;
   setTempPlacement: (p: any) => void;
   setDialogOpen: (open: boolean) => void;

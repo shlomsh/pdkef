@@ -1,4 +1,5 @@
 import { getPdfjs } from '../adapters/pdf/pdfjsLoader.js';
+import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
 
 type LoadStatus = 'loading' | 'editing' | 'error';
 
@@ -10,7 +11,7 @@ export interface PdfLoadOptions {
   /** The active loader owns both pdf.js handles until it is replaced or unmounted. */
   loadControllerRef: { current: PdfLoadController | null };
   initialize: () => void;
-  onDocument: (document: any, isCurrent: () => boolean) => Promise<void> | void;
+  onDocument: (document: PDFDocumentProxy, isCurrent: () => boolean) => Promise<void> | void;
   clearDraft: () => Promise<void> | void;
   setStatus: (status: LoadStatus) => void;
   setAnnouncement: (message: string) => void;
@@ -20,12 +21,14 @@ export interface PdfLoadController {
   cancel: () => void;
 }
 
-function disposePdfHandle(handle: any) {
-  if (!handle?.destroy) return;
+function disposePdfHandle(handle: unknown) {
+  if (!handle || typeof handle !== 'object') return;
+  const destroy = Reflect.get(handle, 'destroy');
+  if (typeof destroy !== 'function') return;
   // pdf.js rejects the loading/render promise when cancelled. That rejection is
   // expected here, and must not become an unhandled rejection while a newer
   // document is loading.
-  void Promise.resolve(handle.destroy()).catch(() => {});
+  void Promise.resolve(destroy.call(handle)).catch(() => {});
 }
 
 /**
@@ -50,8 +53,8 @@ export async function loadPdf({
   loadControllerRef.current?.cancel();
   const loadId = ++loadIdRef.current;
   let cancelled = false;
-  let loadingTask: any = null;
-  let document: any = null;
+  let loadingTask: PDFDocumentLoadingTask | null = null;
+  let document: PDFDocumentProxy | null = null;
   let completed = false;
   const controller: PdfLoadController = {
     cancel: () => {

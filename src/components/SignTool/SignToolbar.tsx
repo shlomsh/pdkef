@@ -9,6 +9,7 @@ import ArmHint from '../ArmHint.tsx';
 import ExportReadinessNotice from './ExportReadinessNotice.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../ToolShell.tsx';
 import { makeArmTool, useAutoArmHint } from '../../lib/toolArming.js';
+import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import styles from './SignToolbar.module.css';
 import controlStyles from '../EditorControls.module.css';
 
@@ -58,7 +59,7 @@ export default function SignToolbar({
   setAnnouncement: (msg: string) => void;
   setDialogOpen: (open: boolean) => void;
   setUndoModalOpen: (open: boolean) => void;
-  actionHistory: any[];
+  actionHistory: ActionHistoryEntry[];
   toggleFullscreen: () => void;
   isFullscreen: boolean;
   onSavePdf: () => void;

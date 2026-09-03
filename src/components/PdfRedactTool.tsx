@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
 import BasePdfTool from './BasePdfTool.tsx';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../editor/model/ids.ts';
@@ -16,7 +17,7 @@ import DeleteMark from './DeleteMark.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import EditorPageHeader from './EditorPageHeader.tsx';
 import UndoHistoryModal from './UndoHistoryModal.tsx';
-import { createActionEntry } from '../editor/model/actionHistory.js';
+import { createActionEntry, type ActionHistoryEntry } from '../editor/model/actionHistory.ts';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import ErrorMessage from './ErrorMessage.tsx';
@@ -26,10 +27,17 @@ import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../lib/format.js';
 import useCurrentPage from '../lib/useCurrentPage.js';
 
+type RedactHistoryElement = {
+  id: string;
+  pageIndex: number;
+  type: string;
+  [field: string]: unknown;
+};
+
 export default function PdfRedactTool() {
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
-  const [pdfDocument, setPdfDocument] = useState<any>(null);
+  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [elements, setElements] = useState<any[]>([]); // Array of { id, pageIndex, left, top, width, height }
   const [status, setStatus] = useState('idle'); // idle | loading | editing | redacting | error
   // Export errors are recoverable without unmounting the editor - status stays
@@ -93,15 +101,21 @@ export default function PdfRedactTool() {
   // and never cleared on mouseleave for the same reason.
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
 
-  // Undo history — mirrors the Sign tool's model exactly (see actionHistory.js,
+  // Undo history — mirrors the Sign tool's model exactly (see actionHistory.ts,
   // useUndoShortcut.js, UndoHistoryModal.tsx): a log of creation events only
   // (drawing a box, duplicating a whiteout box). Undoing one just removes the
   // element it created; edits (color, move, resize) aren't logged or undoable.
-  const [actionHistory, setActionHistory] = useState<any[]>([]);
+  const [actionHistory, setActionHistory] = useState<ActionHistoryEntry<RedactHistoryElement>[]>([]);
   const [undoSelection, setUndoSelection] = useState<Set<string>>(new Set());
   const [undoModalOpen, setUndoModalOpen] = useState(false);
 
-  const logAction = (type: string, elementId: string | null, pageIndex: number, description: string, snapshot: any = null) => {
+  const logAction = (
+    type: string,
+    elementId: string | null,
+    pageIndex: number,
+    description: string,
+    snapshot: RedactHistoryElement[] | null = null,
+  ) => {
     setActionHistory(prev => [createActionEntry(type, elementId, pageIndex, description, snapshot), ...prev]);
   };
 
@@ -378,13 +392,14 @@ export default function PdfRedactTool() {
   };
 
   // Cmd/Ctrl+Z: undo the single most recently logged action. Deletion entries
-  // carry a snapshot of what was removed (see actionHistory.js) — undo restores
+  // carry a snapshot of what was removed (see actionHistory.ts) — undo restores
   // it instead of removing by id.
   const undoLast = () => {
     if (actionHistory.length === 0) return;
     const lastAction = actionHistory[0];
-    if (lastAction.snapshot) {
-      setElements(prev => [...prev, ...lastAction.snapshot]);
+    const snapshot = lastAction.snapshot;
+    if (snapshot) {
+      setElements(prev => [...prev, ...snapshot]);
     } else {
       setElements(prev => prev.filter(el => el.id !== lastAction.elementId));
       setActiveBoxId(prev => (prev === lastAction.elementId ? null : prev));
