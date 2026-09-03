@@ -29,17 +29,25 @@ type TrackConfig = {
 
 const TRACKS: TrackConfig[] = [
   {
+    // 10 beats (was 9): "share" is new - the OS share sheet, which is the
+    // story's actual ending (DEMO-02 directive 2) - inserted between
+    // "sign" and "send". "name-he"/"class-en" were renamed to "fill-date"/
+    // "fill-dest" when story one moved from a Hebrew name field + English
+    // class field to an English trip-date + destination sentence (the
+    // renamed track height explanation lives in HeroDemo.module.css's
+    // .track comment).
     key: 'sign',
     beats: {
-      msg: [0.0, 0.08],
-      open: [0.08, 0.2],
-      'name-he': [0.2, 0.34],
-      'class-en': [0.34, 0.48],
-      'check-1': [0.48, 0.58],
-      'check-2': [0.58, 0.68],
-      sign: [0.68, 0.86],
-      send: [0.86, 0.94],
-      sent: [0.94, 1.0],
+      msg: [0.0, 0.07],
+      open: [0.07, 0.16],
+      'fill-date': [0.16, 0.28],
+      'fill-dest': [0.28, 0.4],
+      'check-1': [0.4, 0.49],
+      'check-2': [0.49, 0.58],
+      sign: [0.58, 0.74],
+      share: [0.74, 0.85],
+      send: [0.85, 0.93],
+      sent: [0.93, 1.0],
     },
   },
   {
