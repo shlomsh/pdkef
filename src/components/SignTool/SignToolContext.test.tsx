@@ -2,6 +2,16 @@
 import { describe, it, expect } from 'vitest';
 import { reducer } from './SignToolContext.tsx';
 
+const addHistory = (id, type, element, index = 0) => ({
+  id,
+  type,
+  operation: 'add',
+  pageIndex: element.pageIndex || 0,
+  description: type,
+  timestamp: 1,
+  elements: [{ element, index }],
+});
+
 describe('SignToolContext Reducer', () => {
   const initialState = {
     selectedTool: null,
@@ -174,7 +184,7 @@ describe('SignToolContext Reducer', () => {
       const state = {
         ...editing,
         elements: [{ id: 'el-1', type: 'text' }],
-        actionHistory: [{ id: 'act-1', elementId: 'el-1', type: 'ADD_TEXT' }]
+        actionHistory: [addHistory('act-1', 'ADD_TEXT', { id: 'el-1', type: 'text', pageIndex: 0 })]
       };
       const next = reducer(state, action);
       expect(next.elements).toEqual([]);
@@ -189,7 +199,7 @@ describe('SignToolContext Reducer', () => {
       const state = {
         ...editing,
         elements: [{ id: 'el-1', type: 'text' }, { id: 'el-2', type: 'text' }],
-        actionHistory: [{ id: 'act-2', elementId: 'el-2', type: 'ADD_TEXT' }]
+        actionHistory: [addHistory('act-2', 'ADD_TEXT', { id: 'el-2', type: 'text', pageIndex: 0 }, 1)]
       };
       const next = reducer(state, action);
       expect(next.elements.map(el => el.id)).toEqual(['el-1']);
@@ -199,8 +209,8 @@ describe('SignToolContext Reducer', () => {
   });
 
   it('ADD_ACTION_HISTORY prepends actions to history stack', () => {
-    const action1 = { type: 'ADD_ACTION_HISTORY', payload: { id: 'act-1', elementId: 'el-1', type: 'ADD_TEXT' } };
-    const action2 = { type: 'ADD_ACTION_HISTORY', payload: { id: 'act-2', elementId: 'el-2', type: 'ADD_SHAPE' } };
+    const action1 = { type: 'ADD_ACTION_HISTORY', payload: addHistory('act-1', 'ADD_TEXT', { id: 'el-1', type: 'text', pageIndex: 0 }) };
+    const action2 = { type: 'ADD_ACTION_HISTORY', payload: addHistory('act-2', 'ADD_SHAPE', { id: 'el-2', type: 'rectangle', pageIndex: 0 }, 1) };
     
     let state = reducer(initialState, action1);
     expect(state.actionHistory).toHaveLength(1);
@@ -226,8 +236,8 @@ describe('SignToolContext Reducer', () => {
       ],
       activeElementId: 'el-2',
       actionHistory: [
-        { id: 'act-2', elementId: 'el-2', type: 'ADD_SHAPE' },
-        { id: 'act-1', elementId: 'el-1', type: 'ADD_TEXT' }
+        addHistory('act-2', 'ADD_SHAPE', { id: 'el-2', type: 'rectangle', pageIndex: 0 }, 1),
+        addHistory('act-1', 'ADD_TEXT', { id: 'el-1', type: 'text', pageIndex: 0 })
       ]
     };
 

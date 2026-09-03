@@ -6,7 +6,7 @@ priority: "P2"
 epic: "editor-architecture"
 phase: "longer-term"
 depends_on: ["SIGN-14"]
-legacy_state: "In progress — action/history, pdf.js, and saved-signature boundary slices landed 2026-09-03"
+legacy_state: "In progress — typed action, persisted-history, pdf.js, and saved-signature boundary slices landed 2026-09-03"
 ---
 
 # ARCH-10 · Replace permissive editor-shell types with shared contracts
@@ -43,3 +43,10 @@ context, toolbar selection, and the placement-gesture input all share that
 contract. Focused compile fixtures reject missing ids and string aspect ratios.
 Keep this ticket open for the remaining permissive editor element, gesture,
 node-prop, and persisted-history boundaries.
+
+**Progress 2026-09-03 (persisted-history slice).** Persisted undo history now uses
+validated, generic `ActionHistoryEntry<TElement>` commands with discriminated add/delete
+operations and full element/index snapshots. Draft schema v2 migrates usable legacy commands,
+drops malformed commands at restore, and hands each editor a typed initial state rather than
+`unknown[]`. Compile fixtures reject malformed stacking positions. Keep ARCH-10 open for the
+separate gesture and node-prop slices.

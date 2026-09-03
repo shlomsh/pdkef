@@ -643,11 +643,11 @@ describe('PdfWorkspace Component', () => {
 
       expect(dispatch).toHaveBeenCalledWith({ type: 'CLEAR_PAGE', payload: 0 });
       expect(logAction).toHaveBeenCalledWith(
+        'delete',
         'CLEAR_PAGE',
-        null,
         0,
         expect.any(String),
-        [state.elements[0]]
+        [{ element: state.elements[0], index: 0 }]
       );
       expect(setAnnouncement).toHaveBeenCalledWith('Cleared page 1.');
     });

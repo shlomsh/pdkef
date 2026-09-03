@@ -1,7 +1,9 @@
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../editor/gestures/controller.ts';
 import { createElementId } from '../editor/model/ids.ts';
+import { captureAddedElement } from '../editor/model/actionHistory.ts';
 import { getElementDefinition } from '../editor/registry/index.ts';
+import { ensureMinimumElementSize } from '../editor/geometry/minimumSize.ts';
 import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,
@@ -38,6 +40,7 @@ import {
  * @param {number}       params.initialSymbolWidth  - last remembered symbol width (% of page width)
  * @param {string}       params.initialSymbolMark   - last remembered symbol mark ('check'|'x'|'dot')
  * @param {Array}        params.pageSizes           - per-page { width, height } in PDF points
+ * @param {number}       params.nextElementIndex    - stacking index for the next appended element
  * @param {{ current: (() => void) | null }} [params.gestureCancelRef] - active drag cancellation owned by the workspace
  */
 export default function useWorkspaceGestures({
@@ -58,6 +61,7 @@ export default function useWorkspaceGestures({
   initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
   initialSymbolMark = 'check',
   pageSizes = [],
+  nextElementIndex = 0,
   // PdfWorkspace supplies a ref it owns for component teardown. Keeping this
   // handler factory hook-free also preserves its direct unit-test contract.
   gestureCancelRef = { current: null },
@@ -132,10 +136,10 @@ export default function useWorkspaceGestures({
       // and editing are the same intent. This replaces the old per-element
       // `autoFocus` flag, so the caret has exactly one owner.
       dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: id });
-      logAction('ADD_TEXT', id, pageIndex, 'Added text box');
+      logAction('add', 'ADD_TEXT', pageIndex, 'Added text box', [captureAddedElement(newEl, nextElementIndex)]);
       setAnnouncement('Added text box. Type your text.');
     } else {
-      logAction('ADD_SYMBOL', id, pageIndex, 'Added symbol');
+      logAction('add', 'ADD_SYMBOL', pageIndex, 'Added symbol', [captureAddedElement(newEl, nextElementIndex)]);
       setAnnouncement('Added symbol.');
     }
   };
@@ -226,25 +230,33 @@ export default function useWorkspaceGestures({
       }
 
       const dimensions = getDimensions(container);
+      const minimumSizeContext = {
+        tool,
+        rectWidth: dimensions.width,
+        rectHeight: dimensions.height,
+        startLeftPercent,
+        startTopPercent,
+      };
       dispatch({
         type: 'ENSURE_MINIMUM_SIZE',
         payload: {
           id,
-          tool,
-          rectWidth: dimensions.width,
-          rectHeight: dimensions.height,
-          startLeftPercent,
-          startTopPercent,
+          ...minimumSizeContext,
         },
       });
+
+      const finalElement = ensureMinimumElementSize(
+        patch ? { ...newEl, ...patch } : newEl,
+        minimumSizeContext,
+      );
 
       dispatch({ type: 'DISARM_TOOL' });
 
       if (tool === 'whiteout') {
-        logAction('ADD_WHITEOUT', id, pageIndex, 'Added whiteout box');
+        logAction('add', 'ADD_WHITEOUT', pageIndex, 'Added whiteout box', [captureAddedElement(finalElement, nextElementIndex)]);
         setAnnouncement('Added whiteout box.');
       } else {
-        logAction('ADD_SHAPE', id, pageIndex, `Added ${tool}`);
+        logAction('add', 'ADD_SHAPE', pageIndex, `Added ${tool}`, [captureAddedElement(finalElement, nextElementIndex)]);
         setAnnouncement(`Added ${tool}.`);
       }
       },

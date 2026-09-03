@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { EditorElement, SignatureElement } from '../editor/model/editorModel.ts';
-import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
 import type { SavedSignature } from '../editor/model/savedSignature.ts';
 import BasePdfTool from './BasePdfTool.tsx';
 import { SignToolProvider, useSignTool } from './SignTool/SignToolContext.tsx';
@@ -15,9 +14,16 @@ import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../edito
 import type { PageGeometry } from '../editor/geometry/coords.ts';
 import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
-import { useEditorDraftPersistence } from '../editor/workspace/useEditorDraftPersistence.ts';
+import { useEditorDraftPersistence, type EditorDraftInitialState } from '../editor/workspace/useEditorDraftPersistence.ts';
+import { isEditorElement } from '../editor/registry/draftValidation.ts';
 import { getEditorPreference, setEditorPreference } from '../editor/workspace/preferenceStore.ts';
-import { createActionEntry } from '../editor/model/actionHistory.ts';
+import {
+  captureAddedElement,
+  captureElementSnapshots,
+  createActionEntry,
+  revertHistoryEntries,
+  type HistoryLogger,
+} from '../editor/model/actionHistory.ts';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import UndoHistoryModal from './UndoHistoryModal.tsx';
@@ -113,7 +119,7 @@ function PdfSignToolInner() {
   // own container via the DOM instead (see DraggableOverlayElement), so there's no
   // render-time dependency on this array being populated yet.
   const pageWrapperRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const copiedElementRef = useRef<any>(null);
+  const copiedElementRef = useRef<EditorElement | null>(null);
   const workspaceRef = useRef<HTMLDivElement | null>(null);
   const fileBytesRef = useRef<ArrayBuffer | null>(null);
   const loadIdRef = useRef(0);
@@ -207,16 +213,10 @@ function PdfSignToolInner() {
     }
   };
 
-  const logAction = (
-    type: string,
-    elId: string | null,
-    pageIndex: number,
-    description: string,
-    snapshot: EditorElement[] | null = null,
-  ) => {
+  const logAction: HistoryLogger<EditorElement> = (operation, type, pageIndex, description, snapshots) => {
     dispatch({
       type: 'ADD_ACTION_HISTORY',
-      payload: createActionEntry(type, elId, pageIndex, description, snapshot)
+      payload: createActionEntry({ operation, type, pageIndex, description, elements: snapshots })
     });
   };
 
@@ -224,13 +224,9 @@ function PdfSignToolInner() {
     const idsToRevert = Array.from(undoSelection);
     if (idsToRevert.length === 0) return;
     const revertedActions = actionHistory.filter(action => idsToRevert.includes(action.id));
-    // Creation entries revert by removing the element they added; deletion
-    // entries (snapshot set — see actionHistory.ts) revert by restoring it.
-    const idsToRemove = revertedActions.filter(a => !a.snapshot).map(a => a.elementId);
-    const elementsToRestore = revertedActions.flatMap((action) => action.snapshot ?? []);
     dispatch({
       type: 'SET_ELEMENTS',
-      payload: elements.filter(el => !idsToRemove.includes(el.id)).concat(elementsToRestore)
+      payload: revertHistoryEntries(elements, revertedActions)
     });
     dispatch({
       type: 'SET_ACTION_HISTORY',
@@ -410,8 +406,13 @@ function PdfSignToolInner() {
 
   // Core loader shared by fresh file picks and draft restore. `bytes` is the source
   // PDF's ArrayBuffer; `preset` seeds restored elements/action history.
-  const loadPdf = async (selected: File, bytes: ArrayBuffer, preset: any = {}, restored = false) => {
-    const presetElements = preset.elements || [];
+  const loadPdf = async (
+    selected: File,
+    bytes: ArrayBuffer,
+    preset: EditorDraftInitialState<EditorElement> = { elements: [], actionHistory: [] },
+    restored = false,
+  ) => {
+    const presetElements = preset.elements;
     await loadEditorPdf({
       file: selected, bytes, restored, loadIdRef, loadControllerRef, clearDraft, setStatus, setAnnouncement,
       initialize: () => {
@@ -421,8 +422,8 @@ function PdfSignToolInner() {
         setPageSizes([]);
         setErrorDetail(null);
         setProgress(0);
-        dispatch({ type: 'SET_ELEMENTS', payload: presetElements as EditorElement[] });
-        dispatch({ type: 'SET_ACTION_HISTORY', payload: (preset.actionHistory || []) as ActionHistoryEntry<EditorElement>[] });
+        dispatch({ type: 'SET_ELEMENTS', payload: presetElements });
+        dispatch({ type: 'SET_ACTION_HISTORY', payload: preset.actionHistory });
         dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
         dispatch({ type: 'SET_TOOL', payload: null });
         seedUniqueId(presetElements);
@@ -460,7 +461,7 @@ function PdfSignToolInner() {
 
     loadStartedRef.current = true;
     const bytes = await selected.arrayBuffer();
-    await loadPdf(selected, bytes, {});
+    await loadPdf(selected, bytes);
   };
 
   // Setup draft persistence hook
@@ -472,7 +473,8 @@ function PdfSignToolInner() {
     actionHistory,
     status,
     loadStartedRef,
-    loadPdf
+    loadPdf,
+    isElement: isEditorElement,
   });
 
   // Helper to place a signature at a specific location
@@ -510,7 +512,7 @@ function PdfSignToolInner() {
     
     dispatch({ type: 'ADD_ELEMENT', payload: newEl });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
-    logAction('ADD_SIGNATURE', id, pageIdx, 'Added signature');
+    logAction('add', 'ADD_SIGNATURE', pageIdx, 'Added signature', [captureAddedElement(newEl, elements.length)]);
     setAnnouncement('Placed signature on page.');
   };
 
@@ -532,9 +534,10 @@ function PdfSignToolInner() {
   // Delete placed element
   const deleteElement = (id: string) => {
     const el = elements.find(e => e.id === id);
+    const snapshots = captureElementSnapshots(elements, (element) => element.id === id);
     dispatch({ type: 'DELETE_ELEMENT', payload: id });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
-    if (el) logAction('DELETE_ELEMENT', id, el.pageIndex, `Deleted ${el.type}`, [el]);
+    if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, `Deleted ${el.type}`, snapshots);
     setAnnouncement('Removed element.');
   };
 
@@ -622,16 +625,25 @@ function PdfSignToolInner() {
 
       const id = uniqueId();
       const original = copiedElementRef.current;
-      const clone = {
-        ...original,
-        id,
-        left: Math.min(90, original.left + 4),
-        top: Math.min(90, original.top + 4)
-      };
+      const clone: EditorElement = original.type === 'line'
+        ? {
+            ...original,
+            id,
+            x1: Math.min(100, original.x1 + 4),
+            y1: Math.min(100, original.y1 + 4),
+            x2: Math.min(100, original.x2 + 4),
+            y2: Math.min(100, original.y2 + 4),
+          }
+        : {
+            ...original,
+            id,
+            left: Math.min(90, original.left + 4),
+            top: Math.min(90, original.top + 4),
+          };
 
       dispatch({ type: 'ADD_ELEMENT', payload: clone });
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
-      logAction('DUPLICATE_ELEMENT', id, original.pageIndex, `Duplicated ${original.type}`);
+      logAction('add', 'DUPLICATE_ELEMENT', original.pageIndex, `Duplicated ${original.type}`, [captureAddedElement(clone, elements.length)]);
       setAnnouncement('Pasted cloned element.');
     };
 

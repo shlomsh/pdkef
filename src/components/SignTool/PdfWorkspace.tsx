@@ -5,6 +5,7 @@ import PdfPageCanvas from '../PdfPageCanvas.tsx';
 import EditorPageHeader from '../EditorPageHeader.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
 import { getElementRenderer } from '../../editor/registry/renderers.ts';
+import type { EditorElement } from '../../editor/model/editorModel.ts';
 import { useSignTool } from './SignToolContext.tsx';
 import { useSignDefaults } from './SignDefaultsContext.tsx';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
@@ -14,6 +15,11 @@ import { detectTextDirection } from '../../lib/signHelpers.js';
 import { getSignExportReadiness } from '../../lib/signExportReadiness.ts';
 import { createPageGeometry } from '../../editor/geometry/coords.js';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
+import {
+  captureAddedElement,
+  captureElementSnapshots,
+  type HistoryLogger,
+} from '../../editor/model/actionHistory.ts';
 import pdfToolStyles from '../PdfTool.module.css';
 import workspaceStyles from './Workspace.module.css';
 
@@ -53,7 +59,7 @@ export default function PdfWorkspace({
   pageWrapperRefs: any;
   setTempPlacement: (p: any) => void;
   setDialogOpen: (open: boolean) => void;
-  logAction: (...args: any[]) => void;
+  logAction: HistoryLogger<EditorElement>;
   handleSavePdf: () => void;
   handleDownloadPdf: () => void;
   handleSharePdf: () => void;
@@ -106,6 +112,7 @@ export default function PdfWorkspace({
     initialSymbolWidth: lastSymbolWidth,
     initialSymbolMark: lastSymbolMark,
     pageSizes,
+    nextElementIndex: elements.length,
     gestureCancelRef: placementGestureRef,
   });
 
@@ -120,9 +127,10 @@ export default function PdfWorkspace({
 
   const deleteElement = useCallback((id: string) => {
     const el = elements.find(e => e.id === id);
+    const snapshots = captureElementSnapshots(elements, (element) => element.id === id);
     dispatch({ type: 'DELETE_ELEMENT', payload: id });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
-    if (el) logAction('DELETE_ELEMENT', id, el.pageIndex, `Deleted ${el.type}`, [el]);
+    if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, `Deleted ${el.type}`, snapshots);
     setAnnouncement('Removed element.');
   }, [dispatch, setAnnouncement, elements, logAction]);
 
@@ -176,11 +184,11 @@ export default function PdfWorkspace({
 
   const makeOnDelete = useCallback((id: string) => () => deleteElement(id), [deleteElement]);
 
-  const makeOnClone = useCallback((id: string, pageIndex: number, type: string) => (cloneInfo: any) => {
+  const cloneElement = useCallback((cloneInfo: EditorElement) => {
     dispatch({ type: 'ADD_ELEMENT', payload: cloneInfo });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: cloneInfo.id });
-    logAction('DUPLICATE_ELEMENT', cloneInfo.id, cloneInfo.pageIndex, `Duplicated ${cloneInfo.type}`);
-  }, [dispatch, logAction]);
+    logAction('add', 'DUPLICATE_ELEMENT', cloneInfo.pageIndex, `Duplicated ${cloneInfo.type}`, [captureAddedElement(cloneInfo, elements.length)]);
+  }, [dispatch, elements.length, logAction]);
 
   const deactivateAll = useCallback(() => {
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
@@ -203,17 +211,19 @@ export default function PdfWorkspace({
 
   // "Clear page" (the page header, same action the Redact editor has): removes
   // one page's annotations and leaves every other page alone. Logged with the
-  // removed elements as its snapshot, so it undoes in one step like a delete.
+  // removed elements and original indexes as one command, so it restores the
+  // whole page atomically without changing layer order.
   const clearPage = useCallback((pageIndex: number) => {
     const removed = elements.filter(el => el.pageIndex === pageIndex);
     if (removed.length === 0) return;
+    const snapshots = captureElementSnapshots(elements, (element) => element.pageIndex === pageIndex);
     dispatch({ type: 'CLEAR_PAGE', payload: pageIndex });
     logAction(
+      'delete',
       'CLEAR_PAGE',
-      null,
       pageIndex,
       `Cleared ${removed.length} annotation${removed.length === 1 ? '' : 's'} on page ${pageIndex + 1}`,
-      removed
+      snapshots
     );
     setAnnouncement(`Cleared page ${pageIndex + 1}.`);
   }, [elements, dispatch, logAction, setAnnouncement]);
@@ -286,7 +296,7 @@ export default function PdfWorkspace({
                           onSelect={makeOnSelect(el.id)}
                           onChange={makeOnChange(el.id)}
                           onDelete={makeOnDelete(el.id)}
-                          onClone={makeOnClone(el.id, el.pageIndex, el.type)}
+                          onClone={cloneElement}
                           pageWidthPoints={size.width}
                           pageGeometry={size}
                         >

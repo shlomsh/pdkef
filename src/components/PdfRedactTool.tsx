@@ -8,7 +8,8 @@ import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { startGesture } from '../editor/gestures/controller.ts';
 import usePdfCoordinates from '../lib/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle } from '../editor/registry/redactionSurface.ts';
-import { useEditorDraftPersistence } from '../editor/workspace/useEditorDraftPersistence.ts';
+import { useEditorDraftPersistence, type EditorDraftInitialState } from '../editor/workspace/useEditorDraftPersistence.ts';
+import { isDraftElement } from '../editor/registry/draftValidation.ts';
 import { getEditorPreference, setEditorPreference } from '../editor/workspace/preferenceStore.ts';
 import useDeletableObjects from '../lib/useDeletableObjects.js';
 import RedactToolbar from './RedactToolbar.tsx';
@@ -17,7 +18,14 @@ import DeleteMark from './DeleteMark.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import EditorPageHeader from './EditorPageHeader.tsx';
 import UndoHistoryModal from './UndoHistoryModal.tsx';
-import { createActionEntry, type ActionHistoryEntry } from '../editor/model/actionHistory.ts';
+import {
+  captureAddedElement,
+  captureElementSnapshots,
+  createActionEntry,
+  revertHistoryEntries,
+  type ActionHistoryEntry,
+  type HistoryLogger,
+} from '../editor/model/actionHistory.ts';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import ErrorMessage from './ErrorMessage.tsx';
@@ -38,7 +46,7 @@ export default function PdfRedactTool() {
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
-  const [elements, setElements] = useState<any[]>([]); // Array of { id, pageIndex, left, top, width, height }
+  const [elements, setElements] = useState<RedactHistoryElement[]>([]);
   const [status, setStatus] = useState('idle'); // idle | loading | editing | redacting | error
   // Export errors are recoverable without unmounting the editor - status stays
   // 'editing' and this renders alongside the workspace. A failed document load
@@ -101,22 +109,17 @@ export default function PdfRedactTool() {
   // and never cleared on mouseleave for the same reason.
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
 
-  // Undo history — mirrors the Sign tool's model exactly (see actionHistory.ts,
-  // useUndoShortcut.js, UndoHistoryModal.tsx): a log of creation events only
-  // (drawing a box, duplicating a whiteout box). Undoing one just removes the
-  // element it created; edits (color, move, resize) aren't logged or undoable.
+  // Undo history mirrors the Sign tool's atomic add/delete commands (see
+  // actionHistory.ts, useUndoShortcut.js, UndoHistoryModal.tsx). Add commands
+  // remove their captured elements; delete and clear-page commands restore
+  // complete snapshots at their original stacking indexes. Edits (color,
+  // move, resize) remain deliberately outside this required undo slice.
   const [actionHistory, setActionHistory] = useState<ActionHistoryEntry<RedactHistoryElement>[]>([]);
   const [undoSelection, setUndoSelection] = useState<Set<string>>(new Set());
   const [undoModalOpen, setUndoModalOpen] = useState(false);
 
-  const logAction = (
-    type: string,
-    elementId: string | null,
-    pageIndex: number,
-    description: string,
-    snapshot: RedactHistoryElement[] | null = null,
-  ) => {
-    setActionHistory(prev => [createActionEntry(type, elementId, pageIndex, description, snapshot), ...prev]);
+  const logAction: HistoryLogger<RedactHistoryElement> = (operation, type, pageIndex, description, snapshots) => {
+    setActionHistory(prev => [createActionEntry({ operation, type, pageIndex, description, elements: snapshots }), ...prev]);
   };
 
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -203,7 +206,11 @@ export default function PdfRedactTool() {
   // queued - the source never changes until export, only `elements` does).
   const deletableObjects = useDeletableObjects(file, fileBytesRef.current);
   const markedForDeletionIds = useMemo(
-    () => new Set(elements.filter((el) => el.type === 'delete').map((el) => el.sourceObjectId)),
+    () => new Set<string>(elements.flatMap((element) => (
+      element.type === 'delete' && typeof element.sourceObjectId === 'string'
+        ? [element.sourceObjectId]
+        : []
+    ))),
     [elements],
   );
 
@@ -228,7 +235,12 @@ export default function PdfRedactTool() {
   // otherwise race, and whichever's awaits happened to resolve last would silently
   // clobber the other's state. Tag each call with an id and ignore any state updates
   // from a call that's been superseded by a newer one.
-  const loadPdf = async (selected: File, bytes: ArrayBuffer, preset: any = {}, restored = false) => {
+  const loadPdf = async (
+    selected: File,
+    bytes: ArrayBuffer,
+    preset: EditorDraftInitialState<RedactHistoryElement> = { elements: [], actionHistory: [] },
+    restored = false,
+  ) => {
     // Restored drafts arrive already migrated (legacy `style`-keyed elements
     // renamed to `type`) and validated - see useEditorDraftPersistence.ts.
     const presetElements = preset.elements || [];
@@ -241,7 +253,7 @@ export default function PdfRedactTool() {
         setErrorDetail(null);
         setProgress(0);
         setElements(presetElements);
-        setActionHistory(preset.actionHistory || []);
+        setActionHistory(preset.actionHistory);
         setUndoSelection(new Set());
         seedUniqueId(presetElements);
         fileBytesRef.current = bytes;
@@ -270,7 +282,7 @@ export default function PdfRedactTool() {
 
     const selected = pdfs[0];
     const bytes = await selected.arrayBuffer();
-    await loadPdf(selected, bytes, {});
+    await loadPdf(selected, bytes);
   };
 
   const { clearDraft, isRestoring, draftSaveState } = useEditorDraftPersistence({
@@ -282,6 +294,7 @@ export default function PdfRedactTool() {
     status,
     loadStartedRef,
     loadPdf,
+    isElement: (value): value is RedactHistoryElement => isDraftElement(value),
   });
 
   const handlePointerDown = (e: any, pageIndex: number) => {
@@ -328,8 +341,9 @@ export default function PdfRedactTool() {
         // the next real drag would do nothing at all.
         if (!patch || patch.width <= 1 || patch.height <= 1) return;
         const id = uniqueId();
-        setElements(prev => [...prev, { id, pageIndex, ...patch, type, color }]);
-        logAction(`ADD_${type.toUpperCase()}`, id, pageIndex, `Added ${type} box`);
+        const element: RedactHistoryElement = { id, pageIndex, ...patch, type, color };
+        setElements(prev => [...prev, element]);
+        logAction('add', `ADD_${type.toUpperCase()}`, pageIndex, `Added ${type} box`, [captureAddedElement(element, elements.length)]);
         setAnnouncement(`Added ${type} box.`);
         disarmTool();
       },
@@ -342,10 +356,11 @@ export default function PdfRedactTool() {
 
   const deleteElement = (id: string) => {
     const el = elements.find(e => e.id === id);
+    const snapshots = captureElementSnapshots(elements, (element) => element.id === id);
     setElements(prev => prev.filter(el => el.id !== id));
     setActiveBoxId(prev => (prev === id ? null : prev));
     setSelectedBoxId(prev => (prev === id ? null : prev));
-    if (el) logAction('DELETE_ELEMENT', id, el.pageIndex, `Deleted ${el.type} box`, [el]);
+    if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, `Deleted ${el.type} box`, snapshots);
   };
 
   const updateElement = (id: string, changes: any) => {
@@ -364,7 +379,7 @@ export default function PdfRedactTool() {
       return;
     }
     const id = uniqueId();
-    setElements(prev => [...prev, {
+    const element: RedactHistoryElement = {
       id,
       pageIndex: object.pageIndex,
       type: 'delete',
@@ -377,12 +392,14 @@ export default function PdfRedactTool() {
       height: object.rect.height,
       start: object.start,
       end: object.end,
-    }]);
+    };
+    setElements(prev => [...prev, element]);
     logAction(
+      'add',
       'ADD_DELETE',
-      id,
       object.pageIndex,
       object.kind === 'image' ? 'Marked image for deletion' : 'Marked text for deletion',
+      [captureAddedElement(element, elements.length)],
     );
     setAnnouncement(object.kind === 'image' ? 'Image marked for deletion.' : 'Text marked for deletion.');
     // Marking is this tool's placement, so it spends the arming. Un-marking
@@ -391,20 +408,16 @@ export default function PdfRedactTool() {
     disarmTool();
   };
 
-  // Cmd/Ctrl+Z: undo the single most recently logged action. Deletion entries
-  // carry a snapshot of what was removed (see actionHistory.ts) — undo restores
-  // it instead of removing by id.
+  // Cmd/Ctrl+Z: undo the single most recent atomic command through the same
+  // pure reverter used by selective history.
   const undoLast = () => {
     if (actionHistory.length === 0) return;
     const lastAction = actionHistory[0];
-    const snapshot = lastAction.snapshot;
-    if (snapshot) {
-      setElements(prev => [...prev, ...snapshot]);
-    } else {
-      setElements(prev => prev.filter(el => el.id !== lastAction.elementId));
-      setActiveBoxId(prev => (prev === lastAction.elementId ? null : prev));
-      setSelectedBoxId(prev => (prev === lastAction.elementId ? null : prev));
-    }
+    const nextElements = revertHistoryEntries(elements, [lastAction]);
+    const survivingIds = new Set(nextElements.map((element) => element.id));
+    setElements(nextElements);
+    setActiveBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
+    setSelectedBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
     setActionHistory(prev => prev.slice(1));
     setUndoSelection((currentSelection) => {
       if (!currentSelection.has(lastAction.id)) return currentSelection;
@@ -416,18 +429,17 @@ export default function PdfRedactTool() {
   };
   useUndoShortcut(undoLast);
 
-  // "Undo changes" modal: revert several checked actions at once. Creation
-  // entries revert by removing the element they added; deletion entries
-  // (snapshot set) revert by restoring it.
+  // "Undo changes" modal: checked commands remain newest-first, matching the
+  // result of pressing Cmd/Ctrl+Z for each of those commands in sequence.
   const handleRevertSelected = () => {
     const idsToRevert = Array.from(undoSelection);
     if (idsToRevert.length === 0) return;
     const revertedActions = actionHistory.filter(action => idsToRevert.includes(action.id));
-    const idsToRemove = revertedActions.filter(a => !a.snapshot).map(a => a.elementId);
-    const elementsToRestore = revertedActions.filter(a => a.snapshot).flatMap(a => a.snapshot);
-    setElements(prev => prev.filter(el => !idsToRemove.includes(el.id)).concat(elementsToRestore));
-    setActiveBoxId(prev => (idsToRemove.includes(prev) ? null : prev));
-    setSelectedBoxId(prev => (idsToRemove.includes(prev) ? null : prev));
+    const nextElements = revertHistoryEntries(elements, revertedActions);
+    const survivingIds = new Set(nextElements.map((element) => element.id));
+    setElements(nextElements);
+    setActiveBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
+    setSelectedBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
     setActionHistory(prev => prev.filter(action => !idsToRevert.includes(action.id)));
     setUndoSelection(new Set());
     setUndoModalOpen(false);
@@ -441,26 +453,27 @@ export default function PdfRedactTool() {
     rememberColor(color);
   };
 
-  const cloneWhiteoutElement = (cloned: any) => {
+  const cloneWhiteoutElement = (cloned: RedactHistoryElement) => {
     setElements(prev => [...prev, cloned]);
     setSelectedBoxId(cloned.id);
     setActiveBoxId(cloned.id);
-    logAction('DUPLICATE_ELEMENT', cloned.id, cloned.pageIndex, 'Duplicated whiteout box');
+    logAction('add', 'DUPLICATE_ELEMENT', cloned.pageIndex, 'Duplicated whiteout box', [captureAddedElement(cloned, elements.length)]);
   };
 
   const clearPage = (pageIndex: number) => {
     const removed = elements.filter(el => el.pageIndex === pageIndex);
     if (removed.length === 0) return;
+    const snapshots = captureElementSnapshots(elements, (element) => element.pageIndex === pageIndex);
     const removedIds = removed.map(el => el.id);
     setElements(prev => prev.filter(el => el.pageIndex !== pageIndex));
-    setActiveBoxId(prev => (removedIds.includes(prev) ? null : prev));
-    setSelectedBoxId(prev => (removedIds.includes(prev) ? null : prev));
+    setActiveBoxId(prev => (prev && removedIds.includes(prev) ? null : prev));
+    setSelectedBoxId(prev => (prev && removedIds.includes(prev) ? null : prev));
     logAction(
+      'delete',
       'CLEAR_PAGE',
-      null,
       pageIndex,
       `Cleared ${removed.length} box${removed.length === 1 ? '' : 'es'} on page ${pageIndex + 1}`,
-      removed
+      snapshots
     );
   };
 

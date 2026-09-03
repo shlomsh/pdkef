@@ -16,6 +16,7 @@ vi.mock('../../lib/thumbnails.js', () => ({
 
 import { loadDraft } from './draftStore.js';
 import { useEditorDraftPersistence } from './useEditorDraftPersistence.ts';
+import { DRAFT_SCHEMA_VERSION, isEditorElement } from '../registry/draftValidation.ts';
 
 function Harness({ apiRef, props }: any) {
   apiRef.current = { result: useEditorDraftPersistence(props) };
@@ -38,6 +39,7 @@ function baseProps(overrides: any = {}) {
     status: 'idle',
     loadStartedRef: { current: false },
     loadPdf: vi.fn(),
+    isElement: isEditorElement,
     ...overrides,
   };
 }
@@ -93,6 +95,39 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
     await waitAsync();
 
     expect(props.loadPdf).not.toHaveBeenCalled();
+  });
+
+  it('forwards only validated, self-contained history commands to the editor loader', async () => {
+    const fileBytes = new TextEncoder().encode('%PDF-1.4').buffer;
+    const element = { id: 'text-1', type: 'text', pageIndex: 0, left: 10, top: 20, text: 'Hello' };
+    const command = {
+      id: 'history-1',
+      type: 'ADD_TEXT',
+      operation: 'add',
+      pageIndex: 0,
+      description: 'Added text box',
+      timestamp: 10,
+      elements: [{ element, index: 0 }],
+    };
+    (loadDraft as any).mockResolvedValue({
+      schemaVersion: DRAFT_SCHEMA_VERSION,
+      fileName: 'contract.pdf',
+      fileType: 'application/pdf',
+      fileBytes,
+      elements: [element],
+      extra: {
+        actionHistory: [command, { ...command, id: 'bad-history', elements: [{ element, index: 'top' }] }],
+      },
+    });
+
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={{ current: null }} props={props} />, container);
+    });
+    await waitAsync();
+
+    const initialState = props.loadPdf.mock.calls[0][2];
+    expect(initialState.actionHistory).toEqual([command]);
   });
 
   it('does not throw when loadDraft resolves with no record', async () => {

@@ -84,6 +84,50 @@ describe('migrateDraftRecord', () => {
     expect(migrated.elements).toEqual([goodBlackout]);
     expect(migrated.schemaVersion).toBe(DRAFT_SCHEMA_VERSION);
   });
+
+  it('migrates legacy add history into a self-contained command', () => {
+    const record = {
+      fileName: 'a.pdf',
+      fileBytes: bytesOf(),
+      schemaVersion: 1,
+      elements: [goodText],
+      extra: {
+        actionHistory: [{
+          id: 'history-1', type: 'ADD_TEXT', elementId: goodText.id, pageIndex: 0,
+          description: 'Added text box', timestamp: 10, snapshot: null,
+        }],
+      },
+    };
+
+    const migrated = migrateDraftRecord(record) as Record<string, any>;
+    expect(migrated.extra.actionHistory).toEqual([{
+      id: 'history-1',
+      type: 'ADD_TEXT',
+      operation: 'add',
+      pageIndex: 0,
+      description: 'Added text box',
+      timestamp: 10,
+      elements: [{ element: goodText, index: 0 }],
+    }]);
+  });
+
+  it('drops a legacy delete command whose original stacking index is unknowable', () => {
+    const record = {
+      fileName: 'a.pdf',
+      fileBytes: bytesOf(),
+      schemaVersion: 1,
+      elements: [goodText],
+      extra: {
+        actionHistory: [{
+          id: 'history-1', type: 'DELETE_ELEMENT', elementId: goodBlackout.id, pageIndex: 0,
+          description: 'Deleted blackout', timestamp: 10, snapshot: [goodBlackout],
+        }],
+      },
+    };
+
+    const migrated = migrateDraftRecord(record) as Record<string, any>;
+    expect(migrated.extra.actionHistory).toEqual([]);
+  });
 });
 
 describe('validateDraftRecord', () => {
@@ -123,5 +167,30 @@ describe('validateDraftRecord', () => {
     const result = validateDraftRecord(record);
     expect(result?.elements).toEqual([goodText]);
     expect(errorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('validates persisted history snapshots and drops malformed commands', () => {
+    const validHistory = {
+      id: 'history-1',
+      type: 'ADD_TEXT',
+      operation: 'add',
+      pageIndex: 0,
+      description: 'Added text box',
+      timestamp: 10,
+      elements: [{ element: goodText, index: 0 }],
+    };
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), elements: [goodText],
+      extra: {
+        actionHistory: [
+          validHistory,
+          { ...validHistory, id: 'history-2', elements: [{ element: goodText, index: 'front' }] },
+        ],
+      },
+    };
+
+    const result = validateDraftRecord(record);
+    expect(result?.extra?.actionHistory).toEqual([validHistory]);
+    expect(errorSpy).toHaveBeenCalledWith('draftValidation: dropped 1 invalid history command(s)');
   });
 });
