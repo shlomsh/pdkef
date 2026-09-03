@@ -1,7 +1,7 @@
 ---
 id: "QUAL-02"
 title: "Two competing header padding rules, where specificity beats the media query"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "site-quality"
 phase: "near-term"
@@ -42,3 +42,25 @@ The scoped override in `index.astro` is gone and the home page is unchanged visu
 before-and-after header heights for a tool page, a content page, `/licenses/` and the 404, at both a
 narrow and a wide viewport. `npm run test:css` and `npm run test:seo` pass, and no page-weight budget
 moves.
+
+## Progress
+
+The CSS half landed in f8b57e4, merged by hand from the parallel worktree that
+investigated this. Both halves of the pair now carry the identical selector
+(`header:not(.tool-hero):not(.not-found-header)`) and both sit in `@layer base`,
+so a page's own header utilities win per property while the site default still
+covers a page that has no opinion.
+
+That worktree also found something this ticket had not: the media-query rule did
+land on exactly one page, `/404/`, which the base rule excludes and the media
+rule did not. So the only header it ever governed was the one page that did not
+want it, flattening that page's own `pt-[4.5rem] pb-10` to 56px/24px above
+768px while mobile kept 72px/40px.
+
+**Still outstanding**, which is why this is not closed: the measured
+before-and-after header heights the acceptance asks for, on a tool page, a
+content page, `/licenses/` and the 404, at a narrow and a wide viewport; and the
+removal of the scoped override in `index.astro`, which was a workaround for this
+bug and should now be redundant. Do not delete it without measuring, since the
+home page also has a first-screen height budget that override was helping to
+meet.
