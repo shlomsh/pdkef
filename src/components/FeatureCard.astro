@@ -28,6 +28,12 @@ const baseClasses = [
   'max-[1080px]:mx-6 max-[1080px]:w-auto',
   'max-[640px]:px-6',
   'min-[768px]:last:mb-24',
+  // Scroll-reveal marker only - see the <style>/<script> below. On its own
+  // this class carries no visual rule, so a card with no JS or a card the
+  // script never got to renders exactly as it always did: fully visible,
+  // no opacity/transform applied. The hidden state is opt-in, added by the
+  // script, never the default.
+  'card-reveal',
 ];
 
 const densityClasses = density === 'screen'
@@ -43,3 +49,110 @@ const variantClasses = variant === 'highlight'
     <slot />
   </div>
 </section>
+
+<style>
+  /* Hidden state is opt-in: only a card the script below has explicitly
+     armed (.is-armed) ever leaves full opacity. A card with no JS, or one
+     the script has not reached yet, matches .card-reveal alone and this
+     rule does not touch it - it renders exactly as it did before this file
+     existed.
+
+     The transition lives on the .is-visible rule, not on .is-armed. A card
+     is armed synchronously, in the same tick the script runs, while it is
+     still rendered at its default opacity: 1 from the frame before - so if
+     .is-armed itself declared the transition, the browser would animate
+     that first style change too, fading every off-screen card out over
+     0.7s starting at page load. Harmless while truly off-screen, but a fast
+     scroll can reach one before that fade finishes, and CSS retargets a
+     transition already in flight rather than restarting it - so the reveal
+     would begin from whatever partial opacity the load-time fade had
+     reached, not from a clean 0. Declaring transition only on .is-visible
+     means arming is instant (nothing to see off-screen) and the one
+     animation that ever runs is the reveal itself. */
+  .card-reveal.is-armed {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  .card-reveal.is-armed.is-visible {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.7s ease-out,
+      transform 0.7s ease-out;
+  }
+
+  /* The script already refuses to arm anything when the visitor prefers
+     reduced motion, so this rule should never need to fire. It stays as a
+     second, CSS-only guarantee: reduced motion must mean the card is
+     visible immediately with no motion, never a shorter version of the
+     same animation, so even a future caller that adds .is-armed some other
+     way cannot leave a card invisible for a reduced-motion visitor. */
+  @media (prefers-reduced-motion: reduce) {
+    .card-reveal.is-armed {
+      opacity: 1;
+      transform: none;
+    }
+
+    .card-reveal.is-armed.is-visible {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Progressive enhancement only. Every card is already full-opacity, static
+  // HTML before this runs (see the .card-reveal comment in the frontmatter
+  // above and the .is-armed rule in the <style> block) - this script is the
+  // only thing that ever hides a card, and it does so by adding a class,
+  // never by relying on one being present by default. A browser that never
+  // executes this script, or that errors out partway through, leaves every
+  // card exactly as visible as it always was.
+  //
+  // That ordering matters: the reference site this treatment is modelled on
+  // does the opposite (cards start hidden in markup/CSS, JS is the only path
+  // back to visible) and its own pages render blank below the fold whenever
+  // the observer never fires. This file is deliberately the other way round.
+  //
+  // FeatureCard.astro renders many times per page, but Astro hoists and
+  // dedupes an identical component script into a single tag, so this block
+  // still runs exactly once per page load and queries every card on it.
+  const cards = document.querySelectorAll('.card-reveal');
+
+  const canAnimate =
+    cards.length > 0 &&
+    'IntersectionObserver' in window &&
+    window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+
+  if (canAnimate) {
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.2, rootMargin: '0px 0px -10% 0px' },
+    );
+
+    for (const card of cards) {
+      // A card already on screen at load time is left alone rather than
+      // armed: arming it would drop it to opacity: 0 for a frame before the
+      // observer's first callback fires it back to visible, a flash with no
+      // purpose. Only cards the visitor still has to scroll to get the
+      // settle-into-place treatment; anything already in view just stays
+      // visible, which reads as "already settled" rather than "never
+      // arrived."
+      const rect = card.getBoundingClientRect();
+      const alreadyVisible = rect.top < viewportHeight && rect.bottom > 0;
+      if (alreadyVisible) continue;
+
+      card.classList.add('is-armed');
+      observer.observe(card);
+    }
+  }
+</script>
