@@ -8,6 +8,7 @@ const lanes = {
   'sign-tool-architecture': 'Sign tool architecture',
   'editor-architecture': 'Editor architecture',
   'fonts-and-script-support': 'Fonts and script support',
+  'landing-story-demo': 'Landing story and demo',
 };
 const statusLabels = { open: 'Open', in_progress: 'In progress', blocked: 'Blocked', done: 'Done', retired: 'Retired' };
 

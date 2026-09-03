@@ -8,10 +8,16 @@ const backlogPath = resolve(projectDirectory, 'BACKLOG.md');
 const todoPath = resolve(projectDirectory, 'TODO.md');
 const contextPath = resolve(projectDirectory, 'backlog/reference/migrated-todo-context.md');
 
+// [key, BACKLOG.md label, TODO.md heading]. The third field exists because the
+// compatibility index kept its original, longer headings when the monolithic
+// TODO was split, and those headings are linked to from docs/. Adding an epic
+// is one row here plus the matching lane in serve-backlog-board.mjs and
+// export-todo-kanban.mjs.
 const epics = [
-  ['sign-tool-architecture', 'Sign tool architecture'],
-  ['editor-architecture', 'Editor architecture'],
-  ['fonts-and-script-support', 'Fonts and script support'],
+  ['sign-tool-architecture', 'Sign tool architecture', 'Sign Tool architecture review (2026-08-28)'],
+  ['editor-architecture', 'Editor architecture', 'Editor module boundaries (architecture)'],
+  ['fonts-and-script-support', 'Fonts and script support', 'Internationalization: fonts for scripts beyond Hebrew/Latin'],
+  ['landing-story-demo', 'Landing story and demo', 'The landing story and demo'],
 ];
 const statuses = [
   ['open', 'Open'],
@@ -58,7 +64,7 @@ function slug(heading) {
 }
 
 function compatibilityIndex(tasks, context) {
-  const reserved = new Set(['Open work', 'Sign Tool architecture review (2026-08-28)', 'Editor module boundaries (architecture)', 'Internationalization: fonts for scripts beyond Hebrew/Latin']);
+  const reserved = new Set(['Open work', ...epics.map(([, , heading]) => heading)]);
   const references = context.split('\n').filter((line) => /^#{2,3}\s+/.test(line)).map((line) => line.replace(/^#+\s+/, '')).filter((heading) => !reserved.has(heading));
   return `<!-- GENERATED COMPATIBILITY INDEX: edit backlog/tasks/*.md, then run node scripts/generate-backlog.mjs -->
 
@@ -70,17 +76,7 @@ function compatibilityIndex(tasks, context) {
 
 See [BACKLOG.md](BACKLOG.md) for the generated status view.
 
-## Sign Tool architecture review (2026-08-28)
-
-${table(tasks.filter((task) => task.epic === 'sign-tool-architecture'))}
-
-## Editor module boundaries (architecture)
-
-${table(tasks.filter((task) => task.epic === 'editor-architecture'))}
-
-## Internationalization: fonts for scripts beyond Hebrew/Latin
-
-${table(tasks.filter((task) => task.epic === 'fonts-and-script-support'))}
+${epics.map(([key, , heading]) => `## ${heading}\n\n${table(tasks.filter((task) => task.epic === key))}`).join('\n\n')}
 
 ## Migrated context and history
 
