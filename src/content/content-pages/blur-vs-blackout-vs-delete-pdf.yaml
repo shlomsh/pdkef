@@ -192,7 +192,7 @@ sections:
           have loaded.
       - kind: 'prose'
         text: >-
-          Ready to choose by result? <a href="/redact/">Open Redact &amp; Blur PDF</a>, try the tools
+          Ready to choose by result? <a href="/redact/">Open Blur &amp; Redact PDF</a>, try the tools
           on a sample, and download a new copy when it looks the way you want.
 faq:
   - question: 'What does Delete do in a PDF?'

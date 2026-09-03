@@ -73,7 +73,7 @@ sections:
       - kind: 'prose'
         text: >-
           Preview also has a <a href="https://support.apple.com/guide/preview/annotate-a-pdf-prvw11580/mac" target="_blank" rel="noopener noreferrer">Redaction Selection tool</a>
-          for permanently removing selected text. In PDkef, use the <a href="/redact/">Redact PDF
+          for permanently removing selected text. In PDkef, use the <a href="/redact/">Blur &amp; Redact PDF
           tool</a> when you need to hide details in a shared copy. A drawn shape placed over text
           is not the same as removing it from the file.
   - sketch: 'rings'
