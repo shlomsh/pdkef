@@ -31,20 +31,17 @@ import {
   baselineFormatMatches, buildSignBundle, captureSignaturesInPage, findPdfWorkerUrl,
   judgeCases, readBaseline, removeSignBundle, writeBaseline,
 } from './fixtures/exportRenderHarness.js';
+import { useTemporaryBundle } from './fixtures/temporaryBundle.js';
 
 const BUNDLE_FILENAME = '__e2e-export-render-bundle.js';
 const BASELINE_PATH = join(fileURLToPath(new URL('./fixtures/', import.meta.url)), 'exportRenderBaseline.json');
 const UPDATING = process.env.UPDATE_EXPORT_RENDER_BASELINE === '1';
 const ON_BASELINE_PLATFORM = process.platform === BASELINE_PLATFORM;
 
-let bundlePath;
-
-test.beforeAll(async () => {
-  bundlePath = await buildSignBundle(BUNDLE_FILENAME);
-});
-
-test.afterAll(() => {
-  removeSignBundle(bundlePath);
+const exportRenderBundle = useTemporaryBundle(test, {
+  filename: BUNDLE_FILENAME,
+  build: buildSignBundle,
+  remove: removeSignBundle,
 });
 
 test.describe('Exported PDF render guard', () => {
@@ -68,13 +65,7 @@ test.describe('Exported PDF render guard', () => {
 
   test(`the ink signPdf draws matches its baseline across ${EXPORT_RENDER_CORPUS.length} cases`, async ({ page }) => {
     const workerSrc = findPdfWorkerUrl();
-    // SIGN-21: the preview server snapshots dist/'s file list at startup,
-    // before this file's beforeAll writes the bundle, so answer the request
-    // from that file directly instead - see shapingGuardHarness.js's
-    // buildFontkitBundle doc (the same mechanism, applied to buildSignBundle).
-    await page.route(`**/${BUNDLE_FILENAME}`, (route) => route.fulfill({ path: bundlePath }));
-    await page.goto('/sign');
-    await page.addScriptTag({ url: `/${BUNDLE_FILENAME}` });
+    await exportRenderBundle.open(page);
 
     const results = await page.evaluate(captureSignaturesInPage, {
       cases: EXPORT_RENDER_CORPUS.map(({ id, element }) => ({ id, element })),
@@ -166,4 +157,3 @@ test.describe('Exported PDF render guard', () => {
     ).toEqual([]);
   });
 });
-

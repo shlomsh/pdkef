@@ -257,9 +257,9 @@ export const NON_VACUITY_MARGIN = 2;
  * the app's CSP - the same trick, and the same reason, as
  * `shapingGuardHarness.js`'s `buildFontkitBundle`: `script-src` has no
  * `unsafe-inline`, so `page.addScriptTag({ content })` is blocked outright
- * and `'self'` is what remains. The caller also has to route the request
- * through `page.route` rather than let it hit the preview server as-is - see
- * `buildFontkitBundle`'s doc for why the write alone 404s (SIGN-21).
+ * and `'self'` is what remains. Pass this as `build` to
+ * `useTemporaryBundle`, alongside `removeSignBundle`, so the fixture routes
+ * the request around the preview server's stale file listing (SIGN-21).
  *
  * Running the *real* `signPdf` rather than a reimplementation is the entire
  * value here. It pulls in the element registry, which pulls in Preact

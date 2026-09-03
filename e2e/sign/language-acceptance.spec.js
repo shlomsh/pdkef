@@ -6,6 +6,7 @@ import {
   findPdfWorkerUrl,
   removeSignBundle,
 } from './fixtures/exportRenderHarness.js';
+import { useTemporaryBundle } from './fixtures/temporaryBundle.js';
 
 const BUNDLE_FILENAME = '__e2e-language-acceptance-bundle.js';
 const fontByFamily = new Map(FONT_MANIFEST.map((font) => [font.family, font]));
@@ -30,20 +31,17 @@ const cases = LANGUAGE_ACCEPTANCE_MATRIX
     }));
   }));
 
-let bundlePath;
-
-test.beforeAll(async () => {
-  bundlePath = await buildSignBundle(BUNDLE_FILENAME);
+const exportRenderBundle = useTemporaryBundle(test, {
+  filename: BUNDLE_FILENAME,
+  build: buildSignBundle,
+  remove: removeSignBundle,
 });
-
-test.afterAll(() => removeSignBundle(bundlePath));
 
 test.describe('language/font acceptance in Chrome', () => {
   test.setTimeout(240_000);
 
   test(`renders visible, extractable PDF text through all ${cases.length} accepted language/face combinations`, async ({ page }) => {
-    await page.goto('/sign');
-    await page.addScriptTag({ url: `/${BUNDLE_FILENAME}` });
+    await exportRenderBundle.open(page);
     const workerSrc = findPdfWorkerUrl();
 
     const results = await page.evaluate(async ({ testCases, pdfWorkerSrc }) => {
@@ -105,4 +103,3 @@ test.describe('language/font acceptance in Chrome', () => {
     expect(unsearchable, `These accepted faces produced no searchable text: ${unsearchable.map((entry) => entry.id).join(', ')}`).toEqual([]);
   });
 });
-
