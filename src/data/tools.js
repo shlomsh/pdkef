@@ -294,7 +294,7 @@ export const tools = [
     href: '/redact/',
     icon: Eraser,
     accent: 'soft',
-    gridTitle: 'Redact & Blur',
+    gridTitle: 'Blur & Redact',
     gridDescription:
       'Blur PDF areas, black out private details, or delete selectable text and images. Your file stays on your device.',
     sitemapPriority: '0.9',
@@ -302,15 +302,15 @@ export const tools = [
     seoTitle: 'Blur PDF Online Free - Blackout & Redact Text | PDkef',
     seoDescription:
       'Blur PDF online for free, black out text, or delete selectable elements. No upload, signup, or watermark. Marked pages flatten on download. Open source.',
-    schemaName: 'PDkef - Redact PDF',
-    toolName: 'Redact PDF',
+    schemaName: 'PDkef - Blur & Redact PDF',
+    toolName: 'Blur & Redact PDF',
     h1: 'Blur PDF Online Free: Blackout & Redact Text',
     subhead:
       'Blur part of a PDF, black out private details, or delete selectable text and images. Choose a solid blackout for sensitive information. Marked pages flatten automatically when you download. Free, open source, and your file stays on your device.',
-    ariaLabel: 'Redact PDF tool',
-    aboutHeading: 'How to delete, white out, black out or blur PDF content',
+    ariaLabel: 'Blur & Redact PDF tool',
+    aboutHeading: 'How to blur, black out, white out or delete PDF content',
     aboutLead:
-      'Choose the result you want. Delete removes a selected text or image element from the PDF page. Whiteout clears an area visually, Blackout creates a solid cover, and Blur softens visual detail. Blackout, Whiteout and Blur work on typed PDFs and scans.',
+      'Choose the result you want. Delete removes a selected text or image element from the PDF page. Blur softens visual detail, Blackout creates a solid cover, and Whiteout clears an area visually. Blur, Blackout and Whiteout work on typed PDFs and scans.',
     freeNoteLead:
       'Blur or black out PDFs for free, with no signup, watermark, or daily cap. Your file and saved draft stay on your device. For examples and the trade-offs, see <a class="font-medium text-[var(--color-primary)]" href="/blur-vs-blackout-vs-delete-pdf/">Blur, Blackout or Delete: the visual guide</a>. Want to work offline? <a class="font-medium text-[var(--color-primary)]" href="/install-pdf-app/">Install PDkef</a> and let its required assets load before disconnecting.',
     aboutSketch: 'grid',
@@ -319,7 +319,7 @@ export const tools = [
     faqIconPos: 'bl',
     steps: [
       { title: 'Open your PDF', text: 'Choose a PDF from your device or drag it into the tool. It opens in your browser without being uploaded.' },
-      { title: 'Choose the result', text: 'Use Delete to click a highlighted text or image element. Use Whiteout, Blackout or Blur to drag over an area. You can mix the tools in the same PDF.' },
+      { title: 'Choose the result', text: 'Use Delete to click a highlighted text or image element. Use Blur, Blackout or Whiteout to drag over an area. You can mix the tools in the same PDF.' },
       { title: 'Download your changed PDF', text: 'Delete removes the selected element from the page. Pages with Blur, Blackout or Whiteout flatten automatically into one image, making that export a one-way change with no selectable or searchable text on the marked page.' },
     ],
     faq: [
