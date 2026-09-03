@@ -44,3 +44,16 @@ if (typeof window !== 'undefined' && typeof window.matchMedia === 'undefined') {
     dispatchEvent() { return false; }
   });
 }
+
+// Keep jsdom's intentionally-unimplemented browser APIs from drowning out a
+// real test diagnostic. These are the two known, benign messages emitted by
+// existing tests: component code may attempt canvas rendering (which jsdom
+// cannot rasterise), and links may receive an otherwise ordinary click. Keep
+// every other jsdom error visible so this cannot become a blanket warning sink.
+if (typeof window !== 'undefined' && window._virtualConsole) {
+  const knownJsdomError = /Not implemented: (HTMLCanvasElement(?:'s (?:getContext\(\)|toDataURL\(\)) method: without installing the canvas npm package)|navigation to another Document)/;
+  window._virtualConsole.removeAllListeners('jsdomError');
+  window._virtualConsole.on('jsdomError', (error) => {
+    if (!knownJsdomError.test(error?.message ?? '')) console.error(error);
+  });
+}

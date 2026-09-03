@@ -31,3 +31,6 @@ Writing the required "disconnect the network" tests surfaced two real, previousl
 `public/sw.js`, `scripts/precacheFilter.mjs`, `scripts/generate-precache-manifest.mjs`, `scripts/buildId.mjs` (new), `src/lib/buildId.test.js` (new), `src/lib/serviceWorker.test.js`, `e2e/offline/offline-workflows.spec.js` (new). Also fixed three e2e specs (`e2e/sign/hebrew-font-parity.spec.js`, `e2e/sign/hebrew-composition-guard.spec.js`, `e2e/sign/thai-font-parity.spec.js`) whose imports had gone stale after the unrelated editor-architecture file relocations, which had been silently blocking the entire `npm run test:e2e` suite (a collection-time failure in any one spec file aborts the whole run) - found while trying to verify this change against the full suite.
 
 **Verification:** `npm test` (1860/1860), full `npm run test:e2e` (93 passed, 2 pre-existing intentional skips), `npm run test:csp`, `npm run test:seo`, `npm run test:css`, `npm run test:weight`, `npm run test:gesture-golden-rule`, `npm run test:fonts` all green against a real `npm run build && npm run preview`.
+
+The non-default-font provisioning/readiness work explicitly left open above is tracked separately
+as SIGN-23 so this ticket remains the record of the completed service-worker and default-path fix.

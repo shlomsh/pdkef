@@ -1,8 +1,8 @@
 # Sign Tool product decisions
 
 Confirmed by the product owner on **2026-08-28** after the architecture review.
-This record defines product scope; implementation status and priorities belong only in
-[TODO.md](../TODO.md#sign-tool-architecture-review-2026-08-28). It supersedes conflicting
+This record defines product scope; implementation status and priorities belong in the canonical
+[task files](../backlog/tasks/) and generated [backlog board](../BACKLOG.md). It supersedes conflicting
 assumptions in older design proposals, not the evidence or history in those documents.
 
 ## Confirmed requirements

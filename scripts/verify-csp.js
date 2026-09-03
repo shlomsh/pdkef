@@ -5,6 +5,12 @@ import { JSDOM } from 'jsdom';
 
 const distDir = path.join(process.cwd(), 'dist');
 
+function isGoogleVerificationFile(file, content) {
+  const baseName = path.basename(file);
+  return /^google[a-z0-9]+\.html$/i.test(baseName)
+    && content.trim() === `google-site-verification: ${baseName}`;
+}
+
 function findHtmlFiles(dir, fileList = []) {
   if (!fs.existsSync(dir)) return fileList;
   const files = fs.readdirSync(dir);
@@ -24,6 +30,9 @@ let hasError = false;
 
 for (const file of htmlFiles) {
   const content = fs.readFileSync(file, 'utf-8');
+  // Google verifies this file's exact bytes. It is an intentional, bare
+  // passthrough rather than an Astro document, so it has no CSP to verify.
+  if (isGoogleVerificationFile(file, content)) continue;
   const dom = new JSDOM(content);
   const document = dom.window.document;
 

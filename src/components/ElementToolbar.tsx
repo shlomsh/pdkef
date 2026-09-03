@@ -317,7 +317,7 @@ export default function ElementToolbar({
         type="button"
         className={buttonClass()}
         onClick={() => {
-          const newId = `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          const newId = `el-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
           onClone({
             ...element,
             id: newId,

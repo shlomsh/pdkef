@@ -1,11 +1,8 @@
 #!/usr/bin/env node
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { readTasks } from './backlog-data.mjs';
 
-const scriptDirectory = dirname(fileURLToPath(import.meta.url));
-const projectDirectory = resolve(scriptDirectory, '..');
 const outputPath = resolve(process.argv[2] || 'todo-kanban.html');
 
 const laneNames = {

@@ -16,7 +16,7 @@ Then I wanted to share it. I believe simple tools like these should be free and 
 
 **Free, actually free.** No signup wall, no "3 free merges then pay," no watermark stamped across your output. It's free because it costs me almost nothing to run - static files on a CDN, no server to scale, no storage to pay for.
 
-**Open source so you don't have to take my word for it.** Every claim above - no uploads, no tracking, no network calls - is something you can verify yourself by reading the code, not something you have to trust a privacy policy to be true. MIT licensed, fork it, audit it, run it yourself.
+**Open source so you don't have to take my word for it.** You can inspect how PDkef handles files: PDF contents, typed text, signatures, and filenames stay on your device and are never uploaded for processing. The hosted site collects limited anonymous aggregate maintenance signals, kept separate from document processing; it does not use accounts or cookies. MIT licensed, fork it, audit it, run it yourself.
 
 **Fast, because the architecture stays lean.** The site is built with Astro in islands mode - the SEO content, FAQ, and how-to sections are plain static HTML with zero JavaScript, and the merge tool itself is the *only* interactive piece, a small Preact island. That split keeps the page fast and keeps the surface area for bugs (and bloat) small.
 
@@ -32,7 +32,7 @@ All processing happens locally using browser-compatible PDF libraries (like [@ca
 ## Local Development
 
 Prerequisites:
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
+- [Node.js](https://nodejs.org/) 22.12 or newer
 - `npm` (comes with Node.js)
 
 To run the project locally:
@@ -55,8 +55,9 @@ Additional commands:
 ```bash
 npm run build    # Build the production site to dist/
 npm run preview  # Preview the production build locally
-npm run check    # Run TypeScript and Astro checks
-npm run lint     # Run ESLint to check for code issues
+npm run typecheck # Run TypeScript and Astro checks
+npm run test     # Run the unit test suite
+npm run test:e2e # Build and run browser release checks
 ```
 
 ## Tech stack
@@ -69,9 +70,9 @@ npm run lint     # Run ESLint to check for code issues
 
 Offline support and installability come from a hand-written service worker (`public/sw.js`) and a static `public/manifest.webmanifest`, not a build plugin - no PWA plugin is used (see CLAUDE.md for why).
 
-All runtime dependencies are MIT or Apache-2.0 licensed and make no network calls of their own - I checked, on purpose, because that guarantee only holds if every dependency upholds it too.
+PDkef itself is MIT licensed; third-party components retain their own licenses. See `THIRD_PARTY_LICENSES.md` for the current notices. PDF processing dependencies run locally; the hosted site separately includes Vercel Web Analytics for the limited anonymous aggregate maintenance signals described above.
 
-See [CLAUDE.md](./CLAUDE.md) for architecture notes and the design standard, and [TODO.md](./TODO.md) for the backlog.
+See [CLAUDE.md](./CLAUDE.md) for architecture notes and the design standard, and [backlog/tasks](./backlog/tasks/) for the canonical backlog.
 
 ## Contributing
 

@@ -16,7 +16,7 @@ import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../constants/
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../editor/workspace/useEditorDraftPersistence.ts';
 import { isEditorElement } from '../editor/registry/draftValidation.ts';
-import { getEditorPreference, setEditorPreference } from '../editor/workspace/preferenceStore.ts';
+import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../editor/workspace/preferenceStore.ts';
 import {
   captureAddedElement,
   captureElementSnapshots,
@@ -65,7 +65,7 @@ function PdfSignToolInner() {
   // Export errors are recoverable without unmounting the editor. A failed
   // document load still uses status='error' with the workspace's load copy.
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
+  const [, setProgress] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [undoModalOpen, setUndoModalOpen] = useState(false);
   const [undoSelection, setUndoSelection] = useState<Set<string>>(new Set());
@@ -312,6 +312,28 @@ function PdfSignToolInner() {
     if (stored) setLastSignatureWidth(stored);
   }, []);
 
+  // Storage events are only delivered to the *other* same-user tabs. Local
+  // interactions update state directly; these subscriptions apply the store's
+  // revision-ordered last-writer-wins result everywhere else.
+  useEffect(() => {
+    const stops = [
+      subscribeToEditorPreference('savedSignatures', ({ value }) => {
+        const next = value ?? [];
+        setSavedSignatures(next);
+        setActiveSignature((current) => next.find((signature) => signature.id === current?.id) ?? next[0] ?? null);
+      }),
+      subscribeToEditorPreference('lastColor', ({ value }) => { if (value) setLastColor(value); }),
+      subscribeToEditorPreference('lastWhiteoutColor', ({ value }) => { if (value) setLastWhiteoutColor(value); }),
+      subscribeToEditorPreference('lastFont', ({ value }) => { if (value) setLastFont(value); }),
+      subscribeToEditorPreference('lastFontSize', ({ value }) => { if (value) setLastFontSize(value); }),
+      subscribeToEditorPreference('lastDirection', ({ value }) => { if (value) setLastDirection(value); }),
+      subscribeToEditorPreference('lastSymbolWidth', ({ value }) => { if (value) setLastSymbolWidth(value); }),
+      subscribeToEditorPreference('lastSymbolMark', ({ value }) => { if (value) setLastSymbolMark(value); }),
+      subscribeToEditorPreference('lastSignatureWidth', ({ value }) => { if (value) setLastSignatureWidth(value); }),
+    ];
+    return () => stops.forEach((stop) => stop());
+  }, []);
+
   // Remember the color last picked, shared across text/symbol/signature, for future placements
   const rememberColor = (color: string) => {
     setLastColor(color);
@@ -372,7 +394,7 @@ function PdfSignToolInner() {
   // Save new signature to list & localStorage
   const saveNewSignature = (dataUrl: string, aspectRatio: number) => {
     const newSig = {
-      id: `sig-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `sig-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       dataUrl,
       aspectRatio
     };

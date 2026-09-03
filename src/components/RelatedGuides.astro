@@ -35,7 +35,7 @@ interface Props {
   resolveLink?: (pageId: string, locale: string) => { href: string; fallback?: boolean };
 }
 
-const { currentSlug, heading, locale = 'en', labels = {} as RelatedGuidesMessages, resolveLink } = Astro.props;
+const { currentSlug, heading, locale = 'en', labels = {} as RelatedGuidesMessages, resolveLink } = Astro.props as Props;
 const resolvedHeading = heading ?? labels?.relatedHeading ?? 'Documentation';
 const related = contentPagesForTool(currentSlug);
 ---

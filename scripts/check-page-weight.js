@@ -203,13 +203,13 @@ const brotli = (buffer) =>
     params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 },
   }).length;
 
-// Static import/export edges only - "from '...'" is JS syntax exclusively for
-// `import ... from` and `export ... from`, never for a dynamic `import(...)`
-// call (which has no `from`). Rollup's build output always writes these as
-// plain quoted string literals, never template literals, so this is a safe,
-// dependency-free stand-in for a real module-graph walk (no es-module-lexer
-// needed - Rollup already decided the graph, this just reads its output back).
-const STATIC_IMPORT_RE = /\bfrom\s*["']([^"']+\.[cm]?js)["']/g;
+// Static import/export edges only. Besides `import ... from` / `export ...
+// from`, Rollup emits bare side-effect imports (`import "./chunk.js"`) for
+// some chunks. Those are just as eager, so excluding them would turn the graph
+// walk back into an undercount. Dynamic `import(...)` cannot match: it has an
+// opening parenthesis where a quoted specifier is required. Rollup writes plain
+// quoted literals here, so this remains a small dependency-free graph reader.
+const STATIC_IMPORT_RE = /\b(?:import|export)\s*(?:[^'";]*?\s*from\s*)?["']([^"']+\.[cm]?js)["']/g;
 
 // Every chunk reachable from `entryFiles` by a static import/export edge,
 // recursively - the actual set of JS the browser fetches before an eagerly-

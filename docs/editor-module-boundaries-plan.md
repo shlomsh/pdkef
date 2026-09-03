@@ -1,8 +1,8 @@
 # Editor module boundaries plan
 
-Opened **2026-08-29**. Execution state lives only in
-[TODO.md#editor-module-boundaries-architecture](../TODO.md#editor-module-boundaries-architecture)
-(tasks ARCH-01 through ARCH-07); this record is the rationale and the evidence behind them, kept
+Opened **2026-08-29**. Execution state lives only in the canonical
+[task files](../backlog/tasks/) (ARCH-01 through ARCH-07), summarized in the generated
+[backlog board](../BACKLOG.md); this record is the rationale and the evidence behind them, kept
 separate so a task's one-line acceptance condition doesn't have to carry the full "why." It refines
 CLAUDE.md Part II §3.2's "editor core" and "element registry" rows into finer boundaries; it does not
 replace them.
@@ -62,7 +62,7 @@ first time instead of needing a second move.
 
 ## The seven tasks
 
-Full acceptance conditions live in TODO.md; this is the reasoning behind each one's shape.
+Full acceptance conditions live in the corresponding task files; this is the reasoning behind each one's shape.
 
 - **ARCH-01 — `editor/model` out of `lib/`.** `editorModel.ts` has zero imports today, so it's a pure
   relocation. `actionHistory.js` needs its `uniqueId` import redirected to `editor/model/ids.ts` (which

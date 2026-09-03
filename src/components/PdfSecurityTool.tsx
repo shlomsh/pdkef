@@ -1,5 +1,5 @@
 import { useRef, useState } from 'preact/hooks';
-import { isPdfEncrypted, protectPdf, unlockPdf, WrongPasswordError, SecurityError } from '../lib/security.js';
+import { isPdfEncrypted, protectPdf, unlockPdf, WrongPasswordError } from '../lib/security.js';
 import { useObjectUrls } from '../lib/useObjectUrls.js';
 import BasePdfTool from './BasePdfTool.tsx';
 import styles from './PdfSecurityTool.module.css';

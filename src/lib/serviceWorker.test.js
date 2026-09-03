@@ -67,6 +67,7 @@ function manifestResponder(urls, perUrl = () => new Response('asset')) {
 }
 
 async function dispatchFetch(worker, request) {
+  /** @type {Promise<Response>} */
   let responsePromise;
   const background = [];
   worker.listeners.get('fetch')({

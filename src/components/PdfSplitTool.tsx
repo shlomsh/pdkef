@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import BasePdfTool from './BasePdfTool.tsx';
 import { parsePageSelector, pageNumbersToRangeString, splitPdf } from '../lib/split.js';
 import styles from './PdfSplitTool.module.css';

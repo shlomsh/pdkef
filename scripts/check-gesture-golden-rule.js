@@ -98,7 +98,7 @@ function extractComputePatchBody(source, afterColonIndex) {
 // Cleaner reference resolver: given the definition match's own opening
 // paren/identifier position, walk forward the same way a fresh
 // `computePatch:` scan would.
-function extractNamedFunctionBody(source, defMatch, ident) {
+function extractNamedFunctionBody(source, defMatch) {
   const isFunctionDecl = defMatch[0].trim().startsWith('function');
   if (isFunctionDecl) {
     const parenIndex = source.indexOf('(', defMatch.index);
@@ -159,7 +159,7 @@ function findComputePatchBodies(source) {
     );
     const defMatch = defRegex.exec(source);
     if (!defMatch) continue;
-    const body = extractNamedFunctionBody(source, defMatch, ident);
+    const body = extractNamedFunctionBody(source, defMatch);
     if (body) bodies.push(body);
   }
   return bodies;

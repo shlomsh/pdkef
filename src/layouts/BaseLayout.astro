@@ -83,8 +83,13 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
     <slot />
     <script>
       import { inject } from '@vercel/analytics';
+      import { sanitizeAnalyticsEvent } from '../lib/maintenanceTelemetry.ts';
       if (import.meta.env.PROD) {
-        inject();
+        // Page views are aggregate maintenance signals, not a license to send
+        // query strings (which can contain document names or other user data).
+        // The shared boundary also makes the provider replaceable without
+        // changing the product's privacy contract.
+        inject({ beforeSend: sanitizeAnalyticsEvent });
       }
     </script>
     <script>
