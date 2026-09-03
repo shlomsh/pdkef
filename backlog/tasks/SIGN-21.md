@@ -1,12 +1,12 @@
 ---
 id: "SIGN-21"
 title: "Make the browser guard helpers reachable from the preview server"
-status: "done"
+status: "in_progress"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "release-blocker"
 depends_on: []
-legacy_state: "Done 2026-09-03 — shared temporary-bundle fixture verified by full E2E"
+legacy_state: "In progress — shared temporary-bundle fixture under active integration 2026-09-03"
 ---
 
 # SIGN-21 · Make the browser guard helpers reachable from the preview server

@@ -224,7 +224,7 @@ export async function runShapingGuardInPage({
   // corruption below), so one shared instance is fine for this alone. Every
   // *shaping* call below gets its own fresh instance instead - see the note
   // on `shape()`.
-  const fk = window.__fontkit.create(fontBytes);
+  const fk = window['__fontkit'].create(fontBytes);
   const rtl = direction === 'rtl';
 
   // Does fontkit's shaper apply any contextual substitution (calt, liga, ...)
@@ -239,7 +239,7 @@ export async function runShapingGuardInPage({
   // Fresh `fontkit.create()` per call, same reason `shape()` below takes one
   // fresh per call - see that comment.
   function substituted(text) {
-    const localFk = window.__fontkit.create(fontBytes);
+    const localFk = window['__fontkit'].create(fontBytes);
     const shapedIds = localFk.layout(text).glyphs.map((g) => g.id);
     const plainIds = Array.from(text).map((ch) => localFk.glyphForCodePoint(ch.codePointAt(0)).id);
     if (shapedIds.length !== plainIds.length) return true;
@@ -272,7 +272,7 @@ export async function runShapingGuardInPage({
   // measurement from every other one, which is what "does fontkit's shaped
   // output for *this* string match" should mean.
   function shape(text) {
-    const localFk = window.__fontkit.create(fontBytes);
+    const localFk = window['__fontkit'].create(fontBytes);
     // Explicit direction on the RTL side, matching how the export path calls
     // layout() on a run resolveBidiRuns has already classified (see
     // src/editor/registry/text.ts) rather than leaving fontkit to guess.

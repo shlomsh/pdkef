@@ -17,9 +17,8 @@ const {
   name = 'PDkef',
   description,
   faq,
-} = Astro.props;
+} = Astro.props as Props;
 
-const siteUrl = Astro.site?.toString().replace(/\/$/, '') ?? '';
 const pageUrl = new URL(Astro.url.pathname, Astro.site).toString();
 
 const author = {
@@ -53,5 +52,5 @@ const faqSchema = faq && {
 };
 ---
 
-<script type="application/ld+json" set:html={JSON.stringify(softwareApp)} />
-{faqSchema && <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
+<script is:inline type="application/ld+json" set:html={JSON.stringify(softwareApp)} />
+{faqSchema && <script is:inline type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}

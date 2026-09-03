@@ -210,7 +210,7 @@ const localizedPages = defineCollection({
       // former hand-entered sourceVersion, it can be compared at build time.
       sourceHash: z.string().regex(/^fnv1a64:[a-f0-9]{16}$/, 'must be the normalized English source hash'),
       reviewer: plain(3, 120).optional(),
-      reviewedAt: z.string().date().optional(),
+      reviewedAt: z.iso.date().optional(),
       reviewNotes: plain(20, 600).optional(),
     })
     .superRefine((entry, ctx) => {

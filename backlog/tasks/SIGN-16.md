@@ -1,12 +1,12 @@
 ---
 id: "SIGN-16"
 title: "Trustworthy delivery checks and docs"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
 phase: "near-term"
 depends_on: []
-legacy_state: "Open"
+legacy_state: "Done — delivery/docs checks verified on 2026-09-03"
 ---
 
 # SIGN-16 · Trustworthy delivery checks and docs
@@ -27,3 +27,33 @@ documents same-origin page-view analytics. Align every public surface with the a
 anonymous-telemetry policy without weakening the separate promise that PDF content is
 never uploaded. The red CSS and temporary-e2e-bundle regressions are tracked separately
 as SIGN-22 and reopened SIGN-21 because they currently fail release commands.
+
+**Current recommendation (2026-09-03):** align public privacy wording with the approved
+anonymous-maintenance-telemetry policy while preserving the stronger promise that files and
+editor content never leave the device. Keep build, CSP, CSS, Chromium output, and offline checks
+as release gates; reduce duplicated work and diagnostic noise only where the same guarantees are
+retained.
+
+**Implementation progress (2026-09-03).** CI now uses the current `@v5` checkout, Node setup,
+and artifact actions without changing its Node 22 target or release gates. The CSP verifier skips
+only the exact bare Google Search Console verification file, preserving its required bytes and
+eliminating the known false warning. README commands and Node 22.12 requirement now match
+`package.json`; README, `llms.txt`, and Edit PDF copy distinguish local document processing from
+limited anonymous aggregate site maintenance analytics. The product-decision and editor-boundary
+documents now point to canonical `backlog/tasks` state and generated `BACKLOG.md` instead of stale
+TODO anchors. `npm run build`, `npm run test:csp`, `npm run test:css`, and `npm run test:weight`
+pass. Full typecheck remains blocked by parallel persistence/undo edits outside this ticket.
+
+**Completed (2026-09-03).** The page-weight graph also follows bare side-effect static imports, so
+every transitive eager chunk is counted. CI reuses its already-gated production build for Playwright
+instead of rebuilding it; `npm run test:e2e` remains the local build-plus-browser command. All
+`astro check` diagnostics are now clean (0 errors, warnings, and hints), including typed e2e
+fontkit access and the former unused/deprecated cleanup. Vitest now filters only jsdom's known
+canvas and navigation non-implementations, leaving every other jsdom error visible; the unit suite
+is quiet and green. `npm test` passes 1,935 tests. The current workspace cannot start Astro preview
+under Playwright (it exits before readiness), so browser execution remains an environment-level
+follow-up rather than a waived release gate.
+
+Dependency license reconciliation and ongoing advisory/update governance are tracked separately as
+SIGN-25 and SIGN-26. This ticket still owns duplicate CI builds, diagnostic noise, and delivery
+documentation; it should not absorb the policy decisions or become a second dependency inventory.

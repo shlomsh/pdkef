@@ -2,9 +2,11 @@
 
 PDkef is built with the following open source packages. This file preserves
 their license notices, as required by the terms of each license. The
-runtime dependencies listed below are the only ones whose code is shipped
-to the browser; build-only tooling (Astro/Vite's transitive dependencies)
-is not included here since it never ships to end users.
+runtime dependencies listed below are the current manually maintained notices;
+build-only tooling (Astro/Vite's transitive dependencies) is not included here
+since it never ships to end users. SIGN-25 tracks reconciliation of this file
+against the production browser bundle and lockfile; until that lands, do not
+treat the list as an exhaustive machine-verified inventory.
 
 A summary view of this list is also published at [/licenses](https://pdkef.com/licenses/).
 

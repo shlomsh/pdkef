@@ -612,7 +612,7 @@ export const tools = [
     ariaLabel: 'Edit PDF pages tool',
     aboutHeading: 'How to edit a PDF online for free',
     aboutLead:
-      'Edit, rotate, reorder, and delete pages from your PDF, right in your browser. No uploads, no servers, no tracking - absolute privacy.',
+      'Edit, rotate, reorder, and delete pages from your PDF, right in your browser. Your file stays on your device; PDF processing never uploads it.',
     freeNoteLead:
       "Remove, rotate, reorder, and number pages in as many PDFs as you like, with no watermark or daily cap. Because every edit runs on your device, there's nothing to upload and no usage to ration.",
     aboutSketch: 'arcs',

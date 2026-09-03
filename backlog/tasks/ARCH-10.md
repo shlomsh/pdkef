@@ -44,6 +44,10 @@ contract. Focused compile fixtures reject missing ids and string aspect ratios.
 Keep this ticket open for the remaining permissive editor element, gesture,
 node-prop, and persisted-history boundaries.
 
+**Current recommendation (2026-09-03):** coordinate the next persisted-history contract slice
+with SIGN-12 so required add/delete undo lands on shared command types. Continue one vertical
+boundary at a time and keep the remaining gesture/node-prop cleanup separate from undo behavior.
+
 **Progress 2026-09-03 (persisted-history slice).** Persisted undo history now uses
 validated, generic `ActionHistoryEntry<TElement>` commands with discriminated add/delete
 operations and full element/index snapshots. Draft schema v2 migrates usable legacy commands,

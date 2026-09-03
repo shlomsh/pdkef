@@ -15,6 +15,11 @@ legacy_state: "Done — dependable add/delete undo landed 2026-09-03"
 
 **Make required undo dependable.** Reducer/action history: represent add/delete with atomic commands including original stacking positions; define clear-page and selective-history semantics. Test add-delete-undo chains and restored z-order. Undo for typing, moving, and styling is optional P3 work until approved.
 
+**Current recommendation (2026-09-03):** complete the typed persisted-history boundary in
+ARCH-10 alongside this work. Keep the first acceptance slice limited to required add/delete undo,
+including the full element snapshot, page, and original stacking position; defer typing, movement,
+and styling history until the command semantics are stable.
+
 **Completed 2026-09-03.** Sign and Redact now record additions and deletions as self-contained
 commands. Every command retains the complete element snapshot, page, and original flat-array
 index; single undo restores deleted elements at that index and removes additions by their captured

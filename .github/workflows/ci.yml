@@ -23,10 +23,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Use Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v5
       with:
         node-version: '22.x'
         cache: 'npm'
@@ -84,7 +84,10 @@ jobs:
       run: npx playwright install --with-deps chromium
 
     - name: Run Playwright e2e tests
-      run: npm run test:e2e
+      # `test:e2e` builds for a useful local one-command release check. CI has
+      # already built the exact dist checked by CSP, SEO, CSS and weight gates,
+      # so invoke Playwright directly rather than building it a second time.
+      run: npx playwright test
 
     # Prints the recaptured baseline rather than committing it. Review the
     # decoded file before it lands: a baseline change is a change to what users
@@ -104,7 +107,7 @@ jobs:
 
     - name: Upload Playwright artifacts
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: playwright-artifacts
         path: |

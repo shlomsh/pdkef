@@ -10,7 +10,7 @@ import usePdfCoordinates from '../lib/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle } from '../editor/registry/redactionSurface.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../editor/workspace/useEditorDraftPersistence.ts';
 import { isDraftElement } from '../editor/registry/draftValidation.ts';
-import { getEditorPreference, setEditorPreference } from '../editor/workspace/preferenceStore.ts';
+import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../editor/workspace/preferenceStore.ts';
 import useDeletableObjects from '../lib/useDeletableObjects.js';
 import RedactToolbar from './RedactToolbar.tsx';
 import RedactBox from './RedactBox.tsx';
@@ -89,6 +89,9 @@ export default function PdfRedactTool() {
   useEffect(() => {
     const stored = getEditorPreference('lastWhiteoutColor');
     if (stored) setActiveColor(stored);
+    return subscribeToEditorPreference('lastWhiteoutColor', ({ value }) => {
+      if (value) setActiveColor(value);
+    });
   }, []);
 
   const rememberColor = (color: string) => {
@@ -564,8 +567,6 @@ export default function PdfRedactTool() {
             toolLocked={toolLocked}
             setTool={setTool}
             setAnnouncement={setAnnouncement}
-            activeColor={activeColor}
-            setActiveColor={rememberColor}
             toggleFullscreen={toggleFullscreen}
             isFullscreen={isFullscreen || isPseudoFullscreen}
             handleDownloadPdf={() => handleSavePdf('download')}

@@ -1,12 +1,12 @@
 ---
 id: "ARCH-06"
 title: "Route Sign/Redact's own preference storage through workspace instead of raw localStorage"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "editor-architecture"
 phase: "unspecified"
 depends_on: []
-legacy_state: "Reopened 2026-09-02 — SignatureDialog still writes raw localStorage"
+legacy_state: "Done 2026-09-03 — SignatureDialog now uses the shared preference contract"
 ---
 
 # ARCH-06 · Route Sign/Redact's own preference storage through workspace instead of raw localStorage
@@ -25,3 +25,14 @@ accepts `parseFloat()` results without the positive/finite validation used by
 migrate the dialog to it, and cover valid, corrupt, and unavailable-storage reads. The
 global pre-paint view-density script is deliberately out of scope because it has a
 separate synchronous first-paint contract.
+
+**Implementation note (2026-09-03):** coordinate this remaining dialog migration with
+SIGN-11's preference versioning so `penColor` and `penThickness` enter the same workspace-owned,
+validated record format once. Do not create a dialog-specific migration or a second storage
+namespace while the persistence contract is changing.
+
+**Completed 2026-09-03.** `penColor` and `penThickness` are validated fields in the versioned
+workspace preference record. `SignatureDialog` reads, writes, and subscribes through that shared
+contract, including unavailable-storage behavior and same-scope tab updates. Sign, Redact, and the
+dialog contain no direct preference-storage calls; the global first-paint density setting remains
+the documented separate concern.

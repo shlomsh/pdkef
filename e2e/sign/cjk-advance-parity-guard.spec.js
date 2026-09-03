@@ -162,7 +162,7 @@ for (const family of FAMILIES) {
           throw new Error(`${family} did not load; measurement would be against a fallback font`);
         }
 
-        const fk = window.__fontkit.create(bytes);
+        const fk = window['__fontkit'].create(bytes);
         const ctx = document.createElement('canvas').getContext('2d');
         ctx.font = `${size}px "${family}"`;
         const scale = size / fk.unitsPerEm;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { convertPdfToImages, parsePageSelector } from '../lib/toImage.js';
+import { convertPdfToImages } from '../lib/toImage.js';
 import BasePdfTool from './BasePdfTool.tsx';
 import styles from './PdfToImageTool.module.css';
 import fileListStyles from './FileList.module.css';

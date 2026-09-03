@@ -25,8 +25,6 @@ export default function RedactToolbar({
   toolLocked,
   setTool,
   setAnnouncement,
-  activeColor,
-  setActiveColor,
   toggleFullscreen,
   isFullscreen,
   handleDownloadPdf,
@@ -43,8 +41,6 @@ export default function RedactToolbar({
   toolLocked: boolean;
   setTool: (tool: string | null, locked?: boolean) => void;
   setAnnouncement: (msg: string) => void;
-  activeColor: string;
-  setActiveColor: (color: string) => void;
   toggleFullscreen: () => void;
   isFullscreen: boolean;
   handleDownloadPdf: () => void;

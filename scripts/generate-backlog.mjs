@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { readTasks } from './backlog-data.mjs';
 
 const projectDirectory = resolve(new URL('..', import.meta.url).pathname);

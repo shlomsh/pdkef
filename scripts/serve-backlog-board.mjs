@@ -11,15 +11,6 @@ const lanes = {
 };
 const statusLabels = { open: 'Open', in_progress: 'In progress', blocked: 'Blocked', done: 'Done', retired: 'Retired' };
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
 function clientTask(task) {
   const detail = task.body.replace(/^#.*\n+## Scope and acceptance\n+/s, '').replace(/\n+/g, ' ').replace(/\*\*|`|~~/g, '').trim();
   return { id: task.id, title: task.title, priority: task.priority, status: task.status, statusLabel: statusLabels[task.status], lane: lanes[task.epic] || task.epic, detail };

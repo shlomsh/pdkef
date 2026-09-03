@@ -3,6 +3,7 @@ import SignaturePad from 'signature_pad';
 import ColorPicker from './ColorPicker.tsx';
 import { HANDWRITING_FONTS, resolveFontFamily, textBoxPaddingEm } from '../editor/text/fonts.js';
 import { DEFAULT_LINE_HEIGHT_EM } from '../constants/signGeometry.js';
+import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../editor/workspace/preferenceStore.ts';
 import styles from './SignatureDialog.module.css';
 import dialogStyles from './Dialog.module.css';
 
@@ -33,34 +34,33 @@ export default function SignatureDialog({
   const [uploadAspectRatio, setUploadAspectRatio] = useState(1);
   const [removeBg, setRemoveBg] = useState(true);
 
-  // Load last-used pen color/thickness from localStorage on mount
+  // The shared preference store keeps the signature dialog in the same local
+  // user scope as the rest of the editor, including other tabs.
   useEffect(() => {
-    try {
-      const storedColor = localStorage.getItem('pdf-toolkit:penColor');
-      if (storedColor) setPenColor(storedColor);
-      const storedThickness = localStorage.getItem('pdf-toolkit:penThickness');
-      if (storedThickness) setPenThickness(parseFloat(storedThickness));
-    } catch (e) {
-      console.error('Failed to load pen settings from localStorage:', e);
-    }
+    const storedColor = getEditorPreference('penColor');
+    if (storedColor) setPenColor(storedColor);
+    const storedThickness = getEditorPreference('penThickness');
+    if (storedThickness) setPenThickness(storedThickness);
+    const stopColor = subscribeToEditorPreference('penColor', ({ value }) => {
+      if (value) setPenColor(value);
+    });
+    const stopThickness = subscribeToEditorPreference('penThickness', ({ value }) => {
+      if (value) setPenThickness(value);
+    });
+    return () => {
+      stopColor();
+      stopThickness();
+    };
   }, []);
 
   const rememberPenColor = (color: string) => {
     setPenColor(color);
-    try {
-      localStorage.setItem('pdf-toolkit:penColor', color);
-    } catch (e) {
-      console.error('Failed to persist pen color to localStorage:', e);
-    }
+    setEditorPreference('penColor', color);
   };
 
   const rememberPenThickness = (thickness: number) => {
     setPenThickness(thickness);
-    try {
-      localStorage.setItem('pdf-toolkit:penThickness', String(thickness));
-    } catch (e) {
-      console.error('Failed to persist pen thickness to localStorage:', e);
-    }
+    setEditorPreference('penThickness', thickness);
   };
 
   // Helper to remove solid white or light backgrounds
