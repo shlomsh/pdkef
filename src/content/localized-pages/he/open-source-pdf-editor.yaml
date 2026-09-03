@@ -1,7 +1,7 @@
 pageId: 'open-source-pdf-editor'
 locale: 'he'
 status: 'draft'
-sourceVersion: '2026-08-28'
+sourceHash: 'fnv1a64:225263c47fe379b7'
 title: 'עורך PDF חינמי בקוד פתוח | PDkef'
 description: 'עורך PDF חינמי בקוד פתוח וברישיון MIT, שפועל בדפדפן. למדו איך לבדוק עיבוד מקומי, היכן לראות את הקוד ואיך להריץ עותק עצמאי.'
 breadcrumb: 'קוד פתוח'

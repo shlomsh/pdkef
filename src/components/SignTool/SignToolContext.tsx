@@ -2,6 +2,7 @@ import { createContext } from 'preact';
 import type { ComponentChildren } from 'preact';
 import { useReducer, useContext, useMemo } from 'preact/hooks';
 import { widthPercentToHeightPercent } from '../../editor/geometry/coords.js';
+import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import type { EditorElement } from '../../editor/model/editorModel.ts';
 import {
   MIN_LINE_LENGTH_PCT,
@@ -15,23 +16,53 @@ import {
   DEFAULT_SHAPE_FALLBACK_ASPECT_RATIO
 } from '../../constants/signGeometry.js';
 
-// Loosely typed on purpose (see TODO.md "Type the interactive shell"): the
-// reducer's action shape and actionHistory entries aren't modeled yet, so both
-// stay `any` rather than inventing a parallel type nothing else uses.
+/**
+ * Mutable fields from any editor element variant. Identity, kind, and page are
+ * deliberately absent: moving an existing annotation between kinds or pages
+ * must be an explicit document operation, never an accidental toolbar patch.
+ */
+export type EditorElementPatch<T extends EditorElement = EditorElement> =
+  T extends unknown ? Partial<Omit<T, 'id' | 'type' | 'pageIndex'>> : never;
+
+export type SignToolAction =
+  | { type: 'SET_TOOL'; payload: string | null | { tool: string; locked: boolean } }
+  | { type: 'DISARM_TOOL' }
+  | { type: 'SET_ELEMENTS'; payload: EditorElement[] }
+  | { type: 'ADD_ELEMENT'; payload: EditorElement }
+  | { type: 'UPDATE_ELEMENT'; payload: { id: string; changes: EditorElementPatch } }
+  | { type: 'DELETE_ELEMENT'; payload: string }
+  | { type: 'CLEAR_PAGE'; payload: number }
+  | { type: 'SET_ACTIVE_ELEMENT_ID'; payload: string | null }
+  | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }
+  | { type: 'SET_ACTION_HISTORY'; payload: ActionHistoryEntry<EditorElement>[] }
+  | { type: 'ADD_ACTION_HISTORY'; payload: ActionHistoryEntry<EditorElement> }
+  | {
+      type: 'ENSURE_MINIMUM_SIZE';
+      payload: {
+        id: string;
+        tool: string;
+        rectWidth: number;
+        rectHeight: number;
+        startLeftPercent: number;
+        startTopPercent: number;
+      };
+    }
+  | { type: 'UNDO' };
+
 export interface SignToolState {
   selectedTool: string | null;
   toolLocked: boolean;
   elements: EditorElement[];
   activeElementId: string | null;
   editingElementId: string | null;
-  actionHistory: any[];
+  actionHistory: ActionHistoryEntry<EditorElement>[];
   /** Monotonic document version; exports must match the version they started with. */
   documentRevision: number;
 }
 
 export interface SignToolContextValue {
   state: SignToolState;
-  dispatch: (action: any) => void;
+  dispatch: (action: SignToolAction) => void;
 }
 
 export const SignToolContext = createContext<SignToolContextValue | null>(null);
@@ -64,7 +95,7 @@ const initialState: SignToolState = {
 
 const nextDocumentRevision = (state: SignToolState) => (state.documentRevision ?? 0) + 1;
 
-export function reducer(state: SignToolState, action: any): SignToolState {
+export function reducer(state: SignToolState, action: SignToolAction): SignToolState {
   switch (action.type) {
     case 'SET_TOOL': {
       // Payload is either a bare tool name (the common one-shot case) or
@@ -164,9 +195,12 @@ export function reducer(state: SignToolState, action: any): SignToolState {
       const isLineTool = tool === 'line';
       return {
         ...state,
-        elements: state.elements.map((el: any) => {
+        elements: state.elements.map((el) => {
           if (el.id !== id) return el;
           if (isLineTool) {
+            // A stale gesture must not reinterpret a non-line element as a
+            // line just because it still has the same id after a restore.
+            if (el.type !== 'line') return el;
             const tiny = Math.hypot(el.x2 - el.x1, el.y2 - el.y1) < MIN_LINE_LENGTH_PCT;
             if (tiny) {
               return {
@@ -177,6 +211,7 @@ export function reducer(state: SignToolState, action: any): SignToolState {
             }
             return el;
           }
+          if (!('width' in el) || !('height' in el)) return el;
           if (el.width < MIN_SHAPE_THRESHOLD_PCT && el.height < MIN_SHAPE_THRESHOLD_PCT) {
             if (tool === 'whiteout') {
               return {
@@ -200,7 +235,7 @@ export function reducer(state: SignToolState, action: any): SignToolState {
       if (state.actionHistory.length === 0) return state;
       const lastAction = state.actionHistory[0];
       // Deletion entries carry a snapshot of what was removed — undo restores it
-      // instead of removing by id (see actionHistory.js).
+      // instead of removing by id (see actionHistory.ts).
       if (lastAction.snapshot) {
         return {
           ...state,

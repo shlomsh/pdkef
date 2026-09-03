@@ -25,17 +25,18 @@
 // pinning to the grid's first column with empty space beside it, while the
 // same rule wraps sign's six cards into balanced rows.
 import { contentPagesForTool } from '../data/contentPages.js';
+import type { RelatedGuidesMessages } from '../i18n/documentationMessages';
 
 interface Props {
   currentSlug: string;
   heading?: string;
   locale?: string;
-  labels?: Record<string, string>;
+  labels?: RelatedGuidesMessages;
   resolveLink?: (pageId: string, locale: string) => { href: string; fallback?: boolean };
 }
 
-const { currentSlug, heading, locale = 'en', labels = {}, resolveLink } = Astro.props;
-const resolvedHeading = heading ?? labels.relatedHeading ?? 'Documentation';
+const { currentSlug, heading, locale = 'en', labels = {} as RelatedGuidesMessages, resolveLink } = Astro.props;
+const resolvedHeading = heading ?? labels?.relatedHeading ?? 'Documentation';
 const related = contentPagesForTool(currentSlug);
 ---
 

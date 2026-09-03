@@ -2,7 +2,7 @@ import { useEffect } from 'preact/hooks';
 
 // Global Cmd/Ctrl+Z to undo the most recently logged action. Ignored while
 // typing in an input/textarea so native text-field undo isn't hijacked.
-// Shared by the Sign and Redact tools — see actionHistory.js.
+// Shared by the Sign and Redact tools — see actionHistory.ts.
 export function useUndoShortcut(onUndo) {
   useEffect(() => {
     const handleKeyDown = (e) => {

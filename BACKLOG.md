@@ -57,13 +57,12 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | ARCH-06 | P3 | [ARCH-06](backlog/tasks/ARCH-06.md) · Route Sign/Redact's own preference storage through workspace instead of raw localStorage |
-| ARCH-08 | P2 | [ARCH-08](backlog/tasks/ARCH-08.md) · Make documentation shell messages data-driven per locale |
-| ARCH-09 | P2 | [ARCH-09](backlog/tasks/ARCH-09.md) · Make translated documentation freshness enforceable |
-| ARCH-10 | P2 | [ARCH-10](backlog/tasks/ARCH-10.md) · Replace permissive editor-shell types with shared contracts |
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| ARCH-10 | P2 | [ARCH-10](backlog/tasks/ARCH-10.md) · Replace permissive editor-shell types with shared contracts |
 
 ### Blocked
 
@@ -79,6 +78,8 @@ _None._
 | ARCH-04 | P2 | [ARCH-04](backlog/tasks/ARCH-04.md) · Split PDF-library adapters out of workspace/ and lib/ |
 | ARCH-05 | P3 | [ARCH-05](backlog/tasks/ARCH-05.md) · Move draft persistence into workspace/ |
 | ARCH-07 | P3 | [ARCH-07](backlog/tasks/ARCH-07.md) · Consolidate documentation locale routing under src/i18n/ |
+| ARCH-08 | P2 | [ARCH-08](backlog/tasks/ARCH-08.md) · Make documentation shell messages data-driven per locale |
+| ARCH-09 | P2 | [ARCH-09](backlog/tasks/ARCH-09.md) · Make translated documentation freshness enforceable |
 
 ### Retired
 

@@ -14,13 +14,14 @@
 // one image that is always above the fold.
 import { Image } from 'astro:assets';
 import logo from '../assets/logo.png';
+import type { AppBarMessages } from '../i18n/documentationMessages';
 
 interface Props {
   toolName?: string;
   isHome?: boolean;
-  labels?: Record<string, string>;
+  labels?: AppBarMessages;
 }
-const { toolName, isHome = false, labels = {} } = Astro.props;
+const { toolName, isHome = false, labels = {} as AppBarMessages } = Astro.props;
 
 const maxWidthClass = isHome ? 'max-w-[1080px]' : 'max-w-[1400px]';
 

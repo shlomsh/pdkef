@@ -1,12 +1,12 @@
 ---
 id: "ARCH-08"
 title: "Make documentation shell messages data-driven per locale"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "editor-architecture"
 phase: "near-term"
 depends_on: ["ARCH-07"]
-legacy_state: "Open — raised 2026-09-02 from localization re-audit"
+legacy_state: "Done 2026-09-03"
 ---
 
 # ARCH-08 · Make documentation shell messages data-driven per locale
@@ -25,3 +25,11 @@ publishable page must provide every required shell key, while the English editor
 and English control labels remain explicitly English per product policy. Keep the
 documentation pages static and add LTR and RTL tests proving missing keys fail before a
 page can publish.
+
+**Completed 2026-09-03.** `src/i18n/documentationMessages.ts` now owns the
+typed English and Hebrew documentation-shell catalogs. The shared route and
+layout pass one complete catalog through AppBar, language selector, FAQ,
+related-guide, social-alt, preview, and footer surfaces; no localized editor UI
+was introduced. Missing or blank keys throw during static generation, and LTR,
+RTL, completeness, and English-editor-destination behavior are covered by
+focused tests.

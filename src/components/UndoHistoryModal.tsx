@@ -1,9 +1,10 @@
 import { useRef, useEffect } from 'preact/hooks';
+import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
 import dialogStyles from './Dialog.module.css';
 import styles from './UndoHistoryModal.module.css';
 
 // Shared "Undo changes" dialog for the Sign and Redact tools — lists logged
-// actions (see actionHistory.js) as a checklist so several can be reverted at
+// actions (see actionHistory.ts) as a checklist so several can be reverted at
 // once, alongside the Cmd/Ctrl+Z single-step undo (useUndoShortcut.js).
 //
 // Self-manages its own dialog ref and showModal()/close() lifecycle (rather
@@ -22,7 +23,7 @@ export default function UndoHistoryModal({
 }: {
   open: boolean;
   onClose: () => void;
-  actionHistory: any[];
+  actionHistory: ActionHistoryEntry[];
   undoSelection: Set<string>;
   setUndoSelection: (s: Set<string>) => void;
   onRevertSelected: () => void;

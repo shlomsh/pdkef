@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
-import type { EditorElement } from '../editor/model/editorModel.ts';
+import type { PDFDocumentProxy } from 'pdfjs-dist';
+import type { EditorElement, SignatureElement } from '../editor/model/editorModel.ts';
+import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
 import BasePdfTool from './BasePdfTool.tsx';
 import { SignToolProvider, useSignTool } from './SignTool/SignToolContext.tsx';
 import { SignDefaultsContext } from './SignTool/SignDefaultsContext.tsx';
@@ -14,7 +16,7 @@ import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../constants/
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { useEditorDraftPersistence } from '../editor/workspace/useEditorDraftPersistence.ts';
 import { getEditorPreference, setEditorPreference } from '../editor/workspace/preferenceStore.ts';
-import { createActionEntry } from '../editor/model/actionHistory.js';
+import { createActionEntry } from '../editor/model/actionHistory.ts';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import UndoHistoryModal from './UndoHistoryModal.tsx';
@@ -48,7 +50,7 @@ export default function PdfSignTool() {
 function PdfSignToolInner() {
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
-  const [pdfDocument, setPdfDocument] = useState<any>(null);
+  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [pageSizes, setPageSizes] = useState<PageGeometry[]>([]); // Rotated/cropped visible page frames in physical PDF points.
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, documentRevision }, dispatch } = useSignTool();
   const setSelectedTool = (tool: string | null) => dispatch({ type: 'SET_TOOL', payload: tool });
@@ -204,7 +206,13 @@ function PdfSignToolInner() {
     }
   };
 
-  const logAction = (type: string, elId: string, pageIndex: number, description: string, snapshot: any = null) => {
+  const logAction = (
+    type: string,
+    elId: string | null,
+    pageIndex: number,
+    description: string,
+    snapshot: EditorElement[] | null = null,
+  ) => {
     dispatch({
       type: 'ADD_ACTION_HISTORY',
       payload: createActionEntry(type, elId, pageIndex, description, snapshot)
@@ -216,9 +224,9 @@ function PdfSignToolInner() {
     if (idsToRevert.length === 0) return;
     const revertedActions = actionHistory.filter(action => idsToRevert.includes(action.id));
     // Creation entries revert by removing the element they added; deletion
-    // entries (snapshot set — see actionHistory.js) revert by restoring it.
+    // entries (snapshot set — see actionHistory.ts) revert by restoring it.
     const idsToRemove = revertedActions.filter(a => !a.snapshot).map(a => a.elementId);
-    const elementsToRestore = revertedActions.filter(a => a.snapshot).flatMap(a => a.snapshot);
+    const elementsToRestore = revertedActions.flatMap((action) => action.snapshot ?? []);
     dispatch({
       type: 'SET_ELEMENTS',
       payload: elements.filter(el => !idsToRemove.includes(el.id)).concat(elementsToRestore)
@@ -232,7 +240,7 @@ function PdfSignToolInner() {
     setAnnouncement('Reverted selected actions.');
   };
 
-  // Cmd/Ctrl+Z: undo the single most recently logged action (see actionHistory.js).
+  // Cmd/Ctrl+Z: undo the single most recently logged action (see actionHistory.ts).
   const undoLast = () => {
     if (actionHistory.length === 0) return;
     const lastAction = actionHistory[0];
@@ -412,8 +420,8 @@ function PdfSignToolInner() {
         setPageSizes([]);
         setErrorDetail(null);
         setProgress(0);
-        dispatch({ type: 'SET_ELEMENTS', payload: presetElements });
-        dispatch({ type: 'SET_ACTION_HISTORY', payload: preset.actionHistory || [] });
+        dispatch({ type: 'SET_ELEMENTS', payload: presetElements as EditorElement[] });
+        dispatch({ type: 'SET_ACTION_HISTORY', payload: (preset.actionHistory || []) as ActionHistoryEntry<EditorElement>[] });
         dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
         dispatch({ type: 'SET_TOOL', payload: null });
         seedUniqueId(presetElements);
@@ -487,7 +495,7 @@ function PdfSignToolInner() {
     
     const heightPercent = widthPercentToHeightPercent(widthPercent, aspectRatio, pageWrapperWidth, pageWrapperHeight);
     
-    const newEl = {
+    const newEl: SignatureElement = {
       id,
       type: 'signature',
       pageIndex: pageIdx,

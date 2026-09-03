@@ -9,21 +9,22 @@
 // full-height FeatureCard.
 import { FileSignature } from 'lucide-preact';
 import { guides } from '../data/contentPages.js';
+import type { OtherGuidesMessages } from '../i18n/documentationMessages';
 
 interface Props {
   currentHref: string;
   locale?: string;
-  labels?: Record<string, string>;
+  labels: OtherGuidesMessages;
   resolveLink?: (pageId: string, locale: string) => { href: string; fallback?: boolean };
 }
 
-const { currentHref, locale = 'en', labels = {}, resolveLink } = Astro.props;
+const { currentHref, locale = 'en', labels, resolveLink } = Astro.props;
 const others = guides.filter((guide) => guide.href !== currentHref);
 ---
 
 <section class="mx-auto mb-16 w-full max-w-[1080px] px-6 min-[768px]:mb-24" aria-labelledby="other-guides-heading">
   <div class="mb-6 text-center">
-    <h2 id="other-guides-heading" class="m-0 text-[1.15rem] font-bold text-[var(--color-text)]">{labels.otherDevices ?? 'Signing on a different device?'}</h2>
+    <h2 id="other-guides-heading" class="m-0 text-[1.15rem] font-bold text-[var(--color-text)]">{labels.otherDevices}</h2>
   </div>
   <ul class="m-0 flex list-none flex-wrap justify-center gap-3 p-0">
     {others.map((guide) => {
@@ -45,7 +46,7 @@ const others = guides.filter((guide) => guide.href !== currentHref);
         class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-primary-tint)] bg-[var(--color-primary-soft)] px-4 py-2 text-[0.9rem] font-medium text-[var(--color-primary)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)]"
       >
         <FileSignature size={16} strokeWidth={1.75} />
-        {labels.openSignTool ?? 'Open the Sign & Fill tool'}
+        {labels.openSignTool}
       </a>
     </li>
   </ul>

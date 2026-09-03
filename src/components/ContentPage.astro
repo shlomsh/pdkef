@@ -9,9 +9,10 @@ import OtherGuides from './OtherGuides.astro';
 import { CONTENT_ICONS } from '../data/contentIcons';
 import { guides } from '../data/contentPages.js';
 import { renderInline } from '../lib/contentMarkup';
+import type { DocumentationShellMessages } from '../i18n/documentationMessages';
 
-interface Props { entry: any; pageId?: string; locale?: string; labels?: Record<string, string>; resolveLink?: (pageId: string, locale: string) => { href: string; effectiveLocale?: string; fallback?: boolean }; }
-const { entry, pageId = entry.data.pageId ?? entry.id, locale = 'en', labels = {}, resolveLink } = Astro.props;
+interface Props { entry: any; pageId?: string; locale?: string; labels: DocumentationShellMessages; resolveLink?: (pageId: string, locale: string) => { href: string; effectiveLocale?: string; fallback?: boolean }; }
+const { entry, pageId = entry.data.pageId ?? entry.id, locale = 'en', labels, resolveLink } = Astro.props;
 const page = entry.data;
 const englishHref = `/${pageId}/`;
 const isDeviceGuide = guides.some((guide) => guide.href === englishHref);

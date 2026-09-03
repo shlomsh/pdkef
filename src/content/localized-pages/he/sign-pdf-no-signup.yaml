@@ -1,7 +1,7 @@
 pageId: 'sign-pdf-no-signup'
 locale: 'he'
 status: 'draft'
-sourceVersion: '2026-08-28'
+sourceHash: 'fnv1a64:b3bb696d7a4206e2'
 title: 'חתימה על PDF בלי הרשמה | PDkef'
 description: 'חתמו על PDF בלי לפתוח חשבון או למסור אימייל. הבינו את ההבדל בין חתימה אלקטרונית נראית לעין לחתימה דיגיטלית מבוססת תעודה, והורידו את העותק מהמכשיר.'
 breadcrumb: 'חתימה בלי הרשמה'

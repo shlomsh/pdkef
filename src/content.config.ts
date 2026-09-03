@@ -206,7 +206,9 @@ const localizedPages = defineCollection({
       pageId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
       locale: z.enum(DOCUMENTATION_LOCALE_IDS).refine((locale) => locale !== 'en', 'English stays in content-pages'),
       status: z.enum(['draft', 'published']),
-      sourceVersion: z.string().min(1).max(120),
+      // A source hash is computed from normalized English content. Unlike the
+      // former hand-entered sourceVersion, it can be compared at build time.
+      sourceHash: z.string().regex(/^fnv1a64:[a-f0-9]{16}$/, 'must be the normalized English source hash'),
       reviewer: plain(3, 120).optional(),
       reviewedAt: z.string().date().optional(),
       reviewNotes: plain(20, 600).optional(),

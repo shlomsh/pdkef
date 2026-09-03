@@ -4,6 +4,7 @@ import ContentPage from '../../components/ContentPage.astro';
 import { CONTENT_ICONS } from '../../data/contentIcons';
 import { documentationLocales, getDocumentationLocaleByPrefix } from '../../i18n/documentationLocales';
 import { getDocumentationContext, getDocumentationVariants } from '../../i18n/documentation';
+import { getDocumentationShellMessages } from '../../i18n/documentationMessages';
 
 export async function getStaticPaths() {
   const variants = await getDocumentationVariants();
@@ -27,11 +28,10 @@ if (!routeLocale || routeLocale.id !== localeId) {
 const context = await getDocumentationContext(pageId, localeId);
 const entry: any = context.entry;
 const page = entry.data;
-const labels: Record<string, string> = context.effectiveLocale === 'he' ? {
-  language: 'שפה',
-  otherDevices: 'חותמים במכשיר אחר?',
-  openSignTool: 'פתיחת כלי החתימה והמילוי (באנגלית)',
-} : {};
+const messages = getDocumentationShellMessages(context.effectiveLocale);
+// ARCH-09 supplies source freshness separately from publication state. A stale
+// draft remains a noindex preview, with a more specific localized notice.
+const stale = context.preview && context.freshness === 'stale';
 ---
 
 <ContentPageLayout
@@ -52,13 +52,14 @@ const labels: Record<string, string> = context.effectiveLocale === 'he' ? {
   locale={context.effectiveLocale}
   variants={context.variants}
   preview={context.preview}
-  labels={labels}
+  messages={messages}
+  previewNotice={stale ? messages.stalePreviewNotice : messages.previewNotice}
 >
   <ContentPage
     entry={entry}
     pageId={pageId}
     locale={context.effectiveLocale}
-    labels={labels}
-    resolveLink={(targetPageId, targetLocale) => context.resolveDocumentationLink(targetPageId, targetLocale as any)}
+    labels={messages}
+    resolveLink={(targetPageId: string, targetLocale: string) => context.resolveDocumentationLink(targetPageId, targetLocale)}
   />
 </ContentPageLayout>

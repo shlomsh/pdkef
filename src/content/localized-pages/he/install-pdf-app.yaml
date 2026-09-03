@@ -1,7 +1,7 @@
 pageId: 'install-pdf-app'
 locale: 'he'
 status: 'draft'
-sourceVersion: '2026-08-28'
+sourceHash: 'fnv1a64:0ed86505e6f31347'
 title: 'התקנת אפליקציית PDF בדפדפן | PDkef'
 description: 'הוסיפו את PDkef למסך הבית או לשולחן העבודה לגישה מהירה לטפסי PDF. כך פועלת התקנה בדפדפן, טיוטות מקומיות ועבודה לא מקוונת לאחר טעינת הנכסים.'
 breadcrumb: 'התקנת PDF'
