@@ -64,3 +64,7 @@ eight `overflow-hidden` FeatureCard wrappers, which is exactly where the demo wo
 nested, and any of them would have killed the sticky behaviour with no error anywhere. The demo is
 mounted as a direct sibling after the first-screen wrapper instead, and `HeroDemo.astro` and
 `index.astro` both carry a comment saying why.
+
+**One thing this ticket specified and did not deliver:** the persistent minimal progress indicator. It
+was closed on the strength of the sticky mechanics and the placement decision, both of which shipped,
+but the indicator was never built. Carried into DEMO-02's remaining work rather than left implied here.
