@@ -5,6 +5,7 @@ import Footer from '../components/Footer.astro';
 import FeatureCard from '../components/FeatureCard.astro';
 import CardDecor from '../components/CardDecor.astro';
 import AppBar from '../components/AppBar.astro';
+import HeroDemo from '../components/HeroDemo/HeroDemo.astro';
 import '../styles/global.css';
 
 const title = 'Free PDF Tools - Private, Local, No Sign-Up | PDkef';
@@ -133,6 +134,14 @@ const faq = [
     </div>
   </main>
 </div>
+
+    {/* HeroDemo (DEMO-02): the second screen, a direct sibling in the page
+        flow rather than nested inside a FeatureCard. position: sticky is
+        killed with no error by any ancestor carrying overflow/transform/
+        filter/contain, and every FeatureCard below sets overflow-hidden -
+        see DEMO-05's placement decision in
+        backlog/tasks/DEMO-05.md and HeroDemo.astro's own header comment. */}
+    <HeroDemo />
 
     <FeatureCard class="relative isolate overflow-hidden">
       <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} />
