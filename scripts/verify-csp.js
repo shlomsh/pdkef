@@ -28,6 +28,15 @@ function findHtmlFiles(dir, fileList = []) {
 const htmlFiles = findHtmlFiles(distDir);
 let hasError = false;
 
+// Files in dist/ that are copied verbatim out of public/ rather than rendered by
+// Astro, so no CSP meta tag is ever injected into them and none is expected.
+// Everything else must carry one: a page that has lost its tag is not "unhashed",
+// it is unprotected, and the whole point of this gate is that that fails the build.
+const NO_CSP_EXPECTED = new Set([
+  // Google Search Console verification token - a one-line text file named .html.
+  'google2c4730f55b90649a.html',
+]);
+
 for (const file of htmlFiles) {
   const content = fs.readFileSync(file, 'utf-8');
   // Google verifies this file's exact bytes. It is an intentional, bare
@@ -36,9 +45,17 @@ for (const file of htmlFiles) {
   const dom = new JSDOM(content);
   const document = dom.window.document;
 
+  // Astro emits the attribute value lower-cased (http-equiv="content-security-policy").
+  // The selector still matches, because http-equiv is one of the attributes the HTML
+  // spec matches ASCII case-insensitively in selectors - but a hand-run
+  // `grep "Content-Security-Policy" dist/index.html` finds nothing and looks exactly
+  // like the tag has vanished site-wide. Grep with -i.
   const cspMeta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
   if (!cspMeta) {
-    console.warn(`[WARN] No CSP meta tag found in ${path.relative(process.cwd(), file)}`);
+    const relative = path.relative(process.cwd(), file);
+    if (NO_CSP_EXPECTED.has(path.basename(relative))) continue;
+    console.error(`[ERROR] ${relative}: no CSP meta tag at all. Astro's security.csp did not run for this page, so it ships with no policy.`);
+    hasError = true;
     continue;
   }
 
