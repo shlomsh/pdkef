@@ -1,7 +1,7 @@
 ---
 id: "DEMO-05"
 title: "Full-height story panels that read as slides without hijacking the scroll"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "landing-story-demo"
 phase: "later"
@@ -47,3 +47,20 @@ The first screen already sorts the two audiences without any of that machinery: 
 Copy follows DEMO-04's plain language and DEMO-07's vocabulary: blur, never redact.
 
 **Acceptance.** Smooth on a trackpad, a mouse wheel and a touchscreen, with no scroll interception. Correct at 390px with a collapsing URL bar. Under `prefers-reduced-motion: reduce` and with JS disabled it degrades to a plain readable stack with nothing permanently invisible. Marketing copy stays server-rendered (Part II §1.1). Lighthouse Performance and SEO stay at or above 95, and CLS does not regress.
+
+## What landed
+
+Commits d2e0609 (the placement decision and its reasoning, mirrored into CLAUDE.md's "What the home
+page is for" section) and 021de65 (the mechanics, which DEMO-02's hero demo consumes directly).
+
+The pattern is as specified: `position: sticky` stages inside taller tracks measured in `svh`, no
+`scroll-snap` anywhere, and progress recomputed from scroll position on every frame rather than
+accumulated. That last detail is what makes scrubbing backwards genuinely un-fill the form, and it was
+verified bit for bit: scrolling forward to a given offset and then returning to it reproduces the same
+progress value to the last decimal place, which is only possible if nothing is being accumulated.
+
+The `overflow-hidden` warning in this ticket turned out to matter in practice. `index.astro` carries
+eight `overflow-hidden` FeatureCard wrappers, which is exactly where the demo would instinctively be
+nested, and any of them would have killed the sticky behaviour with no error anywhere. The demo is
+mounted as a direct sibling after the first-screen wrapper instead, and `HeroDemo.astro` and
+`index.astro` both carry a comment saying why.

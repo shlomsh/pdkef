@@ -1,7 +1,7 @@
 ---
 id: "DEMO-03"
 title: "Close the loop: accept a PDF shared into PDkef from another app"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "landing-story-demo"
 phase: "near-term"
@@ -20,3 +20,25 @@ Add a `share_target` entry to the manifest (`method: "POST"`, `enctype: "multipa
 Two real complications to solve rather than skip. **There is no server**, so a `POST` share target has to be caught by `public/sw.js` and handed to the page rather than answered by an origin; that worker has three documented invariants (no `skipWaiting()`, best-effort precaching, self-uninstall on a 404 manifest) and none of them may be quietly reverted to make this work. **iOS does not implement Web Share Target**, so the honest answer there is the Files/share-sheet-into-Safari path, and the copy must not claim an Android-only capability everywhere.
 
 **Acceptance.** With PDkef installed on Android Chrome, a PDF in a chat can be shared into it and opens in the Sign editor ready to sign. Desktop and iOS keep working exactly as they do now, with no regression to the ordinary file-pick path. No file bytes leave the device at any point; the share is an OS handoff, not an upload. `npm run test:e2e`'s service-worker and hydration guards still pass, and the three `sw.js` invariants are intact.
+
+## What landed
+
+Commit e6b7787. `public/manifest.webmanifest` declares a `share_target` (POST,
+`multipart/form-data`, `application/pdf`) and `file_handlers`. Because there is no server, the POST is
+caught in `public/sw.js`: `handleShareTarget` reads `request.formData()`, `saveShareHandoff` writes the
+file to IndexedDB, and the worker answers with a 303 redirect to `/sign/`, which then picks the file up
+through the same `loadPdf()` path a fresh pick and a draft restore already share. No bytes leave the
+device; the share is an OS handoff.
+
+The worker's three invariants are intact: no `skipWaiting()`, best-effort per-URL precaching with `/`
+required, and self-uninstall on a 404 manifest.
+
+`src/lib/draftStoreServiceWorkerSync.test.js` was added because four constants are now duplicated
+between `sw.js` and `draftStore.js` and a service worker cannot import from the app bundle. It extracts
+them textually from both files and fails if they drift.
+
+**Still unverified: the Android share-sheet round trip on real hardware.** Nobody has installed the
+PWA on an Android phone and shared a PDF into it from a chat. Everything above is verified by unit
+tests and by reading the spec, which is not the same thing. iOS does not implement Web Share Target at
+all, so the honest path there remains the Files and share-sheet-into-Safari route, and no copy claims
+otherwise.

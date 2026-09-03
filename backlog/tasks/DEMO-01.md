@@ -1,7 +1,7 @@
 ---
 id: "DEMO-01"
 title: "Type roles and vertical rhythm tokens for the marketing surface"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "landing-story-demo"
 phase: "near-term"
@@ -26,3 +26,20 @@ Use logical properties throughout (`padding-block`, `margin-inline`, `text-start
 Note the `@theme`-omission trap in CLAUDE.md: a Tailwind utility whose scale step is not declared compiles to no CSS at all, silently. Declare before use.
 
 **Acceptance.** The marketing sections of `index.astro`, the tool pages and `src/pages/[contentPage].astro` use the roles instead of arbitrary sizes. `npm run test:css` passes (both `check-dead-utilities.js` and `check-class-resolution.js`). `check-css-duplication.js` and `check-page-weight.js` do not regress; this should remove distinct bytes rather than add them, so if it adds any, say why. Verified by eye at 390px and 1200px.
+
+## What landed
+
+Commit f854401. `src/styles/global.css` gained six `--type-*` roles and four `--space-*` rhythm
+tokens, exposed as `@layer components` classes (`type-hero`, `type-section`, `type-lead`,
+`type-card`, `type-body`), and the marketing surface was moved onto them.
+
+One thing worth remembering came out of it. The pass removed a bare `header h1 { margin: 0 0 0.75rem }`
+rule, which had been quietly resetting the browser's default top margin for four consumers. Three were
+given an explicit `mt-0` and the home page was given `mb-0`, which only handled the side that was
+already zero. The UA default `margin-block-start: 0.67em` then surfaced, and because the hero row is
+`align-items: center`, which centres the margin box rather than the content box, the logo sat 17.4px
+above the title. Fixed in 7bc4233 by changing `mb-0` to `m-0`.
+
+That is the third bug of the same shape found in `global.css` in one day: a bare element selector
+silently beating, or silently propping up, what a page thinks it is setting. All three were invisible
+until someone measured a computed value.
