@@ -1,7 +1,7 @@
 ---
 id: "DEMO-02"
 title: "The hero demo: fill and sign a form from a chat, and blur what's private before sending it"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "landing-story-demo"
 phase: "near-term"
