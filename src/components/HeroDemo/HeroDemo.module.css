@@ -127,16 +127,21 @@
      source order so it wins for elements carrying both classes (composes
      adds the class name, not the rule's cascade position).
 
-     Heights were raised from the original 500svh / 340svh on 2026-09-04:
-     story one grew from 9 beats to 10 (added "share", the OS share-sheet
-     beat) and story two grew from 6 beats to 8 (added "blackout",
-     "whiteout" and "delete" alongside the renamed "blur" beat, net +2).
-     Both were scaled up roughly in proportion to their new beat count so
-     the average distance-per-beat - and therefore how long a visitor has
-     to read each effect - stays close to what it was before, rather than
-     the new beats simply stealing scroll distance from the old ones. */
+     Heights were raised from the original 500svh / 340svh on 2026-09-04,
+     then .track raised again on 2026-09-04 from 560svh: story one grew
+     from 9 beats to 10 (added "share", the OS share-sheet beat), then from
+     10 to 12 (the reflow fix below split one growing sentence into two
+     static ones, adding "fill-time-start"/"fill-time-end" as their own
+     beats alongside "fill-date"/"fill-dest"). Story two grew from 6 beats
+     to 8 (added "blackout", "whiteout" and "delete" alongside the renamed
+     "blur" beat, net +2) and has not changed again. Each raise scaled the
+     height roughly in proportion to the new beat count so the average
+     distance-per-beat - and therefore how long a visitor has to read each
+     effect - stays close to what it was before, rather than new beats
+     simply stealing scroll distance from the old ones. See
+     ScrollDriver.tsx's TRACKS comment for the beat-by-beat reasoning. */
   .track {
-    height: 560svh;
+    height: 672svh;
   }
 
   .track-short {
@@ -150,6 +155,13 @@
 .stage-base {
   display: flex;
   justify-content: center;
+  /* Unconditional (not just under the motion-ok media query below, which
+     upgrades it to sticky): .progress-rail is an absolutely positioned
+     child of this element in every mode, and it needs a containing block
+     right here rather than falling back to .track's own `position:
+     relative` further up, so its centering math stays correct whether or
+     not the sticky override is active. */
+  position: relative;
   /* --stage-padding-block is a named value, not just a literal, because
      .phone below needs to subtract it when computing its own size from the
      stage's available height - a literal 40px in two places would go stale
@@ -170,6 +182,8 @@
   --p-open: 1;
   --p-fill-date: 1;
   --p-fill-dest: 1;
+  --p-fill-time-start: 1;
+  --p-fill-time-end: 1;
   --p-check-1: 1;
   --p-check-2: 1;
   --p-sign: 1;
@@ -181,6 +195,9 @@
   --p-blackout: 1;
   --p-whiteout: 1;
   --p-delete: 1;
+  /* This story's own raw 0-1 progress, written by ScrollDriver.tsx alongside
+     every beat above (see its comment). Drives .progress-rail below. */
+  --p-track: 1;
 }
 
 .stage {
@@ -269,6 +286,94 @@
   }
 }
 
+/* ---------- progress indicator (DEMO-05) ---------- */
+
+/*
+ * DEMO-05 asked for "a persistent minimal progress indicator, so a visitor
+ * can see how many panels there are and that it ends" and it was never
+ * built (see backlog/tasks/DEMO-05.md, "What landed"). This is that
+ * indicator: two short segments, one per story, each one filling left to
+ * right as its own track scrolls.
+ *
+ * It is not a third mechanism bolted on beside ScrollDriver.tsx's beat
+ * system - it is one more --p-* property written the same way (--p-track,
+ * see that file's comment), so pacing still has exactly one owner. Nothing
+ * here reads a beat boundary; each segment only knows whether it is the
+ * story currently playing (reads --p-track live), a story already finished
+ * (literal 1), or a story not yet reached (literal 0) - structural facts
+ * about DOM order, not pacing numbers, so "CSS never hardcodes a boundary"
+ * still holds.
+ *
+ * It lives as a child of .stage/.stage-first rather than a separate fixed
+ * or wrapper-sticky element, on purpose: that stage is already the one
+ * element DEMO-05's own sticky mechanics keep pinned to the same screen
+ * rectangle for the whole time a story plays, so putting the rail here
+ * gets "persistent while a story plays" for free, with no second sticky
+ * context and no risk of it becoming yet another ancestor with transform/
+ * filter/overflow/contain to keep off the list guarding .stage's own
+ * position: sticky. It is a *descendant* of the sticky stage, not an
+ * ancestor, so absolute positioning and a stacking-context z-index here
+ * carry none of that hazard - the same reasoning that already covers
+ * .share-sheet's transform and .blur-value's filter elsewhere in this file.
+ *
+ * Two rail instances exist (one per stage), each showing the same two
+ * segments from a different story's point of view, so as the sticky stage
+ * handoff happens between tracks the rail appears to persist across it in
+ * the same screen position rather than visibly swapping. z-index lifts it
+ * above .phone, which shares the same stacking level (position: sticky,
+ * z-index: auto) and would otherwise win on paint order alone since it
+ * comes later in the DOM.
+ *
+ * Decorative only, not a navigation control (per DEMO-05's "not a carousel
+ * widget"): each track's own <p class="sr-only"> already carries the real
+ * narrative for assistive tech, so the rail is aria-hidden.
+ */
+.progress-rail {
+  position: absolute;
+  top: 14px;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.progress-seg {
+  position: relative;
+  width: 26px;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.progress-seg::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+/* This story, live: fills with this stage's own --p-track. */
+.progress-seg-current::after {
+  width: calc(var(--p-track, 1) * 100%);
+}
+
+/* A story already finished by the time this stage is reached: constant,
+   not read from any property, because "the visitor got here" already
+   proves it happened. */
+.progress-seg-done::after {
+  width: 100%;
+}
+
+/* A story not reached yet: constant empty, for the same reason in reverse. */
+.progress-seg-pending::after {
+  width: 0;
+}
+
 .screen {
   box-sizing: border-box;
   width: 100%;
@@ -316,28 +421,33 @@
 }
 
 /*
- * Layer visibility/crossfade. Three rules on the same .layer selector,
- * deliberately in this order - do not merge or reorder them, the no-motion
- * fallback depends on the exact cascade:
+ * Layer visibility/crossfade.
  *
- *   1. display: none        - the resting state, no motion, no JS.
- *   2. (only under motion-ok) display: block; position: absolute; inset: 0
- *      - overlaps every layer in the same box so the opacity rules below
- *        can crossfade between them.
- *   3. display: flex; flex-direction: column - unconditional, and it comes
- *      LAST, so it wins the display property in every case (same
- *      specificity, later source order beats an earlier rule).
+ * Absolute-inset(0) stacking is now UNCONDITIONAL, not gated to the
+ * motion-ok media query the way it was before. That earlier version stacked
+ * every `.layer` in normal document flow under `prefers-reduced-motion:
+ * reduce`, reasoning that the opacity formulas below (evaluated against
+ * .stage-base's CSS defaults, since ScrollDriver.tsx never runs in that
+ * mode) would still hide every layer but the finished one. That was true for
+ * opacity, but normal-flow siblings still occupy real box height even at
+ * opacity 0 - so the invisible layers *before* the finished one in DOM order
+ * pushed it downward, and the phone's `overflow: hidden` .screen clipped
+ * whatever fell past its fixed height. The sign story's finished layer
+ * (chat-layer) happens to be first in DOM, so nothing pushed it and the bug
+ * was invisible there; the blur story's finished layer (reply-layer) is
+ * last, sitting behind email-layer and bill-layer, and adding the density
+ * this ticket asked for to bill-layer made the clip go from a few px to
+ * several hundred. Fixing it by reordering the markup so the finished layer
+ * always comes first would only have made the next reorder silently break
+ * it again.
  *
- * The net effect: under motion-ok, every layer is absolutely stacked and
- * flex, and the per-layer opacity formulas below (which read the default
- * --p-* values above when JS has not run) pick the visible one. Under
- * reduced motion, every layer is flex but in normal flow (not absolute), so
- * they would stack visibly one after another - except the same opacity
- * formulas evaluate against the same defaults and hide every layer except
- * the one whose formula resolves to full opacity at rest. Layer-final's own
- * display: block (below) never actually matters for that reason; it is kept
- * for clarity and as a non-JS/non-CSS-custom-property fallback should a
- * browser ever fail to compute one of the calc() formulas.
+ * The actual fix: every `.layer` is absolutely positioned to the exact same
+ * `inset: 0` box in every mode, so an invisible sibling's content length
+ * can never affect a visible one - they do not share flow, only opacity
+ * decides what is seen, in reduced motion exactly as under motion-ok. This
+ * also means `prefers-reduced-motion` no longer changes the stacking
+ * mechanism at all, only whether ScrollDriver.tsx is writing live values
+ * versus the CSS defaults below driving the same formulas at rest.
  */
 .layer {
   display: none;
@@ -347,12 +457,10 @@
   display: block;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .layer {
-    display: block;
-    position: absolute;
-    inset: 0;
-  }
+.layer {
+  display: block;
+  position: absolute;
+  inset: 0;
 }
 
 .layer {
@@ -566,42 +674,94 @@
 
 .trip-sentence {
   margin: 0;
-  padding-block: 4px 10px;
+  padding-block: 4px 6px;
   padding-inline: 14px;
-  border-block-end: 1px solid var(--color-border);
   font-size: 0.82rem;
   line-height: 1.55;
   color: var(--color-text);
 }
 
-/* The fill-in-place trick: an inline-block box that clips its own content
-   and grows from 0 width to its final ch-based width as the beat
-   progresses, so the value appears to type itself in place rather than
-   fading in. ch is deliberate over a fixed px width - it scales with the
-   value's own character count instead of a guessed pixel figure. */
-.field-value-wrap {
+/* Only the last printed sentence carries the divider into the checks below -
+   both sentences share one visual paragraph, not two separately boxed ones. */
+.trip-sentence-last {
+  composes: trip-sentence;
+  padding-block-end: 10px;
+  border-block-end: 1px solid var(--color-border);
+}
+
+/*
+ * Each blank on the printed form: a reserved space with a constant width,
+ * set once from the final answer's own character count (ch, not a guessed
+ * px figure) and never touched by a --p-* property, plus a static
+ * pre-printed rule beneath it. The answer itself is a separate, absolutely
+ * positioned overlay confined to that fixed box, revealed via clip-path as
+ * its beat progresses.
+ *
+ * This replaced an earlier version where the *wrap's own width* was the
+ * animated property, so the printed sentence visibly reflowed around a
+ * growing box as each field filled. That was wrong for a reason beyond
+ * looks: pdkef places filled-in fields as fixed-position overlays on a PDF
+ * page it never redraws, so a printed sentence that shifts as a field fills
+ * is showing behavior the product cannot do. A blank's box must be
+ * identical at every progress value - only .blank-value's clip-path may
+ * read a --p-* property here.
+ */
+.blank-wrap {
+  position: relative;
   display: inline-block;
-  overflow: hidden;
-  white-space: nowrap;
   vertical-align: bottom;
-  border-block-end: 2px solid var(--color-primary);
+  height: 1.3em;
+  border-block-end: 2px solid var(--color-border-strong);
 }
 
-.date-field-wrap {
-  composes: field-value-wrap;
-  width: calc(var(--p-fill-date, 1) * 7ch);
+.blank-date {
+  composes: blank-wrap;
+  width: 7ch;
 }
 
-.dest-field-wrap {
-  composes: field-value-wrap;
-  width: calc(var(--p-fill-dest, 1) * 20ch);
+.blank-dest {
+  composes: blank-wrap;
+  width: 20ch;
 }
 
-.field-value-text {
-  display: inline-block;
+.blank-time {
+  composes: blank-wrap;
+  width: 8ch;
+}
+
+.blank-value {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-end: 2px;
+  white-space: nowrap;
   font-weight: 600;
   color: var(--color-text);
-  padding-block-end: 2px;
+}
+
+.blank-value-date {
+  clip-path: inset(0 calc(100% - (var(--p-fill-date, 1) * 100%)) 0 0);
+}
+
+.blank-value-dest {
+  clip-path: inset(0 calc(100% - (var(--p-fill-dest, 1) * 100%)) 0 0);
+}
+
+.blank-value-time-start {
+  clip-path: inset(0 calc(100% - (var(--p-fill-time-start, 1) * 100%)) 0 0);
+}
+
+.blank-value-time-end {
+  clip-path: inset(0 calc(100% - (var(--p-fill-time-end, 1) * 100%)) 0 0);
+}
+
+/* The static line asking the parent to sign below - printed, never filled
+   or animated, same as the heading and both sentences above it. */
+.confirm-line {
+  margin: 0;
+  padding-block: 6px 2px;
+  padding-inline: 14px;
+  font-size: 0.78rem;
+  color: var(--color-muted);
 }
 
 .checks {
@@ -861,14 +1021,18 @@
   white-space: nowrap;
 }
 
-/* tool-chips reserves a fixed-height row under the bill's panel head and
-   stacks all four labels in the same grid cell (same technique as the
-   .layers crossfade above, at a much smaller scale) rather than absolutely
-   positioning them - that sidesteps ever needing transform/filter on an
-   ancestor here, which matters given the sticky hazard documented on
-   .share-sheet above. Reserving the row's height even while every chip is
-   opacity 0 (the resting/no-JS state - see each .tool-chip-* formula)
-   avoids a layout jump when the first one fades in. */
+/* tool-chips reserves a fixed-height row under a panel head and stacks its
+   labels in the same grid cell (same technique as the .layers crossfade
+   above, at a much smaller scale) rather than absolutely positioning them -
+   that sidesteps ever needing transform/filter on an ancestor here, which
+   matters given the sticky hazard documented on .share-sheet above.
+   Reserving the row's height even while every chip is opacity 0 (the
+   resting/no-JS state - see each .tool-chip-* formula) avoids a layout jump
+   when the first one fades in. Shared by both stories: the bill's four
+   redaction tools below, and story one's Text/Symbols/Sign/Share row (see
+   the form-fields section above and .share-sheet below), naming the app's
+   real toolbar vocabulary as each one is used - the same component so the
+   two stories visibly read as one product. */
 .tool-chips {
   display: grid;
   justify-items: start;
@@ -909,6 +1073,29 @@
 
 .tool-chip-delete {
   opacity: calc(var(--p-delete, 1) - var(--p-send, 1));
+}
+
+/* Story one's own four chips, same span-between-beats formula. "Text"
+   spans all four fill-in beats as one block (from the first blank's own
+   beat to check-1 starting), matching how a visitor would actually read
+   it: one tool active across every blank, not four flickers. */
+.tool-chip-text {
+  opacity: calc(var(--p-fill-date, 1) - var(--p-check-1, 1));
+}
+
+.tool-chip-symbols {
+  opacity: calc(var(--p-check-1, 1) - var(--p-sign, 1));
+}
+
+.tool-chip-sign {
+  opacity: calc(var(--p-sign, 1) - var(--p-share, 1));
+}
+
+/* Lives in .share-layer rather than this row - the share sheet is a
+   separate crossfade layer, not a beat inside the form - so it is just its
+   own chip, opacity tied straight to --p-share rather than a span formula. */
+.tool-chip-share {
+  opacity: var(--p-share, 1);
 }
 
 .doc-line {
