@@ -122,6 +122,120 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
   --space-7: 3rem;
+
+  /* Fluid type roles (DEMO-01) - marketing/static surface only, never the
+     editor (CSS Modules own that world, see CLAUDE.md "Styling direction").
+     Each clamp() scales between a 390px and a 1200px viewport with no media
+     query, so a heading that used to snap between two fixed sizes at a
+     breakpoint (or not scale on a phone at all) now moves continuously.
+     These replace the scattered arbitrary text-[...] sizes across
+     index.astro, the tool-page cards and the content-page renderer - see the
+     .type-* classes below in @layer components, which pair each size with
+     the weight/tracking/leading that makes it a role rather than a bare
+     number.
+
+     Loosely adapted from a reference site's measured rhythm (see DEMO-01's
+     ticket body for the exact source values) and then rescaled to land near
+     PDkef's *existing* sizes rather than enlarging them - the source site's
+     numbers run 15-40% bigger at every step, which would read as a redesign,
+     not a consolidation. min/max pairs in px, at 390px/1200px: hero 32/52
+     (matches the old header h1 rule below, now removed - see its comment),
+     section 26/32 (was a fixed 1.6rem with zero phone scaling), feature
+     22/26, card 16/18, lead 15/17, body 14/15. */
+  --type-hero-size: clamp(2rem, 1.398rem + 2.47vw, 3.25rem);
+  --type-section-size: clamp(1.625rem, 1.444rem + 0.741vw, 2rem);
+  --type-feature-size: clamp(1.375rem, 1.255rem + 0.494vw, 1.625rem);
+  --type-card-size: clamp(1rem, 0.9398rem + 0.247vw, 1.125rem);
+  --type-lead-size: clamp(0.9375rem, 0.8773rem + 0.247vw, 1.0625rem);
+  --type-body-size: clamp(0.875rem, 0.8449rem + 0.123vw, 0.9375rem);
+
+  /* Vertical rhythm (DEMO-01). Four tokens, each driving exactly one
+     logical-property axis via the one-line utilities below: section-block
+     is a card's own block padding, heading-content is the gap from a
+     section heading to the content under it, content-row is the trailing
+     space after a content block (lead paragraph, list) before the next one,
+     layout-gap is flex/grid gap inside a section. Same rescale reasoning as
+     the type roles above: kept close to what the marketing surface already
+     uses (40-56px card padding, 24-32px row spacing) rather than adopting
+     the larger reference numbers wholesale. Logical properties throughout
+     (padding-block, margin-block-end) so an RTL page never needs different
+     rules - see "Use logical properties throughout" in the ticket. */
+  --space-section-block: clamp(2.5rem, 2.019rem + 1.98vw, 3.5rem);
+  --space-heading-content: clamp(1.25rem, 1.009rem + 0.988vw, 1.75rem);
+  --space-content-row: clamp(1.5rem, 1.259rem + 0.988vw, 2rem);
+  --space-layout-gap: clamp(1.25rem, 0.8889rem + 1.48vw, 2rem);
+}
+
+/* Type roles + vertical rhythm utilities (DEMO-01), in @layer components so
+   a Tailwind utility (in @layer utilities, declared after components in the
+   @layer order at the top of this file) can still win if a page ever needs
+   a one-off override - the same relationship @theme's shadow tokens have
+   with hover:shadow-md etc. A role class fixes size, weight, tracking AND
+   leading together: using text-[...] alone (the thing this replaces) let a
+   heading get a fluid size but the wrong weight or a cramped/loose leading
+   for that size, since the three were always typed as separate utilities
+   that could drift. Display roles (hero/section/feature/card) get tight
+   tracking and a leading near 1.05-1.25, tightening less as the role gets
+   smaller (a 16px heading does not need the same -0.02em a 52px one does);
+   lead/body are reading text and stay at normal tracking with 1.55 leading. */
+@layer components {
+  .type-hero {
+    font-size: var(--type-hero-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+
+  .type-section {
+    font-size: var(--type-section-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+
+  .type-feature {
+    font-size: var(--type-feature-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+  }
+
+  .type-card {
+    font-size: var(--type-card-size);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+
+  .type-lead {
+    font-size: var(--type-lead-size);
+    font-weight: 400;
+    letter-spacing: normal;
+    line-height: 1.55;
+  }
+
+  .type-body {
+    font-size: var(--type-body-size);
+    font-weight: 400;
+    letter-spacing: normal;
+    line-height: 1.55;
+  }
+
+  .space-section-block {
+    padding-block: var(--space-section-block);
+  }
+
+  .space-heading-content {
+    margin-block-end: var(--space-heading-content);
+  }
+
+  .space-content-row {
+    padding-block-end: var(--space-content-row);
+  }
+
+  .space-layout-gap {
+    gap: var(--space-layout-gap);
+  }
 }
 
 * {
@@ -198,22 +312,17 @@ header:not(.tool-hero):not(.not-found-header) {
   text-align: center;
 }
 
-header:not(.tool-hero):not(.not-found-header) h1 {
-  font-size: clamp(2rem, 5.2vw, 3.25rem);
-  font-weight: 700;
-  margin: 0 0 0.75rem;
-  letter-spacing: -0.03em;
-  line-height: 1.08;
-  color: var(--color-text);
-}
-
-header:not(.tool-hero):not(.not-found-header) p {
-  color: var(--color-muted);
-  font-size: clamp(0.92rem, 1.6vw, 1rem);
-  margin: 0 auto;
-  letter-spacing: -0.01em;
-  line-height: 1.5;
-}
+/* The h1/p font rules that used to live here (bare, unlayered - the exact
+   bug class documented above for the <a> rule: an unlayered selector beats
+   ANY @layer utility regardless of specificity) are gone as of DEMO-01.
+   They were silently winning over every text-[...] override a consuming
+   page tried to give its own hero h1/p (index.astro, ContentPageLayout.astro,
+   licenses.astro all had one), which means those overrides were dead code
+   and the real rendered size was always this rule's clamp(). Each consumer
+   now carries an explicit `.type-hero`/`.type-lead` role class instead (see
+   @layer components above) - a real fix, not just a relocation, since it
+   also makes the size responsive to the same 390-1200px range as every
+   other role rather than this rule's own uncapped 5.2vw/1.6vw growth. */
 
 main {
   max-width: 1400px;

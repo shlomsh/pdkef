@@ -33,9 +33,9 @@ const iconTone = slug === 'sign'
     <div class={`flex size-[var(--hero-icon)] shrink-0 items-center justify-center rounded-2xl border-0 shadow-[0_8px_18px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)] ${iconTone}`}>
       <Icon class="h-[55%] w-[55%]" size={28} strokeWidth={1.5} />
     </div>
-    <h1 class="mb-0 mt-[calc((var(--hero-icon)_-_var(--hero-line))/2)] text-left text-[length:var(--hero-title)] leading-[1.1]">{title}</h1>
+    <h1 class="mb-0 mt-[calc((var(--hero-icon)_-_var(--hero-line))/2)] text-start text-[length:var(--hero-title)] leading-[1.1]">{title}</h1>
   </div>
-  <p data-hero-sub class="mx-auto max-w-[54rem] min-[1024px]:col-span-2 min-[1024px]:row-start-2 min-[1024px]:mx-0 min-[1024px]:ml-[var(--hero-indent)] min-[1024px]:mt-2 min-[1024px]:text-left min-[1024px]:text-[0.9375rem] min-[1024px]:leading-[1.45]">{subhead}</p>
+  <p data-hero-sub class="type-lead mx-auto max-w-[54rem] min-[1024px]:col-span-2 min-[1024px]:row-start-2 min-[1024px]:mx-0 min-[1024px]:ms-[var(--hero-indent)] min-[1024px]:mt-2 min-[1024px]:text-start">{subhead}</p>
   <div data-hero-chips class="mt-6 flex flex-wrap justify-center gap-[0.6rem] min-[1024px]:col-start-2 min-[1024px]:row-start-1 min-[1024px]:mt-0 min-[1024px]:justify-end min-[1024px]:justify-self-end min-[1024px]:pl-0">
     <a class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-text)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">
       <svg class="shrink-0 text-[var(--color-text)]" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

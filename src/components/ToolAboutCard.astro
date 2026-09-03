@@ -48,17 +48,17 @@ const {
   <CardDecor sketch={sketch} icon={icon} iconPos={iconPos} iconSize={280} />
   <div>
     <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">{tag}</span>
-    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">{heading}</h2>
-    <p class="mb-6 mt-0 max-w-[68ch] text-[1.05rem] leading-[1.6] text-[var(--color-text)]">{lead}</p>
+    <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">{heading}</h2>
+    <p class="type-lead space-content-row mt-0 max-w-[68ch] text-[var(--color-text)]">{lead}</p>
     <ol class="mb-7 mt-0 flex list-decimal flex-col gap-[0.6rem] pl-5">
       {steps.map((step) => (
-        <li class="text-[0.98rem] leading-[1.6] text-[var(--color-muted)]"><strong class="font-semibold text-[var(--color-text)]">{step.title}.</strong> {step.text}</li>
+        <li class="type-lead text-[var(--color-muted)]"><strong class="font-semibold text-[var(--color-text)]">{step.title}.</strong> {step.text}</li>
       ))}
     </ol>
     <section class="mt-7 border-t border-[var(--color-border)] pt-7">
-      <h2 class="mb-3 mt-0 text-[1.15rem] font-bold text-[var(--color-text)]">Free for everyone</h2>
-      <p class="mb-[0.9rem] mt-0 max-w-[64ch] text-base leading-[1.7] text-[var(--color-muted)]" set:html={freeNoteLead} />
-      <p class="m-0 max-w-[64ch] text-base leading-[1.7] text-[var(--color-muted)]" set:html={sharedOpenSource} />
+      <h2 class="type-feature space-heading-content mt-0 text-[var(--color-text)]">Free for everyone</h2>
+      <p class="type-lead mb-[0.9rem] mt-0 max-w-[64ch] text-[var(--color-muted)]" set:html={freeNoteLead} />
+      <p class="type-lead m-0 max-w-[64ch] text-[var(--color-muted)]" set:html={sharedOpenSource} />
     </section>
   </div>
 </FeatureCard>

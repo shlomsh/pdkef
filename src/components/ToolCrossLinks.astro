@@ -27,15 +27,15 @@ const others = tools.filter((tool) => tool.slug !== currentSlug);
   class="mx-auto mb-16 w-full max-w-[1080px] px-6 min-[768px]:mb-24"
   aria-labelledby="more-tools-heading"
 >
-  <div class="mb-8 text-center">
+  <div class="space-heading-content text-center">
     <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Same suite</span>
-    <h2 id="more-tools-heading" class="m-0 text-[1.6rem] font-bold text-[var(--color-text)]">More PDF tools</h2>
-    <p class="mx-auto mt-3 mb-0 max-w-[46rem] text-[0.95rem] leading-[1.5] text-[var(--color-muted)]">
+    <h2 id="more-tools-heading" class="type-section m-0 text-[var(--color-text)]">More PDF tools</h2>
+    <p class="type-body mx-auto mt-3 mb-0 max-w-[46rem] text-[var(--color-muted)]">
       Every one of these runs on your device, free, with nothing uploaded.
     </p>
   </div>
 
-  <ul class="m-0 grid list-none grid-cols-3 gap-4 p-0 max-[768px]:grid-cols-2 max-[560px]:grid-cols-1">
+  <ul class="space-layout-gap m-0 grid list-none grid-cols-3 p-0 max-[768px]:grid-cols-2 max-[560px]:grid-cols-1">
     {others.map((tool) => (
       <li class="m-0 p-0">
         <a
@@ -46,8 +46,8 @@ const others = tools.filter((tool) => tool.slug !== currentSlug);
             <tool.icon strokeWidth={1.5} />
           </span>
           <span class="min-w-0">
-            <span class="block text-[1rem] font-semibold text-[var(--color-text)]">{tool.gridTitle}</span>
-            <span class="mt-1 block text-[0.88rem] leading-[1.45] text-[var(--color-muted)]">{tool.gridDescription}</span>
+            <span class="type-card block text-[var(--color-text)]">{tool.gridTitle}</span>
+            <span class="type-body mt-1 block text-[var(--color-muted)]">{tool.gridDescription}</span>
           </span>
         </a>
       </li>

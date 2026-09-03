@@ -24,8 +24,8 @@ const packages = [...softwarePackages, ...fontPackages];
 
 <BaseLayout title={title} description={description} noindex={true}>
   <header>
-    <h1>Open Source Licenses</h1>
-    <p>The open source software that powers PDkef, and their license terms.</p>
+    <h1 class="type-hero space-heading-content mt-0 text-[var(--color-text)]">Open Source Licenses</h1>
+    <p class="type-lead m-0 text-[var(--color-muted)]">The open source software that powers PDkef, and their license terms.</p>
   </header>
 
   <main>
@@ -39,9 +39,9 @@ const packages = [...softwarePackages, ...fontPackages];
       <table class="my-6 w-full border-collapse text-[0.9rem]">
         <thead>
           <tr>
-            <th class="border-b border-[var(--color-border)] px-3 py-3 text-left font-semibold text-[var(--color-muted)]" scope="col">Package</th>
-            <th class="border-b border-[var(--color-border)] px-3 py-3 text-left font-semibold text-[var(--color-muted)]" scope="col">Version</th>
-            <th class="border-b border-[var(--color-border)] px-3 py-3 text-left font-semibold text-[var(--color-muted)]" scope="col">License</th>
+            <th class="border-b border-[var(--color-border)] px-3 py-3 text-start font-semibold text-[var(--color-muted)]" scope="col">Package</th>
+            <th class="border-b border-[var(--color-border)] px-3 py-3 text-start font-semibold text-[var(--color-muted)]" scope="col">Version</th>
+            <th class="border-b border-[var(--color-border)] px-3 py-3 text-start font-semibold text-[var(--color-muted)]" scope="col">License</th>
           </tr>
         </thead>
         <tbody>

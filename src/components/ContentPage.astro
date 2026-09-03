@@ -16,13 +16,20 @@ const { entry, pageId = entry.data.pageId ?? entry.id, locale = 'en', labels, re
 const page = entry.data;
 const englishHref = `/${pageId}/`;
 const isDeviceGuide = guides.some((guide) => guide.href === englishHref);
-const PARAGRAPH_LAST = 'm-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]';
-const PARAGRAPH_BEFORE_TEXT = 'mb-4 mt-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]';
-const PARAGRAPH_BEFORE_BLOCK = 'mb-6 mt-0 max-w-[68ch] text-[1.02rem] leading-[1.65] text-[var(--color-text)]';
-const LIST_LAST = 'm-0 flex list-none flex-col gap-5 p-0';
-const LIST_BEFORE_BLOCK = 'm-0 mb-6 flex list-none flex-col gap-5 p-0';
-const COLUMNS_LAST = 'grid gap-6 grid-cols-3 max-[768px]:grid-cols-1';
-const COLUMNS_BEFORE_BLOCK = 'mb-6 grid gap-6 grid-cols-3 max-[768px]:grid-cols-1';
+// DEMO-01: type-lead is the role, space-content-row is the trailing gap
+// before whatever comes next (another paragraph or a list/table/columns
+// block) - PARAGRAPH_BEFORE_TEXT and PARAGRAPH_BEFORE_BLOCK used to carry
+// two different hand-typed margins (mb-4 vs mb-6) for what is the same
+// "content row precedes another content row" purpose, so they now share
+// one token. Same consolidation for the list/columns gap (gap-5/gap-6 -> the
+// one space-layout-gap token) and their own before-block trailing space.
+const PARAGRAPH_LAST = 'type-lead m-0 max-w-[68ch] text-[var(--color-text)]';
+const PARAGRAPH_BEFORE_TEXT = 'type-lead space-content-row mt-0 max-w-[68ch] text-[var(--color-text)]';
+const PARAGRAPH_BEFORE_BLOCK = 'type-lead space-content-row mt-0 max-w-[68ch] text-[var(--color-text)]';
+const LIST_LAST = 'space-layout-gap m-0 flex list-none flex-col p-0';
+const LIST_BEFORE_BLOCK = 'space-layout-gap space-content-row m-0 flex list-none flex-col p-0';
+const COLUMNS_LAST = 'space-layout-gap grid grid-cols-3 max-[768px]:grid-cols-1';
+const COLUMNS_BEFORE_BLOCK = 'space-layout-gap space-content-row grid grid-cols-3 max-[768px]:grid-cols-1';
 const isLast = (list: any[], index: number) => index === list.length - 1;
 function paragraphClass(list: any[], index: number) { return isLast(list, index) ? PARAGRAPH_LAST : list[index + 1].kind === 'prose' ? PARAGRAPH_BEFORE_TEXT : PARAGRAPH_BEFORE_BLOCK; }
 ---
@@ -31,15 +38,15 @@ function paragraphClass(list: any[], index: number) { return isLast(list, index)
   <FeatureCard density="flow" variant={section.variant} class="relative isolate overflow-hidden">
     <CardDecor sketch={section.sketch} icon={CONTENT_ICONS[section.icon as keyof typeof CONTENT_ICONS]} iconPos={section.iconPos} iconSize={280} />
     <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]" set:html={renderInline(section.kicker)} />
-    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]" set:html={renderInline(section.heading)} />
+    <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]" set:html={renderInline(section.heading)} />
     {section.blocks.map((block: any, index: number) => (
       <Fragment>
         {block.kind === 'prose' && <p class={paragraphClass(section.blocks, index)} set:html={renderInline(block.text)} />}
-        {(block.kind === 'steps' || block.kind === 'checklist') && (() => { const ListTag = block.kind === 'steps' ? 'ol' : 'ul'; return <ListTag class={isLast(section.blocks,index) ? LIST_LAST : LIST_BEFORE_BLOCK}>{block.items.map((item: string, n: number) => <li class="flex items-start gap-4"><span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">{n + 1}</span><span class="text-[0.98rem] leading-[1.6] text-[var(--color-text)]" set:html={renderInline(item)} /></li>)}</ListTag>; })()}
+        {(block.kind === 'steps' || block.kind === 'checklist') && (() => { const ListTag = block.kind === 'steps' ? 'ol' : 'ul'; return <ListTag class={isLast(section.blocks,index) ? LIST_LAST : LIST_BEFORE_BLOCK}>{block.items.map((item: string, n: number) => <li class="flex items-start gap-4"><span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">{n + 1}</span><span class="type-lead text-[var(--color-text)]" set:html={renderInline(item)} /></li>)}</ListTag>; })()}
         {block.kind === 'compare' && <CompareTable builtInLabel={block.builtInLabel} rows={block.rows} caption={block.caption} />}
         {block.kind === 'image' && <ContentImage {...block} />}
         {block.kind === 'table' && <ContentTable {...block} />}
-        {block.kind === 'columns' && <div class={isLast(section.blocks,index) ? COLUMNS_LAST : COLUMNS_BEFORE_BLOCK}>{block.items.map((column: any) => { const ColumnIcon = CONTENT_ICONS[column.icon as keyof typeof CONTENT_ICONS]; return <div class="flex flex-col gap-2"><div class="mb-1 flex items-center gap-2 text-[0.95rem] font-semibold text-[var(--color-text)]"><ColumnIcon size={17} class="text-[var(--color-primary)]" /><Fragment set:html={renderInline(column.title)} /></div><p class="m-0 text-[0.92rem] leading-[1.55] text-[var(--color-muted)]" set:html={renderInline(column.body, 'muted')} /></div>; })}</div>}
+        {block.kind === 'columns' && <div class={isLast(section.blocks,index) ? COLUMNS_LAST : COLUMNS_BEFORE_BLOCK}>{block.items.map((column: any) => { const ColumnIcon = CONTENT_ICONS[column.icon as keyof typeof CONTENT_ICONS]; return <div class="flex flex-col gap-2"><div class="type-card mb-1 flex items-center gap-2 text-[var(--color-text)]"><ColumnIcon size={17} class="text-[var(--color-primary)]" /><Fragment set:html={renderInline(column.title)} /></div><p class="type-body m-0 text-[var(--color-muted)]" set:html={renderInline(column.body, 'muted')} /></div>; })}</div>}
       </Fragment>
     ))}
   </FeatureCard>
