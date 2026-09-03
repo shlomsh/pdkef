@@ -13,6 +13,8 @@ legacy_state: "Open"
 
 ## Scope and acceptance
 
+**Scope note: the hero in DEMO-02 is now scroll-driven, so it consumes this pattern directly.** This ticket stays open as the owner of the sticky mechanics, the placement decision and the `overflow-hidden` constraint below, all of which DEMO-02 depends on. It is no longer a separate storytelling surface competing with the hero.
+
 **Give the story one screen per beat, so scrolling advances a deck instead of sliding a wall of copy.** Each beat of the DEMO-02 narrative gets a full-viewport panel: the form arrives in a chat, it opens with no install, you fill it in and sign it, you blur the line they don't need, it goes straight back. Use the word "blur" throughout, per DEMO-07, and keep every panel line in the plain language DEMO-04 sets out.
 
 **Implement it with sticky panels, not `scroll-snap`.** This is the finding worth keeping: the reference site that produces this effect (usetape.app) ships **no `scroll-snap` rule at all**. It uses `position: sticky` panels sized in `svh`/`dvh` inside a taller scroll track, so each panel pins while the next scrolls over it. The user's scroll is never intercepted, which is why it feels smooth. `scroll-snap` fights trackpads and momentum scrolling and feels broken on a Mac. Use `100svh`/`100dvh` and never `100vh`: `vh` is wrong on mobile with a collapsing URL bar, and mobile is the case this product exists for.

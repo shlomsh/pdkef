@@ -17,13 +17,19 @@ legacy_state: "Open"
 
 **Who this is for, and it constrains every word.** People who are not technical at all, on a phone, dealing with paperwork that arrived in a chat. A parent with a school consent form, a patient with a medical form, anyone sending a document to an office. They are not evaluating software and they will never read an explanation of how it works. They have one instinct, and it is a good one: *I don't want to send my kid's medical form to a website I've never heard of.*
 
-**Story one, fill and sign.** A form arrives in WhatsApp. You fill it in, sign it with your finger, and send it straight back to the same chat. No printer, no scanner, nothing to install.
+**Story one, fill and sign. This one goes first and earns the most scroll length.** The complete errand, not a fragment of it: a message arrives from the child's teacher with the school trip consent form attached. You tap the file and it opens right there. You type the child's name and class, tick the permission and photo-consent boxes, sign it with your finger, and send it back to the same chat. No printer, no scanner, nothing installed.
 
-**Story two, blur before you send.** A medical or financial document has an ID number, a diagnosis or a bank line on it that the person asking does not need. You blur that part, then send it.
+**Show all three element types, because that is the part nobody believes until they see it.** Text, check marks and a signature. Two details matter here. First, one text field in Hebrew and one in English: multi-script support is a genuine differentiator this product has spent real effort on, and a filled form is the only place it shows without being explained. Second, the "checkbox" is honest: `src/editor/registry/symbol.ts` supports `check` and `x` marks, so ticking a box means placing a check symbol on it. That is the real workflow and it looks identical to the user, so depict it as it works.
+
+**Story two, blur before you send. Shorter, and second.** An email asks you to send a document as evidence. It has an ID number and an account line on it that the person asking does not need. You blur those, then send the reply. The surrounding UI here is an inbox rather than a chat thread: the two stories arrive through different doors on purpose, because that is how they actually reach people.
 
 Both stories are mobile, both end in the chat they came from, and both are true today except for the entry path (DEMO-03).
 
-**Decided: two short demos side by side, not one long sequence.** Each story runs as its own independent loop of roughly eight seconds, side by side on desktop and stacked on mobile, each with its own one-line caption. A single sequence telling both stories would run past twenty seconds, and the second story would be the half nobody waits for, which is the half that carries the search traffic. Two short loops also let each caption name its own use case, so the blur story gets a headline of its own rather than being a beat inside a signing story.
+**Decided: scroll-driven, not auto-playing, and this ticket now absorbs the scroll mechanic from DEMO-05.** The visitor's scroll is what fills the form in. They scroll, and fields get typed into, boxes get ticked, the signature draws itself, and it sends. Sign first, blur second, each on its own sticky track.
+
+An earlier draft had two eight-second loops side by side. Scroll-driven beats it for one reason: a loop plays whether or not anyone is watching and finishes whether or not anyone cares, while a scroll-driven fill only advances because the visitor chose to advance it, which makes them feel like they did it rather than like they watched an advert. Scrubbing backwards must work, so scrolling up un-fills the form. That reversibility is what makes the mechanic legible rather than magic.
+
+Mechanically this is DEMO-05's pattern: `position: sticky` panels in a taller track, `100svh` and never `100vh`, no `scroll-snap`, progress computed in a `requestAnimationFrame`-throttled scroll listener and mapped to stages. DEMO-05's placement decision and its `overflow-hidden` warning both apply directly and are not repeated here.
 
 **Use the word "blur."** Not "redact", not "black out". Redact is a lawyer's word and nobody searches for it. Blur is the term that drives traffic here, it already carries 21 mentions in `src/data/tools.js` and its own content page at `blur-vs-blackout-vs-delete-pdf`, and it appears exactly **once** on the home page. See DEMO-07.
 
