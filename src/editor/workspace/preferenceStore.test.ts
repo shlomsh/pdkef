@@ -28,6 +28,11 @@ describe('editor workspace preferences', () => {
     setEditorPreference('savedSignatures', signatures);
     expect(getEditorPreference('savedSignatures')).toEqual(signatures);
 
+    localStorage.setItem('pdf-toolkit:signatures', JSON.stringify([
+      { id: 'sig-2', dataUrl: 'data:image/png;base64,def', aspectRatio: '0.4' },
+    ]));
+    expect(getEditorPreference('savedSignatures')).toBeNull();
+
     localStorage.setItem('pdf-toolkit:signatures', '{broken');
     expect(getEditorPreference('savedSignatures')).toBeNull();
     localStorage.setItem('pdf-toolkit:lastSymbolWidth', '0');

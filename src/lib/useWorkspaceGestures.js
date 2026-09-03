@@ -23,7 +23,7 @@ import {
  * @param {object} params
  * @param {string|null}  params.selectedTool       - currently active tool name
  * @param {function}     params.dispatch            - SignTool context dispatch
- * @param {object|null}  params.activeSignature     - currently selected signature
+ * @param {import('../editor/model/savedSignature.ts').SavedSignature|null} params.activeSignature - currently selected signature
  * @param {function}     params.setTempPlacement    - opens signature placement dialog
  * @param {function}     params.setDialogOpen       - opens the signature creation dialog
  * @param {function}     params.placeSignatureAt    - places an existing signature

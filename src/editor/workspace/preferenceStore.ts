@@ -6,14 +6,10 @@
 // becoming persistence adapters while preserving the established on-device
 // `pdf-toolkit:*` data format for existing users.
 
-export interface SavedSignaturePreference {
-  id: string;
-  dataUrl: string;
-  aspectRatio: number;
-}
+import type { SavedSignature } from '../model/savedSignature.ts';
 
 export interface EditorPreferences {
-  savedSignatures: SavedSignaturePreference[];
+  savedSignatures: SavedSignature[];
   lastColor: string;
   lastWhiteoutColor: string;
   lastFont: string;
@@ -51,18 +47,18 @@ function readSymbolMark(value: string): EditorPreferences['lastSymbolMark'] | nu
   return value === 'check' || value === 'x' || value === 'dot' ? value : null;
 }
 
-function isSavedSignature(value: unknown): value is SavedSignaturePreference {
+function isSavedSignature(value: unknown): value is SavedSignature {
   return Boolean(
     value
     && typeof value === 'object'
-    && typeof (value as SavedSignaturePreference).id === 'string'
-    && typeof (value as SavedSignaturePreference).dataUrl === 'string'
-    && Number.isFinite((value as SavedSignaturePreference).aspectRatio)
-    && (value as SavedSignaturePreference).aspectRatio > 0,
+    && typeof (value as SavedSignature).id === 'string'
+    && typeof (value as SavedSignature).dataUrl === 'string'
+    && Number.isFinite((value as SavedSignature).aspectRatio)
+    && (value as SavedSignature).aspectRatio > 0,
   );
 }
 
-function readSavedSignatures(value: string): SavedSignaturePreference[] | null {
+function readSavedSignatures(value: string): SavedSignature[] | null {
   try {
     const parsed: unknown = JSON.parse(value);
     return Array.isArray(parsed) && parsed.every(isSavedSignature) ? parsed : null;

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { EditorElement, SignatureElement } from '../editor/model/editorModel.ts';
 import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
+import type { SavedSignature } from '../editor/model/savedSignature.ts';
 import BasePdfTool from './BasePdfTool.tsx';
 import { SignToolProvider, useSignTool } from './SignTool/SignToolContext.tsx';
 import { SignDefaultsContext } from './SignTool/SignDefaultsContext.tsx';
@@ -102,8 +103,8 @@ function PdfSignToolInner() {
   const [lastSignatureWidth, setLastSignatureWidth] = useState(DEFAULT_START_WIDTH_PCT);
 
   // Saved signatures and active signature state
-  const [savedSignatures, setSavedSignatures] = useState<any[]>([]);
-  const [activeSignature, setActiveSignature] = useState<any>(null);
+  const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([]);
+  const [activeSignature, setActiveSignature] = useState<SavedSignature | null>(null);
 
   // Refs
   // Live DOM nodes for each page wrapper, read imperatively at event time (e.g.
@@ -386,8 +387,8 @@ function PdfSignToolInner() {
   };
 
   // Confirm delete saved signature
-  const deleteSavedSignature = (id: string, e?: any) => {
-    if (e) e.stopPropagation();
+  const deleteSavedSignature = (id: string, event?: Event) => {
+    event?.stopPropagation();
     setSignatureToDelete(id);
   };
 
