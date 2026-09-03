@@ -1,0 +1,854 @@
+/*
+ * HeroDemo (DEMO-02): the two scroll-driven "thirty-second story" phone
+ * mockups on the home page. Ported from the approved standalone mockup
+ * (dirE.html) rather than redesigned - see HeroDemo.astro's header comment
+ * for the file layout and the scroll mechanic.
+ *
+ * Colors are the Sea Glass tokens from src/styles/global.css (var(--color-*),
+ * var(--shadow-*)) throughout - no hex/rgba literals - per CLAUDE.md's theme
+ * rule. Two exceptions are computed rather than hardcoded, both because the
+ * thing they draw (a phone's hardware bezel, its drop shadow) is not itself
+ * a brand color: --phone-bezel/--phone-bezel-edge/--phone-shadow-color use
+ * color-mix() to darken var(--color-text) toward black, so a retheme that
+ * moves --color-text still moves these proportionally instead of leaving a
+ * stray fixed dark gray behind.
+ *
+ * Sizes use var(--type-*) roles where the text plays the same part text does
+ * elsewhere on the page (the h2/h3 here reuse .type-section/.type-card,
+ * applied in HeroDemo.astro) and var(--space-*) for the outer marketing
+ * rhythm (hero/caption/outro spacing). The phone mockup's own interior
+ * (status bar padding, bubble radius, field padding) stays literal px: it is
+ * a fixed-scale device replica, not page rhythm, and does not scale with the
+ * fluid type/space system - matching dirE.html exactly there.
+ *
+ * Logical properties throughout (padding-block, margin-inline-end,
+ * border-block-end, text-align: end) - the sign story's phone panel renders
+ * RTL Hebrew, and a physical left/right would read backwards there. There
+ * are no physical left/right rules to convert in the ported source, so none
+ * appear here either.
+ */
+
+.root {
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Phone hardware chrome, derived from the text token rather than a new
+     hardcoded gray - see file header. */
+  --phone-bezel: color-mix(in srgb, var(--color-text) 50%, black 50%);
+  --phone-bezel-edge: color-mix(in srgb, var(--color-text) 65%, black 35%);
+  --phone-shadow-color: color-mix(in srgb, var(--color-text) 28%, transparent);
+
+  display: block;
+  color: var(--color-text);
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+  max-width: 640px;
+  margin-inline: auto;
+  padding-block: var(--space-section-block) var(--space-4);
+  padding-inline: var(--space-5);
+  text-align: center;
+}
+
+.hero-title {
+  margin-block: 0 var(--space-3);
+}
+
+.privacy-line {
+  margin: 0;
+  font-size: var(--type-lead-size);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+.scroll-cue {
+  margin-block-start: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scroll-cue-icon {
+    animation: bob 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ---------- captions ---------- */
+
+.caption {
+  max-width: 480px;
+  margin-inline: auto;
+  margin-block: 0;
+  padding-block: var(--space-content-row) var(--space-1);
+  padding-inline: var(--space-5);
+  text-align: center;
+}
+
+/* ---------- track / sticky mechanics ---------- */
+
+.track {
+  position: relative;
+}
+
+.track-short {
+  composes: track;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The tall scroll-jacking distance the sticky stage travels through.
+     Never svh's absence here on purpose: this is the one place the
+     mockup's height genuinely should be a fixed multiple of viewport
+     height, not a fixed pixel count, since it is what gives the sticky
+     panel room to release. --track-short must come after --track in
+     source order so it wins for elements carrying both classes (composes
+     adds the class name, not the rule's cascade position). */
+  .track {
+    height: 500svh;
+  }
+
+  .track-short {
+    height: 340svh;
+  }
+}
+
+/* Shared by both stage variants: everything except the sticky-mode height,
+   which stage/stage-first each set on their own (see below) so the first
+   panel's height can be overridden without touching the second. */
+.stage-base {
+  display: flex;
+  justify-content: center;
+  /* --stage-padding-block is a named value, not just a literal, because
+     .phone below needs to subtract it when computing its own size from the
+     stage's available height - a literal 40px in two places would go stale
+     silently if this ever changed. */
+  --stage-padding-block: 40px;
+  padding-block: var(--stage-padding-block);
+  padding-inline: 20px;
+
+  /* Defaults for every beat this component drives, on every stage
+     regardless of which track it belongs to (harmless: a track only ever
+     reads the beats its own island config writes). All default to fully
+     progressed (1) except the tap pulse (0). This is what makes the no-JS
+     path work: without a script to lower them, every beat renders at its
+     finished value - see the layer rules below for how that resolves to
+     "only the final layer is visible" rather than every layer at once. */
+  --p-msg: 1;
+  --p-tap: 0;
+  --p-open: 1;
+  --p-name-he: 1;
+  --p-class-en: 1;
+  --p-check-1: 1;
+  --p-check-2: 1;
+  --p-sign: 1;
+  --p-send: 1;
+  --p-sent: 1;
+  --p-arrive: 1;
+  --p-blur-1: 1;
+  --p-blur-2: 1;
+}
+
+.stage {
+  composes: stage-base;
+}
+
+.stage-first {
+  composes: stage-base;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Everything below the first screen stays a full 100svh sticky panel. */
+  .stage {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    align-items: center;
+  }
+
+  /* The first panel's height is driven by a custom property so a page that
+     has less than a full screen of room above the fold (see HeroDemo.astro's
+     header comment) can hand this a smaller value from outside - a rule on
+     whatever wraps <HeroDemo />, e.g. `.hero-demo-slot { --herodemo-panel-
+     height: 300px; }` - without editing this component. Custom properties
+     inherit normally, so no prop plumbing is needed for it to reach here.
+     Defaults to the same 100svh as every other panel. */
+  .stage-first {
+    position: sticky;
+    top: 0;
+    height: var(--herodemo-panel-height, 100svh);
+    align-items: center;
+  }
+}
+
+/* ---------- phone chrome ---------- */
+
+.phone {
+  box-sizing: border-box;
+  width: min(80vw, 300px);
+  aspect-ratio: 9 / 19;
+  padding: 10px;
+  background: var(--phone-bezel);
+  border-radius: 38px;
+  box-shadow:
+    0 30px 60px -20px var(--phone-shadow-color),
+    0 0 0 2px var(--phone-bezel-edge) inset;
+  display: flex;
+}
+
+/* Only the first track's phone needs to shrink to fit an overridden panel
+   height - the second track's phone must stay the original min(80vw, 300px)
+   regardless of what wraps the whole component, so this is a dedicated
+   modifier rather than a shared read of --herodemo-panel-height on .phone
+   itself. A shared read would have been wrong two ways: (1) custom
+   properties inherit past this component's own boundary, so a wrapper
+   around the whole <HeroDemo /> (exactly the pattern this file's own
+   height-override comment recommends) would shrink track two's phone as
+   well, even though its stage stays a hardcoded 100svh; (2) it would also
+   apply under prefers-reduced-motion, where the sticky height games do not
+   run at all and the phone should render at its normal, unconstrained
+   size. Scoping the calc() inside the same media query as the height
+   override, on a class only the first track's phone carries, ties both
+   conditions together instead of leaving them to coincidentally agree.
+
+   width stays the definite side and aspect-ratio still derives height from
+   it, exactly like .phone above - a height:100% + aspect-ratio version
+   inside the flex stage was tried first and rejected: a flex row's
+   cross-axis sizing algorithm does not resolve height:100% plus
+   aspect-ratio the way a block context does, and it measurably produced a
+   squished, wrong-ratio box (112.7 x 80, nowhere near 9:19) rather than a
+   smaller correctly-proportioned phone. The third min() candidate here is
+   "the widest this phone can be while still fitting the stage's own
+   available height", using --stage-padding-block (declared on .stage-base
+   above) rather than a duplicated literal so the two never drift apart. */
+.phone-first {
+  composes: phone;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .phone-first {
+    width: min(
+      80vw,
+      300px,
+      calc((var(--herodemo-panel-height, 100svh) - (var(--stage-padding-block) * 2)) * 9 / 19)
+    );
+  }
+}
+
+.screen {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  background: var(--color-surface);
+  border-radius: 28px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.status-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 10px 6px;
+  padding-inline: 16px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.status-icons {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-text);
+}
+
+.icon-airplane {
+  width: 12px;
+  height: 12px;
+}
+
+.icon-battery {
+  width: 20px;
+  height: 10px;
+}
+
+.layers {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/*
+ * Layer visibility/crossfade. Three rules on the same .layer selector,
+ * deliberately in this order - do not merge or reorder them, the no-motion
+ * fallback depends on the exact cascade:
+ *
+ *   1. display: none        - the resting state, no motion, no JS.
+ *   2. (only under motion-ok) display: block; position: absolute; inset: 0
+ *      - overlaps every layer in the same box so the opacity rules below
+ *        can crossfade between them.
+ *   3. display: flex; flex-direction: column - unconditional, and it comes
+ *      LAST, so it wins the display property in every case (same
+ *      specificity, later source order beats an earlier rule).
+ *
+ * The net effect: under motion-ok, every layer is absolutely stacked and
+ * flex, and the per-layer opacity formulas below (which read the default
+ * --p-* values above when JS has not run) pick the visible one. Under
+ * reduced motion, every layer is flex but in normal flow (not absolute), so
+ * they would stack visibly one after another - except the same opacity
+ * formulas evaluate against the same defaults and hide every layer except
+ * the one whose formula resolves to full opacity at rest. Layer-final's own
+ * display: block (below) never actually matters for that reason; it is kept
+ * for clarity and as a non-JS/non-CSS-custom-property fallback should a
+ * browser ever fail to compute one of the calc() formulas.
+ */
+.layer {
+  display: none;
+}
+
+.layer-final {
+  display: block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .layer {
+    display: block;
+    position: absolute;
+    inset: 0;
+  }
+}
+
+.layer {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Used directly (chat header, doc header, email header - all three look
+   identical, one shared header treatment) rather than split into three
+   composes-only subclasses: a class whose only declaration is `composes`
+   and nothing else compiles to zero rule of its own in the built
+   stylesheet (only the composed base gets a real selector), so the extra
+   class name still lands in the HTML but check-dead-utilities.js correctly
+   flags it as matching no CSS. Three classes here added no visual
+   differentiation, so the fix is one real class, not a padded-out compose
+   target for each caller. */
+.panel-head {
+  flex: 0 0 auto;
+  padding-block: 10px;
+  padding-inline: 14px;
+  border-block-end: 1px solid var(--color-border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-muted);
+  letter-spacing: 0.02em;
+}
+
+/* Track one (sign): chat crossfades to the form as the story reaches
+   "open", then back to chat (now showing "sent") once it reaches "send". */
+.chat-layer {
+  opacity: calc(1 - var(--p-open, 1) + var(--p-send, 1));
+}
+
+.form-layer {
+  opacity: calc(var(--p-open, 1) - var(--p-send, 1));
+}
+
+/* Track two (blur): email crossfades to the document, then to the reply. */
+.email-layer {
+  opacity: calc(1 - var(--p-open, 1));
+}
+
+.bill-layer {
+  opacity: calc(var(--p-open, 1) - var(--p-send, 1));
+}
+
+.reply-layer {
+  opacity: var(--p-send, 1);
+}
+
+/* Generic beat-driven fades, shared by both tracks. */
+.anim-msg {
+  opacity: var(--p-msg, 1);
+  transform: translateY(calc((1 - var(--p-msg, 1)) * 12px));
+}
+
+.anim-arrive {
+  opacity: var(--p-arrive, 1);
+  transform: translateY(calc((1 - var(--p-arrive, 1)) * 10px));
+}
+
+.anim-send {
+  opacity: var(--p-send, 1);
+  transform: translateY(calc((1 - var(--p-send, 1)) * 10px));
+}
+
+.anim-sent {
+  opacity: var(--p-sent, 1);
+}
+
+/* ---------- chat (story one) ---------- */
+
+.chat {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  overflow: hidden;
+}
+
+.bubble {
+  box-sizing: border-box;
+  max-width: 82%;
+  padding-block: 10px;
+  padding-inline: 12px;
+  border-radius: 14px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  box-shadow: var(--shadow-xs);
+}
+
+/* Incoming bubble reads as "the other person" against the white screen -
+   var(--color-bg), the site's own off-white, rather than a brand color. */
+.bubble-in {
+  background: var(--color-bg);
+  color: var(--color-text);
+  margin-inline-end: auto;
+}
+
+/* Outgoing bubble uses the brand accent rather than a generic chat-app
+   green: this is the visitor's own message, so it wears the same color as
+   every other primary action on the page. */
+.bubble-out {
+  background: var(--color-primary);
+  color: var(--color-surface);
+  margin-inline-start: auto;
+}
+
+.bubble-text {
+  margin: 0;
+}
+
+.bubble-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.tap-ring {
+  position: absolute;
+  inset: -5px;
+  border: 2px solid var(--color-primary);
+  border-radius: 16px;
+  opacity: var(--p-tap, 0);
+  pointer-events: none;
+}
+
+.file-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.file-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  font-size: 0.68rem;
+  opacity: 0.75;
+}
+
+.file-status {
+  font-size: 0.68rem;
+  opacity: 0.9;
+}
+
+.pdf-icon {
+  width: 20px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+
+.pdf-body {
+  fill: var(--color-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.2;
+}
+
+.pdf-fold {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 1.2;
+}
+
+.pdf-tag {
+  fill: var(--color-danger);
+}
+
+.pdf-tag-text {
+  fill: var(--color-surface);
+  font-size: 6.5px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+/* ---------- form fields (story one) ---------- */
+
+.doc-body {
+  flex: 1 1 auto;
+  padding-block: 4px;
+  overflow: hidden;
+}
+
+.field {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-block: 10px;
+  padding-inline: 14px;
+  border-block-end: 1px solid var(--color-border);
+  font-size: 0.82rem;
+}
+
+.field-label {
+  color: var(--color-muted);
+  flex: 0 0 auto;
+}
+
+.field-value-wrap {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  border-block-end: 2px solid var(--color-primary);
+}
+
+.name-field-wrap {
+  composes: field-value-wrap;
+  width: calc(var(--p-name-he, 1) * 10ch);
+}
+
+.class-field-wrap {
+  composes: field-value-wrap;
+  width: calc(var(--p-class-en, 1) * 4ch);
+}
+
+.field-value-text {
+  display: inline-block;
+  font-weight: 600;
+  color: var(--color-text);
+  padding-block-end: 2px;
+}
+
+.checks {
+  display: flex;
+  flex-direction: column;
+  padding-block: 2px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-block: 8px;
+  padding-inline: 14px;
+  font-size: 0.82rem;
+}
+
+.check-box-base {
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 2px solid var(--color-border-strong);
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.check-box-1 {
+  composes: check-box-base;
+  border-color: color-mix(
+    in srgb,
+    var(--color-border-strong) calc((1 - var(--p-check-1, 1)) * 100%),
+    var(--color-success) calc(var(--p-check-1, 1) * 100%)
+  );
+}
+
+.check-box-2 {
+  composes: check-box-base;
+  border-color: color-mix(
+    in srgb,
+    var(--color-border-strong) calc((1 - var(--p-check-2, 1)) * 100%),
+    var(--color-success) calc(var(--p-check-2, 1) * 100%)
+  );
+}
+
+.check-mark-base {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: var(--color-success);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+}
+
+.check-mark-1 {
+  composes: check-mark-base;
+  stroke-dashoffset: calc(1 - var(--p-check-1, 1));
+}
+
+.check-mark-2 {
+  composes: check-mark-base;
+  stroke-dashoffset: calc(1 - var(--p-check-2, 1));
+}
+
+.check-label {
+  color: var(--color-text);
+}
+
+.sig-line {
+  padding-block: 14px 16px;
+  padding-inline: 14px;
+  border-block-end: 2px solid var(--color-border-strong);
+}
+
+.sig-label {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--color-muted);
+  margin-block-end: 4px;
+}
+
+.sig {
+  width: 100%;
+  height: 42px;
+  display: block;
+}
+
+.sig path {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--p-sign, 1));
+}
+
+/* ---------- email / doc / reply (story two) ---------- */
+
+.email-row {
+  display: flex;
+  gap: 10px;
+  padding-block: 10px;
+  padding-inline: 12px;
+  align-items: flex-start;
+}
+
+.email-row-muted {
+  composes: email-row;
+  opacity: 0.5;
+}
+
+.avatar {
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.email-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.email-from {
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.email-subject {
+  font-size: 0.74rem;
+}
+
+.email-preview {
+  font-size: 0.68rem;
+  color: var(--color-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-block: 9px;
+  padding-inline: 14px;
+  border-block-end: 1px solid var(--color-border);
+  font-size: 0.76rem;
+}
+
+.doc-line span:first-child {
+  color: var(--color-muted);
+  flex: 0 0 auto;
+}
+
+.doc-line span:last-child {
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  text-align: end;
+}
+
+.line-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.line-text {
+  display: inline-block;
+}
+
+.blur-text-base {
+  position: absolute;
+  inset: 0;
+  filter: blur(5px);
+  color: var(--color-text);
+  clip-path: inset(0 100% 0 0);
+}
+
+.blur-text-1 {
+  composes: blur-text-base;
+  clip-path: inset(0 calc(100% - (var(--p-blur-1, 1) * 100%)) 0 0);
+}
+
+.blur-text-2 {
+  composes: blur-text-base;
+  clip-path: inset(0 calc(100% - (var(--p-blur-2, 1) * 100%)) 0 0);
+}
+
+.reply-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+
+.reply-text {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.attach-chip {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-block: 8px;
+  padding-inline: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 0.72rem;
+}
+
+.blur-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--color-muted);
+  filter: blur(2px);
+  opacity: 0.6;
+  flex: 0 0 auto;
+}
+
+.attach-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attach-tag {
+  margin-inline-start: auto;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  padding-block: 2px;
+  padding-inline: 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.62rem;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.send-btn {
+  box-sizing: border-box;
+  align-self: flex-end;
+  background: var(--color-primary);
+  color: var(--color-surface);
+  padding-block: 8px;
+  padding-inline: 18px;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.sent-label {
+  padding-block: 0 14px;
+  padding-inline: 14px;
+  text-align: end;
+  color: var(--color-success);
+  font-weight: 700;
+  font-size: 0.76rem;
+}
+
+/* ---------- outro ---------- */
+
+.outro {
+  max-width: 480px;
+  margin-inline: auto;
+  margin-block: 0;
+  padding-block: var(--space-4) var(--space-7);
+  padding-inline: var(--space-5);
+  text-align: center;
+  color: var(--color-muted);
+  font-size: var(--type-body-size);
+}
