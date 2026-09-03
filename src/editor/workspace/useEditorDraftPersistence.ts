@@ -1,6 +1,7 @@
 import { useMemo } from 'preact/hooks';
 import { clearDraftHintAttribute, useDraftPersistence } from '../../components/SignTool/useDraftPersistence.js';
 import { migrateDraftRecord, validateDraftRecord } from '../registry/draftValidation.ts';
+import type { ActionHistoryEntry, HistoryElement } from '../model/actionHistory.ts';
 import { takeHandoff } from './draftStore.js';
 
 interface DraftRecord {
@@ -11,20 +12,26 @@ interface DraftRecord {
   extra?: { actionHistory?: unknown[] };
 }
 
-export interface UseEditorDraftPersistenceOptions {
+export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElement> {
   tool: string;
   file: File | null;
   fileBytes: ArrayBuffer | null;
-  elements: unknown[];
-  actionHistory: unknown[];
+  elements: TElement[];
+  actionHistory: ActionHistoryEntry<TElement>[];
   status: string;
   loadStartedRef: { current: boolean };
   loadPdf: (
     file: File,
     fileBytes: ArrayBuffer,
-    initialState: { elements: unknown[]; actionHistory: unknown[] },
+    initialState: EditorDraftInitialState<TElement>,
     restored: boolean,
   ) => void;
+  isElement: (value: unknown) => value is TElement;
+}
+
+export interface EditorDraftInitialState<TElement extends HistoryElement> {
+  elements: TElement[];
+  actionHistory: ActionHistoryEntry<TElement>[];
 }
 
 /**
@@ -32,7 +39,7 @@ export interface UseEditorDraftPersistenceOptions {
  * tool's store and loader callback intact while centralizing first-wins draft
  * restore behavior.
  */
-export function useEditorDraftPersistence({
+export function useEditorDraftPersistence<TElement extends HistoryElement>({
   tool,
   file,
   fileBytes,
@@ -41,7 +48,8 @@ export function useEditorDraftPersistence({
   status,
   loadStartedRef,
   loadPdf,
-}: UseEditorDraftPersistenceOptions) {
+  isElement,
+}: UseEditorDraftPersistenceOptions<TElement>) {
   // Rebuild a File from a stored record - handoffs and drafts carry the same
   // fileName/fileType/fileBytes triple, because a File handle does not survive a
   // navigation and both have to cross one.
@@ -77,7 +85,7 @@ export function useEditorDraftPersistence({
     onRestore: (record: object) => {
       // A manual pick wins even when its ArrayBuffer or PDF load is still in flight.
       if (loadStartedRef.current) return;
-      const validated = validateDraftRecord(migrateDraftRecord(record));
+      const validated = validateDraftRecord(migrateDraftRecord(record), isElement);
       if (!validated) {
         clearDraftHintAttribute();
         return;

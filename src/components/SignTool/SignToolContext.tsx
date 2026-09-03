@@ -1,20 +1,9 @@
 import { createContext } from 'preact';
 import type { ComponentChildren } from 'preact';
 import { useReducer, useContext, useMemo } from 'preact/hooks';
-import { widthPercentToHeightPercent } from '../../editor/geometry/coords.js';
-import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
+import { revertHistoryEntries, type ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import type { EditorElement } from '../../editor/model/editorModel.ts';
-import {
-  MIN_LINE_LENGTH_PCT,
-  LINE_RESET_SPREAD_PCT,
-  MIN_SHAPE_THRESHOLD_PCT,
-  DEFAULT_WHITEOUT_WIDTH_PCT,
-  DEFAULT_WHITEOUT_HEIGHT_PCT,
-  DEFAULT_WHITEOUT_LEFT_OFFSET_PCT,
-  DEFAULT_WHITEOUT_TOP_OFFSET_PCT,
-  DEFAULT_SHAPE_FALLBACK_WIDTH_PCT,
-  DEFAULT_SHAPE_FALLBACK_ASPECT_RATIO
-} from '../../constants/signGeometry.js';
+import { ensureMinimumElementSize } from '../../editor/geometry/minimumSize.ts';
 
 /**
  * Mutable fields from any editor element variant. Identity, kind, and page are
@@ -192,63 +181,24 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
       };
     case 'ENSURE_MINIMUM_SIZE': {
       const { id, tool, rectWidth, rectHeight, startLeftPercent, startTopPercent } = action.payload;
-      const isLineTool = tool === 'line';
       return {
         ...state,
-        elements: state.elements.map((el) => {
-          if (el.id !== id) return el;
-          if (isLineTool) {
-            // A stale gesture must not reinterpret a non-line element as a
-            // line just because it still has the same id after a restore.
-            if (el.type !== 'line') return el;
-            const tiny = Math.hypot(el.x2 - el.x1, el.y2 - el.y1) < MIN_LINE_LENGTH_PCT;
-            if (tiny) {
-              return {
-                ...el,
-                x1: Math.max(0, startLeftPercent - LINE_RESET_SPREAD_PCT), y1: startTopPercent,
-                x2: Math.min(100, startLeftPercent + LINE_RESET_SPREAD_PCT), y2: startTopPercent
-              };
-            }
-            return el;
-          }
-          if (!('width' in el) || !('height' in el)) return el;
-          if (el.width < MIN_SHAPE_THRESHOLD_PCT && el.height < MIN_SHAPE_THRESHOLD_PCT) {
-            if (tool === 'whiteout') {
-              return {
-                ...el,
-                left: startLeftPercent - DEFAULT_WHITEOUT_LEFT_OFFSET_PCT,
-                top: startTopPercent - DEFAULT_WHITEOUT_TOP_OFFSET_PCT,
-                width: DEFAULT_WHITEOUT_WIDTH_PCT,
-                height: DEFAULT_WHITEOUT_HEIGHT_PCT
-              };
-            }
-            const defW = DEFAULT_SHAPE_FALLBACK_WIDTH_PCT;
-            const defH = widthPercentToHeightPercent(defW, DEFAULT_SHAPE_FALLBACK_ASPECT_RATIO, rectWidth, rectHeight);
-            return { ...el, left: startLeftPercent - defW / 2, top: startTopPercent - defH / 2, width: defW, height: defH };
-          }
-          return el;
-        }),
+        elements: state.elements.map((element) => element.id === id
+          ? ensureMinimumElementSize(element, { tool, rectWidth, rectHeight, startLeftPercent, startTopPercent })
+          : element),
         documentRevision: nextDocumentRevision(state),
       };
     }
     case 'UNDO': {
       if (state.actionHistory.length === 0) return state;
       const lastAction = state.actionHistory[0];
-      // Deletion entries carry a snapshot of what was removed — undo restores it
-      // instead of removing by id (see actionHistory.ts).
-      if (lastAction.snapshot) {
-        return {
-          ...state,
-          elements: [...state.elements, ...lastAction.snapshot],
-          actionHistory: state.actionHistory.slice(1),
-          documentRevision: nextDocumentRevision(state),
-        };
-      }
+      const elements = revertHistoryEntries(state.elements, [lastAction]);
+      const activeSurvives = elements.some((element) => element.id === state.activeElementId);
       return {
         ...state,
-        elements: state.elements.filter(el => el.id !== lastAction.elementId),
-        activeElementId: state.activeElementId === lastAction.elementId ? null : state.activeElementId,
-        editingElementId: state.editingElementId === lastAction.elementId ? null : state.editingElementId,
+        elements,
+        activeElementId: activeSurvives ? state.activeElementId : null,
+        editingElementId: activeSurvives ? state.editingElementId : null,
         actionHistory: state.actionHistory.slice(1),
         documentRevision: nextDocumentRevision(state),
       };
