@@ -16,6 +16,7 @@ import ToolFaqCard from '../components/ToolFaqCard.astro';
 import RelatedGuides from '../components/RelatedGuides.astro';
 import ToolCrossLinks from '../components/ToolCrossLinks.astro';
 import Footer from '../components/Footer.astro';
+import OfflineProof from '../components/OfflineProof.astro';
 import '../styles/global.css';
 
 const { tool } = Astro.props;
@@ -70,12 +71,36 @@ const { tool } = Astro.props;
   <div class="flex min-h-[calc(100svh-3.5rem)] flex-col">
     <ToolHero icon={tool.icon} title={tool.h1} subhead={tool.subhead} slug={tool.slug} condensable={tool.condenseOnLoad !== false} />
 
+    {/* The airplane-mode invitation (DEMO-04): the one idea in that ticket
+        that isn't already said elsewhere on this page - the app bar's
+        "On-device" badge and the dropzone's own "Private. Files never leave
+        your device." already make the privacy claim itself, twice, closer
+        to the moment it matters, so restating it a third time here read as
+        a pitch and was cut (direction change, see DEMO-04.md). This wants
+        to sit right next to the dropzone, but the dropzone (FileDropzone,
+        rendered inside <main> below) is `client:only` and ships no
+        build-time HTML - putting the invitation inside it would mean it
+        never renders for a crawler and flashes in after hydration for a
+        visitor. This is the nearest server-rendered spot, directly above
+        where the dropzone appears. Kept to Sign and Redact only, same as
+        the live status line below. */}
+    {(tool.slug === 'sign' || tool.slug === 'redact') && (
+      <p class="type-body mx-auto mb-4 max-w-[54rem] px-6 text-center text-[var(--color-muted-light)] min-[1024px]:mb-2">
+        Turn on airplane mode and give it a try. It still works.
+      </p>
+    )}
+
     <main class="!flex !min-h-0 !flex-1 !flex-col !px-4 !pb-4 min-[560px]:!px-6 min-[768px]:!pb-5">
       <section id="app" class="!my-0 !flex !min-h-0 !w-full !flex-1 !items-center !justify-center min-[1024px]:!items-start min-[1024px]:!justify-start" aria-label={tool.ariaLabel}>
         <slot />
       </section>
     </main>
   </div>
+
+  {/* OfflineProof (DEMO-04): only Sign and Redact, the live status line
+      only - see the component's own header comment for why the claim
+      sentence is not rendered here anymore. */}
+  {(tool.slug === 'sign' || tool.slug === 'redact') && <OfflineProof />}
 
   {/* Only Sign declares `languages` today; every other tool renders nothing
       here. It goes above "How it works" because "will my language come out

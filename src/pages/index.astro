@@ -6,6 +6,7 @@ import FeatureCard from '../components/FeatureCard.astro';
 import CardDecor from '../components/CardDecor.astro';
 import AppBar from '../components/AppBar.astro';
 import HeroDemo from '../components/HeroDemo/HeroDemo.astro';
+import OfflineProof from '../components/OfflineProof.astro';
 import '../styles/global.css';
 
 const title = 'Free PDF Tools - Private, Local, No Sign-Up | PDkef';
@@ -134,6 +135,19 @@ const faq = [
     </div>
   </main>
 </div>
+
+    {/* OfflineProof (DEMO-04): the live half of "your document stays on
+        your phone." HeroDemo below already says the claim sentence and the
+        airplane-mode invitation, so this only adds what static copy can't:
+        when the visitor really is offline, say so and say it still works.
+
+        It sits outside the first-screen wrapper on purpose. That wrapper is
+        one composed unit whose tool grid is pinned to the bottom with
+        mt-auto, and anything added inside it pushes the dock off the
+        viewport (see the comment above and DEMO-05). Online it renders an
+        empty, padding-less paragraph that its own :empty rule hides, so it
+        costs no height in the common case either way. */}
+    <OfflineProof />
 
     {/* HeroDemo (DEMO-02): the second screen, a direct sibling in the page
         flow rather than nested inside a FeatureCard. position: sticky is
