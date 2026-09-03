@@ -19,6 +19,12 @@
 //   - An update never takes over a page from the previous build (no
 //     skipWaiting), because deleting that build's cache under a live page
 //     breaks its lazy imports. See the activate handler.
+//   - One narrow exception to "GET only": a POST to SHARE_TARGET_PATH, which
+//     is how Android's share sheet hands PDkef a file from another app (see
+//     manifest.webmanifest's share_target). There is no server to answer that
+//     POST - this worker is the only thing that ever sees it, so it lifts the
+//     file out of the multipart body and parks it in IndexedDB rather than
+//     touching the network with it. See handleShareTarget below.
 const CACHE_PREFIX = 'pdkef-';
 const CACHE_VERSION = `${CACHE_PREFIX}__BUILD_ID__`;
 
@@ -137,6 +143,91 @@ async function refreshNavigation(request, cache, cacheKey) {
   }
 }
 
+// --- Web Share Target (DEMO-03) -------------------------------------------
+//
+// The manifest's share_target.action - there is no real page or server behind
+// it; the sole purpose of this path is to be POSTed to and intercepted here.
+const SHARE_TARGET_PATH = '/share-target/';
+// Which tool the shared file opens in, and the multipart field name the
+// browser fills from manifest.webmanifest's share_target.params.files[0].name.
+// Keep both in sync with the manifest if either ever changes.
+const SHARE_TARGET_TOOL = 'sign';
+const SHARE_TARGET_FIELD = 'pdf';
+
+// Mirrors src/editor/workspace/draftStore.js's handoff schema exactly (DB
+// name/version, store name, keyPath, and the `handoff:<tool>` key prefix) so
+// the Sign tool's existing takeHandoff('sign') restore path - the same one
+// FileDropzone's home-page drop already feeds - picks this up with no changes
+// on that side. Duplicated rather than imported: this file is registered as
+// a classic script (see BaseLayout.astro's `navigator.serviceWorker.register`
+// call, no `{ type: 'module' }`), so it cannot `import` draftStore.js. If the
+// handoff schema in draftStore.js ever changes, this must change with it.
+const DRAFTS_DB_NAME = 'pdf-toolkit-drafts';
+const DRAFTS_STORE_NAME = 'drafts';
+const DRAFTS_DB_VERSION = 1;
+const handoffKey = (tool) => `handoff:${tool}`;
+
+function openDraftsDb() {
+  return new Promise((resolvePromise, reject) => {
+    const request = indexedDB.open(DRAFTS_DB_NAME, DRAFTS_DB_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(DRAFTS_STORE_NAME)) {
+        db.createObjectStore(DRAFTS_STORE_NAME, { keyPath: 'tool' });
+      }
+    };
+    request.onsuccess = () => resolvePromise(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Stores the shared file's bytes under the same handoff key FileDropzone's
+// saveHandoff() writes, so the Sign tool's mount-time takeHandoff('sign')
+// finds it unmodified. Nothing here ever calls fetch() with the file - the
+// bytes only ever move from the POST body into IndexedDB, never back onto
+// the network, so the "no file bytes leave the device" invariant holds.
+async function saveShareHandoff(file) {
+  const fileBytes = await file.arrayBuffer();
+  const db = await openDraftsDb();
+  try {
+    await new Promise((resolvePromise, reject) => {
+      const tx = db.transaction(DRAFTS_STORE_NAME, 'readwrite');
+      tx.objectStore(DRAFTS_STORE_NAME).put({
+        tool: handoffKey(SHARE_TARGET_TOOL),
+        fileName: file.name || 'shared.pdf',
+        fileType: file.type || 'application/pdf',
+        fileBytes,
+        savedAt: Date.now(),
+      });
+      tx.oncomplete = () => resolvePromise();
+      tx.onabort = () => reject(tx.error);
+      tx.onerror = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+// Handles the share-sheet POST. Always redirects to the destination tool
+// (even when nothing usable came through) since that is where a person
+// expects to land after picking PDkef from the share sheet, and a 303 turns
+// this into a normal GET navigation that the fetch handler's own
+// navigation-caching branch below then serves exactly as any other visit.
+async function handleShareTarget(request) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get(SHARE_TARGET_FIELD);
+    if (file && typeof file === 'object' && typeof file.arrayBuffer === 'function' && file.size > 0) {
+      await saveShareHandoff(file);
+    } else {
+      console.warn('[pdkef] Share target POST carried no usable file.');
+    }
+  } catch (error) {
+    console.error('[pdkef] Failed to read a shared PDF:', error);
+  }
+  return Response.redirect(resolve(`/${SHARE_TARGET_TOOL}/`), 303);
+}
+
 self.addEventListener('install', (event) => {
   // Deliberately no skipWaiting(): a new build must not take control of a page
   // that is still running the previous one. See the activate handler.
@@ -177,10 +268,18 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  if (request.method !== 'GET') return;
-
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  // 0. Web Share Target: see the SHARE_TARGET_PATH block above. Scoped to
+  // this exact path so it can never shadow a real POST this app might add
+  // later, and checked before the GET-only bail below since this is a POST.
+  if (request.method === 'POST' && url.pathname === SHARE_TARGET_PATH) {
+    event.respondWith(handleShareTarget(request));
+    return;
+  }
+
+  if (request.method !== 'GET') return;
 
   // 1. Navigation requests: use the cached route immediately and refresh it
   // in the background. Query strings intentionally share their page shell -
