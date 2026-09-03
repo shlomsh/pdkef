@@ -9,6 +9,7 @@ const laneNames = {
   'sign-tool-architecture': 'Sign tool architecture',
   'editor-architecture': 'Editor architecture',
   'fonts-and-script-support': 'Fonts and script support',
+  'landing-story-demo': 'Landing story and demo',
 };
 
 function boardTickets(tasks) {
