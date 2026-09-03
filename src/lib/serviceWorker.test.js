@@ -10,7 +10,47 @@ function requestUrl(request) {
   return typeof request === 'string' ? new URL(request, 'https://pdkef.test').href : request.url;
 }
 
-function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous']) {
+// A minimal, in-memory stand-in for IndexedDB - this repo has no real
+// IndexedDB test harness (see draftStore.test.js's header comment) and does
+// not depend on fake-indexeddb, so the share-target tests below get just
+// enough of the API surface openDraftsDb()/saveShareHandoff() in sw.js
+// actually calls: open() with onupgradeneeded/onsuccess, a db whose
+// transaction()/objectStore()/put() resolve on oncomplete. Every callback
+// fires from a microtask, same relative ordering as the real thing, so
+// sw.js's own promise-wrapping code (which attaches its handlers
+// synchronously right after calling into this) sees them.
+function createFakeIndexedDB() {
+  const store = new Map();
+  const indexedDB = {
+    store,
+    open: () => {
+      const request = { result: null, onupgradeneeded: null, onsuccess: null, onerror: null };
+      queueMicrotask(() => {
+        const db = {
+          objectStoreNames: { contains: () => true },
+          createObjectStore: () => {},
+          transaction: () => {
+            const tx = { oncomplete: null, onabort: null, onerror: null };
+            tx.objectStore = () => ({
+              put: (value) => {
+                store.set(value.tool, value);
+                queueMicrotask(() => tx.oncomplete && tx.oncomplete());
+              },
+            });
+            return tx;
+          },
+          close: () => {},
+        };
+        request.result = db;
+        request.onsuccess && request.onsuccess();
+      });
+      return request;
+    },
+  };
+  return indexedDB;
+}
+
+function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], indexedDBImpl = createFakeIndexedDB()) {
   const listeners = new Map();
   const entries = new Map();
   const cache = {
@@ -34,6 +74,7 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous']) {
     self,
     caches,
     fetch: fetchImpl,
+    indexedDB: indexedDBImpl,
     Request,
     Response,
     URL,
@@ -43,7 +84,7 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous']) {
     console,
   });
 
-  return { cache, caches, entries, fetchImpl, listeners, self };
+  return { cache, caches, entries, fetchImpl, indexedDB: indexedDBImpl, listeners, self };
 }
 
 async function dispatchInstall(worker) {
@@ -166,6 +207,96 @@ describe('offline-first service worker', () => {
     });
 
     expect(await response.text()).toBe('cached home');
+  });
+});
+
+/**
+ * DEMO-03: Web Share Target has no server to answer the POST Android's share
+ * sheet sends (see manifest.webmanifest's share_target), so this worker is
+ * the only thing that ever sees the shared file. It must lift the bytes out
+ * of the multipart body into the exact IndexedDB handoff record
+ * draftStore.js's saveHandoff('sign', ...) already writes (same DB/store/key
+ * shape), so the Sign tool's existing takeHandoff('sign') mount-time restore
+ * - the same path FileDropzone's home-page drop already feeds - picks it up
+ * with no changes on that side, and never touch the network with the file.
+ */
+describe('Web Share Target (DEMO-03)', () => {
+  function shareRequest(formData) {
+    return {
+      method: 'POST',
+      mode: 'navigate',
+      url: 'https://pdkef.test/share-target/',
+      formData: async () => formData,
+    };
+  }
+
+  it('stores a shared PDF as the Sign tool handoff record and redirects there', async () => {
+    const worker = createWorker();
+    const bytes = new Uint8Array([1, 2, 3, 4]);
+    const formData = new FormData();
+    formData.set('pdf', new File([bytes], 'contract.pdf', { type: 'application/pdf' }));
+
+    const { response } = await dispatchFetch(worker, shareRequest(formData));
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('https://pdkef.test/sign/');
+
+    const record = worker.indexedDB.store.get('handoff:sign');
+    expect(record.fileName).toBe('contract.pdf');
+    expect(record.fileType).toBe('application/pdf');
+    expect(new Uint8Array(record.fileBytes)).toEqual(bytes);
+    expect(typeof record.savedAt).toBe('number');
+  });
+
+  it('defaults name/type when the shared file omits them, rather than dropping it', async () => {
+    const worker = createWorker();
+    const formData = new FormData();
+    formData.set('pdf', new File([new Uint8Array([9])], '', { type: '' }));
+
+    await dispatchFetch(worker, shareRequest(formData));
+
+    const record = worker.indexedDB.store.get('handoff:sign');
+    expect(record.fileName).toBe('shared.pdf');
+    expect(record.fileType).toBe('application/pdf');
+  });
+
+  it('still redirects to the Sign tool when the share carried no usable file', async () => {
+    const worker = createWorker();
+
+    const { response } = await dispatchFetch(worker, shareRequest(new FormData()));
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('https://pdkef.test/sign/');
+    expect(worker.indexedDB.store.size).toBe(0);
+  });
+
+  it('redirects rather than throwing when the POST body cannot be read', async () => {
+    const worker = createWorker();
+    const request = {
+      method: 'POST',
+      mode: 'navigate',
+      url: 'https://pdkef.test/share-target/',
+      formData: async () => {
+        throw new Error('bad multipart body');
+      },
+    };
+
+    const { response } = await dispatchFetch(worker, request);
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('https://pdkef.test/sign/');
+  });
+
+  it('never intercepts a POST to any other path, leaving normal request handling to the browser', async () => {
+    const worker = createWorker();
+    const request = { method: 'POST', mode: 'navigate', url: 'https://pdkef.test/some-other-path/' };
+
+    const { response } = await dispatchFetch(worker, request);
+
+    // Nothing in the fetch handler calls event.respondWith for this request
+    // (POST falls straight through the GET-only branch below it too), so the
+    // browser's own default handling applies untouched.
+    expect(response).toBeUndefined();
   });
 });
 

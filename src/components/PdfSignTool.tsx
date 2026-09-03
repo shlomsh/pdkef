@@ -499,8 +499,15 @@ function PdfSignToolInner() {
     // No confirmation branch here: BasePdfTool asks before a replacement that
     // would cost anything, so by the time a file reaches this handler the user
     // has already agreed to it (or there was nothing to agree to).
-    const selected = pdfs[0];
+    await loadFreshFile(pdfs[0]);
+  };
 
+  // Shared by a manual pick and a File Handling API launch (see the
+  // launchQueue effect below) - both already hold a real File, with no
+  // cross-navigation handoff involved. Sets loadStartedRef synchronously,
+  // before the first await, so it wins the mount-time draft-restore race the
+  // same way a manual pick always has (see useEditorDraftPersistence.ts).
+  const loadFreshFile = async (selected: File) => {
     loadStartedRef.current = true;
     const bytes = await selected.arrayBuffer();
     await loadPdf(selected, bytes);
@@ -518,6 +525,27 @@ function PdfSignToolInner() {
     loadPdf,
     isElement: isEditorElement,
   });
+
+  // File Handling API (manifest.webmanifest's file_handlers, DEMO-03): an
+  // installed PDkef launched directly with a PDF, e.g. from a desktop/
+  // ChromeOS file manager's "Open with". Unlike Web Share Target (see
+  // public/sw.js's SHARE_TARGET_PATH), the browser hands the file straight to
+  // this page's JS - no POST, no service worker, no handoff record - so it
+  // loads exactly like a manual pick rather than going through takeHandoff().
+  useEffect(() => {
+    const launchQueue = (window as any).launchQueue;
+    if (!launchQueue) return;
+    launchQueue.setConsumer(async (launchParams: { files?: any[] }) => {
+      if (loadStartedRef.current || !launchParams.files || launchParams.files.length === 0) return;
+      try {
+        const selected: File = await launchParams.files[0].getFile();
+        await loadFreshFile(selected);
+      } catch (error) {
+        console.error(error);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Helper to place a signature at a specific location
   const placeSignatureAt = (dataUrl: string, aspectRatio: number, pageIdx: number, leftPercent: number, topPercent: number) => {
