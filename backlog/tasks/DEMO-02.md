@@ -38,3 +38,24 @@ Mechanically this is DEMO-05's pattern: `position: sticky` panels in a taller tr
 **Constraints that are not negotiable.** The SEO surface stays server-rendered and zero-JS (Part II §1.1), so the demo is an island and the marketing copy around it is not. The content must be complete and readable with JavaScript disabled and under `prefers-reduced-motion: reduce`, degrading to a finished still rather than an empty frame. No third-party logo, wordmark or trademark may be drawn. `check-page-weight.js` has a document-plus-eager-JS budget and an image budget: prefer inline SVG and CSS animation over any raster asset, and if the demo needs to be lazy, make it lazy rather than raising a budget.
 
 **Acceptance.** Both stories are legible at 390px, which is the width that matters. Readable with JS off and under reduced motion. No new CSP violation (`npm run build && npm run preview`, per Part II §5). Page-weight and CSS guards pass. Lighthouse Performance and SEO stay at or above 95.
+
+## Remaining after the story rewrite
+
+The product owner redirected both stories on 2026-09-04 (English sign story running from the chat
+message through to the share sheet, a real `filter: blur()` plus blackout, whiteout and delete in
+story two, a title that carries the errand instead of describing the scroll mechanic, and Sea Glass
+confirmed as the register). That work is in flight. What is still open once it lands:
+
+1. **End-to-end acceptance, which has never been run in one pass.** 390px, JavaScript disabled,
+   `prefers-reduced-motion: reduce`, a real `npm run build && npm run preview` CSP check, page weight
+   and the CSS guards. Individual pieces have been checked at various points, but not the whole set
+   against one build.
+2. **The progress indicator DEMO-05 specified and nobody built.** That ticket asked for a persistent
+   minimal indicator so a visitor can see how many panels there are and that the sequence ends, and it
+   was closed without one. A scroll-driven deck that gives no sense of its own length is a real
+   usability gap, not a decoration: the visitor cannot tell whether they are two panels into two or
+   two into ten. Small, and worth doing.
+3. **The multi-script showcase is gone.** Story one was Hebrew and is now English by the owner's
+   decision. That was the only place on the site where multi-script support was visible without being
+   explained, against a great deal of real effort in the export path. If it comes back it should be a
+   small third beat, not a return to Hebrew as the main story.
