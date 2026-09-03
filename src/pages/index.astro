@@ -34,8 +34,8 @@ const faq = [
   </Fragment>
 
   <AppBar isHome />
-  <div class="bg-[linear-gradient(180deg,var(--color-bg),var(--color-primary-tint))] pb-12 min-[1024px]:flex min-[1024px]:min-h-[calc(100svh-3.5rem)] min-[1024px]:flex-col min-[1024px]:justify-center min-[1024px]:box-border min-[1024px]:pt-2 min-[1024px]:pb-0">
-    <header class="px-6 pb-8 pt-14 min-[1024px]:px-0 min-[1024px]:pb-3 min-[1024px]:pt-2">
+  <div class="bg-[linear-gradient(180deg,var(--color-bg),var(--color-primary-tint))] pb-12 min-[1024px]:flex min-[1024px]:min-h-[calc(100svh-3.5rem)] min-[1024px]:flex-col min-[1024px]:justify-center min-[1024px]:box-border min-[1024px]:pt-2 min-[1024px]:pb-6">
+    <header class="hero-header">
       <div class="mb-3 flex items-center justify-center gap-4">
         <Image src={logo} width={56} height={56} densities={[1, 2]} loading="eager" decoding="sync" fetchpriority="high" alt="" aria-hidden="true" class="shrink-0" />
         <h1 class="type-hero mb-0 text-start">Free PDF tools that run <span class="text-[var(--color-primary)]">on your device</span></h1>
@@ -69,7 +69,20 @@ const faq = [
 
   <main class="min-[1024px]:!flex min-[1024px]:!min-h-0 min-[1024px]:!flex-1 min-[1024px]:!flex-col min-[1024px]:!pb-0">
     {/* Large Dropzone CTA */}
-    <div class="merge-tool mx-auto mb-16 box-border max-w-[1080px] p-6 min-[1024px]:!mb-4 min-[1024px]:!p-4">
+    <div class="merge-tool first-screen-frame mx-auto mb-16 box-border max-w-[1080px] p-6 min-[1024px]:!mb-4 min-[1024px]:!p-4">
+      {/* .first-screen-frame (scoped rule below) grows to fill whatever room
+          the first-screen budget has left over between the header and the
+          tool dock (flex:1 inside <main>'s own flex column), then centers
+          its fixed-size child vertically (justify-content:center) rather
+          than leaving that room as a flat gap below a static-height box. At
+          a short viewport the child sits nearly flush against its own
+          padding; at a tall one it gets more air above and below - the
+          growing/shrinking budget shows up as calm framing around the CTA
+          instead of as dead space beneath it. It is a scoped class, not
+          Tailwind utilities, so this one-off layout ships only on this page
+          - see the <style> block at the end of the file. See the
+          --first-screen-slot custom property below (child's own height
+          contract, not this wrapper) for how a future demo resizes it. */}
       {/* Reserves the dropzone's rendered height before it exists.
           FileDropzone is `client:only`, so Astro emits an empty <astro-island>
           here and the box paints nothing until its chunk loads and hydrates -
@@ -92,8 +105,16 @@ const faq = [
           over-reservation is dead space, an under-reservation is the shift
           this exists to prevent. The 412px step tracks a text wrap, so it
           moves with font metrics - a platform that wraps later shifts by at
-          most that 22px, against 333px before this. */}
-      <div class="min-h-[333px] min-[412px]:min-h-[312px] min-[1024px]:min-h-[264px]">
+          most that 22px, against 333px before this.
+
+          The 1024px+ tier reads --first-screen-slot (default 264px, this
+          same measured figure) instead of a bare min-h-[264px], so the
+          HeroDemo work landing in this slot can raise the reservation to
+          whatever height its own component needs by setting the one custom
+          property - on this div, or an ancestor - without touching the
+          surrounding flex/centering layout in the parent above. Nothing
+          currently overrides it, so today's rendered height is unchanged. */}
+      <div class="min-h-[333px] min-[412px]:min-h-[312px] min-[1024px]:min-h-[var(--first-screen-slot,264px)]">
         <FileDropzone client:only="preact" href="/sign?action=open" toolTarget="sign" className="min-[1024px]:!py-6" />
       </div>
     </div>
@@ -379,6 +400,75 @@ const faq = [
 </BaseLayout>
 
 <style>
+  /* --- First-screen budget fixes (desktop hero re-budget) ---------------
+     Two rules below fix/implement the desktop (>=1024px) first-screen
+     layout. Both are scoped (Astro auto-attributes every selector here),
+     so - like .app-tile et al. further down - they ship only on this page,
+     never inlined into the other 22 via the shared Tailwind utility bundle.
+     That matters here specifically: an earlier version of this fix used
+     one-off `!`-prefixed Tailwind utilities (`!px-6`, `min-[1024px]:!flex-1`,
+     etc.) for the same two rules, and check-css-duplication.js's single-page-
+     utility ratchet caught it - those utilities are real bytes in the one
+     inlined stylesheet every page ships, paid for by all 22 pages that never
+     use them, for a layout only this page has. Scoped classes are the
+     correct tool for a genuinely one-off rule; reach for them before adding
+     another arbitrary-value utility that only this page will ever use. */
+
+  /* header:not(.tool-hero):not(.not-found-header) in global.css is a bare,
+     unlayered rule (specificity 0-2-1: element + two :not() args, each
+     counted as a class). Unlayered CSS always wins over anything in
+     @layer utilities regardless of specificity, so this page's own header
+     - not .tool-hero - was permanently pinned to that rule's padding
+     (4.5rem/1.5rem/2.25rem, i.e. 72px/24px/36px) at every viewport width.
+     A second bare rule at >=768px (`header:not(.tool-hero) { padding:
+     3.5rem 1.5rem 1.5rem }`) was clearly meant to correct this for
+     wider screens, but has lower specificity (0-1-1, only one :not()), so
+     it silently lost the cascade and never applied - not just on desktop,
+     everywhere, always. This one rule alone was costing the home page's
+     header 88px of dead vertical space at 1024px+ (72px top down to the
+     8px min-[1024px]:pt-2 that was authored as a Tailwind class and never
+     rendered, plus 36px bottom down to 12px), which was the single largest
+     contributor to the whole first-screen budget overflow this file fixes.
+     Astro's own scoped <style> output is itself unlayered (same implicit
+     layer as global.css's bare rule), so beating it takes higher
+     specificity, not `!important` - repeating the class once brings this
+     selector (2 classes + Astro's own auto attribute = 0-3-1) above the
+     bare rule's 0-2-1, regardless of source order between the two
+     stylesheets. This does not touch global.css: that file is shared by
+     every page (tool pages, content pages, licenses, 404), and its own
+     header rule has the identical dead-code problem there too - a fix
+     scoped to this page only can't reach it, and re-verifying every other
+     page's own layout budget is a separate piece of work. */
+  .hero-header.hero-header {
+    padding-block: 3.5rem var(--space-6);
+    padding-inline: var(--space-5);
+  }
+
+  @media (min-width: 1024px) {
+    .hero-header.hero-header {
+      padding-block: var(--space-2) var(--space-3);
+      padding-inline: 0;
+    }
+  }
+
+  /* The dropzone/demo slot's wrapper. At 1024px+ it grows to absorb
+     whatever's left of the first-screen budget between the header and the
+     tool dock (main's own min-[1024px]:!flex-1 already makes <main> do this
+     at the outer level; this repeats it one level down so the slack lands
+     here specifically, not as a bare gap between this box and the dock),
+     then centers its fixed-height child inside that grown box. No
+     specificity fight needed - .merge-tool's own bare rule (global.css,
+     >=768px) only sets width/flex-shrink, and forcing flex-shrink back to
+     0 here is what we want anyway. */
+  @media (min-width: 1024px) {
+    .first-screen-frame {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      justify-content: center;
+    }
+  }
+
   /* The tool grid's tiles. Written as utilities on the element this was ~1.6KB
      of class attribute per tile, but the real cost was where it landed: around
      thirty arbitrary-value rules (two gradients, three layered shadows, a
