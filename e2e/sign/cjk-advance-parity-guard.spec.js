@@ -67,6 +67,7 @@
  */
 import { test, expect } from '@playwright/test';
 import { buildFontkitBundle, removeFontkitBundle } from './fixtures/shapingGuardHarness.js';
+import { useTemporaryBundle } from './fixtures/temporaryBundle.js';
 import { WYSIWYG_STRING_BY_ID } from '../../src/test/fixtures/wysiwygStrings.js';
 
 /**
@@ -136,21 +137,17 @@ const toleranceFor = (text) => Math.max(MAX_DELTA_PX, LATIN_HINT_ROUNDING_PX * n
 const SIZE = 40;
 const BUNDLE = '__e2e-cjk-fontkit-bundle.js';
 
-let bundlePath;
-test.beforeAll(async () => { bundlePath = await buildFontkitBundle(BUNDLE); });
-test.afterAll(() => removeFontkitBundle(bundlePath));
+const fontkitBundle = useTemporaryBundle(test, {
+  filename: BUNDLE,
+  build: buildFontkitBundle,
+  remove: removeFontkitBundle,
+});
 
 for (const family of FAMILIES) {
   test.describe(`${family.label} advance-width parity guard`, () => {
     for (const weight of ['Regular', 'Bold']) {
       test(`${family.label} ${weight}: fontkit's advances match Chromium's across every codepoint in the shipped subset`, async ({ page }) => {
-      // SIGN-21: the preview server snapshots dist/'s file list at startup,
-      // before this file's beforeAll writes the bundle, so answer the
-      // request from that file directly instead - see
-      // shapingGuardHarness.js's buildFontkitBundle doc.
-      await page.route(`**/${BUNDLE}`, (route) => route.fulfill({ path: bundlePath }));
-      await page.goto('/sign');
-      await page.addScriptTag({ url: `/${BUNDLE}` });
+      await fontkitBundle.open(page);
 
       // Runs entirely in the page (serialized by source), so it must stay self
       // contained - no closure over this module's scope.

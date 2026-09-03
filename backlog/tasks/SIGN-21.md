@@ -1,12 +1,12 @@
 ---
 id: "SIGN-21"
 title: "Make the browser guard helpers reachable from the preview server"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "release-blocker"
 depends_on: []
-legacy_state: "Reopened 2026-09-02 — language-acceptance bundle still 404s"
+legacy_state: "Done 2026-09-03 — shared temporary-bundle fixture verified by full E2E"
 ---
 
 # SIGN-21 · Make the browser guard helpers reachable from the preview server
@@ -32,3 +32,11 @@ language/face combinations are exercised. Add the missing route and centralize t
 "build a temporary bundle + make it reachable + clean it up" fixture so a future bundle
 consumer cannot omit one step. Acceptance remains a clean full `npm run test:e2e`, not a
 focused pass of the already-routed guards.
+
+**Resolved 2026-09-03.** `useTemporaryBundle` now owns the whole generated-bundle
+lifecycle: it builds before the tests, routes the same-origin request from the file on
+disk before visiting the page, injects the script, and removes the bundle after the
+suite. All four consumers use it: shaping guards, CJK advance parity, export-render,
+and language acceptance. The previously omitted language-acceptance bundle is therefore
+served through the route as well. Verified by a clean `npm run test:e2e` run: 96 tests,
+all passed.

@@ -120,16 +120,14 @@
 import { existsSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { build } from 'esbuild';
+import { useTemporaryBundle } from './temporaryBundle.js';
 
 /**
  * Bundles fontkit (+ regenerator-runtime) for the browser and writes it into
  * the built `dist/` so a same-origin `<script src>` can fetch it under CSP.
- * Call from `test.beforeAll`; pair with `removeFontkitBundle` in
- * `test.afterAll`. The returned path also has to be handed to
- * `page.route('**\/' + bundleFilename, (route) => route.fulfill({ path }))`
- * in each test before navigating - see this file's "Why the fetch is also
- * routed through `page.route`" module doc for why the write alone isn't
- * enough for the preview server to answer the request (SIGN-21).
+ * Pass this as `build` to `useTemporaryBundle`, alongside
+ * `removeFontkitBundle`. The fixture owns creation, same-origin routing, and
+ * cleanup so callers cannot omit the routing step the preview server needs.
  *
  * @param {string} bundleFilename - unique per guard, so two guards run in the
  *   same job never race on the same file.
@@ -540,14 +538,10 @@ export function createShapingGuardTest({
     throw new Error(`${scriptName}/${candidateName}: pass exactly one of calibrationSet or autoCalibrate`);
   }
 
-  let bundlePath;
-
-  test.beforeAll(async () => {
-    bundlePath = await buildFontkitBundle(bundleFilename);
-  });
-
-  test.afterAll(() => {
-    removeFontkitBundle(bundlePath);
+  const fontkitBundle = useTemporaryBundle(test, {
+    filename: bundleFilename,
+    build: buildFontkitBundle,
+    remove: removeFontkitBundle,
   });
 
   test.describe(`${scriptName} shaping correctness guard (${candidateName} candidate)`, () => {
@@ -556,13 +550,7 @@ export function createShapingGuardTest({
       : `fontkit's shaped ${candidateName} output pixel-matches the browser's own rendering across ${corpus.length} generated cases`;
 
     test(title, async ({ page }) => {
-      // See buildFontkitBundle's doc / this file's "Why the fetch is also
-      // routed through `page.route`" note (SIGN-21): the preview server's
-      // static-file listing is snapshotted before this beforeAll's bundle
-      // exists, so answer the request from the file directly.
-      await page.route(`**/${bundleFilename}`, (route) => route.fulfill({ path: bundlePath }));
-      await page.goto('/sign');
-      await page.addScriptTag({ url: `/${bundleFilename}` });
+      await fontkitBundle.open(page);
 
       const result = await page.evaluate(runShapingGuardInPage, {
         corpus,
