@@ -7,22 +7,30 @@
  * which supplies motion only: every sentence a visitor reads exists in this
  * file regardless of whether that script ever runs.
  *
- * Content and structure are ported from an approved standalone mockup
- * (dirE.html), not redesigned. Two copy changes were made while porting:
- * "opens right in the browser" became "opens right there in the chat" (the
- * audience is non-technical and does not need the plumbing explained), and
- * every reference to removing sensitive text says "blur", never "redact" -
- * see DEMO-07 and CLAUDE.md's product/voice section.
+ * Content and structure were originally ported from a standalone mockup
+ * (dirE.html). Revised 2026-09-04 per product-owner review of that first
+ * pass. This pass covers two of that review's four directives: (1) the hero
+ * title and both captions were rewritten to carry the errand and its
+ * outcome rather than describe the scroll mechanic; (2) story one moved
+ * from Hebrew/RTL to English, and its arc was extended to start at the
+ * incoming chat message and end at the OS share sheet - `navigator.share`,
+ * what Sign actually calls - before the signed file lands back in the
+ * thread. Losing the Hebrew field costs this site its one place where
+ * multi-script support showed without being explained - the product
+ * owner's call, made knowingly, not undone here. (A second pass covers the
+ * other two directives: story two demonstrating all four redaction tools,
+ * and the Sea Glass palette check.)
  *
- * Track one (sign) gets the longer scroll length and goes first: fill and
- * sign a consent form, texted in Hebrew and English, in a chat. Track two
- * (blur) is shorter and second: blur two sensitive lines on a document
- * before replying to an email. Both stories are mobile phone mockups; both
- * end by sending the finished document back where it arrived.
+ * Track one (sign) gets the longer scroll length and goes first: a field
+ * trip permission slip arrives as a chat attachment, gets filled in, ticked,
+ * signed, shared, and sent back in the same thread. Track two (blur) is
+ * shorter and second: an email asks for a document and two sensitive lines
+ * get blurred before the reply goes out. Both stories are mobile phone
+ * mockups.
  *
  * Scroll mechanic (ported from dirE.html, itself DEMO-05's pattern): each
  * story is a `position: sticky` panel pinned inside a much taller track
- * (500svh / 340svh, never 100vh - see CLAUDE.md's sticky-viewport-unit
+ * (560svh / 340svh, never 100vh - see CLAUDE.md's sticky-viewport-unit
  * note). ScrollDriver.tsx reads scroll position, computes 0-1 progress
  * through each track from getBoundingClientRect() every frame (never
  * accumulated, so scrolling back up genuinely un-fills the form), slices
@@ -44,13 +52,13 @@
  * support is 87.01%, with Firefox not supporting either until version 158.
  * That is a real option, not ruled out on support grounds alone. It was not
  * taken here for three reasons specific to this component rather than a
- * blanket "not supported enough": (1) every one of the ~13 beats this
- * component drives would need its own `@property` registration (custom
- * properties do not interpolate as numbers without one - they flip at the
- * midpoint instead of easing) plus its own `@keyframes` and a positionally-
- * matched `animation-range`, which is a lot of new, first-of-its-kind
- * surface in a codebase whose CSS budget and duplication guards (CLAUDE.md
- * Part II section 6) already ratchet tightly; (2) shipping it *alongside*
+ * blanket "not supported enough": (1) every one of the beats this component
+ * drives would need its own `@property` registration (custom properties do
+ * not interpolate as numbers without one - they flip at the midpoint instead
+ * of easing) plus its own `@keyframes` and a positionally-matched
+ * `animation-range`, which is a lot of new, first-of-its-kind surface in a
+ * codebase whose CSS budget and duplication guards (CLAUDE.md Part II
+ * section 6) already ratchet tightly; (2) shipping it *alongside*
  * ScrollDriver.tsx as a dual implementation - CSS for the ~87%, JS as a
  * fallback for the rest - means encoding the same beat boundaries twice, in
  * two languages that cannot check each other, which is exactly the
@@ -86,7 +94,9 @@ const rootSelector = `.${styles.root}`;
   <ScrollDriver client:idle rootSelector={rootSelector} />
 
   <div class={styles.hero}>
-    <h2 class={`type-section ${styles['hero-title']}`}>The page fills itself in as you scroll.</h2>
+    <h2 class={`type-section ${styles['hero-title']}`}>
+      The form arrives in your chat. Finish it there and send it back.
+    </h2>
     <p class={styles['privacy-line']}>Your document stays on your phone.</p>
     <div class={styles['scroll-cue']} aria-hidden="true">
       <svg class={styles['scroll-cue-icon']} viewBox="0 0 24 24" width="18" height="18" focusable="false">
@@ -103,19 +113,20 @@ const rootSelector = `.${styles.root}`;
     </div>
   </div>
 
-  <h3 class={`type-card ${styles.caption}`}>Fill it in and sign it, right there in the chat.</h3>
+  <h3 class={`type-card ${styles.caption}`}>Fill it in, sign it, and send it straight back.</h3>
 
   <div class={styles.track} data-hero-track="sign">
     <p class="sr-only">
-      A consent form arrives as a file in a chat message and opens right there in the chat. As the
-      page scrolls, the child's name fills in Hebrew, the class fills in English, two boxes get
-      checked, and a signature draws itself on the line. The finished, signed form is sent back in
-      the same chat.
+      A field trip permission slip arrives as a file in a chat message. Tapping it opens the form
+      right there in the chat. As the page scrolls, the trip date and destination fill in, both
+      permission checkboxes get checked, and a signature draws itself on the line. A share sheet
+      then slides up carrying the signed file, and back in the chat, the signed form goes out and
+      reads as sent.
     </p>
     <div class={styles['stage-first']} data-hero-stage>
       <div class={styles['phone-first']} aria-hidden="true">
         <div class={styles.screen}>
-          <div class={styles['status-bar']} dir="rtl">
+          <div class={styles['status-bar']}>
             <span>9:41</span>
             <span class={styles['status-icons']}>
               <svg class={styles['icon-airplane']} viewBox="0 0 24 24" focusable="false">
@@ -132,11 +143,11 @@ const rootSelector = `.${styles.root}`;
             </span>
           </div>
           <div class={styles.layers}>
-            <div class={`${styles.layer} ${styles['chat-layer']} ${styles['layer-final']}`} dir="rtl" lang="he">
-              <div class={styles['panel-head']}>הורי כיתה ה'2</div>
+            <div class={`${styles.layer} ${styles['chat-layer']} ${styles['layer-final']}`}>
+              <div class={styles['panel-head']}>Room 12 Families</div>
               <div class={styles.chat}>
                 <div class={`${styles.bubble} ${styles['bubble-in']} ${styles['anim-msg']}`}>
-                  <p class={styles['bubble-text']}>היי, מצורף טופס אישור לטיול השנתי 🙏</p>
+                  <p class={styles['bubble-text']}>Hi all, the field trip permission slip is attached 🙏</p>
                 </div>
                 <div class={`${styles.bubble} ${styles['bubble-in']} ${styles['bubble-file']} ${styles['anim-msg']}`}>
                   <span class={styles['tap-ring']} aria-hidden="true"></span>
@@ -147,8 +158,8 @@ const rootSelector = `.${styles.root}`;
                     <text class={styles['pdf-tag-text']} x="10.5" y="21.2" text-anchor="middle">PDF</text>
                   </svg>
                   <span class={styles['file-meta']}>
-                    <span class={styles['file-name']}>אישור טיול שנתי.pdf</span>
-                    <span class={styles['file-size']}>240 KB</span>
+                    <span class={styles['file-name']}>field-trip-permission-slip.pdf</span>
+                    <span class={styles['file-size']}>248 KB</span>
                   </span>
                 </div>
                 <div class={`${styles.bubble} ${styles['bubble-out']} ${styles['anim-send']}`}>
@@ -159,26 +170,24 @@ const rootSelector = `.${styles.root}`;
                     <text class={styles['pdf-tag-text']} x="10.5" y="21.2" text-anchor="middle">PDF</text>
                   </svg>
                   <span class={styles['file-meta']}>
-                    <span class={styles['file-name']}>אישור טיול שנתי.pdf</span>
-                    <span class={`${styles['file-status']} ${styles['anim-sent']}`}>נשלח</span>
+                    <span class={styles['file-name']}>field-trip-permission-slip.pdf</span>
+                    <span class={`${styles['file-status']} ${styles['anim-sent']}`}>Sent</span>
                   </span>
                 </div>
               </div>
             </div>
 
-            <div class={`${styles.layer} ${styles['form-layer']}`} dir="rtl" lang="he">
-              <div class={styles['panel-head']}>אישור טיול שנתי.pdf</div>
+            <div class={`${styles.layer} ${styles['form-layer']}`}>
+              <div class={styles['panel-head']}>field-trip-permission-slip.pdf</div>
               <div class={styles['doc-body']}>
-                <div class={styles.field} dir="rtl">
-                  <span class={styles['field-label']}>שם הילד/ה</span>
-                  <span class={styles['name-field-wrap']}
-                    ><span class={styles['field-value-text']}>נועה כהן</span></span
-                  >
-                </div>
-                <div class={styles.field} dir="ltr">
-                  <span class={styles['field-label']}>Class</span>
-                  <span class={styles['class-field-wrap']}><span class={styles['field-value-text']}>5B</span></span>
-                </div>
+                <div class={styles['doc-heading']}>Field Trip Permission Slip</div>
+                <p class={styles['trip-sentence']}>
+                  On <span class={styles['date-field-wrap']}
+                    ><span class={styles['field-value-text']}>May 14</span></span
+                  > our class is going on a field trip to <span class={styles['dest-field-wrap']}
+                    ><span class={styles['field-value-text']}>the Science Museum</span></span
+                  >.
+                </p>
                 <div class={styles.checks}>
                   <div class={styles.check}>
                     <span class={styles['check-box-1']}
@@ -186,7 +195,7 @@ const rootSelector = `.${styles.root}`;
                         ><path pathLength="1" d="M3 9 L7.5 13.5 L15 4.5"></path></svg
                       ></span
                     >
-                    <span class={styles['check-label']}>יציאה לטיול</span>
+                    <span class={styles['check-label']}>My child has permission to attend</span>
                   </div>
                   <div class={styles.check}>
                     <span class={styles['check-box-2']}
@@ -194,17 +203,84 @@ const rootSelector = `.${styles.root}`;
                         ><path pathLength="1" d="M3 9 L7.5 13.5 L15 4.5"></path></svg
                       ></span
                     >
-                    <span class={styles['check-label']}>צילום בטיול</span>
+                    <span class={styles['check-label']}>Photos may be taken during the trip</span>
                   </div>
                 </div>
                 <div class={styles['sig-line']}>
-                  <span class={styles['sig-label']}>חתימה</span>
+                  <span class={styles['sig-label']}>Parent or Guardian</span>
                   <svg class={styles.sig} viewBox="0 0 220 70" preserveAspectRatio="none" focusable="false">
                     <path
                       pathLength="1"
                       d="M8,50 C14,20 20,15 26,35 C30,50 34,55 38,40 C40,25 46,18 50,30 C54,45 55,52 60,45 L66,20 C70,10 74,10 76,20 L80,45 C84,55 90,55 92,40 C96,20 100,15 104,25 C108,38 112,45 118,35 C124,22 130,18 136,28 C142,42 148,48 156,38 C162,30 168,26 176,32 C184,40 192,44 204,30"
                     ></path>
                   </svg>
+                </div>
+                <div class={styles['date-line']}>
+                  <span class={styles['date-line-label']}>Date</span>
+                  <span class={styles['date-line-value']}>05/14</span>
+                </div>
+              </div>
+            </div>
+
+            <div class={`${styles.layer} ${styles['share-layer']}`}>
+              <div class={styles['share-scrim']} aria-hidden="true"></div>
+              <div class={styles['share-sheet']}>
+                <div class={styles['share-handle']} aria-hidden="true"></div>
+                <div class={styles['share-file-row']}>
+                  <svg class={styles['pdf-icon']} viewBox="0 0 24 28" focusable="false">
+                    <path class={styles['pdf-body']} d="M3 1h13l5 5v20a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z" />
+                    <path class={styles['pdf-fold']} d="M16 1v5h5" />
+                    <rect class={styles['pdf-tag']} x="3" y="16" width="15" height="7" rx="1.5" />
+                    <text class={styles['pdf-tag-text']} x="10.5" y="21.2" text-anchor="middle">PDF</text>
+                  </svg>
+                  <span class={styles['file-meta']}>
+                    <span class={styles['file-name']}>field-trip-permission-slip.pdf</span>
+                    <span class={styles['file-size']}>Signed - 248 KB</span>
+                  </span>
+                </div>
+                <div class={styles['share-targets']}>
+                  <span class={styles['share-target']}>
+                    <span class={styles['share-target-icon']} aria-hidden="true">
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <path
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M4 5h16v10H9l-4 4V5z"
+                        ></path>
+                      </svg>
+                    </span>
+                    <span>Messages</span>
+                  </span>
+                  <span class={styles['share-target']}>
+                    <span class={styles['share-target-icon']} aria-hidden="true">
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <rect x="4" y="6" width="16" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"
+                        ></rect>
+                        <path
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M4 7l8 6 8-6"
+                        ></path>
+                      </svg>
+                    </span>
+                    <span>Mail</span>
+                  </span>
+                  <span class={styles['share-target']}>
+                    <span class={styles['share-target-icon']} aria-hidden="true">
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <circle cx="6" cy="12" r="1.6" fill="currentColor"></circle>
+                        <circle cx="12" cy="12" r="1.6" fill="currentColor"></circle>
+                        <circle cx="18" cy="12" r="1.6" fill="currentColor"></circle>
+                      </svg>
+                    </span>
+                    <span>More</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -214,7 +290,7 @@ const rootSelector = `.${styles.root}`;
     </div>
   </div>
 
-  <h3 class={`type-card ${styles.caption}`}>Blur what's private, before you hit send.</h3>
+  <h3 class={`type-card ${styles.caption}`}>Some of it is nobody's business. Blur it out before you reply.</h3>
 
   <div class={`${styles.track} ${styles['track-short']}`} data-hero-track="blur">
     <p class="sr-only">

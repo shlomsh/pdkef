@@ -1,14 +1,16 @@
 /*
  * HeroDemo (DEMO-02): the two scroll-driven "thirty-second story" phone
- * mockups on the home page. Ported from the approved standalone mockup
- * (dirE.html) rather than redesigned - see HeroDemo.astro's header comment
- * for the file layout and the scroll mechanic.
+ * mockups on the home page. See HeroDemo.astro's header comment for the
+ * file layout, the scroll mechanic, and the 2026-09-04 product-owner
+ * revision. This pass covers story one: English instead of Hebrew/RTL, and
+ * a new share-sheet ending. Story two's own redesign (blur, blackout,
+ * whiteout and delete, each with a real effect) lands in a follow-up pass.
  *
  * Colors are the Sea Glass tokens from src/styles/global.css (var(--color-*),
  * var(--shadow-*)) throughout - no hex/rgba literals - per CLAUDE.md's theme
- * rule. Two exceptions are computed rather than hardcoded, both because the
- * thing they draw (a phone's hardware bezel, its drop shadow) is not itself
- * a brand color: --phone-bezel/--phone-bezel-edge/--phone-shadow-color use
+ * rule. One exception is computed rather than hardcoded, because the thing
+ * it draws (a phone's hardware bezel, its drop shadow) is not itself a
+ * brand color: --phone-bezel/--phone-bezel-edge/--phone-shadow-color use
  * color-mix() to darken var(--color-text) toward black, so a retheme that
  * moves --color-text still moves these proportionally instead of leaving a
  * stray fixed dark gray behind.
@@ -19,13 +21,13 @@
  * rhythm (hero/caption/outro spacing). The phone mockup's own interior
  * (status bar padding, bubble radius, field padding) stays literal px: it is
  * a fixed-scale device replica, not page rhythm, and does not scale with the
- * fluid type/space system - matching dirE.html exactly there.
+ * fluid type/space system.
  *
  * Logical properties throughout (padding-block, margin-inline-end,
- * border-block-end, text-align: end) - the sign story's phone panel renders
- * RTL Hebrew, and a physical left/right would read backwards there. There
- * are no physical left/right rules to convert in the ported source, so none
- * appear here either.
+ * border-block-end, text-align: end). Story one was RTL Hebrew before the
+ * 2026-09-04 revision moved it to English; nothing in either story is RTL
+ * today, but logical properties are kept because they cost nothing in LTR
+ * and keep the file honest about not assuming a physical direction.
  */
 
 .root {
@@ -118,9 +120,18 @@
      height, not a fixed pixel count, since it is what gives the sticky
      panel room to release. --track-short must come after --track in
      source order so it wins for elements carrying both classes (composes
-     adds the class name, not the rule's cascade position). */
+     adds the class name, not the rule's cascade position).
+
+     .track's height was raised from the original 500svh to 560svh on
+     2026-09-04: story one grew from 9 beats to 10 (added "share", the OS
+     share-sheet beat), scaled up roughly in proportion to the new beat
+     count so the average distance-per-beat - and therefore how long a
+     visitor has to read each effect - stays close to what it was before,
+     rather than the new beat simply stealing scroll distance from the old
+     ones. --track-short is unchanged in this pass; story two's own beat
+     count doesn't change until the second half of this revision. */
   .track {
-    height: 500svh;
+    height: 560svh;
   }
 
   .track-short {
@@ -152,11 +163,12 @@
   --p-msg: 1;
   --p-tap: 0;
   --p-open: 1;
-  --p-name-he: 1;
-  --p-class-en: 1;
+  --p-fill-date: 1;
+  --p-fill-dest: 1;
   --p-check-1: 1;
   --p-check-2: 1;
   --p-sign: 1;
+  --p-share: 1;
   --p-send: 1;
   --p-sent: 1;
   --p-arrive: 1;
@@ -362,16 +374,27 @@
 }
 
 /* Track one (sign): chat crossfades to the form as the story reaches
-   "open", then back to chat (now showing "sent") once it reaches "send". */
+   "open", the form crossfades to the share sheet as it reaches "share",
+   then back to chat (now showing "sent") once it reaches "send". Every
+   beat that gates one of these formulas keeps rising to 1 and then holds
+   there once its own window passes (ScrollDriver clamps each beat's local
+   progress to its own [start, end] window), so each layer's visible window
+   is exactly "after the beat that reveals it, before the beat that
+   replaces it" - see ScrollDriver.tsx's TRACKS map for the windows
+   themselves. */
 .chat-layer {
   opacity: calc(1 - var(--p-open, 1) + var(--p-send, 1));
 }
 
 .form-layer {
-  opacity: calc(var(--p-open, 1) - var(--p-send, 1));
+  opacity: calc(var(--p-open, 1) - var(--p-share, 1));
 }
 
-/* Track two (blur): email crossfades to the document, then to the reply. */
+.share-layer {
+  opacity: calc(var(--p-share, 1) - var(--p-send, 1));
+}
+
+/* Track two (blur): email crossfades to the bill, then to the reply. */
 .email-layer {
   opacity: calc(1 - var(--p-open, 1));
 }
@@ -436,7 +459,9 @@
 
 /* Outgoing bubble uses the brand accent rather than a generic chat-app
    green: this is the visitor's own message, so it wears the same color as
-   every other primary action on the page. */
+   every other primary action on the page. No third-party messaging app's
+   mark or brand color is drawn anywhere in this component - a generic
+   thread reads correctly on its own. */
 .bubble-out {
   background: var(--color-primary);
   color: var(--color-surface);
@@ -524,21 +549,29 @@
   overflow: hidden;
 }
 
-.field {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding-block: 10px;
+.doc-heading {
+  padding-block: 12px 4px;
+  padding-inline: 14px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.trip-sentence {
+  margin: 0;
+  padding-block: 4px 10px;
   padding-inline: 14px;
   border-block-end: 1px solid var(--color-border);
   font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--color-text);
 }
 
-.field-label {
-  color: var(--color-muted);
-  flex: 0 0 auto;
-}
-
+/* The fill-in-place trick: an inline-block box that clips its own content
+   and grows from 0 width to its final ch-based width as the beat
+   progresses, so the value appears to type itself in place rather than
+   fading in. ch is deliberate over a fixed px width - it scales with the
+   value's own character count instead of a guessed pixel figure. */
 .field-value-wrap {
   display: inline-block;
   overflow: hidden;
@@ -547,14 +580,14 @@
   border-block-end: 2px solid var(--color-primary);
 }
 
-.name-field-wrap {
+.date-field-wrap {
   composes: field-value-wrap;
-  width: calc(var(--p-name-he, 1) * 10ch);
+  width: calc(var(--p-fill-date, 1) * 7ch);
 }
 
-.class-field-wrap {
+.dest-field-wrap {
   composes: field-value-wrap;
-  width: calc(var(--p-class-en, 1) * 4ch);
+  width: calc(var(--p-fill-dest, 1) * 20ch);
 }
 
 .field-value-text {
@@ -664,7 +697,110 @@
   stroke-dashoffset: calc(1 - var(--p-sign, 1));
 }
 
-/* ---------- email / doc / reply (story two) ---------- */
+.date-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-block: 10px 4px;
+  padding-inline: 14px;
+  font-size: 0.78rem;
+}
+
+.date-line-label {
+  color: var(--color-muted);
+}
+
+.date-line-value {
+  color: var(--color-text);
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+/* ---------- share sheet (story one, new beat) ---------- */
+
+/*
+ * The "share" beat: the OS share sheet slides up over the filled, signed
+ * form and carries it back to the chat - real product behaviour, since
+ * Sign's own Download/Share control calls navigator.share().
+ *
+ * The one hazard that matters here: `filter` (and `transform`, `perspective`,
+ * `will-change: filter/transform`) creates a new containing block for every
+ * descendant, which silently kills `position: sticky` on anything beneath
+ * it - with no console warning anywhere. The sticky stage that this entire
+ * demo depends on lives far above this subtree (.stage / .stage-first), so
+ * nothing in the share sheet may ever reach for filter or transform on a
+ * wrapper. .share-sheet below uses `transform: translateY(...)` for the
+ * slide - that is safe *only* because .share-sheet itself has no sticky
+ * descendant of its own (its children are a handle, a file row and a row of
+ * icons, none of them position: sticky). Do not add position: sticky
+ * anywhere under .share-layer without re-reading this comment.
+ */
+.share-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--color-text);
+  opacity: 0.32;
+}
+
+.share-sheet {
+  position: relative;
+  margin-block-start: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-block: 14px 18px;
+  padding-inline: 16px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(calc((1 - var(--p-share, 1)) * 100%));
+}
+
+.share-handle {
+  align-self: center;
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+}
+
+.share-file-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-targets {
+  display: flex;
+  justify-content: space-around;
+}
+
+.share-target {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.62rem;
+  color: var(--color-muted);
+}
+
+.share-target-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.share-target-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- email / bill / reply (story two) ---------- */
 
 .email-row {
   display: flex;
