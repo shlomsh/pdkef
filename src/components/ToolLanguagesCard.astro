@@ -59,11 +59,11 @@ const {
   <CardDecor sketch={sketch} icon={Languages} iconPos={iconPos} iconSize={280} />
   <div>
     <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">{tag}</span>
-    <h2 class="mb-4 mt-0 text-[1.6rem] font-bold text-[var(--color-text)]">{heading}</h2>
-    <p class="mb-6 mt-0 max-w-[68ch] text-[1.05rem] leading-[1.6] text-[var(--color-text)]">{lead}</p>
+    <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">{heading}</h2>
+    <p class="type-lead space-content-row mt-0 max-w-[68ch] text-[var(--color-text)]">{lead}</p>
 
-    <h3 class="mb-1 mt-0 text-[1.05rem] font-bold text-[var(--color-text)]">{supportedHeading}</h3>
-    <p class="m-0 mb-4 text-[0.9rem] text-[var(--color-muted)]">Tap a language to read the detail.</p>
+    <h3 class="type-card mb-1 mt-0 text-[var(--color-text)]">{supportedHeading}</h3>
+    <p class="type-body m-0 mb-4 text-[var(--color-muted)]">Tap a language to read the detail.</p>
     {/* Each row is a native, JS-free <details>/<summary> disclosure: the note
         is real static HTML from the first render, present for a crawler and a
         screen reader whether or not it is visually open, exactly like the
@@ -98,8 +98,8 @@ const {
     </ul>
 
     <section class="mt-7 border-t border-[var(--color-border)] pt-7">
-      <h3 class="mb-3 mt-0 text-[1.05rem] font-bold text-[var(--color-text)]">{notYetHeading}</h3>
-      <p class="m-0 max-w-[68ch] text-base leading-[1.7] text-[var(--color-muted)]">{notYet}</p>
+      <h3 class="type-feature space-heading-content mt-0 text-[var(--color-text)]">{notYetHeading}</h3>
+      <p class="type-lead m-0 max-w-[68ch] text-[var(--color-muted)]">{notYet}</p>
       {(languageRequestUrl || contributeUrl) && (
         <div class="mt-4 flex flex-wrap gap-3">
           {languageRequestUrl && (

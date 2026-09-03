@@ -82,14 +82,26 @@ const related = contentPagesForTool(currentSlug);
   }
 
   .related-guides-head {
-    margin-bottom: 2rem;
+    /* DEMO-01: same token index.astro/FeatureCard sections use for a
+       heading-to-content gap, so this scoped component doesn't drift from
+       the shared Tailwind surface's rhythm just because it is styled
+       differently underneath. margin-block-end (not margin-bottom), same
+       reasoning as the .space-heading-content utility in global.css. */
+    margin-block-end: var(--space-heading-content);
     text-align: center;
   }
 
   .related-guides-head h2 {
     margin: 0;
-    font-size: 1.6rem;
+    /* Same --type-section-size role as every other section h2 on the
+       marketing surface (see .type-section in global.css) - this component
+       is scoped CSS rather than a Tailwind class string, but the token and
+       the role values are global custom properties, so it can share them
+       exactly instead of typing its own close-but-not-quite 1.6rem. */
+    font-size: var(--type-section-size);
     font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
     color: var(--color-text);
   }
 

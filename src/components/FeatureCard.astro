@@ -14,10 +14,19 @@ interface Props {
 const { id, class: className = '', variant = 'default', density = 'screen' } = Astro.props;
 
 const baseClasses = [
-  'box-border w-full max-w-[1080px] mx-auto rounded-[var(--radius-lg)] px-10 py-14',
+  // Block padding (top/bottom) comes from the fluid --space-section-block
+  // token (DEMO-01) instead of the old fixed 56px-desktop/40px-mobile pair
+  // of vertical-padding utilities, so a card's own vertical padding scales
+  // continuously rather than snapping at one breakpoint. Horizontal padding
+  // stays a plain Tailwind step - it is not part of the vertical-rhythm
+  // system this token drives. (Deliberately not spelling out the two old
+  // utility class names here: Tailwind's source scanner reads .astro files
+  // as prose too, and a class-shaped string in a comment compiles into the
+  // build as a dead rule - see CLAUDE.md, "Tailwind source scanning".)
+  'box-border w-full max-w-[1080px] mx-auto rounded-[var(--radius-lg)] px-10 space-section-block',
   'last:mb-16',
   'max-[1080px]:mx-6 max-[1080px]:w-auto',
-  'max-[640px]:px-6 max-[640px]:py-10',
+  'max-[640px]:px-6',
   'min-[768px]:last:mb-24',
 ];
 
