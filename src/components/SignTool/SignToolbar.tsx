@@ -10,6 +10,7 @@ import ExportReadinessNotice from './ExportReadinessNotice.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../ToolShell.tsx';
 import { makeArmTool, useAutoArmHint } from '../../lib/toolArming.js';
 import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
+import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import styles from './SignToolbar.module.css';
 import controlStyles from '../EditorControls.module.css';
 
@@ -128,7 +129,7 @@ export default function SignToolbar({
     }
   };
 
-  const handleSelectSavedSignature = (sig: any) => {
+  const handleSelectSavedSignature = (sig: SavedSignature) => {
     setActiveSignature(sig);
     dispatch({ type: 'SET_TOOL', payload: 'signature' });
     setShowSigDropdown(false);

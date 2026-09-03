@@ -6,7 +6,7 @@ priority: "P2"
 epic: "editor-architecture"
 phase: "longer-term"
 depends_on: ["SIGN-14"]
-legacy_state: "In progress — first typed action/history and pdf.js boundary slice landed 2026-09-03"
+legacy_state: "In progress — action/history, pdf.js, and saved-signature boundary slices landed 2026-09-03"
 ---
 
 # ARCH-10 · Replace permissive editor-shell types with shared contracts
@@ -30,8 +30,16 @@ now accepts a discriminated `SignToolAction` union, Sign and Redact share a type
 `ActionHistoryEntry`, and invalid delete/update payloads are compile-time test
 fixtures. The PDF loading and canvas boundary now uses pdf.js
 `PDFDocumentLoadingTask`, `PDFDocumentProxy`, `PDFPageProxy`, and `RenderTask`
-contracts instead of `any`. The full runtime suite remains green. Keep this
-ticket open for the remaining permissive editor element, gesture, node-prop,
-saved-signature, and persisted-history boundaries; migrate those as separate
-behavior slices and remove `@ts-nocheck` only where the production seam is
-concrete.
+contracts instead of `any`. The full runtime suite remains green. At that
+point the permissive editor element, gesture, node-prop,
+saved-signature, and persisted-history boundaries remained; each is being
+migrated as a separate behavior slice, with `@ts-nocheck` removed only where
+the production seam is concrete.
+
+**Progress 2026-09-03 (saved-signature slice).** The reusable signature shape is
+now a shared `SavedSignature` model, distinct from the page-bound
+`SignatureElement`. Preference validation, `PdfSignTool` state, the signatures
+context, toolbar selection, and the placement-gesture input all share that
+contract. Focused compile fixtures reject missing ids and string aspect ratios.
+Keep this ticket open for the remaining permissive editor element, gesture,
+node-prop, and persisted-history boundaries.

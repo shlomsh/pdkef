@@ -1,5 +1,6 @@
 import { createContext } from 'preact';
 import { useContext } from 'preact/hooks';
+import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 
 // The saved-signature library: the list, which one is active, and the setters
 // that change either. Read directly by both SignToolbar (the signature picker)
@@ -9,10 +10,10 @@ import { useContext } from 'preact/hooks';
 // ToolShellContext (see E8.B3). The default value keeps a consumer renderable
 // in isolation (a unit test mounting just the toolbar) instead of throwing.
 export interface SavedSignaturesContextValue {
-  savedSignatures: any[];
-  activeSignature: any;
-  setActiveSignature: (signature: any) => void;
-  onDeleteSavedSignature: (id: string, e?: any) => void;
+  savedSignatures: SavedSignature[];
+  activeSignature: SavedSignature | null;
+  setActiveSignature: (signature: SavedSignature | null) => void;
+  onDeleteSavedSignature: (id: string, event?: Event) => void;
 }
 
 export const SavedSignaturesContext = createContext<SavedSignaturesContextValue>({
