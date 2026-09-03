@@ -31,7 +31,7 @@
  *
  * Scroll mechanic (ported from dirE.html, itself DEMO-05's pattern): each
  * story is a `position: sticky` panel pinned inside a much taller track
- * (560svh / 460svh, never 100vh - see CLAUDE.md's sticky-viewport-unit
+ * (672svh / 460svh, never 100vh - see CLAUDE.md's sticky-viewport-unit
  * note). ScrollDriver.tsx reads scroll position, computes 0-1 progress
  * through each track from getBoundingClientRect() every frame (never
  * accumulated, so scrolling back up genuinely un-fills the form), slices
@@ -119,12 +119,17 @@ const rootSelector = `.${styles.root}`;
   <div class={styles.track} data-hero-track="sign">
     <p class="sr-only">
       A field trip permission slip arrives as a file in a chat message. Tapping it opens the form
-      right there in the chat. As the page scrolls, the trip date and destination fill in, both
-      permission checkboxes get checked, and a signature draws itself on the line. A share sheet
-      then slides up carrying the signed file, and back in the chat, the signed form goes out and
-      reads as sent.
+      right there in the chat. The form's printed heading, both sentences and the checkbox labels are
+      there from the start, with blank spaces left for the trip date, the destination, and the start
+      and end times. As the page scrolls, those four blanks fill in, both permission checkboxes get
+      checked, and a signature draws itself on the line. A share sheet then slides up carrying the
+      signed file, and back in the chat, the signed form goes out and reads as sent.
     </p>
     <div class={styles['stage-first']} data-hero-stage>
+      <div class={styles['progress-rail']} aria-hidden="true">
+        <span class={`${styles['progress-seg']} ${styles['progress-seg-current']}`}></span>
+        <span class={`${styles['progress-seg']} ${styles['progress-seg-pending']}`}></span>
+      </div>
       <div class={styles['phone-first']} aria-hidden="true">
         <div class={styles.screen}>
           <div class={styles['status-bar']}>
@@ -180,13 +185,27 @@ const rootSelector = `.${styles.root}`;
 
             <div class={`${styles.layer} ${styles['form-layer']}`}>
               <div class={styles['panel-head']}>field-trip-permission-slip.pdf</div>
+              <div class={styles['tool-chips']} aria-hidden="true">
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-text']}`}>Text</span>
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-symbols']}`}>Symbols</span>
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-sign']}`}>Sign</span>
+              </div>
               <div class={styles['doc-body']}>
                 <div class={styles['doc-heading']}>Field Trip Permission Slip</div>
                 <p class={styles['trip-sentence']}>
-                  On <span class={styles['date-field-wrap']}
-                    ><span class={styles['field-value-text']}>May 14</span></span
-                  > our class is going on a field trip to <span class={styles['dest-field-wrap']}
-                    ><span class={styles['field-value-text']}>the Science Museum</span></span
+                  On <span class={styles['blank-date']}
+                    ><span class={`${styles['blank-value']} ${styles['blank-value-date']}`}>May 14</span></span
+                  > our class is going on a field trip to <span class={styles['blank-dest']}
+                    ><span class={`${styles['blank-value']} ${styles['blank-value-dest']}`}
+                      >the Science Museum</span
+                    ></span
+                  >.
+                </p>
+                <p class={styles['trip-sentence-last']}>
+                  It will take place from <span class={styles['blank-time']}
+                    ><span class={`${styles['blank-value']} ${styles['blank-value-time-start']}`}>8:00 AM</span></span
+                  > to <span class={styles['blank-time']}
+                    ><span class={`${styles['blank-value']} ${styles['blank-value-time-end']}`}>3:30 PM</span></span
                   >.
                 </p>
                 <div class={styles.checks}>
@@ -207,6 +226,7 @@ const rootSelector = `.${styles.root}`;
                     <span class={styles['check-label']}>Photos may be taken during the trip</span>
                   </div>
                 </div>
+                <p class={styles['confirm-line']}>Sign below to give permission.</p>
                 <div class={styles['sig-line']}>
                   <span class={styles['sig-label']}>Parent or Guardian</span>
                   <svg class={styles.sig} viewBox="0 0 220 70" preserveAspectRatio="none" focusable="false">
@@ -227,6 +247,9 @@ const rootSelector = `.${styles.root}`;
               <div class={styles['share-scrim']} aria-hidden="true"></div>
               <div class={styles['share-sheet']}>
                 <div class={styles['share-handle']} aria-hidden="true"></div>
+                <div class={styles['tool-chips']} aria-hidden="true">
+                  <span class={`${styles['tool-chip']} ${styles['tool-chip-share']}`}>Share</span>
+                </div>
                 <div class={styles['share-file-row']}>
                   <svg class={styles['pdf-icon']} viewBox="0 0 24 28" focusable="false">
                     <path class={styles['pdf-body']} d="M3 1h13l5 5v20a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z" />
@@ -301,6 +324,10 @@ const rootSelector = `.${styles.root}`;
       the rows below close up. The cleaned-up document is then attached to a reply and sent.
     </p>
     <div class={styles.stage} data-hero-stage>
+      <div class={styles['progress-rail']} aria-hidden="true">
+        <span class={`${styles['progress-seg']} ${styles['progress-seg-done']}`}></span>
+        <span class={`${styles['progress-seg']} ${styles['progress-seg-current']}`}></span>
+      </div>
       <div class={styles.phone} aria-hidden="true">
         <div class={styles.screen}>
           <div class={styles['status-bar']}>
@@ -350,7 +377,9 @@ const rootSelector = `.${styles.root}`;
                 <span class={`${styles['tool-chip']} ${styles['tool-chip-delete']}`}>Delete</span>
               </div>
               <div class={styles['doc-body']}>
+                <div class={styles['doc-line']}><span>Account Holder</span><span>J. Alvarez</span></div>
                 <div class={styles['doc-line']}><span>Service Address</span><span>14 Maple Court</span></div>
+                <div class={styles['doc-line']}><span>Billing Period</span><span>Jul 1 to Aug 1</span></div>
                 <div class={styles['doc-line']}>
                   <span>Customer ID</span>
                   <span class={styles['blur-value']}>302-45-6789</span>
@@ -362,10 +391,7 @@ const rootSelector = `.${styles.root}`;
                     <span class={styles['blackout-bar']} aria-hidden="true"></span>
                   </span>
                 </div>
-                <div class={styles['delete-row']}>
-                  <span>Late Fee Note</span>
-                  <span>Includes $12 reminder fee</span>
-                </div>
+                <div class={styles['doc-line']}><span>Rate Plan</span><span>Residential Standard</span></div>
                 <div class={styles['doc-line']}>
                   <span>Meter Serial</span>
                   <span class={styles['redact-wrap']}>
@@ -373,7 +399,15 @@ const rootSelector = `.${styles.root}`;
                     <span class={styles['whiteout-bar']} aria-hidden="true"></span>
                   </span>
                 </div>
-                <div class={styles['doc-line']}><span>Billing Period</span><span>Jul to Aug</span></div>
+                <div class={styles['doc-line']}><span>Meter Reading, Prior</span><span>04821</span></div>
+                <div class={styles['doc-line']}><span>Meter Reading, Current</span><span>05114</span></div>
+                <div class={styles['doc-line']}><span>Usage</span><span>293 kWh</span></div>
+                <div class={styles['delete-row']}>
+                  <span>Late Fee Note</span>
+                  <span>Includes $12 reminder fee</span>
+                </div>
+                <div class={styles['doc-line']}><span>Amount Due</span><span>$104.20</span></div>
+                <div class={styles['doc-line']}><span>Due Date</span><span>Sep 28</span></div>
               </div>
             </div>
 

@@ -29,25 +29,33 @@ type TrackConfig = {
 
 const TRACKS: TrackConfig[] = [
   {
-    // 10 beats (was 9): "share" is new - the OS share sheet, which is the
-    // story's actual ending (DEMO-02 directive 2) - inserted between
-    // "sign" and "send". "name-he"/"class-en" were renamed to "fill-date"/
-    // "fill-dest" when story one moved from a Hebrew name field + English
-    // class field to an English trip-date + destination sentence (the
-    // renamed track height explanation lives in HeroDemo.module.css's
-    // .track comment).
+    // 12 beats (was 10): the printed form now carries a second sentence
+    // ("It will take place from [time] to [time]"), so "fill-time-start"
+    // and "fill-time-end" join "fill-date"/"fill-dest" as their own beats -
+    // one beat per blank, matching every other field. This followed a
+    // product-owner correction: the sentence used to reflow as each blank
+    // filled (the wrap's own *width* was the animated property), and a PDF
+    // page cannot reflow - pdkef draws form fields as fixed-position
+    // overlays on a raster that never moves, so a demo whose printed text
+    // visibly shifted was depicting something the product cannot do. Fixed
+    // in HeroDemo.astro/HeroDemo.module.css: every blank is now a
+    // constant-width reserved space from frame 0, and only an absolutely
+    // positioned value overlay inside it reveals via clip-path - nothing
+    // these beats drive ever changes a laid-out box's size.
     key: 'sign',
     beats: {
-      msg: [0.0, 0.07],
-      open: [0.07, 0.16],
-      'fill-date': [0.16, 0.28],
-      'fill-dest': [0.28, 0.4],
-      'check-1': [0.4, 0.49],
-      'check-2': [0.49, 0.58],
-      sign: [0.58, 0.74],
-      share: [0.74, 0.85],
-      send: [0.85, 0.93],
-      sent: [0.93, 1.0],
+      msg: [0.0, 0.06],
+      open: [0.06, 0.13],
+      'fill-date': [0.13, 0.23],
+      'fill-dest': [0.23, 0.33],
+      'fill-time-start': [0.33, 0.42],
+      'fill-time-end': [0.42, 0.5],
+      'check-1': [0.5, 0.58],
+      'check-2': [0.58, 0.65],
+      sign: [0.65, 0.78],
+      share: [0.78, 0.88],
+      send: [0.88, 0.94],
+      sent: [0.94, 1.0],
     },
   },
   {
@@ -108,6 +116,17 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
         const stageHeight = track.stageEl.getBoundingClientRect().height;
         const scrollable = trackRect.height - stageHeight;
         const progress = scrollable <= 0 ? (trackRect.top <= 0 ? 1 : 0) : clamp01(-trackRect.top / scrollable);
+
+        // The raw, un-sliced 0-1 value for this track alone, before it gets
+        // cut into named beat windows below. This is what drives the DEMO-05
+        // progress indicator (HeroDemo.module.css's .progress-rail): each
+        // stage carries one "how far through this story" number, written the
+        // same way every other beat is, so the indicator has no second
+        // mechanism of its own. It defaults to 1 in CSS (see .stage-base),
+        // matching every other --p-* default, so the no-JS/reduced-motion
+        // stills show both stories as complete rather than the indicator
+        // reading a stale or empty value.
+        track.stageEl.style.setProperty('--p-track', String(progress));
 
         let openLocal = 0;
         for (const beat in track.beats) {
