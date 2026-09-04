@@ -2,43 +2,43 @@
 export const RUNTIME_LICENSE_PACKAGES = [
   {
     "name": "@astrojs/preact",
-    "version": "6.0.0",
+    "version": "6.0.5",
     "license": "MIT",
     "url": "https://docs.astro.build/en/guides/integrations-guide/preact/"
   },
   {
     "name": "@cantoo/pdf-lib",
-    "version": "2.7.1",
+    "version": "2.9.1",
     "license": "MIT",
     "url": "https://pdf-lib.js.org"
   },
   {
     "name": "@floating-ui/core",
-    "version": "1.7.5",
+    "version": "1.8.0",
     "license": "MIT",
     "url": "https://floating-ui.com"
   },
   {
     "name": "@floating-ui/dom",
-    "version": "1.7.6",
+    "version": "1.8.0",
     "license": "MIT",
     "url": "https://floating-ui.com"
   },
   {
     "name": "@floating-ui/react",
-    "version": "0.27.19",
+    "version": "0.27.20",
     "license": "MIT",
     "url": "https://floating-ui.com/docs/react"
   },
   {
     "name": "@floating-ui/react-dom",
-    "version": "2.1.8",
+    "version": "2.1.9",
     "license": "MIT",
     "url": "https://floating-ui.com/docs/react-dom"
   },
   {
     "name": "@floating-ui/utils",
-    "version": "0.2.11",
+    "version": "0.2.12",
     "license": "MIT",
     "url": "https://floating-ui.com"
   },
@@ -80,7 +80,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "astro",
-    "version": "7.2.2",
+    "version": "7.2.10",
     "license": "MIT",
     "url": "https://astro.build"
   },
@@ -115,12 +115,6 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "https://github.com/Qix-/color-string"
   },
   {
-    "name": "crypto-js",
-    "version": "4.2.0",
-    "license": "MIT",
-    "url": "http://github.com/brix/crypto-js"
-  },
-  {
     "name": "html-entities",
     "version": "2.6.0",
     "license": "MIT",
@@ -134,13 +128,13 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "lucide-preact",
-    "version": "1.22.0",
+    "version": "1.38.0",
     "license": "ISC",
     "url": "https://lucide.dev"
   },
   {
     "name": "node-html-better-parser",
-    "version": "1.5.8",
+    "version": "1.5.9",
     "license": "MIT",
     "url": "https://github.com/Sharcoux/node-html-parser"
   },
@@ -152,13 +146,13 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "pdfjs-dist",
-    "version": "6.2.108",
+    "version": "6.3.289",
     "license": "Apache-2.0",
     "url": "https://mozilla.github.io/pdf.js/"
   },
   {
     "name": "preact",
-    "version": "10.29.3",
+    "version": "10.29.8",
     "license": "MIT",
     "url": "https://preactjs.com"
   },
@@ -176,7 +170,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "signature_pad",
-    "version": "5.1.3",
+    "version": "5.1.4",
     "license": "MIT",
     "url": "https://github.com/szimek/signature_pad"
   },

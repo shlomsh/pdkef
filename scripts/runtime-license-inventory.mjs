@@ -34,7 +34,7 @@ export const RUNTIME_PACKAGE_NAMES = [
   ...RUNTIME_ROOT_PACKAGES,
   '@preact/signals', '@preact/signals-core', '@pdf-lib/standard-fonts', '@pdf-lib/upng',
   '@floating-ui/core', '@floating-ui/react-dom', '@floating-ui/utils', 'color', 'color-convert',
-  'color-name', 'color-string', 'crypto-js', 'html-entities', 'is-arrayish',
+  'color-name', 'color-string', 'html-entities', 'is-arrayish',
   'node-html-better-parser', 'pako', 'require-from-string', 'simple-swizzle', 'tabbable', 'tslib',
 ].sort((a, b) => a.localeCompare(b));
 
