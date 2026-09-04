@@ -32,41 +32,50 @@ export default function ResumeDraftCard({ drafts }: { drafts: any[] }) {
         Pick up where you left off
       </h2>
       <ul class={styles.list}>
-        {drafts.map((draft: any) => {
+        {drafts.map((draft: any, index: number) => {
           const meta = tools.find((t) => t.slug === draft.tool);
           if (!meta) return null;
           const Icon = meta.icon;
           return (
-            <li key={draft.tool}>
-              {/* The whole document is the target: it is faster to resume by
-                  opening a familiar file than by locating a secondary button.
-                  Normal link behavior keeps this equally direct for touch,
-                  keyboard, and desktop pointer users. */}
-              <a class={styles.document} href={meta.href}>
-                {draft.preview ? (
-                  <img
-                    class={styles.preview}
-                    src={draft.preview}
-                    alt=""
-                    width="48"
-                    height="62"
-                  />
-                ) : (
-                  <div class={styles.preview} aria-hidden="true" />
-                )}
-                <span class={styles.details}>
-                  <span class={styles.name} title={draft.fileName}>
-                    {draft.fileName || 'Untitled document'}
-                  </span>
-                  <span class={styles.sub}>
-                    <Icon class={styles.toolIcon} size={14} strokeWidth={1.8} aria-hidden="true" />
-                    {meta.gridTitle}
-                    {formatSavedAt(draft.savedAt) && (
-                      <span class={styles.when}>{formatSavedAt(draft.savedAt)}</span>
-                    )}
-                  </span>
-                </span>
-                <span class={styles.open}>Open<span class={styles.srOnly}> {draft.fileName || 'your document'}</span></span>
+            <li class={styles.row} key={draft.tool}>
+              {draft.preview ? (
+                <img
+                  class={styles.preview}
+                  src={draft.preview}
+                  alt=""
+                  width="48"
+                  height="62"
+                />
+              ) : (
+                // Same box, drawn empty. A draft saved before previews shipped
+                // (or one whose preview lost a localStorage quota race) must
+                // not make its row a different height than its neighbour's.
+                <div class={styles.preview} aria-hidden="true" />
+              )}
+
+              <div class={styles.details}>
+                <p class={styles.name} title={draft.fileName}>
+                  {draft.fileName || 'Untitled document'}
+                </p>
+                <p class={styles.sub}>
+                  <Icon class={styles.toolIcon} size={14} strokeWidth={1.8} aria-hidden="true" />
+                  {meta.gridTitle}
+                  {formatSavedAt(draft.savedAt) && (
+                    <span class={styles.when}>{formatSavedAt(draft.savedAt)}</span>
+                  )}
+                </p>
+              </div>
+
+              {/* A plain navigation: the tool restores its own draft on mount,
+                  so there is nothing to hand over. Only the first row gets the
+                  filled treatment - two primary buttons side by side would
+                  make the more recent draft no easier to pick out. */}
+              <a
+                class={index === 0 ? styles.continuePrimary : styles.continue}
+                href={meta.href}
+              >
+                Continue
+                <span class={styles.srOnly}> editing {draft.fileName || 'your document'}</span>
               </a>
             </li>
           );
