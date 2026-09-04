@@ -450,9 +450,10 @@ const faq = [
         </div>
       </div>
     </FeatureCard>
-  </div>
 
-  <Footer />
+    {/* Inside the stack, and load-bearing there - see the <style> block. */}
+    <Footer />
+  </div>
 </BaseLayout>
 
 <style>
@@ -623,42 +624,77 @@ const faq = [
        `z-index: auto`, so a later card paints over an earlier one without
        anybody managing a z-index scale. The app bar keeps its own z-20 and
        so still passes over all of them.
-     - `position` beats the `relative` utility the cards carry. Astro's
-       scoped output is unlayered and Tailwind's utilities are in
-       @layer utilities, so this wins regardless of specificity; sticky is
+     - `position`, `min-height` and `top` all beat the utilities the cards
+       carry. Astro's scoped output is unlayered and Tailwind's utilities are
+       in @layer utilities, so these win regardless of specificity; sticky is
        still a positioned box, so CardDecor's absolute children go on
        anchoring to it exactly as before.
 
      768px because that is where FeatureCard's `density="screen"` gives each
-     card its `min-h-[calc(100vh-6rem)]`. Below it the cards are content-
-     height and run well past the viewport, and pinning a card taller than
-     the screen just hides its own bottom.
+     card its viewport-height floor. Below it the cards are content-height
+     and run well past the viewport, and pinning a card taller than the
+     screen just hides its own bottom.
 
-     The shadow is what sells the depth: a soft cast above the card's top
-     edge, which is the edge that arrives over the card below it. */
+     --stack-gap is the one number here: the air above a pinned card, the
+     air below it, and the run-out after the last one. The card's own height
+     is derived from it rather than left to the `min-h-[calc(100vh-6rem)]`
+     utility, because that figure was chosen for cards that scroll past and
+     it puts a pinned card flush against the app bar with 40px of dead space
+     underneath - which is what a stacked card's margins should never be,
+     since the top edge is the one the eye tracks.
+
+     The shadow is a single upward cast. That is the edge that arrives over
+     the card below, and it is the only edge that needs one: a downward
+     shadow lands on the card that is still approaching from underneath and
+     reads as a halo around the deck rather than as depth between cards. */
   @media (min-width: 768px) {
-    /* The trailing gap has to be the container's padding, not the last
-       card's margin. A bottom margin with nothing below it collapses
-       straight out through the wrapper, which puts the wrapper's bottom
-       edge exactly at the last card's - giving that one card a sticky range
-       of zero, so it alone never pins. It scrolled up over the pinned deck
-       instead, and dragged a 96px band of the card beneath it into view as
-       the whole thing left. Same gap, moved one element out, and now every
-       card pins and the deck releases as one block. */
     .card-stack {
-      padding-block-end: 6rem;
-    }
-
-    .card-stack :global(.card-reveal:last-child) {
-      margin-block-end: 0;
+      /* The one number: the air between the app bar and a pinned card. */
+      --stack-gap: 2rem;
     }
 
     .card-stack :global(.card-reveal) {
       position: sticky;
-      top: 3.5rem;
-      box-shadow:
-        0 -18px 44px -30px var(--color-primary-ring),
-        0 26px 50px -34px var(--color-primary-ring);
+      top: calc(3.5rem + var(--stack-gap));
+      /* Down to the bottom edge of the viewport, not to a matching gap
+         above it, and that is a correctness rule rather than a taste one.
+
+         These cards are content-height with a floor, so they are only equal
+         while every one of them clears the floor - and the first card's copy
+         does not, by a wide margin, on an ordinary laptop: measured natural
+         heights are 739px at 1280px wide against a 740px slot on a 1512x860
+         screen. One pixel. Any card that overruns pokes out below the
+         shorter ones stacked over it, and since the tallest card is also the
+         first, every later card would leave a band of it showing underneath.
+         A card that runs to the bottom edge cannot: whatever is behind it is
+         covered all the way down, however tall that is.
+
+         The alternative was a media query gating the stack on a viewport
+         tall enough for the tallest card, which is three measured
+         breakpoints that go stale the next time anyone edits a paragraph. */
+      min-height: calc(100svh - 3.5rem - var(--stack-gap));
+      /* A single upward cast. That is the edge that arrives over the card
+         below, and the only edge that needs one: a downward shadow lands on
+         the card still approaching from underneath and reads as a halo
+         around the deck rather than as depth between cards. */
+      box-shadow: 0 -20px 46px -26px var(--color-primary-ring);
+    }
+
+    /* The footer is inside .card-stack, and that is what makes the ending
+       work. It is the deck's own scroll run-out, so the last card gets a
+       sticky range instead of the zero it would have if the wrapper ended at
+       its bottom edge - and, because the wrapper now reaches the end of the
+       document, the cards are never pushed up off their pinned position at
+       all. Before this the deck rose by more than a hundred pixels over the
+       last stretch, tucking the top card under the app bar and leaving a
+       dead band between it and the footer.
+
+       So nothing moves at the end: the footer simply slides up over the
+       deck's bottom edge and docks there, arriving the same way every card
+       did. :last-of-type rather than :last-child, since the footer is now
+       the last child; the cards are the only <section>s in here. */
+    .card-stack :global(section.card-reveal:last-of-type) {
+      margin-block-end: 0;
     }
 
     /* The scroll-reveal fade and the stack are two answers to the same

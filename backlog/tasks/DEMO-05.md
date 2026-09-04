@@ -204,3 +204,29 @@ shipped:
 track), which only ever worked because there was one track height. It now samples at 25/50/75% of the
 measured pin range, so a viewport that lands in the stacked layout no longer reads a sample taken past
 the release point as "sticky broke".
+
+### Stack geometry, second pass
+
+The first cut pinned the cards flush under the app bar with 40px of dead space below them, and let the
+deck rise by 124px over the final stretch - tucking the top card under the app bar and leaving a 96px
+band between it and the footer. Three things fixed it, and the middle one is a correctness rule rather
+than a taste one.
+
+- **One `--stack-gap` (2rem), and the card's height derived from it** rather than left to the
+  `min-h-[calc(100vh-6rem)]` utility, which was chosen for cards that scroll past.
+- **The card runs to the bottom edge of the viewport, not to a matching gap above it.** These cards are
+  content-height with a floor, so they are only equal while every one of them clears the floor - and the
+  first card's copy does not: measured natural heights are 739px at 1280px wide against a 740px slot on
+  a 1512x860 screen, and 851px at 768px wide. One pixel of headroom on an ordinary laptop. Any card that
+  overruns pokes out below the shorter ones stacked over it, and the tallest card is also the first, so
+  every later card would leave a band of it showing underneath. A card that reaches the bottom edge
+  cannot. The alternative was gating the stack on a viewport tall enough for the tallest card, which is
+  three measured breakpoints that go stale the next time anyone edits a paragraph.
+- **The footer moved inside `.card-stack`.** It is the deck's own scroll run-out, so the last card gets
+  a sticky range instead of the zero it has when the wrapper ends at its bottom edge - and because the
+  wrapper now reaches the end of the document, the cards are never pushed off their pinned position at
+  all. Nothing moves at the end: the footer slides up over the deck's bottom edge and docks there,
+  arriving the same way every card did.
+
+Measured at 1512x860 after: resting top gap 32px, card bottom on the viewport edge, and at maximum
+scroll all five cards still at top 88 with the footer at 792-860.
