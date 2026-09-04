@@ -40,13 +40,12 @@ function readAllDraftMeta(): any[] {
  * first when there is a saved draft to lose, naming both files - the same
  * ConfirmDialog and the same bargain BasePdfTool strikes for Replace file.
  */
-export default function FileDropzone({ multiple = true, accept = "application/pdf", href, toolTarget, className = '', compact = false }: {
+export default function FileDropzone({ multiple = true, accept = "application/pdf", href, toolTarget, className = '' }: {
   multiple?: boolean;
   accept?: string;
   href?: string;
   toolTarget: string;
   className?: string;
-  compact?: boolean;
 }) {
   const [pending, setPending] = useState<{ file: File; draftName?: string } | null>(null);
   // Lazy initializer, not an effect: the launcher renders its complete local
@@ -85,13 +84,18 @@ export default function FileDropzone({ multiple = true, accept = "application/pd
         accept={accept}
         href={href}
         onFiles={handleFiles}
-        className={`${className} ${compact || drafts.length > 0 ? homepageStyles.compact : ''}`}
-        // The workspace keeps file picking to one calm row. A returning
-        // visitor also gets the clearer "start something new" wording.
-        message={drafts.length > 0 ? 'Or start something new' : compact ? 'Start with a PDF' : undefined}
-        // `compact` controls the short workspace action and its row layout;
-        // the complete privacy claim remains in the proof chips below.
-        compact={compact || drafts.length > 0}
+        className={`${className} ${drafts.length > 0 ? homepageStyles.compact : ''}`}
+        // The card above already made the primary pitch to a returning
+        // visitor; this keeps the dropzone from repeating "Drop PDFs here" as
+        // if nothing had just answered that question for them.
+        message={drafts.length > 0 ? 'Or start something new' : undefined}
+        // Same reasoning, sized: a resume card is real height the desktop
+        // layout's one-viewport budget never accounted for (see
+        // FileDropzone.module.css's header comment) - shrink the now-
+        // secondary CTA to make room rather than let the tool grid below it
+        // get pushed past the fold. `compact` only controls JSX (hiding the
+        // icon/privacy line); the row-layout CSS comes from the class above.
+        compact={drafts.length > 0}
       />
 
       <ConfirmDialog
