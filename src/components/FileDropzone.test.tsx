@@ -68,6 +68,12 @@ describe('FileDropzone', () => {
     expect(input.multiple).toBe(false);
   });
 
+  it('uses the compact homepage action when requested', () => {
+    mount({ compact: true });
+    expect(container.textContent).toContain('Start with a PDF');
+    expect(container.textContent).not.toContain('Private. Files never leave your device.');
+  });
+
   // The homepage CTA (`index.astro`) mounts FileDropzone with an `href`, which
   // renders the picker as a navigating anchor instead of a file <input> label.
   it('renders the picker as an anchor (no file input) when href is set', () => {
@@ -101,9 +107,9 @@ describe('FileDropzone', () => {
       expect(container.textContent).toContain('Sign & Fill PDF');
       expect(container.querySelector('img[src="data:image/jpeg;base64,abc"]')).not.toBeNull();
 
-      const continueLink = container.querySelector('a[href="/sign/"]');
-      expect(continueLink).not.toBeNull();
-      expect(continueLink.textContent).toContain('Continue');
+      const documentLink = container.querySelector('a[href="/sign/"]');
+      expect(documentLink).not.toBeNull();
+      expect(documentLink.textContent).toContain('Open');
 
       // The card already made the case for resuming; the dropzone below
       // shouldn't repeat the from-scratch pitch as if the card said nothing.
