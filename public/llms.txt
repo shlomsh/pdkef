@@ -16,7 +16,7 @@ PDkef is a static web application offering a suite of PDF tools (merge, split, r
 - **Built with**: Astro (static build mode) + Preact (for the client-side interactive island).
 - **Security**: Content-Security-Policy (CSP) is strictly configured to prevent execution of unbundled scripts and locks down `connect-src 'self'`, including a backstop against third-party connections. PDF content must never be sent in telemetry.
 - **Privacy**: The hosted site uses limited anonymous aggregate maintenance analytics, separate from PDF processing. It does not use accounts or cookies, and document content, filenames, typed text, signatures, and user or document IDs are excluded.
-- **Dependencies**: Uses MIT/Apache-2.0 open-source libraries only.
+- **Dependencies**: Browser runtime code uses a reviewed permissive allowlist: MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clause, Zlib, and 0BSD. The exact inventory and notices are checked in CI.
 
 ## Links
 - **Homepage**: https://pdkef.com/

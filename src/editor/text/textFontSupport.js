@@ -9,16 +9,31 @@ import { textForCoverage } from './comb.js';
 const families = [...TEXT_FONTS, ...HANDWRITING_FONTS];
 const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
+/**
+ * @typedef {{
+ *   status: 'supported' | 'fallback' | 'incompatible',
+ *   family: string,
+ *   requested: string,
+ *   missing: string[],
+ *   remaining: string[],
+ *   pieces: Array<{ text: string, family: string | null }>,
+ * }} TextFontSupport
+ */
+
 /** A menu option and the result of picking it are different facts. */
 export function getFontSupport(fontFamily, text = '', weight = 'normal', style = 'normal', drawnText = text) {
   const resolution = resolveFontSubstitution(fontFamily, text, weight, style);
   const missing = missingGlyphs(resolution.requested, weight, style, drawnText);
   const remaining = missingGlyphs(resolution.family, weight, style, drawnText);
+  /** @type {'supported' | 'fallback' | 'incompatible'} */
+  const status = remaining.length
+    ? 'incompatible'
+    : resolution.family !== resolution.requested ? 'fallback' : 'supported';
   return {
     ...resolution,
     missing,
     remaining,
-    status: remaining.length ? 'incompatible' : resolution.family !== resolution.requested ? 'fallback' : 'supported',
+    status,
   };
 }
 
@@ -58,6 +73,7 @@ function suggestTextBoxes(text, preferredFamily, weight, style) {
   return pieces;
 }
 
+/** @returns {TextFontSupport} */
 export function getTextFontSupport(element) {
   const text = element.text || '';
   const drawnText = textForCoverage(element);
@@ -67,5 +83,5 @@ export function getTextFontSupport(element) {
   const pieces = support.status === 'incompatible'
     ? suggestTextBoxes(drawnText, support.requested, weight, style)
     : [];
-  return { ...support, pieces };
+  return /** @type {TextFontSupport} */ ({ ...support, pieces });
 }

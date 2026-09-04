@@ -9,16 +9,18 @@ import FontSupportNotice from '../FontSupportNotice.tsx';
 import { combLayout, isComb } from '../../../editor/text/comb.js';
 import workspaceStyles from '../Workspace.module.css';
 import elementStyles from '../EditorElement.module.css';
+import type { TextElement } from '../../../editor/model/editorModel.ts';
+import type { ElementNodeChange, NodeResizeStart } from '../nodeProps.ts';
 
 
 export default function TextNode({ element, isActive, isEditing, onChange, onSelect, onBeginEdit, onResizeStart, pageWidthPoints, isSpanResizing = false }: {
-  element: any;
+  element: TextElement;
   isActive: boolean;
   isEditing: boolean;
-  onChange: (changes: any) => void;
-  onSelect: (...args: any[]) => void;
-  onBeginEdit: (...args: any[]) => void;
-  onResizeStart: (...args: any[]) => void;
+  onChange: ElementNodeChange<TextElement>;
+  onSelect: (event: Event) => void;
+  onBeginEdit: () => void;
+  onResizeStart: NodeResizeStart;
   pageWidthPoints: number;
   isSpanResizing?: boolean;
 }) {

@@ -12,8 +12,6 @@ The canonical backlog is the task-file collection in [backlog/tasks/](backlog/ta
 | --- | --- | --- |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |
 | SIGN-23 | P1 | [SIGN-23](backlog/tasks/SIGN-23.md) · Make non-default language fonts explicitly offline-ready |
-| SIGN-24 | P1 | [SIGN-24](backlog/tasks/SIGN-24.md) · Separate saved-signature assets from scalar preferences |
-| SIGN-25 | P1 | [SIGN-25](backlog/tasks/SIGN-25.md) · Reconcile and enforce shipped dependency licenses |
 | SIGN-26 | P2 | [SIGN-26](backlog/tasks/SIGN-26.md) · Establish dependency vulnerability and update governance |
 
 ### In progress
@@ -22,8 +20,6 @@ The canonical backlog is the task-file collection in [backlog/tasks/](backlog/ta
 | --- | --- | --- |
 | SIGN-11 | P2 | [SIGN-11](backlog/tasks/SIGN-11.md) · Versioned, validated shared persistence |
 | SIGN-13 | P2 | [SIGN-13](backlog/tasks/SIGN-13.md) · Anonymous usage and error maintenance signals |
-| SIGN-21 | P1 | [SIGN-21](backlog/tasks/SIGN-21.md) · Make the browser guard helpers reachable from the preview server |
-| SIGN-22 | P1 | [SIGN-22](backlog/tasks/SIGN-22.md) · Restore the CSS release gate after adding language-request actions |
 
 ### Blocked
 
@@ -50,8 +46,11 @@ _None._
 | SIGN-17 | P1 | [SIGN-17](backlog/tasks/SIGN-17.md) · Fix CI-red tests from in-flight SIGN-04/SIGN-09 direction work |
 | SIGN-18 | P1 | [SIGN-18](backlog/tasks/SIGN-18.md) · The Sign toolbar's per-row cap stopped matching when the Feedback control made it ten |
 | SIGN-19 | P1 | [SIGN-19](backlog/tasks/SIGN-19.md) · Four shaping/render guards passed on macOS and failed on Linux CI |
-
+| SIGN-21 | P1 | [SIGN-21](backlog/tasks/SIGN-21.md) · Make the browser guard helpers reachable from the preview server |
+| SIGN-22 | P1 | [SIGN-22](backlog/tasks/SIGN-22.md) · Restore the CSS release gate after adding language-request actions |
 | SIGN-24 | P1 | [SIGN-24](backlog/tasks/SIGN-24.md) · Separate saved-signature assets from scalar preferences |
+| SIGN-25 | P1 | [SIGN-25](backlog/tasks/SIGN-25.md) · Reconcile and enforce shipped dependency licenses |
+
 ### Retired
 
 _None._
@@ -62,15 +61,12 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| ARCH-11 | P2 | [ARCH-11](backlog/tasks/ARCH-11.md) · Enforce editor dependency directions in CI |
 | ARCH-12 | P2 | [ARCH-12](backlog/tasks/ARCH-12.md) · Validate canonical backlog and generated indexes in CI |
 | ARCH-13 | P2 | [ARCH-13](backlog/tasks/ARCH-13.md) · Restore CSS delivery-budget headroom |
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| ARCH-10 | P2 | [ARCH-10](backlog/tasks/ARCH-10.md) · Replace permissive editor-shell types with shared contracts |
+_None._
 
 ### Blocked
 
@@ -89,6 +85,8 @@ _None._
 | ARCH-07 | P3 | [ARCH-07](backlog/tasks/ARCH-07.md) · Consolidate documentation locale routing under src/i18n/ |
 | ARCH-08 | P2 | [ARCH-08](backlog/tasks/ARCH-08.md) · Make documentation shell messages data-driven per locale |
 | ARCH-09 | P2 | [ARCH-09](backlog/tasks/ARCH-09.md) · Make translated documentation freshness enforceable |
+| ARCH-10 | P2 | [ARCH-10](backlog/tasks/ARCH-10.md) · Replace permissive editor-shell types with shared contracts |
+| ARCH-11 | P2 | [ARCH-11](backlog/tasks/ARCH-11.md) · Enforce editor dependency directions in CI |
 
 ### Retired
 

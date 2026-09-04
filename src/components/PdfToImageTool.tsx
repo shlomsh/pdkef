@@ -122,7 +122,7 @@ export default function PdfToImageTool() {
     else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
   };
 
-  // No zip dependency is used (keeps the MIT/Apache + zero-network constraint
+  // No zip dependency is used (keeps the reviewed-permissive-license + zero-network constraint
   // simple) - multi-page output downloads each image sequentially instead.
   const downloadAll = () => {
     images.forEach((image, index) => {

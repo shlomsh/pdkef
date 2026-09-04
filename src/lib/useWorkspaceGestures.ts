@@ -1,7 +1,17 @@
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../editor/gestures/controller.ts';
+import type { GestureEvent } from '../editor/gestures/controller.ts';
 import { createElementId } from '../editor/model/ids.ts';
-import { captureAddedElement } from '../editor/model/actionHistory.ts';
+import { captureAddedElement, type HistoryLogger } from '../editor/model/actionHistory.ts';
+import type {
+  EditorElement,
+  EditorElementPatch,
+  SignToolType,
+  SymbolMark,
+  TextDirection,
+} from '../editor/model/editorModel.ts';
+import type { SavedSignature } from '../editor/model/savedSignature.ts';
+import type { PageGeometry } from '../editor/geometry/coords.ts';
 import { getElementDefinition } from '../editor/registry/index.ts';
 import { ensureMinimumElementSize } from '../editor/geometry/minimumSize.ts';
 import {
@@ -15,6 +25,78 @@ import {
   PAGE_HEIGHT_DEFAULT_PTS
 } from '../constants/signGeometry.js';
 
+export type WorkspaceCreationTool = SignToolType;
+
+export interface PendingSignaturePlacement {
+  pageIndex: number;
+  left: number;
+  top: number;
+}
+
+type WorkspaceGestureAction =
+  | { type: 'ADD_ELEMENT'; payload: EditorElement }
+  | { type: 'UPDATE_ELEMENT'; payload: { id: string; changes: EditorElementPatch } }
+  | { type: 'DELETE_ELEMENT'; payload: string }
+  | { type: 'SET_ACTIVE_ELEMENT_ID'; payload: string | null }
+  | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }
+  | { type: 'DISARM_TOOL' }
+  | {
+      type: 'ENSURE_MINIMUM_SIZE';
+      payload: {
+        id: string;
+        tool: WorkspaceCreationTool;
+        rectWidth: number;
+        rectHeight: number;
+        startLeftPercent: number;
+        startTopPercent: number;
+      };
+    };
+
+export interface WorkspaceGestureOptions {
+  selectedTool: WorkspaceCreationTool | null;
+  dispatch: (action: WorkspaceGestureAction) => void;
+  activeSignature: SavedSignature | null;
+  setTempPlacement: (placement: PendingSignaturePlacement) => void;
+  setDialogOpen: (open: boolean) => void;
+  placeSignatureAt: (
+    dataUrl: string,
+    aspectRatio: number,
+    pageIndex: number,
+    leftPercent: number,
+    topPercent: number,
+  ) => void;
+  logAction: HistoryLogger<EditorElement>;
+  setAnnouncement: (message: string) => void;
+  initialColor?: string;
+  initialWhiteoutColor?: string;
+  initialStrokeWidth?: number;
+  initialFont?: string;
+  initialFontSize?: number;
+  initialDirection?: TextDirection | null;
+  initialSymbolWidth?: number;
+  initialSymbolMark?: SymbolMark;
+  pageSizes?: PageGeometry[];
+  nextElementIndex?: number;
+  gestureCancelRef?: { current: (() => void) | null };
+}
+
+export type PageClickEvent = MouseEvent & { currentTarget: HTMLElement };
+export type PagePointerEvent = GestureEvent & { currentTarget: HTMLElement };
+
+interface BoxPlacementPatch {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+interface LinePlacementPatch {
+  x2: number;
+  y2: number;
+}
+
+type PlacementPatch = BoxPlacementPatch | LinePlacementPatch;
+
 /**
  * Encapsulates the two gesture handlers that turn raw DOM pointer events on the
  * PDF page overlay into SignTool state dispatch calls.
@@ -22,26 +104,6 @@ import {
  * Extracted from PdfWorkspace to slim that component down and make the gesture
  * state machine independently testable.
  *
- * @param {object} params
- * @param {string|null}  params.selectedTool       - currently active tool name
- * @param {function}     params.dispatch            - SignTool context dispatch
- * @param {import('../editor/model/savedSignature.ts').SavedSignature|null} params.activeSignature - currently selected signature
- * @param {function}     params.setTempPlacement    - opens signature placement dialog
- * @param {function}     params.setDialogOpen       - opens the signature creation dialog
- * @param {function}     params.placeSignatureAt    - places an existing signature
- * @param {function}     params.logAction           - action history logger
- * @param {function}     params.setAnnouncement     - a11y live-region setter
- * @param {string}       params.initialColor        - last remembered element color for new placements
- * @param {string}       [params.initialWhiteoutColor] - last remembered whiteout color for new placements
- * @param {number}       params.initialStrokeWidth  - last remembered stroke width for new placements
- * @param {string}       params.initialFont         - last remembered font family for new text elements
- * @param {number}       params.initialFontSize     - last remembered font size for new text elements
- * @param {string|null}  params.initialDirection    - last remembered text direction ('ltr'|'rtl'|null)
- * @param {number}       params.initialSymbolWidth  - last remembered symbol width (% of page width)
- * @param {string}       params.initialSymbolMark   - last remembered symbol mark ('check'|'x'|'dot')
- * @param {Array}        params.pageSizes           - per-page { width, height } in PDF points
- * @param {number}       params.nextElementIndex    - stacking index for the next appended element
- * @param {{ current: (() => void) | null }} [params.gestureCancelRef] - active drag cancellation owned by the workspace
  */
 export default function useWorkspaceGestures({
   selectedTool,
@@ -65,7 +127,7 @@ export default function useWorkspaceGestures({
   // PdfWorkspace supplies a ref it owns for component teardown. Keeping this
   // handler factory hook-free also preserves its direct unit-test contract.
   gestureCancelRef = { current: null },
-}) {
+}: WorkspaceGestureOptions) {
   const {
     getPointerCoords,
     getPointerPercent,
@@ -78,7 +140,7 @@ export default function useWorkspaceGestures({
    * Handles a click on a page overlay for point-placement tools
    * (text, symbol, signature). No-ops for drag-drawn tools.
    */
-  const handlePageClick = (e, pageIndex) => {
+  const handlePageClick = (e: PageClickEvent, pageIndex: number) => {
     if (!selectedTool) return;
     const definition = getElementDefinition(selectedTool);
     if (definition.creation.mode !== 'point') {
@@ -97,7 +159,7 @@ export default function useWorkspaceGestures({
     }
     e.stopPropagation();
 
-    if (e.target.closest('[data-editor-element]')) return;
+    if ((e.target as Element | null)?.closest('[data-editor-element]')) return;
 
     const container = e.currentTarget;
     const pageGeometry = pageSizes[pageIndex];
@@ -110,6 +172,7 @@ export default function useWorkspaceGestures({
     // em-height / page height in points — no DOM measurement needed.
     const pageHeightPoints = pageGeometry?.height || PAGE_HEIGHT_DEFAULT_PTS;
     const textHeight = (initialFontSize * TEXT_BOX_LINE_HEIGHT_EM / pageHeightPoints) * 100;
+    if (!definition.creation.create) return;
     const newEl = definition.creation.create({
       id,
       pageIndex,
@@ -149,14 +212,14 @@ export default function useWorkspaceGestures({
    * (whiteout, line, ellipse, rectangle). Attaches global move/up listeners
    * for the duration of the drag gesture, then cleans them up on pointer-up.
    */
-  const handleOverlayPointerDown = (e, pageIndex) => {
+  const handleOverlayPointerDown = (e: PagePointerEvent, pageIndex: number) => {
     if (!selectedTool) return;
     const definition = getElementDefinition(selectedTool);
-    if (definition.creation.mode !== 'drag') return;
-    if (e.target.closest('[data-editor-element]')) return;
+    if (definition.creation.mode !== 'drag' || !definition.creation.create) return;
+    if ((e.target as Element | null)?.closest('[data-editor-element]')) return;
     e.stopPropagation();
 
-    if (!e.touches) e.preventDefault();
+    if (!('touches' in e) || !e.touches) e.preventDefault();
 
     const tool = selectedTool;
     const container = e.currentTarget;
@@ -176,13 +239,13 @@ export default function useWorkspaceGestures({
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
 
     const getElementNode = () => Array.from(
-      container.querySelectorAll('[data-editor-element-id]'),
+      container.querySelectorAll<HTMLElement>('[data-editor-element-id]'),
     ).find((node) => node.dataset.editorElementId === id);
 
     gestureCancelRef.current?.();
-    gestureCancelRef.current = startGesture({
+    gestureCancelRef.current = startGesture<PlacementPatch>({
       computePatch: (moveEvent) => {
-      if (moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
+      if ('touches' in moveEvent && moveEvent.touches && moveEvent.cancelable) moveEvent.preventDefault();
       const { x: moveX, y: moveY } = getPointerCoords(moveEvent);
 
       if (isLineTool) {
@@ -210,7 +273,7 @@ export default function useWorkspaceGestures({
         const elementNode = getElementNode();
         if (!elementNode) return;
 
-        if (isLineTool) {
+        if ('x2' in patch) {
           elementNode.querySelectorAll('line').forEach((line) => {
             line.setAttribute('x2', `${patch.x2}%`);
             line.setAttribute('y2', `${patch.y2}%`);
@@ -246,7 +309,7 @@ export default function useWorkspaceGestures({
       });
 
       const finalElement = ensureMinimumElementSize(
-        patch ? { ...newEl, ...patch } : newEl,
+        (patch ? { ...newEl, ...patch } : newEl) as EditorElement,
         minimumSizeContext,
       );
 

@@ -1,5 +1,15 @@
 import styles from './PdfRedactTool.module.css';
 
+export interface DeletablePdfObject {
+  id: string;
+  pageIndex: number;
+  kind: 'image' | 'text';
+  preview?: string;
+  rect: { left: number; top: number; width: number; height: number };
+  start: number;
+  end: number;
+}
+
 /**
  * Hover targets for the Delete tool: one invisible-until-hovered region per
  * object the PDF actually stores as a single piece (an image placement, or
@@ -10,13 +20,13 @@ import styles from './PdfRedactTool.module.css';
  * control, so the two never overlap.
  */
 export default function DeletableObjectOverlay({ objects, markedIds, onSelect }: {
-  objects: any[];
+  objects: DeletablePdfObject[];
   markedIds: Set<string>;
-  onSelect: (object: any) => void;
+  onSelect: (object: DeletablePdfObject) => void;
 }) {
   return objects
-    .filter((object: any) => !markedIds.has(object.id))
-    .map((object: any) => (
+    .filter((object) => !markedIds.has(object.id))
+    .map((object) => (
       <div
         key={object.id}
         className={styles['delete-candidate']}

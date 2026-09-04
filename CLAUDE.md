@@ -27,7 +27,7 @@ telemetry. Consult it before reviving assumptions from older proposals. Task sta
 
 ## What this is
 
-A 100% client-side, no-backend static web app that provides a suite of PDF tools (Merge, Split, Remove Pages, Compress, PDF to Image, Sign, Unlock) in the browser, optimized to rank for specific PDF manipulation SEO keywords. There is no PDF processing server: files must never leave the user's device. This is the central product constraint; do not introduce any upload/API call that sends file contents off-device. Processing must work offline once required assets are provisioned. Anonymous maintenance telemetry is permitted under the privacy invariants below and must never block the tools. Runtime code dependencies must be MIT or Apache-2.0 licensed (no AGPL/commercial libraries).
+A 100% client-side, no-backend static web app that provides a suite of PDF tools (Merge, Split, Remove Pages, Compress, PDF to Image, Sign, Unlock) in the browser, optimized to rank for specific PDF manipulation SEO keywords. There is no PDF processing server: files must never leave the user's device. This is the central product constraint; do not introduce any upload/API call that sends file contents off-device. Processing must work offline once required assets are provisioned. Anonymous maintenance telemetry is permitted under the privacy invariants below and must never block the tools. Runtime code dependencies must use the reviewed permissive allowlist (MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clause, Zlib, or 0BSD; no AGPL/commercial libraries). `npm run test:licenses` verifies the browser-runtime inventory, locked versions, notices, and policy in CI.
 
 ### Implementation status (Phase 1)
 

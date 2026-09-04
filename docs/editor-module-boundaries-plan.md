@@ -13,23 +13,51 @@ task below is scoped to one file move or one dependency fix, independently landa
 Do not batch several ARCH tasks into one PR just because they're related — the whole point of writing
 them this way is that any one of them can be picked up, verified, and merged on its own.
 
-## The target boundaries
+## Enforced editor dependency matrix
 
-| Boundary | Owns | Should not depend on |
-| --- | --- | --- |
-| `editor/model` | Elements, commands, history, IDs, schema versions | Preact, CSS, PDF libraries |
-| `editor/geometry` | Explicit viewport/percentage/PDF transformations | Component DOM structure |
-| `editor/text` | Direction, segmentation, normalization and font policy | UI messages |
-| `editor/adapters/pdf` | Loading, serialization, fontkit/private-library integration | Preact components |
-| `editor/workspace` | Document session, persistence and export coordination | Product copy |
-| `components/SignTool` | Views and event adapters | Direct storage writes |
-| `i18n` | Locale resolution, messages and formatters | Document mutation |
+ARCH-11 makes the editor boundary executable. `npm run test:editor-dependency-directions` resolves
+every production relative static import (including `.js` specifiers that resolve to TypeScript) and is
+a CI gate. It intentionally does not attempt a repository-wide reorganization: the matrix records the
+current serialization and rendering seams so a future import can be judged against a specific rule.
 
-Each row names what a module is *for* and the one thing that would mean it had absorbed someone
-else's job. The "should not depend on" column is the part worth re-checking on every future PR that
-touches these directories — it's a smell test, not an enforced import-graph lint (nothing here adds a
-new CI guard; that's a possible ARCH-08 if drift becomes a repeat problem, not something this plan
-asks for up front).
+| Layer | Owns | May statically depend on | Must not depend on |
+| --- | --- | --- | --- |
+| `editor/model` | Elements, commands, history, IDs, schema versions | Other model files | Preact, CSS, browser storage, PDF libraries, or any outer editor layer |
+| `editor/geometry` | Explicit viewport/percentage/PDF transformations | Geometry and model helpers | Preact, CSS, PDF libraries, registry, workspace, adapters, or components |
+| `editor/text` | Direction, segmentation, normalization and font policy | Text/model helpers and font-policy dependencies | Preact, CSS, workspace, adapters, or product messages. `textCoverage → registry/text` is a documented temporary compatibility bridge. |
+| `editor/registry` | Per-element schema, creation, resize, serialize behavior | Model, geometry, text, constants, and PDF serialization libraries | Workspace or PDF-adapter modules. Preact/component/CSS imports are limited to the named renderer seams below. |
+| `editor/adapters/pdf` | Loading and document serialization integration | Model, geometry, text, registry, and PDF libraries | UI components, Preact, or CSS (the dependency is one-way from the shell into an adapter). |
+| `editor/workspace` | Document session, persistence, draft restore, and export coordination | Model, registry, adapters, and workspace helpers | Product UI. The one `useEditorDraftPersistence → useDraftPersistence` bridge is explicitly temporary. |
+| Preact component shell (`components/SignTool`, `PdfSignTool`, `PdfRedactTool`) | Views, event adapters, and user-triggered orchestration | Editor public layers, including workspace persistence and PDF adapters | Direct `localStorage`, `sessionStorage`, or `indexedDB` access in the editor shell; persistence must enter through `editor/workspace`. |
+
+### Deliberate seams
+
+The guard permits only these exceptions. They are listed in the checker as path-specific rules, not as
+general layer exemptions:
+
+- `editor/registry/renderers.ts` imports Preact and SignTool node components; it is the registry's
+  dedicated view-render adapter.
+- `editor/registry/redactionSurface.ts` imports Preact for the same view-adapter purpose.
+- `editor/registry/text.ts` imports the SignTool CSS Module only to perform the existing resize-time DOM
+  paint against its stable class names.
+- `editor/workspace/useEditorDraftPersistence.ts` imports Preact's hook and the legacy
+  `components/SignTool/useDraftPersistence.js` effect implementation. Workspace owns the lifecycle
+  contract already; moving the implementation is a separate mechanical slice.
+- `editor/text/textCoverage.js` re-exports a registry text helper to preserve its public API while that
+  helper remains colocated with text serialization.
+
+The registry's serialization imports of PDF library types/functions are intentional: an element
+definition owns its own bake behavior. That is different from importing `editor/adapters/pdf`, which
+would reverse the adapter direction and is rejected. Likewise, keeping the renderer adapter in
+`registry/` is deliberate for now; moving it only to satisfy a directory-name rule would recreate the
+component/registry cycle this layout avoided.
+
+The guard has positive and negative fixtures in
+[`scripts/fixtures/editor-dependency-directions/`](../scripts/fixtures/editor-dependency-directions/).
+The negative fixtures prove that model-layer Preact and browser-storage use, text-to-workspace imports,
+and unapproved workspace Preact hooks fail. Run the command locally before changing any of these seams;
+add a new exception only alongside a written architectural decision and a separate mechanical move
+plan.
 
 ## Why now, and why these seven tasks specifically
 

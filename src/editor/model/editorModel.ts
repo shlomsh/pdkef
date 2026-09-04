@@ -5,7 +5,7 @@
 // the plain objects the editors already produce and consume.
 //
 // Field shapes are read from reality, not invented:
-//   - creation:  src/lib/useWorkspaceGestures.js (text/symbol/line/shape/whiteout
+//   - creation:  src/lib/useWorkspaceGestures.ts (text/symbol/line/shape/whiteout
 //                factories) and PdfSignTool.tsx `placeSignatureAt` (signature).
 //   - rendering: src/components/SignTool/nodes/*.tsx.
 //   - export:    src/editor/adapters/pdf/sign.js `signPdf` (the bake-out reads these fields).
@@ -30,6 +30,12 @@ export type ElementType =
   | 'whiteout'
   | 'blackout'
   | 'blur';
+
+/** Element kinds the Sign workspace can arm for placement. */
+export type SignToolType = Exclude<ElementType, 'blackout' | 'blur'>;
+
+/** Tool identifiers exposed by the destructive Redact workspace. */
+export type RedactToolType = 'delete' | 'blackout' | 'blur' | 'whiteout';
 
 /** Symbol glyphs (SymbolNode.tsx). `symbolType` is a legacy alias still tolerated. */
 export type SymbolMark = 'check' | 'x' | 'dot';
@@ -164,3 +170,14 @@ export type EditorElement =
   | WhiteoutElement
   | BlackoutElement
   | BlurElement;
+
+/**
+ * Mutable fields for an existing element. Identity, type, and page placement
+ * deliberately cannot be changed through an ordinary editor update; callers
+ * that need a different element kind must create a replacement explicitly.
+ *
+ * The conditional keeps a patch tied to its variant when a caller has already
+ * narrowed an element (for example, a TextNode cannot submit line endpoints).
+ */
+export type EditorElementPatch<T extends EditorElement = EditorElement> =
+  T extends unknown ? Partial<Omit<T, 'id' | 'type' | 'pageIndex'>> : never;

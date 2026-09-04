@@ -70,7 +70,7 @@ npm run test:e2e # Build and run browser release checks
 
 Offline support and installability come from a hand-written service worker (`public/sw.js`) and a static `public/manifest.webmanifest`, not a build plugin - no PWA plugin is used (see CLAUDE.md for why).
 
-PDkef itself is MIT licensed; third-party components retain their own licenses. See `THIRD_PARTY_LICENSES.md` for the current notices. PDF processing dependencies run locally; the hosted site separately includes Vercel Web Analytics for the limited anonymous aggregate maintenance signals described above.
+PDkef itself is MIT licensed; third-party components retain their own licenses. Browser runtime dependencies use a reviewed permissive allowlist: MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clause, Zlib, and 0BSD. The exact inventory and notices are checked in CI; see `THIRD_PARTY_LICENSES.md`. PDF processing dependencies run locally; the hosted site separately includes Vercel Web Analytics for the limited anonymous aggregate maintenance signals described above.
 
 See [CLAUDE.md](./CLAUDE.md) for architecture notes and the design standard, and [backlog/tasks](./backlog/tasks/) for the canonical backlog.
 

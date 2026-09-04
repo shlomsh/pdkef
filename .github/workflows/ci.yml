@@ -47,6 +47,9 @@ jobs:
     - name: Typecheck
       run: npm run typecheck
 
+    - name: Verify editor dependency directions
+      run: npm run test:editor-dependency-directions
+
     - name: Verify shared box-resize owner
       run: test "$(git grep -l "maxWidthFromRightGrowth\|maxHeightFromBottomGrowth" -- 'src/**' | wc -l | tr -d ' ')" = 1
 
@@ -64,6 +67,9 @@ jobs:
     # header comment for the Kalam-Regular/Kalam-Bold incident this catches.
     - name: Verify bundled font glyf alignment
       run: npm run test:fonts
+
+    - name: Verify reviewed runtime dependency licenses
+      run: npm run test:licenses
 
     - name: Build
       run: npm run build

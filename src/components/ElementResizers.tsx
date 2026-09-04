@@ -1,7 +1,13 @@
 import { getElementDefinition } from '../editor/registry/index.ts';
+import type { EditorElement } from '../editor/model/editorModel.ts';
+import type { NodeResizeStart } from './SignTool/nodeProps.ts';
 import styles from './SignTool/EditorElement.module.css';
 
-export default function ElementResizers({ element, isActive, onResizeStart }: { element: any; isActive: boolean; onResizeStart: (...args: any[]) => void }) {
+export default function ElementResizers({ element, isActive, onResizeStart }: {
+  element: EditorElement;
+  isActive: boolean;
+  onResizeStart: NodeResizeStart;
+}) {
   const { handles } = getElementDefinition(element.type).resizeBehavior;
 
   // Line endpoints remain available without selection so the SVG's hit target
@@ -13,9 +19,11 @@ export default function ElementResizers({ element, isActive, onResizeStart }: { 
       {handles.map((handle) => {
         const isLineHandle = handle.startsWith('line-');
         const isCorner = handle.includes('-') && !isLineHandle;
-        const point = handle === 'line-start'
+        const point = element.type === 'line' && handle === 'line-start'
           ? { left: element.x1, top: element.y1 }
-          : { left: element.x2, top: element.y2 };
+          : element.type === 'line'
+            ? { left: element.x2, top: element.y2 }
+            : { left: 0, top: 0 };
 
         return (
           <div

@@ -10,10 +10,22 @@ import workspaceStyles from './Workspace.module.css';
 import elementStyles from './EditorElement.module.css';
 
 import { cloneElement, toChildArray } from 'preact';
-import type { ComponentChildren } from 'preact';
+import type { ComponentChildren, VNode } from 'preact';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
+import type { EditorElement, EditorElementPatch } from '../../editor/model/editorModel.ts';
+import type { NodeResizeStart } from './nodeProps.ts';
 
-export default function DraggableWrapper({
+type DraggableChildProps = {
+  element?: EditorElement;
+  isActive?: boolean;
+  isEditing?: boolean;
+  onBeginEdit?: () => void;
+  onResizeStart?: NodeResizeStart;
+  handlePointerDown?: (event: MouseEvent | TouchEvent) => void;
+  isSpanResizing?: boolean;
+};
+
+export default function DraggableWrapper<T extends EditorElement>({
   element,
   isActive,
   // Forwarded to the node untouched, like onResizeStart: only the text node
@@ -28,14 +40,14 @@ export default function DraggableWrapper({
   pageGeometry,
   children
 }: {
-  element: any;
+  element: T;
   isActive: boolean;
   isEditing?: boolean;
-  onBeginEdit: (...args: any[]) => void;
-  onSelect: (...args: any[]) => void;
-  onChange: (...args: any[]) => void;
-  onDelete: (...args: any[]) => void;
-  onClone: (...args: any[]) => void;
+  onBeginEdit: () => void;
+  onSelect: (event: Event) => void;
+  onChange: (changes: EditorElementPatch<T>) => void;
+  onDelete: () => void;
+  onClone: (clone: EditorElement) => void;
   pageWidthPoints: number;
   pageGeometry?: PageGeometry;
   children?: ComponentChildren;
@@ -99,7 +111,7 @@ export default function DraggableWrapper({
   // for RTL text, 'top-start' otherwise), not by page-clamp math in this
   // component. That preserves the fundamental anchor: LTR toolbars begin at
   // the element's left edge, RTL toolbars end at its right edge.
-  const getFloatingBoundary = (reference: any) =>
+  const getFloatingBoundary = (reference: Element | null) =>
     reference?.closest?.(`.${workspaceStyles['page-wrapper']}`) || 'clippingAncestors';
   const { refs, floatingStyles } = useFloating({
     placement: textDirection === 'rtl' ? 'top-end' : 'top-start',
@@ -107,7 +119,7 @@ export default function DraggableWrapper({
     middleware: [
       offset(TOOLBAR_FLOATING_OFFSET),
       shift(({ elements }) => ({
-        boundary: getFloatingBoundary(elements.reference),
+        boundary: getFloatingBoundary(elements.reference instanceof Element ? elements.reference : null),
         padding: TOOLBAR_FLOATING_OFFSET,
       }))
     ]
@@ -117,7 +129,7 @@ export default function DraggableWrapper({
     if (elementRef.current && isDragging.current) {
       elementRef.current.style.transform = `translate(${dragOffset.current.x}px, ${dragOffset.current.y}px)`;
     }
-  }, [isActive, element.top, element.type]);
+  }, [isActive, element.type, element.type === 'line' ? undefined : element.top]);
 
   // Removed JS measuring effect in favor of CSS grid auto-growing.
 
@@ -137,7 +149,7 @@ export default function DraggableWrapper({
   const isLine = !!view.isLine;
   const isShape = !!view.isShape;
   const isSymbol = !!view.isSymbol;
-  const style = isLine ? {
+  const style = element.type === 'line' ? {
     left: 0,
     top: 0,
     width: '100%',
@@ -150,7 +162,7 @@ export default function DraggableWrapper({
     // explicit width (comb text): the span is the whole point there, and the
     // height stays intrinsic either way.
     width: element.width && (!view.usesIntrinsicSize || view.allowsExplicitWidth) ? `${element.width}%` : 'auto',
-    height: element.height && !view.usesIntrinsicSize ? `${element.height}%` : 'auto',
+    height: 'height' in element && element.height && !view.usesIntrinsicSize ? `${element.height}%` : 'auto',
     ...(isRtlText
       ? { right: `${100 - element.left}%` }
       : { left: `${element.left}%` }),
@@ -188,7 +200,7 @@ export default function DraggableWrapper({
         }}
         className={elementStyles.actions}
         data-editor-actions
-        style={isLine ? {
+        style={element.type === 'line' ? {
           position: 'absolute',
           left: `${Math.min(element.x1, element.x2) + Math.abs(element.x1 - element.x2) / 2}%`,
           top: `${Math.min(element.y1, element.y2)}%`,
@@ -208,15 +220,18 @@ export default function DraggableWrapper({
       </div>
 
       {/* Render element depending on type */}
-      {toChildArray(children).map((child: any) => cloneElement(child, {
-        element: renderedElement,
-        isActive,
-        isEditing,
-        onBeginEdit,
-        onResizeStart: handleResizeStart,
-        handlePointerDown,
-        isSpanResizing
-      }))}
+      {toChildArray(children).map((child) => {
+        if (typeof child !== 'object' || child === null || !('type' in child)) return child;
+        return cloneElement(child as VNode<DraggableChildProps>, {
+          element: renderedElement,
+          isActive,
+          isEditing,
+          onBeginEdit,
+          onResizeStart: handleResizeStart,
+          handlePointerDown,
+          isSpanResizing
+        });
+      })}
     </div>
   );
 }

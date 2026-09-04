@@ -8,27 +8,28 @@ import {
   DEFAULT_SYMBOL_WIDTH_PCT,
   DEFAULT_START_WIDTH_PCT
 } from '../../constants/signGeometry.js';
+import type { SymbolMark, TextDirection } from '../../editor/model/editorModel.ts';
 
-const noop = (..._args: any[]) => {};
+const noop = () => {};
 
 export interface SignDefaultsContextValue {
   lastColor: string;
   lastWhiteoutColor: string;
   lastFont: string;
   lastFontSize: number;
-  lastDirection: string | null;
+  lastDirection: TextDirection | null;
   lastThickness: number;
   lastSymbolWidth: number;
-  lastSymbolMark: string;
+  lastSymbolMark: SymbolMark;
   lastSignatureWidth: number;
   rememberColor: (color: string) => void;
   rememberWhiteoutColor: (color: string) => void;
   rememberFont: (fontFamily: string) => void;
   rememberFontSize: (fontSize: number) => void;
-  rememberDirection: (textDirection: string) => void;
+  rememberDirection: (textDirection: TextDirection) => void;
   rememberThickness: (strokeWidth: number) => void;
   rememberSymbolWidth: (width: number) => void;
-  rememberSymbolMark: (mark: string) => void;
+  rememberSymbolMark: (mark: SymbolMark) => void;
   rememberSignatureWidth: (width: number) => void;
 }
 

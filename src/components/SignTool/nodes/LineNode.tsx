@@ -3,8 +3,13 @@ import {
   DEFAULT_STROKE_WIDTH,
   LINE_HIT_TARGET_STOKE_WIDTH
 } from '../../../constants/signGeometry.js';
+import type { LineElement } from '../../../editor/model/editorModel.ts';
+import type { ElementNodeProps, NodeResizeStart } from '../nodeProps.ts';
 
-export default function LineNode({ element, isActive, onResizeStart, handlePointerDown }: { element: any; isActive: boolean; onResizeStart: (...args: any[]) => void; handlePointerDown: (...args: any[]) => void }) {
+export default function LineNode({ element, isActive, onResizeStart, handlePointerDown }: ElementNodeProps<LineElement> & {
+  handlePointerDown: (event: MouseEvent | TouchEvent) => void;
+  onResizeStart: NodeResizeStart;
+}) {
   return (
     <>
       <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none' }}>
@@ -32,10 +37,7 @@ export default function LineNode({ element, isActive, onResizeStart, handlePoint
         />
       </svg>
       <ElementResizers 
-        // Standalone node tests predate the flat discriminant. Within this
-        // node, the type is unambiguous; keep that fixture compatibility at
-        // the renderer boundary rather than weakening the registry lookup.
-        element={{ ...element, type: 'line' }}
+        element={element}
         isActive={isActive}
         onResizeStart={onResizeStart}
       />

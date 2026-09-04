@@ -36,7 +36,7 @@
 |---|---|---|
 | **Sign drag** (move an element) | [`useDraggableElement.js`](../src/lib/useDraggableElement.js) | ✅ DOM-mutate `transform` during; single `onChange` on up |
 | **Sign resize** (all handles) | [`DraggableWrapper.jsx`](../src/components/SignTool/DraggableWrapper.jsx) `handleResizeStart` (inline, ~250 lines) | ✅ `pendingResize` accumulator + CSSOM during; single `onChange` on up |
-| **Sign create** (drag-drawn: whiteout/line/ellipse/rectangle) | [`useWorkspaceGestures.js`](../src/lib/useWorkspaceGestures.js) `handleOverlayPointerDown` | ❌ **dispatches `UPDATE_ELEMENT` per `pointermove`** |
+| **Sign create** (drag-drawn: whiteout/line/ellipse/rectangle) | [`useWorkspaceGestures.ts`](../src/lib/useWorkspaceGestures.ts) `handleOverlayPointerDown` | ✅ gesture controller owns move-time DOM preview and commits state once on release |
 | **Redact drag / resize / create** | [`PdfRedactTool.jsx`](../src/components/PdfRedactTool.jsx) `handleBoxDragStart` / `handleBoxResizeStart` / `handlePointerDown`+`drawingState` | ❌ **`updateElement` / `setDrawingState` per move** on all three |
 
 **Finding that reshapes the ticket scope:** the ARCHITECTURE doc frames the divergence as "drag was
@@ -165,6 +165,13 @@ interface ElementModule<E extends EditorElement> {
 Preact stays the render/event shell: `DraggableWrapper` calls `controller.start(...)` on
 pointerdown and `registry[el.type].render(...)` for the body; it no longer contains gesture math.
 
+**Dependency enforcement (ARCH-11).** The current, explicit import matrix and the narrow renderer /
+workspace-hook transition seams are maintained in
+[editor-module-boundaries-plan.md](./editor-module-boundaries-plan.md). Run
+`npm run test:editor-dependency-directions`; CI resolves production static imports and rejects a
+reversed layer dependency. The registry renderer remains a documented Preact adapter seam rather than
+a reason to move files mechanically.
+
 ---
 
 ## 3. E4.2 — Extract the framework-agnostic core + unified gesture controller — done
@@ -178,7 +185,7 @@ renders imperatively during the gesture and commits one state patch on release.
 
 ### Scope
 1. **Stand up `src/editor/geometry/` and `src/editor/gestures/pointer.ts`** by moving the pure parts of
-   `usePdfCoordinates.js` and `coords.ts` down. Keep `usePdfCoordinates` as a thin hook wrapper so
+   `usePdfCoordinates.ts` and `coords.ts` down. Keep `usePdfCoordinates` as a thin hook wrapper so
    existing call sites don't churn in this step.
 2. **Write `gestures/controller.ts`** — a framework-agnostic controller that, given a start descriptor
    (element snapshot, gesture kind, handle, page-wrapper rect getter, a `writeDOM(patch)` callback, and
