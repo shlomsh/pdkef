@@ -137,6 +137,24 @@ test('cards in the home page story stack are never translucent', async ({ page }
   }
 });
 
+test('the home-page footer takes over from the final sticky card', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await settle(page);
+
+  const footer = page.locator('.card-stack footer');
+  await expect(footer).toBeVisible();
+
+  const footerIsOnTop = await footer.evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    const x = rect.left + (rect.width / 2);
+    const y = Math.max(rect.top + 1, Math.min(rect.bottom - 1, window.innerHeight - 1));
+    return document.elementFromPoint(x, y)?.closest('footer') === el;
+  });
+
+  expect(footerIsOnTop, 'the final sticky card covers the footer at the end of the page').toBe(true);
+});
+
 test('prefers-reduced-motion leaves every card fully visible', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/sign/');

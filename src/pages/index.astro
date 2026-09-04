@@ -758,12 +758,19 @@ const faq = [
        last stretch, tucking the top card under the app bar and leaving a
        dead band between it and the footer.
 
-       So nothing moves at the end: the footer simply slides up over the
-       deck's bottom edge and docks there, arriving the same way every card
-       did. :last-of-type rather than :last-child, since the footer is now
-       the last child; the cards are the only <section>s in here. */
+       Sticky cards are positioned boxes, which paint above normal-flow
+       siblings even when the sibling comes later in the markup. Give the
+       footer its own stacking level so it can take over at the end of the
+       run-out instead of being completely covered by the final card.
+       :last-of-type rather than :last-child, since the footer is now the
+       last child; the cards are the only <section>s in here. */
     .card-stack :global(section.card-reveal:last-of-type) {
       margin-block-end: 0;
+    }
+
+    .card-stack :global(footer) {
+      position: relative;
+      z-index: 1;
     }
 
     /* The scroll-reveal fade and the stack are two answers to the same
