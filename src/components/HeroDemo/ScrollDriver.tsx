@@ -27,6 +27,19 @@ type TrackConfig = {
   beats: Record<string, BeatRange>;
 };
 
+// Give the complete incoming message and attachment a deliberate reading
+// pause before the PDF opens. The sign track is made 8% longer in the CSS;
+// remapping the subsequent beats into that longer journey retains each
+// interaction's existing scroll duration instead of borrowing it from the
+// form fill, signature, or share-sheet ending.
+const CHAT_READING_HOLD = 0.08;
+const afterChatReadingHold = (progress: number): number => (
+  (progress + CHAT_READING_HOLD) / (1 + CHAT_READING_HOLD)
+);
+const beforeChatReadingHold = (progress: number): number => (
+  progress / (1 + CHAT_READING_HOLD)
+);
+
 const TRACKS: TrackConfig[] = [
   {
     // The intro title card. Two beats, no story: fade in over the first
@@ -78,18 +91,21 @@ const TRACKS: TrackConfig[] = [
       // only this track has it - see HeroDemo.module.css's .stage-first
       // opacity rule.
       enter: [0.0, 0.04],
-      msg: [0.0, 0.06],
-      open: [0.06, 0.13],
-      'fill-name': [0.13, 0.23],
-      'fill-guardian': [0.23, 0.33],
-      'fill-phone': [0.33, 0.42],
-      'fill-allergies': [0.42, 0.5],
-      'check-1': [0.5, 0.58],
-      'check-2': [0.58, 0.65],
-      sign: [0.65, 0.78],
-      share: [0.78, 0.88],
-      send: [0.88, 0.94],
-      sent: [0.94, 1.0],
+      msg: [0.0, beforeChatReadingHold(0.06)],
+      // Hold the complete chat view (the message and attached permission
+      // slip) before crossfading to the PDF. The other sign-story beats are
+      // remapped below so this new reading space does not make them faster.
+      open: [afterChatReadingHold(0.06), afterChatReadingHold(0.13)],
+      'fill-name': [afterChatReadingHold(0.13), afterChatReadingHold(0.23)],
+      'fill-guardian': [afterChatReadingHold(0.23), afterChatReadingHold(0.33)],
+      'fill-phone': [afterChatReadingHold(0.33), afterChatReadingHold(0.42)],
+      'fill-allergies': [afterChatReadingHold(0.42), afterChatReadingHold(0.5)],
+      'check-1': [afterChatReadingHold(0.5), afterChatReadingHold(0.58)],
+      'check-2': [afterChatReadingHold(0.58), afterChatReadingHold(0.65)],
+      sign: [afterChatReadingHold(0.65), afterChatReadingHold(0.78)],
+      share: [afterChatReadingHold(0.78), afterChatReadingHold(0.88)],
+      send: [afterChatReadingHold(0.88), afterChatReadingHold(0.94)],
+      sent: [afterChatReadingHold(0.94), 1.0],
     },
   },
   {
