@@ -4,8 +4,8 @@ import { useEffect } from 'preact/hooks';
  * The only script HeroDemo ships. It reads nothing from the page but scroll
  * position and writes nothing but `--p-*` custom properties (per-property
  * CSSOM writes via `style.setProperty`, never a literal `style="..."`
- * attribute - see CLAUDE.md's CSP section) onto the two sticky stage
- * elements HeroDemo.astro already rendered. All copy and structure comes
+ * attribute - see CLAUDE.md's CSP section) onto the sticky stage elements
+ * HeroDemo.astro already rendered. All copy and structure comes
  * from that server-rendered markup; this component supplies motion only,
  * and supplies nothing at all when `prefers-reduced-motion` is set or JS
  * never loads, at which point HeroDemo.module.css's own defaults (every
@@ -28,6 +28,23 @@ type TrackConfig = {
 };
 
 const TRACKS: TrackConfig[] = [
+  {
+    // The intro title card. Two beats, no story: fade in over the first
+    // fifth of the panel's pinned travel, hold for the middle, and fade back
+    // out over the last third, reaching zero exactly as the panel releases -
+    // which is the moment the first story pins, so the two fades meet (see
+    // .track-intro's negative bottom margin, which is what aligns them).
+    // HeroDemo.module.css turns these into one opacity (--p-in minus
+    // --p-out). Above the two-column breakpoint
+    // the track is display:none, so these values are still computed and
+    // still written - onto an element that renders nothing. Harmless, and
+    // cheaper than teaching this file about a breakpoint.
+    key: 'intro',
+    beats: {
+      in: [0.0, 0.2],
+      out: [0.66, 1.0],
+    },
+  },
   {
     // 12 beats. The four "fill-*" beats were renamed 2026-09-04 per a second
     // product-owner correction: the printed sentence used to carry blanks
@@ -53,6 +70,14 @@ const TRACKS: TrackConfig[] = [
     // those four slots changed.)
     key: 'sign',
     beats: {
+      // Entrance crossfade, not a story beat: it stays 0 for the whole time
+      // the panel is still travelling up from below the fold (progress is
+      // pinned at 0 until the track's top reaches the viewport top), so the
+      // panel is invisible while it moves and fades in once it has settled.
+      // This is the second half of the intro card's handoff, which is why
+      // only this track has it - see HeroDemo.module.css's .stage-first
+      // opacity rule.
+      enter: [0.0, 0.04],
       msg: [0.0, 0.06],
       open: [0.06, 0.13],
       'fill-name': [0.13, 0.23],

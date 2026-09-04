@@ -3,7 +3,10 @@ import { stageLocator } from './heroDemoHelpers.js';
 
 // Guards the mechanic DEMO-02/DEMO-05 depend on entirely: `position: sticky`
 // pinning the phone mockup in the viewport while its much taller track
-// (560svh - see HeroDemo.module.css's ".track" comment) scrolls past
+// (see HeroDemo.module.css's ".track" comment - the height differs between
+// the stacked and two-column layouts, which is why the samples below are
+// taken as fractions of the measured pin range rather than as fixed pixel
+// offsets) scrolls past
 // underneath it. jsdom has no layout engine and cannot execute
 // `position: sticky` at all, so nothing else in this repo's test suite can
 // catch this.
@@ -45,7 +48,18 @@ test('the sign track stage stays pinned while its track scrolls', async ({ page 
   // release point at the very end, and assert the stage's own screen
   // position never moves - a killed sticky context would show it scrolling
   // away (its y tracking the scroll delta) instead of holding still.
-  for (const delta of [600, 1400, 2400]) {
+  //
+  // Fractions of the measured pin range, not fixed pixel offsets. A sticky
+  // element is only pinned for (track height - its own height) of scrolling,
+  // and this component now runs two sets of track heights - the shorter
+  // stacked one and the taller two-column one - so a hardcoded 2400px sample
+  // silently becomes a sample past the release point at some viewport
+  // widths, which reads as "sticky broke" when nothing did.
+  const pinRange = trackBox.height - baseline.height;
+  expect(pinRange, 'stage is as tall as its track, so it can never pin (vacuous)').toBeGreaterThan(400);
+
+  for (const fraction of [0.25, 0.5, 0.75]) {
+    const delta = Math.round(pinRange * fraction);
     // eslint-disable-next-line no-await-in-loop
     await page.evaluate((y) => window.scrollTo(0, y), trackBox.y + 50 + delta);
     // eslint-disable-next-line no-await-in-loop
