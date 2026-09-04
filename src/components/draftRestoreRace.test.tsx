@@ -57,6 +57,7 @@ vi.mock('../editor/workspace/draftStore.js', () => ({
   // No pending home-page handoff in these cases; the tools resolve one before
   // touching the draft, so it has to be present in the mock.
   takeHandoff: vi.fn(() => Promise.resolve(null)),
+  subscribeToDraftChanges: vi.fn(() => () => {}),
   // These races care about which file wins, not the checking placeholder
   // (covered separately in draftCheckingPlaceholder.test.tsx) - false keeps
   // every scenario here starting straight in the empty state, as before.

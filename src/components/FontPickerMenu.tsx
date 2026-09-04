@@ -4,6 +4,7 @@ import styles from './EditorControls.module.css';
 import { FONT_STYLE_TAGS, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
 import { getFontSupport } from '../editor/text/textFontSupport.js';
 import { quoteText } from './SignTool/textMessages.ts';
+import { fontPackDescriptor, getFontPackReadiness, provisionFontPack } from '../lib/fontOfflinePacks.js';
 
 export const FONT_PREVIEW_DELAY_MS = 120;
 
@@ -27,6 +28,8 @@ const FONT_OPTIONS = [...new Set([...TEXT_FONTS, ...HANDWRITING_FONTS])]
   .sort(collator.compare)
   .map((family) => ({ value: family, label: family, css: cssFamily(family) }));
 
+type PackState = 'checking' | 'ready' | 'not-ready' | 'downloading' | 'unavailable';
+
 export default function FontPickerMenu({
   value,
   text = '',
@@ -48,6 +51,9 @@ export default function FontPickerMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine !== false);
+  const [packStates, setPackStates] = useState<Record<string, PackState>>({});
+  const [packMessage, setPackMessage] = useState('');
   const previewTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const searchRef = useRef<HTMLInputElement | null>(null);
 
@@ -84,7 +90,44 @@ export default function FontPickerMenu({
     if (open) searchRef.current?.focus();
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return undefined;
+    let cancelled = false;
+    const families = FONT_OPTIONS.map((font) => font.value).filter((family) => fontPackDescriptor(family));
+    setPackStates(Object.fromEntries(families.map((family) => [family, 'checking'])));
+    getFontPackReadiness(families).then((ready) => {
+      if (!cancelled) setPackStates(Object.fromEntries(
+        families.map((family) => [family, ready[family] ? 'ready' : 'not-ready']),
+      ));
+    }).catch(() => {
+      if (!cancelled) setPackStates(Object.fromEntries(families.map((family) => [family, 'unavailable'])));
+    });
+    const updateOnline = () => setOnline(navigator.onLine !== false);
+    window.addEventListener('online', updateOnline);
+    window.addEventListener('offline', updateOnline);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('online', updateOnline);
+      window.removeEventListener('offline', updateOnline);
+    };
+  }, [open]);
+
   useEffect(() => () => clearPreviewTimer(), []);
+
+  const installPack = async (family: string) => {
+    setPackStates((currentStates) => ({ ...currentStates, [family]: 'downloading' }));
+    setPackMessage(`Downloading every ${family} style for offline use.`);
+    try {
+      const ready = await provisionFontPack(family);
+      setPackStates((currentStates) => ({ ...currentStates, [family]: ready ? 'ready' : 'not-ready' }));
+      setPackMessage(ready
+        ? `${family} is ready for offline editing and export.`
+        : `${family} could not be made available offline. Check your connection and try again.`);
+    } catch {
+      setPackStates((currentStates) => ({ ...currentStates, [family]: 'not-ready' }));
+      setPackMessage(`${family} could not be made available offline. Check your connection and try again.`);
+    }
+  };
 
   const renderOption = (font: typeof options[number]) => {
     const { family, missing, status } = font.support;
@@ -95,32 +138,54 @@ export default function FontPickerMenu({
       isActive && styles.active,
       incomplete && styles['font-menu-item-unsupported'],
     ].filter(Boolean).join(' ');
+    const packState = fontPackDescriptor(font.value) === null ? null : (packStates[font.value] || 'checking');
+    const canInstall = packState === 'not-ready' && online;
     return (
-      <button
-        key={font.value}
-        type="button"
-        role="option"
-        aria-selected={isActive}
-        data-font-name={font.value}
-        data-font-support={status}
-        className={classNames}
-        style={{ fontFamily: font.css }}
-        onMouseEnter={() => schedulePreview(font.value)}
-        onMouseLeave={clearPreviewTimer}
-        onFocus={() => schedulePreview(font.value)}
-        onBlur={clearPreviewTimer}
-        onClick={() => {
-          clearPreviewTimer();
-          onChange(font.value);
-          handleOpenChange(false);
-        }}
-      >
-        {font.label}
-        {drawnText && incomplete && <span className={styles['font-menu-item-note']}>
-          Some characters in {quoteText(text)} aren’t available in {font.label}.
-          {status === 'fallback' ? ` Using ${family} instead.` : ''}
-        </span>}
-      </button>
+      <div key={font.value} className={styles['font-menu-row']} data-font-offline={packState || 'default'}>
+        <button
+          type="button"
+          role="option"
+          aria-selected={isActive}
+          data-font-name={font.value}
+          data-font-support={status}
+          className={classNames}
+          style={{ fontFamily: font.css }}
+          onMouseEnter={() => schedulePreview(font.value)}
+          onMouseLeave={clearPreviewTimer}
+          onFocus={() => schedulePreview(font.value)}
+          onBlur={clearPreviewTimer}
+          onClick={() => {
+            clearPreviewTimer();
+            onChange(font.value);
+            handleOpenChange(false);
+          }}
+        >
+          {font.label}
+          {drawnText && incomplete && <span className={styles['font-menu-item-note']}>
+            Some characters in {quoteText(text)} aren’t available in {font.label}.
+            {status === 'fallback' ? ` Using ${family} instead.` : ''}
+          </span>}
+        </button>
+        {packState === null ? (
+          <span className={styles['font-offline-state']} title="The default regular face is included with the app">Default offline</span>
+        ) : packState === 'ready' ? (
+          <span className={`${styles['font-offline-state']} ${styles.ready}`}>Ready offline</span>
+        ) : (
+          <button
+            type="button"
+            className={styles['font-offline-action']}
+            disabled={!canInstall}
+            title={canInstall ? `Make ${font.value} available offline` : undefined}
+            onClick={() => installPack(font.value)}
+          >
+            {packState === 'checking' ? 'Checking…'
+              : packState === 'downloading' ? 'Downloading…'
+                : !online ? 'Connect to download'
+                  : packState === 'unavailable' ? 'Offline setup unavailable'
+                    : 'Make offline'}
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -167,6 +232,7 @@ export default function FontPickerMenu({
             {visibleOptions.map(renderOption)}
             {visibleOptions.length === 0 && <p className={styles['font-menu-empty']}>No fonts found.</p>}
           </div>
+          <p className="sr-only" aria-live="polite">{packMessage}</p>
         </div>
       }
     />

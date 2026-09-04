@@ -15,7 +15,7 @@ interface ToolShellContextValue {
   requestClear: () => void;
   fileLabel?: string;
   fileMeta?: string;
-  draftSaveState?: 'idle' | 'pending' | 'saved' | 'error';
+  draftSaveState?: 'idle' | 'pending' | 'saved' | 'error' | 'conflict';
   multiple?: boolean;
 }
 
@@ -121,6 +121,8 @@ export default function ToolShell({ editor = false, status = null, children }: {
       ? { label: 'Saving draft…', className: styles.pending }
       : draftSaveState === 'error'
         ? { label: 'Draft not saved', className: styles.error }
+        : draftSaveState === 'conflict'
+          ? { label: 'Newer draft in another tab — saving here will replace it', className: styles.error }
         : null;
 
   return (
@@ -146,7 +148,7 @@ export default function ToolShell({ editor = false, status = null, children }: {
             <span class={styles.meta}>
               {fileMeta && <span class={styles['meta-text']}>{fileMeta}</span>}
               {draftStatus && (
-                <span class={draftStatus.className} role={draftSaveState === 'error' ? 'alert' : undefined}>
+                <span class={draftStatus.className} role={draftSaveState === 'error' || draftSaveState === 'conflict' ? 'alert' : undefined}>
                   {draftSaveState === 'saved' && (
                     <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                       <path d="M3 8.5l3 3 7-7.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />

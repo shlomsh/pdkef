@@ -1,7 +1,7 @@
 ---
 id: "SIGN-23"
 title: "Make non-default language fonts explicitly offline-ready"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "near-term"

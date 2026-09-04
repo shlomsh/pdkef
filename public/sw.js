@@ -39,6 +39,18 @@ const REQUIRED_URL = '/';
 // them, so they go through a small pool instead.
 const PRECACHE_CONCURRENCY = 6;
 
+// SIGN-23: non-default faces are opt-in family packs, not part of the initial
+// ~37 MB app download. A successful provision stores this synthetic marker
+// beside every face in the current build cache. The marker is the explicit
+// contract that distinguishes "a face happened to be fetched once" from
+// "every advertised style in this family is ready for a disconnected edit
+// and export session".
+const FONT_PACK_MARKER_PATH = '/__pdkef/offline-font-pack/';
+const FONT_PACK_MESSAGE = {
+  status: 'pdkef:font-pack-status',
+  provision: 'pdkef:font-pack-provision',
+};
+
 // Raised when this origin serves no build manifest at all — a 404, not a
 // network blip. The worker is then running somewhere it was never built for
 // (a dev server on a port that once ran `npm run preview`, or a deploy that
@@ -129,6 +141,105 @@ async function removeSelf() {
   if (self.registration) await self.registration.unregister();
 }
 
+function validFontPack(pack) {
+  return !!pack
+    && typeof pack.family === 'string'
+    && pack.family.length > 0
+    && pack.family.length <= 100
+    && Array.isArray(pack.urls)
+    && pack.urls.length > 0
+    && pack.urls.length <= 4
+    && pack.urls.every((url) => typeof url === 'string' && /^\/fonts\/[A-Za-z0-9-]+\.ttf$/.test(url));
+}
+
+function fontPackMarker(family) {
+  return `${FONT_PACK_MARKER_PATH}${encodeURIComponent(family)}`;
+}
+
+async function fontPackReady(cache, pack) {
+  if (!await cache.match(resolve(fontPackMarker(pack.family)))) return false;
+  const faces = await Promise.all(pack.urls.map((url) => cache.match(resolve(url))));
+  return faces.every(Boolean);
+}
+
+async function writeFontPackMarker(cache, pack) {
+  await cache.put(resolve(fontPackMarker(pack.family)), new Response(JSON.stringify(pack), {
+    headers: { 'Content-Type': 'application/json' },
+  }));
+}
+
+async function provisionFontPack(cache, pack) {
+  await forEachLimited(pack.urls, 2, async (url) => {
+    if (await cache.match(resolve(url))) return;
+    const response = await fetchFresh(url);
+    if (!response.ok) throw new Error(`Failed to provision ${pack.family}: ${response.status}`);
+    await cache.put(resolve(url), response);
+  });
+  await writeFontPackMarker(cache, pack);
+}
+
+async function readProvisionedPacks(cache) {
+  const requests = await cache.keys();
+  const markers = requests.filter((request) => new URL(request.url).pathname.startsWith(FONT_PACK_MARKER_PATH));
+  const packs = [];
+  for (const marker of markers) {
+    try {
+      const response = await cache.match(marker);
+      const pack = await response.json();
+      if (validFontPack(pack)) packs.push(pack);
+    } catch {
+      // A corrupt marker is not a provisioned pack and is safe to ignore.
+    }
+  }
+  return packs;
+}
+
+// Revalidate installed packs into the new build cache before old app caches
+// are deleted. If activation happens without a network, retain the old bytes;
+// the next build can still render/export rather than silently losing a pack.
+async function migrateFontPacks(previousCaches, currentCache) {
+  const installed = new Map();
+  for (const cache of previousCaches) {
+    for (const pack of await readProvisionedPacks(cache)) installed.set(pack.family, pack);
+  }
+  await forEachLimited([...installed.values()], 2, async (pack) => {
+    let complete = true;
+    for (const url of pack.urls) {
+      let response = null;
+      try {
+        const fresh = await fetchFresh(url);
+        if (fresh.ok) response = fresh;
+      } catch {
+        // Fall through to the retained face below.
+      }
+      if (!response) {
+        for (const oldCache of previousCaches) {
+          response = await oldCache.match(resolve(url));
+          if (response) break;
+        }
+      }
+      if (!response) {
+        complete = false;
+        break;
+      }
+      await currentCache.put(resolve(url), response.clone());
+    }
+    if (complete) await writeFontPackMarker(currentCache, pack);
+  });
+}
+
+async function handleFontPackMessage(data) {
+  const packs = Array.isArray(data?.packs) ? data.packs : [];
+  if (packs.length === 0 || !packs.every(validFontPack)) throw new Error('Invalid offline font pack.');
+  const cache = await caches.open(CACHE_VERSION);
+  if (data.type === FONT_PACK_MESSAGE.provision) {
+    await forEachLimited(packs, 2, (pack) => provisionFontPack(cache, pack));
+  }
+  return Object.fromEntries(await Promise.all(
+    packs.map(async (pack) => [pack.family, await fontPackReady(cache, pack)]),
+  ));
+}
+
 function navigationCacheKey(request) {
   return new URL(request.url).pathname;
 }
@@ -164,7 +275,8 @@ const SHARE_TARGET_FIELD = 'pdf';
 // handoff schema in draftStore.js ever changes, this must change with it.
 const DRAFTS_DB_NAME = 'pdf-toolkit-drafts';
 const DRAFTS_STORE_NAME = 'drafts';
-const DRAFTS_DB_VERSION = 1;
+const DRAFTS_SOURCE_STORE_NAME = 'sources';
+const DRAFTS_DB_VERSION = 2;
 const handoffKey = (tool) => `handoff:${tool}`;
 
 function openDraftsDb() {
@@ -174,6 +286,13 @@ function openDraftsDb() {
       const db = request.result;
       if (!db.objectStoreNames.contains(DRAFTS_STORE_NAME)) {
         db.createObjectStore(DRAFTS_STORE_NAME, { keyPath: 'tool' });
+      }
+      // Keep the schema upgrade complete even when the service worker is the
+      // first opener (for example, a Web Share Target handoff before the app
+      // has loaded). The editor owns this store; the worker merely creates it
+      // so a later editor save can content-address the source PDF safely.
+      if (!db.objectStoreNames.contains(DRAFTS_SOURCE_STORE_NAME)) {
+        db.createObjectStore(DRAFTS_SOURCE_STORE_NAME, { keyPath: 'id' });
       }
     };
     request.onsuccess = () => resolvePromise(request.result);
@@ -256,13 +375,25 @@ self.addEventListener('activate', (event) => {
   // immediately and deleted the very cache they were still resolving against.
   // The visible result was a page that looked fine while the PDF silently never
   // rendered. Waiting costs one visit of staleness and removes that failure.
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    const previousKeys = keys.filter((key) => isOwnCache(key) && key !== CACHE_VERSION);
+    const previousCaches = await Promise.all(previousKeys.map((key) => caches.open(key)));
+    const currentCache = await caches.open(CACHE_VERSION);
+    await migrateFontPacks(previousCaches, currentCache);
+    await Promise.all(previousKeys.map((key) => caches.delete(key)));
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener('message', (event) => {
+  if (![FONT_PACK_MESSAGE.status, FONT_PACK_MESSAGE.provision].includes(event.data?.type)) return;
+  const reply = event.ports?.[0];
+  if (!reply) return;
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(
-        keys.filter((key) => isOwnCache(key) && key !== CACHE_VERSION).map((key) => caches.delete(key)),
-      ))
-      .then(() => self.clients.claim()),
+    handleFontPackMessage(event.data)
+      .then((ready) => reply.postMessage({ ok: true, ready }))
+      .catch((error) => reply.postMessage({ ok: false, error: error.message })),
   );
 });
 

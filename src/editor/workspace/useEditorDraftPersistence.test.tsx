@@ -7,6 +7,7 @@ vi.mock('./draftStore.js', () => ({
   loadDraft: vi.fn(),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   hasDraftHint: vi.fn(() => false),
+  subscribeToDraftChanges: vi.fn(() => () => {}),
   takeHandoff: vi.fn(() => Promise.resolve(null)),
 }));
 
