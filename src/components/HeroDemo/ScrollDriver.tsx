@@ -29,27 +29,36 @@ type TrackConfig = {
 
 const TRACKS: TrackConfig[] = [
   {
-    // 12 beats (was 10): the printed form now carries a second sentence
-    // ("It will take place from [time] to [time]"), so "fill-time-start"
-    // and "fill-time-end" join "fill-date"/"fill-dest" as their own beats -
-    // one beat per blank, matching every other field. This followed a
-    // product-owner correction: the sentence used to reflow as each blank
-    // filled (the wrap's own *width* was the animated property), and a PDF
-    // page cannot reflow - pdkef draws form fields as fixed-position
-    // overlays on a raster that never moves, so a demo whose printed text
-    // visibly shifted was depicting something the product cannot do. Fixed
-    // in HeroDemo.astro/HeroDemo.module.css: every blank is now a
-    // constant-width reserved space from frame 0, and only an absolutely
-    // positioned value overlay inside it reveals via clip-path - nothing
-    // these beats drive ever changes a laid-out box's size.
+    // 12 beats. The four "fill-*" beats were renamed 2026-09-04 per a second
+    // product-owner correction: the printed sentence used to carry blanks
+    // for the trip's date, destination and times - fields the *school*
+    // fills in before the slip ever goes out, not the parent. That read as
+    // AI slop to anyone who has filled one in. Real permission slips (see
+    // HeroDemo.astro's field-source comment) put the trip's own details
+    // - destination, date, times, class/teacher - in printed text the
+    // school already typed, and leave blanks for the parent's own details:
+    // the student's name, the parent/guardian's name, an emergency contact
+    // number, and any allergies or medical notes. So the trip sentence
+    // became fully static (no beats at all - it never changes) and these
+    // four beats now drive the parent's own blanks instead, one beat per
+    // blank exactly as before, over the same four windows so the swap cost
+    // no scroll distance. (Earlier, 2026-09-04: "fill-time-start" and
+    // "fill-time-end" had joined "fill-date"/"fill-dest" as their own beats
+    // after a first correction - the trip sentence used to reflow as each
+    // blank filled, and a PDF page cannot reflow - pdkef draws form fields
+    // as fixed-position overlays on a raster that never moves. That fix
+    // (constant-width reserved spaces, an absolutely positioned value
+    // overlay revealed via clip-path, nothing these beats drive ever
+    // changes a laid-out box's size) still holds; only which fields sit in
+    // those four slots changed.)
     key: 'sign',
     beats: {
       msg: [0.0, 0.06],
       open: [0.06, 0.13],
-      'fill-date': [0.13, 0.23],
-      'fill-dest': [0.23, 0.33],
-      'fill-time-start': [0.33, 0.42],
-      'fill-time-end': [0.42, 0.5],
+      'fill-name': [0.13, 0.23],
+      'fill-guardian': [0.23, 0.33],
+      'fill-phone': [0.33, 0.42],
+      'fill-allergies': [0.42, 0.5],
       'check-1': [0.5, 0.58],
       'check-2': [0.58, 0.65],
       sign: [0.65, 0.78],
