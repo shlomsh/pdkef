@@ -48,10 +48,12 @@
  * blurred, blacked out, whited out and deleted before the reply goes out.
  * Both stories are mobile phone mockups.
  *
- * Scroll mechanic (ported from dirE.html, itself DEMO-05's pattern): each
- * story is a `position: sticky` panel pinned inside a much taller track
- * (672svh / 460svh, never 100vh - see CLAUDE.md's sticky-viewport-unit
- * note). ScrollDriver.tsx reads scroll position, computes 0-1 progress
+ * Scroll mechanic (ported from dirE.html, itself DEMO-05's pattern): the
+ * title card and each story are `position: sticky` panels pinned inside a
+ * much taller track (500svh / 350svh stacked, 672svh / 460svh in the
+ * two-column desktop layout, and 190svh for the card - never 100vh, see
+ * CLAUDE.md's sticky-viewport-unit note). ScrollDriver.tsx reads scroll
+ * position, computes 0-1 progress
  * through each track from getBoundingClientRect() every frame (never
  * accumulated, so scrolling back up genuinely un-fills the form), slices
  * that into named beat windows, and writes each as a `--p-<beat>` custom
@@ -113,23 +115,35 @@ const rootSelector = `.${styles.root}`;
   }
   <ScrollDriver client:idle rootSelector={rootSelector} />
 
-  <div class={styles.hero} data-herodemo-intro>
-    <h2 class={`type-section ${styles['hero-title']}`}>
-      The form arrives in your chat. Finish it there and send it back.
-    </h2>
-    <p class={styles['privacy-line']}>Your document stays on your phone.</p>
-    <div class={styles['scroll-cue']} aria-hidden="true">
-      <svg class={styles['scroll-cue-icon']} viewBox="0 0 24 24" width="18" height="18" focusable="false">
-        <path
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M6 9l6 6 6-6"
-        />
-      </svg>
-      <span>scroll</span>
+  {/* The title card is a sticky panel like the two stories, not a screen
+      that scrolls past: it fades in as it pins, holds while the visitor
+      reads it, and fades back out in place, so nothing is ever seen sliding
+      up the screen. Same mechanism as everything else here - ScrollDriver
+      writes --p-in / --p-out onto [data-hero-stage] and the CSS reads them
+      (see HeroDemo.module.css's .intro-* rules). Above the two-column
+      breakpoint the whole track is display:none, so it costs no scroll
+      distance at all there. */}
+  <div class={styles['track-intro']} data-herodemo-intro data-hero-track="intro">
+    <div class={styles['intro-stage']} data-hero-stage>
+      <div class={styles.hero}>
+        <h2 class={`type-section ${styles['hero-title']}`}>
+          The form arrives in your chat. Finish it there and send it back.
+        </h2>
+        <p class={styles['privacy-line']}>Your document stays on your phone.</p>
+        <div class={styles['scroll-cue']} aria-hidden="true">
+          <svg class={styles['scroll-cue-icon']} viewBox="0 0 24 24" width="18" height="18" focusable="false">
+            <path
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 9l6 6 6-6"
+            />
+          </svg>
+          <span>scroll</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -178,7 +192,7 @@ const rootSelector = `.${styles.root}`;
           </div>
           <div class={styles.layers}>
             <div class={`${styles.layer} ${styles['chat-layer']} ${styles['layer-final']}`}>
-              <div class={styles['panel-head']}>Room 12 Families</div>
+              <div class={styles['panel-head']}>Maya's class parents</div>
               <div class={styles.chat}>
                 <div class={`${styles.bubble} ${styles['bubble-in']} ${styles['anim-msg']}`}>
                   <p class={styles['bubble-text']}>Hi all, the field trip permission slip is attached 🙏</p>
@@ -226,27 +240,27 @@ const rootSelector = `.${styles.root}`;
                 <div class={styles['parent-fields']}>
                   <div class={styles['field-row']}>
                     <span class={styles['field-label']}>Student's Name</span>
-                    <span class={styles['blank-name']}
+                    <span class={styles['blank-wrap']}
                       ><span class={`${styles['blank-value']} ${styles['blank-value-name']}`}>Maya Chen</span></span
                     >
                   </div>
                   <div class={styles['field-row']}>
                     <span class={styles['field-label']}>Parent/Guardian</span>
-                    <span class={styles['blank-guardian']}
+                    <span class={styles['blank-wrap']}
                       ><span class={`${styles['blank-value']} ${styles['blank-value-guardian']}`}>Elena Chen</span
                       ></span
                     >
                   </div>
                   <div class={styles['field-row']}>
                     <span class={styles['field-label']}>Emergency Contact</span>
-                    <span class={styles['blank-phone']}
+                    <span class={styles['blank-wrap']}
                       ><span class={`${styles['blank-value']} ${styles['blank-value-phone']}`}>(555) 214-0193</span
                       ></span
                     >
                   </div>
-                  <div class={`${styles['field-row']} ${styles['field-row-last']}`}>
+                  <div class={styles['field-row']}>
                     <span class={styles['field-label']}>Allergies / Medical</span>
-                    <span class={styles['blank-allergies']}
+                    <span class={styles['blank-wrap']}
                       ><span class={`${styles['blank-value']} ${styles['blank-value-allergies']}`}>Peanut allergy</span
                       ></span
                     >
