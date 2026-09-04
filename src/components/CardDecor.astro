@@ -9,8 +9,17 @@ interface Props {
   icon?: any;
   iconPos?: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl';
   iconSize?: number;
+  /* Opt in to the scroll-linked drift that gives the card depth: the sketch
+     and the watermark icon travel at two different rates against the card's
+     own content as the card crosses the viewport. Opt-in rather than always
+     on because the *rules* live on the page that asks for them (currently
+     only index.astro) instead of shipping into every page CardDecor renders
+     on, where they would be dead bytes against the CSS duplication ratchet.
+     The two class names below are the whole contract: a page that sets
+     parallax must define .decor-parallax / .decor-parallax-icon. */
+  parallax?: boolean;
 }
-const { sketch = 'arcs', icon: Icon, iconPos = 'tr', iconSize = 260 } = Astro.props;
+const { sketch = 'arcs', icon: Icon, iconPos = 'tr', iconSize = 260, parallax = false } = Astro.props;
 
 // Geometry for each sketch, drawn in a 0..480 x 0..360 viewBox and slice-scaled
 // to cover the whole card. Shapes intentionally bleed past the edges.
@@ -54,7 +63,18 @@ const iconPositionClasses = {
 };
 ---
 
-<div class:list={['pointer-events-none absolute inset-0 -z-10 text-[var(--color-primary)]', sketchClasses[sketch]]} aria-hidden="true">
+{/* When the sketch drifts it has to be taller than the card it covers, or
+    the travel exposes a strip at whichever edge it moved away from. The
+    slice-scaled SVG simply covers a slightly taller box instead - the
+    inflation is larger than the drift amplitude the page declares. */}
+<div
+  class:list={[
+    'pointer-events-none absolute inset-x-0 -z-10 text-[var(--color-primary)]',
+    parallax ? 'inset-y-[-110px] decor-parallax' : 'inset-y-0',
+    sketchClasses[sketch],
+  ]}
+  aria-hidden="true"
+>
   <svg class="block h-full w-full" viewBox="0 0 480 360" preserveAspectRatio="xMidYMid slice">
     {sketch === 'arcs' &&
       <g fill="none" stroke="currentColor" stroke-width="1.25" stroke-opacity="0.11">
@@ -104,7 +124,11 @@ const iconPositionClasses = {
 
 {Icon && (
   <Icon
-    class:list={['pointer-events-none absolute -z-10 text-[var(--color-primary)] opacity-[0.07] max-[640px]:hidden', iconPositionClasses[iconPos]]}
+    class:list={[
+      'pointer-events-none absolute -z-10 text-[var(--color-primary)] opacity-[0.07] max-[640px]:hidden',
+      iconPositionClasses[iconPos],
+      parallax && 'decor-parallax-icon',
+    ]}
     size={iconSize}
     strokeWidth={1}
     aria-hidden="true"
