@@ -1,7 +1,7 @@
 ---
 id: "DEMO-05"
 title: "Full-height story panels that read as slides without hijacking the scroll"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "landing-story-demo"
 phase: "later"
@@ -102,3 +102,51 @@ Two things that are now known and should not be rediscovered:
 
 Three attempts at this failed for environmental reasons rather than design ones: two to session limits,
 one to a network error, and one agent spent its whole run delegating instead of implementing.
+
+## Resolved: variant T, and option C turned out to be unnecessary
+
+Commit 2cb8d05. The owner chose option C and also asked to see the usetape.app two-column layout first,
+"if it looks better". It does, by a wide margin, and it makes option C moot rather than winning on
+taste.
+
+**The reason is structural.** Every version of this argument was a fight over one vertical budget.
+Stacked, the hero, the dropzone, the dock and the demo all draw from the same 800px, which is why the
+slot came out at 337px against a 410px legibility floor, and why option C had to buy the missing 73px
+by cutting the hero. Side by side, the demo draws from the column's full height instead, so there is
+nothing to buy.
+
+Measured at 1512x800, against a stacked slot that never exceeded 337px:
+
+| | Stacked (before) | Variant T |
+| --- | --- | --- |
+| Demo panel height | 337 (needs 410) | **562** |
+| Hero height | 194, would drop to ~154 under option C | **194, untouched** |
+| Dock bottom edge | 777 against an 800 fold | **777, unchanged** |
+| Demo above the fold | no | **yes** |
+
+Both sticky layers hold: the left column pins at 56 and the demo's own panels at 0. Below 1024px it is
+a plain block and everything falls back to the stacked order phones already had, verified rather than
+assumed: grid computes to `block`, the left column to `static`, the demo's title card returns, no
+horizontal overflow.
+
+**Two things are load-bearing and both fail silently.** Grid items stretch to the row height by
+default, and this row is the demo's ten screens, so the left column needs `align-items: start` and its
+own height or sticky has nothing to move within. And nothing in this subtree may grow `overflow`,
+`transform`, `filter` or `contain`; each creates a containing block that kills `position: sticky` on
+every descendant with no error anywhere, and there are now three sticky layers here: the app bar, the
+left column, and the demo's panels.
+
+**Two measurements decided details that would otherwise have been taste.** At a 1.05fr left column the
+dock came out 794px wide, wrapped to two rows and ended at 910 on an 800px viewport, which is precisely
+the failure this layout exists to prevent, so the column carries a 940px floor (nine 80px tiles and
+eight 20px gaps is 880px before padding). And the demo's own full-screen title card is hidden in this
+layout, because beside the hero it says the same thing twice in one eyeline and costs a whole screen
+before the phone appears.
+
+**The conditional swap from option C was not built and is not needed here.** It existed to decide which
+single thing occupied one slot. With two columns there is no contest: a returning visitor meets their
+resume card in the dropzone and the demo at the same time. The groundwork is still recorded above if a
+future layout ever needs it.
+
+Reverting is deleting the wrapper in `index.astro` and moving `<HeroDemo />` back below
+`<OfflineProof />`, which is the cheap reversal this ticket has always required.
