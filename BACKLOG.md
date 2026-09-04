@@ -11,7 +11,6 @@ The canonical backlog is the task-file collection in [backlog/tasks/](backlog/ta
 | ID | Priority | Task |
 | --- | --- | --- |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |
-| SIGN-26 | P2 | [SIGN-26](backlog/tasks/SIGN-26.md) · Establish dependency vulnerability and update governance |
 
 ### In progress
 
@@ -49,6 +48,7 @@ _None._
 | SIGN-23 | P1 | [SIGN-23](backlog/tasks/SIGN-23.md) · Make non-default language fonts explicitly offline-ready |
 | SIGN-24 | P1 | [SIGN-24](backlog/tasks/SIGN-24.md) · Separate saved-signature assets from scalar preferences |
 | SIGN-25 | P1 | [SIGN-25](backlog/tasks/SIGN-25.md) · Reconcile and enforce shipped dependency licenses |
+| SIGN-26 | P2 | [SIGN-26](backlog/tasks/SIGN-26.md) · Establish dependency vulnerability and update governance |
 
 ### Retired
 
