@@ -1,12 +1,12 @@
 ---
 id: "SIGN-24"
 title: "Separate saved-signature assets from scalar preferences"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "near-term"
 depends_on: []
-legacy_state: "Open — raised 2026-09-03 during SIGN-11 integration review"
+legacy_state: "Done — 2026-09-04; signature assets moved to a separate versioned library"
 ---
 
 # SIGN-24 · Separate saved-signature assets from scalar preferences
@@ -31,3 +31,13 @@ unrelated scalar change. Tests must prove that changing a scalar does not serial
 bytes, oversized uploads follow the documented policy, quota failure is visible, migration retains
 the library, and cross-tab deletion converges. Do not close SIGN-11 until this storage shape is
 settled.
+
+**Done (2026-09-04):** Scalar settings remain in the schema-v1 preference envelope while saved
+signatures now use their own scoped, revisioned schema-v1 library record. Legacy keys and old
+preference envelopes migrate the library before a scalar rewrite, so old libraries survive without
+being copied into later font/color writes. The separate subscription channel retains deterministic
+last-writer-wins convergence for additions and deletions. New images are re-encoded as PNG and
+proportionally downsampled to 1 megapixel and 750 KB; the upload UI states that policy. A failed
+library write keeps the signature usable in the current editor and announces that it will not survive
+the next visit. Regression coverage pins scalar isolation, legacy/v1 migration, cross-tab deletion,
+storage failure, and both image limits.
