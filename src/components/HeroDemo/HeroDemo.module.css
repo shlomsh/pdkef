@@ -132,9 +132,11 @@
      from 9 beats to 10 (added "share", the OS share-sheet beat), then from
      10 to 12 (the reflow fix below split one growing sentence into two
      static ones, adding "fill-time-start"/"fill-time-end" as their own
-     beats alongside "fill-date"/"fill-dest"). Story two grew from 6 beats
-     to 8 (added "blackout", "whiteout" and "delete" alongside the renamed
-     "blur" beat, net +2) and has not changed again. Each raise scaled the
+     beats alongside "fill-date"/"fill-dest" - since renamed to
+     "fill-name"/"fill-guardian"/"fill-phone"/"fill-allergies" per a second
+     correction the same day, same four windows, no height change). Story
+     two grew from 6 beats to 8 (added "blackout", "whiteout" and "delete"
+     alongside the renamed "blur" beat, net +2) and has not changed again. Each raise scaled the
      height roughly in proportion to the new beat count so the average
      distance-per-beat - and therefore how long a visitor has to read each
      effect - stays close to what it was before, rather than new beats
@@ -180,10 +182,10 @@
   --p-msg: 1;
   --p-tap: 0;
   --p-open: 1;
-  --p-fill-date: 1;
-  --p-fill-dest: 1;
-  --p-fill-time-start: 1;
-  --p-fill-time-end: 1;
+  --p-fill-name: 1;
+  --p-fill-guardian: 1;
+  --p-fill-phone: 1;
+  --p-fill-allergies: 1;
   --p-check-1: 1;
   --p-check-2: 1;
   --p-sign: 1;
@@ -672,40 +674,70 @@
   color: var(--color-text);
 }
 
+/* Printed by the school, never touched by a --p-* property - fully static
+   in every mode, matching what a real permission slip's own printed
+   sentence carries (destination, date, time, class/teacher; see
+   HeroDemo.astro's field-source comment). No blanks live inside it any
+   more; the parent's own fields are the block below. */
 .trip-sentence {
   margin: 0;
-  padding-block: 4px 6px;
+  padding-block: 8px 10px;
   padding-inline: 14px;
   font-size: 0.82rem;
   line-height: 1.55;
   color: var(--color-text);
 }
 
-/* Only the last printed sentence carries the divider into the checks below -
-   both sentences share one visual paragraph, not two separately boxed ones. */
-.trip-sentence-last {
-  composes: trip-sentence;
+/*
+ * The parent-filled section: one row per field, label at the start and a
+ * reserved-width blank at the end (the same doc-line-style "label ...
+ * value" shape as the bill in story two, so both stories read as one
+ * product's visual language).
+ *
+ * Each blank is a reserved space with a constant width, set once from the
+ * final answer's own character count (ch, not a guessed px figure) and
+ * never touched by a --p-* property, plus a static pre-printed rule
+ * beneath it. The answer itself is a separate, absolutely positioned
+ * overlay confined to that fixed box, revealed via clip-path as its beat
+ * progresses.
+ *
+ * The box must be identical at every progress value - only .blank-value's
+ * clip-path may read a --p-* property here. An earlier version animated
+ * the wrap's own width instead, so the printed sentence around it visibly
+ * reflowed as each field filled; a PDF page cannot reflow, so that was
+ * depicting behaviour the product cannot do (see HeroDemo.astro's header
+ * comment). Fixed by making the wrap's width constant and moving all
+ * animation onto the value overlay's clip-path, and that fix carries over
+ * unchanged now that these blanks hold the parent's fields instead of the
+ * school's.
+ */
+.parent-fields {
+  display: flex;
+  flex-direction: column;
+  padding-block: 2px;
+}
+
+.field-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-block: 6px;
+  padding-inline: 14px;
+  font-size: 0.78rem;
+}
+
+/* Only the last field carries the divider into the checks below - the four
+   rows share one visual block, not four separately boxed ones. */
+.field-row-last {
   padding-block-end: 10px;
   border-block-end: 1px solid var(--color-border);
 }
 
-/*
- * Each blank on the printed form: a reserved space with a constant width,
- * set once from the final answer's own character count (ch, not a guessed
- * px figure) and never touched by a --p-* property, plus a static
- * pre-printed rule beneath it. The answer itself is a separate, absolutely
- * positioned overlay confined to that fixed box, revealed via clip-path as
- * its beat progresses.
- *
- * This replaced an earlier version where the *wrap's own width* was the
- * animated property, so the printed sentence visibly reflowed around a
- * growing box as each field filled. That was wrong for a reason beyond
- * looks: pdkef places filled-in fields as fixed-position overlays on a PDF
- * page it never redraws, so a printed sentence that shifts as a field fills
- * is showing behavior the product cannot do. A blank's box must be
- * identical at every progress value - only .blank-value's clip-path may
- * read a --p-* property here.
- */
+.field-label {
+  color: var(--color-muted);
+}
+
 .blank-wrap {
   position: relative;
   display: inline-block;
@@ -714,19 +746,24 @@
   border-block-end: 2px solid var(--color-border-strong);
 }
 
-.blank-date {
+.blank-name {
   composes: blank-wrap;
-  width: 7ch;
+  width: 9ch;
 }
 
-.blank-dest {
+.blank-guardian {
   composes: blank-wrap;
-  width: 20ch;
+  width: 10ch;
 }
 
-.blank-time {
+.blank-phone {
   composes: blank-wrap;
-  width: 8ch;
+  width: 14ch;
+}
+
+.blank-allergies {
+  composes: blank-wrap;
+  width: 14ch;
 }
 
 .blank-value {
@@ -738,20 +775,20 @@
   color: var(--color-text);
 }
 
-.blank-value-date {
-  clip-path: inset(0 calc(100% - (var(--p-fill-date, 1) * 100%)) 0 0);
+.blank-value-name {
+  clip-path: inset(0 calc(100% - (var(--p-fill-name, 1) * 100%)) 0 0);
 }
 
-.blank-value-dest {
-  clip-path: inset(0 calc(100% - (var(--p-fill-dest, 1) * 100%)) 0 0);
+.blank-value-guardian {
+  clip-path: inset(0 calc(100% - (var(--p-fill-guardian, 1) * 100%)) 0 0);
 }
 
-.blank-value-time-start {
-  clip-path: inset(0 calc(100% - (var(--p-fill-time-start, 1) * 100%)) 0 0);
+.blank-value-phone {
+  clip-path: inset(0 calc(100% - (var(--p-fill-phone, 1) * 100%)) 0 0);
 }
 
-.blank-value-time-end {
-  clip-path: inset(0 calc(100% - (var(--p-fill-time-end, 1) * 100%)) 0 0);
+.blank-value-allergies {
+  clip-path: inset(0 calc(100% - (var(--p-fill-allergies, 1) * 100%)) 0 0);
 }
 
 /* The static line asking the parent to sign below - printed, never filled
@@ -1080,7 +1117,7 @@
    beat to check-1 starting), matching how a visitor would actually read
    it: one tool active across every blank, not four flickers. */
 .tool-chip-text {
-  opacity: calc(var(--p-fill-date, 1) - var(--p-check-1, 1));
+  opacity: calc(var(--p-fill-name, 1) - var(--p-check-1, 1));
 }
 
 .tool-chip-symbols {

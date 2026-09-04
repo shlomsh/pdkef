@@ -22,6 +22,25 @@
  * support showed without being explained - the product owner's call, made
  * knowingly, not undone here.
  *
+ * Second product-owner correction, same day: the permission slip's printed
+ * sentence used to carry blanks for the trip's destination and times - the
+ * school's own fields, filled in before the slip goes out - which read as
+ * AI slop to anyone who has actually filled one of these out. Checked
+ * against real field trip permission slip templates (Formstack, Jotform,
+ * Vertex42, WeAreTeachers, Ninja Forms - search results 2026-09-04, no
+ * single source copied) rather than guessed a second time: they agree on a
+ * printed section covering destination, date, time and the class/teacher
+ * running the trip, and a parent-filled section covering the student's
+ * name, the parent/guardian's name, an emergency contact number, and any
+ * allergies or medical conditions, ahead of the consent checkboxes and
+ * signature. So the trip sentence ("Room 12 is going to the Science
+ * Museum...") is now fully static printed text - it never changes during
+ * the story - and the four blanks the parent fills are their own details
+ * instead. The allergies/medical field is the most persuasive one on the
+ * page for this product: it is exactly the line a parent would not want to
+ * type into a site they have never heard of. See ScrollDriver.tsx's TRACKS
+ * comment for the renamed beats.
+ *
  * Track one (sign) gets the longer scroll length and goes first: a field
  * trip permission slip arrives as a chat attachment, gets filled in, ticked,
  * signed, shared, and sent back in the same thread. Track two (blur) is
@@ -119,11 +138,12 @@ const rootSelector = `.${styles.root}`;
   <div class={styles.track} data-hero-track="sign">
     <p class="sr-only">
       A field trip permission slip arrives as a file in a chat message. Tapping it opens the form
-      right there in the chat. The form's printed heading, both sentences and the checkbox labels are
-      there from the start, with blank spaces left for the trip date, the destination, and the start
-      and end times. As the page scrolls, those four blanks fill in, both permission checkboxes get
-      checked, and a signature draws itself on the line. A share sheet then slides up carrying the
-      signed file, and back in the chat, the signed form goes out and reads as sent.
+      right there in the chat. The form's printed heading, its sentence naming the trip's destination,
+      date and times, and the checkbox labels are all there from the start, with blank spaces left for
+      the student's name, the parent's name, an emergency contact number, and any allergies or medical
+      notes. As the page scrolls, those four blanks fill in, both permission checkboxes get checked,
+      and a signature draws itself on the line. A share sheet then slides up carrying the signed file,
+      and back in the chat, the signed form goes out and reads as sent.
     </p>
     <div class={styles['stage-first']} data-hero-stage>
       <div class={styles['progress-rail']} aria-hidden="true">
@@ -193,21 +213,37 @@ const rootSelector = `.${styles.root}`;
               <div class={styles['doc-body']}>
                 <div class={styles['doc-heading']}>Field Trip Permission Slip</div>
                 <p class={styles['trip-sentence']}>
-                  On <span class={styles['blank-date']}
-                    ><span class={`${styles['blank-value']} ${styles['blank-value-date']}`}>May 14</span></span
-                  > our class is going on a field trip to <span class={styles['blank-dest']}
-                    ><span class={`${styles['blank-value']} ${styles['blank-value-dest']}`}
-                      >the Science Museum</span
-                    ></span
-                  >.
+                  Room 12 is going to the Science Museum on Friday, May 14, from 8:00 AM to 3:30 PM.
                 </p>
-                <p class={styles['trip-sentence-last']}>
-                  It will take place from <span class={styles['blank-time']}
-                    ><span class={`${styles['blank-value']} ${styles['blank-value-time-start']}`}>8:00 AM</span></span
-                  > to <span class={styles['blank-time']}
-                    ><span class={`${styles['blank-value']} ${styles['blank-value-time-end']}`}>3:30 PM</span></span
-                  >.
-                </p>
+                <div class={styles['parent-fields']}>
+                  <div class={styles['field-row']}>
+                    <span class={styles['field-label']}>Student's Name</span>
+                    <span class={styles['blank-name']}
+                      ><span class={`${styles['blank-value']} ${styles['blank-value-name']}`}>Maya Chen</span></span
+                    >
+                  </div>
+                  <div class={styles['field-row']}>
+                    <span class={styles['field-label']}>Parent/Guardian</span>
+                    <span class={styles['blank-guardian']}
+                      ><span class={`${styles['blank-value']} ${styles['blank-value-guardian']}`}>Elena Chen</span
+                      ></span
+                    >
+                  </div>
+                  <div class={styles['field-row']}>
+                    <span class={styles['field-label']}>Emergency Contact</span>
+                    <span class={styles['blank-phone']}
+                      ><span class={`${styles['blank-value']} ${styles['blank-value-phone']}`}>(555) 214-0193</span
+                      ></span
+                    >
+                  </div>
+                  <div class={`${styles['field-row']} ${styles['field-row-last']}`}>
+                    <span class={styles['field-label']}>Allergies / Medical</span>
+                    <span class={styles['blank-allergies']}
+                      ><span class={`${styles['blank-value']} ${styles['blank-value-allergies']}`}>Peanut allergy</span
+                      ></span
+                    >
+                  </div>
+                </div>
                 <div class={styles.checks}>
                   <div class={styles.check}>
                     <span class={styles['check-box-1']}
