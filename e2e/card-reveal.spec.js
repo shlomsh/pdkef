@@ -60,36 +60,56 @@ test('a single-step scroll past the cards never strands one invisible', async ({
 test('the fade finishes while the card still shows only its own top edge', async ({ page }) => {
   await page.goto('/sign/');
 
-  const geometry = await page.$$eval('.card-reveal', (els) =>
-    els.map((el) => {
-      const r = el.getBoundingClientRect();
-      return { docTop: Math.round(r.top + window.scrollY), height: Math.round(r.height) };
-    }),
-  );
+  // How much of the card is on screen, measured from its top edge down.
+  const DONE = 200; // the budget; the design figure is ~150
+  const EARLY = 20;
 
+  const viewport = page.viewportSize().height;
+  const geometry = await page.$$eval('.card-reveal', (els) => {
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    return els.map((el) => {
+      const r = el.getBoundingClientRect();
+      return {
+        docTop: Math.round(r.top + window.scrollY),
+        height: Math.round(r.height),
+        maxScroll: Math.round(maxScroll),
+      };
+    });
+  });
+
+  let measured = 0;
   for (const [index, card] of geometry.entries()) {
-    const viewport = page.viewportSize().height;
-    // Scroll so the card's top edge sits this far above the viewport's
-    // bottom edge - i.e. this much of the card is on screen.
+    const scrollFor = (revealed) => card.docTop - viewport + revealed;
+
+    // A card whose reveal window the page cannot scroll to proves nothing:
+    // scrollTo would clamp, and we would silently be reading the opacity at
+    // some other position than the one being asserted about. Skipping is
+    // what makes the count below meaningful.
+    if (scrollFor(EARLY) < 0 || scrollFor(DONE) > card.maxScroll) continue;
+
     const opacityAfter = async (revealed) => {
-      await page.evaluate((y) => window.scrollTo(0, y), card.docTop - viewport + revealed);
+      await page.evaluate((y) => window.scrollTo(0, y), scrollFor(revealed));
       await settle(page);
       return (await opacities(page))[index];
     };
 
-    // 200px is the budget, against a ~150px design figure. The mis-parsed
-    // range sat at roughly 0.13 here.
+    // The mis-parsed `entry 0% 15vh` range sat at roughly 0.13 here.
     expect(
-      await opacityAfter(200),
-      `card ${index} (${card.height}px tall) is still fading with 200px of it on screen - the range is far longer than intended, so body copy renders at partial opacity`,
+      await opacityAfter(DONE),
+      `card ${index} (${card.height}px tall) is still fading with ${DONE}px of it on screen - the range is far longer than intended, so body copy renders at partial opacity`,
     ).toBe(1);
 
     // The other half of the same invariant: the fade is a fade, not an
     // instant swap, so it must still be running early on. Without this, a
     // range of zero would pass the assertion above.
-    const early = await opacityAfter(20);
-    expect(early, `card ${index} is fully opaque 20px in - the reveal is not animating at all`).toBeLessThan(1);
+    expect(
+      await opacityAfter(EARLY),
+      `card ${index} is fully opaque ${EARLY}px in - the reveal is not animating at all`,
+    ).toBeLessThan(1);
+    measured++;
   }
+
+  expect(measured, 'every card was skipped as unreachable, so this test asserted nothing').toBeGreaterThan(0);
 });
 
 test('cards in the home page story stack are never translucent', async ({ page }) => {
