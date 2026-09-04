@@ -1,0 +1,14 @@
+/* Entry stylesheet for /licenses/, imported by src/pages/licenses.astro.
+   See toolPage.css for the four-tier CSS ownership note and why each family
+   compiles its own utility set.
+
+   This page is the reason ARCH-13 existed: as a low-traffic legal reference
+   rendering 46 distinct classes, it was carrying the whole site's utility
+   layer and was the worst page in the dead-byte ratchet by a wide margin. */
+@import "./global.css";
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "./sharedSources.css";
+
+@source "../data/runtimeLicenseInventory.js";
+@source "../pages/licenses.astro";
+@source "../../scripts/font-manifest.mjs";

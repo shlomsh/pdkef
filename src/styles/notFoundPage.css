@@ -1,0 +1,9 @@
+/* Entry stylesheet for /404.html, imported by src/pages/404.astro. See
+   toolPage.css for the four-tier CSS ownership note and why each family
+   compiles its own utility set. */
+@import "./global.css";
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "./sharedSources.css";
+
+@source "../data/tools.js";
+@source "../pages/404.astro";

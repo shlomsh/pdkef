@@ -547,15 +547,47 @@ The decided direction is a **scoped hybrid**, documented in full in Part II §3.
 - **Tailwind** for the static/SEO `.astro` surface only (pages, heroes, cards, footer, dropzones, static buttons) - no runtime state, no cascades. `global.css`'s `@theme` block deliberately skips Tailwind's default theme (CSS budget), so a utility whose scale step isn't declared there (e.g. `font-bold`, `rounded-2xl`) silently compiles to **no CSS at all** - not an error, just a missing rule. Declare the token before using a new utility class. `npm run test:css` runs `scripts/check-dead-utilities.js`, which fails the build if any class in the built HTML has no matching selector.
 
   **That guard only sees an island's initial server-rendered markup**, because it reads the built HTML. Any class that appears only after an interaction - a loaded file, an open dialog, an error - is invisible to it, and two real defects lived in that gap for months (`UndoHistoryModal.jsx` rendering raw strings against a CSS Module nothing imported, so the Undo dialog shipped unstyled; `.hint-message` deleted from `global.css` and never re-homed, so five tools' "not a PDF" notice rendered as bare text). `scripts/check-class-resolution.js` is the source-side complement and runs first in `test:css`: it reads `src/**/*.jsx` and fails on a class string with no rule anywhere, a raw string whose rule is CSS-Modules-hashed, or a `styles['key']` lookup missing from the module it points at (which renders `class="undefined"`). **If you are about to allowlist a class in either script, check whether it has a rule in some `.module.css` first - if it does, the bug is a missing import, not a hook.**
-  **Tailwind source scanning: documentation is not a template.** Tailwind v4's default scan walks the
-  whole project, and `global.css`'s `@source not` rules exclude only `.jsx`, tests and e2e. Everything
-  else it finds is read for utility candidates, including prose. Root-level `.md` files and standalone
-  docs `.js`/`.html` were therefore compiling real utilities into the one stylesheet every page inlines
-  - CSS shipped to real visitors for text that never renders. This was measured, not theorised: the old
-  `scrum-board.data.js` was worth 83 bytes on every page by itself, and the docs beside it more. The
-  `@source not` list now covers `*.md`, `docs/**` and root `*.html`. **If you add documentation in a
-  format Tailwind scans, exclude it there**, and remember the symptom is invisible: no error, no failing
-  class, just a slightly heavier stylesheet on all 12 pages.
+  **The utility layer is compiled per page family, not once for the repo (ARCH-13).** There are five
+  entry stylesheets in `src/styles/` - `homePage.css`, `toolPage.css`, `contentPage.css`,
+  `licensesPage.css`, `notFoundPage.css` - and each one imports `global.css`, then
+  `tailwindcss/utilities.css` with **`source(none)`**, then an explicit `@source` list naming the markup
+  that family can render (the shell's share is factored into `sharedSources.css`). Every page imports
+  exactly one of them, so nothing is inlined twice into a page, and a page no longer carries the other
+  families' utilities: `/licenses/` went from 27,308 dead bytes to 1,100, and site-wide duplication from
+  8.39x to 5.79x. `global.css` is now tokens, element defaults and the `.type-*`/`.space-*` roles only -
+  still the one tier paid for 22 times, so a rule belongs there only if every page needs it. **Adding a
+  component to a family means adding it to that family's entry sheet.** Forgetting is a build failure,
+  not a silent visual bug: `check-dead-utilities.js` checks each page against *its own* stylesheet and
+  names the page and the class. Full ownership note in `src/styles/toolPage.css`.
+
+  This retires the old "documentation is not a template" hazard **structurally**, and the `@source not`
+  list with it. Tailwind v4's default scan used to walk the whole project and read prose for utility
+  candidates - root `.md` files, `docs/`, and the impeccable plugin's rule tables under `.github/` were
+  all compiling real utilities into the one stylesheet every page inlined, invisibly (no error, no
+  failing class, just a heavier stylesheet on every page; the old `scrum-board.data.js` was worth 83
+  bytes per page by itself). With `source(none)` nothing is scanned unless a family asked for it, so a
+  new note, report or plugin data file cannot reintroduce it. The trade is the opposite failure mode -
+  under-sourcing rather than over-sourcing - which is why the per-page guard above had to land in the
+  same change.
+
+  **One side effect to know about:** the page's own stylesheet is now emitted **before** the
+  components' CSS Modules, where it used to come after. Only `global.css`'s *unlayered* rules are
+  order-sensitive at all (a layered rule loses to an unlayered module rule at any order), and of those
+  only `:focus-visible` can tie with a module rule - `.sr-only`, `.merge-tool` and `.disclosures` are
+  never written on an element that also carries a module class, and the rest are element selectors,
+  `*` or `#app`. So the entire delta is that `:focus-visible { border-radius: 4px }` no longer beats
+  the 59 module rules that set their own radius: a keyboard-focused editor card used to snap from
+  16px to 4px while focused and now keeps its shape. No element loses a focus ring (checked
+  mechanically: no module suppresses `outline` at single-class specificity without defining its own
+  `:focus-visible`). This was kept rather than re-encoded, because the old precedence was an accident
+  of emission order and the same hazard Part II §5 already records twice.
+
+  **`@theme` is `static`** for a related reason: Tailwind otherwise emits only the tokens its generated
+  utilities reference, which was survivable when one utility set covered the site and is not now that
+  each family compiles its own. `--shadow-sm`, `--ease-out`, `--radius-md` and the `--font-weight-*`
+  steps are read by the editor's CSS Modules, which Tailwind cannot see, so their emission would
+  otherwise depend on some unrelated `.astro` file happening to use `shadow-sm` on that same page. Costs
+  580 bytes a page, the same as the tree-shaken set happened to be.
 - **CSS Modules** (scoped, colocated per component) for the canvas editor (`SignTool/*`, `RedactTool`, `ElementToolbar`, resizers, element nodes). Keep semantic class names so the descendant-combinator state cascades (e.g. `.sign-element.active .sign-element-actions`) survive as real CSS inside module scope.
 - **Inline styles / CSS custom properties** for per-element runtime geometry (`top/left/width/height/fontSize` percentages) - these are continuous floats the Tailwind JIT cannot emit classes for.
 
@@ -798,7 +830,8 @@ and fails if it calls `onChange`/`dispatch`/`setState` directly.
   a second `default-src 'self'` re-blocks scripts the meta tag allows.
 - **`build.inlineStylesheets: 'always'` is a measured decision, not a leftover default.** Every page
   inlines its whole stylesheet, which ships 1,060,961 raw bytes of CSS across 20 pages for 107,384
-  bytes of distinct rules and is the main input to the 9.73x duplication factor. That looks like an
+  bytes of distinct rules and is the main input to the duplication factor (9.73x when this was written;
+  5.79x since ARCH-13 split the utility layer per page family). That looks like an
   obvious win to reclaim, and it is not. `'auto'` was built and benchmarked head to head (2026-08-20)
   and lost every scenario: an external `<link rel="stylesheet">` is render-blocking and is discovered
   only after the document parses, and Astro emits no preload for it, so it serializes an extra round
@@ -890,7 +923,11 @@ Run by `ci.yml`; see Part I "Commands" for the npm scripts.
 2. **SEO invariants** (`verify-seo.js`) - exactly one `<h1>` per page; `<title>`, meta description,
    canonical, OG/Twitter present; JSON-LD validates; FAQ schema matches on-page content.
 3. **Class resolution** (`check-class-resolution.js`, `check-dead-utilities.js`) - no class string
-   without a matching rule, and no Tailwind utility compiling to nothing.
+   without a matching rule, and no Tailwind utility compiling to nothing. `check-dead-utilities.js`
+   asks that question **per page**, against that page's own inline stylesheet, not against the whole
+   build concatenated. That distinction was cosmetic while one utility sheet went to every page and is
+   load-bearing since ARCH-13: it is what turns a missing `@source` in a page family's entry sheet into
+   a named build failure instead of a page that quietly renders unstyled.
 4. **Editor CSS ratchet** (`check-editor-global-css.js`) - zero `sign-`/`sig-`/`redact-`/`editor-`/`el-`
    selectors in `global.css`.
 5. **CSS duplication** (`check-css-duplication.js`) - hard ratchets on duplication factor, dead bytes
@@ -898,7 +935,11 @@ Run by `ci.yml`; see Part I "Commands" for the npm scripts.
    one exception is the duplication factor, which is page-count-sensitive by construction (see the
    hazard on `inlineStylesheets` in §5): re-base it when pages are added, and say so. Both this
    script and `check-page-weight.js` read inline `<style>` only, so they measure the real stylesheet
-   only while `build.inlineStylesheets` stays `'always'`.
+   only while `build.inlineStylesheets` stays `'always'`. Current limits, after ARCH-13 changed the
+   delivery model rather than the numbers: **7.00x** duplication (measured 5.79x), **10,000** worst-page
+   dead bytes (measured 7,567 on `/split/`), **148** single-page utilities (measured 144). The first two
+   were 9.60x and 27,750 with ~1% of margin left, which is the state ARCH-13 existed to fix - **the fix
+   is to narrow what a page carries, never to raise a limit.**
 6. **Page weight** (`check-page-weight.js`) - two separate budgets per page: document plus
    eagerly-referenced JS (brotli), and eagerly-referenced images (raw, since they are already
    compressed and served as-is). Deliberately *not* ratchets: features grow page weight and that is

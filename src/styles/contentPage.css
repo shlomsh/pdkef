@@ -1,0 +1,31 @@
+/* Entry stylesheet for the ten SEO landing pages rendered by the single
+   dynamic route src/pages/[contentPage].astro, imported by
+   ContentPageLayout.astro. See toolPage.css for the four-tier CSS ownership
+   note and why each family compiles its own utility set.
+
+   src/content/content-pages/*.yaml is not sourced: a content file carries copy,
+   never a class (CLAUDE.md, "The SEO landing pages are a content collection"),
+   and src/lib/contentMarkup.ts is what puts the design system's classes back
+   on at render, so that is the file the classes are read from. */
+@import "./global.css";
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "./sharedSources.css";
+
+@source "../layouts/ContentPageLayout.astro";
+@source "../components/AppBar.astro";
+@source "../components/CardDecor.astro";
+@source "../components/CompareTable.astro";
+@source "../components/ContentImage.astro";
+@source "../components/ContentPage.astro";
+@source "../components/ContentTable.astro";
+@source "../components/DocumentationLanguageSelector.astro";
+@source "../components/FeatureCard.astro";
+@source "../components/OtherGuides.astro";
+@source "../components/SeoSchema.astro";
+@source "../components/ToolCrossLinks.astro";
+@source "../components/ToolFaqCard.astro";
+@source "../data/contentIcons.ts";
+@source "../data/contentPages.js";
+@source "../data/tools.js";
+@source "../lib/contentMarkup.ts";
+@source "../pages/[contentPage].astro";

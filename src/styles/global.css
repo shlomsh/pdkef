@@ -1,8 +1,30 @@
-/* Tailwind v4 (CSS-first config). Utilities are compiled and available
-   repo-wide from here, but the default theme is intentionally not imported:
-   its color scales blow the CSS budget, and PDkef already owns tokens below. */
+/* Tailwind v4 (CSS-first config). Design tokens, element defaults and the
+   .type-* and .space-* role classes - the one stylesheet every page carries, and
+   the only tier that is paid for 22 times (build.inlineStylesheets: 'always').
+   A rule belongs here only if every page needs it.
+
+   The utilities layer is NOT compiled here. It is compiled per page family, by
+   the five entry sheets that import this file - homePage.css, toolPage.css,
+   contentPage.css, licensesPage.css, notFoundPage.css - each with an explicit
+   @source list, so a page carries only the utilities its own markup can render
+   (ARCH-13). Nothing imports this file directly any more; a page imports its
+   family's entry sheet, which imports this one first so the @layer order below
+   is established before any utility rule. See toolPage.css for the full
+   ownership note.
+
+   The default theme is still intentionally not imported: its color scales blow
+   the CSS budget, and PDkef already owns tokens below. */
 @layer theme, base, components, utilities;
-@theme {
+/* `static`, so every token below is emitted whether or not a utility on this
+   page happens to use it. Without it Tailwind emits only the tokens its
+   generated utilities reference, which was survivable while one utility set
+   covered the whole site and is not now that each family compiles its own:
+   --shadow-sm, --ease-out, --radius-md and the --font-weight-* steps are read
+   by the editor's CSS Modules (PageGrid, EditorControls, PdfSplitTool, ...),
+   which Tailwind cannot see, so their emission would otherwise depend on an
+   unrelated .astro file using shadow-sm on that same page. 563 bytes, the same
+   as the tree-shaken set happened to be before the split. */
+@theme static {
   --spacing: 0.25rem;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   /* Only the scale steps the .astro surface actually uses. Tailwind compiles
@@ -33,32 +55,13 @@
      smooth deceleration, no elastic overshoot. */
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
 }
-@import "tailwindcss/utilities.css" layer(utilities);
-@source not "../**/*.jsx";
-@source not "../**/*.tsx";
-@source not "../**/*.test.js";
-@source not "../../e2e/**/*.js";
-/* Documentation is not a template - see CLAUDE.md, "Tailwind source scanning".
-   `**` on purpose: this was `../../*.md`, which only ever covered root-level
-   files, so a markdown file one directory down was still scanned for utility
-   candidates (seo-audit-output/ has four). That costs nothing today - measured
-   at 0 bytes - but the whole point of these rules is that the symptom is
-   invisible when it does bite: no error, no failing class, just a slightly
-   heavier stylesheet inlined into all 21 pages. Match every .md anywhere so a
-   new report or note cannot reintroduce it by being filed somewhere new. */
-@source not "../../**/*.md";
-@source not "../../docs/**";
-@source not "../../*.html";
-/* Same rule, different directory: the impeccable plugin under .github/skills/
-   ships an anti-pattern detector whose rule tables carry literal Tailwind class
-   strings as data (bg-[#f5f0e6], bg-clip-text, break-all, inline-grid,
-   capitalize, lowercase, ...). Tailwind's scan cannot tell a rule table from a
-   template, so it compiled all of them into the one stylesheet every page
-   inlines: 905 distinct bytes, x21 pages = 19,005 bytes shipped for classes no
-   page uses. Measured 2026-08-28 - removing it took /licenses/ dead bytes from
-   29,021 to 28,116 and 118 brotli bytes off /sign/. The .md rule above already
-   covered .github's agent files; this covers its scripts. */
-@source not "../../.github/**";
+/* No `@import "tailwindcss/utilities.css"` here on purpose - see the header.
+   The `@source not` exclusions that used to sit here are gone with it: each
+   entry sheet compiles with `source(none)` and lists its sources explicitly, so
+   there is no repo-wide crawl left to exclude anything from. That retires the
+   whole "documentation is not a template" hazard structurally - a .md file, a
+   docs/ script or a plugin rule table can no longer contribute a utility
+   candidate, because nothing is scanned unless a family asked for it. */
 
 /* The bundled @font-face catalogue (Caveat, Assistant, Scheherazade New, etc.) used to
    live here and was paid for by every page via build.inlineStylesheets:

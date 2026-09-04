@@ -1,0 +1,22 @@
+/* Sources every page's markup comes from, whichever family it belongs to.
+   Imported by each of the five page-family entry sheets (homePage.css,
+   toolPage.css, contentPage.css, licensesPage.css, notFoundPage.css).
+
+   This file emits no CSS. It exists so the site shell is declared once rather
+   than five times: BaseLayout wraps every page, Footer is rendered by every
+   page, and the i18n message tables carry the shell's copy.
+
+   Why the sources are listed at all, rather than letting Tailwind crawl the
+   project: each entry sheet compiles its utilities with `source(none)`, so a
+   page only carries utilities compiled from the markup that page can actually
+   render (ARCH-13). Automatic detection cannot do that - it produces one
+   utility set for the whole repo, which `build.inlineStylesheets: 'always'`
+   then bakes into all 22 pages. See toolPage.css for the ownership note.
+
+   Adding a component to a family means adding it to that family's entry sheet.
+   Forgetting is a build failure, not a silent visual bug:
+   scripts/check-dead-utilities.js checks each page against its own stylesheet
+   and names the page and the class. */
+@source "../layouts/BaseLayout.astro";
+@source "../components/Footer.astro";
+@source "../i18n";
