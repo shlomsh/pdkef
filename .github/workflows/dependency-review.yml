@@ -1,0 +1,27 @@
+name: Dependency review
+
+on:
+  pull_request:
+    paths:
+      - package.json
+      - package-lock.json
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Review newly introduced advisories
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout proposed dependency graph
+        uses: actions/checkout@v5
+
+      # This is intentionally an advisory check only. License policy is
+      # enforced by `npm run test:licenses`; security severity and its temporary
+      # exceptions are governed by docs/dependency-governance.md.
+      - name: Block newly introduced high-severity vulnerabilities
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          fail-on-scopes: development, runtime, unknown
