@@ -1,0 +1,50 @@
+diff --git a/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFStreamWriter.js b/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFStreamWriter.js
+index 6a62f0c..48be16b 100644
+--- a/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFStreamWriter.js
++++ b/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFStreamWriter.js
+@@ -54,6 +54,16 @@ class PDFStreamWriter extends PDFWriter_1.default {
+                     object.dict.lookup(PDFName_1.default.of('Type')) === PDFName_1.default.of('XRef')) {
+                     continue;
+                 }
++                // See the es/ build of this file for the full explanation: a
++                // password-protected source document's own XRef stream can fail to
++                // reparse on decrypt and fall back to a raw PDFInvalidObject that
++                // still carries a stale `/Encrypt` entry in its dict text. Drop it on
++                // a full rewrite the same way the well-formed case above is dropped.
++                if (!incremental &&
++                    object instanceof PDFInvalidObject_1.default &&
++                    /\/Type\s*\/XRef\b/.test(Buffer.from(object.data.subarray(0, 512)).toString('latin1'))) {
++                    continue;
++                }
+                 // Source ObjStm containers must be skipped on full saves: their
+                 // contents have already been extracted and registered individually by
+                 // PDFObjectStreamParser. Re-serialising the raw container would produce
+diff --git a/node_modules/@cantoo/pdf-lib/es/core/writers/PDFStreamWriter.js b/node_modules/@cantoo/pdf-lib/es/core/writers/PDFStreamWriter.js
+index 1a45ba9..0643846 100644
+--- a/node_modules/@cantoo/pdf-lib/es/core/writers/PDFStreamWriter.js
++++ b/node_modules/@cantoo/pdf-lib/es/core/writers/PDFStreamWriter.js
+@@ -52,6 +52,24 @@ class PDFStreamWriter extends PDFWriter {
+                     object.dict.lookup(PDFName.of('Type')) === PDFName.of('XRef')) {
+                     continue;
+                 }
++                // A password-protected source document's own XRef stream is exempt
++                // from encryption per the PDF spec, but decrypting a document with a
++                // password can still fail to reparse that stream as a proper
++                // PDFRawStream (see the pdkef dependency-governance notes for the
++                // repro): it falls back to a raw PDFInvalidObject that still carries
++                // the original dict text, including its own stale `/Encrypt` entry.
++                // On a full (non-incremental) rewrite that leftover object has no
++                // active xref/trailer reference pointing at it, but copying it
++                // verbatim into the new file body lets a later `PDFDocument.load`
++                // pick it back up as `trailerInfo.Encrypt`, so a "decrypted" save
++                // silently reports as encrypted again. Recognize it by its own
++                // literal `/Type /XRef` header (the same signal the check above
++                // uses for the well-formed case) and drop it the same way.
++                if (!incremental &&
++                    object instanceof PDFInvalidObject &&
++                    /\/Type\s*\/XRef\b/.test(Buffer.from(object.data.subarray(0, 512)).toString('latin1'))) {
++                    continue;
++                }
+                 // Source ObjStm containers must be skipped on full saves: their
+                 // contents have already been extracted and registered individually by
+                 // PDFObjectStreamParser. Re-serialising the raw container would produce
