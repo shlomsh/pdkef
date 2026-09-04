@@ -16,6 +16,7 @@ import RedactToolbar from './RedactToolbar.tsx';
 import RedactBox from './RedactBox.tsx';
 import DeleteMark from './DeleteMark.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
+import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import EditorPageHeader from './EditorPageHeader.tsx';
 import UndoHistoryModal from './UndoHistoryModal.tsx';
 import {
@@ -34,6 +35,7 @@ import workspaceStyles from './SignTool/Workspace.module.css';
 import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../lib/format.js';
 import useCurrentPage from '../lib/useCurrentPage.js';
+import type { RedactToolType } from '../editor/model/editorModel.ts';
 
 type RedactHistoryElement = {
   id: string;
@@ -41,6 +43,18 @@ type RedactHistoryElement = {
   type: string;
   [field: string]: unknown;
 };
+
+type DrawnRedactTool = Exclude<RedactToolType, 'delete'>;
+
+interface RedactDrawingState {
+  pageIndex: number;
+  startX: number;
+  startY: number;
+  type: DrawnRedactTool;
+  color?: string;
+}
+
+type RedactPointerEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLElement };
 
 export default function PdfRedactTool() {
   const [file, setFile] = useState<File | null>(null);
@@ -63,14 +77,14 @@ export default function PdfRedactTool() {
   // on. Before this the tool was permanently armed (it even started on Delete),
   // so there was no state in which a drag on the document meant anything but
   // "draw a box" - which on a phone meant the page could not be scrolled.
-  const [activeStyle, setActiveStyle] = useState<string | null>(null);
+  const [activeStyle, setActiveStyle] = useState<RedactToolType | null>(null);
   const [toolLocked, setToolLocked] = useState(false);
   const [activeColor, setActiveColor] = useState('#ffffff');
 
   // The single entry point for arming: `setTool('blur')` for one box,
   // `setTool('blur', true)` to keep it on. Locking is meaningless without a
   // tool, so disarming always clears it.
-  const setTool = (tool: string | null, locked = false) => {
+  const setTool = (tool: RedactToolType | null, locked = false) => {
     setActiveStyle(tool);
     setToolLocked(tool ? locked : false);
   };
@@ -80,7 +94,7 @@ export default function PdfRedactTool() {
   const disarmTool = () => {
     if (!toolLocked) setTool(null);
   };
-  const [drawingState, setDrawingState] = useState<any>(null); // { pageIndex, startX, startY, type, color }
+  const [drawingState, setDrawingState] = useState<RedactDrawingState | null>(null);
   const drawingPreviewRef = useRef<HTMLDivElement | null>(null);
   const cancelDrawingRef = useRef<(() => void) | null>(null);
 
@@ -207,7 +221,7 @@ export default function PdfRedactTool() {
   // itself stores as a single object, found by parsing the source file's own
   // content streams (not what's on the page after any edits this session has
   // queued - the source never changes until export, only `elements` does).
-  const deletableObjects = useDeletableObjects(file, fileBytesRef.current);
+  const deletableObjects: DeletablePdfObject[] = useDeletableObjects(file, fileBytesRef.current);
   const markedForDeletionIds = useMemo(
     () => new Set<string>(elements.flatMap((element) => (
       element.type === 'delete' && typeof element.sourceObjectId === 'string'
@@ -300,14 +314,15 @@ export default function PdfRedactTool() {
     isElement: (value): value is RedactHistoryElement => isDraftElement(value),
   });
 
-  const handlePointerDown = (e: any, pageIndex: number) => {
+  const handlePointerDown = (e: RedactPointerEvent, pageIndex: number) => {
     // No tool armed: a press on the page is a scroll or a deselect, never a new
     // box. Delete mode has its own click targets (DeletableObjectOverlay /
     // DeleteMark below) and never draws one either, so neither may start the
     // drag gesture this function owns.
     if (!activeStyle || activeStyle === 'delete') return;
 
-    if (e.target.closest(`.${styles['redact-element-btn']}`) || e.target.closest(`.${styles['redact-box']}`)) {
+    const target = e.target as Element | null;
+    if (target?.closest(`.${styles['redact-element-btn']}`) || target?.closest(`.${styles['redact-box']}`)) {
       return; // Ignore clicks on existing boxes or buttons
     }
 
@@ -366,7 +381,7 @@ export default function PdfRedactTool() {
     if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, `Deleted ${el.type} box`, snapshots);
   };
 
-  const updateElement = (id: string, changes: any) => {
+  const updateElement = (id: string, changes: Partial<RedactHistoryElement>) => {
     setElements(prev => prev.map(el => (el.id === id ? { ...el, ...changes } : el)));
   };
 
@@ -375,7 +390,7 @@ export default function PdfRedactTool() {
   // already-marked object again un-marks it, through the same deleteElement
   // path a regular redaction box's × button uses, so it gets the same
   // undo-history treatment for free.
-  const toggleObjectDeletion = (object: any) => {
+  const toggleObjectDeletion = (object: DeletablePdfObject) => {
     const existing = elements.find((el) => el.type === 'delete' && el.sourceObjectId === object.id);
     if (existing) {
       deleteElement(existing.id);

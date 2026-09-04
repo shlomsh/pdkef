@@ -1,7 +1,9 @@
 import ElementResizers from '../../ElementResizers.tsx';
 import { DEFAULT_COLOR_BLUE } from '../../../constants/signGeometry.js';
+import type { SymbolElement } from '../../../editor/model/editorModel.ts';
+import type { ElementNodeProps } from '../nodeProps.ts';
 
-export default function SymbolNode({ element, isActive, onResizeStart }: { element: any; isActive: boolean; onResizeStart: (...args: any[]) => void }) {
+export default function SymbolNode({ element, isActive, onResizeStart }: ElementNodeProps<SymbolElement>) {
   const renderSymbol = () => {
     const mark = element.mark || (element.symbolType === 'cross' ? 'x' : element.symbolType) || 'check';
     switch (mark) {

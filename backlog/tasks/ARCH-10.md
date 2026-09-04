@@ -1,12 +1,12 @@
 ---
 id: "ARCH-10"
 title: "Replace permissive editor-shell types with shared contracts"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "editor-architecture"
 phase: "longer-term"
 depends_on: ["SIGN-14"]
-legacy_state: "In progress — typed action, persisted-history, pdf.js, and saved-signature boundary slices landed 2026-09-03"
+legacy_state: "Done — typed editor-shell boundaries completed 2026-09-04"
 ---
 
 # ARCH-10 · Replace permissive editor-shell types with shared contracts
@@ -44,13 +44,19 @@ contract. Focused compile fixtures reject missing ids and string aspect ratios.
 Keep this ticket open for the remaining permissive editor element, gesture,
 node-prop, and persisted-history boundaries.
 
-**Current recommendation (2026-09-03):** coordinate the next persisted-history contract slice
-with SIGN-12 so required add/delete undo lands on shared command types. Continue one vertical
-boundary at a time and keep the remaining gesture/node-prop cleanup separate from undo behavior.
-
 **Progress 2026-09-03 (persisted-history slice).** Persisted undo history now uses
 validated, generic `ActionHistoryEntry<TElement>` commands with discriminated add/delete
 operations and full element/index snapshots. Draft schema v2 migrates usable legacy commands,
 drops malformed commands at restore, and hands each editor a typed initial state rather than
 `unknown[]`. Compile fixtures reject malformed stacking positions. Keep ARCH-10 open for the
 separate gesture and node-prop slices.
+
+**Completed 2026-09-04.** The final node and gesture slices replace the permissive
+Sign wrapper/node props with variant-aware element and mutation contracts, type every
+placement/default/tool callback at the workspace seam, and move page-coordinate and
+placement-gesture helpers to checked TypeScript. Redact drawing and deletable-object
+boundaries now expose concrete tool, event, preview, and mutation shapes as well.
+Focused compile fixtures reject cross-variant node patches, unsupported Sign tools, and
+incomplete gesture element payloads; runtime coverage preserves placement, move, resize,
+selection, and drawing behavior. The remaining broad types are outside the editor-shell
+boundaries named by this ticket.

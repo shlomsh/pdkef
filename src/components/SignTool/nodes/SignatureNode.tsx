@@ -2,9 +2,11 @@ import { useState, useEffect } from 'preact/hooks';
 import ElementResizers from '../../ElementResizers.tsx';
 import { tintImageDataUrl } from '../../../lib/signHelpers.js';
 import styles from '../EditorElement.module.css';
+import type { SignatureElement } from '../../../editor/model/editorModel.ts';
+import type { ElementNodeProps } from '../nodeProps.ts';
 
-export default function SignatureNode({ element, isActive, onResizeStart }: { element: any; isActive: boolean; onResizeStart: (...args: any[]) => void }) {
-  const [tintedSigUrl, setTintedSigUrl] = useState(null);
+export default function SignatureNode({ element, isActive, onResizeStart }: ElementNodeProps<SignatureElement>) {
+  const [tintedSigUrl, setTintedSigUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!element.dataUrl) return;
@@ -13,7 +15,7 @@ export default function SignatureNode({ element, isActive, onResizeStart }: { el
       return;
     }
     let cancelled = false;
-    tintImageDataUrl(element.dataUrl, element.color).then((tinted) => {
+    tintImageDataUrl(element.dataUrl, element.color).then((tinted: string) => {
       if (!cancelled) setTintedSigUrl(tinted);
     });
     return () => { cancelled = true; };

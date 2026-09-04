@@ -2,7 +2,7 @@ import { createContext } from 'preact';
 import type { ComponentChildren } from 'preact';
 import { useReducer, useContext, useMemo } from 'preact/hooks';
 import { revertHistoryEntries, type ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
-import type { EditorElement } from '../../editor/model/editorModel.ts';
+import type { EditorElement, EditorElementPatch, SignToolType } from '../../editor/model/editorModel.ts';
 import { ensureMinimumElementSize } from '../../editor/geometry/minimumSize.ts';
 
 /**
@@ -10,11 +10,10 @@ import { ensureMinimumElementSize } from '../../editor/geometry/minimumSize.ts';
  * deliberately absent: moving an existing annotation between kinds or pages
  * must be an explicit document operation, never an accidental toolbar patch.
  */
-export type EditorElementPatch<T extends EditorElement = EditorElement> =
-  T extends unknown ? Partial<Omit<T, 'id' | 'type' | 'pageIndex'>> : never;
+export type { EditorElementPatch } from '../../editor/model/editorModel.ts';
 
 export type SignToolAction =
-  | { type: 'SET_TOOL'; payload: string | null | { tool: string; locked: boolean } }
+  | { type: 'SET_TOOL'; payload: SignToolType | null | { tool: SignToolType; locked: boolean } }
   | { type: 'DISARM_TOOL' }
   | { type: 'SET_ELEMENTS'; payload: EditorElement[] }
   | { type: 'ADD_ELEMENT'; payload: EditorElement }
@@ -29,7 +28,7 @@ export type SignToolAction =
       type: 'ENSURE_MINIMUM_SIZE';
       payload: {
         id: string;
-        tool: string;
+        tool: SignToolType;
         rectWidth: number;
         rectHeight: number;
         startLeftPercent: number;
@@ -39,7 +38,7 @@ export type SignToolAction =
   | { type: 'UNDO' };
 
 export interface SignToolState {
-  selectedTool: string | null;
+  selectedTool: SignToolType | null;
   toolLocked: boolean;
   elements: EditorElement[];
   activeElementId: string | null;

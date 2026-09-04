@@ -1,12 +1,12 @@
 ---
 id: "ARCH-11"
 title: "Enforce editor dependency directions in CI"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "editor-architecture"
 phase: "longer-term"
 depends_on: ["ARCH-10"]
-legacy_state: "Open — architecture boundaries are documented but unenforced as of 2026-09-03"
+legacy_state: "Done — editor dependency directions enforced in CI 2026-09-04"
 ---
 
 # ARCH-11 · Enforce editor dependency directions in CI
@@ -30,3 +30,10 @@ pure model/geometry code must reject Preact, CSS, browser storage, and PDF libra
 not bypass workspace persistence; and adapters must not import UI components. Add positive and
 negative fixtures, run the guard in CI, and document the command. Land any necessary moves as
 separate mechanical slices rather than a repository-wide reorganization.
+
+**Completed 2026-09-04.** The editor boundaries are now an explicit dependency matrix backed by a
+resolved-static-import checker. Path-specific exceptions capture the existing registry renderer,
+text-paint, workspace-hook, and text-coverage seams without granting whole-layer exemptions. The
+guard rejects framework, CSS, browser-storage, and reversed-layer dependencies at the pure and
+orchestration boundaries, includes positive and negative fixtures, and runs through both an npm
+command and CI.

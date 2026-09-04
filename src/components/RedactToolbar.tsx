@@ -4,6 +4,7 @@ import ArmHint from './ArmHint.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from './ToolShell.tsx';
 import { makeArmTool, useAutoArmHint } from '../lib/toolArming.js';
 import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
+import type { RedactToolType } from '../editor/model/editorModel.ts';
 import styles from './SignTool/SignToolbar.module.css';
 
 // What each tool is called in front of a user and what it is waiting for -
@@ -13,12 +14,14 @@ import styles from './SignTool/SignToolbar.module.css';
 //
 // Nothing here mentions hovering. Delete's copy used to open with "Hover to
 // find...", which describes a gesture half this tool's users do not have.
-const TOOL_COPY: Record<string, { action: string; button: string }> = {
+const TOOL_COPY: Record<RedactToolType, { action: string; button: string }> = {
   delete:   { action: 'Click a highlighted image or text run to delete it from the file.', button: 'Delete' },
   blackout: { action: 'Click and drag on a page to draw a blackout box.',                  button: 'Blackout' },
   whiteout: { action: 'Click and drag on a page to draw a whiteout box.',                  button: 'Whiteout' },
   blur:     { action: 'Click and drag on a page to blur an area.',                         button: 'Blur' },
 };
+
+const isRedactToolType = (tool: string): tool is RedactToolType => tool in TOOL_COPY;
 
 export default function RedactToolbar({
   activeStyle,
@@ -37,9 +40,9 @@ export default function RedactToolbar({
   setUndoModalOpen,
   exporting = false
 }: {
-  activeStyle: string | null;
+  activeStyle: RedactToolType | null;
   toolLocked: boolean;
-  setTool: (tool: string | null, locked?: boolean) => void;
+  setTool: (tool: RedactToolType | null, locked?: boolean) => void;
   setAnnouncement: (msg: string) => void;
   toggleFullscreen: () => void;
   isFullscreen: boolean;
@@ -64,17 +67,20 @@ export default function RedactToolbar({
   const { autoShowTool, noteArmed } = useAutoArmHint();
   const armTool = makeArmTool({
     selectedTool: activeStyle,
-    arm: (next) => {
+    arm: (next: string | null) => {
+      if (next !== null && !isRedactToolType(next)) return;
       setTool(next);
       if (next) {
         setAnnouncement(`${TOOL_COPY[next].button} tool active. ${TOOL_COPY[next].action}`);
         noteArmed(next);
       }
     },
-    lock: (tool) => lockTool(tool),
+    lock: (tool: string) => {
+      if (isRedactToolType(tool)) lockTool(tool);
+    },
   });
 
-  const lockTool = (tool: string) => {
+  const lockTool = (tool: RedactToolType) => {
     setTool(tool, true);
     setAnnouncement(`${TOOL_COPY[tool].button} stays on after each one. Switch it off, or press Escape, when you are done.`);
   };
@@ -82,7 +88,7 @@ export default function RedactToolbar({
   // The switch's other half, and deliberately not `setTool(null)`: switching off
   // has to land back in the state switching on was entered from, which is armed
   // for one. Disarming here is what made the old chip a one-way door.
-  const unlockTool = (tool: string) => {
+  const unlockTool = (tool: RedactToolType) => {
     setTool(tool, false);
     setAnnouncement(`${TOOL_COPY[tool].button} is back to one at a time.`);
   };
@@ -92,7 +98,7 @@ export default function RedactToolbar({
   // than rendering a half-built sentence.
   const activeToolCopy = activeStyle ? TOOL_COPY[activeStyle] : null;
 
-  const toolClass = (tool: string) =>
+  const toolClass = (tool: RedactToolType) =>
     `${styles.button}${activeStyle === tool ? ` ${styles.active}` : ''}${activeStyle === tool && toolLocked ? ` ${styles.locked}` : ''}`;
 
   return (

@@ -11,12 +11,17 @@ import ToolShell, { FILE_ACTIONS, useToolShell } from '../ToolShell.tsx';
 import { makeArmTool, useAutoArmHint } from '../../lib/toolArming.js';
 import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
+import type { SignToolType } from '../../editor/model/editorModel.ts';
 import styles from './SignToolbar.module.css';
 import controlStyles from '../EditorControls.module.css';
 
 // The tools that live behind the Shapes button, so its pressed/locked state and
 // its lock target read from one list instead of three copies of the same array.
-const SHAPE_TOOLS = ['ellipse', 'rectangle', 'line'];
+type ShapeTool = Extract<SignToolType, 'ellipse' | 'rectangle' | 'line'>;
+const SHAPE_TOOLS: readonly ShapeTool[] = ['ellipse', 'rectangle', 'line'];
+const isShapeTool = (tool: SignToolType | null): tool is ShapeTool => (
+  tool !== null && SHAPE_TOOLS.includes(tool as ShapeTool)
+);
 
 // What each tool is called in front of a user, and the button that arms it.
 // Every visible string and every screen-reader announcement reads from here, so
@@ -30,7 +35,7 @@ const SHAPE_TOOLS = ['ellipse', 'rectangle', 'line'];
 // [place|draw] a thing", which teaches both families as one pattern. Keep
 // "click and" on the drag tools: without it, "drag on a page" reads as dragging
 // the tool from the toolbar onto the page, which is not how this works.
-const TOOL_COPY: Record<string, { action: string; button: string }> = {
+const TOOL_COPY: Record<SignToolType, { action: string; button: string }> = {
   text:      { action: 'Click on a page to place a text box.',              button: 'Text' },
   symbol:    { action: 'Click on a page to place a symbol.',                button: 'Symbols' },
   signature: { action: 'Click on a page to place your signature.',          button: 'Sign' },
@@ -39,6 +44,8 @@ const TOOL_COPY: Record<string, { action: string; button: string }> = {
   rectangle: { action: 'Click and drag on a page to draw a rectangle.',     button: 'Shapes' },
   line:      { action: 'Click and drag on a page to draw a line.',          button: 'Shapes' },
 };
+
+const isSignToolType = (tool: string): tool is SignToolType => tool in TOOL_COPY;
 
 export default function SignToolbar({
   setAnnouncement,
@@ -92,7 +99,7 @@ export default function SignToolbar({
   // to Rectangle (the conventional default shape tool) so double-clicking
   // Shapes locks something even before the dropdown has ever been opened,
   // rather than silently doing nothing on a fresh page.
-  const [lastShape, setLastShape] = useState('rectangle');
+  const [lastShape, setLastShape] = useState<ShapeTool>('rectangle');
 
   const shapesCloseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const openShapes = () => {
@@ -137,7 +144,7 @@ export default function SignToolbar({
     noteArmed('signature');
   };
 
-  const setSelectedTool = (tool: string | null) => {
+  const setSelectedTool = (tool: SignToolType | null) => {
     dispatch({ type: 'SET_TOOL', payload: tool });
   };
 
@@ -154,17 +161,20 @@ export default function SignToolbar({
   const { autoShowTool, noteArmed } = useAutoArmHint();
   const armTool = makeArmTool({
     selectedTool,
-    arm: (next) => {
+    arm: (next: string | null) => {
+      if (next !== null && !isSignToolType(next)) return;
       setSelectedTool(next);
       if (next) {
         setAnnouncement(`${TOOL_COPY[next].button} tool active. ${TOOL_COPY[next].action}`);
         noteArmed(next);
       }
     },
-    lock: (tool) => lockTool(tool),
+    lock: (tool: string) => {
+      if (isSignToolType(tool)) lockTool(tool);
+    },
   });
 
-  const lockTool = (tool: string) => {
+  const lockTool = (tool: SignToolType) => {
     dispatch({ type: 'SET_TOOL', payload: { tool, locked: true } });
     setAnnouncement(`${TOOL_COPY[tool].button} stays on after each one. Switch it off, or press Escape, when you are done.`);
   };
@@ -173,12 +183,12 @@ export default function SignToolbar({
   // payload arms without locking, so switching off lands back in exactly the
   // state switching on was entered from. Dropping the tool here instead is what
   // made the old chip a one-way door - see EditorToolStatus.tsx.
-  const unlockTool = (tool: string) => {
+  const unlockTool = (tool: SignToolType) => {
     dispatch({ type: 'SET_TOOL', payload: tool });
     setAnnouncement(`${TOOL_COPY[tool].button} is back to one at a time.`);
   };
 
-  const chooseShape = (tool: string) => {
+  const chooseShape = (tool: ShapeTool) => {
     setSelectedTool(tool);
     setLastShape(tool);
     setShowShapesDropdown(false);
@@ -200,7 +210,7 @@ export default function SignToolbar({
   // defaults to Rectangle), so this locks something even on a fresh page
   // where no shape has been chosen yet.
   const lockShape = () => {
-    const shape = SHAPE_TOOLS.includes(selectedTool as string) ? (selectedTool as string) : lastShape;
+    const shape = isShapeTool(selectedTool) ? selectedTool : lastShape;
     lockTool(shape);
     setShowShapesDropdown(false);
   };
@@ -292,7 +302,7 @@ export default function SignToolbar({
               to - the div is already position:relative and already sized to
               match the button exactly (`.toolbar .dropdown > .button { width:
               100% }`), so anchoring here costs nothing visually. */}
-          <ArmHint tool="shapes" label="Shapes" action="Draw an ellipse, rectangle, or line." locked={SHAPE_TOOLS.includes(selectedTool as string) && toolLocked} autoShowTool={autoShowTool}>
+          <ArmHint tool="shapes" label="Shapes" action="Draw an ellipse, rectangle, or line." locked={isShapeTool(selectedTool) && toolLocked} autoShowTool={autoShowTool}>
             <div
               className={styles.dropdown}
               onMouseEnter={openShapes}
@@ -306,8 +316,8 @@ export default function SignToolbar({
                 trigger={
                   <button
                     type="button"
-                    className={`${styles.button}${SHAPE_TOOLS.includes(selectedTool as string) ? ` ${styles.active}` : ''}${SHAPE_TOOLS.includes(selectedTool as string) && toolLocked ? ` ${styles.locked}` : ''}`}
-                    aria-pressed={SHAPE_TOOLS.includes(selectedTool as string)}
+                    className={`${styles.button}${isShapeTool(selectedTool) ? ` ${styles.active}` : ''}${isShapeTool(selectedTool) && toolLocked ? ` ${styles.locked}` : ''}`}
+                    aria-pressed={isShapeTool(selectedTool)}
                     data-label-priority="2"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

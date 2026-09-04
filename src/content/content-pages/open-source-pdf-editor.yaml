@@ -78,8 +78,8 @@ sections:
           The heavy lifting comes from open source projects that were here long before this one.
           <strong>pdf.js</strong> reads and renders PDFs, <strong>pdf-lib</strong> writes them,
           <strong>Astro</strong> and <strong>Preact</strong> build the interface, and
-          <strong>signature_pad</strong> handles the drawing surface. Every one is MIT or Apache 2.0
-          licensed and makes no network calls of its own, which is a hard requirement here rather
+          <strong>signature_pad</strong> handles the drawing surface. Every one uses a reviewed permissive
+          license and makes no network calls of its own, which is a hard requirement here rather
           than a nice-to-have: a single dependency phoning home would undo the whole premise. The
           complete list with license texts is on the <a href="/licenses/">open source licenses
           page</a>.

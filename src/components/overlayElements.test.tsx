@@ -39,7 +39,7 @@ describe('SVG stroke attributes render as kebab-case', () => {
 
   it('LineElement renders a visible stroke and a fat invisible hit-area', () => {
     const host = mount(
-      <LineNode element={{ x1: 10, y1: 10, x2: 80, y2: 80, strokeWidth: 12, color: '#000' }} handlePointerDown={() => {}} />
+      <LineNode element={{ type: 'line', x1: 10, y1: 10, x2: 80, y2: 80, strokeWidth: 12, color: '#000' }} handlePointerDown={() => {}} />
     );
     const lines = host.querySelectorAll('line');
     // Visible line reflects the chosen thickness...

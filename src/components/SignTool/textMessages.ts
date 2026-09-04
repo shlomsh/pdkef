@@ -25,16 +25,24 @@ export function describeUnrepresentableText(characters: string[], pageNumbers: n
     : `Some characters${where} need a different font: ${list}. Select the marked text box for help choosing fonts or separating the text into boxes.`;
 }
 
-export function describeTextFontSupport(support: any) {
+export interface TextFontSupportMessageInput {
+  status: 'supported' | 'fallback' | 'incompatible';
+  family: string;
+  requested: string;
+  missing: string[];
+  pieces: Array<{ text: string; family: string | null }>;
+}
+
+export function describeTextFontSupport(support: TextFontSupportMessageInput) {
   if (support.status === 'supported') return '';
   if (support.status === 'fallback') {
     return `Using ${support.family} so all your text is included. ${support.requested} is missing ${quoteText(support.missing.join(''))}. You can choose another matching font in the font menu.`;
   }
-  const unavailable = support.pieces.filter((piece: any) => !piece.family);
+  const unavailable = support.pieces.filter((piece) => !piece.family);
   if (unavailable.length) {
-    return `No available font includes ${quoteText(unavailable.map((piece: any) => piece.text).join(''))}. Please replace or remove those characters; you can keep the rest of your text.`;
+    return `No available font includes ${quoteText(unavailable.map((piece) => piece.text).join(''))}. Please replace or remove those characters; you can keep the rest of your text.`;
   }
   const examples = support.pieces.slice(0, 3)
-    .map((piece: any) => `${quoteText(piece.text)} in ${piece.family}`).join('; ');
+    .map((piece) => `${quoteText(piece.text)} in ${piece.family}`).join('; ');
   return `No single available font includes all this text. Keep the text by placing the parts in separate text boxes: ${examples}${support.pieces.length > 3 ? '; continue with the remaining parts' : ''}.`;
 }

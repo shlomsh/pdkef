@@ -1,6 +1,12 @@
 import { useState, useRef, useEffect } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import type { EditorElement, SignatureElement } from '../editor/model/editorModel.ts';
+import type {
+  EditorElement,
+  SignatureElement,
+  SignToolType,
+  SymbolMark,
+  TextDirection,
+} from '../editor/model/editorModel.ts';
 import type { SavedSignature } from '../editor/model/savedSignature.ts';
 import BasePdfTool from './BasePdfTool.tsx';
 import { SignToolProvider, useSignTool } from './SignTool/SignToolContext.tsx';
@@ -37,6 +43,7 @@ import UndoHistoryModal from './UndoHistoryModal.tsx';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import { describeFile } from '../lib/format.js';
 import useCurrentPage from '../lib/useCurrentPage.js';
+import type { PendingSignaturePlacement } from '../lib/useWorkspaceGestures.ts';
 
 // Recoverable export failures keep the editor open. Name unsupported text
 // precisely; other failures explain that the user can retry without losing
@@ -53,6 +60,10 @@ function describeSignFailure(err: unknown): string {
   return 'Could not export the PDF. Your edits are still here. Try again.';
 }
 
+function isTextDirection(value: string): value is TextDirection {
+  return value === 'ltr' || value === 'rtl';
+}
+
 export default function PdfSignTool() {
   return (
     <SignToolProvider>
@@ -67,7 +78,7 @@ function PdfSignToolInner() {
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [pageSizes, setPageSizes] = useState<PageGeometry[]>([]); // Rotated/cropped visible page frames in physical PDF points.
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, documentRevision }, dispatch } = useSignTool();
-  const setSelectedTool = (tool: string | null) => dispatch({ type: 'SET_TOOL', payload: tool });
+  const setSelectedTool = (tool: SignToolType | null) => dispatch({ type: 'SET_TOOL', payload: tool });
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
   // Export errors are recoverable without unmounting the editor. A failed
   // document load still uses status='error' with the workspace's load copy.
@@ -96,7 +107,7 @@ function PdfSignToolInner() {
   // lets a form filled in the same language keep predicting direction
   // without re-toggling per field. null means "no manual override yet",
   // so new elements fall back to content-based auto-detection.
-  const [lastDirection, setLastDirection] = useState<string | null>(null);
+  const [lastDirection, setLastDirection] = useState<TextDirection | null>(null);
 
   // Last chosen stroke thickness, remembered across new placements
   const [lastThickness, setLastThickness] = useState(3);
@@ -108,7 +119,7 @@ function PdfSignToolInner() {
 
   // Last symbol mark (check/x/dot) picked, remembered across new placements so
   // switching to X for one field doesn't silently reset to check for the next
-  const [lastSymbolMark, setLastSymbolMark] = useState('check');
+  const [lastSymbolMark, setLastSymbolMark] = useState<SymbolMark>('check');
 
   // Last signature size (width as a % of page width), remembered across new
   // placements so dropping the same signature repeatedly on a form keeps the
@@ -145,7 +156,7 @@ function PdfSignToolInner() {
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
-  const [tempPlacement, setTempPlacement] = useState<any>(null);
+  const [tempPlacement, setTempPlacement] = useState<PendingSignaturePlacement | null>(null);
   const isFullscreenActive = isFullscreen || isPseudoFullscreen;
   const currentPage = useCurrentPage({
     active: isFullscreenActive,
@@ -298,7 +309,7 @@ function PdfSignToolInner() {
   // Load last-used text direction override from workspace preferences on mount.
   useEffect(() => {
     const stored = getEditorPreference('lastDirection');
-    if (stored) setLastDirection(stored);
+    if (stored && isTextDirection(stored)) setLastDirection(stored);
   }, []);
 
   // Load last-used symbol width from workspace preferences on mount.
@@ -333,7 +344,9 @@ function PdfSignToolInner() {
       subscribeToEditorPreference('lastWhiteoutColor', ({ value }) => { if (value) setLastWhiteoutColor(value); }),
       subscribeToEditorPreference('lastFont', ({ value }) => { if (value) setLastFont(value); }),
       subscribeToEditorPreference('lastFontSize', ({ value }) => { if (value) setLastFontSize(value); }),
-      subscribeToEditorPreference('lastDirection', ({ value }) => { if (value) setLastDirection(value); }),
+      subscribeToEditorPreference('lastDirection', ({ value }) => {
+        if (value && isTextDirection(value)) setLastDirection(value);
+      }),
       subscribeToEditorPreference('lastSymbolWidth', ({ value }) => { if (value) setLastSymbolWidth(value); }),
       subscribeToEditorPreference('lastSymbolMark', ({ value }) => { if (value) setLastSymbolMark(value); }),
       subscribeToEditorPreference('lastSignatureWidth', ({ value }) => { if (value) setLastSignatureWidth(value); }),
@@ -378,11 +391,9 @@ function PdfSignToolInner() {
   };
 
   // Remember the mark last chosen for a symbol, for future placements
-  const rememberSymbolMark = (mark: string) => {
+  const rememberSymbolMark = (mark: SymbolMark) => {
     setLastSymbolMark(mark);
-    if (mark === 'check' || mark === 'x' || mark === 'dot') {
-      setEditorPreference('lastSymbolMark', mark);
-    }
+    setEditorPreference('lastSymbolMark', mark);
   };
 
   // Remember the size a signature was last resized to, for future placements
@@ -393,7 +404,7 @@ function PdfSignToolInner() {
   };
 
   // Remember the text direction last manually toggled, for future placements
-  const rememberDirection = (textDirection: string) => {
+  const rememberDirection = (textDirection: TextDirection) => {
     setLastDirection(textDirection);
     setEditorPreference('lastDirection', textDirection);
   };

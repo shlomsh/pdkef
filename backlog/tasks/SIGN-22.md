@@ -1,12 +1,12 @@
 ---
 id: "SIGN-22"
 title: "Restore the CSS release gate after adding language-request actions"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "release-blocker"
 depends_on: []
-legacy_state: "In progress — CSS fix under active integration 2026-09-03"
+legacy_state: "Done 2026-09-03 — emitted project tokens replace invalid utilities"
 ---
 
 # SIGN-22 · Restore the CSS release gate after adding language-request actions

@@ -5,12 +5,13 @@ import PdfPageCanvas from '../PdfPageCanvas.tsx';
 import EditorPageHeader from '../EditorPageHeader.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
 import { getElementRenderer } from '../../editor/registry/renderers.ts';
-import type { EditorElement } from '../../editor/model/editorModel.ts';
+import type { EditorElement, EditorElementPatch } from '../../editor/model/editorModel.ts';
 import { useSignTool } from './SignToolContext.tsx';
 import { useSignDefaults } from './SignDefaultsContext.tsx';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
+import type { PendingSignaturePlacement } from '../../lib/useWorkspaceGestures.ts';
 import { detectTextDirection } from '../../lib/signHelpers.js';
 import { getSignExportReadiness } from '../../lib/signExportReadiness.ts';
 import { createPageGeometry } from '../../editor/geometry/coords.js';
@@ -52,12 +53,12 @@ export default function PdfWorkspace({
 }: {
   status: string;
   isPseudoFullscreen: boolean;
-  workspaceRef: any;
+  workspaceRef: { current: HTMLDivElement | null };
   numPages: number;
   pageSizes: PageGeometry[];
   pdfDocument: PDFDocumentProxy | null;
-  pageWrapperRefs: any;
-  setTempPlacement: (p: any) => void;
+  pageWrapperRefs: { current: (HTMLDivElement | null)[] };
+  setTempPlacement: (placement: PendingSignaturePlacement) => void;
   setDialogOpen: (open: boolean) => void;
   logAction: HistoryLogger<EditorElement>;
   handleSavePdf: () => void;
@@ -67,7 +68,13 @@ export default function PdfWorkspace({
   setUndoModalOpen: (open: boolean) => void;
   toggleFullscreen: () => void;
   isFullscreen: boolean;
-  placeSignatureAt: (...args: any[]) => void;
+  placeSignatureAt: (
+    dataUrl: string,
+    aspectRatio: number,
+    pageIndex: number,
+    leftPercent: number,
+    topPercent: number,
+  ) => void;
   canSharePdf?: boolean;
   shareReady?: boolean;
   /** Overrides the default error copy below with a specific, nameable reason. */
@@ -121,7 +128,7 @@ export default function PdfWorkspace({
   // useCallback gives us referential stability without the per-element closure
   // allocation that was happening inside the .map() call.
 
-  const updateElement = useCallback((id: string, changes: any) => {
+  const updateElement = useCallback((id: string, changes: EditorElementPatch) => {
     dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes } });
   }, [dispatch]);
 
@@ -137,7 +144,7 @@ export default function PdfWorkspace({
   // Factory: returns a stable onChange handler for DraggableWrapper / TextNode.
   // Defined with useCallback so the factory reference is stable; the returned
   // function closes over the element id captured at call time.
-  const makeOnChange = useCallback((id: string) => (fields: any) => {
+  const makeOnChange = useCallback((id: string) => (fields: EditorElementPatch) => {
     updateElement(id, fields);
     const element = elements.find(e => e.id === id);
     if (fields.color) {
@@ -147,22 +154,22 @@ export default function PdfWorkspace({
         rememberColor(fields.color);
       }
     }
-    if (fields.fontFamily) rememberFont(fields.fontFamily);
-    if (fields.fontSize) rememberFontSize(fields.fontSize);
-    if (fields.strokeWidth) rememberThickness(fields.strokeWidth);
+    if ('fontFamily' in fields && fields.fontFamily) rememberFont(fields.fontFamily);
+    if ('fontSize' in fields && fields.fontSize) rememberFontSize(fields.fontSize);
+    if ('strokeWidth' in fields && fields.strokeWidth) rememberThickness(fields.strokeWidth);
     // A resized symbol sets the size for the next one placed, so repeated marks
     // (check, x, dot) don't have to be re-sized one by one.
-    if (element?.type === 'symbol' && fields.width !== undefined) rememberSymbolWidth?.(fields.width);
+    if (element?.type === 'symbol' && 'width' in fields && fields.width !== undefined) rememberSymbolWidth?.(fields.width);
     // A switched symbol mark (check/x/dot) sets the mark for the next one
     // placed, so it doesn't silently reset to the check mark default.
-    if (element?.type === 'symbol' && fields.mark !== undefined) rememberSymbolMark?.(fields.mark);
+    if (element?.type === 'symbol' && 'mark' in fields && fields.mark !== undefined) rememberSymbolMark?.(fields.mark);
     // A resized signature sets the size for the next one placed, so signing
     // multiple fields on the same form doesn't require re-sizing every time.
-    if (element?.type === 'signature' && fields.width !== undefined) rememberSignatureWidth?.(fields.width);
+    if (element?.type === 'signature' && 'width' in fields && fields.width !== undefined) rememberSignatureWidth?.(fields.width);
     if (element?.type === 'text') {
-      if (fields.textDirection) {
+      if ('textDirection' in fields && fields.textDirection) {
         rememberDirection(fields.textDirection);
-      } else if (fields.text !== undefined) {
+      } else if ('text' in fields && fields.text !== undefined) {
         const typedDirection = detectTextDirection(fields.text);
         if (typedDirection) rememberDirection(typedDirection);
       }
