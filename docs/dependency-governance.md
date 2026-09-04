@@ -50,6 +50,44 @@ the PR. This is the enablement evidence. The only lockfile changes bundled
 with this governance work are the minimal fixed resolutions discovered by its
 live advisory scan; no direct package upgrade is being smuggled in.
 
+## Patching an upstream regression instead of pinning around it
+
+A version bump that is otherwise worth taking (bug fixes, other packages in the
+same Dependabot group) can still ship a real regression in one dependency.
+When that happens, prefer a narrow `patch-package` patch over either reverting
+the whole bump or silently accepting broken behavior. `patches/` holds these;
+`postinstall` runs `patch-package` automatically so `npm ci` in CI (and every
+contributor's `npm install`) applies them without a manual step.
+
+Two are in place as of the `@cantoo/pdf-lib` 2.7.1 → 2.9.1 bump (2026-09):
+
+- **`@pdf-lib/fontkit`** — `@cantoo/pdf-lib` 2.9.1's `CustomFontSubsetEmbedder`
+  started duck-typing `subset.encode` to detect the newer upstream `fontkit`
+  package's synchronous, no-argument `encode()`. Our pinned
+  `@pdf-lib/fontkit@1.1.1` fork also happens to expose an `encode`, but its
+  old streaming-style signature requires a `stream` argument, so the duck-typed
+  call crashes (`Cannot read properties of undefined (reading 'pos')`) on every
+  font-subset embed. The patch renames the fork's stream-based overrides to
+  `_streamEncode`, which restores the correct `encodeStream()` fallback path
+  without touching `@cantoo/pdf-lib` itself.
+- **`@cantoo/pdf-lib`** — `PDFStreamWriter`'s full-rewrite path already skips
+  re-serializing the source document's old XRef stream object, but only when
+  it parses back as a `PDFRawStream`. Decrypting a password-protected source
+  document can make that same object fail to reparse and fall back to a raw
+  `PDFInvalidObject` (still carrying the original dict text, `/Encrypt` entry
+  included), so `unlockPdf` silently produced output that a later
+  `isPdfEncrypted` check still reported as encrypted. The patch extends the
+  skip to also match a `PDFInvalidObject` whose leading bytes declare
+  `/Type /XRef`.
+
+Both were bisected and reproduced against the unpatched package in isolation
+before patching — see the CI investigation on the Dependabot PR for the repro
+steps and stack traces. **A patch is a standing liability, not a permanent
+fix**: on every future bump of either package, first try removing the
+corresponding `.patch` file and running the full suite before regenerating it
+— if upstream has fixed the regression, delete the patch rather than keep
+carrying it.
+
 ## Exceptions and advisories without a fix
 
 Never suppress an advisory by lowering the severity threshold, deleting the

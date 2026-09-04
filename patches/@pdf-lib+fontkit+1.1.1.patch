@@ -1,0 +1,62 @@
+diff --git a/node_modules/@pdf-lib/fontkit/dist/fontkit.es.js b/node_modules/@pdf-lib/fontkit/dist/fontkit.es.js
+index 2711b07..3d703dd 100644
+--- a/node_modules/@pdf-lib/fontkit/dist/fontkit.es.js
++++ b/node_modules/@pdf-lib/fontkit/dist/fontkit.es.js
+@@ -32539,7 +32539,7 @@ var Subset = /*#__PURE__*/function () {
+ 
+     var s = new restructure.EncodeStream();
+     nextTick(function () {
+-      _this.encode(s);
++      _this._streamEncode(s);
+ 
+       return s.end();
+     });
+@@ -32778,7 +32778,7 @@ var TTFSubset = /*#__PURE__*/function (_Subset) {
+     return this.glyf.length - 1;
+   };
+ 
+-  _proto.encode = function encode(stream) {
++  _proto._streamEncode = function encode(stream) {
+     // tables required by PDF spec:
+     //   head, hhea, loca, maxp, cvt , prep, glyf, hmtx, fpgm
+     //
+@@ -33006,7 +33006,7 @@ var CFFSubset = /*#__PURE__*/function (_Subset) {
+     return standardStrings.length + this.strings.length - 1;
+   };
+ 
+-  _proto.encode = function encode(stream) {
++  _proto._streamEncode = function encode(stream) {
+     this.subsetCharstrings();
+     var charset = {
+       version: this.charstrings.length > 255 ? 2 : 1,
+diff --git a/node_modules/@pdf-lib/fontkit/dist/fontkit.umd.js b/node_modules/@pdf-lib/fontkit/dist/fontkit.umd.js
+index c18af0e..aed363c 100644
+--- a/node_modules/@pdf-lib/fontkit/dist/fontkit.umd.js
++++ b/node_modules/@pdf-lib/fontkit/dist/fontkit.umd.js
+@@ -40689,7 +40689,7 @@
+ 
+ 	    var s = new restructure.EncodeStream();
+ 	    nextTick(function () {
+-	      _this.encode(s);
++	      _this._streamEncode(s);
+ 
+ 	      return s.end();
+ 	    });
+@@ -40928,7 +40928,7 @@
+ 	    return this.glyf.length - 1;
+ 	  };
+ 
+-	  _proto.encode = function encode(stream) {
++	  _proto._streamEncode = function encode(stream) {
+ 	    // tables required by PDF spec:
+ 	    //   head, hhea, loca, maxp, cvt , prep, glyf, hmtx, fpgm
+ 	    //
+@@ -41156,7 +41156,7 @@
+ 	    return standardStrings.length + this.strings.length - 1;
+ 	  };
+ 
+-	  _proto.encode = function encode(stream) {
++	  _proto._streamEncode = function encode(stream) {
+ 	    this.subsetCharstrings();
+ 	    var charset = {
+ 	      version: this.charstrings.length > 255 ? 2 : 1,
