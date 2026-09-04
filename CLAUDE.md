@@ -65,6 +65,26 @@ E2E tests are intentionally sparse guardrails, not a duplicate unit suite. Keep 
 Use Playwright only where jsdom cannot prove the behavior: rendered toolbar rects, drag-time toolbar
 following before `pointerup`, page/viewport edge behavior, hydration/CSP-visible flows.
 
+**A whole Playwright suite going red at once usually means it tested the wrong build, not that the
+build broke.** Two things about the preview server cause this, and both look like something else:
+
+- **`playwright.config.js` reuses whatever is already listening on its port** (4173 by default,
+  `reuseExistingServer` outside CI). Worktrees share a port namespace, so a stray `astro preview` left
+  running by *another worktree of this repo* is silently accepted, and every spec then runs against a
+  different project's `dist/`. The tell is uniform failure with locators timing out on elements that
+  obviously exist: the suite is not finding your markup because your markup is not being served.
+  Check what owns the port before believing the result:
+  `lsof -a -p <pid> -d cwd -Fn` prints a listening process's worktree.
+- **`astro preview` allows exactly one instance per project**, managed as a daemon. A second
+  `npm run preview` does not start and does not crash; it prints "Preview server already running at
+  ..." and exits 0, which reads like a mysterious early exit when Playwright launches it. Use
+  `npx astro preview stop` and restart on the port you want, rather than adding a second one. A running
+  preview serves `dist/` from disk, so a rebuild is picked up with no restart.
+
+The practical rule for parallel agents: **one preview, on 4173, for the whole worktree**, and let
+everything share it. Handing each agent its own port does not work and quietly produces the first
+failure mode above.
+
 The editor intentionally uses runtime inline styles for geometry/Floating UI. This is **not** a CSP
 problem and never was: per-property CSSOM writes (`el.style.width = ...`) are not governed by
 `style-src`. The real `style-src` violations were a finite set of SSR-serialized static attributes,
