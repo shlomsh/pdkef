@@ -1,0 +1,40 @@
+name: Dependency advisory scan
+
+on:
+  schedule:
+    # Monday 07:17 UTC: run independently of Dependabot so alerts with no
+    # available update still have an owned, visible triage signal.
+    - cron: "17 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Scan locked dependency graph
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22.x'
+
+      # npm audit returns non-zero when it finds an advisory. Preserve the JSON
+      # report, then let the policy script decide whether a finding is an
+      # unreviewed high/critical issue or an active, time-bound exception.
+      - name: Fetch npm advisory report
+        run: npm audit --json > dependency-audit.json || true
+
+      - name: Enforce advisory triage policy
+        run: node scripts/check-dependency-advisories.mjs dependency-audit.json
+
+      - name: Upload advisory report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: dependency-advisory-report
+          path: dependency-audit.json
+          if-no-files-found: error

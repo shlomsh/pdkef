@@ -1,0 +1,36 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Jerusalem
+    open-pull-requests-limit: 5
+    assignees:
+      - shlomsh
+    labels:
+      - dependencies
+    groups:
+      # Production dependencies are browser-shipped code. Keeping them together
+      # makes the PDF/export and client runtime review explicit; major releases
+      # remain individual PRs because they do not match this group.
+      pdf-and-runtime:
+        applies-to: version-updates
+        dependency-type: production
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+      # Patch-only tooling changes normally have no browser/runtime effect. A
+      # minor or major tool update stays an individual PR for targeted review.
+      build-tool-patches:
+        applies-to: version-updates
+        dependency-type: development
+        patterns:
+          - "*"
+        update-types:
+          - patch

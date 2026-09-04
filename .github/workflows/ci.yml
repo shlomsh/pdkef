@@ -71,6 +71,12 @@ jobs:
     - name: Verify reviewed runtime dependency licenses
       run: npm run test:licenses
 
+    # A dependency update is only safe to automate while the same PR still
+    # reaches the release checks below, including the platform-bound render
+    # guard. This locally validates that wiring on every PR.
+    - name: Verify dependency governance wiring
+      run: npm run test:dependency-governance
+
     - name: Build
       run: npm run build
 

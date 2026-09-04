@@ -20,6 +20,7 @@
     "test:weight": "node scripts/check-page-weight.js",
     "test:fonts": "node scripts/check-font-glyf-alignment.js",
     "test:licenses": "node scripts/runtime-license-inventory.mjs --check",
+    "test:dependency-governance": "node scripts/verify-dependency-governance.mjs",
     "generate:font-coverage": "node scripts/generate-font-coverage.mjs",
     "generate:font-coverage-report": "node scripts/generate-font-coverage-report.mjs",
     "generate:font-manifest": "node scripts/generate-font-manifest.mjs",
@@ -55,6 +56,10 @@
     "tailwindcss": "^4.3.2",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
+  },
+  "overrides": {
+    "browserslist": "4.28.7",
+    "fast-uri": "3.1.6"
   },
   "engines": {
     "node": ">=22.12.0"
