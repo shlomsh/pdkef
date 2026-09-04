@@ -146,7 +146,7 @@ _None._
 | --- | --- | --- |
 | DEMO-01 | P1 | [DEMO-01](backlog/tasks/DEMO-01.md) · Type roles and vertical rhythm tokens for the marketing surface |
 | DEMO-02 | P1 | [DEMO-02](backlog/tasks/DEMO-02.md) · The hero demo: fill and sign a form from a chat, and blur what's private before sending it |
-| DEMO-03 | P1 | [DEMO-03](backlog/tasks/DEMO-03.md) · Close the loop: accept a PDF shared into PDkef from another app |
+| DEMO-03 | P3 | [DEMO-03](backlog/tasks/DEMO-03.md) · Close the loop: accept a PDF shared into PDkef from another app |
 | DEMO-04 | P2 | [DEMO-04](backlog/tasks/DEMO-04.md) · Say it stays on your phone, in words a non-technical person believes |
 | DEMO-05 | P2 | [DEMO-05](backlog/tasks/DEMO-05.md) · Full-height story panels that read as slides without hijacking the scroll |
 | DEMO-06 | P3 | [DEMO-06](backlog/tasks/DEMO-06.md) · Decide the visual register: keep Sea Glass or move to warm paper |

@@ -2,7 +2,7 @@
 id: "DEMO-03"
 title: "Close the loop: accept a PDF shared into PDkef from another app"
 status: "done"
-priority: "P1"
+priority: "P3"
 epic: "landing-story-demo"
 phase: "near-term"
 depends_on: []
@@ -42,3 +42,16 @@ PWA on an Android phone and shared a PDF into it from a chat. Everything above i
 tests and by reading the spec, which is not the same thing. iOS does not implement Web Share Target at
 all, so the honest path there remains the Files and share-sheet-into-Safari route, and no copy claims
 otherwise.
+
+## Priority lowered to P3 (2026-09-04)
+
+The code shipped and everything around it is verified; what is missing is a round trip on real Android
+hardware, which no amount of further work in this repo produces. It also turned out to be less
+load-bearing than the ticket assumed. The landing demo depicts the file arriving in a chat, and that is
+true today on every platform through the ordinary save-and-open path, so nothing on the site is
+claiming a capability that does not exist. What the share target buys is a shortcut, not the story.
+
+iOS does not implement Web Share Target at all, so a large part of the audience was always going to use
+the Files and share-sheet-into-Safari route regardless. That caps the upside further.
+
+Pick it up when someone has an Android phone in hand and ten minutes, not before.
