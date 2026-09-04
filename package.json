@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
-    "@playwright/test": "^1.61.1",
+    "@playwright/test": "^1.62.1",
     "@preact/preset-vite": "^2.10.5",
     "@tailwindcss/vite": "^4.3.2",
     "@types/sortablejs": "^1.15.8",
