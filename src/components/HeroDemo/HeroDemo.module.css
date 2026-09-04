@@ -247,10 +247,14 @@
      height roughly in proportion to the new beat count so the average
      distance-per-beat - and therefore how long a visitor has to read each
      effect - stays close to what it was before, rather than new beats
-     simply stealing scroll distance from the old ones. See
+     simply stealing scroll distance from the old ones. The 2026-09-04
+     reading pause before the permission-slip PDF opens adds 8% of the
+     sign track's former pin distance: 22.4svh stacked and 45.76svh on
+     desktop, rounded to the practical whole-svh heights below. Its beat
+     map preserves the duration of every later interaction; see
      ScrollDriver.tsx's TRACKS comment for the beat-by-beat reasoning. */
   .track {
-    height: 380svh;
+    height: 402svh;
   }
 
   .track-short {
@@ -282,7 +286,7 @@
      the comments are the only link between them. */
   @media (min-width: 1320px) {
     .track {
-      height: 672svh;
+      height: 718svh;
     }
 
     .track-short {
