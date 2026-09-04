@@ -702,13 +702,17 @@ const faq = [
        while it is already overlapping the card it is covering, so for the
        length of the fade you see straight through it to the one behind -
        the one thing a stack must never do. Neutralised in CSS rather than
-       by teaching FeatureCard's script about this page: the script keeps
-       arming and observing, and both states simply resolve to "visible". */
-    .card-stack :global(.card-reveal.is-armed),
-    .card-stack :global(.card-reveal.is-armed.is-visible) {
-      opacity: 1;
-      transform: none;
-      transition: none;
+       by teaching FeatureCard about this page.
+
+       `animation-name`, not the `animation` shorthand, which would also
+       reset animation-timeline and animation-range out from under the rule
+       it is overriding - harmless while the only intent is "stop the fade",
+       and quietly wrong the moment anyone gives these cards a second
+       animation. (The card's own `view-timeline-name` below is a different
+       property and survives either way, so the decor parallax is not what
+       is at stake here.) */
+    .card-stack :global(.card-reveal) {
+      animation-name: none;
     }
   }
 
@@ -860,7 +864,7 @@ const faq = [
        "no animation" instead of "wrong position".
      - prefers-reduced-motion. Scroll-linked movement is exactly the kind of
        motion the preference exists to suppress, and the card-reveal fade in
-       FeatureCard.astro already refuses to arm under it.
+       FeatureCard.astro sits behind the same pair of guards.
 
      `transform`, not the `translate` property, on purpose: Tailwind v4
      compiles -translate-y-1/2 (which CardDecor's `cr`/`cl` icon positions
