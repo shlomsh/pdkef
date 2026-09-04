@@ -1,7 +1,7 @@
 ---
 id: "DEMO-02"
 title: "The hero demo: fill and sign a form from a chat, and blur what's private before sending it"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "landing-story-demo"
 phase: "near-term"
@@ -59,3 +59,45 @@ confirmed as the register). That work is in flight. What is still open once it l
    decision. That was the only place on the site where multi-script support was visible without being
    explained, against a great deal of real effort in the export path. If it comes back it should be a
    small third beat, not a return to Hebrew as the main story.
+
+## What landed
+
+The demo is built, placed, and verified end to end. Commits d3a4ff8, cb46b04, 6a71f4d, 5d73b06,
+51f4c90, 8e7671a and 87917f4.
+
+Both stories work as specified. Story one runs the whole errand: a permission slip arrives in a chat,
+opens, four blanks fill, two boxes tick, a signature draws, a share sheet carries the signed file out,
+and it lands back in the thread. Story two applies four visibly different tools to a utility bill, with
+a chip naming each one as it fires.
+
+**Five corrections from the product owner shaped it more than the original ticket did**, and each one
+came from the same principle, which is now the thing to remember rather than the individual fixes:
+**a PDF page cannot reflow, so a demo of a PDF editor must not either.** PDkef renders the page and
+places absolutely positioned elements on top of it. Anything in the demo that moves the page underneath
+is depicting behaviour the product does not have.
+
+1. The printed sentence reflowed as values typed into it. Now the printed layer is present in full from
+   the first frame and every value is an overlay that takes part in no layout.
+2. Delete closed the gap it left. It now vacates in place; the row below measures identically at both
+   ends of the beat.
+3. The form asked the parent for the trip's destination and hours, which a school prints before the form
+   goes out. The printed and parent-filled halves are now inverted, with the field set taken from real
+   permission slips rather than invented.
+4. The filled answers rendered at weight 600 against printed text at 400, making the parent's handwriting
+   the boldest thing on the page. Both now compute to 13.12px w400, sitting on their rules rather than
+   floating above them.
+5. There was no pause between the section title and the first animation, and the caption scrolled away
+   exactly when it became useful. The captions now pin with the panels they describe and the hero is a
+   title card with a screen of its own.
+
+The lesson underneath all five: **the demo is judged as the product, not as an illustration of it.**
+Every one of these was invisible in a code review and obvious to someone who has actually filled in a
+form.
+
+Verified in one pass rather than piecemeal: 390px, JavaScript disabled, `prefers-reduced-motion: reduce`,
+a real build-and-preview CSP check, and the four Playwright guards in `e2e/demo/`, plus 1917 unit tests,
+CSS duplication, SEO across 23 pages and page weight.
+
+**Not carried forward:** story one is English, so the multi-script support the export path has had so
+much work put into is no longer visible anywhere on the site without being explained. That was the
+owner's call. If it returns it should be a small third beat, not a return to Hebrew as the main story.
