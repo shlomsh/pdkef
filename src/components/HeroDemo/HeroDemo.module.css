@@ -1119,22 +1119,30 @@
   text-align: end;
 }
 
-/* Delete: the whole row collapses to nothing, so the rows below it close
-   up in normal flow - no absolute positioning or height trickery needed
-   beyond animating this row's own box down to zero. composes: doc-line
-   keeps the shared row look (and keeps the `.doc-line span:first-child` /
-   `:last-child` selectors above matching, since composition adds the
-   doc-line class alongside this one) right up until it collapses. p-delete
-   rising 0 -> 1 means "more deleted", so every dimension here scales by
-   (1 - p-delete): full-size at the beat's start, zero once it completes -
-   which is also why the row is already gone at rest (p-delete defaults to
-   1, the finished/no-JS state has all four redactions already applied). */
-.delete-row {
-  composes: doc-line;
-  overflow: hidden;
-  max-height: calc((1 - var(--p-delete, 1)) * 44px);
-  padding-block: calc((1 - var(--p-delete, 1)) * 9px);
-  border-block-end-width: calc((1 - var(--p-delete, 1)) * 1px);
+/* Delete: the row's box never changes size, so the deleted line's own
+   markup uses .doc-line directly (not a dedicated wrapper class - see the
+   .panel-head comment above for why a class with no declarations of its
+   own beyond `composes` compiles to zero real CSS and check-dead-
+   utilities.js correctly flags it). A PDF page cannot reflow - the real
+   Redact tool's own tip line says Delete "takes an image or text run out
+   of the file itself," it does not re-lay-out whatever comes after it - so
+   this used to be wrong: an earlier version collapsed this row's
+   max-height/padding/border to zero, which pulled every row below it
+   upward, depicting a reflow the product cannot perform. Fixed by never
+   touching the row's geometry at all; only its text content fades out via
+   .delete-row-text on each span, so the row keeps the exact same height,
+   padding and border-block-end as every other .doc-line, in every mode,
+   and the space the deleted line occupied stays empty rather than closing
+   up. Verified by measuring the next row's getBoundingClientRect().top at
+   track progress 0 and 1 - identical.
+
+   Both spans, not just the value, fade: unlike blur/blackout/whiteout
+   below (which each redact one value beside an intact label), this row is
+   the demo's stand-in for a single drawn text run covering the whole
+   line - "Late Fee Note: Includes $12 reminder fee" reads as one run at
+   this density, so deleting it removes the whole line's rendered text, not
+   half of it. */
+.delete-row-text {
   opacity: calc(1 - var(--p-delete, 1));
 }
 
