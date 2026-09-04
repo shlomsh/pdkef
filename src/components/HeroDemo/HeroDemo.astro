@@ -133,8 +133,6 @@ const rootSelector = `.${styles.root}`;
     </div>
   </div>
 
-  <h3 class={`type-card ${styles.caption}`}>Fill it in, sign it, and send it straight back.</h3>
-
   <div class={styles.track} data-hero-track="sign">
     <p class="sr-only">
       A field trip permission slip arrives as a file in a chat message. Tapping it opens the form
@@ -146,6 +144,16 @@ const rootSelector = `.${styles.root}`;
       and back in the chat, the signed form goes out and reads as sent.
     </p>
     <div class={styles['stage-first']} data-hero-stage>
+      {/* Inside the sticky stage, not above the track. As a sibling before
+          it, the caption scrolled past in the first moments and the visitor
+          then watched five screens of story with no idea what they were
+          being told, and with no pause anywhere between the section title
+          and the animation starting. Pinned here it holds for the whole
+          story, which is both the pause and the context. It is absolutely
+          positioned so it takes no part in the flex layout and the phone's
+          height math is untouched; .stage-base reserves the room for it
+          with --stage-caption-space. */}
+      <h3 class={`type-card ${styles.caption}`}>Fill it in, sign it, and send it straight back.</h3>
       <div class={styles['progress-rail']} aria-hidden="true">
         <span class={`${styles['progress-seg']} ${styles['progress-seg-current']}`}></span>
         <span class={`${styles['progress-seg']} ${styles['progress-seg-pending']}`}></span>
@@ -350,7 +358,6 @@ const rootSelector = `.${styles.root}`;
     </div>
   </div>
 
-  <h3 class={`type-card ${styles.caption}`}>Some of it is nobody's business. Blur it out before you reply.</h3>
 
   <div class={`${styles.track} ${styles['track-short']}`} data-hero-track="blur">
     <p class="sr-only">
@@ -360,6 +367,7 @@ const rootSelector = `.${styles.root}`;
       the rows below close up. The cleaned-up document is then attached to a reply and sent.
     </p>
     <div class={styles.stage} data-hero-stage>
+      <h3 class={`type-card ${styles.caption}`}>Some of it is nobody's business. Blur it out before you reply.</h3>
       <div class={styles['progress-rail']} aria-hidden="true">
         <span class={`${styles['progress-seg']} ${styles['progress-seg-done']}`}></span>
         <span class={`${styles['progress-seg']} ${styles['progress-seg-current']}`}></span>
