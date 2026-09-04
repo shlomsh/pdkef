@@ -852,6 +852,25 @@ and fails if it calls `onChange`/`dispatch`/`setState` directly.
 - **Some editor bugs require a browser, not jsdom.** Unit tests are the first guardrail for pure math,
   but jsdom cannot verify rendered toolbar overlap, real `getBoundingClientRect()` relationships after
   CSS/Floating UI, or whether the toolbar follows a DOM-mutated drag before `pointerup`.
+- **Never reveal something with an IntersectionObserver that JS first hid.** An observer only learns
+  about states a rendered frame actually passed through, so a single-step scroll - the End key, a
+  scrollbar drag, a `scrollIntoView()` - moves an element from below the viewport to above it with no
+  intersecting frame in between, and the callback simply never runs. Anything the script hid on the way
+  in then stays hidden for good while still occupying its full height. That shipped as FeatureCard's
+  card reveal and read on `/sign/` as a screen-tall blank gap after "Free for everyone". A scroll
+  listener that re-checks skipped elements patches the symptom; the fix is to stop sampling, and derive
+  the state from scroll position instead - a CSS scroll-driven animation (`animation-timeline: view()`)
+  behind `@supports`, so the hidden state is the start of an animation that is guaranteed to run and
+  cannot outlive the mechanism that undoes it. `e2e/card-reveal.spec.js` pins it.
+- **`animation-range` accepts a bare length and silently means something else with it.**
+  `entry 0% 15vh` looks like "fade over the first 15vh of entry" and parses as `entry 150px` to
+  `entry 100%` - the length is read as the range *start*. The reveal then ran over ~750px instead of
+  ~150px, which is invisible in a screenshot of a settled page and only shows up as body copy sitting
+  at 35% opacity whenever a visitor stops scrolling mid-range. Write both ends with range names
+  (`entry 0% entry 15%`) and remember a scroll-linked animation has no duration of its own: whatever it
+  is mid-way through is a state the reader can park on indefinitely, so it must not be one that fails
+  the contrast floor. Note also that `entry` is capped at the *scrollport's* height, not the subject's,
+  so a percentage of it is stable across cards of very different heights - `cover` is not.
 - **CSP style attributes are a separate risk from hashed `<style>` tags, and the intuitive diagnosis is
   wrong.** The editor's runtime geometry writes per-property CSSOM (`el.style.width = ...`), which
   `style-src` does **not** govern: only literal `style="..."` markup, `setAttribute('style', ...)` and
