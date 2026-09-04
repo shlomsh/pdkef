@@ -15,9 +15,7 @@ The canonical backlog is the task-file collection in [backlog/tasks/](backlog/ta
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| SIGN-23 | P1 | [SIGN-23](backlog/tasks/SIGN-23.md) · Make non-default language fonts explicitly offline-ready |
+_None._
 
 ### Blocked
 
@@ -48,6 +46,7 @@ _None._
 | SIGN-19 | P1 | [SIGN-19](backlog/tasks/SIGN-19.md) · Four shaping/render guards passed on macOS and failed on Linux CI |
 | SIGN-21 | P1 | [SIGN-21](backlog/tasks/SIGN-21.md) · Make the browser guard helpers reachable from the preview server |
 | SIGN-22 | P1 | [SIGN-22](backlog/tasks/SIGN-22.md) · Restore the CSS release gate after adding language-request actions |
+| SIGN-23 | P1 | [SIGN-23](backlog/tasks/SIGN-23.md) · Make non-default language fonts explicitly offline-ready |
 | SIGN-24 | P1 | [SIGN-24](backlog/tasks/SIGN-24.md) · Separate saved-signature assets from scalar preferences |
 | SIGN-25 | P1 | [SIGN-25](backlog/tasks/SIGN-25.md) · Reconcile and enforce shipped dependency licenses |
 

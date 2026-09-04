@@ -14,7 +14,7 @@ import {
 } from '../../geometry/coords.js';
 import { getElementDefinition } from '../../registry/index.ts';
 import { findUnrepresentableCharacters } from '../../text/textCoverage.js';
-import { embeddedFontFile } from '../../text/fonts.js';
+import { embeddedFontFile, resolveTypography } from '../../text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../../../constants/signGeometry.js';
 
 /**
@@ -32,6 +32,15 @@ export class UnrepresentableTextError extends Error {
     // 1-based page numbers, so the message can point at where to look. A
     // document refused without saying where is one the user cannot act on.
     this.pageNumbers = pageNumbers;
+  }
+}
+
+/** A selected bundled face could not be loaded; never substitute silently. */
+export class FontUnavailableError extends Error {
+  constructor(family) {
+    super(`${family} is not available for PDF export`);
+    this.name = 'FontUnavailableError';
+    this.family = family;
   }
 }
 
@@ -103,6 +112,25 @@ export async function signPdf(file, elements, onProgress) {
       return null;
     }
   };
+
+  // Load every exact face the document needs before coverage checking or page
+  // mutation. The old generic Arimo fallback made an uncached Latin display
+  // face look successful offline while exporting in a visibly different
+  // font. A named refusal keeps the draft intact and points the UI back to the
+  // font picker's explicit provisioning action instead.
+  for (const element of elements) {
+    if (element.type !== 'text' || !element.text) continue;
+    const typography = resolveTypography(
+      element.fontFamily,
+      element.text,
+      element.fontWeight,
+      element.fontStyle,
+      element.fontSize,
+    );
+    if (!await loadCustomFont(typography.family, typography.weight, typography.style)) {
+      throw new FontUnavailableError(typography.family);
+    }
+  }
 
   // Refuse before writing anything, rather than embed a document some of
   // whose text silently has no glyphs (docs/hebrew-text-shaping-export.md,
