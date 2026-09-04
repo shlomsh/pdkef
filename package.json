@@ -39,7 +39,7 @@
     "@vercel/analytics": "^2.0.1",
     "astro": "^7.2.10",
     "bidi-js": "^1.0.3",
-    "lucide-preact": "^1.38.0",
+    "lucide-preact": "^1.39.0",
     "pdfjs-dist": "^6.3.289",
     "preact": "^10.29.8",
     "regenerator-runtime": "^0.14.1",
