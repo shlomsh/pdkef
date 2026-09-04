@@ -5,6 +5,7 @@ import { execFileSync } from 'child_process';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { PDFDocument, PDFName, PDFNumber, degrees } from '@cantoo/pdf-lib';
 import {
+  FontUnavailableError,
   signPdf,
   UnrepresentableTextError
 } from './sign.js';
@@ -229,6 +230,27 @@ describe('sign.js signPdf', () => {
     const requestedFiles = global.fetch.mock.calls.map(([url]) => String(url));
     expect(requestedFiles.some((u) => u.includes('GreatVibes-Bold.ttf'))).toBe(false);
     expect(requestedFiles.some((u) => u.includes('GreatVibes-Regular.ttf'))).toBe(true);
+  });
+
+  it('refuses an unavailable selected family instead of silently exporting Latin text in Arimo', async () => {
+    const normalFontFetch = global.fetch;
+    global.fetch = vi.fn(async (url) => (
+      String(url).includes('Pacifico-Regular.ttf')
+        ? { ok: false, status: 503, arrayBuffer: async () => new ArrayBuffer(0) }
+        : normalFontFetch(url)
+    ));
+    const file = getFixtureFile();
+    const element = {
+      id: 'el-offline-font', type: 'text', pageIndex: 0, left: 10, top: 10,
+      text: 'Signed offline', fontFamily: 'Pacifico', fontSize: 20, color: '#000000',
+    };
+
+    await expect(signPdf(file, [element])).rejects.toMatchObject({
+      name: 'FontUnavailableError',
+      family: 'Pacifico',
+    });
+    expect(FontUnavailableError.prototype).toBeInstanceOf(Error);
+    expect(global.fetch.mock.calls.some(([url]) => String(url).includes('Arimo-Regular.ttf'))).toBe(false);
   });
 
   describe('refuses rather than silently drop characters no bundled font can draw (H5)', () => {
