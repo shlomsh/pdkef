@@ -50,9 +50,21 @@
 
 /* ---------- hero ---------- */
 
+/* A title card that holds a screen, rather than a heading the visitor
+   scrolls straight past. Before this there was no pause anywhere between
+   the section title and the first story starting to animate: the title,
+   the privacy line and the caption all went by in one flick of the
+   trackpad, so the demo began before anyone had read what it was. Giving
+   it a screen of its own is the same "one screen per beat" idea the sticky
+   panels below already use. */
 .hero {
+  box-sizing: border-box;
   max-width: 640px;
   margin-inline: auto;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   padding-block: var(--space-section-block) var(--space-4);
   padding-inline: var(--space-5);
   text-align: center;
@@ -99,11 +111,19 @@
 
 /* ---------- captions ---------- */
 
+/* Pinned at the top of its own sticky stage (see HeroDemo.astro), so it
+   stays on screen for the whole story instead of scrolling away as it
+   begins. Absolutely positioned on purpose: .stage-base is the containing
+   block already, and keeping the caption out of the flex flow means the
+   phone's height math below is unaffected by it. The room it occupies is
+   reserved by --stage-caption-space rather than taken from the phone. */
 .caption {
+  position: absolute;
+  top: calc(var(--herodemo-app-bar, 0px) + 26px);
+  inset-inline: 0;
+  z-index: 1;
   max-width: 480px;
-  margin-inline: auto;
-  margin-block: 0;
-  padding-block: var(--space-content-row) var(--space-1);
+  margin: 0 auto;
   padding-inline: var(--space-5);
   text-align: center;
 }
@@ -169,7 +189,21 @@
      stage's available height - a literal 40px in two places would go stale
      silently if this ever changed. */
   --stage-padding-block: 40px;
-  padding-block: var(--stage-padding-block);
+  /* The site's app bar is `sticky top-0 z-20` and 56.5px tall, so a stage
+     pinned at top:0 puts its own first 56px underneath it. Anything
+     positioned from the stage's top edge - the caption, the progress rail -
+     has to clear that or it is simply invisible, which is exactly what
+     happened on the first attempt. Zero here because the offset is only
+     needed where the stage is actually sticky; the motion query below
+     raises it, and under reduced motion the stage scrolls normally and owes
+     the app bar nothing. */
+  --herodemo-app-bar: 0px;
+  /* Extra room at the top for .caption, which is pinned there and takes no
+     part in this flex layout. Declared as its own value so the phone size
+     calcs below can subtract exactly what the caption reserves rather than
+     a literal that would drift the moment this changed. */
+  --stage-caption-space: calc(var(--herodemo-app-bar) + 46px);
+  padding-block: calc(var(--stage-padding-block) + var(--stage-caption-space)) var(--stage-padding-block);
   padding-inline: 20px;
 
   /* Defaults for every beat this component drives, on every stage
@@ -217,6 +251,7 @@
     top: 0;
     height: 100svh;
     align-items: center;
+    --herodemo-app-bar: 3.5rem;
   }
 
   /* The first panel's height is driven by a custom property so a page that
@@ -231,6 +266,7 @@
     top: 0;
     height: var(--herodemo-panel-height, 100svh);
     align-items: center;
+    --herodemo-app-bar: 3.5rem;
   }
 }
 
@@ -279,11 +315,31 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  /* Track two's stage is always a plain 100svh, so this can read that
+     directly rather than --herodemo-panel-height, which only track one's
+     stage honours and which inherits past this component's boundary (see
+     the .phone-first comment above for why that distinction matters). It
+     needs the clamp for the same reason .phone-first does: the caption's
+     reserved space came out of the stage's usable height, and at an 800px
+     viewport a 633px phone no longer fits what is left. */
+  .phone {
+    width: min(
+      80vw,
+      300px,
+      calc((100svh - (var(--stage-padding-block) * 2) - var(--stage-caption-space)) * 9 / 19)
+    );
+  }
+
   .phone-first {
     width: min(
       80vw,
       300px,
-      calc((var(--herodemo-panel-height, 100svh) - (var(--stage-padding-block) * 2)) * 9 / 19)
+      calc(
+        (
+            var(--herodemo-panel-height, 100svh) - (var(--stage-padding-block) * 2) -
+              var(--stage-caption-space)
+          ) * 9 / 19
+      )
     );
   }
 }
@@ -332,7 +388,7 @@
  */
 .progress-rail {
   position: absolute;
-  top: 14px;
+  top: calc(var(--herodemo-app-bar, 0px) + 12px);
   inset-inline-start: 50%;
   transform: translateX(-50%);
   z-index: 1;
