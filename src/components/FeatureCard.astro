@@ -133,11 +133,17 @@ const variantClasses = variant === 'highlight'
           if (entry.isIntersecting) {
             entry.target.classList.add('is-visible');
             observer.unobserve(entry.target);
+            armedCards.delete(entry.target);
           }
         }
       },
       { threshold: 0.2, rootMargin: '0px 0px -10% 0px' },
     );
+
+    // Cards the observer is still waiting on. Tracked separately from the
+    // NodeList so the scroll fallback below has a shrinking list to check
+    // instead of re-querying every card on every scroll.
+    const armedCards = new Set();
 
     for (const card of cards) {
       // A card already on screen at load time is left alone rather than
@@ -153,6 +159,38 @@ const variantClasses = variant === 'highlight'
 
       card.classList.add('is-armed');
       observer.observe(card);
+      armedCards.add(card);
+    }
+
+    // Safety net for a card the observer never gets a callback for at all.
+    // IntersectionObserver only fires when a sampled frame catches the
+    // element actually intersecting the viewport - an instant, single-step
+    // scroll (End key, a scrollbar drag, `scrollIntoView()`, a fast
+    // trackpad fling) can move a card straight from "below the viewport" to
+    // "above it" with no frame in between where it was ever visible, so the
+    // ratio reads 0 both before and after and the callback never runs. The
+    // card is then stuck armed at opacity: 0 forever - not hidden on
+    // purpose, just never told it can show itself - which reads as a large
+    // blank gap where its content should be. On scroll, anything still
+    // armed that has clearly already passed the viewport (fully above or
+    // fully below it) gets revealed immediately; it was going to be shown
+    // with no animation anyway since the visitor never saw the transition.
+    if (armedCards.size > 0) {
+      const revealSkipped = () => {
+        const viewport = window.innerHeight || document.documentElement.clientHeight;
+        for (const card of armedCards) {
+          const rect = card.getBoundingClientRect();
+          const passedBy = rect.bottom < 0 || rect.top > viewport;
+          if (!passedBy) continue;
+          observer.unobserve(card);
+          card.classList.add('is-visible');
+          armedCards.delete(card);
+        }
+        if (armedCards.size === 0) {
+          window.removeEventListener('scroll', revealSkipped);
+        }
+      };
+      window.addEventListener('scroll', revealSkipped, { passive: true });
     }
   }
 </script>
