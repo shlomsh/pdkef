@@ -38,6 +38,22 @@
 .root {
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
+  /* How wide the phone mockup is allowed to get, before the inline and
+     available-height caps below also have their say. 300px is a phone-sized
+     phone, which is right in the narrow demo column of the two-column
+     desktop layout. It is
+     wrong on a tablet: there the stacked layout gives the panel a full
+     768-1000px of width and a screenful of height, and a 300px mockup sits
+     in the middle of it looking stranded. The two media queries closing the
+     phone-chrome section are where that gets corrected. */
+  --phone-max: 300px;
+
+  /* The horizontal cap, which only ever binds on a handset: at 640px and up
+     either the height cap or --phone-max is always the smaller of the
+     three. So this really means "how much of a phone's width the mockup may
+     claim". */
+  --phone-inline-max: 80vw;
+
   /* Phone hardware chrome, derived from the text token rather than a new
      hardcoded gray - see file header. */
   --phone-bezel: color-mix(in srgb, var(--color-text) 50%, black 50%);
@@ -50,17 +66,16 @@
 
 /* ---------- hero ---------- */
 
-/* A title card that holds a screen, rather than a heading the visitor
-   scrolls straight past. Before this there was no pause anywhere between
-   the section title and the first story starting to animate: the title,
-   the privacy line and the caption all went by in one flick of the
-   trackpad, so the demo began before anyone had read what it was. Giving
-   it a screen of its own is the same "one screen per beat" idea the sticky
-   panels below already use. */
+/* The title card's own box. Its panel, and how it fades, are further down
+   under "intro title card". */
 .hero {
   box-sizing: border-box;
   max-width: 640px;
   margin-inline: auto;
+  /* The degraded-state height: under reduced motion the panel below is not
+     sticky and has no height of its own, so the card claims its screen here
+     instead. Dropped once the panel does own the screen - a 100svh
+     min-height inside a 100svh padded panel overflows it. */
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -128,6 +143,78 @@
   text-align: center;
 }
 
+/* ---------- intro title card ---------- */
+
+/*
+ * The card exists so the demo does not start animating before anyone has read
+ * what it is: the section title, the privacy line and the first caption used
+ * to go by in one flick of the trackpad. It holds a screen for that reason.
+ *
+ * What changed is how it leaves. It was a plain 100svh block that scrolled
+ * past, which made it the one piece of this component that did not behave
+ * like the rest of it - two stories that hold still and crossfade, introduced
+ * by a heading sliding up the screen. It is now a sticky panel like they are,
+ * fading in as it pins and back out in place before it releases, so the
+ * visitor never watches it travel.
+ *
+ * It reads --p-in / --p-out, written by ScrollDriver onto [data-hero-stage]
+ * exactly like every other beat, so pacing still has one owner. Both default
+ * to "fully visible" here (in: 1, out: 0) for the same reason every other
+ * beat defaults to its finished value: with no JS, or under reduced motion,
+ * the card must simply be there rather than blank.
+ */
+.track-intro {
+  position: relative;
+}
+
+.intro-stage {
+  --p-in: 1;
+  --p-out: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero {
+  /* 0 -> 1 -> 0 across the panel. A subtraction rather than a multiplication
+     because the two windows do not overlap, so there is no middle term to
+     reason about; opacity clamps to 0-1 on its own if a future beat map ever
+     makes them. Defaults come from .intro-stage, like every other beat's. */
+  opacity: calc(var(--p-in) - var(--p-out));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .track-intro {
+    /* One screen of pin (the hold, where the fade in and out happen) plus
+       the screen the panel itself occupies. Deliberately much shorter than a
+       story track: there is one sentence to read here, not twelve beats. */
+    height: 190svh;
+    /* Exactly the stage's own height, and that equality is the whole point.
+       Without it the card's fade-out finishes the instant its panel releases,
+       and the first story's panel then needs a further full screen of travel
+       before it pins and can start fading in - one screenful of empty page
+       between the two. Pulling the next track up by one panel height makes
+       the story pin at the same moment the card releases, so the fade out and
+       the fade in meet. Nothing overlaps visually: the card is already at
+       zero opacity by then, and the story's own entrance fade starts at zero.
+
+       Needs no breakpoint of its own. Above the two-column width this whole
+       track is display:none, and an element with no box has no margins
+       either, so the story track simply sits where it always did. */
+    margin-block-end: -100svh;
+  }
+
+  .intro-stage {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+  }
+
+  .hero {
+    min-height: 0;
+  }
+}
+
 /* ---------- track / sticky mechanics ---------- */
 
 .track {
@@ -163,11 +250,44 @@
      simply stealing scroll distance from the old ones. See
      ScrollDriver.tsx's TRACKS comment for the beat-by-beat reasoning. */
   .track {
-    height: 672svh;
+    height: 380svh;
   }
 
   .track-short {
-    height: 460svh;
+    height: 270svh;
+  }
+
+  /* The figures above are the stacked (phone / tablet / small laptop) ones
+     and the two below are the desktop ones this component was tuned at.
+     They differ because the *cost* of the scroll distance differs, not the
+     pacing preference: in the two-column layout the demo scrolls beside a
+     hero that stays pinned, so the visitor always has the page around them
+     and the length reads as depth. Stacked, the same distance is a tunnel -
+     the demo alone was 62% of the whole home page on a 375px phone, twelve
+     screens deep, with the story cards below it out of sight the entire
+     time.
+
+     The stacked figures are set from what one swipe covers rather than
+     scaled down by eye: 380svh over twelve beats and 270svh over eight both
+     land near 32svh per beat, which on a phone is about 265-285px - one
+     deliberate swipe, one beat. Desktop keeps roughly 56svh per beat, where
+     a trackpad's unit of scroll is smaller and the demo is not the only
+     thing on screen.
+
+     1320px, not the 1024px this file's callers used to switch at: below
+     that the demo column is too narrow to hold the mockup at all (at
+     1180px it measured 132px wide). index.astro's own .home-first grid
+     switches at the same width and the two must agree; a media query
+     cannot read a custom property, so the number is duplicated there and
+     the comments are the only link between them. */
+  @media (min-width: 1320px) {
+    .track {
+      height: 672svh;
+    }
+
+    .track-short {
+      height: 460svh;
+    }
   }
 }
 
@@ -234,6 +354,30 @@
   /* This story's own raw 0-1 progress, written by ScrollDriver.tsx alongside
      every beat above (see its comment). Drives .progress-rail below. */
   --p-track: 1;
+  /* Entrance crossfade. Defaults to 1 like every other beat, so no-JS and
+     reduced-motion render the panels plainly visible; the rule that actually
+     reads it is below, and deliberately narrow. */
+  --p-enter: 1;
+}
+
+/* The first story fades in rather than sliding up into place, so the intro
+   card hands off to it as a crossfade (see .track-intro's negative bottom
+   margin, which is what makes the two meet).
+
+   Only the first story. The second one is preceded by a finished panel
+   scrolling away, which is a perfectly good way to end a chapter and leaves
+   no gap to fill; fading it in as well would replace that continuity with a
+   blank screen.
+
+   And only in stacked layouts. In the two-column desktop layout the first
+   story is not something the visitor scrolls *to*: it is already there
+   beside the hero on the first screen, and its track's top starts a little
+   below the viewport top, so progress reads 0 and this would open the page
+   with an empty right-hand column. */
+@media (prefers-reduced-motion: no-preference) and (max-width: 1319.98px) {
+  .stage-first {
+    opacity: var(--p-enter);
+  }
 }
 
 .stage {
@@ -274,7 +418,7 @@
 
 .phone {
   box-sizing: border-box;
-  width: min(80vw, 300px);
+  width: min(var(--phone-inline-max), var(--phone-max));
   aspect-ratio: 9 / 19;
   padding: 10px;
   background: var(--phone-bezel);
@@ -286,7 +430,7 @@
 }
 
 /* Only the first track's phone needs to shrink to fit an overridden panel
-   height - the second track's phone must stay the original min(80vw, 300px)
+   height - the second track's phone must stay at the shared caps
    regardless of what wraps the whole component, so this is a dedicated
    modifier rather than a shared read of --herodemo-panel-height on .phone
    itself. A shared read would have been wrong two ways: (1) custom
@@ -324,16 +468,16 @@
      viewport a 633px phone no longer fits what is left. */
   .phone {
     width: min(
-      80vw,
-      300px,
+      var(--phone-inline-max),
+      var(--phone-max),
       calc((100svh - (var(--stage-padding-block) * 2) - var(--stage-caption-space)) * 9 / 19)
     );
   }
 
   .phone-first {
     width: min(
-      80vw,
-      300px,
+      var(--phone-inline-max),
+      var(--phone-max),
       calc(
         (
             var(--herodemo-panel-height, 100svh) - (var(--stage-padding-block) * 2) -
@@ -341,6 +485,92 @@
           ) * 9 / 19
       )
     );
+  }
+}
+
+/* Handsets. The mockup here is a phone drawn on a phone, so every pixel the
+   frame is not using is one the document inside it does not get: at the
+   inherited figures the screen came out 278px wide on a 375px device, and
+   the form's own type is small at that size. The stage's block padding is
+   generous framing on a large display and simply cost here, and 80vw leaves
+   37px of empty background down each side of a mockup that is the only
+   thing on the panel. Both are relaxed, which the height cap then spends on
+   a taller, wider phone. --stage-caption-space is untouched: the caption,
+   and the app bar above it, are not negotiable space. */
+@media (max-width: 639.98px) {
+  .root {
+    --phone-max: 340px;
+    --phone-inline-max: 88vw;
+  }
+
+  .stage-base {
+    --stage-padding-block: 24px;
+  }
+}
+
+/* Wide, short panels: a landscape tablet or a laptop below the two-column
+   breakpoint. The stacked panel is as wide as the page but no taller than
+   the viewport, so a portrait mockup centred in it leaves several hundred
+   pixels of empty background either side while the caption sits alone above
+   it - the composition reads as one small object adrift in a big box.
+
+   Putting the caption and the progress rail in a column beside the phone
+   uses that width instead, and hands the phone the vertical room the
+   caption was reserving (--stage-caption-space drops to just the app bar's
+   own clearance, which is the part that is not negotiable).
+
+   Grid rather than flex, and no markup change: the caption and the rail are
+   absolutely positioned siblings of the phone in every other mode, and
+   named areas can rearrange all three without a wrapper element that the
+   other modes would then have to ignore. */
+@media (min-width: 900px) and (max-width: 1319.98px) {
+  .stage-base {
+    --stage-caption-space: var(--herodemo-app-bar);
+    display: grid;
+    grid-template-columns: minmax(0, 22rem) auto;
+    grid-template-areas:
+      'caption phone'
+      'rail phone';
+    align-content: center;
+    justify-content: center;
+    column-gap: var(--space-8);
+    row-gap: var(--space-4);
+  }
+
+  .caption {
+    grid-area: caption;
+    position: static;
+    max-width: none;
+    margin: 0;
+    padding-inline: 0;
+    text-align: start;
+    align-self: end;
+  }
+
+  .progress-rail {
+    grid-area: rail;
+    position: static;
+    transform: none;
+    justify-self: start;
+    align-self: start;
+  }
+
+  .phone {
+    grid-area: phone;
+    align-self: center;
+  }
+}
+
+/* Tablets and small laptops, where the layout is stacked and the panel is
+   therefore as wide as the page. The height cap in the two rules above is
+   what actually binds here (roughly 400px at an iPad's 1024px of height),
+   so this raise mostly just gets the flat 300px out of its way; 420px is
+   the ceiling because past it the mockup stops reading as a phone. Ends at
+   the two-column breakpoint, where the demo goes back to a narrow column
+   and 300px is right again. */
+@media (min-width: 640px) and (max-width: 1319.98px) {
+  .root {
+    --phone-max: 420px;
   }
 }
 
@@ -745,53 +975,48 @@
 }
 
 /*
- * The parent-filled section: one row per field, label at the start and a
- * reserved-width blank at the end (the same doc-line-style "label ...
- * value" shape as the bill in story two, so both stories read as one
- * product's visual language).
+ * The parent-filled section: a real two-column form. Labels in the first
+ * column, the parent's own answers left-aligned in the second, every rule
+ * starting and ending at the same two x positions.
  *
- * Each blank is a reserved space with a constant width, set once from the
- * final answer's own character count (ch, not a guessed px figure) and
- * never touched by a --p-* property, plus a static pre-printed rule
- * beneath it. The answer itself is a separate, absolutely positioned
- * overlay confined to that fixed box, revealed via clip-path as its beat
- * progresses.
+ * It was a row of `justify-content: space-between` flex lines with a blank
+ * whose width came from its own answer's character count, so the four rules
+ * were four different lengths, ragged down both edges, and the answers
+ * started wherever their rule happened to begin. That reads as four
+ * unrelated lines rather than as one filled-in form.
  *
- * The box must be identical at every progress value - only .blank-value's
- * clip-path may read a --p-* property here. An earlier version animated
- * the wrap's own width instead, so the printed sentence around it visibly
- * reflowed as each field filled; a PDF page cannot reflow, so that was
- * depicting behaviour the product cannot do (see HeroDemo.astro's header
- * comment). Fixed by making the wrap's width constant and moving all
- * animation onto the value overlay's clip-path, and that fix carries over
- * unchanged now that these blanks hold the parent's fields instead of the
- * school's.
+ * Grid, with the rows as `display: contents`, so the label column sizes
+ * itself to the longest label instead of to a hand-picked em figure that
+ * would go stale the moment a label is reworded - and the rules, now grid
+ * items with auto width, stretch to the column exactly like a printed
+ * form's do.
+ *
+ * The reserved-width property this replaces still holds, and more simply:
+ * a rule's width no longer depends on its answer at all, so nothing these
+ * beats drive can change a laid-out box's size. A PDF page cannot reflow,
+ * and neither can this.
  */
 .parent-fields {
-  display: flex;
-  flex-direction: column;
-  padding-block: 2px;
-}
-
-.field-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  padding-block: 6px;
+  column-gap: 12px;
+  padding-block: 4px 9px;
   padding-inline: 14px;
+  /* Was on the last row, which is no longer a box of its own. Same line,
+     same place: the four rows are one visual block, divided from the
+     checkboxes below it. */
+  border-block-end: 1px solid var(--color-border);
   font-size: 0.78rem;
 }
 
-/* Only the last field carries the divider into the checks below - the four
-   rows share one visual block, not four separately boxed ones. */
-.field-row-last {
-  padding-block-end: 10px;
-  border-block-end: 1px solid var(--color-border);
+.field-row {
+  display: contents;
 }
 
 .field-label {
   color: var(--color-muted);
+  padding-block: 3px;
 }
 
 /* A printed rule, so it is drawn like one: hairline, and in the ordinary
@@ -800,48 +1025,10 @@
    which is not what a rule on a photocopied form looks like. */
 .blank-wrap {
   position: relative;
-  display: inline-block;
-  vertical-align: bottom;
-  height: 1.25em;
+  height: 1.2em;
   border-block-end: 1px solid var(--color-border-strong);
 }
 
-.blank-name {
-  composes: blank-wrap;
-  width: 9ch;
-}
-
-.blank-guardian {
-  composes: blank-wrap;
-  width: 10ch;
-}
-
-.blank-phone {
-  composes: blank-wrap;
-  width: 14ch;
-}
-
-.blank-allergies {
-  composes: blank-wrap;
-  width: 14ch;
-}
-
-/* Typed into the form, not printed on it, so it has to look like ordinary
-   text a person entered rather than emphasis the document is placing on
-   itself. Three things matter and all three were wrong.
- *
- * Weight: 400, the same as every printed line around it. At 600 the
- * parent's answers were the boldest thing on the page, heavier than the
- * form's own heading, which reads as a mockup labelling its own hotspots
- * rather than as a filled-in document.
- *
- * Size: pinned to the printed sentence's own size rather than inherited
- * from the row, so an answer never renders larger than the form it sits in.
- *
- * Position: `line-height: 1` collapses the half-leading that was holding
- * the text a few pixels clear of its rule, and the 1px offset then leaves
- * the baseline just above the line with descenders crossing it, which is
- * where writing on a ruled line actually sits. */
 .blank-value {
   position: absolute;
   inset-inline-start: 0;

@@ -150,3 +150,57 @@ future layout ever needs it.
 
 Reverting is deleting the wrapper in `index.astro` and moving `<HeroDemo />` back below
 `<OfflineProof />`, which is the cheap reversal this ticket has always required.
+
+---
+
+## Follow-up, 2026-09-04: the breakpoint was wrong, and the stacked layout was never retuned
+
+Two things this ticket got wrong showed up the moment the layout was looked at on a tablet.
+
+**1024px was far too low a threshold for two columns.** The left column carries a 940px floor and the
+right one is `0.55fr` of what is left, so between 1024 and roughly 1300 the demo column is a sliver:
+measured at **132px on a 1180px iPad in landscape** and 187px at 1280, against a mockup that wants 300px
+plus its stage padding. Worse, because the two flex factors sum to 2 the leftover is not even fully
+distributed - at 1280 the browser handed the column 187px and left 153px of the row simply unused. And
+the 940px floor was not buying what it exists for at those widths anyway: the dock had wrapped to two
+rows regardless.
+
+The threshold is now **1320px**, where the demo column measures 363px and the row distributes in full.
+The demo column also carries a `340px` floor of its own (300px mockup plus the stage's 20px padding
+either side) so the failure mode, if the breakpoint is ever lowered again, is a loud overflow rather
+than a silent shrink. `HeroDemo.module.css` switches on the same figure; a media query cannot read a
+custom property, so the number is duplicated and the comments on both sides are the only link.
+
+**Everything below that width had inherited a layout tuned for beside-the-hero.** Four changes, all
+scoped to the stacked case so the two-column layout above 1320 is byte-for-byte what this ticket
+shipped:
+
+- **The title card is now a sticky panel that fades in and out** rather than a screen that scrolls past
+  - it was the one piece of the demo that did not behave like the demo. Its track carries a negative
+  bottom margin exactly equal to one panel height, which makes the first story pin at the same moment
+  the card releases, so the card's fade-out and the story's fade-in meet with no blank screen between
+  them. The story's entrance fade is `--p-enter`, one more beat in the same map.
+- **Shorter tracks** (380svh / 270svh instead of 672 / 460). Beside a pinned hero the length reads as
+  depth; stacked it is a tunnel - the demo alone was 62% of the whole home page on a 375px phone,
+  twelve screens deep. It is now **7.2 screens and 49%**, on a page that went from 19.4 screens to
+  14.6. The figures are set from what one swipe covers rather than scaled down by eye: 380 over twelve
+  beats and 270 over eight both land near 32svh per beat, about 265-285px on a phone, so one
+  deliberate swipe advances one beat.
+- **A bigger mockup, on tablets and handsets alike.** `--phone-max` goes 300px -> 420px between 640px
+  and the breakpoint, which took an iPad in portrait from 300x633 to **399x842** - the flat 300px cap
+  was the only thing holding it small. Below 640px the two remaining sources of slack go to the mockup
+  as well: the stage's block padding drops from 40px to 24px, and the inline cap from 80vw to 88vw
+  (which is now the named `--phone-inline-max`, since it is the only one of the three caps that ever
+  binds on a handset). A 375px phone goes from 298x630 to **314x662**, and the document inside it from
+  278px wide to 294px. `--stage-caption-space` is untouched - the caption, and the app bar above it,
+  are not negotiable space.
+- **Caption beside the phone on wide, short panels** (900px and up, stacked). A portrait mockup centred
+  in a 1180px-wide panel left several hundred pixels of empty background either side. The stage becomes
+  a two-area grid there - no markup change, since the caption and progress rail are absolutely
+  positioned siblings in every other mode and named areas can rearrange all three without a wrapper the
+  other modes would have to ignore.
+
+`e2e/demo/sticky-pin.spec.js` was sampling the pin at fixed pixel offsets (600 / 1400 / 2400px into the
+track), which only ever worked because there was one track height. It now samples at 25/50/75% of the
+measured pin range, so a viewport that lands in the stacked layout no longer reads a sample taken past
+the release point as "sticky broke".

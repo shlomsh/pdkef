@@ -37,7 +37,7 @@ const faq = [
 
   <AppBar isHome />
   {/* DEMO-05, variant T: the two-column first screen, after usetape.app.
-      Above 1024px the hero, dropzone and tool dock stay exactly as they were
+      Above 1320px the hero, dropzone and tool dock stay exactly as they were
       but occupy the left column and stick there, while the demo runs in the
       right column beside them. Stacked, the demo and the hero compete for one
       vertical budget, which is what forced the choice between a legible demo
@@ -45,10 +45,12 @@ const faq = [
       share the budget instead, so the demo gets the full column height and the
       dock does not move at all.
 
-      Below 1024px this is a plain block and everything falls back to the
-      previous stacked order, which is what phones already had. Reverting the
-      whole variant is deleting this wrapper and moving <HeroDemo /> back below
-      <OfflineProof />; DEMO-05 requires placement to stay cheap to reverse. */}
+      Below 1320px this is a plain block and everything falls back to the
+      stacked order, which is what phones already had; see the media query in
+      the <style> block below for why the threshold is 1320 and not the 1024
+      it shipped at. Reverting the whole variant is deleting this wrapper and
+      moving <HeroDemo /> back below <OfflineProof />; DEMO-05 requires
+      placement to stay cheap to reverse. */}
   <div class="home-first bg-[linear-gradient(180deg,var(--color-bg),var(--color-primary-tint))]">
   <div class="home-first-main pb-12 min-[1024px]:flex min-[1024px]:min-h-[calc(100svh-3.5rem)] min-[1024px]:flex-col min-[1024px]:justify-center min-[1024px]:box-border min-[1024px]:pt-2 min-[1024px]:pb-6">
     <header class="hero-header">
@@ -150,7 +152,7 @@ const faq = [
   </main>
 </div>
 
-  {/* HeroDemo (DEMO-02) in the right column above 1024px, below the first
+  {/* HeroDemo (DEMO-02) in the right column above 1320px, below the first
       screen otherwise. position: sticky is killed with no error by any
       ancestor carrying overflow/transform/filter/contain, so neither
       .home-first nor this column may ever grow one - the demo's own panels
@@ -173,267 +175,282 @@ const faq = [
         costs no height in the common case either way. */}
     <OfflineProof />
 
-    <FeatureCard class="relative isolate overflow-hidden">
-      <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} />
-      <div class="flex items-stretch gap-12 max-[768px]:flex-col max-[768px]:gap-8">
-        <div class="min-w-0 flex-[1.2]">
-          <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Why I made this</span>
-          <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">The tools I wanted, shared with everyone</h2>
-          <p class="type-lead space-content-row mt-0 max-w-[800px] text-[var(--color-text)]">
-            It started with a couple of ordinary errands. Someone close to me needed to combine a stack of course slides into one PDF before an exam, and to sign a summer-camp form that had arrived over WhatsApp. Simple things. But every tool we tried either capped the pages, wanted a subscription and a Windows install, or looked like the last place you would want to send a personal document.
-          </p>
-          <p class="type-lead space-content-row mt-0 max-w-[800px] text-[var(--color-text)]">
-            So I built the PDF tools I wanted for myself. Then I realised I wanted to share them. I believe simple, everyday tools like these should just be free and available to everyone, with no account, no paywall, and nothing uploaded to anyone's server.
-          </p>
-          <p class="type-body mt-0 max-w-[800px] text-[var(--color-muted)]">
-            That is why PDkef runs entirely in your browser. There is no server to send your files to, which is what keeps it private and cheap enough to stay free for good. And it is open source, so you never have to take my word for any of it.
-          </p>
-          <p class="mb-0 mt-5 text-[0.9rem] italic text-[var(--color-muted)]">
-            <a class="font-semibold not-italic text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi</a>
-          </p>
+  {/* The story cards stack rather than scroll past: each one pins below the
+      app bar and the next slides up over it, so they arrive as a deck being
+      dealt instead of a column being scrolled. The wrapper is what bounds
+      it - `position: sticky` holds an element for as long as its containing
+      block is in view, so without this the first card would stay pinned
+      behind the footer. It must never grow overflow, transform, filter or
+      contain: any of those makes it a containing block and kills sticky on
+      every card at once, with no error anywhere.
+
+      Rules are in the <style> block below, and only apply from 768px up.
+      Below that the cards have no min-height and run taller than the
+      viewport, so pinning one would cut off its own bottom. */}
+  <div class="card-stack">
+
+      <FeatureCard class="relative isolate overflow-hidden">
+        <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} parallax />
+        <div class="flex items-stretch gap-12 max-[768px]:flex-col max-[768px]:gap-8">
+          <div class="min-w-0 flex-[1.2]">
+            <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Why I made this</span>
+            <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">The tools I wanted, shared with everyone</h2>
+            <p class="type-lead space-content-row mt-0 max-w-[800px] text-[var(--color-text)]">
+              It started with a couple of ordinary errands. Someone close to me needed to combine a stack of course slides into one PDF before an exam, and to sign a summer-camp form that had arrived over WhatsApp. Simple things. But every tool we tried either capped the pages, wanted a subscription and a Windows install, or looked like the last place you would want to send a personal document.
+            </p>
+            <p class="type-lead space-content-row mt-0 max-w-[800px] text-[var(--color-text)]">
+              So I built the PDF tools I wanted for myself. Then I realised I wanted to share them. I believe simple, everyday tools like these should just be free and available to everyone, with no account, no paywall, and nothing uploaded to anyone's server.
+            </p>
+            <p class="type-body mt-0 max-w-[800px] text-[var(--color-muted)]">
+              That is why PDkef runs entirely in your browser. There is no server to send your files to, which is what keeps it private and cheap enough to stay free for good. And it is open source, so you never have to take my word for any of it.
+            </p>
+            <p class="mb-0 mt-5 text-[0.9rem] italic text-[var(--color-muted)]">
+              <a class="font-semibold not-italic text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi</a>
+            </p>
+          </div>
+          <div class="flex flex-1 flex-col justify-center overflow-hidden rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
+            <div class="group flex items-center gap-4 px-6 py-5 transition-colors duration-[250ms] ease-out hover:bg-[var(--color-primary-tint)]">
+              <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-out group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><InfinityIcon size={20} strokeWidth={2} /></div>
+              <div class="flex min-w-0 flex-col gap-[0.2rem]">
+                <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Free Forever</strong>
+                <span class="text-[0.85rem] text-[var(--color-muted)]">No limits, no catch</span>
+              </div>
+            </div>
+            <div class="group flex items-center gap-4 border-t border-[var(--color-border)] px-6 py-5 transition-colors duration-[250ms] ease-out hover:bg-[var(--color-primary-tint)]">
+              <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-out group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><Lock size={20} strokeWidth={2} /></div>
+              <div class="flex min-w-0 flex-col gap-[0.2rem]">
+                <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Private</strong>
+                <span class="text-[0.85rem] text-[var(--color-muted)]">Files never leave your device</span>
+              </div>
+            </div>
+            <div class="group flex items-center gap-4 border-t border-[var(--color-border)] px-6 py-5 transition-colors duration-[250ms] ease-out hover:bg-[var(--color-primary-tint)]">
+              <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-out group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><Code2 size={20} strokeWidth={2} /></div>
+              <div class="flex min-w-0 flex-col gap-[0.2rem]">
+                <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Open Source</strong>
+                <span class="text-[0.85rem] text-[var(--color-muted)]">Audit the code yourself</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="flex flex-1 flex-col justify-center overflow-hidden rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
-          <div class="group flex items-center gap-4 px-6 py-5 transition-colors duration-[250ms] ease-out hover:bg-[var(--color-primary-tint)]">
-            <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-out group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><InfinityIcon size={20} strokeWidth={2} /></div>
-            <div class="flex min-w-0 flex-col gap-[0.2rem]">
-              <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Free Forever</strong>
-              <span class="text-[0.85rem] text-[var(--color-muted)]">No limits, no catch</span>
+      </FeatureCard>
+
+      <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+        <CardDecor sketch="waves" icon={HardDriveDownload} iconPos="cr" iconSize={300} parallax />
+        <div class="flex items-center gap-12 max-[768px]:flex-col-reverse max-[768px]:gap-8">
+          <div class="relative flex min-h-[210px] w-full flex-[0.8] items-center justify-center py-4" aria-hidden="true">
+            <div class="relative w-[290px] max-w-full rotate-[-1.5deg]">
+              <div class="overflow-hidden rounded-[var(--radius-sm)] border-[1.5px] border-[var(--color-primary-soft)] bg-[var(--color-surface)] shadow-md">
+                <div class="flex items-center gap-[0.3rem] border-b border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-[0.45rem]">
+                  <span class="size-1.5 rounded-full bg-[var(--color-muted-light)]"></span>
+                  <span class="size-1.5 rounded-full bg-[var(--color-muted-light)]"></span>
+                  <span class="size-1.5 rounded-full bg-[var(--color-muted-light)]"></span>
+                  <span class="ms-2 h-1.5 w-16 rounded-full bg-[var(--color-border)]"></span>
+                </div>
+                <svg class="block w-full" viewBox="0 0 200 132" role="presentation" focusable="false">
+                  <g class="fill-[var(--color-border)]">
+                    <rect x="18" y="30" width="164" height="4" rx="2" />
+                    <rect x="18" y="40" width="164" height="4" rx="2" />
+                    <rect x="18" y="50" width="118" height="4" rx="2" />
+                    <rect x="142" y="82" width="40" height="4" rx="2" />
+                    <rect x="142" y="92" width="26" height="4" rx="2" />
+                    <rect x="18" y="122" width="88" height="4" rx="2" />
+                  </g>
+                  <rect x="18" y="14" width="72" height="6" rx="3" class="fill-[var(--color-muted-light)]" />
+
+                  <rect x="24" y="68" width="100" height="44" rx="6" class="fill-[var(--color-primary-soft)] stroke-[var(--color-primary)]" stroke-width="1.2" stroke-dasharray="4 3" stroke-opacity="0.55" />
+                  <g fill="none" class="stroke-[var(--color-primary)]" stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                      d="M 32 98 C 34 84, 40 74, 46 77 C 52 80, 44 92, 40 96 C 36 100, 46 100, 52 92 C 58 84, 62 90, 59 96 C 56 102, 64 100, 68 91 C 72 82, 77 87, 74 95 C 71 103, 80 100, 85 91 C 90 82, 96 86, 93 95 C 90 104, 99 101, 105 92"
+                      stroke-width="2.2"
+                    />
+                    <path d="M 34 104 C 60 110, 88 107, 114 95" stroke-width="1.6" stroke-opacity="0.7" />
+                  </g>
+                  <g class="fill-[var(--color-surface)] stroke-[var(--color-primary)]" stroke-width="1.4">
+                    <rect x="21" y="65" width="6" height="6" rx="1.5" />
+                    <rect x="121" y="65" width="6" height="6" rx="1.5" />
+                    <rect x="21" y="109" width="6" height="6" rx="1.5" />
+                    <rect x="121" y="109" width="6" height="6" rx="1.5" />
+                  </g>
+                </svg>
+              </div>
+
+              <div class="absolute left-[14%] top-[54%] flex -translate-y-full items-center gap-[0.45rem] rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[0.5rem] py-[0.3rem] text-[var(--color-muted)] shadow-sm">
+                <Type size={11} strokeWidth={2.2} />
+                <PenLine size={11} strokeWidth={2.2} class="text-[var(--color-primary)]" />
+                <span class="h-3 w-px bg-[var(--color-border)]"></span>
+                <Trash2 size={11} strokeWidth={2.2} />
+              </div>
+
+              <div class="absolute -bottom-3 -right-3 inline-flex items-center gap-[0.35rem] rounded-[var(--radius-pill)] border border-[color-mix(in_srgb,var(--color-success)_20%,transparent)] bg-[var(--color-success-soft)] px-[0.6rem] py-[0.3rem] text-[0.7rem] font-semibold text-[var(--color-success)] shadow-sm">
+                <span class="size-1.5 rounded-full bg-[var(--color-success)] animate-[pulse_2s_infinite]"></span>
+                Autosaved to device
+              </div>
             </div>
           </div>
-          <div class="group flex items-center gap-4 border-t border-[var(--color-border)] px-6 py-5 transition-colors duration-[250ms] ease-out hover:bg-[var(--color-primary-tint)]">
-            <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-out group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><Lock size={20} strokeWidth={2} /></div>
-            <div class="flex min-w-0 flex-col gap-[0.2rem]">
-              <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Private</strong>
-              <span class="text-[0.85rem] text-[var(--color-muted)]">Files never leave your device</span>
+          <div class="flex-[1.2]">
+            <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Privacy & Convenience</span>
+            <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Work survives restarts and crashes</h2>
+            <p class="type-lead space-content-row mt-0 text-[var(--color-text)]">
+              PDkef auto-saves your in-progress work locally to your browser's secure database. If you close the tab, restart your computer, or experience a crash, your PDF and edits are restored exactly where you left off.
+            </p>
+            <p class="type-body m-0 text-[var(--color-muted)]">
+              Because it runs 100% on your device, we get "pick up where you left off" without sending a single byte of your file to a server. Available now in <strong>Sign & Fill</strong> and <strong>Redact & Blur</strong>.
+            </p>
+          </div>
+        </div>
+      </FeatureCard>
+
+      <FeatureCard class="relative isolate overflow-hidden">
+        <CardDecor sketch="grid" icon={WifiOff} iconPos="br" iconSize={300} parallax />
+        <div class="mx-auto mb-8 max-w-[750px] text-center">
+          <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Run PDkef offline as an app</h2>
+          <p class="type-lead m-0 text-[var(--color-muted)]">Because PDkef runs entirely in your web browser with zero server uploads, you can install it on your device and use it just like a native desktop or mobile application, even when you don't have internet access.</p>
+        </div>
+
+        <div class="box-border mx-auto w-full max-w-[680px] overflow-hidden rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
+          <div class="flex border-b border-[var(--color-border)] bg-[var(--color-surface-soft)] max-[640px]:flex-col" role="tablist" aria-label="Device installation guides">
+            <button class="offline-tab-btn active flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="true" aria-controls="guide-chrome" id="tab-chrome">
+              <Monitor size={16} class="mr-2" />
+              Chrome & Edge
+            </button>
+            <button class="offline-tab-btn flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="false" aria-controls="guide-ios" id="tab-ios">
+              <Smartphone size={16} class="mr-2" />
+              Safari (iOS)
+            </button>
+            <button class="offline-tab-btn flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="false" aria-controls="guide-safari" id="tab-safari">
+              <Compass size={16} class="mr-2" />
+              Safari (macOS)
+            </button>
+          </div>
+
+          <div class="p-8">
+            <div class="offline-tab-panel active hidden [&.active]:block" id="guide-chrome" role="tabpanel" aria-labelledby="tab-chrome">
+              <ol class="m-0 flex list-none flex-col gap-5 p-0">
+                <li class="flex items-start gap-4">
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+                  <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Navigate to the site in Chrome or Edge.</span>
+                </li>
+                <li class="flex items-start gap-4">
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+                  <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Click the <strong class="font-semibold">Install</strong> icon (the screen with a down arrow) at the right of the address bar.</span>
+                </li>
+                <li class="flex items-start gap-4">
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+                  <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Alternatively, click the browser menu (three dots), select <strong class="font-semibold">Save and share</strong>, and click <strong class="font-semibold">Install PDkef</strong>.</span>
+                </li>
+              </ol>
+            </div>
+
+            <div class="offline-tab-panel hidden [&.active]:block" id="guide-ios" role="tabpanel" aria-labelledby="tab-ios">
+              <ol class="m-0 flex list-none flex-col gap-5 p-0">
+                <li class="flex items-start gap-4">
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+                  <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Open the site in <strong class="font-semibold">Safari</strong> on your iPhone or iPad.</span>
+                </li>
+                <li class="flex items-start gap-4">
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+                  <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Tap the <strong class="font-semibold">Share</strong> button (square with an up arrow) in the toolbar.</span>
+                </li>
+                <li class="flex items-start gap-4">
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+                  <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Scroll down the options list and select <strong class="font-semibold">Add to Home Screen</strong>.</span>
+                </li>
+              </ol>
+            </div>
+
+            <div class="offline-tab-panel hidden [&.active]:block" id="guide-safari" role="tabpanel" aria-labelledby="tab-safari">
+              <ol class="m-0 flex list-none flex-col gap-5 p-0">
+                <li class="flex items-start gap-4">
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+                  <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Open the site in <strong class="font-semibold">Safari</strong> on your Mac.</span>
+                </li>
+                <li class="flex items-start gap-4">
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+                  <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Click the <strong class="font-semibold">Share</strong> button in the top-right Safari toolbar.</span>
+                </li>
+                <li class="flex items-start gap-4">
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+                  <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Select <strong class="font-semibold">Add to Dock...</strong> from the dropdown menu and click <strong class="font-semibold">Add</strong>.</span>
+                </li>
+              </ol>
             </div>
           </div>
-          <div class="group flex items-center gap-4 border-t border-[var(--color-border)] px-6 py-5 transition-colors duration-[250ms] ease-out hover:bg-[var(--color-primary-tint)]">
-            <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-out group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><Code2 size={20} strokeWidth={2} /></div>
-            <div class="flex min-w-0 flex-col gap-[0.2rem]">
-              <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Open Source</strong>
-              <span class="text-[0.85rem] text-[var(--color-muted)]">Audit the code yourself</span>
-            </div>
-          </div>
+        </div>
+      </FeatureCard>
+
+    <script>
+      const tabs = document.querySelectorAll('.offline-tab-btn');
+      const panels = document.querySelectorAll('.offline-tab-panel');
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          // Deactivate current active tab & panel
+          tabs.forEach(t => {
+            t.classList.remove('active');
+            t.setAttribute('aria-selected', 'false');
+          });
+          panels.forEach(p => p.classList.remove('active'));
+
+          // Activate clicked tab & panel (visibility is handled by CSS on .active)
+          tab.classList.add('active');
+          tab.setAttribute('aria-selected', 'true');
+          const panelId = tab.getAttribute('aria-controls');
+          if (!panelId) return;
+          const targetPanel = document.getElementById(panelId);
+          if (targetPanel) {
+            targetPanel.classList.add('active');
+          }
+        });
+      });
+    </script>
+
+    <FeatureCard class="relative isolate overflow-hidden">
+      <CardDecor sketch="rings" icon={HelpCircle} iconPos="bl" iconSize={300} parallax />
+      <div class="space-heading-content text-center">
+        <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Got Questions?</span>
+        <h2 class="type-section m-0 text-[var(--color-text)]">Frequently asked questions</h2>
+      </div>
+      <div class="space-layout-gap grid grid-cols-2 gap-x-12 max-[768px]:grid-cols-1">
+        <div class="faq-card">
+          <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Are the tools really free?</h3>
+          <p class="type-body m-0 text-[var(--color-muted)]">Yes, completely and permanently - no paywalls, no premium tier, no limits, and no watermark on your exported PDFs.</p>
+        </div>
+        <div class="faq-card">
+          <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Do I need to sign up or create an account?</h3>
+          <p class="type-body m-0 text-[var(--color-muted)]">No. There is no account, no email, and no trial period. Open a tool and use it immediately.</p>
+        </div>
+        <div class="faq-card">
+          <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Are my files uploaded to a server?</h3>
+          <p class="type-body m-0 text-[var(--color-muted)]">No. The tools run 100% locally in your browser, on desktop or mobile. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
+        </div>
+        <div class="faq-card">
+          <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Is PDkef open source?</h3>
+          <p class="type-body m-0 text-[var(--color-muted)]">Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.</p>
         </div>
       </div>
     </FeatureCard>
 
     <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
-      <CardDecor sketch="waves" icon={HardDriveDownload} iconPos="cr" iconSize={300} />
-      <div class="flex items-center gap-12 max-[768px]:flex-col-reverse max-[768px]:gap-8">
-        <div class="relative flex min-h-[210px] w-full flex-[0.8] items-center justify-center py-4" aria-hidden="true">
-          <div class="relative w-[290px] max-w-full rotate-[-1.5deg]">
-            <div class="overflow-hidden rounded-[var(--radius-sm)] border-[1.5px] border-[var(--color-primary-soft)] bg-[var(--color-surface)] shadow-md">
-              <div class="flex items-center gap-[0.3rem] border-b border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-[0.45rem]">
-                <span class="size-1.5 rounded-full bg-[var(--color-muted-light)]"></span>
-                <span class="size-1.5 rounded-full bg-[var(--color-muted-light)]"></span>
-                <span class="size-1.5 rounded-full bg-[var(--color-muted-light)]"></span>
-                <span class="ms-2 h-1.5 w-16 rounded-full bg-[var(--color-border)]"></span>
-              </div>
-              <svg class="block w-full" viewBox="0 0 200 132" role="presentation" focusable="false">
-                <g class="fill-[var(--color-border)]">
-                  <rect x="18" y="30" width="164" height="4" rx="2" />
-                  <rect x="18" y="40" width="164" height="4" rx="2" />
-                  <rect x="18" y="50" width="118" height="4" rx="2" />
-                  <rect x="142" y="82" width="40" height="4" rx="2" />
-                  <rect x="142" y="92" width="26" height="4" rx="2" />
-                  <rect x="18" y="122" width="88" height="4" rx="2" />
-                </g>
-                <rect x="18" y="14" width="72" height="6" rx="3" class="fill-[var(--color-muted-light)]" />
-
-                <rect x="24" y="68" width="100" height="44" rx="6" class="fill-[var(--color-primary-soft)] stroke-[var(--color-primary)]" stroke-width="1.2" stroke-dasharray="4 3" stroke-opacity="0.55" />
-                <g fill="none" class="stroke-[var(--color-primary)]" stroke-linecap="round" stroke-linejoin="round">
-                  <path
-                    d="M 32 98 C 34 84, 40 74, 46 77 C 52 80, 44 92, 40 96 C 36 100, 46 100, 52 92 C 58 84, 62 90, 59 96 C 56 102, 64 100, 68 91 C 72 82, 77 87, 74 95 C 71 103, 80 100, 85 91 C 90 82, 96 86, 93 95 C 90 104, 99 101, 105 92"
-                    stroke-width="2.2"
-                  />
-                  <path d="M 34 104 C 60 110, 88 107, 114 95" stroke-width="1.6" stroke-opacity="0.7" />
-                </g>
-                <g class="fill-[var(--color-surface)] stroke-[var(--color-primary)]" stroke-width="1.4">
-                  <rect x="21" y="65" width="6" height="6" rx="1.5" />
-                  <rect x="121" y="65" width="6" height="6" rx="1.5" />
-                  <rect x="21" y="109" width="6" height="6" rx="1.5" />
-                  <rect x="121" y="109" width="6" height="6" rx="1.5" />
-                </g>
-              </svg>
-            </div>
-
-            <div class="absolute left-[14%] top-[54%] flex -translate-y-full items-center gap-[0.45rem] rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[0.5rem] py-[0.3rem] text-[var(--color-muted)] shadow-sm">
-              <Type size={11} strokeWidth={2.2} />
-              <PenLine size={11} strokeWidth={2.2} class="text-[var(--color-primary)]" />
-              <span class="h-3 w-px bg-[var(--color-border)]"></span>
-              <Trash2 size={11} strokeWidth={2.2} />
-            </div>
-
-            <div class="absolute -bottom-3 -right-3 inline-flex items-center gap-[0.35rem] rounded-[var(--radius-pill)] border border-[color-mix(in_srgb,var(--color-success)_20%,transparent)] bg-[var(--color-success-soft)] px-[0.6rem] py-[0.3rem] text-[0.7rem] font-semibold text-[var(--color-success)] shadow-sm">
-              <span class="size-1.5 rounded-full bg-[var(--color-success)] animate-[pulse_2s_infinite]"></span>
-              Autosaved to device
-            </div>
+      <CardDecor sketch="arcs" icon={ShieldCheck} iconPos="cl" iconSize={300} parallax />
+      <div class="w-full">
+        <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Transparent & Secure</span>
+        <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Open source & privacy</h2>
+        <div class="space-layout-gap grid grid-cols-2 max-[768px]:grid-cols-1">
+          <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7 shadow-xs transition-[transform,box-shadow,border-color,color] duration-300 ease-out hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-md">
+            <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]"><Lock size={22} strokeWidth={2} /></div>
+            <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Privacy</h3>
+            <p class="type-lead m-0 text-[var(--color-text)]">Every tool runs 100% locally in your browser. Your files are never uploaded - PDkef has no server to send them to.</p>
           </div>
-        </div>
-        <div class="flex-[1.2]">
-          <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Privacy & Convenience</span>
-          <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Work survives restarts and crashes</h2>
-          <p class="type-lead space-content-row mt-0 text-[var(--color-text)]">
-            PDkef auto-saves your in-progress work locally to your browser's secure database. If you close the tab, restart your computer, or experience a crash, your PDF and edits are restored exactly where you left off.
-          </p>
-          <p class="type-body m-0 text-[var(--color-muted)]">
-            Because it runs 100% on your device, we get "pick up where you left off" without sending a single byte of your file to a server. Available now in <strong>Sign & Fill</strong> and <strong>Redact & Blur</strong>.
-          </p>
-        </div>
-      </div>
-    </FeatureCard>
-
-    <FeatureCard class="relative isolate overflow-hidden">
-      <CardDecor sketch="grid" icon={WifiOff} iconPos="br" iconSize={300} />
-      <div class="mx-auto mb-8 max-w-[750px] text-center">
-        <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Run PDkef offline as an app</h2>
-        <p class="type-lead m-0 text-[var(--color-muted)]">Because PDkef runs entirely in your web browser with zero server uploads, you can install it on your device and use it just like a native desktop or mobile application, even when you don't have internet access.</p>
-      </div>
-
-      <div class="box-border mx-auto w-full max-w-[680px] overflow-hidden rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
-        <div class="flex border-b border-[var(--color-border)] bg-[var(--color-surface-soft)] max-[640px]:flex-col" role="tablist" aria-label="Device installation guides">
-          <button class="offline-tab-btn active flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="true" aria-controls="guide-chrome" id="tab-chrome">
-            <Monitor size={16} class="mr-2" />
-            Chrome & Edge
-          </button>
-          <button class="offline-tab-btn flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="false" aria-controls="guide-ios" id="tab-ios">
-            <Smartphone size={16} class="mr-2" />
-            Safari (iOS)
-          </button>
-          <button class="offline-tab-btn flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="false" aria-controls="guide-safari" id="tab-safari">
-            <Compass size={16} class="mr-2" />
-            Safari (macOS)
-          </button>
-        </div>
-
-        <div class="p-8">
-          <div class="offline-tab-panel active hidden [&.active]:block" id="guide-chrome" role="tabpanel" aria-labelledby="tab-chrome">
-            <ol class="m-0 flex list-none flex-col gap-5 p-0">
-              <li class="flex items-start gap-4">
-                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
-                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Navigate to the site in Chrome or Edge.</span>
-              </li>
-              <li class="flex items-start gap-4">
-                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
-                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Click the <strong class="font-semibold">Install</strong> icon (the screen with a down arrow) at the right of the address bar.</span>
-              </li>
-              <li class="flex items-start gap-4">
-                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
-                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Alternatively, click the browser menu (three dots), select <strong class="font-semibold">Save and share</strong>, and click <strong class="font-semibold">Install PDkef</strong>.</span>
-              </li>
-            </ol>
-          </div>
-
-          <div class="offline-tab-panel hidden [&.active]:block" id="guide-ios" role="tabpanel" aria-labelledby="tab-ios">
-            <ol class="m-0 flex list-none flex-col gap-5 p-0">
-              <li class="flex items-start gap-4">
-                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
-                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Open the site in <strong class="font-semibold">Safari</strong> on your iPhone or iPad.</span>
-              </li>
-              <li class="flex items-start gap-4">
-                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
-                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Tap the <strong class="font-semibold">Share</strong> button (square with an up arrow) in the toolbar.</span>
-              </li>
-              <li class="flex items-start gap-4">
-                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
-                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Scroll down the options list and select <strong class="font-semibold">Add to Home Screen</strong>.</span>
-              </li>
-            </ol>
-          </div>
-
-          <div class="offline-tab-panel hidden [&.active]:block" id="guide-safari" role="tabpanel" aria-labelledby="tab-safari">
-            <ol class="m-0 flex list-none flex-col gap-5 p-0">
-              <li class="flex items-start gap-4">
-                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
-                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Open the site in <strong class="font-semibold">Safari</strong> on your Mac.</span>
-              </li>
-              <li class="flex items-start gap-4">
-                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
-                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Click the <strong class="font-semibold">Share</strong> button in the top-right Safari toolbar.</span>
-              </li>
-              <li class="flex items-start gap-4">
-                <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
-                <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Select <strong class="font-semibold">Add to Dock...</strong> from the dropdown menu and click <strong class="font-semibold">Add</strong>.</span>
-              </li>
-            </ol>
+          <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7 shadow-xs transition-[transform,box-shadow,border-color,color] duration-300 ease-out hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-md">
+            <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]"><Code2 size={22} strokeWidth={2} /></div>
+            <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Open source</h3>
+            <p class="type-lead m-0 text-[var(--color-text)]">This project is open source under the MIT license. You can <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">view the source code on GitHub</a>. PDkef is built on other open source projects too - see the <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/licenses/">open source licenses</a> page for the full list.</p>
+            <span class="mt-[1.1rem] inline-flex items-center rounded-[var(--radius-pill)] bg-[var(--color-success-soft)] px-3 py-[0.3rem] text-[0.78rem] font-bold text-[var(--color-success)]">MIT Licensed</span>
           </div>
         </div>
       </div>
     </FeatureCard>
-
-  <script>
-    const tabs = document.querySelectorAll('.offline-tab-btn');
-    const panels = document.querySelectorAll('.offline-tab-panel');
-
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        // Deactivate current active tab & panel
-        tabs.forEach(t => {
-          t.classList.remove('active');
-          t.setAttribute('aria-selected', 'false');
-        });
-        panels.forEach(p => p.classList.remove('active'));
-
-        // Activate clicked tab & panel (visibility is handled by CSS on .active)
-        tab.classList.add('active');
-        tab.setAttribute('aria-selected', 'true');
-        const panelId = tab.getAttribute('aria-controls');
-        if (!panelId) return;
-        const targetPanel = document.getElementById(panelId);
-        if (targetPanel) {
-          targetPanel.classList.add('active');
-        }
-      });
-    });
-  </script>
-
-  <FeatureCard class="relative isolate overflow-hidden">
-    <CardDecor sketch="rings" icon={HelpCircle} iconPos="bl" iconSize={300} />
-    <div class="space-heading-content text-center">
-      <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Got Questions?</span>
-      <h2 class="type-section m-0 text-[var(--color-text)]">Frequently asked questions</h2>
-    </div>
-    <div class="space-layout-gap grid grid-cols-2 gap-x-12 max-[768px]:grid-cols-1">
-      <div class="faq-card">
-        <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Are the tools really free?</h3>
-        <p class="type-body m-0 text-[var(--color-muted)]">Yes, completely and permanently - no paywalls, no premium tier, no limits, and no watermark on your exported PDFs.</p>
-      </div>
-      <div class="faq-card">
-        <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Do I need to sign up or create an account?</h3>
-        <p class="type-body m-0 text-[var(--color-muted)]">No. There is no account, no email, and no trial period. Open a tool and use it immediately.</p>
-      </div>
-      <div class="faq-card">
-        <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Are my files uploaded to a server?</h3>
-        <p class="type-body m-0 text-[var(--color-muted)]">No. The tools run 100% locally in your browser, on desktop or mobile. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
-      </div>
-      <div class="faq-card">
-        <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Is PDkef open source?</h3>
-        <p class="type-body m-0 text-[var(--color-muted)]">Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.</p>
-      </div>
-    </div>
-  </FeatureCard>
-
-  <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
-    <CardDecor sketch="arcs" icon={ShieldCheck} iconPos="cl" iconSize={300} />
-    <div class="w-full">
-      <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Transparent & Secure</span>
-      <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Open source & privacy</h2>
-      <div class="space-layout-gap grid grid-cols-2 max-[768px]:grid-cols-1">
-        <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7 shadow-xs transition-[transform,box-shadow,border-color,color] duration-300 ease-out hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-md">
-          <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]"><Lock size={22} strokeWidth={2} /></div>
-          <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Privacy</h3>
-          <p class="type-lead m-0 text-[var(--color-text)]">Every tool runs 100% locally in your browser. Your files are never uploaded - PDkef has no server to send them to.</p>
-        </div>
-        <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7 shadow-xs transition-[transform,box-shadow,border-color,color] duration-300 ease-out hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-md">
-          <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]"><Code2 size={22} strokeWidth={2} /></div>
-          <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Open source</h3>
-          <p class="type-lead m-0 text-[var(--color-text)]">This project is open source under the MIT license. You can <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">view the source code on GitHub</a>. PDkef is built on other open source projects too - see the <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/licenses/">open source licenses</a> page for the full list.</p>
-          <span class="mt-[1.1rem] inline-flex items-center rounded-[var(--radius-pill)] bg-[var(--color-success-soft)] px-3 py-[0.3rem] text-[0.78rem] font-bold text-[var(--color-success)]">MIT Licensed</span>
-        </div>
-      </div>
-    </div>
-  </FeatureCard>
+  </div>
 
   <Footer />
 </BaseLayout>
@@ -498,65 +515,164 @@ const faq = [
      then centers its fixed-height child inside that grown box. No
      specificity fight needed - .merge-tool's own bare rule (global.css,
      >=768px) only sets width/flex-shrink, and forcing flex-shrink back to
-     0 here is what we want anyway. */
+     0 here is what we want anyway.
+
+     Still 1024px, unlike the two-column block below: this and the
+     min-[1024px]: utilities in the markup are the *first-screen budget*
+     (hero, dropzone and tool dock composed into one screen with the dock
+     pinned to the bottom), which is worth having on any laptop. Only the
+     side-by-side demo needs the wider window. */
   @media (min-width: 1024px) {
-    /* DEMO-05 variant T. Two things are load-bearing here and both fail
-       silently if changed.
-
-       align-items: start. Grid items stretch to the row height by default,
-       which for this row is the demo's ten screens, and a sticky element that
-       is already as tall as its scroll range never moves. It has to be given
-       its own height and allowed to be shorter than the row.
-
-       No overflow, transform, filter or contain anywhere on .home-first or
-       either column. Each of those creates a containing block that kills
-       position: sticky on every descendant, with no error anywhere - and this
-       subtree now has three sticky layers in it: the left column, the demo's
-       two panels, and the app bar above. */
-    @media (min-width: 1024px) {
-      .home-first {
-        display: grid;
-        /* The left column must stay wide enough for the tool dock to keep
-           all nine tiles on one row. Nine 80px tiles with eight 20px gaps is
-           880px before padding, and at 1.05fr the column came out at 794px,
-           wrapped the dock to two rows, and pushed its bottom edge to 910 on
-           an 800px viewport - the exact failure the whole layout exists to
-           avoid. Measured, not guessed. */
-        grid-template-columns: minmax(940px, 1.45fr) minmax(0, 0.55fr);
-        align-items: start;
-      }
-
-      .home-first-main {
-        position: sticky;
-        top: 3.5rem;
-        height: calc(100svh - 3.5rem);
-      }
-
-      /* The demo's panels size themselves from this, rather than from 100svh,
-         so they fit the column between the app bar and the viewport bottom.
-         See HeroDemo.module.css's --herodemo-panel-height comment: it is the
-         documented hook for exactly this, and it inherits, so no prop
-         plumbing is needed. */
-      .home-first-demo {
-        --herodemo-panel-height: calc(100svh - 3.5rem);
-      }
-
-      /* The demo ships its own full-screen title card, which earns its place
-         when the demo is a section of its own further down the page. Beside
-         the hero it is saying the same thing twice, in the same eyeline, and
-         it costs the visitor a whole screen of scrolling before the phone
-         appears at all. :global because it belongs to HeroDemo's CSS module
-         and Astro's scoped styles do not reach into a child component. */
-      .home-first-demo :global([data-herodemo-intro]) {
-        display: none;
-      }
-    }
-
     .first-screen-frame {
       display: flex;
       flex: 1 1 auto;
       flex-direction: column;
       justify-content: center;
+    }
+  }
+
+  /* --- The two-column first screen (DEMO-05 variant T) ------------------
+     1320px, not the 1024px this started at. The left column has a hard
+     940px floor (see the grid comment below) and the second track's flex
+     factor is 0.55, so below about 1300px the demo column is whatever
+     narrow strip is left over: measured at 132px on a 1180px iPad in
+     landscape and 187px at 1280px, against a mockup that wants 300px plus
+     its stage padding. The result was a postage-stamp phone with six-line
+     caption wrapping beside a hero whose tool dock had wrapped to two rows
+     anyway - so the 940px floor was not even buying what it exists for at
+     those widths.
+
+     Everything from 1320px up is unchanged; everything below now gets the
+     stacked layout, which is the one this page had before the demo landed
+     and which HeroDemo has been retuned for (shorter tracks, a larger
+     mockup on tablets, panels that fade in rather than slide). That file
+     switches on the same 1320px figure and the two must stay in step: a
+     media query cannot read a custom property, so the number is duplicated
+     and these comments are the only link between them.
+
+     Two things here are load-bearing and both fail silently if changed.
+
+     align-items: start. Grid items stretch to the row height by default,
+     which for this row is the demo's ten screens, and a sticky element that
+     is already as tall as its scroll range never moves. It has to be given
+     its own height and allowed to be shorter than the row.
+
+     No overflow, transform, filter or contain anywhere on .home-first or
+     either column. Each of those creates a containing block that kills
+     position: sticky on every descendant, with no error anywhere - and this
+     subtree has three sticky layers in it: the left column, the demo's two
+     panels, and the app bar above. */
+  @media (min-width: 1320px) {
+    .home-first {
+      display: grid;
+      /* The left column must stay wide enough for the tool dock to keep
+         all nine tiles on one row. Nine 80px tiles with eight 20px gaps is
+         880px before padding, and at 1.05fr the column came out at 794px,
+         wrapped the dock to two rows, and pushed its bottom edge to 910 on
+         an 800px viewport - the exact failure the whole layout exists to
+         avoid. Measured, not guessed.
+
+         The demo column carries a 340px floor of its own (300px mockup plus
+         its stage's 20px padding either side) rather than minmax(0, ...).
+         Without it the column is pure leftover, and because the two flex
+         factors sum to 2 the leftover is not even distributed in full - at
+         1280px the browser handed the column 187px and left 153px of the
+         row simply unused. The floor makes the failure loud (the row
+         overflows) instead of quiet (the demo shrinks to nothing), and the
+         1320px breakpoint above keeps it from ever being reached. */
+      grid-template-columns: minmax(940px, 1.45fr) minmax(340px, 0.55fr);
+      align-items: start;
+    }
+
+    .home-first-main {
+      position: sticky;
+      top: 3.5rem;
+      height: calc(100svh - 3.5rem);
+    }
+
+    /* The demo's panels size themselves from this, rather than from 100svh,
+       so they fit the column between the app bar and the viewport bottom.
+       See HeroDemo.module.css's --herodemo-panel-height comment: it is the
+       documented hook for exactly this, and it inherits, so no prop
+       plumbing is needed. */
+    .home-first-demo {
+      --herodemo-panel-height: calc(100svh - 3.5rem);
+    }
+
+    /* The demo ships its own title card, which earns its place when the demo
+       is a section of its own further down the page. Beside the hero it is
+       saying the same thing twice, in the same eyeline, and it costs the
+       visitor a whole screen of scrolling before the phone appears at all.
+       Hiding the whole track (not just the card inside it) is what makes it
+       cost no scroll distance here. :global because it belongs to HeroDemo's
+       CSS module and Astro's scoped styles do not reach into a child
+       component. */
+    .home-first-demo :global([data-herodemo-intro]) {
+      display: none;
+    }
+  }
+
+  /* --- The story-card stack ------------------------------------------
+     Each card pins below the app bar and the next one slides up over it.
+     Three things make that work and each is doing real work:
+
+     - The cards are opaque. Both FeatureCard variants paint a solid surface
+       or a solid gradient, so a covering card genuinely hides the one
+       beneath. If a translucent variant is ever added, it cannot go here.
+     - Paint order is DOM order. These are positioned elements with
+       `z-index: auto`, so a later card paints over an earlier one without
+       anybody managing a z-index scale. The app bar keeps its own z-20 and
+       so still passes over all of them.
+     - `position` beats the `relative` utility the cards carry. Astro's
+       scoped output is unlayered and Tailwind's utilities are in
+       @layer utilities, so this wins regardless of specificity; sticky is
+       still a positioned box, so CardDecor's absolute children go on
+       anchoring to it exactly as before.
+
+     768px because that is where FeatureCard's `density="screen"` gives each
+     card its `min-h-[calc(100vh-6rem)]`. Below it the cards are content-
+     height and run well past the viewport, and pinning a card taller than
+     the screen just hides its own bottom.
+
+     The shadow is what sells the depth: a soft cast above the card's top
+     edge, which is the edge that arrives over the card below it. */
+  @media (min-width: 768px) {
+    /* The trailing gap has to be the container's padding, not the last
+       card's margin. A bottom margin with nothing below it collapses
+       straight out through the wrapper, which puts the wrapper's bottom
+       edge exactly at the last card's - giving that one card a sticky range
+       of zero, so it alone never pins. It scrolled up over the pinned deck
+       instead, and dragged a 96px band of the card beneath it into view as
+       the whole thing left. Same gap, moved one element out, and now every
+       card pins and the deck releases as one block. */
+    .card-stack {
+      padding-block-end: 6rem;
+    }
+
+    .card-stack :global(.card-reveal:last-child) {
+      margin-block-end: 0;
+    }
+
+    .card-stack :global(.card-reveal) {
+      position: sticky;
+      top: 3.5rem;
+      box-shadow:
+        0 -18px 44px -30px var(--color-primary-ring),
+        0 26px 50px -34px var(--color-primary-ring);
+    }
+
+    /* The scroll-reveal fade and the stack are two answers to the same
+       question, and here the stack wins. A card fades in from opacity 0
+       while it is already overlapping the card it is covering, so for the
+       length of the fade you see straight through it to the one behind -
+       the one thing a stack must never do. Neutralised in CSS rather than
+       by teaching FeatureCard's script about this page: the script keeps
+       arming and observing, and both states simply resolve to "visible". */
+    .card-stack :global(.card-reveal.is-armed),
+    .card-stack :global(.card-reveal.is-armed.is-visible) {
+      opacity: 1;
+      transform: none;
+      transition: none;
     }
   }
 
@@ -677,6 +793,99 @@ const faq = [
     visibility: visible;
     transform: translateX(-50%) translateY(0) scale(1);
     transition: opacity 0.5s ease-out 0.4s, visibility 0.5s ease-out 0.4s, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+  }
+
+  /* --- Card parallax --------------------------------------------------
+     Depth on the story cards below the first screen: each card's
+     background sketch and its watermark icon drift vertically against the
+     card's own content as the card crosses the viewport, the icon further
+     (larger travel) than the sketch. Nothing in the card's text moves, so
+     this reads as layers behind the content rather than as the content
+     itself sliding.
+
+     Driven entirely by CSS scroll-driven animations, so there is no scroll
+     listener, no rAF loop and no new script - and therefore no new inline
+     script for the CSP hash list to cover. The timeline is published by the
+     card (view-timeline-name) and consumed by its own descendants; timeline
+     names resolve up the ancestor chain, so five cards can share one name
+     and each decor layer still finds its own card's timeline. The name has
+     to live on the card rather than on the decor itself: the cards are
+     `overflow-hidden`, which makes each one a scroll container, and a
+     `view()` timeline declared inside would measure against that container -
+     which never scrolls - instead of against the page.
+
+     Two guards, both load-bearing:
+
+     - @supports. Without scroll-driven animation support `animation-
+       duration: auto` is invalid, so the declaration is dropped, the
+       duration falls back to 0s, and `fill: both` would freeze every decor
+       layer at the *end* of its keyframes - a permanent 56px offset rather
+       than no effect. The feature query is what makes the unsupported path
+       "no animation" instead of "wrong position".
+     - prefers-reduced-motion. Scroll-linked movement is exactly the kind of
+       motion the preference exists to suppress, and the card-reveal fade in
+       FeatureCard.astro already refuses to arm under it.
+
+     `transform`, not the `translate` property, on purpose: Tailwind v4
+     compiles -translate-y-1/2 (which CardDecor's `cr`/`cl` icon positions
+     use for vertical centering) to `translate`, so animating that property
+     would silently clobber the centering on two of the five cards. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      :global(.card-reveal) {
+        view-timeline-name: --feature-card;
+      }
+
+      :global(.decor-parallax),
+      :global(.decor-parallax-icon) {
+        animation-duration: auto;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --feature-card;
+      }
+
+      :global(.decor-parallax) {
+        animation-name: decor-drift;
+      }
+
+      :global(.decor-parallax-icon) {
+        animation-name: decor-drift-icon;
+      }
+
+      /* From negative to positive over the card's whole cover range: as the
+         card travels up the screen the layer lags behind it, which is what
+         "further away" looks like, and the icon lags further than the sketch
+         so the two read as separate depths.
+
+         160px and 240px of total travel, which is a lot for a background -
+         and it needs to be, because from 768px up the card itself pins
+         while this runs (see .card-stack below). A stationary card with a
+         moving background is where the whole effect actually reads; at the
+         amplitudes that felt right on a scrolling card it was nearly
+         invisible on a pinned one.
+
+         The sketch's amplitude stays under the 110px of vertical inflation
+         CardDecor gives that box, so the drift never exposes an uncovered
+         strip. The watermark icon needs no such margin: it already overhangs
+         the card on every side and is clipped by it. */
+      @keyframes decor-drift {
+        from {
+          transform: translateY(-80px);
+        }
+        to {
+          transform: translateY(80px);
+        }
+      }
+
+      @keyframes decor-drift-icon {
+        from {
+          transform: translateY(-120px);
+        }
+        to {
+          transform: translateY(120px);
+        }
+      }
+    }
   }
 
   @keyframes pulse {
