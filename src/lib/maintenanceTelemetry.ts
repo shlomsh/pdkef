@@ -33,6 +33,11 @@ export interface MaintenanceEvent {
 /** The only transport shape approved for this client-side boundary. */
 export type MaintenanceTransport = (event: MaintenanceEvent) => void;
 
+// A random sample controls volume without creating a visitor identifier. The
+// rate is a product decision, not a provider default, and applies equally to
+// successes and failures so the aggregate failure rate stays meaningful.
+export const MAINTENANCE_SAMPLE_RATE = 0.1;
+
 function bucketDuration(durationMs: number): ExportDurationBucket {
   if (!Number.isFinite(durationMs) || durationMs < 0) return '30s_or_more';
   if (durationMs < 1_000) return 'under_1s';
@@ -93,6 +98,16 @@ export function reportMaintenanceEvent(
   } catch {
     return false;
   }
+}
+
+/** Best-effort sampled reporting for the reviewed maintenance schema. */
+export function reportSampledMaintenanceEvent(
+  event: MaintenanceEvent,
+  transport: MaintenanceTransport | undefined,
+  random: () => number = Math.random,
+): boolean {
+  if (random() >= MAINTENANCE_SAMPLE_RATE) return false;
+  return reportMaintenanceEvent(event, transport);
 }
 
 /**

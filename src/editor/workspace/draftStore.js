@@ -15,7 +15,71 @@ import { createDraftRetention, isDraftExpired } from './draftPolicy.js';
 
 const DB_NAME = 'pdf-toolkit-drafts';
 const STORE_NAME = 'drafts';
-const DB_VERSION = 1;
+const SOURCE_STORE_NAME = 'sources';
+const DB_VERSION = 2;
+
+// This tiny localStorage record is deliberately metadata only. It lets a
+// second tab say what happened without ever copying a filename, PDF byte, edit,
+// or document identifier through the `storage` event channel.
+const DRAFT_CHANGE_PREFIX = 'pdf-toolkit:draft-change:';
+let tabWriterId;
+
+function getTabWriterId() {
+  if (tabWriterId) return tabWriterId;
+  try {
+    const existing = sessionStorage.getItem('pdf-toolkit:draft-writer');
+    if (existing) return (tabWriterId = existing);
+    const next = crypto.randomUUID?.() || `tab-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    sessionStorage.setItem('pdf-toolkit:draft-writer', next);
+    return (tabWriterId = next);
+  } catch {
+    return (tabWriterId = `tab-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  }
+}
+
+function notifyDraftChange(tool, change) {
+  try {
+    localStorage.setItem(DRAFT_CHANGE_PREFIX + tool, JSON.stringify(change));
+  } catch {
+    // Coordination is advisory; a blocked localStorage must not stop a draft
+    // write that already committed in IndexedDB.
+  }
+}
+
+/**
+ * Subscribe to another tab saving or deleting this tool's draft. A live editor
+ * intentionally keeps its own edits open; callers use this as an explicit
+ * conflict warning, and the next local save deterministically wins.
+ */
+export function subscribeToDraftChanges(tool, listener) {
+  if (typeof window === 'undefined') return () => {};
+  const key = DRAFT_CHANGE_PREFIX + tool;
+  const onStorage = (event) => {
+    if (event.key !== key || !event.newValue) return;
+    try {
+      const change = JSON.parse(event.newValue);
+      if (!change || change.writerId === getTabWriterId()
+        || !Number.isInteger(change.revision) || change.revision < 0
+        || (change.kind !== 'saved' && change.kind !== 'deleted')) return;
+      listener({ revision: change.revision, kind: change.kind, conflictPolicy: 'last-writer-wins' });
+    } catch {
+      // Ignore a corrupt advisory record. IndexedDB remains authoritative.
+    }
+  };
+  window.addEventListener('storage', onStorage);
+  return () => window.removeEventListener('storage', onStorage);
+}
+
+/** Stable content address for one source PDF. Null means this browser cannot
+ * safely deduplicate; we fail the best-effort draft write rather than risk a
+ * metadata collision attaching edits to a different document. */
+export async function sourceIdForBytes(fileBytes) {
+  // `instanceof ArrayBuffer` fails for a File read in a different browser
+  // realm (and in the test DOM), even though Web Crypto accepts it.
+  if (Object.prototype.toString.call(fileBytes) !== '[object ArrayBuffer]' || !globalThis.crypto?.subtle) return null;
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', fileBytes);
+  return `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+}
 
 // Kept as a public re-export for existing callers. The policy itself lives in
 // draftPolicy.js so cache writes and every read path share one definition.
@@ -165,6 +229,9 @@ function openDb() {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'tool' });
       }
+      if (!db.objectStoreNames.contains(SOURCE_STORE_NAME)) {
+        db.createObjectStore(SOURCE_STORE_NAME, { keyPath: 'id' });
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -185,6 +252,24 @@ async function withStore(mode, work) {
           result = value;
         })
         .catch(reject);
+      tx.oncomplete = () => resolve(result);
+      tx.onabort = () => reject(tx.error);
+      tx.onerror = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function withDraftStores(mode, work) {
+  const db = await openDb();
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction([STORE_NAME, SOURCE_STORE_NAME], mode);
+      const drafts = tx.objectStore(STORE_NAME);
+      const sources = tx.objectStore(SOURCE_STORE_NAME);
+      let result;
+      work({ drafts, sources, resolve: (value) => { result = value; }, reject });
       tx.oncomplete = () => resolve(result);
       tx.onabort = () => reject(tx.error);
       tx.onerror = () => reject(tx.error);
@@ -216,13 +301,54 @@ export async function saveDraft(tool, record) {
   // it lives in localStorage (see setDraftHint) because it has to be readable
   // synchronously. Keeping it out of the record avoids storing the same image
   // twice, and keeps it out of what onRestore rehydrates a tool from.
-  const { preview, ...draft } = record;
+  const { preview, fileBytes, ...draft } = record;
+  const sourceId = await sourceIdForBytes(fileBytes).catch(() => null);
+  if (!sourceId) return false;
   const { savedAt } = createDraftRetention();
+  const writerId = getTabWriterId();
   try {
-    await withStore('readwrite', (store) => {
-      store.put({ ...draft, tool, savedAt });
+    await withDraftStores('readwrite', ({ drafts, sources }) => {
+      // One transaction serializes same-user tabs. It reads the committed
+      // revision immediately before assigning the next one, so two tabs that
+      // started from revision N become N+1 then N+2 rather than racing under
+      // the same revision.
+      const oldRequest = drafts.get(tool);
+      oldRequest.onsuccess = () => {
+        const old = oldRequest.result;
+        const oldMeta = old && Number.isInteger(old.revision)
+          ? { revision: old.revision, updatedAt: old.updatedAt || 0, writerId: old.writerId || 'legacy' }
+          : { revision: 0, updatedAt: 0, writerId: 'legacy' };
+        const now = Date.now();
+        const metadata = {
+          revision: old ? oldMeta.revision + 1 : 1,
+          updatedAt: Math.max(now, oldMeta.updatedAt + 1),
+          writerId,
+        };
+        const putDraft = () => {
+          // Drafts hold only a content address. The source object is stored
+          // once and survives every edit snapshot for that document.
+          drafts.put({ ...draft, tool, sourceId, savedAt, ...metadata });
+          if (old?.sourceId && old.sourceId !== sourceId) decrementSource(sources, old.sourceId);
+        };
+        if (old?.sourceId === sourceId) {
+          putDraft();
+          return;
+        }
+        const sourceRequest = sources.get(sourceId);
+        sourceRequest.onsuccess = () => {
+          const source = sourceRequest.result;
+          if (source) sources.put({ ...source, refCount: (source.refCount || 1) + 1 });
+          else sources.put({ id: sourceId, fileBytes, refCount: 1 });
+          putDraft();
+        };
+      };
     });
     setDraftHint(tool, { fileName: draft.fileName, savedAt, preview });
+    // Obtain the persisted record's metadata without leaking source identity.
+    const latest = await withStore('readonly', (store) => reqToPromise(store.get(tool)));
+    if (latest?.writerId === writerId) {
+      notifyDraftChange(tool, { kind: 'saved', revision: latest.revision, updatedAt: latest.updatedAt, writerId });
+    }
     return true;
   } catch (e) {
     console.error('draftStore.saveDraft failed:', e);
@@ -256,7 +382,20 @@ export async function loadDraft(tool) {
       await deleteDraft(tool);
       return null;
     }
-    return record;
+    if (record.fileBytes) return record; // schema-v1 record written before source separation
+    if (typeof record.sourceId !== 'string') {
+      clearDraftHint(tool);
+      return null;
+    }
+    const source = await withDraftStores('readonly', ({ sources, resolve }) => {
+      const request = sources.get(record.sourceId);
+      request.onsuccess = () => resolve(request.result || null);
+    });
+    if (!source?.fileBytes) {
+      clearDraftHint(tool);
+      return null;
+    }
+    return { ...record, fileBytes: source.fileBytes };
   } catch (e) {
     console.error('draftStore.loadDraft failed:', e);
     clearDraftHint(tool);
@@ -273,15 +412,37 @@ export async function loadDraft(tool) {
 export async function deleteDraft(tool) {
   if (!hasIndexedDB()) return false;
   try {
-    await withStore('readwrite', (store) => {
-      store.delete(tool);
+    const writerId = getTabWriterId();
+    let change = null;
+    await withDraftStores('readwrite', ({ drafts, sources }) => {
+      const request = drafts.get(tool);
+      request.onsuccess = () => {
+        const old = request.result;
+        drafts.delete(tool);
+        if (old?.sourceId) decrementSource(sources, old.sourceId);
+        change = {
+          kind: 'deleted', revision: (Number.isInteger(old?.revision) ? old.revision : 0) + 1,
+          updatedAt: Date.now(), writerId,
+        };
+      };
     });
     clearDraftHint(tool);
+    if (change) notifyDraftChange(tool, change);
     return true;
   } catch (e) {
     console.error('draftStore.deleteDraft failed:', e);
     return false;
   }
+}
+
+function decrementSource(sources, sourceId) {
+  const request = sources.get(sourceId);
+  request.onsuccess = () => {
+    const source = request.result;
+    if (!source) return;
+    if ((source.refCount || 1) <= 1) sources.delete(sourceId);
+    else sources.put({ ...source, refCount: source.refCount - 1 });
+  };
 }
 
 /**

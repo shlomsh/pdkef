@@ -1,5 +1,22 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { readFile } from 'node:fs/promises';
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../scripts/language-acceptance.mjs';
+
+const offlineLanguageLayouts = new Map([
+  ['arabic', { xRatio: 0.75, yRatio: 0.25 }],
+  ['bengali-assamese', { xRatio: 0.25, yRatio: 0.45 }],
+  ['chinese-simplified', { xRatio: 0.25, yRatio: 0.65 }],
+]);
+const representativeOfflineLanguagePacks = LANGUAGE_ACCEPTANCE_MATRIX
+  .filter((row) => offlineLanguageLayouts.has(row.id))
+  .map((row) => ({
+    text: row.sample,
+    edited: `${row.sample}!`,
+    family: row.families[0],
+    ...offlineLanguageLayouts.get(row.id),
+  }));
 
 /*
  * SIGN-07: "processing must work offline once required assets are
@@ -83,6 +100,59 @@ async function addTextAt(page, text, xRatio, yRatio) {
   await page.keyboard.press('Escape');
 }
 
+async function addTextWithOfflineFont(page, { text, family, xRatio, yRatio }) {
+  const textTool = page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'Text', exact: true });
+  if ((await textTool.getAttribute('aria-pressed')) !== 'true') await textTool.click();
+  const overlay = page.locator('[class*="page-overlay"]').first();
+  const box = await overlay.boundingBox();
+  if (!box) throw new Error('PDF overlay has no bounding box');
+  await overlay.click({ position: { x: box.width * xRatio, y: box.height * yRatio } });
+  const input = page.locator('[data-editor-element][data-editor-active] [data-editor-text-input]');
+  await input.fill(text);
+
+  await page.locator('[data-editor-element][data-editor-active]').getByTitle(/^Font:/).click();
+  const row = page.locator('[data-font-offline]').filter({
+    has: page.locator(`[role="option"][data-font-name="${family}"]`),
+  });
+  await expect(row).toHaveAttribute('data-font-offline', /^(not-ready|ready)$/);
+  if (await row.getAttribute('data-font-offline') !== 'ready') {
+    await row.getByTitle(`Make ${family} available offline`).click();
+    await expect(row).toHaveAttribute('data-font-offline', 'ready', { timeout: 90_000 });
+    await expect(row.getByText('Ready offline', { exact: true })).toBeVisible();
+  }
+  await row.locator(`[role="option"][data-font-name="${family}"]`).click();
+  await page.keyboard.press('Escape');
+}
+
+async function searchableTextFromDownload(download) {
+  const path = await download.path();
+  if (!path) throw new Error('Playwright did not retain the downloaded PDF');
+  const task = getDocument({
+    data: new Uint8Array(await readFile(path)),
+    disableWorker: true,
+    useWorkerFetch: false,
+    isEvalSupported: false,
+  });
+  const pdf = await task.promise;
+  const strings = [];
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const pdfPage = await pdf.getPage(pageNumber);
+    const content = await pdfPage.getTextContent();
+    strings.push(...content.items.map((item) => item.str));
+  }
+  await task.destroy();
+  return strings.join('');
+}
+
+async function textInputWithValue(page, value) {
+  const inputs = page.locator('[data-editor-text-input]');
+  for (let index = 0; index < await inputs.count(); index += 1) {
+    const input = inputs.nth(index);
+    if (await input.inputValue() === value) return input;
+  }
+  throw new Error(`No text field contains ${value}`);
+}
+
 test.describe('offline workflows (SIGN-07)', () => {
   test('Merge completes fully offline once the page has been visited online', async ({ page, context }) => {
     await page.goto('/merge/');
@@ -145,6 +215,46 @@ test.describe('offline workflows (SIGN-07)', () => {
         workspaceDownloadButton(page).click(),
       ]);
       expect(secondDownload.suggestedFilename()).toMatch(/^signed_/);
+    } finally {
+      await context.setOffline(false);
+    }
+  });
+
+  test('Sign: provisioned RTL, shaping-heavy, and CJK families stay editable and searchable offline', async ({ page, context }) => {
+    test.setTimeout(180_000);
+    await openSignToolWithFile(page, await makePdfBuffer('offline language fixture'), 'offline-languages.pdf');
+    await waitForServiceWorkerControl(page);
+
+    const cases = representativeOfflineLanguagePacks;
+    expect(cases.map(({ family }) => family)).toEqual([
+      'Noto Sans SC',
+      'Scheherazade New',
+      'Noto Sans Bengali',
+    ]);
+    for (const fontCase of cases) await addTextWithOfflineFont(page, fontCase);
+    await expect(page.getByText('Draft saved')).toBeVisible();
+
+    await context.setOffline(true);
+    try {
+      await page.reload();
+      await expect(page.locator('[class*="page-wrapper"]')).toBeVisible();
+      for (const fontCase of cases) {
+        const input = await textInputWithValue(page, fontCase.text);
+        await input.locator('xpath=..').dblclick();
+        await input.fill(fontCase.edited);
+        await page.keyboard.press('Escape');
+      }
+
+      const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        workspaceDownloadButton(page).click(),
+      ]);
+      const extracted = await searchableTextFromDownload(download);
+      expect(extracted).not.toContain('\uFFFD');
+      expect((extracted.match(/!/g) || []).length).toBeGreaterThanOrEqual(cases.length);
+      expect(extracted).toMatch(/[\u0600-\u06ff]/);
+      expect(extracted).toMatch(/[\u0980-\u09ff]/);
+      expect(extracted).toMatch(/[\u3400-\u9fff]/);
     } finally {
       await context.setOffline(false);
     }

@@ -14,7 +14,8 @@ vi.mock('../../editor/workspace/draftStore.js', () => ({
   saveDraft: vi.fn(),
   loadDraft: vi.fn(() => Promise.resolve(null)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
-  hasDraftHint: vi.fn(() => false)
+  hasDraftHint: vi.fn(() => false),
+  subscribeToDraftChanges: vi.fn(() => () => {})
 }));
 
 // Not what this test is about - avoid a real pdf.js decode of fake PDF bytes.

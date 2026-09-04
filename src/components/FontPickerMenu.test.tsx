@@ -6,6 +6,9 @@ import { resolveFontFamily, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text
 
 describe('FontPickerMenu', () => {
   let container: HTMLDivElement | null;
+  const originalServiceWorker = navigator.serviceWorker;
+  const OriginalMessageChannel = globalThis.MessageChannel;
+  const originalOnline = navigator.onLine;
 
   afterEach(() => {
     vi.useRealTimers();
@@ -15,7 +18,35 @@ describe('FontPickerMenu', () => {
       container = null;
     }
     document.body.innerHTML = '';
+    Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: originalServiceWorker });
+    Object.defineProperty(navigator, 'onLine', { configurable: true, value: originalOnline });
+    globalThis.MessageChannel = OriginalMessageChannel;
   });
+
+  function installFontPackWorker(initiallyReady: string[] = []) {
+    const ready = new Set(initiallyReady);
+    class FakeMessageChannel {
+      port1: { onmessage: ((event: { data: any }) => void) | null; close: () => void };
+      port2: { postMessage: (data: any) => void };
+      constructor() {
+        this.port1 = { onmessage: null, close: () => {} };
+        this.port2 = { postMessage: (data) => queueMicrotask(() => this.port1.onmessage?.({ data })) };
+      }
+    }
+    const worker = {
+      postMessage: (message: any, [replyPort]: any[]) => {
+        if (message.type === 'pdkef:font-pack-provision') {
+          for (const pack of message.packs) ready.add(pack.family);
+        }
+        replyPort.postMessage({
+          ok: true,
+          ready: Object.fromEntries(message.packs.map((pack: any) => [pack.family, ready.has(pack.family)])),
+        });
+      },
+    };
+    Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: { controller: worker } });
+    globalThis.MessageChannel = FakeMessageChannel as any;
+  }
 
   function openMenu(value: string, text: string, extra = {}) {
     container = document.createElement('div');
@@ -199,5 +230,37 @@ describe('FontPickerMenu', () => {
     document.body.appendChild(container);
     act(() => render(<FontPickerMenu value={effective} text={text} onChange={() => {}} />, container as any));
     expect(container.querySelector('button')!.title).toBe('Font: Gveret Levin');
+  });
+
+  it('shows the default offline guarantee and lets a user provision a complete non-default family', async () => {
+    installFontPackWorker();
+    const menu = openMenu('Arimo', 'مرحبا');
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+
+    const arimoRow = option(menu, 'Arimo').closest('[data-font-offline]') as HTMLElement;
+    const arabicRow = option(menu, 'Scheherazade New').closest('[data-font-offline]') as HTMLElement;
+    expect(arimoRow.dataset.fontOffline).toBe('default');
+    expect(arimoRow.textContent).toContain('Default offline');
+    expect(arabicRow.dataset.fontOffline).toBe('not-ready');
+
+    await act(async () => {
+      (arabicRow.querySelector('[title="Make Scheherazade New available offline"]') as HTMLButtonElement).click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(arabicRow.dataset.fontOffline).toBe('ready');
+    expect(arabicRow.textContent).toContain('Ready offline');
+  });
+
+  it('does not pretend an uncached family can be provisioned while disconnected', async () => {
+    installFontPackWorker();
+    Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
+    const menu = openMenu('Arimo', '你好');
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)); });
+
+    const row = option(menu, 'Noto Sans SC').closest('[data-font-offline]') as HTMLElement;
+    const action = row.querySelector('button:not([role="option"])') as HTMLButtonElement;
+    expect(row.dataset.fontOffline).toBe('not-ready');
+    expect(action.disabled).toBe(true);
+    expect(action.textContent).toBe('Connect to download');
   });
 });

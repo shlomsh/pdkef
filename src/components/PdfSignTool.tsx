@@ -39,6 +39,12 @@ import {
 } from '../editor/model/actionHistory.ts';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
+import {
+  reportSampledMaintenanceEvent,
+  signExportFailed,
+  signExportSucceeded,
+  vercelMaintenanceTransport,
+} from '../lib/maintenanceTelemetry.ts';
 import UndoHistoryModal from './UndoHistoryModal.tsx';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import { describeFile } from '../lib/format.js';
@@ -742,6 +748,10 @@ function PdfSignToolInner() {
     setStatus('signing');
     setProgress(0);
     setAnnouncement('Writing signatures and text layers into PDF...');
+    const exportStartedAt = performance.now();
+    // Development/test exports never contact the production analytics adapter.
+    // In production it remains optional: no injected Vercel queue means no send.
+    const telemetryTransport = import.meta.env.PROD ? vercelMaintenanceTransport : undefined;
 
     try {
       const { signPdf } = await import('../editor/adapters/pdf/sign.js');
@@ -752,10 +762,12 @@ function PdfSignToolInner() {
         || documentRevisionRef.current !== sourceRevision
         || currentFileRef.current !== sourceFile) return;
       activeExportRequestRef.current = null;
+      reportSampledMaintenanceEvent(signExportSucceeded(performance.now() - exportStartedAt), telemetryTransport);
       onSigned(signedBlob, `signed_${sourceFile.name}`);
     } catch (err) {
       if (activeExportRequestRef.current !== requestId) return;
       activeExportRequestRef.current = null;
+      reportSampledMaintenanceEvent(signExportFailed(performance.now() - exportStartedAt, err), telemetryTransport);
       console.error(err);
       setStatus('editing');
       const detail = describeSignFailure(err);

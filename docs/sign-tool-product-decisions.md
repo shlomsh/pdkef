@@ -37,15 +37,21 @@ assumptions in older design proposals, not the evidence or history in those docu
    payloads out of telemetry. Use allowlisted event names, coarse measurements, and sanitized
    error codes. Telemetry failure must never block offline tools. No telemetry expansion is
    implemented by this decision record.
+10. **Non-default fonts use opt-in family packs.** The app shell and Arimo Regular remain part of
+    the initial offline install. Every other selectable family is provisioned only when the user
+    chooses “Make offline” in the font picker; provisioning downloads every real face in that
+    family and shows “Ready offline” only after all of them are in the current app cache. This
+    avoids imposing the roughly 37 MB catalogue on every visitor while making disconnected
+    readiness explicit. An uncached family stays selectable online, but while disconnected the
+    picker says to connect before downloading rather than implying that browser fallback is an
+    offline guarantee. App-cache upgrades revalidate installed pack files and retain the prior
+    cached bytes if activation itself is offline.
 
 ## Engineering decisions still needed
 
 - **Language rollout:** define what “popular” includes, acceptance samples, and a signal for
   regional distinctions that cannot be inferred from text alone (for example shared Han glyphs).
   Define handling for unsupported characters and unavailable font styles without silent changes.
-- **Offline provisioning:** decide whether every supported asset is installed up front or whether
-  users explicitly install language packs with a visible offline-ready state. Uncached languages
-  cannot truthfully be advertised as available offline.
 - **Local user boundary:** today the practical boundary is the browser profile and origin. Decide
   whether another local profile mechanism is needed, plus retention, deletion, and cross-tab
   conflict policy. This decision does not require adding login or a backend.

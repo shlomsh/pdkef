@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { saveDraft, loadDraft, deleteDraft, hasDraftHint } from '../../editor/workspace/draftStore.js';
+import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges } from '../../editor/workspace/draftStore.js';
 import { DRAFT_SCHEMA_VERSION } from '../../editor/registry/draftValidation.ts';
 
 // Clears the blocking head script's DOM hint once a real restore check has
@@ -37,7 +37,7 @@ export const RESTORE_TIMEOUT_MS = 4000;
  *   true to claim the load (a pending home-page handoff) and skip the draft restore
  * @param {(record: object) => void} opts.onRestore - rehydrate the tool from a draft
  * @returns {{ clearDraft: () => Promise<void>, isRestoring: boolean,
- *   draftSaveState: 'idle'|'pending'|'saved'|'error', draftSaveRevision: number }}
+ *   draftSaveState: 'idle'|'pending'|'saved'|'error'|'conflict', draftSaveRevision: number }}
  *   `draftSaveState` describes the current revision only. In particular, a
  *   scheduled or failed write is never reported as saved.
  *   starts true only when draftStore's synchronous hint (hasDraftHint) says a
@@ -82,6 +82,19 @@ export function useDraftPersistence({
   const writePromisesRef = useRef(new Map());
 
   const [isRestoring, setIsRestoring] = useState(() => enabled && hasDraftHint(tool));
+
+  // A storage event never fires in the writer tab, only in its peers. Do not
+  // silently replace the document a person is actively editing: surface the
+  // deterministic policy instead. Their next save becomes the newer revision
+  // and wins; replacing the file remains an explicit user action.
+  useEffect(() => {
+    if (!enabled) return;
+    return subscribeToDraftChanges(tool, () => {
+      if (latest.current.status === 'editing' && latest.current.file) {
+        setSaveState({ state: 'conflict', revision: revisionRef.current });
+      }
+    });
+  }, [enabled, tool]);
 
   // Page-1 preview for the home page's resume card, rendered once per loaded
   // file and reused by every save after it. Autosave fires on a 700ms debounce
@@ -255,7 +268,9 @@ export function useDraftPersistence({
   // sourceChanged runs during render, before an old promise can paint its
   // completion. Derive pending for the new snapshot until its effect records
   // the same state, so there is no transient stale "Draft saved" chip.
-  const draftSaveState = saveState.revision === currentRevision
+  const draftSaveState = saveState.state === 'conflict'
+    ? 'conflict'
+    : saveState.revision === currentRevision
     ? saveState.state
     : (canPersist ? 'pending' : 'idle');
 

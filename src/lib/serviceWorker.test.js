@@ -52,15 +52,34 @@ function createFakeIndexedDB() {
 
 function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], indexedDBImpl = createFakeIndexedDB()) {
   const listeners = new Map();
-  const entries = new Map();
-  const cache = {
-    match: vi.fn(async (request) => entries.get(requestUrl(request))),
-    put: vi.fn(async (request, response) => entries.set(requestUrl(request), response)),
+  const currentCacheKey = 'pdkef-__BUILD_ID__';
+  const cacheNames = new Set(cacheKeys);
+  const entriesByCache = new Map(cacheKeys.map((key) => [key, new Map()]));
+  const cacheObjects = new Map();
+  const cacheFor = (key) => {
+    cacheNames.add(key);
+    if (!entriesByCache.has(key)) entriesByCache.set(key, new Map());
+    if (!cacheObjects.has(key)) {
+      const entries = entriesByCache.get(key);
+      cacheObjects.set(key, {
+        match: vi.fn(async (request) => entries.get(requestUrl(request))?.clone()),
+        put: vi.fn(async (request, response) => entries.set(requestUrl(request), response.clone())),
+        keys: vi.fn(async () => [...entries.keys()].map((url) => new Request(url))),
+      });
+    }
+    return cacheObjects.get(key);
   };
+  const cache = cacheFor(currentCacheKey);
+  const entries = entriesByCache.get(currentCacheKey);
   const caches = {
-    open: vi.fn(async () => cache),
-    keys: vi.fn(async () => cacheKeys),
-    delete: vi.fn(async () => true),
+    open: vi.fn(async (key) => cacheFor(key)),
+    keys: vi.fn(async () => [...cacheNames]),
+    delete: vi.fn(async (key) => {
+      const existed = cacheNames.delete(key);
+      entriesByCache.delete(key);
+      cacheObjects.delete(key);
+      return existed;
+    }),
   };
   const self = {
     location: { origin: 'https://pdkef.test' },
@@ -84,7 +103,7 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], index
     console,
   });
 
-  return { cache, caches, entries, fetchImpl, indexedDB: indexedDBImpl, listeners, self };
+  return { cache, caches, entries, entriesByCache, fetchImpl, indexedDB: indexedDBImpl, listeners, self };
 }
 
 async function dispatchInstall(worker) {
@@ -97,6 +116,18 @@ async function dispatchActivate(worker) {
   const waits = [];
   worker.listeners.get('activate')({ waitUntil: (promise) => waits.push(Promise.resolve(promise)) });
   return Promise.all(waits);
+}
+
+async function dispatchMessage(worker, data) {
+  const waits = [];
+  let reply;
+  worker.listeners.get('message')({
+    data,
+    ports: [{ postMessage: (value) => { reply = value; } }],
+    waitUntil: (promise) => waits.push(Promise.resolve(promise)),
+  });
+  await Promise.all(waits);
+  return reply;
 }
 
 function manifestResponder(urls, perUrl = () => new Response('asset')) {
@@ -180,6 +211,79 @@ describe('offline-first service worker', () => {
     expect(worker.caches.delete).toHaveBeenCalledWith('pdkef-previous');
     expect(worker.caches.delete).not.toHaveBeenCalledWith('some-other-app');
     expect(worker.self.clients.claim).toHaveBeenCalledOnce();
+  });
+
+  it('provisions every face in a requested family before reporting it ready offline', async () => {
+    const worker = createWorker(vi.fn(async (request) => new Response(`bytes:${new URL(request.url).pathname}`)));
+    const pack = {
+      family: 'Scheherazade New',
+      urls: ['/fonts/ScheherazadeNew-Regular.ttf', '/fonts/ScheherazadeNew-Bold.ttf'],
+    };
+
+    expect(await dispatchMessage(worker, { type: 'pdkef:font-pack-status', packs: [pack] }))
+      .toEqual({ ok: true, ready: { 'Scheherazade New': false } });
+
+    expect(await dispatchMessage(worker, { type: 'pdkef:font-pack-provision', packs: [pack] }))
+      .toEqual({ ok: true, ready: { 'Scheherazade New': true } });
+    expect([...worker.entries.keys()]).toEqual(expect.arrayContaining([
+      'https://pdkef.test/fonts/ScheherazadeNew-Regular.ttf',
+      'https://pdkef.test/fonts/ScheherazadeNew-Bold.ttf',
+      'https://pdkef.test/__pdkef/offline-font-pack/Scheherazade%20New',
+    ]));
+  });
+
+  it('does not claim a partial family is ready when one face cannot be downloaded', async () => {
+    const worker = createWorker(vi.fn(async (request) => (
+      request.url.endsWith('Bold.ttf') ? new Response('missing', { status: 503 }) : new Response('regular')
+    )));
+    const pack = {
+      family: 'Noto Sans Bengali',
+      urls: ['/fonts/NotoSansBengali-Regular.ttf', '/fonts/NotoSansBengali-Bold.ttf'],
+    };
+
+    const result = await dispatchMessage(worker, { type: 'pdkef:font-pack-provision', packs: [pack] });
+
+    expect(result.ok).toBe(false);
+    expect(worker.entries.has('https://pdkef.test/__pdkef/offline-font-pack/Noto%20Sans%20Bengali')).toBe(false);
+  });
+
+  it('revalidates provisioned font packs into an upgraded cache before deleting the old cache', async () => {
+    const worker = createWorker(vi.fn(async (request) => new Response(`fresh:${new URL(request.url).pathname}`)));
+    const oldEntries = worker.entriesByCache.get('pdkef-previous');
+    const pack = {
+      family: 'Noto Sans SC',
+      urls: ['/fonts/NotoSansSC-Regular.ttf', '/fonts/NotoSansSC-Bold.ttf'],
+    };
+    oldEntries.set(
+      'https://pdkef.test/__pdkef/offline-font-pack/Noto%20Sans%20SC',
+      new Response(JSON.stringify(pack)),
+    );
+    oldEntries.set('https://pdkef.test/fonts/NotoSansSC-Regular.ttf', new Response('old regular'));
+    oldEntries.set('https://pdkef.test/fonts/NotoSansSC-Bold.ttf', new Response('old bold'));
+
+    await dispatchActivate(worker);
+
+    expect(await worker.entries.get('https://pdkef.test/fonts/NotoSansSC-Regular.ttf').text())
+      .toBe('fresh:/fonts/NotoSansSC-Regular.ttf');
+    expect(worker.entries.has('https://pdkef.test/__pdkef/offline-font-pack/Noto%20Sans%20SC')).toBe(true);
+    expect(worker.caches.delete).toHaveBeenCalledWith('pdkef-previous');
+  });
+
+  it('retains provisioned faces during an offline activation instead of silently dropping the pack', async () => {
+    const worker = createWorker(vi.fn(async () => { throw new Error('offline'); }));
+    const oldEntries = worker.entriesByCache.get('pdkef-previous');
+    const pack = { family: 'Anek Telugu', urls: ['/fonts/AnekTelugu-Regular.ttf'] };
+    oldEntries.set(
+      'https://pdkef.test/__pdkef/offline-font-pack/Anek%20Telugu',
+      new Response(JSON.stringify(pack)),
+    );
+    oldEntries.set('https://pdkef.test/fonts/AnekTelugu-Regular.ttf', new Response('retained bytes'));
+
+    await dispatchActivate(worker);
+
+    expect(await worker.entries.get('https://pdkef.test/fonts/AnekTelugu-Regular.ttf').text())
+      .toBe('retained bytes');
+    expect(worker.entries.has('https://pdkef.test/__pdkef/offline-font-pack/Anek%20Telugu')).toBe(true);
   });
 
   it('serves a cached pathname for a query-route navigation while refreshing in the background', async () => {

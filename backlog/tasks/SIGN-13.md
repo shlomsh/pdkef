@@ -1,12 +1,12 @@
 ---
 id: "SIGN-13"
 title: "Anonymous usage and error maintenance signals"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
 phase: "near-term"
 depends_on: []
-legacy_state: "In progress — privacy-safe telemetry contract assigned 2026-09-03"
+legacy_state: "Done — 2026-09-04; sampled, allowlisted maintenance telemetry"
 ---
 
 # SIGN-13 · Anonymous usage and error maintenance signals
@@ -20,12 +20,17 @@ choosing or expanding a transport. Telemetry must be anonymous, allowlisted, coa
 best-effort; it must never contain document content or identifiers, and unavailable networking
 must not affect editor behavior. Provider, retention, and sampling remain explicit decisions.
 
-**Implementation progress (2026-09-03).** `src/lib/maintenanceTelemetry.ts` now defines the
+**Done (2026-09-04).** `src/lib/maintenanceTelemetry.ts` defines the
 closed `sign_export` schema: success/failure, four coarse duration buckets, and four stable error
 codes. It accepts no arbitrary event properties, serializes no exception values, has an optional
 best-effort transport, and refuses to call that transport when the browser reports offline. The
 existing Vercel adapter remains isolated; its production page-view hook now removes origins, query
 strings, and fragments before a page view is sent. Focused privacy tests cover sensitive PDF/text/
 signature/filename/user/document data, error sanitization, offline behavior, and URL sanitization.
-Before emitting new custom export events, confirm the provider's aggregate-only configuration,
-retention, sampling, and an approved disclosure; do not make tool behavior depend on delivery.
+
+Sign exports now send that reviewed event only in production, through Vercel Web Analytics, and only
+for a 10% random sample. Sampling creates no visitor or document identifier; an unavailable/offline
+transport has no product effect and queues nothing. The provider decision, reporting-window retention,
+no-drains policy, allowlist, and disclosure live in
+[`docs/maintenance-telemetry.md`](../../docs/maintenance-telemetry.md). Re-review that record before
+adding an event or a field.

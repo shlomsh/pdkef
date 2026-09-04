@@ -11,15 +11,13 @@ The canonical backlog is the task-file collection in [backlog/tasks/](backlog/ta
 | ID | Priority | Task |
 | --- | --- | --- |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |
-| SIGN-23 | P1 | [SIGN-23](backlog/tasks/SIGN-23.md) · Make non-default language fonts explicitly offline-ready |
 | SIGN-26 | P2 | [SIGN-26](backlog/tasks/SIGN-26.md) · Establish dependency vulnerability and update governance |
 
 ### In progress
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| SIGN-11 | P2 | [SIGN-11](backlog/tasks/SIGN-11.md) · Versioned, validated shared persistence |
-| SIGN-13 | P2 | [SIGN-13](backlog/tasks/SIGN-13.md) · Anonymous usage and error maintenance signals |
+| SIGN-23 | P1 | [SIGN-23](backlog/tasks/SIGN-23.md) · Make non-default language fonts explicitly offline-ready |
 
 ### Blocked
 
@@ -39,7 +37,9 @@ _None._
 | SIGN-08 | P1 | [SIGN-08](backlog/tasks/SIGN-08.md) · Share the effective typography descriptor |
 | SIGN-09 | P1 | [SIGN-09](backlog/tasks/SIGN-09.md) · Direction defaults and native IME input |
 | SIGN-10 | P2 | [SIGN-10](backlog/tasks/SIGN-10.md) · A language/font source of truth and acceptance matrix |
+| SIGN-11 | P2 | [SIGN-11](backlog/tasks/SIGN-11.md) · Versioned, validated shared persistence |
 | SIGN-12 | P2 | [SIGN-12](backlog/tasks/SIGN-12.md) · Make required undo dependable |
+| SIGN-13 | P2 | [SIGN-13](backlog/tasks/SIGN-13.md) · Anonymous usage and error maintenance signals |
 | SIGN-14 | P2 | [SIGN-14](backlog/tasks/SIGN-14.md) · Separate editor core, UI, and export adapters incrementally |
 | SIGN-15 | P2 | [SIGN-15](backlog/tasks/SIGN-15.md) · Bound document/render/gesture lifecycles |
 | SIGN-16 | P2 | [SIGN-16](backlog/tasks/SIGN-16.md) · Trustworthy delivery checks and docs |

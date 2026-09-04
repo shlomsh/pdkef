@@ -24,7 +24,7 @@ interface BasePdfToolProps {
   emptyStateMessage?: string;
   fileLabel?: string;
   fileMeta?: string;
-  draftSaveState?: 'idle' | 'pending' | 'saved' | 'error';
+  draftSaveState?: 'idle' | 'pending' | 'saved' | 'error' | 'conflict';
   hasWork?: boolean;
   workNoun?: string;
   onClearAll?: () => void;

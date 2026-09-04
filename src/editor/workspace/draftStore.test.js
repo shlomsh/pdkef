@@ -1,5 +1,6 @@
-import { describe, expect, it, beforeEach } from 'vitest';
-import { MAX_AGE_MS, readDraftMeta } from './draftStore.js';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { webcrypto } from 'node:crypto';
+import { MAX_AGE_MS, readDraftMeta, saveDraft, sourceIdForBytes, subscribeToDraftChanges } from './draftStore.js';
 
 // readDraftMeta is the one workspace-store piece that never touches IndexedDB -
 // it's a synchronous localStorage read, by design (see the file's header
@@ -63,5 +64,44 @@ describe('readDraftMeta', () => {
     expect(readDraftMeta('sign')).toBeNull();
     expect(localStorage.getItem('pdf-toolkit:has-draft:sign')).toBeNull();
     expect(localStorage.getItem('pdf-toolkit:draft-meta:sign')).toBeNull();
+  });
+});
+
+describe('draft source and cross-tab coordination boundaries', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    vi.stubGlobal('crypto', webcrypto);
+  });
+
+  it('uses a content address instead of a filename or document id for source bytes', async () => {
+    const one = new TextEncoder().encode('same PDF bytes').buffer;
+    const two = new TextEncoder().encode('same PDF bytes').buffer;
+    const id = await sourceIdForBytes(one);
+
+    expect(id).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(await sourceIdForBytes(two)).toBe(id);
+    expect(await sourceIdForBytes(new TextEncoder().encode('different PDF').buffer)).not.toBe(id);
+  });
+
+  it('does not persist when binary storage is unavailable', async () => {
+    expect(await saveDraft('sign', { fileBytes: new ArrayBuffer(1) })).toBe(false);
+  });
+
+  it('reports only a revision and policy for another tab, never draft data', () => {
+    const changes = [];
+    const stop = subscribeToDraftChanges('sign', (change) => changes.push(change));
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'pdf-toolkit:draft-change:sign',
+      newValue: JSON.stringify({
+        kind: 'saved', revision: 7, updatedAt: 123, writerId: 'another-tab',
+        fileName: 'private.pdf', sourceId: 'document-123', elements: [{ text: 'secret' }],
+      }),
+    }));
+    stop();
+
+    expect(changes).toEqual([{ revision: 7, kind: 'saved', conflictPolicy: 'last-writer-wins' }]);
+    expect(JSON.stringify(changes)).not.toContain('private.pdf');
+    expect(JSON.stringify(changes)).not.toContain('secret');
   });
 });

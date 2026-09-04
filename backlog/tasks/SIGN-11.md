@@ -1,12 +1,12 @@
 ---
 id: "SIGN-11"
 title: "Versioned, validated shared persistence"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
 phase: "near-term"
 depends_on: ["SIGN-24"]
-legacy_state: "In progress — persistence/user-scope slice assigned 2026-09-03"
+legacy_state: "Done — 2026-09-04; revisioned source-deduplicated draft persistence"
 ---
 
 # SIGN-11 · Versioned, validated shared persistence
@@ -38,13 +38,12 @@ default-profile keys mirrored only while an older deployed tab may still be open
 timestamp, and tab-writer ID give explicit deterministic last-writer-wins behavior. Pen
 color/thickness now use this same boundary rather than direct `localStorage` access.
 
-**Still open:** draft-record multi-tab coordination and storing source PDF bytes once per document
-rather than on every edit. SIGN-24 must also separate saved-signature image assets from the scalar
-preference envelope before this storage design closes. The preference slice's opaque scope needs a
-real account shell to pass its own scope only if authenticated profiles are later introduced.
-
-**Current recommendation (2026-09-03):** preserve the offline-only architecture while
-introducing an explicit local-user storage scope shared by tabs for that user. Land
-saved-signature/preference validation and migration as a bounded slice, then add revisioned
-cross-tab coordination with deterministic conflict behavior. Keep source-PDF deduplication as a
-separate follow-up so storage-format and concurrency changes remain independently reversible.
+**Done (2026-09-04, draft coordination/source slice):** IndexedDB schema-v2 keeps draft snapshots
+separate from a SHA-256-addressed source-PDF store, so later edits hold only the source address and
+never write another copy of the PDF bytes. One read/write transaction assigns a monotonic revision,
+timestamp, and per-tab writer ID immediately before every write. Same-user tabs receive metadata-only
+storage notifications and show an explicit conflict state rather than replacing an editor in use;
+the documented resolution is deterministic last-writer-wins on the next local save. Source references
+are reclaimed when drafts are replaced or deleted. Schema-v1 byte-bearing records remain readable,
+and unavailable binary storage remains a non-breaking unsaved state. Focused tests cover content
+addressing, unavailable storage, and the metadata-only cross-tab contract.
