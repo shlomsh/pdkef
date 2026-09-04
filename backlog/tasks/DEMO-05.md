@@ -1,7 +1,7 @@
 ---
 id: "DEMO-05"
 title: "Full-height story panels that read as slides without hijacking the scroll"
-status: "done"
+status: "open"
 priority: "P2"
 epic: "landing-story-demo"
 phase: "later"
@@ -68,3 +68,37 @@ mounted as a direct sibling after the first-screen wrapper instead, and `HeroDem
 **One thing this ticket specified and did not deliver:** the persistent minimal progress indicator. It
 was closed on the strength of the sticky mechanics and the placement decision, both of which shipped,
 but the indicator was never built. Carried into DEMO-02's remaining work rather than left implied here.
+
+## Reopened: the owner chose option C and it is not built
+
+The mechanics and the original placement shipped, and the progress indicator this ticket specified was
+finally built (commit 6a71f4d). But the placement question came back, because the demo as shipped sits
+below the first screen and the owner had asked for it above the dropzone.
+
+He was shown four options drawn to scale against an 800px viewport and **chose option C**. The
+arithmetic behind them:
+
+- 800px viewport, minus 56 app bar, minus 227 hero, minus 145 tool dock, minus 35 frame margins, leaves
+  **337px** for the slot between the hero and the dock.
+- The demo needs about **410px** to stay legible; below that the filled values clip at 390px width.
+- So the dock staying on the first screen and the demo living above the dropzone cannot both hold at
+  13-inch height. Option C closes the 73px gap by cutting the hero from about 227px to about 154px, and
+  swaps the demo for the dropzone when the visitor has a saved draft.
+
+**He also asked for a second thing that may replace it: try the two-column hero usetape.app uses, and
+use it if it looks better.** That is worth doing first, because it changes the arithmetic rather than
+paying it. Stacked, the demo and hero compete for one vertical budget. Side by side they share it, and
+the demo can exceed 410px without the dock moving at all.
+
+Two things that are now known and should not be rediscovered:
+
+- **The conditional swap is feasible synchronously.** `src/editor/workspace/draftStore.js` mirrors "a
+  draft exists for this tool" into localStorage (`hasDraftHint`, `readDraftMeta`) precisely so it can be
+  read before paint. IndexedDB holds the bytes and is async; the hint is not. The decision must be made
+  from a **bundled** script writing a class on `<html>`, never `is:inline`, and it must collapse the demo
+  rather than remove it, since its copy is the SEO surface.
+- **The app bar is `sticky top-0 z-20`, 56.5px.** Any sticky panel pinned at top:0 puts its own first
+  56px underneath it, invisibly. `--herodemo-app-bar` in HeroDemo.module.css exists for this.
+
+Three attempts at this failed for environmental reasons rather than design ones: two to session limits,
+one to a network error, and one agent spent its whole run delegating instead of implementing.
