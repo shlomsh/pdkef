@@ -738,12 +738,16 @@
   color: var(--color-muted);
 }
 
+/* A printed rule, so it is drawn like one: hairline, and in the ordinary
+   border tone rather than the strong one. At 2px in --color-border-strong
+   these read as heavy coloured bars competing with the text above them,
+   which is not what a rule on a photocopied form looks like. */
 .blank-wrap {
   position: relative;
   display: inline-block;
   vertical-align: bottom;
-  height: 1.3em;
-  border-block-end: 2px solid var(--color-border-strong);
+  height: 1.25em;
+  border-block-end: 1px solid var(--color-border-strong);
 }
 
 .blank-name {
@@ -766,12 +770,30 @@
   width: 14ch;
 }
 
+/* Typed into the form, not printed on it, so it has to look like ordinary
+   text a person entered rather than emphasis the document is placing on
+   itself. Three things matter and all three were wrong.
+ *
+ * Weight: 400, the same as every printed line around it. At 600 the
+ * parent's answers were the boldest thing on the page, heavier than the
+ * form's own heading, which reads as a mockup labelling its own hotspots
+ * rather than as a filled-in document.
+ *
+ * Size: pinned to the printed sentence's own size rather than inherited
+ * from the row, so an answer never renders larger than the form it sits in.
+ *
+ * Position: `line-height: 1` collapses the half-leading that was holding
+ * the text a few pixels clear of its rule, and the 1px offset then leaves
+ * the baseline just above the line with descenders crossing it, which is
+ * where writing on a ruled line actually sits. */
 .blank-value {
   position: absolute;
   inset-inline-start: 0;
-  inset-block-end: 2px;
+  inset-block-end: 1px;
   white-space: nowrap;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1;
   color: var(--color-text);
 }
 
