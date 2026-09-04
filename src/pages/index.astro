@@ -36,131 +36,59 @@ const faq = [
   </Fragment>
 
   <AppBar isHome />
-  {/* DEMO-05, variant T: the two-column first screen, after usetape.app.
-      Above 1320px the hero, dropzone and tool dock stay exactly as they were
-      but occupy the left column and stick there, while the demo runs in the
-      right column beside them. Stacked, the demo and the hero compete for one
-      vertical budget, which is what forced the choice between a legible demo
-      (about 410px) and keeping the dock on the first screen. Side by side they
-      share the budget instead, so the demo gets the full column height and the
-      dock does not move at all.
-
-      Below 1320px this is a plain block and everything falls back to the
-      stacked order, which is what phones already had; see the media query in
-      the <style> block below for why the threshold is 1320 and not the 1024
-      it shipped at. Reverting the whole variant is deleting this wrapper and
-      moving <HeroDemo /> back below <OfflineProof />; DEMO-05 requires
-      placement to stay cheap to reverse. */}
+  {/* The landing area deliberately uses familiar workspace cues rather than
+      naming the metaphor. The actual demo remains its own scroll story: on
+      phones the stories stay sequential; on a wide screen the first one is
+      visible beside the work area. */}
   <div class="home-first bg-[linear-gradient(180deg,var(--color-bg),var(--color-primary-tint))]">
-  <div class="home-first-main pb-12 min-[1024px]:flex min-[1024px]:min-h-[calc(100svh-3.5rem)] min-[1024px]:flex-col min-[1024px]:justify-center min-[1024px]:box-border min-[1024px]:pt-2 min-[1024px]:pb-6">
+  <div class="home-first-main pb-12 min-[1024px]:flex min-[1024px]:min-h-[calc(100svh-3.5rem)] min-[1024px]:flex-col min-[1024px]:box-border min-[1024px]:pt-2 min-[1024px]:pb-6">
     <header class="hero-header">
       <div class="mb-3 flex items-center justify-center gap-4">
         <Image src={logo} width={56} height={56} densities={[1, 2]} loading="eager" decoding="sync" fetchpriority="high" alt="" aria-hidden="true" class="shrink-0" />
         <h1 class="type-hero m-0 text-start">Free PDF tools that run <span class="text-[var(--color-primary)]">on your device</span></h1>
       </div>
       <p class="type-lead mx-auto max-w-[54rem] min-[1024px]:mt-[0.6rem]">Merge, sign, split, redact, and compress PDFs without signing up, installing anything, or uploading a single file. Everything runs in your browser, on your phone or computer, so your files never leave your device.</p>
-      
-      <div class="mt-6 flex flex-wrap justify-center gap-[0.6rem] min-[1024px]:mt-4">
-        <a class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-text)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">
-          <svg class="shrink-0 text-[var(--color-text)]" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" />
-          </svg>
-          Star us on GitHub
-          <svg class="shrink-0 text-[var(--color-primary)]" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 7.1-1.01L12 2z" />
-          </svg>
-        </a>
-        <span class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-muted)]">
-          <svg class="shrink-0 text-[var(--color-muted-light)]" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 3v18" /><path d="M7 7l-4 6a4 4 0 0 0 8 0l-4-6z" /><path d="M17 7l-4 6a4 4 0 0 0 8 0l-4-6z" /><path d="M6 21h12" /><path d="M8 5h8" />
-          </svg>
-          MIT licensed
-        </span>
-        <span class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-muted)]">
-          <svg class="shrink-0 text-[var(--color-muted-light)]" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 20h.01" /><path d="M8.5 16.429a5 5 0 0 1 7 0" /><path d="M5 12.859a10 10 0 0 1 5.17-2.69" /><path d="M19 12.859a10 10 0 0 0-2.007-1.523" /><path d="M2 8.82a15 15 0 0 1 4.177-2.643" /><path d="M22 8.82a15 15 0 0 0-11.288-3.764" /><path d="m2 2 20 20" />
-          </svg>
-          Works offline
-        </span>
-      </div>
     </header>
 
-  <main class="min-[1024px]:!flex min-[1024px]:!min-h-0 min-[1024px]:!flex-1 min-[1024px]:!flex-col min-[1024px]:!pb-0">
-    {/* Large Dropzone CTA */}
-    <div class="merge-tool first-screen-frame mx-auto mb-16 box-border max-w-[1080px] p-6 min-[1024px]:!mb-4 min-[1024px]:!p-4">
-      {/* .first-screen-frame (scoped rule below) grows to fill whatever room
-          the first-screen budget has left over between the header and the
-          tool dock (flex:1 inside <main>'s own flex column), then centers
-          its fixed-size child vertically (justify-content:center) rather
-          than leaving that room as a flat gap below a static-height box. At
-          a short viewport the child sits nearly flush against its own
-          padding; at a tall one it gets more air above and below - the
-          growing/shrinking budget shows up as calm framing around the CTA
-          instead of as dead space beneath it. It is a scoped class, not
-          Tailwind utilities, so this one-off layout ships only on this page
-          - see the <style> block at the end of the file. See the
-          --first-screen-slot custom property below (child's own height
-          contract, not this wrapper) for how a future demo resizes it. */}
-      {/* Reserves the dropzone's rendered height before it exists.
-          FileDropzone is `client:only`, so Astro emits an empty <astro-island>
-          here and the box paints nothing until its chunk loads and hydrates -
-          on the highest-traffic page in the site, that is the primary CTA
-          missing on first paint and the tool grid below it jumping down when
-          it arrives. It has to stay client:only: the component reads saved
-          drafts out of localStorage in a lazy useState initializer, which on
-          the server always reports "no drafts", so server-rendering it would
-          trade this shift for a wrong-state flash on every returning visitor.
-          Holding the space instead costs nothing and removes the shift.
-
-          The three figures are measured, not derived, and they are the one
-          hand-computed thing in this file. To redo them after any change to
-          the dropzone's content, padding or type scale: build, serve dist/,
-          and read the height back at each breakpoint -
-            document.querySelector('[data-empty-state]').getBoundingClientRect().height
-          Under 412px the "Private. Files never leave your device." pill wraps
-          to a second line (+21.8px); at 1024px Dropzone.module.css drops the
-          block padding from 3rem to 1.5rem (-48px). Round up, never down: an
-          over-reservation is dead space, an under-reservation is the shift
-          this exists to prevent. The 412px step tracks a text wrap, so it
-          moves with font metrics - a platform that wraps later shifts by at
-          most that 22px, against 333px before this.
-
-          The 1024px+ tier reads --first-screen-slot (default 264px, this
-          same measured figure) instead of a bare min-h-[264px], so the
-          HeroDemo work landing in this slot can raise the reservation to
-          whatever height its own component needs by setting the one custom
-          property - on this div, or an ancestor - without touching the
-          surrounding flex/centering layout in the parent above. Nothing
-          currently overrides it, so today's rendered height is unchanged. */}
-      <div class="min-h-[333px] min-[412px]:min-h-[312px] min-[1024px]:min-h-[var(--first-screen-slot,264px)]">
-        <FileDropzone client:only="preact" href="/sign?action=open" toolTarget="sign" className="min-[1024px]:!py-6" />
+  <main class="workspace-frame">
+    <div class="workspace-surface">
+      <div class="workspace-files">
+        <div class="min-h-[96px]">
+          <FileDropzone client:only="preact" href="/sign?action=open" toolTarget="sign" compact />
+        </div>
       </div>
-    </div>
 
-    {/* App Grid for all tools */}
-    <div class="mx-auto mb-12 flex max-w-[1080px] flex-wrap justify-center gap-6 p-6 min-[1024px]:!mt-auto min-[1024px]:mb-0 min-[1024px]:gap-5 min-[1024px]:p-3">
-      {tools.map((tool) => (
-        <a href={tool.href} data-accent={tool.accent} class="app-card relative flex w-20 shrink-0 cursor-pointer flex-col items-center gap-3 text-inherit no-underline outline-none">
-          <div class="app-tile flex size-16 items-center justify-center">
-            <tool.icon strokeWidth={1.5} />
-          </div>
-          <div class="text-center text-[0.8rem] font-semibold leading-[1.25] text-[var(--color-muted)]">{tool.gridTitle}</div>
-          <span class="app-tooltip">{tool.gridDescription}</span>
-        </a>
-      ))}
+      <nav class="tool-dock" aria-label="PDF tools">
+        {tools.map((tool) => (
+          <a href={tool.href} data-accent={tool.accent} class="app-card relative flex shrink-0 cursor-pointer flex-col items-center text-inherit no-underline outline-none">
+            <div class="app-tile flex items-center justify-center">
+              <tool.icon strokeWidth={1.5} />
+            </div>
+            <div class="app-name text-center font-semibold leading-[1.25] text-[var(--color-muted)]">{tool.gridTitle}</div>
+            <span class="app-tooltip">{tool.gridDescription}</span>
+          </a>
+        ))}
+      </nav>
     </div>
   </main>
 </div>
 
-  {/* HeroDemo (DEMO-02) in the right column above 1320px, below the first
-      screen otherwise. position: sticky is killed with no error by any
-      ancestor carrying overflow/transform/filter/contain, so neither
-      .home-first nor this column may ever grow one - the demo's own panels
-      and the left column both depend on it. */}
+  {/* The demo stays unwrapped so its sticky stages keep their existing scroll
+      behavior. */}
   <div class="home-first-demo">
     <HeroDemo />
   </div>
 </div>
+
+  <div class="proof-chips">
+    <a class="proof-chip proof-chip-link" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">
+      <svg class="shrink-0 text-[var(--color-text)]" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" /></svg>
+      Star us on GitHub
+      <svg class="shrink-0 text-[var(--color-primary)]" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 7.1-1.01L12 2z" /></svg>
+    </a>
+    <span class="proof-chip">MIT licensed</span>
+    <span class="proof-chip">Works offline</span>
+  </div>
 
     {/* OfflineProof (DEMO-04): the live half of "your document stays on
         your phone." HeroDemo below already says the claim sentence and the
@@ -610,6 +538,147 @@ const faq = [
        component. */
     .home-first-demo :global([data-herodemo-intro]) {
       display: none;
+    }
+  }
+
+  /* --- Focused workspace --------------------------------------------
+     This deliberately reuses the page's surface, border, and accent tokens.
+     It gives the launcher a clear home without turning the landing page into
+     a literal operating-system imitation. */
+  .workspace-frame {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    box-sizing: border-box;
+    width: min(100% - 2rem, 1080px);
+    margin: 0 auto;
+    padding: var(--space-3) 0;
+  }
+
+  .workspace-surface {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+    border: 1px solid var(--color-border);
+    border-radius: calc(var(--radius) + 4px);
+    background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+    box-shadow: 0 16px 36px -30px var(--color-primary-ring);
+  }
+
+  .workspace-files {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: var(--space-3);
+  }
+
+  .workspace-files > div {
+    width: min(100%, 42rem);
+  }
+
+  .tool-dock {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding: 0.85rem 1rem 1rem;
+    border-top: 1px solid var(--color-border);
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+
+  .app-card {
+    width: 4.25rem;
+    gap: 0.45rem;
+  }
+
+  .app-tile {
+    width: 3.45rem;
+    height: 3.45rem;
+  }
+
+  .app-name {
+    width: 100%;
+    font-size: 0.7rem;
+  }
+
+  .proof-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: var(--space-5) var(--space-4) var(--space-6);
+    background: var(--color-primary-tint);
+  }
+
+  .proof-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 0.5px solid var(--color-border);
+    border-radius: 10px;
+    padding: 0.45rem 0.8rem;
+    background: var(--color-surface);
+    color: var(--color-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .proof-chip-link {
+    color: var(--color-text);
+    text-decoration: none;
+    transition: transform 150ms ease-out, border-color 150ms ease-out;
+  }
+
+  .proof-chip-link:hover,
+  .proof-chip-link:focus-visible {
+    transform: translateY(-1px);
+    border-color: var(--color-border-strong);
+  }
+
+  @media (min-width: 1024px) {
+    .workspace-frame {
+      padding-block: var(--space-2);
+    }
+
+    .workspace-files {
+      padding: var(--space-4);
+    }
+
+    .tool-dock {
+      justify-content: center;
+    }
+  }
+
+  @media (min-width: 1320px) {
+    .home-first {
+      grid-template-columns: minmax(760px, 0.95fr) minmax(500px, 1.05fr);
+    }
+
+    .home-first-main {
+      padding-inline: var(--space-4);
+    }
+
+    .workspace-frame {
+      width: 100%;
+    }
+
+    .app-card {
+      width: 4rem;
+    }
+
+    .app-tile {
+      width: 3.25rem;
+      height: 3.25rem;
+    }
+
+    .app-name {
+      font-size: 0.7rem;
     }
   }
 
