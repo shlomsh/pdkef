@@ -888,6 +888,17 @@ const faq = [
         animation-name: decor-drift-icon;
       }
 
+      /* Sized down on a handset, where 300px is most of the card's width and
+         the watermark stops reading as a mark in a corner and starts reading
+         as a wash behind the text. It is behind the content and at 7%
+         opacity either way, so this is about weight, not legibility. */
+      @media (max-width: 640px) {
+        :global(.decor-parallax-icon) {
+          width: 210px;
+          height: 210px;
+        }
+      }
+
       /* From negative to positive over the card's whole cover range: as the
          card travels up the screen the layer lags behind it, which is what
          "further away" looks like, and the icon lags further than the sketch
