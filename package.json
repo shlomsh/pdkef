@@ -47,17 +47,17 @@
     "sortablejs": "^1.15.7"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.9",
+    "@astrojs/check": "^0.9.10",
     "@playwright/test": "^1.61.1",
-    "@preact/preset-vite": "^2.10.5",
-    "@tailwindcss/vite": "^4.3.2",
+    "@preact/preset-vite": "^2.10.6",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/sortablejs": "^1.15.8",
     "esbuild": "^0.28.2",
     "jsdom": "^29.1.1",
     "patch-package": "^8.0.1",
     "tailwindcss": "^4.3.2",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "browserslist": "4.28.7",
