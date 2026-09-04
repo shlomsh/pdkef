@@ -4,6 +4,7 @@ import ColorPicker from './ColorPicker.tsx';
 import { HANDWRITING_FONTS, resolveFontFamily, textBoxPaddingEm } from '../editor/text/fonts.js';
 import { DEFAULT_LINE_HEIGHT_EM } from '../constants/signGeometry.js';
 import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../editor/workspace/preferenceStore.ts';
+import { encodeSignatureCanvas } from '../editor/workspace/signatureImagePolicy.ts';
 import styles from './SignatureDialog.module.css';
 import dialogStyles from './Dialog.module.css';
 
@@ -104,7 +105,8 @@ export default function SignatureDialog({
     }
     
     if (maxX < minX || maxY < minY) {
-      return { dataUrl: canvas.toDataURL('image/png'), aspectRatio: canvas.height / canvas.width };
+      const encoded = encodeSignatureCanvas(canvas);
+      return { dataUrl: encoded.dataUrl, aspectRatio: encoded.height / encoded.width };
     }
     
     // Add small margin around cropped area
@@ -131,10 +133,8 @@ export default function SignatureDialog({
       croppedHeight
     );
     
-    return {
-      dataUrl: croppedCanvas.toDataURL('image/png'),
-      aspectRatio: croppedHeight / croppedWidth
-    };
+    const encoded = encodeSignatureCanvas(croppedCanvas);
+    return { dataUrl: encoded.dataUrl, aspectRatio: encoded.height / encoded.width };
   };
 
   // Handle native <dialog> open/close and Safari light-dismiss fallback
@@ -474,6 +474,7 @@ export default function SignatureDialog({
                 </svg>
                 <p>Drag & drop signature image here or click to choose</p>
                 <span>Supports PNG, JPG, SVG. Auto background transparency.</span>
+                <span>Large images are downsampled to at most 1 megapixel and 750 KB before saving.</span>
                 <input
                   type="file"
                   accept="image/*"

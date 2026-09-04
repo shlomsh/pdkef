@@ -16,7 +16,14 @@ import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../constants/
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../editor/workspace/useEditorDraftPersistence.ts';
 import { isEditorElement } from '../editor/registry/draftValidation.ts';
-import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../editor/workspace/preferenceStore.ts';
+import {
+  getEditorPreference,
+  getSavedSignatures,
+  setEditorPreference,
+  setSavedSignatures as persistSavedSignatures,
+  subscribeToEditorPreference,
+  subscribeToSavedSignatures,
+} from '../editor/workspace/preferenceStore.ts';
 import {
   captureAddedElement,
   captureElementSnapshots,
@@ -255,7 +262,7 @@ function PdfSignToolInner() {
 
   // Load saved signatures from workspace preferences on mount.
   useEffect(() => {
-    const stored = getEditorPreference('savedSignatures');
+    const stored = getSavedSignatures();
     if (stored) {
       setSavedSignatures(stored);
       if (stored.length > 0) {
@@ -317,7 +324,7 @@ function PdfSignToolInner() {
   // revision-ordered last-writer-wins result everywhere else.
   useEffect(() => {
     const stops = [
-      subscribeToEditorPreference('savedSignatures', ({ value }) => {
+      subscribeToSavedSignatures(({ value }) => {
         const next = value ?? [];
         setSavedSignatures(next);
         setActiveSignature((current) => next.find((signature) => signature.id === current?.id) ?? next[0] ?? null);
@@ -400,8 +407,8 @@ function PdfSignToolInner() {
     };
     const updated = [newSig, ...savedSignatures].slice(0, 10);
     setSavedSignatures(updated);
-    setEditorPreference('savedSignatures', updated);
-    return newSig;
+    const persisted = persistSavedSignatures(updated);
+    return { signature: newSig, persisted };
   };
 
   // Confirm delete saved signature
@@ -414,7 +421,7 @@ function PdfSignToolInner() {
     if (!signatureToDelete) return;
     const updated = savedSignatures.filter((sig) => sig.id !== signatureToDelete);
     setSavedSignatures(updated);
-    setEditorPreference('savedSignatures', updated);
+    const persisted = persistSavedSignatures(updated);
     if (activeSignature && activeSignature.id === signatureToDelete) {
       const fallback = updated.length > 0 ? updated[0] : null;
       setActiveSignature(fallback);
@@ -423,7 +430,9 @@ function PdfSignToolInner() {
       }
     }
     setSignatureToDelete(null);
-    setAnnouncement('Signature deleted.');
+    setAnnouncement(persisted
+      ? 'Signature deleted.'
+      : 'Signature deleted for this session, but the browser could not save that change.');
   };
 
   // Core loader shared by fresh file picks and draft restore. `bytes` is the source
@@ -540,7 +549,7 @@ function PdfSignToolInner() {
 
   // Add signature element from modal
   const handleAddSignatureElement = (dataUrl: string, aspectRatio: number) => {
-    const newSig = saveNewSignature(dataUrl, aspectRatio);
+    const { signature: newSig, persisted } = saveNewSignature(dataUrl, aspectRatio);
     setActiveSignature(newSig);
     dispatch({ type: 'SET_TOOL', payload: 'signature' });
     
@@ -551,6 +560,9 @@ function PdfSignToolInner() {
     dispatch({ type: 'DISARM_TOOL' });
     setDialogOpen(false);
     setTempPlacement(null);
+    if (!persisted) {
+      setAnnouncement('Signature placed, but the browser could not save it for your next visit.');
+    }
   };
 
   // Delete placed element

@@ -3,12 +3,16 @@ import {
   EDITOR_PREFERENCE_RECORD_VERSION,
   getEditorPreference,
   getEditorUserScope,
+  getSavedSignatures,
   setEditorPreference,
+  setSavedSignatures,
   subscribeToEditorPreference,
+  subscribeToSavedSignatures,
 } from './preferenceStore.ts';
 
 const scope = 'test-user';
 const recordKey = `pdf-toolkit:editor-preferences:v1:${encodeURIComponent(scope)}`;
+const signatureLibraryKey = `pdf-toolkit:saved-signatures:v1:${encodeURIComponent(scope)}`;
 
 describe('editor workspace preferences', () => {
   beforeEach(() => {
@@ -44,13 +48,16 @@ describe('editor workspace preferences', () => {
     localStorage.setItem('pdf-toolkit:signatures', JSON.stringify(signatures));
     localStorage.setItem('pdf-toolkit:lastFontSize', '16');
 
-    expect(getEditorPreference('savedSignatures')).toEqual(signatures);
+    expect(getSavedSignatures()).toEqual(signatures);
     expect(getEditorPreference('lastFontSize')).toBe(16);
     const defaultRecordKey = `pdf-toolkit:editor-preferences:v1:${encodeURIComponent(getEditorUserScope() ?? '')}`;
     expect(JSON.parse(localStorage.getItem(defaultRecordKey) ?? 'null')).toMatchObject({
       schemaVersion: EDITOR_PREFERENCE_RECORD_VERSION,
       revision: 0,
-      values: { savedSignatures: signatures, lastFontSize: 16 },
+      values: { lastFontSize: 16 },
+    });
+    expect(JSON.parse(localStorage.getItem(`pdf-toolkit:saved-signatures:v1:${encodeURIComponent(getEditorUserScope() ?? '')}`) ?? 'null')).toMatchObject({
+      signatures,
     });
   });
 
@@ -61,7 +68,7 @@ describe('editor workspace preferences', () => {
     ]));
 
     expect(getEditorPreference('lastColor', { userScope: scope })).toBeNull();
-    expect(getEditorPreference('savedSignatures', { userScope: scope })).toBeNull();
+    expect(getSavedSignatures({ userScope: scope })).toBeNull();
     expect(localStorage.getItem(recordKey)).toBeNull();
   });
 
@@ -81,25 +88,38 @@ describe('editor workspace preferences', () => {
     });
   });
 
+  it('moves a schema-v1 envelope library before a scalar rewrite', () => {
+    const signatures = [{ id: 'v1-signature', dataUrl: 'data:image/png;base64,abc', aspectRatio: 1.5 }];
+    localStorage.setItem(recordKey, JSON.stringify({
+      schemaVersion: EDITOR_PREFERENCE_RECORD_VERSION,
+      revision: 4,
+      updatedAt: 40,
+      writerId: 'tab-v1',
+      values: { savedSignatures: signatures, lastColor: '#abcdef' },
+    }));
+
+    expect(setEditorPreference('lastFont', 'Arimo', { userScope: scope })).toBe(true);
+    expect(getSavedSignatures({ userScope: scope })).toEqual(signatures);
+    expect(JSON.parse(localStorage.getItem(recordKey) ?? 'null')).toMatchObject({
+      values: { lastColor: '#abcdef', lastFont: 'Arimo' },
+    });
+    expect(localStorage.getItem(recordKey)).not.toContain('savedSignatures');
+    expect(JSON.parse(localStorage.getItem(signatureLibraryKey) ?? 'null')).toMatchObject({ signatures });
+  });
+
   it('rejects corrupt records and malformed saved signatures without reviving legacy data', () => {
     localStorage.setItem('pdf-toolkit:lastColor', '#old');
     localStorage.setItem(recordKey, '{broken');
     expect(getEditorPreference('lastColor', { userScope: scope })).toBeNull();
 
-    localStorage.setItem(recordKey, JSON.stringify({
-      schemaVersion: EDITOR_PREFERENCE_RECORD_VERSION,
+    localStorage.setItem(signatureLibraryKey, JSON.stringify({
+      schemaVersion: 1,
       revision: 1,
       updatedAt: 1,
       writerId: 'tab-a',
-      values: {
-        savedSignatures: [{ id: 'sig-2', dataUrl: 'data:image/png;base64,def', aspectRatio: '0.4' }],
-        lastSymbolWidth: 0,
-        lastSymbolMark: 'cross',
-      },
+      signatures: [{ id: 'sig-2', dataUrl: 'data:image/png;base64,def', aspectRatio: '0.4' }],
     }));
-    expect(getEditorPreference('savedSignatures', { userScope: scope })).toBeNull();
-    expect(getEditorPreference('lastSymbolWidth', { userScope: scope })).toBeNull();
-    expect(getEditorPreference('lastSymbolMark', { userScope: scope })).toBeNull();
+    expect(getSavedSignatures({ userScope: scope })).toBeNull();
   });
 
   it('keeps independent local user scopes isolated', () => {
@@ -136,15 +156,15 @@ describe('editor workspace preferences', () => {
 
   it('propagates a saved-signature deletion from another tab', () => {
     const changes: unknown[] = [];
-    const stop = subscribeToEditorPreference('savedSignatures', (change) => changes.push(change), { userScope: scope });
+    const stop = subscribeToSavedSignatures((change) => changes.push(change), { userScope: scope });
     window.dispatchEvent(new StorageEvent('storage', {
-      key: recordKey,
+      key: signatureLibraryKey,
       newValue: JSON.stringify({
-        schemaVersion: EDITOR_PREFERENCE_RECORD_VERSION,
+        schemaVersion: 1,
         revision: 1,
         updatedAt: 1,
         writerId: 'tab-other',
-        values: { savedSignatures: [] },
+        signatures: [],
       }),
     }));
     stop();
@@ -213,9 +233,21 @@ describe('editor workspace preferences', () => {
     try {
       expect(getEditorPreference('lastColor', { userScope: scope })).toBeNull();
       expect(setEditorPreference('lastColor', '#000000', { userScope: scope })).toBe(false);
+      expect(setSavedSignatures([{ id: 'memory-only', dataUrl: 'data:image/png;base64,abc', aspectRatio: 2 }], { userScope: scope })).toBe(false);
     } finally {
       Storage.prototype.getItem = originalGetItem;
       Storage.prototype.setItem = originalSetItem;
     }
+  });
+
+  it('keeps image bytes out of every scalar preference write', () => {
+    const signatures = [{ id: 'large-signature', dataUrl: `data:image/png;base64,${'A'.repeat(20_000)}`, aspectRatio: 2 }];
+    expect(setSavedSignatures(signatures, { userScope: scope })).toBe(true);
+    expect(setEditorPreference('lastColor', '#123456', { userScope: scope })).toBe(true);
+
+    const scalarJson = localStorage.getItem(recordKey) ?? '';
+    expect(scalarJson).not.toContain(signatures[0].dataUrl);
+    expect(scalarJson).not.toContain('savedSignatures');
+    expect(localStorage.getItem(signatureLibraryKey)).toContain(signatures[0].dataUrl);
   });
 });
