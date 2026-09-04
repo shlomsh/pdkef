@@ -36,7 +36,21 @@ const faq = [
   </Fragment>
 
   <AppBar isHome />
-  <div class="bg-[linear-gradient(180deg,var(--color-bg),var(--color-primary-tint))] pb-12 min-[1024px]:flex min-[1024px]:min-h-[calc(100svh-3.5rem)] min-[1024px]:flex-col min-[1024px]:justify-center min-[1024px]:box-border min-[1024px]:pt-2 min-[1024px]:pb-6">
+  {/* DEMO-05, variant T: the two-column first screen, after usetape.app.
+      Above 1024px the hero, dropzone and tool dock stay exactly as they were
+      but occupy the left column and stick there, while the demo runs in the
+      right column beside them. Stacked, the demo and the hero compete for one
+      vertical budget, which is what forced the choice between a legible demo
+      (about 410px) and keeping the dock on the first screen. Side by side they
+      share the budget instead, so the demo gets the full column height and the
+      dock does not move at all.
+
+      Below 1024px this is a plain block and everything falls back to the
+      previous stacked order, which is what phones already had. Reverting the
+      whole variant is deleting this wrapper and moving <HeroDemo /> back below
+      <OfflineProof />; DEMO-05 requires placement to stay cheap to reverse. */}
+  <div class="home-first bg-[linear-gradient(180deg,var(--color-bg),var(--color-primary-tint))]">
+  <div class="home-first-main pb-12 min-[1024px]:flex min-[1024px]:min-h-[calc(100svh-3.5rem)] min-[1024px]:flex-col min-[1024px]:justify-center min-[1024px]:box-border min-[1024px]:pt-2 min-[1024px]:pb-6">
     <header class="hero-header">
       <div class="mb-3 flex items-center justify-center gap-4">
         <Image src={logo} width={56} height={56} densities={[1, 2]} loading="eager" decoding="sync" fetchpriority="high" alt="" aria-hidden="true" class="shrink-0" />
@@ -136,6 +150,16 @@ const faq = [
   </main>
 </div>
 
+  {/* HeroDemo (DEMO-02) in the right column above 1024px, below the first
+      screen otherwise. position: sticky is killed with no error by any
+      ancestor carrying overflow/transform/filter/contain, so neither
+      .home-first nor this column may ever grow one - the demo's own panels
+      and the left column both depend on it. */}
+  <div class="home-first-demo">
+    <HeroDemo />
+  </div>
+</div>
+
     {/* OfflineProof (DEMO-04): the live half of "your document stays on
         your phone." HeroDemo below already says the claim sentence and the
         airplane-mode invitation, so this only adds what static copy can't:
@@ -148,14 +172,6 @@ const faq = [
         empty, padding-less paragraph that its own :empty rule hides, so it
         costs no height in the common case either way. */}
     <OfflineProof />
-
-    {/* HeroDemo (DEMO-02): the second screen, a direct sibling in the page
-        flow rather than nested inside a FeatureCard. position: sticky is
-        killed with no error by any ancestor carrying overflow/transform/
-        filter/contain, and every FeatureCard below sets overflow-hidden -
-        see DEMO-05's placement decision in
-        backlog/tasks/DEMO-05.md and HeroDemo.astro's own header comment. */}
-    <HeroDemo />
 
     <FeatureCard class="relative isolate overflow-hidden">
       <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} />
@@ -484,6 +500,58 @@ const faq = [
      >=768px) only sets width/flex-shrink, and forcing flex-shrink back to
      0 here is what we want anyway. */
   @media (min-width: 1024px) {
+    /* DEMO-05 variant T. Two things are load-bearing here and both fail
+       silently if changed.
+
+       align-items: start. Grid items stretch to the row height by default,
+       which for this row is the demo's ten screens, and a sticky element that
+       is already as tall as its scroll range never moves. It has to be given
+       its own height and allowed to be shorter than the row.
+
+       No overflow, transform, filter or contain anywhere on .home-first or
+       either column. Each of those creates a containing block that kills
+       position: sticky on every descendant, with no error anywhere - and this
+       subtree now has three sticky layers in it: the left column, the demo's
+       two panels, and the app bar above. */
+    @media (min-width: 1024px) {
+      .home-first {
+        display: grid;
+        /* The left column must stay wide enough for the tool dock to keep
+           all nine tiles on one row. Nine 80px tiles with eight 20px gaps is
+           880px before padding, and at 1.05fr the column came out at 794px,
+           wrapped the dock to two rows, and pushed its bottom edge to 910 on
+           an 800px viewport - the exact failure the whole layout exists to
+           avoid. Measured, not guessed. */
+        grid-template-columns: minmax(940px, 1.45fr) minmax(0, 0.55fr);
+        align-items: start;
+      }
+
+      .home-first-main {
+        position: sticky;
+        top: 3.5rem;
+        height: calc(100svh - 3.5rem);
+      }
+
+      /* The demo's panels size themselves from this, rather than from 100svh,
+         so they fit the column between the app bar and the viewport bottom.
+         See HeroDemo.module.css's --herodemo-panel-height comment: it is the
+         documented hook for exactly this, and it inherits, so no prop
+         plumbing is needed. */
+      .home-first-demo {
+        --herodemo-panel-height: calc(100svh - 3.5rem);
+      }
+
+      /* The demo ships its own full-screen title card, which earns its place
+         when the demo is a section of its own further down the page. Beside
+         the hero it is saying the same thing twice, in the same eyeline, and
+         it costs the visitor a whole screen of scrolling before the phone
+         appears at all. :global because it belongs to HeroDemo's CSS module
+         and Astro's scoped styles do not reach into a child component. */
+      .home-first-demo :global([data-herodemo-intro]) {
+        display: none;
+      }
+    }
+
     .first-screen-frame {
       display: flex;
       flex: 1 1 auto;
