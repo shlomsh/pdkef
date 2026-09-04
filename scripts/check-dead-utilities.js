@@ -74,42 +74,58 @@ if (htmlFiles.length === 0) {
   process.exit(1);
 }
 
+// Per page, not site-wide. This used to concatenate every page's inline CSS
+// into one string and ask whether a class had a rule ANYWHERE in the build,
+// which was equivalent while one shared stylesheet was inlined into all 22
+// pages. It stopped being equivalent under ARCH-13: each page family now
+// compiles its own utility set from an explicit @source list, so a class whose
+// rule was only generated into another family's entry sheet renders unstyled on
+// the page that uses it while still being present somewhere in the build. That
+// is exactly the silent visual bug the split could introduce, and the reason
+// the split is safe to make: forgetting a @source now fails the build here,
+// naming the page and the class, instead of shipping.
 const usage = new Map();
-let css = '';
+const pageHasRule = new Map(); // dist-relative page -> (className) => boolean
+
 for (const file of htmlFiles) {
   const html = fs.readFileSync(file, 'utf8');
+  const pageLabel = path.relative(distDir, file);
+
+  let css = '';
   for (const [, block] of html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) css += block;
+  // Tailwind escapes the non-identifier characters in a generated selector
+  // (`.text-\[0\.9rem\]`). Dropping every backslash lets the raw class name match.
+  const flatCss = css.replace(/\\/g, '');
+  pageHasRule.set(pageLabel, (className) => {
+    const needle = `.${className}`;
+    for (let i = flatCss.indexOf(needle); i !== -1; i = flatCss.indexOf(needle, i + 1)) {
+      const next = flatCss[i + needle.length];
+      if (next === undefined || !/[\w-]/.test(next)) return true;
+    }
+    return false;
+  });
+
   for (const [, attr] of html.matchAll(/\sclass="([^"]*)"/g)) {
     for (const className of decodeEntities(attr).split(/\s+/)) {
       if (!className) continue;
       if (!usage.has(className)) usage.set(className, new Set());
-      usage.get(className).add(path.relative(distDir, file));
+      usage.get(className).add(pageLabel);
     }
   }
 }
-
-// Tailwind escapes the non-identifier characters in a generated selector
-// (`.text-\[0\.9rem\]`). Dropping every backslash lets the raw class name match.
-const flatCss = css.replace(/\\/g, '');
-const hasRule = (className) => {
-  const needle = `.${className}`;
-  for (let i = flatCss.indexOf(needle); i !== -1; i = flatCss.indexOf(needle, i + 1)) {
-    const next = flatCss[i + needle.length];
-    if (next === undefined || !/[\w-]/.test(next)) return true;
-  }
-  return false;
-};
 
 const dead = [];
 for (const [className, pages] of usage) {
   if (allowedClasses.has(className)) continue;
   if (allowedClassPrefixes.some((prefix) => className.startsWith(prefix))) continue;
-  if (!hasRule(className)) dead.push([className, [...pages].sort()]);
+  const missingOn = [...pages].filter((page) => !pageHasRule.get(page)(className)).sort();
+  if (missingOn.length > 0) dead.push([className, missingOn]);
 }
 
 if (dead.length > 0) {
-  console.error(`Dead utility check failed: ${dead.length} class(es) ship in the HTML but compile to no CSS.`);
-  console.error('Declare the missing token in global.css\'s @theme block (Tailwind drops the rule without it),');
+  console.error(`Dead utility check failed: ${dead.length} class(es) ship in the HTML but compile to no CSS on the page that uses them.`);
+  console.error("Either the page family's entry sheet in src/styles/ is missing an @source for the file that writes the class,");
+  console.error("or the token is missing from global.css's @theme block (Tailwind drops the rule without it),");
   console.error('or, if the class is a behavioural hook, add it to allowedClasses in this script.');
   for (const [className, pages] of dead.sort()) {
     const shown = pages.slice(0, 3).join(', ');
@@ -118,4 +134,4 @@ if (dead.length > 0) {
   process.exit(1);
 }
 
-console.log(`Dead utility check passed. ${usage.size} distinct classes in the build, all resolve to CSS.`);
+console.log(`Dead utility check passed. ${usage.size} distinct classes in the build, each resolving to CSS on every page that uses it.`);

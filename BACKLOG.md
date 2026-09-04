@@ -61,7 +61,6 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | ARCH-12 | P2 | [ARCH-12](backlog/tasks/ARCH-12.md) · Validate canonical backlog and generated indexes in CI |
-| ARCH-13 | P2 | [ARCH-13](backlog/tasks/ARCH-13.md) · Restore CSS delivery-budget headroom |
 | ARCH-14 | P2 | [ARCH-14](backlog/tasks/ARCH-14.md) · Type the editor interaction tests now covered by shared contracts |
 
 ### In progress
@@ -87,6 +86,7 @@ _None._
 | ARCH-09 | P2 | [ARCH-09](backlog/tasks/ARCH-09.md) · Make translated documentation freshness enforceable |
 | ARCH-10 | P2 | [ARCH-10](backlog/tasks/ARCH-10.md) · Replace permissive editor-shell types with shared contracts |
 | ARCH-11 | P2 | [ARCH-11](backlog/tasks/ARCH-11.md) · Enforce editor dependency directions in CI |
+| ARCH-13 | P2 | [ARCH-13](backlog/tasks/ARCH-13.md) · Restore CSS delivery-budget headroom |
 
 ### Retired
 

@@ -1,0 +1,61 @@
+/* Entry stylesheet for the nine tool pages (/merge/, /split/, /compress/,
+   /edit-pdf/, /pdf-to-image/, /unlock/, /image-to-pdf/, /redact/, /sign/),
+   imported by ToolPageLayout.astro.
+ *
+ * ------------------------------------------------------------------------
+ * CSS OWNERSHIP (ARCH-13). Four tiers, and which file owns each:
+ *
+ *   1. Global - design tokens, element defaults, the .type-* and .space-* roles.
+ *      Owned by global.css, imported by every entry sheet below, and it is
+ *      the only tier that ships to all 22 pages. A rule that lands here is
+ *      paid for 22 times, so it belongs here only if every page needs it.
+ *   2. Shell - markup every page renders (BaseLayout, Footer, the i18n copy).
+ *      Its utilities are sourced from sharedSources.css.
+ *   3. Static content - a page family's own .astro markup. One entry sheet per
+ *      family, each compiling its utilities with `source(none)` plus an
+ *      explicit @source list, so a page carries only the utilities its own
+ *      family can render. This file is the tool family's.
+ *   4. Interactive tools - the editor and the islands. CSS Modules, colocated
+ *      per component, imported by the component. Not utilities, not global,
+ *      and untouched by this split (see CLAUDE.md "Styling direction").
+ *
+ * The families are homePage.css, toolPage.css, contentPage.css,
+ * licensesPage.css and notFoundPage.css. Every page imports exactly one, so a
+ * utility is never compiled twice into one page even though the same rule text
+ * is generated into more than one entry sheet. That is Tailwind's compilation
+ * model, not a copy: no rule is duplicated by hand, and no page pays for it
+ * twice. check-css-duplication.js counts distinct rule text site-wide, so a
+ * rule shared by two families still counts once against the denominator.
+ * ------------------------------------------------------------------------
+ *
+ * The .js/.ts files in the tool pages' import graph (src/editor/**,
+ * src/lib/**) are deliberately NOT sourced: they are logic, and the markup
+ * they drive is rendered by .jsx/.tsx islands, which have been outside
+ * Tailwind's scan since E3.2 and are styled by CSS Modules. */
+@import "./global.css";
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "./sharedSources.css";
+
+@source "../layouts/ToolPageLayout.astro";
+@source "../components/AppBar.astro";
+@source "../components/CardDecor.astro";
+@source "../components/FeatureCard.astro";
+@source "../components/OfflineProof.astro";
+@source "../components/RelatedGuides.astro";
+@source "../components/SeoSchema.astro";
+@source "../components/ToolAboutCard.astro";
+@source "../components/ToolCrossLinks.astro";
+@source "../components/ToolFaqCard.astro";
+@source "../components/ToolHero.astro";
+@source "../components/ToolLanguagesCard.astro";
+@source "../data/tools.js";
+@source "../data/contentPages.js";
+@source "../pages/compress.astro";
+@source "../pages/edit-pdf.astro";
+@source "../pages/image-to-pdf.astro";
+@source "../pages/merge.astro";
+@source "../pages/pdf-to-image.astro";
+@source "../pages/redact.astro";
+@source "../pages/sign.astro";
+@source "../pages/split.astro";
+@source "../pages/unlock.astro";

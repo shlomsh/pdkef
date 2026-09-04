@@ -1,0 +1,15 @@
+/* Entry stylesheet for the home page, imported by src/pages/index.astro.
+   See toolPage.css for the four-tier CSS ownership note and why each family
+   compiles its own utility set. */
+@import "./global.css";
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "./sharedSources.css";
+
+@source "../components/AppBar.astro";
+@source "../components/CardDecor.astro";
+@source "../components/FeatureCard.astro";
+@source "../components/HeroDemo";
+@source "../components/OfflineProof.astro";
+@source "../components/SeoSchema.astro";
+@source "../data/tools.js";
+@source "../pages/index.astro";

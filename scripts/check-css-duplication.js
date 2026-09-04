@@ -35,6 +35,19 @@ const distDir = path.join(__dirname, '..', 'dist');
  * they do the output names the page and the classes responsible instead of pointing
  * at whichever page happens to be biggest.
  *
+ * WHAT "SHARED STYLESHEET" MEANS SINCE ARCH-13 (2026-09-04)
+ * --------------------------------------------------------
+ * The paragraphs above were written when the utilities layer was one repo-wide
+ * compilation inlined identically into every page. It is now five: one entry sheet
+ * per page family in src/styles/ (homePage, toolPage, contentPage, licensesPage,
+ * notFoundPage), each compiling with `source(none)` and an explicit @source list,
+ * each importing global.css - which still holds the tokens, element defaults and
+ * role classes every page needs, and is still the tier paid for 22 times. Every
+ * page imports exactly one entry sheet, so nothing is inlined twice into one page.
+ * The three numbers below are unchanged in definition and still measure the same
+ * defect; only the scope of "paid for by everyone" narrowed from the site to a
+ * family. See src/styles/toolPage.css for the ownership note.
+ *
  * WHY CSS-MODULES-HASHED CLASSES ARE EXCLUDED FROM THE DEAD-BYTES MEASUREMENT
  * ---------------------------------------------------------------------------
  * "Unused at SSR" and "dead" are the same thing for the utility layer only, and for
@@ -146,7 +159,32 @@ const distDir = path.join(__dirname, '..', 'dist');
 // 29,021 -> 26,635, single-page utilities 135 -> 136 against a limit of 148).
 // Re-check this once the localization work settles - it was measured mid-flight
 // and the page count is still moving.
-const MAX_DUPLICATION_FACTOR = 9.60;
+//
+// Lowered (9.60x -> 7.00x) on 2026-09-04 by ARCH-13, which changed the
+// delivery model rather than the number. The utilities layer used to be one
+// repo-wide compilation that `inlineStylesheets: 'always'` baked into all 22
+// pages: 28,656 identical bytes per page, of which /licenses/ used ~2,300.
+// There are now five entry sheets in src/styles/, one per page family (home,
+// tool, content, licenses, 404), each compiling `source(none)` plus an explicit
+// @source list, so a page carries only utilities its own family can render.
+// Measured across the change, page count unchanged at 22:
+//   duplication      8.39x  -> 5.79x
+//   worst page dead  27,308 -> 7,567   (/licenses/ -> /split/)
+//   shipped bytes    1,162,043 -> 813,201
+//   distinct bytes   138,434 -> 140,435
+// Distinct rose by 2,001 because the same rule text is now generated into more
+// than one entry sheet with slightly different context, and because @theme is
+// `static` (see global.css). That is the denominator getting slightly *worse*
+// while the factor still fell by a third, which is the shape of a real
+// reduction in what each page ships rather than a re-measurement.
+//
+// The limit is set at 7.00x, ~17% above the measured 5.79x, deliberately not
+// at the bone: this ratchet still scales with page count (a new content page
+// adds ~20,000 shipped bytes against a barely-moving denominator, so roughly
+// +0.14x each), and ARCH-13 existed because the previous margin was thin
+// enough that an ordinary UI change tripped the gate. Re-base it when pages are
+// added, saying so, exactly as the entries above do.
+const MAX_DUPLICATION_FACTOR = 7.00;
 // Lowered (29,000 -> 27,500) on 2026-08-29 to bank most of two fixes that took
 // /licenses/ from 29,021 (red) to 26,635, neither of which was a style change:
 //   - 905 distinct bytes of utilities were being compiled out of the impeccable
@@ -166,7 +204,23 @@ const MAX_DUPLICATION_FACTOR = 9.60;
 // reference page and, at 27,683 dead bytes, exceeded the former limit by only
 // 183 bytes. This narrowly accommodates that page without weakening the
 // site-wide duplication or single-page utility ratchets.
-const MAX_PAGE_DEAD_BYTES = 27_750;
+//
+// Lowered (27,750 -> 10,000) on 2026-09-04 by the same ARCH-13 change. This is
+// the metric the split was aimed at: a page's dead bytes were dominated by the
+// other families' utilities, so /licenses/ measured 27,308 for a page that
+// renders 46 distinct classes. It now measures 1,100. The worst page is
+// /split/ at 7,567 (5,025 utilities its eight sibling tool pages need, 2,542
+// global), and the residue is real: a family sheet is the union of its family's
+// markup, so a page still carries what its siblings render. Driving that to
+// zero would mean a stylesheet per page, which trades the last few KB for 22
+// compilations and no shared browser cache. 10,000 leaves ~24% headroom.
+const MAX_PAGE_DEAD_BYTES = 10_000;
+// Unchanged by ARCH-13 (144 before and after - usage did not move), but its
+// blast radius did: a single-page utility now ships to its family, not to all
+// 22 pages, so one on /licenses/ costs one page and one in the tool family
+// costs nine. Still worth watching, and still the number that moves when
+// someone reaches for a one-off utility, but read the failure message with
+// that in mind.
 const MAX_SINGLE_PAGE_UTILITIES = 148;
 
 if (!fs.existsSync(distDir)) {
@@ -488,7 +542,8 @@ if (singlePageUtilities.length > MAX_SINGLE_PAGE_UTILITIES) {
   const shown = singlePageUtilities.slice(0, 10).map(([className, page]) => `${className} (${page})`);
   failures.push(
     `${singlePageUtilities.length} utility classes are used by exactly one page, over the ${MAX_SINGLE_PAGE_UTILITIES} limit. ` +
-      `Every one of them ships to all ${pages.length} pages. First few: ${shown.join(', ')}`,
+      'Every one of them ships to every page in that page\'s family, not just the page using it. ' +
+      `First few: ${shown.join(', ')}`,
   );
 }
 
