@@ -57,6 +57,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | ARCH-11 | P2 | [ARCH-11](backlog/tasks/ARCH-11.md) · Enforce editor dependency directions in CI |
 | ARCH-12 | P2 | [ARCH-12](backlog/tasks/ARCH-12.md) · Validate canonical backlog and generated indexes in CI |
 | ARCH-13 | P2 | [ARCH-13](backlog/tasks/ARCH-13.md) · Restore CSS delivery-budget headroom |
+| ARCH-14 | P2 | [ARCH-14](backlog/tasks/ARCH-14.md) · Type the editor interaction tests now covered by shared contracts |
 
 
 ## Internationalization: fonts for scripts beyond Hebrew/Latin

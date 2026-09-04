@@ -63,6 +63,7 @@ _None._
 | --- | --- | --- |
 | ARCH-12 | P2 | [ARCH-12](backlog/tasks/ARCH-12.md) · Validate canonical backlog and generated indexes in CI |
 | ARCH-13 | P2 | [ARCH-13](backlog/tasks/ARCH-13.md) · Restore CSS delivery-budget headroom |
+| ARCH-14 | P2 | [ARCH-14](backlog/tasks/ARCH-14.md) · Type the editor interaction tests now covered by shared contracts |
 
 ### In progress
 
