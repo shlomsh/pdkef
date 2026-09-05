@@ -1,0 +1,24 @@
+/*
+ * The hint layer never takes a pointer event: the tap is the workspace's own
+ * text placement, which snaps to the grid underneath it. See FormFieldHints.tsx.
+ */
+.field-hints {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/*
+ * A run's ink is a row of teeth only a few points tall, so an outline drawn at
+ * its true height is a hairline. The hint is grown upward to the strip a person
+ * would actually write in, which is also the band the tap test accepts.
+ */
+.field-hint {
+  position: absolute;
+  box-sizing: content-box;
+  padding-top: 1.1em;
+  margin-top: -1.1em;
+  border: 1px dashed var(--color-primary);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+}

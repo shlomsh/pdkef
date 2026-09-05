@@ -80,7 +80,11 @@ export const textDefinition: ElementDefinition<TextElement> = {
         const textInput = node.querySelector(`.${elementStyles['text-input']}`) as HTMLElement | null;
         const combNode = node.querySelector(`.${elementStyles['text-comb']}`) as HTMLElement | null;
         if (patch.collapsed) {
+          // Back to intrinsic sizing, so the span is no longer fixed and RTL
+          // anchoring applies again from the element's original edge.
           node.style.width = '';
+          node.style.left = '';
+          node.style.right = '';
           if (isRtl) node.style.right = `${100 - startLeft}%`;
           else node.style.left = `${startLeft}%`;
           if (combNode) combNode.style.display = 'none';
@@ -88,9 +92,11 @@ export const textDefinition: ElementDefinition<TextElement> = {
           textDisplay?.classList.remove(elementStyles['text-display-comb']);
           return;
         }
+        // A comb is left-anchored in both directions: `patch.left` is its left
+        // edge, and `right` has to be cleared in case the box arrived RTL.
         node.style.width = `${patch.width}%`;
-        if (isRtl) node.style.right = `${100 - (patch.left as number)}%`;
-        else node.style.left = `${patch.left}%`;
+        node.style.right = '';
+        node.style.left = `${patch.left}%`;
         if (!combNode) return;
         combNode.style.display = '';
         textDisplay?.classList.add(elementStyles['text-display-comb']);

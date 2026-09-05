@@ -14,6 +14,7 @@ import type { SavedSignature } from '../editor/model/savedSignature.ts';
 import type { PageGeometry } from '../editor/geometry/coords.ts';
 import { getElementDefinition } from '../editor/registry/index.ts';
 import { ensureMinimumElementSize } from '../editor/geometry/minimumSize.ts';
+import { combRegionAt, placeCombOnRegion, type CombRegion } from '../editor/text/combPlacement.ts';
 import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,
@@ -22,7 +23,8 @@ import {
   DEFAULT_SYMBOL_WIDTH_PCT,
   ASPECT_RATIO_SYMBOL,
   TEXT_BOX_LINE_HEIGHT_EM,
-  PAGE_HEIGHT_DEFAULT_PTS
+  PAGE_HEIGHT_DEFAULT_PTS,
+  PAGE_WIDTH_DEFAULT_PTS
 } from '../constants/signGeometry.js';
 
 export type WorkspaceCreationTool = SignToolType;
@@ -76,6 +78,8 @@ export interface WorkspaceGestureOptions {
   initialSymbolWidth?: number;
   initialSymbolMark?: SymbolMark;
   pageSizes?: PageGeometry[];
+  /** Printed grids recovered from the page's own vector content (MOBI-03). */
+  formRegions?: CombRegion[];
   nextElementIndex?: number;
   gestureCancelRef?: { current: (() => void) | null };
 }
@@ -123,6 +127,7 @@ export default function useWorkspaceGestures({
   initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
   initialSymbolMark = 'check',
   pageSizes = [],
+  formRegions = [],
   nextElementIndex = 0,
   // PdfWorkspace supplies a ref it owns for component teardown. Keeping this
   // handler factory hook-free also preserves its direct unit-test contract.
@@ -188,21 +193,44 @@ export default function useWorkspaceGestures({
       symbolMark: initialSymbolMark,
       textHeight,
     });
-    dispatch({ type: 'ADD_ELEMENT', payload: newEl });
+    // A text box placed on a printed grid takes that grid's span and cell
+    // count, so the person types once instead of dragging a side handle until
+    // the digits happen to line up (MOBI-04). It stays an ordinary text
+    // element with `width` set - `isComb` is still derived from `width` and
+    // gains no second source of truth - so undo, draft persistence and the
+    // export registry all carry on unchanged.
+    const region = selectedTool === 'text'
+      ? combRegionAt(formRegions, { x: leftPercent, y: topPercent }, pageIndex)
+      : null;
+    const placed = region
+      ? {
+        ...newEl,
+        ...placeCombOnRegion(region, {
+          fontSize: initialFontSize,
+          pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
+          pageHeightPoints,
+        }),
+      }
+      : newEl;
+
+    dispatch({ type: 'ADD_ELEMENT', payload: placed });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
     // One placement per arming, so the next click on empty page area falls
     // through to the workspace's deselect handler instead of making a second
-    // element the user never asked for. A locked tool stays armed.
+    // element the user never asked for. A locked tool stays armed. Landing on
+    // a detected field is still one placement, so it disarms the same way.
     dispatch({ type: 'DISARM_TOOL' });
     if (selectedTool === 'text') {
       // A box you just placed opens ready to type - the one case where placing
       // and editing are the same intent. This replaces the old per-element
       // `autoFocus` flag, so the caret has exactly one owner.
       dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: id });
-      logAction('add', 'ADD_TEXT', pageIndex, 'Added text box', [captureAddedElement(newEl, nextElementIndex)]);
-      setAnnouncement('Added text box. Type your text.');
+      logAction('add', 'ADD_TEXT', pageIndex, 'Added text box', [captureAddedElement(placed, nextElementIndex)]);
+      setAnnouncement(region
+        ? `Added text box across ${region.cells} printed boxes. Type your text.`
+        : 'Added text box. Type your text.');
     } else {
-      logAction('add', 'ADD_SYMBOL', pageIndex, 'Added symbol', [captureAddedElement(newEl, nextElementIndex)]);
+      logAction('add', 'ADD_SYMBOL', pageIndex, 'Added symbol', [captureAddedElement(placed, nextElementIndex)]);
       setAnnouncement('Added symbol.');
     }
   };

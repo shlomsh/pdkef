@@ -181,19 +181,20 @@ describe('comb serialize', () => {
     expect(filled).toEqual(full.slice(0, 2));
   });
 
-  it('measures RTL from the anchored right edge, with reading order mirrored so the first character lands there', async () => {
-    // A comb has no genuine RTL use case in practice - every real one here is
-    // digits/dates, which now always render LTR (see signHelpers.js) - but the
-    // export math still needs proving for whatever does carry RTL content.
+  it('keeps the span fixed in RTL and mirrors only the reading order', async () => {
+    // A comb has no growing edge to anchor: its span is fixed, by a side-handle
+    // drag or by a printed field it was placed on (MOBI-04). So the box stays
+    // at 61.2..122.4pt whichever way the text reads, and only the cell order
+    // mirrors, so the *first* character typed lands in the rightmost cell.
+    // This used to anchor the right edge instead, which put the box at
+    // 0..61.2pt - a whole width to the left of where it is on screen, and far
+    // enough off a 2-cell example to draw a character at x=-5.7.
     const [[firstChar, firstX], [, secondX]] = await serializeComb({ ...base, text: 'שר', textDirection: 'rtl' });
-    // The box occupies 0..61.2pt (anchored at its right edge, pdfX=61.2). The
-    // *first* character typed ('ש') must land nearest that right edge, not in
-    // whichever cell happens to be physically first - a comb has no growing
-    // edge to anchor to the way plain RTL text does, but the reading order
-    // still has to agree with it. Cell centres: 45.9 (ש's cell) then 15.3.
+    // Cell centres across 61.2..122.4pt are 76.5 and 107.1; 'ש' takes the
+    // second one, and each character is then centred on it.
     expect(firstChar).toBe('ש');
-    expect(firstX).toBeCloseTo(24.9);
-    expect(secondX).toBeCloseTo(-5.7);
+    expect(firstX).toBeCloseTo(86.1);
+    expect(secondX).toBeCloseTo(55.5);
   });
 
   it('skips blank cells without shifting the ones after them', async () => {

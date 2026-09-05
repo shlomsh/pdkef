@@ -20,6 +20,7 @@ import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../edito
 import type { PageGeometry } from '../editor/geometry/coords.ts';
 import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
+import useFormFieldRegions from '../lib/useFormFieldRegions.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../editor/workspace/useEditorDraftPersistence.ts';
 import { isEditorElement } from '../editor/registry/draftValidation.ts';
 import {
@@ -93,6 +94,10 @@ export default function PdfSignTool() {
 function PdfSignToolInner() {
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
+  // The loaded PDF's bytes as state as well as a ref: the ref is what the
+  // draft autosave reads imperatively, but form-grid detection is an effect
+  // and needs a value that actually changes identity when a new file lands.
+  const [sourceBytes, setSourceBytes] = useState<ArrayBuffer | null>(null);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [pageSizes, setPageSizes] = useState<PageGeometry[]>([]); // Rotated/cropped visible page frames in physical PDF points.
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, documentRevision }, dispatch } = useSignTool();
@@ -502,6 +507,7 @@ function PdfSignToolInner() {
         dispatch({ type: 'SET_TOOL', payload: null });
         seedUniqueId(presetElements);
         fileBytesRef.current = bytes;
+        setSourceBytes(bytes);
       },
       onDocument: async (doc, isCurrent) => {
         setPdfDocument(doc);
@@ -544,6 +550,10 @@ function PdfSignToolInner() {
     const bytes = await selected.arrayBuffer();
     await loadPdf(selected, bytes);
   };
+
+  // Printed grids on the loaded form, so placing a text box on one takes its
+  // span and cell count instead of needing a side-handle drag (MOBI-04).
+  const formRegions = useFormFieldRegions(sourceBytes, numPages);
 
   // Setup draft persistence hook
   const { clearDraft, isRestoring, draftSaveState } = useEditorDraftPersistence({
@@ -921,6 +931,7 @@ function PdfSignToolInner() {
               workspaceRef={workspaceRef}
               numPages={numPages}
               pageSizes={pageSizes}
+              formRegions={formRegions}
               pdfDocument={pdfDocument}
               pageWrapperRefs={pageWrapperRefs}
               setTempPlacement={setTempPlacement}

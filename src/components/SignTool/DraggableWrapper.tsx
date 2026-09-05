@@ -145,7 +145,14 @@ export default function DraggableWrapper<T extends EditorElement>({
   // Registry view flags (E7.6) drive className/style/interactivity instead of
   // comparing element.type directly — see the ViewFlags contract in
   // src/editor/registry/types.ts.
-  const isRtlText = !!view.usesRtlAnchoring && textDirection === 'rtl';
+  // A text box with an explicit width has a *fixed span*, so there is no
+  // growing edge to anchor: a comb placed over a printed field must stay on
+  // that field whatever gets typed into it, and flipping to right-anchoring
+  // the moment a Hebrew character appears would slide it a whole field-width
+  // sideways off the boxes it was sized to. Reading order still follows the
+  // text - comb.js mirrors the cell centres for RTL inside the fixed span.
+  const hasFixedSpan = !!(view.allowsExplicitWidth && (element as { width?: number }).width);
+  const isRtlText = !!view.usesRtlAnchoring && textDirection === 'rtl' && !hasFixedSpan;
   const isLine = !!view.isLine;
   const isShape = !!view.isShape;
   const isSymbol = !!view.isSymbol;
