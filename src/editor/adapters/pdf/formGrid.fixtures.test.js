@@ -138,6 +138,12 @@ describe('income tax form 101, page 1', () => {
     });
   });
 
+  it('reports every run as teeth on a writing line, not as closed boxes', () => {
+    // This form rules a line and hangs short teeth up from it, so text written
+    // in one of its fields sits *on* that line.
+    expect(detected.combs.every((run) => run.boxed === false)).toBe(true);
+  });
+
   it('finds no checkbox, because the form draws none in the checkbox band', () => {
     expect(detected.checkboxes).toEqual([]);
   });
@@ -179,6 +185,12 @@ describe('National Insurance health declaration, page 1', () => {
     const sizes = new Set(detected.checkboxes.map((box) => box.width.toFixed(2)));
     // 6.6pt and 7.6pt of a 595.3pt page.
     expect([...sizes].sort()).toEqual(['1.11', '1.27']);
+  });
+
+  it('reports every run as closed boxes, not teeth on a line', () => {
+    // Each cell here is a drawn rectangle, so text belongs in the middle of it
+    // rather than on its lower edge.
+    expect(detected.combs.every((run) => run.boxed === true)).toBe(true);
   });
 
   it('offers no region that is not a printed field', () => {

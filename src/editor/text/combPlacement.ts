@@ -36,6 +36,8 @@ export interface FieldRegion {
 /** A detected comb run: a ruled strip divided into `cells` equal boxes. */
 export interface CombRegion extends FieldRegion {
   cells: number;
+  /** True when the cells are closed boxes rather than teeth on a writing line. */
+  boxed?: boolean;
 }
 
 /**
@@ -54,6 +56,20 @@ export function baselineDropEm(fontFamily: string): number {
     ? baselineOffsetEmFromMetrics(metrics.ascent, metrics.descent)
     : HELVETICA_BASELINE_OFFSET_EM;
   return offset + textBoxPaddingEm(fontFamily);
+}
+
+/**
+ * How far the middle of a font's em box sits below its baseline, in em.
+ *
+ * Used to centre text in a closed cell: the em box runs from `ascent` above
+ * the baseline to `descent` below it, so its middle is this far down, and
+ * putting *that* on the cell's middle is what centres the digits. Falls back
+ * to half the Helvetica line for a family with no bundled metrics.
+ */
+function emBoxCentreBelowBaselineEm(fontFamily: string): number {
+  const metrics = FONT_VERTICAL_METRICS[fontFamily];
+  if (!metrics) return 0;
+  return (metrics.ascent - metrics.descent) / 2;
 }
 
 export interface CombPlacement {
@@ -180,11 +196,16 @@ export function combFontSize(
 /**
  * Where a text element has to sit to fill a detected run.
  *
- * The vertical answer is the interesting one. A run's teeth hang *upward* from
- * the rule the field is written on, so in top-left-origin percentages the rule
- * is the run's bottom edge - and that is the line the digits' baselines belong
- * on, not the box's top. So the box is lifted by its own baseline offset,
- * which is what the exporter subtracts back off in `serializeText`.
+ * The vertical answer is the interesting one, and it has two cases the two
+ * evidence forms happen to split between them. Form 101 rules a line and hangs
+ * short teeth up from it, so the line is what you write *on* and the digits'
+ * baselines belong exactly there. The health declaration draws each cell as a
+ * closed box, where there is no writing line and the digits belong in the
+ * middle. `region.boxed` is the detector's answer to which, taken from whether
+ * the page rules the run's top edge as well as its bottom.
+ *
+ * Either way the box is then lifted by its own baseline drop, which is what
+ * the exporter subtracts back off in `serializeText`.
  *
  * `left` is the run's left edge and stays the left edge whatever gets typed:
  * a comb's span is fixed by the paper, so unlike a growing text box it has no
@@ -201,13 +222,17 @@ export function placeCombOnRegion(
 ): CombPlacement {
   const cells = Math.max(1, Math.min(MAX_COMB_CELLS, Math.round(region.cells)));
   const size = combFontSize(fontSize, region.width / cells, pageWidthPoints);
-  const baselinePercent = region.top + region.height;
-  const baselineOffsetPercent = pageHeightPoints > 0
-    ? ((size * baselineDropEm(fontFamily)) / pageHeightPoints) * 100
-    : 0;
+  const em = pageHeightPoints > 0 ? (size / pageHeightPoints) * 100 : 0;
+  // A closed cell is a box and text belongs in the middle of it; an open one is
+  // a row of teeth hanging from the line you write on, and text belongs on that
+  // line. Centring in the first case means putting the font's em-box middle on
+  // the cell's middle, which is the same thing your eye does.
+  const baselinePercent = region.boxed
+    ? region.top + region.height / 2 + em * emBoxCentreBelowBaselineEm(fontFamily)
+    : region.top + region.height;
   return {
     left: region.left,
-    top: Math.max(0, baselinePercent - baselineOffsetPercent),
+    top: Math.max(0, baselinePercent - em * baselineDropEm(fontFamily)),
     width: region.width,
     combCells: cells,
     fontSize: size,

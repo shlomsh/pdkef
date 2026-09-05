@@ -64,6 +64,8 @@ const CHECKBOX_MAX_SIZE = 16;
 const CHECKBOX_SQUARENESS = 0.12;
 /** Two boxes closer than this are the same drawn box (a stroke and a fill of one outline). */
 const DUPLICATE_TOLERANCE = 0.5;
+/** How much of a run's width must be ruled for that edge to count as closed. */
+const CLOSED_EDGE_COVERAGE = 0.7;
 
 /**
  * Every vertical edge the page draws, normalized to `{x, y0, y1}`.
@@ -83,6 +85,47 @@ function verticalEdges({ verticals, rects }) {
     }
   }
   return edges;
+}
+
+/**
+ * Every horizontal rule the page draws, normalized to `{y, x0, x1}`.
+ *
+ * A producer with no stroke draws a rule as a very short filled rect, exactly
+ * as it draws a vertical one, so both sources are folded together here.
+ */
+function horizontalRules({ horizontals, rects }) {
+  const rules = horizontals.map((rule) => ({ ...rule }));
+  for (const rect of rects) {
+    if (rect.height <= THIN_INK && rect.width > THIN_INK) {
+      rules.push({ y: rect.y + rect.height / 2, x0: rect.x, x1: rect.x + rect.width });
+    }
+  }
+  return rules;
+}
+
+/**
+ * The share of `[left, right]` that horizontal ink covers at height `y`.
+ *
+ * Measured as coverage rather than as one spanning rule because a table drawn
+ * cell by cell rules each cell separately: the health declaration's comb is
+ * closed along its whole top, but by nine abutting segments rather than one.
+ */
+function ruledCoverage(rules, y, left, right) {
+  const span = right - left;
+  if (!(span > 0)) return 0;
+  const parts = rules
+    .filter((rule) => Math.abs(rule.y - y) <= BASELINE_TOLERANCE)
+    .map((rule) => [Math.max(rule.x0, left), Math.min(rule.x1, right)])
+    .filter(([from, to]) => to > from)
+    .sort((a, b) => a[0] - b[0]);
+  let covered = 0;
+  let cursor = left;
+  for (const [from, to] of parts) {
+    if (to <= cursor) continue;
+    covered += to - Math.max(from, cursor);
+    cursor = to;
+  }
+  return covered / span;
 }
 
 /** Groups teeth into rows by the baseline their feet share. */
@@ -185,6 +228,7 @@ function extendToWalls(run, row, edges) {
  */
 export function findCombRuns(ink) {
   const edges = verticalEdges(ink);
+  const rules = horizontalRules(ink);
   const teeth = edges.filter((edge) => {
     const height = edge.y1 - edge.y0;
     return height >= TOOTH_MIN_HEIGHT && height <= TOOTH_MAX_HEIGHT;
@@ -203,13 +247,22 @@ export function findCombRuns(ink) {
       const separators = extendToWalls(run, row, edges);
       const cells = separators.length - 1;
       if (cells < MIN_CELLS || cells > MAX_COMB_CELLS) continue;
+      const left = separators[0];
+      const right = separators[separators.length - 1];
       found.push({
-        left: separators[0],
-        right: separators[separators.length - 1],
+        left,
+        right,
         bottom: row.bottom,
         top: row.top,
         cells,
-        pitch: (separators[separators.length - 1] - separators[0]) / cells,
+        pitch: (right - left) / cells,
+        // Closed at the top as well as the bottom means the cells are boxes
+        // rather than teeth hanging from a writing line, and text goes in the
+        // middle of a box instead of sitting on a rule. The page says which:
+        // form 101 has no horizontal ink at all along its runs' tops, the
+        // health declaration has 96% of it. See placeCombOnRegion.
+        boxed: ruledCoverage(rules, row.top, left, right) >= CLOSED_EDGE_COVERAGE
+          && ruledCoverage(rules, row.bottom, left, right) >= CLOSED_EDGE_COVERAGE,
       });
     }
   }
@@ -263,6 +316,7 @@ export function detectRegions(ink, geometry, pageIndex = 0) {
     pageIndex,
     cells: run.cells,
     pitchPoints: run.pitch,
+    boxed: run.boxed,
     ...toPagePercentBox(geometry, {
       x0: run.left, y0: run.bottom, x1: run.right, y1: run.top,
     }),
