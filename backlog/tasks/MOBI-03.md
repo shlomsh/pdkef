@@ -1,12 +1,12 @@
 ---
 id: "MOBI-03"
 title: "Recover fillable geometry from a flat form's own vector content"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "mobile-round-trip"
 phase: "near-term"
 depends_on: []
-legacy_state: "Open"
+legacy_state: "Done"
 ---
 
 # MOBI-03 · Recover fillable geometry from a flat form's own vector content

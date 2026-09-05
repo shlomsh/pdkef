@@ -42,3 +42,21 @@ second tap on the same box removes the mark rather than stacking a second one. M
 undo and draft restore. No mutual exclusivity is implemented, and the ticket records that as a
 deliberate exclusion rather than an oversight. The interaction is proven at a real phone viewport, not
 only at desktop width, since the whole justification is a 2.3mm target.
+
+## Landed early with MOBI-04
+
+Placement and sizing are done: arming Symbols outlines every detected square,
+and a tap fills the one under it at exactly the printed square's width and
+height (`placeSymbolOnRegion` in `src/editor/text/combPlacement.ts`, wired
+through the same creation path and hit test as the comb, so the arming model is
+already respected). What this ticket still owns:
+
+- **Tap the same box again to clear the mark**, rather than stacking a second.
+- **Proof at a real phone viewport**, which is the whole justification.
+- **Export, undo and draft restore** asserted for a placed mark specifically.
+
+One correction to the measurement above: the 127 figure counts `re` operators
+that clip text and never paint, at a squareness tolerance loose enough to admit
+a 13.3x10.8 rectangle. The page draws **51** checkboxes - 28 in the examiner's
+table, 20 in the doctor's, 3 in the declaration - and that is what the detector
+reports. See the note in `formGrid.fixtures.test.js`.
