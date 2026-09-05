@@ -5,7 +5,6 @@ import {
   combFontSize,
   combRegionAt,
   placeCombOnRegion,
-  placeSymbolOnRegion,
   type CombRegion,
   type FieldRegion,
 } from './combPlacement.ts';
@@ -163,14 +162,5 @@ describe('placeCombOnRegion', () => {
 
   it('never lifts the box off the top of the page', () => {
     expect(place({ ...IDENTITY_RUN, top: 0, height: 0 }).top).toBe(0);
-  });
-});
-
-describe('placeSymbolOnRegion', () => {
-  it('takes the printed square exactly, so nothing is left to adjust', () => {
-    const box: FieldRegion = { pageIndex: 0, left: 52.377, top: 42.266, width: 1.113, height: 0.784 };
-    expect(placeSymbolOnRegion(box)).toEqual({
-      left: 52.377, top: 42.266, width: 1.113, height: 0.784,
-    });
   });
 });

@@ -38,7 +38,10 @@ describe('SymbolNode', () => {
 
     expect(colorHost.style.color).toBe('rgb(0, 0, 0)');
     expect(path).not.toBeNull();
-    expect(path.getAttribute('d')).toContain('M18 6L6 18');
+    // The exporter's geometry, which the editor now shares (symbolMarks.ts).
+    // This used to be `M18 6L6 18`, a third smaller than the cross the same
+    // element exported - the drift that module exists to prevent.
+    expect(path.getAttribute('d')).toBe('M4 4L20 20M20 4L4 20');
   });
 
   it('renders dot marks from the same mark field used by toolbar and export', () => {

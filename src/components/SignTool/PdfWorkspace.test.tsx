@@ -262,7 +262,8 @@ describe('PdfWorkspace Component', () => {
 
     const symbol = host.querySelector('[data-editor-element]');
     const colorHost = symbol.querySelector('div[style*="color"]');
-    const path = symbol.querySelector('path[d*="M18 6L6 18"]');
+    // The cross's editor path now matches the exporter's (symbolMarks.ts).
+    const path = symbol.querySelector('path[d*="M4 4L20 20"]');
 
     expect(symbol.hasAttribute('data-editor-active')).toBe(true);
     expect(colorHost.style.color).toBe('rgb(0, 0, 0)');
