@@ -14,7 +14,7 @@ import {
 } from '../../geometry/coords.js';
 import { getElementDefinition } from '../../registry/index.ts';
 import { findUnrepresentableCharacters } from '../../text/textCoverage.js';
-import { embeddedFontFile, resolveTypography } from '../../text/fonts.js';
+import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '../../text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../../../constants/signGeometry.js';
 
 /**
@@ -53,7 +53,13 @@ function baselineOffsetEm(pdfFont, lineHeightEm = DEFAULT_LINE_HEIGHT_EM) {
   try {
     const fk = pdfFont?.embedder?.font;
     if (fk?.unitsPerEm && Number.isFinite(fk?.ascent) && Number.isFinite(fk?.descent)) {
-      return lineHeightEm / 2 + (fk.ascent / fk.unitsPerEm - Math.abs(fk.descent / fk.unitsPerEm)) / 2;
+      // Same formula the editor lays out with, from the embedded font's own
+      // metrics rather than the bundled table - see fonts.js.
+      return baselineOffsetEmFromMetrics(
+        fk.ascent / fk.unitsPerEm,
+        fk.descent / fk.unitsPerEm,
+        lineHeightEm,
+      );
     }
   } catch {
     // Use the historic Helvetica fallback when fontkit metrics are unavailable.

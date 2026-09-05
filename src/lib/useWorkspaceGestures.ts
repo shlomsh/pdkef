@@ -207,6 +207,7 @@ export default function useWorkspaceGestures({
         ...newEl,
         ...placeCombOnRegion(region, {
           fontSize: initialFontSize,
+          fontFamily: initialFont,
           pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
           pageHeightPoints,
         }),

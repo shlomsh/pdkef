@@ -45,6 +45,24 @@ export const FONT_VERTICAL_METRICS = Object.freeze(Object.fromEntries(
   FONT_MANIFEST.map((font) => [font.family, font.metrics]),
 ));
 
+/**
+ * Where a line's glyph baseline sits below the top of its CSS line box, in em.
+ *
+ * A browser centres a font's real ascent+descent inside the fixed line box
+ * `line-height` asks for (half-leading, split evenly), so the baseline is
+ * half-leading plus ascent below the box top - which reduces to this. The
+ * exporter has to land on the same number or a downloaded PDF sits off the
+ * line the editor drew it on, so the *formula* lives here, next to the metrics,
+ * and both callers pass their own source for the two numbers: signPdf reads
+ * them from the embedded fontkit font, and combPlacement.ts reads them from
+ * FONT_VERTICAL_METRICS above (verified against the same TTF bytes by
+ * fontCoverage.test.js). Keeping one formula is the point; a second copy is
+ * how the editor and the download start disagreeing by a fraction of an em.
+ */
+export function baselineOffsetEmFromMetrics(ascent, descent, lineHeightEm = DEFAULT_LINE_HEIGHT_EM) {
+  return lineHeightEm / 2 + (ascent - Math.abs(descent)) / 2;
+}
+
 // Slack on top of the computed overhang: the metrics are the font's design
 // box, but a real string can still paint past it - a flourish like Gveret
 // Levin's ץ tail clipped at the previous, thinner slack (0.02em). Costs
