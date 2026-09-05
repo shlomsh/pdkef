@@ -326,7 +326,11 @@ const faq = [
 
     <section class="try-workspace" id="try-workspace" aria-labelledby="try-heading" data-working-area>
       <h2 id="try-heading">Give it a try.</h2>
-      <p>Use your own PDF, or open the bundled practice document.</p>
+      {/* No explanatory paragraph. The two things you can do here are a file
+          and a dropzone, and both are now drawn rather than described, so a
+          sentence saying "use your own PDF, or open the bundled practice
+          document" was captioning two controls that already say it. The
+          heading carries the invitation; the controls carry the choice. */}
       <FileDropzone client:only="preact" toolTarget="sign" final />
       <a href="#home-tour" data-workspace-return>Back to your workspace ↑</a>
     </section>

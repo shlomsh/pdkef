@@ -3,10 +3,40 @@
 .tile strong { color: var(--color-text); font-size: 0.95rem; }
 .tile span { font-size: 0.78rem; color: var(--color-muted); }
 .tile:hover { border-color: var(--color-primary); background: var(--color-primary-tint); }
-.final { width: min(560px, 100%); display: flex; flex-direction: column; align-items: center; gap: 20px; }
-.final .tile { width: 100%; min-height: 230px; }
-.sample { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-success-soft); color: var(--color-text); padding: 14px 24px; font: inherit; font-weight: 600; cursor: pointer; }
-.sample span { display: block; font-size: 0.8rem; font-weight: 400; margin-top: 6px; color: var(--color-muted); }
+/* The closing call to action is two affordances of equal weight, side by
+   side: a document you can open, and a place to drop your own. It used to be
+   a heading, a sentence explaining the two options, a 230px dropzone and a
+   text button reading "Open bundled sample PDF" - four things describing two,
+   with the sample rendered as prose in a button while the recent documents
+   ten screens above were rendered as documents. Both are cards now, and they
+   are the same kind of card. */
+.final { width: min(720px, 100%); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 20px; }
+.final > .tile,
+.sample {
+  min-height: 208px;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px 16px;
+  border-radius: 18px;
+  font: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+.sample { border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-text); }
+.sample:hover, .sample:focus-visible { border-color: var(--color-primary); background: var(--color-primary-tint); }
+.sample strong { font-size: 0.9rem; font-weight: 600; overflow-wrap: anywhere; }
+.sample span { font-size: 0.76rem; font-weight: 400; color: var(--color-muted); }
+.sample-page { width: 64px; height: 84px; flex: none; filter: drop-shadow(0 4px 4px var(--color-border)); }
+/* The error is a full-width row under both cards, not a third column. */
+.final > .error { grid-column: 1 / -1; justify-self: center; }
+@media (max-width: 560px) {
+  .final { grid-template-columns: minmax(0, 1fr); }
+}
 .error { max-width: 360px; font-size: 0.85rem; color: var(--color-danger); }
 @media (max-width: 760px) {
   .launcher > .tile { flex-direction: row; flex-wrap: wrap; width: 184px; min-height: 60px; padding: 10px; gap: 2px 8px; }
