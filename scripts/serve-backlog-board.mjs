@@ -9,6 +9,7 @@ const lanes = {
   'editor-architecture': 'Editor architecture',
   'fonts-and-script-support': 'Fonts and script support',
   'landing-story-demo': 'Landing story and demo',
+  'site-quality': 'Site quality',
 };
 const statusLabels = { open: 'Open', in_progress: 'In progress', blocked: 'Blocked', done: 'Done', retired: 'Retired' };
 
