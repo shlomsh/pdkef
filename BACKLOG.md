@@ -194,13 +194,10 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | QUAL-01 | P2 | [QUAL-01](backlog/tasks/QUAL-01.md) · --color-primary fails WCAG AA as link text |
-| QUAL-03 | P3 | [QUAL-03](backlog/tasks/QUAL-03.md) · flatten.svg has the palette baked in as 31 hex literals |
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| QUAL-02 | P2 | [QUAL-02](backlog/tasks/QUAL-02.md) · Two competing header padding rules, where specificity beats the media query |
+_None._
 
 ### Blocked
 
@@ -208,7 +205,10 @@ _None._
 
 ### Done
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| QUAL-02 | P2 | [QUAL-02](backlog/tasks/QUAL-02.md) · Two competing header padding rules, where specificity beats the media query |
+| QUAL-03 | P3 | [QUAL-03](backlog/tasks/QUAL-03.md) · flatten.svg has the palette baked in as 31 hex literals |
 
 ### Retired
 
