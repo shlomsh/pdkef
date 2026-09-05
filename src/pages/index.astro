@@ -15,8 +15,6 @@ const description = 'A free, open-source suite of PDF tools that run entirely in
 import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, HelpCircle, ShieldCheck, InfinityIcon, Lock, Code2, Type, PenLine, Trash2 } from 'lucide-preact';
 import { tools } from '../data/tools.js';
 import FileDropzone from '../components/FileDropzone.tsx';
-import { Image } from 'astro:assets';
-import logo from '../assets/logo.png';
 
 // FAQ schema mirrors the visible questions rendered in the footer below.
 const faq = [
@@ -35,161 +33,36 @@ const faq = [
     <SeoSchema name="PDkef" description={description} faq={faq} />
   </Fragment>
 
-  <AppBar isHome />
-  {/* DEMO-05, variant T: the two-column first screen, after usetape.app.
-      Above 1320px the hero, dropzone and tool dock stay exactly as they were
-      but occupy the left column and stick there, while the demo runs in the
-      right column beside them. Stacked, the demo and the hero compete for one
-      vertical budget, which is what forced the choice between a legible demo
-      (about 410px) and keeping the dock on the first screen. Side by side they
-      share the budget instead, so the demo gets the full column height and the
-      dock does not move at all.
-
-      Below 1320px this is a plain block and everything falls back to the
-      stacked order, which is what phones already had; see the media query in
-      the <style> block below for why the threshold is 1320 and not the 1024
-      it shipped at. Reverting the whole variant is deleting this wrapper and
-      moving <HeroDemo /> back below <OfflineProof />; DEMO-05 requires
-      placement to stay cheap to reverse. */}
-  <div class="home-first bg-[linear-gradient(180deg,var(--color-bg),var(--color-primary-tint))]">
-  <div class="home-first-main pb-12 min-[1024px]:flex min-[1024px]:min-h-[calc(100svh-3.5rem)] min-[1024px]:flex-col min-[1024px]:justify-center min-[1024px]:box-border min-[1024px]:pt-2 min-[1024px]:pb-6">
-    <header class="px-6 pb-8 pt-14 min-[1024px]:px-0 min-[1024px]:pb-3 min-[1024px]:pt-2">
-      <div class="mb-3 flex items-center justify-center gap-4">
-        <Image src={logo} width={56} height={56} densities={[1, 2]} loading="eager" decoding="sync" fetchpriority="high" alt="" aria-hidden="true" class="shrink-0" />
-        <h1 class="type-hero m-0 text-start">Free PDF tools that run <span class="text-[var(--color-primary)]">on your device</span></h1>
-      </div>
-      <p class="type-lead mx-auto max-w-[54rem] min-[1024px]:mt-[0.6rem]">Merge, sign, split, redact, and compress PDFs without signing up, installing anything, or uploading a single file. Everything runs in your browser, on your phone or computer, so your files never leave your device.</p>
-      
-      <div class="mt-6 flex flex-wrap justify-center gap-[0.6rem] min-[1024px]:mt-4">
-        <a class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-text)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">
-          <svg class="shrink-0 text-[var(--color-text)]" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" />
-          </svg>
-          Star us on GitHub
-          <svg class="shrink-0 text-[var(--color-primary)]" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 7.1-1.01L12 2z" />
-          </svg>
-        </a>
-        <span class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-muted)]">
-          <svg class="shrink-0 text-[var(--color-muted-light)]" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 3v18" /><path d="M7 7l-4 6a4 4 0 0 0 8 0l-4-6z" /><path d="M17 7l-4 6a4 4 0 0 0 8 0l-4-6z" /><path d="M6 21h12" /><path d="M8 5h8" />
-          </svg>
-          MIT licensed
-        </span>
-        <span class="inline-flex items-center gap-[0.45rem] rounded-[10px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.45rem] text-[0.8rem] font-semibold text-[var(--color-muted)]">
-          <svg class="shrink-0 text-[var(--color-muted-light)]" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 20h.01" /><path d="M8.5 16.429a5 5 0 0 1 7 0" /><path d="M5 12.859a10 10 0 0 1 5.17-2.69" /><path d="M19 12.859a10 10 0 0 0-2.007-1.523" /><path d="M2 8.82a15 15 0 0 1 4.177-2.643" /><path d="M22 8.82a15 15 0 0 0-11.288-3.764" /><path d="m2 2 20 20" />
-          </svg>
-          Works offline
-        </span>
-      </div>
+  <div class="home-header">
+    <AppBar isHome>
+      <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">Star us on GitHub ☆</a>
+      <a href="/licenses/">MIT licensed</a>
+      <a href="#offline-app">Works offline</a>
+    </AppBar>
+    <header class="hero-header">
+      <h1>Free PDF tools that run <span>on your device</span></h1>
+      <p>Merge, sign, split, redact &amp; compress PDFs. No uploads.</p>
     </header>
-
-  <main class="min-[1024px]:!flex min-[1024px]:!min-h-0 min-[1024px]:!flex-1 min-[1024px]:!flex-col min-[1024px]:!pb-0">
-    {/* Large Dropzone CTA */}
-    <div class="merge-tool first-screen-frame mx-auto mb-16 box-border max-w-[1080px] p-6 min-[1024px]:!mb-4 min-[1024px]:!p-4">
-      {/* .first-screen-frame (scoped rule below) grows to fill whatever room
-          the first-screen budget has left over between the header and the
-          tool dock (flex:1 inside <main>'s own flex column), then centers
-          its fixed-size child vertically (justify-content:center) rather
-          than leaving that room as a flat gap below a static-height box. At
-          a short viewport the child sits nearly flush against its own
-          padding; at a tall one it gets more air above and below - the
-          growing/shrinking budget shows up as calm framing around the CTA
-          instead of as dead space beneath it. It is a scoped class, not
-          Tailwind utilities, so this one-off layout ships only on this page
-          - see the <style> block at the end of the file. See the
-          --first-screen-slot custom property below (child's own height
-          contract, not this wrapper) for how a future demo resizes it. */}
-      {/* Reserves the dropzone's rendered height before it exists.
-          FileDropzone is `client:only`, so Astro emits an empty <astro-island>
-          here and the box paints nothing until its chunk loads and hydrates -
-          on the highest-traffic page in the site, that is the primary CTA
-          missing on first paint and the tool grid below it jumping down when
-          it arrives. It has to stay client:only: the component reads saved
-          drafts out of localStorage in a lazy useState initializer, which on
-          the server always reports "no drafts", so server-rendering it would
-          trade this shift for a wrong-state flash on every returning visitor.
-          Holding the space instead costs nothing and removes the shift.
-
-          The three figures are measured, not derived, and they are the one
-          hand-computed thing in this file. To redo them after any change to
-          the dropzone's content, padding or type scale: build, serve dist/,
-          and read the height back at each breakpoint -
-            document.querySelector('[data-empty-state]').getBoundingClientRect().height
-          Under 412px the "Private. Files never leave your device." pill wraps
-          to a second line (+21.8px); at 1024px Dropzone.module.css drops the
-          block padding from 3rem to 1.5rem (-48px). Round up, never down: an
-          over-reservation is dead space, an under-reservation is the shift
-          this exists to prevent. The 412px step tracks a text wrap, so it
-          moves with font metrics - a platform that wraps later shifts by at
-          most that 22px, against 333px before this.
-
-          The 1024px+ tier reads --first-screen-slot (default 264px, this
-          same measured figure) instead of a bare min-h-[264px], so the
-          HeroDemo work landing in this slot can raise the reservation to
-          whatever height its own component needs by setting the one custom
-          property - on this div, or an ancestor - without touching the
-          surrounding flex/centering layout in the parent above. Nothing
-          currently overrides it, so today's rendered height is unchanged. */}
-      <div class="min-h-[333px] min-[412px]:min-h-[312px] min-[1024px]:min-h-[var(--first-screen-slot,264px)]">
-        <FileDropzone client:only="preact" href="/sign?action=open" toolTarget="sign" className="min-[1024px]:!py-6" />
+  </div>
+  <main id="home-content">
+    <div class="home-tour" id="home-tour">
+      <div class="home-scene" data-working-area>
+        <div class="workspace-launcher">
+          <FileDropzone client:only="preact" toolTarget="sign" />
+          <div class="tour-actions">
+            <a href="#home-information" data-tour-only>About PDkef ↓</a>
+            <button type="button" data-tour-skip data-tour-only>Go to workspace</button>
+            <button type="button" data-tour-replay data-workspace-only>Replay the demos</button>
+          </div>
+        </div>
+        <HeroDemo />
       </div>
     </div>
-
-    {/* App Grid for all tools */}
-    <div class="mx-auto mb-12 flex max-w-[1080px] flex-wrap justify-center gap-6 p-6 min-[1024px]:!mt-auto min-[1024px]:mb-0 min-[1024px]:gap-5 min-[1024px]:p-3">
-      {tools.map((tool) => (
-        <a href={tool.href} data-accent={tool.accent} class="app-card relative flex w-20 shrink-0 cursor-pointer flex-col items-center gap-3 text-inherit no-underline outline-none">
-          <div class="app-tile flex size-16 items-center justify-center">
-            <tool.icon strokeWidth={1.5} />
-          </div>
-          <div class="text-center text-[0.8rem] font-semibold leading-[1.25] text-[var(--color-muted)]">{tool.gridTitle}</div>
-          <span class="app-tooltip">{tool.gridDescription}</span>
-        </a>
-      ))}
-    </div>
-  </main>
-</div>
-
-  {/* HeroDemo (DEMO-02) in the right column above 1320px, below the first
-      screen otherwise. position: sticky is killed with no error by any
-      ancestor carrying overflow/transform/filter/contain, so neither
-      .home-first nor this column may ever grow one - the demo's own panels
-      and the left column both depend on it. */}
-  <div class="home-first-demo">
-    <HeroDemo />
-  </div>
-</div>
-
-    {/* OfflineProof (DEMO-04): the live half of "your document stays on
-        your phone." HeroDemo below already says the claim sentence and the
-        airplane-mode invitation, so this only adds what static copy can't:
-        when the visitor really is offline, say so and say it still works.
-
-        It sits outside the first-screen wrapper on purpose. That wrapper is
-        one composed unit whose tool grid is pinned to the bottom with
-        mt-auto, and anything added inside it pushes the dock off the
-        viewport (see the comment above and DEMO-05). Online it renders an
-        empty, padding-less paragraph that its own :empty rule hides, so it
-        costs no height in the common case either way. */}
+    <div id="home-information">
     <OfflineProof />
-
-  {/* The story cards stack rather than scroll past: each one pins below the
-      app bar and the next slides up over it, so they arrive as a deck being
-      dealt instead of a column being scrolled. The wrapper is what bounds
-      it - `position: sticky` holds an element for as long as its containing
-      block is in view, so without this the first card would stay pinned
-      behind the footer. It must never grow overflow, transform, filter or
-      contain: any of those makes it a containing block and kills sticky on
-      every card at once, with no error anywhere.
-
-      Rules are in the <style> block below, and only apply from 768px up.
-      Below that the cards have no min-height and run taller than the
-      viewport, so pinning one would cut off its own bottom. */}
   <div class="card-stack">
 
-      <FeatureCard class="relative isolate overflow-hidden">
+      <FeatureCard density="flow" class="relative isolate overflow-hidden">
         <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} parallax />
         <div class="flex items-stretch gap-12 max-[768px]:flex-col max-[768px]:gap-8">
           <div class="min-w-0 flex-[1.2]">
@@ -234,7 +107,7 @@ const faq = [
         </div>
       </FeatureCard>
 
-      <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+      <FeatureCard density="flow" variant="highlight" class="relative isolate overflow-hidden">
         <CardDecor sketch="waves" icon={HardDriveDownload} iconPos="cr" iconSize={300} parallax />
         <div class="flex items-center gap-12 max-[768px]:flex-col-reverse max-[768px]:gap-8">
           <div class="relative flex min-h-[210px] w-full flex-[0.8] items-center justify-center py-4" aria-hidden="true">
@@ -300,10 +173,10 @@ const faq = [
         </div>
       </FeatureCard>
 
-      <FeatureCard class="relative isolate overflow-hidden">
+      <FeatureCard density="flow" class="relative isolate overflow-hidden">
         <CardDecor sketch="grid" icon={WifiOff} iconPos="br" iconSize={300} parallax />
         <div class="mx-auto mb-8 max-w-[750px] text-center">
-          <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Run PDkef offline as an app</h2>
+          <h2 id="offline-app" class="type-section space-heading-content mt-0 text-[var(--color-text)]">Run PDkef offline as an app</h2>
           <p class="type-lead m-0 text-[var(--color-muted)]">Because PDkef runs entirely in your web browser with zero server uploads, you can install it on your device and use it just like a native desktop or mobile application, even when you don't have internet access.</p>
         </div>
 
@@ -404,7 +277,7 @@ const faq = [
       });
     </script>
 
-    <FeatureCard class="relative isolate overflow-hidden">
+    <FeatureCard density="flow" class="relative isolate overflow-hidden">
       <CardDecor sketch="rings" icon={HelpCircle} iconPos="bl" iconSize={300} parallax />
       <div class="space-heading-content text-center">
         <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Got Questions?</span>
@@ -430,7 +303,7 @@ const faq = [
       </div>
     </FeatureCard>
 
-    <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
+    <FeatureCard density="flow" variant="highlight" class="relative isolate overflow-hidden">
       <CardDecor sketch="arcs" icon={ShieldCheck} iconPos="cl" iconSize={300} parallax />
       <div class="w-full">
         <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Transparent & Secure</span>
@@ -451,259 +324,92 @@ const faq = [
       </div>
     </FeatureCard>
 
-    {/* Inside the stack, and load-bearing there - see the <style> block. */}
-    <Footer />
   </div>
+    </div>
+    <section class="try-workspace" id="try-workspace" aria-labelledby="try-heading" data-working-area>
+      <h2 id="try-heading">Give it a try.</h2>
+      <p>Use your own PDF, or open the bundled practice document.</p>
+      <FileDropzone client:only="preact" toolTarget="sign" final />
+      <a href="#home-tour" data-workspace-return>Back to your workspace ↑</a>
+    </section>
+    <Footer />
+  </main>
+  <nav class="home-dock" aria-label="PDF tools">
+      {tools.map((tool) => (
+        <a href={tool.href} data-accent={tool.accent} class="app-card">
+          <div class="app-tile">
+            <tool.icon strokeWidth={1.5} />
+          </div>
+          <div class="app-label">{tool.gridTitle}</div>
+          <span class="app-tooltip">{tool.gridDescription}</span>
+        </a>
+      ))}
+  </nav>
+  <script src="../components/homeWorkspace.ts"></script>
 </BaseLayout>
 
 <style>
-  /* --- First-screen budget fixes (desktop hero re-budget) ---------------
-     Two rules below fix/implement the desktop (>=1024px) first-screen
-     layout. Both are scoped (Astro auto-attributes every selector here),
-     so - like .app-tile et al. further down - they ship only on this page,
-     never inlined into the other 22 via the shared Tailwind utility bundle.
-     That matters here specifically: an earlier version of this fix used
-     one-off `!`-prefixed Tailwind utilities (`!px-6`, `min-[1024px]:!flex-1`,
-     etc.) for the same two rules, and check-css-duplication.js's single-page-
-     utility ratchet caught it - those utilities are real bytes in the one
-     inlined stylesheet every page ships, paid for by all 22 pages that never
-     use them, for a layout only this page has. Scoped classes are the
-     correct tool for a genuinely one-off rule; reach for them before adding
-     another arbitrary-value utility that only this page will ever use. */
-
-  /* The dropzone/demo slot's wrapper. At 1024px+ it grows to absorb
-     whatever's left of the first-screen budget between the header and the
-     tool dock (main's own min-[1024px]:!flex-1 already makes <main> do this
-     at the outer level; this repeats it one level down so the slack lands
-     here specifically, not as a bare gap between this box and the dock),
-     then centers its fixed-height child inside that grown box. No
-     specificity fight needed - .merge-tool's own bare rule (global.css,
-     >=768px) only sets width/flex-shrink, and forcing flex-shrink back to
-     0 here is what we want anyway.
-
-     Still 1024px, unlike the two-column block below: this and the
-     min-[1024px]: utilities in the markup are the *first-screen budget*
-     (hero, dropzone and tool dock composed into one screen with the dock
-     pinned to the bottom), which is worth having on any laptop. Only the
-     side-by-side demo needs the wider window. */
-  @media (min-width: 1024px) {
-    .first-screen-frame {
-      display: flex;
-      flex: 1 1 auto;
-      flex-direction: column;
-      justify-content: center;
-    }
+  :global(html) { scroll-padding-top: var(--home-header-height, 150px); }
+  :global(body) {
+    --home-header-height: 146px;
+    --home-dock-height: 124px;
+    --home-stage-height: calc(100svh - var(--home-header-height) - var(--home-dock-height));
+    background: linear-gradient(180deg, var(--color-bg), var(--color-primary-tint));
+  }
+  .home-header { position: fixed; inset: 0 0 auto; z-index: 30; background: var(--color-bg); }
+  .home-header :global(.home-trust) { display: flex; align-items: center; gap: 18px; font-size: 0.75rem; white-space: nowrap; }
+  .home-header :global(.home-trust a) { color: var(--color-muted); text-decoration: none; }
+  header.hero-header { max-width: none; padding: 14px 24px 12px; margin: 0; text-align: center; }
+  .hero-header h1 { font-size: clamp(1.5rem, 3vw, 2.25rem); line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.035em; }
+  .hero-header h1 span { color: var(--color-primary); }
+  .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
+  #home-content { padding-top: var(--home-header-height); padding-bottom: var(--home-dock-height); }
+  .home-tour { min-height: var(--home-stage-height); }
+  :global(html[data-home-mode="tour"]) .home-tour { height: calc(var(--home-stage-height) + 850svh); }
+  .home-scene { position: sticky; top: var(--home-header-height); min-height: var(--home-stage-height); display: grid; grid-template-columns: minmax(230px, 0.75fr) minmax(0, 2fr); align-items: center; gap: 24px; padding: 0 5vw; box-sizing: border-box; }
+  :global(html[data-home-mode]) .home-scene { height: var(--home-stage-height); }
+  .workspace-launcher { justify-self: center; width: 100%; max-width: 400px; }
+  .tour-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 20px; font-size: 0.8rem; }
+  .tour-actions button { border: 0; padding: 0; background: none; color: var(--color-primary); cursor: pointer; font: inherit; }
+  :global(html[data-home-mode="workspace"]) .home-scene { grid-template-columns: 1fr; }
+  :global(html[data-home-mode="workspace"]) .workspace-launcher { max-width: 900px; }
+  :global(html[data-home-mode="tour"]) :global([data-home-recents]) { display: none; }
+  [data-workspace-only] { display: none; }
+  :global(html[data-home-mode="workspace"]) [data-workspace-only] { display: block; }
+  :global(html[data-home-mode="workspace"]) [data-tour-only],
+  :global(html[data-home-mode="workspace"]) :global([data-home-demo]) { display: none; }
+  [data-working-area][data-drag-over] { outline: 3px dashed var(--color-primary); outline-offset: -10px; background: var(--color-success-soft); }
+  #home-information { position: relative; padding-top: 24px; }
+  .card-stack :global(.card-reveal) { animation: none; overflow: clip; min-height: 0; margin-block: 24px; }
+  .try-workspace { min-height: var(--home-stage-height); box-sizing: border-box; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .try-workspace h2 { font-size: 2rem; margin: 0 0 8px; }
+  .try-workspace > p { margin: 0 0 24px; color: var(--color-muted); }
+  .try-workspace > a { margin-top: 24px; }
+  .home-dock { position: fixed; z-index: 40; bottom: 0; left: 0; right: 0; height: var(--home-dock-height); box-sizing: border-box; display: flex; align-items: center; justify-content: safe center; gap: 20px; padding: 14px 24px; background: color-mix(in srgb, var(--color-bg) 94%, transparent); border-top: 1px solid var(--color-border); backdrop-filter: blur(12px); overflow-x: auto; }
+  .app-card { position: relative; display: flex; flex: 0 0 80px; flex-direction: column; align-items: center; gap: 10px; color: inherit; text-decoration: none; }
+  .app-tile { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
+  .app-label { font-size: 0.8rem; font-weight: 600; line-height: 1.25; text-align: center; color: var(--color-muted); }
+  @media (max-width: 760px) {
+    :global(body) { --home-header-height: 163px; --home-dock-height: 112px; }
+    .home-header :global(.home-trust) { gap: 10px; font-size: 0.65rem; }
+    .home-header :global([data-home-bar] > div) { height: auto; min-height: 56px; flex-wrap: wrap; padding-block: 6px; gap: 6px; }
+    .home-header :global(.home-trust) { width: 100%; justify-content: center; font-size: 0.7rem; }
+    .home-header :global([data-on-device]) { font-size: 0.7rem; gap: 4px; }
+    header.hero-header { padding: 10px 16px; }
+    .hero-header h1 { font-size: 1.6rem; }
+    .hero-header p { font-size: 0.85rem; }
+    .home-scene { grid-template-columns: 1fr; padding: 0 16px; gap: 8px; align-content: start; }
+    .workspace-launcher { max-width: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; }
+    .tour-actions { margin: 0; font-size: 0.7rem; flex-direction: column; gap: 8px; }
+    .home-dock { gap: 12px; padding: 10px 16px; justify-content: flex-start; }
+    .app-card { flex-basis: 72px; }
+    .app-tile { width: 52px; height: 52px; }
+    :global(html[data-home-mode="workspace"]) .workspace-launcher { flex-direction: column; align-items: center; padding-top: 24px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .app-card *, .app-card { transition: none !important; }
   }
 
-  /* --- The two-column first screen (DEMO-05 variant T) ------------------
-     1320px, not the 1024px this started at. The left column has a hard
-     940px floor (see the grid comment below) and the second track's flex
-     factor is 0.55, so below about 1300px the demo column is whatever
-     narrow strip is left over: measured at 132px on a 1180px iPad in
-     landscape and 187px at 1280px, against a mockup that wants 300px plus
-     its stage padding. The result was a postage-stamp phone with six-line
-     caption wrapping beside a hero whose tool dock had wrapped to two rows
-     anyway - so the 940px floor was not even buying what it exists for at
-     those widths.
-
-     Everything from 1320px up is unchanged; everything below now gets the
-     stacked layout, which is the one this page had before the demo landed
-     and which HeroDemo has been retuned for (shorter tracks, a larger
-     mockup on tablets, panels that fade in rather than slide). That file
-     switches on the same 1320px figure and the two must stay in step: a
-     media query cannot read a custom property, so the number is duplicated
-     and these comments are the only link between them.
-
-     Two things here are load-bearing and both fail silently if changed.
-
-     align-items: start. Grid items stretch to the row height by default,
-     which for this row is the demo's ten screens, and a sticky element that
-     is already as tall as its scroll range never moves. It has to be given
-     its own height and allowed to be shorter than the row.
-
-     No overflow, transform, filter or contain anywhere on .home-first or
-     either column. Each of those creates a containing block that kills
-     position: sticky on every descendant, with no error anywhere - and this
-     subtree has three sticky layers in it: the left column, the demo's two
-     panels, and the app bar above. */
-  @media (min-width: 1320px) {
-    .home-first {
-      display: grid;
-      /* The left column must stay wide enough for the tool dock to keep
-         all nine tiles on one row. Nine 80px tiles with eight 20px gaps is
-         880px before padding, and at 1.05fr the column came out at 794px,
-         wrapped the dock to two rows, and pushed its bottom edge to 910 on
-         an 800px viewport - the exact failure the whole layout exists to
-         avoid. Measured, not guessed.
-
-         The demo column carries a 340px floor of its own (300px mockup plus
-         its stage's 20px padding either side) rather than minmax(0, ...).
-         Without it the column is pure leftover, and because the two flex
-         factors sum to 2 the leftover is not even distributed in full - at
-         1280px the browser handed the column 187px and left 153px of the
-         row simply unused. The floor makes the failure loud (the row
-         overflows) instead of quiet (the demo shrinks to nothing), and the
-         1320px breakpoint above keeps it from ever being reached. */
-      grid-template-columns: minmax(940px, 1.45fr) minmax(340px, 0.55fr);
-      align-items: start;
-    }
-
-    .home-first-main {
-      position: sticky;
-      top: 3.5rem;
-      height: calc(100svh - 3.5rem);
-    }
-
-    /* The demo's panels size themselves from this, rather than from 100svh,
-       so they fit the column between the app bar and the viewport bottom.
-       See HeroDemo.module.css's --herodemo-panel-height comment: it is the
-       documented hook for exactly this, and it inherits, so no prop
-       plumbing is needed. */
-    .home-first-demo {
-      --herodemo-panel-height: calc(100svh - 3.5rem);
-    }
-
-    /* The demo ships its own title card, which earns its place when the demo
-       is a section of its own further down the page. Beside the hero it is
-       saying the same thing twice, in the same eyeline, and it costs the
-       visitor a whole screen of scrolling before the phone appears at all.
-       Hiding the whole track (not just the card inside it) is what makes it
-       cost no scroll distance here. :global because it belongs to HeroDemo's
-       CSS module and Astro's scoped styles do not reach into a child
-       component. */
-    .home-first-demo :global([data-herodemo-intro]) {
-      display: none;
-    }
-  }
-
-  /* --- The story-card stack ------------------------------------------
-     Each card pins below the app bar and the next one slides up over it.
-     Three things make that work and each is doing real work:
-
-     - The cards are opaque. Both FeatureCard variants paint a solid surface
-       or a solid gradient, so a covering card genuinely hides the one
-       beneath. If a translucent variant is ever added, it cannot go here.
-     - Paint order is DOM order. These are positioned elements with
-       `z-index: auto`, so a later card paints over an earlier one without
-       anybody managing a z-index scale. The app bar keeps its own z-20 and
-       so still passes over all of them.
-     - `position`, `min-height` and `top` all beat the utilities the cards
-       carry. Astro's scoped output is unlayered and Tailwind's utilities are
-       in @layer utilities, so these win regardless of specificity; sticky is
-       still a positioned box, so CardDecor's absolute children go on
-       anchoring to it exactly as before.
-
-     768px because that is where FeatureCard's `density="screen"` gives each
-     card its viewport-height floor. Below it the cards are content-height
-     and run well past the viewport, and pinning a card taller than the
-     screen just hides its own bottom.
-
-     --stack-gap is the one number here: the air above a pinned card, the
-     air below it, and the run-out after the last one. The card's own height
-     is derived from it rather than left to the `min-h-[calc(100vh-6rem)]`
-     utility, because that figure was chosen for cards that scroll past and
-     it puts a pinned card flush against the app bar with 40px of dead space
-     underneath - which is what a stacked card's margins should never be,
-     since the top edge is the one the eye tracks.
-
-     The shadow is a single upward cast. That is the edge that arrives over
-     the card below, and it is the only edge that needs one: a downward
-     shadow lands on the card that is still approaching from underneath and
-     reads as a halo around the deck rather than as depth between cards. */
-  @media (min-width: 768px) {
-    .card-stack {
-      /* The one number: the air between the app bar and a pinned card. */
-      --stack-gap: 2rem;
-    }
-
-    .card-stack :global(.card-reveal) {
-      position: sticky;
-      top: calc(3.5rem + var(--stack-gap));
-      /* Down to the bottom edge of the viewport, not to a matching gap
-         above it, and that is a correctness rule rather than a taste one.
-
-         These cards are content-height with a floor, so they are only equal
-         while every one of them clears the floor - and the first card's copy
-         does not, by a wide margin, on an ordinary laptop: measured natural
-         heights are 739px at 1280px wide against a 740px slot on a 1512x860
-         screen. One pixel. Any card that overruns pokes out below the
-         shorter ones stacked over it, and since the tallest card is also the
-         first, every later card would leave a band of it showing underneath.
-         A card that runs to the bottom edge cannot: whatever is behind it is
-         covered all the way down, however tall that is.
-
-         The alternative was a media query gating the stack on a viewport
-         tall enough for the tallest card, which is three measured
-         breakpoints that go stale the next time anyone edits a paragraph. */
-      min-height: calc(100svh - 3.5rem - var(--stack-gap));
-      /* A single upward cast. That is the edge that arrives over the card
-         below, and the only edge that needs one: a downward shadow lands on
-         the card still approaching from underneath and reads as a halo
-         around the deck rather than as depth between cards. */
-      box-shadow: 0 -20px 46px -26px var(--color-primary-ring);
-    }
-
-    /* The footer is inside .card-stack, and that is what makes the ending
-       work. It is the deck's own scroll run-out, so the last card gets a
-       sticky range instead of the zero it would have if the wrapper ended at
-       its bottom edge - and, because the wrapper now reaches the end of the
-       document, the cards are never pushed up off their pinned position at
-       all. Before this the deck rose by more than a hundred pixels over the
-       last stretch, tucking the top card under the app bar and leaving a
-       dead band between it and the footer.
-
-       Sticky cards are positioned boxes, which paint above normal-flow
-       siblings even when the sibling comes later in the markup. Give the
-       footer its own stacking level so it can take over at the end of the
-       run-out instead of being completely covered by the final card.
-       :last-of-type rather than :last-child, since the footer is now the
-       last child; the cards are the only <section>s in here. */
-    .card-stack :global(section.card-reveal:last-of-type) {
-      margin-block-end: 0;
-    }
-
-    .card-stack :global(footer) {
-      position: relative;
-      z-index: 1;
-    }
-
-    /* The scroll-reveal fade and the stack are two answers to the same
-       question, and here the stack wins. A card fades in from opacity 0
-       while it is already overlapping the card it is covering, so for the
-       length of the fade you see straight through it to the one behind -
-       the one thing a stack must never do. Neutralised in CSS rather than
-       by teaching FeatureCard about this page.
-
-       `animation-name`, not the `animation` shorthand, which would also
-       reset animation-timeline and animation-range out from under the rule
-       it is overriding - harmless while the only intent is "stop the fade",
-       and quietly wrong the moment anyone gives these cards a second
-       animation. (The card's own `view-timeline-name` below is a different
-       property and survives either way, so the decor parallax is not what
-       is at stake here.) */
-    .card-stack :global(.card-reveal) {
-      animation-name: none;
-    }
-  }
-
-  /* The tool grid's tiles. Written as utilities on the element this was ~1.6KB
-     of class attribute per tile, but the real cost was where it landed: around
-     thirty arbitrary-value rules (two gradients, three layered shadows, a
-     per-state transition, the hover/focus/active transform set) in Tailwind's
-     utility layer, which is one site-wide bundle inlined whole into all twelve
-     pages. Every tool page was carrying the home page's hover animation. This
-     is one component's own decoration, used nowhere else and composed of
-     nothing reusable, so it belongs beside .app-tooltip below - already here
-     for the same reason - where Astro scopes it and ships it on this page only.
-
-     The transition is also a fix. `transition-[transform_0.4s_var(--ease-spring),
-     ...]` sets transition-*property*, so it compiled to `transition-property:
-     transform .4s var(--ease-spring), ...` - not a list of property names, so
-     the whole declaration was invalid and the tiles snapped between states with
-     no animation at all. Same for the active state's. Restored here as what it
-     was plainly meant to be. Note Tailwind v4 animates transforms through the
-     individual `translate`/`rotate`/`scale` properties rather than `transform`,
-     which is why those are named here instead. */
   .app-tile {
     border-radius: 18px;
     background: linear-gradient(150deg, var(--color-muted-light), var(--color-border-strong));

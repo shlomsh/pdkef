@@ -1,37 +1,21 @@
-/* Homepage-only overrides for DropzoneEmptyState's "or start something new"
-   state, once a resume-draft card already occupies the primary spot above it.
-   Deliberately NOT added to Dropzone.module.css: that file is also imported
-   by BasePdfTool.jsx, which every tool page server-renders, so anything added
-   there is inlined into all of them regardless of whether a given page ever
-   sets `compact` - see check-css-bundle.js's per-page budget. FileDropzone.jsx
-   is a client:only island, so Astro never inlines this file into any page's
-   HTML at all; it only ever ships in the client bundle that already needs it.
+.launcher { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+.tile { width: 174px; min-height: 156px; border: 1.5px dashed var(--color-border-strong); border-radius: 18px; padding: 18px; background: var(--color-surface-sunken); color: var(--color-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font: inherit; }
+.tile strong { color: var(--color-text); font-size: 0.95rem; }
+.tile span { font-size: 0.78rem; color: var(--color-muted); }
+.tile:hover { border-color: var(--color-primary); background: var(--color-primary-tint); }
+.final { width: min(560px, 100%); display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.final .tile { width: 100%; min-height: 230px; }
+.sample { border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-success-soft); color: var(--color-text); padding: 14px 24px; font: inherit; font-weight: 600; cursor: pointer; }
+.sample span { display: block; font-size: 0.8rem; font-weight: 400; margin-top: 6px; color: var(--color-muted); }
+.error { max-width: 360px; font-size: 0.85rem; color: var(--color-danger); }
+@media (max-width: 760px) {
+  .launcher > .tile { flex-direction: row; flex-wrap: wrap; width: 184px; min-height: 60px; padding: 10px; gap: 2px 8px; }
+  .launcher > .tile svg { width: 22px; height: 24px; grid-row: span 2; }
+  .launcher > .tile span { font-size: 0.7rem; }
+}
 
-   Selectors target children by position/tag, not by DropzoneEmptyState's own
-   class names - those live in Dropzone.module.css's separate hash namespace,
-   which this file has no access to. */
-@media (min-width: 1024px) {
-  .compact {
-    min-height: 0;
-    flex-direction: row;
-    justify-content: center;
-    gap: var(--space-3);
-    /* !important: this class is combined, in the same className string, with
-       index.astro's `min-[1024px]:!py-6` (a Tailwind `!` utility, itself
-       already !important) on the same element - without this, that utility's
-       vertical padding wins on specificity-among-equals and the desktop
-       compaction this class exists for silently does nothing. */
-    padding: 0.85rem 1.25rem !important;
-  }
-
-  .compact > p {
-    font-size: 0.92rem;
-  }
-
-  .compact > a,
-  .compact > label {
-    margin-top: 0;
-    padding: 0.5rem 1.1rem;
-    font-size: 0.88rem;
-  }
+@media (min-width: 761px) {
+  :global(html[data-home-mode="workspace"]) .launcher { flex-direction: row; justify-content: center; gap: 48px; }
+  :global(html[data-home-mode="workspace"]) .launcher > section { width: auto; }
+  :global(html[data-home-mode="workspace"]) .launcher > .tile { flex-shrink: 0; }
 }

@@ -1,23 +1,8 @@
 import { useEffect } from 'preact/hooks';
 
-/**
- * The only script HeroDemo ships. It reads nothing from the page but scroll
- * position and writes nothing but `--p-*` custom properties (per-property
- * CSSOM writes via `style.setProperty`, never a literal `style="..."`
- * attribute - see CLAUDE.md's CSP section) onto the sticky stage elements
- * HeroDemo.astro already rendered. All copy and structure comes
- * from that server-rendered markup; this component supplies motion only,
- * and supplies nothing at all when `prefers-reduced-motion` is set or JS
- * never loads, at which point HeroDemo.module.css's own defaults (every
- * beat at its finished value) already show the completed story - see that
- * file's "Layer visibility/crossfade" comment.
- *
- * One track's beat map is one ordered set of [start, end] progress windows
- * that must sum to the visual story dirE.html (the approved reference)
- * plays out. They live only here - CSS never hardcodes a boundary, it only
- * ever reads whatever 0-1 value shows up in each --p-<beat> - so there is
- * one place that owns pacing, matching the "one owner" rule this codebase
- * applies to geometry math (CLAUDE.md Part II section 3.2).
+/** Scroll position is the sole clock. Writes only per-property CSSOM values
+ * onto the server-rendered demo, preserving CSP and the real story artwork.
+ * Reduced motion advances discrete beats; no-JS uses the CSS finished stills.
  */
 type BeatRange = [number, number];
 
@@ -36,28 +21,8 @@ const CHAT_READING_HOLD = 0.08;
 const afterChatReadingHold = (progress: number): number => (
   (progress + CHAT_READING_HOLD) / (1 + CHAT_READING_HOLD)
 );
-const beforeChatReadingHold = (progress: number): number => (
-  progress / (1 + CHAT_READING_HOLD)
-);
 
 const TRACKS: TrackConfig[] = [
-  {
-    // The intro title card. Two beats, no story: fade in over the first
-    // fifth of the panel's pinned travel, hold for the middle, and fade back
-    // out over the last third, reaching zero exactly as the panel releases -
-    // which is the moment the first story pins, so the two fades meet (see
-    // .track-intro's negative bottom margin, which is what aligns them).
-    // HeroDemo.module.css turns these into one opacity (--p-in minus
-    // --p-out). Above the two-column breakpoint
-    // the track is display:none, so these values are still computed and
-    // still written - onto an element that renders nothing. Harmless, and
-    // cheaper than teaching this file about a breakpoint.
-    key: 'intro',
-    beats: {
-      in: [0.0, 0.2],
-      out: [0.66, 1.0],
-    },
-  },
   {
     // 12 beats. The four "fill-*" beats were renamed 2026-09-04 per a second
     // product-owner correction: the printed sentence used to carry blanks
@@ -91,7 +56,7 @@ const TRACKS: TrackConfig[] = [
       // only this track has it - see HeroDemo.module.css's .stage-first
       // opacity rule.
       enter: [0.0, 0.04],
-      msg: [0.0, beforeChatReadingHold(0.06)],
+      msg: [-0.06, 0.0],
       // Hold the complete chat view (the message and attached permission
       // slip) before crossfading to the PDF. The other sign-story beats are
       // remapped below so this new reading space does not make them faster.
@@ -134,63 +99,44 @@ function clamp01(n: number): number {
 
 export default function ScrollDriver({ rootSelector }: { rootSelector: string }) {
   useEffect(() => {
-    const mql = window.matchMedia('(prefers-reduced-motion: no-preference)');
-    if (!mql.matches) return;
-
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
     const root = document.querySelector(rootSelector);
-    if (!root) return;
-
+    const tour = document.getElementById('home-tour');
+    const scene = tour?.querySelector<HTMLElement>('[data-working-area]');
+    if (!root || !tour || !scene) return;
     const tracks = TRACKS.map(({ key, beats }) => ({
-      beats,
+      key, beats,
       trackEl: root.querySelector<HTMLElement>(`[data-hero-track="${key}"]`),
       stageEl: root.querySelector<HTMLElement>(`[data-hero-track="${key}"] [data-hero-stage]`),
-    })).filter(
-      (t): t is { beats: Record<string, BeatRange>; trackEl: HTMLElement; stageEl: HTMLElement } =>
-        !!t.trackEl && !!t.stageEl
-    );
-    if (tracks.length === 0) return;
+    }));
 
-    // Progress is recomputed from scroll position every call, never
-    // accumulated, so scrolling back up genuinely un-fills the form rather
-    // than replaying a recorded delta - the whole point of a scroll-driven
-    // (not auto-playing) demo.
     function update() {
-      for (const track of tracks) {
-        const trackRect = track.trackEl.getBoundingClientRect();
-        // The stage's own rendered height, not window.innerHeight: the
-        // first stage's height can be overridden smaller than 100svh from
-        // outside this component (see HeroDemo.module.css's --herodemo-
-        // panel-height), and a sticky element only remains pinned for
-        // (track height - its own height) of scrolling, regardless of how
-        // tall the viewport happens to be.
-        const stageHeight = track.stageEl.getBoundingClientRect().height;
-        const scrollable = trackRect.height - stageHeight;
-        const progress = scrollable <= 0 ? (trackRect.top <= 0 ? 1 : 0) : clamp01(-trackRect.top / scrollable);
-
-        // The raw, un-sliced 0-1 value for this track alone, before it gets
-        // cut into named beat windows below. This is what drives the DEMO-05
-        // progress indicator (HeroDemo.module.css's .progress-rail): each
-        // stage carries one "how far through this story" number, written the
-        // same way every other beat is, so the indicator has no second
-        // mechanism of its own. It defaults to 1 in CSS (see .stage-base),
-        // matching every other --p-* default, so the no-JS/reduced-motion
-        // stills show both stories as complete rather than the indicator
-        // reading a stale or empty value.
-        track.stageEl.style.setProperty('--p-track', String(progress));
-
+      if (!tour || !scene) return;
+      const top = parseFloat(getComputedStyle(scene).top) || 0;
+      const travel = Math.max(1, tour.offsetHeight - scene.offsetHeight);
+      const progress = clamp01((top - tour.getBoundingClientRect().top) / travel);
+      // The original beat maps share one native page-scroll span. A short
+      // overlap crossfades completed Sign into the incoming email, in place.
+      const crossfade = clamp01((progress - 0.58) / 0.04);
+      for (const {key, beats, trackEl, stageEl} of tracks) {
+        if (!trackEl || !stageEl) continue;
+        const localProgress = key === 'sign'
+          ? clamp01(progress / 0.57)
+          : clamp01((progress - 0.62) / 0.37);
+        const opacity = key === 'sign' ? 1 - crossfade : crossfade;
+        trackEl.style.setProperty('--caption-opacity', String(Number(key === 'sign' ? crossfade < 0.5 : crossfade >= 0.5)));
+        trackEl.style.setProperty('--story-opacity', String(mql.matches ? Number(opacity >= 0.5) : opacity));
+        stageEl.style.setProperty('--p-track', String(localProgress));
         let openLocal = 0;
-        for (const beat in track.beats) {
-          const [start, end] = track.beats[beat];
-          const local = clamp01((progress - start) / (end - start));
-          track.stageEl.style.setProperty(`--p-${beat}`, String(local));
+        for (const [beat, [start, end]] of Object.entries(beats)) {
+          const value = clamp01((localProgress - start) / (end - start));
+          // Reduced motion keeps the story readable as discrete completed
+          // beats, with no signature drawing, wipe, pulse, or crossfade.
+          const local = mql.matches ? Number(value >= 0.5) : value;
+          stageEl.style.setProperty(`--p-${beat}`, String(local));
           if (beat === 'open') openLocal = local;
         }
-        if ('open' in track.beats) {
-          // A short pulse around the moment the file/document opens, peaking
-          // exactly at open's midpoint and fading out on either side.
-          const pulse = 1 - Math.abs(openLocal * 2 - 1);
-          track.stageEl.style.setProperty('--p-tap', String(pulse));
-        }
+        stageEl.style.setProperty('--p-tap', String(mql.matches ? 0 : 1 - Math.abs(openLocal * 2 - 1)));
       }
     }
 
@@ -206,11 +152,17 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
 
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
+    mql.addEventListener('change', onScroll);
+    const observer = new ResizeObserver(onScroll);
+    observer.observe(tour);
+    observer.observe(scene);
     update();
 
     return () => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
+      mql.removeEventListener('change', onScroll);
+      observer.disconnect();
     };
   }, [rootSelector]);
 

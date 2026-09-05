@@ -1,120 +1,117 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { loadDraft, deleteDraft, saveHandoff, readDraftMeta } from '../editor/workspace/draftStore.js';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import dialogStyles from './Dialog.module.css';
-import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 import ResumeDraftCard from './ResumeDraftCard.tsx';
-import homepageStyles from './FileDropzone.module.css';
+import styles from './FileDropzone.module.css';
 
-// Every tool that persists a draft. Not sourced from tools.js - most tools
-// there have no draft feature at all, and this list has to stay in the exact
-// order the resume card should check/display them in.
+// One real document per supported editor; the homepage does not own a cache.
 const DRAFT_TOOLS = ['sign', 'redact'];
-
-// Synchronous, so the client-only launcher starts with the complete local
-// state rather than fetching it after its first render.
 function readAllDraftMeta(): any[] {
-  return DRAFT_TOOLS.map((tool) => {
+  return DRAFT_TOOLS.map(tool => {
     const meta: any = readDraftMeta(tool);
     return meta && { tool, ...meta };
-  })
-    .filter(Boolean)
-    .sort((a: any, b: any) => (b.savedAt || 0) - (a.savedAt || 0));
+  }).filter(Boolean).sort((a: any, b: any) => (b.savedAt || 0) - (a.savedAt || 0));
 }
-
-/**
- * The home page's dropzone. Unlike the one inside BasePdfTool it does not run a
- * tool - it hands the file to one, across a navigation. `toolTarget` is the
- * only mode: there is no local-callback fallback, since the sole caller
- * (index.astro) always sets it.
- *
- * The bytes are parked in a one-shot handoff record (draftStore.saveHandoff)
- * that the destination tool collects on mount. This used to write straight
- * into the tool's *draft* key instead, which had two consequences, both
- * silent: the put() replaced whatever signing work was saved there, and the
- * record it wrote had no fileBytes, so the tool's restore path skipped it and
- * the dropped file was dropped on the floor. A handoff can do neither - it
- * has its own key space, and the tool only ever reads it.
- *
- * Because a handoff still means "open a different document in that tool", it asks
- * first when there is a saved draft to lose, naming both files - the same
- * ConfirmDialog and the same bargain BasePdfTool strikes for Replace file.
- */
-export default function FileDropzone({ multiple = true, accept = "application/pdf", href, toolTarget, className = '' }: {
-  multiple?: boolean;
-  accept?: string;
-  href?: string;
-  toolTarget: string;
-  className?: string;
-}) {
+export default function FileDropzone({ toolTarget, final = false }: { toolTarget: string; final?: boolean }) {
   const [pending, setPending] = useState<{ file: File; draftName?: string } | null>(null);
-  // Lazy initializer, not an effect: the launcher renders its complete local
-  // state in one client pass, with no asynchronous metadata fetch.
-  const [drafts] = useState(readAllDraftMeta);
+  const [drafts, setDrafts] = useState(readAllDraftMeta);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const container = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLInputElement>(null);
 
-  // Park the file for `toolTarget` and go there. Split out from the drop handler
-  // so the confirmation can call it later, once the user has agreed.
-  const handOff = async (file: File, { discardDraft = false }: { discardDraft?: boolean } = {}) => {
-    if (discardDraft) await deleteDraft(toolTarget);
-    await saveHandoff(toolTarget, {
-      fileName: file.name,
-      fileType: file.type || 'application/pdf',
-      fileBytes: await file.arrayBuffer(),
-    });
-    window.location.href = `/${toolTarget}`;
+  const handOff = async (file: File, { discardDraft = false } = {}) => {
+    setBusy(true);
+    try {
+      const saved = await saveHandoff(toolTarget, {
+        fileName: file.name, fileType: file.type || 'application/pdf', fileBytes: await file.arrayBuffer(),
+      });
+      if (!saved) throw new Error('handoff');
+      if (discardDraft && !(await deleteDraft(toolTarget))) throw new Error('draft');
+      window.location.href = `/${toolTarget}/`;
+    } catch {
+      setError('This browser could not open the file. Choose a tool below and open it there.');
+      setBusy(false);
+    }
   };
-
   const handleFiles = async (files: FileList | File[]) => {
     const incoming = Array.from(files || []);
-    if (incoming.length === 0) return;
-
-    // Only a draft that could actually be restored is worth protecting; a
-    // record without bytes is not something the tool would have reopened.
+    if (!incoming.length || busy) return;
+    if (incoming.length > 1) { setError('Choose one PDF here, or use Merge PDF below for several files.'); return; }
+    const file = incoming[0];
+    if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { setError('Please choose a PDF file.'); return; }
+    setError('');
     const draft: any = await loadDraft(toolTarget);
-    if (draft?.fileBytes) setPending({ file: incoming[0], draftName: draft.fileName });
-    else await handOff(incoming[0]);
+    if (draft?.fileBytes) setPending({ file, draftName: draft.fileName });
+    else await handOff(file);
   };
-
+  useEffect(() => {
+    const area = container.current?.closest<HTMLElement>('[data-working-area]');
+    if (!area) return;
+    const over = (event: DragEvent) => {
+      if (!event.dataTransfer?.types.includes('Files')) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+      area.dataset.dragOver = '';
+    };
+    const leave = (event: DragEvent) => {
+      if (!area.contains(event.relatedTarget as Node)) delete area.dataset.dragOver;
+    };
+    const drop = (event: DragEvent) => {
+      event.preventDefault();
+      delete area.dataset.dragOver;
+      if (event.dataTransfer) void handleFiles(event.dataTransfer.files);
+    };
+    area.addEventListener('dragover', over);
+    area.addEventListener('dragleave', leave);
+    area.addEventListener('drop', drop);
+    return () => {
+      area.removeEventListener('dragover', over);
+      area.removeEventListener('dragleave', leave);
+      area.removeEventListener('drop', drop);
+    };
+  }, [busy]);
+  useEffect(() => {
+    const refresh = () => setDrafts(readAllDraftMeta());
+    window.addEventListener('pageshow', refresh);
+    window.addEventListener('storage', refresh);
+    return () => { window.removeEventListener('pageshow', refresh); window.removeEventListener('storage', refresh); };
+  }, []);
+  const sample = async () => {
+    try {
+      const response = await fetch('/images/redaction-guide/sample.pdf');
+      if (!response.ok) throw new Error('sample');
+      await handleFiles([new File([await response.blob()], 'PDkef bundled sample.pdf', { type: 'application/pdf' })]);
+    } catch { setError('The sample could not be loaded. Please try again or choose your own PDF.'); }
+  };
   return (
-    <>
-      <ResumeDraftCard drafts={drafts} />
-
-      <DropzoneEmptyState
-        multiple={multiple}
-        accept={accept}
-        href={href}
-        onFiles={handleFiles}
-        className={`${className} ${drafts.length > 0 ? homepageStyles.compact : ''}`}
-        // The card above already made the primary pitch to a returning
-        // visitor; this keeps the dropzone from repeating "Drop PDFs here" as
-        // if nothing had just answered that question for them.
-        message={drafts.length > 0 ? 'Or start something new' : undefined}
-        // Same reasoning, sized: a resume card is real height the desktop
-        // layout's one-viewport budget never accounted for (see
-        // FileDropzone.module.css's header comment) - shrink the now-
-        // secondary CTA to make room rather than let the tool grid below it
-        // get pushed past the fold. `compact` only controls JSX (hiding the
-        // icon/privacy line); the row-layout CSS comes from the class above.
-        compact={drafts.length > 0}
-      />
-
-      <ConfirmDialog
-        open={!!pending}
-        titleId="confirm-handoff-title"
-        title="Open this instead?"
-        confirmLabel="Open it"
-        onCancel={() => setPending(null)}
-        onConfirm={() => {
-          const next = pending;
-          setPending(null);
-          if (next) handOff(next.file, { discardDraft: true });
-        }}
-      >
-        Opening <span class={dialogStyles['confirm-file']}>{pending?.file?.name}</span> discards the
-        draft you have saved here{pending?.draftName ? ' of ' : ''}
-        {pending?.draftName && <span class={dialogStyles['confirm-file']}>{pending.draftName}</span>},
-        along with the work in it. That can’t be undone.
+    <div ref={container} class={final ? styles.final : styles.launcher}>
+      {!final && <ResumeDraftCard drafts={drafts} />}
+      <button type="button" class={styles.tile} data-home-picker disabled={busy} onClick={() => input.current?.click()}>
+        <svg width="36" height="42" viewBox="0 0 36 42" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path d="M6 2h16l9 9v28H6zM22 2v10h9M12 26h13M18.5 19.5v13" />
+        </svg>
+        <strong>{busy ? 'Opening…' : 'Choose files'}</strong>
+        <span>or drop PDFs here</span>
+      </button>
+      <input ref={input} type="file" accept="application/pdf,.pdf" hidden onChange={event => {
+        const files = Array.from(event.currentTarget.files || []);
+        event.currentTarget.value = '';
+        void handleFiles(files);
+      }} />
+      {final && <button type="button" class={styles.sample} onClick={sample} disabled={busy}>
+        Open bundled sample PDF <span>Practice document · opens in Sign &amp; Fill</span>
+      </button>}
+      {error && <p class={styles.error} role="alert">{error}</p>}
+      <ConfirmDialog open={!!pending} titleId={final ? 'confirm-final-handoff' : 'confirm-handoff'} title="Open this instead?" confirmLabel="Open it"
+        onCancel={() => setPending(null)} onConfirm={() => {
+          const next = pending; setPending(null);
+          if (next) void handOff(next.file, { discardDraft: true });
+        }}>
+        Opening <span class={dialogStyles['confirm-file']}>{pending?.file.name}</span> replaces your saved work in{' '}
+        <span class={dialogStyles['confirm-file']}>{pending?.draftName}</span>. That can’t be undone.
       </ConfirmDialog>
-    </>
+    </div>
   );
 }

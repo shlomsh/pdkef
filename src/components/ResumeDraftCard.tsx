@@ -1,86 +1,37 @@
 import { tools } from '../data/tools.js';
 import styles from './ResumeDraftCard.module.css';
 
-/**
- * The home page's "you left something open" card, shown above the dropzone
- * when Sign or Redact has a saved draft.
- *
- * It exists because the home page used to give no sign at all that a draft
- * existed: the dropzone said "Drop PDFs here", and the first the user heard of
- * their in-progress file was the discard confirmation *after* they had already
- * picked a replacement. Disclosure has to come before the choice, not after.
- *
- * Deliberately additive - it sits above the dropzone rather than replacing it,
- * so a first-time visitor (the overwhelming majority, and the reader the
- * dropzone's fast path was designed for) sees exactly what they saw before.
- *
- * There is no dismiss control, and that is the point: hiding the card would
- * leave the bytes in IndexedDB while implying they were gone. The card clears
- * when the draft really does - replaced or finished inside the tool, or aged
- * out at draftStore's MAX_AGE_MS.
- *
- * @param {{ drafts: Array<{ tool: string, fileName?: string, savedAt?: number,
- *   preview?: string }> }} props - already filtered to tools with a draft, and
- *   sorted by the caller.
+/** Standalone document icons from the two existing editor draft slots.
+ * Navigation lets each tool restore its own draft; this view never writes it.
  */
 export default function ResumeDraftCard({ drafts }: { drafts: any[] }) {
   if (!drafts?.length) return null;
 
   return (
-    <section class={styles.card} aria-labelledby="resume-draft-heading">
-      <h2 class={styles.heading} id="resume-draft-heading">
-        Pick up where you left off
-      </h2>
+    <section data-home-recents class={styles.card} aria-labelledby="resume-draft-heading">
+      <h2 class={styles.heading} id="resume-draft-heading">Pick up where you left off</h2>
       <ul class={styles.list}>
-        {drafts.map((draft: any, index: number) => {
-          const meta = tools.find((t) => t.slug === draft.tool);
+        {drafts.map((draft: any) => {
+          const meta = tools.find(t => t.slug === draft.tool);
           if (!meta) return null;
-          const Icon = meta.icon;
-          return (
-            <li class={styles.row} key={draft.tool}>
-              {draft.preview ? (
-                <img
-                  class={styles.preview}
-                  src={draft.preview}
-                  alt=""
-                  width="48"
-                  height="62"
-                />
-              ) : (
-                // Same box, drawn empty. A draft saved before previews shipped
-                // (or one whose preview lost a localStorage quota race) must
-                // not make its row a different height than its neighbour's.
-                <div class={styles.preview} aria-hidden="true" />
-              )}
-
-              <div class={styles.details}>
-                <p class={styles.name} title={draft.fileName}>
-                  {draft.fileName || 'Untitled document'}
-                </p>
-                <p class={styles.sub}>
-                  <Icon class={styles.toolIcon} size={14} strokeWidth={1.8} aria-hidden="true" />
-                  {meta.gridTitle}
-                  {formatSavedAt(draft.savedAt) && (
-                    <span class={styles.when}>{formatSavedAt(draft.savedAt)}</span>
-                  )}
-                </p>
-              </div>
-
-              {/* A plain navigation: the tool restores its own draft on mount,
-                  so there is nothing to hand over. Only the first row gets the
-                  filled treatment - two primary buttons side by side would
-                  make the more recent draft no easier to pick out. */}
-              <a
-                class={index === 0 ? styles.continuePrimary : styles.continue}
-                href={meta.href}
-              >
-                Continue
-                <span class={styles.srOnly}> editing {draft.fileName || 'your document'}</span>
-              </a>
-            </li>
-          );
+          return <li key={draft.tool}>
+            <a class={styles.document} href={meta.href}
+              onClick={event => {
+                // Keyboard activation emits detail=0; touch opens with one tap.
+                if (event.detail > 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !window.matchMedia('(pointer: coarse)').matches) event.preventDefault();
+              }}
+              onDblClick={() => { window.location.href = meta.href; }}>
+              {draft.preview
+                ? <img class={styles.preview} src={draft.preview} alt="" width="64" height="84" />
+                : <svg class={styles.preview} viewBox="0 0 64 84" aria-hidden="true"><path d="M8 2h32l16 16v64H8zM40 2v18h16" fill="var(--color-surface)" stroke="var(--color-border-strong)"/><text x="32" y="54" text-anchor="middle" fill="var(--color-primary)" font-size="14">PDF</text></svg>}
+              <span class={styles.name}>{draft.fileName || 'Untitled document'}</span>
+              <span class={styles.sub}>{meta.gridTitle}</span>
+              {draft.fileName === 'PDkef bundled sample.pdf' && <span class={styles.sub}>Bundled sample</span>}
+            </a>
+          </li>;
         })}
       </ul>
+      <p class={styles.hint}>Double-click to open · Enter on keyboard</p>
     </section>
   );
 }
