@@ -1,8 +1,14 @@
-.element { position: absolute; z-index: 1; cursor: move; user-select: none; touch-action: none; border: 1px dashed transparent; border-radius: 4px; transition: border-color .15s ease; }
-.element.active { z-index: 50; border-color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary-ring); background: rgba(238, 243, 255, .4); }
+/* The selection affordance is an `outline`, not a `border`, because a border
+   takes up layout: it pushed every element's *content* 1px below the `top` the
+   model stores, while the exporter draws from that `top` with no border at all.
+   Free-placed text hid the 1px, but a comb sized to a printed field (MOBI-04)
+   put the rule visibly through the digits. `outline-offset: -1px` draws it in
+   exactly the same place the border occupied, so nothing moves on screen. */
+.element { position: absolute; z-index: 1; cursor: move; user-select: none; touch-action: none; outline: 1px dashed transparent; outline-offset: -1px; border-radius: 4px; transition: outline-color .15s ease; }
+.element.active { z-index: 50; outline-color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary-ring); background: rgba(238, 243, 255, .4); }
 .symbol { padding: 0; }
-.element:hover { border-color: var(--color-muted-light); }
-.element.line.active, .element.line:hover { border-color: transparent; box-shadow: none; background: transparent; }
+.element:hover { outline-color: var(--color-muted-light); }
+.element.line.active, .element.line:hover { outline-color: transparent; box-shadow: none; background: transparent; }
 /* No hit area above the element. There used to be an invisible 44px strip here
    (matching where .actions sits) so the cursor could cross the gap to a
    hover-revealed toolbar. The toolbar is revealed by .active now, not by hover,

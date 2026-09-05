@@ -1,10 +1,14 @@
 import {
   COMB_MIN_CELL_EM,
   HELVETICA_BASELINE_OFFSET_EM,
-  TEXT_BOX_PADDING_EM,
   MAX_COMB_CELLS,
   MIN_FONT_SIZE_PT,
 } from '../../constants/signGeometry.js';
+import {
+  FONT_VERTICAL_METRICS,
+  baselineOffsetEmFromMetrics,
+  textBoxPaddingEm,
+} from './fonts.js';
 
 /**
  * Turning a detected printed grid into a text element that fills it.
@@ -28,6 +32,24 @@ export interface CombRegion {
   width: number;
   height: number;
   cells: number;
+}
+
+/**
+ * How far below a text box's top edge its glyph baselines sit, in em.
+ *
+ * This is the number the exporter subtracts back off in `serializeText`, and
+ * it is font-specific in both halves: the baseline offset comes from the
+ * family's real ascent and descent, and the box's padding is whatever that
+ * family's overhang needs. Reaching for the Helvetica fallback instead put a
+ * comb about a point low on Arimo, which is invisible on free-placed text and
+ * very visible when the printed rule then cuts across the digits.
+ */
+export function baselineDropEm(fontFamily: string): number {
+  const metrics = FONT_VERTICAL_METRICS[fontFamily];
+  const offset = metrics
+    ? baselineOffsetEmFromMetrics(metrics.ascent, metrics.descent)
+    : HELVETICA_BASELINE_OFFSET_EM;
+  return offset + textBoxPaddingEm(fontFamily);
 }
 
 export interface CombPlacement {
@@ -108,8 +130,9 @@ export function combFontSize(
  */
 export function placeCombOnRegion(
   region: CombRegion,
-  { fontSize, pageWidthPoints, pageHeightPoints }: {
+  { fontSize, fontFamily, pageWidthPoints, pageHeightPoints }: {
     fontSize: number;
+    fontFamily: string;
     pageWidthPoints: number;
     pageHeightPoints: number;
   },
@@ -118,7 +141,7 @@ export function placeCombOnRegion(
   const size = combFontSize(fontSize, region.width / cells, pageWidthPoints);
   const baselinePercent = region.top + region.height;
   const baselineOffsetPercent = pageHeightPoints > 0
-    ? ((size * (HELVETICA_BASELINE_OFFSET_EM + TEXT_BOX_PADDING_EM)) / pageHeightPoints) * 100
+    ? ((size * baselineDropEm(fontFamily)) / pageHeightPoints) * 100
     : 0;
   return {
     left: region.left,
