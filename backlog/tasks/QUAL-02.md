@@ -1,12 +1,12 @@
 ---
 id: "QUAL-02"
 title: "Two competing header padding rules, where specificity beats the media query"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "site-quality"
 phase: "near-term"
 depends_on: []
-legacy_state: "Open"
+legacy_state: "Done 2026-09-05"
 ---
 
 # QUAL-02 · Two competing header padding rules, where specificity beats the media query
@@ -43,7 +43,7 @@ before-and-after header heights for a tool page, a content page, `/licenses/` an
 narrow and a wide viewport. `npm run test:css` and `npm run test:seo` pass, and no page-weight budget
 moves.
 
-## Progress
+## Outcome (2026-09-05)
 
 The CSS half landed in f8b57e4, merged by hand from the parallel worktree that
 investigated this. Both halves of the pair now carry the identical selector
@@ -57,10 +57,32 @@ rule did not. So the only header it ever governed was the one page that did not
 want it, flattening that page's own `pt-[4.5rem] pb-10` to 56px/24px above
 768px while mobile kept 72px/40px.
 
-**Still outstanding**, which is why this is not closed: the measured
-before-and-after header heights the acceptance asks for, on a tool page, a
-content page, `/licenses/` and the 404, at a narrow and a wide viewport; and the
-removal of the scoped override in `index.astro`, which was a workaround for this
-bug and should now be redundant. Do not delete it without measuring, since the
-home page also has a first-screen height budget that override was helping to
-meet.
+The remaining homepage override is gone. Its equivalent page-owned utilities now
+live directly on the homepage header (`px-6 pb-8 pt-14` and the existing 1024px
+overrides), so the homepage retains its authored layout without a specificity
+countermeasure. Browser measurement confirms its header is unchanged: 393.72px
+at 390px and 194.53px at 1440px, with matching computed padding in both builds.
+
+### Browser measurements
+
+Chrome measurements compare the commit immediately before the CSS fix with the
+completed build. Values are rendered header heights in pixels; both viewports
+were measured at a fixed 844px or 1000px height, respectively.
+
+| page | 390px before → after | 1440px before → after |
+| --- | ---: | ---: |
+| `/merge/` tool | 425.17 → 425.17 | 141.69 → 141.69 |
+| `/how-to-sign-a-pdf-on-android/` content | 421.86 → 393.86 | 380.05 → 430.64 |
+| `/licenses/` | 208.09 → 208.09 | 216.94 → 188.94 |
+| `/404.html` | 397.69 → 397.69 | 400.88 → 432.88 |
+
+The content page's wide header becomes taller because its authored `max-w-[720px]`
+now wins over the former global 1080px cap, causing the real title/lead wrapping
+to be rendered. Its padding is now the authored 72px/32px rather than the
+global 72px/36px. `/licenses/` receives the intended desktop default
+(56px/24px), and the 404 regains its authored 72px/40px instead of the accidental
+56px/24px desktop override. Tool headers were already excluded and remain
+unchanged.
+
+`npm run build`, `npm run test:css`, `npm run test:seo`, and
+`npm run test:weight` pass with no page-weight budget adjustment.
