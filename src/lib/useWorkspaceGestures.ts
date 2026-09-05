@@ -18,8 +18,8 @@ import {
   checkboxRegionAt,
   combRegionAt,
   placeCombOnRegion,
-  placeSymbolOnRegion,
 } from '../editor/text/combPlacement.ts';
+import { placeSymbolOnRegion } from '../editor/registry/symbol.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 import {
   DEFAULT_COLOR_BLUE,
@@ -219,7 +219,10 @@ export default function useWorkspaceGestures({
         pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
         pageHeightPoints,
       })
-      : (checkboxRegion && placeSymbolOnRegion(checkboxRegion));
+      : (checkboxRegion && placeSymbolOnRegion(checkboxRegion, initialSymbolMark, {
+        pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
+        pageHeightPoints,
+      }));
     const placed = snapped ? { ...newEl, ...snapped } : newEl;
 
     dispatch({ type: 'ADD_ELEMENT', payload: placed });

@@ -153,27 +153,6 @@ export function checkboxRegionAt(
 }
 
 /**
- * A symbol sized to the checkbox it was tapped on.
- *
- * The size question a person otherwise answers by placing a mark and dragging
- * it until it looks right is answered by the paper: the detector reports the
- * printed square's real width and height, and both are already in the model's
- * own percentage units, so there is nothing to convert and no aspect ratio to
- * guess. Unlike the comb this needs no font metrics at all, which is why it
- * cannot drift when the font changes afterwards.
- */
-export function placeSymbolOnRegion(region: FieldRegion): {
-  left: number; top: number; width: number; height: number;
-} {
-  return {
-    left: region.left,
-    top: region.top,
-    width: region.width,
-    height: region.height,
-  };
-}
-
-/**
  * The largest font size whose characters still fit the printed cell.
  *
  * A comb whose cells are narrower than the characters in them has stopped
