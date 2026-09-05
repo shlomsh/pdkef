@@ -57,9 +57,9 @@ sections:
       - kind: 'prose'
         text: >-
           You can also use <strong>Share</strong> in PDkef when Safari supports it. Tap Share to
-          prepare the finished PDF, then <strong>Share now</strong> to open the share sheet and
-          choose WhatsApp. If WhatsApp is not offered, save the PDF to Files and attach it from the
-          chat. Sending the PDF keeps the full document together.
+          prepare the finished PDF, then tap it again to open the share sheet and choose WhatsApp.
+          If WhatsApp is not offered, save the PDF to Files and attach it from the chat. Sending the
+          PDF keeps the full document together.
   - sketch: 'grid'
     icon: 'PenLine'
     iconPos: 'br'

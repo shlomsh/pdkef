@@ -234,9 +234,10 @@ describe('PdfRedactTool UI flow', () => {
       });
 
       expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
-      const shareButton = Array.from(container.querySelectorAll('button'))
-        .find((button) => button.textContent.includes('Share now'));
-      expect(shareButton).toBeDefined();
+      // Label stays "Share" in both states (MOBI-07 follow-up), so the ready
+      // state is found by its title, not its text.
+      const shareButton = container.querySelector('button[title="Share the redacted PDF"]');
+      expect(shareButton).not.toBeNull();
       await act(async () => {
         shareButton.click();
       });

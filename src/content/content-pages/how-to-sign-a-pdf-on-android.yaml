@@ -57,9 +57,9 @@ sections:
       - kind: 'prose'
         text: >-
           If the tool shows <strong>Share</strong>, you can use that too: tap it to prepare the PDF,
-          then tap <strong>Share now</strong> and choose WhatsApp. Download remains available if
-          your browser does not support file sharing. Send the PDF itself so the recipient gets all
-          its pages, not just a screenshot of the signature.
+          then tap it again to choose WhatsApp. Download remains available if your browser does not
+          support file sharing. Send the PDF itself so the recipient gets all its pages, not just a
+          screenshot of the signature.
   - sketch: 'grid'
     icon: 'TabletSmartphone'
     iconPos: 'br'

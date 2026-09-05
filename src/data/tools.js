@@ -203,7 +203,7 @@ export const tools = [
       { title: 'Add text & signatures', text: 'Click to place text blocks, symbols, or signatures on the pages.' },
       { title: 'Sign with ease', text: 'Draw your signature on screen, type it out using a cursive font, or upload a signature image.' },
       { title: 'Position & resize', text: 'Drag items to place them exactly where they belong in the agreement.' },
-      { title: 'Download and send', text: 'Choose Download, review the completed PDF, then attach the new file to your reply. On supported phones, Share prepares a copy and Share now opens your share sheet.' },
+      { title: 'Download and send', text: 'Choose Download, review the completed PDF, then attach the new file to your reply. On supported phones, tapping Share prepares a copy, and tapping it again opens your share sheet.' },
     ],
     faq: [
       {
@@ -212,7 +212,7 @@ export const tools = [
       },
       {
         question: 'How do I sign a PDF sent through WhatsApp?',
-        answer: 'Save the attachment to your device first: Files on iPhone or a downloads folder on Android or a computer. Open that saved PDF here, fill and sign it, then download the completed copy. Return to the chat and attach the new PDF as a document. On supported phones, Share followed by Share now can send it through the system share sheet.',
+        answer: 'Save the attachment to your device first: Files on iPhone or a downloads folder on Android or a computer. Open that saved PDF here, fill and sign it, then download the completed copy. Return to the chat and attach the new PDF as a document. On supported phones, tapping Share twice can send it through the system share sheet.',
       },
       {
         question: 'Do I need to create an account to sign a PDF?',

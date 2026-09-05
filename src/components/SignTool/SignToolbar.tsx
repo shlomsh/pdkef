@@ -545,14 +545,28 @@ export default function SignToolbar({
               title={exportBlocked ? blockedExportTitle : (shareReady ? 'Share the signed PDF' : 'Save your changes to share the signed PDF')}
               aria-describedby={exportBlocked ? 'sign-export-readiness' : undefined}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="18" cy="5" r="3" />
-                <circle cx="6" cy="12" r="3" />
-                <circle cx="18" cy="19" r="3" />
-                <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" />
-                <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
-              </svg>
-              <span className={styles.label}>{shareReady ? 'Share now' : 'Share'}</span>
+              {/* The label stays "Share" either way (MOBI-07 follow-up): it used
+                  to read "Share now" once ready, and that extra word changed the
+                  button's min-content width, which reflowed this whole row's
+                  wrap/cap math every time an export finished. The icon carries
+                  the state instead - a clock for "this saves first, then shares",
+                  the share glyph for "shares immediately" - so the button never
+                  resizes itself. */}
+              {shareReady ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" />
+                  <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" />
+                  <polyline points="12 7 12 12 15.5 14" />
+                </svg>
+              )}
+              <span className={styles.label}>Share</span>
             </button>
           )}
 
