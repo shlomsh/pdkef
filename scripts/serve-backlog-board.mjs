@@ -74,7 +74,16 @@ function page() {
     <div class="lanes" id="lanes"></div>
   </main>
   <script>
-    const lanes = ['Sign tool architecture', 'Editor architecture', 'Fonts and script support'];
+    // Derived from the lanes map at the top of this file rather than written out
+    // again. This was a hardcoded copy of three labels, so every lane added since
+    // (Landing story and demo, Mobile round trip, Site quality) rendered nowhere:
+    // /api/tasks returned those tasks with correct lane labels and render() filtered
+    // every one of them out, so 19 of 67 tickets were invisible with nothing failing.
+    // Registering an epic already means touching two files; it must not also mean
+    // finding a second list buried in this one. Object.values keeps the map's
+    // declaration order, which is the lane order.
+    // No backticks in this comment: it sits inside the page() template literal.
+    const lanes = ${JSON.stringify(Object.values(lanes))};
     const columns = [['open', 'Open'], ['in_progress', 'In progress'], ['blocked', 'Blocked'], ['done', 'Done'], ['retired', 'Retired']];
     const laneRoot = document.getElementById('lanes');
     const selectedTitle = document.getElementById('selected-title');
