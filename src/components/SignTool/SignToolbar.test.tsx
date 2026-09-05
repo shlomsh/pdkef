@@ -816,7 +816,9 @@ describe('SignToolbar Component', () => {
     });
 
     const exportButton = container.querySelector('button[title="Share the signed PDF"]');
-    expect(exportButton.textContent).toContain('Share now');
+    // Label stays "Share" in both states (MOBI-07 follow-up); the title
+    // attribute above already proves the ready state.
+    expect(exportButton.textContent.trim()).toBe('Share');
     exportButton.click();
     expect(onSharePdf).toHaveBeenCalledOnce();
   });

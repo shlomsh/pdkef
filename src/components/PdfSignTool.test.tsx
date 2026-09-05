@@ -680,7 +680,10 @@ describe('PdfSignTool UI flow', () => {
 
       const shareButton = container.querySelector('button[title="Share the signed PDF"]');
       expect(shareButton).not.toBeNull();
-      expect(shareButton.textContent).toContain('Share now');
+      // Label stays "Share" in both states (MOBI-07 follow-up: a growing
+      // "Share now" label jittered this button's width); the title attribute
+      // above is what already proves the ready state.
+      expect(shareButton.textContent.trim()).toBe('Share');
       await act(async () => {
         shareButton.click();
       });
