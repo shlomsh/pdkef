@@ -1,4 +1,4 @@
-import type { CombRegion } from '../../editor/text/combPlacement.ts';
+import type { FieldRegion } from '../../editor/text/combPlacement.ts';
 import styles from './FormFieldHints.module.css';
 
 /**
@@ -11,12 +11,15 @@ import styles from './FormFieldHints.module.css';
  * clicking empty paper to deselect - three meanings for one tap on the same
  * few millimetres of a phone screen.
  *
- * Shown only while the text tool is armed, because that is the moment the
- * answer to "where can I type?" is useful and the rest of the time it is 37
- * rectangles of noise.
+ * Shown only while the matching tool is armed, because that is the moment the
+ * answer to "where can I put this?" is useful and the rest of the time it is
+ * dozens of rectangles of noise. A comb run's ink is a few points tall, so its
+ * hint is grown upward to the strip a person would write in; a checkbox is
+ * already a real square and is outlined as it is.
  */
-export default function FormFieldHints({ regions, pageIndex }: {
-  regions: CombRegion[];
+export default function FormFieldHints({ regions, kind, pageIndex }: {
+  regions: FieldRegion[];
+  kind: 'comb' | 'checkbox';
   pageIndex: number;
 }) {
   const pageRegions = regions.filter((region) => region.pageIndex === pageIndex);
@@ -26,8 +29,8 @@ export default function FormFieldHints({ regions, pageIndex }: {
     <div className={styles['field-hints']} aria-hidden="true">
       {pageRegions.map((region) => (
         <span
-          key={`${region.left}-${region.top}-${region.cells}`}
-          className={styles['field-hint']}
+          key={`${region.left}-${region.top}-${region.width}`}
+          className={`${styles['field-hint']} ${styles[`field-hint-${kind}`]}`}
           style={{
             left: `${region.left}%`,
             top: `${region.top}%`,

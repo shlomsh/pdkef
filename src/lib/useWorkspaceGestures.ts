@@ -14,7 +14,13 @@ import type { SavedSignature } from '../editor/model/savedSignature.ts';
 import type { PageGeometry } from '../editor/geometry/coords.ts';
 import { getElementDefinition } from '../editor/registry/index.ts';
 import { ensureMinimumElementSize } from '../editor/geometry/minimumSize.ts';
-import { combRegionAt, placeCombOnRegion, type CombRegion } from '../editor/text/combPlacement.ts';
+import {
+  checkboxRegionAt,
+  combRegionAt,
+  placeCombOnRegion,
+  placeSymbolOnRegion,
+} from '../editor/text/combPlacement.ts';
+import type { FormFieldRegions } from './useFormFieldRegions.ts';
 import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,
@@ -79,7 +85,7 @@ export interface WorkspaceGestureOptions {
   initialSymbolMark?: SymbolMark;
   pageSizes?: PageGeometry[];
   /** Printed grids recovered from the page's own vector content (MOBI-03). */
-  formRegions?: CombRegion[];
+  formRegions?: FormFieldRegions;
   nextElementIndex?: number;
   gestureCancelRef?: { current: (() => void) | null };
 }
@@ -127,7 +133,7 @@ export default function useWorkspaceGestures({
   initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
   initialSymbolMark = 'check',
   pageSizes = [],
-  formRegions = [],
+  formRegions = { combs: [], checkboxes: [] },
   nextElementIndex = 0,
   // PdfWorkspace supplies a ref it owns for component teardown. Keeping this
   // handler factory hook-free also preserves its direct unit-test contract.
@@ -199,20 +205,22 @@ export default function useWorkspaceGestures({
     // element with `width` set - `isComb` is still derived from `width` and
     // gains no second source of truth - so undo, draft persistence and the
     // export registry all carry on unchanged.
-    const region = selectedTool === 'text'
-      ? combRegionAt(formRegions, { x: leftPercent, y: topPercent }, pageIndex)
+    const point = { x: leftPercent, y: topPercent };
+    const combRegion = selectedTool === 'text'
+      ? combRegionAt(formRegions.combs, point, pageIndex)
       : null;
-    const placed = region
-      ? {
-        ...newEl,
-        ...placeCombOnRegion(region, {
-          fontSize: initialFontSize,
-          fontFamily: initialFont,
-          pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
-          pageHeightPoints,
-        }),
-      }
-      : newEl;
+    const checkboxRegion = selectedTool === 'symbol'
+      ? checkboxRegionAt(formRegions.checkboxes, point, pageIndex)
+      : null;
+    const snapped = combRegion
+      ? placeCombOnRegion(combRegion, {
+        fontSize: initialFontSize,
+        fontFamily: initialFont,
+        pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
+        pageHeightPoints,
+      })
+      : (checkboxRegion && placeSymbolOnRegion(checkboxRegion));
+    const placed = snapped ? { ...newEl, ...snapped } : newEl;
 
     dispatch({ type: 'ADD_ELEMENT', payload: placed });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
@@ -227,12 +235,12 @@ export default function useWorkspaceGestures({
       // `autoFocus` flag, so the caret has exactly one owner.
       dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: id });
       logAction('add', 'ADD_TEXT', pageIndex, 'Added text box', [captureAddedElement(placed, nextElementIndex)]);
-      setAnnouncement(region
-        ? `Added text box across ${region.cells} printed boxes. Type your text.`
+      setAnnouncement(combRegion
+        ? `Added text box across ${combRegion.cells} printed boxes. Type your text.`
         : 'Added text box. Type your text.');
     } else {
       logAction('add', 'ADD_SYMBOL', pageIndex, 'Added symbol', [captureAddedElement(placed, nextElementIndex)]);
-      setAnnouncement('Added symbol.');
+      setAnnouncement(checkboxRegion ? 'Added symbol in the printed box.' : 'Added symbol.');
     }
   };
 

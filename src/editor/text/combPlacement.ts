@@ -24,13 +24,17 @@ import {
  * derived from `width` exactly as before.
  */
 
-/** A detected comb run, in the editor's top-left-origin page percentages. */
-export interface CombRegion {
+/** Any detected printed field, in the editor's top-left-origin page percentages. */
+export interface FieldRegion {
   pageIndex: number;
   left: number;
   top: number;
   width: number;
   height: number;
+}
+
+/** A detected comb run: a ruled strip divided into `cells` equal boxes. */
+export interface CombRegion extends FieldRegion {
   cells: number;
 }
 
@@ -73,26 +77,84 @@ const HIT_BAND_ABOVE_PERCENT = 1.4;
 const HIT_BAND_BELOW_PERCENT = 0.6;
 
 /**
- * The run a point falls in, or null.
- *
- * Ties break to the nearer centre, because two runs on the same rule sit edge
- * to edge (form 101's date fields share a wall) and a tap on that wall should
- * pick the field it is closer to the middle of rather than whichever the
- * detector happened to report first.
+ * A checkbox is 6.6pt square on the health declaration - about a millimetre and
+ * a half, and far under a fingertip. Its hit area is grown symmetrically to
+ * something tappable; overlaps between neighbours are resolved by picking the
+ * nearer centre rather than by shrinking the target back down.
  */
+const CHECKBOX_HIT_MARGIN_X_PERCENT = 0.7;
+const CHECKBOX_HIT_MARGIN_Y_PERCENT = 0.5;
+
+/**
+ * The region a point falls in, or null.
+ *
+ * Ties break to the nearer centre, because detected fields sit edge to edge:
+ * form 101's two date fields share a wall, and the health declaration's yes/no
+ * checkboxes are a few points apart. A tap between two of them should pick the
+ * one it is closer to the middle of, not whichever the detector reported first.
+ */
+function regionAt<T extends FieldRegion>(
+  regions: T[],
+  point: { x: number; y: number },
+  pageIndex: number,
+  margin: { top: number; bottom: number; sides: number },
+): T | null {
+  const hits = regions.filter((region) => region.pageIndex === pageIndex
+    && point.x >= region.left - margin.sides
+    && point.x <= region.left + region.width + margin.sides
+    && point.y >= region.top - margin.top
+    && point.y <= region.top + region.height + margin.bottom);
+  if (hits.length === 0) return null;
+  const distance = (region: T) => Math.hypot(
+    point.x - (region.left + region.width / 2),
+    point.y - (region.top + region.height / 2),
+  );
+  return hits.reduce((best, region) => (distance(region) < distance(best) ? region : best));
+}
+
 export function combRegionAt(
   regions: CombRegion[],
   point: { x: number; y: number },
   pageIndex: number,
 ): CombRegion | null {
-  const hits = regions.filter((region) => region.pageIndex === pageIndex
-    && point.x >= region.left
-    && point.x <= region.left + region.width
-    && point.y >= region.top - HIT_BAND_ABOVE_PERCENT
-    && point.y <= region.top + region.height + HIT_BAND_BELOW_PERCENT);
-  if (hits.length === 0) return null;
-  const distance = (region: CombRegion) => Math.abs(point.x - (region.left + region.width / 2));
-  return hits.reduce((best, region) => (distance(region) < distance(best) ? region : best));
+  return regionAt(regions, point, pageIndex, {
+    top: HIT_BAND_ABOVE_PERCENT,
+    bottom: HIT_BAND_BELOW_PERCENT,
+    sides: 0,
+  });
+}
+
+export function checkboxRegionAt(
+  regions: FieldRegion[],
+  point: { x: number; y: number },
+  pageIndex: number,
+): FieldRegion | null {
+  return regionAt(regions, point, pageIndex, {
+    top: CHECKBOX_HIT_MARGIN_Y_PERCENT,
+    bottom: CHECKBOX_HIT_MARGIN_Y_PERCENT,
+    sides: CHECKBOX_HIT_MARGIN_X_PERCENT,
+  });
+}
+
+/**
+ * A symbol sized to the checkbox it was tapped on.
+ *
+ * The size question a person otherwise answers by placing a mark and dragging
+ * it until it looks right is answered by the paper: the detector reports the
+ * printed square's real width and height, and both are already in the model's
+ * own percentage units, so there is nothing to convert and no aspect ratio to
+ * guess. Unlike the comb this needs no font metrics at all, which is why it
+ * cannot drift when the font changes afterwards.
+ */
+export function placeSymbolOnRegion(region: FieldRegion): {
+  left: number; top: number; width: number; height: number;
+} {
+  return {
+    left: region.left,
+    top: region.top,
+    width: region.width,
+    height: region.height,
+  };
 }
 
 /**

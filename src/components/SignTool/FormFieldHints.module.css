@@ -16,9 +16,21 @@
 .field-hint {
   position: absolute;
   box-sizing: content-box;
-  padding-top: 1.1em;
-  margin-top: -1.1em;
   border: 1px dashed var(--color-primary);
   border-radius: 2px;
   background: color-mix(in srgb, var(--color-primary) 7%, transparent);
+}
+
+/* A comb run's ink is a row of teeth only a few points tall, so an outline at
+   its true height is a hairline. Grown upward to the strip a person would write
+   in, which is also the band the tap test accepts. */
+.field-hint-comb {
+  padding-top: 1.1em;
+  margin-top: -1.1em;
+}
+
+/* A checkbox is already a real square on the page, so it is outlined as drawn
+   and the generous part is the tap test rather than the paint. */
+.field-hint-checkbox {
+  border-radius: 1px;
 }
