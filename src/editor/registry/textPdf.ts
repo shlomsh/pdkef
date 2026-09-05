@@ -110,7 +110,10 @@ export async function serializeText(element: TextElement, { page, pdfWidth, pdfX
   if (isComb(element)) {
     const widthPoints = ((element.width || 0) / 100) * pdfWidth;
     const cellCount = combCellCount(element);
-    const boxLeft = isRtl ? pdfX - widthPoints : pdfX;
+    // A comb's span is fixed (see DraggableWrapper's hasFixedSpan), so its
+    // left edge is `element.left` whichever way the text reads; only the cell
+    // order mirrors, which combCellCenterFraction owns.
+    const boxLeft = pdfX;
     combCharacters(element).slice(0, cellCount).forEach((rawChar, index) => {
       const char = stripInvisibleFormatting(rawChar);
       if (!char.trim()) return;
