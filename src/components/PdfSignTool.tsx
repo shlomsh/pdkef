@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'preact/hooks';
+import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type {
   EditorElement,
@@ -39,6 +39,7 @@ import {
 } from '../editor/model/actionHistory.ts';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
+import { getSignExportReadiness } from '../lib/signExportReadiness.ts';
 import {
   reportSampledMaintenanceEvent,
   signExportFailed,
@@ -75,6 +76,11 @@ function describeSignFailure(err: unknown): string {
 function isTextDirection(value: string): value is TextDirection {
   return value === 'ltr' || value === 'rtl';
 }
+
+// How long to wait after the last edit before speculatively re-exporting in
+// the background (MOBI-07). Generous on purpose: re-signing rasterizes every
+// page on the device the user is holding, so this must not fire mid-edit.
+const SPECULATIVE_EXPORT_DEBOUNCE_MS = 1500;
 
 export default function PdfSignTool() {
   return (
@@ -155,6 +161,11 @@ function PdfSignToolInner() {
   const loadIdRef = useRef(0);
   const loadControllerRef = useRef<import('../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
   const activeExportRequestRef = useRef<number | null>(null);
+  // Whether the export currently tracked by activeExportRequestRef is a
+  // background speculative one (MOBI-07) rather than a real, user-initiated
+  // one. The invalidation effect below reads this to decide whether getting
+  // superseded is user-visible news or routine background churn.
+  const activeExportSpeculativeRef = useRef(false);
   const nextExportRequestRef = useRef(0);
   const documentRevisionRef = useRef(documentRevision);
   const currentFileRef = useRef(file);
@@ -201,6 +212,15 @@ function PdfSignToolInner() {
   useEffect(() => {
     clearPrepared();
     if (activeExportRequestRef.current === null) return;
+    // A speculative background export getting superseded by a further edit is
+    // routine (MOBI-07) - it never surfaced as "preparing" in the first place,
+    // so silently discarding it (runExport's own guards handle that) is
+    // correct. Only a real, user-initiated export in flight is worth telling
+    // the user their edit invalidated it.
+    if (activeExportSpeculativeRef.current) {
+      activeExportRequestRef.current = null;
+      return;
+    }
     activeExportRequestRef.current = null;
     setStatus('editing');
     setProgress(0);
@@ -744,16 +764,28 @@ function PdfSignToolInner() {
   // `onSigned`, which decides what to do with it (share vs. plain download).
   // Status/progress/error handling lives here once so the two actions can't
   // drift on how a failure recovers.
-  const runExport = async (onSigned: (signedBlob: Blob, filename: string) => void) => {
+  // `speculative` (MOBI-07) drives a background pre-generation run: it must
+  // never surface as the "signing" UI, never emit signExportSucceeded/
+  // signExportFailed maintenance telemetry (SIGN-13's export-duration signal
+  // is a real-export-only measurement), and a failure stays silent since the
+  // user never asked for this run - they'll get the honest error if they
+  // later tap an export button themselves.
+  const runExport = async (
+    onSigned: (signedBlob: Blob, filename: string) => void,
+    { speculative = false }: { speculative?: boolean } = {},
+  ) => {
     if (!file) return;
     const sourceFile = file;
     const sourceRevision = documentRevisionRef.current;
     const requestId = ++nextExportRequestRef.current;
     activeExportRequestRef.current = requestId;
-    setErrorDetail(null);
-    setStatus('signing');
-    setProgress(0);
-    setAnnouncement('Writing signatures and text layers into PDF...');
+    activeExportSpeculativeRef.current = speculative;
+    if (!speculative) {
+      setErrorDetail(null);
+      setStatus('signing');
+      setProgress(0);
+      setAnnouncement('Writing signatures and text layers into PDF...');
+    }
     const exportStartedAt = performance.now();
     // Development/test exports never contact the production analytics adapter.
     // In production it remains optional: no injected Vercel queue means no send.
@@ -762,17 +794,23 @@ function PdfSignToolInner() {
     try {
       const { signPdf } = await import('../editor/adapters/pdf/sign.js');
       const signedBlob = await signPdf(sourceFile, elements, (p: number) => {
-        if (activeExportRequestRef.current === requestId && documentRevisionRef.current === sourceRevision) setProgress(p);
+        if (!speculative && activeExportRequestRef.current === requestId && documentRevisionRef.current === sourceRevision) setProgress(p);
       });
       if (activeExportRequestRef.current !== requestId
         || documentRevisionRef.current !== sourceRevision
         || currentFileRef.current !== sourceFile) return;
       activeExportRequestRef.current = null;
-      reportSampledMaintenanceEvent(signExportSucceeded(performance.now() - exportStartedAt), telemetryTransport);
+      if (!speculative) {
+        reportSampledMaintenanceEvent(signExportSucceeded(performance.now() - exportStartedAt), telemetryTransport);
+      }
       onSigned(signedBlob, `signed_${sourceFile.name}`);
     } catch (err) {
       if (activeExportRequestRef.current !== requestId) return;
       activeExportRequestRef.current = null;
+      if (speculative) {
+        console.error(err);
+        return;
+      }
       reportSampledMaintenanceEvent(signExportFailed(performance.now() - exportStartedAt, err), telemetryTransport);
       console.error(err);
       setStatus('editing');
@@ -823,6 +861,34 @@ function PdfSignToolInner() {
       setAnnouncement('Could not open the share sheet. Please try again.');
     }
   };
+
+  // Whether the current elements contain text no bundled font can draw. Mirrors
+  // PdfWorkspace's own computation (getSignExportReadiness is pure over
+  // `elements`); duplicated here rather than lifted up, since threading it
+  // down as a prop would only be to satisfy this one background effect.
+  const exportReadiness = useMemo(() => getSignExportReadiness(elements), [elements]);
+
+  // MOBI-07: once at least one element is placed, speculatively re-export on a
+  // debounced idle so the Share button is already in its ready state by the
+  // time the user reaches for it, instead of making them tap once to
+  // generate and again to share. Gated on `status === 'editing'` so this
+  // never fires mid-load, mid-sign, or while a load error is showing, and on
+  // `!exportReadiness.blocked` so it never burns CPU on a run that would be
+  // refused anyway. Depending on `documentRevision` (not a raw elements
+  // reference) means this can only ever fire after a gesture has committed
+  // its one state update on release - never while a drag/resize/create is
+  // still live, per the gesture golden rule - and re-fires on every later
+  // edit, letting each speculative export invalidate the previous one.
+  useEffect(() => {
+    if (!file || elements.length === 0 || exportReadiness.blocked || status !== 'editing') return;
+    const timer = setTimeout(() => {
+      runExport((signedBlob, filename) => {
+        prepare(signedBlob, filename);
+      }, { speculative: true });
+    }, SPECULATIVE_EXPORT_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, documentRevision, exportReadiness.blocked, status]);
 
   const hasFiles = !!file;
 

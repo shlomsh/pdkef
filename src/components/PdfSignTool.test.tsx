@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import PdfSignTool from './PdfSignTool.tsx';
 import * as signModule from '../editor/adapters/pdf/sign.js';
+import * as maintenanceTelemetry from '../lib/maintenanceTelemetry.ts';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../editor/geometry/coords.js';
@@ -226,6 +227,80 @@ describe('PdfSignTool UI flow', () => {
 
     expect(createUrl).not.toHaveBeenCalled();
     expect(container.textContent).toContain('Your edits changed while the PDF was being prepared');
+  });
+
+  it('pre-generates the signed PDF in the background so Share is ready without a prior tap (MOBI-07)', async () => {
+    const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share');
+    const originalCanShare = Object.getOwnPropertyDescriptor(navigator, 'canShare');
+    Object.defineProperty(navigator, 'share', { configurable: true, value: vi.fn(async () => {}) });
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
+
+    const signedBlob = new Blob(['signed result'], { type: 'application/pdf' });
+    const sign = vi.spyOn(signModule, 'signPdf').mockResolvedValue(signedBlob);
+    const reportEvent = vi.spyOn(maintenanceTelemetry, 'reportSampledMaintenanceEvent');
+
+    try {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      await act(async () => { render(<PdfSignTool />, container); });
+      await act(async () => {
+        setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('mobi07.pdf')]);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+      const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
+      overlay.getBoundingClientRect = () => pageRect;
+      await act(async () => {
+        Array.from(container.querySelectorAll(`.${toolbarStyles.button}`))
+          .find((button) => button.textContent.includes('Text')).click();
+      });
+      await act(async () => {
+        overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
+      });
+      const textInput = container.querySelector('[data-editor-text-input]');
+      await act(async () => {
+        textInput.value = 'Placed text';
+        textInput.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+
+      // No click on Share/Download anywhere in this test - the export must
+      // start on its own once the debounce elapses.
+      await vi.waitFor(() => expect(sign).toHaveBeenCalledTimes(1), { timeout: 3000, interval: 50 });
+
+      // A background pre-generation must never show the "signing" UI, which
+      // replaces the whole workspace with a spinner - that would read as the
+      // app doing something the user never asked for.
+      expect(container.querySelector(`.${workspaceStyles['page-wrapper']}`)).not.toBeNull();
+      expect(container.textContent).not.toContain('Saving document layers');
+      // Nor may it count as a user export for SIG-13's export-duration signal.
+      expect(reportEvent).not.toHaveBeenCalled();
+
+      // Once the background export lands, Share is ready with no prior tap.
+      await vi.waitFor(() => {
+        expect(container.querySelector('button[title="Share the signed PDF"]')).not.toBeNull();
+      }, { timeout: 3000, interval: 50 });
+
+      // Editing again must invalidate the speculative export: Share falls
+      // back to "not ready" until a fresh background export lands, so what
+      // eventually gets shared always matches what's on screen.
+      await act(async () => {
+        textInput.value = 'Placed text, edited';
+        textInput.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      expect(container.querySelector('button[title="Save your changes to share the signed PDF"]')).not.toBeNull();
+
+      await vi.waitFor(() => expect(sign).toHaveBeenCalledTimes(2), { timeout: 3000, interval: 50 });
+      await vi.waitFor(() => {
+        expect(container.querySelector('button[title="Share the signed PDF"]')).not.toBeNull();
+      }, { timeout: 3000, interval: 50 });
+      expect(reportEvent).not.toHaveBeenCalled();
+    } finally {
+      if (originalShare) Object.defineProperty(navigator, 'share', originalShare);
+      else delete navigator.share;
+      if (originalCanShare) Object.defineProperty(navigator, 'canShare', originalCanShare);
+      else delete navigator.canShare;
+    }
   });
 
   it('loads saved signatures from localStorage on mount', async () => {
