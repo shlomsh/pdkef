@@ -164,6 +164,49 @@ function clearDraftHint(tool) {
 }
 
 /**
+ * Attach a page-1 preview to an existing draft's display metadata.
+ *
+ * The preview is rendered asynchronously (pdf.js is a dynamic import, so it
+ * must never sit in front of the first autosave), which leaves a window where
+ * a draft has been written with no preview and nothing later writes one: the
+ * next save carries it, but only if there *is* a next save. Load a document,
+ * change nothing, go back to the home page, and the resume card had a draft to
+ * show and no thumbnail for it - permanently, since the preview only ever
+ * arrived as a side effect of saving again.
+ *
+ * This closes that window without moving the render in front of the save. It
+ * is deliberately hint-only: `preview` is display metadata and is stripped out
+ * of the IndexedDB record by saveDraft, so the localStorage hint is the entire
+ * store for it and there is nothing else to keep in step.
+ *
+ * No-ops when no draft hint exists for the tool. That check is the point
+ * rather than a guard: without it, a preview that resolves after the draft was
+ * cleared (Replace file, or expiry) would resurrect metadata for a document
+ * that is gone, and the home page would offer to resume it.
+ *
+ * @param {string} tool - 'sign' | 'redact'
+ * @param {string} preview - data URL
+ * @returns {boolean} true if a hint existed and was updated
+ */
+export function attachDraftPreview(tool, preview) {
+  if (!preview) return false;
+  try {
+    if (localStorage.getItem(DRAFT_HINT_PREFIX + tool) !== '1') return false;
+    const raw = localStorage.getItem(DRAFT_META_PREFIX + tool);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || isDraftExpired(parsed.savedAt)) return false;
+    if (parsed.preview === preview) return true;
+    localStorage.setItem(DRAFT_META_PREFIX + tool, JSON.stringify({ ...parsed, preview }));
+    return true;
+  } catch {
+    // Same bargain as setDraftHint: a quota error here costs a thumbnail, and
+    // must not cost the draft.
+    return false;
+  }
+}
+
+/**
  * Synchronous, best-effort read of a draft's display metadata without opening
  * IndexedDB, so the client-only home launcher can render its complete local
  * state in its first pass.
