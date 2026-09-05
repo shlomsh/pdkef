@@ -3,7 +3,6 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone from './FileDropzone.tsx';
-import styles from './Dropzone.module.css';
 import { loadDraft, deleteDraft, saveDraft, saveHandoff, readDraftMeta } from '../editor/workspace/draftStore.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 
@@ -33,6 +32,8 @@ describe('FileDropzone', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     loadDraft.mockResolvedValue(null);
+    readDraftMeta.mockReturnValue(null);
+    saveHandoff.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -45,39 +46,19 @@ describe('FileDropzone', () => {
 
   function mount(props = {}) {
     container = document.createElement('div');
+    container.setAttribute('data-working-area', '');
     document.body.appendChild(container);
     act(() => {
-      render(<FileDropzone {...props} />, container);
+      render(<FileDropzone toolTarget="sign" {...props} />, container);
     });
   }
 
-  it('renders correctly with default multiple=true', () => {
-    mount({});
-    expect(container.textContent).toContain('Drop PDFs here');
-    expect(container.textContent).toContain('Choose files');
-    const input = container.querySelector('input[type="file"]');
-    expect(input.multiple).toBe(true);
-    expect(input.accept).toBe('application/pdf');
-  });
-
-  it('renders correctly with multiple=false', () => {
-    mount({ multiple: false });
-    expect(container.textContent).toContain('Drop PDF here');
-    expect(container.textContent).toContain('Choose file');
+  it('provides a keyboard-accessible compact picker for one document', () => {
+    mount();
+    expect(container.querySelector('[data-home-picker]').tagName).toBe('BUTTON');
     const input = container.querySelector('input[type="file"]');
     expect(input.multiple).toBe(false);
-  });
-
-  // The homepage CTA (`index.astro`) mounts FileDropzone with an `href`, which
-  // renders the picker as a navigating anchor instead of a file <input> label.
-  it('renders the picker as an anchor (no file input) when href is set', () => {
-    mount({ href: '/sign?action=open' });
-    const link = container.querySelector(`a.${styles['file-picker-button']}`);
-    expect(link).not.toBeNull();
-    expect(link.getAttribute('href')).toBe('/sign?action=open');
-    expect(link.textContent).toContain('Choose files');
-    // In href mode there is no hidden file input.
-    expect(container.querySelector('input[type="file"]')).toBeNull();
+    expect(input.accept).toContain('application/pdf');
   });
 
   describe('resume-draft card', () => {
@@ -103,12 +84,12 @@ describe('FileDropzone', () => {
 
       const continueLink = container.querySelector('a[href="/sign/"]');
       expect(continueLink).not.toBeNull();
-      expect(continueLink.textContent).toContain('Continue');
+      expect(continueLink.textContent).toContain('contract.pdf');
 
       // The card already made the case for resuming; the dropzone below
       // shouldn't repeat the from-scratch pitch as if the card said nothing.
       expect(container.textContent).not.toContain('Drop PDFs here');
-      expect(container.textContent).toContain('Or start something new');
+      expect(container.textContent).toContain('or drop PDFs here');
     });
 
     it('lists both tools, most recently saved first, and never renders a dismiss control', () => {
@@ -144,20 +125,14 @@ describe('FileDropzone', () => {
     });
   });
 
-  it('adds and removes is-dragover class on drag events', () => {
-    mount({});
-    const dropzone = container.querySelector(`.${styles['dropzone']}`);
-    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(false);
-
-    act(() => {
-      dropzone.dispatchEvent(new Event('dragover', { bubbles: true }));
-    });
-    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(true);
-
-    act(() => {
-      dropzone.dispatchEvent(new Event('dragleave', { bubbles: true }));
-    });
-    expect(dropzone.classList.contains(styles['is-dragover'])).toBe(false);
+  it('indicates file drags across the whole working area', () => {
+    mount();
+    const event = new Event('dragover', { bubbles: true, cancelable: true });
+    event.dataTransfer = { types: ['Files'] };
+    act(() => container.dispatchEvent(event));
+    expect(container.hasAttribute('data-drag-over')).toBe(true);
+    act(() => container.dispatchEvent(new Event('dragleave', { bubbles: true })));
+    expect(container.hasAttribute('data-drag-over')).toBe(false);
   });
 
   // toolTarget is the only mode a production caller ever uses (index.astro
@@ -169,7 +144,7 @@ describe('FileDropzone', () => {
 
     function mountTarget() {
       mount({ toolTarget: 'sign', href: '/sign?action=open' });
-      return container.querySelector(`.${styles['dropzone']}`);
+      return container;
     }
 
     it('parks the file in a handoff, never in the tool\'s draft', async () => {
@@ -273,5 +248,25 @@ describe('FileDropzone', () => {
       expect(saveHandoff).not.toHaveBeenCalled();
       expect(loadDraft).not.toHaveBeenCalled();
     });
+    it('does not discard a draft if handoff storage fails', async () => {
+      loadDraft.mockResolvedValue({ fileName: 'lease.pdf', fileBytes: new ArrayBuffer(8) });
+      saveHandoff.mockResolvedValue(false);
+      const area = mountTarget();
+      await dropOn(area, [pdf()]);
+      await act(async () => {
+        [...container.querySelectorAll('button')].find(button => button.textContent.trim() === 'Open it').click();
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+      expect(deleteDraft).not.toHaveBeenCalled();
+      expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    });
+
+    it('does not silently discard extra dropped documents', async () => {
+      const area = mountTarget();
+      await dropOn(area, [pdf(), pdf()]);
+      expect(saveHandoff).not.toHaveBeenCalled();
+      expect(container.querySelector('[role="alert"]').textContent).toContain('Merge PDF');
+    });
+
   });
 });

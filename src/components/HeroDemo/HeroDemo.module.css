@@ -1,342 +1,26 @@
-/*
- * HeroDemo (DEMO-02): the two scroll-driven "thirty-second story" phone
- * mockups on the home page. See HeroDemo.astro's header comment for the
- * file layout, the scroll mechanic, and the 2026-09-04 product-owner
- * revision (English story one with a share-sheet ending; story two now
- * demonstrates blur, blackout, whiteout and delete, each with a real
- * effect).
- *
- * Colors are the Sea Glass tokens from src/styles/global.css (var(--color-*),
- * var(--shadow-*)) throughout - no hex/rgba literals - per CLAUDE.md's theme
- * rule. Two exceptions are computed rather than hardcoded, both because the
- * thing they draw (a phone's hardware bezel, its drop shadow, a share-sheet
- * scrim) is not itself a brand color: --phone-bezel/--phone-bezel-edge/
- * --phone-shadow-color use color-mix() to darken var(--color-text) toward
- * black, so a retheme that moves --color-text still moves these
- * proportionally instead of leaving a stray fixed dark gray behind. The
- * blackout bar also reuses var(--color-text) directly rather than a new
- * literal: it is the darkest token this palette defines, and "opaque dark
- * bar covering text" reads correctly with it - there is no separate near-
- * black token to reach for instead, and inventing one would violate the
- * "every color comes from an existing --color-* property" rule.
- *
- * Sizes use var(--type-*) roles where the text plays the same part text does
- * elsewhere on the page (the h2/h3 here reuse .type-section/.type-card,
- * applied in HeroDemo.astro) and var(--space-*) for the outer marketing
- * rhythm (hero/caption/outro spacing). The phone mockup's own interior
- * (status bar padding, bubble radius, field padding) stays literal px: it is
- * a fixed-scale device replica, not page rhythm, and does not scale with the
- * fluid type/space system.
- *
- * Logical properties throughout (padding-block, margin-inline-end,
- * border-block-end, text-align: end). Story one was RTL Hebrew before the
- * 2026-09-04 revision moved it to English; nothing in either story is RTL
- * today, but logical properties are kept because they cost nothing in LTR
- * and keep the file honest about not assuming a physical direction.
- */
-
 .root {
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-
-  /* How wide the phone mockup is allowed to get, before the inline and
-     available-height caps below also have their say. 300px is a phone-sized
-     phone, which is right in the narrow demo column of the two-column
-     desktop layout. It is
-     wrong on a tablet: there the stacked layout gives the panel a full
-     768-1000px of width and a screenful of height, and a 300px mockup sits
-     in the middle of it looking stranded. The two media queries closing the
-     phone-chrome section are where that gets corrected. */
-  --phone-max: 300px;
-
-  /* The horizontal cap, which only ever binds on a handset: at 640px and up
-     either the height cap or --phone-max is always the smaller of the
-     three. So this really means "how much of a phone's width the mockup may
-     claim". */
-  --phone-inline-max: 80vw;
-
-  /* Phone hardware chrome, derived from the text token rather than a new
-     hardcoded gray - see file header. */
-  --phone-bezel: color-mix(in srgb, var(--color-text) 50%, black 50%);
-  --phone-bezel-edge: color-mix(in srgb, var(--color-text) 65%, black 35%);
+  --phone-bezel: color-mix(in srgb, var(--color-text) 50%, black);
+  --phone-bezel-edge: color-mix(in srgb, var(--color-text) 65%, black);
   --phone-shadow-color: color-mix(in srgb, var(--color-text) 28%, transparent);
-
-  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
   color: var(--color-text);
 }
-
-/* ---------- hero ---------- */
-
-/* The title card's own box. Its panel, and how it fades, are further down
-   under "intro title card". */
-.hero {
+.track { position: relative; }
+:global(html[data-home-mode]) .track { position: absolute; inset: 0; }
+.stage {
+  display: grid;
+  grid-template-columns: minmax(150px, 250px) auto;
+  grid-template-rows: 1fr auto auto 1fr;
+  grid-template-areas: '. phone' 'caption phone' 'rail phone' '. phone';
+  justify-content: center;
+  align-items: center;
+  gap: 16px 28px;
+  height: 100%;
+  padding: 16px 0;
   box-sizing: border-box;
-  max-width: 640px;
-  margin-inline: auto;
-  /* The degraded-state height: under reduced motion the panel below is not
-     sticky and has no height of its own, so the card claims its screen here
-     instead. Dropped once the panel does own the screen - a 100svh
-     min-height inside a 100svh padded panel overflows it. */
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding-block: var(--space-section-block) var(--space-4);
-  padding-inline: var(--space-5);
-  text-align: center;
-}
-
-.hero-title {
-  margin-block: 0 var(--space-3);
-}
-
-.privacy-line {
-  margin: 0;
-  font-size: var(--type-lead-size);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-primary);
-}
-
-.scroll-cue {
-  margin-block-start: var(--space-6);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--color-muted);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .scroll-cue-icon {
-    animation: bob 1.6s ease-in-out infinite;
-  }
-}
-
-@keyframes bob {
-  0%,
-  100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-/* ---------- captions ---------- */
-
-/* Pinned at the top of its own sticky stage (see HeroDemo.astro), so it
-   stays on screen for the whole story instead of scrolling away as it
-   begins. Absolutely positioned on purpose: .stage-base is the containing
-   block already, and keeping the caption out of the flex flow means the
-   phone's height math below is unaffected by it. The room it occupies is
-   reserved by --stage-caption-space rather than taken from the phone. */
-.caption {
-  position: absolute;
-  top: calc(var(--herodemo-app-bar, 0px) + 26px);
-  inset-inline: 0;
-  z-index: 1;
-  max-width: 480px;
-  margin: 0 auto;
-  padding-inline: var(--space-5);
-  text-align: center;
-}
-
-/* ---------- intro title card ---------- */
-
-/*
- * The card exists so the demo does not start animating before anyone has read
- * what it is: the section title, the privacy line and the first caption used
- * to go by in one flick of the trackpad. It holds a screen for that reason.
- *
- * What changed is how it leaves. It was a plain 100svh block that scrolled
- * past, which made it the one piece of this component that did not behave
- * like the rest of it - two stories that hold still and crossfade, introduced
- * by a heading sliding up the screen. It is now a sticky panel like they are,
- * fading in as it pins and back out in place before it releases, so the
- * visitor never watches it travel.
- *
- * It reads --p-in / --p-out, written by ScrollDriver onto [data-hero-stage]
- * exactly like every other beat, so pacing still has one owner. Both default
- * to "fully visible" here (in: 1, out: 0) for the same reason every other
- * beat defaults to its finished value: with no JS, or under reduced motion,
- * the card must simply be there rather than blank.
- */
-.track-intro {
-  position: relative;
-}
-
-.intro-stage {
-  --p-in: 1;
-  --p-out: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.hero {
-  /* 0 -> 1 -> 0 across the panel. A subtraction rather than a multiplication
-     because the two windows do not overlap, so there is no middle term to
-     reason about; opacity clamps to 0-1 on its own if a future beat map ever
-     makes them. Defaults come from .intro-stage, like every other beat's. */
-  opacity: calc(var(--p-in) - var(--p-out));
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .track-intro {
-    /* One screen of pin (the hold, where the fade in and out happen) plus
-       the screen the panel itself occupies. Deliberately much shorter than a
-       story track: there is one sentence to read here, not twelve beats. */
-    height: 190svh;
-    /* Exactly the stage's own height, and that equality is the whole point.
-       Without it the card's fade-out finishes the instant its panel releases,
-       and the first story's panel then needs a further full screen of travel
-       before it pins and can start fading in - one screenful of empty page
-       between the two. Pulling the next track up by one panel height makes
-       the story pin at the same moment the card releases, so the fade out and
-       the fade in meet. Nothing overlaps visually: the card is already at
-       zero opacity by then, and the story's own entrance fade starts at zero.
-
-       Needs no breakpoint of its own. Above the two-column width this whole
-       track is display:none, and an element with no box has no margins
-       either, so the story track simply sits where it always did. */
-    margin-block-end: -100svh;
-  }
-
-  .intro-stage {
-    position: sticky;
-    top: 0;
-    height: 100svh;
-  }
-
-  .hero {
-    min-height: 0;
-  }
-}
-
-/* ---------- track / sticky mechanics ---------- */
-
-.track {
-  position: relative;
-}
-
-.track-short {
-  composes: track;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  /* The tall scroll-jacking distance the sticky stage travels through.
-     Never svh's absence here on purpose: this is the one place the
-     mockup's height genuinely should be a fixed multiple of viewport
-     height, not a fixed pixel count, since it is what gives the sticky
-     panel room to release. --track-short must come after --track in
-     source order so it wins for elements carrying both classes (composes
-     adds the class name, not the rule's cascade position).
-
-     Heights were raised from the original 500svh / 340svh on 2026-09-04,
-     then .track raised again on 2026-09-04 from 560svh: story one grew
-     from 9 beats to 10 (added "share", the OS share-sheet beat), then from
-     10 to 12 (the reflow fix below split one growing sentence into two
-     static ones, adding "fill-time-start"/"fill-time-end" as their own
-     beats alongside "fill-date"/"fill-dest" - since renamed to
-     "fill-name"/"fill-guardian"/"fill-phone"/"fill-allergies" per a second
-     correction the same day, same four windows, no height change). Story
-     two grew from 6 beats to 8 (added "blackout", "whiteout" and "delete"
-     alongside the renamed "blur" beat, net +2) and has not changed again. Each raise scaled the
-     height roughly in proportion to the new beat count so the average
-     distance-per-beat - and therefore how long a visitor has to read each
-     effect - stays close to what it was before, rather than new beats
-     simply stealing scroll distance from the old ones. The 2026-09-04
-     reading pause before the permission-slip PDF opens adds 8% of the
-     sign track's former pin distance: 22.4svh stacked and 45.76svh on
-     desktop, rounded to the practical whole-svh heights below. Its beat
-     map preserves the duration of every later interaction; see
-     ScrollDriver.tsx's TRACKS comment for the beat-by-beat reasoning. */
-  .track {
-    height: 402svh;
-  }
-
-  .track-short {
-    height: 270svh;
-  }
-
-  /* The figures above are the stacked (phone / tablet / small laptop) ones
-     and the two below are the desktop ones this component was tuned at.
-     They differ because the *cost* of the scroll distance differs, not the
-     pacing preference: in the two-column layout the demo scrolls beside a
-     hero that stays pinned, so the visitor always has the page around them
-     and the length reads as depth. Stacked, the same distance is a tunnel -
-     the demo alone was 62% of the whole home page on a 375px phone, twelve
-     screens deep, with the story cards below it out of sight the entire
-     time.
-
-     The stacked figures are set from what one swipe covers rather than
-     scaled down by eye: 380svh over twelve beats and 270svh over eight both
-     land near 32svh per beat, which on a phone is about 265-285px - one
-     deliberate swipe, one beat. Desktop keeps roughly 56svh per beat, where
-     a trackpad's unit of scroll is smaller and the demo is not the only
-     thing on screen.
-
-     1320px, not the 1024px this file's callers used to switch at: below
-     that the demo column is too narrow to hold the mockup at all (at
-     1180px it measured 132px wide). index.astro's own .home-first grid
-     switches at the same width and the two must agree; a media query
-     cannot read a custom property, so the number is duplicated there and
-     the comments are the only link between them. */
-  @media (min-width: 1320px) {
-    .track {
-      height: 718svh;
-    }
-
-    .track-short {
-      height: 460svh;
-    }
-  }
-}
-
-/* Shared by both stage variants: everything except the sticky-mode height,
-   which stage/stage-first each set on their own (see below) so the first
-   panel's height can be overridden without touching the second. */
-.stage-base {
-  display: flex;
-  justify-content: center;
-  /* Unconditional (not just under the motion-ok media query below, which
-     upgrades it to sticky): .progress-rail is an absolutely positioned
-     child of this element in every mode, and it needs a containing block
-     right here rather than falling back to .track's own `position:
-     relative` further up, so its centering math stays correct whether or
-     not the sticky override is active. */
-  position: relative;
-  /* --stage-padding-block is a named value, not just a literal, because
-     .phone below needs to subtract it when computing its own size from the
-     stage's available height - a literal 40px in two places would go stale
-     silently if this ever changed. */
-  --stage-padding-block: 40px;
-  /* The site's app bar is `sticky top-0 z-20` and 56.5px tall, so a stage
-     pinned at top:0 puts its own first 56px underneath it. Anything
-     positioned from the stage's top edge - the caption, the progress rail -
-     has to clear that or it is simply invisible, which is exactly what
-     happened on the first attempt. Zero here because the offset is only
-     needed where the stage is actually sticky; the motion query below
-     raises it, and under reduced motion the stage scrolls normally and owes
-     the app bar nothing. */
-  --herodemo-app-bar: 0px;
-  /* Extra room at the top for .caption, which is pinned there and takes no
-     part in this flex layout. Declared as its own value so the phone size
-     calcs below can subtract exactly what the caption reserves rather than
-     a literal that would drift the moment this changed. */
-  --stage-caption-space: calc(var(--herodemo-app-bar) + 46px);
-  padding-block: calc(var(--stage-padding-block) + var(--stage-caption-space)) var(--stage-padding-block);
-  padding-inline: 20px;
-
-  /* Defaults for every beat this component drives, on every stage
-     regardless of which track it belongs to (harmless: a track only ever
-     reads the beats its own island config writes). All default to fully
-     progressed (1) except the tap pulse (0). This is what makes the no-JS
-     path work: without a script to lower them, every beat renders at its
-     finished value - see the layer rules below for how that resolves to
-     "only the final layer is visible" rather than every layer at once. */
   --p-msg: 1;
   --p-tap: 0;
   --p-open: 1;
@@ -364,62 +48,9 @@
   --p-enter: 1;
 }
 
-/* The first story fades in rather than sliding up into place, so the intro
-   card hands off to it as a crossfade (see .track-intro's negative bottom
-   margin, which is what makes the two meet).
 
-   Only the first story. The second one is preceded by a finished panel
-   scrolling away, which is a perfectly good way to end a chapter and leaves
-   no gap to fill; fading it in as well would replace that continuity with a
-   blank screen.
-
-   And only in stacked layouts. In the two-column desktop layout the first
-   story is not something the visitor scrolls *to*: it is already there
-   beside the hero on the first screen, and its track's top starts a little
-   below the viewport top, so progress reads 0 and this would open the page
-   with an empty right-hand column. */
-@media (prefers-reduced-motion: no-preference) and (max-width: 1319.98px) {
-  .stage-first {
-    opacity: var(--p-enter);
-  }
-}
-
-.stage {
-  composes: stage-base;
-}
-
-.stage-first {
-  composes: stage-base;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  /* Everything below the first screen stays a full 100svh sticky panel. */
-  .stage {
-    position: sticky;
-    top: 0;
-    height: 100svh;
-    align-items: center;
-    --herodemo-app-bar: 3.5rem;
-  }
-
-  /* The first panel's height is driven by a custom property so a page that
-     has less than a full screen of room above the fold (see HeroDemo.astro's
-     header comment) can hand this a smaller value from outside - a rule on
-     whatever wraps <HeroDemo />, e.g. `.hero-demo-slot { --herodemo-panel-
-     height: 300px; }` - without editing this component. Custom properties
-     inherit normally, so no prop plumbing is needed for it to reach here.
-     Defaults to the same 100svh as every other panel. */
-  .stage-first {
-    position: sticky;
-    top: 0;
-    height: var(--herodemo-panel-height, 100svh);
-    align-items: center;
-    --herodemo-app-bar: 3.5rem;
-  }
-}
-
-/* ---------- phone chrome ---------- */
-
+.caption { opacity: var(--caption-opacity, 1); grid-area: caption; margin: 0; font-size: clamp(1.05rem, 1.8vw, 1.5rem); line-height: 1.4; color: var(--color-text); }
+.progress-rail { opacity: var(--caption-opacity, 1); grid-area: rail; display: flex; gap: 6px; }
 .phone {
   box-sizing: border-box;
   width: min(var(--phone-inline-max), var(--phone-max));
@@ -433,204 +64,17 @@
   display: flex;
 }
 
-/* Only the first track's phone needs to shrink to fit an overridden panel
-   height - the second track's phone must stay at the shared caps
-   regardless of what wraps the whole component, so this is a dedicated
-   modifier rather than a shared read of --herodemo-panel-height on .phone
-   itself. A shared read would have been wrong two ways: (1) custom
-   properties inherit past this component's own boundary, so a wrapper
-   around the whole <HeroDemo /> (exactly the pattern this file's own
-   height-override comment recommends) would shrink track two's phone as
-   well, even though its stage stays a hardcoded 100svh; (2) it would also
-   apply under prefers-reduced-motion, where the sticky height games do not
-   run at all and the phone should render at its normal, unconstrained
-   size. Scoping the calc() inside the same media query as the height
-   override, on a class only the first track's phone carries, ties both
-   conditions together instead of leaving them to coincidentally agree.
 
-   width stays the definite side and aspect-ratio still derives height from
-   it, exactly like .phone above - a height:100% + aspect-ratio version
-   inside the flex stage was tried first and rejected: a flex row's
-   cross-axis sizing algorithm does not resolve height:100% plus
-   aspect-ratio the way a block context does, and it measurably produced a
-   squished, wrong-ratio box (112.7 x 80, nowhere near 9:19) rather than a
-   smaller correctly-proportioned phone. The third min() candidate here is
-   "the widest this phone can be while still fitting the stage's own
-   available height", using --stage-padding-block (declared on .stage-base
-   above) rather than a duplicated literal so the two never drift apart. */
-.phone-first {
-  composes: phone;
+.phone { opacity: var(--story-opacity, 1); grid-area: phone; width: min(360px, calc((var(--home-stage-height) - 32px) * 9 / 19)); }
+@media (max-width: 760px) {
+  .root { height: calc(var(--home-stage-height) - 82px); }
+  .stage { grid-template-columns: 1fr; grid-template-rows: auto 1fr; grid-template-areas: 'caption' 'phone'; padding: 4px 0 0; gap: 8px; }
+  .caption { font-size: 0.9rem; text-align: center; }
+  .progress-rail { display: none; }
+  .phone { width: 100%; height: 100%; min-height: 0; aspect-ratio: auto; padding: 0; border-radius: 12px; background: var(--color-surface); box-shadow: none; }
+  .phone .screen { border-radius: 12px; }
+  .phone .status-bar { display: none; }
 }
-
-@media (prefers-reduced-motion: no-preference) {
-  /* Track two's stage is always a plain 100svh, so this can read that
-     directly rather than --herodemo-panel-height, which only track one's
-     stage honours and which inherits past this component's boundary (see
-     the .phone-first comment above for why that distinction matters). It
-     needs the clamp for the same reason .phone-first does: the caption's
-     reserved space came out of the stage's usable height, and at an 800px
-     viewport a 633px phone no longer fits what is left. */
-  .phone {
-    width: min(
-      var(--phone-inline-max),
-      var(--phone-max),
-      calc((100svh - (var(--stage-padding-block) * 2) - var(--stage-caption-space)) * 9 / 19)
-    );
-  }
-
-  .phone-first {
-    width: min(
-      var(--phone-inline-max),
-      var(--phone-max),
-      calc(
-        (
-            var(--herodemo-panel-height, 100svh) - (var(--stage-padding-block) * 2) -
-              var(--stage-caption-space)
-          ) * 9 / 19
-      )
-    );
-  }
-}
-
-/* Handsets. The mockup here is a phone drawn on a phone, so every pixel the
-   frame is not using is one the document inside it does not get: at the
-   inherited figures the screen came out 278px wide on a 375px device, and
-   the form's own type is small at that size. The stage's block padding is
-   generous framing on a large display and simply cost here, and 80vw leaves
-   37px of empty background down each side of a mockup that is the only
-   thing on the panel. Both are relaxed, which the height cap then spends on
-   a taller, wider phone. --stage-caption-space is untouched: the caption,
-   and the app bar above it, are not negotiable space. */
-@media (max-width: 639.98px) {
-  .root {
-    --phone-max: 340px;
-    --phone-inline-max: 88vw;
-  }
-
-  .stage-base {
-    --stage-padding-block: 24px;
-  }
-}
-
-/* Wide, short panels: a landscape tablet or a laptop below the two-column
-   breakpoint. The stacked panel is as wide as the page but no taller than
-   the viewport, so a portrait mockup centred in it leaves several hundred
-   pixels of empty background either side while the caption sits alone above
-   it - the composition reads as one small object adrift in a big box.
-
-   Putting the caption and the progress rail in a column beside the phone
-   uses that width instead, and hands the phone the vertical room the
-   caption was reserving (--stage-caption-space drops to just the app bar's
-   own clearance, which is the part that is not negotiable).
-
-   Grid rather than flex, and no markup change: the caption and the rail are
-   absolutely positioned siblings of the phone in every other mode, and
-   named areas can rearrange all three without a wrapper element that the
-   other modes would then have to ignore. */
-@media (min-width: 900px) and (max-width: 1319.98px) {
-  .stage-base {
-    --stage-caption-space: var(--herodemo-app-bar);
-    display: grid;
-    grid-template-columns: minmax(0, 22rem) auto;
-    grid-template-areas:
-      'caption phone'
-      'rail phone';
-    align-content: center;
-    justify-content: center;
-    column-gap: var(--space-8);
-    row-gap: var(--space-4);
-  }
-
-  .caption {
-    grid-area: caption;
-    position: static;
-    max-width: none;
-    margin: 0;
-    padding-inline: 0;
-    text-align: start;
-    align-self: end;
-  }
-
-  .progress-rail {
-    grid-area: rail;
-    position: static;
-    transform: none;
-    justify-self: start;
-    align-self: start;
-  }
-
-  .phone {
-    grid-area: phone;
-    align-self: center;
-  }
-}
-
-/* Tablets and small laptops, where the layout is stacked and the panel is
-   therefore as wide as the page. The height cap in the two rules above is
-   what actually binds here (roughly 400px at an iPad's 1024px of height),
-   so this raise mostly just gets the flat 300px out of its way; 420px is
-   the ceiling because past it the mockup stops reading as a phone. Ends at
-   the two-column breakpoint, where the demo goes back to a narrow column
-   and 300px is right again. */
-@media (min-width: 640px) and (max-width: 1319.98px) {
-  .root {
-    --phone-max: 420px;
-  }
-}
-
-/* ---------- progress indicator (DEMO-05) ---------- */
-
-/*
- * DEMO-05 asked for "a persistent minimal progress indicator, so a visitor
- * can see how many panels there are and that it ends" and it was never
- * built (see backlog/tasks/DEMO-05.md, "What landed"). This is that
- * indicator: two short segments, one per story, each one filling left to
- * right as its own track scrolls.
- *
- * It is not a third mechanism bolted on beside ScrollDriver.tsx's beat
- * system - it is one more --p-* property written the same way (--p-track,
- * see that file's comment), so pacing still has exactly one owner. Nothing
- * here reads a beat boundary; each segment only knows whether it is the
- * story currently playing (reads --p-track live), a story already finished
- * (literal 1), or a story not yet reached (literal 0) - structural facts
- * about DOM order, not pacing numbers, so "CSS never hardcodes a boundary"
- * still holds.
- *
- * It lives as a child of .stage/.stage-first rather than a separate fixed
- * or wrapper-sticky element, on purpose: that stage is already the one
- * element DEMO-05's own sticky mechanics keep pinned to the same screen
- * rectangle for the whole time a story plays, so putting the rail here
- * gets "persistent while a story plays" for free, with no second sticky
- * context and no risk of it becoming yet another ancestor with transform/
- * filter/overflow/contain to keep off the list guarding .stage's own
- * position: sticky. It is a *descendant* of the sticky stage, not an
- * ancestor, so absolute positioning and a stacking-context z-index here
- * carry none of that hazard - the same reasoning that already covers
- * .share-sheet's transform and .blur-value's filter elsewhere in this file.
- *
- * Two rail instances exist (one per stage), each showing the same two
- * segments from a different story's point of view, so as the sticky stage
- * handoff happens between tracks the rail appears to persist across it in
- * the same screen position rather than visibly swapping. z-index lifts it
- * above .phone, which shares the same stacking level (position: sticky,
- * z-index: auto) and would otherwise win on paint order alone since it
- * comes later in the DOM.
- *
- * Decorative only, not a navigation control (per DEMO-05's "not a carousel
- * widget"): each track's own <p class="sr-only"> already carries the real
- * narrative for assistive tech, so the rail is aria-hidden.
- */
-.progress-rail {
-  position: absolute;
-  top: calc(var(--herodemo-app-bar, 0px) + 12px);
-  inset-inline-start: 50%;
-  transform: translateX(-50%);
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .progress-seg {
   position: relative;
   width: 26px;
@@ -1590,3 +1034,26 @@
   color: var(--color-muted);
   font-size: var(--type-body-size);
 }
+/* Keep the PDF wide enough to read on ordinary laptop-height viewports.
+   The caption never borrows vertical room from the phone. */
+@media (min-width: 761px) {
+  .phone { width: clamp(300px, calc((var(--home-stage-height) - 32px) * 9 / 19), 360px); height: calc(var(--home-stage-height) - 32px); aspect-ratio: auto; }
+}
+@media (max-height: 850px) {
+  .panel-head { padding-block: 6px; }
+  .doc-body { padding-block: 4px; }
+  .doc-heading { padding-block: 2px; }
+  .trip-sentence { padding-block: 2px; font-size: 0.72rem; line-height: 1.4; }
+  .parent-fields { padding-block: 2px 5px; column-gap: 8px; font-size: 0.7rem; }
+  .blank-value { font-size: 0.72rem; }
+  .field-label { padding-block: 2px; }
+  .check { padding-block: 3px; font-size: 0.72rem; }
+  .confirm-line { padding-block: 3px 0; font-size: 0.7rem; }
+  .sig-line { margin-block: 0; padding-block: 2px; }
+  .sig { height: 28px; }
+  .date-line { padding-block: 2px; }
+  .tool-chips { padding-block: 4px; }
+  .doc-line { padding-block: 2px; font-size: 0.7rem; }
+}
+
+.screen { line-height: 1.4; }

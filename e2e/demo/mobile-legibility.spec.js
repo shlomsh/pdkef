@@ -38,7 +38,7 @@ test('the demo is legible and overflow-free at 390px', async ({ page }) => {
   // real prose - assert none is horizontally clipped by its own container
   // (scrollWidth > clientWidth is the standard DOM signal that an
   // element's content is wider than its box).
-  const proseSelectors = ['[class*="hero-title_"]', '[class*="privacy-line_"]', '[class*="caption_"]'];
+  const proseSelectors = ['[class*="caption_"]'];
   for (const selector of proseSelectors) {
     const nodes = demo.locator(selector);
     const count = await nodes.count();

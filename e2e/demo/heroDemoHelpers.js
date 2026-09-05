@@ -49,3 +49,17 @@ export async function layerOpacities(stage) {
 export function visibleIndexes(opacities) {
   return opacities.map((o, i) => (o > 0.5 ? i : -1)).filter((i) => i >= 0);
 }
+
+export async function scrollStory(page, key, fraction) {
+  const progress = key === 'sign' ? fraction * 0.57 : 0.62 + fraction * 0.37;
+  await page.evaluate(({progress, fraction}) => {
+    const tour = document.getElementById('home-tour');
+    const scene = tour.querySelector('[data-working-area]');
+    window.scrollTo(0, (tour.offsetHeight - scene.offsetHeight) * progress + (fraction === 1 ? 2 : 0));
+  }, {progress, fraction});
+  await expectProgress(page, key, fraction);
+}
+async function expectProgress(page, key, fraction) {
+  const { expect } = await import('@playwright/test');
+  await expect.poll(() => stageLocator(page, key).evaluate(el => Number(el.style.getPropertyValue('--p-track')))).toBeCloseTo(fraction, 2);
+}
