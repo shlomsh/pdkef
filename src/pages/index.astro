@@ -41,7 +41,7 @@ const faq = [
     </AppBar>
     <header class="hero-header">
       <h1>Free PDF tools that run <span>on your device</span></h1>
-      <p>Merge, sign, split, redact &amp; compress PDFs. No uploads.</p>
+      <p>Merge, sign, split, redact and compress PDFs. No signup, no install, nothing leaves your device.</p>
     </header>
   </div>
   <main id="home-content">
@@ -62,7 +62,7 @@ const faq = [
     <OfflineProof />
   <div class="card-stack">
 
-      <FeatureCard density="flow" class="relative isolate overflow-hidden">
+      <FeatureCard class="relative isolate overflow-hidden">
         <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} parallax />
         <div class="flex items-stretch gap-12 max-[768px]:flex-col max-[768px]:gap-8">
           <div class="min-w-0 flex-[1.2]">
@@ -107,7 +107,7 @@ const faq = [
         </div>
       </FeatureCard>
 
-      <FeatureCard density="flow" variant="highlight" class="relative isolate overflow-hidden">
+      <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
         <CardDecor sketch="waves" icon={HardDriveDownload} iconPos="cr" iconSize={300} parallax />
         <div class="flex items-center gap-12 max-[768px]:flex-col-reverse max-[768px]:gap-8">
           <div class="relative flex min-h-[210px] w-full flex-[0.8] items-center justify-center py-4" aria-hidden="true">
@@ -173,7 +173,7 @@ const faq = [
         </div>
       </FeatureCard>
 
-      <FeatureCard density="flow" class="relative isolate overflow-hidden">
+      <FeatureCard class="relative isolate overflow-hidden">
         <CardDecor sketch="grid" icon={WifiOff} iconPos="br" iconSize={300} parallax />
         <div class="mx-auto mb-8 max-w-[750px] text-center">
           <h2 id="offline-app" class="type-section space-heading-content mt-0 text-[var(--color-text)]">Run PDkef offline as an app</h2>
@@ -277,7 +277,7 @@ const faq = [
       });
     </script>
 
-    <FeatureCard density="flow" class="relative isolate overflow-hidden">
+    <FeatureCard class="relative isolate overflow-hidden">
       <CardDecor sketch="rings" icon={HelpCircle} iconPos="bl" iconSize={300} parallax />
       <div class="space-heading-content text-center">
         <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Got Questions?</span>
@@ -303,7 +303,7 @@ const faq = [
       </div>
     </FeatureCard>
 
-    <FeatureCard density="flow" variant="highlight" class="relative isolate overflow-hidden">
+    <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
       <CardDecor sketch="arcs" icon={ShieldCheck} iconPos="cl" iconSize={300} parallax />
       <div class="w-full">
         <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Transparent & Secure</span>
@@ -354,13 +354,46 @@ const faq = [
     --home-header-height: 146px;
     --home-dock-height: 124px;
     --home-stage-height: calc(100svh - var(--home-header-height) - var(--home-dock-height));
-    background: linear-gradient(180deg, var(--color-bg), var(--color-primary-tint));
+    /* Flat, not the page-length gradient this used to carry, and the flatness
+       is the fix rather than a simplification.
+
+       .home-header and .home-dock are both `position: fixed` and both paint a
+       flat var(--color-bg). A gradient on the body is positioned against the
+       body's own box and scrolls with it, so the two agree only at scroll 0.
+       Measured on the 12,032px document this page builds to, the gradient
+       behind the header's bottom edge walked away from the header's own fill
+       as you scrolled - rgb(244,249,250) at the top, rgb(240,247,248) by
+       3000px, rgb(233,243,245) by 9000px - which draws a hard full-width seam
+       across the viewport at exactly the header's edge, absent at the top of
+       the page and worsening the further down you go. The dock's top edge did
+       the same, softened only by its blur and its 6% transparency.
+
+       Matching the fixed layers to the gradient instead would mean giving all
+       three `background-attachment: fixed` so they share one positioning area;
+       that works, but it makes the wash viewport-locked and it interacts badly
+       with the dock's backdrop-filter. The gradient is also not perceptible as
+       a gradient here: 14/255 of travel spread over 12,032px is invisible as a
+       ramp and only ever showed up as the seam it caused. So it goes.
+
+       The invariant to keep: no flat-filled fixed layer may overlap a
+       scrolling gradient. Any depth added back to this page belongs on a
+       bounded element the fixed header and dock do not cross. */
+    background: var(--color-bg);
   }
   .home-header { position: fixed; inset: 0 0 auto; z-index: 30; background: var(--color-bg); }
   .home-header :global(.home-trust) { display: flex; align-items: center; gap: 18px; font-size: 0.75rem; white-space: nowrap; }
   .home-header :global(.home-trust a) { color: var(--color-muted); text-decoration: none; }
-  header.hero-header { max-width: none; padding: 14px 24px 12px; margin: 0; text-align: center; }
-  .hero-header h1 { font-size: clamp(1.5rem, 3vw, 2.25rem); line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.035em; }
+  /* Doubled class, deliberately. global.css carries a bare, unlayered
+     `header:not(.tool-hero):not(.not-found-header)` at specificity 0-2-1, and
+     `header.hero-header` plus Astro's own scope attribute is also 0-2-1 - an
+     exact tie, decided by whichever stylesheet the build happens to emit
+     second. It currently resolves the right way, so this is not a live bug,
+     but it is the same trap QUAL-02 was filed for: the win is accidental.
+     Repeating the class takes this to 0-3-1 so it wins on specificity instead
+     of on emission order. Not `!important` - Astro's scoped output shares the
+     bare rule's implicit layer, so specificity is what settles it. */
+  header.hero-header.hero-header { max-width: none; padding: 14px 24px 12px; margin: 0; text-align: center; }
+  .hero-header h1 { font-size: clamp(1.6rem, 3.4vw, 2.6rem); line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.035em; }
   .hero-header h1 span { color: var(--color-primary); }
   .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
   #home-content { padding-top: var(--home-header-height); padding-bottom: var(--home-dock-height); }
@@ -380,7 +413,97 @@ const faq = [
   :global(html[data-home-mode="workspace"]) :global([data-home-demo]) { display: none; }
   [data-working-area][data-drag-over] { outline: 3px dashed var(--color-primary); outline-offset: -10px; background: var(--color-success-soft); }
   #home-information { position: relative; padding-top: 24px; }
-  .card-stack :global(.card-reveal) { animation: none; overflow: clip; min-height: 0; margin-block: 24px; }
+  /* --- The story-card stack ------------------------------------------
+     Each card pins below the fixed header and the next one slides up over
+     it. This is main's mechanism, kept, and retuned to this page's own
+     chrome; it had been replaced wholesale by
+     `.card-reveal { animation: none; overflow: clip; min-height: 0 }`,
+     which switched off three separate things at once - the pinning, the
+     viewport-height floor the pinning depends on, and (because `animation`
+     is the shorthand) the fade at *every* width rather than only where the
+     stack takes over from it.
+
+     Three things make the stack work and each is doing real work:
+
+     - The cards are opaque. Both FeatureCard variants paint a solid surface
+       or a solid gradient, so a covering card genuinely hides the one
+       beneath. A translucent variant could not go here.
+     - Paint order is DOM order. These are positioned elements with
+       `z-index: auto`, so a later card paints over an earlier one with
+       nobody managing a z-index scale.
+     - `position`, `min-height` and `top` all beat the utilities the cards
+       carry: Astro's scoped output is unlayered and Tailwind's utilities sit
+       in @layer utilities, so these win regardless of specificity.
+
+     768px because that is where FeatureCard's `density="screen"` gives each
+     card its viewport-height floor. Below it the cards are content-height,
+     run past the viewport, and pinning a card taller than the screen just
+     hides its own bottom - so below 768px the fade is the effect instead.
+
+     What is retuned from main: the pin offset and the height floor are
+     measured off --home-header-height rather than a hardcoded 3.5rem app
+     bar, because this page's header is the app bar *plus* the hero and its
+     height is not a constant - homeWorkspace.ts writes the real measured
+     value into the property, so a hero that wraps at a different zoom or
+     font moves the pin with it instead of leaving the cards tucked
+     underneath. The floor still runs to the bottom edge of the viewport and
+     not to the dock's top edge: the dock is fixed above these cards and
+     only 94% opaque, so a card that stopped short would show its own end
+     through the frosting. */
+  @media (min-width: 768px) {
+    .card-stack {
+      /* The one number: the air between the header and a pinned card. */
+      --stack-gap: 2rem;
+    }
+
+    .card-stack :global(.card-reveal) {
+      position: sticky;
+      top: calc(var(--home-header-height) + var(--stack-gap));
+      /* Down to the bottom edge of the viewport, not to a matching gap
+         above it, and that is a correctness rule rather than a taste one.
+         These cards are content-height with a floor, so they are only equal
+         while every one of them clears the floor - and the tallest card is
+         also the first, so any card that overruns leaves a band of itself
+         showing under every card stacked over it. A card that runs to the
+         bottom edge cannot. */
+      min-height: calc(100svh - var(--home-header-height) - var(--stack-gap));
+      /* A single upward cast. That is the edge that arrives over the card
+         below, and the only edge that needs one: a downward shadow lands on
+         the card still approaching from underneath and reads as a halo
+         around the deck rather than as depth between cards. */
+      box-shadow: 0 -20px 46px -26px var(--color-primary-ring);
+    }
+
+    .card-stack :global(section.card-reveal:last-of-type) {
+      margin-block-end: 0;
+    }
+
+    /* Sticky cards are positioned boxes, so they paint above normal-flow
+       siblings even when the sibling comes later in the markup. Both things
+       that follow the deck need their own stacking level or the last card
+       covers them outright. main solved the same problem by putting the
+       footer inside .card-stack; here the deck is followed by the "Give it a
+       try" stage as well, so both are lifted where they stand rather than
+       moving markup. */
+    .try-workspace,
+    #home-content > :global(footer) {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* The fade and the stack are two answers to the same question, and here
+       the stack wins: a card fading in from opacity 0 is already overlapping
+       the card it covers, so for the length of the fade you see straight
+       through it - the one thing a stack must never do.
+
+       `animation-name`, not the `animation` shorthand, which would also
+       reset animation-timeline and animation-range out from under the rule
+       it overrides. That is exactly how the fade got switched off below
+       768px too, where it is the whole effect. */
+    .card-stack :global(.card-reveal) {
+      animation-name: none;
+    }
+  }
   .try-workspace { min-height: var(--home-stage-height); box-sizing: border-box; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
   .try-workspace h2 { font-size: 2rem; margin: 0 0 8px; }
   .try-workspace > p { margin: 0 0 24px; color: var(--color-muted); }
@@ -395,7 +518,7 @@ const faq = [
     .home-header :global([data-home-bar] > div) { height: auto; min-height: 56px; flex-wrap: wrap; padding-block: 6px; gap: 6px; }
     .home-header :global(.home-trust) { width: 100%; justify-content: center; font-size: 0.7rem; }
     .home-header :global([data-on-device]) { font-size: 0.7rem; gap: 4px; }
-    header.hero-header { padding: 10px 16px; }
+    header.hero-header.hero-header { padding: 10px 16px; }
     .hero-header h1 { font-size: 1.6rem; }
     .hero-header p { font-size: 0.85rem; }
     .home-scene { grid-template-columns: 1fr; padding: 0 16px; gap: 8px; align-content: start; }
