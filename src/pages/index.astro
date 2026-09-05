@@ -324,8 +324,6 @@ const faq = [
       </div>
     </FeatureCard>
 
-  </div>
-    </div>
     <section class="try-workspace" id="try-workspace" aria-labelledby="try-heading" data-working-area>
       <h2 id="try-heading">Give it a try.</h2>
       <p>Use your own PDF, or open the bundled practice document.</p>
@@ -333,6 +331,8 @@ const faq = [
       <a href="#home-tour" data-workspace-return>Back to your workspace ↑</a>
     </section>
     <Footer />
+  </div>
+    </div>
   </main>
   <nav class="home-dock" aria-label="PDF tools">
       {tools.map((tool) => (
@@ -404,13 +404,25 @@ const faq = [
   .workspace-launcher { justify-self: center; width: 100%; max-width: 400px; }
   .tour-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 20px; font-size: 0.8rem; }
   .tour-actions button { border: 0; padding: 0; background: none; color: var(--color-primary); cursor: pointer; font: inherit; }
-  :global(html[data-home-mode="workspace"]) .home-scene { grid-template-columns: 1fr; }
-  :global(html[data-home-mode="workspace"]) .workspace-launcher { max-width: 900px; }
+  /* Workspace mode keeps the two-column scene rather than collapsing to one.
+     The demo used to be hidden outright once the tour had been seen, which
+     left the whole right half of the first screen empty and made a returning
+     visitor's home page look like a different, emptier site than the one they
+     remembered. It stays where it was; what changes is that it stops being the
+     thing being scrolled through and becomes a still, and the launcher column
+     grows to take the width the tour copy no longer needs.
+
+     The columns are re-weighted rather than reused: in tour mode the launcher
+     is a single dropzone tile beside a scrolling story, so it wants the narrow
+     column. In workspace mode it carries the recent documents as well, which
+     is the page's primary content for someone coming back, so the weighting
+     inverts. */
+  :global(html[data-home-mode="workspace"]) .home-scene { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); }
+  :global(html[data-home-mode="workspace"]) .workspace-launcher { max-width: none; justify-self: stretch; }
   :global(html[data-home-mode="tour"]) :global([data-home-recents]) { display: none; }
   [data-workspace-only] { display: none; }
   :global(html[data-home-mode="workspace"]) [data-workspace-only] { display: block; }
-  :global(html[data-home-mode="workspace"]) [data-tour-only],
-  :global(html[data-home-mode="workspace"]) :global([data-home-demo]) { display: none; }
+  :global(html[data-home-mode="workspace"]) [data-tour-only] { display: none; }
   [data-working-area][data-drag-over] { outline: 3px dashed var(--color-primary); outline-offset: -10px; background: var(--color-success-soft); }
   #home-information { position: relative; padding-top: 24px; }
   /* --- The story-card stack ------------------------------------------
@@ -467,6 +479,18 @@ const faq = [
          showing under every card stacked over it. A card that runs to the
          bottom edge cannot. */
       min-height: calc(100svh - var(--home-header-height) - var(--stack-gap));
+      /* The box runs to the viewport bottom, but the bottom
+         --home-dock-height of it is behind the fixed dock, and
+         density="screen" centres a card's content across the whole box - so
+         every card's content sat half a dock too low and its last line was
+         cut off behind the dock. Adding the dock's height to the bottom
+         padding shortens the content box by exactly that much, which moves
+         the centred content up by half of it and lands it on the centre of
+         the band that is actually visible. Derived from the same token
+         FeatureCard's own space-section-block padding uses, so a card's
+         vertical rhythm still scales with the viewport instead of being
+         pinned to whatever this evaluated to today. */
+      padding-block-end: calc(var(--space-section-block) + var(--home-dock-height));
       /* A single upward cast. That is the edge that arrives over the card
          below, and the only edge that needs one: a downward shadow lands on
          the card still approaching from underneath and reads as a halo
@@ -474,9 +498,25 @@ const faq = [
       box-shadow: 0 -20px 46px -26px var(--color-primary-ring);
     }
 
-    .card-stack :global(section.card-reveal:last-of-type) {
-      margin-block-end: 0;
-    }
+    /* The "Give it a try" stage and the footer live *inside* .card-stack, and
+       that is what makes the ending work - the same reason main put its footer
+       there. Without content after it, the last card's sticky constraint
+       rectangle ends at its own bottom edge, so it unpins the instant it is
+       reached and gets dragged up under the fixed header while the next
+       section arrives: the last card visibly beheaded.
+
+       Padding on the wrapper does not buy that range, which is the trap worth
+       recording. A sticky element is constrained by its containing block's
+       *content* box, and padding is outside it - so a padding-block-end run-out
+       measures as 615px of extra wrapper height and grants exactly zero extra
+       sticky travel. Measured: the card pinned correctly at its first frame and
+       was at -107px 300px later. The run-out has to be real content.
+
+       Note what moving them in also removes: FeatureCard's own `last:mb-16` /
+       `min-[768px]:last:mb-24` is a :last-child rule, and the last child of
+       this wrapper is now the footer, so no card matches it any more. The
+       explicit `margin-block-end: 0` that used to cancel it on the last card is
+       therefore gone rather than kept as a no-op. */
 
     /* Sticky cards are positioned boxes, so they paint above normal-flow
        siblings even when the sibling comes later in the markup. Both things
@@ -508,7 +548,31 @@ const faq = [
   .try-workspace h2 { font-size: 2rem; margin: 0 0 8px; }
   .try-workspace > p { margin: 0 0 24px; color: var(--color-muted); }
   .try-workspace > a { margin-top: 24px; }
-  .home-dock { position: fixed; z-index: 40; bottom: 0; left: 0; right: 0; height: var(--home-dock-height); box-sizing: border-box; display: flex; align-items: center; justify-content: safe center; gap: 20px; padding: 14px 24px; background: color-mix(in srgb, var(--color-bg) 94%, transparent); border-top: 1px solid var(--color-border); backdrop-filter: blur(12px); overflow-x: auto; }
+  .home-dock { position: fixed; z-index: 40; bottom: 0; left: 0; right: 0; height: var(--home-dock-height); box-sizing: border-box; display: flex; align-items: center; justify-content: safe center; gap: 20px; padding: 14px 24px; background: color-mix(in srgb, var(--color-bg) 94%, transparent); border-top: 1px solid var(--color-border); backdrop-filter: blur(12px); }
+
+  /* The dock scrolls sideways only at widths where it genuinely does not
+     fit, and that condition is what brings the tool tooltips back.
+
+     `overflow-x: auto` computes `overflow-y: auto` too - a non-visible
+     overflow on one axis forces the other - so a scrolling dock is a scroll
+     container on both axes, and .app-tooltip sits 115px *above* the dock's
+     top edge. The tooltips were therefore clipped away entirely at every
+     width, while the dock reported scrollWidth 1280 against clientWidth
+     1280: it was paying the clip without needing the scroll.
+
+     928px is the dock's own width at desktop sizing - nine 80px cards, eight
+     20px gaps, 48px of padding - so 960px is the first round step that
+     clears it. Below that the scroll comes back and the tooltips clip again,
+     which is the right trade: those widths are phones and small tablets,
+     where there is no hover to show a tooltip with and a sideways-scrolling
+     dock is the familiar pattern. */
+  @media (min-width: 960px) {
+    .home-dock { overflow: visible; }
+  }
+
+  @media (max-width: 959.98px) {
+    .home-dock { overflow-x: auto; overscroll-behavior-inline: contain; }
+  }
   .app-card { position: relative; display: flex; flex: 0 0 80px; flex-direction: column; align-items: center; gap: 10px; color: inherit; text-decoration: none; }
   .app-tile { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
   .app-label { font-size: 0.8rem; font-weight: 600; line-height: 1.25; text-align: center; color: var(--color-muted); }

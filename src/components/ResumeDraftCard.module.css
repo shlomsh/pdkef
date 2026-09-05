@@ -1,7 +1,37 @@
 .card { width: 100%; text-align: center; }
 .heading { font-size: 0.95rem; font-weight: 600; margin: 0 0 18px; color: var(--color-text); }
-.list { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; list-style: none; margin: 0; padding: 0; }
-.document { display: flex; width: 140px; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 8px; text-decoration: none; color: var(--color-text); }
+/* A grid of up to six across, not a centred flex row.
+   `auto-fit` with a 128px floor means the row fills whatever width the
+   launcher column has and never leaves one orphaned document on a line of its
+   own the way wrapping flex items did. The 6 cap is the reserve: past six the
+   documents would start shrinking below a legible thumbnail rather than
+   wrapping, so the row stops widening and a seventh goes to a second line.
+
+   min-height reserves one row so the launcher does not jump when the recents
+   render - they come from a client:only island reading localStorage, so they
+   are absent from the server HTML and arrive after first paint.
+
+   Worth knowing: only the two editors that keep drafts (sign, redact) can
+   produce an entry, so today at most two of these six slots can ever fill.
+   The row is sized for six because the grid should not need revisiting when a
+   third tool learns to save one, and `auto-fit` collapses the empty tracks so
+   two documents still sit as two, not as two-thirds of a six-wide row. */
+.list {
+  display: grid;
+  /* A capped max, not 1fr: with 1fr the two documents a visitor can actually
+     have each took half of a 988px row and sat marooned at opposite ends of
+     it. Tracks stop growing at 148px and justify-content centres however many
+     there are, so two read as a pair and six fill the row. */
+  grid-template-columns: repeat(auto-fit, minmax(128px, 148px));
+  justify-content: center;
+  gap: 20px;
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: calc(6 * 148px + 5 * 20px);
+  min-height: 150px;
+}
+.document { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 8px; text-decoration: none; color: var(--color-text); }
 .document:focus, .document:hover { background: var(--color-primary-tint); }
 .preview { width: 64px; height: 84px; object-fit: cover; filter: drop-shadow(0 4px 4px var(--color-border)); }
 .name { max-width: 100%; overflow-wrap: anywhere; font-size: 0.85rem; font-weight: 600; line-height: 1.3; }

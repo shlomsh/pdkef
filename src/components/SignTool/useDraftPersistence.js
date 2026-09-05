@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges } from '../../editor/workspace/draftStore.js';
+import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview } from '../../editor/workspace/draftStore.js';
 import { DRAFT_SCHEMA_VERSION } from '../../editor/registry/draftValidation.ts';
 
 // Clears the blocking head script's DOM hint once a real restore check has
@@ -191,7 +191,12 @@ export function useDraftPersistence({
   // Render the resume-card preview when the loaded file changes. Deliberately
   // fire-and-forget: it dynamically imports pdf.js, so it must never sit in
   // front of the first autosave. A save that beats it just writes no preview,
-  // and the next one (700ms later, at the next edit) carries it.
+  // and the next one (700ms later, at the next edit) carries it - or, if the
+  // visitor changes nothing more, attachDraftPreview below writes it straight
+  // into the hint instead. Without that second path a document that was opened
+  // and then left alone kept a resume card with no thumbnail for as long as the
+  // draft lived, because the preview only ever reached storage as a side effect
+  // of saving again.
   useEffect(() => {
     previewRef.current = null;
     if (!enabled || !file) return;
@@ -205,7 +210,11 @@ export function useDraftPersistence({
     import('../../lib/thumbnails.js')
       .then(({ renderDraftPreview }) => renderDraftPreview(file))
       .then((dataUrl) => {
-        if (!cancelled) previewRef.current = dataUrl;
+        if (cancelled) return;
+        previewRef.current = dataUrl;
+        // Only lands if a draft hint already exists, so this cannot invent
+        // metadata for a document that was never saved or has since gone.
+        attachDraftPreview(tool, dataUrl);
       })
       .catch(() => {
         // A preview is decoration. An encrypted or malformed PDF that pdf.js
@@ -214,7 +223,9 @@ export function useDraftPersistence({
     return () => {
       cancelled = true;
     };
-  }, [enabled, file]);
+    // `tool` is a literal per mounted editor and never changes, so listing it
+    // costs no extra runs; it is here because attachDraftPreview reads it.
+  }, [enabled, file, tool]);
 
   // Debounced autosave on edit-state changes while editing.
   useEffect(() => {

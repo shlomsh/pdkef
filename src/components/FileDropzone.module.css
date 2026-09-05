@@ -15,7 +15,28 @@
 }
 
 @media (min-width: 761px) {
-  :global(html[data-home-mode="workspace"]) .launcher { flex-direction: row; justify-content: center; gap: 48px; }
-  :global(html[data-home-mode="workspace"]) .launcher > section { width: auto; }
-  :global(html[data-home-mode="workspace"]) .launcher > .tile { flex-shrink: 0; }
+  /* Recent documents first, the picker under them. The two used to sit side by
+     side, which put a returning visitor's own files and the generic "choose a
+     file" tile at equal weight - and the tile won, because it is the larger
+     and more saturated of the two. Stacking them makes the ordering the
+     ranking: the documents you already have are the first thing on the page,
+     and starting something new is the step below that.
+
+     The picker also stops being a 174px square once it is on its own line;
+     at that width, centred under a full-width row of documents, it read as a
+     stray tile rather than the page's second action. */
+  :global(html[data-home-mode="workspace"]) .launcher { align-items: stretch; gap: 28px; }
+  :global(html[data-home-mode="workspace"]) .launcher > .tile {
+    width: min(100%, 620px);
+    min-height: 128px;
+    margin-inline: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: center;
+    gap: 4px 14px;
+  }
+  :global(html[data-home-mode="workspace"]) .launcher > .tile strong,
+  :global(html[data-home-mode="workspace"]) .launcher > .tile span { flex-basis: 100%; }
+  :global(html[data-home-mode="workspace"]) .launcher > .tile svg { flex-basis: auto; }
 }
