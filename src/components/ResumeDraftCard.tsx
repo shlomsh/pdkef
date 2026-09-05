@@ -1,4 +1,5 @@
 import { tools } from '../data/tools.js';
+import { SAMPLE_FILE_NAME } from './sampleDocument.ts';
 import styles from './ResumeDraftCard.module.css';
 
 /** Standalone document icons from the two existing editor draft slots.
@@ -26,7 +27,7 @@ export default function ResumeDraftCard({ drafts }: { drafts: any[] }) {
                 : <svg class={styles.preview} viewBox="0 0 64 84" aria-hidden="true"><path d="M8 2h32l16 16v64H8zM40 2v18h16" fill="var(--color-surface)" stroke="var(--color-border-strong)"/><text x="32" y="54" text-anchor="middle" fill="var(--color-primary)" font-size="14">PDF</text></svg>}
               <span class={styles.name}>{draft.fileName || 'Untitled document'}</span>
               <span class={styles.sub}>{meta.gridTitle}</span>
-              {draft.fileName === 'PDkef bundled sample.pdf' && <span class={styles.sub}>Bundled sample</span>}
+              {draft.fileName === SAMPLE_FILE_NAME && <span class={styles.sub}>Bundled sample</span>}
             </a>
           </li>;
         })}
