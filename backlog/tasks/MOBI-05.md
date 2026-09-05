@@ -1,0 +1,44 @@
+---
+id: "MOBI-05"
+title: "Tap a detected checkbox to place a mark in it"
+status: "open"
+priority: "P2"
+epic: "mobile-round-trip"
+phase: "near-term"
+depends_on: ["MOBI-03"]
+legacy_state: "Open"
+---
+
+# MOBI-05 · Tap a detected checkbox to place a mark in it
+
+## Scope and acceptance
+
+**The checkbox half of a government form is high-count, low-value-per-item, and brutal on a phone.**
+Page 1 of the National Insurance health declaration carries a measured 127 checkbox-sized squares,
+dominated by two size families at 6.6x6.6pt and 7.6x7.6pt: roughly two dozen medical questions, each
+with a כן and a לא box, plus the physician's confirmation block. Income tax form 101 is the same shape
+with a different instruction printed at the top: "סמן/י √ בריבוע המתאים", mark a tick in the
+appropriate square. Form 101 even embeds ZapfDingbats to draw those ticks itself.
+
+A 6.6pt square is about 2.3mm on paper. Placing a symbol inside one on a phone today means zooming in,
+arming the symbol tool, tapping, and then nudging, roughly fifty times for one health declaration.
+
+The editor already has the other half: a symbol tool with check, x and dot marks, and a remembered
+`lastSymbolMark` preference. Make a detected checkbox a tap target that places the current mark
+centred in the square at a size derived from the square, not from the last symbol width the user
+happened to drag somewhere else.
+
+Scope discipline. This ticket places a mark in a box; it does not attempt to understand that כן and לא
+are mutually exclusive, or to group boxes into questions. Radio-style exclusivity needs semantics the
+geometry does not carry, and guessing it wrong silently unticks a person's answer on a medical form.
+Leave it out and say so.
+
+Respect the arming model exactly as MOBI-04 does: tapping a detected box must not leave a tool armed,
+and must not change what the next tap on empty space means.
+
+**Acceptance.** On the committed health declaration fixture, one tap on a כן box places the current
+mark centred in that printed square, verified against the detected square's centre and sized to it. A
+second tap on the same box removes the mark rather than stacking a second one. Marks survive export,
+undo and draft restore. No mutual exclusivity is implemented, and the ticket records that as a
+deliberate exclusion rather than an oversight. The interaction is proven at a real phone viewport, not
+only at desktop width, since the whole justification is a 2.3mm target.
