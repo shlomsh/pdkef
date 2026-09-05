@@ -87,6 +87,15 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | DEMO-07 | P1 | [DEMO-07](backlog/tasks/DEMO-07.md) · Lead with blur where the traffic actually lands |
 
 
+## Site quality: accessibility, CSS correctness and theming
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| QUAL-01 | P2 | [QUAL-01](backlog/tasks/QUAL-01.md) · --color-primary fails WCAG AA as link text |
+| QUAL-02 | P2 | [QUAL-02](backlog/tasks/QUAL-02.md) · Two competing header padding rules, where specificity beats the media query |
+| QUAL-03 | P3 | [QUAL-03](backlog/tasks/QUAL-03.md) · flatten.svg has the palette baked in as 31 hex literals |
+
+
 ## Migrated context and history
 
 The prose, decisions, and supporting evidence formerly interleaved with tickets live in [backlog/reference/migrated-todo-context.md](backlog/reference/migrated-todo-context.md). It is reference material, not a task tracker.

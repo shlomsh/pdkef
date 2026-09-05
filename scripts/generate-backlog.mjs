@@ -11,13 +11,13 @@ const contextPath = resolve(projectDirectory, 'backlog/reference/migrated-todo-c
 // [key, BACKLOG.md label, TODO.md heading]. The third field exists because the
 // compatibility index kept its original, longer headings when the monolithic
 // TODO was split, and those headings are linked to from docs/. Adding an epic
-// is one row here plus the matching lane in serve-backlog-board.mjs and
-// export-todo-kanban.mjs.
+// is one row here plus the matching lane in serve-backlog-board.mjs.
 const epics = [
   ['sign-tool-architecture', 'Sign tool architecture', 'Sign Tool architecture review (2026-08-28)'],
   ['editor-architecture', 'Editor architecture', 'Editor module boundaries (architecture)'],
   ['fonts-and-script-support', 'Fonts and script support', 'Internationalization: fonts for scripts beyond Hebrew/Latin'],
   ['landing-story-demo', 'Landing story and demo', 'The landing story and demo'],
+  ['site-quality', 'Site quality', 'Site quality: accessibility, CSS correctness and theming'],
 ];
 const statuses = [
   ['open', 'Open'],

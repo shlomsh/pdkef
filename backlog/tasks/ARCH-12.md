@@ -17,6 +17,7 @@ The Markdown files in `backlog/tasks/` are the canonical work-board records, whi
 - Add a deterministic check mode for the backlog generator that exits non-zero when generated views are stale.
 - Validate task filename/ID agreement, unique IDs, supported status/priority/epic/phase values, and dependency targets.
 - Reject self-dependencies and dependency cycles with actionable error messages.
+- Treat the `epics` array in `scripts/generate-backlog.mjs` as the source of truth for epic keys, and fail when a task names a key it does not contain or when `scripts/serve-backlog-board.mjs` does not carry a matching lane. The `site-quality` epic shipped registered in neither, so QUAL-01..03 were absent from both generated views and unlabelled on the board; nothing failed, because an unregistered key is silently dropped from the generator and falls back to the raw key on the board.
 - Use `fileURLToPath` when resolving script locations so encoded paths and workspace paths containing spaces are handled safely.
 - Add focused tests with malformed task fixtures rather than coupling tests to the current task count.
 - Run the backlog validation/check command in CI before build and test jobs consume the generated board.
