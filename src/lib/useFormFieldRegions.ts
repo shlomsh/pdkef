@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import type { CombRegion } from '../editor/text/combPlacement.ts';
+import type { CombRegion, FieldRegion } from '../editor/text/combPlacement.ts';
 
 /**
  * The printed grids on the loaded PDF, detected once per file.
@@ -15,16 +15,26 @@ import type { CombRegion } from '../editor/text/combPlacement.ts';
  * should leave the editor exactly as it was rather than raise an error about a
  * feature the person never asked for.
  */
-export default function useFormFieldRegions(bytes: ArrayBuffer | null, numPages: number): CombRegion[] {
-  const [regions, setRegions] = useState<CombRegion[]>([]);
+export interface FormFieldRegions {
+  combs: CombRegion[];
+  checkboxes: FieldRegion[];
+}
+
+const NONE: FormFieldRegions = { combs: [], checkboxes: [] };
+
+export default function useFormFieldRegions(
+  bytes: ArrayBuffer | null,
+  numPages: number,
+): FormFieldRegions {
+  const [regions, setRegions] = useState<FormFieldRegions>(NONE);
 
   useEffect(() => {
     if (!bytes || numPages <= 0) {
-      setRegions([]);
+      setRegions(NONE);
       return undefined;
     }
     let current = true;
-    setRegions([]);
+    setRegions(NONE);
 
     (async () => {
       try {
@@ -37,13 +47,15 @@ export default function useFormFieldRegions(bytes: ArrayBuffer | null, numPages:
           updateMetadata: false,
         });
         if (!current) return;
-        const found: CombRegion[] = [];
+        const found: FormFieldRegions = { combs: [], checkboxes: [] };
         for (let pageIndex = 0; pageIndex < document.getPageCount(); pageIndex += 1) {
-          found.push(...detectPageRegions(document.getPage(pageIndex), pageIndex).combs);
+          const page = detectPageRegions(document.getPage(pageIndex), pageIndex);
+          found.combs.push(...page.combs);
+          found.checkboxes.push(...page.checkboxes);
         }
         if (current) setRegions(found);
       } catch {
-        if (current) setRegions([]);
+        if (current) setRegions(NONE);
       }
     })();
 

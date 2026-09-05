@@ -11,7 +11,7 @@ import { useSignDefaults } from './SignDefaultsContext.tsx';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import FormFieldHints from './FormFieldHints.tsx';
-import type { CombRegion } from '../../editor/text/combPlacement.ts';
+import type { FormFieldRegions } from '../../lib/useFormFieldRegions.ts';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
 import type { PendingSignaturePlacement } from '../../lib/useWorkspaceGestures.ts';
 import { detectTextDirection } from '../../lib/signHelpers.js';
@@ -36,7 +36,7 @@ export default function PdfWorkspace({
   workspaceRef,
   numPages,
   pageSizes,
-  formRegions = [],
+  formRegions = { combs: [], checkboxes: [] },
   pdfDocument,
   pageWrapperRefs,
   setTempPlacement,
@@ -60,7 +60,7 @@ export default function PdfWorkspace({
   numPages: number;
   pageSizes: PageGeometry[];
   /** Printed grids recovered from the page's own content (MOBI-03); empty until detected. */
-  formRegions?: CombRegion[];
+  formRegions?: FormFieldRegions;
   pdfDocument: PDFDocumentProxy | null;
   pageWrapperRefs: { current: (HTMLDivElement | null)[] };
   setTempPlacement: (placement: PendingSignaturePlacement) => void;
@@ -299,8 +299,12 @@ export default function PdfWorkspace({
                       onMouseDown={(e) => handleOverlayPointerDown(e, pageIdx)}
                       onTouchStart={(e) => handleOverlayPointerDown(e, pageIdx)}
                     >
-                      {selectedTool === 'text' && (
-                        <FormFieldHints regions={formRegions} pageIndex={pageIdx} />
+                      {(selectedTool === 'text' || selectedTool === 'symbol') && (
+                        <FormFieldHints
+                          regions={selectedTool === 'text' ? formRegions.combs : formRegions.checkboxes}
+                          kind={selectedTool === 'text' ? 'comb' : 'checkbox'}
+                          pageIndex={pageIdx}
+                        />
                       )}
                       {pageElements.map((el) => (
                         <DraggableWrapper
