@@ -104,7 +104,7 @@ describe('placeCombOnRegion', () => {
     expect(placement.combCells).toBe(9);
   });
 
-  it('puts the glyph baseline on the printed rule', () => {
+  it('puts the glyph baseline on the printed rule when the cells are open', () => {
     // The run's teeth hang upward from the rule, so in top-left-origin
     // percentages the rule is the run's *bottom* edge. Lifting the box by its
     // own baseline drop is what lands the digits on that line instead of a
@@ -113,6 +113,32 @@ describe('placeCombOnRegion', () => {
     const rule = IDENTITY_RUN.top + IDENTITY_RUN.height;
     const baseline = placement.top + (placement.fontSize * baselineDropEm('Arimo') / PAGE_HEIGHT) * 100;
     expect(baseline).toBeCloseTo(rule, 10);
+  });
+
+  it('centres the text in the cell when the cells are closed boxes', () => {
+    // The health declaration draws each cell as a rectangle. There is no line
+    // to write on, so the digits belong in the middle - putting a baseline on
+    // the box's lower edge sits them on it, which is what happens on paper only
+    // when the paper has a line there.
+    const boxedRun: CombRegion = { ...IDENTITY_RUN, boxed: true, height: 1.297 };
+    const placement = placeCombOnRegion(boxedRun, {
+      fontSize: 12, fontFamily: 'Arimo', pageWidthPoints: PAGE_WIDTH, pageHeightPoints: PAGE_HEIGHT,
+    });
+    const em = (12 / PAGE_HEIGHT) * 100;
+    const baseline = placement.top + em * baselineDropEm('Arimo');
+    const cellMiddle = boxedRun.top + boxedRun.height / 2;
+
+    // The font's em box straddles the cell's middle rather than resting on its
+    // floor, so the baseline sits below the middle by half the em box.
+    expect(baseline).toBeGreaterThan(cellMiddle);
+    expect(baseline).toBeLessThan(boxedRun.top + boxedRun.height);
+    expect(baseline - cellMiddle).toBeCloseTo(em * (0.905 - 0.212) / 2, 3);
+  });
+
+  it('places the same run differently depending on whether its cells are closed', () => {
+    const open = place({ ...IDENTITY_RUN, boxed: false, height: 1.297 });
+    const boxed = place({ ...IDENTITY_RUN, boxed: true, height: 1.297 });
+    expect(boxed.top).toBeLessThan(open.top);
   });
 
   it("uses the font's own metrics, not a Helvetica fallback", () => {

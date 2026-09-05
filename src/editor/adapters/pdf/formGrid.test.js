@@ -121,6 +121,39 @@ describe('findCombRuns', () => {
     });
   });
 
+  describe('closed cells versus teeth on a line', () => {
+    // Which one decides whether text sits *on* a line or *in* a box, and the
+    // page answers it: form 101 rules nothing along its runs' tops, the health
+    // declaration rules 96% of them.
+    const row = teeth({ from: 100, pitch: 12, count: 7, baseline: 500, height: 11 });
+    const rule = (y, from = 100, to = 172) => `${from} ${y} m ${to} ${y} l S`;
+
+    it('reports a run ruled top and bottom as boxed', () => {
+      expect(runsOf([row, rule(500), rule(511)].join(' '))[0].boxed).toBe(true);
+    });
+
+    it('reports a run ruled only along its bottom as open', () => {
+      expect(runsOf([row, rule(500)].join(' '))[0].boxed).toBe(false);
+    });
+
+    it('reports a run with no rule at all as open', () => {
+      expect(runsOf(row)[0].boxed).toBe(false);
+    });
+
+    it('accepts a top ruled cell by cell rather than in one piece', () => {
+      // A table drawn per cell closes its top with abutting segments, which is
+      // how the health declaration draws every one of its combs.
+      const perCell = [0, 1, 2, 3, 4, 5]
+        .map((index) => rule(511, 100 + index * 12, 112 + index * 12))
+        .join(' ');
+      expect(runsOf([row, rule(500), perCell].join(' '))[0].boxed).toBe(true);
+    });
+
+    it('ignores a top rule that covers only part of the run', () => {
+      expect(runsOf([row, rule(500), rule(511, 100, 120)].join(' '))[0].boxed).toBe(false);
+    });
+  });
+
   describe('the current transformation matrix', () => {
     // The regression MOBI-03 asks for by name: form 101 issues 370 `cm`
     // operators on page 1, so a walk that reads raw operands finds no shared
