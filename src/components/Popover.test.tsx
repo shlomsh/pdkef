@@ -61,6 +61,11 @@ describe('Popover Component', () => {
     expect(middleware[1].options[0]).toEqual({ mainAxis: false, crossAxis: true, padding: 5 });
   });
 
+  it('can move a picker away from content along the cross axis', () => {
+    const middleware = createPopoverMiddleware(5, true, -36);
+    expect(middleware[0].options[0]).toEqual({ mainAxis: 5, crossAxis: -36 });
+  });
+
   it('keeps normal popovers collision-aware by default', () => {
     expect(createPopoverMiddleware().map((entry) => entry.name)).toEqual(['offset', 'flip', 'shift']);
   });

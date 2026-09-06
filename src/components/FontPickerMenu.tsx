@@ -132,7 +132,11 @@ export default function FontPickerMenu({
     <Popover
       open={open}
       onOpenChange={handleOpenChange}
-      placement="bottom"
+      // The font trigger sits at the toolbar's leading edge. Opening toward
+      // its end side and then clearing the 28px trigger keeps the picker away
+      // from the text below, so hovering can preview the actual element.
+      placement="bottom-end"
+      crossAxisOffset={-36}
       stablePosition
       trigger={
         <button
