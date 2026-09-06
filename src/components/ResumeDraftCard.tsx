@@ -1,11 +1,21 @@
 import { tools } from '../data/tools.js';
-import { SAMPLE_FILE_NAME } from './sampleDocument.ts';
 import styles from './ResumeDraftCard.module.css';
 
-/** Standalone document icons from the two existing editor draft slots.
- * Navigation lets each tool restore its own draft; this view never writes it.
+/** Standalone document icons from the editor draft slots. When none exist, the
+ * bundled practice form occupies the first slot as an honest starter document;
+ * it is never mixed into or allowed to displace the user's own recent work.
+ * Navigation lets each tool restore its own draft; only the bundled sample
+ * delegates to FileDropzone's existing handoff path.
  */
-export default function ResumeDraftCard({ drafts }: { drafts: any[] }) {
+export default function ResumeDraftCard({
+  drafts,
+  onOpenSample,
+  busy = false,
+}: {
+  drafts: any[];
+  onOpenSample?: () => void;
+  busy?: boolean;
+}) {
   if (!drafts?.length) return null;
 
   return (
@@ -21,21 +31,44 @@ export default function ResumeDraftCard({ drafts }: { drafts: any[] }) {
         {drafts.map((draft: any) => {
           const meta = tools.find(t => t.slug === draft.tool);
           if (!meta) return null;
-          return <li key={draft.tool}>
-            <a class={styles.document} href={meta.href}
+          const isBundledSample = draft.bundledSample === true;
+          const preview = draft.preview
+            ? <img
+                class={styles.preview}
+                src={draft.preview}
+                alt=""
+                width="64"
+                height="84"
+              />
+            : <svg class={styles.preview} viewBox="0 0 64 84" aria-hidden="true"><path d="M8 2h32l16 16v64H8zM40 2v18h16" fill="var(--color-surface)" stroke="var(--color-border-strong)"/><text x="32" y="54" text-anchor="middle" fill="var(--color-primary)" font-size="14">PDF</text></svg>;
+          const identity = <>
+            {preview}
+            <span class={styles.name} title={draft.fileName || undefined}>{draft.fileName || 'Untitled document'}</span>
+          </>;
+          return <li key={draft.key || `${draft.tool}:${draft.fileName || ''}`}>
+            {isBundledSample ? (
+              <button
+                type="button"
+                class={styles.document}
+                aria-label={`Open bundled sample PDF, ${draft.fileName}`}
+                disabled={busy}
+                onClick={onOpenSample}
+              >
+                {identity}
+                <span class={styles.sub}>{meta.gridTitle}</span>
+              </button>
+            ) : (
+              <a class={styles.document} href={meta.href}
               onClick={event => {
                 // Keyboard activation emits detail=0; touch opens with one tap.
                 if (event.detail > 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !window.matchMedia('(pointer: coarse)').matches) event.preventDefault();
               }}
               onDblClick={() => { window.location.href = meta.href; }}>
-              {draft.preview
-                ? <img class={styles.preview} src={draft.preview} alt="" width="64" height="84" />
-                : <svg class={styles.preview} viewBox="0 0 64 84" aria-hidden="true"><path d="M8 2h32l16 16v64H8zM40 2v18h16" fill="var(--color-surface)" stroke="var(--color-border-strong)"/><text x="32" y="54" text-anchor="middle" fill="var(--color-primary)" font-size="14">PDF</text></svg>}
-              <span class={styles.name} title={draft.fileName || undefined}>{draft.fileName || 'Untitled document'}</span>
-              <span class={styles.sub}>{meta.gridTitle}</span>
-              {formatSavedAt(draft.savedAt) && <span class={styles.sub}>{formatSavedAt(draft.savedAt)}</span>}
-              {draft.fileName === SAMPLE_FILE_NAME && <span class={styles.sub}>Bundled sample</span>}
-            </a>
+                {identity}
+                <span class={styles.sub}>{meta.gridTitle}</span>
+                {formatSavedAt(draft.savedAt) && <span class={styles.sub}>{formatSavedAt(draft.savedAt)}</span>}
+              </a>
+            )}
           </li>;
         })}
       </ul>

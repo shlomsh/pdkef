@@ -24,6 +24,8 @@ test('complete stories, information, session handoff, and real bundled sample en
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
   const before = await draftSnapshot(page);
+  await expect(page.locator('#home-files').getByRole('button',{name:/Open bundled sample PDF/})).toContainText(SAMPLE_FILE_NAME);
+  await expect(page.locator('#home-files img[src="/images/redaction-guide/sample-preview.jpg"]')).toBeVisible();
   for (const [key, fraction, beat] of [['sign',.55,'fill-allergies'], ['sign',.81,'sign'], ['sign',.93,'share'], ['blur',.35,'blur'], ['blur',.5,'blackout'], ['blur',.64,'whiteout'], ['blur',.78,'delete']]) {
     await scrollStory(page,key,fraction);
     await expect.poll(() => stageLocator(page,key).evaluate((el,beat) => Number(el.style.getPropertyValue(`--p-${beat}`)),beat)).toBe(1);
@@ -46,14 +48,15 @@ test('complete stories, information, session handoff, and real bundled sample en
   // Explicit top movement also covers browsers mapping that key differently.
   await page.evaluate(() => window.scrollTo(0,0));
   expect(await draftSnapshot(page)).toEqual(before);
-  await page.getByRole('button',{name:/PDkef practice form\.pdf/}).click();
+  await page.locator('#try-workspace').getByRole('button',{name:/PDkef practice form\.pdf/}).click();
   await expect(page).toHaveURL(/\/sign\/$/);
   await expect(page.locator('canvas').first()).toBeVisible({timeout:20000});
   await expect(page.getByText(SAMPLE_FILE_NAME, {exact:true}).first()).toBeVisible();
   await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({tool:'sign',fileName:SAMPLE_FILE_NAME})]));
   await page.goto('/');
   const recent = page.locator('.workspace-launcher a[href="/sign/"]');
-  await expect(recent).toContainText('Bundled sample');
+  await expect(recent).toContainText(SAMPLE_FILE_NAME);
+  await expect(recent).not.toContainText('Bundled sample');
   await recent.click();
   await expect(page).toHaveURL(/\/$/);
   await recent.press('Enter');
