@@ -1,5 +1,4 @@
-.card { width: 100%; text-align: center; }
-.heading { font-size: 0.95rem; font-weight: 600; margin: 0 0 18px; color: var(--color-text); }
+.card { width: 100%; }
 /* A grid of up to six across, not a centred flex row.
    `auto-fit` with a 128px floor means the row fills whatever width the
    launcher column has and never leaves one orphaned document on a line of its
@@ -23,18 +22,40 @@
      it. Tracks stop growing at 148px and justify-content centres however many
      there are, so two read as a pair and six fill the row. */
   grid-template-columns: repeat(auto-fit, minmax(128px, 148px));
-  justify-content: center;
-  gap: 20px;
+  /* Packed from the left, like the icons on a desktop, rather than centred:
+     a centred pair of documents drifted with the row's own width and never
+     sat in the same place twice. justify-content, not just the margin - the
+     tracks are capped at 148px, so without it the row centres its own tracks
+     inside the grid. */
+  justify-content: start;
+  gap: 20px 16px;
   list-style: none;
-  margin: 0 auto;
+  margin: 0;
   padding: 0;
-  max-width: calc(6 * 148px + 5 * 20px);
-  min-height: 150px;
+  max-width: calc(6 * 148px + 5 * 16px);
+  min-height: 132px;
 }
 .document { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 8px; text-decoration: none; color: var(--color-text); }
 .document:focus, .document:hover { background: var(--color-primary-tint); }
 .preview { width: 64px; height: 84px; object-fit: cover; filter: drop-shadow(0 4px 4px var(--color-border)); }
-.name { max-width: 100%; overflow-wrap: anywhere; font-size: 0.85rem; font-weight: 600; line-height: 1.3; }
+/* Two lines, then an ellipsis, with the full name on hover (title attribute in
+   the component). Unclamped this wrapped `overflow-wrap: anywhere`, so a real
+   filename - "Service_Pages_Income_tax_annual-report-2024_itc101(3).pdf" - ran
+   to four lines and made its tile twice the height of its neighbour, which is
+   also why the row's reserved min-height above could not hold. Every file
+   manager clamps for the same reason. */
+.name {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
 .sub { font-size: 0.73rem; color: var(--color-muted); }
 .hint { font-size: 0.7rem; margin: 14px 0 0; color: var(--color-muted); }
 @media (pointer: coarse) { .hint { display: none; } }
