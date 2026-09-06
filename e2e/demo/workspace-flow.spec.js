@@ -30,15 +30,11 @@ test('complete stories, information, session handoff, and real bundled sample en
     await scrollStory(page,key,fraction);
     await expect.poll(() => stageLocator(page,key).evaluate((el,beat) => Number(el.style.getPropertyValue(`--p-${beat}`)),beat)).toBe(1);
   }
-  // Scoped to the story cards, not every h2 in the block. The "Give it a try"
-  // stage now lives inside .card-stack - it has to, or the last card has no
-  // sticky range and gets dragged under the fixed header as the stage arrives
-  // (see index.astro) - and .card-stack is inside #home-information, so an
-  // unscoped query picks up its heading too. What this line is actually for is
-  // the five information cards and their order, which .card-reveal names
-  // exactly.
+  // The closing "Give it a try" stage participates in the same card system
+  // as the information cards, so it has the shared reveal, pattern, and
+  // scroll-linked depth treatment as it arrives below the final story card.
   const headings = await page.locator('#home-information .card-reveal h2').allTextContents();
-  expect(headings).toEqual(['Simple PDF tools, made to share','Close the tab. Keep your progress.','Your PDF tools, even offline','Frequently asked questions','Private by design. Open to inspect.']);
+  expect(headings).toEqual(['Simple PDF tools, made to share','Close the tab. Keep your progress.','Your PDF tools, even offline','Frequently asked questions','Private by design. Open to inspect.','Give it a try.']);
   // All cards use the document scroll; no hidden inner vertical scroll areas.
   expect(await page.locator('#home-information section').evaluateAll(elements => elements.every(el => !['auto','scroll'].includes(getComputedStyle(el).overflowY) && [...el.querySelectorAll('p,h2')].every(text => { const r = text.getBoundingClientRect(); return !r.height || r.bottom <= el.getBoundingClientRect().bottom + 1; })))).toBe(true);
   await page.locator('#try-workspace').scrollIntoViewIfNeeded();

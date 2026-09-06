@@ -86,12 +86,16 @@ describe('anonymous maintenance telemetry', () => {
     }
   });
 
-  it('removes query strings, fragments, and origins from analytics paths', () => {
+  it('removes query strings and fragments while preserving the absolute URL Vercel requires', () => {
     expect(sanitizeAnalyticsPath('https://pdkef.com/sign/?file=private.pdf#signature')).toBe('/sign/');
     expect(sanitizeAnalyticsPath('javascript:private-medical-record.pdf')).toBe('/');
-    expect(sanitizeAnalyticsEvent({ type: 'pageview', url: '/sign/?document=abc' })).toEqual({
+    expect(sanitizeAnalyticsEvent({ type: 'pageview', url: 'https://pdkef.com/sign/?document=abc#signature' })).toEqual({
       type: 'pageview',
-      url: '/sign/',
+      url: 'https://pdkef.com/sign/',
+    });
+    expect(sanitizeAnalyticsEvent({ type: 'pageview', url: 'javascript:private-medical-record.pdf' })).toEqual({
+      type: 'pageview',
+      url: 'https://pdkef.com/',
     });
   });
 });
