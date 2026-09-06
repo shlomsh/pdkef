@@ -49,16 +49,11 @@ const SIZE = 28;
 const LEFT = 8;
 const TOP = 22;
 
-// For an RTL element, `left` is not the box's left edge - it is the anchored
-// edge, which text.ts's `serialize` treats as the box's RIGHT edge (`boxLeft
-// = pdfX - widthPoints` for combs; the plain-line pen starts at `pdfX -
-// lineWidth`). Every case here used to share plain `LEFT`, so every RTL case
-// was anchored at 8% of the page and drawn growing LEFT from there - off the
-// left edge of the sheet, with only a clipped tail surviving. That is what
-// the non-vacuity assertion caught on the very first baseline capture:
-// "hebrew-arimo" and "mixed-rtl-paragraph" came out byte-identical, because
-// both had been reduced to the same off-page fragment. RTL cases get their
-// own anchor, set far enough right that the text draws fully on the page.
+// For an ordinary RTL element, `left` is the anchored right edge: the
+// serializer starts its pen to the left of it. Every ordinary RTL case gets
+// an anchor far enough right that its text stays on the sheet. A comb is the
+// exception: it has a fixed span, and its `left` is the span's actual left
+// edge in both directions; only its cell order mirrors.
 const RTL_ANCHOR = 92;
 
 function textCase(id, text, overrides = {}) {
@@ -193,7 +188,7 @@ export const EXPORT_RENDER_CORPUS = [
   // --- The comb path: positions by cell index, skips bidi, has its own
   // geometry. `width` is what makes an element a comb (see comb.js).
   textCase('comb-ltr', 'AB12', { fontFamily: 'Arimo', width: 40, combCells: 6 }),
-  textCase('comb-rtl', 'שלום', { fontFamily: 'Arimo', width: 40, combCells: 6, textDirection: 'rtl', left: RTL_ANCHOR }),
+  textCase('comb-rtl', 'שלום', { fontFamily: 'Arimo', width: 40, combCells: 6, textDirection: 'rtl', left: LEFT }),
 
   // --- Multi-line, which is the only place line height reaches the ink.
   textCase('multiline-arimo', 'One\nTwo', { fontFamily: 'Arimo' }),
