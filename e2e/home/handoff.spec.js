@@ -34,7 +34,22 @@ async function makePdfBuffer(label) {
   return Buffer.from(await doc.save());
 }
 
-const dropzone = (page) => page.locator('[class*="_dropzone_"]').first();
+/* Two structural locators, because the home page's dropzone was rebuilt and
+ * they are no longer the same element.
+ *
+ * The drop is handled on [data-working-area] - the whole first-screen scene -
+ * rather than on the picker control, so a file can be dropped anywhere on it.
+ * And the hydration marker has to be something the island *renders*, not
+ * something the page ships: [data-working-area] is server-rendered markup, so
+ * waiting for it would prove nothing. [data-home-picker] is inside the
+ * client:only island, so it exists only once that island has rendered.
+ *
+ * Both were previously one locator on a CSS-module class substring
+ * (`_dropzone_`), which the rebuild removed - that class now belongs only to
+ * the tool pages' own dropzone. The spec then timed out in its own beforeEach
+ * with nothing naming the cause. */
+const picker = (page) => page.locator('[data-home-picker]').first();
+const dropArea = (page) => page.locator('[data-working-area]').first();
 
 // Builds the File inside the page from a plain byte array. Deliberately not via
 // `fetch('data:...')`, which the site's strict connect-src would block: the point
@@ -50,7 +65,7 @@ async function dropOnHomeDropzone(page, { name, bytes }) {
     },
     [name, [...bytes]],
   );
-  await dropzone(page).dispatchEvent('drop', { dataTransfer });
+  await dropArea(page).dispatchEvent('drop', { dataTransfer });
 }
 
 // Writes a draft the way the Sign tool's autosave would, so the "there is
@@ -115,15 +130,16 @@ test.describe('home page hands a dropped PDF to the Sign tool', () => {
         }),
     );
     // Hydration wait, written against what the island *renders* rather than how
-    // it is directed to hydrate. The home page's dropzone is `client:only`
+    // it is directed to hydrate. The home page's launcher is `client:only`
     // (it reads the local draft hint synchronously, so there is nothing worth
     // server-rendering), which means the `astro-island[client="load"]:not([ssr])`
     // selector every tool-page spec uses never matches here - it matched once,
     // then the directive changed and this whole file started timing out in the
-    // hook. The dropzone only exists once the island has rendered client-side,
-    // so waiting for it proves the same thing and survives the next directive
-    // change.
-    await dropzone(page).waitFor();
+    // hook. The picker only exists once the island has rendered client-side, so
+    // waiting for it proves the same thing and survives the next directive
+    // change. It also proves the drop listener is attached: it is registered in
+    // an effect on the same component.
+    await picker(page).waitFor();
   });
 
   test('a dropped file survives the navigation and opens in the editor', async ({ page }) => {
@@ -132,7 +148,12 @@ test.describe('home page hands a dropped PDF to the Sign tool', () => {
       bytes: await makePdfBuffer('Dropped on the home page'),
     });
 
-    await page.waitForURL('**/sign');
+    // '/sign/' with the slash: that is the canonical URL this site serves (see
+    // CLAUDE.md, URL canonicalization), and the handoff now navigates straight
+    // to it instead of to '/sign' and taking a 308 hop on the way. The glob
+    // '**/sign' does not match '/sign/', so these waits timed out on a
+    // navigation that had already happened - the log even said so.
+    await page.waitForURL('**/sign/');
     await expect(page.locator('[role="toolbar"]')).toBeVisible();
     await expect(identity(page)).toContainText('dropped-on-home.pdf');
   });
@@ -156,7 +177,12 @@ test.describe('home page hands a dropped PDF to the Sign tool', () => {
     expect(new URL(page.url()).pathname).toBe('/');
 
     await dialog.getByRole('button', { name: 'Open it', exact: true }).click();
-    await page.waitForURL('**/sign');
+    // '/sign/' with the slash: that is the canonical URL this site serves (see
+    // CLAUDE.md, URL canonicalization), and the handoff now navigates straight
+    // to it instead of to '/sign' and taking a 308 hop on the way. The glob
+    // '**/sign' does not match '/sign/', so these waits timed out on a
+    // navigation that had already happened - the log even said so.
+    await page.waitForURL('**/sign/');
     await expect(identity(page)).toContainText('dropped-on-home.pdf');
   });
 
