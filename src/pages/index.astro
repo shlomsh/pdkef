@@ -545,8 +545,15 @@ const faq = [
        footer inside .card-stack; here the deck is followed by the "Give it a
        try" stage as well, so both are lifted where they stand rather than
        moving markup. */
+    /* .card-stack, not #home-content: the footer moved *into* the stack in the
+       same change that added this rule, so a `#home-content > footer` child
+       selector matched nothing and the last sticky card painted straight over
+       the footer at the end of the page. e2e/card-reveal.spec.js caught it by
+       probing what elementFromPoint actually returns inside the footer's own
+       rect, which is the only way to see it - the footer is present, visible
+       and correctly positioned; it is simply underneath. */
     .try-workspace,
-    #home-content > :global(footer) {
+    .card-stack :global(footer) {
       position: relative;
       z-index: 1;
     }
