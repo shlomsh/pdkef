@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
-import { MAX_AGE_MS, readDraftMeta, saveDraft, sourceIdForBytes, subscribeToDraftChanges } from './draftStore.js';
+import { MAX_AGE_MS, attachDraftPreview, readDraftMeta, saveDraft, sourceIdForBytes, subscribeToDraftChanges } from './draftStore.js';
 
 // readDraftMeta is the one workspace-store piece that never touches IndexedDB -
 // it's a synchronous localStorage read, by design (see the file's header
@@ -64,6 +64,93 @@ describe('readDraftMeta', () => {
     expect(readDraftMeta('sign')).toBeNull();
     expect(localStorage.getItem('pdf-toolkit:has-draft:sign')).toBeNull();
     expect(localStorage.getItem('pdf-toolkit:draft-meta:sign')).toBeNull();
+  });
+});
+
+// attachDraftPreview closes the window where a draft exists with no thumbnail.
+// The page-1 preview renders behind a dynamic pdf.js import, so it cannot sit in
+// front of the first autosave, and it used to reach storage only as a side
+// effect of the *next* save - which never comes if the visitor opens a document
+// and then changes nothing. See useDraftPersistence.js.
+describe('attachDraftPreview', () => {
+  const meta = (name = 'contract.pdf', savedAt = Date.now()) =>
+    JSON.stringify({ fileName: name, savedAt });
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('adds a preview to metadata that has none', () => {
+    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
+    localStorage.setItem('pdf-toolkit:draft-meta:sign', meta());
+
+    expect(attachDraftPreview('sign', 'data:image/jpeg;base64,x')).toBe(true);
+    expect(readDraftMeta('sign')).toEqual({
+      fileName: 'contract.pdf',
+      savedAt: expect.any(Number),
+      preview: 'data:image/jpeg;base64,x',
+    });
+  });
+
+  it('leaves the rest of the metadata alone', () => {
+    // Recent, not a fixed epoch literal: readDraftMeta applies the 14-day
+    // retention on read, so a hardcoded timestamp makes this assert nothing
+    // once it ages past MAX_AGE_MS - it just reads back null.
+    const savedAt = Date.now() - 60_000;
+    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
+    localStorage.setItem('pdf-toolkit:draft-meta:sign', meta('lease.pdf', savedAt));
+
+    attachDraftPreview('sign', 'data:image/jpeg;base64,y');
+    expect(readDraftMeta('sign')).toEqual({
+      fileName: 'lease.pdf',
+      savedAt,
+      preview: 'data:image/jpeg;base64,y',
+    });
+  });
+
+  // The guard that matters most. A preview resolving after the draft was
+  // cleared - Replace file, or expiry - must not write metadata back, or the
+  // home page would offer to resume a document that no longer exists.
+  it('does not resurrect metadata for a draft that has been cleared', () => {
+    expect(attachDraftPreview('sign', 'data:image/jpeg;base64,x')).toBe(false);
+    expect(localStorage.getItem('pdf-toolkit:draft-meta:sign')).toBeNull();
+    expect(localStorage.getItem('pdf-toolkit:has-draft:sign')).toBeNull();
+  });
+
+  it('does not write to an expired draft', () => {
+    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
+    localStorage.setItem('pdf-toolkit:draft-meta:sign', meta('old.pdf', Date.now() - MAX_AGE_MS));
+
+    expect(attachDraftPreview('sign', 'data:image/jpeg;base64,x')).toBe(false);
+    expect(readDraftMeta('sign')).toBeNull();
+  });
+
+  it('is scoped per tool', () => {
+    localStorage.setItem('pdf-toolkit:has-draft:redact', '1');
+    localStorage.setItem('pdf-toolkit:draft-meta:redact', meta('scan.pdf'));
+
+    expect(attachDraftPreview('sign', 'data:image/jpeg;base64,x')).toBe(false);
+    expect(attachDraftPreview('redact', 'data:image/jpeg;base64,x')).toBe(true);
+    expect(readDraftMeta('redact').preview).toBe('data:image/jpeg;base64,x');
+  });
+
+  it('ignores an empty preview rather than clearing an existing one', () => {
+    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
+    localStorage.setItem(
+      'pdf-toolkit:draft-meta:sign',
+      JSON.stringify({ fileName: 'contract.pdf', savedAt: Date.now(), preview: 'data:image/jpeg;base64,keep' }),
+    );
+
+    expect(attachDraftPreview('sign', '')).toBe(false);
+    expect(readDraftMeta('sign').preview).toBe('data:image/jpeg;base64,keep');
+  });
+
+  it('survives corrupt metadata without throwing', () => {
+    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
+    localStorage.setItem('pdf-toolkit:draft-meta:sign', '{not json');
+
+    expect(() => attachDraftPreview('sign', 'data:image/jpeg;base64,x')).not.toThrow();
+    expect(attachDraftPreview('sign', 'data:image/jpeg;base64,x')).toBe(false);
   });
 });
 
