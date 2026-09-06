@@ -396,8 +396,19 @@ const faq = [
      Repeating the class takes this to 0-3-1 so it wins on specificity instead
      of on emission order. Not `!important` - Astro's scoped output shares the
      bare rule's implicit layer, so specificity is what settles it. */
-  header.hero-header.hero-header { max-width: none; padding: 14px 24px 12px; margin: 0; text-align: center; }
-  .hero-header h1 { font-size: clamp(1.6rem, 3.4vw, 2.6rem); line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.035em; }
+  header.hero-header.hero-header { max-width: none; padding: 14px 24px 10px; margin: 0; text-align: center; }
+  /* The ceiling and the two margins here are a budget, not a taste call. This
+     header is fixed, so every pixel it grows comes straight out of
+     --home-stage-height, and the demo phone's height is that stage minus its
+     padding - so a bigger hero shrinks the phone and the permission-slip form
+     inside it overflows the screen. Raising the ceiling to 2.6rem did exactly
+     that: the header went 154.3px to 160.7px and the form's last line ended
+     2.4px past the bottom of the phone, against about 4px of slack it had.
+     2.45rem plus 2px off each margin lands the header at ~154px, so the demo
+     keeps the slack it was tuned with and the title is still 39px against the
+     36px it was. e2e/demo/workspace-flow.spec.js pins the form's fit; if it
+     starts failing after a change here, that is this budget being spent. */
+  .hero-header h1 { font-size: clamp(1.6rem, 3.4vw, 2.45rem); line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.035em; }
   .hero-header h1 span { color: var(--color-primary); }
   .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
   #home-content { padding-top: var(--home-header-height); padding-bottom: var(--home-dock-height); }

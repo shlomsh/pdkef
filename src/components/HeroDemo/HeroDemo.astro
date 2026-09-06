@@ -75,7 +75,7 @@ const rootSelector = `.${styles.root}`;
                   </svg>
                   <span class={styles['file-meta']}>
                     <span class={styles['file-name']}>field-trip-permission-slip.pdf</span>
-                    <span class={`${styles['file-status']} ${styles['anim-sent']}`}>Sent</span>
+                    <span class={`${styles['file-status']} ${styles['anim-sent']}`} data-hero-sent>Sent</span>
                   </span>
                 </div>
               </div>
@@ -358,7 +358,7 @@ const rootSelector = `.${styles.root}`;
                   the composed message flies up and out, and the confirmation
                   lands after it has gone. See .send-press / .reply-outgoing /
                   .sent-confirm for the ordering. */}
-              <div class={styles['sent-confirm']}>
+              <div class={styles['sent-confirm']} data-hero-sent>
                 <svg class={styles['sent-check']} viewBox="0 0 16 16" aria-hidden="true">
                   <path d="M2.5 8.5l3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
