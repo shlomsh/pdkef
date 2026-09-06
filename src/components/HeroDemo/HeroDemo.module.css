@@ -9,6 +9,11 @@
   color: var(--color-text);
 }
 .track { position: absolute; inset: 0; }
+.track[data-hero-track='blur'] .stage {
+  /* The confirmation gets its own calm beat before the tour scrolls on. Its
+     caption and phone leave together, rather than the phone vanishing alone. */
+  opacity: calc(1 - var(--p-fade, 0));
+}
 .stage {
   display: grid;
   grid-template-columns: minmax(150px, 250px) auto;
@@ -33,6 +38,10 @@
   --p-share: 1;
   --p-send: 1;
   --p-sent: 1;
+  /* Unlike the other completed-state defaults this begins at 0: no-JS and
+     reduced-motion retain the final reply, while the live driver raises it
+     only during the blur story's final fade. */
+  --p-fade: 0;
   --p-arrive: 1;
   --p-blur: 1;
   --p-blackout: 1;

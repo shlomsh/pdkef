@@ -398,13 +398,19 @@ const faq = [
   .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
   #home-content { padding-top: var(--home-header-height); padding-bottom: var(--home-dock-height); }
   .home-tour { min-height: var(--home-stage-height); }
-  /* 940svh, not 850. The extra 90svh buys the dwell on the finished first
-     story that ScrollDriver.tsx's split constants carve out; both stories keep
-     the scroll distance they had. If this number changes, re-derive SIGN_END /
-     CROSSFADE_START / CROSSFADE_END against it - they are fractions of this
-     span, so a shorter tour speeds both stories up silently. */
-  .home-tour { height: calc(var(--home-stage-height) + 940svh); }
-  .home-scene { position: sticky; top: var(--home-header-height); min-height: var(--home-stage-height); display: grid; grid-template-columns: minmax(312px, 0.85fr) minmax(0, 2fr); align-items: center; gap: 40px; max-width: 1280px; margin-inline: auto; padding: 0 32px; box-sizing: border-box; }
+  /* 1080svh. The original extra room buys the dwell on the finished first
+     story; the added 140svh pauses the second story on its initial inbox,
+     cleaned reply, and sent confirmation without slowing the redactions.
+     If this number changes, re-derive SIGN_END / CROSSFADE_START /
+     CROSSFADE_END against it - they are fractions of this span, so a shorter
+     tour speeds both stories up silently. */
+  .home-tour { height: calc(var(--home-stage-height) + 1080svh); }
+  /* Keep the visual anchors balanced: the file controls stay aligned to the
+     scene's left edge while the demo is centered in an equally sized right
+     zone. The former 0.85fr / 2fr split centered the phone in an oversized
+     column, leaving visibly more empty space after it than before the recent
+     documents. */
+  .home-scene { position: sticky; top: var(--home-header-height); min-height: var(--home-stage-height); display: grid; grid-template-columns: minmax(312px, 1fr) minmax(0, 1fr); align-items: center; gap: 40px; max-width: 1280px; margin-inline: auto; padding: 0 32px; box-sizing: border-box; }
   .home-scene { height: var(--home-stage-height); }
   .workspace-launcher { justify-self: start; width: 100%; max-width: 400px; }
   [data-working-area][data-drag-over] { outline: 3px dashed var(--color-primary); outline-offset: -10px; background: var(--color-success-soft); }
@@ -474,12 +480,11 @@ const faq = [
   /* The dock scrolls sideways only at widths where it genuinely does not
      fit, and that condition is what brings the tool tooltips back.
 
-     `overflow-x: auto` computes `overflow-y: auto` too - a non-visible
-     overflow on one axis forces the other - so a scrolling dock is a scroll
-     container on both axes, and .app-tooltip sits 115px *above* the dock's
-     top edge. The tooltips were therefore clipped away entirely at every
-     width, while the dock reported scrollWidth 1280 against clientWidth
-     1280: it was paying the clip without needing the scroll.
+     CSS turns an unspecified `overflow-y` into `auto` when `overflow-x` is
+     scrollable. That exposed a vertical scrollbar on the fixed dock even
+     though its only intended overflow is the horizontal tool list. Keep the
+     block axis explicitly clipped while preserving the familiar sideways
+     scroll pattern on narrow screens.
 
      928px is the dock's own width at desktop sizing - nine 80px cards, eight
      20px gaps, 48px of padding - so 960px is the first round step that
@@ -492,7 +497,7 @@ const faq = [
   }
 
   @media (max-width: 959.98px) {
-    .home-dock { overflow-x: auto; overscroll-behavior-inline: contain; }
+    .home-dock { overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; }
   }
   .app-card { position: relative; display: flex; flex: 0 0 80px; flex-direction: column; align-items: center; gap: 6px; color: inherit; text-decoration: none; }
   .app-tile { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; }
