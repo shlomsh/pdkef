@@ -13,9 +13,9 @@ import {
   autoUpdate
 } from '@floating-ui/react';
 
-export function createPopoverMiddleware(offsetValue = 5, stablePosition = false) {
+export function createPopoverMiddleware(offsetValue = 5, stablePosition = false, crossAxisOffset = 0) {
   return [
-    offset(offsetValue),
+    offset({ mainAxis: offsetValue, crossAxis: crossAxisOffset }),
     ...(stablePosition ? [] : [flip({ fallbackAxisSideDirection: 'end' })]),
     // A stable picker must retain its top edge while its result list changes
     // height. Keep horizontal collision handling, but never shift or flip it
@@ -31,6 +31,7 @@ export default function Popover({
   open: controlledOpen,
   onOpenChange: setControlledOpen,
   offset: offsetValue = 5,
+  crossAxisOffset = 0,
   stablePosition = false,
 }: {
   trigger: any;
@@ -39,6 +40,7 @@ export default function Popover({
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   offset?: number;
+  crossAxisOffset?: number;
   stablePosition?: boolean;
 }) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
@@ -51,7 +53,7 @@ export default function Popover({
     onOpenChange: setOpen,
     placement,
     whileElementsMounted: autoUpdate,
-    middleware: createPopoverMiddleware(offsetValue, stablePosition)
+    middleware: createPopoverMiddleware(offsetValue, stablePosition, crossAxisOffset)
   });
 
   const click = useClick(context);

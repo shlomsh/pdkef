@@ -21,7 +21,7 @@
 .color-trigger { padding: 4px; }
 .color-trigger-swatch { display: block; width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,.15) inset; }
 .font-trigger { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-weight: 700; font-size: .85rem; }
-.font-menu { gap: .45rem; width: min(22rem, calc(100vw - 20px)); max-width: calc(100vw - 20px); white-space: normal; }
+.font-menu { gap: .45rem; width: min(11rem, calc(100vw - 20px)); max-width: calc(100vw - 20px); white-space: normal; }
 .font-menu-search { width: 100%; min-height: 2.25rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); padding: .45rem .6rem; font: 400 .82rem/1.2 system-ui, sans-serif; outline: none; }
 .font-menu-search:focus { border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-soft); }
 .font-menu-options { display: flex; flex-direction: column; gap: 2px; max-height: min(22rem, 52vh); overflow-y: auto; }
