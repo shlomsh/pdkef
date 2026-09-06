@@ -68,7 +68,7 @@ function collectIgnoringTheMatrix(tokens) {
  * The lower cell count is the label and dash cells no longer being counted as
  * places to type.
  *
- * **Income tax 101, ">= 17 runs covering >= 184 cells" -> 37 runs, 321 cells.**
+ * **Income tax 101, ">= 17 runs covering >= 184 cells" -> 38 runs, 325 cells.**
  * Comfortably past the target. The extra comes from the children's table, whose
  * thirteen rows each carry an identity comb and a date comb.
  */
@@ -93,8 +93,8 @@ describe('income tax form 101, page 1', () => {
   });
 
   it('recovers well past the 17 comb runs and 184 cells MOBI-03 measured', () => {
-    expect(detected.combs.length).toBe(37);
-    expect(detected.combs.reduce((total, run) => total + run.cells, 0)).toBe(321);
+    expect(detected.combs.length).toBe(38);
+    expect(detected.combs.reduce((total, run) => total + run.cells, 0)).toBe(325);
   });
 
   it('reads the dominant pitch the ticket measured at 11.4pt', () => {
@@ -106,7 +106,7 @@ describe('income tax form 101, page 1', () => {
   it('finds nothing at all without the CTM walk, which is the whole difficulty', async () => {
     // The regression MOBI-03 asks for by name. This page issues 370 `cm`
     // operators, so raw operands share no baseline: the same detector fed ink
-    // collected without composing the matrix goes from 37 runs to none.
+    // collected without composing the matrix goes from 38 runs to none.
     const document = await PDFDocument.load(
       fs.readFileSync(fixture('income-tax-101-page1-geometry.pdf')),
       { ignoreEncryption: true, updateMetadata: false },
@@ -114,7 +114,7 @@ describe('income tax form 101, page 1', () => {
     const naive = collectIgnoringTheMatrix(tokenize(getPageContentBytes(document.getPage(0))));
     expect(naive.verticals.length).toBeGreaterThan(300);
     expect(findCombRuns(naive)).toEqual([]);
-    expect(detected.combs.length).toBe(37);
+    expect(detected.combs.length).toBe(38);
   });
 
   describe('the identity-number field this exists for', () => {
@@ -151,15 +151,15 @@ describe('income tax form 101, page 1', () => {
 
   it('offers no region that is not a printed field', () => {
     // Audited against a render of the page with every detected region drawn
-    // over it. All 37 runs land on a ruled field: 3 identity combs, 3 passport
+    // over it. All 38 runs land on a ruled field: 3 identity combs, 3 passport
     // combs, 4 dates, a deductions file number, a postal code, a start date,
     // and the children's table's 13 rows of identity and date.
-    expect(detected.combs.length).toBe(37);
+    expect(detected.combs.length).toBe(38);
     const byCells = detected.combs.reduce((counts, run) => {
       counts[run.cells] = (counts[run.cells] || 0) + 1;
       return counts;
     }, {});
-    expect(byCells).toEqual({ 7: 1, 8: 18, 9: 16, 13: 2 });
+    expect(byCells).toEqual({ 4: 1, 7: 1, 8: 18, 9: 16, 13: 2 });
   });
 });
 
@@ -201,16 +201,18 @@ describe('National Insurance health declaration, page 1', () => {
   });
 });
 
-describe('what the >= 5 cell rule leaves out, on purpose', () => {
-  it('skips form 101 tax-year field, which is four cells', () => {
+describe('short numeric combs', () => {
+  it('finds form 101 tax-year field, which is four cells', () => {
     // "שנת המס" at the head of the page is a four-cell comb at 16.2pt pitch.
-    // MOBI-03 scopes a comb run at five cells or more, so it is a known miss
-    // rather than a detector failure.
+    // Four digits are enough for a tax year, and its measured, bounded grid is
+    // just as unambiguous as the longer identity-number combs.
     const taxYearRow = async () => {
       const { combs } = await regionsOf('income-tax-101-page1-geometry.pdf');
       return combs.filter((run) => Math.abs(run.pitchPoints - 16.2) < 0.5);
     };
-    return expect(taxYearRow()).resolves.toEqual([]);
+    return expect(taxYearRow()).resolves.toEqual([
+      expect.objectContaining({ cells: 4 }),
+    ]);
   });
 
   it('skips the health declaration area codes, which are three cells each', async () => {
