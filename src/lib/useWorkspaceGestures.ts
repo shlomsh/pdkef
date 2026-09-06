@@ -2,7 +2,11 @@ import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../editor/gestures/controller.ts';
 import type { GestureEvent } from '../editor/gestures/controller.ts';
 import { createElementId } from '../editor/model/ids.ts';
-import { captureAddedElement, type HistoryLogger } from '../editor/model/actionHistory.ts';
+import {
+  captureAddedElement,
+  captureElementSnapshots,
+  type HistoryLogger,
+} from '../editor/model/actionHistory.ts';
 import type {
   EditorElement,
   EditorElementPatch,
@@ -18,8 +22,10 @@ import {
   checkboxRegionAt,
   combRegionAt,
   placeCombOnRegion,
+  type FieldRegion,
 } from '../editor/text/combPlacement.ts';
 import { placeSymbolOnRegion } from '../editor/registry/symbol.ts';
+import { DESIGN_BOX, markInkExtent } from '../editor/registry/symbolMarks.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 import {
   DEFAULT_COLOR_BLUE,
@@ -62,6 +68,8 @@ type WorkspaceGestureAction =
 
 export interface WorkspaceGestureOptions {
   selectedTool: WorkspaceCreationTool | null;
+  /** Existing document elements, used to toggle a mark already in a detected checkbox. */
+  elements?: EditorElement[];
   dispatch: (action: WorkspaceGestureAction) => void;
   activeSignature: SavedSignature | null;
   setTempPlacement: (placement: PendingSignaturePlacement) => void;
@@ -108,6 +116,25 @@ interface LinePlacementPatch {
 type PlacementPatch = BoxPlacementPatch | LinePlacementPatch;
 
 /**
+ * A detected checkbox is a real form field, not merely a spot on the page.
+ *
+ * Match its existing mark by the centre of the mark's ink rather than the
+ * centre of its element box: a check's ink sits high within that box, and a
+ * snapped x deliberately makes its box larger than the printed square. This
+ * also makes a mark that was gently nudged but remains in its box removable.
+ */
+function symbolIsInCheckbox(element: EditorElement, region: FieldRegion): boolean {
+  if (element.type !== 'symbol') return false;
+  const ink = markInkExtent(element.mark);
+  const x = element.left + (ink.centerX / DESIGN_BOX) * element.width;
+  const y = element.top + (ink.centerY / DESIGN_BOX) * element.height;
+  return x >= region.left
+    && x <= region.left + region.width
+    && y >= region.top
+    && y <= region.top + region.height;
+}
+
+/**
  * Encapsulates the two gesture handlers that turn raw DOM pointer events on the
  * PDF page overlay into SignTool state dispatch calls.
  *
@@ -134,6 +161,7 @@ export default function useWorkspaceGestures({
   initialSymbolMark = 'check',
   pageSizes = [],
   formRegions = { combs: [], checkboxes: [] },
+  elements = [],
   nextElementIndex = 0,
   // PdfWorkspace supplies a ref it owns for component teardown. Keeping this
   // handler factory hook-free also preserves its direct unit-test contract.
@@ -168,10 +196,6 @@ export default function useWorkspaceGestures({
       }
       return;
     }
-    e.stopPropagation();
-
-    if ((e.target as Element | null)?.closest('[data-editor-element]')) return;
-
     const container = e.currentTarget;
     const pageGeometry = pageSizes[pageIndex];
     const { x: leftPercent, y: topPercent } = getPointerPercent(e, container, pageGeometry);
@@ -212,6 +236,36 @@ export default function useWorkspaceGestures({
     const checkboxRegion = selectedTool === 'symbol'
       ? checkboxRegionAt(formRegions.checkboxes, point, pageIndex)
       : null;
+
+    // A printed square acts as a toggle, not an ever-growing stack of marks.
+    // Do this before creating the candidate element so the second tap remains
+    // a single reversible delete action, including after a draft restore.
+    const existingCheckboxMark = checkboxRegion
+      ? elements.find((element) => symbolIsInCheckbox(element, checkboxRegion))
+      : null;
+    if (existingCheckboxMark) {
+      e.stopPropagation();
+      const snapshots = captureElementSnapshots(elements, (element) => element.id === existingCheckboxMark.id);
+      dispatch({ type: 'DELETE_ELEMENT', payload: existingCheckboxMark.id });
+      dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+      dispatch({ type: 'DISARM_TOOL' });
+      logAction(
+        'delete',
+        'DELETE_ELEMENT',
+        existingCheckboxMark.pageIndex,
+        'Removed symbol from printed box',
+        snapshots,
+      );
+      setAnnouncement('Removed symbol from the printed box.');
+      return;
+    }
+
+    // A mark covers the very target that toggles it. Check for a detected-box
+    // toggle above before treating clicks on an editor element as selection or
+    // dragging gestures; ordinary annotations still retain that behaviour.
+    if ((e.target as Element | null)?.closest('[data-editor-element]')) return;
+
+    e.stopPropagation();
     const snapped = combRegion
       ? placeCombOnRegion(combRegion, {
         fontSize: initialFontSize,
