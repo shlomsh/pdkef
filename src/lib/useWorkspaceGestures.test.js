@@ -268,6 +268,36 @@ describe('useWorkspaceGestures – symbol remembered settings', () => {
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     expect(firstAddElement(dispatch)).toMatchObject({ type: 'symbol', mark: 'x' });
   });
+
+  it('removes an existing mark when tapping its detected checkbox again', () => {
+    const checkbox = { pageIndex: 0, left: 49, top: 49, width: 2, height: 2 };
+    const existing = {
+      id: 'checked-box', type: 'symbol', pageIndex: 0,
+      // The check's ink centre is at the box centre (50%, 50%); its element
+      // box intentionally extends beyond the printed square.
+      left: 48, top: 48.0833333333, width: 4, height: 4,
+      mark: 'check', color: '#1463ff',
+    };
+    const logAction = vi.fn();
+    const setAnnouncement = vi.fn();
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'symbol',
+      formRegions: { combs: [], checkboxes: [checkbox] },
+      elements: [existing],
+      logAction,
+      setAnnouncement,
+    });
+
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+
+    expect(dispatch).toHaveBeenCalledWith({ type: 'DELETE_ELEMENT', payload: existing.id });
+    expect(dispatch.mock.calls.some(([action]) => action.type === 'ADD_ELEMENT')).toBe(false);
+    expect(logAction).toHaveBeenCalledWith(
+      'delete', 'DELETE_ELEMENT', 0, 'Removed symbol from printed box',
+      [{ element: existing, index: 0 }],
+    );
+    expect(setAnnouncement).toHaveBeenCalledWith('Removed symbol from the printed box.');
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -1,12 +1,12 @@
 ---
 id: "MOBI-05"
 title: "Tap a detected checkbox to place a mark in it"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
 phase: "near-term"
 depends_on: ["MOBI-03"]
-legacy_state: "Open"
+legacy_state: "Done"
 ---
 
 # MOBI-05 · Tap a detected checkbox to place a mark in it
@@ -43,17 +43,25 @@ undo and draft restore. No mutual exclusivity is implemented, and the ticket rec
 deliberate exclusion rather than an oversight. The interaction is proven at a real phone viewport, not
 only at desktop width, since the whole justification is a 2.3mm target.
 
-## Landed early with MOBI-04
+## Completed with MOBI-04 follow-through
 
-Placement and sizing are done: arming Symbols outlines every detected square,
-and a tap fills the one under it at exactly the printed square's width and
-height (`placeSymbolOnRegion` in `src/editor/text/combPlacement.ts`, wired
-through the same creation path and hit test as the comb, so the arming model is
-already respected). What this ticket still owns:
+Placement and sizing landed with MOBI-04: arming Symbols outlines every
+detected square, and a tap fills the one under it at exactly the printed
+square's width and height (`placeSymbolOnRegion` in
+`src/editor/text/combPlacement.ts`). The remaining follow-through is now
+complete: a second tap deletes the existing mark with a reversible delete
+history entry instead of stacking it, and the page overlay observes that tap
+before the selected mark's wrapper consumes it. The mark remains an ordinary
+symbol element, so the established export and draft paths carry it unchanged.
 
-- **Tap the same box again to clear the mark**, rather than stacking a second.
-- **Proof at a real phone viewport**, which is the whole justification.
-- **Export, undo and draft restore** asserted for a placed mark specifically.
+`e2e/sign/form-grid-fill.spec.js` proves the interaction on the committed
+health-declaration fixture at a 390×844 touch viewport: one tap places one
+mark, the tool disarms, then re-arming and tapping the same printed square
+clears it, and reverting that delete restores the mark. No yes/no or
+radio-style mutual exclusion is inferred or applied.
+`src/editor/workspace/useEditorDraftPersistence.test.tsx` independently
+confirms that the snapped mark's non-square page-percent geometry survives a
+draft restore.
 
 One correction to the measurement above: the 127 figure counts `re` operators
 that clip text and never paint, at a squareness tolerance loose enough to admit

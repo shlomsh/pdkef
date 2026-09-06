@@ -110,6 +110,7 @@ export default function PdfWorkspace({
   // --- Gesture handlers (extracted) ---
   const { handlePageClick, handleOverlayPointerDown } = useWorkspaceGestures({
     formRegions,
+    elements,
     selectedTool,
     dispatch,
     activeSignature,
@@ -297,7 +298,10 @@ export default function PdfWorkspace({
 
                     <div
                       className={workspaceStyles['page-overlay']}
-                      onClick={(e) => handlePageClick(e, pageIdx)}
+                      // Capture sees a tap on an existing checkbox mark before
+                      // its wrapper consumes the bubble event, so the same
+                      // detected square remains a real toggle target.
+                      onClickCapture={(e) => handlePageClick(e, pageIdx)}
                       onMouseDown={(e) => handleOverlayPointerDown(e, pageIdx)}
                       onTouchStart={(e) => handleOverlayPointerDown(e, pageIdx)}
                     >

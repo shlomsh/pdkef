@@ -85,6 +85,32 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
     expect(restored).toBe(true);
   });
 
+  it('restores a checkbox-sized symbol mark with its snapped geometry intact', async () => {
+    const fileBytes = new TextEncoder().encode('%PDF-1.4').buffer;
+    const checkboxMark = {
+      id: 'health-checkbox-1', type: 'symbol', pageIndex: 0,
+      // This is deliberately not a square percent box: its axes are scaled
+      // from the detected 6.6pt square against an A4 page's two dimensions.
+      left: 52.08, top: 42.19, width: 1.71, height: 1.21,
+      mark: 'check', color: '#1463ff',
+    };
+    (loadDraft as any).mockResolvedValue({
+      fileName: 'health.pdf',
+      fileType: 'application/pdf',
+      fileBytes,
+      elements: [checkboxMark],
+      extra: { actionHistory: [] },
+    });
+
+    const props = baseProps({ tool: 'sign' });
+    act(() => {
+      render(<Harness apiRef={{ current: null }} props={props} />, container);
+    });
+    await waitAsync();
+
+    expect(props.loadPdf.mock.calls[0][2].elements).toEqual([checkboxMark]);
+  });
+
   it('treats a record failing the top-level check the same as no record at all', async () => {
     (loadDraft as any).mockResolvedValue({ fileName: 'contract.pdf', elements: [] });
 

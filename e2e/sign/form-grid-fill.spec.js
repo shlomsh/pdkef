@@ -19,6 +19,10 @@ const FIXTURE = path.resolve(
   here, '..', '..', 'src', 'editor', 'adapters', 'pdf', '__fixtures__',
   'income-tax-101-page1-geometry.pdf',
 );
+const HEALTH_FIXTURE = path.resolve(
+  here, '..', '..', 'src', 'editor', 'adapters', 'pdf', '__fixtures__',
+  'health-declaration-page1-geometry.pdf',
+);
 
 // The identity comb ("מספר זהות (9 ספרות)"), as the detector reports it in
 // page percentages. Nine cells at an 11.34pt pitch; the fixture test in
@@ -42,11 +46,33 @@ async function openWithFixture(page) {
   await expect(page.locator('[class*="field-hint"]').first()).toBeVisible();
 }
 
+async function openWithHealthFixture(page) {
+  await page.goto('/sign');
+  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByText('Choose file', { exact: true }).click();
+  await (await chooser).setFiles({
+    name: 'health-declaration-geometry.pdf',
+    mimeType: 'application/pdf',
+    buffer: fs.readFileSync(HEALTH_FIXTURE),
+  });
+  await expect(page.locator('[class*="page-overlay"]')).toBeVisible();
+  await armSymbols(page);
+  await expect(page.locator('[class*="field-hint-checkbox"]').first()).toBeVisible();
+}
+
 async function armText(page) {
   const textTool = page
     .getByRole('toolbar', { name: 'PDF annotations' })
     .getByRole('button', { name: 'Text', exact: true });
   if ((await textTool.getAttribute('aria-pressed')) !== 'true') await textTool.click();
+}
+
+async function armSymbols(page) {
+  const symbolTool = page
+    .getByRole('toolbar', { name: 'PDF annotations' })
+    .getByRole('button', { name: 'Symbols', exact: true });
+  if ((await symbolTool.getAttribute('aria-pressed')) !== 'true') await symbolTool.click();
 }
 
 /** Taps the middle of a run, in the page's own percentage coordinates. */
@@ -58,6 +84,20 @@ async function tapRun(page, run) {
     position: {
       x: (box.width * (run.left + run.width / 2)) / 100,
       y: (box.height * (run.top + 0.4)) / 100,
+    },
+  });
+}
+
+/** Taps the centre of a detected checkbox at its real rendered location. */
+async function tapFirstCheckbox(page) {
+  const hint = page.locator('[class*="field-hint-checkbox"]').first();
+  const hintBox = await hint.boundingBox();
+  const overlay = page.locator('[class*="page-overlay"]').first();
+  const overlayBox = await overlay.boundingBox();
+  await overlay.click({
+    position: {
+      x: hintBox.x + hintBox.width / 2 - overlayBox.x,
+      y: hintBox.y + hintBox.height / 2 - overlayBox.y,
     },
   });
 }
@@ -164,5 +204,40 @@ test.describe('tapping a printed comb run', () => {
     await page.getByRole('button', { name: 'Revert selected' }).click();
 
     await expect(page.locator('[data-editor-element]')).toHaveCount(0);
+  });
+});
+
+test.describe('tapping a detected checkbox', () => {
+  // The checkbox is roughly 2.3mm on paper. This has to be proven with touch
+  // input at a phone viewport, rather than only with a desktop-sized click.
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+
+  test('places and clears a mark in the same detected box', async ({ page }) => {
+    await openWithHealthFixture(page);
+    await tapFirstCheckbox(page);
+
+    await expect(page.locator('[data-editor-element]')).toHaveCount(1);
+    await expect(page.locator('[data-editor-element][data-editor-active]')).toHaveCount(1);
+    const symbolTool = page
+      .getByRole('toolbar', { name: 'PDF annotations' })
+      .getByRole('button', { name: 'Symbols', exact: true });
+    await expect(symbolTool).toHaveAttribute('aria-pressed', 'false');
+
+    // The one-shot arming model still applies. Re-arm, then the same real
+    // target acts as a toggle instead of layering a second check over it.
+    await armSymbols(page);
+    await tapFirstCheckbox(page);
+    await expect(page.locator('[data-editor-element]')).toHaveCount(0);
+    await expect(symbolTool).toHaveAttribute('aria-pressed', 'false');
+
+    // Clearing is a delete command, not an untracked visual toggle: undoing
+    // just that newest command restores the same mark in the same square.
+    await page.getByRole('toolbar', { name: 'PDF annotations' })
+      .getByRole('button', { name: /Undo/i }).click();
+    const entries = page.getByRole('dialog').getByRole('checkbox');
+    await expect(entries).toHaveCount(2);
+    await entries.first().check();
+    await page.getByRole('button', { name: 'Revert selected' }).click();
+    await expect(page.locator('[data-editor-element]')).toHaveCount(1);
   });
 });
