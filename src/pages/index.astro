@@ -580,10 +580,43 @@ const faq = [
       animation-name: none;
     }
   }
-  .try-workspace { min-height: var(--home-stage-height); box-sizing: border-box; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-  .try-workspace h2 { font-size: 2rem; margin: 0 0 8px; }
-  .try-workspace > p { margin: 0 0 24px; color: var(--color-muted); }
+  /* The closing stage is a card, drawn the same way as the five above it.
+     It had none of this: a bare <section> with no background sitting inside
+     .card-stack at z-index 1, so it slid over the last story card and you read
+     straight through its heading to that card's own text. Giving it a surface
+     is what makes it the last card rather than a transparent overlay on one.
+
+     The box is FeatureCard's own - same max-width, radius, border, surface and
+     horizontal padding - so it lines up with the deck instead of merely being
+     near it. The height matches a pinned card too, dock padding included, so
+     it is not visibly taller than its neighbours.
+
+     The footer stays outside it. It follows this section inside .card-stack
+     (which is what gives the last story card its sticky run-out), and with no
+     background here the two read as one over-tall card. */
+  .try-workspace {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1080px;
+    margin-inline: auto;
+    min-height: calc(100svh - var(--home-header-height) - var(--stack-gap, 2rem));
+    /* 2.5rem inline is FeatureCard's own px-10, written as a length because
+       the token scale steps 2rem to 3rem and neither lines up with the deck. */
+    padding: var(--space-section-block) 2.5rem calc(var(--space-section-block) + var(--home-dock-height));
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .try-workspace h2 { font-size: 2rem; margin: 0 0 24px; }
   .try-workspace > a { margin-top: 24px; }
+  @media (max-width: 1080px) {
+    .try-workspace { width: auto; margin-inline: var(--space-6); }
+  }
   .home-dock { position: fixed; z-index: 40; bottom: 0; left: 0; right: 0; height: var(--home-dock-height); box-sizing: border-box; display: flex; align-items: center; justify-content: safe center; gap: 20px; padding: 14px 24px; background: color-mix(in srgb, var(--color-bg) 94%, transparent); border-top: 1px solid var(--color-border); backdrop-filter: blur(12px); }
 
   /* The dock scrolls sideways only at widths where it genuinely does not

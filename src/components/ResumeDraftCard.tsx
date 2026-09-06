@@ -10,7 +10,13 @@ export default function ResumeDraftCard({ drafts }: { drafts: any[] }) {
 
   return (
     <section data-home-recents class={styles.card} aria-labelledby="resume-draft-heading">
-      <h2 class={styles.heading} id="resume-draft-heading">Pick up where you left off</h2>
+      {/* Visually hidden, not removed. A desktop does not caption its own
+          files, and on a page whose whole first screen is the workspace the
+          line was labelling the obvious. The heading itself has to stay: it is
+          this section's accessible name (aria-labelledby above) and its only
+          landmark for a screen reader, which has no layout to infer the
+          grouping from. */}
+      <h2 class="sr-only" id="resume-draft-heading">Pick up where you left off</h2>
       <ul class={styles.list}>
         {drafts.map((draft: any) => {
           const meta = tools.find(t => t.slug === draft.tool);
@@ -25,7 +31,7 @@ export default function ResumeDraftCard({ drafts }: { drafts: any[] }) {
               {draft.preview
                 ? <img class={styles.preview} src={draft.preview} alt="" width="64" height="84" />
                 : <svg class={styles.preview} viewBox="0 0 64 84" aria-hidden="true"><path d="M8 2h32l16 16v64H8zM40 2v18h16" fill="var(--color-surface)" stroke="var(--color-border-strong)"/><text x="32" y="54" text-anchor="middle" fill="var(--color-primary)" font-size="14">PDF</text></svg>}
-              <span class={styles.name}>{draft.fileName || 'Untitled document'}</span>
+              <span class={styles.name} title={draft.fileName || undefined}>{draft.fileName || 'Untitled document'}</span>
               <span class={styles.sub}>{meta.gridTitle}</span>
               {draft.fileName === SAMPLE_FILE_NAME && <span class={styles.sub}>Bundled sample</span>}
             </a>
