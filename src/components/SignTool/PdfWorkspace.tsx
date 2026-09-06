@@ -15,6 +15,7 @@ import type { FormFieldRegions } from '../../lib/useFormFieldRegions.ts';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
 import type { PendingSignaturePlacement } from '../../lib/useWorkspaceGestures.ts';
 import { detectTextDirection } from '../../lib/signHelpers.js';
+import { useAutoFontProvisioning } from '../../lib/useAutoFontProvisioning.js';
 import { getSignExportReadiness } from '../../lib/signExportReadiness.ts';
 import { createPageGeometry } from '../../editor/geometry/coords.js';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
@@ -88,6 +89,7 @@ export default function PdfWorkspace({
   const placementGestureRef = useRef<(() => void) | null>(null);
   useEffect(() => () => placementGestureRef.current?.(), []);
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
+  useAutoFontProvisioning(elements);
   const {
     lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastThickness, lastSymbolWidth, lastSymbolMark,
     rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth

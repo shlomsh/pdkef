@@ -117,7 +117,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       act(() => (document.body.querySelector('[data-font-name="Caveat"]') as HTMLButtonElement).click());
 
       expect(onChange).toHaveBeenCalledOnce();
-      expect(onChange).toHaveBeenCalledWith({ fontFamily: 'Caveat' });
+      expect(onChange).toHaveBeenCalledWith({ fontFamily: 'Caveat', fontFamilyExplicit: true });
       expect(document.body.querySelector('[data-font-picker-menu]')).toBeNull();
     });
   });

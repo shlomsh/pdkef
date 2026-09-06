@@ -78,6 +78,16 @@ export interface TextElement extends ElementBase {
   /** Font size in PDF points. */
   fontSize?: number;
   fontFamily?: string;
+  /**
+   * False until the person chooses a family in the font menu. A fresh field
+   * can therefore follow the text's script without interrupting typing;
+   * once a family is picked, that choice is preserved and any fallback stays
+   * visible as an explanation rather than silently replacing it.
+   *
+   * Omitted is intentionally treated as an existing, deliberate choice so
+   * older saved drafts retain their current review behaviour.
+   */
+  fontFamilyExplicit?: boolean;
   fontWeight?: 'normal' | 'bold';
   fontStyle?: 'normal' | 'italic';
   /** Explicit direction seed; absent lets sign.js auto-detect from `text`. */
