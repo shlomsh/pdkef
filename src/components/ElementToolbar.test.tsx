@@ -5,7 +5,7 @@
 // element — rather than re-testing FontPickerMenu's own logic in isolation.
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, afterEach } from 'vitest';
+import { describe, expect, it, afterEach, vi } from 'vitest';
 import ElementToolbar from './ElementToolbar.tsx';
 
 describe('ElementToolbar font picker wiring', () => {
@@ -65,6 +65,31 @@ describe('ElementToolbar font picker wiring', () => {
     const caveatItem = items.find((el) => el.textContent?.startsWith('Caveat'))!;
     expect(caveatItem.className).toMatch(/active/);
     expect(caveatItem.textContent).not.toContain('no ');
+  });
+
+  it('records a font-menu choice as explicit', () => {
+    const onChange = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(
+        <ElementToolbar
+          element={{ id: 'e3', type: 'text', fontFamily: 'Arimo', text: '' }}
+          onChange={onChange}
+          onClone={() => {}}
+          onDelete={() => {}}
+        />,
+        container as any,
+      );
+    });
+    act(() => {
+      (container!.querySelector('button[title^="Font:"]') as HTMLButtonElement).click();
+    });
+    act(() => {
+      (document.body.querySelector('[data-font-name="Sacramento"]') as HTMLButtonElement).click();
+    });
+
+    expect(onChange).toHaveBeenCalledWith({ fontFamily: 'Sacramento', fontFamilyExplicit: true });
   });
 });
 

@@ -113,7 +113,7 @@ describe('PdfSignTool UI flow', () => {
 
   it.each([
     ['download', 'Save your changes and download the signed PDF', () => new signModule.UnrepresentableTextError(['\u{1F600}'], [1]), '\u{1F600}', 'Initial text'],
-    ['offline-font download', 'Save your changes and download the signed PDF', () => new signModule.FontUnavailableError('Pacifico'), 'Make offline', 'Initial text'],
+    ['offline-font download', 'Save your changes and download the signed PDF', () => new signModule.FontUnavailableError('Pacifico'), 'Connect to the internet', 'Initial text'],
     ['share preparation', 'Save your changes to share the signed PDF', () => new Error('Export failed'), 'Your edits are still here', 'Initial text']
   ])('keeps the editor usable after a %s failure and allows a corrected retry', async (mode, title, makeError, errorText, initialText) => {
     const originalShare = Object.getOwnPropertyDescriptor(navigator, 'share');
