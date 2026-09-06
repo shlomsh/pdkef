@@ -60,7 +60,17 @@ export async function scrollStory(page, key, fraction) {
   await page.evaluate(({progress, fraction}) => {
     const tour = document.getElementById('home-tour');
     const scene = tour.querySelector('[data-working-area]');
-    window.scrollTo(0, (tour.offsetHeight - scene.offsetHeight) * progress + (fraction === 1 ? 2 : 0));
+    // `travel` is exactly the scene's sticky range, so the nudge that makes
+    // the final beat land on a clean 1 must not be allowed past it: two pixels
+    // beyond the end unpins the scene by two pixels, and sticky-pin.spec.js
+    // then reads that as the stage having moved during the story.
+    //
+    // This only became reachable when the track mapping was corrected. The old
+    // literals put the second story's end at 0.62 + 0.37 = 0.99, an accidental
+    // 1% short of the end of travel, so the nudge had somewhere to go. It now
+    // ends at 1.0, where there is nothing left.
+    const travel = tour.offsetHeight - scene.offsetHeight;
+    window.scrollTo(0, Math.min(travel * progress + (fraction === 1 ? 2 : 0), travel));
   }, {progress, fraction});
   await expectProgress(page, key, fraction);
 }

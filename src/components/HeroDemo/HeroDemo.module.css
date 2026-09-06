@@ -277,13 +277,30 @@
   background: var(--color-surface);
 }
 
+/* Each layer is fully opaque for the whole of its own slide and switches off
+   only in the last 2% of being covered - a near-step rather than a fade.
+ *
+ * Both halves of that matter. Opaque during the slide is what makes it a push:
+ * a layer whose opacity ramps while it travels leaves the part of the view it
+ * has not reached yet half-faded, so the left of the screen dissolves while
+ * the right is covered, which looks like neither a fade nor a push. And
+ * switching fully off at the end is what keeps "exactly one layer is visible
+ * at rest" true - the property e2e/demo/no-js.spec.js and reduced-motion.spec.js
+ * assert, and the reason the defaults (every --p-* at 1) have to leave the
+ * finished layer alone on screen rather than three stacked opaque layers that
+ * merely happen to cover each other. Leaving them all at opacity 1 looked
+ * right and broke that guard.
+ *
+ * The 0.98/50 pair is one expression of "step at the very end"; the numbers
+ * are not measurements, they just have to make the ramp shorter than any
+ * scroll step a reader can stop inside. */
 .email-layer {
-  /* Pushed back rather than faded out: it stays fully opaque underneath, and
-     is covered completely once the bill has finished sliding in. */
+  opacity: calc(1 - max(0, (var(--p-open, 1) - 0.98) * 50));
   transform: translateX(calc(var(--p-open, 1) * -18%));
 }
 
 .bill-layer {
+  opacity: calc(min(1, var(--p-open, 1) * 50) - max(0, (var(--p-send, 1) - 0.98) * 50));
   transform: translateX(calc((1 - var(--p-open, 1)) * 100%));
   /* The leading edge casts onto the view it is covering, which is what makes
      the push read as one view over another rather than a redraw. */
@@ -291,6 +308,7 @@
 }
 
 .reply-layer {
+  opacity: min(1, calc(var(--p-send, 1) * 50));
   transform: translateX(calc((1 - var(--p-send, 1)) * 100%));
   box-shadow: -10px 0 26px -14px var(--phone-shadow-color);
 }
