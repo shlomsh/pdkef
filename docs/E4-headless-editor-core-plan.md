@@ -67,8 +67,8 @@ The `type === 'line'` / `!isLine` / `isShape` / `symbol||signature` branching in
 | `text` | 4 corners | Scale `fontSize` by drag projected on box diagonal; adjust `left`/`top` to hold the anchor edge; RTL anchors via CSS `right`. `MIN/MAX_FONT_SIZE_PT`. | Click-place; `autoFocus`; inherits last text size/color/font/direction |
 | `rectangle` / `ellipse` | 4 edges + 4 corners | Per-handle dimension cap vs anchor edge; `MIN/MAX_SHAPE_SIZE_PCT`; derives `left`/`top` from new dim on left/top handles | Drag-drawn; `ENSURE_MINIMUM_SIZE` on release |
 | `whiteout` | 4 edges + 4 corners | **Same** as rectangle/ellipse (shared branch today) | Drag-drawn; own default color, **not** shape/text color |
-| `symbol` | 4 corners | Center-anchored, aspect-ratio-locked; min **pixel** floor (`MIN_SYMBOL_WIDTH_PX`), `MAX_SYMBOL_SIGNATURE_WIDTH_PCT` | Click-place; square-ish via `ASPECT_RATIO_SYMBOL` |
-| `signature` | 4 corners | Center-anchored, aspect-ratio-locked | Click-place (or dialog if none active) |
+| `symbol` | 4 corners | Center-anchored, aspect-ratio-locked; min **pixel** floor (`MIN_SYMBOL_WIDTH_PX`), `MAX_SYMBOL_WIDTH_PCT` | Click-place; square-ish via `ASPECT_RATIO_SYMBOL` |
+| `signature` | 4 corners | Center-anchored, aspect-ratio-locked; `MAX_SHAPE_SIZE_PCT` ceiling (freeform ink, not a checkbox-sized mark) | Click-place (or dialog if none active) |
 | `line` | `line-start` / `line-end` endpoint handles | Move the dragged endpoint only (no bbox); `MIN_LINE_LENGTH_PCT` reset on release | Drag-drawn from a point |
 
 Geometry constants all live in [`signGeometry.js`](../src/constants/signGeometry.js); the registry

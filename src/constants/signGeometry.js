@@ -14,9 +14,14 @@ export const MIN_FONT_SIZE_PT = 6;                    // Minimum font size in po
 export const MAX_FONT_SIZE_PT = 72;                   // Maximum font size in points (pt)
 export const MIN_SYMBOL_WIDTH_PX = 14;                // Minimum symbol size in pixels (px)
 export const MIN_STANDARD_WIDTH_PCT = 3;              // Minimum width for standard elements (signature, shape) (%)
-export const MAX_SYMBOL_SIGNATURE_WIDTH_PCT = 60;     // Max drag/resize width limit for symbol/signature (%)
+// Symbols are small tick/check/cross marks meant to fill a checkbox, so a
+// generous-but-bounded cap keeps a placed mark from growing past what a
+// checkbox-sized region ever needs. Signatures are freeform ink, closer in
+// kind to a shape than to a symbol, and use MAX_SHAPE_SIZE_PCT instead (see
+// signature.ts) so a signature can span the page as wide as a shape can.
+export const MAX_SYMBOL_WIDTH_PCT = 60;               // Max drag/resize width limit for symbol marks (%)
 export const MIN_SHAPE_SIZE_PCT = 1;                  // Minimum size for shapes and whiteouts (%)
-export const MAX_SHAPE_SIZE_PCT = 90;                 // Maximum size for shapes and whiteouts (%)
+export const MAX_SHAPE_SIZE_PCT = 90;                 // Maximum size for shapes, whiteouts, and signatures (%)
 export const DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT = 4;  // Default fallback element width (%)
 export const DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT = 2; // Default fallback element height (%)
 export const DEFAULT_SYMBOL_WIDTH_PCT = 5;            // Default symbol placement width (%)
