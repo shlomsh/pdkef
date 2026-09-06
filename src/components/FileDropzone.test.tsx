@@ -7,6 +7,7 @@ import { loadDraft, deleteDraft, saveDraft, saveHandoff, readDraftMeta } from '.
 import { setInputFiles } from '../test/setInputFiles.js';
 
 vi.mock('../editor/workspace/draftStore.js', () => ({
+  attachDraftPreview: vi.fn(),
   loadDraft: vi.fn(() => Promise.resolve(null)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   saveDraft: vi.fn(() => Promise.resolve(true)),

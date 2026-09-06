@@ -131,6 +131,10 @@ export function useDraftPersistence({
         // It remains stored as a best-effort older revision, but must not make
         // the newer editor state claim it has been saved.
         if (revision === revisionRef.current) {
+          // The preview may finish during the debounce, after record was
+          // captured but before its metadata is written. Reattach after the
+          // successful save so that stale snapshot cannot erase the image.
+          if (saved && previewRef.current) attachDraftPreview(tool, previewRef.current);
           setSaveState({ state: saved ? 'saved' : 'error', revision });
         }
         return saved;

@@ -70,7 +70,8 @@ export async function scrollStory(page, key, fraction) {
     // 1% short of the end of travel, so the nudge had somewhere to go. It now
     // ends at 1.0, where there is nothing left.
     const travel = tour.offsetHeight - scene.offsetHeight;
-    window.scrollTo(0, Math.min(travel * progress + (fraction === 1 ? 2 : 0), travel));
+    const start = tour.getBoundingClientRect().top + scrollY - parseFloat(getComputedStyle(scene).top);
+    window.scrollTo(0, start + Math.min(travel * progress + (fraction === 1 ? 2 : 0), travel));
   }, {progress, fraction});
   await expectProgress(page, key, fraction);
 }

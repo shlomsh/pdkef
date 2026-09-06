@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { loadDraft, deleteDraft, saveHandoff, readDraftMeta } from '../editor/workspace/draftStore.js';
+import { loadDraft, deleteDraft, saveHandoff, readDraftMeta, attachDraftPreview } from '../editor/workspace/draftStore.js';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import dialogStyles from './Dialog.module.css';
 import ResumeDraftCard from './ResumeDraftCard.tsx';
@@ -49,37 +49,61 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
     else await handOff(file);
   };
   useEffect(() => {
-    const area = container.current?.closest<HTMLElement>('[data-working-area]');
-    if (!area) return;
-    const over = (event: DragEvent) => {
-      if (!event.dataTransfer?.types.includes('Files')) return;
-      event.preventDefault();
-      event.dataTransfer.dropEffect = 'copy';
-      area.dataset.dragOver = '';
-    };
-    const leave = (event: DragEvent) => {
-      if (!area.contains(event.relatedTarget as Node)) delete area.dataset.dragOver;
-    };
-    const drop = (event: DragEvent) => {
-      event.preventDefault();
-      delete area.dataset.dragOver;
-      if (event.dataTransfer) void handleFiles(event.dataTransfer.files);
-    };
-    area.addEventListener('dragover', over);
-    area.addEventListener('dragleave', leave);
-    area.addEventListener('drop', drop);
-    return () => {
-      area.removeEventListener('dragover', over);
-      area.removeEventListener('dragleave', leave);
-      area.removeEventListener('drop', drop);
-    };
-  }, [busy]);
+    const ownArea = container.current?.closest<HTMLElement>('[data-working-area]');
+    const scene = final ? null : document.querySelector<HTMLElement>('.home-scene');
+    const areas = [...new Set([ownArea, scene].filter(Boolean))] as HTMLElement[];
+    const cleanups = areas.map(area => {
+      const over = (event: DragEvent) => {
+        if (!event.dataTransfer?.types.includes('Files')) return;
+        event.preventDefault();
+        event.stopPropagation();
+        event.dataTransfer.dropEffect = 'copy';
+        area.dataset.dragOver = '';
+      };
+      const leave = (event: DragEvent) => {
+        if (!area.contains(event.relatedTarget as Node)) delete area.dataset.dragOver;
+      };
+      const drop = (event: DragEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        for (const target of areas) delete target.dataset.dragOver;
+        if (event.dataTransfer) void handleFiles(event.dataTransfer.files);
+      };
+      area.addEventListener('dragover', over);
+      area.addEventListener('dragleave', leave);
+      area.addEventListener('drop', drop);
+      return () => {
+        area.removeEventListener('dragover', over);
+        area.removeEventListener('dragleave', leave);
+        area.removeEventListener('drop', drop);
+      };
+    });
+    return () => cleanups.forEach(cleanup => cleanup());
+  }, [busy, final]);
   useEffect(() => {
     const refresh = () => setDrafts(readAllDraftMeta());
     window.addEventListener('pageshow', refresh);
     window.addEventListener('storage', refresh);
     return () => { window.removeEventListener('pageshow', refresh); window.removeEventListener('storage', refresh); };
   }, []);
+  // Repair display metadata for drafts saved before their thumbnail was ready.
+  // The PDF renderer stays lazy and is only loaded for a missing preview.
+  useEffect(() => {
+    if (final) return;
+    let cancelled = false;
+    for (const meta of drafts.filter(draft => !draft.preview)) {
+      void (async () => {
+        const draft: any = await loadDraft(meta.tool);
+        if (cancelled || !draft?.fileBytes) return;
+        const { renderDraftPreview } = await import('../lib/thumbnails.js');
+        const preview = await renderDraftPreview(new File([draft.fileBytes], draft.fileName, { type: 'application/pdf' }));
+        const current: any = readDraftMeta(meta.tool);
+        if (cancelled || current?.savedAt !== meta.savedAt || current?.fileName !== meta.fileName) return;
+        if (attachDraftPreview(meta.tool, preview)) setDrafts(readAllDraftMeta());
+      })().catch(() => {}); // A missing thumbnail must never block opening a file.
+    }
+    return () => { cancelled = true; };
+  }, [drafts, final]);
   const sample = async () => {
     try {
       const response = await fetch('/images/redaction-guide/sample.pdf');

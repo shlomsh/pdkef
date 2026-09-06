@@ -12,6 +12,7 @@ import { DRAFT_SCHEMA_VERSION } from '../../editor/registry/draftValidation.ts';
 
 vi.mock('../../editor/workspace/draftStore.js', () => ({
   saveDraft: vi.fn(),
+  attachDraftPreview: vi.fn(),
   loadDraft: vi.fn(() => Promise.resolve(null)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   hasDraftHint: vi.fn(() => false),
@@ -23,7 +24,8 @@ vi.mock('../../lib/thumbnails.js', () => ({
   renderDraftPreview: vi.fn(() => Promise.resolve(null))
 }));
 
-import { saveDraft } from '../../editor/workspace/draftStore.js';
+import { renderDraftPreview } from '../../lib/thumbnails.js';
+import { saveDraft, attachDraftPreview } from '../../editor/workspace/draftStore.js';
 
 function Harness({ apiRef, props }) {
   apiRef.current = { result: useDraftPersistence(props) };
@@ -72,6 +74,17 @@ describe('useDraftPersistence - save outcome reporting', () => {
     act(() => render(null, container));
     container.remove();
     vi.useRealTimers();
+  });
+
+  it('keeps a preview that finishes before the debounced save writes its older snapshot', async () => {
+    saveDraft.mockResolvedValue(true);
+    renderDraftPreview.mockResolvedValueOnce('data:image/jpeg;base64,preview');
+    await act(async () => {
+      render(<Harness apiRef={apiRef} props={baseProps()} />, container);
+    });
+    await flushDebounceAndMicrotasks();
+    expect(attachDraftPreview).toHaveBeenLastCalledWith('sign', 'data:image/jpeg;base64,preview');
+    expect(attachDraftPreview.mock.invocationCallOrder.at(-1)).toBeGreaterThan(saveDraft.mock.invocationCallOrder.at(-1));
   });
 
   it('reports "saved" only once the underlying write actually succeeds', async () => {

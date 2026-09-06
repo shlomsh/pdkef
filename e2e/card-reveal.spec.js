@@ -148,7 +148,10 @@ test('the home-page footer takes over from the final sticky card', async ({ page
   const footerIsOnTop = await footer.evaluate((el) => {
     const rect = el.getBoundingClientRect();
     const x = rect.left + (rect.width / 2);
-    const y = Math.max(rect.top + 1, Math.min(rect.bottom - 1, window.innerHeight - 1));
+    // Probe the visible footer interior, clear of the fixed dock and fractional
+    // pixel rounding at their shared edge.
+    const dockTop = document.querySelector('.home-dock').getBoundingClientRect().top;
+    const y = (Math.max(rect.top, 0) + Math.min(rect.bottom, dockTop)) / 2;
     return document.elementFromPoint(x, y)?.closest('footer') === el;
   });
 
@@ -166,4 +169,46 @@ test('prefers-reduced-motion leaves every card fully visible', async ({ page }) 
   for (const [index, opacity] of (await opacities(page)).entries()) {
     expect(opacity, `card ${index} is hidden at opacity ${opacity} under reduced motion, with nothing that will ever reveal it`).toBe(1);
   }
+});
+
+
+test('home story cards fit the laptop band and release when the viewport is too short', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/');
+  await expect(page.locator('[data-home-picker]').first()).toBeVisible();
+  const deck = page.locator('.card-stack .card-reveal');
+  for (const card of await deck.all()) {
+    await card.evaluate(el => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - document.querySelector('.home-header').getBoundingClientRect().height - 16));
+    await settle(page);
+    const bounds = await card.evaluate(el => ({
+      content: el.firstElementChild.getBoundingClientRect().toJSON(),
+      header: document.querySelector('.home-header').getBoundingClientRect().bottom,
+      dock: document.querySelector('.home-dock').getBoundingClientRect().top,
+      height: el.getBoundingClientRect().height,
+    }));
+    expect(bounds.content.top).toBeGreaterThan(bounds.header);
+    expect(bounds.content.bottom).toBeLessThan(bounds.dock);
+  }
+  await page.setViewportSize({ width: 1280, height: 600 });
+  await expect(deck.first()).toHaveAttribute('data-stack-overflow', '');
+  await expect(deck.first()).toHaveCSS('position', 'relative');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(deck.first()).not.toHaveAttribute('data-stack-overflow', '');
+  await expect(deck.first()).toHaveCSS('position', 'sticky');
+});
+
+test('the closing card and footer share the visible laptop viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/');
+  const closing = page.locator('#try-workspace');
+  await closing.evaluate(el => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - document.querySelector('.home-header').getBoundingClientRect().height));
+  await settle(page);
+  const geometry = await page.evaluate(() => {
+    const closing = document.querySelector('#try-workspace').getBoundingClientRect();
+    const footer = document.querySelector('.card-stack footer').getBoundingClientRect();
+    const dock = document.querySelector('.home-dock').getBoundingClientRect();
+    return { closing, footer, dock };
+  });
+  expect(geometry.closing.top).toBeGreaterThanOrEqual(0);
+  expect(geometry.footer.bottom).toBeLessThanOrEqual(geometry.dock.top + 1);
 });

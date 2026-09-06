@@ -36,17 +36,15 @@ test('complete stories, information, session handoff, and real bundled sample en
   // the five information cards and their order, which .card-reveal names
   // exactly.
   const headings = await page.locator('#home-information .card-reveal h2').allTextContents();
-  expect(headings).toEqual(['The tools I wanted, shared with everyone','Work survives restarts and crashes','Run PDkef offline as an app','Frequently asked questions','Open source & privacy']);
+  expect(headings).toEqual(['Simple PDF tools, made to share','Close the tab. Keep your progress.','Your PDF tools, even offline','Frequently asked questions','Private by design. Open to inspect.']);
   // All cards use the document scroll; no hidden inner vertical scroll areas.
   expect(await page.locator('#home-information section').evaluateAll(elements => elements.every(el => !['auto','scroll'].includes(getComputedStyle(el).overflowY) && [...el.querySelectorAll('p,h2')].every(text => { const r = text.getBoundingClientRect(); return !r.height || r.bottom <= el.getBoundingClientRect().bottom + 1; })))).toBe(true);
   await page.locator('#try-workspace').scrollIntoViewIfNeeded();
-  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('pdkef:tour-complete'))).toBe('yes');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('pdkef:demo-seen'))).toBe('yes');
   expect(await draftSnapshot(page)).toEqual(before);
   await page.keyboard.press('ControlOrMeta+Home');
   // Explicit top movement also covers browsers mapping that key differently.
   await page.evaluate(() => window.scrollTo(0,0));
-  await expect(page.locator('html')).toHaveAttribute('data-home-mode','workspace');
-  await expect(page.getByRole('button',{name:'Replay the demos'})).toBeVisible();
   expect(await draftSnapshot(page)).toEqual(before);
   await page.getByRole('button',{name:/PDkef practice form\.pdf/}).click();
   await expect(page).toHaveURL(/\/sign\/$/);
@@ -54,7 +52,6 @@ test('complete stories, information, session handoff, and real bundled sample en
   await expect(page.getByText(SAMPLE_FILE_NAME, {exact:true}).first()).toBeVisible();
   await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({tool:'sign',fileName:SAMPLE_FILE_NAME})]));
   await page.goto('/');
-  await expect(page.locator('html')).toHaveAttribute('data-home-mode','workspace');
   const recent = page.locator('.workspace-launcher a[href="/sign/"]');
   await expect(recent).toContainText('Bundled sample');
   await recent.click();
@@ -96,19 +93,75 @@ test('returning users get exactly one Sign and one Redact icon with desktop open
     await page.locator('input[type="file"]').first().setInputFiles({name:`my-${tool}-document.pdf`,mimeType:'application/pdf',buffer:bytes});
     await expect(page.locator('canvas').first()).toBeVisible();
     await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({tool,fileName:`my-${tool}-document.pdf`})]));
+    await expect.poll(() => page.evaluate(tool => JSON.parse(localStorage.getItem('pdf-toolkit:draft-meta:' + tool))?.preview, tool)).toMatch(/^data:image/);
   }
+  // Simulate an older saved draft whose thumbnail lost the autosave race.
+  const savedAt = await page.evaluate(() => {
+    const key = 'pdf-toolkit:draft-meta:sign';
+    const meta = JSON.parse(localStorage.getItem(key));
+    delete meta.preview;
+    localStorage.setItem(key, JSON.stringify(meta));
+    return meta.savedAt;
+  });
   await page.goto('/');
-  await expect(page.locator('html')).toHaveAttribute('data-home-mode','workspace');
   const icons = page.locator('.workspace-launcher li a');
   await expect(icons).toHaveCount(2);
   await expect(icons.filter({hasText:'my-sign-document.pdf'})).toContainText('Sign & Fill PDF');
   await expect(icons.filter({hasText:'my-redact-document.pdf'})).toContainText('Blur & Redact');
+  for (const icon of await icons.all()) {
+    await expect(icon.locator('img')).toBeVisible();
+    await expect(icon).toContainText('just now');
+  }
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pdf-toolkit:draft-meta:sign')).savedAt)).toBe(savedAt);
   const before = await draftSnapshot(page);
-  await page.getByRole('button',{name:'Replay the demos'}).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
   await scrollStory(page,'blur',1);
   expect(await draftSnapshot(page)).toEqual(before);
-  await page.getByRole('button',{name:'Go to workspace'}).click();
+  await page.evaluate(() => window.scrollTo(0,0));
   await icons.filter({hasText:'my-redact-document.pdf'}).dblclick();
   await expect(page).toHaveURL(/\/redact\/$/);
   await expect(page.locator('canvas').first()).toBeVisible();
+});
+
+test('mobile gives the live demo its own section and changes order only after it has been seen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  const order = () => page.evaluate(() => {
+    const tour = document.getElementById('home-tour');
+    const files = document.getElementById('home-files');
+    return { sameParent: tour.parentElement === files.parentElement, demoFirst: !!(tour.compareDocumentPosition(files) & Node.DOCUMENT_POSITION_FOLLOWING) };
+  });
+  await expect.poll(order).toEqual({ sameParent: true, demoFirst: true });
+  await scrollStory(page, 'sign', .81);
+  const stage = stageLocator(page, 'sign');
+  const screen = await stage.locator('[class*="_screen_"]').boundingBox();
+  const date = await stage.locator('[class*="_date-line_"]').boundingBox();
+  expect(date.y + date.height).toBeLessThanOrEqual(screen.y + screen.height + 1);
+  await page.locator('#try-workspace').scrollIntoViewIfNeeded();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('pdkef:demo-seen'))).toBe('yes');
+  await expect.poll(order).toEqual({ sameParent: true, demoFirst: true });
+  await page.reload();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(order).toEqual({ sameParent: true, demoFirst: false });
+  await expect(page.locator('#home-files [data-home-picker]')).toBeInViewport();
+  await scrollStory(page, 'blur', .64);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.locator('.home-scene > #home-files')).toHaveCount(1);
+  await scrollStory(page, 'sign', .81);
+});
+
+test('desktop keeps one compact launcher and live demo after completion', async ({ page }) => {
+  await page.goto('/');
+  const picker = page.locator('#home-files [data-home-picker]');
+  const initial = await picker.boundingBox();
+  await page.locator('#try-workspace').scrollIntoViewIfNeeded();
+  await page.locator('[data-workspace-return]').click();
+  const returned = await picker.boundingBox();
+  expect(returned.width).toBe(initial.width);
+  expect(returned.height).toBe(initial.height);
+  expect(returned.x).toBe(initial.x);
+  await scrollStory(page, 'blur', .64);
+  await page.reload();
+  await scrollStory(page, 'sign', .81);
 });

@@ -16,12 +16,12 @@ import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, Hel
 import { tools } from '../data/tools.js';
 import FileDropzone from '../components/FileDropzone.tsx';
 
-// FAQ schema mirrors the visible questions rendered in the footer below.
+// FAQ schema and visible answers share one source.
 const faq = [
-  { question: 'Are the tools really free?', answer: 'Yes, completely and permanently - no paywalls, no premium tier, no limits, and no watermark on your exported PDFs.' },
-  { question: 'Do I need to sign up or create an account?', answer: 'No. There is no account, no email, and no trial period. Open a tool and use it immediately.' },
-  { question: 'Are my files uploaded to a server?', answer: 'No. The tools run 100% locally in your browser, on desktop or mobile. Your PDF files are never sent over the network - they stay on your device the entire time.' },
-  { question: 'Is PDkef open source?', answer: 'Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.' },
+  { question: 'Are the tools really free?', answer: 'Yes. Every tool is free, with no paywalls, usage limits, or watermarks.' },
+  { question: 'Do I need to sign up or create an account?', answer: 'No account, email, or trial period. Just open a tool and get started.' },
+  { question: 'Are my files uploaded to a server?', answer: 'No. Your PDFs stay on your device. Every tool runs locally in your desktop or mobile browser.' },
+  { question: 'Is PDkef open source?', answer: 'Yes. The code is MIT licensed and open for anyone to inspect, use, or improve.' },
 ];
 
 // The tool list (home grid + hero card) comes from the shared registry, so it
@@ -47,13 +47,8 @@ const faq = [
   <main id="home-content">
     <div class="home-tour" id="home-tour">
       <div class="home-scene" data-working-area>
-        <div class="workspace-launcher">
+        <div class="workspace-launcher" id="home-files" data-working-area>
           <FileDropzone client:only="preact" toolTarget="sign" />
-          <div class="tour-actions">
-            <a href="#home-information" data-tour-only>About PDkef ↓</a>
-            <button type="button" data-tour-skip data-tour-only>Go to workspace</button>
-            <button type="button" data-tour-replay data-workspace-only>Replay the demos</button>
-          </div>
         </div>
         <HeroDemo />
       </div>
@@ -67,15 +62,15 @@ const faq = [
         <div class="flex items-stretch gap-12 max-[768px]:flex-col max-[768px]:gap-8">
           <div class="min-w-0 flex-[1.2]">
             <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Why I made this</span>
-            <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">The tools I wanted, shared with everyone</h2>
+            <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Simple PDF tools, made to share</h2>
             <p class="type-lead space-content-row mt-0 max-w-[800px] text-[var(--color-text)]">
-              It started with a couple of ordinary errands. Someone close to me needed to combine a stack of course slides into one PDF before an exam, and to sign a summer-camp form that had arrived over WhatsApp. Simple things. But every tool we tried either capped the pages, wanted a subscription and a Windows install, or looked like the last place you would want to send a personal document.
+              My partner needed to merge course slides before an exam and sign a summer-camp form from WhatsApp. The tools we found had page limits, subscriptions, or asked us to upload personal documents.
             </p>
             <p class="type-lead space-content-row mt-0 max-w-[800px] text-[var(--color-text)]">
-              So I built the PDF tools I wanted for myself. Then I realised I wanted to share them. I believe simple, everyday tools like these should just be free and available to everyone, with no account, no paywall, and nothing uploaded to anyone's server.
+              So I built PDkef. I wanted everyday PDF tools to be free and available to everyone, on any device. Then I wanted to share them.
             </p>
             <p class="type-body mt-0 max-w-[800px] text-[var(--color-muted)]">
-              That is why PDkef runs entirely in your browser. There is no server to send your files to, which is what keeps it private and cheap enough to stay free for good. And it is open source, so you never have to take my word for any of it.
+              Everything runs in your browser. That keeps your files private and the tools inexpensive enough to stay free.
             </p>
             <p class="mb-0 mt-5 text-[0.9rem] italic text-[var(--color-muted)]">
               <a class="font-semibold not-italic text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi</a>
@@ -162,12 +157,12 @@ const faq = [
           </div>
           <div class="flex-[1.2]">
             <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Privacy & Convenience</span>
-            <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Work survives restarts and crashes</h2>
+            <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Close the tab. Keep your progress.</h2>
             <p class="type-lead space-content-row mt-0 text-[var(--color-text)]">
-              PDkef auto-saves your in-progress work locally to your browser's secure database. If you close the tab, restart your computer, or experience a crash, your PDF and edits are restored exactly where you left off.
+              Your PDF and edits are saved in this browser as you work. Come back after closing a tab or restarting your computer and continue from your saved draft.
             </p>
             <p class="type-body m-0 text-[var(--color-muted)]">
-              Because it runs 100% on your device, we get "pick up where you left off" without sending a single byte of your file to a server. Available now in <strong>Sign & Fill</strong> and <strong>Redact & Blur</strong>.
+              Available in <strong>Sign & Fill</strong> and <strong>Redact & Blur</strong>. Drafts stay on this device; clearing browser data removes them.
             </p>
           </div>
         </div>
@@ -175,9 +170,9 @@ const faq = [
 
       <FeatureCard class="relative isolate overflow-hidden">
         <CardDecor sketch="grid" icon={WifiOff} iconPos="br" iconSize={300} parallax />
-        <div class="mx-auto mb-8 max-w-[750px] text-center">
-          <h2 id="offline-app" class="type-section space-heading-content mt-0 text-[var(--color-text)]">Run PDkef offline as an app</h2>
-          <p class="type-lead m-0 text-[var(--color-muted)]">Because PDkef runs entirely in your web browser with zero server uploads, you can install it on your device and use it just like a native desktop or mobile application, even when you don't have internet access.</p>
+        <div class="mx-auto mb-5 max-w-[750px] text-center">
+          <h2 id="offline-app" class="type-section space-heading-content mt-0 text-[var(--color-text)]">Your PDF tools, even offline</h2>
+          <p class="type-lead m-0 text-[var(--color-muted)]">Install PDkef for a place on your home screen. Once a tool is ready for offline use, you can work without an internet connection.</p>
         </div>
 
         <div class="box-border mx-auto w-full max-w-[680px] overflow-hidden rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
@@ -196,9 +191,9 @@ const faq = [
             </button>
           </div>
 
-          <div class="p-8">
+          <div class="p-5">
             <div class="offline-tab-panel active hidden [&.active]:block" id="guide-chrome" role="tabpanel" aria-labelledby="tab-chrome">
-              <ol class="m-0 flex list-none flex-col gap-5 p-0">
+              <ol class="m-0 flex list-none flex-col gap-3 p-0">
                 <li class="flex items-start gap-4">
                   <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
                   <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Navigate to the site in Chrome or Edge.</span>
@@ -215,7 +210,7 @@ const faq = [
             </div>
 
             <div class="offline-tab-panel hidden [&.active]:block" id="guide-ios" role="tabpanel" aria-labelledby="tab-ios">
-              <ol class="m-0 flex list-none flex-col gap-5 p-0">
+              <ol class="m-0 flex list-none flex-col gap-3 p-0">
                 <li class="flex items-start gap-4">
                   <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
                   <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Open the site in <strong class="font-semibold">Safari</strong> on your iPhone or iPad.</span>
@@ -232,7 +227,7 @@ const faq = [
             </div>
 
             <div class="offline-tab-panel hidden [&.active]:block" id="guide-safari" role="tabpanel" aria-labelledby="tab-safari">
-              <ol class="m-0 flex list-none flex-col gap-5 p-0">
+              <ol class="m-0 flex list-none flex-col gap-3 p-0">
                 <li class="flex items-start gap-4">
                   <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
                   <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Open the site in <strong class="font-semibold">Safari</strong> on your Mac.</span>
@@ -280,26 +275,16 @@ const faq = [
     <FeatureCard class="relative isolate overflow-hidden">
       <CardDecor sketch="rings" icon={HelpCircle} iconPos="bl" iconSize={300} parallax />
       <div class="space-heading-content text-center">
-        <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Got Questions?</span>
+        <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">A few useful answers</span>
         <h2 class="type-section m-0 text-[var(--color-text)]">Frequently asked questions</h2>
       </div>
       <div class="space-layout-gap grid grid-cols-2 gap-x-12 max-[768px]:grid-cols-1">
-        <div class="faq-card">
-          <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Are the tools really free?</h3>
-          <p class="type-body m-0 text-[var(--color-muted)]">Yes, completely and permanently - no paywalls, no premium tier, no limits, and no watermark on your exported PDFs.</p>
-        </div>
-        <div class="faq-card">
-          <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Do I need to sign up or create an account?</h3>
-          <p class="type-body m-0 text-[var(--color-muted)]">No. There is no account, no email, and no trial period. Open a tool and use it immediately.</p>
-        </div>
-        <div class="faq-card">
-          <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Are my files uploaded to a server?</h3>
-          <p class="type-body m-0 text-[var(--color-muted)]">No. The tools run 100% locally in your browser, on desktop or mobile. Your PDF files are never sent over the network - they stay on your device the entire time.</p>
-        </div>
-        <div class="faq-card">
-          <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Is PDkef open source?</h3>
-          <p class="type-body m-0 text-[var(--color-muted)]">Yes. The entire codebase is open source under the MIT license, so you can inspect exactly what runs on your device.</p>
-        </div>
+        {faq.map(({ question, answer }) => (
+          <div class="faq-card">
+            <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">{question}</h3>
+            <p class="type-body m-0 text-[var(--color-muted)]">{answer}</p>
+          </div>
+        ))}
       </div>
     </FeatureCard>
 
@@ -307,17 +292,17 @@ const faq = [
       <CardDecor sketch="arcs" icon={ShieldCheck} iconPos="cl" iconSize={300} parallax />
       <div class="w-full">
         <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Transparent & Secure</span>
-        <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Open source & privacy</h2>
+        <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Private by design. Open to inspect.</h2>
         <div class="space-layout-gap grid grid-cols-2 max-[768px]:grid-cols-1">
-          <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7 shadow-xs transition-[transform,box-shadow,border-color,color] duration-300 ease-out hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-md">
+          <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xs transition-[transform,box-shadow,border-color,color] duration-300 ease-out hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-md">
             <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]"><Lock size={22} strokeWidth={2} /></div>
             <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Privacy</h3>
-            <p class="type-lead m-0 text-[var(--color-text)]">Every tool runs 100% locally in your browser. Your files are never uploaded - PDkef has no server to send them to.</p>
+            <p class="type-lead m-0 text-[var(--color-text)]">Merge, sign, redact, and more in your browser. Your PDFs stay on your device, with no uploads or processing server.</p>
           </div>
-          <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-7 shadow-xs transition-[transform,box-shadow,border-color,color] duration-300 ease-out hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-md">
+          <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xs transition-[transform,box-shadow,border-color,color] duration-300 ease-out hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-md">
             <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]"><Code2 size={22} strokeWidth={2} /></div>
             <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Open source</h3>
-            <p class="type-lead m-0 text-[var(--color-text)]">This project is open source under the MIT license. You can <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">view the source code on GitHub</a>. PDkef is built on other open source projects too - see the <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/licenses/">open source licenses</a> page for the full list.</p>
+            <p class="type-lead m-0 text-[var(--color-text)]">PDkef is MIT licensed. <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">Read the code on GitHub</a>, or explore the <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/licenses/">open source licenses</a> behind the tools.</p>
             <span class="mt-[1.1rem] inline-flex items-center rounded-[var(--radius-pill)] bg-[var(--color-success-soft)] px-3 py-[0.3rem] text-[0.78rem] font-bold text-[var(--color-success)]">MIT Licensed</span>
           </div>
         </div>
@@ -356,7 +341,7 @@ const faq = [
   :global(html) { scroll-padding-top: var(--home-header-height, 150px); }
   :global(body) {
     --home-header-height: 146px;
-    --home-dock-height: 124px;
+    --home-dock-height: 104px;
     --home-stage-height: calc(100svh - var(--home-header-height) - var(--home-dock-height));
     /* Flat, not the page-length gradient this used to carry, and the flatness
        is the fix rather than a simplification.
@@ -396,7 +381,7 @@ const faq = [
      Repeating the class takes this to 0-3-1 so it wins on specificity instead
      of on emission order. Not `!important` - Astro's scoped output shares the
      bare rule's implicit layer, so specificity is what settles it. */
-  header.hero-header.hero-header { max-width: none; padding: 14px 24px 10px; margin: 0; text-align: center; }
+  header.hero-header.hero-header { max-width: none; padding: 8px 24px 10px; margin: 0; text-align: center; }
   /* The ceiling and the two margins here are a budget, not a taste call. This
      header is fixed, so every pixel it grows comes straight out of
      --home-stage-height, and the demo phone's height is that stage minus its
@@ -418,191 +403,55 @@ const faq = [
      the scroll distance they had. If this number changes, re-derive SIGN_END /
      CROSSFADE_START / CROSSFADE_END against it - they are fractions of this
      span, so a shorter tour speeds both stories up silently. */
-  :global(html[data-home-mode="tour"]) .home-tour { height: calc(var(--home-stage-height) + 940svh); }
-  .home-scene { position: sticky; top: var(--home-header-height); min-height: var(--home-stage-height); display: grid; grid-template-columns: minmax(230px, 0.75fr) minmax(0, 2fr); align-items: center; gap: 24px; padding: 0 5vw; box-sizing: border-box; }
-  :global(html[data-home-mode]) .home-scene { height: var(--home-stage-height); }
-  .workspace-launcher { justify-self: center; width: 100%; max-width: 400px; }
-  .tour-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-top: 20px; font-size: 0.8rem; }
-  .tour-actions button { border: 0; padding: 0; background: none; color: var(--color-primary); cursor: pointer; font: inherit; }
-  /* Workspace mode keeps the two-column scene rather than collapsing to one.
-     The demo used to be hidden outright once the tour had been seen, which
-     left the whole right half of the first screen empty and made a returning
-     visitor's home page look like a different, emptier site than the one they
-     remembered. It stays where it was; what changes is that it stops being the
-     thing being scrolled through and becomes a still, and the launcher column
-     grows to take the width the tour copy no longer needs.
-
-     The columns are re-weighted rather than reused: in tour mode the launcher
-     is a single dropzone tile beside a scrolling story, so it wants the narrow
-     column. In workspace mode it carries the recent documents as well, which
-     is the page's primary content for someone coming back, so the weighting
-     inverts. */
-  /* Two columns only where there is room for two. This rule outranks the
-     `.home-scene { grid-template-columns: 1fr }` in the max-width: 760px block
-     below - an attribute plus a class beats a bare class, whatever the source
-     order - so leaving it unscoped forced a 300px demo column onto a 390px
-     phone and the mockup sat on top of the launcher, clipping the recent
-     documents and the picker off the left edge. Any rule added here that the
-     narrow layout also sets needs the same guard. */
-  @media (min-width: 761px) {
-    :global(html[data-home-mode="workspace"]) .home-scene { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); }
-    :global(html[data-home-mode="workspace"]) .workspace-launcher { max-width: none; justify-self: stretch; }
-  }
-  :global(html[data-home-mode="tour"]) :global([data-home-recents]) { display: none; }
-  [data-workspace-only] { display: none; }
-  :global(html[data-home-mode="workspace"]) [data-workspace-only] { display: block; }
-  :global(html[data-home-mode="workspace"]) [data-tour-only] { display: none; }
+  .home-tour { height: calc(var(--home-stage-height) + 940svh); }
+  .home-scene { position: sticky; top: var(--home-header-height); min-height: var(--home-stage-height); display: grid; grid-template-columns: minmax(312px, 0.85fr) minmax(0, 2fr); align-items: center; gap: 40px; max-width: 1280px; margin-inline: auto; padding: 0 32px; box-sizing: border-box; }
+  .home-scene { height: var(--home-stage-height); }
+  .workspace-launcher { justify-self: start; width: 100%; max-width: 400px; }
   [data-working-area][data-drag-over] { outline: 3px dashed var(--color-primary); outline-offset: -10px; background: var(--color-success-soft); }
   #home-information { position: relative; padding-top: 24px; }
-  /* --- The story-card stack ------------------------------------------
-     Each card pins below the fixed header and the next one slides up over
-     it. This is main's mechanism, kept, and retuned to this page's own
-     chrome; it had been replaced wholesale by
-     `.card-reveal { animation: none; overflow: clip; min-height: 0 }`,
-     which switched off three separate things at once - the pinning, the
-     viewport-height floor the pinning depends on, and (because `animation`
-     is the shorthand) the fade at *every* width rather than only where the
-     stack takes over from it.
-
-     Three things make the stack work and each is doing real work:
-
-     - The cards are opaque. Both FeatureCard variants paint a solid surface
-       or a solid gradient, so a covering card genuinely hides the one
-       beneath. A translucent variant could not go here.
-     - Paint order is DOM order. These are positioned elements with
-       `z-index: auto`, so a later card paints over an earlier one with
-       nobody managing a z-index scale.
-     - `position`, `min-height` and `top` all beat the utilities the cards
-       carry: Astro's scoped output is unlayered and Tailwind's utilities sit
-       in @layer utilities, so these win regardless of specificity.
-
-     768px because that is where FeatureCard's `density="screen"` gives each
-     card its viewport-height floor. Below it the cards are content-height,
-     run past the viewport, and pinning a card taller than the screen just
-     hides its own bottom - so below 768px the fade is the effect instead.
-
-     What is retuned from main: the pin offset and the height floor are
-     measured off --home-header-height rather than a hardcoded 3.5rem app
-     bar, because this page's header is the app bar *plus* the hero and its
-     height is not a constant - homeWorkspace.ts writes the real measured
-     value into the property, so a hero that wraps at a different zoom or
-     font moves the pin with it instead of leaving the cards tucked
-     underneath. The floor still runs to the bottom edge of the viewport and
-     not to the dock's top edge: the dock is fixed above these cards and
-     only 94% opaque, so a card that stopped short would show its own end
-     through the frosting. */
+  /* Keep the deck's readable area between the fixed header and tool dock.
+     The surface continues behind the dock so earlier cards never peek out. */
+  .card-stack {
+    --stack-gap: 1rem;
+    --space-section-block: clamp(1.5rem, 3vh, 2rem);
+    --space-heading-content: 1rem;
+    --space-content-row: 1rem;
+    --space-layout-gap: 1.5rem;
+  }
+  .card-stack :global(.card-reveal),
+  .try-workspace {
+    margin-block-start: 2rem;
+  }
+  .card-stack :global(.type-lead) { line-height: 1.6; }
+  .card-stack :global(.space-content-row) { margin-bottom: 0; }
+  .card-stack :global(.type-section) { text-wrap: balance; }
+  .card-stack :global(.faq-card) { padding-block: 0.5rem; }
+  .card-stack :global(.card-reveal > .w-full > .flex) { gap: 2rem; }
+  .try-workspace,
+  .card-stack :global(footer) { position: relative; z-index: 1; }
+  .card-stack :global(footer) { background: var(--color-bg); margin-top: 1.5rem; }
   @media (min-width: 768px) {
-    .card-stack {
-      /* The one number: the air between the header and a pinned card. */
-      --stack-gap: 2rem;
-    }
-
     .card-stack :global(.card-reveal) {
       position: sticky;
       top: calc(var(--home-header-height) + var(--stack-gap));
-      /* Down to the bottom edge of the viewport, not to a matching gap
-         above it, and that is a correctness rule rather than a taste one.
-         These cards are content-height with a floor, so they are only equal
-         while every one of them clears the floor - and the tallest card is
-         also the first, so any card that overruns leaves a band of itself
-         showing under every card stacked over it. A card that runs to the
-         bottom edge cannot. */
       min-height: calc(100svh - var(--home-header-height) - var(--stack-gap));
-      /* The box runs to the viewport bottom, but the bottom
-         --home-dock-height of it is behind the fixed dock, and
-         density="screen" centres a card's content across the whole box - so
-         every card's content sat half a dock too low and its last line was
-         cut off behind the dock. Adding the dock's height to the bottom
-         padding shortens the content box by exactly that much, which moves
-         the centred content up by half of it and lands it on the centre of
-         the band that is actually visible. Derived from the same token
-         FeatureCard's own space-section-block padding uses, so a card's
-         vertical rhythm still scales with the viewport instead of being
-         pinned to whatever this evaluated to today. */
       padding-block-end: calc(var(--space-section-block) + var(--home-dock-height));
-      /* A single upward cast. That is the edge that arrives over the card
-         below, and the only edge that needs one: a downward shadow lands on
-         the card still approaching from underneath and reads as a halo
-         around the deck rather than as depth between cards. */
-      box-shadow: 0 -20px 46px -26px var(--color-primary-ring);
-    }
-
-    /* The "Give it a try" stage and the footer live *inside* .card-stack, and
-       that is what makes the ending work - the same reason main put its footer
-       there. Without content after it, the last card's sticky constraint
-       rectangle ends at its own bottom edge, so it unpins the instant it is
-       reached and gets dragged up under the fixed header while the next
-       section arrives: the last card visibly beheaded.
-
-       Padding on the wrapper does not buy that range, which is the trap worth
-       recording. A sticky element is constrained by its containing block's
-       *content* box, and padding is outside it - so a padding-block-end run-out
-       measures as 615px of extra wrapper height and grants exactly zero extra
-       sticky travel. Measured: the card pinned correctly at its first frame and
-       was at -107px 300px later. The run-out has to be real content.
-
-       Note what moving them in also removes: FeatureCard's own `last:mb-16` /
-       `min-[768px]:last:mb-24` is a :last-child rule, and the last child of
-       this wrapper is now the footer, so no card matches it any more. The
-       explicit `margin-block-end: 0` that used to cancel it on the last card is
-       therefore gone rather than kept as a no-op. */
-
-    /* Sticky cards are positioned boxes, so they paint above normal-flow
-       siblings even when the sibling comes later in the markup. Both things
-       that follow the deck need their own stacking level or the last card
-       covers them outright. main solved the same problem by putting the
-       footer inside .card-stack; here the deck is followed by the "Give it a
-       try" stage as well, so both are lifted where they stand rather than
-       moving markup. */
-    /* .card-stack, not #home-content: the footer moved *into* the stack in the
-       same change that added this rule, so a `#home-content > footer` child
-       selector matched nothing and the last sticky card painted straight over
-       the footer at the end of the page. e2e/card-reveal.spec.js caught it by
-       probing what elementFromPoint actually returns inside the footer's own
-       rect, which is the only way to see it - the footer is present, visible
-       and correctly positioned; it is simply underneath. */
-    .try-workspace,
-    .card-stack :global(footer) {
-      position: relative;
-      z-index: 1;
-    }
-
-    /* The fade and the stack are two answers to the same question, and here
-       the stack wins: a card fading in from opacity 0 is already overlapping
-       the card it covers, so for the length of the fade you see straight
-       through it - the one thing a stack must never do.
-
-       `animation-name`, not the `animation` shorthand, which would also
-       reset animation-timeline and animation-range out from under the rule
-       it overrides. That is exactly how the fade got switched off below
-       768px too, where it is the whole effect. */
-    .card-stack :global(.card-reveal) {
       animation-name: none;
     }
+    /* A tall card must scroll normally at zoomed or short viewport sizes. */
+    .card-stack :global(.card-reveal[data-stack-overflow]) { position: relative; top: auto; }
   }
-  /* The closing stage is a card, drawn the same way as the five above it.
-     It had none of this: a bare <section> with no background sitting inside
-     .card-stack at z-index 1, so it slid over the last story card and you read
-     straight through its heading to that card's own text. Giving it a surface
-     is what makes it the last card rather than a transparent overlay on one.
-
-     The box is FeatureCard's own - same max-width, radius, border, surface and
-     horizontal padding - so it lines up with the deck instead of merely being
-     near it. The height matches a pinned card too, dock padding included, so
-     it is not visibly taller than its neighbours.
-
-     The footer stays outside it. It follows this section inside .card-stack
-     (which is what gives the last story card its sticky run-out), and with no
-     background here the two read as one over-tall card. */
   .try-workspace {
+    /* Reserve the credit footer below this card. Unlike the story cards, the
+       closing card has a known next section, so a full visible band here would
+       make its footer require a second scroll. */
+    --closing-footer-reserve: 6.25rem;
     box-sizing: border-box;
     width: 100%;
     max-width: 1080px;
     margin-inline: auto;
-    min-height: calc(100svh - var(--home-header-height) - var(--stack-gap, 2rem));
-    /* 2.5rem inline is FeatureCard's own px-10, written as a length because
-       the token scale steps 2rem to 3rem and neither lines up with the deck. */
-    padding: var(--space-section-block) 2.5rem calc(var(--space-section-block) + var(--home-dock-height));
+    min-height: calc(100svh - var(--home-header-height) - var(--home-dock-height) - var(--closing-footer-reserve));
+    padding: var(--space-section-block) 2.5rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     background: var(--color-surface);
@@ -612,12 +461,15 @@ const faq = [
     justify-content: center;
     text-align: center;
   }
-  .try-workspace h2 { font-size: 2rem; margin: 0 0 24px; }
-  .try-workspace > a { margin-top: 24px; }
+  .try-workspace h2 { font-size: 2rem; margin: 0 0 16px; }
+  .try-workspace > a { margin-top: 16px; }
   @media (max-width: 1080px) {
     .try-workspace { width: auto; margin-inline: var(--space-6); }
   }
-  .home-dock { position: fixed; z-index: 40; bottom: 0; left: 0; right: 0; height: var(--home-dock-height); box-sizing: border-box; display: flex; align-items: center; justify-content: safe center; gap: 20px; padding: 14px 24px; background: color-mix(in srgb, var(--color-bg) 94%, transparent); border-top: 1px solid var(--color-border); backdrop-filter: blur(12px); }
+  @media (max-width: 767px) {
+    .try-workspace { min-height: 0; padding: 2rem 1.5rem; }
+  }
+  .home-dock { position: fixed; z-index: 40; bottom: 0; left: 0; right: 0; height: var(--home-dock-height); box-sizing: border-box; display: flex; align-items: flex-start; justify-content: safe center; gap: 20px; padding: 10px 24px; background: color-mix(in srgb, var(--color-bg) 94%, transparent); border-top: 1px solid var(--color-border); backdrop-filter: blur(12px); }
 
   /* The dock scrolls sideways only at widths where it genuinely does not
      fit, and that condition is what brings the tool tooltips back.
@@ -642,11 +494,11 @@ const faq = [
   @media (max-width: 959.98px) {
     .home-dock { overflow-x: auto; overscroll-behavior-inline: contain; }
   }
-  .app-card { position: relative; display: flex; flex: 0 0 80px; flex-direction: column; align-items: center; gap: 10px; color: inherit; text-decoration: none; }
-  .app-tile { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
+  .app-card { position: relative; display: flex; flex: 0 0 80px; flex-direction: column; align-items: center; gap: 6px; color: inherit; text-decoration: none; }
+  .app-tile { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; }
   .app-label { font-size: 0.8rem; font-weight: 600; line-height: 1.25; text-align: center; color: var(--color-muted); }
   @media (max-width: 760px) {
-    :global(body) { --home-header-height: 163px; --home-dock-height: 112px; }
+    :global(body) { --home-header-height: 163px; --home-dock-height: 100px; }
     .home-header :global(.home-trust) { gap: 10px; font-size: 0.65rem; }
     .home-header :global([data-home-bar] > div) { height: auto; min-height: 56px; flex-wrap: wrap; padding-block: 6px; gap: 6px; }
     .home-header :global(.home-trust) { width: 100%; justify-content: center; font-size: 0.7rem; }
@@ -655,12 +507,11 @@ const faq = [
     .hero-header h1 { font-size: 1.6rem; }
     .hero-header p { font-size: 0.85rem; }
     .home-scene { grid-template-columns: 1fr; padding: 0 16px; gap: 8px; align-content: start; }
-    .workspace-launcher { max-width: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; }
-    .tour-actions { margin: 0; font-size: 0.7rem; flex-direction: column; gap: 8px; }
+    .workspace-launcher { box-sizing: border-box; max-width: none; padding: 32px 24px; }
     .home-dock { gap: 12px; padding: 10px 16px; justify-content: flex-start; }
     .app-card { flex-basis: 72px; }
     .app-tile { width: 52px; height: 52px; }
-    :global(html[data-home-mode="workspace"]) .workspace-launcher { flex-direction: column; align-items: center; padding-top: 24px; }
+    .home-scene { display: block; }
   }
   @media (prefers-reduced-motion: reduce) {
     .app-card *, .app-card { transition: none !important; }

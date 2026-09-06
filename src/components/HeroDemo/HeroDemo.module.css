@@ -8,8 +8,7 @@
   height: 100%;
   color: var(--color-text);
 }
-.track { position: relative; }
-:global(html[data-home-mode]) .track { position: absolute; inset: 0; }
+.track { position: absolute; inset: 0; }
 .stage {
   display: grid;
   grid-template-columns: minmax(150px, 250px) auto;
@@ -67,7 +66,7 @@
 
 .phone { opacity: var(--story-opacity, 1); grid-area: phone; width: min(360px, calc((var(--home-stage-height) - 32px) * 9 / 19)); }
 @media (max-width: 760px) {
-  .root { height: calc(var(--home-stage-height) - 82px); }
+  .root { height: var(--home-stage-height); }
   .stage { grid-template-columns: 1fr; grid-template-rows: auto 1fr; grid-template-areas: 'caption' 'phone'; padding: 4px 0 0; gap: 8px; }
   .caption { font-size: 0.9rem; text-align: center; }
   .progress-rail { display: none; }
