@@ -5,6 +5,8 @@ const scene = tour?.querySelector('.home-scene');
 const launcher = document.getElementById('home-files');
 const finish = document.getElementById('try-workspace');
 const header = document.querySelector<HTMLElement>('.home-header');
+const offlineLink = document.querySelector<HTMLAnchorElement>('[data-offline-link]');
+const offlineSection = document.getElementById('offline-app');
 const mobile = matchMedia('(max-width: 760px)');
 let seen = false;
 try {
@@ -31,6 +33,23 @@ document.querySelector('[data-workspace-return]')?.addEventListener('click', eve
   arrangeSections();
   launcher?.scrollIntoView({ behavior: 'instant', block: 'start' });
   document.querySelector<HTMLElement>('[data-home-picker]')?.focus({ preventScroll: true });
+});
+// The offline guide is a sticky story card. Native fragment navigation keeps
+// attempting to align its nested heading's layout position, which changes as
+// cards pin over each other; repeat clicks consequently nudged the page farther
+// through the stack. Navigate to the card's fixed document offset instead, so
+// this control is idempotent after the first click.
+offlineLink?.addEventListener('click', event => {
+  if (!offlineSection) return;
+  event.preventDefault();
+  const headerHeight = header?.getBoundingClientRect().height || 0;
+  const targetTop = Math.max(0, offlineSection.offsetTop - headerHeight - 16);
+  if (Math.abs(window.scrollY - targetTop) > 1) {
+    window.scrollTo({ top: targetTop, behavior: 'auto' });
+  }
+  if (window.location.hash !== '#offline-app') {
+    window.history.replaceState(null, '', '#offline-app');
+  }
 });
 // Header text may wrap with zoom or another font. Measure the real budget.
 if (header) new ResizeObserver(() => {

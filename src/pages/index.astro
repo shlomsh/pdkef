@@ -12,7 +12,7 @@ import '../styles/homePage.css';
 const title = 'Free PDF Tools - Private, Local, No Sign-Up | PDkef';
 const description = 'A free, open-source suite of PDF tools that run entirely in your browser. Merge, sign, split, redact, compress, and convert PDFs with nothing uploaded, no account, and no watermark. Your files never leave your device.';
 
-import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, HelpCircle, ShieldCheck, InfinityIcon, Lock, Code2, Type, PenLine, Trash2 } from 'lucide-preact';
+import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, HelpCircle, ShieldCheck, InfinityIcon, Lock, Code2, Type, PenLine, Trash2, Scale } from 'lucide-preact';
 import { tools } from '../data/tools.js';
 import FileDropzone from '../components/FileDropzone.tsx';
 
@@ -35,9 +35,12 @@ const faq = [
 
   <div class="home-header">
     <AppBar isHome>
-      <a class="trust-chip" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">Star us on GitHub ☆</a>
-      <a class="trust-chip" href="/licenses/">MIT licensed</a>
-      <a class="trust-chip" href="#offline-app">Works offline</a>
+      <a class="trust-chip" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">
+        <svg class="trust-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" /></svg>
+        <span>Star us on GitHub</span>
+      </a>
+      <a class="trust-chip" href="/licenses/"><Scale class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>MIT licensed</span></a>
+      <a class="trust-chip" data-offline-link href="#offline-app"><WifiOff class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>Works offline</span></a>
     </AppBar>
     <header class="hero-header">
       <h1>Free PDF tools that run <span>on your device</span></h1>
@@ -168,10 +171,10 @@ const faq = [
         </div>
       </FeatureCard>
 
-      <FeatureCard class="relative isolate overflow-hidden">
+      <FeatureCard id="offline-app" class="relative isolate overflow-hidden">
         <CardDecor sketch="grid" icon={WifiOff} iconPos="br" iconSize={300} parallax />
         <div class="mx-auto mb-5 max-w-[750px] text-center">
-          <h2 id="offline-app" class="type-section space-heading-content mt-0 text-[var(--color-text)]">Your PDF tools, even offline</h2>
+          <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Your PDF tools, even offline</h2>
           <p class="type-lead m-0 text-[var(--color-muted)]">Install PDkef for a place on your home screen. Once a tool is ready for offline use, you can work without an internet connection.</p>
         </div>
 
@@ -372,13 +375,13 @@ const faq = [
   }
   .home-header { position: fixed; inset: 0 0 auto; z-index: 30; background: var(--color-bg); }
   .home-header :global(.home-trust) { display: flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; white-space: nowrap; }
-  /* The header's proof points are all quiet utility chips. The green fill is
-     reserved for the live privacy status; links use the same surface, border,
-     radius, and compact padding as the rest of the suite rather than reading
-     as three unrelated bits of text next to one filled badge. */
+  /* Header proof points and the on-device label share one quiet utility-chip
+     treatment. None is a transient status, so no single proof point gets a
+     louder semantic fill. */
   .home-header :global(.home-trust .trust-chip) {
     display: inline-flex;
     align-items: center;
+    gap: 0.35rem;
     min-height: 1.8rem;
     box-sizing: border-box;
     border: 1px solid var(--color-border);
@@ -400,6 +403,7 @@ const faq = [
     box-shadow: var(--shadow-focus);
     color: var(--color-primary);
   }
+  .home-header :global(.home-trust .trust-chip-icon) { flex: none; }
   /* Doubled class, deliberately. global.css carries a bare, unlayered
      `header:not(.tool-hero):not(.not-found-header)` at specificity 0-2-1, and
      `header.hero-header` plus Astro's own scope attribute is also 0-2-1 - an
