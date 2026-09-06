@@ -1,4 +1,5 @@
 import { useEffect } from 'preact/hooks';
+import { SIGN_END, CROSSFADE_START, CROSSFADE_END } from './storySplit.ts';
 
 /** Scroll position is the sole clock. Writes only per-property CSSOM values
  * onto the server-rendered demo, preserving CSP and the real story artwork.
@@ -98,6 +99,7 @@ const TRACKS: TrackConfig[] = [
  * so no sheet is covering the document. See update(). */
 const WORKSPACE_STILL = 0.79;
 
+
 function clamp01(n: number): number {
   return n < 0 ? 0 : n > 1 ? 1 : n;
 }
@@ -147,17 +149,34 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
       const top = parseFloat(getComputedStyle(scene).top) || 0;
       const travel = Math.max(1, tour.offsetHeight - scene.offsetHeight);
       const progress = clamp01((top - tour.getBoundingClientRect().top) / travel);
-      // The original beat maps share one native page-scroll span. A short
-      // overlap crossfades completed Sign into the incoming email, in place.
-      const crossfade = clamp01((progress - 0.58) / 0.04);
+      // The two beat maps share one native page-scroll span; see the split
+      // constants above.
+      const crossfade = clamp01((progress - CROSSFADE_START) / (CROSSFADE_END - CROSSFADE_START));
       for (const {key, beats, trackEl, stageEl} of tracks) {
         if (!trackEl || !stageEl) continue;
-        const localProgress = key === 'sign'
-          ? clamp01(progress / 0.57)
-          : clamp01((progress - 0.62) / 0.37);
-        const opacity = key === 'sign' ? 1 - crossfade : crossfade;
-        trackEl.style.setProperty('--caption-opacity', String(Number(key === 'sign' ? crossfade < 0.5 : crossfade >= 0.5)));
-        trackEl.style.setProperty('--story-opacity', String(mql.matches ? Number(opacity >= 0.5) : opacity));
+        const isFirst = key === 'sign';
+        const localProgress = isFirst
+          ? clamp01(progress / SIGN_END)
+          : clamp01((progress - CROSSFADE_END) / (1 - CROSSFADE_END));
+        // The outgoing phone holds full opacity underneath the incoming one
+        // rather than fading out against it. Both tracks are absolutely
+        // stacked and the second is later in the DOM, so it paints on top:
+        // dissolving one up while dissolving the other down left the pair at
+        // 0.5 each in the middle, which composites to 0.75 over the page and
+        // shows the background through both phones at once. Holding the one
+        // underneath means the dissolve is always fully opaque. It can then
+        // drop to 0 the moment the incoming phone reaches 1, which is
+        // invisible because it is completely covered by then.
+        const storyOpacity = isFirst ? (crossfade >= 1 ? 0 : 1) : crossfade;
+        // Captions cross with no overlap: the outgoing one is gone by the
+        // midpoint and the incoming one starts there. They are two different
+        // sentences in the same grid cell, so overlapping them is unreadable
+        // in a way overlapping the phones is not - and this used to be a hard
+        // binary flip at the midpoint, which popped while the phone beside it
+        // dissolved smoothly.
+        const captionOpacity = isFirst ? clamp01(1 - crossfade * 2) : clamp01(crossfade * 2 - 1);
+        trackEl.style.setProperty('--caption-opacity', String(mql.matches ? Number(captionOpacity >= 0.5) : captionOpacity));
+        trackEl.style.setProperty('--story-opacity', String(mql.matches ? Number(storyOpacity >= 0.5) : storyOpacity));
         stageEl.style.setProperty('--p-track', String(localProgress));
         let openLocal = 0;
         for (const [beat, [start, end]] of Object.entries(beats)) {

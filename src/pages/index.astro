@@ -402,7 +402,12 @@ const faq = [
   .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
   #home-content { padding-top: var(--home-header-height); padding-bottom: var(--home-dock-height); }
   .home-tour { min-height: var(--home-stage-height); }
-  :global(html[data-home-mode="tour"]) .home-tour { height: calc(var(--home-stage-height) + 850svh); }
+  /* 940svh, not 850. The extra 90svh buys the dwell on the finished first
+     story that ScrollDriver.tsx's split constants carve out; both stories keep
+     the scroll distance they had. If this number changes, re-derive SIGN_END /
+     CROSSFADE_START / CROSSFADE_END against it - they are fractions of this
+     span, so a shorter tour speeds both stories up silently. */
+  :global(html[data-home-mode="tour"]) .home-tour { height: calc(var(--home-stage-height) + 940svh); }
   .home-scene { position: sticky; top: var(--home-header-height); min-height: var(--home-stage-height); display: grid; grid-template-columns: minmax(230px, 0.75fr) minmax(0, 2fr); align-items: center; gap: 24px; padding: 0 5vw; box-sizing: border-box; }
   :global(html[data-home-mode]) .home-scene { height: var(--home-stage-height); }
   .workspace-launcher { justify-self: center; width: 100%; max-width: 400px; }
