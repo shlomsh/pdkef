@@ -94,19 +94,6 @@ const TRACKS: TrackConfig[] = [
   },
 ];
 
-/** The sign track's local progress used as the workspace-mode still.
- *
- * Derived from the beat map, not written as a number: this is the exact
- * boundary where `sign` finishes and `share` begins, so the signature is fully
- * drawn, every blank is filled, and no share sheet is over the document. A
- * hand-picked 0.79 was 0.006 short of it, which is invisible in the signature
- * (95% drawn) but not in the toolbar above it - the outgoing "Symbols" chip
- * was still at opacity 0.052 and showed as a ghost of its own last letters
- * behind the "Sign" chip. Deriving it means the still follows the beat map if
- * the reading hold or the beat windows are ever retimed. See update(). */
-const WORKSPACE_STILL = afterChatReadingHold(0.78);
-
-
 function clamp01(n: number): number {
   return n < 0 ? 0 : n > 1 ? 1 : n;
 }
@@ -126,33 +113,6 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
 
     function update() {
       if (!tour || !scene) return;
-      // Workspace mode shows the demo as a still, not as something to scroll
-      // through, and it has to be pinned deliberately rather than left to the
-      // scroll maths. In that mode .home-tour is exactly one stage tall - the
-      // extra 850svh only exists under [data-home-mode="tour"] - so `travel`
-      // floors at 1px and the sticky scene unpins on the first pixel of
-      // scroll. Progress would then jump straight to 1 and the demo would race
-      // to its final frame (a sent reply) the moment the visitor scrolled at
-      // all, which is a worse still than any frame of the story.
-      //
-      // WORKSPACE_STILL is the signed, filled slip just before the share sheet
-      // slides up: the last frame in which the whole point of the tool - a
-      // completed document - is on screen with nothing overlaying it.
-      if (document.documentElement.dataset.homeMode === 'workspace') {
-        for (const { key, beats, trackEl, stageEl } of tracks) {
-          if (!trackEl || !stageEl) continue;
-          const isFirst = key === 'sign';
-          trackEl.style.setProperty('--caption-opacity', isFirst ? '1' : '0');
-          trackEl.style.setProperty('--story-opacity', isFirst ? '1' : '0');
-          stageEl.style.setProperty('--p-track', String(isFirst ? WORKSPACE_STILL : 0));
-          for (const [beat, [start, end]] of Object.entries(beats)) {
-            const value = isFirst ? clamp01((WORKSPACE_STILL - start) / (end - start)) : 0;
-            stageEl.style.setProperty(`--p-${beat}`, String(value));
-          }
-          stageEl.style.setProperty('--p-tap', '0');
-        }
-        return;
-      }
       const top = parseFloat(getComputedStyle(scene).top) || 0;
       const travel = Math.max(1, tour.offsetHeight - scene.offsetHeight);
       const progress = clamp01((top - tour.getBoundingClientRect().top) / travel);
@@ -214,12 +174,6 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
     const observer = new ResizeObserver(onScroll);
     observer.observe(tour);
     observer.observe(scene);
-    // homeWorkspace.ts flips data-home-mode on a click as well as on scroll,
-    // and the still/scrolled branch above is chosen from it - so the flip has
-    // to re-run update() itself rather than waiting for the next scroll event
-    // that may never come.
-    const modeObserver = new MutationObserver(onScroll);
-    modeObserver.observe(document.documentElement, { attributeFilter: ['data-home-mode'] });
     update();
 
     return () => {
@@ -227,7 +181,6 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
       window.removeEventListener('resize', onScroll);
       mql.removeEventListener('change', onScroll);
       observer.disconnect();
-      modeObserver.disconnect();
     };
   }, [rootSelector]);
 

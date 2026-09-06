@@ -1,5 +1,5 @@
-.launcher { display: flex; flex-direction: column; align-items: center; gap: 24px; }
-.tile { width: 174px; min-height: 156px; border: 1.5px dashed var(--color-border-strong); border-radius: 18px; padding: 18px; background: var(--color-surface-sunken); color: var(--color-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font: inherit; }
+.launcher { display: grid; grid-template-columns: repeat(auto-fit, 148px); align-items: start; justify-content: start; gap: 20px 16px; }
+.tile { box-sizing: border-box; width: 148px; min-height: 180px; border: 1.5px dashed var(--color-border-strong); border-radius: 18px; padding: 18px; background: var(--color-primary-soft); color: var(--color-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font: inherit; }
 .tile strong { color: var(--color-text); font-size: 0.95rem; }
 .tile span { font-size: 0.78rem; color: var(--color-muted); }
 .tile:hover { border-color: var(--color-primary); background: var(--color-primary-tint); }
@@ -39,34 +39,8 @@
 }
 .error { max-width: 360px; font-size: 0.85rem; color: var(--color-danger); }
 @media (max-width: 760px) {
-  .launcher > .tile { flex-direction: row; flex-wrap: wrap; width: 184px; min-height: 60px; padding: 10px; gap: 2px 8px; }
-  .launcher > .tile svg { width: 22px; height: 24px; grid-row: span 2; }
+  .launcher { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; max-width: 328px; }
+  .launcher > .tile { width: 100%; min-height: 180px; padding: 12px; }
+
   .launcher > .tile span { font-size: 0.7rem; }
-}
-
-@media (min-width: 761px) {
-  /* Recent documents first, the picker under them. The two used to sit side by
-     side, which put a returning visitor's own files and the generic "choose a
-     file" tile at equal weight - and the tile won, because it is the larger
-     and more saturated of the two. Stacking them makes the ordering the
-     ranking: the documents you already have are the first thing on the page,
-     and starting something new is the step below that.
-
-     The picker also stops being a 174px square once it is on its own line;
-     at that width, centred under a full-width row of documents, it read as a
-     stray tile rather than the page's second action. */
-  :global(html[data-home-mode="workspace"]) .launcher { align-items: stretch; gap: 28px; }
-  :global(html[data-home-mode="workspace"]) .launcher > .tile {
-    width: min(100%, 620px);
-    min-height: 128px;
-    margin-inline: auto;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-content: center;
-    gap: 4px 14px;
-  }
-  :global(html[data-home-mode="workspace"]) .launcher > .tile strong,
-  :global(html[data-home-mode="workspace"]) .launcher > .tile span { flex-basis: 100%; }
-  :global(html[data-home-mode="workspace"]) .launcher > .tile svg { flex-basis: auto; }
 }
