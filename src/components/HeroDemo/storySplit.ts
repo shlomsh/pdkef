@@ -12,11 +12,12 @@
  * before it began disappearing. Measured against the current tour height, the
  * split now gives the sign story 484svh (it had 485, so its pacing is
  * unchanged), the dwell 80svh (it had 8), the dissolve 52svh (34) and the bill
- * story 464svh. The bill story's added room is held at the initial inbox, the
- * composed cleaned attachment, and the sent confirmation.
+ * story 500svh. The bill story's added room is held at the initial inbox, the
+ * request tap before its document opens, the composed cleaned attachment, and
+ * the sent confirmation.
  *
  * These are fractions of the tour's travel, which is set in index.astro
- * (`.home-tour` height, currently one stage plus 1080svh). Change that height
+ * (`.home-tour` height, currently one stage plus 1116svh). Change that height
  * and these fractions silently re-time both stories, so re-derive them against
  * it - the svh figures above are how.
  *
@@ -27,9 +28,9 @@
  * every scroll-driven demo test scrolling to the wrong place, with nothing
  * naming the cause.
  */
-export const SIGN_END = 484 / 1080;
-export const CROSSFADE_START = 564 / 1080;
-export const CROSSFADE_END = 616 / 1080;
+export const SIGN_END = 484 / 1116;
+export const CROSSFADE_START = 564 / 1116;
+export const CROSSFADE_END = 616 / 1116;
 
 /** Global tour progress for `fraction` through the given track. The inverse of
  * the local-progress maps in ScrollDriver.tsx's update(). */

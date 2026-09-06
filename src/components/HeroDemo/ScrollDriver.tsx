@@ -85,18 +85,22 @@ const TRACKS: TrackConfig[] = [
       // Let the quiet inbox read as an inbox before a new message lands.
       // The edit windows retain their former scroll length; the extra track
       // length comes from intentional holds instead of slower redactions.
-      arrive: [0.078, 0.134],
-      open: [0.134, 0.203],
-      blur: [0.203, 0.315],
-      blackout: [0.315, 0.413],
-      whiteout: [0.413, 0.511],
-      delete: [0.511, 0.608],
+      arrive: [0.072, 0.124],
+      // A tap is a beat in its own right. Keeping the request on screen after
+      // the ripple completes makes the following open read as a consequence
+      // of that action, not an unrelated scene replacement.
+      tap: [0.124, 0.168],
+      open: [0.196, 0.261],
+      blur: [0.261, 0.365],
+      blackout: [0.365, 0.456],
+      whiteout: [0.456, 0.547],
+      delete: [0.547, 0.638],
       // Once the reply slides in, the cleaned attachment stays available to
       // inspect before the send action begins.
-      send: [0.608, 0.706],
-      sent: [0.792, 0.866],
+      send: [0.638, 0.729],
+      sent: [0.809, 0.877],
       // Hold the sent confirmation, then gently take the demo away.
-      fade: [0.948, 0.991],
+      fade: [0.953, 0.993],
     },
   },
 ];
@@ -153,6 +157,7 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
         trackEl.style.setProperty('--story-opacity', String(mql.matches ? Number(storyOpacity >= 0.5) : storyOpacity));
         stageEl.style.setProperty('--p-track', String(localProgress));
         let openLocal = 0;
+        let tapLocal: number | null = null;
         for (const [beat, [start, end]] of Object.entries(beats)) {
           const value = clamp01((localProgress - start) / (end - start));
           // Reduced motion keeps the story readable as discrete completed
@@ -160,8 +165,13 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
           const local = mql.matches ? Number(value >= 0.5) : value;
           stageEl.style.setProperty(`--p-${beat}`, String(local));
           if (beat === 'open') openLocal = local;
+          if (beat === 'tap') tapLocal = local;
         }
-        stageEl.style.setProperty('--p-tap', String(mql.matches ? 0 : 1 - Math.abs(openLocal * 2 - 1)));
+        // Sign uses its attachment-opening beat as the tap. The mail story
+        // has a dedicated tap beat so a reader can see the request press and
+        // settle before the bill view begins to replace it.
+        const interactionLocal = tapLocal ?? openLocal;
+        stageEl.style.setProperty('--p-tap', String(mql.matches ? 0 : 1 - Math.abs(interactionLocal * 2 - 1)));
       }
     }
 

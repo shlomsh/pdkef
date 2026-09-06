@@ -35,9 +35,9 @@ const faq = [
 
   <div class="home-header">
     <AppBar isHome>
-      <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">Star us on GitHub ☆</a>
-      <a href="/licenses/">MIT licensed</a>
-      <a href="#offline-app">Works offline</a>
+      <a class="trust-chip" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">Star us on GitHub ☆</a>
+      <a class="trust-chip" href="/licenses/">MIT licensed</a>
+      <a class="trust-chip" href="#offline-app">Works offline</a>
     </AppBar>
     <header class="hero-header">
       <h1>Free PDF tools that run <span>on your device</span></h1>
@@ -309,7 +309,8 @@ const faq = [
       </div>
     </FeatureCard>
 
-    <section class="try-workspace" id="try-workspace" aria-labelledby="try-heading" data-working-area>
+    <FeatureCard id="try-workspace" density="flow" class="try-workspace relative isolate overflow-hidden" aria-labelledby="try-heading" data-working-area>
+      <CardDecor sketch="waves" icon={PenLine} iconPos="br" iconSize={300} parallax />
       <h2 id="try-heading">Give it a try.</h2>
       {/* No explanatory paragraph. The two things you can do here are a file
           and a dropzone, and both are now drawn rather than described, so a
@@ -318,7 +319,7 @@ const faq = [
           heading carries the invitation; the controls carry the choice. */}
       <FileDropzone client:only="preact" toolTarget="sign" final />
       <a href="#home-tour" data-workspace-return>Back to your workspace ↑</a>
-    </section>
+    </FeatureCard>
     <Footer />
   </div>
     </div>
@@ -370,8 +371,35 @@ const faq = [
     background: var(--color-bg);
   }
   .home-header { position: fixed; inset: 0 0 auto; z-index: 30; background: var(--color-bg); }
-  .home-header :global(.home-trust) { display: flex; align-items: center; gap: 18px; font-size: 0.75rem; white-space: nowrap; }
-  .home-header :global(.home-trust a) { color: var(--color-muted); text-decoration: none; }
+  .home-header :global(.home-trust) { display: flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; white-space: nowrap; }
+  /* The header's proof points are all quiet utility chips. The green fill is
+     reserved for the live privacy status; links use the same surface, border,
+     radius, and compact padding as the rest of the suite rather than reading
+     as three unrelated bits of text next to one filled badge. */
+  .home-header :global(.home-trust .trust-chip) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.8rem;
+    box-sizing: border-box;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    padding: 0.22rem 0.6rem;
+    color: var(--color-muted);
+    text-decoration: none;
+    transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out), background-color 150ms var(--ease-out), box-shadow 150ms var(--ease-out);
+  }
+  .home-header :global(.home-trust .trust-chip:hover) {
+    border-color: var(--color-border-strong);
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+  }
+  .home-header :global(.home-trust .trust-chip:focus-visible) {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-focus);
+    color: var(--color-primary);
+  }
   /* Doubled class, deliberately. global.css carries a bare, unlayered
      `header:not(.tool-hero):not(.not-found-header)` at specificity 0-2-1, and
      `header.hero-header` plus Astro's own scope attribute is also 0-2-1 - an
@@ -398,13 +426,14 @@ const faq = [
   .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
   #home-content { padding-top: var(--home-header-height); padding-bottom: var(--home-dock-height); }
   .home-tour { min-height: var(--home-stage-height); }
-  /* 1080svh. The original extra room buys the dwell on the finished first
-     story; the added 140svh pauses the second story on its initial inbox,
-     cleaned reply, and sent confirmation without slowing the redactions.
+  /* 1116svh. The original extra room buys the dwell on the finished first
+     story; the added 176svh pauses the second story on its initial inbox,
+     request tap, cleaned reply, and sent confirmation without slowing the
+     redactions.
      If this number changes, re-derive SIGN_END / CROSSFADE_START /
      CROSSFADE_END against it - they are fractions of this span, so a shorter
      tour speeds both stories up silently. */
-  .home-tour { height: calc(var(--home-stage-height) + 1080svh); }
+  .home-tour { height: calc(var(--home-stage-height) + 1116svh); }
   /* Keep the visual anchors balanced: the file controls stay aligned to the
      scene's left edge while the demo is centered in an equally sized right
      zone. The former 0.85fr / 2fr split centered the phone in an oversized
@@ -437,7 +466,7 @@ const faq = [
   .card-stack :global(footer) { position: relative; z-index: 1; }
   .card-stack :global(footer) { background: var(--color-bg); margin-top: 1.5rem; }
   @media (min-width: 768px) {
-    .card-stack :global(.card-reveal) {
+    .card-stack :global(.card-reveal:not(.try-workspace)) {
       position: sticky;
       top: calc(var(--home-header-height) + var(--stack-gap));
       min-height: calc(100svh - var(--home-header-height) - var(--stack-gap));
@@ -468,7 +497,12 @@ const faq = [
     text-align: center;
   }
   .try-workspace h2 { font-size: 2rem; margin: 0 0 16px; }
-  .try-workspace > a { margin-top: 16px; }
+  .try-workspace > :global(.w-full) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .try-workspace > :global(.w-full) > a { margin-top: 16px; }
   @media (max-width: 1080px) {
     .try-workspace { width: auto; margin-inline: var(--space-6); }
   }
@@ -504,9 +538,10 @@ const faq = [
   .app-label { font-size: 0.8rem; font-weight: 600; line-height: 1.25; text-align: center; color: var(--color-muted); }
   @media (max-width: 760px) {
     :global(body) { --home-header-height: 163px; --home-dock-height: 100px; }
-    .home-header :global(.home-trust) { gap: 10px; font-size: 0.65rem; }
+    .home-header :global(.home-trust) { gap: 0.3rem; font-size: 0.65rem; }
     .home-header :global([data-home-bar] > div) { height: auto; min-height: 56px; flex-wrap: wrap; padding-block: 6px; gap: 6px; }
     .home-header :global(.home-trust) { width: 100%; justify-content: center; font-size: 0.7rem; }
+    .home-header :global(.home-trust .trust-chip) { min-height: 1.65rem; padding-inline: 0.45rem; }
     .home-header :global([data-on-device]) { font-size: 0.7rem; gap: 4px; }
     header.hero-header.hero-header { padding: 10px 16px; }
     .hero-header h1 { font-size: 1.6rem; }
@@ -532,14 +567,7 @@ const faq = [
   }
 
   /* Accented tiles carry their own gradient; hover overrides both, which is why
-     these rules come first and the state rules after.
-
-     Keyed off the tool's own `accent` field (src/data/tools.js), NOT off
-     :first-child/:last-child as this once was. The positional version pointed
-     the highlight at whatever tool happened to sit last in that array, so
-     reordering the array by SEO priority silently moved the accent onto an
-     unrelated tool. :last-child was the wrong hook regardless: the grid wraps,
-     so the last tile is only a visual corner at some widths. */
+     these rules come first and the state rules after. */
   .app-card[data-accent='primary'] .app-tile {
     background: linear-gradient(150deg, var(--color-primary-hover), var(--color-primary));
   }
