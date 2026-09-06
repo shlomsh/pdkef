@@ -10,7 +10,7 @@ const context = {
 describe('element registry creation factories', () => {
   it('creates point-placed text and symbols from their own modules', () => {
     expect(getElementDefinition('text').creation.create!(context)).toMatchObject({
-      type: 'text', left: 25, top: 40, fontFamily: 'Arimo', textDirection: 'rtl',
+      type: 'text', left: 25, top: 40, fontFamily: 'Arimo', fontFamilyExplicit: false, textDirection: 'rtl',
     });
     // The caret is workspace state (editingElementId), never a field on the
     // element - a created box carries no focus flag for anyone to leave stale.

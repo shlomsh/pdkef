@@ -81,7 +81,10 @@ export default function ElementToolbar({
             drawnText={textForCoverage(element)}
             fontWeight={currentWeight}
             fontStyle={currentStyle}
-            onChange={(fontFamily: string) => onChange({ fontFamily })}
+            // A menu selection is an explicit stylistic choice. TextNode may
+            // choose a compatible family for a fresh default field, but it
+            // must not replace a family the person deliberately picked.
+            onChange={(fontFamily: string) => onChange({ fontFamily, fontFamilyExplicit: true })}
             onPreview={onPreviewFont}
             onPreviewEnd={onPreviewFontEnd}
           />

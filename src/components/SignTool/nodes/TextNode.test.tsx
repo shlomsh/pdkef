@@ -87,6 +87,59 @@ describe('TextNode component', () => {
     expect(onChange).toHaveBeenCalledWith({ text: 'User typed this' });
   });
 
+  it('quietly chooses a compatible font when a fresh field receives Hebrew', () => {
+    // A new field can inherit the last-used family, but it is still not an
+    // explicit choice for this text. Sacramento makes the substitution visible
+    // in the patch, unlike the default Arimo which already covers Hebrew.
+    const element = { type: 'text', text: '', fontFamily: 'Sacramento', fontFamilyExplicit: false, fontSize: 12 };
+    const onChange = vi.fn();
+    host = mount(
+      <TextNode
+        element={element}
+        isActive={true}
+        isEditing={true}
+        onChange={onChange}
+        onSelect={() => {}}
+        onBeginEdit={() => {}}
+        onResizeStart={() => {}}
+        pageWidthPoints={600}
+      />,
+    );
+
+    const textarea = host.querySelector('textarea');
+    act(() => {
+      textarea.value = 'שלומי';
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    expect(onChange).toHaveBeenCalledWith({ text: 'שלומי', fontFamily: 'Gveret Levin' });
+  });
+
+  it('keeps an explicitly chosen incompatible font so its fallback remains explainable', () => {
+    const element = { type: 'text', text: '', fontFamily: 'Sacramento', fontFamilyExplicit: true, fontSize: 12 };
+    const onChange = vi.fn();
+    host = mount(
+      <TextNode
+        element={element}
+        isActive={true}
+        isEditing={true}
+        onChange={onChange}
+        onSelect={() => {}}
+        onBeginEdit={() => {}}
+        onResizeStart={() => {}}
+        pageWidthPoints={600}
+      />,
+    );
+
+    const textarea = host.querySelector('textarea');
+    act(() => {
+      textarea.value = 'שלומי';
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    expect(onChange).toHaveBeenCalledWith({ text: 'שלומי' });
+  });
+
   it('derives direction from typed text across neutral, RTL, and digit-only transitions', () => {
     const renderNode = (text) => {
       act(() => {
