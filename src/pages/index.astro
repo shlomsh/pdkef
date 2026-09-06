@@ -437,8 +437,17 @@ const faq = [
      column. In workspace mode it carries the recent documents as well, which
      is the page's primary content for someone coming back, so the weighting
      inverts. */
-  :global(html[data-home-mode="workspace"]) .home-scene { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); }
-  :global(html[data-home-mode="workspace"]) .workspace-launcher { max-width: none; justify-self: stretch; }
+  /* Two columns only where there is room for two. This rule outranks the
+     `.home-scene { grid-template-columns: 1fr }` in the max-width: 760px block
+     below - an attribute plus a class beats a bare class, whatever the source
+     order - so leaving it unscoped forced a 300px demo column onto a 390px
+     phone and the mockup sat on top of the launcher, clipping the recent
+     documents and the picker off the left edge. Any rule added here that the
+     narrow layout also sets needs the same guard. */
+  @media (min-width: 761px) {
+    :global(html[data-home-mode="workspace"]) .home-scene { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); }
+    :global(html[data-home-mode="workspace"]) .workspace-launcher { max-width: none; justify-self: stretch; }
+  }
   :global(html[data-home-mode="tour"]) :global([data-home-recents]) { display: none; }
   [data-workspace-only] { display: none; }
   :global(html[data-home-mode="workspace"]) [data-workspace-only] { display: block; }

@@ -94,10 +94,17 @@ const TRACKS: TrackConfig[] = [
   },
 ];
 
-/** The sign track's local progress used as the workspace-mode still: the
- * signature is drawn and every blank is filled, and `share` has not started,
- * so no sheet is covering the document. See update(). */
-const WORKSPACE_STILL = 0.79;
+/** The sign track's local progress used as the workspace-mode still.
+ *
+ * Derived from the beat map, not written as a number: this is the exact
+ * boundary where `sign` finishes and `share` begins, so the signature is fully
+ * drawn, every blank is filled, and no share sheet is over the document. A
+ * hand-picked 0.79 was 0.006 short of it, which is invisible in the signature
+ * (95% drawn) but not in the toolbar above it - the outgoing "Symbols" chip
+ * was still at opacity 0.052 and showed as a ghost of its own last letters
+ * behind the "Sign" chip. Deriving it means the still follows the beat map if
+ * the reading hold or the beat windows are ever retimed. See update(). */
+const WORKSPACE_STILL = afterChatReadingHold(0.78);
 
 
 function clamp01(n: number): number {
