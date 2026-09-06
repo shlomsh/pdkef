@@ -27,6 +27,13 @@ const IDENTITY = [1, 0, 0, 1, 0, 0];
 const FALLBACK_ASCENT = 0.75;
 const FALLBACK_DESCENT = -0.25;
 
+// A checkbox is often a text glyph rather than a painted rectangle. These are
+// the Unicode characters fonts commonly expose for that job. Zapf Dingbats is
+// a special case below because many real PDFs omit its ToUnicode map entirely.
+const CHECKBOX_GLYPHS = new Set(['\u2610', '\u25a1', '\u274f', '\u2751']);
+// In the standard Zapf Dingbats encoding these are ❏ and ❑ respectively.
+const ZAPF_DINGBATS_CHECKBOX_CODES = new Set([0x6f, 0x71]);
+
 function lookupDict(context, value) {
   const resolved = context.lookup(value);
   return resolved instanceof PDFDict ? resolved : undefined;
@@ -136,6 +143,7 @@ function parseToUnicode(bytes) {
  */
 function readFont(context, fontDict) {
   const subtype = context.lookup(fontDict.get(PDFName.of('Subtype')))?.asString?.();
+  const baseFont = context.lookup(fontDict.get(PDFName.of('BaseFont')))?.asString?.() || '';
   const widths = new Map();
   let defaultWidth = 500;
   let twoByte = false;
@@ -208,6 +216,7 @@ function readFont(context, fontDict) {
     widths,
     defaultWidth,
     toUnicode,
+    isZapfDingbats: /ZapfDingbats/i.test(baseFont),
     ascent: Number.isFinite(ascent) ? ascent / 1000 : FALLBACK_ASCENT,
     descent: Number.isFinite(descent) ? descent / 1000 : FALLBACK_DESCENT,
   };
@@ -246,6 +255,224 @@ function decodeCodes(bytes, font) {
     for (let i = 0; i < bytes.length; i += 1) codes.push(bytes[i]);
   }
   return codes;
+}
+
+function isCheckboxGlyph(font, code) {
+  return (font?.isZapfDingbats && ZAPF_DINGBATS_CHECKBOX_CODES.has(code))
+    || CHECKBOX_GLYPHS.has(font?.toUnicode.get(code));
+}
+
+/** Axis-aligned PDF-space bounds of a text glyph under its current transform. */
+function textGlyphBox(tm, ctm, advance, ascent, descent) {
+  const trm = multiplyMatrix(tm, ctm);
+  const corners = [
+    applyMatrix(trm, 0, descent),
+    applyMatrix(trm, advance, descent),
+    applyMatrix(trm, 0, ascent),
+    applyMatrix(trm, advance, ascent),
+  ];
+  const xs = corners.map((corner) => corner[0]);
+  const ys = corners.map((corner) => corner[1]);
+  return {
+    x: Math.min(...xs),
+    y: Math.min(...ys),
+    width: Math.max(...xs) - Math.min(...xs),
+    height: Math.max(...ys) - Math.min(...ys),
+  };
+}
+
+/**
+ * Collects checkbox glyph bounds from a page's text layer.
+ *
+ * A surprising number of official forms use Zapf Dingbats characters for
+ * their checkboxes. They look like rectangles on screen, but are emitted with
+ * `Tj`, not `re`, so the vector-ink collector quite correctly cannot see
+ * them. We intentionally recognize only the standard checkbox codes and
+ * Unicode-mapped checkbox glyphs, never arbitrary square-ish text, so an
+ * ordinary letter cannot become a false target.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFPage} page
+ * @returns {Array<{x: number, y: number, width: number, height: number}>}
+ */
+export function collectCheckboxGlyphs(page) {
+  const context = page.doc.context;
+  const resources = lookupDict(context, page.node.get(PDFName.of('Resources')));
+  const fonts = buildFontTable(context, resources);
+  const tokens = tokenize(getPageContentBytes(page));
+  const boxes = [];
+
+  let ctm = IDENTITY;
+  const ctmStack = [];
+  let operands = [];
+  let inText = false;
+  let tm = IDENTITY;
+  let tlm = IDENTITY;
+  let font = null;
+  let fontSize = 0;
+  let charSpacing = 0;
+  let wordSpacing = 0;
+  let horizontalScale = 1;
+  let leading = 0;
+  let rise = 0;
+
+  const num = (index) => {
+    const token = operands[index];
+    return token?.type === 'number' ? token.value : 0;
+  };
+  const nextLine = (tx, ty) => {
+    tlm = multiplyMatrix([1, 0, 0, 1, tx, ty], tlm);
+    tm = tlm;
+  };
+  const showString = (bytes) => {
+    const codes = decodeCodes(bytes, font);
+    const ascent = (font?.ascent ?? FALLBACK_ASCENT) * fontSize + rise;
+    const descent = (font?.descent ?? FALLBACK_DESCENT) * fontSize + rise;
+    for (const code of codes) {
+      const glyphWidth = (font?.widths.get(code) ?? font?.defaultWidth ?? 500) / 1000;
+      const applyWordSpacing = !font?.twoByte && code === 32;
+      const advance = (
+        glyphWidth * fontSize + charSpacing + (applyWordSpacing ? wordSpacing : 0)
+      ) * horizontalScale;
+      if (isCheckboxGlyph(font, code)) {
+        boxes.push(textGlyphBox(tm, ctm, advance, ascent, descent));
+      }
+      tm = multiplyMatrix([1, 0, 0, 1, advance, 0], tm);
+    }
+  };
+
+  for (const token of tokens) {
+    if (token.type !== 'operator') {
+      operands.push(token);
+      continue;
+    }
+
+    switch (token.value) {
+      case 'q':
+        ctmStack.push(ctm);
+        break;
+      case 'Q':
+        ctm = ctmStack.pop() ?? IDENTITY;
+        break;
+      case 'cm':
+        ctm = multiplyMatrix([num(0), num(1), num(2), num(3), num(4), num(5)], ctm);
+        break;
+      case 'BT':
+        inText = true;
+        tm = IDENTITY;
+        tlm = IDENTITY;
+        break;
+      case 'ET':
+        inText = false;
+        break;
+      case 'Tf': {
+        const name = operands[operands.length - 2];
+        font = name?.type === 'name' ? fonts.get(`/${name.value}`) ?? null : null;
+        fontSize = num(operands.length - 1);
+        break;
+      }
+      case 'Tc':
+        charSpacing = num(operands.length - 1);
+        break;
+      case 'Tw':
+        wordSpacing = num(operands.length - 1);
+        break;
+      case 'Tz':
+        horizontalScale = num(operands.length - 1) / 100;
+        break;
+      case 'TL':
+        leading = num(operands.length - 1);
+        break;
+      case 'Ts':
+        rise = num(operands.length - 1);
+        break;
+      case 'Tm':
+        tlm = [num(0), num(1), num(2), num(3), num(4), num(5)];
+        tm = tlm;
+        break;
+      case 'Td':
+        nextLine(num(operands.length - 2), num(operands.length - 1));
+        break;
+      case 'TD':
+        leading = -num(operands.length - 1);
+        nextLine(num(operands.length - 2), num(operands.length - 1));
+        break;
+      case 'T*':
+        nextLine(0, -leading);
+        break;
+      case 'Tj':
+      case "'":
+      case '"': {
+        if (!inText) break;
+        if (token.value !== 'Tj') nextLine(0, -leading);
+        if (token.value === '"') {
+          wordSpacing = num(operands.length - 3);
+          charSpacing = num(operands.length - 2);
+        }
+        const string = operands[operands.length - 1];
+        if (string?.type === 'string' || string?.type === 'hexstring') showString(string.value);
+        break;
+      }
+      case 'TJ': {
+        if (!inText) break;
+        const array = operands[operands.length - 1];
+        if (array?.type !== 'array') break;
+        for (const item of array.value) {
+          if (item.type === 'number') {
+            const shift = (-item.value / 1000) * fontSize * horizontalScale;
+            tm = multiplyMatrix([1, 0, 0, 1, shift, 0], tm);
+          } else if (item.type === 'string' || item.type === 'hexstring') {
+            showString(item.value);
+          }
+        }
+        break;
+      }
+      default:
+        break;
+    }
+    operands = [];
+  }
+
+  return boxes;
+}
+
+/** True when a widget inherits the PDF button field type from itself or a parent. */
+function isButtonWidget(context, widget) {
+  let field = widget;
+  const seen = new Set();
+  while (field instanceof PDFDict && !seen.has(field)) {
+    seen.add(field);
+    const type = context.lookup(field.get(PDFName.of('FT')))?.asString?.();
+    if (type === '/Btn') return true;
+    field = context.lookup(field.get(PDFName.of('Parent')));
+  }
+  return false;
+}
+
+/**
+ * Collects native PDF button widgets from the page annotation tree.
+ *
+ * Checkboxes are `/Btn` fields. The same field type also covers radio buttons;
+ * a symbol mark is a useful placement target for either, and their exact
+ * printed rectangle comes from the annotation rather than a visual heuristic.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFPage} page
+ * @returns {Array<{x: number, y: number, width: number, height: number}>}
+ */
+export function collectCheckboxWidgets(page) {
+  const context = page.doc.context;
+  const annotations = context.lookup(page.node.get(PDFName.of('Annots')));
+  if (!(annotations instanceof PDFArray)) return [];
+
+  const boxes = [];
+  for (let index = 0; index < annotations.size(); index += 1) {
+    const widget = context.lookup(annotations.get(index));
+    if (!(widget instanceof PDFDict)) continue;
+    const subtype = context.lookup(widget.get(PDFName.of('Subtype')))?.asString?.();
+    if (subtype !== '/Widget' || !isButtonWidget(context, widget)) continue;
+    const rect = context.lookup(widget.get(PDFName.of('Rect')))?.asRectangle?.();
+    if (rect?.width > 0 && rect?.height > 0) boxes.push(rect);
+  }
+  return boxes;
 }
 
 /**

@@ -1,6 +1,7 @@
 import { createPageGeometry, pdfPointToPagePercent } from '../../geometry/coords.ts';
 import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
 import { collectPageInk, pageCropBox } from './pageInk.js';
+import { collectCheckboxGlyphs, collectCheckboxWidgets } from './pdfObjects.js';
 
 /**
  * Recovers fillable geometry from a flat form's own vector content.
@@ -286,6 +287,13 @@ export function findCheckboxes(ink) {
   return boxes;
 }
 
+function uniqueCheckboxes(boxes) {
+  return boxes.filter((box, index) => !boxes.slice(0, index).some(
+    (other) => Math.abs(other.x - box.x) <= DUPLICATE_TOLERANCE
+      && Math.abs(other.y - box.y) <= DUPLICATE_TOLERANCE,
+  ));
+}
+
 /**
  * A PDF-space box as the top-left-origin percentages the editor model stores.
  *
@@ -310,7 +318,7 @@ function toPagePercentBox(geometry, { x0, y0, x1, y1 }) {
  * @param {import('../../geometry/coords.ts').PageGeometry} geometry
  * @param {number} pageIndex
  */
-export function detectRegions(ink, geometry, pageIndex = 0) {
+export function detectRegions(ink, geometry, pageIndex = 0, checkboxBoxes = findCheckboxes(ink)) {
   const combs = findCombRuns(ink).map((run) => ({
     kind: 'comb',
     pageIndex,
@@ -322,7 +330,7 @@ export function detectRegions(ink, geometry, pageIndex = 0) {
     }),
   }));
 
-  const checkboxes = findCheckboxes(ink).map((box) => ({
+  const checkboxes = uniqueCheckboxes(checkboxBoxes).map((box) => ({
     kind: 'checkbox',
     pageIndex,
     ...toPagePercentBox(geometry, {
@@ -345,5 +353,10 @@ export function detectPageRegions(page, pageIndex = 0) {
     cropBox: pageCropBox(page),
     rotation: page.getRotation().angle,
   });
-  return detectRegions(collectPageInk(page), geometry, pageIndex);
+  const ink = collectPageInk(page);
+  return detectRegions(ink, geometry, pageIndex, [
+    ...findCheckboxes(ink),
+    ...collectCheckboxGlyphs(page),
+    ...collectCheckboxWidgets(page),
+  ]);
 }
