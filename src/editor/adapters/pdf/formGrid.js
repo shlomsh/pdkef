@@ -56,8 +56,8 @@ const PITCH_TOLERANCE = 1;
 const MIN_PITCH = 5;
 /** Wider than this is a table column, not a comb cell. */
 const MAX_PITCH = 40;
-/** MOBI-03 scope: a comb run is five or more cells. */
-const MIN_CELLS = 5;
+/** Four digits is the shortest numeric comb on the tax-year field in form 101. */
+const MIN_CELLS = 4;
 /** Checkbox size band, measured from the health declaration's 6.6pt and 7.6pt squares. */
 const CHECKBOX_MIN_SIZE = 4;
 const CHECKBOX_MAX_SIZE = 16;
