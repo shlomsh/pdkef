@@ -39,7 +39,7 @@ function addTextField(form, page, font, name, x, y, width, height, { multiline =
 
 /** A single interactive PDF comb field, with printed cells that stay visible
  * even in viewers that do not draw a blank widget's comb separators. */
-function addDigitComb(form, page, font, name, x, y, digits, cellWidth = 25, height = 14) {
+function addDigitComb(form, page, font, name, x, y, digits, cellWidth = 25, height = 22) {
   const width = digits * cellWidth;
   for (let cell = 0; cell < digits; cell += 1) {
     page.drawRectangle({

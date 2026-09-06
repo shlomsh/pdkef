@@ -228,8 +228,10 @@ describe('bundled practice form', () => {
       updateMetadata: false,
     });
     const { combs } = detectPageRegions(document.getPage(0), 0);
-    expect(combs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ cells: 9, boxed: true }),
-    ]));
+    const studentId = combs.find((comb) => comb.cells === 9 && comb.boxed);
+    expect(studentId).toEqual(expect.objectContaining({ cells: 9, boxed: true }));
+    // It intentionally matches the 22-point height of the other single-line
+    // entries, so a real form's roomy digit cells remain snappable.
+    expect(studentId.height).toBeCloseTo(4.4, 1);
   });
 });
