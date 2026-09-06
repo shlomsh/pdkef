@@ -75,6 +75,7 @@ function collectIgnoringTheMatrix(tokens) {
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixture = (name) => path.join(here, '__fixtures__', name);
+const practiceForm = path.resolve(here, '../../../../public/images/redaction-guide/sample.pdf');
 
 async function regionsOf(name) {
   const document = await PDFDocument.load(fs.readFileSync(fixture(name)), {
@@ -215,5 +216,18 @@ describe('what the >= 5 cell rule leaves out, on purpose', () => {
   it('skips the health declaration area codes, which are three cells each', async () => {
     const { combs } = await regionsOf('health-declaration-page1-geometry.pdf');
     expect(combs.every((run) => run.cells >= 5)).toBe(true);
+  });
+});
+
+describe('bundled practice form', () => {
+  it('offers its nine-digit Student ID comb when Text is armed', async () => {
+    const document = await PDFDocument.load(fs.readFileSync(practiceForm), {
+      ignoreEncryption: true,
+      updateMetadata: false,
+    });
+    const { combs } = detectPageRegions(document.getPage(0), 0);
+    expect(combs).toEqual(expect.arrayContaining([
+      expect.objectContaining({ cells: 9, boxed: true }),
+    ]));
   });
 });
