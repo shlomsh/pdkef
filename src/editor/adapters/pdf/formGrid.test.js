@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
 import { tokenize } from './contentStream.js';
 import { collectInkFromTokens } from './pageInk.js';
 import { createPageGeometry } from '../../geometry/coords.ts';
-import { detectRegions, findCheckboxes, findCombRuns } from './formGrid.js';
+import { detectPageRegions, detectRegions, findCheckboxes, findCombRuns } from './formGrid.js';
 
 const inkOf = (stream) => collectInkFromTokens(tokenize(new TextEncoder().encode(stream)));
 const runsOf = (stream) => findCombRuns(inkOf(stream));
@@ -203,6 +204,45 @@ describe('findCheckboxes', () => {
 
   it('counts a box drawn twice, as a stroke and a fill, once', () => {
     expect(findCheckboxes(inkOf('100 200 7.6 7.6 re f 100 200 7.6 7.6 re S'))).toHaveLength(1);
+  });
+});
+
+describe('checkbox glyphs', () => {
+  it('finds standard Zapf Dingbats checkbox glyphs, not only rectangle paths', async () => {
+    const document = await PDFDocument.create();
+    const page = document.addPage([600, 800]);
+    const dingbats = await document.embedFont(StandardFonts.ZapfDingbats);
+    page.setFont(dingbats);
+    page.setFontSize(10);
+    // These encode as 0x6f and 0x71 in standard Zapf Dingbats, the same
+    // one-byte source codes Illustrator uses in the income-tax form.
+    page.drawText('❏❑', { x: 120, y: 600 });
+
+    const bytes = await document.save();
+    const reloaded = await PDFDocument.load(bytes);
+    const { checkboxes } = detectPageRegions(reloaded.getPage(0), 0);
+    expect(checkboxes).toHaveLength(2);
+    expect(checkboxes[0].left).toBeCloseTo(20, 5);
+    expect(checkboxes[1].left).toBeCloseTo(20.8333, 3);
+    expect(checkboxes.every((box) => box.top > 23 && box.top < 25)).toBe(true);
+  });
+
+  it('finds a native AcroForm checkbox widget', async () => {
+    const document = await PDFDocument.create();
+    const page = document.addPage([600, 800]);
+    const field = document.getForm().createCheckBox('employment-status');
+    field.addToPage(page, { x: 120, y: 600, width: 10, height: 10 });
+
+    const bytes = await document.save();
+    const reloaded = await PDFDocument.load(bytes);
+    const { checkboxes } = detectPageRegions(reloaded.getPage(0), 0);
+    expect(checkboxes).toHaveLength(1);
+    // pdf-lib expands a widget Rect by half a point around the requested 10pt
+    // control, and snapping intentionally respects the actual annotation.
+    expect(checkboxes[0].left).toBeCloseTo(119.5 / 6, 5);
+    expect(checkboxes[0].top).toBeCloseTo(23.6875, 5);
+    expect(checkboxes[0].width).toBeCloseTo(11 / 6, 5);
+    expect(checkboxes[0].height).toBeCloseTo(11 / 8, 5);
   });
 });
 
