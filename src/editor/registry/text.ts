@@ -60,7 +60,7 @@ export const textDefinition: ElementDefinition<TextElement> = {
     mode: 'point',
     create: ({ id, pageIndex, point, color, font, fontSize, direction, textHeight = 0 }) => ({
       id, type: 'text', pageIndex, left: point.left, top: Math.max(0, point.top - textHeight / 2), text: '',
-      fontSize, fontWeight: 'normal', fontStyle: 'normal', fontFamily: font, color,
+      fontSize, fontWeight: 'normal', fontStyle: 'normal', fontFamily: font, fontFamilyExplicit: false, color,
       ...(direction != null ? { textDirection: direction } : {}),
     }),
   },

@@ -68,7 +68,7 @@ function describeSignFailure(err: unknown): string {
   if (err instanceof Error && err.name === 'FontUnavailableError') {
     const family = (err as Error & { family?: string }).family;
     return family && family !== 'Arimo'
-      ? `${family} is not ready on this device. Connect to the internet, select the text box, open the font menu, and choose Make offline before trying again.`
+      ? `${family} is not ready on this device yet. Connect to the internet so it can finish downloading, then try again.`
       : 'The app’s default font is not available on this device. Connect to the internet, reload the app, and try again.';
   }
   return 'Could not export the PDF. Your edits are still here. Try again.';

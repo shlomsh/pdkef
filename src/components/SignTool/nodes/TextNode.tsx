@@ -2,7 +2,7 @@ import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'pr
 import ElementResizers from '../../ElementResizers.tsx';
 import usePdfCoordinates from '../../../lib/usePdfCoordinates.js';
 import { getEffectiveTextDirection } from '../../../lib/signHelpers.js';
-import { resolveTypography } from '../../../editor/text/fonts.js';
+import { resolveFontSubstitution, resolveTypography } from '../../../editor/text/fonts.js';
 import { getTextFontSupport } from '../../../editor/text/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';
 import FontSupportNotice from '../FontSupportNotice.tsx';
@@ -102,6 +102,28 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   // is always exactly one line - a comb is a single row of boxes.
   const isRtl = textDirection === 'rtl';
   const comb = isComb(element);
+  const handleInput = (event: Event) => {
+    const text = (event.currentTarget as HTMLTextAreaElement).value;
+    // A new text box starts with the app's neutral default, not a meaningful
+    // typographic decision. Let its first real content select a family that
+    // can be represented, so typing Hebrew (or another supported script) is
+    // uninterrupted. A family selected through the menu is deliberately
+    // different: retain it and let the existing support notice explain any
+    // automatic rendering fallback.
+    if (element.fontFamilyExplicit === false) {
+      const { family } = resolveFontSubstitution(
+        element.fontFamily,
+        text,
+        element.fontWeight || 'normal',
+        element.fontStyle || 'normal',
+      );
+      if (family !== element.fontFamily) {
+        onChange({ text, fontFamily: family });
+        return;
+      }
+    }
+    onChange({ text });
+  };
   // `isSpanResizing` (true for the whole grab-to-release span-handle gesture,
   // set in useElementResize.js) mounts the overlay *hidden*, so a first-ever
   // comb-creation drag has real, Preact-owned nodes to reflow from its very
@@ -204,7 +226,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           tabIndex={isEditing ? undefined : -1}
           value={element.text}
           placeholder={placeholder}
-          onInput={(e) => onChange({ text: e.currentTarget.value })}
+          onInput={handleInput}
           onFocus={onSelect}
           style={{
             textAlign: textDirection === 'rtl' ? 'right' : 'left',
