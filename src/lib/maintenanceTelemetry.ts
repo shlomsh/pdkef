@@ -136,7 +136,19 @@ export interface AnalyticsBeforeSendEvent {
   url: string;
 }
 
-/** Vercel's beforeSend hook: it preserves the event type but drops raw URLs. */
+/**
+ * Vercel's beforeSend hook requires an absolute http(s) URL. Preserve its
+ * origin and pathname, but remove query strings and fragments, which can hold
+ * private document details.
+ */
 export function sanitizeAnalyticsEvent<T extends AnalyticsBeforeSendEvent>(event: T): T {
-  return { ...event, url: sanitizeAnalyticsPath(event.url) };
+  try {
+    const parsed = new URL(event.url, 'https://pdkef.com');
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return { ...event, url: new URL(parsed.pathname || '/', parsed.origin).href };
+    }
+  } catch {
+    // Use the safe fallback below.
+  }
+  return { ...event, url: 'https://pdkef.com/' };
 }

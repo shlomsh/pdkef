@@ -457,8 +457,7 @@ const faq = [
     --space-content-row: 1rem;
     --space-layout-gap: 1.5rem;
   }
-  .card-stack :global(.card-reveal),
-  .try-workspace {
+  .card-stack :global(.card-reveal:not(.try-workspace)) {
     margin-block-start: 2rem;
   }
   .card-stack :global(.type-lead) { line-height: 1.6; }
@@ -488,6 +487,9 @@ const faq = [
     box-sizing: border-box;
     width: 100%;
     max-width: 1080px;
+    /* This card takes over directly from the final sticky story card. A gap
+       here exposes that card's decorative layer above the closing surface. */
+    margin-block-start: 0;
     margin-inline: auto;
     min-height: calc(100svh - var(--home-header-height) - var(--home-dock-height) - var(--closing-footer-reserve));
     padding: var(--space-section-block) 2.5rem;

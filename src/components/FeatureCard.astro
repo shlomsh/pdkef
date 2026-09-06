@@ -11,7 +11,10 @@ interface Props {
   density?: 'screen' | 'flow';
 }
 
-const { id, class: className = '', variant = 'default', density = 'screen' } = Astro.props;
+// Keep semantic and data attributes supplied by a caller on the rendered
+// section. Cards are often also interaction boundaries (for example, the
+// home-page drop area), not just visual containers.
+const { id, class: className = '', variant = 'default', density = 'screen', ...attributes } = Astro.props;
 
 const baseClasses = [
   // Block padding (top/bottom) comes from the fluid --space-section-block
@@ -42,7 +45,7 @@ const variantClasses = variant === 'highlight'
   ? 'border border-[var(--color-primary-tint)] bg-[linear-gradient(135deg,var(--color-primary-soft)_0%,var(--color-bg)_100%)]'
   : 'border border-[var(--color-border)] bg-[var(--color-surface)]';
 ---
-<section id={id} class:list={[baseClasses, densityClasses, variantClasses, className]}>
+<section {...attributes} id={id} class:list={[baseClasses, densityClasses, variantClasses, className]}>
   <div class="w-full">
     <slot />
   </div>
