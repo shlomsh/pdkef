@@ -44,6 +44,8 @@ import { collectCheckboxGlyphs, collectCheckboxWidgets } from './pdfObjects.js';
 
 /** Ink taller than this on a comb baseline is a table rule, not a tooth (PDF points). */
 const TOOTH_MAX_HEIGHT = 14;
+/** A closed digit-comb may use full-height cells instead of short teeth. */
+const BOXED_COMB_MAX_HEIGHT = 28;
 /** Ink shorter than this is a dot or an artefact rather than a deliberate mark. */
 const TOOTH_MIN_HEIGHT = 1.5;
 /** A rect narrower (or shorter) than this is a drawn rule, not a box. */
@@ -227,16 +229,9 @@ function extendToWalls(run, row, edges) {
  * Exported separately from the page-percent API so the geometry can be
  * asserted in the units the form was measured in.
  */
-export function findCombRuns(ink) {
-  const edges = verticalEdges(ink);
-  const rules = horizontalRules(ink);
-  const teeth = edges.filter((edge) => {
-    const height = edge.y1 - edge.y0;
-    return height >= TOOTH_MIN_HEIGHT && height <= TOOTH_MAX_HEIGHT;
-  });
-
+function findRunsFromWalls(walls, rules, edges, { requireCompactBoxes = false } = {}) {
   const found = [];
-  for (const grouped of rowsByBaseline(teeth)) {
+  for (const grouped of rowsByBaseline(walls)) {
     if (grouped.teeth.length < MIN_CELLS - 1) continue;
     const row = {
       bottom: Math.min(...grouped.teeth.map((tooth) => tooth.y0)),
@@ -250,6 +245,14 @@ export function findCombRuns(ink) {
       if (cells < MIN_CELLS || cells > MAX_COMB_CELLS) continue;
       const left = separators[0];
       const right = separators[separators.length - 1];
+      const boxed = ruledCoverage(rules, row.top, left, right) >= CLOSED_EDGE_COVERAGE
+        && ruledCoverage(rules, row.bottom, left, right) >= CLOSED_EDGE_COVERAGE;
+      // Short walls are the usual teeth hanging from a writing rule. Taller
+      // walls are only safe to treat as a comb when they close a compact row
+      // of boxes: that admits real, full-height digit cells without turning a
+      // tall table column into a text target.
+      const rowHeight = row.top - row.bottom;
+      if (requireCompactBoxes && (!boxed || rowHeight > run.pitch * 1.2)) continue;
       found.push({
         left,
         right,
@@ -262,12 +265,33 @@ export function findCombRuns(ink) {
         // middle of a box instead of sitting on a rule. The page says which:
         // form 101 has no horizontal ink at all along its runs' tops, the
         // health declaration has 96% of it. See placeCombOnRegion.
-        boxed: ruledCoverage(rules, row.top, left, right) >= CLOSED_EDGE_COVERAGE
-          && ruledCoverage(rules, row.bottom, left, right) >= CLOSED_EDGE_COVERAGE,
+        boxed,
       });
     }
   }
   return found;
+}
+
+export function findCombRuns(ink) {
+  const edges = verticalEdges(ink);
+  const rules = horizontalRules(ink);
+  const shortTeeth = edges.filter((edge) => {
+    const height = edge.y1 - edge.y0;
+    return height >= TOOTH_MIN_HEIGHT && height <= TOOTH_MAX_HEIGHT;
+  });
+  const tallBoxWalls = edges.filter((edge) => {
+    const height = edge.y1 - edge.y0;
+    return height > TOOTH_MAX_HEIGHT && height <= BOXED_COMB_MAX_HEIGHT;
+  });
+
+  // Keep the established short-tooth pass isolated: adding tall walls to it
+  // changes its baselines and loses fields in dense government forms. The
+  // second pass admits only compact, closed rows, which is the geometry of a
+  // roomy digit comb rather than a table column.
+  return [
+    ...findRunsFromWalls(shortTeeth, rules, edges),
+    ...findRunsFromWalls(tallBoxWalls, rules, edges, { requireCompactBoxes: true }),
+  ];
 }
 
 /** Checkbox squares on one page, in PDF user space. */
