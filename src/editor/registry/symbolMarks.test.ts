@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { SymbolMark } from '../model/editorModel.ts';
 import { DESIGN_BOX, markGeometry, markInkExtent, markPathData } from './symbolMarks.ts';
 import { placeSymbolOnRegion } from './symbol.ts';
 
@@ -49,7 +50,7 @@ describe('markPathData', () => {
 });
 
 describe('placeSymbolOnRegion', () => {
-  const place = (mark) => placeSymbolOnRegion(CHECKBOX, mark, {
+  const place = (mark: SymbolMark | undefined) => placeSymbolOnRegion(CHECKBOX, mark, {
     pageWidthPoints: PAGE_WIDTH, pageHeightPoints: PAGE_HEIGHT,
   });
 
