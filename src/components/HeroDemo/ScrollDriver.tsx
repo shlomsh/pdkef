@@ -82,14 +82,21 @@ const TRACKS: TrackConfig[] = [
     // DEMO-02 directive 3.
     key: 'blur',
     beats: {
-      arrive: [0.0, 0.08],
-      open: [0.08, 0.18],
-      blur: [0.18, 0.34],
-      blackout: [0.34, 0.48],
-      whiteout: [0.48, 0.62],
-      delete: [0.62, 0.76],
-      send: [0.76, 0.9],
-      sent: [0.9, 1.0],
+      // Let the quiet inbox read as an inbox before a new message lands.
+      // The edit windows retain their former scroll length; the extra track
+      // length comes from intentional holds instead of slower redactions.
+      arrive: [0.078, 0.134],
+      open: [0.134, 0.203],
+      blur: [0.203, 0.315],
+      blackout: [0.315, 0.413],
+      whiteout: [0.413, 0.511],
+      delete: [0.511, 0.608],
+      // Once the reply slides in, the cleaned attachment stays available to
+      // inspect before the send action begins.
+      send: [0.608, 0.706],
+      sent: [0.792, 0.866],
+      // Hold the sent confirmation, then gently take the demo away.
+      fade: [0.948, 0.991],
     },
   },
 ];
