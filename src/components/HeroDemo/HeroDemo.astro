@@ -261,21 +261,40 @@ const rootSelector = `.${styles.root}`;
           </div>
           <div class={styles.layers}>
             <div class={`${styles.layer} ${styles['email-layer']}`}>
-              <div class={styles['panel-head']}>Inbox</div>
-              <div class={`${styles['email-row']} ${styles['anim-arrive']}`}>
-                <span class={styles.avatar}>FD</span>
-                <span class={styles['email-meta']}>
-                  <span class={styles['email-from']}>Front Desk</span>
-                  <span class={styles['email-subject']}>Quick favor, need that bill on file</span>
-                  <span class={styles['email-preview']}
-                    >Hi, could you send a copy of your utility bill for our records?</span
-                  >
-                </span>
+              <div class={styles['mail-head']}>
+                <span class={styles['mail-title']}>Inbox</span>
+                <span class={styles['mail-count']}>2</span>
+              </div>
+              {/* The new message occupies no height until it arrives, so the
+                  message already in the inbox is pushed down by it rather than
+                  being crossfaded past. It used to fade and translate 10px
+                  inside a row whose height never changed, which is the one
+                  thing a mail app never does - nothing below a new message
+                  stays put. See .email-arriving in the stylesheet for why the
+                  height is a measured custom property and how to redo it. */}
+              <div class={styles['email-arriving']}>
+                <div class={`${styles['email-row']} ${styles['email-row-unread']}`}>
+                  <span class={styles['unread-dot']} aria-hidden="true"></span>
+                  <span class={styles.avatar}>FD</span>
+                  <span class={styles['email-meta']}>
+                    <span class={styles['email-line']}>
+                      <span class={styles['email-from']}>Front Desk</span>
+                      <span class={styles['email-time']}>9:41</span>
+                    </span>
+                    <span class={styles['email-subject']}>Quick favor, need that bill on file</span>
+                    <span class={styles['email-preview']}
+                      >Hi, could you send a copy of your utility bill for our records?</span
+                    >
+                  </span>
+                </div>
               </div>
               <div class={styles['email-row-muted']}>
                 <span class={styles.avatar}>TM</span>
                 <span class={styles['email-meta']}>
-                  <span class={styles['email-from']}>Team</span>
+                  <span class={styles['email-line']}>
+                    <span class={styles['email-from']}>Team</span>
+                    <span class={styles['email-time']}>Tue</span>
+                  </span>
                   <span class={styles['email-subject']}>Lunch on Friday?</span>
                 </span>
               </div>
@@ -326,16 +345,25 @@ const rootSelector = `.${styles.root}`;
 
             <div class={`${styles.layer} ${styles['reply-layer']} ${styles['layer-final']}`}>
               <div class={styles['panel-head']}>Reply</div>
-              <div class={styles['reply-body']}>
+              <div class={`${styles['reply-body']} ${styles['reply-outgoing']}`}>
                 <p class={styles['reply-text']}>Here you go.</p>
                 <div class={styles['attach-chip']}>
                   <span class={styles['blur-dot']} aria-hidden="true"></span>
                   <span class={styles['attach-name']}>utility-bill.pdf</span>
                   <span class={styles['attach-tag']}>cleaned</span>
                 </div>
-                <div class={`${styles['send-btn']} ${styles['anim-send']}`}>Send</div>
+                <div class={`${styles['send-btn']} ${styles['anim-send']} ${styles['send-press']}`}>Send</div>
               </div>
-              <div class={`${styles['sent-label']} ${styles['anim-sent']}`}>Sent</div>
+              {/* The reply is sent rather than relabelled: the button presses,
+                  the composed message flies up and out, and the confirmation
+                  lands after it has gone. See .send-press / .reply-outgoing /
+                  .sent-confirm for the ordering. */}
+              <div class={styles['sent-confirm']}>
+                <svg class={styles['sent-check']} viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M2.5 8.5l3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                Sent
+              </div>
             </div>
           </div>
         </div>

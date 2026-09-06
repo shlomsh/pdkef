@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 import { scrollStory, stageLocator } from './heroDemoHelpers.js';
+import { SAMPLE_FILE_NAME } from '../../src/components/sampleDocument.ts';
 test.use({serviceWorkers:'block'});
 
 async function draftSnapshot(page) {
@@ -40,11 +41,11 @@ test('complete stories, information, session handoff, and real bundled sample en
   await expect(page.locator('html')).toHaveAttribute('data-home-mode','workspace');
   await expect(page.getByRole('button',{name:'Replay the demos'})).toBeVisible();
   expect(await draftSnapshot(page)).toEqual(before);
-  await page.getByRole('button',{name:/Open bundled sample PDF/}).click();
+  await page.getByRole('button',{name:/PDkef practice form\.pdf/}).click();
   await expect(page).toHaveURL(/\/sign\/$/);
   await expect(page.locator('canvas').first()).toBeVisible({timeout:20000});
-  await expect(page.getByText('PDkef bundled sample.pdf', {exact:true}).first()).toBeVisible();
-  await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({tool:'sign',fileName:'PDkef bundled sample.pdf'})]));
+  await expect(page.getByText(SAMPLE_FILE_NAME, {exact:true}).first()).toBeVisible();
+  await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({tool:'sign',fileName:SAMPLE_FILE_NAME})]));
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('data-home-mode','workspace');
   const recent = page.locator('.workspace-launcher a[href="/sign/"]');

@@ -234,7 +234,14 @@
    replaces it" - see ScrollDriver.tsx's TRACKS map for the windows
    themselves. */
 .chat-layer {
-  opacity: calc(1 - var(--p-open, 1) + var(--p-send, 1));
+  /* Visible before the slip is opened, and again once it has been sent back.
+     The return is deliberately front-loaded: min() takes this to full opacity
+     within the first quarter of `send`, while the share sheet above is still
+     mostly opaque, so the sheet's own fade *reveals* a chat that is already
+     fully painted. Fading both at the same rate left the pair at half each in
+     the middle, and since these layers are opaque now (see below) that read as
+     two screens blended together rather than one replacing the other. */
+  opacity: calc(1 - var(--p-open, 1) + min(1, var(--p-send, 1) * 4));
 }
 
 .form-layer {
@@ -245,17 +252,47 @@
   opacity: calc(var(--p-share, 1) - var(--p-send, 1));
 }
 
-/* Track two (blur): email crossfades to the bill, then to the reply. */
+/* Track two (blur): the inbox is pushed back and the bill is pushed in over
+   it, then the reply over that. A navigation, not a crossfade.
+ *
+ * Why it changed: a `.layer` paints no background of its own, so the white
+ * comes from .screen underneath and two layers at opacity 0.5 showed *both*
+ * sets of text at half strength over the same white - legible ghosting rather
+ * than a dissolve, worst exactly at the midpoint where the eye is. Fading a
+ * layer up while fading another down can only look right when the incoming
+ * layer is opaque, so these three are given the screen's own background and
+ * slide instead, which is also what a phone actually does when you open a
+ * message. --p-open is the tap; --p-send is the reply.
+ *
+ * Only the replacement layers get a background. .share-layer must NOT: it is
+ * an overlay whose whole job is to dim the form still visible beneath it (see
+ * .share-scrim), and an opaque background there would hide the thing being
+ * dimmed. Same for anything else added later that is meant to sit *over* a
+ * layer rather than replace it. */
+.email-layer,
+.bill-layer,
+.reply-layer,
+.chat-layer,
+.form-layer {
+  background: var(--color-surface);
+}
+
 .email-layer {
-  opacity: calc(1 - var(--p-open, 1));
+  /* Pushed back rather than faded out: it stays fully opaque underneath, and
+     is covered completely once the bill has finished sliding in. */
+  transform: translateX(calc(var(--p-open, 1) * -18%));
 }
 
 .bill-layer {
-  opacity: calc(var(--p-open, 1) - var(--p-send, 1));
+  transform: translateX(calc((1 - var(--p-open, 1)) * 100%));
+  /* The leading edge casts onto the view it is covering, which is what makes
+     the push read as one view over another rather than a redraw. */
+  box-shadow: -10px 0 26px -14px var(--phone-shadow-color);
 }
 
 .reply-layer {
-  opacity: var(--p-send, 1);
+  transform: translateX(calc((1 - var(--p-send, 1)) * 100%));
+  box-shadow: -10px 0 26px -14px var(--phone-shadow-color);
 }
 
 /* Generic beat-driven fades, shared by both tracks. */
@@ -264,9 +301,24 @@
   transform: translateY(calc((1 - var(--p-msg, 1)) * 12px));
 }
 
-.anim-arrive {
+/* The arriving message takes up no room until it arrives, so everything below
+   it moves down as it lands. This replaced an opacity+10px translate inside a
+   row of fixed height, which faded a message into a gap that was already
+   reserved for it - the one thing a mail app never does.
+ *
+ * --email-row-height is measured, not derived, and it is the only hand-set
+ * figure in this file. To redo it after any change to the row's copy, padding
+ * or type scale: build, serve dist/, and in the console read back
+ *   document.querySelector('[class*=email-arriving] [class*=email-row]')
+ *     .getBoundingClientRect().height
+ * Round *up*. Over-reserving leaves a few px of gap above the message below;
+ * under-reserving clips the message's own last line, because the wrapper has
+ * to clip to have a height to animate at all. */
+.email-arriving {
+  --email-row-height: 74px;
+  height: calc(var(--p-arrive, 1) * var(--email-row-height));
+  overflow: hidden;
   opacity: var(--p-arrive, 1);
-  transform: translateY(calc((1 - var(--p-arrive, 1)) * 10px));
 }
 
 .anim-send {
@@ -725,11 +777,98 @@
   padding-block: 10px;
   padding-inline: 12px;
   align-items: flex-start;
+  /* Rows are separated, as a list of messages is. */
+  border-block-end: 1px solid var(--color-border);
 }
 
 .email-row-muted {
   composes: email-row;
-  opacity: 0.5;
+  /* A read message, not a hidden one. 0.5 on the whole row dimmed its own
+     separator and avatar too and read as "still loading"; the weight
+     difference now lives in the text colour, where a mail app puts it. */
+  color: var(--color-muted);
+}
+
+.email-row-muted .email-from {
+  font-weight: 600;
+}
+
+/* The message being tapped. A press flash plus a ripple centred on the row:
+   --p-tap is a triangle peaking at the middle of the `open` beat (see
+   ScrollDriver.tsx), so the highlight rises and falls once, over exactly the
+   scroll in which the bill pushes in. Without it the view simply changed and
+   nothing said the message had been opened. */
+.email-row-unread {
+  position: relative;
+  isolation: isolate;
+  background: color-mix(in srgb, var(--color-primary-tint) calc(var(--p-tap, 0) * 100%), transparent);
+}
+
+.email-row-unread::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset-inline-start: 30%;
+  inset-block-start: 50%;
+  width: 60px;
+  height: 60px;
+  margin-block-start: -30px;
+  margin-inline-start: -30px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  opacity: calc(var(--p-tap, 0) * 0.16);
+  scale: calc(0.35 + var(--p-tap, 0) * 0.95);
+  pointer-events: none;
+}
+
+.unread-dot {
+  flex: none;
+  align-self: center;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.mail-head {
+  composes: panel-head;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.mail-title {
+  font-weight: 700;
+}
+
+/* The unread count beside the folder name - small, but it is most of what
+   makes a list of two messages read as a mailbox. */
+.mail-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 15px;
+  padding-inline: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+/* Sender and time on one line, as every mail client puts them. */
+.email-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.email-time {
+  flex: none;
+  font-size: 0.62rem;
+  color: var(--color-muted);
 }
 
 .avatar {
@@ -759,8 +898,18 @@
   font-weight: 700;
 }
 
+/* One line, truncated - which is both what a mail list actually does and what
+   makes the reserved height above safe. The phone's width scales with the
+   viewport (see .phone), so a wrapping subject would make the row two lines
+   tall at some widths and three at others, and a single measured
+   --email-row-height cannot be right for both. Truncating pins the row to a
+   fixed number of lines at every width, so the figure is a font-metric
+   constant rather than a guess about wrapping. */
 .email-subject {
   font-size: 0.74rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .email-preview {
@@ -1013,13 +1162,44 @@
   font-weight: 600;
 }
 
-.sent-label {
+/* The reply is actually sent, rather than a Send button quietly swapping for
+   the word "Sent". Three things happen in order across the `sent` beat and
+   each is a separate property so they can overlap:
+     - the button is pressed (this rule), in the first sixth of the beat,
+     - the composed reply flies up and out (.reply-outgoing),
+     - the confirmation lands once it has gone (.sent-confirm).
+   `scale` rather than a transform, because .anim-send already owns transform
+   on this element for its entrance - they are separate properties and compose
+   without either having to know about the other. */
+.send-press {
+  scale: calc(1 - clamp(0, var(--p-sent, 1) * 6, 1) * 0.07);
+}
+
+.reply-outgoing {
+  transform: translateY(calc(var(--p-sent, 1) * -20px));
+  opacity: calc(1 - var(--p-sent, 1));
+}
+
+.sent-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
   padding-block: 0 14px;
   padding-inline: 14px;
-  text-align: end;
   color: var(--color-success);
   font-weight: 700;
   font-size: 0.76rem;
+  /* Held back until the reply has actually left: the confirmation is the
+     answer to the flight, so it must not be on screen during it. */
+  opacity: clamp(0, calc((var(--p-sent, 1) - 0.45) * 3), 1);
+  scale: calc(0.9 + clamp(0, calc((var(--p-sent, 1) - 0.45) * 3), 1) * 0.1);
+}
+
+.sent-check {
+  flex: none;
+  width: 14px;
+  height: 14px;
 }
 
 /* ---------- outro ---------- */

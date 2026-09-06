@@ -1,3 +1,4 @@
+import { trackProgress } from '../../src/components/HeroDemo/storySplit.ts';
 // Shared helpers for the HeroDemo (DEMO-02) degraded-state guards in this
 // directory. HeroDemo.astro renders two independent "tracks"
 // (data-hero-track="sign" | "blur"), each a phone mockup that stacks
@@ -51,7 +52,11 @@ export function visibleIndexes(opacities) {
 }
 
 export async function scrollStory(page, key, fraction) {
-  const progress = key === 'sign' ? fraction * 0.57 : 0.62 + fraction * 0.37;
+  // Derived, never copied. These fractions used to be spelled out here as
+  // 0.57 / 0.62 / 0.37, so retiming the demo in ScrollDriver.tsx left every
+  // scroll-driven test scrolling to a position the driver no longer mapped to
+  // the beat being asserted.
+  const progress = trackProgress(key, fraction);
   await page.evaluate(({progress, fraction}) => {
     const tour = document.getElementById('home-tour');
     const scene = tour.querySelector('[data-working-area]');
