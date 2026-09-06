@@ -4,7 +4,7 @@ import ConfirmDialog from './ConfirmDialog.tsx';
 import dialogStyles from './Dialog.module.css';
 import ResumeDraftCard from './ResumeDraftCard.tsx';
 import styles from './FileDropzone.module.css';
-import { SAMPLE_FILE_NAME } from './sampleDocument.ts';
+import { SAMPLE_FILE_NAME, SAMPLE_PREVIEW_SRC } from './sampleDocument.ts';
 
 // One real document per supported editor; the homepage does not own a cache.
 const DRAFT_TOOLS = ['sign', 'redact'];
@@ -113,7 +113,16 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
   };
   return (
     <div ref={container} class={final ? styles.final : styles.launcher}>
-      {!final && <ResumeDraftCard drafts={drafts} />}
+      {!final && <ResumeDraftCard
+        drafts={drafts.length > 0 ? drafts : [{
+          tool: 'sign',
+          fileName: SAMPLE_FILE_NAME,
+          preview: SAMPLE_PREVIEW_SRC,
+          bundledSample: true,
+        }]}
+        onOpenSample={sample}
+        busy={busy}
+      />}
 
       {/* The practice document is offered as a document, not as a sentence
           about one. It deliberately borrows the recent-documents card shape -

@@ -8,8 +8,13 @@
  * modules have finished evaluating - but a cycle whose safety depends on when
  * a binding is read is not worth keeping for one string.
  *
- * Shared because ResumeDraftCard labels a resumed draft "Bundled sample" by
- * matching this exact name. It was spelled out in both files before, so
- * renaming the sample in one silently dropped the label in the other.
+ * Shared so the homepage starter card, editor handoff, and end-to-end flow all
+ * use the same visible filename.
  */
 export const SAMPLE_FILE_NAME = 'PDkef practice form.pdf';
+
+/** Static first-page thumbnail for the empty recent-documents slot. The real
+ * draft preview is rendered lazily only after a file has been opened, so the
+ * bundled sample needs this build-time counterpart to look like the document
+ * it offers before any IndexedDB record exists. */
+export const SAMPLE_PREVIEW_SRC = '/images/redaction-guide/sample-preview.jpg';

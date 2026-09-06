@@ -63,11 +63,16 @@ describe('FileDropzone', () => {
   });
 
   describe('resume-draft card', () => {
-    it('renders nothing when no tool has a draft', () => {
+    it('offers the bundled sample in the recent-documents position when no draft exists', () => {
       readDraftMeta.mockReturnValue(null);
       mount({ toolTarget: 'sign', href: '/sign?action=open' });
-      expect(container.textContent).not.toContain('Pick up where you left off');
-      expect(container.textContent).not.toContain('Continue');
+      const sample = container.querySelector('button[aria-label^="Open bundled sample PDF"]');
+      expect(sample).not.toBeNull();
+      expect(sample.textContent).toContain('PDkef practice form.pdf');
+      expect(sample.textContent).toContain('Sign & Fill PDF');
+      expect(sample.textContent).not.toContain('Bundled sample');
+      expect(sample.textContent).not.toContain('Open sample');
+      expect(sample.querySelector('img[src="/images/redaction-guide/sample-preview.jpg"]')).not.toBeNull();
     });
 
     it('shows a saved draft above the dropzone, and drops the "Drop PDFs" pitch', () => {
@@ -86,6 +91,7 @@ describe('FileDropzone', () => {
       const continueLink = container.querySelector('a[href="/sign/"]');
       expect(continueLink).not.toBeNull();
       expect(continueLink.textContent).toContain('contract.pdf');
+      expect(container.querySelector('button[aria-label^="Open bundled sample PDF"]')).toBeNull();
 
       // The card already made the case for resuming; the dropzone below
       // shouldn't repeat the from-scratch pitch as if the card said nothing.

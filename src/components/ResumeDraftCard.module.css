@@ -1,8 +1,9 @@
 .card, .list { display: contents; }
 .list { list-style: none; margin: 0; padding: 0; }
 .list > li { list-style: none; }
-.document { box-sizing: border-box; min-height: 180px; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 8px; text-decoration: none; text-align: center; color: var(--color-text); }
+.document { box-sizing: border-box; min-height: 180px; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; font: inherit; text-decoration: none; text-align: center; color: var(--color-text); }
 .document:focus, .document:hover { background: var(--color-primary-tint); }
+.document:disabled { cursor: wait; opacity: 0.72; }
 .preview { width: 64px; height: 84px; object-fit: cover; filter: drop-shadow(0 4px 4px var(--color-border)); }
 /* Two lines, then an ellipsis, with the full name on hover (title attribute in
    the component). Unclamped this wrapped `overflow-wrap: anywhere`, so a real
