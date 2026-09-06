@@ -1,4 +1,4 @@
-import { MAX_SYMBOL_SIGNATURE_WIDTH_PCT, MIN_SYMBOL_WIDTH_PX } from '../../constants/signGeometry.js';
+import { MAX_SYMBOL_WIDTH_PCT, MIN_SYMBOL_WIDTH_PX } from '../../constants/signGeometry.js';
 import { LineCapStyle, rgb } from '@cantoo/pdf-lib';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';
@@ -8,7 +8,7 @@ import type { SymbolElement, SymbolMark } from '../model/editorModel.ts';
 import { DESIGN_BOX, markGeometry, markInkExtent } from './symbolMarks.ts';
 
 export function applySymbolResize({ deltaWidth, minWidth, aspectRatio, page, start }: CenteredResizeInput): CenteredResizePatch {
-  const width = Math.max(minWidth, Math.min(MAX_SYMBOL_SIGNATURE_WIDTH_PCT, start.width + deltaWidth));
+  const width = Math.max(minWidth, Math.min(MAX_SYMBOL_WIDTH_PCT, start.width + deltaWidth));
   const height = width * aspectRatio * (page.width / page.height);
   return {
     width,
