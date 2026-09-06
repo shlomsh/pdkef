@@ -828,12 +828,15 @@
   position: relative;
   isolation: isolate;
   background: color-mix(in srgb, var(--color-primary-tint) calc(var(--p-tap, 0) * 100%), transparent);
+  /* `scale` is independent of transform, so it can state a clear press
+     without constraining a future list-navigation transform. */
+  scale: calc(1 - var(--p-tap, 0) * 0.025);
 }
 
 .email-row-unread::after {
   content: '';
   position: absolute;
-  z-index: -1;
+  z-index: 0;
   inset-inline-start: 30%;
   inset-block-start: 50%;
   width: 60px;
@@ -842,9 +845,14 @@
   margin-inline-start: -30px;
   border-radius: 50%;
   background: var(--color-primary);
-  opacity: calc(var(--p-tap, 0) * 0.16);
-  scale: calc(0.35 + var(--p-tap, 0) * 0.95);
+  opacity: calc(var(--p-tap, 0) * 0.24);
+  scale: calc(0.3 + var(--p-tap, 0) * 1.1);
   pointer-events: none;
+}
+
+.email-row-unread > * {
+  position: relative;
+  z-index: 1;
 }
 
 .unread-dot {
@@ -1189,21 +1197,23 @@
 }
 
 /* The reply is actually sent, rather than a Send button quietly swapping for
-   the word "Sent". Three things happen in order across the `sent` beat and
-   each is a separate property so they can overlap:
-     - the button is pressed (this rule), in the first sixth of the beat,
-     - the composed reply flies up and out (.reply-outgoing),
+   the word "Sent". Three things happen in order across the `sent` beat:
+     - the button visibly presses and releases,
+     - the composed reply then flies up and out (.reply-outgoing),
      - the confirmation lands once it has gone (.sent-confirm).
    `scale` rather than a transform, because .anim-send already owns transform
    on this element for its entrance - they are separate properties and compose
    without either having to know about the other. */
 .send-press {
-  scale: calc(1 - clamp(0, var(--p-sent, 1) * 6, 1) * 0.07);
+  --send-press-progress: clamp(0, min(var(--p-sent, 1) * 7, (0.32 - var(--p-sent, 1)) * 7), 1);
+  filter: brightness(calc(1 - var(--send-press-progress) * 0.2));
+  scale: calc(1 - var(--send-press-progress) * 0.12);
 }
 
 .reply-outgoing {
-  transform: translateY(calc(var(--p-sent, 1) * -20px));
-  opacity: calc(1 - var(--p-sent, 1));
+  /* The message waits for the depressed button to release before it moves. */
+  transform: translateY(calc(clamp(0, (var(--p-sent, 1) - 0.32) * 1.48, 1) * -20px));
+  opacity: calc(1 - clamp(0, (var(--p-sent, 1) - 0.32) * 1.48, 1));
 }
 
 .sent-confirm {
@@ -1218,8 +1228,8 @@
   font-size: 0.76rem;
   /* Held back until the reply has actually left: the confirmation is the
      answer to the flight, so it must not be on screen during it. */
-  opacity: clamp(0, calc((var(--p-sent, 1) - 0.45) * 3), 1);
-  scale: calc(0.9 + clamp(0, calc((var(--p-sent, 1) - 0.45) * 3), 1) * 0.1);
+  opacity: clamp(0, calc((var(--p-sent, 1) - 0.75) * 4), 1);
+  scale: calc(0.9 + clamp(0, calc((var(--p-sent, 1) - 0.75) * 4), 1) * 0.1);
 }
 
 .sent-check {

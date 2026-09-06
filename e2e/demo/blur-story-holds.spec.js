@@ -18,6 +18,12 @@ test('the blur story holds its inbox, cleaned reply, and sent confirmation', asy
   await scrollStory(page, 'blur', 0.04);
   await expect(arriving).toHaveCSS('opacity', '0');
 
+  // Opening is a separate beat from the press, so the request remains on
+  // screen long enough for its ripple to read as a deliberate tap.
+  await scrollStory(page, 'blur', 0.15);
+  await expect.poll(() => stage.evaluate(el => Number(el.style.getPropertyValue('--p-tap')))).toBeGreaterThan(0.5);
+  await expect.poll(() => stage.evaluate(el => Number(el.style.getPropertyValue('--p-open')))).toBe(0);
+
   // The reply has completed its entrance but send has not started, leaving
   // the cleaned attachment and its Send control visible to inspect.
   await scrollStory(page, 'blur', 0.75);
