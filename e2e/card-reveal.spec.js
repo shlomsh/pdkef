@@ -152,10 +152,9 @@ test('the home-page footer takes over from the final sticky card', async ({ page
   const footerIsOnTop = await footer.evaluate((el) => {
     const rect = el.getBoundingClientRect();
     const x = rect.left + (rect.width / 2);
-    // Probe the visible footer interior, clear of the fixed dock and fractional
-    // pixel rounding at their shared edge.
-    const dockTop = document.querySelector('.home-dock').getBoundingClientRect().top;
-    const y = (Math.max(rect.top, 0) + Math.min(rect.bottom, dockTop)) / 2;
+    // The launcher now leaves with the hero, so probe the footer directly
+    // within the visible viewport rather than against a fixed-dock boundary.
+    const y = (Math.max(rect.top, 0) + Math.min(rect.bottom, innerHeight)) / 2;
     return document.elementFromPoint(x, y)?.closest('footer') === el;
   });
 
@@ -182,18 +181,26 @@ test('home story cards fit the laptop band and release when the viewport is too 
   await expect(page.locator('[data-home-picker]').first()).toBeVisible();
   const deck = page.locator('.card-stack .card-reveal');
   for (const card of await deck.all()) {
-    await card.evaluate(el => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - document.querySelector('.home-header').getBoundingClientRect().height - 16));
+    await card.evaluate(el => {
+      const navHeight = document.querySelector('[data-home-bar]').getBoundingClientRect().height;
+      window.scrollTo(0, el.getBoundingClientRect().top + scrollY - navHeight - 16);
+    });
     await settle(page);
     const bounds = await card.evaluate(el => ({
+      card: el.getBoundingClientRect().toJSON(),
       content: el.firstElementChild.getBoundingClientRect().toJSON(),
-      header: document.querySelector('.home-header').getBoundingClientRect().bottom,
-      dock: document.querySelector('.home-dock').getBoundingClientRect().top,
+      viewportTop: document.querySelector('[data-home-bar]').getBoundingClientRect().bottom,
+      viewportBottom: document.querySelector('.card-stack footer').getBoundingClientRect().top,
       height: el.getBoundingClientRect().height,
     }));
-    expect(bounds.content.top).toBeGreaterThan(bounds.header);
-    expect(bounds.content.bottom).toBeLessThan(bounds.dock);
+    expect(bounds.card.top - bounds.viewportTop).toBeGreaterThanOrEqual(15);
+    expect(bounds.viewportBottom - bounds.card.bottom).toBeGreaterThanOrEqual(15);
+    expect(bounds.content.top).toBeGreaterThan(bounds.viewportTop);
+    expect(bounds.content.bottom).toBeLessThan(bounds.viewportBottom);
   }
-  await page.setViewportSize({ width: 1280, height: 600 });
+  // With the former fixed header and dock gone, cards have the whole viewport
+  // available; use a genuinely short window to exercise the overflow release.
+  await page.setViewportSize({ width: 1280, height: 360 });
   await expect(deck.first()).toHaveAttribute('data-stack-overflow', '');
   await expect(deck.first()).toHaveCSS('position', 'relative');
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -205,14 +212,17 @@ test('the closing card and footer share the visible laptop viewport', async ({ p
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto('/');
   const closing = page.locator('#try-workspace');
-  await closing.evaluate(el => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - document.querySelector('.home-header').getBoundingClientRect().height));
+  await closing.evaluate(el => {
+    const navHeight = document.querySelector('[data-home-bar]').getBoundingClientRect().height;
+    window.scrollTo(0, el.getBoundingClientRect().top + scrollY - navHeight);
+  });
   await settle(page);
   const geometry = await page.evaluate(() => {
     const closing = document.querySelector('#try-workspace').getBoundingClientRect();
     const footer = document.querySelector('.card-stack footer').getBoundingClientRect();
-    const dock = document.querySelector('.home-dock').getBoundingClientRect();
-    return { closing, footer, dock };
+    const headerBottom = document.querySelector('[data-home-bar]').getBoundingClientRect().bottom;
+    return { closing, footer, headerBottom, viewportBottom: innerHeight };
   });
-  expect(geometry.closing.top).toBeGreaterThanOrEqual(0);
-  expect(geometry.footer.bottom).toBeLessThanOrEqual(geometry.dock.top + 1);
+  expect(geometry.closing.top).toBeGreaterThanOrEqual(geometry.headerBottom - 1);
+  expect(geometry.footer.bottom).toBeLessThanOrEqual(geometry.viewportBottom + 1);
 });

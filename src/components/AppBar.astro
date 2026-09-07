@@ -23,20 +23,20 @@ interface Props {
 }
 const { toolName, isHome = false, labels = {} as AppBarMessages } = Astro.props;
 
-const maxWidthClass = isHome ? 'max-w-[1080px]' : 'max-w-[1400px]';
+const maxWidthClass = isHome ? 'max-w-[1280px]' : 'max-w-[1400px]';
 
 const brandClasses = isHome
-  ? 'inline-flex items-center gap-[0.45rem] rounded-[var(--radius-pill)] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] py-[0.3rem] pr-3 pl-[0.4rem] text-[var(--color-text)] no-underline'
+  ? 'inline-flex items-center gap-[0.55rem] rounded-[var(--radius-pill)] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] py-[0.3rem] pr-4 pl-[0.4rem] text-[var(--color-text)] no-underline'
   : 'group inline-flex items-center gap-[0.45rem] rounded-[var(--radius-pill)] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] py-[0.3rem] pr-3 pl-[0.4rem] text-[var(--color-text)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-x-px hover:border-[var(--color-border-strong)]';
 ---
 
 <div data-home-bar={isHome || undefined} class="sticky top-0 z-20 border-b-[0.5px] border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_86%,transparent)] backdrop-blur-[10px] backdrop-saturate-[1.2]">
   <div class={`mx-auto flex h-14 ${maxWidthClass} items-center gap-[0.85rem] px-6 max-[560px]:gap-[0.55rem] max-[560px]:px-4`}>
     {isHome ? (
-      <div class={brandClasses} aria-label="PDkef logo">
-        <Image src={logo} width={24} height={24} densities={[1, 2]} loading="eager" decoding="sync" alt="" aria-hidden="true" class="block shrink-0 rounded-md" />
-        <span class="text-[0.95rem] font-bold">PDkef</span>
-      </div>
+      <a href="/" class={brandClasses} aria-label="PDkef homepage">
+        <Image src={logo} width={32} height={32} densities={[1, 2]} loading="eager" decoding="sync" alt="" aria-hidden="true" class="block shrink-0 rounded-md" />
+        <span class="text-[1.1rem] font-bold">PDkef</span>
+      </a>
     ) : (
       <a href="/" class={brandClasses} aria-label={labels.homeAriaLabel ?? 'PDkef home, all tools'}>
         <span class="inline-flex w-0 items-center overflow-hidden text-[var(--color-muted-light)] opacity-0 transition-[width,opacity] duration-[180ms] ease-out group-hover:w-4 group-hover:opacity-100" aria-hidden="true">

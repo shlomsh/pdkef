@@ -125,8 +125,8 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
     const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
     const root = document.querySelector(rootSelector);
     const tour = document.getElementById('home-tour');
-    const scene = tour?.querySelector<HTMLElement>('[data-working-area]');
-    if (!root || !tour || !scene) return;
+    const pinFrame = tour?.querySelector<HTMLElement>('[data-demo-frame]');
+    if (!root || !tour || !pinFrame) return;
     const tracks = TRACKS.map(({ key, beats }) => ({
       key, beats,
       trackEl: root.querySelector<HTMLElement>(`[data-hero-track="${key}"]`),
@@ -134,9 +134,9 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
     }));
 
     function scrollProgress() {
-      if (!tour || !scene) return;
-      const top = parseFloat(getComputedStyle(scene).top) || 0;
-      const travel = Math.max(1, tour.offsetHeight - scene.offsetHeight);
+      if (!tour || !pinFrame) return;
+      const top = parseFloat(getComputedStyle(pinFrame).top) || 0;
+      const travel = Math.max(1, tour.offsetHeight - pinFrame.offsetHeight);
       return clamp01((top - tour.getBoundingClientRect().top) / travel);
     }
 

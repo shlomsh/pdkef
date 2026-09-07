@@ -60,13 +60,23 @@ test('the demo is legible and overflow-free at 390px', async ({ page }) => {
   for (const track of TRACKS) {
     const stage = stageLocator(page, track);
     const phone = stage.locator('[class*="_phone_"]').first();
-    const box = await phone.boundingBox();
-    expect(box, `${track}'s phone mockup never rendered at 390px`).not.toBeNull();
-    expect(box.width, `${track}'s phone mockup is vacuously sized`).toBeGreaterThan(50);
-    expect(box.x, `${track}'s phone mockup starts off the left edge at 390px`).toBeGreaterThanOrEqual(-1);
-    expect(
-      box.x + box.width,
-      `${track}'s phone mockup (right edge ${Math.round(box.x + box.width)}) overflows the ${clientWidth}px viewport`
-    ).toBeLessThanOrEqual(clientWidth + 1);
+    // The autoplay added on main may translate the inactive story track beyond
+    // the viewport. Compare the phone with its own track instead: both boxes
+    // receive the same transform, so this still catches true phone-layout
+    // overflow without treating an intentional story transition as a defect.
+    const bounds = await phone.evaluate((el) => {
+      const trackElement = el.closest('[data-hero-track]');
+      const phoneBox = el.getBoundingClientRect();
+      const trackBox = trackElement?.getBoundingClientRect();
+      return {
+        left: phoneBox.left - (trackBox?.left ?? 0),
+        right: phoneBox.right - (trackBox?.left ?? 0),
+        width: phoneBox.width,
+        trackWidth: trackBox?.width ?? 0,
+      };
+    });
+    expect(bounds.width, `${track}'s phone mockup is vacuously sized`).toBeGreaterThan(50);
+    expect(bounds.left, `${track}'s phone mockup starts outside its story panel`).toBeGreaterThanOrEqual(-1);
+    expect(bounds.right, `${track}'s phone mockup overflows its story panel`).toBeLessThanOrEqual(bounds.trackWidth + 1);
   }
 });

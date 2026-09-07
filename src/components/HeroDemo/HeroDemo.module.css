@@ -75,10 +75,22 @@
 
 
 .phone { opacity: var(--story-opacity, 1); grid-area: phone; width: min(360px, calc((var(--home-stage-height) - 32px) * 9 / 19)); }
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .root { height: var(--home-stage-height); }
   .stage { grid-template-columns: 1fr; grid-template-rows: auto 1fr; grid-template-areas: 'caption' 'phone'; padding: 4px 0 0; gap: 8px; }
-  .caption { font-size: 0.9rem; text-align: center; }
+  /* Use the site’s section-title role here rather than reducing the story
+     caption to a small label. It is the mobile demo’s actual heading. */
+  .caption {
+    font-size: var(--type-section-size);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    max-inline-size: 32rem;
+    margin: var(--space-3) auto;
+    padding-inline: var(--space-4);
+    text-align: center;
+    text-wrap: balance;
+  }
   .progress-rail { display: none; }
   .phone { width: 100%; height: 100%; min-height: 0; aspect-ratio: auto; padding: 0; border-radius: 12px; background: var(--color-surface); box-shadow: none; }
   .phone .screen { border-radius: 12px; }
@@ -1253,7 +1265,7 @@
 }
 /* Keep the PDF wide enough to read on ordinary laptop-height viewports.
    The caption never borrows vertical room from the phone. */
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .phone { width: clamp(300px, calc((var(--home-stage-height) - 32px) * 9 / 19), 360px); height: calc(var(--home-stage-height) - 32px); aspect-ratio: auto; }
 }
 @media (max-height: 850px) {
