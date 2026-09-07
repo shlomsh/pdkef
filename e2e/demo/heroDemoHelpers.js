@@ -59,7 +59,7 @@ export async function scrollStory(page, key, fraction) {
   const progress = trackProgress(key, fraction);
   await page.evaluate(({progress, fraction}) => {
     const tour = document.getElementById('home-tour');
-    const scene = tour.querySelector('[data-working-area]');
+    const scene = tour.querySelector('[data-demo-frame]');
     // `travel` is exactly the scene's sticky range, so the nudge that makes
     // the final beat land on a clean 1 must not be allowed past it: two pixels
     // beyond the end unpins the scene by two pixels, and sticky-pin.spec.js

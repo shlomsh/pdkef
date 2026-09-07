@@ -128,11 +128,17 @@ test('mobile always shows the file workspace before the live demo', async ({ pag
   await page.setViewportSize({ width: 767, height: 844 });
   await page.goto('/');
   const order = () => page.evaluate(() => {
+    const hero = document.querySelector('.home-hero');
     const tour = document.getElementById('home-tour');
     const files = document.getElementById('home-files');
-    return { sameParent: tour.parentElement === files.parentElement, filesFirst: !!(files.compareDocumentPosition(tour) & Node.DOCUMENT_POSITION_FOLLOWING) };
+    const dock = document.querySelector('.home-dock');
+    return {
+      heroContainsFiles: hero?.contains(files) ?? false,
+      filesFirst: !!(files.compareDocumentPosition(dock) & Node.DOCUMENT_POSITION_FOLLOWING),
+      dockBeforeTour: !!(dock.compareDocumentPosition(tour) & Node.DOCUMENT_POSITION_FOLLOWING),
+    };
   });
-  await expect.poll(order).toEqual({ sameParent: true, filesFirst: true });
+  await expect.poll(order).toEqual({ heroContainsFiles: true, filesFirst: true, dockBeforeTour: true });
   await expect(page.locator('#home-files [data-home-picker]')).toBeInViewport();
   await scrollStory(page, 'sign', .81);
   const stage = stageLocator(page, 'sign');
@@ -140,10 +146,10 @@ test('mobile always shows the file workspace before the live demo', async ({ pag
   const date = await stage.locator('[class*="_date-line_"]').boundingBox();
   expect(date.y + date.height).toBeLessThanOrEqual(screen.y + screen.height + 1);
   await page.locator('#try-workspace').scrollIntoViewIfNeeded();
-  await expect.poll(order).toEqual({ sameParent: true, filesFirst: true });
+  await expect.poll(order).toEqual({ heroContainsFiles: true, filesFirst: true, dockBeforeTour: true });
   await page.reload();
   await page.evaluate(() => window.scrollTo(0, 0));
-  await expect.poll(order).toEqual({ sameParent: true, filesFirst: true });
+  await expect.poll(order).toEqual({ heroContainsFiles: true, filesFirst: true, dockBeforeTour: true });
   await expect(page.locator('#home-files [data-home-picker]')).toBeInViewport();
   await scrollStory(page, 'blur', .64);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

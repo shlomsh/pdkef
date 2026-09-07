@@ -33,27 +33,42 @@ const faq = [
     <SeoSchema name="PDkef" description={description} faq={faq} />
   </Fragment>
 
-  <div class="home-header">
-    <AppBar isHome>
-      <a class="trust-chip" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">
-        <svg class="trust-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" /></svg>
-        <span>Star us on GitHub</span>
-      </a>
-      <a class="trust-chip" href="/licenses/"><Scale class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>MIT licensed</span></a>
-      <a class="trust-chip" data-offline-link href="#offline-app"><WifiOff class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>Works offline</span></a>
-    </AppBar>
-    <header class="hero-header">
-      <h1>Free PDF tools that run <span>on your device</span></h1>
-      <p>Merge, sign, split, redact and compress PDFs. No signup, no install, nothing leaves your device.</p>
-    </header>
-  </div>
-  <main id="home-content">
+  <section class="home-hero" aria-labelledby="home-heading">
+    <div class="home-header">
+      <AppBar isHome>
+        <a class="trust-chip" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer" aria-label="Star us on GitHub">
+          <svg class="trust-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" /></svg>
+          <span>Star us on GitHub</span>
+        </a>
+        <a class="trust-chip" href="/licenses/" aria-label="MIT licensed"><Scale class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>MIT licensed</span></a>
+        <a class="trust-chip" data-offline-link href="#offline-app" aria-label="Works offline"><WifiOff class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>Works offline</span></a>
+      </AppBar>
+      <header class="hero-header">
+        <h1 id="home-heading">Free PDF tools that run <span>on your device</span></h1>
+        <p>Merge, sign, split, redact and compress PDFs. No signup, no install, nothing leaves your device.</p>
+      </header>
+    </div>
     <div class="workspace-launcher home-workspace" id="home-files" data-working-area>
       <FileDropzone client:load toolTarget="sign" />
     </div>
+    <nav class="home-dock" aria-label="PDF tools">
+        {tools.map((tool) => (
+          <a href={tool.href} data-accent={tool.accent} class="app-card">
+            <div class="app-tile">
+              <tool.icon strokeWidth={1.5} />
+            </div>
+            <div class="app-label">{tool.gridTitle}</div>
+            <span class="app-tooltip">{tool.gridDescription}</span>
+          </a>
+        ))}
+    </nav>
+  </section>
+  <main id="home-content">
     <div class="home-tour" id="home-tour">
-      <div class="home-scene" data-working-area>
-        <HeroDemo />
+      <div class="home-frame" data-demo-frame>
+        <div class="home-scene" data-working-area>
+          <HeroDemo />
+        </div>
       </div>
     </div>
     <div id="home-information">
@@ -327,53 +342,40 @@ const faq = [
   </div>
     </div>
   </main>
-  <nav class="home-dock" aria-label="PDF tools">
-      {tools.map((tool) => (
-        <a href={tool.href} data-accent={tool.accent} class="app-card">
-          <div class="app-tile">
-            <tool.icon strokeWidth={1.5} />
-          </div>
-          <div class="app-label">{tool.gridTitle}</div>
-          <span class="app-tooltip">{tool.gridDescription}</span>
-        </a>
-      ))}
-  </nav>
   <script src="../components/homeWorkspace.ts"></script>
 </BaseLayout>
 
 <style>
-  :global(html) { scroll-padding-top: var(--home-header-height, 150px); }
+  :global(html) { scroll-padding-top: 0; }
   :global(body) {
-    --home-header-height: 146px;
+    --home-nav-height: 56px;
+    --home-footer-height: 0px;
+    --home-header-height: 0px;
     --home-dock-height: 104px;
-    --home-stage-height: calc(100svh - var(--home-header-height) - var(--home-dock-height));
-    /* Flat, not the page-length gradient this used to carry, and the flatness
-       is the fix rather than a simplification.
-
-       .home-header and .home-dock are both `position: fixed` and both paint a
-       flat var(--color-bg). A gradient on the body is positioned against the
-       body's own box and scrolls with it, so the two agree only at scroll 0.
-       Measured on the 12,032px document this page builds to, the gradient
-       behind the header's bottom edge walked away from the header's own fill
-       as you scrolled - rgb(244,249,250) at the top, rgb(240,247,248) by
-       3000px, rgb(233,243,245) by 9000px - which draws a hard full-width seam
-       across the viewport at exactly the header's edge, absent at the top of
-       the page and worsening the further down you go. The dock's top edge did
-       the same, softened only by its blur and its 6% transparency.
-
-       Matching the fixed layers to the gradient instead would mean giving all
-       three `background-attachment: fixed` so they share one positioning area;
-       that works, but it makes the wash viewport-locked and it interacts badly
-       with the dock's backdrop-filter. The gradient is also not perceptible as
-       a gradient here: 14/255 of travel spread over 12,032px is invisible as a
-       ramp and only ever showed up as the seam it caused. So it goes.
-
-       The invariant to keep: no flat-filled fixed layer may overlap a
-       scrolling gradient. Any depth added back to this page belongs on a
-       bounded element the fixed header and dock do not cross. */
     background: var(--color-bg);
   }
-  .home-header { position: fixed; inset: 0 0 auto; z-index: 30; background: var(--color-bg); }
+  /* This bounded surface is deliberately a normal-flow section. Keeping the
+     gradient with the hero means the title, workspace, and tool launcher can
+     leave together without independently painted fixed layers creating a seam. */
+  .home-hero {
+    background: linear-gradient(180deg, var(--color-bg), var(--color-primary-tint));
+  }
+  /* Desktop moves the same semantic hero into this viewport-sized frame. The
+     frame, rather than any individual bar, stays pinned for the bounded tour
+     and releases when both stories are complete. */
+  .home-frame {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    width: 100%;
+    height: 100svh;
+  }
+  .home-frame > .home-hero {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: 100%;
+    height: 100%;
+  }
   .home-header :global(.home-trust) { display: flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; white-space: nowrap; }
   /* Header proof points and the on-device label share one quiet utility-chip
      treatment. None is a transient status, so no single proof point gets a
@@ -403,7 +405,18 @@ const faq = [
     box-shadow: var(--shadow-focus);
     color: var(--color-primary);
   }
-  .home-header :global(.home-trust .trust-chip-icon) { flex: none; }
+  .home-header :global(.home-trust .trust-chip-icon) { flex: none; width: 14px; height: 14px; display: block; }
+  .home-header :global([data-home-bar] [aria-label='PDkef logo']) { align-self: center; }
+  @media (min-width: 1024px) {
+    .home-header { padding-top: var(--home-nav-height); }
+    .home-header :global([data-home-bar]) {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 60;
+    }
+    /* Match the demo's 1280px frame and its 32px inner gutter exactly. */
+    .home-header :global([data-home-bar] > div) { padding-inline: 32px; }
+  }
   /* Doubled class, deliberately. global.css carries a bare, unlayered
      `header:not(.tool-hero):not(.not-found-header)` at specificity 0-2-1, and
      `header.hero-header` plus Astro's own scope attribute is also 0-2-1 - an
@@ -414,22 +427,21 @@ const faq = [
      of on emission order. Not `!important` - Astro's scoped output shares the
      bare rule's implicit layer, so specificity is what settles it. */
   header.hero-header.hero-header { max-width: none; padding: 8px 24px 10px; margin: 0; text-align: center; }
-  /* The ceiling and the two margins here are a budget, not a taste call. This
-     header is fixed, so every pixel it grows comes straight out of
-     --home-stage-height, and the demo phone's height is that stage minus its
-     padding - so a bigger hero shrinks the phone and the permission-slip form
-     inside it overflows the screen. Raising the ceiling to 2.6rem did exactly
-     that: the header went 154.3px to 160.7px and the form's last line ended
-     2.4px past the bottom of the phone, against about 4px of slack it had.
-     2.45rem plus 2px off each margin lands the header at ~154px, so the demo
-     keeps the slack it was tuned with and the title is still 39px against the
-     36px it was. e2e/demo/workspace-flow.spec.js pins the form's fit; if it
-     starts failing after a change here, that is this budget being spent. */
   .hero-header h1 { font-size: clamp(1.6rem, 3.4vw, 2.45rem); line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.035em; }
   .hero-header h1 span { color: var(--color-primary); }
   .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
-  #home-content { padding-top: var(--home-header-height); padding-bottom: var(--home-dock-height); }
-  .home-tour { min-height: var(--home-stage-height); }
+  #home-content { padding: 0; }
+  /* The demo follows the complete hero in mobile source order. On larger
+     screens the workspace is placed beside this sticky scene by the small
+     responsive script below, preserving the existing two-column story. */
+  .home-tour {
+    --home-stage-height: calc(100svh - var(--home-header-height) - var(--home-dock-height));
+    position: relative;
+    width: 100vw;
+    min-height: var(--home-stage-height);
+    margin-inline: calc(50% - 50vw);
+    background: var(--color-primary-tint);
+  }
   /* 1116svh. The original extra room buys the dwell on the finished first
      story; the added 176svh pauses the second story on its initial inbox,
      request tap, cleaned reply, and sent confirmation without slowing the
@@ -438,17 +450,17 @@ const faq = [
      If this number changes, re-derive SIGN_END / CROSSFADE_START /
      CROSSFADE_END against it - they are fractions of this span, so a shorter
      tour speeds both stories up silently. */
-  .home-tour { height: calc(var(--home-stage-height) + 1116svh); }
-  /* The workspace starts before the tour in the document so phones always
-     show it first. homeWorkspace.ts moves this same node into the desktop
-     scene, where it remains beside the live demo. */
-  .home-scene { position: sticky; top: var(--home-header-height); min-height: var(--home-stage-height); display: grid; grid-template-columns: minmax(312px, 1fr) minmax(0, 1fr); align-items: center; gap: 40px; max-width: 1280px; margin-inline: auto; padding: 0 32px; box-sizing: border-box; }
+  .home-tour { height: calc(100svh + 1116svh); }
+  .home-scene { position: relative; min-height: var(--home-stage-height); display: grid; grid-template-columns: minmax(312px, 1fr) minmax(0, 1fr); align-items: center; gap: 40px; width: 100%; max-width: 1280px; margin-inline: auto; padding: 0 32px; box-sizing: border-box; }
   .home-scene { height: var(--home-stage-height); }
+  .home-frame > .home-hero > .home-scene { min-height: 0; height: auto; }
+  /* Reserve the workspace column in the server-rendered frame. The workspace
+     is moved here after hydration on desktop; without an explicit column the
+     demo briefly auto-places itself on the left during a refresh. */
+  .home-scene > :global([data-home-demo]) { grid-column: 2; }
   .workspace-launcher { justify-self: start; width: 100%; max-width: 400px; }
   [data-working-area][data-drag-over] { outline: 3px dashed var(--color-primary); outline-offset: -10px; background: var(--color-success-soft); }
   #home-information { position: relative; padding-top: 24px; }
-  /* Keep the deck's readable area between the fixed header and tool dock.
-     The surface continues behind the dock so earlier cards never peek out. */
   .card-stack {
     --stack-gap: 1rem;
     --space-section-block: clamp(1.5rem, 3vh, 2rem);
@@ -470,9 +482,9 @@ const faq = [
   @media (min-width: 768px) {
     .card-stack :global(.card-reveal:not(.try-workspace)) {
       position: sticky;
-      top: calc(var(--home-header-height) + var(--stack-gap));
-      min-height: calc(100svh - var(--home-header-height) - var(--stack-gap));
-      padding-block-end: calc(var(--space-section-block) + var(--home-dock-height));
+      top: var(--stack-gap);
+      min-height: calc(100svh - var(--stack-gap));
+      padding-block-end: var(--space-section-block);
       animation-name: none;
     }
     /* A tall card must scroll normally at zoomed or short viewport sizes. */
@@ -490,7 +502,7 @@ const faq = [
        here exposes that card's decorative layer above the closing surface. */
     margin-block-start: 0;
     margin-inline: auto;
-    min-height: calc(100svh - var(--home-header-height) - var(--home-dock-height) - var(--closing-footer-reserve));
+    min-height: calc(100svh - var(--closing-footer-reserve));
     padding: var(--space-section-block) 2.5rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
@@ -511,16 +523,40 @@ const faq = [
   @media (max-width: 1080px) {
     .try-workspace { width: auto; margin-inline: var(--space-6); }
   }
+  @media (min-width: 1024px) {
+    .card-stack :global(.card-reveal:not(.try-workspace)) {
+      top: calc(var(--home-nav-height) + var(--stack-gap));
+      min-height: calc(100svh - var(--home-nav-height) - var(--home-footer-height) - var(--stack-gap) - var(--stack-gap));
+    }
+    .try-workspace {
+      min-height: calc(100svh - var(--home-nav-height) - var(--home-footer-height) - var(--stack-gap) - var(--stack-gap));
+      margin-block: 2rem var(--stack-gap);
+    }
+    /* Once the information cards enter the viewport, the credit line becomes
+       the lower edge of the same persistent page frame as the navigation.
+       Padding replaces its normal-flow height, so switching into the frame
+       does not change the document length or make the cards jump. */
+    :global(body[data-home-cards-visible]) .card-stack {
+      padding-bottom: var(--home-footer-height);
+    }
+    :global(body[data-home-cards-visible]) .card-stack :global(footer) {
+      position: fixed;
+      inset: auto 0 0;
+      z-index: 60;
+      width: 100%;
+      box-sizing: border-box;
+      margin: 0;
+    }
+  }
   @media (max-width: 767px) {
     .try-workspace { min-height: 0; padding: 2rem 1.5rem; }
   }
-  .home-dock { position: fixed; z-index: 40; bottom: 0; left: 0; right: 0; height: var(--home-dock-height); box-sizing: border-box; display: flex; align-items: flex-start; justify-content: safe center; gap: 20px; padding: 10px 24px; background: color-mix(in srgb, var(--color-bg) 94%, transparent); border-top: 1px solid var(--color-border); backdrop-filter: blur(12px); }
-
-  /* The dock scrolls sideways only at widths where it genuinely does not
-     fit, and that condition is what brings the tool tooltips back.
+  .home-dock { box-sizing: border-box; display: flex; align-items: flex-start; justify-content: safe center; gap: 20px; padding: 10px 24px; background: #c4e1e6; border-top: 1px solid var(--color-border-strong); }
+  /* The in-flow dock scrolls sideways only at widths where it genuinely does
+     not fit, and that condition is what brings the tool tooltips back.
 
      CSS turns an unspecified `overflow-y` into `auto` when `overflow-x` is
-     scrollable. That exposed a vertical scrollbar on the fixed dock even
+     scrollable. That exposed a vertical scrollbar on the dock even
      though its only intended overflow is the horizontal tool list. Keep the
      block axis explicitly clipped while preserving the familiar sideways
      scroll pattern on narrow screens.
@@ -541,23 +577,104 @@ const faq = [
   .app-card { position: relative; display: flex; flex: 0 0 80px; flex-direction: column; align-items: center; gap: 6px; color: inherit; text-decoration: none; }
   .app-tile { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; }
   .app-label { font-size: 0.8rem; font-weight: 600; line-height: 1.25; text-align: center; color: var(--color-muted); }
-  @media (max-width: 767px) {
-    :global(body) { --home-header-height: 163px; --home-dock-height: 100px; }
+  @media (max-width: 1023px) {
+    .home-hero {
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+    }
     .home-header :global(.home-trust) { gap: 0.3rem; font-size: 0.65rem; }
-    .home-header :global([data-home-bar] > div) { height: auto; min-height: 56px; flex-wrap: wrap; padding-block: 6px; gap: 6px; }
-    .home-header :global(.home-trust) { width: 100%; justify-content: center; font-size: 0.7rem; }
+    .home-header :global([data-home-bar] > div) { min-height: 56px; padding-block: 6px; gap: 6px; }
+    .home-header :global(.home-trust) { justify-content: center; font-size: 0.7rem; }
     .home-header :global(.home-trust .trust-chip) { min-height: 1.65rem; padding-inline: 0.45rem; }
     .home-header :global([data-on-device]) { font-size: 0.7rem; gap: 4px; }
     header.hero-header.hero-header { padding: 10px 16px; }
     .hero-header h1 { font-size: 1.6rem; }
     .hero-header p { font-size: 0.85rem; }
-    .home-workspace { box-sizing: border-box; min-height: var(--home-stage-height); max-width: none; margin-inline: 0; padding: 32px 24px; display: flex; align-items: center; justify-content: center; }
+    .home-workspace { box-sizing: border-box; flex: 1 0 auto; min-height: 13rem; max-width: none; margin-inline: 0; padding: 24px; display: flex; align-items: center; justify-content: center; }
+    .home-tour {
+      --home-stage-height: 100svh;
+      min-height: 100svh;
+      height: calc(100svh + 1116svh);
+    }
+    .home-frame { height: 100svh; }
     .home-scene { grid-template-columns: 1fr; padding: 0 16px; gap: 8px; align-content: start; }
     .workspace-launcher { max-width: none; }
     .home-dock { gap: 12px; padding: 10px 16px; justify-content: flex-start; }
     .app-card { flex-basis: 72px; }
     .app-tile { width: 52px; height: 52px; }
     .home-scene { display: block; }
+    .home-scene > :global([data-home-demo]) { grid-column: auto; }
+    /* While either demo is playing, restore the same quiet page frame used
+       around the desktop cards. The frame reserves both bars plus a real gap,
+       so the demo title and phone never sit underneath fixed chrome. */
+    :global(body[data-home-demo-visible]) .home-header :global([data-home-bar]) {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 70;
+    }
+    :global(body[data-home-cards-visible]) .home-header :global([data-home-bar]) {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 70;
+    }
+    :global(body[data-home-demo-visible]) .home-tour {
+      --demo-frame-gap: var(--space-3);
+      --home-stage-height: calc(100svh - var(--home-nav-height) - var(--home-footer-height) - var(--demo-frame-gap) - var(--demo-frame-gap));
+    }
+    :global(body[data-home-demo-visible]) .home-frame {
+      box-sizing: border-box;
+      height: 100svh;
+      padding-block: calc(var(--home-nav-height) + var(--demo-frame-gap)) calc(var(--home-footer-height) + var(--demo-frame-gap));
+    }
+    :global(body[data-home-demo-visible]) .card-stack :global(footer) {
+      position: fixed;
+      inset: auto 0 0;
+      z-index: 70;
+      width: 100%;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0.5rem 0.75rem;
+    }
+    :global(body[data-home-cards-visible]) .card-stack {
+      padding-bottom: var(--home-footer-height);
+    }
+    :global(body[data-home-cards-visible]) .card-stack :global(footer) {
+      position: fixed;
+      inset: auto 0 0;
+      z-index: 70;
+      width: 100%;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0.5rem 0.75rem;
+    }
+    :global(body[data-home-demo-visible]) .card-stack :global(footer p) {
+      font-size: 0.7rem;
+      line-height: 1.35;
+    }
+    :global(body[data-home-cards-visible]) .card-stack :global(footer p) {
+      font-size: 0.7rem;
+      line-height: 1.35;
+    }
+  }
+  @media (max-width: 720px) {
+    .home-header :global([data-home-bar] > div) {
+      height: 56px;
+      min-height: 56px;
+      flex-wrap: nowrap;
+      gap: 0.35rem;
+    }
+    .home-header :global(.home-trust) { width: auto; flex: none; gap: 0.25rem; }
+    .home-header :global(.home-trust .trust-chip) {
+      width: 2rem;
+      min-height: 2rem;
+      justify-content: center;
+      gap: 0;
+      padding: 0.4rem;
+    }
+    /* Explicit aria-labels preserve each link's accessible name while its
+       visual text yields to the icon at phone widths. */
+    .home-header :global(.home-trust .trust-chip span) { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     .app-card *, .app-card { transition: none !important; }
@@ -566,7 +683,7 @@ const faq = [
   .app-tile {
     border-radius: 18px;
     background: linear-gradient(150deg, var(--color-muted-light), var(--color-border-strong));
-    color: var(--color-surface);
+    color: var(--color-text);
     box-shadow: 0 8px 18px -8px var(--color-primary-ring), inset 0 1px 0 rgba(255, 255, 255, 0.5);
     transition: translate 0.4s var(--ease-spring), rotate 0.4s var(--ease-spring), scale 0.4s var(--ease-spring),
       box-shadow 0.4s var(--ease-out), background-color 0.2s var(--ease-out);
@@ -576,10 +693,11 @@ const faq = [
      these rules come first and the state rules after. */
   .app-card[data-accent='primary'] .app-tile {
     background: linear-gradient(150deg, var(--color-primary-hover), var(--color-primary));
+    color: var(--color-surface);
   }
 
   .app-card[data-accent='soft'] .app-tile {
-    background: linear-gradient(150deg, var(--color-surface), var(--color-success-soft));
+    background: linear-gradient(150deg, #f8ffd9, var(--color-success-soft));
     color: var(--color-success);
   }
 
