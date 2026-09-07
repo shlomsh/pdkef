@@ -38,7 +38,7 @@
   .final { grid-template-columns: minmax(0, 1fr); }
 }
 .error { max-width: 360px; font-size: 0.85rem; color: var(--color-danger); }
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   .launcher { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; max-width: 328px; }
   .launcher > .tile { width: 100%; min-height: 180px; padding: 12px; }
 

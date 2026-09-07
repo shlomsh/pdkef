@@ -74,7 +74,7 @@
 
 
 .phone { opacity: var(--story-opacity, 1); grid-area: phone; width: min(360px, calc((var(--home-stage-height) - 32px) * 9 / 19)); }
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   .root { height: var(--home-stage-height); }
   .stage { grid-template-columns: 1fr; grid-template-rows: auto 1fr; grid-template-areas: 'caption' 'phone'; padding: 4px 0 0; gap: 8px; }
   .caption { font-size: 0.9rem; text-align: center; }
@@ -1252,7 +1252,7 @@
 }
 /* Keep the PDF wide enough to read on ordinary laptop-height viewports.
    The caption never borrows vertical room from the phone. */
-@media (min-width: 761px) {
+@media (min-width: 768px) {
   .phone { width: clamp(300px, calc((var(--home-stage-height) - 32px) * 9 / 19), 360px); height: calc(var(--home-stage-height) - 32px); aspect-ratio: auto; }
 }
 @media (max-height: 850px) {
