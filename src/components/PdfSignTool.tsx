@@ -20,6 +20,7 @@ import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../edito
 import type { PageGeometry } from '../editor/geometry/coords.ts';
 import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
+import { cacheRecentFile } from '../editor/workspace/draftStore.js';
 import useFormFieldRegions from '../lib/useFormFieldRegions.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../editor/workspace/useEditorDraftPersistence.ts';
 import { isEditorElement } from '../editor/registry/draftValidation.ts';
@@ -520,6 +521,14 @@ function PdfSignToolInner() {
         }
         if (!isCurrent()) return;
         setPageSizes(sizes);
+        // The cache contains source bytes only, never the editable document
+        // state. Saving after pdf.js accepts the file avoids advertising a
+        // corrupt PDF on the home page.
+        void cacheRecentFile('sign', {
+          fileName: selected.name,
+          fileType: selected.type || 'application/pdf',
+          fileBytes: bytes,
+        });
       },
     });
   };

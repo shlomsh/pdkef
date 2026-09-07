@@ -127,6 +127,143 @@ const DRAFT_HINT_PREFIX = 'pdf-toolkit:has-draft:';
 // sibling key costs one extra write and cannot break either of them.
 const DRAFT_META_PREFIX = 'pdf-toolkit:draft-meta:';
 
+// Recent files are deliberately a separate cache from drafts. A draft is the
+// editable state for one tool and is replaced whenever that tool opens another
+// PDF; a recent entry is just a recoverable copy of the source document that
+// can be opened again from the home page. Keeping this index in localStorage
+// makes the home-page list inexpensive to read, while the actual PDF bytes
+// remain in IndexedDB.
+const RECENT_FILES_META_KEY = 'pdf-toolkit:recent-files';
+const RECENT_FILE_PREFIX = 'recent:';
+export const MAX_RECENT_FILES = 6;
+
+const recentFileKey = (id) => `${RECENT_FILE_PREFIX}${id}`;
+
+function writeRecentFiles(entries) {
+  try {
+    localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify(entries));
+  } catch {
+    // Recent documents are a convenience. A quota failure must not prevent a
+    // PDF from opening or interfere with the editor's crash-recovery draft.
+  }
+}
+
+function validRecentEntry(entry) {
+  return entry && typeof entry === 'object'
+    && typeof entry.id === 'string' && entry.id.length > 0
+    && typeof entry.tool === 'string' && entry.tool.length > 0
+    && typeof entry.fileName === 'string'
+    && Number.isFinite(entry.savedAt)
+    && !isDraftExpired(entry.savedAt);
+}
+
+function readRecentEntries() {
+  try {
+    const raw = localStorage.getItem(RECENT_FILES_META_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    const seen = new Set();
+    const entries = parsed
+      .filter(validRecentEntry)
+      .sort((a, b) => b.savedAt - a.savedAt)
+      .filter((entry) => {
+        if (seen.has(entry.id)) return false;
+        seen.add(entry.id);
+        return true;
+      })
+      .slice(0, MAX_RECENT_FILES);
+    // Expired or malformed entries must not leave an ever-growing stale index.
+    if (entries.length !== parsed.length) writeRecentFiles(entries);
+    return entries;
+  } catch {
+    return [];
+  }
+}
+
+/** Synchronous metadata read for the home page. File bytes are never copied
+ * into localStorage; they are loaded only after a person chooses an entry. */
+export function readRecentFiles() {
+  return readRecentEntries();
+}
+
+function removeRecentMeta(id) {
+  const next = readRecentEntries().filter((entry) => entry.id !== id);
+  writeRecentFiles(next);
+}
+
+/**
+ * Save a source PDF in the bounded recent-files cache. Content hashes make a
+ * repeated open of the same PDF update one entry instead of consuming another
+ * of the six slots. The most recently used tool wins for that document.
+ */
+export async function cacheRecentFile(tool, record) {
+  if (!hasIndexedDB() || !record?.fileBytes) return false;
+  const id = await sourceIdForBytes(record.fileBytes).catch(() => null);
+  if (!id) return false;
+  const savedAt = Date.now();
+  const previous = readRecentEntries().find((entry) => entry.id === id);
+  const entry = {
+    id,
+    tool,
+    fileName: record.fileName || 'Untitled document',
+    fileType: record.fileType || 'application/pdf',
+    savedAt,
+    ...(record.preview || previous?.preview ? { preview: record.preview || previous.preview } : {}),
+  };
+  const entries = [entry, ...readRecentEntries().filter((item) => item.id !== id)];
+  const kept = entries.slice(0, MAX_RECENT_FILES);
+  try {
+    await withStore('readwrite', (store) => {
+      store.put({
+        tool: recentFileKey(id),
+        fileName: entry.fileName,
+        fileType: entry.fileType,
+        fileBytes: record.fileBytes,
+        savedAt,
+      });
+      // Prune by walking cache records rather than only the entries evicted
+      // in this write. That also clears old records whose local metadata
+      // expired on a previous home-page visit, keeping binary storage truly
+      // bounded to six PDFs.
+      const keepKeys = new Set(kept.map((item) => recentFileKey(item.id)));
+      const cursor = store.openCursor();
+      cursor.onsuccess = () => {
+        const current = cursor.result;
+        if (!current) return;
+        if (typeof current.key === 'string' && current.key.startsWith(RECENT_FILE_PREFIX) && !keepKeys.has(current.key)) {
+          current.delete();
+        }
+        current.continue();
+      };
+    });
+    writeRecentFiles(kept);
+    return true;
+  } catch (e) {
+    console.error('draftStore.cacheRecentFile failed:', e);
+    return false;
+  }
+}
+
+/** Load (without consuming) a recent source PDF selected on the home page. */
+export async function loadRecentFile(id) {
+  if (!hasIndexedDB() || typeof id !== 'string') return null;
+  const entry = readRecentEntries().find((item) => item.id === id);
+  if (!entry) return null;
+  try {
+    const record = await withStore('readonly', (store) => reqToPromise(store.get(recentFileKey(id))));
+    if (!record?.fileBytes || isDraftExpired(record.savedAt)) {
+      await withStore('readwrite', (store) => { store.delete(recentFileKey(id)); });
+      removeRecentMeta(id);
+      return null;
+    }
+    return { ...record, tool: entry.tool };
+  } catch (e) {
+    console.error('draftStore.loadRecentFile failed:', e);
+    return null;
+  }
+}
+
 function setDraftHint(tool, meta) {
   try {
     localStorage.setItem(DRAFT_HINT_PREFIX + tool, '1');

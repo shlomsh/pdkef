@@ -1,19 +1,21 @@
 import { tools } from '../data/tools.js';
 import styles from './ResumeDraftCard.module.css';
 
-/** Standalone document icons from the editor draft slots. When none exist, the
- * bundled practice form occupies the first slot as an honest starter document;
- * it is never mixed into or allowed to displace the user's own recent work.
- * Navigation lets each tool restore its own draft; only the bundled sample
- * delegates to FileDropzone's existing handoff path.
+/** Standalone document icons from the on-device recent-file cache. When none
+ * exist, the bundled practice form occupies the first slot as an honest starter
+ * document; it is never mixed into or allowed to displace the user's own work.
+ * Cached files are handed back to their most recently used tool; legacy draft
+ * metadata still links directly to that tool until it has entered the cache.
  */
 export default function ResumeDraftCard({
   drafts,
   onOpenSample,
+  onOpenRecent,
   busy = false,
 }: {
   drafts: any[];
   onOpenSample?: () => void;
+  onOpenRecent?: (draft: any) => void;
   busy?: boolean;
 }) {
   if (!drafts?.length) return null;
@@ -56,6 +58,18 @@ export default function ResumeDraftCard({
               >
                 {identity}
                 <span class={styles.sub}>{meta.gridTitle}</span>
+              </button>
+            ) : draft.cacheId ? (
+              <button
+                type="button"
+                class={styles.document}
+                aria-label={`Open recent PDF, ${draft.fileName || 'Untitled document'}`}
+                disabled={busy}
+                onClick={() => onOpenRecent?.(draft)}
+              >
+                {identity}
+                <span class={styles.sub}>{meta.gridTitle}</span>
+                {formatSavedAt(draft.savedAt) && <span class={styles.sub}>{formatSavedAt(draft.savedAt)}</span>}
               </button>
             ) : (
               <a class={styles.document} href={meta.href}

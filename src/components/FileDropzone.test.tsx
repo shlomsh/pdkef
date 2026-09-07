@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone from './FileDropzone.tsx';
-import { loadDraft, deleteDraft, saveDraft, saveHandoff, readDraftMeta } from '../editor/workspace/draftStore.js';
+import { loadDraft, deleteDraft, saveDraft, saveHandoff, readDraftMeta, readRecentFiles, loadRecentFile } from '../editor/workspace/draftStore.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 
 vi.mock('../editor/workspace/draftStore.js', () => ({
@@ -12,6 +12,8 @@ vi.mock('../editor/workspace/draftStore.js', () => ({
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   saveDraft: vi.fn(() => Promise.resolve(true)),
   saveHandoff: vi.fn(() => Promise.resolve(true)),
+  readRecentFiles: vi.fn(() => []),
+  loadRecentFile: vi.fn(() => Promise.resolve(null)),
   // Synchronous by contract (see draftStore.js) - the resume card reads it at
   // mount time, before any of the async mocks above would have settled.
   readDraftMeta: vi.fn(() => null),
@@ -34,6 +36,8 @@ describe('FileDropzone', () => {
     vi.clearAllMocks();
     loadDraft.mockResolvedValue(null);
     readDraftMeta.mockReturnValue(null);
+    readRecentFiles.mockReturnValue([]);
+    loadRecentFile.mockResolvedValue(null);
     saveHandoff.mockResolvedValue(true);
   });
 
@@ -119,6 +123,23 @@ describe('FileDropzone', () => {
       // when it isn't. See ResumeDraftCard.tsx's header comment.
       expect(container.querySelector('button[aria-label="Hide"]')).toBeNull();
       expect(container.textContent).not.toMatch(/[×✕]/);
+    });
+
+    it('shows no more than six cached files, newest first', () => {
+      const now = Date.now();
+      readRecentFiles.mockReturnValue(Array.from({ length: 8 }, (_, index) => ({
+        id: `cached-${index}`,
+        tool: index % 2 ? 'redact' : 'sign',
+        fileName: `recent-${index}.pdf`,
+        savedAt: now - index,
+      })));
+      mount();
+
+      const names = Array.from(container.querySelectorAll('li')).map((li) => li.textContent);
+      expect(names).toHaveLength(6);
+      expect(names[0]).toContain('recent-0.pdf');
+      expect(names[5]).toContain('recent-5.pdf');
+      expect(container.textContent).not.toContain('recent-6.pdf');
     });
 
     it('draws an empty preview box, not a broken image, when a draft has no preview', () => {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview } from '../../editor/workspace/draftStore.js';
+import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile } from '../../editor/workspace/draftStore.js';
 import { DRAFT_SCHEMA_VERSION } from '../../editor/registry/draftValidation.ts';
 
 // Clears the blocking head script's DOM hint once a real restore check has
@@ -216,6 +216,15 @@ export function useDraftPersistence({
       .then((dataUrl) => {
         if (cancelled) return;
         previewRef.current = dataUrl;
+        // The cache write upgrades the source entry with a thumbnail once it
+        // is ready. It is independent of autosave, so merely opening a PDF is
+        // enough for it to appear among the home page's recent files.
+        if (fileBytes) void cacheRecentFile(tool, {
+          fileName: file.name,
+          fileType: file.type || 'application/pdf',
+          fileBytes,
+          preview: dataUrl,
+        });
         // Only lands if a draft hint already exists, so this cannot invent
         // metadata for a document that was never saved or has since gone.
         attachDraftPreview(tool, dataUrl);

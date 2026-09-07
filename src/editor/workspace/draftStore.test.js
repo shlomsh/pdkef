@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
-import { MAX_AGE_MS, attachDraftPreview, readDraftMeta, saveDraft, sourceIdForBytes, subscribeToDraftChanges } from './draftStore.js';
+import { MAX_AGE_MS, MAX_RECENT_FILES, attachDraftPreview, readDraftMeta, readRecentFiles, saveDraft, sourceIdForBytes, subscribeToDraftChanges } from './draftStore.js';
 
 // readDraftMeta is the one workspace-store piece that never touches IndexedDB -
 // it's a synchronous localStorage read, by design (see the file's header
@@ -64,6 +64,39 @@ describe('readDraftMeta', () => {
     expect(readDraftMeta('sign')).toBeNull();
     expect(localStorage.getItem('pdf-toolkit:has-draft:sign')).toBeNull();
     expect(localStorage.getItem('pdf-toolkit:draft-meta:sign')).toBeNull();
+  });
+});
+
+describe('readRecentFiles', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('keeps only the six newest valid entries', () => {
+    const now = Date.now();
+    localStorage.setItem('pdf-toolkit:recent-files', JSON.stringify(Array.from({ length: 8 }, (_, index) => ({
+      id: `file-${index}`,
+      tool: 'sign',
+      fileName: `file-${index}.pdf`,
+      savedAt: now - index,
+    }))));
+
+    const files = readRecentFiles();
+    expect(files).toHaveLength(MAX_RECENT_FILES);
+    expect(files.map((file) => file.fileName)).toEqual([
+      'file-0.pdf', 'file-1.pdf', 'file-2.pdf', 'file-3.pdf', 'file-4.pdf', 'file-5.pdf',
+    ]);
+  });
+
+  it('removes expired entries without disturbing valid recent files', () => {
+    const now = Date.now();
+    localStorage.setItem('pdf-toolkit:recent-files', JSON.stringify([
+      { id: 'current', tool: 'redact', fileName: 'current.pdf', savedAt: now },
+      { id: 'old', tool: 'sign', fileName: 'old.pdf', savedAt: now - MAX_AGE_MS },
+    ]));
+
+    expect(readRecentFiles().map((file) => file.fileName)).toEqual(['current.pdf']);
+    expect(JSON.parse(localStorage.getItem('pdf-toolkit:recent-files'))).toHaveLength(1);
   });
 });
 

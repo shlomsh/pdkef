@@ -5,6 +5,7 @@ import PdfPageCanvas from './PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../editor/model/ids.ts';
 import { applyPageEdits } from '../editor/adapters/pdf/applyPageEdits.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
+import { cacheRecentFile } from '../editor/workspace/draftStore.js';
 import { startGesture } from '../editor/gestures/controller.ts';
 import usePdfCoordinates from '../lib/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle } from '../editor/registry/redactionSurface.ts';
@@ -275,9 +276,15 @@ export default function PdfRedactTool() {
         seedUniqueId(presetElements);
         fileBytesRef.current = bytes;
       },
-      onDocument: (doc) => {
+      onDocument: (doc, isCurrent) => {
+        if (!isCurrent()) return;
         setPdfDocument(doc);
         setNumPages(doc.numPages);
+        void cacheRecentFile('redact', {
+          fileName: selected.name,
+          fileType: selected.type || 'application/pdf',
+          fileBytes: bytes,
+        });
       },
     });
   };
