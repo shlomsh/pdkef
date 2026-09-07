@@ -1,36 +1,23 @@
-// Mobile gives the demo and file controls separate sections. Desktop always
-// keeps the compact launcher beside a live, scroll-driven demo.
+// Phones keep the file workspace before the tour. On desktop the very same
+// workspace joins the sticky scene so it stays beside the live demo. There is
+// deliberately no stored "seen" state: every mobile visit has the same order.
+const launcher = document.getElementById('home-files');
 const tour = document.getElementById('home-tour');
 const scene = tour?.querySelector('.home-scene');
-const launcher = document.getElementById('home-files');
-const finish = document.getElementById('try-workspace');
 const header = document.querySelector<HTMLElement>('.home-header');
 const offlineLink = document.querySelector<HTMLAnchorElement>('[data-offline-link]');
 const offlineSection = document.getElementById('offline-app');
 const mobile = matchMedia('(max-width: 760px)');
-let seen = false;
-try {
-  seen = localStorage.getItem('pdkef:demo-seen') === 'yes' || sessionStorage.getItem('pdkef:tour-complete') === 'yes';
-} catch {}
-function arrangeSections() {
+function arrangeWorkspace() {
   if (!tour || !scene || !launcher) return;
-  if (mobile.matches) {
-    if (seen) tour.before(launcher);
-    else tour.after(launcher);
-  } else scene.prepend(launcher);
+  if (mobile.matches) tour.before(launcher);
+  else scene.prepend(launcher);
 }
-arrangeSections();
-mobile.addEventListener('change', arrangeSections);
-function rememberDemo() {
-  if (seen || !finish || finish.getBoundingClientRect().top >= innerHeight) return;
-  seen = true;
-  try { localStorage.setItem('pdkef:demo-seen', 'yes'); } catch {}
-  // Reorder on the next visit or explicit return, never during a scroll.
-}
-window.addEventListener('scroll', rememberDemo, { passive: true });
+arrangeWorkspace();
+mobile.addEventListener('change', arrangeWorkspace);
 document.querySelector('[data-workspace-return]')?.addEventListener('click', event => {
   event.preventDefault();
-  arrangeSections();
+  arrangeWorkspace();
   launcher?.scrollIntoView({ behavior: 'instant', block: 'start' });
   document.querySelector<HTMLElement>('[data-home-picker]')?.focus({ preventScroll: true });
 });

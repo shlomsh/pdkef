@@ -48,11 +48,11 @@ const faq = [
     </header>
   </div>
   <main id="home-content">
+    <div class="workspace-launcher home-workspace" id="home-files" data-working-area>
+      <FileDropzone client:only="preact" toolTarget="sign" />
+    </div>
     <div class="home-tour" id="home-tour">
       <div class="home-scene" data-working-area>
-        <div class="workspace-launcher" id="home-files" data-working-area>
-          <FileDropzone client:only="preact" toolTarget="sign" />
-        </div>
         <HeroDemo />
       </div>
     </div>
@@ -438,11 +438,9 @@ const faq = [
      CROSSFADE_END against it - they are fractions of this span, so a shorter
      tour speeds both stories up silently. */
   .home-tour { height: calc(var(--home-stage-height) + 1116svh); }
-  /* Keep the visual anchors balanced: the file controls stay aligned to the
-     scene's left edge while the demo is centered in an equally sized right
-     zone. The former 0.85fr / 2fr split centered the phone in an oversized
-     column, leaving visibly more empty space after it than before the recent
-     documents. */
+  /* The workspace starts before the tour in the document so phones always
+     show it first. homeWorkspace.ts moves this same node into the desktop
+     scene, where it remains beside the live demo. */
   .home-scene { position: sticky; top: var(--home-header-height); min-height: var(--home-stage-height); display: grid; grid-template-columns: minmax(312px, 1fr) minmax(0, 1fr); align-items: center; gap: 40px; max-width: 1280px; margin-inline: auto; padding: 0 32px; box-sizing: border-box; }
   .home-scene { height: var(--home-stage-height); }
   .workspace-launcher { justify-self: start; width: 100%; max-width: 400px; }
@@ -552,8 +550,9 @@ const faq = [
     header.hero-header.hero-header { padding: 10px 16px; }
     .hero-header h1 { font-size: 1.6rem; }
     .hero-header p { font-size: 0.85rem; }
+    .home-workspace { box-sizing: border-box; min-height: var(--home-stage-height); max-width: none; margin-inline: 0; padding: 32px 24px; display: flex; align-items: center; justify-content: center; }
     .home-scene { grid-template-columns: 1fr; padding: 0 16px; gap: 8px; align-content: start; }
-    .workspace-launcher { box-sizing: border-box; max-width: none; padding: 32px 24px; }
+    .workspace-launcher { max-width: none; }
     .home-dock { gap: 12px; padding: 10px 16px; justify-content: flex-start; }
     .app-card { flex-basis: 72px; }
     .app-tile { width: 52px; height: 52px; }
