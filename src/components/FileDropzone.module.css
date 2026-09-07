@@ -1,4 +1,19 @@
-.launcher { display: grid; grid-template-columns: repeat(auto-fit, 148px); align-items: start; justify-content: start; gap: 20px 16px; }
+.launcher {
+  /* Recent documents are a compact desktop rather than an endlessly growing
+     strip: three columns by two rows makes all six cached files visible before
+     the person has to reach the picker. */
+  display: grid;
+  grid-template-columns: repeat(3, 148px);
+  align-items: start;
+  justify-content: start;
+  gap: 20px 16px;
+}
+/* Once the six recent-file slots are full, keep the next-file action on its
+   own third row rather than making it look like a seventh recent document. */
+.launcher:has([data-home-recents] li:nth-child(6)) > .tile {
+  grid-column: 1;
+  grid-row: 3;
+}
 .tile { box-sizing: border-box; width: 148px; min-height: 180px; border: 1.5px dashed var(--color-border-strong); border-radius: 18px; padding: 18px; background: var(--color-primary-soft); color: var(--color-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font: inherit; }
 .tile strong { color: var(--color-text); font-size: 0.95rem; }
 .tile span { font-size: 0.78rem; color: var(--color-muted); }
@@ -41,6 +56,13 @@
 @media (max-width: 767px) {
   .launcher { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; max-width: 328px; }
   .launcher > .tile { width: 100%; min-height: 180px; padding: 12px; }
+
+  /* A narrow display remains a two-column layout; explicitly undo the
+     desktop third-row placement so the picker follows the last document. */
+  .launcher:has([data-home-recents] li:nth-child(6)) > .tile {
+    grid-column: auto;
+    grid-row: auto;
+  }
 
   .launcher > .tile span { font-size: 0.7rem; }
 }
