@@ -122,7 +122,10 @@ test('returning users get exactly one Sign and one Redact icon with desktop open
 });
 
 test('mobile always shows the file workspace before the live demo', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  // 767px is the upper edge of the single-column mobile layout. This guards
+  // the breakpoint where the workspace used to get moved inside the tour,
+  // after the demo, despite the mobile layout still being active.
+  await page.setViewportSize({ width: 767, height: 844 });
   await page.goto('/');
   const order = () => page.evaluate(() => {
     const tour = document.getElementById('home-tour');

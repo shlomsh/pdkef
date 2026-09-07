@@ -7,7 +7,11 @@ const scene = tour?.querySelector('.home-scene');
 const header = document.querySelector<HTMLElement>('.home-header');
 const offlineLink = document.querySelector<HTMLAnchorElement>('[data-offline-link]');
 const offlineSection = document.getElementById('offline-app');
-const mobile = matchMedia('(max-width: 760px)');
+// Keep this in lockstep with the home page and demo mobile media queries.
+// A 761–767px viewport is still the single-column phone/tablet layout, so
+// moving the workspace into the tour there puts it after the demo instead of
+// before it.
+const mobile = matchMedia('(max-width: 767px)');
 function arrangeWorkspace() {
   if (!tour || !scene || !launcher) return;
   if (mobile.matches) tour.before(launcher);
