@@ -26,7 +26,7 @@ test('complete stories, information, session handoff, and real bundled sample en
   const before = await draftSnapshot(page);
   await expect(page.locator('#home-files').getByRole('button',{name:/Open bundled sample PDF/})).toContainText(SAMPLE_FILE_NAME);
   await expect(page.locator('#home-files img[src="/images/redaction-guide/sample-preview.jpg"]')).toBeVisible();
-  for (const [key, fraction, beat] of [['sign',.55,'fill-allergies'], ['sign',.81,'sign'], ['sign',.93,'share'], ['blur',.35,'blur'], ['blur',.5,'blackout'], ['blur',.64,'whiteout'], ['blur',.78,'delete']]) {
+  for (const [key, fraction, beat] of [['sign',.55,'fill-allergies'], ['sign',.81,'sign'], ['sign',.93,'share'], ['blur',.37,'blur'], ['blur',.5,'blackout'], ['blur',.64,'whiteout'], ['blur',.78,'delete']]) {
     await scrollStory(page,key,fraction);
     await expect.poll(() => stageLocator(page,key).evaluate((el,beat) => Number(el.style.getPropertyValue(`--p-${beat}`)),beat)).toBe(1);
   }
@@ -38,7 +38,6 @@ test('complete stories, information, session handoff, and real bundled sample en
   // All cards use the document scroll; no hidden inner vertical scroll areas.
   expect(await page.locator('#home-information section').evaluateAll(elements => elements.every(el => !['auto','scroll'].includes(getComputedStyle(el).overflowY) && [...el.querySelectorAll('p,h2')].every(text => { const r = text.getBoundingClientRect(); return !r.height || r.bottom <= el.getBoundingClientRect().bottom + 1; })))).toBe(true);
   await page.locator('#try-workspace').scrollIntoViewIfNeeded();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('pdkef:demo-seen'))).toBe('yes');
   expect(await draftSnapshot(page)).toEqual(before);
   await page.keyboard.press('ControlOrMeta+Home');
   // Explicit top movement also covers browsers mapping that key differently.
@@ -122,26 +121,26 @@ test('returning users get exactly one Sign and one Redact icon with desktop open
   await expect(page.locator('canvas').first()).toBeVisible();
 });
 
-test('mobile gives the live demo its own section and changes order only after it has been seen', async ({ page }) => {
+test('mobile always shows the file workspace before the live demo', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   const order = () => page.evaluate(() => {
     const tour = document.getElementById('home-tour');
     const files = document.getElementById('home-files');
-    return { sameParent: tour.parentElement === files.parentElement, demoFirst: !!(tour.compareDocumentPosition(files) & Node.DOCUMENT_POSITION_FOLLOWING) };
+    return { sameParent: tour.parentElement === files.parentElement, filesFirst: !!(files.compareDocumentPosition(tour) & Node.DOCUMENT_POSITION_FOLLOWING) };
   });
-  await expect.poll(order).toEqual({ sameParent: true, demoFirst: true });
+  await expect.poll(order).toEqual({ sameParent: true, filesFirst: true });
+  await expect(page.locator('#home-files [data-home-picker]')).toBeInViewport();
   await scrollStory(page, 'sign', .81);
   const stage = stageLocator(page, 'sign');
   const screen = await stage.locator('[class*="_screen_"]').boundingBox();
   const date = await stage.locator('[class*="_date-line_"]').boundingBox();
   expect(date.y + date.height).toBeLessThanOrEqual(screen.y + screen.height + 1);
   await page.locator('#try-workspace').scrollIntoViewIfNeeded();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('pdkef:demo-seen'))).toBe('yes');
-  await expect.poll(order).toEqual({ sameParent: true, demoFirst: true });
+  await expect.poll(order).toEqual({ sameParent: true, filesFirst: true });
   await page.reload();
   await page.evaluate(() => window.scrollTo(0, 0));
-  await expect.poll(order).toEqual({ sameParent: true, demoFirst: false });
+  await expect.poll(order).toEqual({ sameParent: true, filesFirst: true });
   await expect(page.locator('#home-files [data-home-picker]')).toBeInViewport();
   await scrollStory(page, 'blur', .64);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
