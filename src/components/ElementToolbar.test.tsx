@@ -47,11 +47,7 @@ describe('ElementToolbar font picker wiring', () => {
     const gveretItem = items.find((el) => el.textContent?.startsWith('Gveret Levin'))!;
 
     expect(caveatItem.className).not.toMatch(/active/);
-    // The note keeps the authored phrase readable (including its space), while
-    // still explaining the fallback chosen for this option.
-    expect(caveatItem.textContent).toContain('Some characters in');
-    expect(caveatItem.textContent).toContain('שלום עולם');
-    expect(caveatItem.textContent).toContain('Using Gveret Levin instead.');
+    expect(caveatItem.textContent).toBe('CaveatFallback: Gveret Levin');
     expect(gveretItem.className).toMatch(/active/);
   });
 

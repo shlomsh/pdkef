@@ -12,9 +12,9 @@ from system fonts, but the PDF currently uses one bundled family per text box.
   coverage table and the same text transforms as export, without a font fetch.
 - `TextNode` owns its own feedback, memoized by text, family, weight, style and
   comb settings. The generic draggable shell has no font-validation logic.
-- The font menu annotates every option before selection. A compatible option
-  says it includes all the text; another option names its missing characters
-  and, when available, the actual automatic replacement.
+- The font menu leaves compatible options unannotated. An option that needs an
+  automatic replacement shows only its fallback family; a nonmatching option
+  gets a short unsupported label. The selected text is not repeated per row.
 - Automatic fallback changes the rendered family only when one family covers
   the complete text. The requested family remains in state, so editing the text
   can restore it. The local notice explains the change.

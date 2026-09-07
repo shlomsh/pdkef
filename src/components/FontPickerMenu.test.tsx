@@ -45,16 +45,13 @@ describe('FontPickerMenu', () => {
     expect(option(menu, 'Gveret Levin').getAttribute('aria-selected')).toBe('true');
   });
 
-  it('leaves supported rows uncluttered and annotates only incomplete rows', () => {
+  it('leaves supported rows uncluttered and gives incomplete rows a compact fallback label', () => {
     const text = 'שלום עולם';
     const menu = openMenu(resolveFontFamily('Caveat', text), text);
     const caveat = option(menu, 'Caveat');
     const gveret = option(menu, 'Gveret Levin');
 
-    expect(caveat.textContent).toContain('Some characters in');
-    expect(caveat.textContent).toContain('שלום עולם');
-    expect(caveat.textContent).toContain('aren’t available in Caveat.');
-    expect(caveat.textContent).toContain('Using Gveret Levin instead.');
+    expect(caveat.textContent).toBe('CaveatFallback: Gveret Levin');
     expect(caveat.className).toMatch(/unsupported/);
     expect(gveret.textContent).toBe('Gveret Levin');
     expect(gveret.className).not.toMatch(/unsupported/);
@@ -62,14 +59,12 @@ describe('FontPickerMenu', () => {
     expect(menu.textContent).not.toContain('Fonts marked');
   });
 
-  it('keeps spaces in the quoted text and uses a single ellipsis for long text', () => {
+  it('does not repeat the element text in an incomplete row', () => {
     const text = 'שלום עולם '.repeat(6);
     const menu = openMenu('Caveat', text);
     const caveat = option(menu, 'Caveat');
 
-    expect(caveat.textContent).toContain('שלום עולם');
-    expect(caveat.textContent).toContain('…');
-    expect(caveat.textContent).not.toContain('שלוםע');
+    expect(caveat.textContent).toBe('CaveatFallback: Gveret Levin');
   });
 
   it('uses canonical family names in one alphabetical list', () => {
@@ -176,9 +171,7 @@ describe('FontPickerMenu', () => {
 
     expect(arimo.disabled).toBe(false);
     expect(arimo.getAttribute('aria-disabled')).not.toBe('true');
-    expect(arimo.textContent).toContain('Some characters in');
-    expect(arimo.textContent).toContain('Hello مرحبا');
-    expect(arimo.textContent).toContain('Using Scheherazade New instead.');
+    expect(arimo.textContent).toBe('ArimoFallback: Scheherazade New');
     act(() => arimo.click());
     expect(onChange).toHaveBeenCalledWith('Arimo');
   });
@@ -187,9 +180,9 @@ describe('FontPickerMenu', () => {
     const menu = openMenu('Assistant', 'שלום Hello مرحبا');
     const items = options(menu);
     expect(items.every((item) => item.dataset.fontSupport === 'incompatible')).toBe(true);
-    expect(items.every((item) => item.textContent?.includes('Some characters in'))).toBe(true);
-    expect(option(menu, 'Assistant').textContent).toContain('مرحبا');
-    expect(option(menu, 'Scheherazade New').textContent).toContain('שלום');
+    expect(items.every((item) => item.textContent?.includes('Doesn’t support this text'))).toBe(true);
+    expect(option(menu, 'Assistant').textContent).not.toContain('مرحبا');
+    expect(option(menu, 'Scheherazade New').textContent).not.toContain('שלום');
   });
 
   it('shows the effective canonical family in the trigger title', () => {

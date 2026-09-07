@@ -36,7 +36,7 @@ export interface TextFontSupportMessageInput {
 export function describeTextFontSupport(support: TextFontSupportMessageInput) {
   if (support.status === 'supported') return '';
   if (support.status === 'fallback') {
-    return `Using ${support.family} so all your text is included. ${support.requested} is missing ${quoteText(support.missing.join(''))}. You can choose another matching font in the font menu.`;
+    return 'A fallback font is in use for this text. Choose another font in the font menu.';
   }
   const unavailable = support.pieces.filter((piece) => !piece.family);
   if (unavailable.length) {

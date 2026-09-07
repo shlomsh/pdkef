@@ -66,6 +66,16 @@ describe('editing-time font support', () => {
     expect(message).not.toContain('separate text boxes');
   });
 
+  it('keeps a fallback notice brief because the picker names the fallback', () => {
+    const support = getTextFontSupport(text({ fontFamily: 'Caveat', text: 'שלום' }));
+    const message = describeTextFontSupport(support);
+
+    expect(message).toBe('A fallback font is in use for this text. Choose another font in the font menu.');
+    expect(message).not.toContain('Caveat');
+    expect(message).not.toContain('Gveret Levin');
+    expect(message).not.toContain('שלום');
+  });
+
   it.each(['Hello', 'שלום Hello مرحبا', 'Hello مرحبا', '😀', '\uFB1D', 'ab😀'])('agrees with actual export glyph checks for %s, including comb truncation', async (value) => {
     for (const width of [0, 40]) {
       const element = text({ text: value, width, combCells: 2 });

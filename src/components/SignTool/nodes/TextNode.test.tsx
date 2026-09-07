@@ -264,7 +264,8 @@ describe('TextNode component', () => {
 
     act(() => render(show({ text: 'Hello مرحبا' }), host));
     expect(input.style.fontFamily).toContain('Scheherazade New');
-    expect(host.querySelector('[data-editor-font-notice]').textContent).toContain('Using Scheherazade New');
+    expect(host.querySelector('[data-editor-font-notice]').textContent)
+      .toBe('A fallback font is in use for this text. Choose another font in the font menu.');
     expect(input.hasAttribute('aria-invalid')).toBe(false);
   });
 
