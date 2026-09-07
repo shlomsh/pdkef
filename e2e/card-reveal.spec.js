@@ -120,7 +120,11 @@ test('cards in the home page story stack are never translucent', async ({ page }
   // silently coming back.
   await page.goto('/');
 
-  const stacked = page.locator('.card-stack .card-reveal');
+  // The closing call-to-action is in the same semantic container, but is not
+  // a stacked card: it takes over after the sticky story and deliberately
+  // retains the normal entry reveal. Restrict this guard to the cards that
+  // actually overlap one another.
+  const stacked = page.locator('.card-stack .card-reveal:not(.try-workspace)');
   const count = await stacked.count();
   expect(count, 'no stacked cards on the home page - the stack markup has changed').toBeGreaterThan(0);
 
@@ -128,7 +132,7 @@ test('cards in the home page story stack are never translucent', async ({ page }
   for (let y = 0; y < 6000; y += Math.round(height / 2)) {
     await page.evaluate((y) => window.scrollTo(0, y), y);
     await settle(page);
-    const seen = await page.$$eval('.card-stack .card-reveal', (els) =>
+    const seen = await page.$$eval('.card-stack .card-reveal:not(.try-workspace)', (els) =>
       els.map((el) => Number(getComputedStyle(el).opacity)),
     );
     for (const [index, opacity] of seen.entries()) {

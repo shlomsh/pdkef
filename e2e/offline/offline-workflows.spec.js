@@ -111,16 +111,20 @@ async function addTextWithOfflineFont(page, { text, family, xRatio, yRatio }) {
   await input.fill(text);
 
   await page.locator('[data-editor-element][data-editor-active]').getByTitle(/^Font:/).click();
-  const row = page.locator('[data-font-offline]').filter({
-    has: page.locator(`[role="option"][data-font-name="${family}"]`),
-  });
-  await expect(row).toHaveAttribute('data-font-offline', /^(not-ready|ready)$/);
-  if (await row.getAttribute('data-font-offline') !== 'ready') {
-    await row.getByTitle(`Make ${family} available offline`).click();
-    await expect(row).toHaveAttribute('data-font-offline', 'ready', { timeout: 90_000 });
-    await expect(row.getByText('Ready offline', { exact: true })).toBeVisible();
-  }
-  await row.locator(`[role="option"][data-font-name="${family}"]`).click();
+  await page.locator(`[role="option"][data-font-name="${family}"]`).click();
+
+  // Selecting a family now provisions it automatically (the font picker no
+  // longer has a separate "Make offline" control). The worker writes this
+  // marker only after every face in the family has reached the app cache, so
+  // waiting for it verifies the actual readiness contract before disconnecting.
+  await page.waitForFunction(async (selectedFamily) => {
+    const marker = `/__pdkef/offline-font-pack/${encodeURIComponent(selectedFamily)}`;
+    const cacheNames = await caches.keys();
+    const markers = await Promise.all(cacheNames
+      .filter((name) => name.startsWith('pdkef-'))
+      .map(async (name) => (await caches.open(name)).match(marker)));
+    return markers.some(Boolean);
+  }, family, { timeout: 90_000 });
   await page.keyboard.press('Escape');
 }
 
