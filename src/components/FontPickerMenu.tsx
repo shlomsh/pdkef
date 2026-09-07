@@ -3,7 +3,6 @@ import Popover from './Popover.tsx';
 import styles from './EditorControls.module.css';
 import { FONT_STYLE_TAGS, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
 import { getFontSupport } from '../editor/text/textFontSupport.js';
-import { quoteText } from './SignTool/textMessages.ts';
 
 export const FONT_PREVIEW_DELAY_MS = 120;
 
@@ -121,8 +120,7 @@ export default function FontPickerMenu({
       >
         {font.label}
         {drawnText && incomplete && <span className={styles['font-menu-item-note']}>
-          Some characters in {quoteText(text)} aren’t available in {font.label}.
-          {status === 'fallback' ? ` Using ${family} instead.` : ''}
+          {status === 'fallback' ? `Fallback: ${family}` : 'Doesn’t support this text'}
         </span>}
       </button>
     );
