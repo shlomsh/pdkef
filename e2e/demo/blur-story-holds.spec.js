@@ -30,11 +30,12 @@ test('the blur story holds its inbox, cleaned reply, and sent confirmation', asy
   await expect(reply).toHaveCSS('opacity', '1');
   await expect.poll(() => stage.evaluate(el => Number(el.style.getPropertyValue('--p-sent')))).toBe(0);
 
-  // The confirmation remains fully visible after the send motion, before
-  // the last dedicated beat fades the demo away.
+  // The confirmation remains on screen at the end of the pass. Autoplay
+  // restarts the story from here, rather than fading the whole demo away and
+  // leaving a visitor with a blank panel.
   await scrollStory(page, 'blur', 0.9);
   await expect(sent).toHaveCSS('opacity', '1');
   await expect(stage).toHaveCSS('opacity', '1');
   await scrollStory(page, 'blur', 0.98);
-  await expect.poll(() => stage.evaluate(el => Number(getComputedStyle(el).opacity))).toBeLessThan(1);
+  await expect(stage).toHaveCSS('opacity', '1');
 });

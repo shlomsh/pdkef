@@ -1,9 +1,15 @@
 import { useEffect } from 'preact/hooks';
 import { SIGN_END, CROSSFADE_START, CROSSFADE_END } from './storySplit.ts';
 
-/** Scroll position is the sole clock. Writes only per-property CSSOM values
- * onto the server-rendered demo, preserving CSP and the real story artwork.
- * Reduced motion advances discrete beats; no-JS uses the CSS finished stills.
+/**
+ * The tour plays by itself while it is on screen. Scrolling still works as a
+ * scrubber: it jumps to the matching moment, holds long enough to inspect it,
+ * then continues from there. This makes the story understandable for someone
+ * who never discovers that the old version needed page scrolling to move.
+ *
+ * Writes only per-property CSSOM values onto the server-rendered demo,
+ * preserving CSP and the real story artwork. Reduced motion remains manually
+ * scrubbed; no-JS uses the CSS finished stills.
  */
 type BeatRange = [number, number];
 
@@ -12,6 +18,13 @@ type TrackConfig = {
   key: string;
   beats: Record<string, BeatRange>;
 };
+
+// A complete pass is deliberately short enough to notice without asking a
+// visitor to babysit the page, while each beat still has time to read. The
+// scroll pause makes a wheel/touch gesture feel like direct control rather
+// than a fight with an independently moving demo.
+const AUTOPLAY_CYCLE_MS = 38_000;
+const SCRUB_HOLD_MS = 1_800;
 
 // Give the complete incoming message and attachment a deliberate reading
 // pause before the PDF opens. The sign track is made 8% longer in the CSS;
@@ -99,8 +112,6 @@ const TRACKS: TrackConfig[] = [
       // inspect before the send action begins.
       send: [0.638, 0.729],
       sent: [0.809, 0.877],
-      // Hold the sent confirmation, then gently take the demo away.
-      fade: [0.953, 0.993],
     },
   },
 ];
@@ -122,13 +133,17 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
       stageEl: root.querySelector<HTMLElement>(`[data-hero-track="${key}"] [data-hero-stage]`),
     }));
 
-    function update() {
+    function scrollProgress() {
       if (!tour || !scene) return;
       const top = parseFloat(getComputedStyle(scene).top) || 0;
       const travel = Math.max(1, tour.offsetHeight - scene.offsetHeight);
-      const progress = clamp01((top - tour.getBoundingClientRect().top) / travel);
-      // The two beat maps share one native page-scroll span; see the split
-      // constants above.
+      return clamp01((top - tour.getBoundingClientRect().top) / travel);
+    }
+
+    function update(progress: number) {
+      // The two beat maps share one page-scroll-compatible span; see the
+      // split constants above. Autoplay feeds that same span so scroll and
+      // time always describe exactly the same frame.
       const crossfade = clamp01((progress - CROSSFADE_START) / (CROSSFADE_END - CROSSFADE_START));
       for (const {key, beats, trackEl, stageEl} of tracks) {
         if (!trackEl || !stageEl) continue;
@@ -136,25 +151,16 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
         const localProgress = isFirst
           ? clamp01(progress / SIGN_END)
           : clamp01((progress - CROSSFADE_END) / (1 - CROSSFADE_END));
-        // The outgoing phone holds full opacity underneath the incoming one
-        // rather than fading out against it. Both tracks are absolutely
-        // stacked and the second is later in the DOM, so it paints on top:
-        // dissolving one up while dissolving the other down left the pair at
-        // 0.5 each in the middle, which composites to 0.75 over the page and
-        // shows the background through both phones at once. Holding the one
-        // underneath means the dissolve is always fully opaque. It can then
-        // drop to 0 the moment the incoming phone reaches 1, which is
-        // invisible because it is completely covered by then.
-        const storyOpacity = isFirst ? (crossfade >= 1 ? 0 : 1) : crossfade;
-        // Captions cross with no overlap: the outgoing one is gone by the
-        // midpoint and the incoming one starts there. They are two different
-        // sentences in the same grid cell, so overlapping them is unreadable
-        // in a way overlapping the phones is not - and this used to be a hard
-        // binary flip at the midpoint, which popped while the phone beside it
-        // dissolved smoothly.
-        const captionOpacity = isFirst ? clamp01(1 - crossfade * 2) : clamp01(crossfade * 2 - 1);
-        trackEl.style.setProperty('--caption-opacity', String(mql.matches ? Number(captionOpacity >= 0.5) : captionOpacity));
-        trackEl.style.setProperty('--story-opacity', String(mql.matches ? Number(storyOpacity >= 0.5) : storyOpacity));
+        // Treat story two as a distinct screen, not a crossfade. The first
+        // complete panel travels out to the left as the second travels in
+        // from the right, carrying its caption, progress rail and phone as
+        // one object. That is easier to parse than two unrelated phone UIs
+        // ghosting through one another.
+        const storySlide = isFirst ? -100 * crossfade : 100 * (1 - crossfade);
+        const storyVisible = isFirst ? Number(crossfade < 1) : Number(crossfade > 0);
+        trackEl.style.setProperty('--story-slide', `${storySlide}%`);
+        trackEl.style.setProperty('--caption-opacity', String(storyVisible));
+        trackEl.style.setProperty('--story-opacity', String(storyVisible));
         stageEl.style.setProperty('--p-track', String(localProgress));
         let openLocal = 0;
         let tapLocal: number | null = null;
@@ -175,29 +181,68 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
       }
     }
 
+    let autoplayProgress = scrollProgress() ?? 0;
+    let pausedUntil = 0;
+    let lastFrameAt = performance.now();
+    let isVisible = root.getBoundingClientRect().bottom > 0 && root.getBoundingClientRect().top < window.innerHeight;
     let ticking = false;
+
+    function scrubToScrollPosition() {
+      const progress = scrollProgress();
+      if (progress === undefined) return;
+      autoplayProgress = progress;
+      pausedUntil = performance.now() + SCRUB_HOLD_MS;
+      update(progress);
+    }
+
     function onScroll() {
       if (ticking) return;
       ticking = true;
       window.requestAnimationFrame(() => {
-        update();
+        scrubToScrollPosition();
         ticking = false;
       });
     }
 
+    function onResize() {
+      update(autoplayProgress);
+    }
+
+    function onMotionPreferenceChange() {
+      autoplayProgress = scrollProgress() ?? autoplayProgress;
+      update(autoplayProgress);
+    }
+
+    let frame = 0;
+    function play(now: number) {
+      const elapsed = now - lastFrameAt;
+      lastFrameAt = now;
+      if (!mql.matches && isVisible && document.visibilityState === 'visible' && now >= pausedUntil) {
+        autoplayProgress = (autoplayProgress + elapsed / AUTOPLAY_CYCLE_MS) % 1;
+        update(autoplayProgress);
+      }
+      frame = window.requestAnimationFrame(play);
+    }
+
+    const visibilityObserver = new IntersectionObserver(([entry]) => {
+      isVisible = entry.isIntersecting;
+      // Do not count the time the demo was off-screen as playback time.
+      lastFrameAt = performance.now();
+    }, { threshold: 0.15 });
+
     window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    mql.addEventListener('change', onScroll);
-    const observer = new ResizeObserver(onScroll);
-    observer.observe(tour);
-    observer.observe(scene);
-    update();
+    window.addEventListener('resize', onResize);
+    mql.addEventListener('change', onMotionPreferenceChange);
+    visibilityObserver.observe(root);
+    update(autoplayProgress);
+    frame = window.requestAnimationFrame(play);
 
     return () => {
       window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-      mql.removeEventListener('change', onScroll);
-      observer.disconnect();
+      window.removeEventListener('resize', onResize);
+      mql.removeEventListener('change', onMotionPreferenceChange);
+      window.cancelAnimationFrame(frame);
+      visibilityObserver.disconnect();
     };
   }, [rootSelector]);
 
