@@ -9,6 +9,7 @@ vi.mock('./draftStore.js', () => ({
   hasDraftHint: vi.fn(() => false),
   subscribeToDraftChanges: vi.fn(() => () => {}),
   takeHandoff: vi.fn(() => Promise.resolve(null)),
+  cacheRecentFile: vi.fn(() => Promise.resolve(true)),
 }));
 
 vi.mock('../../lib/thumbnails.js', () => ({

@@ -13,6 +13,7 @@ import { DRAFT_SCHEMA_VERSION } from '../../editor/registry/draftValidation.ts';
 vi.mock('../../editor/workspace/draftStore.js', () => ({
   saveDraft: vi.fn(),
   attachDraftPreview: vi.fn(),
+  cacheRecentFile: vi.fn(() => Promise.resolve(true)),
   loadDraft: vi.fn(() => Promise.resolve(null)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   hasDraftHint: vi.fn(() => false),
