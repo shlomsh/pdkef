@@ -3,7 +3,7 @@
  *
  *   0 .............. SIGN_END           the permission slip, start to sent
  *   SIGN_END ....... CROSSFADE_START    dwell on the finished document
- *   CROSSFADE_START  CROSSFADE_END      dissolve to the inbox
+ *   CROSSFADE_START  CROSSFADE_END      slide to the inbox
  *   CROSSFADE_END .. 1                  the utility bill, start to sent
  *
  * The dwell is the point of these numbers. The first story used to finish at
@@ -11,7 +11,7 @@
  * the one frame the whole story exists to arrive at - held for 1% of the span
  * before it began disappearing. Measured against the current tour height, the
  * split now gives the sign story 484svh (it had 485, so its pacing is
- * unchanged), the dwell 80svh (it had 8), the dissolve 52svh (34) and the bill
+ * unchanged), the dwell 80svh (it had 8), the slide 52svh (34) and the bill
  * story 500svh. The bill story's added room is held at the initial inbox, the
  * request tap before its document opens, the composed cleaned attachment, and
  * the sent confirmation.
