@@ -17,7 +17,12 @@ function readAllDraftMeta(): any[] {
 }
 export default function FileDropzone({ toolTarget, final = false }: { toolTarget: string; final?: boolean }) {
   const [pending, setPending] = useState<{ file: File; draftName?: string } | null>(null);
-  const [drafts, setDrafts] = useState(readAllDraftMeta);
+  // Start with the shared starter document on both the server and client.
+  // Reading browser storage during the first client render would disagree with
+  // the server HTML whenever a saved draft exists, forcing a hydration repair
+  // precisely where the homepage needs a dependable first paint. Refresh the
+  // local-only recent list after hydration instead.
+  const [drafts, setDrafts] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const container = useRef<HTMLDivElement>(null);
@@ -82,6 +87,7 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
   }, [busy, final]);
   useEffect(() => {
     const refresh = () => setDrafts(readAllDraftMeta());
+    refresh();
     window.addEventListener('pageshow', refresh);
     window.addEventListener('storage', refresh);
     return () => { window.removeEventListener('pageshow', refresh); window.removeEventListener('storage', refresh); };
