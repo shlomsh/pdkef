@@ -14,6 +14,7 @@ vi.mock('../editor/workspace/draftStore.js', () => ({
   saveHandoff: vi.fn(() => Promise.resolve(true)),
   readRecentFiles: vi.fn(() => []),
   loadRecentFile: vi.fn(() => Promise.resolve(null)),
+  recentDisplayKey: (tool, fileName) => `${tool || ''}\u0000${(fileName || '').trim().normalize('NFC').toLocaleLowerCase()}`,
   // Synchronous by contract (see draftStore.js) - the resume card reads it at
   // mount time, before any of the async mocks above would have settled.
   readDraftMeta: vi.fn(() => null),

@@ -98,6 +98,24 @@ describe('readRecentFiles', () => {
     expect(readRecentFiles().map((file) => file.fileName)).toEqual(['current.pdf']);
     expect(JSON.parse(localStorage.getItem('pdf-toolkit:recent-files'))).toHaveLength(1);
   });
+
+  it('keeps the newest entry when iOS recreates a same-named document with a different byte hash', () => {
+    const now = Date.now();
+    localStorage.setItem('pdf-toolkit:recent-files', JSON.stringify([
+      { id: 'sha256:older-version', tool: 'sign', fileName: 'תעודת זהות.pdf', savedAt: now - 1_000 },
+      { id: 'sha256:ios-copy', tool: 'sign', fileName: 'תעודת זהות.pdf', savedAt: now },
+      { id: 'sha256:another-file', tool: 'sign', fileName: 'approval.pdf', savedAt: now - 2_000 },
+    ]));
+
+    expect(readRecentFiles().map((file) => file.id)).toEqual([
+      'sha256:ios-copy',
+      'sha256:another-file',
+    ]);
+    expect(JSON.parse(localStorage.getItem('pdf-toolkit:recent-files')).map((file) => file.id)).toEqual([
+      'sha256:ios-copy',
+      'sha256:another-file',
+    ]);
+  });
 });
 
 // attachDraftPreview closes the window where a draft exists with no thumbnail.
