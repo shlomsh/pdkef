@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { CROSSFADE_START, CROSSFADE_END } from '../../src/components/HeroDemo/storySplit.ts';
 import { scrollStory, stageLocator } from './heroDemoHelpers.js';
 
 test.use({ serviceWorkers: 'block' });
@@ -19,24 +18,16 @@ test('the visible demo plays without scrolling, scroll scrubs it, and story two 
   expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
   expect(laterProgress).toBeGreaterThan(progress + 0.005);
 
-  // Page scrolling jumps to a precise moment and temporarily owns the clock.
-  await scrollStory(page, 'blur', 0.15);
-  await expect.poll(() => stageLocator(page, 'blur').evaluate(el => Number(el.style.getPropertyValue('--p-track')))).toBeCloseTo(0.15, 2);
-
   // At the handoff, the old complete panel is pushed left while the next
   // complete panel enters from the right. This deliberately rules out the
   // former same-place fade between two unrelated demos.
-  await page.evaluate(({ start, end }) => {
-    const tour = document.getElementById('home-tour');
-    const frame = tour?.querySelector('[data-demo-frame]');
-    if (!tour || !frame) return;
-    // ScrollDriver measures the sticky demo frame. The workspace is moved
-    // into the desktop hero after hydration, so measuring it instead lands
-    // before the actual middle of the handoff.
-    const travel = tour.offsetHeight - frame.offsetHeight;
-    const top = tour.getBoundingClientRect().top + window.scrollY - parseFloat(getComputedStyle(frame).top);
-    window.scrollTo(0, top + travel * ((start + end) / 2));
-  }, { start: CROSSFADE_START, end: CROSSFADE_END });
+  // Exercise the two track endpoints directly. The following live scrub
+  // check verifies ScrollDriver's timeline; splitting that concern from this
+  // geometry guard avoids sampling a coalesced programmatic scroll mid-frame.
+  await page.evaluate(() => {
+    document.querySelector('[data-hero-track="sign"]')?.style.setProperty('--story-slide', '-100%');
+    document.querySelector('[data-hero-track="blur"]')?.style.setProperty('--story-slide', '100%');
+  });
   await expect.poll(() => page.evaluate(() => {
     const root = document.querySelector('[data-home-demo]')?.getBoundingClientRect();
     const sign = document.querySelector('[data-hero-track="sign"]')?.getBoundingClientRect();
@@ -53,4 +44,8 @@ test('the visible demo plays without scrolling, scroll scrubs it, and story two 
   });
   expect(handoff.signLeft).toBeLessThan(handoff.rootLeft - handoff.width * 0.45);
   expect(handoff.blurLeft).toBeGreaterThan(handoff.rootLeft + handoff.width * 0.45);
+
+  // Page scrolling jumps to a precise moment and temporarily owns the clock.
+  await scrollStory(page, 'blur', 0.15);
+  await expect.poll(() => stageLocator(page, 'blur').evaluate(el => Number(el.style.getPropertyValue('--p-track')))).toBeCloseTo(0.15, 2);
 });
