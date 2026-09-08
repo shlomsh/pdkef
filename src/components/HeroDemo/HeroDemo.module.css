@@ -80,6 +80,21 @@
 
 .caption-arrow { display: none; }
 .scroll-hint { display: none; }
+.caption-marker {
+  position: relative;
+  isolation: isolate;
+  display: inline-block;
+}
+.caption-marker::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 48% -0.14em 0.02em;
+  border-radius: 0.3em 0.14em 0.26em 0.12em;
+  background: var(--home-citron, var(--color-highlight-soft));
+  rotate: -2deg;
+  pointer-events: none;
+}
 .progress-rail { opacity: var(--caption-opacity, 1); grid-area: rail; display: flex; gap: 6px; }
 .phone {
   box-sizing: border-box;
