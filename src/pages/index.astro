@@ -634,12 +634,10 @@ if (compressToolIndex !== -1) {
     /* While either demo is playing, restore the same quiet page frame used
        around the desktop cards. The frame reserves both bars plus a real gap,
        so the demo title and phone never sit underneath fixed chrome. */
-    :global(body[data-home-demo-visible]) .home-header :global([data-home-bar]) {
-      position: fixed;
-      inset: 0 0 auto;
-      z-index: 70;
-    }
-    :global(body[data-home-cards-visible]) .home-header :global([data-home-bar]) {
+    /* Reserve the bar from first paint so scrolling never changes its
+       positioning or removes space from the landing layout. */
+    .home-header { padding-top: var(--home-nav-height); }
+    .home-header :global([data-home-bar]) {
       position: fixed;
       inset: 0 0 auto;
       z-index: 70;

@@ -81,14 +81,14 @@ test.describe('scrollable home hero', () => {
       // The persistent demo frame must not activate merely because the tour is
       // approaching the viewport. iOS can expose a taller innerHeight than its
       // 100svh landing hero while browser chrome settles, which used to make
-      // this happen at scrollY=0: the header jumped out of flow and the fixed
-      // footer covered the home tool dock.
+      // this happen at scrollY=0: the fixed footer covered the home tool dock.
+      // The header itself now stays fixed independently of demo activation.
       await expect(page.locator('body')).not.toHaveAttribute('data-home-demo-visible', '');
       const landingFrame = await page.evaluate(() => ({
         appBarPosition: getComputedStyle(document.querySelector('[data-home-bar]')).position,
         footerPosition: getComputedStyle(document.querySelector('.card-stack footer')).position,
       }));
-      expect(landingFrame.appBarPosition).toBe('sticky');
+      expect(landingFrame.appBarPosition).toBe('fixed');
       expect(landingFrame.footerPosition).toBe('relative');
 
       await page.evaluate(() => {
@@ -98,6 +98,13 @@ test.describe('scrollable home hero', () => {
       await expect.poll(() => page.evaluate(() => document.getElementById('home-tour').getBoundingClientRect().top))
         .toBeGreaterThan(0);
       await expect(page.locator('body')).not.toHaveAttribute('data-home-demo-visible', '');
+
+      // The header stays visible during the gap before the demo frame starts.
+      const approachingHeader = await page.locator('[data-home-bar]').boundingBox();
+      expect(approachingHeader.y).toBe(0);
+      expect(await page.evaluate(() => Boolean(
+        document.elementFromPoint(innerWidth / 2, 4)?.closest('[data-home-bar]'),
+      ))).toBe(true);
 
       if (viewport.width === 390) {
         // The launcher keeps its existing horizontal rail instead of forcing
