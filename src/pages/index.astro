@@ -365,8 +365,20 @@ if (compressToolIndex !== -1) {
   /* This bounded surface is deliberately a normal-flow section. Keeping the
      gradient with the hero means the title, workspace, and tool launcher can
      leave together without independently painted fixed layers creating a seam. */
+  .home-hero,
+  .home-tour {
+    /* Homepage expression of Sea Glass: clearer aqua, deeper ink, and one
+       lively citron accent. Global tool-page tokens remain unchanged. */
+    --color-text: #163847;
+    --color-muted: #4a6980;
+    --color-annotation: #167a98;
+    --home-workspace: #e4f5f7;
+    --home-citron: #efffa6;
+    --home-citron-ink: #4f6c2d;
+  }
   .home-hero {
-    background: linear-gradient(180deg, var(--color-bg), var(--color-primary-tint));
+    color: var(--color-text);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 26%, var(--home-workspace)), var(--home-workspace));
   }
   /* Desktop moves the same semantic hero into this viewport-sized frame. The
      frame, rather than any individual bar, stays pinned for the bounded tour
@@ -385,9 +397,8 @@ if (compressToolIndex !== -1) {
     height: 100%;
   }
   .home-header :global(.home-trust) { display: flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; white-space: nowrap; }
-  /* Header proof points and the on-device label share one quiet utility-chip
-     treatment. None is a transient status, so no single proof point gets a
-     louder semantic fill. */
+  /* Quiet Sea Glass tint separates proof points from the white toolbar while
+     preserving their compact utility-chip hierarchy. */
   .home-header :global(.home-trust .trust-chip) {
     display: inline-flex;
     align-items: center;
@@ -396,11 +407,14 @@ if (compressToolIndex !== -1) {
     box-sizing: border-box;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-pill);
-    background: var(--color-surface);
+    background: var(--color-primary-tint);
     padding: 0.22rem 0.6rem;
-    color: var(--color-muted);
+    color: var(--color-text);
     text-decoration: none;
     transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out), background-color 150ms var(--ease-out), box-shadow 150ms var(--ease-out);
+  }
+  .home-header :global([data-on-device]) {
+    background: color-mix(in srgb, var(--color-success-soft) 38%, var(--color-primary-tint));
   }
   .home-header :global(.home-trust .trust-chip:hover) {
     border-color: var(--color-border-strong);
@@ -435,7 +449,7 @@ if (compressToolIndex !== -1) {
      of on emission order. Not `!important` - Astro's scoped output shares the
      bare rule's implicit layer, so specificity is what settles it. */
   header.hero-header.hero-header { max-width: none; padding: 8px 24px 10px; margin: 0; text-align: center; }
-  .hero-header h1 { font-size: clamp(1.6rem, 3.4vw, 2.45rem); line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.035em; }
+  .hero-header h1 { color: var(--color-text); font-size: clamp(1.6rem, 3.4vw, 2.45rem); line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.035em; }
   .hero-header h1 span { color: var(--color-primary); }
   .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
   #home-content { padding: 0; }
@@ -448,7 +462,7 @@ if (compressToolIndex !== -1) {
     width: 100vw;
     min-height: var(--home-stage-height);
     margin-inline: calc(50% - 50vw);
-    background: var(--color-primary-tint);
+    background: var(--home-workspace, #e4f5f7);
   }
   /* 1116svh. The original extra room buys the dwell on the finished first
      story; the added 176svh pauses the second story on its initial inbox,
@@ -588,7 +602,7 @@ if (compressToolIndex !== -1) {
   }
   .app-card { position: relative; display: flex; flex: 0 0 80px; flex-direction: column; align-items: center; gap: 6px; color: inherit; text-decoration: none; }
   .app-tile { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; }
-  .app-label { font-size: 0.8rem; font-weight: 600; line-height: 1.25; text-align: center; color: var(--color-muted); }
+  .app-label { font-size: 0.8rem; font-weight: 600; line-height: 1.25; text-align: center; color: var(--color-text); }
   @media (max-width: 1023px) {
     .home-hero {
       min-height: 100svh;
@@ -713,8 +727,8 @@ if (compressToolIndex !== -1) {
   }
 
   .app-card[data-accent='soft'] .app-tile {
-    background: linear-gradient(150deg, #f8ffd9, var(--color-success-soft));
-    color: var(--color-success);
+    background: linear-gradient(150deg, color-mix(in srgb, var(--color-surface) 34%, var(--home-citron)), var(--home-citron));
+    color: var(--home-citron-ink);
   }
 
   /* :global because the icon is a component's output, not this template's own

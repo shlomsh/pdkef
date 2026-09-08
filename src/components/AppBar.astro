@@ -26,7 +26,7 @@ const { toolName, isHome = false, labels = {} as AppBarMessages } = Astro.props;
 const maxWidthClass = isHome ? 'max-w-[1280px]' : 'max-w-[1400px]';
 
 const brandClasses = isHome
-  ? 'inline-flex items-center gap-[0.55rem] rounded-[var(--radius-pill)] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] py-[0.3rem] pr-4 pl-[0.4rem] text-[var(--color-text)] no-underline'
+  ? 'inline-flex items-center gap-[0.55rem] text-[var(--color-text)] no-underline'
   : 'group inline-flex items-center gap-[0.45rem] rounded-[var(--radius-pill)] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] py-[0.3rem] pr-3 pl-[0.4rem] text-[var(--color-text)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-x-px hover:border-[var(--color-border-strong)]';
 ---
 
