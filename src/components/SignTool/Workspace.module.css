@@ -18,6 +18,20 @@
    never scroll flush against the glass. */
 .workspace:fullscreen > :first-child, .workspace:-webkit-full-screen > :first-child, .pseudo-fullscreen > :first-child { margin-bottom: var(--space-4); }
 .pseudo-fullscreen { position: fixed; inset: 0; z-index: 9999; }
+
+/* In a phone's full-screen editor the workspace itself starts at the viewport
+   edge (behind the safe area). The editor shell already has the workspace's
+   padding to keep it clear of that edge, so retaining its normal `top: 1rem`
+   sticky offset creates a second, visually empty inset above the action row.
+   Remove only that duplicate offset on coarse-pointer phones; the normal page
+   and wider full-screen layouts retain their breathing room. */
+@media (max-width: 560px) and (pointer: coarse) {
+  .workspace:fullscreen > [data-tool-shell],
+  .workspace:-webkit-full-screen > [data-tool-shell],
+  .pseudo-fullscreen > [data-tool-shell] {
+    top: 0;
+  }
+}
 .is-processing { pointer-events: none; }
 .pages-container { width: 100%; display: flex; flex-direction: column; gap: 2rem; }
 .page-wrapper { position: relative; width: 100%; background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); user-select: none; }
