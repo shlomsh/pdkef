@@ -26,6 +26,14 @@ const faq = [
 
 // The tool list (home grid + hero card) comes from the shared registry, so it
 // stays in sync with the tool pages and the sitemap. Ordered by SEO priority.
+// Keep the landing toolbar's priority distinct: Compress is intentionally the
+// third shortcut without changing the shared registry or sitemap ordering.
+const homeTools = [...tools];
+const compressToolIndex = homeTools.findIndex((tool) => tool.slug === 'compress');
+if (compressToolIndex !== -1) {
+  const [compressTool] = homeTools.splice(compressToolIndex, 1);
+  homeTools.splice(2, 0, compressTool);
+}
 ---
 
 <BaseLayout title={title} description={description}>
@@ -52,7 +60,7 @@ const faq = [
       <FileDropzone client:load toolTarget="sign" />
     </div>
     <nav class="home-dock" aria-label="PDF tools">
-        {tools.map((tool) => (
+        {homeTools.map((tool) => (
           <a href={tool.href} data-accent={tool.accent} class="app-card">
             <div class="app-tile">
               <tool.icon strokeWidth={1.5} />
