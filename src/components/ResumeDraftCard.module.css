@@ -33,7 +33,7 @@
      plus the picker must leave the home tool dock fully visible on an iPhone,
      without reducing the cards themselves below a useful tap surface. */
   .document { min-height: 132px; gap: 3px; padding: 4px 2px; }
-  .preview { width: 48px; height: 62px; }
+  .preview { height: clamp(62px, 9svh, 84px); width: auto; aspect-ratio: 16 / 21; }
   .name { font-size: 0.72rem; line-height: 1.18; min-height: 2.36em; }
   .sub { font-size: 0.64rem; }
 }
