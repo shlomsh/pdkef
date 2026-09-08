@@ -203,6 +203,39 @@ test.describe('scrollable home hero', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   });
 
+  test('keeps all six recent files, the picker, and the tool dock visible on an iPhone', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(() => {
+      localStorage.setItem('pdf-toolkit:recent-files', JSON.stringify(
+        Array.from({ length: 6 }, (_, index) => ({
+          id: `recent-${index}`,
+          tool: index % 2 ? 'redact' : 'sign',
+          fileName: `recent-document-${index}.pdf`,
+          savedAt: Date.now() - index,
+        })),
+      ));
+    });
+    await page.goto('/');
+    await expect(page.locator('#home-files li')).toHaveCount(6);
+
+    const landing = await page.evaluate(() => {
+      const workspace = document.getElementById('home-files')?.getBoundingClientRect();
+      const picker = document.querySelector('[data-home-picker]')?.getBoundingClientRect();
+      const dock = document.querySelector('.home-dock')?.getBoundingClientRect();
+      return {
+        workspaceBottom: workspace?.bottom ?? 0,
+        pickerBottom: picker?.bottom ?? 0,
+        dockTop: dock?.top ?? 0,
+        dockBottom: dock?.bottom ?? 0,
+        viewportHeight: innerHeight,
+      };
+    });
+
+    expect(landing.pickerBottom).toBeLessThanOrEqual(landing.dockTop + 1);
+    expect(landing.workspaceBottom).toBeCloseTo(landing.dockTop, 0);
+    expect(landing.dockBottom).toBeLessThanOrEqual(landing.viewportHeight + 1);
+  });
+
   test('mobile header and footer frame every information card', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');

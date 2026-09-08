@@ -54,13 +54,17 @@
 }
 .error { max-width: 360px; font-size: 0.85rem; color: var(--color-danger); }
 @media (max-width: 767px) {
-  .launcher { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; max-width: 328px; }
-  .launcher > .tile { width: 100%; min-height: 180px; padding: 12px; }
+  /* Six recent documents plus the picker need three rows on a phone. Three
+     compact columns avoid turning the picker into a fourth row, which is what
+     used to push the tool dock below an iPhone landing viewport. The cards
+     remain comfortably larger than a touch target; their previews and copy
+     tighten in ResumeDraftCard.module.css. */
+  .launcher { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 8px; max-width: 328px; }
+  .launcher > .tile { width: 100%; min-height: 132px; padding: 8px; }
 
-  /* A narrow display remains a two-column layout; explicitly undo the
-     desktop third-row placement so the picker follows the last document. */
+  /* Centre the seventh tile after the six recent-document positions. */
   .launcher:has([data-home-recents] li:nth-child(6)) > .tile {
-    grid-column: auto;
+    grid-column: 2;
     grid-row: auto;
   }
 
