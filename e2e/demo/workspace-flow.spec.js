@@ -49,12 +49,10 @@ test('complete stories, information, session handoff, and real bundled sample en
   await expect(page.getByText(SAMPLE_FILE_NAME, {exact:true}).first()).toBeVisible();
   await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({tool:'sign',fileName:SAMPLE_FILE_NAME})]));
   await page.goto('/');
-  const recent = page.locator('.workspace-launcher a[href="/sign/"]');
+  const recent = page.locator('.workspace-launcher button[aria-label^="Open recent PDF"]');
   await expect(recent).toContainText(SAMPLE_FILE_NAME);
   await expect(recent).not.toContainText('Bundled sample');
   await recent.click();
-  await expect(page).toHaveURL(/\/$/);
-  await recent.press('Enter');
   await expect(page).toHaveURL(/\/sign\/$/);
   expect(errors).toEqual([]);
 });
@@ -83,7 +81,7 @@ test('the complete form fits above the dock on a laptop and iPhone-sized viewpor
 });
 
 
-test('returning users get exactly one Sign and one Redact icon with desktop opening', async ({ page }) => {
+test('the same source PDF is deduplicated to its latest tool and opens from the desktop launcher', async ({ page }) => {
   const bytes = readFileSync('public/images/redaction-guide/sample.pdf');
   for (const tool of ['sign','redact']) {
     await page.goto(`/${tool}/`);
@@ -102,10 +100,13 @@ test('returning users get exactly one Sign and one Redact icon with desktop open
     return meta.savedAt;
   });
   await page.goto('/');
-  const icons = page.locator('.workspace-launcher li a');
-  await expect(icons).toHaveCount(2);
-  await expect(icons.filter({hasText:'my-sign-document.pdf'})).toContainText('Sign & Fill PDF');
-  await expect(icons.filter({hasText:'my-redact-document.pdf'})).toContainText('Blur & Redact');
+  const icons = page.locator('.workspace-launcher li button[aria-label^="Open recent PDF"]');
+  // Both editor visits use the same sample bytes. The recent-files cache is
+  // content-addressed, so one source stays one launcher card and its latest
+  // tool is the natural resume destination.
+  await expect(icons).toHaveCount(1);
+  await expect(icons).toContainText('my-redact-document.pdf');
+  await expect(icons).toContainText('Blur & Redact');
   for (const icon of await icons.all()) {
     await expect(icon.locator('img')).toBeVisible();
     await expect(icon).toContainText('just now');
@@ -116,7 +117,7 @@ test('returning users get exactly one Sign and one Redact icon with desktop open
   await scrollStory(page,'blur',1);
   expect(await draftSnapshot(page)).toEqual(before);
   await page.evaluate(() => window.scrollTo(0,0));
-  await icons.filter({hasText:'my-redact-document.pdf'}).dblclick();
+  await icons.click();
   await expect(page).toHaveURL(/\/redact\/$/);
   await expect(page.locator('canvas').first()).toBeVisible();
 });

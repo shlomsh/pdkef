@@ -28,10 +28,13 @@ test('the visible demo plays without scrolling, scroll scrubs it, and story two 
   // former same-place fade between two unrelated demos.
   await page.evaluate(({ start, end }) => {
     const tour = document.getElementById('home-tour');
-    const scene = tour?.querySelector('[data-working-area]');
-    if (!tour || !scene) return;
-    const travel = tour.offsetHeight - scene.offsetHeight;
-    const top = tour.getBoundingClientRect().top + window.scrollY - parseFloat(getComputedStyle(scene).top);
+    const frame = tour?.querySelector('[data-demo-frame]');
+    if (!tour || !frame) return;
+    // ScrollDriver measures the sticky demo frame. The workspace is moved
+    // into the desktop hero after hydration, so measuring it instead lands
+    // before the actual middle of the handoff.
+    const travel = tour.offsetHeight - frame.offsetHeight;
+    const top = tour.getBoundingClientRect().top + window.scrollY - parseFloat(getComputedStyle(frame).top);
     window.scrollTo(0, top + travel * ((start + end) / 2));
   }, { start: CROSSFADE_START, end: CROSSFADE_END });
   await expect.poll(() => page.evaluate(() => {
