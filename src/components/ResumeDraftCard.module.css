@@ -14,6 +14,7 @@
    manager clamps for the same reason. */
 .name {
   max-width: 100%;
+  min-height: 2.6em;
   overflow-wrap: anywhere;
   font-size: 0.85rem;
   font-weight: 600;
@@ -33,6 +34,6 @@
      without reducing the cards themselves below a useful tap surface. */
   .document { min-height: 132px; gap: 3px; padding: 4px 2px; }
   .preview { width: 48px; height: 62px; }
-  .name { font-size: 0.72rem; line-height: 1.18; }
+  .name { font-size: 0.72rem; line-height: 1.18; min-height: 2.36em; }
   .sub { font-size: 0.64rem; }
 }

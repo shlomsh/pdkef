@@ -448,7 +448,7 @@ if (compressToolIndex !== -1) {
      Repeating the class takes this to 0-3-1 so it wins on specificity instead
      of on emission order. Not `!important` - Astro's scoped output shares the
      bare rule's implicit layer, so specificity is what settles it. */
-  header.hero-header.hero-header { max-width: none; padding: 8px 24px 10px; margin: 0; text-align: center; }
+  header.hero-header.hero-header { max-width: none; padding: 20px 24px 16px; margin: 0; text-align: center; }
   .hero-header h1 { color: var(--color-text); font-size: clamp(1.6rem, 3.4vw, 2.45rem); line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.035em; }
   .hero-header h1 span { color: var(--color-primary); }
   .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
@@ -480,7 +480,7 @@ if (compressToolIndex !== -1) {
      is moved here after hydration on desktop; without an explicit column the
      demo briefly auto-places itself on the left during a refresh. */
   .home-scene > :global([data-home-demo]) { grid-column: 2; }
-  .workspace-launcher { justify-self: start; width: 100%; max-width: 400px; }
+  .workspace-launcher { justify-self: start; width: 100%; max-width: 440px; padding-block: 24px; box-sizing: border-box; }
   [data-working-area][data-drag-over] { outline: 3px dashed var(--color-primary); outline-offset: -10px; background: var(--color-success-soft); }
   #home-information { position: relative; padding-top: 24px; }
   .card-stack {
@@ -572,10 +572,6 @@ if (compressToolIndex !== -1) {
   }
   @media (max-width: 767px) {
     .try-workspace { min-height: 0; padding: 2rem 1.5rem; }
-    /* The complete recent-file launcher has three compact rows at this
-       breakpoint. Do not spend half a row of its newly recovered space on
-       outer padding: that is what lets the bottom tool dock remain in view. */
-    .home-workspace { padding-block: 12px 10px; }
   }
   .home-dock { box-sizing: border-box; display: flex; align-items: flex-start; justify-content: safe center; gap: 20px; padding: 10px 24px; background: #c4e1e6; border-top: 1px solid var(--color-border-strong); }
   /* The in-flow dock scrolls sideways only at widths where it genuinely does
@@ -621,7 +617,7 @@ if (compressToolIndex !== -1) {
     }
     .hero-header h1 { font-size: 1.6rem; }
     .hero-header p { font-size: 0.85rem; }
-    .home-workspace { box-sizing: border-box; flex: 1 0 auto; min-height: 13rem; max-width: none; margin-inline: 0; padding: 24px; display: flex; align-items: center; justify-content: center; }
+    .home-workspace { box-sizing: border-box; flex: 1 0 auto; min-height: 13rem; max-width: none; margin-inline: 0; padding: 24px; display: flex; align-items: flex-start; justify-content: center; }
     .home-tour {
       --home-stage-height: 100svh;
       min-height: 100svh;
@@ -686,6 +682,9 @@ if (compressToolIndex !== -1) {
       font-size: 0.7rem;
       line-height: 1.35;
     }
+  }
+  @media (max-width: 767px) {
+    .home-workspace { padding: 16px 20px 24px; }
   }
   @media (max-width: 720px) {
     .home-header :global([data-home-bar] > div) {
