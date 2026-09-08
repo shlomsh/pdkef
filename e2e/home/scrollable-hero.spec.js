@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 const mobileViewports = [
+  // 1320x2868 at 3x, matching the iPhone capture for this regression.
+  { width: 440, height: 956 },
   { width: 390, height: 844 },
   { width: 360, height: 640 },
 ];
@@ -75,6 +77,27 @@ test.describe('scrollable home hero', () => {
       expect(mobileBar.barHeight).toBeLessThanOrEqual(57);
       expect(mobileBar.centerSpread).toBeLessThanOrEqual(1);
       expect(mobileBar.rightEdge).toBeLessThanOrEqual(mobileBar.viewportWidth);
+
+      // The persistent demo frame must not activate merely because the tour is
+      // approaching the viewport. iOS can expose a taller innerHeight than its
+      // 100svh landing hero while browser chrome settles, which used to make
+      // this happen at scrollY=0: the header jumped out of flow and the fixed
+      // footer covered the home tool dock.
+      await expect(page.locator('body')).not.toHaveAttribute('data-home-demo-visible', '');
+      const landingFrame = await page.evaluate(() => ({
+        appBarPosition: getComputedStyle(document.querySelector('[data-home-bar]')).position,
+        footerPosition: getComputedStyle(document.querySelector('.card-stack footer')).position,
+      }));
+      expect(landingFrame.appBarPosition).toBe('sticky');
+      expect(landingFrame.footerPosition).toBe('relative');
+
+      await page.evaluate(() => {
+        const tour = document.getElementById('home-tour');
+        window.scrollTo(0, Math.max(0, tour.offsetTop - innerHeight / 2));
+      });
+      await expect.poll(() => page.evaluate(() => document.getElementById('home-tour').getBoundingClientRect().top))
+        .toBeGreaterThan(0);
+      await expect(page.locator('body')).not.toHaveAttribute('data-home-demo-visible', '');
 
       if (viewport.width === 390) {
         // The launcher keeps its existing horizontal rail instead of forcing
