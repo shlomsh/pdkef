@@ -74,6 +74,18 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
       const file = new File([cached.fileBytes], cached.fileName, { type: cached.fileType || 'application/pdf' });
       const draft: any = await loadDraft(target);
       if (draft?.fileBytes) {
+        // A recent cache entry is the source copy for the same draft. Sending
+        // it through a handoff would delete that draft, then make the editor
+        // restore the identical file as though it were a replacement. The
+        // display-key fallback covers iOS providers that recreate PDF bytes
+        // (and therefore the SHA-256 cache id) while keeping the visible file
+        // name unchanged.
+        const isCurrentDocument = draft.sourceId === recent.cacheId
+          || recentDisplayKey(target, draft.fileName) === recentDisplayKey(target, cached.fileName);
+        if (isCurrentDocument) {
+          window.location.href = `/${target}/`;
+          return;
+        }
         setPending({ file, draftName: draft.fileName, tool: target });
         setBusy(false);
       } else {

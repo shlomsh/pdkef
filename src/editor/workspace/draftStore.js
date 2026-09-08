@@ -154,8 +154,17 @@ const recentFileKey = (id) => `${RECENT_FILE_PREFIX}${id}`;
  * this comparison.
  */
 export function recentDisplayKey(tool, fileName) {
+  // Files and share sheets on iOS sometimes add directionality marks around
+  // RTL names. They are invisible in the launcher, but made two visually
+  // identical filenames compare differently. Collapse ordinary whitespace as
+  // well: providers commonly turn a normal space into a no-break space.
   const name = typeof fileName === 'string'
-    ? fileName.trim().normalize('NFC').toLocaleLowerCase()
+    ? fileName
+      .normalize('NFC')
+      .replace(/[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069]/g, '')
+      .replace(/\s+/gu, ' ')
+      .trim()
+      .toLowerCase()
     : 'untitled document';
   return `${tool || ''}\u0000${name}`;
 }
