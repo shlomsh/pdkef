@@ -116,6 +116,17 @@ describe('readRecentFiles', () => {
       'sha256:another-file',
     ]);
   });
+
+  it('treats invisible iOS direction marks and space variants as the same displayed filename', () => {
+    const now = Date.now();
+    localStorage.setItem('pdf-toolkit:recent-files', JSON.stringify([
+      { id: 'sha256:older-version', tool: 'sign', fileName: '\u200Fספח\u00a0תעודת זהות.pdf', savedAt: now - 1_000 },
+      { id: 'sha256:ios-copy', tool: 'sign', fileName: 'ספח תעודת זהות.pdf', savedAt: now },
+    ]));
+
+    expect(readRecentFiles().map((file) => file.id)).toEqual(['sha256:ios-copy']);
+    expect(JSON.parse(localStorage.getItem('pdf-toolkit:recent-files')).map((file) => file.id)).toEqual(['sha256:ios-copy']);
+  });
 });
 
 // attachDraftPreview closes the window where a draft exists with no thumbnail.

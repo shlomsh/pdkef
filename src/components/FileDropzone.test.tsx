@@ -14,7 +14,12 @@ vi.mock('../editor/workspace/draftStore.js', () => ({
   saveHandoff: vi.fn(() => Promise.resolve(true)),
   readRecentFiles: vi.fn(() => []),
   loadRecentFile: vi.fn(() => Promise.resolve(null)),
-  recentDisplayKey: (tool, fileName) => `${tool || ''}\u0000${(fileName || '').trim().normalize('NFC').toLocaleLowerCase()}`,
+  recentDisplayKey: (tool, fileName) => `${tool || ''}\u0000${(fileName || '')
+    .normalize('NFC')
+    .replace(/[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069]/g, '')
+    .replace(/\s+/gu, ' ')
+    .trim()
+    .toLowerCase()}`,
   // Synchronous by contract (see draftStore.js) - the resume card reads it at
   // mount time, before any of the async mocks above would have settled.
   readDraftMeta: vi.fn(() => null),
@@ -141,6 +146,41 @@ describe('FileDropzone', () => {
       expect(names[0]).toContain('recent-0.pdf');
       expect(names[5]).toContain('recent-5.pdf');
       expect(container.textContent).not.toContain('recent-6.pdf');
+    });
+
+    it('does not add a legacy draft when its filename differs only by iOS direction marks', () => {
+      readRecentFiles.mockReturnValue([{
+        id: 'cached-id', tool: 'sign', fileName: '\u200Fספח תעודת זהות.pdf', savedAt: Date.now(),
+      }]);
+      readDraftMeta.mockImplementation((tool) => tool === 'sign'
+        ? { fileName: 'ספח תעודת זהות.pdf', savedAt: Date.now() - 1_000 }
+        : null);
+      mount();
+
+      expect(container.querySelectorAll('li')).toHaveLength(1);
+    });
+
+    it('resumes the active draft instead of asking to replace it from its own recent card', async () => {
+      readRecentFiles.mockReturnValue([{
+        id: 'sha256:active', tool: 'sign', fileName: 'contract.pdf', savedAt: Date.now(),
+      }]);
+      loadRecentFile.mockResolvedValue({
+        tool: 'sign', fileName: 'contract.pdf', fileType: 'application/pdf', fileBytes: new ArrayBuffer(8),
+      });
+      loadDraft.mockResolvedValue({
+        sourceId: 'sha256:active', fileName: 'contract.pdf', fileBytes: new ArrayBuffer(8),
+      });
+      mount();
+      await act(async () => { await Promise.resolve(); });
+
+      await act(async () => {
+        container.querySelector('button[aria-label^="Open recent PDF"]').click();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(container.querySelector('dialog').open).toBe(false);
+      expect(deleteDraft).not.toHaveBeenCalled();
+      expect(saveHandoff).not.toHaveBeenCalled();
     });
 
     it('draws an empty preview box, not a broken image, when a draft has no preview', () => {
