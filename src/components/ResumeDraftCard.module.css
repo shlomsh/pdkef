@@ -26,3 +26,12 @@
 .sub { font-size: 0.73rem; color: var(--color-muted); }
 .hint { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (pointer: coarse) { .hint { display: none; } }
+@media (max-width: 767px) {
+  /* This is paired with FileDropzone's 132px mobile grid row. Six documents
+     plus the picker must leave the home tool dock fully visible on an iPhone,
+     without reducing the cards themselves below a useful tap surface. */
+  .document { min-height: 132px; gap: 3px; padding: 4px 2px; }
+  .preview { width: 48px; height: 62px; }
+  .name { font-size: 0.72rem; line-height: 1.18; }
+  .sub { font-size: 0.64rem; }
+}
