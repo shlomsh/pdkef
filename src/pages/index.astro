@@ -588,7 +588,11 @@ const faq = [
     .home-header :global(.home-trust) { justify-content: center; font-size: 0.7rem; }
     .home-header :global(.home-trust .trust-chip) { min-height: 1.65rem; padding-inline: 0.45rem; }
     .home-header :global([data-on-device]) { font-size: 0.7rem; gap: 4px; }
-    header.hero-header.hero-header { padding: 10px 16px; }
+    /* Match the live demo heading's top rhythm, so the homepage promise and
+       both demo titles begin at the same distance below the app bar. */
+    header.hero-header.hero-header {
+      padding: calc(var(--space-4) + var(--space-3)) 16px var(--space-3);
+    }
     .hero-header h1 { font-size: 1.6rem; }
     .hero-header p { font-size: 0.85rem; }
     .home-workspace { box-sizing: border-box; flex: 1 0 auto; min-height: 13rem; max-width: none; margin-inline: 0; padding: 24px; display: flex; align-items: center; justify-content: center; }
