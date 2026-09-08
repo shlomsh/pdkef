@@ -58,7 +58,28 @@
 }
 
 
-.caption { opacity: var(--caption-opacity, 1); grid-area: caption; margin: 0; font-size: clamp(1.05rem, 1.8vw, 1.5rem); line-height: 1.4; color: var(--color-text); }
+/* Homepage-only display face. The editor's much larger handwriting catalogue
+   deliberately stays scoped to /sign/; this one font is the small, friendly
+   note beside the desktop story, not a new default typeface. */
+@font-face {
+  font-family: 'Caveat Demo';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/Caveat-Bold.ttf') format('truetype');
+}
+
+.caption {
+  opacity: var(--caption-opacity, 1);
+  grid-area: caption;
+  margin: 0;
+  font-size: clamp(1.05rem, 1.8vw, 1.5rem);
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.caption-arrow { display: none; }
+.scroll-hint { display: none; }
 .progress-rail { opacity: var(--caption-opacity, 1); grid-area: rail; display: flex; gap: 6px; }
 .phone {
   box-sizing: border-box;
@@ -1266,6 +1287,74 @@
 /* Keep the PDF wide enough to read on ordinary laptop-height viewports.
    The caption never borrows vertical room from the phone. */
 @media (min-width: 1024px) {
+  /* The prompt-like caption becomes a handwritten margin note at desktop
+     widths. Its arrow keeps the sketch's "look here" energy, but the teal
+     ink, not a warm accent, makes it belong to Sea Glass. */
+  .caption {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--color-annotation);
+    font-family: 'Caveat Demo', 'Comic Sans MS', cursive;
+    font-size: clamp(1.35rem, 1.6vw, 1.8rem);
+    font-weight: 700;
+    letter-spacing: 0.015em;
+    line-height: 1.16;
+    rotate: -2deg;
+    text-align: center;
+  }
+
+  .caption-copy { display: block; width: 100%; }
+
+  /* The dots take the place of the old rail at desktop sizes. They give the
+     same sense of onward movement without adding a second competing UI. */
+  .progress-rail { display: none; }
+
+  .caption-arrow {
+    display: block;
+    width: min(100%, 120px);
+    height: auto;
+    margin-block-end: 14px;
+    margin-inline: auto;
+    overflow: visible;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3.2;
+    rotate: -4deg;
+  }
+
+  .scroll-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-block-start: 22px;
+    color: var(--color-muted);
+    font-size: 0.8em;
+    font-weight: 700;
+    letter-spacing: 0.035em;
+    line-height: 0.9;
+    rotate: 2deg;
+    text-align: center;
+  }
+
+  /* A short dotted trail suggests the next scroll without turning the demo
+     into an animated instruction. The uneven-looking handwritten dots echo
+     the reference sketch while staying in the Sea Glass ink family. */
+  .scroll-hint::before {
+    content: '•\A •\A •\A •';
+    white-space: pre;
+    align-self: center;
+    display: inline-block;
+    color: var(--color-annotation);
+    font-size: 1.15em;
+    line-height: 0.62;
+  }
+
+  .scroll-hint > span { display: block; }
+
   .phone { width: clamp(300px, calc((var(--home-stage-height) - 32px) * 9 / 19), 360px); height: calc(var(--home-stage-height) - 32px); aspect-ratio: auto; }
 }
 @media (max-height: 850px) {

@@ -88,6 +88,10 @@
   --color-primary-soft: #eef6f8;
   --color-primary-tint: #e6f1f3;
   --color-primary-ring: rgba(62, 124, 141, 0.35);
+  /* Hand-drawn callouts in the homepage demo use a slightly brighter Sea
+     Glass ink. It remains part of the same teal family rather than borrowing
+     the warm marker-red treatment from the early design sketch. */
+  --color-annotation: #4a8ea0;
   --color-success: #5c7a3a;
   --color-success-hover: #4a632f;
   --color-success-soft: #ebffd8; /* Trust color for pill and privacy caption */

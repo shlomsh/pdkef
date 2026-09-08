@@ -24,7 +24,14 @@ const rootSelector = `.${styles.root}`;
       and back in the chat, the signed form goes out and reads as sent.
     </p>
     <div class={styles.stage} data-hero-stage>
-      <h2 class={`type-section ${styles.caption}`}>Fill it in, sign it, and send it straight back.</h2>
+      <h2 class={`type-section ${styles.caption}`}>
+        <svg class={styles['caption-arrow']} viewBox="0 0 150 46" aria-hidden="true" focusable="false">
+          <path d="M3 36C36 8 88 5 133 26"></path>
+          <path d="M121 13L134 26L117 32"></path>
+        </svg>
+        <span class={styles['caption-copy']}>Fill, sign,<br />send it back.</span>
+        <span class={styles['scroll-hint']} aria-hidden="true"><span>Scroll to<br />explore</span></span>
+      </h2>
       <div class={styles['progress-rail']} aria-hidden="true">
         <span class={`${styles['progress-seg']} ${styles['progress-seg-current']}`}></span>
         <span class={`${styles['progress-seg']} ${styles['progress-seg-pending']}`}></span>
@@ -237,7 +244,14 @@ const rootSelector = `.${styles.root}`;
       number is blacked out, one line is erased to blank paper, and an unrelated row is deleted, leaving blank space. The cleaned-up document is then attached to a reply and sent.
     </p>
     <div class={styles.stage} data-hero-stage>
-      <h2 class={`type-section ${styles.caption}`}>Some of it is nobody's business. Blur it out before you reply.</h2>
+      <h2 class={`type-section ${styles.caption}`}>
+        <svg class={styles['caption-arrow']} viewBox="0 0 150 46" aria-hidden="true" focusable="false">
+          <path d="M3 36C36 8 88 5 133 26"></path>
+          <path d="M121 13L134 26L117 32"></path>
+        </svg>
+        <span class={styles['caption-copy']}>Keep the private<br />bits private.</span>
+        <span class={styles['scroll-hint']} aria-hidden="true"><span>Scroll to<br />explore</span></span>
+      </h2>
       <div class={styles['progress-rail']} aria-hidden="true">
         <span class={`${styles['progress-seg']} ${styles['progress-seg-done']}`}></span>
         <span class={`${styles['progress-seg']} ${styles['progress-seg-current']}`}></span>
