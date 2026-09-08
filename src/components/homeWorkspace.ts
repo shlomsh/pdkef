@@ -129,6 +129,15 @@ scheduleCardFrameUpdate();
 
 // Mobile keeps the introductory hero in normal flow, then uses the real site
 // navigation and footer to frame the long, pinned demo sequence beneath it.
+// Start that frame only once the tour itself reaches its sticky position at
+// the top of the viewport. Treating any intersection as "visible" promoted
+// both bars while the landing hero was still on screen. On iOS in particular,
+// 100svh can be shorter than innerHeight (and changes as browser chrome moves),
+// so the next section could intersect by a few pixels at scrollY === 0. Making
+// the app bar fixed then removed it from the hero's flow, pulled the heading
+// underneath it, and fixed the footer over the home dock. The layout change
+// reinforced its own intersection state, which is why rubber-banding the page
+// only restored the landing view momentarily.
 let demoFramePending = false;
 function updateMobileDemoFrame() {
   demoFramePending = false;
@@ -139,7 +148,7 @@ function updateMobileDemoFrame() {
   const tourBounds = tour.getBoundingClientRect();
   document.body.toggleAttribute(
     'data-home-demo-visible',
-    tourBounds.top < innerHeight && tourBounds.bottom > 0,
+    tourBounds.top <= 0 && tourBounds.bottom > 0,
   );
 }
 function scheduleMobileDemoFrameUpdate() {
