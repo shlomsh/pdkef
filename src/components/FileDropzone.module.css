@@ -86,7 +86,7 @@
      used to push the tool dock below an iPhone landing viewport. The cards
      remain comfortably larger than a touch target; their previews and copy
      tighten in ResumeDraftCard.module.css. */
-  .launcher { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 8px; max-width: 328px; }
+  .launcher { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 8px; max-width: none; }
   .launcher > .tile { width: 100%; min-height: 132px; padding: 8px; }
 
   .launcher > .tile span { font-size: 0.7rem; }
@@ -110,3 +110,11 @@
   height: 34px;
 }
 .launcher > .error { grid-column: 1 / -1; }
+
+@media (max-width: 767px) {
+  /* Use spare phone height between rows, while short screens keep the
+     content's natural height and scroll instead of squeezing the controls. */
+  .launcher:has([data-home-recents] li:nth-child(3)) {
+    align-content: space-between;
+  }
+}
