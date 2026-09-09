@@ -1,4 +1,3 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
@@ -6,6 +5,38 @@ import DraggableWrapper from './DraggableWrapper.tsx';
 import elementStyles from './EditorElement.module.css';
 import TextNode from './nodes/TextNode.tsx';
 import workspaceStyles from './Workspace.module.css';
+import type { EditorElementPatch, TextElement } from '../../editor/model/editorModel.ts';
+
+type TextChange = (changes: EditorElementPatch<TextElement>) => void;
+
+function createTextElement(overrides: Omit<TextElement, 'pageIndex' | 'type'>): TextElement {
+  return { pageIndex: 0, type: 'text', ...overrides };
+}
+
+function pageRect(): DOMRect {
+  return new DOMRect(0, 0, 600, 800);
+}
+
+function requiredElement<T extends Element>(root: ParentNode, selector: string): T {
+  const element = root.querySelector<T>(selector);
+  if (!element) throw new Error(`Expected element matching ${selector}`);
+  return element;
+}
+
+function textNode(element: TextElement) {
+  return (
+    <TextNode
+      element={element}
+      isActive={false}
+      isEditing={false}
+      onChange={() => {}}
+      onSelect={() => {}}
+      onBeginEdit={() => {}}
+      onResizeStart={() => {}}
+      pageWidthPoints={600}
+    />
+  );
+}
 
 vi.mock('@floating-ui/react', async () => {
   const actual = await vi.importActual('@floating-ui/react');
@@ -25,11 +56,11 @@ vi.mock('@floating-ui/react', async () => {
 // Position must now be pure source state: the width-growth effect may only
 // report a measured `width`, never `left`.
 describe('DraggableWrapper RTL text positioning', () => {
-  let container;
-  let originalScrollWidth;
-  let originalScrollHeight;
-  let mockScrollWidth;
-  let mockScrollHeight;
+  let container: HTMLDivElement;
+  let originalScrollWidth: PropertyDescriptor;
+  let originalScrollHeight: PropertyDescriptor;
+  let mockScrollWidth: number;
+  let mockScrollHeight: number;
 
   beforeEach(() => {
     container = document.createElement('div');
@@ -40,11 +71,16 @@ describe('DraggableWrapper RTL text positioning', () => {
     // the test control the "measured" size to simulate typing more text.
     mockScrollWidth = 150;
     mockScrollHeight = 20;
-    originalScrollWidth = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollWidth');
-    originalScrollHeight = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight');
+    const scrollWidthDescriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollWidth');
+    const scrollHeightDescriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight');
+    if (!scrollWidthDescriptor || !scrollHeightDescriptor) {
+      throw new Error('Expected Element scroll dimension descriptors');
+    }
+    originalScrollWidth = scrollWidthDescriptor;
+    originalScrollHeight = scrollHeightDescriptor;
     Object.defineProperty(Element.prototype, 'scrollWidth', {
       configurable: true,
-      get() {
+      get(this: Element) {
         if (this.classList?.contains('sign-text-measure') || this.classList?.contains('sign-text-input')) {
           return mockScrollWidth;
         }
@@ -53,7 +89,7 @@ describe('DraggableWrapper RTL text positioning', () => {
     });
     Object.defineProperty(Element.prototype, 'scrollHeight', {
       configurable: true,
-      get() {
+      get(this: Element) {
         if (this.classList?.contains('sign-text-measure') || this.classList?.contains('sign-text-input')) {
           return mockScrollHeight;
         }
@@ -69,12 +105,10 @@ describe('DraggableWrapper RTL text positioning', () => {
     Object.defineProperty(Element.prototype, 'scrollHeight', originalScrollHeight);
   });
 
-  function mountWithPageWrapper(element, pageWidthPoints, onChange) {
+  function mountWithPageWrapper(element: TextElement, pageWidthPoints: number, onChange: TextChange): HTMLDivElement {
     const wrapper = document.createElement('div');
     wrapper.className = workspaceStyles['page-wrapper'];
-    wrapper.getBoundingClientRect = () => ({
-      left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
-    });
+    wrapper.getBoundingClientRect = pageRect;
     container.appendChild(wrapper);
 
     act(() => {
@@ -82,13 +116,14 @@ describe('DraggableWrapper RTL text positioning', () => {
         <DraggableWrapper
           element={element}
           isActive={false}
+          onBeginEdit={() => {}}
           onSelect={() => {}}
           onChange={onChange}
           onDelete={() => {}}
           onClone={() => {}}
           pageWidthPoints={pageWidthPoints}
         >
-          <TextNode element={element} />
+          {textNode(element)}
         </DraggableWrapper>,
         wrapper
       );
@@ -98,16 +133,15 @@ describe('DraggableWrapper RTL text positioning', () => {
   }
 
   it('never writes `left` from the width-growth effect as scaleFactor settles from its default 1x guess', () => {
-    const element = {
+    const element = createTextElement({
       id: 'el-1',
-      type: 'text',
       left: 70,
       top: 10,
       text: 'שלום עולם',
       textDirection: 'rtl',
       fontSize: 12
-    };
-    const onChangeCalls = [];
+    });
+    const onChangeCalls: EditorElementPatch<TextElement>[] = [];
 
     mountWithPageWrapper(element, 612, (patch) => onChangeCalls.push(patch));
 
@@ -118,18 +152,17 @@ describe('DraggableWrapper RTL text positioning', () => {
   });
 
   it('keeps the RTL box anchored to a fixed right edge across reflows, independent of width', () => {
-    const element = {
+    const element = createTextElement({
       id: 'el-1',
-      type: 'text',
       left: 70,
       top: 10,
       text: 'שלום עולם',
       textDirection: 'rtl',
       fontSize: 12
-    };
+    });
 
     const wrapper = mountWithPageWrapper(element, 612, () => {});
-    const box = wrapper.querySelector(`.${elementStyles.element}`);
+    const box = requiredElement<HTMLDivElement>(wrapper, `.${elementStyles.element}`);
 
     // Right edge = 100 - left, derived purely from `left` — never from width.
     expect(box.style.right).toBe('30%');
@@ -142,13 +175,14 @@ describe('DraggableWrapper RTL text positioning', () => {
         <DraggableWrapper
           element={element}
           isActive={false}
+          onBeginEdit={() => {}}
           onSelect={() => {}}
           onChange={() => {}}
           onDelete={() => {}}
           onClone={() => {}}
           pageWidthPoints={792}
         >
-          <TextNode element={element} />
+          {textNode(element)}
         </DraggableWrapper>,
         wrapper
       );
@@ -164,13 +198,14 @@ describe('DraggableWrapper RTL text positioning', () => {
         <DraggableWrapper
           element={{ ...element, text: 'שלום עולם, זה טקסט ארוך יותר' }}
           isActive={false}
+          onBeginEdit={() => {}}
           onSelect={() => {}}
           onChange={() => {}}
           onDelete={() => {}}
           onClone={() => {}}
           pageWidthPoints={792}
         >
-          <TextNode element={{ ...element, text: 'שלום עולם, זה טקסט ארוך יותר' }} />
+          {textNode({ ...element, text: 'שלום עולם, זה טקסט ארוך יותר' })}
         </DraggableWrapper>,
         wrapper
       );
@@ -180,19 +215,18 @@ describe('DraggableWrapper RTL text positioning', () => {
   });
 
   it('anchors LTR text boxes by their left edge, unaffected by the RTL change', () => {
-    const element = {
+    const element = createTextElement({
       id: 'el-2',
-      type: 'text',
       left: 20,
       top: 10,
       text: 'Hello world',
       textDirection: 'ltr',
       fontSize: 12
-    };
-    const onChangeCalls = [];
+    });
+    const onChangeCalls: EditorElementPatch<TextElement>[] = [];
 
     const wrapper = mountWithPageWrapper(element, 612, (patch) => onChangeCalls.push(patch));
-    const box = wrapper.querySelector(`.${elementStyles.element}`);
+    const box = requiredElement<HTMLDivElement>(wrapper, `.${elementStyles.element}`);
 
     expect(box.style.left).toBe('20%');
     expect(box.style.right).toBe('');
@@ -200,18 +234,17 @@ describe('DraggableWrapper RTL text positioning', () => {
   });
 
   it('owns text-box padding in shared CSS, not inline, so the two overlays cannot diverge', () => {
-    const element = {
+    const element = createTextElement({
       id: 'el-3',
-      type: 'text',
       left: 20,
       top: 10,
       text: 'Hello',
       fontSize: 12
-    };
+    });
 
     const wrapper = mountWithPageWrapper(element, 612, () => {});
-    const measure = wrapper.querySelector(`.${elementStyles['text-measure']}`);
-    const input = wrapper.querySelector(`.${elementStyles['text-input']}`);
+    const measure = requiredElement<HTMLDivElement>(wrapper, `.${elementStyles['text-measure']}`);
+    const input = requiredElement<HTMLTextAreaElement>(wrapper, `.${elementStyles['text-input']}`);
 
     // Padding is owned by the single `[data-editor-text-input], [data-editor-text-measure]` rule
     // in global.css, not by inline styles. Both elements carrying those classes
@@ -226,18 +259,17 @@ describe('DraggableWrapper RTL text positioning', () => {
   });
 
   it('sets cols=1 with the measure div in layout so short text does not leave a too-wide box', () => {
-    const element = {
+    const element = createTextElement({
       id: 'el-4',
-      type: 'text',
       left: 20,
       top: 10,
       text: 'Test',
       fontSize: 12
-    };
+    });
 
     const wrapper = mountWithPageWrapper(element, 612, () => {});
-    const input = wrapper.querySelector(`textarea.${elementStyles['text-input']}`);
-    const measure = wrapper.querySelector(`.${elementStyles['text-measure']}`);
+    const input = requiredElement<HTMLTextAreaElement>(wrapper, `textarea.${elementStyles['text-input']}`);
+    const measure = requiredElement<HTMLDivElement>(wrapper, `.${elementStyles['text-measure']}`);
 
     // A bare textarea defaults to ~20 cols and forces that intrinsic width onto the
     // grid track, stranding short text in a wide box. cols=1 removes that so the

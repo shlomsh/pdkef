@@ -1,26 +1,60 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
+// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 import { render } from 'preact';
+import type { ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import SignToolbar from './SignToolbar.tsx';
-import { SignToolProvider, useSignTool } from './SignToolContext.tsx';
+import ProductionSignToolbar from './SignToolbar.tsx';
+import { SignToolProvider, useSignTool, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
+import type { SignToolType } from '../../editor/model/editorModel.ts';
 import { SavedSignaturesContext } from './SavedSignaturesContext.tsx';
 import styles from './SignToolbar.module.css';
 import toolShellStyles from '../ToolShell.module.css';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+declare const __dirname: string;
+
+type StateObserver = (state: SignToolState) => void;
+type SignDispatch = (action: SignToolAction) => void;
+
+function required<T>(value: T | null | undefined, description: string): T {
+  if (value == null) throw new Error(`Expected ${description}`);
+  return value;
+}
+
+function query<T extends Element = HTMLElement>(root: ParentNode, selector: string): T {
+  return required(root.querySelector<T>(selector), selector);
+}
+
+function findExactButton(root: ParentNode, label: string): HTMLButtonElement {
+  return required(
+    Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent?.trim() === label),
+    `${label} button`,
+  );
+}
+
+const defaultToolbarProps: ComponentProps<typeof ProductionSignToolbar> = {
+  setAnnouncement: () => {},
+  setDialogOpen: () => {},
+  setUndoModalOpen: () => {},
+  actionHistory: [],
+  toggleFullscreen: () => {},
+  isFullscreen: false,
+  onSavePdf: () => {},
+  onDownloadPdf: () => {},
+  onSharePdf: () => {},
+};
+
+function SignToolbar(props: Partial<ComponentProps<typeof ProductionSignToolbar>>) {
+  return <ProductionSignToolbar {...defaultToolbarProps} {...props} />;
+}
 
 describe('SignToolbar Component', () => {
-  let container;
+  let container = document.createElement('div');
 
   afterEach(() => {
     if (container) {
       act(() => render(null, container));
       container.remove();
-      container = null;
     }
     document.body.innerHTML = '';
   });
@@ -31,7 +65,7 @@ describe('SignToolbar Component', () => {
 
     const setAnnouncement = vi.fn();
 
-    let contextValue;
+    let contextValue!: SignToolState;
     const TestConsumer = () => {
       const { state } = useSignTool();
       contextValue = state;
@@ -56,14 +90,14 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const buttons = container.querySelectorAll(`.${styles.button}`);
+    const buttons = container.querySelectorAll<HTMLButtonElement>(`.${styles.button}`);
     expect(buttons.length).toBeGreaterThan(0);
 
-    const labels = Array.from(buttons, button => button.querySelector(`.${styles.label}`).textContent.trim());
+    const labels = Array.from(buttons, button => query(button, `.${styles.label}`).textContent.trim());
     expect(labels.slice(0, 7)).toEqual(['Text', 'Symbols', 'Shapes', 'Whiteout', 'Sign', 'Undo', 'Feedback']);
     expect(labels.at(-1)).toBe('Download');
 
-    const textBtn = Array.from(buttons).find(b => b.textContent.includes('Text') || b.querySelector('svg'));
+    const textBtn = required(Array.from(buttons).find(b => b.textContent.includes('Text') || b.querySelector('svg')), 'Text button');
     expect(textBtn).not.toBeUndefined();
 
     await act(async () => {
@@ -78,7 +112,7 @@ describe('SignToolbar Component', () => {
   // menu item cannot be double-clicked (the first click unmounts it), so the
   // lock has to come off the Shapes button itself.
   describe('locking a tool on for repeat placements', () => {
-    const renderToolbar = (onState) => {
+    const renderToolbar = (onState: StateObserver) => {
       container = document.createElement('div');
       document.body.appendChild(container);
 
@@ -106,11 +140,13 @@ describe('SignToolbar Component', () => {
       });
     };
 
-    const findButton = (label) => Array.from(container.querySelectorAll(`.${styles.button}`))
-      .find(b => b.textContent.includes(label));
+    const findButton = (label: string): HTMLButtonElement => required(
+      Array.from(container.querySelectorAll<HTMLButtonElement>(`.${styles.button}`)).find(b => b.textContent.includes(label)),
+      `${label} button`,
+    );
 
     it('arms a tool for one placement on a single click', async () => {
-      let state;
+      let state!: SignToolState;
       renderToolbar((s) => { state = s; });
 
       await act(async () => {
@@ -122,7 +158,7 @@ describe('SignToolbar Component', () => {
     });
 
     it('locks a tool on when its button is double-clicked', async () => {
-      let state;
+      let state!: SignToolState;
       renderToolbar((s) => { state = s; });
 
       const textBtn = findButton('Text');
@@ -160,9 +196,9 @@ describe('SignToolbar Component', () => {
         textBtn.focus();
       });
 
-      const describedBy = textBtn.getAttribute('aria-describedby');
+      const describedBy = required(textBtn.getAttribute('aria-describedby'), 'aria-describedby');
       expect(describedBy).toBeTruthy();
-      const hint = document.getElementById(describedBy);
+      const hint = required(document.getElementById(describedBy), 'Text tool hint');
       expect(hint.textContent).toContain('Click on a page to place a text box');
       expect(hint.textContent).toContain('Double-click to keep Text on');
     });
@@ -174,7 +210,7 @@ describe('SignToolbar Component', () => {
       await act(async () => {
         textBtn.focus();
       });
-      const describedBy = textBtn.getAttribute('aria-describedby');
+      const describedBy = required(textBtn.getAttribute('aria-describedby'), 'aria-describedby');
       expect(describedBy).toBeTruthy();
       expect(document.getElementById(describedBy)).not.toBeNull();
 
@@ -206,19 +242,18 @@ describe('SignToolbar Component', () => {
       await act(async () => {
         findButton('Shapes').click();
       });
-      const ellipse = Array.from(document.body.querySelectorAll('button'))
-        .find((b) => b.textContent.trim() === 'Ellipse');
+      const ellipse = findExactButton(document.body, 'Ellipse');
       await act(async () => {
         ellipse.click();
       });
 
-      const bubble = document.querySelector(`.${styles.hint}`);
+      const bubble = query(document, `.${styles.hint}`);
       expect(bubble).not.toBeNull();
       expect(bubble.textContent).toContain('Double-click to keep Shapes on');
     });
 
     it('locks the chosen shape when the Shapes button is double-clicked', async () => {
-      let state;
+      let state!: SignToolState;
       renderToolbar((s) => { state = s; });
 
       const shapesBtn = findButton('Shapes');
@@ -226,8 +261,7 @@ describe('SignToolbar Component', () => {
         shapesBtn.click();
       });
 
-      const ellipse = Array.from(document.body.querySelectorAll('button'))
-        .find(b => b.textContent.trim() === 'Ellipse');
+      const ellipse = findExactButton(document.body, 'Ellipse');
       expect(ellipse).not.toBeUndefined();
       await act(async () => {
         ellipse.click();
@@ -245,8 +279,8 @@ describe('SignToolbar Component', () => {
     });
 
     it('locks the last shape picked even after its one placement disarmed the tool', async () => {
-      let state;
-      let dispatch;
+      let state!: SignToolState;
+      let dispatch!: SignDispatch;
       const TestConsumer = () => {
         const ctx = useSignTool();
         state = ctx.state;
@@ -278,8 +312,7 @@ describe('SignToolbar Component', () => {
       await act(async () => {
         shapesBtn.click();
       });
-      const line = Array.from(document.body.querySelectorAll('button'))
-        .find(b => b.textContent.trim() === 'Line');
+      const line = findExactButton(document.body, 'Line');
       await act(async () => {
         line.click();
       });
@@ -300,7 +333,7 @@ describe('SignToolbar Component', () => {
     });
 
     it('locks the default shape (rectangle) on a double-click before any shape has been chosen', async () => {
-      let state;
+      let state!: SignToolState;
       renderToolbar((s) => { state = s; });
 
       await act(async () => {
@@ -315,7 +348,7 @@ describe('SignToolbar Component', () => {
     // treatment as Shapes rather than counting e.detail on the button.
     const mockSignature = { id: 'sig-lock-test', dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANS...', aspectRatio: 1 };
 
-    const renderToolbarWithSignature = (onState) => {
+    const renderToolbarWithSignature = (onState: StateObserver) => {
       container = document.createElement('div');
       document.body.appendChild(container);
 
@@ -366,7 +399,7 @@ describe('SignToolbar Component', () => {
     });
 
     it('locks the Sign tool on when its button is double-clicked', async () => {
-      let state;
+      let state!: SignToolState;
       renderToolbarWithSignature((s) => { state = s; });
 
       const sigBtn = findButton('Sign');
@@ -390,8 +423,8 @@ describe('SignToolbar Component', () => {
     });
 
     it('locks the Sign tool even after its one placement disarmed it, as long as a signature is chosen', async () => {
-      let state;
-      let dispatch;
+      let state!: SignToolState;
+      let dispatch!: SignDispatch;
       const TestConsumer = () => {
         const ctx = useSignTool();
         state = ctx.state;
@@ -438,7 +471,7 @@ describe('SignToolbar Component', () => {
     });
 
     it('does nothing on a Sign double-click before any signature has been chosen', async () => {
-      let state;
+      let state!: SignToolState;
       renderToolbar((s) => { state = s; });
 
       await act(async () => {
@@ -453,8 +486,8 @@ describe('SignToolbar Component', () => {
   // The status line is the only place that tells a first-time user how a tool is
   // actually used, so its wording is a contract, not decoration.
   describe('status line wording', () => {
-    const armAndRead = (tool, locked = false) => {
-      let dispatch;
+    const armAndRead = (tool: SignToolType, locked = false): string => {
+      let dispatch!: SignDispatch;
       const TestConsumer = () => {
         dispatch = useSignTool().dispatch;
         return null;
@@ -492,19 +525,19 @@ describe('SignToolbar Component', () => {
     // because Escape and double-click, the two shortcuts that used to be the
     // only way in and out of a locked tool, are both keyboard/pointer gestures
     // a phone does not have.
-    const statusChip = () => container.querySelector('[role="status"] button');
+    const statusChip = () => query<HTMLButtonElement>(container, '[role="status"] button');
 
     // "Drag on a page" reads as dragging the tool from the toolbar onto the
     // page, which is a real pattern in older editors and not how this works.
     // The gesture starts and ends on the page, and "Click and" is what says so.
-    it.each(['whiteout', 'ellipse', 'rectangle', 'line'])(
+    it.each<SignToolType>(['whiteout', 'ellipse', 'rectangle', 'line'])(
       'tells you the %s gesture starts on the page, not at the toolbar',
       (tool) => {
         expect(armAndRead(tool)).toContain('Click and drag on a page');
       }
     );
 
-    it.each(['text', 'symbol', 'signature'])('tells you to click a page to place a %s', (tool) => {
+    it.each<SignToolType>(['text', 'symbol', 'signature'])('tells you to click a page to place a %s', (tool) => {
       const text = armAndRead(tool);
       expect(text).toContain('Click on a page to place');
       expect(text).not.toContain('drag');
@@ -555,7 +588,7 @@ describe('SignToolbar Component', () => {
     // that tool works, and a generic "click or drag on the page" here carried
     // the same drag-it-from-the-toolbar misreading the per-tool lines avoid.
     it('asks only for a tool choice when nothing is armed', () => {
-      let dispatch;
+      let dispatch!: SignDispatch;
       const TestConsumer = () => {
         dispatch = useSignTool().dispatch;
         return null;
@@ -611,8 +644,8 @@ describe('SignToolbar Component', () => {
     });
 
     it('stops a locked tool repeating when the status switch is pressed', () => {
-      let state;
-      let dispatch;
+      let state!: SignToolState;
+      let dispatch!: SignDispatch;
       const TestConsumer = () => {
         const ctx = useSignTool();
         state = ctx.state;
@@ -667,8 +700,8 @@ describe('SignToolbar Component', () => {
     });
 
     it('locks the armed tool when the status chip is pressed', () => {
-      let state;
-      let dispatch;
+      let state!: SignToolState;
+      let dispatch!: SignDispatch;
       const TestConsumer = () => {
         const ctx = useSignTool();
         state = ctx.state;
@@ -709,7 +742,7 @@ describe('SignToolbar Component', () => {
     });
 
     it('never calls these "layers", which nothing else in the product does', () => {
-      for (const tool of ['text', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line']) {
+      for (const tool of ['text', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line'] satisfies SignToolType[]) {
         expect(armAndRead(tool)).not.toContain('layer');
       }
     });
@@ -717,7 +750,7 @@ describe('SignToolbar Component', () => {
     // "your ellipse" claims you already have one. Signature is the exception and
     // keeps the possessive: it exists before you place it, and it really is yours.
     it('does not hand you an element you have not made yet', () => {
-      for (const tool of ['text', 'symbol', 'whiteout', 'ellipse', 'rectangle', 'line']) {
+      for (const tool of ['text', 'symbol', 'whiteout', 'ellipse', 'rectangle', 'line'] satisfies SignToolType[]) {
         expect(armAndRead(tool)).not.toContain('your ');
       }
       expect(armAndRead('signature')).toContain('your signature');
@@ -751,8 +784,8 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const signBtn = Array.from(container.querySelectorAll(`.${styles.button}`))
-      .find(b => b.textContent.includes('Sign'));
+    const signBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${styles.button}`))
+      .find(b => b.textContent.includes('Sign')), 'Sign button');
 
     await act(async () => {
       signBtn.click();
@@ -784,7 +817,7 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const exportButton = container.querySelector('button[title*="share"]');
+    const exportButton = query<HTMLButtonElement>(container, 'button[title*="share"]');
     expect(exportButton).not.toBeNull();
     expect(exportButton.textContent).toContain('Share');
     expect(container.querySelectorAll(`.${styles.download}`)).toHaveLength(1);
@@ -815,7 +848,7 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const exportButton = container.querySelector('button[title="Share the signed PDF"]');
+    const exportButton = query<HTMLButtonElement>(container, 'button[title="Share the signed PDF"]');
     // Label stays "Share" in both states (MOBI-07 follow-up); the title
     // attribute above already proves the ready state.
     expect(exportButton.textContent.trim()).toBe('Share');
@@ -836,7 +869,7 @@ describe('SignToolbar Component', () => {
     const setActiveSignature = vi.fn();
     const onDeleteSavedSignature = vi.fn();
 
-    let contextValue;
+    let contextValue!: SignToolState;
     const TestConsumer = () => {
       const { state } = useSignTool();
       contextValue = state;
@@ -865,7 +898,7 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const sigBtn = Array.from(container.querySelectorAll(`.${styles.button}`)).find(b => b.textContent.includes('Sign'));
+    const sigBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${styles.button}`)).find(b => b.textContent.includes('Sign')), 'Sign button');
     expect(sigBtn).not.toBeUndefined();
 
     // Clicking signature button toggles dropdown
@@ -876,7 +909,7 @@ describe('SignToolbar Component', () => {
     const dropdown = document.body.querySelector('[data-editor-signature-popover]');
     expect(dropdown).not.toBeNull();
 
-    const items = document.body.querySelectorAll('[data-editor-signature-item]');
+    const items = document.body.querySelectorAll<HTMLButtonElement>('[data-editor-signature-item]');
     expect(items.length).toBe(1);
 
     // Click the signature item to select it
@@ -892,7 +925,7 @@ describe('SignToolbar Component', () => {
       sigBtn.click(); // Re-open
     });
     
-    const deleteBtn = document.body.querySelector('[data-editor-signature-delete]');
+    const deleteBtn = query<HTMLButtonElement>(document.body, '[data-editor-signature-delete]');
     expect(deleteBtn).not.toBeNull();
 
     await act(async () => {
@@ -921,19 +954,19 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const buttons = container.querySelectorAll(`.${styles.button}`);
+    const buttons = container.querySelectorAll<HTMLButtonElement>(`.${styles.button}`);
     expect(buttons.length).toBeGreaterThan(0);
     
     // Every single tool button must have its text wrapped in the scoped label span.
     // If a developer accidentally adds a raw text node, it breaks flexbox pixel-perfect division on mobile.
     buttons.forEach(btn => {
-      const textSpan = btn.querySelector(`.${styles.label}`);
+      const textSpan = query(btn, `.${styles.label}`);
       expect(textSpan).not.toBeNull();
       expect(textSpan.textContent.trim().length).toBeGreaterThan(0);
       
       // Ensure the button is a direct child of the toolbar to avoid flexbox wrapper issues.
       if (!btn.closest('[data-editor-signature-popover]')) {
-        const parentClassList = btn.parentElement.classList;
+        const parentClassList = required(btn.parentElement, 'button parent').classList;
         expect(
           parentClassList.contains(styles.toolbar) ||
           parentClassList.contains(styles.dropdown)
@@ -973,20 +1006,20 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const toolbar = container.querySelector(`.${styles.toolbar}`);
+    const toolbar = query<HTMLElement>(container, `.${styles.toolbar}`);
     expect(toolbar).not.toBeNull();
-    expect(toolbar.parentElement.classList.contains(toolShellStyles.controls)).toBe(true);
+    expect(required(toolbar.parentElement, 'toolbar parent').classList.contains(toolShellStyles.controls)).toBe(true);
 
     // The owning module source-of-truth check: `.toolbar` spans full width at
     // every breakpoint (no separate narrow-screen override shrinks it back to
     // a centered pill — see CLAUDE.md's "full-width mobile
     // toolbar" note), and every direct child is told to grow equally.
-    const css = readFileSync(join(__dirname, 'SignToolbar.module.css'), 'utf8');
-    const toolbarRuleMatch = /\.toolbar\s*\{([^}]*)\}/.exec(css);
+    const css = readFileSync(`${__dirname}/SignToolbar.module.css`, 'utf8');
+    const toolbarRuleMatch = required(/\.toolbar\s*\{([^}]*)\}/.exec(css), '.toolbar CSS rule');
     expect(toolbarRuleMatch).not.toBeNull();
     expect(toolbarRuleMatch[1]).toMatch(/width:\s*100%/);
 
-    const childrenRuleMatch = /\.toolbar\s*>\s*\*\s*\{([^}]*)\}/.exec(css);
+    const childrenRuleMatch = required(/\.toolbar\s*>\s*\*\s*\{([^}]*)\}/.exec(css), '.toolbar > * CSS rule');
     expect(childrenRuleMatch).not.toBeNull();
     expect(childrenRuleMatch[1]).toMatch(/flex:\s*1\s+1\s+auto/);
 
@@ -1022,7 +1055,7 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    const radiogroup = container.querySelector(`.${styles.toolbar} [role="radiogroup"]`);
+    const radiogroup = query(container, `.${styles.toolbar} [role="radiogroup"]`);
     expect(radiogroup).not.toBeNull();
     expect(radiogroup.getAttribute('aria-label')).toBe('View density');
     expect(radiogroup.querySelectorAll('[role="radio"]')).toHaveLength(3);

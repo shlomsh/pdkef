@@ -1,16 +1,58 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
-import { render } from 'preact';
+import { render, type ComponentChildren, type ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import TextNode from './TextNode.tsx';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import RawTextNode from './TextNode.tsx';
 import workspaceStyles from '../Workspace.module.css';
 import elementStyles from '../EditorElement.module.css';
 import { WYSIWYG_STRING_CASES } from '../../../test/fixtures/wysiwygStrings.js';
+import type { EditorElementPatch, TextElement } from '../../../editor/model/editorModel.ts';
+import type { ElementNodeChange, NodeResizeStart } from '../nodeProps.ts';
 
-function mount(vnode) {
+const onChange: ElementNodeChange<TextElement> = () => {};
+const onSelect = (_event: Event) => {};
+const onBeginEdit = () => {};
+const onResizeStart: NodeResizeStart = () => {};
+
+type TextFixture = EditorElementPatch<TextElement> & { type?: 'text' };
+type TextNodeTestProps = { element: TextFixture } & Partial<Omit<ComponentProps<typeof RawTextNode>, 'element'>>;
+interface WysiwygStringCase {
+  id: string;
+  text: string;
+  direction: 'ltr' | 'rtl';
+  family: string;
+  support: 'compatible' | 'fallback' | 'incompatible';
+}
+
+const wysiwygStringCases = WYSIWYG_STRING_CASES as readonly WysiwygStringCase[];
+
+function textElement(overrides: TextFixture): TextElement {
+  return { id: 'text-1', type: 'text', pageIndex: 0, left: 0, top: 0, text: '', ...overrides };
+}
+
+function TextNode({ element, ...props }: TextNodeTestProps) {
+  return <RawTextNode
+    element={textElement(element)}
+    isActive={false}
+    isEditing={false}
+    onChange={onChange}
+    onSelect={onSelect}
+    onBeginEdit={onBeginEdit}
+    onResizeStart={onResizeStart}
+    pageWidthPoints={600}
+    {...props}
+  />;
+}
+
+function requireElement<T extends Element>(parent: ParentNode, selector: string): T {
+  const element = parent.querySelector<T>(selector);
+  if (!element) throw new Error(`Expected ${selector} to be rendered`);
+  return element;
+}
+
+function mount(vnode: ComponentChildren): HTMLDivElement {
   const host = document.createElement('div');
   host.className = workspaceStyles['page-wrapper'];
-  host.getBoundingClientRect = () => ({ width: 600, height: 800, top: 0, left: 0, right: 600, bottom: 800 });
+  host.getBoundingClientRect = () => new DOMRect(0, 0, 600, 800);
   document.body.appendChild(host);
   act(() => {
     render(vnode, host);
@@ -19,18 +61,17 @@ function mount(vnode) {
 }
 
 describe('TextNode component', () => {
-  let host;
+  let host = document.createElement('div');
 
   afterEach(() => {
-    if (host) {
+    if (host.isConnected) {
       act(() => render(null, host));
       document.body.removeChild(host);
-      host = null;
     }
   });
 
   it('renders correctly with given text, color, and default font details', () => {
-    const element = {
+    const element: TextFixture = {
       text: 'Hello Preact',
       color: '#ff0000',
       fontSize: 16,
@@ -50,7 +91,7 @@ describe('TextNode component', () => {
       />
     );
 
-    const textarea = host.querySelector('textarea');
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
     expect(textarea).not.toBeNull();
     expect(textarea.value).toBe('Hello Preact');
     
@@ -63,7 +104,7 @@ describe('TextNode component', () => {
   });
 
   it('triggers onChange when typing in textarea', () => {
-    const element = { text: 'Initial text', fontSize: 12 };
+    const element: TextFixture = { text: 'Initial text', fontSize: 12 };
     const onChange = vi.fn();
 
     host = mount(
@@ -77,7 +118,7 @@ describe('TextNode component', () => {
       />
     );
 
-    const textarea = host.querySelector('textarea');
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
     act(() => {
       textarea.value = 'User typed this';
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -91,7 +132,7 @@ describe('TextNode component', () => {
     // A new field can inherit the last-used family, but it is still not an
     // explicit choice for this text. Sacramento makes the substitution visible
     // in the patch, unlike the default Arimo which already covers Hebrew.
-    const element = { type: 'text', text: '', fontFamily: 'Sacramento', fontFamilyExplicit: false, fontSize: 12 };
+    const element: TextFixture = { type: 'text', text: '', fontFamily: 'Sacramento', fontFamilyExplicit: false, fontSize: 12 };
     const onChange = vi.fn();
     host = mount(
       <TextNode
@@ -106,7 +147,7 @@ describe('TextNode component', () => {
       />,
     );
 
-    const textarea = host.querySelector('textarea');
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
     act(() => {
       textarea.value = 'שלומי';
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -116,7 +157,7 @@ describe('TextNode component', () => {
   });
 
   it('keeps an explicitly chosen incompatible font so its fallback remains explainable', () => {
-    const element = { type: 'text', text: '', fontFamily: 'Sacramento', fontFamilyExplicit: true, fontSize: 12 };
+    const element: TextFixture = { type: 'text', text: '', fontFamily: 'Sacramento', fontFamilyExplicit: true, fontSize: 12 };
     const onChange = vi.fn();
     host = mount(
       <TextNode
@@ -131,7 +172,7 @@ describe('TextNode component', () => {
       />,
     );
 
-    const textarea = host.querySelector('textarea');
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
     act(() => {
       textarea.value = 'שלומי';
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -141,7 +182,7 @@ describe('TextNode component', () => {
   });
 
   it('derives direction from typed text across neutral, RTL, and digit-only transitions', () => {
-    const renderNode = (text) => {
+    const renderNode = (text: string): HTMLTextAreaElement => {
       act(() => {
         render(
           <TextNode
@@ -156,7 +197,7 @@ describe('TextNode component', () => {
           host
         );
       });
-      return host.querySelector('textarea');
+      return requireElement<HTMLTextAreaElement>(host, 'textarea');
     };
 
     host = mount(<div />);
@@ -165,7 +206,7 @@ describe('TextNode component', () => {
     expect(renderNode('27/05/2008').dir).toBe('ltr');
   });
 
-  it.each(WYSIWYG_STRING_CASES.map(({ id, text, direction, family, support }) => [id, text, direction, family, support]))(
+  it.each(wysiwygStringCases.map(({ id, text, direction, family, support }) => [id, text, direction, family, support] as const))(
     '%s: renders the supplied string with editor/export direction and font agreement',
     (_id, text, direction, family, support) => {
       host = mount(
@@ -181,8 +222,8 @@ describe('TextNode component', () => {
         />,
       );
 
-      const input = host.querySelector('[data-editor-text-input]');
-      const measure = host.querySelector('[data-editor-text-measure]');
+      const input = requireElement<HTMLTextAreaElement>(host, '[data-editor-text-input]');
+      const measure = requireElement<HTMLDivElement>(host, '[data-editor-text-measure]');
       expect(input.value).toBe(text);
       expect(input.dir).toBe(direction);
       expect(measure.dir).toBe(direction);
@@ -193,7 +234,7 @@ describe('TextNode component', () => {
   );
 
   it('triggers onSelect when textarea receives focus', () => {
-    const element = { text: 'Focus test', fontSize: 12 };
+    const element: TextFixture = { text: 'Focus test', fontSize: 12 };
     const onSelect = vi.fn();
 
     host = mount(
@@ -207,7 +248,7 @@ describe('TextNode component', () => {
       />
     );
 
-    const textarea = host.querySelector('textarea');
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
     act(() => {
       textarea.focus();
     });
@@ -216,7 +257,7 @@ describe('TextNode component', () => {
   });
 
   it('takes the caret when an edit session is open, with the cursor at the end', () => {
-    const element = { text: 'Hello', fontSize: 12 };
+    const element: TextFixture = { text: 'Hello', fontSize: 12 };
     host = mount(
       <TextNode
         element={element}
@@ -229,7 +270,7 @@ describe('TextNode component', () => {
       />
     );
 
-    const textarea = host.querySelector('textarea');
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
     expect(document.activeElement).toBe(textarea);
     expect(textarea.selectionStart).toBe(5);
     expect(textarea.selectionEnd).toBe(5);
@@ -237,15 +278,15 @@ describe('TextNode component', () => {
   });
 
   it('updates local feedback immediately as text is corrected, without replacing the input or losing its caret', () => {
-    const element = { type: 'text', fontFamily: 'Assistant', text: 'שלום Hello مرحبا', fontSize: 12 };
-    const show = (changes = {}, active = true) => <TextNode
+    const element: TextFixture = { type: 'text', fontFamily: 'Assistant', text: 'שלום Hello مرحبا', fontSize: 12 };
+    const show = (changes: TextFixture = {}, active = true) => <TextNode
       element={{ ...element, ...changes }} isActive={active} isEditing={active}
       onChange={() => {}} onSelect={() => {}} onBeginEdit={() => {}}
       onResizeStart={() => {}} pageWidthPoints={600}
     />;
     host = mount(show());
-    const input = host.querySelector('textarea');
-    const notice = host.querySelector('[data-editor-font-notice]');
+    const input = requireElement<HTMLTextAreaElement>(host, 'textarea');
+    const notice = requireElement<HTMLElement>(host, '[data-editor-font-notice]');
     expect(input.getAttribute('aria-invalid')).toBe('true');
     expect(notice.textContent).toContain('separate text boxes');
     expect(notice.textContent).toContain('Assistant');
@@ -264,7 +305,7 @@ describe('TextNode component', () => {
 
     act(() => render(show({ text: 'Hello مرحبا' }), host));
     expect(input.style.fontFamily).toContain('Scheherazade New');
-    expect(host.querySelector('[data-editor-font-notice]').textContent)
+    expect(requireElement<HTMLElement>(host, '[data-editor-font-notice]').textContent)
       .toBe('A fallback font is in use for this text. Choose another font in the font menu.');
     expect(input.hasAttribute('aria-invalid')).toBe(false);
   });
@@ -276,8 +317,8 @@ describe('TextNode component', () => {
       onChange={() => {}} onSelect={() => {}} onBeginEdit={onBeginEdit}
       onResizeStart={() => {}} pageWidthPoints={600}
     />);
-    const notice = host.querySelector('[data-editor-font-notice]');
-    const button = notice.querySelector('button');
+    const notice = requireElement<HTMLElement>(host, '[data-editor-font-notice]');
+    const button = requireElement<HTMLButtonElement>(notice, 'button');
     expect(button.textContent).toBe('');
     expect(button.getAttribute('aria-label')).toContain('Select for font suggestions');
     expect(notice.getAttribute('data-editor-font-marker-side')).toBe('left');
@@ -286,20 +327,20 @@ describe('TextNode component', () => {
   });
 
   it('puts the inactive marker at the bottom end for both text directions', () => {
-    const show = (element) => <TextNode
+    const show = (element: TextFixture) => <TextNode
       element={element} isActive={false} isEditing={false}
       onChange={() => {}} onSelect={() => {}} onBeginEdit={() => {}}
       onResizeStart={() => {}} pageWidthPoints={600}
     />;
     host = mount(show({ text: 'Hello 😀', fontFamily: 'Arimo' }));
-    expect(host.querySelector('[data-editor-font-marker-side]').getAttribute('data-editor-font-marker-side')).toBe('right');
+    expect(requireElement<HTMLElement>(host, '[data-editor-font-marker-side]').getAttribute('data-editor-font-marker-side')).toBe('right');
 
     act(() => render(show({ text: 'שלום مرحبا', fontFamily: 'Arimo' }), host));
-    expect(host.querySelector('[data-editor-font-marker-side]').getAttribute('data-editor-font-marker-side')).toBe('left');
+    expect(requireElement<HTMLElement>(host, '[data-editor-font-marker-side]').getAttribute('data-editor-font-marker-side')).toBe('left');
   });
 
   it('stays inert while selected but not editing, so the click selects instead of typing', () => {
-    const element = { text: 'Hello', fontSize: 12 };
+    const element: TextFixture = { text: 'Hello', fontSize: 12 };
     host = mount(
       <TextNode
         element={element}
@@ -312,7 +353,7 @@ describe('TextNode component', () => {
       />
     );
 
-    const textarea = host.querySelector('textarea');
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
     expect(document.activeElement).not.toBe(textarea);
     expect(textarea.readOnly).toBe(true);
     expect(textarea.getAttribute('tabindex')).toBe('-1');
@@ -335,7 +376,7 @@ describe('TextNode component', () => {
     );
 
     act(() => {
-      host.querySelector('[data-editor-text-display]')
+      requireElement<HTMLElement>(host, '[data-editor-text-display]')
         .dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
     });
 
@@ -343,7 +384,7 @@ describe('TextNode component', () => {
   });
 
   it('focuses textarea when style properties change while a toolbar element is focused', () => {
-    const element = { text: 'Style focus', fontSize: 12, color: '#000000' };
+    const element: TextFixture = { text: 'Style focus', fontSize: 12, color: '#000000' };
     const onChange = vi.fn();
 
     host = mount(
@@ -358,7 +399,7 @@ describe('TextNode component', () => {
       />
     );
 
-    const textarea = host.querySelector('textarea');
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
 
     // Create a mock toolbar element and focus it
     const toolbar = document.createElement('div');
@@ -408,9 +449,9 @@ describe('TextNode component', () => {
     );
 
     // jsdom serializes a multi-word family with quotes, hence the strip.
-    const unquote = (node) => node.style.fontFamily.replace(/"/g, '');
-    expect(unquote(host.querySelector('[data-editor-text-input]'))).toBe('Gveret Levin');
-    expect(unquote(host.querySelector('[data-editor-text-measure]'))).toBe('Gveret Levin');
+    const unquote = (node: HTMLElement) => node.style.fontFamily.replace(/"/g, '');
+    expect(unquote(requireElement<HTMLTextAreaElement>(host, '[data-editor-text-input]'))).toBe('Gveret Levin');
+    expect(unquote(requireElement<HTMLDivElement>(host, '[data-editor-text-measure]'))).toBe('Gveret Levin');
   });
 
   it('keeps the picked font for Latin text in that same font', () => {
@@ -425,11 +466,11 @@ describe('TextNode component', () => {
       />
     );
 
-    expect(host.querySelector('[data-editor-text-input]').style.fontFamily).toBe('Caveat');
+    expect(requireElement<HTMLTextAreaElement>(host, '[data-editor-text-input]').style.fontFamily).toBe('Caveat');
   });
 
   describe('comb layout', () => {
-    const renderComb = (element, isActive = true) => mount(
+    const renderComb = (element: TextFixture, isActive = true) => mount(
       <TextNode
         element={{ type: 'text', fontSize: 16, width: 40, ...element }}
         isActive={isActive}
@@ -442,7 +483,7 @@ describe('TextNode component', () => {
 
     it('places one character per cell at the cell centre', () => {
       host = renderComb({ text: '270' });
-      const cells = [...host.querySelectorAll(`.${elementStyles['text-comb-cell']}`)];
+      const cells = [...host.querySelectorAll<HTMLElement>(`.${elementStyles['text-comb-cell']}`)];
       expect(cells.map((cell) => cell.textContent)).toEqual(['2', '7', '0']);
       // Centres, not edges: 1/6, 3/6, 5/6 of the span.
       expect(cells.map((cell) => cell.style.left)).toEqual([
@@ -467,7 +508,7 @@ describe('TextNode component', () => {
 
     it('hides the textarea’s own text but keeps its caret, since the cells are what you see', () => {
       host = renderComb({ text: '270', color: '#112233' });
-      const input = host.querySelector('[data-editor-text-input]');
+      const input = requireElement<HTMLTextAreaElement>(host, '[data-editor-text-input]');
       expect(input.style.color).toBe('transparent');
       expect(input.style.caretColor).toBe('rgb(17, 34, 51)');
     });
@@ -476,7 +517,7 @@ describe('TextNode component', () => {
       // Hebrew has a strong RTL character, so direction auto-detects without
       // needing textDirection set (see signHelpers.js).
       host = renderComb({ text: 'שלום' });
-      const cells = [...host.querySelectorAll(`.${elementStyles['text-comb-cell']}`)];
+      const cells = [...host.querySelectorAll<HTMLElement>(`.${elementStyles['text-comb-cell']}`)];
       // Array order (and so which character is "first") is unchanged - only
       // *where* each index renders mirrors. LTR would be 1/8, 3/8, 5/8, 7/8;
       // RTL is that reversed, so the first character ('ש') ends up at 7/8
@@ -499,7 +540,7 @@ describe('TextNode component', () => {
         />
       );
       expect(host.querySelector(`.${elementStyles['text-comb']}`)).toBeNull();
-      expect(host.querySelector('[data-editor-text-input]').style.color).toBe('rgb(0, 0, 0)');
+      expect(requireElement<HTMLTextAreaElement>(host, '[data-editor-text-input]').style.color).toBe('rgb(0, 0, 0)');
     });
   });
 });

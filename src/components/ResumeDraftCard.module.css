@@ -1,6 +1,18 @@
-.card, .list { display: contents; }
-.list { list-style: none; margin: 0; padding: 0; }
-.list > li { list-style: none; }
+/* Keep the semantic section and list as real layout boxes. Nested
+   `display: contents` made the list items pretend to be grandchildren of the
+   launcher grid, a path WebKit can populate incorrectly after PWA hydration.
+   Owning the three-column grid here gives every recent document exactly one
+   stable box in the render tree. */
+.card { grid-column: 1 / -1; min-width: 0; }
+.list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.list > li { min-width: 0; list-style: none; }
 .document { box-sizing: border-box; min-height: 180px; display: flex; width: 100%; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; font: inherit; text-decoration: none; text-align: center; color: var(--color-text); }
 .document:focus-visible, .document:hover { background: var(--color-primary-tint); }
 .document:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
@@ -33,6 +45,7 @@
      plus the picker must leave the home tool dock fully visible on an iPhone,
      without reducing the cards themselves below a useful tap surface. */
   .document { min-height: 132px; gap: 3px; padding: 4px 2px; }
+  .list { gap: 16px 8px; }
   .preview { height: clamp(62px, 9svh, 84px); width: auto; aspect-ratio: 16 / 21; }
   .name { font-size: 0.72rem; line-height: 1.18; min-height: 2.36em; }
   .sub { font-size: 0.64rem; }

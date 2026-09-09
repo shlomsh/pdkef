@@ -1,7 +1,7 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
+import type { ComponentChildren } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, afterEach, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { vi } from 'vitest';
 import DraggableWrapper from './DraggableWrapper.tsx';
 import workspaceStyles from './Workspace.module.css';
@@ -10,6 +10,83 @@ import LineNode from './nodes/LineNode.tsx';
 import TextNode from './nodes/TextNode.tsx';
 import SymbolNode from './nodes/SymbolNode.tsx';
 import SignatureNode from './nodes/SignatureNode.tsx';
+import type {
+  EditorElement,
+  EditorElementPatch,
+  EllipseElement,
+  LineElement,
+  RectangleElement,
+  SignatureElement,
+  SymbolElement,
+  TextElement,
+} from '../../editor/model/editorModel.ts';
+
+type ChangeHandler<T extends EditorElement> = (changes: EditorElementPatch<T>) => void;
+type MountOptions<T extends EditorElement> = {
+  isActive?: boolean;
+  pageWidthPoints?: number;
+  onChange?: ChangeHandler<T>;
+};
+
+declare global {
+  interface Array<T> {
+    at(index: number): T;
+  }
+}
+
+function pageRect(): DOMRect {
+  return new DOMRect(0, 0, 600, 800);
+}
+
+function requiredElement<T extends Element>(root: ParentNode, selector: string): T {
+  const element = root.querySelector<T>(selector);
+  if (!element) throw new Error(`Expected element matching ${selector}`);
+  return element;
+}
+
+function shapeNode(element: RectangleElement | EllipseElement) {
+  return <ShapeNode element={element} isActive={false} onResizeStart={() => {}} />;
+}
+
+function lineNode(element: LineElement) {
+  return <LineNode element={element} isActive={false} onResizeStart={() => {}} handlePointerDown={() => {}} />;
+}
+
+function textNode(element: TextElement) {
+  return <TextNode element={element} isActive={false} isEditing={false} onChange={() => {}} onSelect={() => {}} onBeginEdit={() => {}} onResizeStart={() => {}} pageWidthPoints={600} />;
+}
+
+function symbolNode(element: SymbolElement) {
+  return <SymbolNode element={element} isActive={false} onResizeStart={() => {}} />;
+}
+
+function signatureNode(element: SignatureElement) {
+  return <SignatureNode element={element} isActive={false} onResizeStart={() => {}} />;
+}
+
+function rectangle(overrides: Omit<RectangleElement, 'pageIndex' | 'type'>): RectangleElement {
+  return { pageIndex: 0, type: 'rectangle', ...overrides };
+}
+
+function ellipse(overrides: Omit<EllipseElement, 'pageIndex' | 'type'>): EllipseElement {
+  return { pageIndex: 0, type: 'ellipse', ...overrides };
+}
+
+function line(overrides: Omit<LineElement, 'pageIndex' | 'type'>): LineElement {
+  return { pageIndex: 0, type: 'line', ...overrides };
+}
+
+function text(overrides: Omit<TextElement, 'pageIndex' | 'type'>): TextElement {
+  return { pageIndex: 0, type: 'text', ...overrides };
+}
+
+function symbol(overrides: Omit<SymbolElement, 'pageIndex' | 'type'>): SymbolElement {
+  return { pageIndex: 0, type: 'symbol', ...overrides };
+}
+
+function signature(overrides: Omit<SignatureElement, 'pageIndex' | 'type'>): SignatureElement {
+  return { pageIndex: 0, type: 'signature', ...overrides };
+}
 
 // TODO.md (post-mortem of the two shipped "element jumps/disappears on
 // resize" regressions — ca411be/ea10349, see CLAUDE.md Part II §5). The whiteout
@@ -28,14 +105,12 @@ import SignatureNode from './nodes/SignatureNode.tsx';
 // the ca411be/ea10349 bugs ship despite the prior whiteout tests existing.
 // See the "meta-guard" test at the bottom for a concrete demonstration.
 
-function mountInPageWrapper(element, node, { isActive = true, pageWidthPoints = 600, onChange = () => {} } = {}) {
+function mountInPageWrapper<T extends EditorElement>(element: T, node: ComponentChildren, { isActive = true, pageWidthPoints = 600, onChange = () => {} }: MountOptions<T> = {}) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const wrapper = document.createElement('div');
   wrapper.className = workspaceStyles['page-wrapper'];
-  wrapper.getBoundingClientRect = () => ({
-    left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {},
-  });
+  wrapper.getBoundingClientRect = pageRect;
   container.appendChild(wrapper);
 
   act(() => {
@@ -43,6 +118,7 @@ function mountInPageWrapper(element, node, { isActive = true, pageWidthPoints = 
       <DraggableWrapper
         element={element}
         isActive={isActive}
+        onBeginEdit={() => {}}
         onSelect={() => {}}
         onChange={onChange}
         onDelete={() => {}}
@@ -55,12 +131,12 @@ function mountInPageWrapper(element, node, { isActive = true, pageWidthPoints = 
     );
   });
 
-  return { container, wrapper, box: wrapper.querySelector('[data-editor-element]') };
+  return { container, wrapper, box: requiredElement<HTMLDivElement>(wrapper, '[data-editor-element]') };
 }
 
-function cleanup(wrapper) {
+function cleanup(wrapper: HTMLDivElement) {
   act(() => render(null, wrapper));
-  wrapper.parentNode?.remove();
+  wrapper.parentElement?.remove();
 }
 
 describe('DraggableWrapper gesture invariants (E1.5)', () => {
@@ -74,8 +150,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
   describe('shape (rectangle/ellipse)', () => {
     it('move: drag commits exactly the delta and leaves width/height unchanged — DraggableWrapper.tsx:117-134 (via useDraggableElement.js)', () => {
       const onChange = vi.fn();
-      const element = { id: 'r-move', type: 'rectangle', left: 10, top: 10, width: 20, height: 15, color: '#000' };
-      const { wrapper, box } = mountInPageWrapper(element, <ShapeNode element={element} />, { onChange });
+      const element = rectangle({ id: 'r-move', left: 10, top: 10, width: 20, height: 15, color: '#000' });
+      const { wrapper, box } = mountInPageWrapper(element, shapeNode(element), { onChange });
 
       act(() => {
         box.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100, clientY: 100 }));
@@ -95,8 +171,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
 
     it('anchor: growing from the right handle keeps the left edge exactly pinned — DraggableWrapper.tsx:210-211', () => {
       const onChange = vi.fn();
-      const element = { id: 'r-right', type: 'rectangle', left: 10, top: 10, width: 20, height: 15, color: '#000' };
-      const { wrapper, box } = mountInPageWrapper(element, <ShapeNode element={element} />, { onChange });
+      const element = rectangle({ id: 'r-right', left: 10, top: 10, width: 20, height: 15, color: '#000' });
+      const { wrapper, box } = mountInPageWrapper(element, shapeNode(element), { onChange });
       const rightHandle = box.querySelector('[data-editor-resizer="right"]');
 
       act(() => {
@@ -115,8 +191,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
 
     it('anchor: growing from the left handle keeps the right edge exactly pinned — DraggableWrapper.tsx:212-214', () => {
       const onChange = vi.fn();
-      const element = { id: 'r-left', type: 'rectangle', left: 30, top: 10, width: 20, height: 15, color: '#000' };
-      const { wrapper, box } = mountInPageWrapper(element, <ShapeNode element={element} />, { onChange });
+      const element = rectangle({ id: 'r-left', left: 30, top: 10, width: 20, height: 15, color: '#000' });
+      const { wrapper, box } = mountInPageWrapper(element, shapeNode(element), { onChange });
       const leftHandle = box.querySelector('[data-editor-resizer="left"]');
 
       act(() => {
@@ -135,8 +211,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
 
     it('zero-delta resize is a no-op — commits exactly the start geometry', () => {
       const onChange = vi.fn();
-      const element = { id: 'r-zero', type: 'rectangle', left: 10, top: 10, width: 20, height: 15, color: '#000' };
-      const { wrapper, box } = mountInPageWrapper(element, <ShapeNode element={element} />, { onChange });
+      const element = rectangle({ id: 'r-zero', left: 10, top: 10, width: 20, height: 15, color: '#000' });
+      const { wrapper, box } = mountInPageWrapper(element, shapeNode(element), { onChange });
       const bottomRightHandle = box.querySelector('[data-editor-resizer="bottom-right"]');
 
       act(() => {
@@ -152,8 +228,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
 
     it('ellipse (same isShape branch): zero-delta resize is also a no-op', () => {
       const onChange = vi.fn();
-      const element = { id: 'e-zero', type: 'ellipse', left: 15, top: 15, width: 25, height: 25, color: '#000' };
-      const { wrapper, box } = mountInPageWrapper(element, <ShapeNode element={element} />, { onChange });
+      const element = ellipse({ id: 'e-zero', left: 15, top: 15, width: 25, height: 25, color: '#000' });
+      const { wrapper, box } = mountInPageWrapper(element, shapeNode(element), { onChange });
       const topHandle = box.querySelector('[data-editor-resizer="top"]');
 
       act(() => {
@@ -184,8 +260,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
     // is exactly the vacuity CLAUDE.md Part II §5 warns about.
     it('meta-guard: right-handle growth past the page edge would expose a reintroduced blanket left/top clamp', () => {
       const onChange = vi.fn();
-      const element = { id: 'r-meta', type: 'rectangle', left: 80, top: 10, width: 15, height: 15, color: '#000' };
-      const { wrapper, box } = mountInPageWrapper(element, <ShapeNode element={element} />, { onChange });
+      const element = rectangle({ id: 'r-meta', left: 80, top: 10, width: 15, height: 15, color: '#000' });
+      const { wrapper, box } = mountInPageWrapper(element, shapeNode(element), { onChange });
       const rightHandle = box.querySelector('[data-editor-resizer="right"]');
 
       act(() => {
@@ -212,19 +288,19 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
   //    payload, which is the strongest possible form of "untouched".
   // ===========================================================================
   describe('line', () => {
-    function mountLine(element, onChange) {
-      const { wrapper, box } = mountInPageWrapper(element, <LineNode element={element} />, { onChange });
+    function mountLine(element: LineElement, onChange: ChangeHandler<LineElement>) {
+      const { wrapper, box } = mountInPageWrapper(element, lineNode(element), { onChange });
       // The floating toolbar's icon buttons also render <line>/<path> SVGs,
       // so a bare `line` selector picks those up too — select by
       // stroke="transparent", which uniquely identifies LineNode's fat
       // invisible hit target that owns the move handlers (LineNode.tsx:21-32).
-      const hitLine = box.querySelector('line[stroke="transparent"]');
+      const hitLine = requiredElement<SVGLineElement>(box, 'line[stroke="transparent"]');
       return { wrapper, box, hitLine };
     }
 
     it('move: drag commits both endpoints shifted by the same delta — useDraggableElement.js:109-115', () => {
       const onChange = vi.fn();
-      const element = { id: 'l-move', type: 'line', x1: 20, y1: 20, x2: 60, y2: 50, color: '#000' };
+      const element = line({ id: 'l-move', x1: 20, y1: 20, x2: 60, y2: 50, color: '#000' });
       const { wrapper, hitLine } = mountLine(element, onChange);
 
       act(() => {
@@ -243,8 +319,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
 
     it('anchor: dragging the start handle never touches the end endpoint — DraggableWrapper.tsx:152-165', () => {
       const onChange = vi.fn();
-      const element = { id: 'l-start', type: 'line', x1: 20, y1: 20, x2: 60, y2: 50, color: '#000' };
-      const { wrapper, box } = mountInPageWrapper(element, <LineNode element={element} />, { onChange });
+      const element = line({ id: 'l-start', x1: 20, y1: 20, x2: 60, y2: 50, color: '#000' });
+      const { wrapper, box } = mountInPageWrapper(element, lineNode(element), { onChange });
       const startHandle = box.querySelectorAll('[data-editor-resizer^="line-"]')[0];
 
       act(() => {
@@ -265,8 +341,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
 
     it('anchor: dragging the end handle never touches the start endpoint — DraggableWrapper.tsx:167-180', () => {
       const onChange = vi.fn();
-      const element = { id: 'l-end', type: 'line', x1: 20, y1: 20, x2: 60, y2: 50, color: '#000' };
-      const { wrapper, box } = mountInPageWrapper(element, <LineNode element={element} />, { onChange });
+      const element = line({ id: 'l-end', x1: 20, y1: 20, x2: 60, y2: 50, color: '#000' });
+      const { wrapper, box } = mountInPageWrapper(element, lineNode(element), { onChange });
       const endHandle = box.querySelectorAll('[data-editor-resizer^="line-"]')[1];
 
       act(() => {
@@ -285,8 +361,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
 
     it('zero-delta resize is a no-op', () => {
       const onChange = vi.fn();
-      const element = { id: 'l-zero', type: 'line', x1: 20, y1: 20, x2: 60, y2: 50, color: '#000' };
-      const { wrapper, box } = mountInPageWrapper(element, <LineNode element={element} />, { onChange });
+      const element = line({ id: 'l-zero', x1: 20, y1: 20, x2: 60, y2: 50, color: '#000' });
+      const { wrapper, box } = mountInPageWrapper(element, lineNode(element), { onChange });
       const startHandle = box.querySelectorAll('[data-editor-resizer^="line-"]')[0];
 
       act(() => {
@@ -309,8 +385,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
   describe('text', () => {
     it('move: drag commits exactly the delta and the resize payload shape never includes fontSize', () => {
       const onChange = vi.fn();
-      const element = { id: 't-move', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' };
-      const { wrapper, box } = mountInPageWrapper(element, <TextNode element={element} />, { onChange });
+      const element = text({ id: 't-move', left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' });
+      const { wrapper, box } = mountInPageWrapper(element, textNode(element), { onChange });
 
       act(() => {
         box.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100, clientY: 100 }));
@@ -327,8 +403,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
 
     it('anchor: top-right resize preserves the opposite bottom-left corner of the auto-sized text box', () => {
       const onChange = vi.fn();
-      const element = { id: 't-resize', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' };
-      const { wrapper, box } = mountInPageWrapper(element, <TextNode element={element} />, { onChange, pageWidthPoints: 600 });
+      const element = text({ id: 't-resize', left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' });
+      const { wrapper, box } = mountInPageWrapper(element, textNode(element), { onChange, pageWidthPoints: 600 });
       const corner = box.querySelector('[data-editor-resizer="top-right"]');
       box.getBoundingClientRect = () => {
         const fontPx = parseFloat(box.querySelector('[data-editor-text-display]').style.fontSize) || 12;
@@ -357,8 +433,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
 
     it('zero-delta resize is a no-op on fontSize', () => {
       const onChange = vi.fn();
-      const element = { id: 't-zero', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' };
-      const { wrapper, box } = mountInPageWrapper(element, <TextNode element={element} />, { onChange, pageWidthPoints: 600 });
+      const element = text({ id: 't-zero', left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' });
+      const { wrapper, box } = mountInPageWrapper(element, textNode(element), { onChange, pageWidthPoints: 600 });
       const corner = box.querySelector('[data-editor-resizer="bottom-left"]');
 
       act(() => {
@@ -384,8 +460,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
   describe('symbol (center-anchored resize)', () => {
     it('move: drag commits exactly the delta and leaves width/height untouched', () => {
       const onChange = vi.fn();
-      const element = { id: 'sym-move', type: 'symbol', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 };
-      const { wrapper, box } = mountInPageWrapper(element, <SymbolNode element={element} />, { onChange });
+      const element = symbol({ id: 'sym-move', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 });
+      const { wrapper, box } = mountInPageWrapper(element, symbolNode(element), { onChange });
 
       act(() => {
         box.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100, clientY: 100 }));
@@ -408,8 +484,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
       // resize is genuinely a no-op below, and this test's growth starts
       // from a self-consistent box rather than one the code would "correct"
       // regardless of drag input.
-      const element = { id: 'sym-anchor', type: 'symbol', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 };
-      const { wrapper, box } = mountInPageWrapper(element, <SymbolNode element={element} />, { onChange });
+      const element = symbol({ id: 'sym-anchor', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 });
+      const { wrapper, box } = mountInPageWrapper(element, symbolNode(element), { onChange });
       const corner = box.querySelector('[data-editor-resizer="bottom-right"]');
 
       const startCenterX = element.left + element.width / 2; // 50
@@ -433,8 +509,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
 
     it('zero-delta resize is a no-op', () => {
       const onChange = vi.fn();
-      const element = { id: 'sym-zero', type: 'symbol', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 };
-      const { wrapper, box } = mountInPageWrapper(element, <SymbolNode element={element} />, { onChange });
+      const element = symbol({ id: 'sym-zero', symbolType: 'check', left: 40, top: 40, width: 20, height: 15, aspectRatio: 1 });
+      const { wrapper, box } = mountInPageWrapper(element, symbolNode(element), { onChange });
       const corner = box.querySelector('[data-editor-resizer="top-left"]');
 
       act(() => {
@@ -455,8 +531,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
   describe('signature (center-anchored resize, same branch as symbol)', () => {
     it('move: drag commits exactly the delta and leaves width/height untouched', () => {
       const onChange = vi.fn();
-      const element = { id: 'sig-move', type: 'signature', dataUrl: 'data:image/png;base64,x', left: 30, top: 30, width: 24, height: 18, aspectRatio: 1 };
-      const { wrapper, box } = mountInPageWrapper(element, <SignatureNode element={element} />, { onChange });
+      const element = signature({ id: 'sig-move', dataUrl: 'data:image/png;base64,x', left: 30, top: 30, width: 24, height: 18, aspectRatio: 1 });
+      const { wrapper, box } = mountInPageWrapper(element, signatureNode(element), { onChange });
 
       act(() => {
         box.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100, clientY: 100 }));
@@ -474,8 +550,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
 
     it('anchor: growing from a corner keeps the CENTER point fixed — DraggableWrapper.tsx:279-301', () => {
       const onChange = vi.fn();
-      const element = { id: 'sig-anchor', type: 'signature', dataUrl: 'data:image/png;base64,x', left: 30, top: 30, width: 24, height: 18, aspectRatio: 1 };
-      const { wrapper, box } = mountInPageWrapper(element, <SignatureNode element={element} />, { onChange });
+      const element = signature({ id: 'sig-anchor', dataUrl: 'data:image/png;base64,x', left: 30, top: 30, width: 24, height: 18, aspectRatio: 1 });
+      const { wrapper, box } = mountInPageWrapper(element, signatureNode(element), { onChange });
       const corner = box.querySelector('[data-editor-resizer="bottom-right"]');
 
       const startCenterX = element.left + element.width / 2; // 42
@@ -498,8 +574,8 @@ describe('DraggableWrapper gesture invariants (E1.5)', () => {
 
     it('zero-delta resize is a no-op', () => {
       const onChange = vi.fn();
-      const element = { id: 'sig-zero', type: 'signature', dataUrl: 'data:image/png;base64,x', left: 30, top: 30, width: 24, height: 18, aspectRatio: 1 };
-      const { wrapper, box } = mountInPageWrapper(element, <SignatureNode element={element} />, { onChange });
+      const element = signature({ id: 'sig-zero', dataUrl: 'data:image/png;base64,x', left: 30, top: 30, width: 24, height: 18, aspectRatio: 1 });
+      const { wrapper, box } = mountInPageWrapper(element, signatureNode(element), { onChange });
       const corner = box.querySelector('[data-editor-resizer="top-right"]');
 
       act(() => {
