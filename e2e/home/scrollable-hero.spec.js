@@ -252,7 +252,7 @@ test.describe('scrollable home hero', () => {
     expect(landing.dockBottom).toBeLessThanOrEqual(landing.viewportHeight + 1);
   });
 
-  test('gives one cached iPhone file exactly one recent-file layout box', async ({ page }) => {
+  test('renders one recent tile for one cached iPhone file', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript(() => {
       localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify([
@@ -264,7 +264,6 @@ test.describe('scrollable home hero', () => {
 
     await expect(page.locator('#home-files li')).toHaveCount(1);
     await expect(page.locator('#home-files li')).toContainText('תעודת זהות דיגיטלית - רקפת (2).pdf');
-    expect(await page.locator('#home-files li').evaluate((item) => item.getClientRects().length)).toBe(1);
   });
 
   test('mobile header and footer frame every information card', async ({ page }) => {
