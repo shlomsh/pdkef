@@ -35,7 +35,7 @@ const others = guides.filter((guide) => guide.href !== currentHref);
           href={link?.href ?? guide.href}
           class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-[0.9rem] font-medium text-[var(--color-text)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)]"
         >
-          <guide.icon size={16} strokeWidth={1.75} class="text-[var(--color-primary)]" />
+          <guide.icon size={16} strokeWidth={1.75} class="text-[var(--color-primary-text)]" />
           {guide.label}
         </a>
       </li>;
@@ -43,7 +43,7 @@ const others = guides.filter((guide) => guide.href !== currentHref);
     <li class="m-0 p-0">
       <a
         href="/sign/"
-        class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-primary-tint)] bg-[var(--color-primary-soft)] px-4 py-2 text-[0.9rem] font-medium text-[var(--color-primary)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)]"
+        class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-primary-tint)] bg-[var(--color-primary-soft)] px-4 py-2 text-[0.9rem] font-medium text-[var(--color-primary-text)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)]"
       >
         <FileSignature size={16} strokeWidth={1.75} />
         {labels.openSignTool}

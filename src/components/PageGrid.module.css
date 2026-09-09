@@ -144,7 +144,7 @@
 .page-drag-handle:active {
   cursor: grabbing;
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 /* Rotate buttons under each thumbnail */
@@ -179,7 +179,7 @@
 .rotate-btn:hover {
   border-color: var(--color-primary);
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 /* SortableJS states for the page grid */
@@ -230,7 +230,7 @@
 .grid-actions button {
   background: transparent;
   border: 1px solid var(--color-border);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   font-size: 0.82rem;
   font-weight: 500;
   cursor: pointer;
@@ -249,7 +249,7 @@
 .grid-actions-hint {
   margin-left: auto;
   font-size: 0.78rem;
-  color: var(--color-muted-light);
+  color: var(--color-muted);
   align-self: center;
 }
 

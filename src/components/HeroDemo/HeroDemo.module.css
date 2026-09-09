@@ -833,7 +833,7 @@
   height: 40px;
   border-radius: 50%;
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -960,7 +960,7 @@
   height: 26px;
   border-radius: 50%;
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1026,7 +1026,7 @@
   grid-column: 1;
   grid-row: 1;
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   padding-block: 2px;
   padding-inline: 8px;
   border-radius: var(--radius-pill);
@@ -1224,7 +1224,7 @@
 .attach-tag {
   margin-inline-start: auto;
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   padding-block: 2px;
   padding-inline: 8px;
   border-radius: var(--radius-pill);

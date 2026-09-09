@@ -37,7 +37,7 @@
 .toolbar button:hover {
   border-color: var(--color-primary);
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .toolbar button:active {
@@ -47,7 +47,7 @@
 .toolbar button[aria-pressed='true'] {
   border-color: var(--color-primary);
   background: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 /* --- Quality-preset info tooltip (E2.4) --- */
@@ -67,7 +67,7 @@
 
 .info-icon:hover,
 .info-icon:focus-visible {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   outline: none;
 }
 

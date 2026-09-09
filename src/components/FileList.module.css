@@ -83,7 +83,7 @@
 }
 
 .drag-handle:hover {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   background: var(--color-primary-soft);
 }
 
@@ -93,7 +93,7 @@
 
 .drag-handle:focus-visible {
   outline: none;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   background: var(--color-primary-soft);
   box-shadow: var(--shadow-focus);
 }

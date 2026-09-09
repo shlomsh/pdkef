@@ -23,7 +23,7 @@
 
 /** Every `<a>` in body copy. */
 export const INLINE_LINK_CLASS =
-  'text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]';
+  'text-[var(--color-primary-text)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]';
 
 /**
  * `<strong>` has two forms, and the difference is not decorative: inside a

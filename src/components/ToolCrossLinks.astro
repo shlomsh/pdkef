@@ -28,7 +28,7 @@ const others = tools.filter((tool) => tool.slug !== currentSlug);
   aria-labelledby="more-tools-heading"
 >
   <div class="space-heading-content text-center">
-    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Same suite</span>
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">Same suite</span>
     <h2 id="more-tools-heading" class="type-section m-0 text-[var(--color-text)]">More PDF tools</h2>
     <p class="type-body mx-auto mt-3 mb-0 max-w-[46rem] text-[var(--color-muted)]">
       Every one of these runs on your device, free, with nothing uploaded.
@@ -42,7 +42,7 @@ const others = tools.filter((tool) => tool.slug !== currentSlug);
           href={tool.href}
           class="group flex h-full items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-inherit no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)] focus-visible:-translate-y-px focus-visible:border-[var(--color-border-strong)]"
         >
-          <span class="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] [&_svg]:block [&_svg]:size-[55%]">
+          <span class="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary-soft)] text-[var(--color-primary-text)] [&_svg]:block [&_svg]:size-[55%]">
             <tool.icon strokeWidth={1.5} />
           </span>
           <span class="min-w-0">

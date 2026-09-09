@@ -87,7 +87,7 @@ if (compressToolIndex !== -1) {
         <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} parallax />
         <div class="flex items-stretch gap-12 max-[768px]:flex-col max-[768px]:gap-8">
           <div class="min-w-0 flex-[1.2]">
-            <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Why I made this</span>
+            <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">Why I made this</span>
             <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Simple PDF tools, made to share</h2>
             <p class="type-lead space-content-row mt-0 max-w-[800px] text-[var(--color-text)]">
               My partner needed to merge course slides before an exam and sign a summer-camp form from WhatsApp. The tools we found had page limits, subscriptions, or asked us to upload personal documents.
@@ -99,26 +99,26 @@ if (compressToolIndex !== -1) {
               Everything runs in your browser. That keeps your files private and the tools inexpensive enough to stay free.
             </p>
             <p class="mb-0 mt-5 text-[0.9rem] italic text-[var(--color-muted)]">
-              <a class="font-semibold not-italic text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi</a>
+              <a class="font-semibold not-italic text-[var(--color-primary-text)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh" target="_blank" rel="noopener noreferrer">Shlomi</a>
             </p>
           </div>
           <div class="flex flex-1 flex-col justify-center overflow-hidden rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
             <div class="group flex items-center gap-4 px-6 py-5 transition-colors duration-[250ms] ease-out hover:bg-[var(--color-primary-tint)]">
-              <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-out group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><InfinityIcon size={20} strokeWidth={2} /></div>
+              <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary-text)] transition-[transform,background-color,color] duration-[250ms] ease-out group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><InfinityIcon size={20} strokeWidth={2} /></div>
               <div class="flex min-w-0 flex-col gap-[0.2rem]">
                 <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Free Forever</strong>
                 <span class="text-[0.85rem] text-[var(--color-muted)]">No limits, no catch</span>
               </div>
             </div>
             <div class="group flex items-center gap-4 border-t border-[var(--color-border)] px-6 py-5 transition-colors duration-[250ms] ease-out hover:bg-[var(--color-primary-tint)]">
-              <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-out group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><Lock size={20} strokeWidth={2} /></div>
+              <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary-text)] transition-[transform,background-color,color] duration-[250ms] ease-out group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><Lock size={20} strokeWidth={2} /></div>
               <div class="flex min-w-0 flex-col gap-[0.2rem]">
                 <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Private</strong>
                 <span class="text-[0.85rem] text-[var(--color-muted)]">Files never leave your device</span>
               </div>
             </div>
             <div class="group flex items-center gap-4 border-t border-[var(--color-border)] px-6 py-5 transition-colors duration-[250ms] ease-out hover:bg-[var(--color-primary-tint)]">
-              <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)] transition-[transform,background-color,color] duration-[250ms] ease-out group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><Code2 size={20} strokeWidth={2} /></div>
+              <div class="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary-text)] transition-[transform,background-color,color] duration-[250ms] ease-out group-hover:scale-105 group-hover:bg-[var(--color-primary)] group-hover:text-[var(--color-surface)]"><Code2 size={20} strokeWidth={2} /></div>
               <div class="flex min-w-0 flex-col gap-[0.2rem]">
                 <strong class="text-[0.95rem] font-semibold text-[var(--color-text)]">Open Source</strong>
                 <span class="text-[0.85rem] text-[var(--color-muted)]">Audit the code yourself</span>
@@ -170,7 +170,7 @@ if (compressToolIndex !== -1) {
 
               <div class="absolute left-[14%] top-[54%] flex -translate-y-full items-center gap-[0.45rem] rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[0.5rem] py-[0.3rem] text-[var(--color-muted)] shadow-sm">
                 <Type size={11} strokeWidth={2.2} />
-                <PenLine size={11} strokeWidth={2.2} class="text-[var(--color-primary)]" />
+                <PenLine size={11} strokeWidth={2.2} class="text-[var(--color-primary-text)]" />
                 <span class="h-3 w-px bg-[var(--color-border)]"></span>
                 <Trash2 size={11} strokeWidth={2.2} />
               </div>
@@ -182,7 +182,7 @@ if (compressToolIndex !== -1) {
             </div>
           </div>
           <div class="flex-[1.2]">
-            <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Privacy & Convenience</span>
+            <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">Privacy & Convenience</span>
             <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Close the tab. Keep your progress.</h2>
             <p class="type-lead space-content-row mt-0 text-[var(--color-text)]">
               Your PDF and edits are saved in this browser as you work. Come back after closing a tab or restarting your computer and continue from your saved draft.
@@ -203,15 +203,15 @@ if (compressToolIndex !== -1) {
 
         <div class="box-border mx-auto w-full max-w-[680px] overflow-hidden rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
           <div class="flex border-b border-[var(--color-border)] bg-[var(--color-surface-soft)] max-[640px]:flex-col" role="tablist" aria-label="Device installation guides">
-            <button class="offline-tab-btn active flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="true" aria-controls="guide-chrome" id="tab-chrome">
+            <button class="offline-tab-btn active flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary-text)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="true" aria-controls="guide-chrome" id="tab-chrome">
               <Monitor size={16} class="mr-2" />
               Chrome & Edge
             </button>
-            <button class="offline-tab-btn flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="false" aria-controls="guide-ios" id="tab-ios">
+            <button class="offline-tab-btn flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary-text)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="false" aria-controls="guide-ios" id="tab-ios">
               <Smartphone size={16} class="mr-2" />
               Safari (iOS)
             </button>
-            <button class="offline-tab-btn flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="false" aria-controls="guide-safari" id="tab-safari">
+            <button class="offline-tab-btn flex flex-1 items-center justify-center border-0 border-b-2 border-b-transparent bg-transparent p-4 text-[0.9rem] font-semibold text-[var(--color-muted)] transition-colors duration-200 ease-out hover:bg-[color-mix(in_srgb,var(--color-primary)_2%,transparent)] hover:text-[var(--color-text)] [&.active]:border-b-[var(--color-primary)] [&.active]:bg-[var(--color-surface)] [&.active]:text-[var(--color-primary-text)] max-[640px]:justify-start max-[640px]:border-b-0 max-[640px]:border-l-[3px] max-[640px]:border-l-transparent max-[640px]:px-5 max-[640px]:py-3 max-[640px]:[&.active]:border-l-[var(--color-primary)]" role="tab" aria-selected="false" aria-controls="guide-safari" id="tab-safari">
               <Compass size={16} class="mr-2" />
               Safari (macOS)
             </button>
@@ -221,15 +221,15 @@ if (compressToolIndex !== -1) {
             <div class="offline-tab-panel active hidden [&.active]:block" id="guide-chrome" role="tabpanel" aria-labelledby="tab-chrome">
               <ol class="m-0 flex list-none flex-col gap-3 p-0">
                 <li class="flex items-start gap-4">
-                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]">1</span>
                   <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Navigate to the site in Chrome or Edge.</span>
                 </li>
                 <li class="flex items-start gap-4">
-                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]">2</span>
                   <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Click the <strong class="font-semibold">Install</strong> icon (the screen with a down arrow) at the right of the address bar.</span>
                 </li>
                 <li class="flex items-start gap-4">
-                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]">3</span>
                   <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Alternatively, click the browser menu (three dots), select <strong class="font-semibold">Save and share</strong>, and click <strong class="font-semibold">Install PDkef</strong>.</span>
                 </li>
               </ol>
@@ -238,15 +238,15 @@ if (compressToolIndex !== -1) {
             <div class="offline-tab-panel hidden [&.active]:block" id="guide-ios" role="tabpanel" aria-labelledby="tab-ios">
               <ol class="m-0 flex list-none flex-col gap-3 p-0">
                 <li class="flex items-start gap-4">
-                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]">1</span>
                   <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Open the site in <strong class="font-semibold">Safari</strong> on your iPhone or iPad.</span>
                 </li>
                 <li class="flex items-start gap-4">
-                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]">2</span>
                   <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Tap the <strong class="font-semibold">Share</strong> button (square with an up arrow) in the toolbar.</span>
                 </li>
                 <li class="flex items-start gap-4">
-                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]">3</span>
                   <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Scroll down the options list and select <strong class="font-semibold">Add to Home Screen</strong>.</span>
                 </li>
               </ol>
@@ -255,15 +255,15 @@ if (compressToolIndex !== -1) {
             <div class="offline-tab-panel hidden [&.active]:block" id="guide-safari" role="tabpanel" aria-labelledby="tab-safari">
               <ol class="m-0 flex list-none flex-col gap-3 p-0">
                 <li class="flex items-start gap-4">
-                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">1</span>
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]">1</span>
                   <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Open the site in <strong class="font-semibold">Safari</strong> on your Mac.</span>
                 </li>
                 <li class="flex items-start gap-4">
-                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">2</span>
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]">2</span>
                   <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Click the <strong class="font-semibold">Share</strong> button in the top-right Safari toolbar.</span>
                 </li>
                 <li class="flex items-start gap-4">
-                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary)]">3</span>
+                  <span class="mt-[0.1rem] flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-soft)] text-[0.8rem] font-bold text-[var(--color-primary-text)]">3</span>
                   <span class="text-[0.95rem] leading-[1.5] text-[var(--color-text)]">Select <strong class="font-semibold">Add to Dock...</strong> from the dropdown menu and click <strong class="font-semibold">Add</strong>.</span>
                 </li>
               </ol>
@@ -301,7 +301,7 @@ if (compressToolIndex !== -1) {
     <FeatureCard class="relative isolate overflow-hidden">
       <CardDecor sketch="rings" icon={HelpCircle} iconPos="bl" iconSize={300} parallax />
       <div class="space-heading-content text-center">
-        <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">A few useful answers</span>
+        <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">A few useful answers</span>
         <h2 class="type-section m-0 text-[var(--color-text)]">Frequently asked questions</h2>
       </div>
       <div class="space-layout-gap grid grid-cols-2 gap-x-12 max-[768px]:grid-cols-1">
@@ -317,18 +317,18 @@ if (compressToolIndex !== -1) {
     <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
       <CardDecor sketch="arcs" icon={ShieldCheck} iconPos="cl" iconSize={300} parallax />
       <div class="w-full">
-        <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">Transparent & Secure</span>
+        <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">Transparent & Secure</span>
         <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">Private by design. Open to inspect.</h2>
         <div class="space-layout-gap grid grid-cols-2 max-[768px]:grid-cols-1">
           <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xs transition-[transform,box-shadow,border-color,color] duration-300 ease-out hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-md">
-            <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]"><Lock size={22} strokeWidth={2} /></div>
+            <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary-text)]"><Lock size={22} strokeWidth={2} /></div>
             <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Privacy</h3>
             <p class="type-lead m-0 text-[var(--color-text)]">Merge, sign, redact, and more in your browser. Your PDFs stay on your device, with no uploads or processing server.</p>
           </div>
           <div class="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xs transition-[transform,box-shadow,border-color,color] duration-300 ease-out hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-md">
-            <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]"><Code2 size={22} strokeWidth={2} /></div>
+            <div class="mb-[1.1rem] flex size-12 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-primary-soft)] text-[var(--color-primary-text)]"><Code2 size={22} strokeWidth={2} /></div>
             <h3 class="type-card mb-2 mt-0 text-[var(--color-text)]">Open source</h3>
-            <p class="type-lead m-0 text-[var(--color-text)]">PDkef is MIT licensed. <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">Read the code on GitHub</a>, or explore the <a class="text-[var(--color-primary)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/licenses/">open source licenses</a> behind the tools.</p>
+            <p class="type-lead m-0 text-[var(--color-text)]">PDkef is MIT licensed. <a class="text-[var(--color-primary-text)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">Read the code on GitHub</a>, or explore the <a class="text-[var(--color-primary-text)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]" href="/licenses/">open source licenses</a> behind the tools.</p>
             <span class="mt-[1.1rem] inline-flex items-center rounded-[var(--radius-pill)] bg-[var(--color-success-soft)] px-3 py-[0.3rem] text-[0.78rem] font-bold text-[var(--color-success)]">MIT Licensed</span>
           </div>
         </div>
@@ -371,7 +371,6 @@ if (compressToolIndex !== -1) {
        lively citron accent. Global tool-page tokens remain unchanged. */
     --color-text: #163847;
     --color-muted: #4a6980;
-    --color-annotation: #167a98;
     --home-workspace: #e4f5f7;
     --home-citron: #efffa6;
     --home-citron-ink: #4f6c2d;
@@ -419,13 +418,13 @@ if (compressToolIndex !== -1) {
   .home-header :global(.home-trust .trust-chip:hover) {
     border-color: var(--color-border-strong);
     background: var(--color-primary-soft);
-    color: var(--color-primary);
+    color: var(--color-primary-text);
   }
   .home-header :global(.home-trust .trust-chip:focus-visible) {
     outline: none;
     border-color: var(--color-primary);
     box-shadow: var(--shadow-focus);
-    color: var(--color-primary);
+    color: var(--color-primary-text);
   }
   .home-header :global(.home-trust .trust-chip-icon) { flex: none; width: 14px; height: 14px; display: block; }
   .home-header :global([data-home-bar] [aria-label='PDkef logo']) { align-self: center; }
@@ -450,7 +449,7 @@ if (compressToolIndex !== -1) {
      bare rule's implicit layer, so specificity is what settles it. */
   header.hero-header.hero-header { max-width: none; padding: 20px 24px 16px; margin: 0; text-align: center; }
   .hero-header h1 { color: var(--color-text); font-size: clamp(1.6rem, 3.4vw, 2.45rem); line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.035em; }
-  .hero-header h1 span { color: var(--color-primary); }
+  .hero-header h1 span { color: var(--color-primary-text); }
   .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
   #home-content { padding: 0; }
   /* The demo follows the complete hero in mobile source order. On larger

@@ -53,7 +53,7 @@ export const tools = [
     aboutLead:
       'Open a PDF from WhatsApp, email, or your device, then add text and a signature without printing. It works in your browser on a phone or computer, with no upload.',
     freeNoteLead:
-      'Fill and sign PDFs with no account, watermark, or page limit. Your signature and file are processed locally, and drafts can save in this browser so you can pick up later. For phone instructions, see <a class="font-medium text-[var(--color-primary)]" href="/how-to-sign-a-pdf-on-iphone/">sign a PDF on iPhone</a> or <a class="font-medium text-[var(--color-primary)]" href="/how-to-sign-a-pdf-on-android/">sign a PDF on Android</a>.',
+      'Fill and sign PDFs with no account, watermark, or page limit. Your signature and file are processed locally, and drafts can save in this browser so you can pick up later. For phone instructions, see <a class="font-medium text-[var(--color-primary-text)]" href="/how-to-sign-a-pdf-on-iphone/">sign a PDF on iPhone</a> or <a class="font-medium text-[var(--color-primary-text)]" href="/how-to-sign-a-pdf-on-android/">sign a PDF on Android</a>.',
     aboutSketch: 'waves',
     aboutIconPos: 'tr',
     faqSketch: 'arcs',
@@ -312,7 +312,7 @@ export const tools = [
     aboutLead:
       'Choose the result you want. Delete removes a selected text or image element from the PDF page. Blur softens visual detail, Blackout creates a solid cover, and Whiteout clears an area visually. Blur, Blackout and Whiteout work on typed PDFs and scans.',
     freeNoteLead:
-      'Blur or black out PDFs for free, with no signup, watermark, or daily cap. Your file and saved draft stay on your device. For examples and the trade-offs, see <a class="font-medium text-[var(--color-primary)]" href="/blur-vs-blackout-vs-delete-pdf/">Blur, Blackout or Delete: the visual guide</a>. Want to work offline? <a class="font-medium text-[var(--color-primary)]" href="/install-pdf-app/">Install PDkef</a> and let its required assets load before disconnecting.',
+      'Blur or black out PDFs for free, with no signup, watermark, or daily cap. Your file and saved draft stay on your device. For examples and the trade-offs, see <a class="font-medium text-[var(--color-primary-text)]" href="/blur-vs-blackout-vs-delete-pdf/">Blur, Blackout or Delete: the visual guide</a>. Want to work offline? <a class="font-medium text-[var(--color-primary-text)]" href="/install-pdf-app/">Install PDkef</a> and let its required assets load before disconnecting.',
     aboutSketch: 'grid',
     aboutIconPos: 'tr',
     faqSketch: 'rings',
