@@ -161,16 +161,14 @@ const recentFileKey = (id) => `${RECENT_FILE_PREFIX}${id}`;
  * this comparison.
  */
 export function recentDisplayKey(tool, fileName) {
-  // Files and share sheets on iOS sometimes add invisible Unicode format
-  // characters around RTL names. The exact character is provider-dependent:
-  // direction marks, isolates, word joiners and zero-width characters have
-  // all appeared here. Unicode's Default_Ignorable class expresses the actual
-  // identity rule — compare the filename a person can see — without chasing
-  // individual code points. Collapse visible whitespace variants as well.
+  // Files and share sheets on iOS sometimes add directionality marks around
+  // RTL names. They are invisible in the launcher, but made two visually
+  // identical filenames compare differently. Collapse ordinary whitespace as
+  // well: providers commonly turn a normal space into a no-break space.
   const name = typeof fileName === 'string'
     ? fileName
       .normalize('NFC')
-      .replace(/\p{Default_Ignorable_Code_Point}/gu, '')
+      .replace(/[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069]/g, '')
       .replace(/\s+/gu, ' ')
       .trim()
       .toLowerCase()

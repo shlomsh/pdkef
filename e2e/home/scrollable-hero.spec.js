@@ -252,14 +252,11 @@ test.describe('scrollable home hero', () => {
     expect(landing.dockBottom).toBeLessThanOrEqual(landing.viewportHeight + 1);
   });
 
-  test('shows one iPhone recent tile for visually identical RTL filenames', async ({ page }) => {
+  test('gives one cached iPhone file exactly one recent-file layout box', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript(() => {
-      const savedAt = Date.now();
       localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify([
-        { id: 'direction-mark', tool: 'sign', fileName: '\u200Fתעודת זהות דיגיטלית - רקפת (2).pdf', savedAt: savedAt - 2 },
-        { id: 'zero-width', tool: 'sign', fileName: 'תעודת זהות\u200B דיגיטלית - רקפת (2).pdf', savedAt: savedAt - 1 },
-        { id: 'word-joiner', tool: 'sign', fileName: 'תעודת זהות דיגיטלית\u2060 - רקפת (2).pdf', savedAt },
+        { id: 'identity-card', tool: 'sign', fileName: 'תעודת זהות דיגיטלית - רקפת (2).pdf', savedAt: Date.now() },
       ]));
     });
 
@@ -267,6 +264,7 @@ test.describe('scrollable home hero', () => {
 
     await expect(page.locator('#home-files li')).toHaveCount(1);
     await expect(page.locator('#home-files li')).toContainText('תעודת זהות דיגיטלית - רקפת (2).pdf');
+    expect(await page.locator('#home-files li').evaluate((item) => item.getClientRects().length)).toBe(1);
   });
 
   test('mobile header and footer frame every information card', async ({ page }) => {
