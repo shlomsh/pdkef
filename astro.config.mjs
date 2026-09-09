@@ -142,7 +142,7 @@ export default defineConfig({
       // comment on the script has the exact command to recompute it.
       scriptDirective: {
         src: ["'self'"],
-        hashes: ['sha256-SkN9DQL0i7KQnTpCN2Y0vdVHs8X+lzFpiOz88pu1A2E=']
+        hashes: ['sha256-j3OvyGCzR3SfgCzVvdAo2zAyZx91ozmlidBezH+RL60=']
       },
       styleDirective: { src: ["'self'"] }
     }
