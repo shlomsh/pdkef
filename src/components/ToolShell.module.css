@@ -77,7 +77,7 @@
   height: 34px;
   background: var(--color-surface);
   border-radius: 9px;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   box-shadow: var(--shadow-xs);
 }
 
@@ -169,7 +169,7 @@
   font-weight: 600;
   white-space: nowrap;
   background: var(--color-surface);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   cursor: pointer;

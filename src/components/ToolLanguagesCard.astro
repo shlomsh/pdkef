@@ -58,7 +58,7 @@ const {
 <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
   <CardDecor sketch={sketch} icon={Languages} iconPos={iconPos} iconSize={280} />
   <div>
-    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">{tag}</span>
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">{tag}</span>
     <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">{heading}</h2>
     <p class="type-lead space-content-row mt-0 max-w-[68ch] text-[var(--color-text)]">{lead}</p>
 
@@ -84,7 +84,7 @@ const {
                   mid-list. */}
               <span class="min-w-0">
                 <p class="mb-1 mt-0 text-[1.15rem] font-bold text-[var(--color-text)]">{language.native}</p>
-                <p class="m-0 text-[0.78rem] font-semibold uppercase text-[var(--color-primary)]">{language.name}</p>
+                <p class="m-0 text-[0.78rem] font-semibold uppercase text-[var(--color-primary-text)]">{language.name}</p>
               </span>
               <span
                 aria-hidden="true"
@@ -115,7 +115,7 @@ const {
           )}
           {contributeUrl && (
             <a
-              class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-2.5 text-[0.875rem] font-semibold text-[var(--color-text)] no-underline transition-[transform,border-color,background-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)]"
+              class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-2.5 text-[0.875rem] font-semibold text-[var(--color-text)] no-underline transition-[transform,border-color,background-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary-text)]"
               href={contributeUrl}
               target="_blank"
               rel="noopener noreferrer"

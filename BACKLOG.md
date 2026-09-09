@@ -61,7 +61,6 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | ARCH-12 | P2 | [ARCH-12](backlog/tasks/ARCH-12.md) · Validate canonical backlog and generated indexes in CI |
-| ARCH-14 | P2 | [ARCH-14](backlog/tasks/ARCH-14.md) · Type the editor interaction tests now covered by shared contracts |
 
 ### In progress
 
@@ -87,6 +86,7 @@ _None._
 | ARCH-10 | P2 | [ARCH-10](backlog/tasks/ARCH-10.md) · Replace permissive editor-shell types with shared contracts |
 | ARCH-11 | P2 | [ARCH-11](backlog/tasks/ARCH-11.md) · Enforce editor dependency directions in CI |
 | ARCH-13 | P2 | [ARCH-13](backlog/tasks/ARCH-13.md) · Restore CSS delivery-budget headroom |
+| ARCH-14 | P2 | [ARCH-14](backlog/tasks/ARCH-14.md) · Type the editor interaction tests now covered by shared contracts |
 
 ### Retired
 
@@ -192,9 +192,7 @@ _None._
 
 ### Open
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| QUAL-01 | P2 | [QUAL-01](backlog/tasks/QUAL-01.md) · --color-primary fails WCAG AA as link text |
+_None._
 
 ### In progress
 
@@ -208,6 +206,7 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
+| QUAL-01 | P2 | [QUAL-01](backlog/tasks/QUAL-01.md) · --color-primary fails WCAG AA as link text |
 | QUAL-02 | P2 | [QUAL-02](backlog/tasks/QUAL-02.md) · Two competing header padding rules, where specificity beats the media query |
 | QUAL-03 | P3 | [QUAL-03](backlog/tasks/QUAL-03.md) · flatten.svg has the palette baked in as 31 hex literals |
 

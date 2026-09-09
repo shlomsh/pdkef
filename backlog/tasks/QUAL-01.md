@@ -1,12 +1,12 @@
 ---
 id: "QUAL-01"
 title: "--color-primary fails WCAG AA as link text"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "site-quality"
 phase: "near-term"
 depends_on: []
-legacy_state: "Open"
+legacy_state: "Done 2026-09-09"
 ---
 
 # QUAL-01 · `--color-primary` fails WCAG AA as link text
@@ -48,3 +48,48 @@ confirm nothing renders body text in it.
 and large text at least 3:1. Buttons keep at least 4.5:1 for their label against their fill. Focus
 rings keep at least 3:1. The decision between the two shapes above is recorded in this ticket with its
 reasoning. Measured numbers, before and after, not assertions.
+
+## Outcome (2026-09-09)
+
+The second shape won: `--color-primary-text: #397281` now owns readable accent foregrounds, while
+`--color-primary: #3e7c8d` stays on button fills, borders and other surfaces. This keeps the Sea Glass
+register and makes the semantic choice explicit in both Astro utilities and CSS Modules. The default
+link rule and every former `color: var(--color-primary)` / `text-[var(--color-primary)]` foreground
+were migrated; direct backgrounds, borders, strokes, fills and accent controls were left on the
+surface token.
+
+The homepage refresh is covered by the same global split rather than another local exception. Its
+accent heading now measures 4.80:1 on `--home-workspace`, up from 4.18:1. The handwritten annotation
+ink moved from `#167a98` (4.38:1 there) to the global `--color-annotation: #147691` (4.64:1).
+
+### Measured contrast
+
+| Pair | Before | After |
+| --- | ---: | ---: |
+| Accent text on page background `#f4f9fa` | 4.42:1 | 5.07:1 |
+| Accent text on white | 4.70:1 | 5.39:1 |
+| Accent text on primary soft `#eef6f8` | 4.29:1 | 4.92:1 |
+| Accent text on primary tint `#e6f1f3` | 4.08:1 | 4.68:1 |
+| Accent text on homepage aqua `#e4f5f7` | 4.18:1 | 4.80:1 |
+| White label on primary button | 4.70:1 | 4.70:1 |
+| White label on primary hover | 3.71:1 | 5.39:1 |
+| White label on primary active | 5.78:1 | 5.78:1 |
+
+The neighbour audit found five readable uses of `--color-muted-light`, not zero: the airplane-mode
+invitation, page-grid hint, undo timestamp, dropzone subtext and editor shortcut hint. Those now use
+`--color-muted`. The audit also found existing muted copy on the darker sunken surface, where the old
+`#54707c` reached only 3.83:1, so the global muted token moved to `#4a6570`: 4.51:1 on sunken,
+5.84:1 on the page background and 6.20:1 on white. Remaining muted-light uses are decorative
+marks/icons, borders, an inactive-control label exempt from text contrast, and the off-state switch
+track.
+
+The focus audit also corrected an assumption in the original scope. The global solid outline already
+passed, but module focus states using `--shadow-focus` inherited the 35%-opacity decorative ring and
+composited to only 1.46-1.59:1. `--shadow-focus` now uses the solid primary token (3.41:1 even against
+the darkest Sea Glass surface); `--color-primary-ring` remains soft for decorative shadows.
+
+`src/styles/colorContrast.test.js` locks all of these token/surface pairs; its 18 assertions pass. The
+2,099-test unit suite and typecheck passed against the QUAL-01 change set before subsequent unrelated
+working-tree edits. The production build, CSS/class/duplication checks, SEO check, CSP check and
+page-weight check pass, and an uncached production render of `/` loads with the refreshed hero and
+shared theme intact.

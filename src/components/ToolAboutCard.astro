@@ -27,7 +27,7 @@ interface Props {
 
 // Defined once for the whole suite so the open-source message can never drift.
 const sharedOpenSource =
-  'It\'s open source under the MIT license, so anyone can read the code, <a class="font-medium text-[var(--color-primary)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">fork it on GitHub</a>, or share it. Simple PDF tools should be free for everyone.';
+  'It\'s open source under the MIT license, so anyone can read the code, <a class="font-medium text-[var(--color-primary-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">fork it on GitHub</a>, or share it. Simple PDF tools should be free for everyone.';
 
 const defaultLead =
   "PDkef runs entirely in your browser, so there's no server to pay for and no reason to charge you, add a watermark, show ads, or ask you to sign up. Use it as much as you like.";
@@ -47,7 +47,7 @@ const {
 <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
   <CardDecor sketch={sketch} icon={icon} iconPos={iconPos} iconSize={280} />
   <div>
-    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary)]">{tag}</span>
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">{tag}</span>
     <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">{heading}</h2>
     <p class="type-lead space-content-row mt-0 max-w-[68ch] text-[var(--color-text)]">{lead}</p>
     <ol class="mb-7 mt-0 flex list-decimal flex-col gap-[0.6rem] pl-5">

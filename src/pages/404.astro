@@ -10,7 +10,7 @@ const description = 'The page you are looking for does not exist. Browse our fre
 
 <BaseLayout title={title} description={description} noindex={true}>
   <header class="not-found-header mx-auto max-w-[540px] px-6 pb-10 pt-[4.5rem] text-center">
-    <div class="mb-6 inline-flex size-20 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
+    <div class="mb-6 inline-flex size-20 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-primary-soft)] text-[var(--color-primary-text)]">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
         <path d="M14 2v6h6" />
@@ -26,7 +26,7 @@ const description = 'The page you are looking for does not exist. Browse our fre
   <main>
     <div class="mx-auto mb-12 grid max-w-[760px] grid-cols-4 gap-[0.85rem] px-6 max-[768px]:grid-cols-2">
       {tools.map((tool) => (
-        <a href={tool.href} class="flex items-center justify-center rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-4 text-center text-[0.92rem] font-medium text-[var(--color-text)] no-underline shadow-sm transition-[transform,box-shadow,border-color,color] duration-200 ease-out hover:-translate-y-[3px] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:shadow-md">
+        <a href={tool.href} class="flex items-center justify-center rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-4 text-center text-[0.92rem] font-medium text-[var(--color-text)] no-underline shadow-sm transition-[transform,box-shadow,border-color,color] duration-200 ease-out hover:-translate-y-[3px] hover:border-[var(--color-primary)] hover:text-[var(--color-primary-text)] hover:shadow-md">
           {tool.toolName}
         </a>
       ))}
