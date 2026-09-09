@@ -24,18 +24,12 @@ test('the visible demo plays without scrolling, scroll scrubs it, and story two 
   // Exercise the two track endpoints directly. The following live scrub
   // check verifies ScrollDriver's timeline; splitting that concern from this
   // geometry guard avoids sampling a coalesced programmatic scroll mid-frame.
-  await page.evaluate(() => {
+  const handoff = await page.evaluate(() => {
+    // ScrollDriver updates this property once per animation frame. Keep the
+    // override and measurement in one task so the test observes its explicit
+    // endpoints rather than a subsequent autoplay frame.
     document.querySelector('[data-hero-track="sign"]')?.style.setProperty('--story-slide', '-100%');
     document.querySelector('[data-hero-track="blur"]')?.style.setProperty('--story-slide', '100%');
-  });
-  await expect.poll(() => page.evaluate(() => {
-    const root = document.querySelector('[data-home-demo]')?.getBoundingClientRect();
-    const sign = document.querySelector('[data-hero-track="sign"]')?.getBoundingClientRect();
-    const blur = document.querySelector('[data-hero-track="blur"]')?.getBoundingClientRect();
-    if (!root || !sign || !blur) return null;
-    return { rootLeft: root.left, width: root.width, signLeft: sign.left, blurLeft: blur.left };
-  })).not.toBeNull();
-  const handoff = await page.evaluate(() => {
     const root = document.querySelector('[data-home-demo]')?.getBoundingClientRect();
     const sign = document.querySelector('[data-hero-track="sign"]')?.getBoundingClientRect();
     const blur = document.querySelector('[data-hero-track="blur"]')?.getBoundingClientRect();
