@@ -618,11 +618,9 @@ if (compressToolIndex !== -1) {
     .hero-header p { font-size: 0.85rem; }
     .home-workspace { box-sizing: border-box; flex: 1 0 auto; min-height: 13rem; max-width: none; margin-inline: 0; padding: 24px; display: flex; align-items: flex-start; justify-content: center; }
     .home-tour {
-      --home-stage-height: 100svh;
       min-height: 100svh;
       height: calc(100svh + 1116svh);
     }
-    .home-frame { height: 100svh; }
     .home-scene { grid-template-columns: 1fr; padding: 0 16px; gap: 8px; align-content: start; }
     .workspace-launcher { max-width: none; }
     .home-dock { gap: 12px; padding: 10px 16px; justify-content: flex-start; }
@@ -641,11 +639,13 @@ if (compressToolIndex !== -1) {
       inset: 0 0 auto;
       z-index: 70;
     }
-    :global(body[data-home-demo-visible]) .home-tour {
+    /* Keep the geometry identical as the demo approaches and pins. Adding
+       toolbar clearance only when visible makes its title jump down. */
+    .home-tour {
       --demo-frame-gap: var(--space-3);
       --home-stage-height: calc(100svh - var(--home-nav-height) - var(--home-footer-height) - var(--demo-frame-gap) - var(--demo-frame-gap));
     }
-    :global(body[data-home-demo-visible]) .home-frame {
+    .home-frame {
       box-sizing: border-box;
       height: 100svh;
       padding-block: calc(var(--home-nav-height) + var(--demo-frame-gap)) calc(var(--home-footer-height) + var(--demo-frame-gap));
