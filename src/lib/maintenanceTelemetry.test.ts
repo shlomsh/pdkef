@@ -1,9 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   classifyExportError,
-  MAINTENANCE_SAMPLE_RATE,
   reportMaintenanceEvent,
-  reportSampledMaintenanceEvent,
   sanitizeAnalyticsEvent,
   sanitizeAnalyticsPath,
   signExportFailed,
@@ -72,14 +70,14 @@ describe('anonymous maintenance telemetry', () => {
     expect(reportMaintenanceEvent(signExportSucceeded(10), () => { throw new Error('offline'); })).toBe(false);
   });
 
-  it('samples without creating a visitor or document identifier', () => {
+  it('reports every approved event without creating a visitor or document identifier', () => {
     const transport = vi.fn();
     const originalOnline = Object.getOwnPropertyDescriptor(navigator, 'onLine');
     Object.defineProperty(navigator, 'onLine', { configurable: true, value: true });
     try {
-      expect(reportSampledMaintenanceEvent(signExportSucceeded(10), transport, () => MAINTENANCE_SAMPLE_RATE - 0.001)).toBe(true);
-      expect(reportSampledMaintenanceEvent(signExportSucceeded(10), transport, () => MAINTENANCE_SAMPLE_RATE)).toBe(false);
-      expect(transport).toHaveBeenCalledOnce();
+      expect(reportMaintenanceEvent(signExportSucceeded(10), transport)).toBe(true);
+      expect(reportMaintenanceEvent(signExportSucceeded(10), transport)).toBe(true);
+      expect(transport).toHaveBeenCalledTimes(2);
       expect(JSON.stringify(transport.mock.calls)).not.toContain('document');
     } finally {
       if (originalOnline) Object.defineProperty(navigator, 'onLine', originalOnline);

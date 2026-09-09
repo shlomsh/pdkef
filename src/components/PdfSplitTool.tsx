@@ -270,6 +270,8 @@ export default function PdfSplitTool() {
   return (
     <BasePdfTool
       hasFiles={hasFiles}
+      analyticsTool="split"
+      analyticsStatus={status}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       fileLabel={file?.name}

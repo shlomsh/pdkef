@@ -36,6 +36,7 @@ import workspaceStyles from './SignTool/Workspace.module.css';
 import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../lib/format.js';
 import useCurrentPage from '../lib/useCurrentPage.js';
+import { reportToolLifecycleEvent } from '../lib/productAnalytics.ts';
 import type { RedactToolType } from '../editor/model/editorModel.ts';
 
 type RedactHistoryElement = {
@@ -512,6 +513,7 @@ export default function PdfRedactTool() {
     setErrorDetail(null);
     setStatus('redacting');
     setProgress(0);
+    reportToolLifecycleEvent('tool_operation_started', 'redact');
     const hasBoxes = elements.some((el) => el.type !== 'delete');
     setAnnouncement(
       hasBoxes ? 'Applying redactions and flattening pages...' : 'Removing selected content...',
@@ -520,6 +522,7 @@ export default function PdfRedactTool() {
     try {
       const redactedBlob = await applyPageEdits(file, elements, (p) => setProgress(p));
       const filename = `redacted_${file.name}`;
+      reportToolLifecycleEvent('tool_result_ready', 'redact');
 
       if (exportAction === 'share' && prepare(redactedBlob, filename)) {
         setStatus('editing');
@@ -531,6 +534,7 @@ export default function PdfRedactTool() {
       }
     } catch (err) {
       console.error(err);
+      reportToolLifecycleEvent('tool_operation_failed', 'redact');
       // Recoverable: keep the workspace mounted so the boxes that caused the
       // failure are still there to fix, instead of unmounting the editor
       // behind a dead-end error screen (status='error' is reserved for a
@@ -557,6 +561,7 @@ export default function PdfRedactTool() {
   return (
     <BasePdfTool
       hasFiles={!!file}
+      analyticsTool="redact"
       onFilesAdded={handleFilesAdded}
       multiple={false}
       accept=".pdf,application/pdf"

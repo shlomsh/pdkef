@@ -143,6 +143,8 @@ export default function PdfToImageTool() {
   return (
     <BasePdfTool
       hasFiles={hasFiles}
+      analyticsTool="pdf-to-image"
+      analyticsStatus={status}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       fileLabel={file?.name}
