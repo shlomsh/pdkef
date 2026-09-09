@@ -14,12 +14,6 @@ vi.mock('../editor/workspace/draftStore.js', () => ({
   saveHandoff: vi.fn(() => Promise.resolve(true)),
   readRecentFiles: vi.fn(() => []),
   loadRecentFile: vi.fn(() => Promise.resolve(null)),
-  recentDisplayKey: (tool, fileName) => `${tool || ''}\u0000${(fileName || '')
-    .normalize('NFC')
-    .replace(/[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069]/g, '')
-    .replace(/\s+/gu, ' ')
-    .trim()
-    .toLowerCase()}`,
   // Synchronous by contract (see draftStore.js) - the resume card reads it at
   // mount time, before any of the async mocks above would have settled.
   readDraftMeta: vi.fn(() => null),
@@ -148,9 +142,9 @@ describe('FileDropzone', () => {
       expect(container.textContent).not.toContain('recent-6.pdf');
     });
 
-    it('does not add a legacy draft when its filename differs only by iOS direction marks', () => {
+    it('does not add a legacy draft already represented in the recent cache', () => {
       readRecentFiles.mockReturnValue([{
-        id: 'cached-id', tool: 'sign', fileName: '\u200Fספח תעודת זהות.pdf', savedAt: Date.now(),
+        id: 'cached-id', tool: 'sign', fileName: 'ספח תעודת זהות.pdf', savedAt: Date.now(),
       }]);
       readDraftMeta.mockImplementation((tool) => tool === 'sign'
         ? { fileName: 'ספח תעודת זהות.pdf', savedAt: Date.now() - 1_000 }

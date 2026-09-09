@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { loadDraft, deleteDraft, saveHandoff, readDraftMeta, readRecentFiles, loadRecentFile, attachDraftPreview, recentDisplayKey } from '../editor/workspace/draftStore.js';
+import { loadDraft, deleteDraft, saveHandoff, readDraftMeta, readRecentFiles, loadRecentFile, attachDraftPreview } from '../editor/workspace/draftStore.js';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import dialogStyles from './Dialog.module.css';
 import ResumeDraftCard from './ResumeDraftCard.tsx';
@@ -20,8 +20,8 @@ function readHomeRecents(): any[] {
   const cachedDocuments = cached.map((entry: any) => ({ ...entry, cacheId: entry.id }));
   // Draft metadata from older sessions predates the recent-file cache. Include
   // it until that document is opened again, but never show one document twice.
-  const known = new Set(cachedDocuments.map((entry: any) => recentDisplayKey(entry.tool, entry.fileName)));
-  const legacyDrafts = readAllDraftMeta().filter((entry: any) => !known.has(recentDisplayKey(entry.tool, entry.fileName)));
+  const known = new Set(cachedDocuments.map((entry: any) => `${entry.tool}:${entry.fileName}`));
+  const legacyDrafts = readAllDraftMeta().filter((entry: any) => !known.has(`${entry.tool}:${entry.fileName}`));
   return [...cachedDocuments, ...legacyDrafts]
     .sort((a: any, b: any) => (b.savedAt || 0) - (a.savedAt || 0))
     .slice(0, 6);
@@ -74,15 +74,7 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
       const file = new File([cached.fileBytes], cached.fileName, { type: cached.fileType || 'application/pdf' });
       const draft: any = await loadDraft(target);
       if (draft?.fileBytes) {
-        // A recent cache entry is the source copy for the same draft. Sending
-        // it through a handoff would delete that draft, then make the editor
-        // restore the identical file as though it were a replacement. The
-        // display-key fallback covers iOS providers that recreate PDF bytes
-        // (and therefore the SHA-256 cache id) while keeping the visible file
-        // name unchanged.
-        const isCurrentDocument = draft.sourceId === recent.cacheId
-          || recentDisplayKey(target, draft.fileName) === recentDisplayKey(target, cached.fileName);
-        if (isCurrentDocument) {
+        if (draft.sourceId === recent.cacheId) {
           window.location.href = `/${target}/`;
           return;
         }

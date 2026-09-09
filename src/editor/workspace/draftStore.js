@@ -146,36 +146,6 @@ export const MAX_RECENT_FILES = 6;
 
 const recentFileKey = (id) => `${RECENT_FILE_PREFIX}${id}`;
 
-/**
- * A PDF's byte hash is the authoritative cache key, but it cannot be the
- * only way the launcher recognizes one document. iOS file providers can hand
- * Safari the same visible file with a regenerated PDF wrapper (for example
- * after a Files share-sheet round trip). The pages look and are named exactly
- * the same, while their byte hashes differ, so hash-only deduplication showed
- * two copies of every document on the home screen.
- *
- * This is deliberately scoped to a tool: two unrelated PDFs named
- * "document.pdf" can still appear when they were opened in different tools,
- * while reopening a same-named document in one tool replaces its older recent
- * entry. NFC also makes provider-specific Unicode normalization invisible to
- * this comparison.
- */
-export function recentDisplayKey(tool, fileName) {
-  // Files and share sheets on iOS sometimes add directionality marks around
-  // RTL names. They are invisible in the launcher, but made two visually
-  // identical filenames compare differently. Collapse ordinary whitespace as
-  // well: providers commonly turn a normal space into a no-break space.
-  const name = typeof fileName === 'string'
-    ? fileName
-      .normalize('NFC')
-      .replace(/[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069]/g, '')
-      .replace(/\s+/gu, ' ')
-      .trim()
-      .toLowerCase()
-    : 'untitled document';
-  return `${tool || ''}\u0000${name}`;
-}
-
 function writeRecentFiles(entries) {
   try {
     localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify(entries));
@@ -200,16 +170,13 @@ function readRecentEntries() {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    const seenIds = new Set();
-    const seenDocuments = new Set();
+    const seen = new Set();
     const entries = parsed
       .filter(validRecentEntry)
       .sort((a, b) => b.savedAt - a.savedAt)
       .filter((entry) => {
-        const displayKey = recentDisplayKey(entry.tool, entry.fileName);
-        if (seenIds.has(entry.id) || seenDocuments.has(displayKey)) return false;
-        seenIds.add(entry.id);
-        seenDocuments.add(displayKey);
+        if (seen.has(entry.id)) return false;
+        seen.add(entry.id);
         return true;
       })
       .slice(0, MAX_RECENT_FILES);
@@ -242,9 +209,8 @@ export async function cacheRecentFile(tool, record) {
   const id = await sourceIdForBytes(record.fileBytes).catch(() => null);
   if (!id) return false;
   const savedAt = Date.now();
-  const displayKey = recentDisplayKey(tool, record.fileName);
   const existing = readRecentEntries();
-  const previous = existing.find((entry) => entry.id === id || recentDisplayKey(entry.tool, entry.fileName) === displayKey);
+  const previous = existing.find((entry) => entry.id === id);
   const entry = {
     id,
     tool,
@@ -253,11 +219,7 @@ export async function cacheRecentFile(tool, record) {
     savedAt,
     ...(record.preview || previous?.preview ? { preview: record.preview || previous.preview } : {}),
   };
-  // Prefer the just-opened file for its display identity too. This catches
-  // iOS providers that recreate equivalent PDFs with different byte hashes.
-  const entries = [entry, ...existing.filter((item) =>
-    item.id !== id && recentDisplayKey(item.tool, item.fileName) !== displayKey,
-  )];
+  const entries = [entry, ...existing.filter((item) => item.id !== id)];
   const kept = entries.slice(0, MAX_RECENT_FILES);
   try {
     await withStore('readwrite', (store) => {

@@ -1,8 +1,4 @@
-/* Keep the semantic section and list as real layout boxes. Nested
-   `display: contents` made the list items pretend to be grandchildren of the
-   launcher grid, a path WebKit can populate incorrectly after PWA hydration.
-   Owning the three-column grid here gives every recent document exactly one
-   stable box in the render tree. */
+/* Keep real layout boxes; Safari can misrender nested `display: contents`. */
 .card { grid-column: 1 / -1; min-width: 0; }
 .list {
   display: grid;
