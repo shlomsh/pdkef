@@ -84,7 +84,7 @@
      compact columns avoid turning the picker into a fourth row, which is what
      used to push the tool dock below an iPhone landing viewport. The cards
      remain comfortably larger than a touch target; their previews and copy
-     tighten in ResumeDraftCard.module.css. */
+     tighten in RecentFiles.module.css. */
   .launcher { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 8px; max-width: none; }
   .launcher > .tile { width: 100%; min-height: 132px; padding: 8px; }
 

@@ -57,7 +57,7 @@ if (compressToolIndex !== -1) {
       </header>
     </div>
     <div class="workspace-launcher home-workspace" id="home-files" data-working-area>
-      <FileDropzone client:load toolTarget="sign" />
+      <FileDropzone client:only="preact" toolTarget="sign" />
     </div>
     <nav class="home-dock" aria-label="PDF tools">
         {homeTools.map((tool) => (

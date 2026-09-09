@@ -113,6 +113,19 @@ describe('readRecentFiles', () => {
       'sha256:another-file',
     ]);
   });
+
+  it('keeps one newest entry when the same content is opened in another tool', () => {
+    const now = Date.now();
+    localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify([
+      { id: 'sha256:same-file', tool: 'sign', fileName: 'identity.pdf', savedAt: now - 1_000 },
+      { id: 'sha256:same-file', tool: 'redact', fileName: 'identity.pdf', savedAt: now },
+    ]));
+
+    expect(readRecentFiles()).toEqual([
+      { id: 'sha256:same-file', tool: 'redact', fileName: 'identity.pdf', savedAt: now },
+    ]);
+    expect(JSON.parse(localStorage.getItem('pdf-toolkit:workspace:recent-files'))).toHaveLength(1);
+  });
 });
 
 // attachDraftPreview closes the window where a draft exists with no thumbnail.

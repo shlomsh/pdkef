@@ -1,4 +1,4 @@
-/* Keep real layout boxes; Safari can misrender nested `display: contents`. */
+/* Keep real layout boxes; the hydrated list must have one stable owner. */
 .card { grid-column: 1 / -1; min-width: 0; }
 .list {
   display: grid;
@@ -14,12 +14,7 @@
 .document:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
 .document:disabled { cursor: wait; opacity: 0.72; }
 .preview { box-sizing: border-box; width: 64px; height: 84px; object-fit: cover; border: 1px solid var(--color-border); background: var(--color-surface); box-shadow: 0 5px 9px -5px var(--color-primary-ring), inset 0 1px 0 var(--color-surface); }
-/* Two lines, then an ellipsis, with the full name on hover (title attribute in
-   the component). Unclamped this wrapped `overflow-wrap: anywhere`, so a real
-   filename - "Service_Pages_Income_tax_annual-report-2024_itc101(3).pdf" - ran
-   to four lines and made its tile twice the height of its neighbour, which is
-   also why the row's reserved min-height above could not hold. Every file
-   manager clamps for the same reason. */
+/* Keep long filenames to two lines; the title attribute preserves the full name. */
 .name {
   max-width: 100%;
   min-height: 2.6em;
@@ -34,12 +29,7 @@
   overflow: hidden;
 }
 .sub { font-size: 0.73rem; color: var(--color-muted); }
-.hint { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-@media (pointer: coarse) { .hint { display: none; } }
 @media (max-width: 767px) {
-  /* This is paired with FileDropzone's 132px mobile grid row. Six documents
-     plus the picker must leave the home tool dock fully visible on an iPhone,
-     without reducing the cards themselves below a useful tap surface. */
   .document { min-height: 132px; gap: 3px; padding: 4px 2px; }
   .list { gap: 16px 8px; }
   .preview { height: clamp(62px, 9svh, 84px); width: auto; aspect-ratio: 16 / 21; }

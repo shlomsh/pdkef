@@ -11,7 +11,7 @@
  * language quietly losing coverage after a font swap, a "not yet" item that
  * quietly became true. This file is that check - it does not touch tools.js
  * or the card at runtime (see the comment above the `languages:` key in
- * tools.js for why: that file feeds ResumeDraftCard's client bundle, and
+ * tools.js for why: that file feeds RecentFiles' client bundle, and
  * importing the report there would cost real page weight on a page already
  * near its budget), it only fails the build when the two disagree.
  */
