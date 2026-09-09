@@ -16,19 +16,39 @@ const homeFooter = cardStack?.querySelector<HTMLElement>('footer');
 // The desktop demo needs two real columns for its caption and phone; narrower
 // tablet widths use the safer single-column hero instead of squeezing either.
 const mobile = matchMedia('(max-width: 1023px)');
+
+function mobileLayoutIsCurrent() {
+  return hero?.nextElementSibling === content
+    && scene?.parentElement === frame
+    && header?.parentElement === hero
+    && launcher?.parentElement === hero
+    && dock?.parentElement === hero;
+}
+
+function desktopLayoutIsCurrent() {
+  return hero?.parentElement === frame
+    && scene?.parentElement === hero
+    && launcher?.parentElement === scene
+    && header?.parentElement === hero
+    && dock?.parentElement === hero;
+}
+
 function arrangeWorkspace() {
   if (!hero || !content || !tour || !frame || !scene || !launcher || !dock || !header) return;
   if (mobile.matches) {
+    if (mobileLayoutIsCurrent()) return;
     content.before(hero);
     frame.append(scene);
     hero.append(header, launcher, dock);
   }
   else {
+    if (desktopLayoutIsCurrent()) return;
     scene.prepend(launcher);
     hero.append(header, scene, dock);
     frame.append(hero);
   }
 }
+
 arrangeWorkspace();
 mobile.addEventListener('change', arrangeWorkspace);
 // Browser responsive modes do not all dispatch MediaQueryList changes at the

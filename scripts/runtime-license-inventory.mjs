@@ -21,7 +21,7 @@ export const APPROVED_RUNTIME_LICENSES = new Set([
 // dependency trees are build-only and deliberately not traversed below.
 export const RUNTIME_ROOT_PACKAGES = [
   '@astrojs/preact', '@cantoo/pdf-lib', '@floating-ui/dom', '@floating-ui/react', '@pdf-lib/fontkit',
-  '@vercel/analytics', 'astro', 'bidi-js', 'lucide-preact', 'pdfjs-dist', 'preact',
+  '@vercel/analytics', '@vercel/speed-insights', 'astro', 'bidi-js', 'lucide-preact', 'pdfjs-dist', 'preact',
   'regenerator-runtime', 'signature_pad', 'sortablejs',
 ];
 

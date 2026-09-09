@@ -28,5 +28,10 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'webkit',
+      testMatch: '**/recent-files.spec.js',
+      use: { ...devices['iPhone 15'] },
+    },
   ],
 });

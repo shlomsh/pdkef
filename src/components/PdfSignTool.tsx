@@ -42,8 +42,9 @@ import {
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { getSignExportReadiness } from '../lib/signExportReadiness.ts';
+import { reportToolLifecycleEvent } from '../lib/productAnalytics.ts';
 import {
-  reportSampledMaintenanceEvent,
+  reportMaintenanceEvent,
   signExportFailed,
   signExportSucceeded,
   vercelMaintenanceTransport,
@@ -804,6 +805,7 @@ function PdfSignToolInner() {
       setStatus('signing');
       setProgress(0);
       setAnnouncement('Writing signatures and text layers into PDF...');
+      reportToolLifecycleEvent('tool_operation_started', 'sign');
     }
     const exportStartedAt = performance.now();
     // Development/test exports never contact the production analytics adapter.
@@ -820,7 +822,8 @@ function PdfSignToolInner() {
         || currentFileRef.current !== sourceFile) return;
       activeExportRequestRef.current = null;
       if (!speculative) {
-        reportSampledMaintenanceEvent(signExportSucceeded(performance.now() - exportStartedAt), telemetryTransport);
+        reportMaintenanceEvent(signExportSucceeded(performance.now() - exportStartedAt), telemetryTransport);
+        reportToolLifecycleEvent('tool_result_ready', 'sign');
       }
       onSigned(signedBlob, `signed_${sourceFile.name}`);
     } catch (err) {
@@ -830,7 +833,8 @@ function PdfSignToolInner() {
         console.error(err);
         return;
       }
-      reportSampledMaintenanceEvent(signExportFailed(performance.now() - exportStartedAt, err), telemetryTransport);
+      reportMaintenanceEvent(signExportFailed(performance.now() - exportStartedAt, err), telemetryTransport);
+      reportToolLifecycleEvent('tool_operation_failed', 'sign');
       console.error(err);
       setStatus('editing');
       const detail = describeSignFailure(err);
@@ -914,6 +918,7 @@ function PdfSignToolInner() {
   return (
     <BasePdfTool
       hasFiles={hasFiles}
+      analyticsTool="sign"
       onFilesAdded={handleFilesAdded}
       multiple={false}
       fileLabel={file?.name}

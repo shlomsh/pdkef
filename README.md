@@ -16,7 +16,7 @@ Then I wanted to share it. I believe simple tools like these should be free and 
 
 **Free, actually free.** No signup wall, no "3 free merges then pay," no watermark stamped across your output. It's free because it costs me almost nothing to run - static files on a CDN, no server to scale, no storage to pay for.
 
-**Open source so you don't have to take my word for it.** You can inspect how PDkef handles files: PDF contents, typed text, signatures, and filenames stay on your device and are never uploaded for processing. The hosted site collects limited anonymous aggregate maintenance signals, kept separate from document processing; it does not use accounts or cookies. MIT licensed, fork it, audit it, run it yourself.
+**Open source so you don't have to take my word for it.** You can inspect how PDkef handles files: PDF contents, typed text, signatures, and filenames stay on your device and are never uploaded for processing. The hosted site collects limited anonymous aggregate maintenance and performance signals, kept separate from document processing; it does not use accounts or cookies. MIT licensed, fork it, audit it, run it yourself.
 
 **Fast, because the architecture stays lean.** The site is built with Astro in islands mode - the SEO content, FAQ, and how-to sections are plain static HTML with zero JavaScript, and the merge tool itself is the *only* interactive piece, a small Preact island. That split keeps the page fast and keeps the surface area for bugs (and bloat) small.
 
@@ -70,7 +70,7 @@ npm run test:e2e # Build and run browser release checks
 
 Offline support and installability come from a hand-written service worker (`public/sw.js`) and a static `public/manifest.webmanifest`, not a build plugin - no PWA plugin is used (see CLAUDE.md for why).
 
-PDkef itself is MIT licensed; third-party components retain their own licenses. Browser runtime dependencies use a reviewed permissive allowlist: MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clause, Zlib, and 0BSD. The exact inventory and notices are checked in CI; see `THIRD_PARTY_LICENSES.md`. PDF processing dependencies run locally; the hosted site separately includes Vercel Web Analytics for the limited anonymous aggregate maintenance signals described above.
+PDkef itself is MIT licensed; third-party components retain their own licenses. Browser runtime dependencies use a reviewed permissive allowlist: MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clause, Zlib, and 0BSD. The exact inventory and notices are checked in CI; see `THIRD_PARTY_LICENSES.md`. PDF processing dependencies run locally; the hosted site separately includes Vercel Web Analytics and Speed Insights for the limited anonymous aggregate maintenance and performance signals described above.
 
 See [CLAUDE.md](./CLAUDE.md) for architecture notes and the design standard, and [backlog/tasks](./backlog/tasks/) for the canonical backlog.
 
