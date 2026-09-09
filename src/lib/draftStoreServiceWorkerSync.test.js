@@ -12,17 +12,16 @@ const workerSource = fs.readFileSync(path.join(process.cwd(), SERVICE_WORKER_PAT
  * public/sw.js is a classic (non-module) service worker - see its own "Web
  * Share Target" header comment - so it cannot `import` draftStore.js and
  * instead hand-copies four values that define the shared IndexedDB handoff
- * record: the DB name, the store name, the DB version, and the
+ * record: the DB name, the store name, the initial DB version, and the
  * `handoff:<tool>` key format. sw.js's comment says these must be kept in
  * sync; a comment is not a guard (CLAUDE.md Part II section 6: invariants are
  * CI, not prose).
  *
  * The failure this prevents is silent and reaches a real person. Bump
- * DB_VERSION in draftStore.js for an ordinary future change (adding a field,
- * say) and the worker still opens the database at the old version. Someone
- * then shares a PDF into PDkef from their phone's share sheet, lands in the
- * Sign tool, and finds it empty: nothing throws anywhere a developer would
- * see, and no other existing test fails.
+ * The workspace deliberately has no database migration path: ordinary record
+ * fields do not change the object store. The worker still has to open the
+ * same initial version as the app, or a file shared from a phone lands in a
+ * different local store and the Sign tool finds it empty.
  *
  * Both files are read here as plain text and compared with regexes, never
  * imported, because the whole point of the coupling is that sw.js cannot be
@@ -80,7 +79,7 @@ describe('draftStore.js and sw.js agree on the shared IndexedDB handoff schema',
   });
 
   checkConstantsMatch({
-    label: 'the drafts DB version',
+    label: 'the workspace DB initial version',
     draftStoreName: 'DB_VERSION',
     draftStorePattern: /const DB_VERSION = (\d+);/,
     workerName: 'DRAFTS_DB_VERSION',

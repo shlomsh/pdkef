@@ -13,15 +13,24 @@ import { createDraftRetention, isDraftExpired } from './draftPolicy.js';
 // The same store also holds short-lived handoffs under a `handoff:<tool>` key -
 // see saveHandoff/takeHandoff below for why those must never share the draft key.
 
-const DB_NAME = 'pdf-toolkit-drafts';
-const STORE_NAME = 'drafts';
-const SOURCE_STORE_NAME = 'sources';
-const DB_VERSION = 2;
+// This is intentionally a fresh, fixed schema instead of a new version of
+// `pdf-toolkit-drafts`. Safari can leave an installed app's previous page
+// attached to an old database version, which turns an ordinary schema upgrade
+// into an indefinitely blocked `open()` request. The retired store is never
+// opened or migrated by this app; its already-expired drafts are simply no
+// longer reachable from the current workspace.
+//
+// Every record keeps its source bytes with the draft. Fields may be added to a
+// record without changing an IndexedDB object store, so this database has no
+// upgrade path to coordinate between open PWA windows.
+const DB_NAME = 'pdf-toolkit-workspace';
+const STORE_NAME = 'workspace';
+const DB_VERSION = 1;
 
 // This tiny localStorage record is deliberately metadata only. It lets a
 // second tab say what happened without ever copying a filename, PDF byte, edit,
 // or document identifier through the `storage` event channel.
-const DRAFT_CHANGE_PREFIX = 'pdf-toolkit:draft-change:';
+const DRAFT_CHANGE_PREFIX = 'pdf-toolkit:workspace:draft-change:';
 let tabWriterId;
 
 function getTabWriterId() {
@@ -109,7 +118,7 @@ const handoffKey = (tool) => `handoff:${tool}`;
 // side and the invariant this depends on: the flag must be cleared whenever a
 // load resolves without a usable record, or a stale hint would pre-collapse a
 // hero that then has no file to show.
-const DRAFT_HINT_PREFIX = 'pdf-toolkit:has-draft:';
+const DRAFT_HINT_PREFIX = 'pdf-toolkit:workspace:has-draft:';
 
 // The home page's resume card needs more than "a draft exists": it names the
 // file, dates it, and shows a page-1 preview. All three have to be readable
@@ -119,13 +128,11 @@ const DRAFT_HINT_PREFIX = 'pdf-toolkit:has-draft:';
 // the hint was invented to avoid.
 //
 // This is a second key rather than a richer value under DRAFT_HINT_PREFIX on
-// purpose. Two readers already hard-compare that value to the string '1'
-// (hasDraftHint below, and ToolPageLayout.astro's blocking head script), and
-// both run for visitors whose localStorage was written by an older build.
-// Widening it would have meant migrating a value that decides whether a hero
-// pre-collapses - a silent CLS regression if either reader was missed. A
-// sibling key costs one extra write and cannot break either of them.
-const DRAFT_META_PREFIX = 'pdf-toolkit:draft-meta:';
+// purpose. Two readers hard-compare that value to the string '1'
+// (hasDraftHint below, and ToolPageLayout.astro's blocking head script).
+// Keeping the preview in a sibling key means changing its shape never affects
+// the pre-paint decision.
+const DRAFT_META_PREFIX = 'pdf-toolkit:workspace:draft-meta:';
 
 // Recent files are deliberately a separate cache from drafts. A draft is the
 // editable state for one tool and is replaced whenever that tool opens another
@@ -133,7 +140,7 @@ const DRAFT_META_PREFIX = 'pdf-toolkit:draft-meta:';
 // can be opened again from the home page. Keeping this index in localStorage
 // makes the home-page list inexpensive to read, while the actual PDF bytes
 // remain in IndexedDB.
-const RECENT_FILES_META_KEY = 'pdf-toolkit:recent-files';
+const RECENT_FILES_META_KEY = 'pdf-toolkit:workspace:recent-files';
 const RECENT_FILE_PREFIX = 'recent:';
 export const MAX_RECENT_FILES = 6;
 
@@ -448,9 +455,6 @@ function openDb() {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'tool' });
       }
-      if (!db.objectStoreNames.contains(SOURCE_STORE_NAME)) {
-        db.createObjectStore(SOURCE_STORE_NAME, { keyPath: 'id' });
-      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -471,24 +475,6 @@ async function withStore(mode, work) {
           result = value;
         })
         .catch(reject);
-      tx.oncomplete = () => resolve(result);
-      tx.onabort = () => reject(tx.error);
-      tx.onerror = () => reject(tx.error);
-    });
-  } finally {
-    db.close();
-  }
-}
-
-async function withDraftStores(mode, work) {
-  const db = await openDb();
-  try {
-    return await new Promise((resolve, reject) => {
-      const tx = db.transaction([STORE_NAME, SOURCE_STORE_NAME], mode);
-      const drafts = tx.objectStore(STORE_NAME);
-      const sources = tx.objectStore(SOURCE_STORE_NAME);
-      let result;
-      work({ drafts, sources, resolve: (value) => { result = value; }, reject });
       tx.oncomplete = () => resolve(result);
       tx.onabort = () => reject(tx.error);
       tx.onerror = () => reject(tx.error);
@@ -526,7 +512,7 @@ export async function saveDraft(tool, record) {
   const { savedAt } = createDraftRetention();
   const writerId = getTabWriterId();
   try {
-    await withDraftStores('readwrite', ({ drafts, sources }) => {
+    await withStore('readwrite', (drafts) => {
       // One transaction serializes same-user tabs. It reads the committed
       // revision immediately before assigning the next one, so two tabs that
       // started from revision N become N+1 then N+2 rather than racing under
@@ -543,23 +529,7 @@ export async function saveDraft(tool, record) {
           updatedAt: Math.max(now, oldMeta.updatedAt + 1),
           writerId,
         };
-        const putDraft = () => {
-          // Drafts hold only a content address. The source object is stored
-          // once and survives every edit snapshot for that document.
-          drafts.put({ ...draft, tool, sourceId, savedAt, ...metadata });
-          if (old?.sourceId && old.sourceId !== sourceId) decrementSource(sources, old.sourceId);
-        };
-        if (old?.sourceId === sourceId) {
-          putDraft();
-          return;
-        }
-        const sourceRequest = sources.get(sourceId);
-        sourceRequest.onsuccess = () => {
-          const source = sourceRequest.result;
-          if (source) sources.put({ ...source, refCount: (source.refCount || 1) + 1 });
-          else sources.put({ id: sourceId, fileBytes, refCount: 1 });
-          putDraft();
-        };
+        drafts.put({ ...draft, tool, fileBytes, sourceId, savedAt, ...metadata });
       };
     });
     setDraftHint(tool, { fileName: draft.fileName, savedAt, preview });
@@ -601,20 +571,9 @@ export async function loadDraft(tool) {
       await deleteDraft(tool);
       return null;
     }
-    if (record.fileBytes) return record; // schema-v1 record written before source separation
-    if (typeof record.sourceId !== 'string') {
-      clearDraftHint(tool);
-      return null;
-    }
-    const source = await withDraftStores('readonly', ({ sources, resolve }) => {
-      const request = sources.get(record.sourceId);
-      request.onsuccess = () => resolve(request.result || null);
-    });
-    if (!source?.fileBytes) {
-      clearDraftHint(tool);
-      return null;
-    }
-    return { ...record, fileBytes: source.fileBytes };
+    if (record.fileBytes) return record;
+    clearDraftHint(tool);
+    return null;
   } catch (e) {
     console.error('draftStore.loadDraft failed:', e);
     clearDraftHint(tool);
@@ -633,12 +592,11 @@ export async function deleteDraft(tool) {
   try {
     const writerId = getTabWriterId();
     let change = null;
-    await withDraftStores('readwrite', ({ drafts, sources }) => {
+    await withStore('readwrite', (drafts) => {
       const request = drafts.get(tool);
       request.onsuccess = () => {
         const old = request.result;
         drafts.delete(tool);
-        if (old?.sourceId) decrementSource(sources, old.sourceId);
         change = {
           kind: 'deleted', revision: (Number.isInteger(old?.revision) ? old.revision : 0) + 1,
           updatedAt: Date.now(), writerId,
@@ -652,16 +610,6 @@ export async function deleteDraft(tool) {
     console.error('draftStore.deleteDraft failed:', e);
     return false;
   }
-}
-
-function decrementSource(sources, sourceId) {
-  const request = sources.get(sourceId);
-  request.onsuccess = () => {
-    const source = request.result;
-    if (!source) return;
-    if ((source.refCount || 1) <= 1) sources.delete(sourceId);
-    else sources.put({ ...source, refCount: source.refCount - 1 });
-  };
 }
 
 /**

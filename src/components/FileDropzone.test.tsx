@@ -327,7 +327,7 @@ describe('FileDropzone', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
       });
       expect(deleteDraft).not.toHaveBeenCalled();
-      expect(container.querySelector('[role="alert"]')).not.toBeNull();
+      expect(container.querySelector('[role="alert"]')?.textContent).toContain('could not save this file');
     });
 
     it('does not silently discard extra dropped documents', async () => {

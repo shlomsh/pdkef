@@ -58,7 +58,7 @@ const { tool } = Astro.props;
           var slug = location.pathname.replace(/\//g, '');
           var density = localStorage.getItem('pdf-toolkit:view-density') || 'condensed';
           document.documentElement.setAttribute('data-view-density', density);
-          if (density === 'condensed' && localStorage.getItem('pdf-toolkit:has-draft:' + slug) === '1') {
+          if (density === 'condensed' && localStorage.getItem('pdf-toolkit:workspace:has-draft:' + slug) === '1') {
             document.documentElement.setAttribute('data-draft-hint', '1');
           }
         } catch (e) {}

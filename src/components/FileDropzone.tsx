@@ -49,7 +49,7 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
       if (discardDraft && !(await deleteDraft(tool))) throw new Error('draft');
       window.location.href = `/${tool}/`;
     } catch {
-      setError('This browser could not open the file. Choose a tool below and open it there.');
+      setError('PDkef could not save this file on your device. Please try again.');
       setBusy(false);
     }
   };

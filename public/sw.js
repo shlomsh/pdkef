@@ -266,17 +266,16 @@ const SHARE_TARGET_TOOL = 'sign';
 const SHARE_TARGET_FIELD = 'pdf';
 
 // Mirrors src/editor/workspace/draftStore.js's handoff schema exactly (DB
-// name/version, store name, keyPath, and the `handoff:<tool>` key prefix) so
+// name, store name, keyPath, and the `handoff:<tool>` key prefix) so
 // the Sign tool's existing takeHandoff('sign') restore path - the same one
 // FileDropzone's home-page drop already feeds - picks this up with no changes
 // on that side. Duplicated rather than imported: this file is registered as
 // a classic script (see BaseLayout.astro's `navigator.serviceWorker.register`
 // call, no `{ type: 'module' }`), so it cannot `import` draftStore.js. If the
 // handoff schema in draftStore.js ever changes, this must change with it.
-const DRAFTS_DB_NAME = 'pdf-toolkit-drafts';
-const DRAFTS_STORE_NAME = 'drafts';
-const DRAFTS_SOURCE_STORE_NAME = 'sources';
-const DRAFTS_DB_VERSION = 2;
+const DRAFTS_DB_NAME = 'pdf-toolkit-workspace';
+const DRAFTS_STORE_NAME = 'workspace';
+const DRAFTS_DB_VERSION = 1;
 const handoffKey = (tool) => `handoff:${tool}`;
 
 function openDraftsDb() {
@@ -286,13 +285,6 @@ function openDraftsDb() {
       const db = request.result;
       if (!db.objectStoreNames.contains(DRAFTS_STORE_NAME)) {
         db.createObjectStore(DRAFTS_STORE_NAME, { keyPath: 'tool' });
-      }
-      // Keep the schema upgrade complete even when the service worker is the
-      // first opener (for example, a Web Share Target handoff before the app
-      // has loaded). The editor owns this store; the worker merely creates it
-      // so a later editor save can content-address the source PDF safely.
-      if (!db.objectStoreNames.contains(DRAFTS_SOURCE_STORE_NAME)) {
-        db.createObjectStore(DRAFTS_SOURCE_STORE_NAME, { keyPath: 'id' });
       }
     };
     request.onsuccess = () => resolvePromise(request.result);

@@ -20,14 +20,14 @@ describe('readDraftMeta', () => {
     // This is the exact shape an older build (or a pre-preview session, if
     // the meta write hit a quota error) leaves behind: has-draft:sign = '1'
     // with nothing under draft-meta:sign.
-    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
+    localStorage.setItem('pdf-toolkit:workspace:has-draft:sign', '1');
     expect(readDraftMeta('sign')).toBeNull();
   });
 
   it('returns the parsed meta once both keys are present', () => {
-    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
+    localStorage.setItem('pdf-toolkit:workspace:has-draft:sign', '1');
     localStorage.setItem(
-      'pdf-toolkit:draft-meta:sign',
+      'pdf-toolkit:workspace:draft-meta:sign',
       JSON.stringify({ fileName: 'contract.pdf', savedAt: Date.now(), preview: 'data:image/jpeg;base64,x' }),
     );
     expect(readDraftMeta('sign')).toEqual({
@@ -38,16 +38,16 @@ describe('readDraftMeta', () => {
   });
 
   it('returns null for corrupt JSON instead of throwing', () => {
-    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
-    localStorage.setItem('pdf-toolkit:draft-meta:sign', '{not json');
+    localStorage.setItem('pdf-toolkit:workspace:has-draft:sign', '1');
+    localStorage.setItem('pdf-toolkit:workspace:draft-meta:sign', '{not json');
     expect(() => readDraftMeta('sign')).not.toThrow();
     expect(readDraftMeta('sign')).toBeNull();
   });
 
   it('is scoped per tool', () => {
-    localStorage.setItem('pdf-toolkit:has-draft:redact', '1');
+    localStorage.setItem('pdf-toolkit:workspace:has-draft:redact', '1');
     localStorage.setItem(
-      'pdf-toolkit:draft-meta:redact',
+      'pdf-toolkit:workspace:draft-meta:redact',
       JSON.stringify({ fileName: 'scan.pdf', savedAt: Date.now() }),
     );
     expect(readDraftMeta('sign')).toBeNull();
@@ -55,15 +55,15 @@ describe('readDraftMeta', () => {
   });
 
   it('hides and clears expired metadata using the shared retention policy', () => {
-    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
+    localStorage.setItem('pdf-toolkit:workspace:has-draft:sign', '1');
     localStorage.setItem(
-      'pdf-toolkit:draft-meta:sign',
+      'pdf-toolkit:workspace:draft-meta:sign',
       JSON.stringify({ fileName: 'old-contract.pdf', savedAt: Date.now() - MAX_AGE_MS }),
     );
 
     expect(readDraftMeta('sign')).toBeNull();
-    expect(localStorage.getItem('pdf-toolkit:has-draft:sign')).toBeNull();
-    expect(localStorage.getItem('pdf-toolkit:draft-meta:sign')).toBeNull();
+    expect(localStorage.getItem('pdf-toolkit:workspace:has-draft:sign')).toBeNull();
+    expect(localStorage.getItem('pdf-toolkit:workspace:draft-meta:sign')).toBeNull();
   });
 });
 
@@ -74,7 +74,7 @@ describe('readRecentFiles', () => {
 
   it('keeps only the six newest valid entries', () => {
     const now = Date.now();
-    localStorage.setItem('pdf-toolkit:recent-files', JSON.stringify(Array.from({ length: 8 }, (_, index) => ({
+    localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify(Array.from({ length: 8 }, (_, index) => ({
       id: `file-${index}`,
       tool: 'sign',
       fileName: `file-${index}.pdf`,
@@ -90,18 +90,18 @@ describe('readRecentFiles', () => {
 
   it('removes expired entries without disturbing valid recent files', () => {
     const now = Date.now();
-    localStorage.setItem('pdf-toolkit:recent-files', JSON.stringify([
+    localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify([
       { id: 'current', tool: 'redact', fileName: 'current.pdf', savedAt: now },
       { id: 'old', tool: 'sign', fileName: 'old.pdf', savedAt: now - MAX_AGE_MS },
     ]));
 
     expect(readRecentFiles().map((file) => file.fileName)).toEqual(['current.pdf']);
-    expect(JSON.parse(localStorage.getItem('pdf-toolkit:recent-files'))).toHaveLength(1);
+    expect(JSON.parse(localStorage.getItem('pdf-toolkit:workspace:recent-files'))).toHaveLength(1);
   });
 
   it('keeps the newest entry when iOS recreates a same-named document with a different byte hash', () => {
     const now = Date.now();
-    localStorage.setItem('pdf-toolkit:recent-files', JSON.stringify([
+    localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify([
       { id: 'sha256:older-version', tool: 'sign', fileName: 'תעודת זהות.pdf', savedAt: now - 1_000 },
       { id: 'sha256:ios-copy', tool: 'sign', fileName: 'תעודת זהות.pdf', savedAt: now },
       { id: 'sha256:another-file', tool: 'sign', fileName: 'approval.pdf', savedAt: now - 2_000 },
@@ -111,7 +111,7 @@ describe('readRecentFiles', () => {
       'sha256:ios-copy',
       'sha256:another-file',
     ]);
-    expect(JSON.parse(localStorage.getItem('pdf-toolkit:recent-files')).map((file) => file.id)).toEqual([
+    expect(JSON.parse(localStorage.getItem('pdf-toolkit:workspace:recent-files')).map((file) => file.id)).toEqual([
       'sha256:ios-copy',
       'sha256:another-file',
     ]);
@@ -119,13 +119,13 @@ describe('readRecentFiles', () => {
 
   it('treats invisible iOS direction marks and space variants as the same displayed filename', () => {
     const now = Date.now();
-    localStorage.setItem('pdf-toolkit:recent-files', JSON.stringify([
+    localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify([
       { id: 'sha256:older-version', tool: 'sign', fileName: '\u200Fספח\u00a0תעודת זהות.pdf', savedAt: now - 1_000 },
       { id: 'sha256:ios-copy', tool: 'sign', fileName: 'ספח תעודת זהות.pdf', savedAt: now },
     ]));
 
     expect(readRecentFiles().map((file) => file.id)).toEqual(['sha256:ios-copy']);
-    expect(JSON.parse(localStorage.getItem('pdf-toolkit:recent-files')).map((file) => file.id)).toEqual(['sha256:ios-copy']);
+    expect(JSON.parse(localStorage.getItem('pdf-toolkit:workspace:recent-files')).map((file) => file.id)).toEqual(['sha256:ios-copy']);
   });
 });
 
@@ -143,8 +143,8 @@ describe('attachDraftPreview', () => {
   });
 
   it('adds a preview to metadata that has none', () => {
-    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
-    localStorage.setItem('pdf-toolkit:draft-meta:sign', meta());
+    localStorage.setItem('pdf-toolkit:workspace:has-draft:sign', '1');
+    localStorage.setItem('pdf-toolkit:workspace:draft-meta:sign', meta());
 
     expect(attachDraftPreview('sign', 'data:image/jpeg;base64,x')).toBe(true);
     expect(readDraftMeta('sign')).toEqual({
@@ -159,8 +159,8 @@ describe('attachDraftPreview', () => {
     // retention on read, so a hardcoded timestamp makes this assert nothing
     // once it ages past MAX_AGE_MS - it just reads back null.
     const savedAt = Date.now() - 60_000;
-    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
-    localStorage.setItem('pdf-toolkit:draft-meta:sign', meta('lease.pdf', savedAt));
+    localStorage.setItem('pdf-toolkit:workspace:has-draft:sign', '1');
+    localStorage.setItem('pdf-toolkit:workspace:draft-meta:sign', meta('lease.pdf', savedAt));
 
     attachDraftPreview('sign', 'data:image/jpeg;base64,y');
     expect(readDraftMeta('sign')).toEqual({
@@ -175,21 +175,21 @@ describe('attachDraftPreview', () => {
   // home page would offer to resume a document that no longer exists.
   it('does not resurrect metadata for a draft that has been cleared', () => {
     expect(attachDraftPreview('sign', 'data:image/jpeg;base64,x')).toBe(false);
-    expect(localStorage.getItem('pdf-toolkit:draft-meta:sign')).toBeNull();
-    expect(localStorage.getItem('pdf-toolkit:has-draft:sign')).toBeNull();
+    expect(localStorage.getItem('pdf-toolkit:workspace:draft-meta:sign')).toBeNull();
+    expect(localStorage.getItem('pdf-toolkit:workspace:has-draft:sign')).toBeNull();
   });
 
   it('does not write to an expired draft', () => {
-    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
-    localStorage.setItem('pdf-toolkit:draft-meta:sign', meta('old.pdf', Date.now() - MAX_AGE_MS));
+    localStorage.setItem('pdf-toolkit:workspace:has-draft:sign', '1');
+    localStorage.setItem('pdf-toolkit:workspace:draft-meta:sign', meta('old.pdf', Date.now() - MAX_AGE_MS));
 
     expect(attachDraftPreview('sign', 'data:image/jpeg;base64,x')).toBe(false);
     expect(readDraftMeta('sign')).toBeNull();
   });
 
   it('is scoped per tool', () => {
-    localStorage.setItem('pdf-toolkit:has-draft:redact', '1');
-    localStorage.setItem('pdf-toolkit:draft-meta:redact', meta('scan.pdf'));
+    localStorage.setItem('pdf-toolkit:workspace:has-draft:redact', '1');
+    localStorage.setItem('pdf-toolkit:workspace:draft-meta:redact', meta('scan.pdf'));
 
     expect(attachDraftPreview('sign', 'data:image/jpeg;base64,x')).toBe(false);
     expect(attachDraftPreview('redact', 'data:image/jpeg;base64,x')).toBe(true);
@@ -197,9 +197,9 @@ describe('attachDraftPreview', () => {
   });
 
   it('ignores an empty preview rather than clearing an existing one', () => {
-    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
+    localStorage.setItem('pdf-toolkit:workspace:has-draft:sign', '1');
     localStorage.setItem(
-      'pdf-toolkit:draft-meta:sign',
+      'pdf-toolkit:workspace:draft-meta:sign',
       JSON.stringify({ fileName: 'contract.pdf', savedAt: Date.now(), preview: 'data:image/jpeg;base64,keep' }),
     );
 
@@ -208,8 +208,8 @@ describe('attachDraftPreview', () => {
   });
 
   it('survives corrupt metadata without throwing', () => {
-    localStorage.setItem('pdf-toolkit:has-draft:sign', '1');
-    localStorage.setItem('pdf-toolkit:draft-meta:sign', '{not json');
+    localStorage.setItem('pdf-toolkit:workspace:has-draft:sign', '1');
+    localStorage.setItem('pdf-toolkit:workspace:draft-meta:sign', '{not json');
 
     expect(() => attachDraftPreview('sign', 'data:image/jpeg;base64,x')).not.toThrow();
     expect(attachDraftPreview('sign', 'data:image/jpeg;base64,x')).toBe(false);
@@ -241,7 +241,7 @@ describe('draft source and cross-tab coordination boundaries', () => {
     const changes = [];
     const stop = subscribeToDraftChanges('sign', (change) => changes.push(change));
     window.dispatchEvent(new StorageEvent('storage', {
-      key: 'pdf-toolkit:draft-change:sign',
+      key: 'pdf-toolkit:workspace:draft-change:sign',
       newValue: JSON.stringify({
         kind: 'saved', revision: 7, updatedAt: 123, writerId: 'another-tab',
         fileName: 'private.pdf', sourceId: 'document-123', elements: [{ text: 'secret' }],
