@@ -117,6 +117,16 @@ describe('PdfRedactTool UI flow', () => {
     expect(toolbar.textContent).toContain('Blackout');
     expect(toolbar.textContent).toContain('Blur');
 
+    // Completion actions live below the document too. This matters on mobile,
+    // where the compact toolbar prioritizes editing tools and may hide its
+    // Download control when native sharing is available.
+    const exportActions = container.querySelector(`.${workspaceStyles['export-actions']}`);
+    expect(exportActions).not.toBeNull();
+    const downloadButton = Array.from(exportActions.querySelectorAll('button'))
+      .find((button) => button.textContent.trim() === 'Download');
+    expect(downloadButton).not.toBeNull();
+    expect(downloadButton.disabled).toBe(true);
+
     // E9: ViewControl replaced FullscreenButton in this exact slot.
     const radiogroup = toolbar.querySelector('[role="radiogroup"]');
     expect(radiogroup).not.toBeNull();
