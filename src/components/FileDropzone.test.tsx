@@ -16,7 +16,7 @@ vi.mock('../editor/workspace/draftStore.js', () => ({
   loadRecentFile: vi.fn(() => Promise.resolve(null)),
   recentDisplayKey: (tool, fileName) => `${tool || ''}\u0000${(fileName || '')
     .normalize('NFC')
-    .replace(/[\u200E\u200F\u061C\u202A-\u202E\u2066-\u2069]/g, '')
+    .replace(/\p{Default_Ignorable_Code_Point}/gu, '')
     .replace(/\s+/gu, ' ')
     .trim()
     .toLowerCase()}`,

@@ -1,11 +1,12 @@
 ---
 id: ARCH-14
 title: Type the editor interaction tests now covered by shared contracts
-status: open
+status: done
 priority: P2
 epic: editor-architecture
 phase: near-term
 depends_on: [ARCH-10]
+legacy_state: Done 2026-09-09
 ---
 
 ## Problem
@@ -51,3 +52,16 @@ errors the most mechanical. Then type the wrapper tests before the workspace/too
 pointer-event and ref helpers can be shared. The clean baseline on commit `03f245c` is 99 test files,
 1,949 tests, zero typecheck diagnostics, a passing production build, and passing gesture/dependency
 guards.
+
+## Outcome (2026-09-09)
+
+All eleven interaction tests now participate in TypeScript checking without `@ts-nocheck` or
+unqualified `any` types. Fixtures use the shared discriminated editor-element variants; reducer
+dispatches, callbacks, saved-signature state, DOM queries, deferred exports, and gesture stubs carry
+their production parameter types. The only compatibility escapes are narrow test-runtime boundaries:
+Node fixture reads in this browser-first TypeScript configuration and jsdom's incomplete canvas and
+clipboard APIs. Production contracts and behavioral assertions were left intact.
+
+Validation completed with zero `astro check` diagnostics, 246 passing focused tests across the eleven
+files, 2,105 passing tests across the full 108-file Vitest suite, and a passing editor
+dependency-direction guard.

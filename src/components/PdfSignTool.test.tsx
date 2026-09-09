@@ -1,9 +1,8 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import fs from 'fs';
-import path from 'path';
+// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
+import fs from 'node:fs';
 import PdfSignTool from './PdfSignTool.tsx';
 import * as signModule from '../editor/adapters/pdf/sign.js';
 import * as maintenanceTelemetry from '../lib/maintenanceTelemetry.ts';
@@ -14,7 +13,25 @@ import dropzoneStyles from './Dropzone.module.css';
 import toolShellStyles from './ToolShell.module.css';
 import { setInputFiles } from '../test/setInputFiles.js';
 
-function makePdfFile(name) {
+declare const __dirname: string;
+
+function required<T>(value: T | null | undefined, description: string): T {
+  if (value == null) throw new Error(`Expected ${description}`);
+  return value;
+}
+
+function query<T extends Element = HTMLElement>(root: ParentNode, selector: string): T {
+  return required(root.querySelector<T>(selector), selector);
+}
+
+function findButton(root: ParentNode, label: string): HTMLButtonElement {
+  return required(
+    Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent?.includes(label)),
+    `button containing "${label}"`,
+  );
+}
+
+function makePdfFile(name: string) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 }
 
@@ -22,19 +39,19 @@ function makePdfFile(name) {
 // (every text-element font, including the default Arimo, is an embedded TTF —
 // see sign.js). jsdom has no server, so serve the real files straight off disk,
 // same approach as sign.test.js's mockFontFetch.
-function mockFontFetch() {
-  const originalFetch = global.fetch;
-  global.fetch = vi.fn(async (url) => {
+function mockFontFetch(): () => void {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = vi.fn(async (url: RequestInfo | URL) => {
     const match = /\/fonts\/(.+)$/.exec(String(url));
     if (!match) return originalFetch ? originalFetch(url) : Promise.reject(new Error('unexpected fetch'));
-    const filePath = path.resolve(__dirname, '../../public/fonts', match[1]);
+    const filePath = `${__dirname}/../../public/fonts/${match[1]}`;
     if (!fs.existsSync(filePath)) {
-      return { ok: false, status: 404, arrayBuffer: async () => new ArrayBuffer(0) };
+      return new Response(null, { status: 404 });
     }
     const buffer = fs.readFileSync(filePath);
-    return { ok: true, status: 200, arrayBuffer: async () => new Uint8Array(buffer).buffer };
+    return new Response(buffer, { status: 200 });
   });
-  return () => { global.fetch = originalFetch; };
+  return () => { globalThis.fetch = originalFetch; };
 }
 
 // Mock getDocument because we don't want to load actual pdf.js workers in jsdom environment
@@ -56,8 +73,8 @@ vi.mock('pdfjs-dist', () => {
 });
 
 describe('PdfSignTool UI flow', () => {
-  let container;
-  let restoreFetch;
+  let container = document.createElement('div');
+  let restoreFetch: () => void = () => {};
 
   beforeEach(() => {
     restoreFetch = mockFontFetch();
@@ -67,7 +84,6 @@ describe('PdfSignTool UI flow', () => {
     if (container) {
       act(() => render(null, container));
       container.remove();
-      container = null;
     }
     document.body.innerHTML = '';
     restoreFetch();
@@ -81,7 +97,7 @@ describe('PdfSignTool UI flow', () => {
       render(<PdfSignTool />, container);
     });
 
-    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
+    const dropzone = query(container, `.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Drop PDF here');
   });
@@ -93,7 +109,7 @@ describe('PdfSignTool UI flow', () => {
       render(<PdfSignTool />, container);
     });
 
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     const file = makePdfFile('test_agreement.pdf');
 
     await act(async () => {
@@ -106,7 +122,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // The dropzone should now be replaced by the loaded-state identity line.
-    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
+    const fileBar = query(container, `.${toolShellStyles.identity}`);
     expect(fileBar).not.toBeNull();
     expect(fileBar.textContent).toContain('test_agreement.pdf');
   });
@@ -133,22 +149,21 @@ describe('PdfSignTool UI flow', () => {
       document.body.appendChild(container);
       await act(async () => { render(<PdfSignTool />, container); });
       await act(async () => {
-        setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('retry.pdf')]);
+        setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('retry.pdf')]);
         await new Promise(resolve => setTimeout(resolve, 50));
       });
       const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
-      const wrapper = container.querySelector(`.${workspaceStyles['page-wrapper']}`);
-      const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+      const wrapper = query<HTMLElement>(container, `.${workspaceStyles['page-wrapper']}`);
+      const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
       wrapper.getBoundingClientRect = () => pageRect;
       overlay.getBoundingClientRect = () => pageRect;
       await act(async () => {
-        Array.from(container.querySelectorAll(`.${toolbarStyles.button}`))
-          .find(button => button.textContent.includes('Text')).click();
+        findButton(container, 'Text').click();
       });
       await act(async () => {
         overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
       });
-      const textInput = container.querySelector('[data-editor-text-input]');
+      const textInput = query<HTMLTextAreaElement>(container, '[data-editor-text-input]');
       await act(async () => {
         // Export is intentionally disabled for text that the bundled fonts
         // cannot represent. Keep this flow's input exportable so the mocked
@@ -156,7 +171,7 @@ describe('PdfSignTool UI flow', () => {
         textInput.value = initialText;
         textInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
-      await act(async () => { container.querySelector(`button[title="${title}"]`).click(); });
+      await act(async () => { query<HTMLButtonElement>(container, `button[title="${title}"]`).click(); });
 
       // Export code is loaded on demand, so the click starts an async module
       // fetch before it reaches the mocked serializer.
@@ -164,29 +179,29 @@ describe('PdfSignTool UI flow', () => {
       expect(container.querySelector(`.${workspaceStyles['page-wrapper']}`)).toBe(wrapper);
       expect(container.querySelector('[data-editor-text-input]')).toBe(textInput);
       expect(textInput.value).toBe(initialText);
-      expect(container.querySelector('[role="alert"]').textContent).toContain(errorText);
+      expect(query(container, '[role="alert"]').textContent).toContain(errorText);
 
       await act(async () => {
         textInput.value = 'Corrected text';
         textInput.dispatchEvent(new Event('input', { bubbles: true }));
       });
-      await act(async () => { container.querySelector(`button[title="${title}"]`).click(); });
+      await act(async () => { query<HTMLButtonElement>(container, `button[title="${title}"]`).click(); });
       await vi.waitFor(() => expect(sign).toHaveBeenCalledTimes(2));
       expect(sign.mock.calls[1][1][0].text).toBe('Corrected text');
       expect(container.querySelector('[role="alert"]')).toBeNull();
-      expect(container.querySelector('[data-editor-text-input]').value).toBe('Corrected text');
+      expect(query<HTMLTextAreaElement>(container, '[data-editor-text-input]').value).toBe('Corrected text');
       if (mode.includes('download')) expect(createUrl).toHaveBeenCalledWith(signedBlob);
       else expect(container.querySelector('button[title="Share the signed PDF"]')).not.toBeNull();
     } finally {
       if (originalShare) Object.defineProperty(navigator, 'share', originalShare);
-      else delete navigator.share;
+      else Reflect.deleteProperty(navigator, 'share');
       if (originalCanShare) Object.defineProperty(navigator, 'canShare', originalCanShare);
-      else delete navigator.canShare;
+      else Reflect.deleteProperty(navigator, 'canShare');
     }
   });
 
   it('discards an export that finishes after the document changes', async () => {
-    let resolveExport;
+    let resolveExport!: (value: Blob) => void;
     const sign = vi.spyOn(signModule, 'signPdf').mockImplementation(() => new Promise((resolve) => {
       resolveExport = resolve;
     }));
@@ -196,27 +211,26 @@ describe('PdfSignTool UI flow', () => {
     document.body.appendChild(container);
     await act(async () => { render(<PdfSignTool />, container); });
     await act(async () => {
-      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('stale.pdf')]);
+      setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('stale.pdf')]);
       await new Promise(resolve => setTimeout(resolve, 50));
     });
 
-    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
     overlay.getBoundingClientRect = () => pageRect;
     await act(async () => {
-      Array.from(container.querySelectorAll(`.${toolbarStyles.button}`))
-        .find(button => button.textContent.includes('Text')).click();
+      findButton(container, 'Text').click();
     });
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
-    const textInput = container.querySelector('[data-editor-text-input]');
+    const textInput = query<HTMLTextAreaElement>(container, '[data-editor-text-input]');
     await act(async () => {
       textInput.value = 'Original text';
       textInput.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
-    await act(async () => { container.querySelector('button[title="Save your changes and download the signed PDF"]').click(); });
+    await act(async () => { query<HTMLButtonElement>(container, 'button[title="Save your changes and download the signed PDF"]').click(); });
     await vi.waitFor(() => expect(sign).toHaveBeenCalledOnce());
 
     await act(async () => {
@@ -244,21 +258,20 @@ describe('PdfSignTool UI flow', () => {
       document.body.appendChild(container);
       await act(async () => { render(<PdfSignTool />, container); });
       await act(async () => {
-        setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('mobi07.pdf')]);
+        setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('mobi07.pdf')]);
         await new Promise((resolve) => setTimeout(resolve, 50));
       });
 
-      const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+      const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
       const pageRect = { left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON() {} };
       overlay.getBoundingClientRect = () => pageRect;
       await act(async () => {
-        Array.from(container.querySelectorAll(`.${toolbarStyles.button}`))
-          .find((button) => button.textContent.includes('Text')).click();
+        findButton(container, 'Text').click();
       });
       await act(async () => {
         overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
       });
-      const textInput = container.querySelector('[data-editor-text-input]');
+      const textInput = query<HTMLTextAreaElement>(container, '[data-editor-text-input]');
       await act(async () => {
         textInput.value = 'Placed text';
         textInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -297,9 +310,9 @@ describe('PdfSignTool UI flow', () => {
       expect(reportEvent).not.toHaveBeenCalled();
     } finally {
       if (originalShare) Object.defineProperty(navigator, 'share', originalShare);
-      else delete navigator.share;
+      else Reflect.deleteProperty(navigator, 'share');
       if (originalCanShare) Object.defineProperty(navigator, 'canShare', originalCanShare);
-      else delete navigator.canShare;
+      else Reflect.deleteProperty(navigator, 'canShare');
     }
   });
 
@@ -318,7 +331,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -328,8 +341,8 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Locate the signature tool button in the toolbar
-    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
-    const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
+    const toolbarButtons = container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.button}`);
+    const sigBtn = required(Array.from(toolbarButtons).find(btn => btn.textContent?.includes('Sign') && !btn.textContent.includes('Download')), 'Sign button');
     expect(sigBtn).not.toBeNull();
 
     // Clicking signature button when saved signatures exist should toggle the dropdown
@@ -340,7 +353,7 @@ describe('PdfSignTool UI flow', () => {
     const dropdown = document.body.querySelector('[data-editor-signature-popover]');
     expect(dropdown).not.toBeNull();
 
-    const dropdownItems = document.body.querySelectorAll('[data-editor-signature-item]');
+    const dropdownItems = document.body.querySelectorAll<HTMLButtonElement>('[data-editor-signature-item]');
     expect(dropdownItems.length).toBe(1);
 
     // Clicking the item should close dropdown and select tool
@@ -360,7 +373,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -371,8 +384,8 @@ describe('PdfSignTool UI flow', () => {
 
     // Clicking Signature when local storage is empty opens the dialog directly
     localStorage.removeItem('pdf-toolkit:signatures');
-    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
-    const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
+    const toolbarButtons = container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.button}`);
+    const sigBtn = required(Array.from(toolbarButtons).find(btn => btn.textContent?.includes('Sign') && !btn.textContent.includes('Download')), 'Sign button');
     
     await act(async () => {
       sigBtn.click();
@@ -382,7 +395,7 @@ describe('PdfSignTool UI flow', () => {
     expect(dialog).not.toBeNull();
 
     // Verify Draw, Type, Upload tabs are present
-    const tabBtns = container.querySelectorAll('[data-editor-dialog-tab]');
+    const tabBtns = container.querySelectorAll<HTMLButtonElement>('[data-editor-dialog-tab]');
     expect(tabBtns.length).toBe(3);
     expect(tabBtns[0].textContent).toBe('Draw');
     expect(tabBtns[1].textContent).toBe('Type');
@@ -410,7 +423,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -420,14 +433,13 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select text tool
-    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
-    const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
+    const textBtn = findButton(container, 'Text');
     await act(async () => {
       textBtn.click();
     });
 
     // Click on page overlay to place text element
-    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
@@ -438,14 +450,12 @@ describe('PdfSignTool UI flow', () => {
 
     // Blur textarea to select the wrapper element instead for copy/paste
     await act(async () => {
-      container.querySelector('[data-editor-text-input]')?.blur();
+      container.querySelector<HTMLTextAreaElement>('[data-editor-text-input]')?.blur();
     });
 
     // Mock copy event
-    const copyEvent = new Event('copy', { bubbles: true });
-    copyEvent.clipboardData = {
-      setData: vi.fn()
-    };
+    const copyEvent = new Event('copy', { bubbles: true }) as ClipboardEvent;
+    Object.defineProperty(copyEvent, 'clipboardData', { value: { setData: vi.fn() } });
     await act(async () => {
       window.dispatchEvent(copyEvent);
     });
@@ -470,7 +480,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -480,8 +490,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select symbol tool
-    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
-    const symbolBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Symbol') || btn.querySelector('svg'));
+    const toolbarButtons = container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.button}`);
     
     await act(async () => {
       // Index 0 is Text, Index 1 is Symbol
@@ -489,7 +498,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Click on page overlay to place symbol element
-    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 200, clientY: 200, bubbles: true }));
     });
@@ -510,7 +519,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -520,14 +529,13 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select text tool
-    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
-    const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
+    const textBtn = findButton(container, 'Text');
     await act(async () => {
       textBtn.click();
     });
 
     // Click on page overlay to place text element
-    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
@@ -537,7 +545,7 @@ describe('PdfSignTool UI flow', () => {
 
     // Blur textarea to select the wrapper element instead for deletion
     await act(async () => {
-      container.querySelector('[data-editor-text-input]')?.blur();
+      container.querySelector<HTMLTextAreaElement>('[data-editor-text-input]')?.blur();
     });
 
     // Press Delete key
@@ -553,7 +561,7 @@ describe('PdfSignTool UI flow', () => {
 
   it('applies text annotations to num-1.pdf and exports a valid signed PDF', async () => {
     // Stub URL methods
-    let savedBlob = null;
+    let savedBlob: Blob | null = null;
     const originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn((blob) => {
       savedBlob = blob;
@@ -567,11 +575,11 @@ describe('PdfSignTool UI flow', () => {
     });
     
     // Load num-1.pdf
-    const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+    const fixturePath = `${__dirname}/../lib/__fixtures__/num-1.pdf`;
     const bytes = fs.readFileSync(fixturePath);
     const file = new File([bytes], 'num-1.pdf', { type: 'application/pdf' });
     
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -581,14 +589,13 @@ describe('PdfSignTool UI flow', () => {
     });
     
     // Select text tool
-    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
-    const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
+    const textBtn = findButton(container, 'Text');
     await act(async () => {
       textBtn.click();
     });
 
     // Click on page overlay to place text element
-    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     overlay.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
     });
@@ -598,7 +605,7 @@ describe('PdfSignTool UI flow', () => {
     });
     
     // Set text element content
-    const inputField = container.querySelector('[data-editor-text-input]');
+    const inputField = query<HTMLTextAreaElement>(container, '[data-editor-text-input]');
     expect(inputField).not.toBeNull();
     await act(async () => {
       inputField.value = 'John Doe';
@@ -607,7 +614,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Click the save/download button to trigger handleSavePdf
-    const saveButton = container.querySelector('button[title*="Save"]');
+    const saveButton = query<HTMLButtonElement>(container, 'button[title*="Save"]');
     expect(saveButton).not.toBeNull();
     
     await act(async () => {
@@ -621,14 +628,16 @@ describe('PdfSignTool UI flow', () => {
     });
     
     expect(savedBlob).not.toBeNull();
+    const exportedBlob = required<Blob>(savedBlob, 'exported PDF blob');
     
     // Assert on the resulting PDF
     const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    const loadingTask = getDocument({
-      data: new Uint8Array(await savedBlob.arrayBuffer()),
+    const documentOptions = {
+      data: new Uint8Array(await exportedBlob.arrayBuffer()),
       useWorkerFetch: false,
       isEvalSupported: false,
-    });
+    };
+    const loadingTask = getDocument(documentOptions);
     const pdf = await loadingTask.promise;
     expect(pdf.numPages).toBe(1);
     
@@ -642,7 +651,7 @@ describe('PdfSignTool UI flow', () => {
     // joining with an extra space would double it up. Collapse whitespace
     // afterwards so the assertion stays robust to pdf.js's own item
     // granularity, which this test isn't asserting on.
-    const extractedText = textContent.items.map(item => item.str).join('').replace(/\s+/g, ' ');
+    const extractedText = textContent.items.map(item => ('str' in item ? item.str : '')).join('').replace(/\s+/g, ' ');
 
     expect(extractedText).toContain('1');
     expect(extractedText).toContain('John Doe');
@@ -654,7 +663,7 @@ describe('PdfSignTool UI flow', () => {
   it('prepares and shares a valid signed PDF from the real num-1.pdf fixture', async () => {
     const originalShare = navigator.share;
     const originalCanShare = navigator.canShare;
-    const share = vi.fn(() => Promise.resolve());
+    const share = vi.fn((_data?: ShareData) => Promise.resolve());
     Object.defineProperty(navigator, 'share', { configurable: true, value: share });
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => true) });
 
@@ -663,22 +672,22 @@ describe('PdfSignTool UI flow', () => {
       document.body.appendChild(container);
       act(() => render(<PdfSignTool />, container));
 
-      const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+      const fixturePath = `${__dirname}/../lib/__fixtures__/num-1.pdf`;
       const file = new File([fs.readFileSync(fixturePath)], 'num-1.pdf', { type: 'application/pdf' });
-      const input = container.querySelector('input[type="file"]');
+      const input = query<HTMLInputElement>(container, 'input[type="file"]');
       await act(async () => {
         setInputFiles(input, [file]);
         await new Promise(resolve => setTimeout(resolve, 50));
       });
 
-      const prepareButton = container.querySelector('button[title="Save your changes to share the signed PDF"]');
+      const prepareButton = query<HTMLButtonElement>(container, 'button[title="Save your changes to share the signed PDF"]');
       expect(prepareButton).not.toBeNull();
       await act(async () => {
         prepareButton.click();
         await new Promise(resolve => setTimeout(resolve, 100));
       });
 
-      const shareButton = container.querySelector('button[title="Share the signed PDF"]');
+      const shareButton = query<HTMLButtonElement>(container, 'button[title="Share the signed PDF"]');
       expect(shareButton).not.toBeNull();
       // Label stays "Share" in both states (MOBI-07 follow-up: a growing
       // "Share now" label jittered this button's width); the title attribute
@@ -689,7 +698,7 @@ describe('PdfSignTool UI flow', () => {
       });
 
       expect(share).toHaveBeenCalledOnce();
-      const sharedFile = share.mock.calls[0][0].files[0];
+      const sharedFile = required(share.mock.calls[0]?.[0]?.files?.[0], 'shared PDF file');
       expect(sharedFile).toBeInstanceOf(File);
       expect(sharedFile.name).toBe('signed_num-1.pdf');
 
@@ -699,9 +708,9 @@ describe('PdfSignTool UI flow', () => {
       expect(pdf.numPages).toBe(1);
       await loadingTask.destroy();
     } finally {
-      if (originalShare === undefined) delete navigator.share;
+      if (originalShare === undefined) Reflect.deleteProperty(navigator, 'share');
       else Object.defineProperty(navigator, 'share', { configurable: true, value: originalShare });
-      if (originalCanShare === undefined) delete navigator.canShare;
+      if (originalCanShare === undefined) Reflect.deleteProperty(navigator, 'canShare');
       else Object.defineProperty(navigator, 'canShare', { configurable: true, value: originalCanShare });
     }
   });
@@ -714,7 +723,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -724,18 +733,17 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select text tool and place an element
-    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
-    const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
+    const textBtn = findButton(container, 'Text');
     await act(async () => {
       textBtn.click();
     });
 
-    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     await act(async () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
 
-    const textInput = container.querySelector('[data-editor-text-input]');
+    const textInput = query<HTMLTextAreaElement>(container, '[data-editor-text-input]');
     expect(textInput).not.toBeNull();
 
     // A fresh, empty element defaults to LTR
@@ -769,7 +777,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -778,8 +786,8 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const wrapper = container.querySelector(`.${workspaceStyles['page-wrapper']}`);
-    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const wrapper = query<HTMLElement>(container, `.${workspaceStyles['page-wrapper']}`);
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     const pageRect = {
       left: 0,
       top: 0,
@@ -794,8 +802,7 @@ describe('PdfSignTool UI flow', () => {
     wrapper.getBoundingClientRect = () => pageRect;
     overlay.getBoundingClientRect = () => pageRect;
 
-    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
-    const textBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Text'));
+    const textBtn = findButton(container, 'Text');
     await act(async () => {
       textBtn.click();
     });
@@ -804,24 +811,24 @@ describe('PdfSignTool UI flow', () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
 
-    const firstTextInput = container.querySelector('[data-editor-text-input]');
+    const firstTextInput = query<HTMLTextAreaElement>(container, '[data-editor-text-input]');
     expect(firstTextInput).not.toBeNull();
 
-    const increaseFont = container.querySelector('button[title="Increase font size"]');
+    const increaseFont = query<HTMLButtonElement>(container, 'button[title="Increase font size"]');
     expect(increaseFont).not.toBeNull();
     await act(async () => {
       increaseFont.click();
     });
 
-    const colorTrigger = container.querySelector('button[title="Text color"]');
+    const colorTrigger = query<HTMLButtonElement>(container, 'button[title="Text color"]');
     expect(colorTrigger).not.toBeNull();
     await act(async () => {
       colorTrigger.click();
     });
 
-    const colorMenu = document.body.querySelector('[data-editor-color-menu]');
+    const colorMenu = query(document.body, '[data-editor-color-menu]');
     expect(colorMenu).not.toBeNull();
-    const redSwatch = colorMenu.querySelector('[data-editor-color-swatch][title="#d8342b"]');
+    const redSwatch = query<HTMLButtonElement>(colorMenu, '[data-editor-color-swatch][title="#d8342b"]');
     expect(redSwatch).not.toBeNull();
     await act(async () => {
       redSwatch.click();
@@ -832,7 +839,7 @@ describe('PdfSignTool UI flow', () => {
 
     expect(localStorage.getItem('pdf-toolkit:lastColor')).toBe('#d8342b');
     expect(localStorage.getItem('pdf-toolkit:lastFontSize')).toBe('13');
-    expect(container.querySelector('[data-editor-text-input]').style.color).toBe('rgb(216, 52, 43)');
+    expect(query<HTMLTextAreaElement>(container, '[data-editor-text-input]').style.color).toBe('rgb(216, 52, 43)');
 
     await act(async () => {
       firstTextInput.value = 'שלום';
@@ -848,7 +855,7 @@ describe('PdfSignTool UI flow', () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 260, clientY: 220, bubbles: true }));
     });
 
-    const textInputs = container.querySelectorAll('[data-editor-text-input]');
+    const textInputs = container.querySelectorAll<HTMLTextAreaElement>('[data-editor-text-input]');
     expect(textInputs.length).toBe(2);
     const editedTextInput = textInputs[0];
     const nextTextInput = textInputs[1];
@@ -880,7 +887,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -888,16 +895,15 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const wrapper = container.querySelector(`.${workspaceStyles['page-wrapper']}`);
-    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const wrapper = query<HTMLElement>(container, `.${workspaceStyles['page-wrapper']}`);
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     const pageRect = {
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
     };
     wrapper.getBoundingClientRect = () => pageRect;
     overlay.getBoundingClientRect = () => pageRect;
 
-    const textBtn = Array.from(container.querySelectorAll(`.${toolbarStyles.button}`))
-      .find(btn => btn.textContent.includes('Text'));
+    const textBtn = findButton(container, 'Text');
     await act(async () => {
       textBtn.click();
     });
@@ -905,7 +911,7 @@ describe('PdfSignTool UI flow', () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
     });
 
-    const textInput = container.querySelector('[data-editor-text-input]');
+    const textInput = query<HTMLTextAreaElement>(container, '[data-editor-text-input]');
     expect(textInput).not.toBeNull();
     // Placed boxes open ready to type, so Backspace still belongs to the text.
     expect(textInput.readOnly).toBe(false);
@@ -922,7 +928,7 @@ describe('PdfSignTool UI flow', () => {
     });
     const selected = container.querySelector('[data-editor-element][data-editor-active]');
     expect(selected).not.toBeNull();
-    expect(container.querySelector('[data-editor-text-input]').readOnly).toBe(true);
+    expect(query<HTMLTextAreaElement>(container, '[data-editor-text-input]').readOnly).toBe(true);
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
@@ -938,7 +944,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -946,16 +952,15 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const wrapper = container.querySelector(`.${workspaceStyles['page-wrapper']}`);
-    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const wrapper = query<HTMLElement>(container, `.${workspaceStyles['page-wrapper']}`);
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     const pageRect = {
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
     };
     wrapper.getBoundingClientRect = () => pageRect;
     overlay.getBoundingClientRect = () => pageRect;
 
-    const textBtn = Array.from(container.querySelectorAll(`.${toolbarStyles.button}`))
-      .find(btn => btn.textContent.includes('Text'));
+    const textBtn = findButton(container, 'Text');
     await act(async () => {
       textBtn.click();
     });
@@ -965,23 +970,27 @@ describe('PdfSignTool UI flow', () => {
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     });
-    expect(container.querySelector('[data-editor-text-input]').readOnly).toBe(true);
+    expect(query<HTMLTextAreaElement>(container, '[data-editor-text-input]').readOnly).toBe(true);
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     });
 
-    const textInput = container.querySelector('[data-editor-text-input]');
+    const textInput = query<HTMLTextAreaElement>(container, '[data-editor-text-input]');
     expect(textInput.readOnly).toBe(false);
     expect(document.activeElement).toBe(textInput);
   });
 
   it('updates font selection and enables Save button when typing a signature', async () => {
     // Safely mock canvas context to prevent the live-preview useEffect from throwing
-    const originalGetContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = () => ({
+    const originalGetContext = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, 'getContext');
+    const contextStub = {
       scale: vi.fn(), clearRect: vi.fn(), fillText: vi.fn(), 
-      measureText: vi.fn(() => ({ width: 100 }))
+      measureText: vi.fn(() => ({ width: 100 }) as TextMetrics)
+    } as unknown as CanvasRenderingContext2D;
+    Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+      configurable: true,
+      value: vi.fn(() => contextStub),
     });
 
     try {
@@ -992,7 +1001,7 @@ describe('PdfSignTool UI flow', () => {
       });
 
       const file = makePdfFile('test.pdf');
-      const input = container.querySelector('input[type="file"]');
+      const input = query<HTMLInputElement>(container, 'input[type="file"]');
       await act(async () => {
         setInputFiles(input, [file]);
       });
@@ -1002,26 +1011,26 @@ describe('PdfSignTool UI flow', () => {
       });
 
       localStorage.removeItem('pdf-toolkit:signatures');
-      const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
-      const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
+      const toolbarButtons = container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.button}`);
+      const sigBtn = required(Array.from(toolbarButtons).find(btn => btn.textContent?.includes('Sign') && !btn.textContent.includes('Download')), 'Sign button');
       
       await act(async () => {
         sigBtn.click();
       });
 
       // Switch to Type mode
-      const tabBtns = container.querySelectorAll('[data-editor-dialog-tab]');
+      const tabBtns = container.querySelectorAll<HTMLButtonElement>('[data-editor-dialog-tab]');
       await act(async () => {
         tabBtns[1].click(); // Type tab
       });
 
       // The Caveat font should be active by default
-      const fontBtns = Array.from(container.querySelectorAll('[data-editor-signature-font]'));
-      const caveatBtn = fontBtns.find(btn => btn.textContent === 'Caveat');
+      const fontBtns = Array.from(container.querySelectorAll<HTMLButtonElement>('[data-editor-signature-font]'));
+      const caveatBtn = required(fontBtns.find(btn => btn.textContent === 'Caveat'), 'Caveat font button');
       expect(caveatBtn.hasAttribute('data-editor-active')).toBe(true);
 
       // Select Pacifico
-      const pacificoBtn = fontBtns.find(btn => btn.textContent === 'Pacifico');
+      const pacificoBtn = required(fontBtns.find(btn => btn.textContent === 'Pacifico'), 'Pacifico font button');
       await act(async () => {
         pacificoBtn.click();
       });
@@ -1031,11 +1040,11 @@ describe('PdfSignTool UI flow', () => {
       expect(caveatBtn.hasAttribute('data-editor-active')).toBe(false);
 
       // Save button should be disabled initially
-      const saveSigBtn = container.querySelector('button[data-editor-signature-save]');
+      const saveSigBtn = query<HTMLButtonElement>(container, 'button[data-editor-signature-save]');
       expect(saveSigBtn.disabled).toBe(true);
 
       // Type a name
-      const typeInput = container.querySelector('[data-editor-signature-input]');
+      const typeInput = query<HTMLInputElement>(container, '[data-editor-signature-input]');
       await act(async () => {
         typeInput.value = 'Test Signature';
         typeInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1045,7 +1054,8 @@ describe('PdfSignTool UI flow', () => {
       expect(saveSigBtn.disabled).toBe(false);
 
     } finally {
-      HTMLCanvasElement.prototype.getContext = originalGetContext;
+      if (originalGetContext) Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', originalGetContext);
+      else Reflect.deleteProperty(HTMLCanvasElement.prototype, 'getContext');
     }
   });
 
@@ -1068,7 +1078,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -1077,14 +1087,14 @@ describe('PdfSignTool UI flow', () => {
     });
 
     // Select the saved signature from the dropdown, arming `activeSignature`.
-    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
-    const sigBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Sign') && !btn.textContent.includes('Download'));
+    const toolbarButtons = container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.button}`);
+    const sigBtn = required(Array.from(toolbarButtons).find(btn => btn.textContent?.includes('Sign') && !btn.textContent.includes('Download')), 'Sign button');
     await act(async () => { sigBtn.click(); });
-    const dropdownItem = document.body.querySelector('[data-editor-signature-item]');
+    const dropdownItem = query<HTMLButtonElement>(document.body, '[data-editor-signature-item]');
     await act(async () => { dropdownItem.click(); });
 
-    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
-    const wrapper = container.querySelector(`.${workspaceStyles['page-wrapper']}`);
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
+    const wrapper = query<HTMLElement>(container, `.${workspaceStyles['page-wrapper']}`);
     overlay.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {}
     });
@@ -1096,7 +1106,7 @@ describe('PdfSignTool UI flow', () => {
       overlay.dispatchEvent(new MouseEvent('click', { clientX: 120, clientY: 160, bubbles: true }));
     });
 
-    const placed = container.querySelector('[data-editor-element]');
+    const placed = query<HTMLElement>(container, '[data-editor-element]');
     expect(placed).not.toBeNull();
 
     // Independently-derived expectation (mirrors placeSignatureAt's own math, but
@@ -1125,7 +1135,7 @@ describe('PdfSignTool UI flow', () => {
     });
 
     const file = makePdfFile('test.pdf');
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -1133,11 +1143,10 @@ describe('PdfSignTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const toolbarButtons = container.querySelectorAll(`.${toolbarStyles.button}`);
-    const whiteoutBtn = Array.from(toolbarButtons).find(btn => btn.textContent.includes('Whiteout'));
+    const whiteoutBtn = findButton(container, 'Whiteout');
     await act(async () => { whiteoutBtn.click(); });
 
-    const overlay = container.querySelector(`.${workspaceStyles['page-overlay']}`);
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
     overlay.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
     });
@@ -1148,7 +1157,7 @@ describe('PdfSignTool UI flow', () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
     });
 
-    const box = container.querySelector('[data-editor-element]');
+    const box = query<HTMLElement>(container, '[data-editor-element]');
     expect(box).not.toBeNull();
 
     const startLeftPercent = pxToPercent(100, 500);

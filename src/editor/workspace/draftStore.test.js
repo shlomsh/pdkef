@@ -117,11 +117,13 @@ describe('readRecentFiles', () => {
     ]);
   });
 
-  it('treats invisible iOS direction marks and space variants as the same displayed filename', () => {
+  it('collapses every invisible iOS format variant of the same displayed filename', () => {
     const now = Date.now();
     localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify([
-      { id: 'sha256:older-version', tool: 'sign', fileName: '\u200Fספח\u00a0תעודת זהות.pdf', savedAt: now - 1_000 },
-      { id: 'sha256:ios-copy', tool: 'sign', fileName: 'ספח תעודת זהות.pdf', savedAt: now },
+      { id: 'sha256:direction-mark', tool: 'sign', fileName: '\u200Fספח\u00a0תעודת זהות.pdf', savedAt: now - 3_000 },
+      { id: 'sha256:zero-width', tool: 'sign', fileName: 'ספח\u200B תעודת זהות.pdf', savedAt: now - 2_000 },
+      { id: 'sha256:word-joiner', tool: 'sign', fileName: 'ספח תעודת\u2060 זהות.pdf', savedAt: now - 1_000 },
+      { id: 'sha256:ios-copy', tool: 'sign', fileName: '\uFEFFספח תעודת זהות.pdf', savedAt: now },
     ]));
 
     expect(readRecentFiles().map((file) => file.id)).toEqual(['sha256:ios-copy']);

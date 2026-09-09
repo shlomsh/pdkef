@@ -213,7 +213,7 @@ test.describe('scrollable home hero', () => {
   test('keeps all six recent files, the picker, and the tool dock visible on an iPhone', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript(() => {
-      localStorage.setItem('pdf-toolkit:recent-files', JSON.stringify(
+      localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify(
         Array.from({ length: 6 }, (_, index) => ({
           id: `recent-${index}`,
           tool: index % 2 ? 'redact' : 'sign',
@@ -230,6 +230,12 @@ test.describe('scrollable home hero', () => {
       const picker = document.querySelector('[data-home-picker]')?.getBoundingClientRect();
       const dock = document.querySelector('.home-dock')?.getBoundingClientRect();
       return {
+        recentSectionDisplay: getComputedStyle(document.querySelector('[data-home-recents]')).display,
+        recentListDisplay: getComputedStyle(document.querySelector('[data-home-recents] ul')).display,
+        recentRects: [...document.querySelectorAll('#home-files li')].map((item) => {
+          const rect = item.getBoundingClientRect();
+          return `${Math.round(rect.left)}:${Math.round(rect.top)}`;
+        }),
         workspaceBottom: workspace?.bottom ?? 0,
         pickerBottom: picker?.bottom ?? 0,
         dockTop: dock?.top ?? 0,
@@ -238,9 +244,29 @@ test.describe('scrollable home hero', () => {
       };
     });
 
+    expect(landing.recentSectionDisplay).not.toBe('contents');
+    expect(landing.recentListDisplay).toBe('grid');
+    expect(new Set(landing.recentRects).size).toBe(6);
     expect(landing.pickerBottom).toBeLessThanOrEqual(landing.dockTop + 1);
     expect(landing.workspaceBottom).toBeCloseTo(landing.dockTop, 0);
     expect(landing.dockBottom).toBeLessThanOrEqual(landing.viewportHeight + 1);
+  });
+
+  test('shows one iPhone recent tile for visually identical RTL filenames', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(() => {
+      const savedAt = Date.now();
+      localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify([
+        { id: 'direction-mark', tool: 'sign', fileName: '\u200Fתעודת זהות דיגיטלית - רקפת (2).pdf', savedAt: savedAt - 2 },
+        { id: 'zero-width', tool: 'sign', fileName: 'תעודת זהות\u200B דיגיטלית - רקפת (2).pdf', savedAt: savedAt - 1 },
+        { id: 'word-joiner', tool: 'sign', fileName: 'תעודת זהות דיגיטלית\u2060 - רקפת (2).pdf', savedAt },
+      ]));
+    });
+
+    await page.goto('/');
+
+    await expect(page.locator('#home-files li')).toHaveCount(1);
+    await expect(page.locator('#home-files li')).toContainText('תעודת זהות דיגיטלית - רקפת (2).pdf');
   });
 
   test('mobile header and footer frame every information card', async ({ page }) => {

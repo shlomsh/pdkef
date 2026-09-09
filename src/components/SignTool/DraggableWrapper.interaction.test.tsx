@@ -1,4 +1,3 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
@@ -6,6 +5,68 @@ import TextNode from './nodes/TextNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import { FONT_PREVIEW_DELAY_MS } from '../FontPickerMenu.tsx';
 import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../../constants/signGeometry.js';
+import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '../../editor/model/editorModel.ts';
+
+declare global {
+  interface ParentNode {
+    querySelector<E extends Element = HTMLElement>(selectors: string): E;
+    querySelectorAll<E extends Element = HTMLElement>(selectors: string): NodeListOf<E>;
+  }
+}
+
+type TextFixture = Omit<TextElement, 'pageIndex' | 'type' | 'textDirection'> & {
+  type: string;
+  textDirection?: string;
+};
+type WhiteoutFixture = Omit<WhiteoutElement, 'pageIndex' | 'type'> & { type: string };
+type TestElement = TextFixture | WhiteoutFixture;
+type ChangeHandler = (changes: EditorElementPatch<EditorElement>) => void;
+type MountOptions = {
+  isActive?: boolean;
+  pageWidthPoints?: number;
+  onChange?: ChangeHandler;
+};
+type FloatingCall = {
+  placement: string | undefined;
+  flipFallbackPlacements: unknown;
+  hasFlip: boolean;
+  hasShift: boolean;
+};
+
+function toEditorElement(element: TestElement): TextElement | WhiteoutElement {
+  if ('text' in element) {
+    const { textDirection, ...textElement } = element;
+    return {
+      ...textElement,
+      type: 'text',
+      pageIndex: 0,
+      ...(textDirection === 'ltr' || textDirection === 'rtl' ? { textDirection } : {}),
+    };
+  }
+  return { ...element, type: 'whiteout', pageIndex: 0 };
+}
+
+function pageRect(): DOMRect {
+  return new DOMRect(0, 0, 600, 800);
+}
+
+function requiredElement<T extends Element>(root: ParentNode, selector: string): T {
+  const element = root.querySelector<T>(selector);
+  if (!element) throw new Error(`Expected element matching ${selector}`);
+  return element;
+}
+
+function textNode(element: TextElement) {
+  return <TextNode element={element} isActive={false} isEditing={false} onChange={() => {}} onSelect={() => {}} onBeginEdit={() => {}} onResizeStart={() => {}} pageWidthPoints={600} />;
+}
+
+function whiteoutNode(element: WhiteoutElement) {
+  return <WhiteoutNode element={element} isActive={false} onResizeStart={() => {}} />;
+}
+
+function createWhiteoutElement(element: WhiteoutFixture): WhiteoutElement {
+  return { ...element, type: 'whiteout', pageIndex: 0 };
+}
 
 // This file covers CLAUDE.md Part II §6 guardrail #4 / TODO.md: the
 // interaction/visual states existing unit tests miss — active outline,
@@ -32,13 +93,13 @@ import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../../constants/signGeom
 // `placement`/middleware config actually handed to `useFloating` (below) is
 // the reliable way to verify this logic in jsdom.
 
-let useFloatingCalls;
+let useFloatingCalls: FloatingCall[];
 vi.mock('@floating-ui/react', async () => {
-  const actual = await vi.importActual('@floating-ui/react');
+  const actual = await vi.importActual<typeof import('@floating-ui/react')>('@floating-ui/react');
   return {
     ...actual,
     autoUpdate: vi.fn().mockReturnValue(() => {}),
-    useFloating: (config) => {
+    useFloating: (config: Parameters<typeof actual.useFloating>[0]) => {
       // Snapshot only the primitive facts we need RIGHT NOW, synchronously.
       // The real @floating-ui/react implementation mutates the `middleware`
       // entries' `.options` (and, indirectly, the caller's placement bookkeeping)
@@ -46,7 +107,8 @@ vi.mock('@floating-ui/react', async () => {
       // `config`/`middleware` object references and reading them later returns
       // whatever they were mutated to by the time of the read, not what was
       // actually passed in on this call.
-      const flipMw = config.middleware?.find((m) => m.name === 'flip');
+      const middlewares = config?.middleware?.filter((middleware) => middleware !== false && middleware !== null && middleware !== undefined) ?? [];
+      const flipMw = middlewares.find((middleware) => middleware.name === 'flip');
       // @floating-ui/react-dom internally represents each middleware's options
       // as a `[options, depsKey]` tuple (for its own memoization), not the bare
       // options object flip()/shift() were called with — index [0] to unwrap it.
@@ -54,11 +116,14 @@ vi.mock('@floating-ui/react', async () => {
       if (typeof flipOptions === 'function') {
         flipOptions = flipOptions({ elements: { reference: { closest: () => null } } });
       }
+      const fallbackPlacements = typeof flipOptions === 'object' && flipOptions !== null && 'fallbackPlacements' in flipOptions
+        ? flipOptions.fallbackPlacements
+        : undefined;
       useFloatingCalls.push({
-        placement: config.placement,
-        flipFallbackPlacements: flipOptions?.fallbackPlacements,
+        placement: config?.placement,
+        flipFallbackPlacements: fallbackPlacements,
         hasFlip: !!flipMw,
-        hasShift: !!config.middleware?.find((m) => m.name === 'shift'),
+        hasShift: middlewares.some((middleware) => middleware.name === 'shift'),
       });
       return actual.useFloating(config);
     },
@@ -72,7 +137,7 @@ import workspaceStyles from './Workspace.module.css';
 import elementStyles from './EditorElement.module.css';
 
 describe('DraggableWrapper interaction/visual states (E1.4)', () => {
-  let container;
+  let container: HTMLDivElement;
 
   beforeEach(() => {
     container = document.createElement('div');
@@ -92,18 +157,18 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const onChange = vi.fn();
       const element = { id: 'font-preview', type: 'text', left: 20, top: 10, text: 'Hello', fontFamily: 'Arimo', fontSize: 16 };
       const { box } = mountInPageWrapper(element, { isActive: true, onChange });
-      const input = box.querySelector('[data-editor-text-input]');
+      const input = requiredElement<HTMLTextAreaElement>(box, '[data-editor-text-input]');
       expect(input.style.fontFamily).toBe('Arimo');
 
-      act(() => box.querySelector('button[title^="Font:"]').click());
-      const caveat = document.body.querySelector('[data-font-name="Caveat"]');
-      act(() => caveat.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true })));
-      act(() => vi.advanceTimersByTime(FONT_PREVIEW_DELAY_MS));
+      act(() => { requiredElement<HTMLButtonElement>(box, 'button[title^="Font:"]').click(); });
+      const caveat = requiredElement<HTMLButtonElement>(document.body, '[data-font-name="Caveat"]');
+      act(() => { caveat.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true })); });
+      act(() => { vi.advanceTimersByTime(FONT_PREVIEW_DELAY_MS); });
 
       expect(input.style.fontFamily).toBe('Caveat');
       expect(onChange).not.toHaveBeenCalled();
 
-      act(() => box.querySelector('button[title^="Font:"]').click());
+      act(() => { requiredElement<HTMLButtonElement>(box, 'button[title^="Font:"]').click(); });
       expect(input.style.fontFamily).toBe('Arimo');
       expect(onChange).not.toHaveBeenCalled();
     });
@@ -113,8 +178,8 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       const element = { id: 'font-commit', type: 'text', left: 20, top: 10, text: 'Hello', fontFamily: 'Arimo', fontSize: 16 };
       const { box } = mountInPageWrapper(element, { isActive: true, onChange });
 
-      act(() => box.querySelector('button[title^="Font:"]').click());
-      act(() => (document.body.querySelector('[data-font-name="Caveat"]') as HTMLButtonElement).click());
+      act(() => { requiredElement<HTMLButtonElement>(box, 'button[title^="Font:"]').click(); });
+      act(() => { requiredElement<HTMLButtonElement>(document.body, '[data-font-name="Caveat"]').click(); });
 
       expect(onChange).toHaveBeenCalledOnce();
       expect(onChange).toHaveBeenCalledWith({ fontFamily: 'Caveat', fontFamilyExplicit: true });
@@ -122,32 +187,32 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
     });
   });
 
-  function mountInPageWrapper(element, { isActive = true, pageWidthPoints = 612, onChange = () => {} } = {}) {
+  function mountInPageWrapper(element: TestElement, { isActive = true, pageWidthPoints = 612, onChange = () => {} }: MountOptions = {}) {
     const wrapper = document.createElement('div');
     wrapper.className = workspaceStyles['page-wrapper'];
-    wrapper.getBoundingClientRect = () => ({
-      left: 0, top: 0, width: 600, height: 800, right: 600, bottom: 800, x: 0, y: 0, toJSON: () => {},
-    });
+    wrapper.getBoundingClientRect = pageRect;
     container.appendChild(wrapper);
+    const editorElement = toEditorElement(element);
 
     act(() => {
       render(
         <DraggableWrapper
-          element={element}
+          element={editorElement}
           isActive={isActive}
+          onBeginEdit={() => {}}
           onSelect={() => {}}
           onChange={onChange}
           onDelete={() => {}}
           onClone={() => {}}
           pageWidthPoints={pageWidthPoints}
         >
-          {element.type === 'whiteout' ? <WhiteoutNode element={element} /> : <TextNode element={element} />}
+          {editorElement.type === 'whiteout' ? whiteoutNode(editorElement) : textNode(editorElement)}
         </DraggableWrapper>,
         wrapper
       );
     });
 
-    const box = wrapper.querySelector('[data-editor-element]');
+    const box = requiredElement<HTMLDivElement>(wrapper, '[data-editor-element]');
     return { wrapper, box };
   }
 
@@ -347,7 +412,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
         window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
       });
 
-      const committed = onChange.mock.calls.at(-1)[0];
+      const committed = onChange.mock.calls.at(-1)![0]!;
       expect(committed.fontSize).toBe(24);
       // Start dimensions: 120x24px on a 600x800 wrapper = 20% x 3%.
       // New dimensions at 24px font: 240x48px = 40% x 6%.
@@ -381,7 +446,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
         window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
       });
 
-      const committed = onChange.mock.calls.at(-1)[0];
+      const committed = onChange.mock.calls.at(-1)![0]!;
       // 160px on an 800px page is 20%, so top must clamp at 80%, not the old
       // fallback-height clamp around 98%.
       expect(committed.top).toBeCloseTo(80, 5);
@@ -416,7 +481,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
         window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
       });
 
-      expect(onChange.mock.calls.at(-1)[0]).toEqual({ left: 0, top: 0 });
+      expect(onChange.mock.calls.at(-1)![0]!).toEqual({ left: 0, top: 0 });
     });
   });
 
@@ -450,22 +515,24 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
 
   // --- 6. Whiteout bounds ---------------------------------------------------
   describe('whiteout bounds', () => {
-    function renderWhiteout(element, onChange) {
+    function renderWhiteout(element: WhiteoutFixture, onChange: ChangeHandler): HTMLDivElement {
       const page = document.createElement('div');
       page.className = workspaceStyles['page-wrapper'];
       document.body.appendChild(page);
+      const whiteout = createWhiteoutElement(element);
       act(() => {
         render(
           <DraggableWrapper
-            element={element}
+            element={whiteout}
             isActive={true}
+            onBeginEdit={() => {}}
             onSelect={() => {}}
             onChange={onChange}
             onDelete={() => {}}
             onClone={() => {}}
             pageWidthPoints={600}
           >
-            <WhiteoutNode element={element} />
+            {whiteoutNode(whiteout)}
           </DraggableWrapper>,
           page
         );
@@ -491,7 +558,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       });
 
       expect(onChange).toHaveBeenCalled();
-      const committed = onChange.mock.calls.at(-1)[0];
+      const committed = onChange.mock.calls.at(-1)![0]!;
       expect(committed.width).toBeLessThanOrEqual(MAX_SHAPE_SIZE_PCT);
     });
 
@@ -511,7 +578,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       });
 
       expect(onChange).toHaveBeenCalled();
-      const committed = onChange.mock.calls.at(-1)[0];
+      const committed = onChange.mock.calls.at(-1)![0]!;
       expect(committed.width).toBeGreaterThanOrEqual(MIN_SHAPE_SIZE_PCT);
     });
 
@@ -556,7 +623,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       });
 
       expect(onChange).toHaveBeenCalled();
-      const committed = onChange.mock.calls.at(-1)[0];
+      const committed = onChange.mock.calls.at(-1)![0]!;
       expect(committed.width).toBeLessThanOrEqual(MAX_SHAPE_SIZE_PCT);
       // Fixed behavior: left is floored at 0, keeping the box on the page,
       // and never exceeds 100 - width either.
@@ -596,7 +663,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
         window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
       });
 
-      const committed = onChange.mock.calls.at(-1)[0];
+      const committed = onChange.mock.calls.at(-1)![0]!;
       // The left edge the user never touched must stay exactly where it was.
       expect(committed.left).toBe(50);
       // Width is capped so the box still ends exactly on (not past) the page.
@@ -618,7 +685,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
         window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
       });
 
-      const committed = onChange.mock.calls.at(-1)[0];
+      const committed = onChange.mock.calls.at(-1)![0]!;
       expect(committed.left).toBeGreaterThanOrEqual(0);
       expect(committed.left + committed.width).toBeCloseTo(30, 5);
     });
@@ -644,7 +711,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
         window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
       });
 
-      const committed = onChange.mock.calls.at(-1)[0];
+      const committed = onChange.mock.calls.at(-1)![0]!;
       expect(committed.left).toBeCloseTo(35, 1);
       expect(committed.top).toBeCloseTo(32, 1);
     });
@@ -666,7 +733,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
         window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
       });
 
-      const committed = onChange.mock.calls.at(-1)[0];
+      const committed = onChange.mock.calls.at(-1)![0]!;
       expect(committed).toEqual({ width: 15, height: 10, left: 25, top: 35 });
     });
 

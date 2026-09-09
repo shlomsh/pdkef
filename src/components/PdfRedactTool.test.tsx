@@ -1,9 +1,8 @@
-// @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, afterEach } from 'vitest';
-import fs from 'fs';
-import path from 'path';
+import { describe, expect, it, vi, afterEach, type Mock } from 'vitest';
+// @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
+import fs from 'node:fs';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { redactPdf } from '../editor/adapters/pdf/redact.js';
 import { pxToPercent, pxDeltaToPercent } from '../editor/geometry/coords.js';
@@ -12,21 +11,33 @@ import workspaceStyles from './SignTool/Workspace.module.css';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
 import redactStyles from './PdfRedactTool.module.css';
 import { setInputFiles } from '../test/setInputFiles.js';
+import type { GestureControllerOptions } from '../editor/gestures/controller.ts';
+
+declare const __dirname: string;
 
 const REDACT_BOX = redactStyles['redact-box'];
 const REDACT_ELEMENT_BTN = redactStyles['redact-element-btn'];
 const REDACT_BOX_RESIZER = redactStyles['redact-box-resizer'];
 
-const { gestureCommitSpies } = vi.hoisted(() => ({ gestureCommitSpies: [] }));
+function required<T>(value: T | null | undefined, description: string): T {
+  if (value == null) throw new Error(`Expected ${description}`);
+  return value;
+}
+
+function query<T extends Element = HTMLElement>(root: ParentNode, selector: string): T {
+  return required(root.querySelector<T>(selector), selector);
+}
+
+const { gestureCommitSpies } = vi.hoisted(() => ({ gestureCommitSpies: [] as Mock[] }));
 
 // Exercise the real controller while wrapping each commit callback. This proves
 // the Redact integration, rather than only controller.ts in isolation, commits
 // one final state patch regardless of how many pointer moves a gesture has.
 vi.mock('../editor/gestures/controller.ts', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<typeof import('../editor/gestures/controller.ts')>();
   return {
     ...actual,
-    startGesture: (options) => {
+    startGesture: <Patch,>(options: GestureControllerOptions<Patch>) => {
       const commit = vi.fn(options.commit);
       gestureCommitSpies.push(commit);
       return actual.startGesture({ ...options, commit });
@@ -34,7 +45,7 @@ vi.mock('../editor/gestures/controller.ts', async (importOriginal) => {
   };
 });
 
-function makePdfFile(name) {
+function makePdfFile(name: string): File {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 }
 
@@ -60,14 +71,15 @@ vi.mock('../editor/adapters/pdf/redact.js', () => ({
   redactPdf: vi.fn(async () => new Blob(['redacted'], { type: 'application/pdf' }))
 }));
 
+const mockedRedactPdf = vi.mocked(redactPdf);
+
 describe('PdfRedactTool UI flow', () => {
-  let container;
+  let container = document.createElement('div');
 
   afterEach(() => {
-    if (container) {
+    if (container.isConnected) {
       act(() => render(null, container));
       container.remove();
-      container = null;
     }
     gestureCommitSpies.length = 0;
     vi.restoreAllMocks();
@@ -80,7 +92,7 @@ describe('PdfRedactTool UI flow', () => {
       render(<PdfRedactTool />, container);
     });
 
-    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
+    const dropzone = query(container, `.${dropzoneStyles.dropzone}`);
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain('Select or drop a PDF to redact');
   });
@@ -92,7 +104,7 @@ describe('PdfRedactTool UI flow', () => {
       render(<PdfRedactTool />, container);
     });
 
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     const file = makePdfFile('test_secret.pdf');
 
     await act(async () => {
@@ -107,12 +119,12 @@ describe('PdfRedactTool UI flow', () => {
     // Verify hint message appears indicating editing mode. Nothing is armed on
     // load - a tool is one-shot here now, exactly as in the Sign editor - so
     // this is the idle tip, not any tool's own copy.
-    const header = container.querySelector(`.${toolbarStyles.help}`);
+    const header = query(container, `.${toolbarStyles.help}`);
     expect(header).not.toBeNull();
     expect(header.textContent).toContain('pick a tool to start');
     
     // Verify toolbar modes exist
-    const toolbar = container.querySelector(`.${toolbarStyles.toolbar}`);
+    const toolbar = query(container, `.${toolbarStyles.toolbar}`);
     expect(toolbar).not.toBeNull();
     expect(toolbar.textContent).toContain('Blackout');
     expect(toolbar.textContent).toContain('Blur');
@@ -120,10 +132,10 @@ describe('PdfRedactTool UI flow', () => {
     // Completion actions live below the document too. This matters on mobile,
     // where the compact toolbar prioritizes editing tools and may hide its
     // Download control when native sharing is available.
-    const exportActions = container.querySelector(`.${workspaceStyles['export-actions']}`);
+    const exportActions = query(container, `.${workspaceStyles['export-actions']}`);
     expect(exportActions).not.toBeNull();
-    const downloadButton = Array.from(exportActions.querySelectorAll('button'))
-      .find((button) => button.textContent.trim() === 'Download');
+    const downloadButton = required(Array.from(exportActions.querySelectorAll<HTMLButtonElement>('button'))
+      .find((button) => button.textContent.trim() === 'Download'), 'Download button');
     expect(downloadButton).not.toBeNull();
     expect(downloadButton.disabled).toBe(true);
 
@@ -160,8 +172,8 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
 
-      const generateButton = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
-        .find((button) => button.textContent.includes('Download'));
+      const generateButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
 
       await act(async () => {
         generateButton.click();
@@ -184,8 +196,8 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   it('keeps the same PDF page mounted while redacting', async () => {
-    let finishRedaction;
-    redactPdf.mockImplementationOnce(() => new Promise((resolve) => {
+    let finishRedaction!: (value: Blob) => void;
+    mockedRedactPdf.mockImplementationOnce(() => new Promise((resolve) => {
       finishRedaction = resolve;
     }));
     const originalCreateObjectURL = window.URL.createObjectURL;
@@ -197,8 +209,8 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       const pageBefore = container.querySelector('.redact-draw-area');
-      const downloadButton = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
-        .find((button) => button.textContent.includes('Download'));
+      const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
 
       await act(async () => {
         downloadButton.click();
@@ -220,14 +232,14 @@ describe('PdfRedactTool UI flow', () => {
   it('shares a valid PDF prepared from the real num-1.pdf fixture', async () => {
     const originalShare = navigator.share;
     const originalCanShare = navigator.canShare;
-    const share = vi.fn(() => Promise.resolve());
+    const share = vi.fn((_data?: ShareData) => Promise.resolve());
     Object.defineProperty(navigator, 'share', { configurable: true, value: share });
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => true) });
 
     try {
-      const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+      const fixturePath = `${__dirname}/../lib/__fixtures__/num-1.pdf`;
       const fixtureBytes = fs.readFileSync(fixturePath);
-      redactPdf.mockResolvedValueOnce(new Blob([fixtureBytes], { type: 'application/pdf' }));
+      mockedRedactPdf.mockResolvedValueOnce(new Blob([fixtureBytes], { type: 'application/pdf' }));
 
       const drawArea = await loadFileAndGetDrawArea(
         new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
@@ -253,7 +265,7 @@ describe('PdfRedactTool UI flow', () => {
       });
 
       expect(share).toHaveBeenCalledOnce();
-      const sharedFile = share.mock.calls[0][0].files[0];
+      const sharedFile = required(share.mock.calls[0]?.[0]?.files?.[0], 'shared PDF file');
       expect(sharedFile.name).toBe('redacted_num-1.pdf');
 
       const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
@@ -262,9 +274,9 @@ describe('PdfRedactTool UI flow', () => {
       expect(pdf.numPages).toBe(1);
       await loadingTask.destroy();
     } finally {
-      if (originalShare === undefined) delete navigator.share;
+      if (originalShare === undefined) Reflect.deleteProperty(navigator, 'share');
       else Object.defineProperty(navigator, 'share', { configurable: true, value: originalShare });
-      if (originalCanShare === undefined) delete navigator.canShare;
+      if (originalCanShare === undefined) Reflect.deleteProperty(navigator, 'canShare');
       else Object.defineProperty(navigator, 'canShare', { configurable: true, value: originalCanShare });
     }
   });
@@ -275,7 +287,7 @@ describe('PdfRedactTool UI flow', () => {
     // num-1.pdf is a real, minimal PDF with one text run - the same fixture
     // the share test above already uses for the same reason.
     async function loadRealPdfAndSwitchToDelete() {
-      const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+      const fixturePath = `${__dirname}/../lib/__fixtures__/num-1.pdf`;
       const fixtureBytes = fs.readFileSync(fixturePath);
       const drawArea = await loadFileAndGetDrawArea(
         new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
@@ -336,11 +348,11 @@ describe('PdfRedactTool UI flow', () => {
     it('marking spends the arming; un-marking the same object does not', async () => {
       await loadRealPdfAndSwitchToDelete();
 
-      const deleteBtn = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
-        .find((b) => b.textContent.includes('Delete'));
+      const deleteBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        .find((b) => b.textContent.includes('Delete')), 'Delete button');
       expect(deleteBtn.className).toContain(toolbarStyles.active);
 
-      const candidate = container.querySelector(`.${redactStyles['delete-candidate']}`);
+      const candidate = query<HTMLElement>(container, `.${redactStyles['delete-candidate']}`);
       await act(async () => {
         candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
@@ -352,8 +364,8 @@ describe('PdfRedactTool UI flow', () => {
       await armTool('Delete');
       expect(deleteBtn.className).toContain(toolbarStyles.active);
 
-      const mark = container.querySelector(`.${redactStyles['delete-mark']}`);
-      const undoButton = mark.querySelector(`.${redactStyles['delete-mark-btn']}`);
+      const mark = query<HTMLElement>(container, `.${redactStyles['delete-mark']}`);
+      const undoButton = query<HTMLElement>(mark, `.${redactStyles['delete-mark-btn']}`);
       await act(async () => {
         undoButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
@@ -380,12 +392,12 @@ describe('PdfRedactTool UI flow', () => {
     it('produces a smaller, still-valid PDF with the marked object actually removed', async () => {
       await loadRealPdfAndSwitchToDelete();
 
-      const candidate = container.querySelector(`.${redactStyles['delete-candidate']}`);
+      const candidate = query<HTMLElement>(container, `.${redactStyles['delete-candidate']}`);
       await act(async () => {
         candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
 
-      let capturedBlob;
+      let capturedBlob: Blob | undefined;
       const originalCreateObjectURL = window.URL.createObjectURL;
       const originalRevokeObjectURL = window.URL.revokeObjectURL;
       window.URL.createObjectURL = vi.fn((blob) => {
@@ -398,10 +410,10 @@ describe('PdfRedactTool UI flow', () => {
         // redactPdf is one mock shared (and never reset) across every test in
         // this file, so earlier tests' calls are still in its history here -
         // compare against a snapshot taken just before this test's own action.
-        const redactPdfCallsBefore = redactPdf.mock.calls.length;
+        const redactPdfCallsBefore = mockedRedactPdf.mock.calls.length;
 
-        const downloadButton = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
-          .find((button) => button.textContent.includes('Download'));
+        const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+          .find((button) => button.textContent.includes('Download')), 'Download button');
         await act(async () => {
           downloadButton.click();
           await new Promise((resolve) => setTimeout(resolve, 0));
@@ -410,16 +422,17 @@ describe('PdfRedactTool UI flow', () => {
         // This path never touches the mocked redactPdf: a delete-only session
         // has no box element, so applyPageEdits returns deleteObjectsFromPdf's
         // real output directly rather than flattening anything.
-        expect(redactPdf.mock.calls.length).toBe(redactPdfCallsBefore);
+        expect(mockedRedactPdf.mock.calls.length).toBe(redactPdfCallsBefore);
         expect(capturedBlob).toBeDefined();
+        const exportedBlob = required(capturedBlob, 'exported PDF blob');
 
-        const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+        const fixturePath = `${__dirname}/../lib/__fixtures__/num-1.pdf`;
         const originalSize = fs.statSync(fixturePath).size;
-        expect(capturedBlob.size).toBeLessThan(originalSize * 3);
+        expect(exportedBlob.size).toBeLessThan(originalSize * 3);
 
         const { extractPageObjects } = await import('../editor/adapters/pdf/pdfObjects.js');
         const { PDFDocument } = await import('@cantoo/pdf-lib');
-        const outBytes = new Uint8Array(await capturedBlob.arrayBuffer());
+        const outBytes = new Uint8Array(await exportedBlob.arrayBuffer());
         const doc = await PDFDocument.load(outBytes);
         const { objects } = extractPageObjects(doc.getPage(0), 0);
         expect(objects.map((o) => o.preview)).not.toContain('1');
@@ -430,14 +443,14 @@ describe('PdfRedactTool UI flow', () => {
     });
   });
 
-  async function loadFileAndGetDrawArea(file = makePdfFile('test_secret.pdf')) {
+  async function loadFileAndGetDrawArea(file: File = makePdfFile('test_secret.pdf')): Promise<HTMLElement> {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
       render(<PdfRedactTool />, container);
     });
 
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -445,7 +458,7 @@ describe('PdfRedactTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const drawArea = container.querySelector('.redact-draw-area');
+    const drawArea = query<HTMLElement>(container, '.redact-draw-area');
     drawArea.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
     });
@@ -462,9 +475,9 @@ describe('PdfRedactTool UI flow', () => {
     return drawArea;
   }
 
-  async function armTool(label, { lock = false } = {}) {
-    const button = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
-      .find((b) => b.textContent.includes(label));
+  async function armTool(label: string, { lock = false }: { lock?: boolean } = {}): Promise<HTMLButtonElement> {
+    const button = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+      .find((b) => b.textContent.includes(label)), `${label} tool button`);
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
     });
@@ -479,7 +492,7 @@ describe('PdfRedactTool UI flow', () => {
   // Each dispatch is its own act() so the state update it triggers (e.g. setDrawingState
   // in handlePointerDown) flushes and re-renders before the next event is handled —
   // batching them in one act() left drawingState still null when handlePointerMove ran.
-  async function drawBox(drawArea, downX, downY, moveX, moveY) {
+  async function drawBox(drawArea: HTMLElement, downX: number, downY: number, moveX: number, moveY: number): Promise<void> {
     await act(async () => {
       drawArea.dispatchEvent(new MouseEvent('mousedown', { clientX: downX, clientY: downY, bubbles: true }));
     });
@@ -492,7 +505,7 @@ describe('PdfRedactTool UI flow', () => {
   }
 
   function expectLatestGestureToCommitOnce() {
-    const commit = gestureCommitSpies.at(-1);
+    const commit = required(gestureCommitSpies.at(-1), 'latest gesture commit');
     expect(commit).toBeDefined();
     expect(commit).toHaveBeenCalledTimes(1);
   }
@@ -668,8 +681,8 @@ describe('PdfRedactTool UI flow', () => {
 
       // Switch to whiteout mode — all redaction box styles now get the
       // 8-direction ElementResizers handles.
-      const whiteoutBtn = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
-        .find((btn) => btn.textContent.includes('Whiteout'));
+      const whiteoutBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+        .find((btn) => btn.textContent.includes('Whiteout')), 'Whiteout button');
       await act(async () => {
         whiteoutBtn.click();
       });
@@ -678,7 +691,7 @@ describe('PdfRedactTool UI flow', () => {
       // wrapper (100,300) -> (250,500) in px. Mirrors the diagnosed repro
       // (left:20, width:30).
       await drawBox(drawArea, 100, 300, 250, 500);
-      const box = container.querySelector(`.${REDACT_BOX}`);
+      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
       expect(parseFloat(box.style.left)).toBeCloseTo(20);
       expect(parseFloat(box.style.top)).toBeCloseTo(30);
       expect(parseFloat(box.style.width)).toBeCloseTo(30);
@@ -696,8 +709,8 @@ describe('PdfRedactTool UI flow', () => {
       return box;
     }
 
-    async function dragHandle(box, handleClass, downX, downY, moveX, moveY) {
-      const handle = box.querySelector(`[data-editor-resizer="${handleClass}"]`);
+    async function dragHandle(box: HTMLElement, handleClass: string, downX: number, downY: number, moveX: number, moveY: number): Promise<void> {
+      const handle = query<HTMLElement>(box, `[data-editor-resizer="${handleClass}"]`);
       expect(handle).not.toBeNull();
       await act(async () => {
         handle.dispatchEvent(new MouseEvent('mousedown', { clientX: downX, clientY: downY, bubbles: true }));
@@ -800,8 +813,8 @@ describe('PdfRedactTool UI flow', () => {
     it('blur boxes also render the 8 resize handles and keep the remove button reachable inside the box', async () => {
       const drawArea = await loadFileAndGetDrawArea();
 
-      const blurBtn = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
-        .find((btn) => btn.textContent.includes('Blur'));
+      const blurBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+        .find((btn) => btn.textContent.includes('Blur')), 'Blur button');
       await act(async () => {
         blurBtn.click();
       });
@@ -880,18 +893,18 @@ describe('PdfRedactTool UI flow', () => {
   // so a failure here would mean the render layer forked the resize path per
   // style. Same realistic 500x1000 mocked wrapper (via loadFileAndGetDrawArea).
   describe('blackout/blur resize invariants (E1.5)', () => {
-    async function setupSelectedBox(styleLabel) {
+    async function setupSelectedBox(styleLabel: string | null): Promise<HTMLElement> {
       const drawArea = await loadFileAndGetDrawArea();
       if (styleLabel) {
-        const btn = Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
-          .find((b) => b.textContent.includes(styleLabel));
+        const btn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+          .find((b) => b.textContent.includes(styleLabel)), `${styleLabel} button`);
         await act(async () => {
           btn.click();
         });
       }
       // left=20%, top=30%, width=30%, height=20% on the 500x1000 wrapper.
       await drawBox(drawArea, 100, 300, 250, 500);
-      const box = container.querySelector(`.${REDACT_BOX}`);
+      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
       expect(box).not.toBeNull();
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
@@ -902,8 +915,8 @@ describe('PdfRedactTool UI flow', () => {
       return box;
     }
 
-    async function dragHandle(box, handleClass, downX, downY, moveX, moveY) {
-      const handle = box.querySelector(`[data-editor-resizer="${handleClass}"]`);
+    async function dragHandle(box: HTMLElement, handleClass: string, downX: number, downY: number, moveX: number, moveY: number): Promise<void> {
+      const handle = query<HTMLElement>(box, `[data-editor-resizer="${handleClass}"]`);
       expect(handle).not.toBeNull();
       await act(async () => {
         handle.dispatchEvent(new MouseEvent('mousedown', { clientX: downX, clientY: downY, bubbles: true }));
@@ -983,14 +996,14 @@ describe('PdfRedactTool UI flow', () => {
   // (nothing was ever true before E9's arming model - a style, 'delete', used to
   // be permanently selected from the moment a file loaded), so they need the
   // load without that convenience.
-  async function loadFileWithoutArming(file = makePdfFile('unarmed.pdf')) {
+  async function loadFileWithoutArming(file: File = makePdfFile('unarmed.pdf')): Promise<HTMLElement> {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
       render(<PdfRedactTool />, container);
     });
 
-    const input = container.querySelector('input[type="file"]');
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
     await act(async () => {
       setInputFiles(input, [file]);
     });
@@ -998,16 +1011,16 @@ describe('PdfRedactTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const drawArea = container.querySelector('.redact-draw-area');
+    const drawArea = query<HTMLElement>(container, '.redact-draw-area');
     drawArea.getBoundingClientRect = () => ({
       left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {}
     });
     return drawArea;
   }
 
-  function findToolButton(label) {
-    return Array.from(container.querySelectorAll(`.${toolbarStyles.toolbar} button`))
-      .find((b) => b.textContent.includes(label));
+  function findToolButton(label: string): HTMLButtonElement {
+    return required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+      .find((b) => b.textContent.includes(label)), `${label} tool button`);
   }
 
   // The mobile scroll fix itself (see the touchAction comment in
@@ -1050,7 +1063,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('stays auto while Delete is armed, since Delete places by tap and never owns the drag gesture', async () => {
-      const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-1.pdf');
+      const fixturePath = `${__dirname}/../lib/__fixtures__/num-1.pdf`;
       const fixtureBytes = fs.readFileSync(fixturePath);
       const drawArea = await loadFileAndGetDrawArea(
         new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
@@ -1125,7 +1138,7 @@ describe('PdfRedactTool UI flow', () => {
     // Scoped to the toolbar's own help/status line, not just any [role="status"]
     // - the sr-only announcement region at the top of PdfRedactTool.tsx has the
     // same role for its own, unrelated reason (live-announcing text changes).
-    const statusChip = () => container.querySelector(`.${toolbarStyles.help}[role="status"] button`);
+    const statusChip = () => query<HTMLButtonElement>(container, `.${toolbarStyles.help}[role="status"] button`);
 
     it('names the armed tool rather than the action, and locks it on when clicked', async () => {
       await loadFileAndGetDrawArea(); // arms Blackout, unlocked
@@ -1204,9 +1217,9 @@ describe('PdfRedactTool UI flow', () => {
         deleteBtn.focus();
       });
 
-      const describedBy = deleteBtn.getAttribute('aria-describedby');
+      const describedBy = required(deleteBtn.getAttribute('aria-describedby'), 'aria-describedby');
       expect(describedBy).toBeTruthy();
-      const hint = document.getElementById(describedBy);
+      const hint = required(document.getElementById(describedBy), 'tool hint');
       expect(hint.textContent).toContain('Click a highlighted image or text run to delete it');
       expect(hint.textContent).toContain('Double-click to keep Delete on');
     });
