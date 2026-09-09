@@ -77,18 +77,18 @@ async function seedSignDraft(page, { fileName, bytes }) {
   await page.evaluate(
     ([name, byteArray]) =>
       new Promise((resolve, reject) => {
-        const open = indexedDB.open('pdf-toolkit-drafts', 1);
+        const open = indexedDB.open('pdf-toolkit-workspace', 1);
         open.onupgradeneeded = () => {
           const db = open.result;
-          if (!db.objectStoreNames.contains('drafts')) {
-            db.createObjectStore('drafts', { keyPath: 'tool' });
+          if (!db.objectStoreNames.contains('workspace')) {
+            db.createObjectStore('workspace', { keyPath: 'tool' });
           }
         };
         open.onerror = () => reject(open.error);
         open.onsuccess = () => {
           const db = open.result;
-          const tx = db.transaction('drafts', 'readwrite');
-          tx.objectStore('drafts').put({
+          const tx = db.transaction('workspace', 'readwrite');
+          tx.objectStore('workspace').put({
             tool: 'sign',
             fileName: name,
             fileSize: byteArray.length,
@@ -123,7 +123,7 @@ test.describe('home page hands a dropped PDF to the Sign tool', () => {
     await page.evaluate(
       () =>
         new Promise((resolve) => {
-          const request = indexedDB.deleteDatabase('pdf-toolkit-drafts');
+          const request = indexedDB.deleteDatabase('pdf-toolkit-workspace');
           request.onsuccess = resolve;
           request.onerror = resolve;
           request.onblocked = resolve;
