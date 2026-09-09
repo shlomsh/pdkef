@@ -65,7 +65,7 @@ export const tools = [
     //
     // The lists and counts below (which families, how many) are curated
     // prose, not a runtime import of the coverage report - importing
-    // src/lib/fontCoverageReport.js here would pull it into ResumeDraftCard's
+    // src/lib/fontCoverageReport.js here would pull it into RecentFiles'
     // client bundle (it imports this file) and cost real page weight for
     // data the card never renders directly. Instead
     // src/lib/languageCoverage.test.js is the seam: it checks every claim

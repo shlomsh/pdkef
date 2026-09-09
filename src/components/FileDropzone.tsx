@@ -1,39 +1,19 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { loadDraft, deleteDraft, saveHandoff, readDraftMeta, readRecentFiles, loadRecentFile, attachDraftPreview } from '../editor/workspace/draftStore.js';
+import { loadDraft, deleteDraft, saveHandoff, readRecentFiles, loadRecentFile } from '../editor/workspace/draftStore.js';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import dialogStyles from './Dialog.module.css';
-import ResumeDraftCard from './ResumeDraftCard.tsx';
+import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
 import styles from './FileDropzone.module.css';
 import { SAMPLE_FILE_NAME, SAMPLE_PREVIEW_SRC } from './sampleDocument.ts';
 
-const DRAFT_TOOLS = ['sign', 'redact'];
-
-function readAllDraftMeta(): any[] {
-  return DRAFT_TOOLS.map(tool => {
-    const meta: any = readDraftMeta(tool);
-    return meta && { tool, ...meta };
-  }).filter(Boolean).sort((a: any, b: any) => (b.savedAt || 0) - (a.savedAt || 0));
-}
-
-function readHomeRecents(): any[] {
-  const cached = readRecentFiles();
-  const cachedDocuments = cached.map((entry: any) => ({ ...entry, cacheId: entry.id }));
-  // Draft metadata from older sessions predates the recent-file cache. Include
-  // it until that document is opened again, but never show one document twice.
-  const known = new Set(cachedDocuments.map((entry: any) => `${entry.tool}:${entry.fileName}`));
-  const legacyDrafts = readAllDraftMeta().filter((entry: any) => !known.has(`${entry.tool}:${entry.fileName}`));
-  return [...cachedDocuments, ...legacyDrafts]
-    .sort((a: any, b: any) => (b.savedAt || 0) - (a.savedAt || 0))
-    .slice(0, 6);
+function readHomeRecents(): RecentFileItem[] {
+  return readRecentFiles()
+    .slice(0, 6)
+    .map((entry: any) => ({ ...entry, cacheId: entry.id }));
 }
 export default function FileDropzone({ toolTarget, final = false }: { toolTarget: string; final?: boolean }) {
   const [pending, setPending] = useState<{ file: File; draftName?: string; tool: string } | null>(null);
-  // Start with the shared starter document on both the server and client.
-  // Reading browser storage during the first client render would disagree with
-  // the server HTML whenever a saved draft exists, forcing a hydration repair
-  // precisely where the homepage needs a dependable first paint. Refresh the
-  // local-only recent list after hydration instead.
-  const [recents, setRecents] = useState<any[]>([]);
+  const [recents, setRecents] = useState<RecentFileItem[]>(readHomeRecents);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const container = useRef<HTMLDivElement>(null);
@@ -64,7 +44,7 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
     if (draft?.fileBytes) setPending({ file, draftName: draft.fileName, tool: toolTarget });
     else await handOff(file);
   };
-  const openRecent = async (recent: any) => {
+  const openRecent = async (recent: RecentFileItem) => {
     if (busy || !recent.cacheId) return;
     setBusy(true);
     try {
@@ -122,29 +102,10 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
   }, [busy, final]);
   useEffect(() => {
     const refresh = () => setRecents(readHomeRecents());
-    refresh();
     window.addEventListener('pageshow', refresh);
     window.addEventListener('storage', refresh);
     return () => { window.removeEventListener('pageshow', refresh); window.removeEventListener('storage', refresh); };
   }, []);
-  // Repair display metadata for drafts saved before their thumbnail was ready.
-  // The PDF renderer stays lazy and is only loaded for a missing preview.
-  useEffect(() => {
-    if (final) return;
-    let cancelled = false;
-    for (const meta of recents.filter(recent => !recent.preview && !recent.cacheId)) {
-      void (async () => {
-        const draft: any = await loadDraft(meta.tool);
-        if (cancelled || !draft?.fileBytes) return;
-        const { renderDraftPreview } = await import('../lib/thumbnails.js');
-        const preview = await renderDraftPreview(new File([draft.fileBytes], draft.fileName, { type: 'application/pdf' }));
-        const current: any = readDraftMeta(meta.tool);
-        if (cancelled || current?.savedAt !== meta.savedAt || current?.fileName !== meta.fileName) return;
-        if (attachDraftPreview(meta.tool, preview)) setRecents(readHomeRecents());
-      })().catch(() => {}); // A missing thumbnail must never block opening a file.
-    }
-    return () => { cancelled = true; };
-  }, [recents, final]);
   const sample = async () => {
     try {
       const response = await fetch('/images/redaction-guide/sample.pdf');
@@ -154,8 +115,8 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
   };
   return (
     <div ref={container} class={final ? styles.final : styles.launcher}>
-      {!final && <ResumeDraftCard
-        drafts={recents.length > 0 ? recents : [{
+      {!final && <RecentFiles
+        files={recents.length > 0 ? recents : [{
           tool: 'sign',
           fileName: SAMPLE_FILE_NAME,
           preview: SAMPLE_PREVIEW_SRC,

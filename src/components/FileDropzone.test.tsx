@@ -3,20 +3,16 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone from './FileDropzone.tsx';
-import { loadDraft, deleteDraft, saveDraft, saveHandoff, readDraftMeta, readRecentFiles, loadRecentFile } from '../editor/workspace/draftStore.js';
+import { loadDraft, deleteDraft, saveDraft, saveHandoff, readRecentFiles, loadRecentFile } from '../editor/workspace/draftStore.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 
 vi.mock('../editor/workspace/draftStore.js', () => ({
-  attachDraftPreview: vi.fn(),
   loadDraft: vi.fn(() => Promise.resolve(null)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   saveDraft: vi.fn(() => Promise.resolve(true)),
   saveHandoff: vi.fn(() => Promise.resolve(true)),
   readRecentFiles: vi.fn(() => []),
   loadRecentFile: vi.fn(() => Promise.resolve(null)),
-  // Synchronous by contract (see draftStore.js) - the resume card reads it at
-  // mount time, before any of the async mocks above would have settled.
-  readDraftMeta: vi.fn(() => null),
 }));
 
 function dropOn(dropzone, files) {
@@ -35,7 +31,6 @@ describe('FileDropzone', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     loadDraft.mockResolvedValue(null);
-    readDraftMeta.mockReturnValue(null);
     readRecentFiles.mockReturnValue([]);
     loadRecentFile.mockResolvedValue(null);
     saveHandoff.mockResolvedValue(true);
@@ -66,9 +61,8 @@ describe('FileDropzone', () => {
     expect(input.accept).toContain('application/pdf');
   });
 
-  describe('resume-draft card', () => {
-    it('offers the bundled sample in the recent-documents position when no draft exists', () => {
-      readDraftMeta.mockReturnValue(null);
+  describe('recent-file card', () => {
+    it('offers the bundled sample when there are no recent files', () => {
       mount({ toolTarget: 'sign', href: '/sign?action=open' });
       const sample = container.querySelector('button[aria-label^="Open bundled sample PDF"]');
       expect(sample).not.toBeNull();
@@ -79,50 +73,21 @@ describe('FileDropzone', () => {
       expect(sample.querySelector('img[src="/images/redaction-guide/sample-preview.jpg"]')).not.toBeNull();
     });
 
-    it('shows a saved draft above the dropzone, and drops the "Drop PDFs" pitch', () => {
-      readDraftMeta.mockImplementation((tool) =>
-        tool === 'sign'
-          ? { fileName: 'contract.pdf', savedAt: Date.now() - 60_000, preview: 'data:image/jpeg;base64,abc' }
-          : null,
-      );
+    it('shows one cached source once', () => {
+      readRecentFiles.mockReturnValue([{
+        id: 'sha256:contract', tool: 'sign', fileName: 'contract.pdf',
+        savedAt: Date.now() - 60_000, preview: 'data:image/jpeg;base64,abc',
+      }]);
       mount({ toolTarget: 'sign', href: '/sign?action=open' });
 
-      expect(container.textContent).toContain('Pick up where you left off');
+      expect(container.querySelectorAll('li')).toHaveLength(1);
       expect(container.textContent).toContain('contract.pdf');
       expect(container.textContent).toContain('Sign & Fill PDF');
       expect(container.querySelector('img[src="data:image/jpeg;base64,abc"]')).not.toBeNull();
-
-      const continueLink = container.querySelector('a[href="/sign/"]');
-      expect(continueLink).not.toBeNull();
-      expect(continueLink.textContent).toContain('contract.pdf');
+      expect(container.querySelector('button[aria-label^="Open recent PDF"]')).not.toBeNull();
       expect(container.querySelector('button[aria-label^="Open bundled sample PDF"]')).toBeNull();
-
-      // The card already made the case for resuming; the dropzone below
-      // shouldn't repeat the from-scratch pitch as if the card said nothing.
       expect(container.textContent).not.toContain('Drop PDFs here');
       expect(container.textContent).toContain('or drop PDFs here');
-    });
-
-    it('lists both tools, most recently saved first, and never renders a dismiss control', () => {
-      const older = Date.now() - 2 * 60 * 60 * 1000;
-      const newer = Date.now() - 60_000;
-      readDraftMeta.mockImplementation((tool) => {
-        if (tool === 'sign') return { fileName: 'older-sign.pdf', savedAt: older };
-        if (tool === 'redact') return { fileName: 'newer-redact.pdf', savedAt: newer };
-        return null;
-      });
-      mount({ toolTarget: 'sign', href: '/sign?action=open' });
-
-      const names = Array.from(container.querySelectorAll('li')).map((li) =>
-        li.textContent.includes('newer-redact.pdf') ? 'redact' : 'sign',
-      );
-      expect(names).toEqual(['redact', 'sign']);
-
-      // No '×'/close control anywhere in the card: dismissing would hide a
-      // draft whose bytes are still sitting in IndexedDB, implying it's gone
-      // when it isn't. See ResumeDraftCard.tsx's header comment.
-      expect(container.querySelector('button[aria-label="Hide"]')).toBeNull();
-      expect(container.textContent).not.toMatch(/[×✕]/);
     });
 
     it('shows no more than six cached files, newest first', () => {
@@ -140,18 +105,6 @@ describe('FileDropzone', () => {
       expect(names[0]).toContain('recent-0.pdf');
       expect(names[5]).toContain('recent-5.pdf');
       expect(container.textContent).not.toContain('recent-6.pdf');
-    });
-
-    it('does not add a legacy draft already represented in the recent cache', () => {
-      readRecentFiles.mockReturnValue([{
-        id: 'cached-id', tool: 'sign', fileName: 'ספח תעודת זהות.pdf', savedAt: Date.now(),
-      }]);
-      readDraftMeta.mockImplementation((tool) => tool === 'sign'
-        ? { fileName: 'ספח תעודת זהות.pdf', savedAt: Date.now() - 1_000 }
-        : null);
-      mount();
-
-      expect(container.querySelectorAll('li')).toHaveLength(1);
     });
 
     it('resumes the active draft instead of asking to replace it from its own recent card', async () => {
@@ -177,10 +130,10 @@ describe('FileDropzone', () => {
       expect(saveHandoff).not.toHaveBeenCalled();
     });
 
-    it('draws an empty preview box, not a broken image, when a draft has no preview', () => {
-      readDraftMeta.mockImplementation((tool) =>
-        tool === 'sign' ? { fileName: 'pdf1.pdf', savedAt: Date.now() } : null,
-      );
+    it('draws an empty preview box when a cached file has no preview', () => {
+      readRecentFiles.mockReturnValue([{
+        id: 'sha256:no-preview', tool: 'sign', fileName: 'pdf1.pdf', savedAt: Date.now(),
+      }]);
       mount({ toolTarget: 'sign', href: '/sign?action=open' });
 
       expect(container.querySelector('img')).toBeNull();
