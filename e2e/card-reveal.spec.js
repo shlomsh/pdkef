@@ -179,7 +179,7 @@ test('home story cards fit the laptop band and release when the viewport is too 
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto('/');
   await expect(page.locator('[data-home-picker]').first()).toBeVisible();
-  const deck = page.locator('.card-stack .card-reveal');
+  const deck = page.locator('.card-stack .card-reveal:not(.try-workspace)');
   for (const card of await deck.all()) {
     await card.evaluate(el => {
       const navHeight = document.querySelector('[data-home-bar]').getBoundingClientRect().height;
@@ -212,6 +212,14 @@ test('the closing card and footer share the visible laptop viewport', async ({ p
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto('/');
   const closing = page.locator('#try-workspace');
+  await closing.evaluate(el => {
+    const navHeight = document.querySelector('[data-home-bar]').getBoundingClientRect().height;
+    window.scrollTo(0, el.getBoundingClientRect().top + scrollY - navHeight);
+  });
+  await settle(page);
+  // Entering the information deck promotes the footer into its fixed frame,
+  // which settles on the next frame. Align against that final layout rather
+  // than the normal-flow footer that existed before the jump.
   await closing.evaluate(el => {
     const navHeight = document.querySelector('[data-home-bar]').getBoundingClientRect().height;
     window.scrollTo(0, el.getBoundingClientRect().top + scrollY - navHeight);

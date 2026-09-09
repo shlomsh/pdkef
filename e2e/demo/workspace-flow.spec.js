@@ -7,12 +7,12 @@ test.use({serviceWorkers:'block'});
 async function draftSnapshot(page) {
   return page.evaluate(async () => {
     const dbs = await indexedDB.databases();
-    if (!dbs.some(db => db.name === 'pdf-toolkit-drafts')) return [];
+    if (!dbs.some(db => db.name === 'pdf-toolkit-workspace')) return [];
     return new Promise(resolve => {
-      const request = indexedDB.open('pdf-toolkit-drafts');
+      const request = indexedDB.open('pdf-toolkit-workspace');
       request.onsuccess = () => {
         const db = request.result;
-        const records = db.transaction('drafts').objectStore('drafts').getAll();
+        const records = db.transaction('workspace').objectStore('workspace').getAll();
         records.onsuccess = () => { resolve(records.result.map(({tool, fileName, savedAt}) => ({tool,fileName,savedAt}))); db.close(); };
       };
     });
@@ -89,11 +89,11 @@ test('the same source PDF is deduplicated to its latest tool and opens from the 
     await page.locator('input[type="file"]').first().setInputFiles({name:`my-${tool}-document.pdf`,mimeType:'application/pdf',buffer:bytes});
     await expect(page.locator('canvas').first()).toBeVisible();
     await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({tool,fileName:`my-${tool}-document.pdf`})]));
-    await expect.poll(() => page.evaluate(tool => JSON.parse(localStorage.getItem('pdf-toolkit:draft-meta:' + tool))?.preview, tool)).toMatch(/^data:image/);
+    await expect.poll(() => page.evaluate(tool => JSON.parse(localStorage.getItem('pdf-toolkit:workspace:draft-meta:' + tool))?.preview, tool)).toMatch(/^data:image/);
   }
   // Simulate an older saved draft whose thumbnail lost the autosave race.
   const savedAt = await page.evaluate(() => {
-    const key = 'pdf-toolkit:draft-meta:sign';
+    const key = 'pdf-toolkit:workspace:draft-meta:sign';
     const meta = JSON.parse(localStorage.getItem(key));
     delete meta.preview;
     localStorage.setItem(key, JSON.stringify(meta));
@@ -111,7 +111,7 @@ test('the same source PDF is deduplicated to its latest tool and opens from the 
     await expect(icon.locator('img')).toBeVisible();
     await expect(icon).toContainText('just now');
   }
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pdf-toolkit:draft-meta:sign')).savedAt)).toBe(savedAt);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pdf-toolkit:workspace:draft-meta:sign')).savedAt)).toBe(savedAt);
   const before = await draftSnapshot(page);
   await page.evaluate(() => window.scrollTo(0, 0));
   await scrollStory(page,'blur',1);
