@@ -106,6 +106,23 @@ test.describe('scrollable home hero', () => {
         document.elementFromPoint(innerWidth / 2, 4)?.closest('[data-home-bar]'),
       ))).toBe(true);
 
+      // Cross the sticky boundary in both directions: the title must remain
+      // below the toolbar without a late padding/height change moving it.
+      const titlePositions = [];
+      for (const offset of [-40, -1, 1, 40, 1, -1, -40]) {
+        await page.evaluate(async (offset) => {
+          window.scrollTo(0, document.getElementById('home-tour').offsetTop + offset);
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        }, offset);
+        const geometry = await page.evaluate(() => ({
+          title: document.querySelector('[class*="caption_"]').getBoundingClientRect().top,
+          bar: document.querySelector('[data-home-bar]').getBoundingClientRect().bottom,
+        }));
+        expect(geometry.title - geometry.bar).toBeGreaterThanOrEqual(11);
+        titlePositions.push(geometry.title - Math.max(0, -offset));
+      }
+      expect(Math.max(...titlePositions) - Math.min(...titlePositions)).toBeLessThanOrEqual(2);
+
       if (viewport.width === 390) {
         // The launcher keeps its existing horizontal rail instead of forcing
         // nine small controls into a wrapped, clipped layout.
