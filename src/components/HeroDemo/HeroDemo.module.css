@@ -1380,11 +1380,12 @@
   .parent-fields { padding-block: 2px 5px; column-gap: 8px; font-size: 0.7rem; }
   .blank-value { font-size: 0.72rem; }
   .field-label { padding-block: 2px; }
-  .check { padding-block: 3px; font-size: 0.72rem; }
+  .checks { padding-block: 0; }
+  .check { padding-block: 1px; font-size: 0.72rem; }
   .confirm-line { padding-block: 3px 0; font-size: 0.7rem; }
   .sig-line { margin-block: 0; padding-block: 2px; }
-  .sig { height: 28px; }
-  .date-line { padding-block: 2px; }
+  .sig { height: 22px; }
+  .date-line { padding-block: 1px; line-height: 1.2; }
   .tool-chips { padding-block: 4px; }
   .doc-line { padding-block: 2px; font-size: 0.7rem; }
 }
