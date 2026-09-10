@@ -19,6 +19,7 @@ const epics = [
   ['landing-story-demo', 'Landing story and demo', 'The landing story and demo'],
   ['mobile-round-trip', 'Mobile round trip', 'Mobile round trip: fill a form from a chat and send it back'],
   ['site-quality', 'Site quality', 'Site quality: accessibility, CSS correctness and theming'],
+  ['search-acquisition', 'Search acquisition', 'Search acquisition: competitive keyword gaps'],
 ];
 const statuses = [
   ['open', 'Open'],
