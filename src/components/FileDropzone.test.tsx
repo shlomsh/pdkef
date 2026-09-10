@@ -90,6 +90,36 @@ describe('FileDropzone', () => {
       expect(container.textContent).toContain('or drop PDFs here');
     });
 
+    it('renders the starter document before it reads browser storage', async () => {
+      // The homepage server-renders this island, and the server has no
+      // localStorage. Reading it during the first client render would produce
+      // markup the server never emitted, and Preact repairs that mismatch by
+      // keeping the server's node and appending its own - which is how
+      // duplicate recent tiles shipped once already. Storage may only be read
+      // from the mount effect, so the first render must show the starter card
+      // even when recent files exist.
+      readRecentFiles.mockReturnValue([{
+        id: 'sha256:contract', tool: 'sign', fileName: 'contract.pdf', savedAt: Date.now(),
+      }]);
+      container = document.createElement('div');
+      container.setAttribute('data-working-area', '');
+      document.body.appendChild(container);
+      // Deliberately not wrapped in act(): act flushes effects, and the state
+      // under test is the render that happens before they run.
+      render(<FileDropzone toolTarget="sign" />, container);
+
+      expect(readRecentFiles).not.toHaveBeenCalled();
+      expect(container.querySelector('button[aria-label^="Open bundled sample PDF"]')).not.toBeNull();
+      expect(container.textContent).not.toContain('contract.pdf');
+
+      // Flush the mount effect the way the browser would, once the first
+      // render has already been committed.
+      await act(async () => { render(<FileDropzone toolTarget="sign" />, container); });
+      expect(readRecentFiles).toHaveBeenCalled();
+      expect(container.textContent).toContain('contract.pdf');
+      expect(container.querySelector('button[aria-label^="Open bundled sample PDF"]')).toBeNull();
+    });
+
     it('shows no more than six cached files, newest first', () => {
       const now = Date.now();
       readRecentFiles.mockReturnValue(Array.from({ length: 8 }, (_, index) => ({

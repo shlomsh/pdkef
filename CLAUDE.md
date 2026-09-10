@@ -281,20 +281,44 @@ status feedback.
   `mt-auto`. That is deliberate: the grid reads as a macOS dock, and an experienced visitor uses it to
   jump straight to the tool they came for, so it has to stay on the first screen. Anything added
   *inside* that wrapper pushes the dock off the viewport and costs those visitors their shortcut. New
-  full-height sections go after the wrapper, not in it. The dropzone's `min-h-[333px]` reservation
-  inside it is a separate, load-bearing thing: `FileDropzone` is `client:only` and ships no build-time
-  HTML, so that height is what stops the first paint shifting.
-- **The demo and the dropzone have opposite rendering constraints, so they cannot simply swap.** This
-  looks like an easy conditional and is not. `FileDropzone` is `client:only` and renders nothing at
-  build time, which is fine because crawlers do not need a tool control. Marketing and demo copy is the
-  reverse: it must be server-rendered or it stops counting as the SEO surface (Part II §1.1). So a demo
-  is always present in the document, and hiding it after hydration means a returning visitor watches it
-  flash and then collapse by several screens, which is exactly the layout shift the reservation above
-  exists to prevent. Deciding before first paint needs a synchronous inline script, and hand-hashing an
-  `is:inline` script for CSP is fragile and breaks silently (see the CSP section). If a conditional is
-  genuinely wanted, **collapse rather than remove**: a class on `<html>` written by the same bundled
-  script that already registers the service worker, driving a CSS `max-height`. That keeps the markup
-  crawlable and the CSP posture intact.
+  full-height sections go after the wrapper, not in it. The dropzone's `min-height: 13rem` reservation
+  inside it (`.home-workspace` in `index.astro`, and `.dropzone` in `Dropzone.module.css`) is a
+  separate, load-bearing thing: it is the floor that keeps the first paint from moving the dock while
+  the launcher settles.
+- **`FileDropzone` is `client:load`, and the directive and its `recents` state are one decision.** A
+  `client:only` island emits no HTML at build time, so the whole launcher - dashed picker tile, "Choose
+  files", the starter-document card and its thumbnail - existed only after the Preact bundle had loaded,
+  and visibly arrived after the page had painted. Server-rendering it is only safe while the component's
+  first client render reproduces the server's markup exactly, which is why `recents` starts as `null`
+  ("storage not read yet") and browser storage is read only from the mount effect. Recent files live in
+  `localStorage`; no server render can know about them, and Preact repairs a hydration mismatch by
+  keeping the server's nodes and *appending* its own, which is how duplicate recent tiles shipped in the
+  earlier `client:load` attempt (fixed by `203b204`, which also made `arrangeWorkspace` idempotent).
+  **Changing either half alone brings that back.** Both halves have their own guard with a checked
+  sabotage control: `e2e/home/recent-files.spec.js` renders `/` with JavaScript disabled and asserts the
+  shell is in the document, and `FileDropzone.test.tsx` asserts the first render shows the starter card
+  and has not called `readRecentFiles`. What server rendering cannot buy is the recent tiles themselves:
+  they always arrive after mount, so a returning visitor sees the starter card swapped for their own
+  files. That swap is not a layout shift - measured CLS on `/` is 0 with 0 and with 4 recents, before and
+  after - because the hero column absorbs the launcher's height change.
+- **The demo and the launcher have opposite rendering constraints, so they cannot simply swap.** This
+  looks like an easy conditional and is not. Marketing and demo copy must be server-rendered or it stops
+  counting as the SEO surface (Part II §1.1), so a demo is always present in the document, and hiding it
+  after hydration means a returning visitor watches it flash and then collapse by several screens, which
+  is exactly the layout shift the reservation above exists to prevent. Deciding before first paint needs
+  a synchronous inline script, and hand-hashing an `is:inline` script for CSP is fragile and breaks
+  silently (see the CSP section). If a conditional is genuinely wanted, **collapse rather than remove**:
+  a class on `<html>` written by the same bundled script that already registers the service worker,
+  driving a CSS `max-height`. That keeps the markup crawlable and the CSP posture intact.
+- **Reparenting an island's ancestors re-enters `astro-island`, and only Preact's own guard stops a
+  second mount.** `homeWorkspace.ts` moves `#home-files` between the hero and the demo scene at the
+  1024px breakpoint, and each move disconnects and reconnects the island, so `connectedCallback` fires
+  again and `start()` runs again - measured at four `astro:hydrate` dispatches per desktop load. Only
+  one real mount happens, because `@astrojs/preact`'s client bails on `!element.hasAttribute("ssr")` and
+  `astro-island` clears that attribute after the first hydration; this was verified across twelve
+  breakpoint-crossing timings inside the hydration window. Keep `arrangeWorkspace`'s
+  `mobileLayoutIsCurrent`/`desktopLayoutIsCurrent` early returns: they are what stops every `resize`
+  event from re-running the moves.
 - **FAQ disclosure**: The "How it works & FAQ" content resides below the app and acts as a details-summary element. The summary contains the hero text, and a click interceptor script prevents clicks on the text from toggling the panel. Only clicking the styled `.faq-toggle` link (anchor-like visual) triggers the toggle.
 - **Merge & Download Flow**:
   - Once merging is complete, the "Merge PDFs" button turns grey (`.is-done` class) to step back, and focus is shifted to the "Download PDF" button (`ref` + `useEffect` on status change).
