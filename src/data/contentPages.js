@@ -14,6 +14,15 @@
 // with an icon, title and one-line description, not a bare pill list, since
 // this sits directly above ToolCrossLinks' own card grid on the same page.
 //
+// `alsoHub` (optional array) adds secondary inbound links beyond the primary
+// `hub`, for SEO-06: /redact/ and /compress/ are the only two pages with real
+// accumulated authority (Search Console), and four of these pages had no path
+// from either one - reachable only from /sign/ or /edit-pdf/, which barely
+// rank. Rather than moving the primary hub (which would pull a card off the
+// tool page it's most relevant to), a page can additionally render on another
+// tool's RelatedGuides grid. Route link equity from where it has accumulated,
+// not by restructuring where a page conceptually belongs.
+//
 // `blurb` is that one-line description, RelatedGuides' equivalent of
 // tools.js's gridDescription. `label` stays the short form OtherGuides.astro
 // uses for its OS-switcher pills, where the "Signing on a different device?"
@@ -38,6 +47,7 @@ export const landingPages = [
     blurb: 'No account, no email, no trial that runs out.',
     icon: UserX,
     hub: 'sign',
+    alsoHub: ['compress'],
     sitemapPriority: '0.6',
     sitemapChangefreq: 'monthly',
   },
@@ -47,6 +57,7 @@ export const landingPages = [
     blurb: 'Install it once and every tool here works with no connection at all.',
     icon: Download,
     hub: 'sign',
+    alsoHub: ['compress'],
     sitemapPriority: '0.6',
     sitemapChangefreq: 'monthly',
   },
@@ -56,6 +67,7 @@ export const landingPages = [
     blurb: 'No upload, and it works on scans and flat PDFs with no real fields at all.',
     icon: WifiOff,
     hub: 'sign',
+    alsoHub: ['redact'],
     sitemapPriority: '0.6',
     sitemapChangefreq: 'monthly',
   },
@@ -65,6 +77,7 @@ export const landingPages = [
     blurb: 'MIT licensed, plus a one-minute test that proves nothing uploads.',
     icon: Code2,
     hub: 'edit-pdf',
+    alsoHub: ['redact'],
     sitemapPriority: '0.6',
     sitemapChangefreq: 'monthly',
   },
@@ -129,7 +142,17 @@ export const guides = [
 
 export const contentPages = [...landingPages, ...guides];
 
-/** Every content page that hangs off a given tool page, in registry order. */
+/**
+ * Every content page that hangs off a given tool page: primary `hub` matches
+ * first, then `alsoHub` ones, each in registry order. The two-tier sort is the
+ * whole behavioural difference between the fields, and it is load-bearing -
+ * a flat filter returns registry order, which put the two secondary cards
+ * ABOVE `/redact/`'s own two topical guides, so the first thing a redact
+ * visitor saw under "Documentation" was a form-filling guide.
+ */
 export function contentPagesForTool(slug) {
-  return contentPages.filter((page) => page.hub === slug);
+  return [
+    ...contentPages.filter((page) => page.hub === slug),
+    ...contentPages.filter((page) => page.alsoHub?.includes(slug)),
+  ];
 }
