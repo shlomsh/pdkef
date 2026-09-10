@@ -180,17 +180,32 @@ test.describe('scrollable home hero', () => {
       const dock = document.querySelector('.home-dock');
       const appBar = document.querySelector('[data-home-bar]');
       const appBarInner = appBar?.firstElementChild;
-      const scene = document.querySelector('.home-scene');
+      // The content block used to be one wrapper element. It is now the span
+      // between the hero grid's content-start and content-end lines, so it is
+      // read off the two items that sit on those lines: the launcher starts
+      // at content-start, the demo track ends at content-end. The assertions
+      // below are unchanged - the app bar's inner row still has to line up
+      // with that block edge to edge.
+      const launcher = document.getElementById('home-files');
+      const demoTrack = document.querySelector('.demo-track');
       return {
         heroHeight: hero?.getBoundingClientRect().height ?? 0,
         headingTop: heading?.getBoundingClientRect().top ?? 0,
         dockTop: dock?.getBoundingClientRect().top ?? 0,
         appBarTop: appBar?.getBoundingClientRect().top ?? 0,
         appBarPosition: appBar ? getComputedStyle(appBar).position : null,
-        appBarInnerLeft: appBarInner?.getBoundingClientRect().left ?? 0,
-        appBarInnerRight: appBarInner?.getBoundingClientRect().right ?? 0,
-        sceneLeft: scene?.getBoundingClientRect().left ?? 0,
-        sceneRight: scene?.getBoundingClientRect().right ?? 0,
+        // Content edge, not border edge. The app bar's inner row carries the
+        // 32px gutter as padding, and the hero grid carries it as a gutter
+        // column, so the thing that has to line up is where the *content*
+        // starts on each side.
+        appBarInnerLeft: appBarInner
+          ? appBarInner.getBoundingClientRect().left + parseFloat(getComputedStyle(appBarInner).paddingLeft)
+          : 0,
+        appBarInnerRight: appBarInner
+          ? appBarInner.getBoundingClientRect().right - parseFloat(getComputedStyle(appBarInner).paddingRight)
+          : 0,
+        sceneLeft: launcher?.getBoundingClientRect().left ?? 0,
+        sceneRight: demoTrack?.getBoundingClientRect().right ?? 0,
         positions: [heading, dock].map((element) => element ? getComputedStyle(element).position : null),
       };
     });
@@ -322,13 +337,14 @@ test.describe('desktop server-rendered hero frame', () => {
     await page.goto('/');
 
     // No JS runs (see test.use above), so this is the static markup CSS
-    // alone: the workspace launcher and the demo track are both direct
-    // children of .home-scene's two-column grid in source order, so the
-    // demo lands in the right-hand column with no reparenting or explicit
-    // grid-column reservation required.
+    // alone. The demo track is a sibling *after* the dock in source order, so
+    // mobile reads in the order it renders; on desktop the hero's own
+    // full-bleed grid places it in the right-hand content column. Getting
+    // that from named grid areas rather than source order is the whole point,
+    // so this asserts the rendered position, not the DOM position.
     const placement = await page.evaluate(() => {
-      const scene = document.querySelector('.home-scene');
-      const demo = scene?.querySelector('[data-home-demo]');
+      const scene = document.querySelector('.home-hero');
+      const demo = document.querySelector('[data-home-demo]');
       const sceneBox = scene?.getBoundingClientRect();
       const demoBox = demo?.getBoundingClientRect();
       return {
