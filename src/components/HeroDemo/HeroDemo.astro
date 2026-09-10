@@ -12,6 +12,26 @@ const rootSelector = `.${styles.root}`;
 ---
 
 <section class={styles.root} data-home-demo aria-label="How PDkef works, shown as two short stories">
+  {/* HeroDemo.module.css's .stage now defaults every --p-* beat to the value
+      ScrollDriver.tsx actually writes at scroll position 0 on mount, so a
+      JS-enabled visitor (including reduced motion) sees no reset-to-start
+      flash on hydration - see the comment above those declarations. A true
+      no-JS visitor never runs that driver at all, so without this block they
+      would be stuck looking at the empty start frame forever. This restores
+      the finished, plainly-visible story for that audience only, applied at
+      first paint (no hydration timing to race) and scoped to the same
+      [data-hero-stage] hook, never the CSS-Modules-hashed .stage class.
+
+      An external stylesheet, not an inline <style>: Astro's compiler treats
+      <noscript> content as opaque raw text and never scopes or CSP-hashes a
+      <style> written directly inside it, so an inline block here ships as a
+      literal unhashed style and fails the build's CSP check outright (proven
+      by trying it first). public/hero-demo-noscript.css's own header has the
+      full explanation; styleDirective already allows 'self', so this needs
+      no hash and cannot go stale the way a hand-computed one would. */}
+  <noscript>
+    <link rel="stylesheet" href="/hero-demo-noscript.css" />
+  </noscript>
   <ScrollDriver client:load rootSelector={rootSelector} />
   <div class={styles.track} data-hero-track="sign">
     <p class="sr-only">

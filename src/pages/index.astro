@@ -39,53 +39,68 @@ if (compressToolIndex !== -1) {
 <BaseLayout title={title} description={description}>
   <Fragment slot="head">
     <SeoSchema name="PDkef" description={description} faq={faq} />
+    {/* The hero demo's handwritten caption ('Caveat Demo' in HeroDemo.module.css)
+        sits above the fold only on desktop - the mobile layout scrolls the
+        demo past the first screen - so this is scoped to the same width the
+        caption itself actually renders above the fold at, rather than making
+        every phone visit pay for a font it never needs early. */}
+    <link
+      rel="preload"
+      as="font"
+      type="font/ttf"
+      href="/fonts/CaveatDemo-Bold.ttf"
+      media="(min-width: 1024px)"
+      crossorigin
+    />
   </Fragment>
 
-  <section class="home-hero" aria-labelledby="home-heading">
-    <div class="home-header">
-      <AppBar isHome>
-        <a class="trust-chip" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer" aria-label="Star us on GitHub">
-          <svg class="trust-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" /></svg>
-          <span>Star us on GitHub</span>
-        </a>
-        <a class="trust-chip" href="/licenses/" aria-label="MIT licensed"><Scale class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>MIT licensed</span></a>
-        <a class="trust-chip" data-offline-link href="#offline-app" aria-label="Works offline"><WifiOff class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>Works offline</span></a>
-      </AppBar>
-      <header class="hero-header">
-        <h1 id="home-heading">Free PDF tools that run <span>on your device</span></h1>
-        <p>Merge, sign, split, redact and compress PDFs. No signup, no install, nothing leaves your device.</p>
-      </header>
-    </div>
-    <div class="workspace-launcher home-workspace" id="home-files" data-working-area>
-      {/* client:load, not client:only: a client:only island emits no HTML at
-          build time, so the dropzone tile and the recent-documents card only
-          existed once the Preact bundle had loaded and visibly arrived after
-          the page had painted. Server-rendering the shell is only safe while
-          FileDropzone's first client render matches it exactly - see the note
-          on the `recents` state there, which is what keeps browser storage out
-          of the render body. Reverting either half alone brings back the
-          duplicate tiles of 203b204. */}
-      <FileDropzone client:load toolTarget="sign" />
-    </div>
-    <nav class="home-dock" aria-label="PDF tools">
-        {homeTools.map((tool) => (
-          <a href={tool.href} data-accent={tool.accent} class="app-card">
-            <div class="app-tile">
-              <tool.icon strokeWidth={1.5} />
-            </div>
-            <div class="app-label">{tool.gridTitle}</div>
-            <span class="app-tooltip">{tool.gridDescription}</span>
-          </a>
-        ))}
-    </nav>
-  </section>
   <main id="home-content">
-    <div class="home-tour" id="home-tour">
-      <div class="home-frame" data-demo-frame>
-        <div class="home-scene" data-working-area>
-          <HeroDemo />
+    <div class="home-tour" id="home-tour" data-demo-track="desktop">
+      <section class="home-hero" aria-labelledby="home-heading" data-demo-pin="desktop">
+        <div class="home-header">
+          <AppBar isHome>
+            <a class="trust-chip" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer" aria-label="Star us on GitHub">
+              <svg class="trust-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" /></svg>
+              <span>Star us on GitHub</span>
+            </a>
+            <a class="trust-chip" href="/licenses/" aria-label="MIT licensed"><Scale class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>MIT licensed</span></a>
+            <a class="trust-chip" data-offline-link href="#offline-app" aria-label="Works offline"><WifiOff class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>Works offline</span></a>
+          </AppBar>
+          <header class="hero-header">
+            <h1 id="home-heading">Free PDF tools that run <span>on your device</span></h1>
+            <p>Merge, sign, split, redact and compress PDFs. No signup, no install, nothing leaves your device.</p>
+          </header>
         </div>
-      </div>
+        <div class="home-scene">
+          <div class="workspace-launcher home-workspace" id="home-files" data-working-area>
+            {/* client:load, not client:only: a client:only island emits no HTML
+                at build time, so the dropzone tile and the recent-documents
+                card only existed once the Preact bundle had loaded and visibly
+                arrived after the page had painted. Server-rendering the shell
+                is only safe while FileDropzone's first client render matches it
+                exactly - see the note on the `recents` state there, which is
+                what keeps browser storage out of the render body. Reverting
+                either half alone brings back the duplicate tiles of 203b204. */}
+            <FileDropzone client:load toolTarget="sign" />
+          </div>
+          <div class="demo-track" data-demo-track="mobile">
+            <div class="home-frame" data-demo-frame data-demo-pin="mobile" data-working-area>
+              <HeroDemo />
+            </div>
+          </div>
+        </div>
+        <nav class="home-dock" aria-label="PDF tools">
+            {homeTools.map((tool) => (
+              <a href={tool.href} data-accent={tool.accent} class="app-card">
+                <div class="app-tile">
+                  <tool.icon strokeWidth={1.5} />
+                </div>
+                <div class="app-label">{tool.gridTitle}</div>
+                <span class="app-tooltip">{tool.gridDescription}</span>
+              </a>
+            ))}
+        </nav>
+      </section>
     </div>
     <div id="home-information">
     <OfflineProof />
@@ -364,10 +379,20 @@ if (compressToolIndex !== -1) {
 <style>
   :global(html) { scroll-padding-top: 0; }
   :global(body) {
-    --home-nav-height: 56px;
+    /* AppBar.astro's [data-home-bar] is border-box with no explicit height:
+       its inner row is the h-14 utility (3.5rem = 56px), but the bar element
+       itself also carries border-b-[0.5px], so its rendered height is 56.5px,
+       not 56px, in a real GPU-rendered browser. This is the first-paint
+       default, not the only source of truth: homeWorkspace.ts measures
+       [data-home-bar] at runtime and writes the same value back onto
+       document.body, so a real browser sees no post-paint shift (the write is
+       a no-op there) while an environment whose rendering disagrees with this
+       constant - headless Chromium rounds the sub-device-pixel border up and
+       renders the bar at 57px - gets corrected instead of staying wrong. See
+       e2e/home/nav-height.spec.js, which asserts the resolved variable
+       matches the bar's actual measured height. */
+    --home-nav-height: calc(3.5rem + 0.5px);
     --home-footer-height: 0px;
-    --home-header-height: 0px;
-    --home-dock-height: 104px;
     background: var(--color-bg);
   }
   /* This bounded surface is deliberately a normal-flow section. Keeping the
@@ -385,23 +410,41 @@ if (compressToolIndex !== -1) {
   }
   .home-hero {
     color: var(--color-text);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 26%, var(--home-workspace)), var(--home-workspace));
+    /* The hero is the first 100svh of a much taller .home-tour on both
+       breakpoints (sticky-pinned on desktop, static-then-1216svh-tall on
+       mobile - see the mobile override below). Sizing the gradient to one
+       screen and repeating nothing keeps it from stretching across the
+       whole tour; the flat color underneath is what the rest of the tour
+       already shows, so the seam at 100svh is invisible. */
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 26%, var(--home-workspace)), var(--home-workspace));
+    background-size: 100% 100svh;
+    background-repeat: no-repeat;
+    background-color: var(--home-workspace);
   }
-  /* Desktop moves the same semantic hero into this viewport-sized frame. The
-     frame, rather than any individual bar, stays pinned for the bounded tour
-     and releases when both stories are complete. */
-  .home-frame {
+  /* The hero pins for the whole bounded tour and releases when both stories
+     are complete. It is the single element that holds still on desktop;
+     mobile pins only the demo instead (see the mobile override below), so
+     this same grid is reused there with a different `position`. */
+  .home-hero {
     position: sticky;
     top: 0;
     z-index: 50;
-    width: 100%;
     height: 100svh;
-  }
-  .home-frame > .home-hero {
+    width: 100%;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
-    width: 100%;
+    grid-template-areas: "header" "scene" "dock";
+  }
+  .home-header { grid-area: header; }
+  .home-scene { grid-area: scene; min-height: 0; }
+  .home-dock { grid-area: dock; }
+  /* The demo pin's own frame just fills whichever cell holds it; the pin
+     behavior itself lives on .home-hero (desktop) or .home-frame (mobile,
+     see below) via [data-demo-pin]. */
+  .demo-track,
+  .home-frame {
     height: 100%;
+    min-height: 0;
   }
   .home-header :global(.home-trust) { display: flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; white-space: nowrap; }
   /* Quiet Sea Glass tint separates proof points from the white toolbar while
@@ -460,14 +503,13 @@ if (compressToolIndex !== -1) {
   .hero-header h1 span { color: var(--color-primary-text); }
   .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
   #home-content { padding: 0; }
-  /* The demo follows the complete hero in mobile source order. On larger
-     screens the workspace is placed beside this sticky scene by the small
-     responsive script below, preserving the existing two-column story. */
+  /* One canonical DOM tree: .home-hero (header, scene, dock) sits inside
+     .home-tour at all widths. The hero pins in place (position: sticky) for
+     the bounded tour and releases when both stories are complete; only the
+     mobile override below changes which element pins. */
   .home-tour {
-    --home-stage-height: calc(100svh - var(--home-header-height) - var(--home-dock-height));
     position: relative;
     width: 100vw;
-    min-height: var(--home-stage-height);
     margin-inline: calc(50% - 50vw);
     background: var(--home-workspace, #e4f5f7);
   }
@@ -480,13 +522,7 @@ if (compressToolIndex !== -1) {
      CROSSFADE_END against it - they are fractions of this span, so a shorter
      tour speeds both stories up silently. */
   .home-tour { height: calc(100svh + 1116svh); }
-  .home-scene { position: relative; min-height: var(--home-stage-height); display: grid; grid-template-columns: minmax(312px, 1fr) minmax(0, 1fr); align-items: center; gap: 40px; width: 100%; max-width: 1280px; margin-inline: auto; padding: 0 32px; box-sizing: border-box; }
-  .home-scene { height: var(--home-stage-height); }
-  .home-frame > .home-hero > .home-scene { min-height: 0; height: auto; }
-  /* Reserve the workspace column in the server-rendered frame. The workspace
-     is moved here after hydration on desktop; without an explicit column the
-     demo briefly auto-places itself on the left during a refresh. */
-  .home-scene > :global([data-home-demo]) { grid-column: 2; }
+  .home-scene { position: relative; display: grid; grid-template-columns: minmax(312px, 1fr) minmax(0, 1fr); align-items: center; gap: 40px; width: 100%; max-width: 1280px; margin-inline: auto; padding: 0 32px; box-sizing: border-box; }
   .workspace-launcher { justify-self: start; width: 100%; max-width: 440px; padding-block: 24px; box-sizing: border-box; }
   [data-working-area][data-drag-over] { outline: 3px dashed var(--color-primary); outline-offset: -10px; background: var(--color-success-soft); }
   #home-information { position: relative; padding-top: 24px; }
@@ -607,10 +643,18 @@ if (compressToolIndex !== -1) {
   .app-tile { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; }
   .app-label { font-size: 0.8rem; font-weight: 600; line-height: 1.25; text-align: center; color: var(--color-text); }
   @media (max-width: 1023px) {
+    /* Mobile pins only the demo (.home-frame below), once the first screen
+       has scrolled past - not the whole hero, which is why .home-hero drops
+       out of sticky here and instead lays its four sections out as one tall
+       column: a real 100svh first screen (header/launcher/dock), followed
+       by the 1216svh row that .home-frame travels through. */
     .home-hero {
-      min-height: 100svh;
-      display: flex;
-      flex-direction: column;
+      position: static;
+      height: calc(100svh + 1216svh);
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr auto 1216svh;
+      grid-template-areas: "header" "launcher" "dock" "demo";
     }
     .home-header :global(.home-trust) { gap: 0.3rem; font-size: 0.65rem; }
     .home-header :global([data-home-bar] > div) { min-height: 56px; padding-block: 6px; gap: 6px; }
@@ -625,17 +669,22 @@ if (compressToolIndex !== -1) {
     .hero-header h1 { font-size: 1.6rem; }
     .hero-header p { font-size: 0.85rem; }
     .home-workspace { box-sizing: border-box; flex: 1 0 auto; min-height: 13rem; max-width: none; margin-inline: 0; padding: 24px; display: flex; align-items: flex-start; justify-content: center; }
-    .home-tour {
-      min-height: 100svh;
-      height: calc(100svh + 1116svh);
-    }
-    .home-scene { grid-template-columns: 1fr; padding: 0 16px; gap: 8px; align-content: start; }
-    .workspace-launcher { max-width: none; }
+    .home-tour { height: auto; }
+    /* The scene is a pure layout wrapper (see the desktop rule above); on
+       mobile it drops out of rendering entirely so its two children -
+       the launcher and the demo track - become direct items of .home-hero's
+       own grid instead of a nested one. */
+    .home-scene { display: contents; }
+    .workspace-launcher { grid-area: launcher; max-width: none; }
     .home-dock { gap: 12px; padding: 10px 16px; justify-content: flex-start; }
     .app-card { flex-basis: 72px; }
     .app-tile { width: 52px; height: 52px; }
-    .home-scene { display: block; }
-    .home-scene > :global([data-home-demo]) { grid-column: auto; }
+    .demo-track {
+      grid-area: demo;
+      /* Replaces the old .home-scene inset now that .home-scene itself
+         renders as nothing: keeps the pinned demo off the screen edges. */
+      padding-inline: 16px;
+    }
     /* While either demo is playing, restore the same quiet page frame used
        around the desktop cards. The frame reserves both bars plus a real gap,
        so the demo title and phone never sit underneath fixed chrome. */
@@ -649,11 +698,10 @@ if (compressToolIndex !== -1) {
     }
     /* Keep the geometry identical as the demo approaches and pins. Adding
        toolbar clearance only when visible makes its title jump down. */
-    .home-tour {
-      --demo-frame-gap: var(--space-3);
-      --home-stage-height: calc(100svh - var(--home-nav-height) - var(--home-footer-height) - var(--demo-frame-gap) - var(--demo-frame-gap));
-    }
     .home-frame {
+      --demo-frame-gap: var(--space-3);
+      position: sticky;
+      top: 0;
       box-sizing: border-box;
       height: 100svh;
       padding-block: calc(var(--home-nav-height) + var(--demo-frame-gap)) calc(var(--home-footer-height) + var(--demo-frame-gap));

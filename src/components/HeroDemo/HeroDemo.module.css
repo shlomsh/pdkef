@@ -8,6 +8,15 @@
   height: 100%;
   overflow: hidden;
   color: var(--color-text);
+  /* .phone below needs its actual pixel height to cap its width by aspect
+     ratio, but that height is no longer a JS-measured custom property (see
+     index.astro's homeWorkspace.ts) - it is derived entirely from the .root
+     > .home-frame grid cell. A query container reads that resolved size
+     back out as a length .phone's calc() can use, without reintroducing a
+     measurement script. .root's own size is always externally determined
+     (height/width above), never by its children, so size containment here
+     changes nothing about its own box. */
+  container-type: size;
 }
 .track {
   position: absolute;
@@ -30,43 +39,80 @@
   height: 100%;
   padding: 16px 0;
   box-sizing: border-box;
+  /* These defaults are the hydrated *start* state - what ScrollDriver.tsx's
+     update() actually writes onto [data-hero-stage] at scroll position 0 on
+     mount (worked out beat by beat against TRACKS in ScrollDriver.tsx) - not
+     the finished story. Reduced motion still runs this same driver logic (it
+     only coarsens each value to 0/1 via `Number(value >= 0.5)`, and at
+     progress 0 every affected value is already exactly 0 or 1), so it lands
+     on the same numbers. Matching them here means a JS-enabled visitor of
+     either kind sees no reset-to-start flash on hydration, because the
+     static HTML already painted the state the driver is about to write.
+     `--p-msg` is the one beat whose window starts before scroll position 0
+     (see its `[-0.06, 0]` range in ScrollDriver.tsx), so it alone is already
+     "done" at mount and stays 1.
+     True no-JS visitors never run ScrollDriver at all, so without further
+     help they would be stuck on this empty start frame forever - the
+     `<noscript><style>` block in HeroDemo.astro overrides every property
+     below back to 1 (the completed, plainly-visible story) for exactly that
+     audience, scoped to the same [data-hero-stage] hook these rules use. */
   --p-msg: 1;
   --p-tap: 0;
-  --p-open: 1;
-  --p-fill-name: 1;
-  --p-fill-guardian: 1;
-  --p-fill-phone: 1;
-  --p-fill-allergies: 1;
-  --p-check-1: 1;
-  --p-check-2: 1;
-  --p-sign: 1;
-  --p-share: 1;
-  --p-send: 1;
-  --p-sent: 1;
-  --p-arrive: 1;
-  --p-blur: 1;
-  --p-blackout: 1;
-  --p-whiteout: 1;
-  --p-delete: 1;
+  --p-open: 0;
+  --p-fill-name: 0;
+  --p-fill-guardian: 0;
+  --p-fill-phone: 0;
+  --p-fill-allergies: 0;
+  --p-check-1: 0;
+  --p-check-2: 0;
+  --p-sign: 0;
+  --p-share: 0;
+  --p-send: 0;
+  --p-sent: 0;
+  --p-arrive: 0;
+  --p-blur: 0;
+  --p-blackout: 0;
+  --p-whiteout: 0;
+  --p-delete: 0;
   /* This story's own raw 0-1 progress, written by ScrollDriver.tsx alongside
      every beat above (see its comment). Drives .progress-rail below. */
-  --p-track: 1;
-  /* Entrance crossfade. Defaults to 1 like every other beat, so no-JS and
-     reduced-motion render the panels plainly visible; the rule that actually
-     reads it is below, and deliberately narrow. */
-  --p-enter: 1;
+  --p-track: 0;
+  /* Entrance crossfade beat. Currently unconsumed by any rule in this file
+     (the actual entrance fade reads --caption-opacity/--story-opacity/
+     --story-slide on .track, set directly by ScrollDriver.tsx's crossfade
+     math, not this property) - kept in sync with what the driver writes
+     anyway so it cannot start lying the moment something does read it. */
+  --p-enter: 0;
 }
 
 
 /* Homepage-only display face. The editor's much larger handwriting catalogue
    deliberately stays scoped to /sign/; this one font is the small, friendly
-   note beside the desktop story, not a new default typeface. */
+   note beside the desktop story, not a new default typeface.
+
+   This is a dedicated, separate file (CaveatDemo-Bold.ttf, ~136KB vs the
+   editor's Caveat-Bold.ttf at ~303KB) - see scripts/fonts/build-demo-font-subset.py
+   and scripts/display-only-fonts.mjs. The editor's file must never be
+   touched: it is fontkit-subset per document on export and needs its full
+   glyph set.
+
+   `font-display: swap` plus a `<link rel=preload>` (src/pages/index.astro's
+   `slot="head"` Fragment, media-scoped to `(min-width: 1024px)` - the exact
+   breakpoint below where '.caption' switches to this font) rather than
+   `font-display: optional`: this
+   caption sits above the fold on desktop, and `optional` risks a first
+   visit never showing the handwritten caption at all if the font does not
+   win the ~100ms it gets to arrive, with no later chance to swap in. With
+   the file now small (originally 303,088 bytes / ~157KB transferred) and
+   preloaded, `swap`'s fallback window is short enough in practice that the
+   flash a visitor can actually notice is gone - verified in a real
+   `build && preview` pass, not dev. */
 @font-face {
   font-family: 'Caveat Demo';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('/fonts/Caveat-Bold.ttf') format('truetype');
+  src: url('/fonts/CaveatDemo-Bold.ttf') format('truetype');
 }
 
 .caption {
@@ -110,9 +156,12 @@
 }
 
 
-.phone { opacity: var(--story-opacity, 1); grid-area: phone; width: min(360px, calc((var(--home-stage-height) - 32px) * 9 / 19)); }
+.phone { opacity: var(--story-opacity, 1); grid-area: phone; width: min(360px, calc((100cqh - 32px) * 9 / 19)); }
 @media (max-width: 1023px) {
-  .root { height: var(--home-stage-height); }
+  /* No height override needed here any more: .root is now a direct child of
+     .home-frame at every breakpoint (see index.astro), so the base rule's
+     `height: 100%` above already resolves against .home-frame's own content
+     box - the same value the deleted --home-stage-height used to compute. */
   .stage { grid-template-columns: 1fr; grid-template-rows: auto 1fr; grid-template-areas: 'caption' 'phone'; padding: 4px 0 0; gap: 8px; }
   /* Use the site’s section-title role here rather than reducing the story
      caption to a small label. It is the mobile demo’s actual heading. */
@@ -1370,7 +1419,7 @@
 
   .scroll-hint > span { display: block; }
 
-  .phone { width: clamp(300px, calc((var(--home-stage-height) - 32px) * 9 / 19), 360px); height: calc(var(--home-stage-height) - 32px); aspect-ratio: auto; }
+  .phone { width: clamp(300px, calc((100cqh - 32px) * 9 / 19), 360px); height: calc(100cqh - 32px); aspect-ratio: auto; }
 }
 @media (max-height: 850px) {
   .panel-head { padding-block: 6px; }

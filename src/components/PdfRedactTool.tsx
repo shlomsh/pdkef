@@ -14,6 +14,7 @@ import { isDraftElement } from '../editor/registry/draftValidation.ts';
 import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../editor/workspace/preferenceStore.ts';
 import useDeletableObjects from '../lib/useDeletableObjects.js';
 import RedactToolbar from './RedactToolbar.tsx';
+import EditorExportActions from './EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
 import DeleteMark from './DeleteMark.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
@@ -69,7 +70,7 @@ export default function PdfRedactTool() {
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [announcement, setAnnouncement] = useState('');
-  const { canSharePdf, shareReady, prepare, clearPrepared, download, sharePrepared } = usePdfShare();
+  const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
   const { getPointerPercent } = usePdfCoordinates();
 
   // null | 'delete' | 'blackout' | 'blur' | 'whiteout'. Null - nothing armed -
@@ -542,6 +543,19 @@ export default function PdfRedactTool() {
     }
   };
 
+  // Skips regenerating the redacted PDF when a Share-prepared file already
+  // matches the current elements (usePdfShare.downloadPrepared - cleared
+  // automatically by the effect above whenever file/elements change, so this
+  // never serves a stale export). Mirrors PdfSignTool's handleDownloadPdf.
+  const handleDownloadPdf = () => {
+    setErrorDetail(null);
+    if (downloadPrepared()) {
+      setAnnouncement('Download started.');
+      return;
+    }
+    handleSavePdf('download');
+  };
+
   const handleSharePdf = async () => {
     const result = await sharePrepared();
     if (result.status === 'shared') {
@@ -591,7 +605,7 @@ export default function PdfRedactTool() {
             setAnnouncement={setAnnouncement}
             toggleFullscreen={toggleFullscreen}
             isFullscreen={isFullscreen || isPseudoFullscreen}
-            handleDownloadPdf={() => handleSavePdf('download')}
+            handleDownloadPdf={handleDownloadPdf}
             handlePrepareShare={() => handleSavePdf('share')}
             handleSharePdf={handleSharePdf}
             canSharePdf={canSharePdf}
@@ -690,44 +704,19 @@ export default function PdfRedactTool() {
               editing controls and can hide Download when native file sharing
               is available, so this is the reliable place to finish either
               way. */}
-          <div className={workspaceStyles['export-actions']}>
-            <button
-              type="button"
-              className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']}`}
-              onClick={() => handleSavePdf('download')}
-              disabled={elements.length === 0 || status === 'redacting'}
-              title={elements.length === 0 ? 'Add at least one redaction box first' : 'Apply redactions and download'}
-            >
-              Download
-            </button>
-            {canSharePdf && (
-              <button
-                type="button"
-                className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']} ${workspaceStyles['export-share']}`}
-                onClick={shareReady ? handleSharePdf : () => handleSavePdf('share')}
-                disabled={elements.length === 0 || status === 'redacting'}
-                title={elements.length === 0
-                  ? 'Add at least one redaction box first'
-                  : (shareReady ? 'Share the redacted PDF' : 'Apply redactions and prepare the PDF for sharing')}
-              >
-                {shareReady ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="18" cy="5" r="3" />
-                    <circle cx="6" cy="12" r="3" />
-                    <circle cx="18" cy="19" r="3" />
-                    <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" />
-                    <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" />
-                    <polyline points="12 7 12 12 15.5 14" />
-                  </svg>
-                )}
-                Share
-              </button>
-            )}
-          </div>
+          <EditorExportActions
+            variant="completion"
+            canShare={canSharePdf}
+            shareReady={shareReady}
+            disabled={elements.length === 0 || status === 'redacting'}
+            onDownload={handleDownloadPdf}
+            onPrepareShare={() => handleSavePdf('share')}
+            onShare={handleSharePdf}
+            downloadTitle={elements.length === 0 ? 'Add at least one redaction box first' : 'Apply redactions and download'}
+            shareTitle={elements.length === 0
+              ? 'Add at least one redaction box first'
+              : (shareReady ? 'Share the redacted PDF' : 'Apply redactions and prepare the PDF for sharing')}
+          />
 
           {/* Export error - recoverable, so it renders alongside the still-mounted
               workspace instead of replacing it (see handleSavePdf's catch). */}

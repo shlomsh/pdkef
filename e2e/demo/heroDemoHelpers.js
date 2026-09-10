@@ -18,7 +18,14 @@ import { trackProgress } from '../../src/components/HeroDemo/storySplit.ts';
 export const TRACKS = ['sign', 'blur'];
 
 export function demoSection(page) {
-  return page.locator('section:has([data-hero-track])');
+  // Was `section:has([data-hero-track])`, which matched only the HeroDemo
+  // section on its own. The homepage restructure nested HeroDemo inside
+  // `.home-hero`, itself a `<section>` that also contains both hero tracks,
+  // so the old selector now matches two elements and Playwright's strict
+  // mode rejects it. Target the demo's own identity instead - the
+  // `data-home-demo` attribute HeroDemo.astro sets on its root - which stays
+  // unique regardless of what wraps the demo.
+  return page.locator('section[data-home-demo]');
 }
 
 export function stageLocator(page, track) {
@@ -58,19 +65,26 @@ export async function scrollStory(page, key, fraction) {
   // the beat being asserted.
   const progress = trackProgress(key, fraction);
   await page.evaluate(({progress, fraction}) => {
-    const tour = document.getElementById('home-tour');
-    const scene = tour.querySelector('[data-demo-frame]');
-    // `travel` is exactly the scene's sticky range, so the nudge that makes
+    // Mirrors ScrollDriver.tsx's resolvePin(): the pinned element (and the
+    // track it travels through) differs by breakpoint - desktop pins the
+    // whole hero through #home-tour, mobile pins only the demo frame through
+    // its own shorter .demo-track - so it has to be resolved from markup
+    // instead of hardcoded, or this scrolls the wrong element's sticky range
+    // on whichever viewport a given test runs at.
+    const pin = [...document.querySelectorAll('[data-demo-pin]')]
+      .find(el => getComputedStyle(el).position === 'sticky');
+    const track = pin && document.querySelector(`[data-demo-track="${pin.dataset.demoPin}"]`);
+    // `travel` is exactly the pin's sticky range, so the nudge that makes
     // the final beat land on a clean 1 must not be allowed past it: two pixels
-    // beyond the end unpins the scene by two pixels, and sticky-pin.spec.js
+    // beyond the end unpins the frame by two pixels, and sticky-pin.spec.js
     // then reads that as the stage having moved during the story.
     //
     // This only became reachable when the track mapping was corrected. The old
     // literals put the second story's end at 0.62 + 0.37 = 0.99, an accidental
     // 1% short of the end of travel, so the nudge had somewhere to go. It now
     // ends at 1.0, where there is nothing left.
-    const travel = tour.offsetHeight - scene.offsetHeight;
-    const start = tour.getBoundingClientRect().top + scrollY - parseFloat(getComputedStyle(scene).top);
+    const travel = track.offsetHeight - pin.offsetHeight;
+    const start = track.getBoundingClientRect().top + scrollY - parseFloat(getComputedStyle(pin).top);
     window.scrollTo(0, start + Math.min(travel * progress + (fraction === 1 ? 2 : 0), travel));
   }, {progress, fraction});
   await expectProgress(page, key, fraction);
