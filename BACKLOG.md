@@ -220,13 +220,10 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| SEO-01 | P1 | [SEO-01](backlog/tasks/SEO-01.md) · An indexing baseline, and the two mechanical reasons pages are not being crawled |
-| SEO-02 | P1 | [SEO-02](backlog/tasks/SEO-02.md) · A standings table against the competition that is maintained, not written once |
 | SEO-03 | P2 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |
 | SEO-04 | P1 | [SEO-04](backlog/tasks/SEO-04.md) · Thirteen blur queries are on page one and earning zero clicks |
 | SEO-05 | P1 | [SEO-05](backlog/tasks/SEO-05.md) · The 100KB cluster ranks and does not convert, and the page implies something untrue |
 | SEO-06 | P1 | [SEO-06](backlog/tasks/SEO-06.md) · Nine URLs have never been crawled, and three of them are working tools |
-| SEO-07 | P1 | [SEO-07](backlog/tasks/SEO-07.md) · The Sign page says almost nothing about the one advantage nobody can copy |
 | SEO-08 | P2 | [SEO-08](backlog/tasks/SEO-08.md) · The four OS how-to guides rank between 44 and 58, and one of them is our best-read page |
 | SEO-09 | P2 | [SEO-09](backlog/tasks/SEO-09.md) · Split ranks at 85 for extract queries because it never uses the word |
 | SEO-10 | P2 | [SEO-10](backlog/tasks/SEO-10.md) · Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it |
@@ -258,7 +255,11 @@ _None._
 
 ### Done
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| SEO-01 | P1 | [SEO-01](backlog/tasks/SEO-01.md) · An indexing baseline, and the two mechanical reasons pages are not being crawled |
+| SEO-02 | P1 | [SEO-02](backlog/tasks/SEO-02.md) · A standings table against the competition that is maintained, not written once |
+| SEO-07 | P1 | [SEO-07](backlog/tasks/SEO-07.md) · The Sign page says almost nothing about the one advantage nobody can copy |
 
 ### Retired
 

@@ -165,6 +165,18 @@ Gurmukhi, Thai, Cyrillic and Greek with real font embedding, native RTL, and com
 support no free browser-side signer we know of matches, aimed squarely at the country already sending
 us the most traffic. The page says almost none of this. SEO-07, SEO-12, SEO-18.
 
+*Progress note, 2026-09-11 (SEO-07):* the page now says it - the language card's lead states
+right-to-left growth and the refuse-while-typing guarantee, the subhead carries the language count and
+the printed-box behaviour above the fold, comb fields are described in a step and an FAQ entry (the
+feature had no user-facing mention anywhere on the site before this), and the eleven scripts with no
+bundled font are named. **One finding from that ticket changes how the rest of this cluster should be
+read, and it is not what the section above assumed:** there is not a single language-intent sign query
+in the export. All 58 are device intent (iphone, android, computer, windows, whatsapp), and all sit at
+positions 43-66, which is the four OS guides, not `/sign/`. `/sign/` itself ranks at 11.64 on queries
+Search Console withholds under its privacy filter, so **we do not know what it ranks for**. The
+language advantage is real and is now stated, but its search demand is unmeasured here - SEO-18 should
+open with that question rather than treat it as settled.
+
 Worth noting inside that cluster: "how to sign on pdf file sent through whatsapp" appears five times
 (19 impressions, positions 48-50). PDkef's own copy already names the WhatsApp attachment case. We are
 being shown for our own story and losing it on authority.
@@ -239,7 +251,8 @@ see who else competes on that SERP, not to read our own Google position.
 | blur text in pdf | 11.44 | 32 | 2026-09-10 | mixed utilities (2026-09; cross-checked 2026-09-10) | Rank + snippet | SEO-04 |
 | compress pdf to 100kb (cluster) | 9.8 | 194 | 2026-09-10 | smallseotools, PDNob, DocHub (2026-09; cross-checked 2026-09-10) | Snippet CTR, honest size guidance | SEO-05, SEO-17 |
 | file compressor to 100kb | 9.60 | 81 | 2026-09-10 | generic file compressors (2026-09) | We do not have the tool yet | SEO-19 |
-| sign pdf on android / iphone (cluster) | 51.7 | 154 | 2026-09-10 | DocHub, Smallpdf, OS vendor docs (2026-09) | Rank, from near zero | SEO-07, SEO-08, SEO-12 |
+| sign pdf on android / iphone (cluster) | 51.7 | 154 | 2026-09-10 | DocHub, Smallpdf, OS vendor docs (2026-09) | Rank, from near zero. Note this cluster is the OS guides', not `/sign/`'s - see 2.3's progress note | SEO-08, SEO-12 |
+| `/sign/` itself (queries withheld by GSC) | 11.64 | 42 | 2026-09-10 | unknown - no query in the export matches this position | Title changed 2026-09-11 (SEO-07); re-measure CTR against 2.38% | SEO-07 |
 | extract pdf / pdf extractor | 84.9 | 88 | 2026-09-10 | iLovePDF, Sejda (2026-09) | Vocabulary: we say "split" | SEO-09 |
 | merge pdf | 90.0 | 6 | 2026-09-10 | iLovePDF, Smallpdf (2026-09) | Authority | SEO-10, SEO-03 |
 | unlock / protect pdf | 66.0 | 5 | 2026-09-10 | Smallpdf, iLovePDF (2026-09) | Authority - and this cluster's impressions are a documented lower bound, see section 1 | SEO-16 |
@@ -284,6 +297,9 @@ refresh.
 **Week 2 (Sep 17-23) - the two structural problems.**
 SEO-06 (make the nine never-indexed URLs worth crawling), SEO-07 (`/sign/` states the language
 advantage), SEO-11 (the positioning-review protocol), SEO-12 (the Sign review, first agent-run one).
+
+*Progress note, 2026-09-11:* SEO-07 done, ahead of its week. Its `/sign/` title change and its finding
+about withheld queries both re-measure on **2026-10-08** with the rest.
 
 **Week 3 (Sep 24-30) - the losing clusters.**
 SEO-08 (OS guides at position 44-58), SEO-09 (`/split/` and the "extract" vocabulary), SEO-10
