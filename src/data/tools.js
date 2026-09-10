@@ -301,7 +301,7 @@ export const tools = [
     sitemapChangefreq: 'monthly',
     seoTitle: 'Blur PDF Online Free - Blackout & Redact Text | PDkef',
     seoDescription:
-      'Blur PDF online for free, black out text, or delete selectable elements. No upload, signup, or watermark. Marked pages flatten on download. Open source.',
+      'Blur, black out, or permanently delete text in a PDF for free, right in your browser. No upload, signup, or watermark. Open source.',
     schemaName: 'PDkef - Blur & Redact PDF',
     toolName: 'Blur & Redact PDF',
     h1: 'Blur PDF Online Free: Blackout & Redact Text',
@@ -325,7 +325,7 @@ export const tools = [
     faq: [
       { question: 'How can I blur text in a PDF for free?', answer: 'Choose your PDF, select Blur, and click and drag across the area. Adjust the box, then choose Download. There is no signup, upload, or watermark. The marked page is flattened automatically. Blur is a visual mask; use Blackout for confidential text.' },
       { question: 'How do I black out text in a PDF for free?', answer: 'Open your PDF, select Blackout, and draw a box over the full text or image. Repeat on every page that needs it, then choose Download. PDkef bakes the boxes into images of the marked pages, without copying their original text layers underneath. It also works on scans.' },
-      { question: 'Can someone remove the blur or black box after download?', answer: 'There is no separate box to lift off a flattened page: the exported page is a single image. Blur still leaves altered pixels that may reveal clues, so it is not a substitute for a solid blackout. Check repeated details and hidden information elsewhere in the PDF too.' },
+      { question: 'Can someone remove the blur or black box after download?', answer: 'No. Blackout and Whiteout permanently redact the page: PDkef flattens it into one image, so there is no separate box to lift off and no text layer left underneath to recover. You can check this yourself - open the downloaded PDF and search for the word you covered; it will not be found, because it is no longer there as text. Blur still leaves altered pixels that may reveal clues, so it is not a substitute for a solid blackout. Check repeated details and hidden information elsewhere in the PDF too.' },
       { question: 'Can I delete text or images from a PDF instead of covering them?', answer: 'Yes. Choose Delete and click or tap a highlighted text block or image. Download creates a new PDF with that selected element removed from the page while the surrounding page content stays in place and remains selectable. This is useful for deleting a prefilled form value before entering replacement text with Sign & Fill PDF.' },
       { question: 'Do I need to flatten the PDF separately?', answer: 'No. Download and preparing a file with Share automatically flatten pages with Blur, Blackout or Whiteout. The marked page becomes one image, its text is no longer selectable or searchable, and the export cannot be reversed back into the original page elements. Pages with Delete edits only are not flattened, so their remaining text stays selectable.' },
       { question: 'Can I blur a PDF on my phone or work offline?', answer: 'Yes. Open the tool in your phone browser, choose the PDF, and zoom before drawing a box. For offline use, install PDkef and let its required assets load while connected. Try opening and exporting a sample with the connection off before relying on it offline.' },
@@ -517,7 +517,7 @@ export const tools = [
     sitemapChangefreq: 'monthly',
     seoTitle: 'Compress PDF to 100KB Free - Reduce File Size | PDkef',
     seoDescription:
-      'Compress PDF to 100KB free with a target-size option for portal limits. Check the final size and quality before sending. No upload, signup, or watermark.',
+      "Compress PDF to 100KB free, right in your browser. If it can't hit the target, we say so instead of guessing. No upload, signup, or watermark.",
     schemaName: 'PDkef - Compress PDF',
     toolName: 'Compress PDF',
     h1: 'Compress PDF to 100KB Free: Reduce File Size',
@@ -526,7 +526,7 @@ export const tools = [
     ariaLabel: 'PDF compress tool',
     aboutHeading: 'How to compress a PDF online for free',
     aboutLead:
-      'Reduce the file size of your PDFs, right in your browser. No upload, no server. Your files never leave your device.',
+      'Reduce the file size of your PDFs, right in your browser. No upload, no server. To reach a small target, pages are turned into images, so selectable text and links are lost on any page that changes. If your file is already under the target, it comes back untouched - nothing lost.',
     freeNoteLead:
       "Shrink PDFs to a target like 100KB for strict portal limits as many times as you need, with no watermark or daily cap. Because compression runs on your device, there's nothing to upload and no server cost to pass on to you.",
     aboutSketch: 'waves',
