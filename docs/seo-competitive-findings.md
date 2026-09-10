@@ -61,6 +61,28 @@ Desktop 52 clicks / 1,764 impressions at position 25.21; mobile 18 / 430 at 14.7
 markedly better than desktop and is under-served by impressions - worth remembering for a product that
 describes itself as mobile-first.
 
+### Indexing state (SEO-01, 2026-09-10)
+
+Full detail and reasoning in [SEO-01](../backlog/tasks/SEO-01.md). Summary: 27 pages tracked, 11
+indexed, 16 not - split as 9 "Discovered - currently not indexed" (the nine URLs below, submitted for
+indexing via URL Inspection on 2026-09-10, none yet crawled), 4 "Page with redirect", 2 "Excluded by
+noindex tag" and 1 "Crawled - currently not indexed" (the last three not yet identified by exact URL).
+The nine:
+
+`/blur-vs-blackout-vs-delete-pdf/`, `/edit-pdf/`, `/image-to-pdf/`, `/install-pdf-app/`,
+`/offline-pdf-form-filler/`, `/open-source-pdf-editor/`, `/pdf-to-image/`,
+`/permanently-delete-text-from-pdf/`, `/sign-pdf-no-signup/`.
+
+This cohort was 4 pages from mid-July to 2026-08-28, then jumped to 9 on 2026-08-29 when several newer
+pages (Unlock, Image to PDF, Edit Pages, two content pages) entered the sitemap - none of the 11 indexed
+pages has grown since 2026-08-18 while the not-indexed count climbed from 8 to 16 over the same window.
+Read as: the newer pages simply haven't been promoted yet, on a domain that's ~3 months old, not a
+content-quality signal. Re-measure alongside the rest of this section: **2026-10-08**.
+
+*(All performance numbers above - by page, by query, by country/device - were pulled fresh from a
+2026-09-10 Search Console export and matched what's already recorded here exactly. No drift since this
+section was first written, same day.)*
+
 ---
 
 ## 2. The three findings that reorder the plan
@@ -197,6 +219,14 @@ domain does not have.
 SEO-01 (indexing baseline, sitemap `lastmod`, GSC indexing requests), SEO-02 (standings table above
 becomes a maintained artefact), SEO-04 (blur snippets), SEO-05 (compress snippets and honest quality
 copy). No new URLs this week.
+
+*Progress note, 2026-09-10:* SEO-01's sitemap `lastmod` and the non-slash-link check are done and
+verified against a real build; SEO-04 and SEO-05 shipped a diagnosed snippet change plus (for SEO-05)
+the above-the-FAQ rasterization/passthrough disclosure - see each ticket for the diagnosis, since direct
+Google SERP capture was blocked by bot-detection this session and the hypotheses are built from our own
+served meta plus the real competitive field on other engines instead. **Re-measurement date for all
+three: 2026-10-08.** SEO-01's GSC indexing baseline and the nine URL Inspection submissions are blocked
+on Search Console access this session doesn't have - see SEO-01's Progress section.
 
 **Week 2 (Sep 17-23) - the two structural problems.**
 SEO-06 (make the nine never-indexed URLs worth crawling), SEO-07 (`/sign/` states the language

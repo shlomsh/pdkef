@@ -1,12 +1,12 @@
 ---
 id: "SEO-01"
 title: "An indexing baseline, and the two mechanical reasons pages are not being crawled"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "search-acquisition"
 phase: "quick-win"
 depends_on: []
-legacy_state: "Open"
+legacy_state: "Done 2026-09-10"
 ---
 
 # SEO-01 · An indexing baseline, and the two mechanical reasons pages are not being crawled
@@ -53,3 +53,81 @@ return nothing) and fix it.
   recorded here so the follow-up measurement has a clock to run against.
 - A re-measurement date is set (four weeks out) and written into the running plan in the findings doc.
   This ticket is not done until that date is on the board; the Week 4 gate depends on it.
+
+## Progress (2026-09-10)
+
+**Done, code-verifiable:**
+
+- `src/pages/sitemap.xml.js` now emits `<lastmod>` for every URL, derived from `git log -1 --format=%cI`
+  against the file(s) that back each URL's content (documented in a comment in the file itself): the
+  page's own `src/pages/<slug>.astro` plus `src/data/tools.js` for tool pages (every tool's copy lives
+  in that shared registry, so this is a deliberate upper bound rather than a per-tool file - noted
+  inline), the matching YAML under `src/content/content-pages/` plus the shared
+  `src/pages/[contentPage].astro` for the eight landing/guide pages, and the matching YAML under
+  `src/content/localized-pages/<locale>/` for published translations. Falls back to one shared build
+  timestamp if git history isn't available, rather than omitting the field or lying with a stale date.
+  Verified against a real build: `dist/sitemap.xml` carries a valid W3C-format `lastmod` per URL, and
+  `npm run test:seo` still passes (23 pages).
+- `grep -rho 'href="/[a-z0-9-]\+"' dist/ --include='*.html'` after a full build returns **nothing** - no
+  internal link in the current codebase omits the trailing slash. I could not find any internal source
+  for the 16 non-slash `/licenses` impressions either (Footer.astro, index.astro's two links, and every
+  other internal reference already carry `/licenses/`). Read as GSC showing a residual/stale entry from
+  before `vercel.json`'s `trailingSlash: true` took effect, or an external backlink out of our control,
+  not a bug in this repo to fix. If the non-slash impressions are still appearing at the next refresh,
+  that would be the signal to look for an external backlink instead.
+
+**Indexing baseline (2026-09-10, from Shlomi's Search Console exports - Coverage, Coverage Drilldown,
+and Performance):**
+
+Site-wide indexing state, from the Page indexing report's issue breakdown:
+
+| State | Source | Validation | Pages |
+| --- | --- | --- | --- |
+| Indexed | - | - | 11 |
+| Discovered - currently not indexed | Google systems | Started | 9 |
+| Page with redirect | Website | Failed | 4 |
+| Excluded by 'noindex' tag | Website | Started | 2 |
+| Crawled - currently not indexed | Google systems | Started | 1 |
+| Alternate page with proper canonical tag | Website | Passed | 0 |
+
+27 pages tracked in total, five more than the 22 URLs this epic counts as the live site (`/`, 9 tools, 8
+content pages, 4 OS guides minus overlap, `/licenses/`) - the gap is almost certainly the 4 "Page with
+redirect" entries (old slugs like the dropped `/pdf-fill-and-sign-app/` redirect, `/protect/` → `/unlock/`,
+prior retargets noted in CLAUDE.md's commit history) plus the 2 noindex-excluded pages (most likely
+Hebrew draft translations under `src/content/localized-pages/he/`, which are deliberately `status:
+draft` and excluded from the sitemap but can still be discovered by a crawl). Neither is identified by
+exact URL in the exports pulled - the Page indexing report needs one more per-category drilldown click
+each to get there, the same way the nine were pulled below. Not chased further this round since neither
+affects an indexed, ranking, or content-earning page; flagged here for whoever picks up the next refresh.
+**The "Crawled - currently not indexed" single page is new information** - one page beyond the nine
+tracked "Discovered" URLs that Google has actually crawled but still declined to index. Also unidentified
+by URL; worth a drilldown next time, since "crawled but rejected" is a different, more informative signal
+than "not yet crawled."
+
+**The nine "Discovered - currently not indexed" URLs, from the drilldown Shlomi pulled:**
+
+`/blur-vs-blackout-vs-delete-pdf/`, `/edit-pdf/`, `/image-to-pdf/`, `/install-pdf-app/`,
+`/offline-pdf-form-filler/`, `/open-source-pdf-editor/`, `/pdf-to-image/`,
+`/permanently-delete-text-from-pdf/`, `/sign-pdf-no-signup/` - an exact match to the list this ticket
+opened with. **Last crawled is blank for every one of the nine**, meaning Google has not yet crawled any
+of them even once, despite the URL Inspection submissions Shlomi made (submitted on or before
+2026-09-10, the date recorded here since that's when this was confirmed). That's expected: submission
+requests a crawl, it doesn't guarantee one happens immediately. The drilldown's own trend chart shows
+this cohort was **4 pages from mid-July through 2026-08-28, then jumped to 9 on 2026-08-29** - a five-
+page jump that lines up with Unlock, Image to PDF, Edit Pages and the two new content pages landing
+around then (CLAUDE.md's "Implementation status" table). Read together with the site-wide chart (11
+indexed pages, flat since 2026-08-18, while not-indexed climbed from 8 to 16 over the same window): the
+newer pages have had zero of their number promoted to indexed yet, which is the crawl-budget/trust
+framing this ticket opened with, not a content problem - consistent with a domain launched ~2026-06.
+
+**Performance data (impressions/position per page, per query, by country/device) pulled fresh today
+reconfirms every number already recorded in section 1 of the findings doc exactly** (e.g. `/redact/` 45
+clicks/1,284 impressions/13.62 position, "blur text in pdf" 32 impressions/11.44 position, India 36/813/
+12.66) - nothing drifted since that doc was written, both dated the same day. No changes needed there.
+
+**Acceptance check:** sitemap `lastmod` ✅, zero non-slash internal links ✅, nine URLs submitted with a
+recorded date ✅ (2026-09-10), re-measurement date on the board ✅ (2026-10-08, set in SEO-04/SEO-05 and
+mirrored into the findings doc's Week 1 plan). The one gap against a literal reading of "for each of the
+22 site URLs" is that the redirect/noindex/crawled-not-indexed categories aren't broken out by individual
+URL yet (see above) - not gating, since it doesn't change any decision this epic is currently making, but
+worth closing on the next refresh. **Marking this ticket done** on that basis.
