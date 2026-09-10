@@ -162,6 +162,34 @@ and the cached icon is over two months stale, see SEO-04) and `/compress/` (SEO-
 change in the same commit and carries the same exposure). Google's own dialog states that resubmitting
 does not improve queue position, so all three are submitted once and left alone.
 
-**Still outstanding from this addendum:** the `Last crawled` sweep across the 11 indexed URLs. That is
-the column that would have surfaced this staleness without a manual SERP check, and it remains the
-cheapest instrument this epic is missing.
+**The instrument now exists: `npm run seo:crawl-staleness`** (`scripts/seo-crawl-staleness.mjs`, added
+2026-09-11).
+
+`Last crawled` on its own does not actually answer the question. A crawl date only means something
+against *when that page's content last changed*, which Search Console has no idea about and git knows
+exactly. So the script owns the half that can be automated and leaves one manual input:
+
+- **Automated.** Per-URL "content last changed", for all 21 URLs. Two things make it accurate rather
+  than approximate. It dates each tool page from **its own line range in `src/data/tools.js`** via
+  `git log -L`, not from the whole file, which would otherwise mark all ten tool pages as changed
+  together every time any one of them was edited. And it **skips comment-only and whitespace-only
+  commits**, which is not hypothetical: `203b204` ("Fix duplicate recent files on mobile") rewrote one
+  comment inside the sign block and naively dated `/sign/` to that day.
+- **Manual.** The crawl dates themselves, hand-read from URL Inspection into
+  `docs/seo-last-crawled.json` (template committed, all 21 URLs, `null` where Google says never
+  crawled). No API for it here.
+
+The verdict column then does the comparison: a URL crawled **before** its content last changed is
+proven stale, gets an `!`, and is printed as a ready-to-paste reindex list. Verified with a sabotage
+control rather than assumed - feeding `/redact/` a 2026-08-20 crawl date against its 2026-09-10 content
+change reproduces exactly the SEO-04 finding that a manual SERP check turned up, while `/merge/` reads
+`current` and a same-day crawl reads `same day` rather than falsely claiming staleness at a granularity
+URL Inspection does not provide.
+
+**Deliberately not a CI guard**, and it should not become one: it reaches the network under `--fetch`
+and its interesting half is hand-entered, so in `ci.yml` it would only buy a check that fails for
+reasons no commit caused. It is a report to run at the monthly SEO-02 refresh.
+
+**Still outstanding:** the manual capture itself. Nobody has read the 21 crawl dates out of URL
+Inspection yet, so the file is still all `null` and the script currently reports "0 proven stale, 21
+with no crawl date". That sweep is the remaining work, and it needs console access.
