@@ -38,9 +38,18 @@ function measureNavHeight() {
 window.addEventListener('resize', measureNavHeight);
 measureNavHeight();
 
+// Native scrollIntoView aligns #home-files flush with the viewport top, but
+// [data-home-bar] is position: fixed (see index.astro), so it then renders
+// on top of the files row it just scrolled into place, covering it. Compute
+// the target explicitly and subtract the bar's real height instead, the same
+// pattern offlineLink already uses below for the same class of problem.
 document.querySelector('[data-workspace-return]')?.addEventListener('click', event => {
   event.preventDefault();
-  launcher?.scrollIntoView({ behavior: 'instant', block: 'start' });
+  if (launcher) {
+    const navHeight = homeBar?.getBoundingClientRect().height ?? 0;
+    const targetTop = Math.max(0, launcher.getBoundingClientRect().top + window.scrollY - navHeight);
+    window.scrollTo({ top: targetTop, behavior: 'instant' });
+  }
   document.querySelector<HTMLElement>('[data-home-picker]')?.focus({ preventScroll: true });
 });
 
