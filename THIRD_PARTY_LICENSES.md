@@ -33,15 +33,15 @@ The approved runtime licenses are MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clau
 | [@preact/signals-core](https://preactjs.com) | 1.14.3 | MIT |
 | [@vercel/analytics](https://github.com/vercel/analytics) | 2.0.1 | MIT |
 | [@vercel/speed-insights](https://github.com/vercel/speed-insights) | 2.0.0 | Apache-2.0 |
-| [astro](https://astro.build) | 7.2.10 | MIT |
-| [bidi-js](https://github.com/lojjic/bidi-js) | 1.0.3 | MIT |
+| [astro](https://astro.build) | 7.3.1 | MIT |
+| [bidi-js](https://github.com/lojjic/bidi-js) | 1.1.0 | MIT |
 | [color](https://github.com/Qix-/color) | 4.2.3 | MIT |
 | [color-convert](https://github.com/Qix-/color-convert) | 2.0.1 | MIT |
 | [color-name](https://github.com/colorjs/color-name) | 1.1.4 | MIT |
 | [color-string](https://github.com/Qix-/color-string) | 1.9.1 | MIT |
 | [html-entities](https://github.com/mdevils/html-entities) | 2.6.0 | MIT |
 | [is-arrayish](https://github.com/qix-/node-is-arrayish) | 0.3.4 | MIT |
-| [lucide-preact](https://lucide.dev) | 1.38.0 | ISC |
+| [lucide-preact](https://lucide.dev) | 1.42.0 | ISC |
 | [node-html-better-parser](https://github.com/Sharcoux/node-html-parser) | 1.5.9 | MIT |
 | [pako](https://github.com/nodeca/pako) | 1.0.11 | (MIT AND Zlib) |
 | [pdfjs-dist](https://mozilla.github.io/pdf.js/) | 6.3.289 | Apache-2.0 |
@@ -628,7 +628,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### astro (7.2.10) - MIT
+### astro (7.3.1) - MIT
 
 withastro
 
@@ -694,7 +694,7 @@ SOFTWARE.
 """
 ```
 
-### bidi-js (1.0.3) - MIT
+### bidi-js (1.1.0) - MIT
 
 Jason Johnston
 
@@ -873,7 +873,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-### lucide-preact (1.38.0) - ISC
+### lucide-preact (1.42.0) - ISC
 
 Eric Fennis
 
