@@ -78,8 +78,13 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
   };
   useEffect(() => {
     const ownArea = container.current?.closest<HTMLElement>('[data-working-area]');
-    const scene = final ? null : document.querySelector<HTMLElement>('.home-scene');
-    const areas = [...new Set([ownArea, scene].filter(Boolean))] as HTMLElement[];
+    // The whole first screen is a drop target, not just the picker tile. This
+    // used to be `.home-scene`, the wrapper that held the launcher and the
+    // demo side by side; that wrapper is gone now the demo is a sibling after
+    // the dock (so mobile reading order matches what is on screen), and the
+    // hero is the element that still spans exactly the pinned stage.
+    const stage = final ? null : document.querySelector<HTMLElement>('.home-hero');
+    const areas = [...new Set([ownArea, stage].filter(Boolean))] as HTMLElement[];
     const cleanups = areas.map(area => {
       const over = (event: DragEvent) => {
         if (!event.dataTransfer?.types.includes('Files')) return;

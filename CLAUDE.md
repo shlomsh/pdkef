@@ -276,11 +276,14 @@ status feedback.
 ## UI & State Invariants
 
 - **The home page is one canonical DOM that CSS reshapes per breakpoint. Nothing is ever re-parented
-  after load.** `.home-tour > .home-hero` holds four things - the header, the launcher, the demo track
-  and the dock - and two `grid-template-areas` arrange them: two columns and three rows on desktop,
-  one column and four rows below 1024px. `.home-scene` is a real wrapper on desktop (it carries the
-  1280px constraint and the 40px column gap) and `display: contents` on mobile, which is what lets the
-  dock sit visually between the launcher and the demo while staying one subtree. This replaced a script
+  after load.** `.home-tour > .home-hero` holds four siblings in the mobile reading order - header,
+  launcher, dock, then the demo track - and two `grid-template-areas` arrange them: five columns and
+  three rows on desktop, one column and four rows below 1024px. **Source order is the mobile order on
+  purpose**, so a screen reader meets the tools before a screen-tall decorative story; desktop moves
+  the demo up beside the launcher purely by naming grid areas. That is why the desktop grid is
+  full-bleed (`minmax(32px, 1fr)` gutters around two 588px columns either side of a 40px gap column,
+  which is the old 1280px content block to the pixel) rather than a wrapper element: a wrapper would
+  force the demo to be a DOM sibling of the launcher and put it back before the dock. This replaced a script
   that moved the hero into the sticky frame after hydration; because the server-rendered HTML was the
   mobile shape, every desktop visitor watched the whole hero jump, and that single re-parent was
   **0.243 of a 0.244 CLS**. If you find yourself writing DOM-moving code to satisfy a breakpoint here,

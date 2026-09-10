@@ -170,7 +170,7 @@ test('mobile always shows the file workspace before the live demo', async ({ pag
   await scrollStory(page, 'blur', .64);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await expect(page.locator('.home-scene > #home-files')).toHaveCount(1);
+  await expect(page.locator('.home-hero > #home-files')).toHaveCount(1);
   await scrollStory(page, 'sign', .81);
 });
 
