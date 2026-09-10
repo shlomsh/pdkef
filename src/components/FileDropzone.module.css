@@ -86,13 +86,31 @@
      remain comfortably larger than a touch target; their previews and copy
      tighten in RecentFiles.module.css. */
   .launcher { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 8px; max-width: none; }
-  .launcher > .tile { width: 100%; min-height: 132px; padding: 8px; }
 
   .launcher > .tile span { font-size: 0.7rem; }
+
+  /* Use spare phone height between rows, while short screens keep the
+     content's natural height and scroll instead of squeezing the controls. */
+  .launcher { align-content: space-between; }
 }
 
-/* Keep the picker a compact, separate action once recent files fill a row. */
-.launcher:has([data-home-recents] li:nth-child(3)) > .tile {
+/* The picker is always this compact, separate action beneath the recent
+   documents, never the tall dropzone `.tile` renders as in `.final` mode.
+   This used to switch in only once real recent files filled a row
+   (`.launcher:has([data-home-recents] li:nth-child(3))`), which matched the
+   tall shape only while `recents` was still `null` (server render, and the
+   client's first render before the mount effect reads localStorage - see
+   FileDropzone.tsx). Real recents almost always land on the very next frame
+   at a different count, and 3+ of them flipped this selector, so the tile
+   visibly collapsed from 180px/132px to 76px right after first paint -
+   measured CLS 0.05-0.08 on '/'. The bundled-sample fallback (FileDropzone.tsx)
+   guarantees at least one list item whenever this component isn't in `final`
+   mode, so the conditional was already unconditionally true by the time a
+   real visitor could see it - the only reachable "tall" frame was the one
+   this component itself renders before it has read storage. Removing the
+   conditional makes the picker's shape identical across every frame from
+   first paint through settled state, for every recents count from 0 to 6. */
+.launcher > .tile {
   grid-column: 1 / -1;
   min-height: 76px;
   display: grid;
@@ -103,17 +121,9 @@
   border-radius: 14px;
   text-align: start;
 }
-.launcher:has([data-home-recents] li:nth-child(3)) > .tile svg {
+.launcher > .tile svg {
   grid-row: 1 / 3;
   width: 28px;
   height: 34px;
 }
 .launcher > .error { grid-column: 1 / -1; }
-
-@media (max-width: 767px) {
-  /* Use spare phone height between rows, while short screens keep the
-     content's natural height and scroll instead of squeezing the controls. */
-  .launcher:has([data-home-recents] li:nth-child(3)) {
-    align-content: space-between;
-  }
-}
