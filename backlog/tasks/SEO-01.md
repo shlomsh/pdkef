@@ -131,3 +131,37 @@ mirrored into the findings doc's Week 1 plan). The one gap against a literal rea
 22 site URLs" is that the redirect/noindex/crawled-not-indexed categories aren't broken out by individual
 URL yet (see above) - not gating, since it doesn't change any decision this epic is currently making, but
 worth closing on the next refresh. **Marking this ticket done** on that basis.
+
+## Addendum (2026-09-11): an indexed page can be stale enough to hide shipped work
+
+The baseline above counts `/redact/` among the 11 **indexed** pages and stops there. SEO-04 captured the
+rendered Google SERP the next day and found something this ticket's categories do not surface: the
+indexed *content* for `/redact/` is an exact match for `src/data/tools.js` at `b4ffd96~1`, i.e. **from
+before 2026-08-29**. Google is serving a title and description we replaced two weeks ago, so DEMO-07's
+title work and SEO-04's meta rewrite are both invisible in the SERP while the live URL serves them
+correctly (verified by `curl`).
+
+Two consequences for this epic's measurement discipline:
+
+- **"Indexed" is not "current".** The Coverage report's category tells us Google has the URL, not that it
+  has this week's version of it. Any ticket whose acceptance is a copy change plus a CTR reading needs to
+  confirm the *indexed snippet* changed before treating a flat CTR as a verdict. SEO-04's plan has been
+  corrected on that basis; SEO-05's 2026-10-08 reading has the same exposure and should be checked the
+  same way.
+- **The nine never-crawled URLs are not the whole crawl problem.** A ranking page going 13+ days without
+  a recrawl is the same crawl-budget signal in a different costume, and it is the one that directly
+  blocks work we have already shipped.
+
+**Follow-up for the next Search Console session:** request indexing for `/redact/` specifically, and
+capture `Last crawled` from URL Inspection for the 11 indexed URLs, not just the nine Discovered ones.
+That column is what would have caught this without a manual SERP check.
+
+*Update 2026-09-11:* Indexing requested and accepted into the priority crawl queue for all three URLs
+this addendum named - `/redact/` (recorded in SEO-04), `/` (the favicon crawler works from the site root,
+and the cached icon is over two months stale, see SEO-04) and `/compress/` (SEO-05 shipped a snippet
+change in the same commit and carries the same exposure). Google's own dialog states that resubmitting
+does not improve queue position, so all three are submitted once and left alone.
+
+**Still outstanding from this addendum:** the `Last crawled` sweep across the 11 indexed URLs. That is
+the column that would have surfaced this staleness without a manual SERP check, and it remains the
+cheapest instrument this epic is missing.
