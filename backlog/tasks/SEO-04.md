@@ -132,3 +132,98 @@ Re-measurement date: **2026-10-08** (four weeks from today), to land with SEO-01
 queries' impressions/position above matched exactly - this is the pre-change baseline, confirmed from
 the primary source rather than just the doc. Nothing to compare yet; the "after" side needs the
 2026-10-08 refresh, after the meta description change above has had time in production.
+
+## The real SERP, captured at last (2026-09-11)
+
+The 2026-09-10 pass could not see Google and said so honestly. Shlomi ran the three queries by hand and
+supplied the rendered SERPs, so acceptance criterion 1 is now met. **The evidence overturns the shipped
+diagnosis.** Recording it in full, then what follows.
+
+### What Google displays for us
+
+Identical on `blur text in pdf` and `pdf blur tool`:
+
+> **Blackout, Blur, or Redact PDF Online | Free & Private - PDkef**
+> Securely hide text in your PDF files. Black out or blur sensitive information, and we permanently
+> flatten the page so the data cannot be extracted.
+
+**That is not our title, and not our meta description.** It is an exact match for `src/data/tools.js` at
+`b4ffd96~1` - the state of the file *before* 2026-08-29:
+
+| | Indexed (what searchers see) | Served live today (`curl`, verified) |
+| --- | --- | --- |
+| Title | `Blackout, Blur, or Redact PDF Online \| Free & Private` | `Blur PDF Online Free - Blackout & Redact Text \| PDkef` |
+| Meta | `Securely hide text in your PDF files. Black out or blur sensitive information, and we permanently flatten the page so the data cannot be extracted. 100% private.` | `Blur, black out, or permanently delete text in a PDF for free, right in your browser. No upload, signup, or watermark. Open source.` |
+
+(The `- PDkef` in the SERP is Google appending the site name; `BaseLayout.astro` did not add it at that
+commit. The description is truncated before `100% private.`)
+
+**So Google's index of `/redact/` predates 2026-08-29.** Both DEMO-07's title work *and* this ticket's
+meta rewrite are invisible in the SERP. The live deploy is correct, so this is crawl staleness, not a
+broken deploy.
+
+On `blur text in pdf online free` the title is the same stale one, but the description is different
+again - assembled from page body copy, not from any meta we have ever shipped:
+
+> Free for everyone Black out or blur sensitive text in as many PDFs as you like, with no watermark or
+> usage caps. choose "Blackout" or "Blur" from the toolbar.
+
+### The field around us
+
+`blur text in pdf` (32 impressions, GSC 11.44), top to bottom: iLovePDF *Redact PDF - Secure PDF
+redactor*; **Videos carousel** (3 YouTube how-tos); Tungsten Automation *How to Blur Text in PDF: A
+Step-by-Step Guide*; **AI Overview**; **us**; Smallpdf *Redact PDF: Remove Sensitive Information
+Permanently*; PDF24 *Redact PDF - 100% free & online* with **4.9 ★★★★★ (741) · Free**; Adobe; PII
+Blackout; DocHub. Adjacent to us: Tungsten above (with the AI Overview directly above us), Smallpdf below.
+
+`blur text in pdf online free` (23, GSC 6.65): iLovePDF; **Videos carousel**; **us**; Smallpdf; DocHub;
+PDF24 (stars); **AI Overview**; PDF4me; DataBlur *Redact PDF Online Free - True Redaction, No Upload*;
+Sejda. Adjacent: the video carousel above, Smallpdf below. We are the **second organic result** here and
+still take zero clicks.
+
+`pdf blur tool` (17, GSC 8.47): iLovePDF; **us**; Tungsten; Smallpdf; **AI Overview**; DocHub; PDF24
+(stars); jpegconvert; blur-face.com; a YouTube result; sponsored PDFaid. Adjacent: iLovePDF above,
+Tungsten below. Second organic again.
+
+### Revised diagnosis
+
+Four things the 2026-09-10 hypothesis could not have known, in descending order of weight.
+
+1. **The snippet under test is not in the index.** The rewrite addressed a description no searcher has
+   been shown. Whatever is suppressing CTR, it is not the wording we changed, because that wording has
+   never appeared. This makes SEO-04 downstream of SEO-01/SEO-06: the copy cannot be evaluated until
+   `/redact/` is recrawled. The `lastmod` fix from 8e20612 is in the live sitemap
+   (`2026-09-10T17:04:31.000Z`), so the lever is set; it needs time and probably a manual GSC indexing
+   request for this specific URL.
+2. **Google discards our meta on at least one of the three queries anyway**, preferring body copy. So
+   meta edits are a partial lever here at best, and the intro paragraph in `src/data/tools.js` is doing
+   snippet work whether or not we intended it to.
+3. **An AI Overview sits on all three queries and cites us on at least two.** On `blur text in pdf
+   online free` PDkef is the *first* tool it names, described accurately ("Runs locally in your browser
+   for absolute privacy, allowing you to draw blur or blackout boxes and flatten the file so text cannot
+   be copied"). That is the textbook zero-click pattern: the searcher gets both the answer and the
+   attribution without visiting. It is a structural CTR suppressor that no snippet rewrite can reach,
+   and it plausibly explains 0% at position 6 better than any wording defect. Being cited is a real
+   asset for GEO purposes; it is not a click.
+4. **Two of the three queries are video-led**, with a carousel above our result. Google reads these
+   phrasings as how-to intent and we answer with a tool page.
+
+One thing the ticket predicted correctly: *"a missing element the neighbours all have."* PDF24 carries
+`4.9 ★★★★★ (741) · Free` review stars on all three SERPs and we carry no rich result of any kind.
+**We should not chase that one.** We have no reviews, and emitting `AggregateRating` without them is
+fabricated structured data. Noted and deliberately declined.
+
+### What changes, and what does not
+
+**No further copy edit.** Layering a second speculative rewrite on top of one Google has not yet seen
+would confound the measurement this ticket exists to take, and the scope note warns against exactly that.
+
+**The measurement plan was unsound and is corrected.** The acceptance criterion said that if CTR has not
+moved in four weeks the hypothesis was wrong. That would now be the wrong inference: with a stale index,
+a flat CTR on 2026-10-08 most likely means *not yet recrawled*. So the 2026-10-08 refresh must first
+check whether the indexed snippet has changed, by re-running these three queries and comparing the
+displayed title against the table above. Only once the SERP shows the live title is the CTR reading a
+verdict on the copy at all.
+
+**Open dependency:** request indexing for `/redact/` in Search Console (SEO-01's territory, needs
+console access). Until that lands, SEO-04 is blocked on a crawl, not on copy.
