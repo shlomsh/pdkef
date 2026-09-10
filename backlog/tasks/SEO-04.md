@@ -228,6 +228,12 @@ verdict on the copy at all.
 **Open dependency:** request indexing for `/redact/` in Search Console (SEO-01's territory, needs
 console access). Until that lands, SEO-04 is blocked on a crawl, not on copy.
 
+*Resolved 2026-09-11:* Shlomi requested indexing for `https://pdkef.com/redact/` via URL Inspection.
+Google reported *"URL is on Google"* and *"URL was added to a priority crawl queue"*. Note Google's own
+wording on that dialog - resubmitting does not improve queue position - so this is submitted once and
+then left alone. The 2026-10-08 check now has a defined first question: has the indexed title changed
+from `Blackout, Blur, or Redact PDF Online | Free & Private` to the live one?
+
 ### A third staleness layer: the favicon in the AI Overview card
 
 Shlomi spotted that the AI Overview's citation card for us carries the **old blue/grey logo**. Checked:
