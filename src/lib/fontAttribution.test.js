@@ -21,6 +21,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
 import { FONT_MANIFEST } from '../../scripts/font-manifest.mjs';
+import { DISPLAY_ONLY_FONTS } from '../../scripts/display-only-fonts.mjs';
 
 const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
 
@@ -69,13 +70,26 @@ describe('font attribution surfaces', () => {
 
   it('has a catalogue entry for every TTF on disk, which is what the surfaces are checked against', () => {
     // The check above is only as complete as the catalogue, so a font bundled
-    // but never registered would be invisible to it.
+    // but never registered would be invisible to it. A display-only font
+    // (never selectable in the editor) is a second, explicitly named
+    // category - scripts/display-only-fonts.mjs - not a blanket exception:
+    // every entry there must still name a real, currently-shipping catalogue
+    // family (checked below), and a font in *neither* list still fails this
+    // assertion.
+    const stripSuffix = (file) => file.replace(/-(Bold|Regular)?(Italic)?\.ttf$/, '');
     const bundled = new Set(
       readdirSync(join(process.cwd(), 'public', 'fonts'))
         .filter((file) => file.endsWith('.ttf'))
-        .map((file) => file.replace(/-(Bold|Regular)?(Italic)?\.ttf$/, ''))
+        .map(stripSuffix)
     );
     const registered = new Set(CATALOGUE.map((family) => family.replace(/\s+/g, '')));
-    expect([...bundled].filter((base) => !registered.has(base))).toEqual([]);
+    const displayOnly = new Set(DISPLAY_ONLY_FONTS.map((entry) => stripSuffix(entry.file)));
+
+    for (const entry of DISPLAY_ONLY_FONTS) {
+      expect(CATALOGUE, `${entry.file}'s sourceFamily ${entry.sourceFamily} is not a shipping catalogue family`).toContain(entry.sourceFamily);
+    }
+
+    const unregistered = [...bundled].filter((base) => !registered.has(base) && !displayOnly.has(base));
+    expect(unregistered).toEqual([]);
   });
 });

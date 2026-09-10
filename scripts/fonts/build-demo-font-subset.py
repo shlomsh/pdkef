@@ -35,11 +35,11 @@ without anyone having to remember to rebuild this file.
 
 ## Character set
 
-`DEMO_LATIN_CODEPOINTS` below is Basic Latin + Latin-1 Supplement + (almost
-all of) Latin Extended-A - `Caveat-Bold.ttf`'s own cmap happens to cover
-U+00A0-U+017E contiguously (verified by the `missing` check in `main()`
-below), so this range costs nothing in "requested but absent from the
-upstream font" surprises. `DEMO_PUNCTUATION_CODEPOINTS` is an explicit,
+`LATIN_RANGES` below is Basic Latin + Latin-1 Supplement - `Caveat-Bold.ttf`'s
+own cmap covers U+00A0-U+00FF contiguously (verified by the `missing` check in
+`main()` below), so this range costs nothing in "requested but absent from the
+upstream font" surprises. Latin Extended-A is deliberately excluded on a
+measurement; see the comment on `LATIN_RANGES`. `DEMO_PUNCTUATION_CODEPOINTS` is an explicit,
 by-name list of the General Punctuation / currency / symbol codepoints a
 marketing caption realistically reaches for (dashes, quotation marks,
 ellipsis, bullet, per mille, primes, guillemets, euro sign, trademark, minus
@@ -90,14 +90,21 @@ import argparse
 import sys
 from pathlib import Path
 
-# Basic Latin (printable) + Latin-1 Supplement + Latin Extended-A. Caveat-Bold's
-# own cmap covers U+00A0-U+017E as one contiguous run (confirmed against the
-# real file below), so this whole range is free of "requested but not in the
-# upstream font" gaps. U+007F-U+009F (C0/C1 controls) are intentionally
-# excluded - not printable text.
+# Basic Latin (printable) + Latin-1 Supplement. Caveat-Bold's own cmap covers
+# U+00A0-U+00FF contiguously (confirmed against the real file below), so this
+# range is free of "requested but not in the upstream font" gaps.
+# U+007F-U+009F (C0/C1 controls) are intentionally excluded - not printable.
+#
+# Latin Extended-A (U+0100-U+017E) is deliberately NOT included, though the
+# upstream font does carry it. It is the single largest block in this face's
+# cmap - 127 of 339 codepoints - and costs 16.5KB gzipped, on the critical
+# path, for Central European letterforms an English marketing caption will
+# never reach for. Latin-1 is kept because it is only ~8KB and covers the
+# accented characters a European name or loanword in future caption copy
+# would plausibly need. Widen this only with a measurement to justify it.
 LATIN_RANGES = [
     (0x0020, 0x007E),  # Basic Latin
-    (0x00A0, 0x017E),  # Latin-1 Supplement + most of Latin Extended-A
+    (0x00A0, 0x00FF),  # Latin-1 Supplement
 ]
 
 # General Punctuation / currency / math symbols a marketing caption realistically
@@ -108,7 +115,12 @@ LATIN_RANGES = [
 # check in main() below.
 DEMO_PUNCTUATION_CODEPOINTS = {
     0x2010,  # hyphen
-    0x2011,  # non-breaking hyphen
+    # 0x2011 (non-breaking hyphen) was here too, on the claim below that every
+    # entry was "individually verified present in the upstream font" - it was
+    # not actually run against the file until this script was first executed,
+    # and Caveat-Bold.ttf's cmap does not carry U+2011. Left out rather than
+    # requested-and-missing, which is what main()'s upstream-coverage check
+    # exists to catch.
     0x2013,  # en dash
     0x2014,  # em dash
     0x2018,  # left single quotation mark

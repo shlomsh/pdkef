@@ -41,8 +41,16 @@ import {
   FONT_COVERAGE_FILES,
   fontFileHasGlyph,
 } from './fontCoverageTable.js';
+import { DISPLAY_ONLY_FONTS } from '../../scripts/display-only-fonts.mjs';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
+// Display-only fonts (scripts/display-only-fonts.mjs) are real files on disk
+// that scripts/generate-font-coverage.mjs deliberately excludes from this
+// table - they are never selectable in the Sign editor, so the coverage
+// resolver this table feeds has nothing to do with them. Excluded here too,
+// so "exactly the files on disk" below means exactly the files the generator
+// actually covers, not literally every .ttf in the directory.
+const DISPLAY_ONLY_FILES = new Set(DISPLAY_ONLY_FONTS.map((entry) => entry.file));
 
 function toRanges(codePoints) {
   const sorted = [...codePoints].sort((a, b) => a - b);
@@ -97,7 +105,9 @@ function encodeCoverage(covered) {
   };
 }
 
-const realFontFiles = readdirSync(FONT_DIR).filter((name) => name.endsWith('.ttf')).sort();
+const realFontFiles = readdirSync(FONT_DIR)
+  .filter((name) => name.endsWith('.ttf') && !DISPLAY_ONLY_FILES.has(name))
+  .sort();
 
 /** One fontkit instance per real file, reused across every describe block below. */
 const realFonts = Object.fromEntries(
