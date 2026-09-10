@@ -160,6 +160,8 @@ export default function PdfCompressTool() {
   return (
     <BasePdfTool
       hasFiles={hasFiles}
+      analyticsTool="compress"
+      analyticsStatus={status}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       fileLabel={file?.name}

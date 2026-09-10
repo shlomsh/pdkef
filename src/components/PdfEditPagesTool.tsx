@@ -223,6 +223,8 @@ export default function PdfEditPagesTool() {
   return (
     <BasePdfTool
       hasFiles={hasFiles}
+      analyticsTool="edit-pdf"
+      analyticsStatus={status}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       fileLabel={file?.name}

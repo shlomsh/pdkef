@@ -6,6 +6,7 @@ import dialogStyles from './Dialog.module.css';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 import ToolShell, { FileActions, ToolShellContext } from './ToolShell.tsx';
+import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/productAnalytics.ts';
 
 function hasFilePayload(event: DragEvent) {
   return Array.from(event.dataTransfer?.types || []).includes('Files');
@@ -31,6 +32,9 @@ interface BasePdfToolProps {
   clearSummary?: string;
   ownsShell?: boolean;
   checkingDraft?: boolean;
+  /** Optional anonymous lifecycle reporting for this tool. */
+  analyticsTool?: AnalyticsTool;
+  analyticsStatus?: string;
 }
 
 /**
@@ -79,6 +83,8 @@ export default function BasePdfTool({
      for the split second before their file loads over it. Tools without draft
      persistence never set this, so their empty state is unaffected. */
   checkingDraft = false,
+  analyticsTool,
+  analyticsStatus,
 }: BasePdfToolProps) {
   const [isDraggingOverWorkspace, setIsDraggingOverWorkspace] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
@@ -90,6 +96,32 @@ export default function BasePdfTool({
   // being opened on the strength of that agreement, so the file coming back is
   // not put through the gate a second time.
   const agreedRef = useRef(false);
+  const previouslyHadFilesRef = useRef(false);
+  const previousAnalyticsStatusRef = useRef<string | undefined>(undefined);
+
+  // This is intentionally based on a tool's coarse public state, never its
+  // file, options, error object, or local draft. See ANALYTICS.md.
+  useEffect(() => {
+    if (!analyticsTool) return;
+    if (hasFiles && !previouslyHadFilesRef.current) {
+      reportToolLifecycleEvent('tool_file_accepted', analyticsTool);
+    }
+    previouslyHadFilesRef.current = hasFiles;
+  }, [analyticsTool, hasFiles]);
+
+  useEffect(() => {
+    if (!analyticsTool || !analyticsStatus) return;
+    if (analyticsStatus === previousAnalyticsStatusRef.current) return;
+    previousAnalyticsStatusRef.current = analyticsStatus;
+
+    if (['processing', 'merging', 'converting'].includes(analyticsStatus)) {
+      reportToolLifecycleEvent('tool_operation_started', analyticsTool);
+    } else if (analyticsStatus === 'done') {
+      reportToolLifecycleEvent('tool_result_ready', analyticsTool);
+    } else if (analyticsStatus === 'error') {
+      reportToolLifecycleEvent('tool_operation_failed', analyticsTool);
+    }
+  }, [analyticsStatus, analyticsTool]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !hasFiles && fileInputRef.current) {

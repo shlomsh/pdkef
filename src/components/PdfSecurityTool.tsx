@@ -97,6 +97,8 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
   return (
     <BasePdfTool
       hasFiles={hasFiles}
+      analyticsTool={mode === 'protect' ? 'protect' : mode === 'unlock' ? 'unlock' : undefined}
+      analyticsStatus={status}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       emptyStateMessage={intent === 'unlock' ? 'Drop PDF here to unlock' : 'Drop PDF here to protect'}

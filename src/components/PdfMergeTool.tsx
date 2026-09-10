@@ -204,6 +204,8 @@ export default function PdfMergeTool() {
   return (
     <BasePdfTool
       hasFiles={hasFiles}
+      analyticsTool="merge"
+      analyticsStatus={status}
       onFilesAdded={addFiles}
       fileLabel={fileSummary}
       fileMeta={formatFileSize(entries.reduce((total, entry) => total + entry.file.size, 0))}
