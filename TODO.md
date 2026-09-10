@@ -111,6 +111,39 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | QUAL-03 | P3 | [QUAL-03](backlog/tasks/QUAL-03.md) · flatten.svg has the palette baked in as 31 hex literals |
 
 
+## Search acquisition: competitive keyword gaps
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| SEO-01 | P1 | [SEO-01](backlog/tasks/SEO-01.md) · An indexing baseline, and the two mechanical reasons pages are not being crawled |
+| SEO-02 | P1 | [SEO-02](backlog/tasks/SEO-02.md) · A standings table against the competition that is maintained, not written once |
+| SEO-03 | P2 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |
+| SEO-04 | P1 | [SEO-04](backlog/tasks/SEO-04.md) · Thirteen blur queries are on page one and earning zero clicks |
+| SEO-05 | P1 | [SEO-05](backlog/tasks/SEO-05.md) · The 100KB cluster ranks and does not convert, and the page implies something untrue |
+| SEO-06 | P1 | [SEO-06](backlog/tasks/SEO-06.md) · Nine URLs have never been crawled, and three of them are working tools |
+| SEO-07 | P1 | [SEO-07](backlog/tasks/SEO-07.md) · The Sign page says almost nothing about the one advantage nobody can copy |
+| SEO-08 | P2 | [SEO-08](backlog/tasks/SEO-08.md) · The four OS how-to guides rank between 44 and 58, and one of them is our best-read page |
+| SEO-09 | P2 | [SEO-09](backlog/tasks/SEO-09.md) · Split ranks at 85 for extract queries because it never uses the word |
+| SEO-10 | P2 | [SEO-10](backlog/tasks/SEO-10.md) · Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it |
+| SEO-11 | P1 | [SEO-11](backlog/tasks/SEO-11.md) · The positioning review protocol: what we may claim, and what proves it |
+| SEO-12 | P1 | [SEO-12](backlog/tasks/SEO-12.md) · Positioning review: Sign, the tool with the biggest gap between what it does and what it says |
+| SEO-13 | P2 | [SEO-13](backlog/tasks/SEO-13.md) · Positioning review: Compress, where the honest answer costs us the query |
+| SEO-14 | P2 | [SEO-14](backlog/tasks/SEO-14.md) · Positioning review: Blur and Redact, the cluster we are already winning |
+| SEO-15 | P2 | [SEO-15](backlog/tasks/SEO-15.md) · Positioning review: the three tools Google has never looked at |
+| SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |
+| SEO-17 | P2 | [SEO-17](backlog/tasks/SEO-17.md) · One content page on portal size limits, instead of three doorway pages |
+| SEO-18 | P2 | [SEO-18](backlog/tasks/SEO-18.md) · One page on signing a PDF in your own language, generated from the coverage data |
+| SEO-19 | P2 | [SEO-19](backlog/tasks/SEO-19.md) · New tool: compress an image to a target size, because people are already asking us to |
+| SEO-20 | P2 | [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for |
+| SEO-21 | P2 | [SEO-21](backlog/tasks/SEO-21.md) · New tool: flatten a PDF, which also closes a defect in the Sign export |
+| SEO-22 | P3 | [SEO-22](backlog/tasks/SEO-22.md) · New tool: extract the images embedded in a PDF, without a zip dependency |
+| SEO-23 | P3 | [SEO-23](backlog/tasks/SEO-23.md) · New tool: convert a PDF to grayscale, with the cost stated |
+| SEO-24 | P3 | [SEO-24](backlog/tasks/SEO-24.md) · New tool: make a PDF look scanned |
+| SEO-25 | P3 | [SEO-25](backlog/tasks/SEO-25.md) · A before-and-after preview on Compress, so quality is shown rather than promised |
+| SEO-26 | P3 | [SEO-26](backlog/tasks/SEO-26.md) · Say what PDkef does not do, and why, on a page that already exists |
+| SEO-27 | P3 | [SEO-27](backlog/tasks/SEO-27.md) · Decide the localization question: Hebrew is nearly free, Hindi is not the win it looks like |
+
+
 ## Migrated context and history
 
 The prose, decisions, and supporting evidence formerly interleaved with tickets live in [backlog/reference/migrated-todo-context.md](backlog/reference/migrated-todo-context.md). It is reference material, not a task tracker.

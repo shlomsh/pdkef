@@ -11,6 +11,7 @@ const lanes = {
   'landing-story-demo': 'Landing story and demo',
   'mobile-round-trip': 'Mobile round trip',
   'site-quality': 'Site quality',
+  'search-acquisition': 'Search acquisition',
 };
 const statusLabels = { open: 'Open', in_progress: 'In progress', blocked: 'Blocked', done: 'Done', retired: 'Retired' };
 
