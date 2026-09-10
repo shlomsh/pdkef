@@ -1,6 +1,7 @@
 import ViewControl from './ViewControl.tsx';
 import EditorToolStatus from './EditorToolStatus.tsx';
 import ArmHint from './ArmHint.tsx';
+import EditorExportActions from './EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from './ToolShell.tsx';
 import { makeArmTool, useAutoArmHint } from '../lib/toolArming.js';
 import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
@@ -217,52 +218,19 @@ export default function RedactToolbar({
           <span className={styles.label}>{FILE_ACTIONS.replace.shortLabel}</span>
         </button>
 
-        <button
-          type="button"
-          className={`${styles.button} ${styles.download}${canSharePdf ? ` ${styles['desktop-download']}` : ''}`}
-          onClick={handleDownloadPdf}
+        <EditorExportActions
+          variant="toolbar"
+          canShare={canSharePdf}
+          shareReady={shareReady}
           disabled={elementsCount === 0 || exporting}
-          title={elementsCount === 0 ? 'Add at least one redaction box first' : 'Apply redactions and download'}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          <span className={styles.label}>Download</span>
-        </button>
-
-        {canSharePdf && (
-          <button
-            type="button"
-            className={`${styles.button} ${styles.share}`}
-            onClick={shareReady ? handleSharePdf : handlePrepareShare}
-            disabled={elementsCount === 0 || exporting}
-            title={elementsCount === 0
-              ? 'Add at least one redaction box first'
-              : (shareReady ? 'Share the redacted PDF' : 'Apply redactions and prepare the PDF for sharing')}
-          >
-            {/* Label stays "Share" either way (MOBI-07 follow-up): "Share now"
-                changed the button's min-content width, jittering this row's
-                layout every time an export finished. The icon carries the
-                state instead. */}
-            {shareReady ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="18" cy="5" r="3" />
-                <circle cx="6" cy="12" r="3" />
-                <circle cx="18" cy="19" r="3" />
-                <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" />
-                <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" />
-                <polyline points="12 7 12 12 15.5 14" />
-              </svg>
-            )}
-            <span className={styles.label}>Share</span>
-          </button>
-        )}
+          onDownload={handleDownloadPdf}
+          onPrepareShare={handlePrepareShare}
+          onShare={handleSharePdf}
+          downloadTitle={elementsCount === 0 ? 'Add at least one redaction box first' : 'Apply redactions and download'}
+          shareTitle={elementsCount === 0
+            ? 'Add at least one redaction box first'
+            : (shareReady ? 'Share the redacted PDF' : 'Apply redactions and prepare the PDF for sharing')}
+        />
       </div>
     </ToolShell>
   );

@@ -30,7 +30,7 @@ export default defineConfig({
     },
     {
       name: 'webkit',
-      testMatch: '**/recent-files.spec.js',
+      testMatch: ['**/recent-files.spec.js', '**/redact-mobile-export.spec.js'],
       use: { ...devices['iPhone 15'] },
     },
   ],
