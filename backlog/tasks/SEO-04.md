@@ -227,3 +227,24 @@ verdict on the copy at all.
 
 **Open dependency:** request indexing for `/redact/` in Search Console (SEO-01's territory, needs
 console access). Until that lands, SEO-04 is blocked on a crawl, not on copy.
+
+### A third staleness layer: the favicon in the AI Overview card
+
+Shlomi spotted that the AI Overview's citation card for us carries the **old blue/grey logo**. Checked:
+it is the pre-Sea-Glass mark, replaced by commit `610ea11` on **2026-07-09**, so Google's cached favicon
+is over two months stale - older still than the pre-2026-08-29 title and description above.
+
+Not our bug. `/favicon.ico`, `/icons/favicon-32.png` and `/icons/icon-192.png` on the live site are
+byte-identical to the repo and all render the current green mark (verified by `curl` + `md5`, and by
+rendering the `.ico`, which `e46c641` shipped on 2026-08-05 and which is correct).
+
+Worth separating from the page-crawl finding, though it reinforces it: Google's favicon crawler is a
+**separate** crawler from Googlebot, fetches from the site root on its own schedule, and caches
+aggressively. There is no "refresh my favicon" control in Search Console. So this is the same
+crawl-starvation story in a different costume rather than the same mechanism.
+
+**Do not chase it by renaming the icon.** Google caches favicons by URL, so a new filename is the usual
+cache-bust, but `BaseLayout.astro` points at a stable unhashed path on purpose (see the comment there),
+and that stability is exactly what is holding the stale cache. Trading a deliberate decision for a guess
+is not worth it while a recrawl of `/` should fix it anyway. Re-check the card at the 2026-10-08 refresh;
+if the logo is still blue after `/redact/` and `/` have been recrawled, revisit then with evidence.
