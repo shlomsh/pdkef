@@ -10,6 +10,7 @@ import { useSignTool } from './SignToolContext.tsx';
 import { useSignDefaults } from './SignDefaultsContext.tsx';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
+import EditorExportActions from '../EditorExportActions.tsx';
 import FormFieldHints from './FormFieldHints.tsx';
 import type { FormFieldRegions } from '../../lib/useFormFieldRegions.ts';
 import useWorkspaceGestures from '../../lib/useWorkspaceGestures.js';
@@ -342,34 +343,16 @@ export default function PdfWorkspace({
           </div>
 
           {/* Complete signing button */}
-          <div className={workspaceStyles['export-actions']}>
-            <button type="button" className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']}`} onClick={handleDownloadPdf} disabled={status === 'signing' || exportReadiness.blocked} aria-describedby={exportReadiness.blocked ? 'sign-export-readiness' : undefined}>
-              Download
-            </button>
-            {canSharePdf && (
-              <button type="button" className={`${pdfToolStyles['tool-primary-action']} ${workspaceStyles['export-action']} ${workspaceStyles['export-share']}`} onClick={shareReady ? handleSharePdf : handleSavePdf} disabled={status === 'signing' || exportReadiness.blocked} aria-describedby={exportReadiness.blocked ? 'sign-export-readiness' : undefined}>
-                {/* Label stays "Share" either way (MOBI-07 follow-up): "Share
-                    now" changed the button's own min-content width against its
-                    flex:1 sibling, so the two buttons visibly resized on every
-                    export. The icon carries the state instead. */}
-                {shareReady ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="18" cy="5" r="3" />
-                    <circle cx="6" cy="12" r="3" />
-                    <circle cx="18" cy="19" r="3" />
-                    <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" />
-                    <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" />
-                    <polyline points="12 7 12 12 15.5 14" />
-                  </svg>
-                )}
-                Share
-              </button>
-            )}
-          </div>
+          <EditorExportActions
+            variant="completion"
+            canShare={canSharePdf}
+            shareReady={shareReady}
+            disabled={status === 'signing' || exportReadiness.blocked}
+            onDownload={handleDownloadPdf}
+            onPrepareShare={handleSavePdf}
+            onShare={handleSharePdf}
+            describedBy={exportReadiness.blocked ? 'sign-export-readiness' : undefined}
+          />
         </>
       )}
 
