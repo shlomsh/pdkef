@@ -120,13 +120,27 @@ function clamp01(n: number): number {
   return n < 0 ? 0 : n > 1 ? 1 : n;
 }
 
+// Resolves which element is actually pinned right now. Desktop pins the
+// whole hero (header, launcher, demo and dock hold still together);
+// mobile pins only the demo frame once the first screen has scrolled past
+// (see index.astro's two .home-hero grids and their [data-demo-pin]
+// elements). Both candidates are always in the DOM - only one of them is
+// ever `position: sticky` at a given breakpoint - so the live one is found
+// by asking the computed style rather than guessing from viewport width,
+// which would drift the moment a breakpoint number changed in only one place.
+function resolvePin(): { pin: HTMLElement; track: HTMLElement } | null {
+  const pin = [...document.querySelectorAll<HTMLElement>('[data-demo-pin]')]
+    .find(el => getComputedStyle(el).position === 'sticky');
+  const track = pin && document.querySelector<HTMLElement>(`[data-demo-track="${pin.dataset.demoPin}"]`);
+  return pin && track ? { pin, track } : null;
+}
+
 export default function ScrollDriver({ rootSelector }: { rootSelector: string }) {
   useEffect(() => {
     const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
     const root = document.querySelector(rootSelector);
-    const tour = document.getElementById('home-tour');
-    const pinFrame = tour?.querySelector<HTMLElement>('[data-demo-frame]');
-    if (!root || !tour || !pinFrame) return;
+    let resolved = resolvePin();
+    if (!root || !resolved) return;
     const tracks = TRACKS.map(({ key, beats }) => ({
       key, beats,
       trackEl: root.querySelector<HTMLElement>(`[data-hero-track="${key}"]`),
@@ -134,10 +148,11 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
     }));
 
     function scrollProgress() {
-      if (!tour || !pinFrame) return;
-      const top = parseFloat(getComputedStyle(pinFrame).top) || 0;
-      const travel = Math.max(1, tour.offsetHeight - pinFrame.offsetHeight);
-      return clamp01((top - tour.getBoundingClientRect().top) / travel);
+      if (!resolved) return;
+      const { pin, track } = resolved;
+      const top = parseFloat(getComputedStyle(pin).top) || 0;
+      const travel = Math.max(1, track.offsetHeight - pin.offsetHeight);
+      return clamp01((top - track.getBoundingClientRect().top) / travel);
     }
 
     function update(progress: number) {
@@ -205,6 +220,11 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
     }
 
     function onResize() {
+      // The pinned element itself changes at the desktop/mobile breakpoint
+      // (see resolvePin above), so a resize crossing it must re-resolve
+      // before the next scroll/autoplay frame reads a now-unpinned element's
+      // stale `position: sticky` top.
+      resolved = resolvePin();
       update(autoplayProgress);
     }
 

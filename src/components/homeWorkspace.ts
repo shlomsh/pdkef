@@ -1,87 +1,49 @@
-// Source order is the mobile reading order: hero copy, workspace, launcher,
-// then demo. Desktop reuses the same workspace beside the sticky live demo.
+// The hero (header, file workspace, tool dock) and the live demo now share
+// one canonical DOM tree at every breakpoint - see index.astro's markup and
+// its .home-hero / .home-frame grids. Nothing here re-parents nodes any
+// more; this module only handles behavior CSS cannot express: the offline
+// anchor's idempotent scroll, the "back to workspace" shortcut, and the two
+// scroll-driven visual states (which story card is pinned, and whether the
+// mobile demo frame should show the fixed header/footer chrome).
 const launcher = document.getElementById('home-files');
-const hero = document.querySelector<HTMLElement>('.home-hero');
-const content = document.getElementById('home-content');
-const tour = document.getElementById('home-tour');
-const frame = tour?.querySelector<HTMLElement>('[data-demo-frame]');
-const scene = tour?.querySelector('.home-scene');
-const dock = document.querySelector('.home-dock');
-const header = document.querySelector<HTMLElement>('.home-header');
+// The demo's own scroll track. Not #home-tour: that id now wraps the entire
+// page (hero included - see the mobile grid-template-areas in index.astro),
+// so its own top is pinned at document position 0 and can no longer signal
+// "the demo has been reached". .demo-track is the element the pinned mobile
+// frame actually travels through.
+const demoTrack = document.querySelector<HTMLElement>('.demo-track[data-demo-track="mobile"]');
 const offlineLink = document.querySelector<HTMLAnchorElement>('[data-offline-link]');
 const offlineSection = document.getElementById('offline-app');
 const cardStack = document.querySelector<HTMLElement>('.card-stack');
 const homeFooter = cardStack?.querySelector<HTMLElement>('footer');
 // Keep this in lockstep with the home page and demo responsive media queries.
-// The desktop demo needs two real columns for its caption and phone; narrower
-// tablet widths use the safer single-column hero instead of squeezing either.
 const mobile = matchMedia('(max-width: 1023px)');
 
-function mobileLayoutIsCurrent() {
-  return hero?.nextElementSibling === content
-    && scene?.parentElement === frame
-    && header?.parentElement === hero
-    && launcher?.parentElement === hero
-    && dock?.parentElement === hero;
+// index.astro's --home-nav-height default (calc(3.5rem + 0.5px)) is already
+// correct for a real, GPU-rendered browser: AppBar.astro's h-14 row plus its
+// border-b-[0.5px] hairline does render at 56.5px there, so this write lands
+// the identical value and costs no post-paint shift for real visitors. It
+// only actually corrects anything in an environment whose rendering
+// disagrees with that constant - namely headless Chromium, which rounds the
+// sub-device-pixel border up and renders the bar at 57px (see the comment on
+// the CSS default in index.astro, and e2e/home/nav-height.spec.js). Kept to
+// this one element only: read the bar's rendered height, then write it, so
+// this never reads back a value it just wrote.
+const homeBar = document.querySelector<HTMLElement>('[data-home-bar]');
+function measureNavHeight() {
+  if (!homeBar) return;
+  const height = homeBar.getBoundingClientRect().height;
+  document.body.style.setProperty('--home-nav-height', `${height}px`);
 }
+window.addEventListener('resize', measureNavHeight);
+measureNavHeight();
 
-function desktopLayoutIsCurrent() {
-  return hero?.parentElement === frame
-    && scene?.parentElement === hero
-    && launcher?.parentElement === scene
-    && header?.parentElement === hero
-    && dock?.parentElement === hero;
-}
-
-function arrangeWorkspace() {
-  if (!hero || !content || !tour || !frame || !scene || !launcher || !dock || !header) return;
-  if (mobile.matches) {
-    if (mobileLayoutIsCurrent()) return;
-    content.before(hero);
-    frame.append(scene);
-    hero.append(header, launcher, dock);
-  }
-  else {
-    if (desktopLayoutIsCurrent()) return;
-    scene.prepend(launcher);
-    hero.append(header, scene, dock);
-    frame.append(hero);
-  }
-}
-
-arrangeWorkspace();
-mobile.addEventListener('change', arrangeWorkspace);
-// Browser responsive modes do not all dispatch MediaQueryList changes at the
-// same point in a viewport resize. The resize fallback keeps the toolbar and
-// workspace out of the mobile demo even when that event is delayed or skipped.
-window.addEventListener('resize', arrangeWorkspace);
-// The desktop first fold is a normal-flow header, a full demo stage, and the
-// in-flow tool rail. Measure only those local parts so their combined height
-// fits the viewport; none of them is fixed or used as a page-wide offset.
-function measureHeroStage() {
-  const navHeight = document.querySelector<HTMLElement>('[data-home-bar]')?.getBoundingClientRect().height ?? 0;
-  const headerHeight = header?.getBoundingClientRect().height ?? 0;
-  const dockHeight = dock?.getBoundingClientRect().height ?? 0;
-  document.documentElement.style.setProperty('--home-nav-height', `${navHeight}px`);
-  document.documentElement.style.setProperty('--home-header-height', `${headerHeight}px`);
-  document.documentElement.style.setProperty('--home-dock-height', `${dockHeight}px`);
-  // The page stylesheet defines the defaults on body, so update that nearer
-  // inheritance source as well. Updating :root alone leaves the tour reading
-  // the fallback values and makes the stage too tall.
-  document.body.style.setProperty('--home-nav-height', `${navHeight}px`);
-  document.body.style.setProperty('--home-header-height', `${headerHeight}px`);
-  document.body.style.setProperty('--home-dock-height', `${dockHeight}px`);
-}
-const heroObserver = new ResizeObserver(measureHeroStage);
-if (header) heroObserver.observe(header);
-if (dock) heroObserver.observe(dock);
-measureHeroStage();
 document.querySelector('[data-workspace-return]')?.addEventListener('click', event => {
   event.preventDefault();
-  arrangeWorkspace();
   launcher?.scrollIntoView({ behavior: 'instant', block: 'start' });
   document.querySelector<HTMLElement>('[data-home-picker]')?.focus({ preventScroll: true });
 });
+
 // The offline guide is a sticky story card. Native fragment navigation keeps
 // attempting to align its nested heading's layout position, which changes as
 // cards pin over each other; repeat clicks consequently nudged the page farther
@@ -102,17 +64,21 @@ offlineLink?.addEventListener('click', event => {
 const storyCards = [...document.querySelectorAll<HTMLElement>('.card-stack .card-reveal')];
 function measureCards() {
   const desktopCards = matchMedia('(min-width: 1024px)').matches;
+  // All reads happen before the one write below. Reading card.offsetHeight
+  // in a loop that comes after a style write forces a synchronous reflow on
+  // the first iteration; doing every read (including per-card) first, then
+  // writing --home-footer-height once, then applying the attribute toggles
+  // in a second pass keeps this to the layout the browser would do anyway.
   const fixedNavHeight = desktopCards
     ? document.querySelector<HTMLElement>('[data-home-bar]')?.getBoundingClientRect().height ?? 0
     : 0;
   const homeFooterHeight = homeFooter?.getBoundingClientRect().height ?? 0;
   const fixedFooterHeight = desktopCards ? homeFooterHeight : 0;
+  const gap = parseFloat(getComputedStyle(document.documentElement).fontSize); // --stack-gap: 1rem
+  const availableHeight = innerHeight - fixedNavHeight - fixedFooterHeight - (2 * gap);
+  const overflowing = storyCards.map(card => card.offsetHeight > availableHeight + 1);
   document.body.style.setProperty('--home-footer-height', `${homeFooterHeight}px`);
-  for (const card of storyCards) {
-    const gap = parseFloat(getComputedStyle(document.documentElement).fontSize); // --stack-gap: 1rem
-    const availableHeight = innerHeight - fixedNavHeight - fixedFooterHeight - (2 * gap);
-    card.toggleAttribute('data-stack-overflow', card.offsetHeight > availableHeight + 1);
-  }
+  storyCards.forEach((card, index) => card.toggleAttribute('data-stack-overflow', overflowing[index]));
 }
 const cardObserver = new ResizeObserver(measureCards);
 for (const card of storyCards) cardObserver.observe(card);
@@ -147,28 +113,29 @@ window.addEventListener('scroll', scheduleCardFrameUpdate, { passive: true });
 window.addEventListener('resize', scheduleCardFrameUpdate);
 scheduleCardFrameUpdate();
 
-// Mobile keeps the introductory hero in normal flow, then uses the real site
-// navigation and footer to frame the long, pinned demo sequence beneath it.
-// Start that frame only once the tour itself reaches its sticky position at
-// the top of the viewport. Treating any intersection as "visible" promoted
-// both bars while the landing hero was still on screen. On iOS in particular,
-// 100svh can be shorter than innerHeight (and changes as browser chrome moves),
-// so the next section could intersect by a few pixels at scrollY === 0. Making
-// the app bar fixed then removed it from the hero's flow, pulled the heading
-// underneath it, and fixed the footer over the home dock. The layout change
-// reinforced its own intersection state, which is why rubber-banding the page
-// only restored the landing view momentarily.
+// Mobile keeps the introductory hero (header, file workspace, tool dock) as
+// a normal-flow first screen, then the demo frame pins and travels through
+// its own tall track beneath it. Start the fixed header/footer chrome only
+// once that track reaches the top of the viewport. Treating any intersection
+// as "visible" promoted both bars while the landing hero was still on
+// screen. On iOS in particular, 100svh can be shorter than innerHeight (and
+// changes as browser chrome moves), so the next section could intersect by a
+// few pixels at scrollY === 0. Making the app bar fixed then removed it from
+// the hero's flow, pulled the heading underneath it, and fixed the footer
+// over the home dock. The layout change reinforced its own intersection
+// state, which is why rubber-banding the page only restored the landing view
+// momentarily.
 let demoFramePending = false;
 function updateMobileDemoFrame() {
   demoFramePending = false;
-  if (!tour || !mobile.matches) {
+  if (!demoTrack || !mobile.matches) {
     document.body.removeAttribute('data-home-demo-visible');
     return;
   }
-  const tourBounds = tour.getBoundingClientRect();
+  const trackBounds = demoTrack.getBoundingClientRect();
   document.body.toggleAttribute(
     'data-home-demo-visible',
-    tourBounds.top <= 0 && tourBounds.bottom > 0,
+    trackBounds.top <= 0 && trackBounds.bottom > 0,
   );
 }
 function scheduleMobileDemoFrameUpdate() {

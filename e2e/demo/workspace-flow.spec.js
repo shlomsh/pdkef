@@ -130,16 +130,20 @@ test('mobile always shows the file workspace before the live demo', async ({ pag
   await page.goto('/');
   const order = () => page.evaluate(() => {
     const hero = document.querySelector('.home-hero');
-    const tour = document.getElementById('home-tour');
+    // Not #home-tour: it now wraps the whole page (hero included), so "dock
+    // before tour" is no longer a meaningful DOM-order relationship - dock
+    // is checked below against the demo track instead, which is the region
+    // this guard originally cared about the workspace/dock not sliding into.
+    const demoTrack = document.querySelector('.demo-track[data-demo-track="mobile"]');
     const files = document.getElementById('home-files');
     const dock = document.querySelector('.home-dock');
     return {
       heroContainsFiles: hero?.contains(files) ?? false,
       filesFirst: !!(files.compareDocumentPosition(dock) & Node.DOCUMENT_POSITION_FOLLOWING),
-      dockBeforeTour: !!(dock.compareDocumentPosition(tour) & Node.DOCUMENT_POSITION_FOLLOWING),
+      dockOutsideDemo: Boolean(dock && demoTrack && !demoTrack.contains(dock)),
     };
   });
-  await expect.poll(order).toEqual({ heroContainsFiles: true, filesFirst: true, dockBeforeTour: true });
+  await expect.poll(order).toEqual({ heroContainsFiles: true, filesFirst: true, dockOutsideDemo: true });
   await expect(page.locator('#home-files [data-home-picker]')).toBeInViewport();
   await scrollStory(page, 'sign', .81);
   const stage = stageLocator(page, 'sign');
@@ -147,10 +151,10 @@ test('mobile always shows the file workspace before the live demo', async ({ pag
   const date = await stage.locator('[class*="_date-line_"]').boundingBox();
   expect(date.y + date.height).toBeLessThanOrEqual(screen.y + screen.height + 1);
   await page.locator('#try-workspace').scrollIntoViewIfNeeded();
-  await expect.poll(order).toEqual({ heroContainsFiles: true, filesFirst: true, dockBeforeTour: true });
+  await expect.poll(order).toEqual({ heroContainsFiles: true, filesFirst: true, dockOutsideDemo: true });
   await page.reload();
   await page.evaluate(() => window.scrollTo(0, 0));
-  await expect.poll(order).toEqual({ heroContainsFiles: true, filesFirst: true, dockBeforeTour: true });
+  await expect.poll(order).toEqual({ heroContainsFiles: true, filesFirst: true, dockOutsideDemo: true });
   await expect(page.locator('#home-files [data-home-picker]')).toBeInViewport();
   await scrollStory(page, 'blur', .64);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

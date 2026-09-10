@@ -14,6 +14,7 @@ async function homeStructure(page) {
     const heading = hero?.querySelector('.hero-header');
     const workspace = document.getElementById('home-files');
     const dock = document.querySelector('.home-dock');
+    const demoTrack = document.querySelector('.demo-track[data-demo-track="mobile"]');
     const tour = document.getElementById('home-tour');
     const follows = (first, second) => Boolean(
       first && second && (first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING),
@@ -21,16 +22,21 @@ async function homeStructure(page) {
 
     return {
       heroExists: Boolean(hero),
-      heroContains: Boolean(appBar && heading && workspace && dock)
+      heroContains: Boolean(appBar && heading && workspace && dock && demoTrack)
         && hero.contains(appBar)
         && hero.contains(heading)
         && hero.contains(workspace)
-        && hero.contains(dock),
-      order: follows(appBar, heading) && follows(heading, workspace) && follows(workspace, dock) && follows(dock, tour),
-      tourFollowsHero: follows(hero, tour),
-      heroHeight: hero?.getBoundingClientRect().height ?? 0,
-      heroBottom: hero?.getBoundingClientRect().bottom ?? 0,
-      tourTop: tour?.getBoundingClientRect().top ?? 0,
+        && hero.contains(dock)
+        && hero.contains(demoTrack),
+      // Reading order within the first screen. The demo track now sits
+      // between the workspace and the dock in source order (see
+      // index.astro's single canonical markup), so "the complete hero
+      // renders above the demo" is checked below via rendered position
+      // instead of a DOM-order chain that no longer matches the design.
+      order: follows(appBar, heading) && follows(heading, workspace),
+      tourContainsHero: Boolean(tour && hero && tour.contains(hero)),
+      dockBottom: dock?.getBoundingClientRect().bottom ?? 0,
+      demoTop: demoTrack?.getBoundingClientRect().top ?? 0,
       viewportHeight: window.innerHeight,
       positions: [heading, dock].map((element) => element ? getComputedStyle(element).position : null),
       pageOverflow: document.documentElement.scrollWidth - window.innerWidth,
@@ -50,11 +56,12 @@ test.describe('scrollable home hero', () => {
       expect(structure.heroExists).toBe(true);
       expect(structure.heroContains).toBe(true);
       expect(structure.order).toBe(true);
-      expect(structure.tourFollowsHero).toBe(true);
-      expect(structure.tourTop).toBeGreaterThanOrEqual(structure.heroBottom - 1);
-      // min-height: 100svh is deliberately allowed to grow for short screens
-      // and text zoom; it must never shrink below the visible small viewport.
-      expect(structure.heroHeight).toBeGreaterThanOrEqual(structure.viewportHeight - 1);
+      expect(structure.tourContainsHero).toBe(true);
+      expect(structure.demoTop).toBeGreaterThanOrEqual(structure.dockBottom - 1);
+      // The first screen (header, launcher, dock) is deliberately allowed to
+      // grow for short screens and text zoom; it must never shrink below the
+      // visible small viewport.
+      expect(structure.dockBottom).toBeGreaterThanOrEqual(structure.viewportHeight - 1);
       expect(structure.positions).not.toContain('fixed');
       expect(structure.positions).not.toContain('sticky');
       expect(structure.pageOverflow).toBeLessThanOrEqual(1);
@@ -78,11 +85,12 @@ test.describe('scrollable home hero', () => {
       expect(mobileBar.centerSpread).toBeLessThanOrEqual(1);
       expect(mobileBar.rightEdge).toBeLessThanOrEqual(mobileBar.viewportWidth);
 
-      // The persistent demo frame must not activate merely because the tour is
-      // approaching the viewport. iOS can expose a taller innerHeight than its
-      // 100svh landing hero while browser chrome settles, which used to make
-      // this happen at scrollY=0: the fixed footer covered the home tool dock.
-      // The header itself now stays fixed independently of demo activation.
+      // The persistent demo frame must not activate merely because the demo
+      // track is approaching the viewport. iOS can expose a taller innerHeight
+      // than its 100svh landing hero while browser chrome settles, which used
+      // to make this happen at scrollY=0: the fixed footer covered the home
+      // tool dock. The header itself now stays fixed independently of demo
+      // activation.
       await expect(page.locator('body')).not.toHaveAttribute('data-home-demo-visible', '');
       const landingFrame = await page.evaluate(() => ({
         appBarPosition: getComputedStyle(document.querySelector('[data-home-bar]')).position,
@@ -92,10 +100,10 @@ test.describe('scrollable home hero', () => {
       expect(landingFrame.footerPosition).toBe('relative');
 
       await page.evaluate(() => {
-        const tour = document.getElementById('home-tour');
-        window.scrollTo(0, Math.max(0, tour.offsetTop - innerHeight / 2));
+        const demoTrack = document.querySelector('.demo-track[data-demo-track="mobile"]');
+        window.scrollTo(0, Math.max(0, demoTrack.offsetTop - innerHeight / 2));
       });
-      await expect.poll(() => page.evaluate(() => document.getElementById('home-tour').getBoundingClientRect().top))
+      await expect.poll(() => page.evaluate(() => document.querySelector('.demo-track[data-demo-track="mobile"]').getBoundingClientRect().top))
         .toBeGreaterThan(0);
       await expect(page.locator('body')).not.toHaveAttribute('data-home-demo-visible', '');
 
@@ -108,10 +116,13 @@ test.describe('scrollable home hero', () => {
 
       // Cross the sticky boundary in both directions: the title must remain
       // below the toolbar without a late padding/height change moving it.
+      // The boundary is the demo track's own top - the pinned frame's static
+      // position coincides with it, which is where it starts sticking.
       const titlePositions = [];
       for (const offset of [-40, -1, 1, 40, 1, -1, -40]) {
         await page.evaluate(async (offset) => {
-          window.scrollTo(0, document.getElementById('home-tour').offsetTop + offset);
+          const demoTrack = document.querySelector('.demo-track[data-demo-track="mobile"]');
+          window.scrollTo(0, demoTrack.offsetTop + offset);
           await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         }, offset);
         const geometry = await page.evaluate(() => ({
@@ -130,8 +141,8 @@ test.describe('scrollable home hero', () => {
       }
 
       await page.evaluate(() => {
-        const tour = document.getElementById('home-tour');
-        window.scrollTo(0, tour.offsetTop + Math.min(200, tour.offsetHeight / 4));
+        const demoTrack = document.querySelector('.demo-track[data-demo-track="mobile"]');
+        window.scrollTo(0, demoTrack.offsetTop + Math.min(200, demoTrack.offsetHeight / 4));
       });
       await expect(page.locator('body')).toHaveAttribute('data-home-demo-visible', '');
       const demoFrame = await page.evaluate(() => {
@@ -193,8 +204,12 @@ test.describe('scrollable home hero', () => {
 
     await page.evaluate(() => {
       const tour = document.getElementById('home-tour');
-      const frame = tour.querySelector('[data-demo-frame]');
-      const travel = tour.offsetHeight - frame.offsetHeight;
+      // The pinned element on desktop is the whole hero (see
+      // [data-demo-pin="desktop"] in index.astro and resolvePin() in
+      // ScrollDriver.tsx) - not [data-demo-frame], which is only the demo's
+      // own cell inside the hero and no longer the full 100svh pin.
+      const pin = document.querySelector('[data-demo-pin="desktop"]');
+      const travel = tour.offsetHeight - pin.offsetHeight;
       window.scrollTo(0, tour.offsetTop + travel * 0.5);
     });
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
@@ -212,8 +227,8 @@ test.describe('scrollable home hero', () => {
 
     await page.evaluate(() => {
       const tour = document.getElementById('home-tour');
-      const frame = tour.querySelector('[data-demo-frame]');
-      const travel = tour.offsetHeight - frame.offsetHeight;
+      const pin = document.querySelector('[data-demo-pin="desktop"]');
+      const travel = tour.offsetHeight - pin.offsetHeight;
       window.scrollTo(0, tour.offsetTop + travel + 120);
     });
     const after = await page.evaluate(() => ({
@@ -302,10 +317,15 @@ test.describe('scrollable home hero', () => {
 test.describe('desktop server-rendered hero frame', () => {
   test.use({ javaScriptEnabled: false });
 
-  test('reserves the workspace column before hydration', async ({ page }) => {
+  test('places the demo in the right-hand portion of the scene before hydration', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
 
+    // No JS runs (see test.use above), so this is the static markup CSS
+    // alone: the workspace launcher and the demo track are both direct
+    // children of .home-scene's two-column grid in source order, so the
+    // demo lands in the right-hand column with no reparenting or explicit
+    // grid-column reservation required.
     const placement = await page.evaluate(() => {
       const scene = document.querySelector('.home-scene');
       const demo = scene?.querySelector('[data-home-demo]');
@@ -315,11 +335,9 @@ test.describe('desktop server-rendered hero frame', () => {
         sceneLeft: sceneBox?.left ?? 0,
         sceneWidth: sceneBox?.width ?? 0,
         demoLeft: demoBox?.left ?? 0,
-        column: demo ? getComputedStyle(demo).gridColumnStart : '',
       };
     });
 
-    expect(placement.column).toBe('2');
     expect(placement.demoLeft).toBeGreaterThan(placement.sceneLeft + placement.sceneWidth * 0.4);
   });
 });
