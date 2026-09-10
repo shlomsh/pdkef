@@ -8,6 +8,15 @@
   height: 100%;
   overflow: hidden;
   color: var(--color-text);
+  /* .phone below needs its actual pixel height to cap its width by aspect
+     ratio, but that height is no longer a JS-measured custom property (see
+     index.astro's homeWorkspace.ts) - it is derived entirely from the .root
+     > .home-frame grid cell. A query container reads that resolved size
+     back out as a length .phone's calc() can use, without reintroducing a
+     measurement script. .root's own size is always externally determined
+     (height/width above), never by its children, so size containment here
+     changes nothing about its own box. */
+  container-type: size;
 }
 .track {
   position: absolute;
@@ -110,9 +119,12 @@
 }
 
 
-.phone { opacity: var(--story-opacity, 1); grid-area: phone; width: min(360px, calc((var(--home-stage-height) - 32px) * 9 / 19)); }
+.phone { opacity: var(--story-opacity, 1); grid-area: phone; width: min(360px, calc((100cqh - 32px) * 9 / 19)); }
 @media (max-width: 1023px) {
-  .root { height: var(--home-stage-height); }
+  /* No height override needed here any more: .root is now a direct child of
+     .home-frame at every breakpoint (see index.astro), so the base rule's
+     `height: 100%` above already resolves against .home-frame's own content
+     box - the same value the deleted --home-stage-height used to compute. */
   .stage { grid-template-columns: 1fr; grid-template-rows: auto 1fr; grid-template-areas: 'caption' 'phone'; padding: 4px 0 0; gap: 8px; }
   /* Use the site’s section-title role here rather than reducing the story
      caption to a small label. It is the mobile demo’s actual heading. */
@@ -1370,7 +1382,7 @@
 
   .scroll-hint > span { display: block; }
 
-  .phone { width: clamp(300px, calc((var(--home-stage-height) - 32px) * 9 / 19), 360px); height: calc(var(--home-stage-height) - 32px); aspect-ratio: auto; }
+  .phone { width: clamp(300px, calc((100cqh - 32px) * 9 / 19), 360px); height: calc(100cqh - 32px); aspect-ratio: auto; }
 }
 @media (max-height: 850px) {
   .panel-head { padding-block: 6px; }
