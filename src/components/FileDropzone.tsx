@@ -13,7 +13,15 @@ function readHomeRecents(): RecentFileItem[] {
 }
 export default function FileDropzone({ toolTarget, final = false }: { toolTarget: string; final?: boolean }) {
   const [pending, setPending] = useState<{ file: File; draftName?: string; tool: string } | null>(null);
-  const [recents, setRecents] = useState<RecentFileItem[]>(readHomeRecents);
+  // `null` means "browser storage has not been read yet", and it is the state
+  // both the server render and the client's first render start from, so the
+  // two agree by construction. That agreement is the whole point: recent files
+  // live in localStorage, no server render can know about them, and Preact
+  // repairs a hydration mismatch by keeping the server's nodes and appending
+  // its own - which is how the duplicate tiles fixed in 203b204 reached
+  // production. Never read storage in a render body or a useState initializer
+  // here; the mount effect below is the only thing that may.
+  const [recents, setRecents] = useState<RecentFileItem[] | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const container = useRef<HTMLDivElement>(null);
@@ -102,6 +110,7 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
   }, [busy, final]);
   useEffect(() => {
     const refresh = () => setRecents(readHomeRecents());
+    refresh();
     window.addEventListener('pageshow', refresh);
     window.addEventListener('storage', refresh);
     return () => { window.removeEventListener('pageshow', refresh); window.removeEventListener('storage', refresh); };
@@ -116,7 +125,7 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
   return (
     <div ref={container} class={final ? styles.final : styles.launcher}>
       {!final && <RecentFiles
-        files={recents.length > 0 ? recents : [{
+        files={recents && recents.length > 0 ? recents : [{
           tool: 'sign',
           fileName: SAMPLE_FILE_NAME,
           preview: SAMPLE_PREVIEW_SRC,

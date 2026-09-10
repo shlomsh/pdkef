@@ -73,7 +73,15 @@ if (compressToolIndex !== -1) {
         </div>
         <div class="home-scene">
           <div class="workspace-launcher home-workspace" id="home-files" data-working-area>
-            <FileDropzone client:only="preact" toolTarget="sign" />
+            {/* client:load, not client:only: a client:only island emits no HTML
+                at build time, so the dropzone tile and the recent-documents
+                card only existed once the Preact bundle had loaded and visibly
+                arrived after the page had painted. Server-rendering the shell
+                is only safe while FileDropzone's first client render matches it
+                exactly - see the note on the `recents` state there, which is
+                what keeps browser storage out of the render body. Reverting
+                either half alone brings back the duplicate tiles of 203b204. */}
+            <FileDropzone client:load toolTarget="sign" />
           </div>
           <div class="demo-track" data-demo-track="mobile">
             <div class="home-frame" data-demo-frame data-demo-pin="mobile" data-working-area>
@@ -358,7 +366,7 @@ if (compressToolIndex !== -1) {
           sentence saying "use your own PDF, or open the bundled practice
           document" was captioning two controls that already say it. The
           heading carries the invitation; the controls carry the choice. */}
-      <FileDropzone client:only="preact" toolTarget="sign" final />
+      <FileDropzone client:load toolTarget="sign" final />
       <a href="#home-tour" data-workspace-return>Back to your workspace ↑</a>
     </FeatureCard>
     <Footer />
