@@ -302,8 +302,10 @@ status feedback.
   the CSS. Re-resolve on resize; a stale pin reads a now-unpinned element's `top`.
 - **The launcher's height is viewport-derived, not content-derived, and that is load-bearing.** It sits
   in a `1fr` row inside a viewport-height box at both breakpoints, so `FileDropzone` arriving cannot
-  change it. Sizing that row to its content would hand the first paint back to whenever the island
-  hydrates.
+  change the *row's* size. Sizing that row to its content would hand the first paint back to whenever
+  the island hydrates. This does not mean content inside that row is immune to shifting once it grows
+  past one line of recent files - see the 4-6-recents paragraph below, where the row's own available
+  space still lets its content push the picker tile down.
 - **`--home-nav-height` is measured at runtime on purpose.** `AppBar.astro`'s bar is an `h-14` row plus
   a `border-b-[0.5px]` hairline, so it renders at 56.5px, not the 56px the utility implies, and both
   `.home-header`'s `padding-top` and the card stack's sticky band derive from it. The CSS default is
