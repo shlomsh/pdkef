@@ -37,6 +37,7 @@
     "@floating-ui/react": "^0.27.20",
     "@pdf-lib/fontkit": "^1.1.1",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "astro": "^7.2.10",
     "bidi-js": "^1.0.3",
     "lucide-preact": "^1.38.0",
