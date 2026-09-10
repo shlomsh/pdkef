@@ -189,6 +189,8 @@ export default function PdfImageToPdfTool() {
   return (
     <BasePdfTool
       hasFiles={hasFiles}
+      analyticsTool="image-to-pdf"
+      analyticsStatus={status}
       onFilesAdded={addFiles}
       accept="image/jpeg,image/png"
       emptyStateMessage="Drop images here"

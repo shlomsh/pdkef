@@ -251,7 +251,7 @@ describe('PdfSignTool UI flow', () => {
 
     const signedBlob = new Blob(['signed result'], { type: 'application/pdf' });
     const sign = vi.spyOn(signModule, 'signPdf').mockResolvedValue(signedBlob);
-    const reportEvent = vi.spyOn(maintenanceTelemetry, 'reportSampledMaintenanceEvent');
+    const reportEvent = vi.spyOn(maintenanceTelemetry, 'reportMaintenanceEvent');
 
     try {
       container = document.createElement('div');
