@@ -13,7 +13,48 @@ date and source, or a decision with its reasoning.
 
 ## 1. Where the traffic actually is (Google Search Console, last 3 months to 2026-09-07)
 
-Exported 2026-09-10. Web search only. 70 clicks, ~2,200 impressions site-wide.
+### Refresh procedure (SEO-02)
+
+Follow this literally; it's what produced every number below and in section 4's standings table.
+
+1. **Export.** In Search Console: **Performance -> Search results**, set Search type = **Web**, Date =
+   **Last 3 months**, then **Export -> CSV**. Unzip it - you get `Queries.csv`, `Pages.csv`,
+   `Countries.csv`, `Devices.csv`, `Chart.csv`, `Filters.csv`, `Search appearance.csv`. For the indexing
+   side (SEO-01, refreshed on the same cadence): **Indexing -> Pages**, Export the top-level Coverage
+   report, and separately drill into any "not indexed" category with 5+ pages to export that category's
+   URL list. Same for `Coverage` and `Coverage Drilldown` folders.
+2. **Run the script.** `node scripts/seo-refresh.mjs <path to the unzipped Performance export folder>`.
+   It prints Markdown tables for "By page" (exact, from `Pages.csv`), "By intent cluster" (best-effort,
+   see below), "By country" and "By device" (both exact). Paste the output over the matching tables
+   below - **replace, don't append**; this file is a snapshot of the current state, and the git history
+   is what carries the timeline.
+3. **What the script cannot do**, and stays manual: the "Who is above us" / competitor columns in
+   section 4, and everything in section 3, since Google blocks scripted SERP fetches (hit during SEO-04/
+   SEO-05 - see those tickets) and there's no API access to a rank-tracking or backlink tool in this
+   environment. Sample competitor snippets by hand (Bing/DuckDuckGo results for the same query are a
+   usable proxy for *who else is playing this SERP*, not for *our* Google ranking - that only ever comes
+   from the GSC export itself) and record the sampling date next to whatever you write down, since
+   competitor data is the softest number in this file and the one most likely to be silently stale.
+4. **Update the two date lines**: this section's "Exported" line and section 4's "Last refreshed" line,
+   both to the export date. Do not overwrite a term's row if this refresh no longer has data for it
+   (e.g. a query cluster that stopped ranking) - leave the row with its last-known numbers and its old
+   date rather than deleting it; a term that went to zero is exactly the one worth keeping visible.
+
+**One documented gap in the cluster table**, found running this end to end on 2026-09-10: Search
+Console's `Queries.csv` omits some individual queries to protect searcher privacy (a standard, permanent
+GSC behaviour), and it hits small clusters hardest - summing all matched queries for **unlock** landed
+5 impressions, 3 short of the previous refresh's 8, because a few omitted low-volume queries are a bigger
+share of a small total (not a real ranking drop - see that row below). The **By page** numbers don't have this problem (they come from `Pages.csv`, which is a
+complete per-page aggregate, not a per-query breakdown) and are the authoritative site-wide total. Read
+the cluster table as a lower bound, not an exact count - this is inherent to what Search Console exposes,
+not a bug in the script to fix.
+
+**Cadence:** monthly, plus immediately after any ticket in this epic claims a ranking or CTR change (its
+own before/after numbers land in its ticket file, per that ticket's acceptance criteria - this table only
+needs the reproducible baseline, not every ticket's before/after). **Next scheduled refresh: 2026-10-08**,
+already set as the SEO-01/04/05 re-measurement date so one pull covers all four.
+
+Exported 2026-09-10. Web search only. 71 clicks, ~2,318 impressions site-wide.
 
 **The trajectory is the headline.** Impressions ran 3-15/day through July, 50-110/day in late August,
 and 100-196/day in the first week of September, with average position improving from the 30s to ~10.5.
@@ -22,14 +63,16 @@ below: the constraint is crawl trust and click-through, not a shortage of page i
 
 ### By intent cluster
 
-| Cluster | Clicks | Impressions | Weighted position | Read |
-| --- | ---: | ---: | ---: | --- |
-| blur / redact | 22 | 718 | 13.6 | The franchise. Already page one on the specific terms. |
-| compress to a size | 7 | 195 | 9.7 | Page one, converting poorly. |
-| sign | 0 | 154 | 51.7 | 58 distinct queries, no clicks, page five. |
-| split / extract | 0 | 92 | 85.0 | We rank for the wrong vocabulary. |
-| unlock | 0 | 8 | 78.9 | Barely present. |
-| merge | 0 | 6 | 90.0 | Barely present. |
+Impressions are the documented lower bound above, not an exact count - see the refresh procedure.
+
+| Cluster | Clicks | Impressions | Weighted position | Measured | Read |
+| --- | ---: | ---: | ---: | --- | --- |
+| blur / redact | 22 | 717 | 13.5 | 2026-09-10 | The franchise. Already page one on the specific terms. |
+| compress to a size | 7 | 194 | 9.8 | 2026-09-10 | Page one, converting poorly. |
+| sign | 0 | 154 | 51.7 | 2026-09-10 | 58 distinct queries, no clicks, page five. |
+| split / extract | 0 | 88 | 84.9 | 2026-09-10 | We rank for the wrong vocabulary. |
+| unlock | 0 | 5 | 66.0 | 2026-09-10 | Barely present - and this cluster is small enough that the privacy-filtering gap above is a big share of it; treat 5 as a floor, not the true count. |
+| merge | 0 | 6 | 90.0 | 2026-09-10 | Barely present. |
 
 ### By page
 
@@ -179,22 +222,28 @@ SEO-26 covers saying so on the site, in a section rather than a page.
 
 ## 4. Standings against the competition (SEO-02 keeps this current)
 
-Refresh monthly, or after any ticket that claims a ranking change. Positions come from the GSC export
-for us; competitor positions come from the SERP sampling in the research above.
+Refresh monthly, or after any ticket that claims a ranking change, following section 1's refresh
+procedure. "Our position/impressions" come straight from the same GSC export as section 1 (exact for a
+single query, lower-bound for a cluster - see that section's note). "Who is above us" is manual SERP
+sampling, the softest data in this file: it comes from the section 3 deep research (dated **2026-09**,
+no finer granularity than the month) unless a row says otherwise. The two rows SEO-04 and SEO-05 touched
+also carry a **2026-09-10** cross-check against Bing/DuckDuckGo results for the same queries (not
+Google - direct Google SERP capture is blocked for scripted fetches, see those tickets), used only to
+see who else competes on that SERP, not to read our own Google position.
 
-**Last refreshed: 2026-09-10 (baseline).**
+**Last refreshed: 2026-09-10.**
 
-| Winning term | Our position | Our impressions | Who is above us | Gap to close | Ticket |
-| --- | ---: | ---: | --- | --- | --- |
-| blur pdf online | 8.78 | 160 | supertool, small utility sites | Snippet CTR, not rank | SEO-04 |
-| blur text in pdf | 11.44 | 32 | mixed utilities | Rank + snippet | SEO-04 |
-| compress pdf to 100kb (cluster) | 9.7 | 195 | smallseotools, PDNob, DocHub | Snippet CTR, honest size guidance | SEO-05, SEO-17 |
-| file compressor to 100kb | 9.60 | 81 | generic file compressors | We do not have the tool yet | SEO-19 |
-| sign pdf on android / iphone (cluster) | 51.7 | 154 | DocHub, Smallpdf, OS vendor docs | Rank, from near zero | SEO-07, SEO-08, SEO-12 |
-| extract pdf / pdf extractor | 85.0 | 92 | iLovePDF, Sejda | Vocabulary: we say "split" | SEO-09 |
-| merge pdf | 90.0 | 6 | iLovePDF, Smallpdf | Authority | SEO-10, SEO-03 |
-| unlock / protect pdf | 78.9 | 8 | Smallpdf, iLovePDF | Authority | SEO-16 |
-| jpg to pdf | not present | 0 | iLovePDF, Smallpdf | `/image-to-pdf/` is not indexed | SEO-06, SEO-15 |
+| Winning term | Our position | Our impressions | Measured | Who is above us | Gap to close | Ticket |
+| --- | ---: | ---: | --- | --- | --- | --- |
+| blur pdf online | 8.78 | 160 | 2026-09-10 | supertool, small utility sites (2026-09; cross-checked 2026-09-10) | Snippet CTR, not rank | SEO-04 |
+| blur text in pdf | 11.44 | 32 | 2026-09-10 | mixed utilities (2026-09; cross-checked 2026-09-10) | Rank + snippet | SEO-04 |
+| compress pdf to 100kb (cluster) | 9.8 | 194 | 2026-09-10 | smallseotools, PDNob, DocHub (2026-09; cross-checked 2026-09-10) | Snippet CTR, honest size guidance | SEO-05, SEO-17 |
+| file compressor to 100kb | 9.60 | 81 | 2026-09-10 | generic file compressors (2026-09) | We do not have the tool yet | SEO-19 |
+| sign pdf on android / iphone (cluster) | 51.7 | 154 | 2026-09-10 | DocHub, Smallpdf, OS vendor docs (2026-09) | Rank, from near zero | SEO-07, SEO-08, SEO-12 |
+| extract pdf / pdf extractor | 84.9 | 88 | 2026-09-10 | iLovePDF, Sejda (2026-09) | Vocabulary: we say "split" | SEO-09 |
+| merge pdf | 90.0 | 6 | 2026-09-10 | iLovePDF, Smallpdf (2026-09) | Authority | SEO-10, SEO-03 |
+| unlock / protect pdf | 66.0 | 5 | 2026-09-10 | Smallpdf, iLovePDF (2026-09) | Authority - and this cluster's impressions are a documented lower bound, see section 1 | SEO-16 |
+| jpg to pdf | not present | 0 | 2026-09-10 | iLovePDF, Smallpdf (2026-09) | `/image-to-pdf/` is not indexed | SEO-06, SEO-15 |
 
 ### Non-ranking dimensions
 
@@ -206,7 +255,7 @@ for us; competitor positions come from the SERP sampling in the research above.
 | Open source | MIT, auditable | closed | Underused. |
 | Language support (Sign) | 11+ scripts, native RTL, comb fields | Latin-centric | Largest unmatched product advantage, aimed at our largest audience. |
 | Offline / installable | full PWA, works with no connection | none | Underused. |
-| Indexed page count | 13 of 22 URLs earning impressions | thousands | SEO-06. |
+| Indexed page count | 12 of 22 URLs earning impressions (2026-09-10, exact - see By page) | thousands | SEO-06. |
 
 ---
 
@@ -220,13 +269,17 @@ SEO-01 (indexing baseline, sitemap `lastmod`, GSC indexing requests), SEO-02 (st
 becomes a maintained artefact), SEO-04 (blur snippets), SEO-05 (compress snippets and honest quality
 copy). No new URLs this week.
 
-*Progress note, 2026-09-10:* SEO-01's sitemap `lastmod` and the non-slash-link check are done and
-verified against a real build; SEO-04 and SEO-05 shipped a diagnosed snippet change plus (for SEO-05)
-the above-the-FAQ rasterization/passthrough disclosure - see each ticket for the diagnosis, since direct
-Google SERP capture was blocked by bot-detection this session and the hypotheses are built from our own
-served meta plus the real competitive field on other engines instead. **Re-measurement date for all
-three: 2026-10-08.** SEO-01's GSC indexing baseline and the nine URL Inspection submissions are blocked
-on Search Console access this session doesn't have - see SEO-01's Progress section.
+*Progress note, 2026-09-10:* All four Week 1 tickets done. SEO-01: sitemap `lastmod` and the non-slash-
+link check shipped and verified against a real build; the indexing baseline (27 pages tracked, 11
+indexed, the nine never-indexed URLs confirmed submitted via URL Inspection, none crawled yet) came from
+Shlomi's own Search Console exports and is recorded in section 1 and SEO-01's ticket. SEO-02: the refresh
+procedure is written (top of section 1) and backed by `scripts/seo-refresh.mjs`, run end to end against
+that same export - section 1 and section 4's tables above are its output. SEO-04 and SEO-05 shipped a
+diagnosed snippet change plus (for SEO-05) the above-the-FAQ rasterization/passthrough disclosure - see
+each ticket for the diagnosis, since direct Google SERP capture was blocked by bot-detection this session
+and the hypotheses are built from our own served meta plus the real competitive field on other engines
+instead. **Re-measurement date for all four: 2026-10-08**, which doubles as SEO-02's next scheduled
+refresh.
 
 **Week 2 (Sep 17-23) - the two structural problems.**
 SEO-06 (make the nine never-indexed URLs worth crawling), SEO-07 (`/sign/` states the language
