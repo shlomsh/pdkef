@@ -101,3 +101,7 @@ shipped snippet change was invisible in the SERP. **Before reading the 2026-10-0
 this edit, check that the indexed snippet actually changed**: search the cluster's top query and compare
 the displayed title against what `curl https://pdkef.com/compress/` serves. A flat CTR against a stale
 snippet means "not yet recrawled", not "the hypothesis was wrong".
+
+Whether `/compress/` was in fact stale was never checked - the finding is `/redact/`'s and the shared
+commit is the reason to suspect it here. Indexing for `/compress/` was requested on 2026-09-11 either
+way, so the recrawl is queued regardless of which it turns out to be.

@@ -156,8 +156,12 @@ Two consequences for this epic's measurement discipline:
 capture `Last crawled` from URL Inspection for the 11 indexed URLs, not just the nine Discovered ones.
 That column is what would have caught this without a manual SERP check.
 
-*Update 2026-09-11:* `/redact/` submitted and accepted into the priority crawl queue (recorded in
-SEO-04). Still outstanding from this addendum: the `Last crawled` sweep across the 11 indexed URLs, and
-two other URLs worth the same treatment - `/` (the favicon crawler works from the site root, and the
-cached icon is over two months stale, see SEO-04) and `/compress/` (SEO-05 shipped a snippet change in
-the same commit and has the same exposure).
+*Update 2026-09-11:* Indexing requested and accepted into the priority crawl queue for all three URLs
+this addendum named - `/redact/` (recorded in SEO-04), `/` (the favicon crawler works from the site root,
+and the cached icon is over two months stale, see SEO-04) and `/compress/` (SEO-05 shipped a snippet
+change in the same commit and carries the same exposure). Google's own dialog states that resubmitting
+does not improve queue position, so all three are submitted once and left alone.
+
+**Still outstanding from this addendum:** the `Last crawled` sweep across the 11 indexed URLs. That is
+the column that would have surfaced this staleness without a manual SERP check, and it remains the
+cheapest instrument this epic is missing.
