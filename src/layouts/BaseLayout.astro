@@ -1,5 +1,6 @@
 ---
 import { getImage } from 'astro:assets';
+import SpeedInsights from '@vercel/speed-insights/astro';
 import ogImageSrc from '../assets/og-image.jpg';
 
 interface Props {
@@ -81,6 +82,7 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
   </head>
   <body>
     <slot />
+    {import.meta.env.PROD && <SpeedInsights />}
     <script>
       import { inject } from '@vercel/analytics';
       import { sanitizeAnalyticsEvent } from '../lib/maintenanceTelemetry.ts';
@@ -89,7 +91,13 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
         // query strings (which can contain document names or other user data).
         // The shared boundary also makes the provider replaceable without
         // changing the product's privacy contract.
-        inject({ beforeSend: sanitizeAnalyticsEvent });
+        //
+        // Deferred to window 'load', same as the service worker registration
+        // below: maintenance telemetry must never sit on the critical path
+        // (see CLAUDE.md's privacy invariants), and this chunk's own
+        // synchronous inject() was measured as the 721ms tail of the desktop
+        // homepage's critical request chain.
+        window.addEventListener('load', () => inject({ beforeSend: sanitizeAnalyticsEvent }));
       }
     </script>
     <script>
