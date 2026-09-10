@@ -284,7 +284,11 @@ status feedback.
   that moved the hero into the sticky frame after hydration; because the server-rendered HTML was the
   mobile shape, every desktop visitor watched the whole hero jump, and that single re-parent was
   **0.243 of a 0.244 CLS**. If you find yourself writing DOM-moving code to satisfy a breakpoint here,
-  that is the bug returning.
+  that is the bug returning. The shift was never the only cost: moving an island's ancestors
+  disconnects and reconnects it, which re-enters `astro-island` and re-runs `start()` (measured at four
+  `astro:hydrate` dispatches per desktop load under the old script). Only `@astrojs/preact`'s bail on
+  `!element.hasAttribute("ssr")` kept that from becoming a second real mount, which is a thin thing to
+  have been relying on.
 - **Which element pins differs per breakpoint, and that is inherent, not an accident.** Desktop pins
   the whole hero (`position: sticky`, so the header, launcher, demo and dock hold still together while
   the story scrubs); mobile pins only `.home-frame`, after the first screen has scrolled away. Both
@@ -322,7 +326,7 @@ status feedback.
   ("storage not read yet") and browser storage is read only from the mount effect. Recent files live in
   `localStorage`; no server render can know about them, and Preact repairs a hydration mismatch by
   keeping the server's nodes and *appending* its own, which is how duplicate recent tiles shipped in the
-  earlier `client:load` attempt (fixed by `203b204`, which also made `arrangeWorkspace` idempotent).
+  earlier `client:load` attempt (fixed by `203b204`).
   **Changing either half alone brings that back.** Both halves have their own guard with a checked
   sabotage control: `e2e/home/recent-files.spec.js` renders `/` with JavaScript disabled and asserts the
   shell is in the document, and `FileDropzone.test.tsx` asserts the first render shows the starter card
@@ -339,15 +343,6 @@ status feedback.
   silently (see the CSP section). If a conditional is genuinely wanted, **collapse rather than remove**:
   a class on `<html>` written by the same bundled script that already registers the service worker,
   driving a CSS `max-height`. That keeps the markup crawlable and the CSP posture intact.
-- **Reparenting an island's ancestors re-enters `astro-island`, and only Preact's own guard stops a
-  second mount.** `homeWorkspace.ts` moves `#home-files` between the hero and the demo scene at the
-  1024px breakpoint, and each move disconnects and reconnects the island, so `connectedCallback` fires
-  again and `start()` runs again - measured at four `astro:hydrate` dispatches per desktop load. Only
-  one real mount happens, because `@astrojs/preact`'s client bails on `!element.hasAttribute("ssr")` and
-  `astro-island` clears that attribute after the first hydration; this was verified across twelve
-  breakpoint-crossing timings inside the hydration window. Keep `arrangeWorkspace`'s
-  `mobileLayoutIsCurrent`/`desktopLayoutIsCurrent` early returns: they are what stops every `resize`
-  event from re-running the moves.
 - **FAQ disclosure**: The "How it works & FAQ" content resides below the app and acts as a details-summary element. The summary contains the hero text, and a click interceptor script prevents clicks on the text from toggling the panel. Only clicking the styled `.faq-toggle` link (anchor-like visual) triggers the toggle.
 - **Merge & Download Flow**:
   - Once merging is complete, the "Merge PDFs" button turns grey (`.is-done` class) to step back, and focus is shifted to the "Download PDF" button (`ref` + `useEffect` on status change).

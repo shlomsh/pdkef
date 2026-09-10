@@ -152,8 +152,19 @@ test('mobile always shows the file workspace before the live demo', async ({ pag
   expect(date.y + date.height).toBeLessThanOrEqual(screen.y + screen.height + 1);
   await page.locator('#try-workspace').scrollIntoViewIfNeeded();
   await expect.poll(order).toEqual({ heroContainsFiles: true, filesFirst: true, dockOutsideDemo: true });
+  // This half of the test wants a *fresh load at the top*, and the line above
+  // has just scrolled to the closing card near the end of a ~14,000px page.
+  // Scroll restoration would put the reload back there and win the race
+  // against the scrollTo below, leaving the picker legitimately offscreen and
+  // failing the viewport assertion for a reason that has nothing to do with
+  // what this guard is about. It used to pass by accident: the old
+  // arrangeWorkspace() re-parenting changed layout during load, which was
+  // enough to defeat restoration. Removing that made restoration reliable, so
+  // the precondition now has to be stated rather than assumed.
+  await page.evaluate(() => { history.scrollRestoration = 'manual'; });
   await page.reload();
   await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBe(0);
   await expect.poll(order).toEqual({ heroContainsFiles: true, filesFirst: true, dockOutsideDemo: true });
   await expect(page.locator('#home-files [data-home-picker]')).toBeInViewport();
   await scrollStory(page, 'blur', .64);
