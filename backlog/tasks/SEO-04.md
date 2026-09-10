@@ -254,3 +254,8 @@ cache-bust, but `BaseLayout.astro` points at a stable unhashed path on purpose (
 and that stability is exactly what is holding the stale cache. Trading a deliberate decision for a guess
 is not worth it while a recrawl of `/` should fix it anyway. Re-check the card at the 2026-10-08 refresh;
 if the logo is still blue after `/redact/` and `/` have been recrawled, revisit then with evidence.
+
+*Update 2026-09-11:* `/` submitted for indexing too, so that condition is now set up to be testable
+rather than hypothetical. If the card still shows the blue mark on 2026-10-08 with `/` recrawled, the
+separate-favicon-crawler explanation is the one left standing, and the URL-rename cache-bust becomes a
+decision to weigh on evidence instead of a guess.
