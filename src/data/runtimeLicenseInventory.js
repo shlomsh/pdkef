@@ -86,13 +86,13 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "astro",
-    "version": "7.2.10",
+    "version": "7.3.1",
     "license": "MIT",
     "url": "https://astro.build"
   },
   {
     "name": "bidi-js",
-    "version": "1.0.3",
+    "version": "1.1.0",
     "license": "MIT",
     "url": "https://github.com/lojjic/bidi-js"
   },
@@ -134,7 +134,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "lucide-preact",
-    "version": "1.38.0",
+    "version": "1.42.0",
     "license": "ISC",
     "url": "https://lucide.dev"
   },
