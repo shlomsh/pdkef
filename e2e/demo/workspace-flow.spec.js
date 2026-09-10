@@ -127,15 +127,6 @@ test('mobile always shows the file workspace before the live demo', async ({ pag
   // the breakpoint where the workspace used to get moved inside the tour,
   // after the demo, despite the mobile layout still being active.
   await page.setViewportSize({ width: 767, height: 844 });
-  // The reload below is followed by an explicit scroll-to-top, and that races
-  // the browser's own scroll-position restoration on reload (history
-  // .scrollRestoration defaults to "auto"). Chromium can win that race and
-  // silently snap back to the pre-reload scroll offset well after our
-  // scrollTo(0, 0) resolves - not a paint-timing flake, a real reapplied
-  // scrollY - which reads here as the picker never entering the viewport.
-  // Disabling native restoration for this page removes the race instead of
-  // trying to out-wait it.
-  await page.addInitScript(() => { history.scrollRestoration = 'manual'; });
   await page.goto('/');
   const order = () => page.evaluate(() => {
     const hero = document.querySelector('.home-hero');
