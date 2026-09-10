@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url';
 import { brotliCompressSync } from 'node:zlib';
 import fontkit from '@pdf-lib/fontkit';
 import { FONT_FILES } from './font-manifest.mjs';
+import { DISPLAY_ONLY_FONTS } from './display-only-fonts.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
@@ -131,7 +132,16 @@ function chooseEncoding(covered) {
 
 function computeTable() {
   const files = [...FONT_FILES].sort();
-  const diskFiles = readdirSync(FONT_DIR).filter((name) => name.endsWith('.ttf')).sort();
+  // Display-only fonts (scripts/display-only-fonts.mjs) are real files on
+  // disk that are never registered in FONT_MANIFEST and never selectable in
+  // the Sign editor - the coverage table below feeds the editor's coverage
+  // resolver, so they have nothing to contribute to it and are excluded
+  // rather than folded into the "registered" set. A file in *neither* list
+  // still trips the disagreement check below, same as before.
+  const displayOnlyFiles = new Set(DISPLAY_ONLY_FONTS.map((entry) => entry.file));
+  const diskFiles = readdirSync(FONT_DIR)
+    .filter((name) => name.endsWith('.ttf') && !displayOnlyFiles.has(name))
+    .sort();
   if (JSON.stringify(files) !== JSON.stringify(diskFiles)) {
     const missing = files.filter((file) => !diskFiles.includes(file));
     const unregistered = diskFiles.filter((file) => !files.includes(file));

@@ -1378,6 +1378,11 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Sacramento (<https://fonts.google.com/specimen/Sacramento>)
 <!-- END GENERATED HANDWRITING FONT LIST -->
 
+The homepage hero demo additionally bundles `CaveatDemo-Bold.ttf`, a Latin-range subset of
+Caveat-Bold.ttf built by `scripts/fonts/build-demo-font-subset.py` and used only by that demo's
+caption. It is the same upstream font under the same license above, not a separately credited
+work; see `scripts/display-only-fonts.mjs` for the full accounting.
+
 ```
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

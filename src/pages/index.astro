@@ -39,6 +39,19 @@ if (compressToolIndex !== -1) {
 <BaseLayout title={title} description={description}>
   <Fragment slot="head">
     <SeoSchema name="PDkef" description={description} faq={faq} />
+    {/* The hero demo's handwritten caption ('Caveat Demo' in HeroDemo.module.css)
+        sits above the fold only on desktop - the mobile layout scrolls the
+        demo past the first screen - so this is scoped to the same width the
+        caption itself actually renders above the fold at, rather than making
+        every phone visit pay for a font it never needs early. */}
+    <link
+      rel="preload"
+      as="font"
+      type="font/ttf"
+      href="/fonts/CaveatDemo-Bold.ttf"
+      media="(min-width: 1024px)"
+      crossorigin
+    />
   </Fragment>
 
   <main id="home-content">

@@ -1,0 +1,45 @@
+/* Restores the finished, plainly-visible hero demo story for visitors with
+   JavaScript disabled - loaded only via a <noscript><link> in
+   src/components/HeroDemo/HeroDemo.astro.
+
+   Why a static file instead of an inline <style>: Astro's HTML parser treats
+   the content of <noscript> as opaque raw text (the same way browsers do,
+   since Astro assumes scripting is available while it builds), so a <style>
+   written directly inside <noscript> in a .astro file never goes through
+   Astro's style-scoping/CSP-hashing pipeline - it ships as a literal,
+   unscoped, unhashed inline style, which the build's CSP then correctly
+   rejects (no hash in the generated <meta> policy covers it). A manually
+   computed hash in astro.config.mjs's styleDirective would work but goes
+   stale silently the instant this file's bytes change (see astro.config.mjs's
+   comment on its one hand-hashed is:inline script for the same fragility).
+   An external stylesheet sidesteps the whole problem: styleDirective already
+   allows 'self', so a same-origin <link rel="stylesheet"> needs no hash at
+   all and can never go stale.
+
+   Mirrors the "hydrated start state" comment in HeroDemo.module.css's .stage
+   rule: these values are the completed story, restoring what that rule no
+   longer defaults to (it now defaults to what ScrollDriver.tsx writes at
+   scroll position 0, to kill the same-audience hydration flash - see that
+   file's comment). Keep both in sync by hand; heroDemoStageDefaults.test.js
+   only guards the JS-hydration side, not this file. */
+[data-hero-stage] {
+  --p-msg: 1;
+  --p-open: 1;
+  --p-fill-name: 1;
+  --p-fill-guardian: 1;
+  --p-fill-phone: 1;
+  --p-fill-allergies: 1;
+  --p-check-1: 1;
+  --p-check-2: 1;
+  --p-sign: 1;
+  --p-share: 1;
+  --p-send: 1;
+  --p-sent: 1;
+  --p-arrive: 1;
+  --p-blur: 1;
+  --p-blackout: 1;
+  --p-whiteout: 1;
+  --p-delete: 1;
+  --p-track: 1;
+  --p-enter: 1;
+}

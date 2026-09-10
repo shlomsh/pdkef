@@ -120,6 +120,53 @@ function clamp01(n: number): number {
   return n < 0 ? 0 : n > 1 ? 1 : n;
 }
 
+// Exported so heroDemoStageDefaults.test.js can compute exactly what a
+// mounted ScrollDriver writes onto [data-hero-stage] at any global scroll
+// progress, using this same logic rather than a hand-copied re-derivation
+// that could quietly drift from it. `update()` below calls these too, so
+// there is only one implementation of the beat math, not two that happen to
+// agree today.
+export { TRACKS };
+
+/** Which fraction of *this* track's own span `progress` (0-1 over the whole
+ * tour) falls at. Mirrors `update()`'s `isFirst` branch. */
+export function localProgressForTrack(key: string, progress: number): number {
+  return key === 'sign'
+    ? clamp01(progress / SIGN_END)
+    : clamp01((progress - CROSSFADE_END) / (1 - CROSSFADE_END));
+}
+
+/** The full set of `--p-*` custom properties ScrollDriver writes onto one
+ * track's [data-hero-stage] element for a given local (0-1, already mapped
+ * through localProgressForTrack) progress - everything `update()`'s per-track
+ * loop computes, minus the DOM writes themselves. `reducedMotion` mirrors
+ * `mql.matches`. */
+export function computeStageBeats(
+  beats: Record<string, BeatRange>,
+  localProgress: number,
+  reducedMotion: boolean,
+): Record<string, number> {
+  const result: Record<string, number> = { track: localProgress };
+  let openLocal = 0;
+  let tapLocal: number | null = null;
+  for (const [beat, [start, end]] of Object.entries(beats)) {
+    const value = clamp01((localProgress - start) / (end - start));
+    const local = reducedMotion ? Number(value >= 0.5) : value;
+    result[beat] = local;
+    if (beat === 'open') openLocal = local;
+    if (beat === 'tap') tapLocal = local;
+  }
+  // Sign uses its attachment-opening beat as the tap. The mail story has a
+  // dedicated tap beat so a reader can see the request press and settle
+  // before the bill view begins to replace it. This assignment always wins
+  // over any `tap` key the loop above already wrote from a `beats` entry -
+  // matching `update()`, which sets `--p-tap` a second time after its loop
+  // for the same reason.
+  const interactionLocal = tapLocal ?? openLocal;
+  result.tap = reducedMotion ? 0 : 1 - Math.abs(interactionLocal * 2 - 1);
+  return result;
+}
+
 // Resolves which element is actually pinned right now. Desktop pins the
 // whole hero (header, launcher, demo and dock hold still together);
 // mobile pins only the demo frame once the first screen has scrolled past
@@ -163,9 +210,7 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
       for (const {key, beats, trackEl, stageEl} of tracks) {
         if (!trackEl || !stageEl) continue;
         const isFirst = key === 'sign';
-        const localProgress = isFirst
-          ? clamp01(progress / SIGN_END)
-          : clamp01((progress - CROSSFADE_END) / (1 - CROSSFADE_END));
+        const localProgress = localProgressForTrack(key, progress);
         // Treat story two as a distinct screen, not a crossfade. The first
         // complete panel travels out to the left as the second travels in
         // from the right, carrying its caption, progress rail and phone as
@@ -176,23 +221,10 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
         trackEl.style.setProperty('--story-slide', `${storySlide}%`);
         trackEl.style.setProperty('--caption-opacity', String(storyVisible));
         trackEl.style.setProperty('--story-opacity', String(storyVisible));
-        stageEl.style.setProperty('--p-track', String(localProgress));
-        let openLocal = 0;
-        let tapLocal: number | null = null;
-        for (const [beat, [start, end]] of Object.entries(beats)) {
-          const value = clamp01((localProgress - start) / (end - start));
-          // Reduced motion keeps the story readable as discrete completed
-          // beats, with no signature drawing, wipe, pulse, or crossfade.
-          const local = mql.matches ? Number(value >= 0.5) : value;
-          stageEl.style.setProperty(`--p-${beat}`, String(local));
-          if (beat === 'open') openLocal = local;
-          if (beat === 'tap') tapLocal = local;
+        const stageVars = computeStageBeats(beats, localProgress, mql.matches);
+        for (const [prop, value] of Object.entries(stageVars)) {
+          stageEl.style.setProperty(`--p-${prop}`, String(value));
         }
-        // Sign uses its attachment-opening beat as the tap. The mail story
-        // has a dedicated tap beat so a reader can see the request press and
-        // settle before the bill view begins to replace it.
-        const interactionLocal = tapLocal ?? openLocal;
-        stageEl.style.setProperty('--p-tap', String(mql.matches ? 0 : 1 - Math.abs(interactionLocal * 2 - 1)));
       }
     }
 
