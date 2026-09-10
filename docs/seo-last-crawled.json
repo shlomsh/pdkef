@@ -1,0 +1,35 @@
+{
+  "_readme": [
+    "Last crawled dates, read by hand from Search Console URL Inspection, one URL at a time.",
+    "There is no API for this here, so it is a manual capture: open URL Inspection, paste the",
+    "full URL, read the \"Last crawled\" line, write it below as YYYY-MM-DD.",
+    "Leave a URL null if Google reports it has never been crawled.",
+    "Then run: node scripts/seo-crawl-staleness.mjs",
+    "A URL crawled BEFORE its content last changed is stale - what ranks is not what we serve.",
+    "Recapture at each monthly SEO-02 refresh and update \"captured\"."
+  ],
+  "captured": null,
+  "lastCrawled": {
+    "/": null,
+    "/blur-vs-blackout-vs-delete-pdf/": null,
+    "/compress/": null,
+    "/edit-pdf/": null,
+    "/how-to-sign-a-pdf-on-android/": null,
+    "/how-to-sign-a-pdf-on-iphone/": null,
+    "/how-to-sign-a-pdf-on-mac/": null,
+    "/how-to-sign-a-pdf-on-windows/": null,
+    "/image-to-pdf/": null,
+    "/install-pdf-app/": null,
+    "/licenses/": null,
+    "/merge/": null,
+    "/offline-pdf-form-filler/": null,
+    "/open-source-pdf-editor/": null,
+    "/pdf-to-image/": null,
+    "/permanently-delete-text-from-pdf/": null,
+    "/redact/": null,
+    "/sign-pdf-no-signup/": null,
+    "/sign/": null,
+    "/split/": null,
+    "/unlock/": null
+  }
+}
