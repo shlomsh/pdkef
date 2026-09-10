@@ -275,6 +275,35 @@ status feedback.
 
 ## UI & State Invariants
 
+- **The home page is one canonical DOM that CSS reshapes per breakpoint. Nothing is ever re-parented
+  after load.** `.home-tour > .home-hero` holds four things - the header, the launcher, the demo track
+  and the dock - and two `grid-template-areas` arrange them: two columns and three rows on desktop,
+  one column and four rows below 1024px. `.home-scene` is a real wrapper on desktop (it carries the
+  1280px constraint and the 40px column gap) and `display: contents` on mobile, which is what lets the
+  dock sit visually between the launcher and the demo while staying one subtree. This replaced a script
+  that moved the hero into the sticky frame after hydration; because the server-rendered HTML was the
+  mobile shape, every desktop visitor watched the whole hero jump, and that single re-parent was
+  **0.243 of a 0.244 CLS**. If you find yourself writing DOM-moving code to satisfy a breakpoint here,
+  that is the bug returning.
+- **Which element pins differs per breakpoint, and that is inherent, not an accident.** Desktop pins
+  the whole hero (`position: sticky`, so the header, launcher, demo and dock hold still together while
+  the story scrubs); mobile pins only `.home-frame`, after the first screen has scrolled away. Both
+  arrange for exactly **1116svh** of travel, which is what keeps `SIGN_END` / `CROSSFADE_START` /
+  `CROSSFADE_END` in `ScrollDriver.tsx` valid - they are fractions of that span. `ScrollDriver` finds
+  the live one by asking which `[data-demo-pin]` computes to `position: sticky` and pairing it with the
+  matching `[data-demo-track]`, rather than re-testing the breakpoint in JS where it could drift from
+  the CSS. Re-resolve on resize; a stale pin reads a now-unpinned element's `top`.
+- **The launcher's height is viewport-derived, not content-derived, and that is load-bearing.** It sits
+  in a `1fr` row inside a viewport-height box at both breakpoints, so `FileDropzone` arriving cannot
+  change it. Sizing that row to its content would hand the first paint back to whenever the island
+  hydrates.
+- **`--home-nav-height` is measured at runtime on purpose.** `AppBar.astro`'s bar is an `h-14` row plus
+  a `border-b-[0.5px]` hairline, so it renders at 56.5px, not the 56px the utility implies, and both
+  `.home-header`'s `padding-top` and the card stack's sticky band derive from it. The CSS default is
+  `calc(3.5rem + 0.5px)` so a real browser needs no correction and the page keeps a measured CLS of 0;
+  the one-element measurement in `homeWorkspace.ts` only changes anything where rendering disagrees,
+  which headless Chromium does by rounding that hairline up to a whole pixel. Hard-coding it instead
+  put `e2e/card-reveal.spec.js` 0.063px from failing in CI. `e2e/home/nav-height.spec.js` pins it.
 - **The home page's first screen is one composed unit, and inserting anything into it breaks the
   dock.** `index.astro` wraps the hero, the dropzone and the tool grid in a single
   `min-h-[calc(100svh-3.5rem)]` flex column with `justify-center`, and pins the grid to the bottom with
