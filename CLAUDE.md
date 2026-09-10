@@ -328,8 +328,40 @@ status feedback.
   shell is in the document, and `FileDropzone.test.tsx` asserts the first render shows the starter card
   and has not called `readRecentFiles`. What server rendering cannot buy is the recent tiles themselves:
   they always arrive after mount, so a returning visitor sees the starter card swapped for their own
-  files. That swap is not a layout shift - measured CLS on `/` is 0 with 0 and with 4 recents, before and
-  after - because the hero column absorbs the launcher's height change.
+  files. The card swap alone is not a layout shift and never was.
+
+  **The picker tile's own shape used to change too, and that is what the "0 with 0 and with 4
+  recents" claim this paragraph used to make was missing.** `FileDropzone.module.css` had a
+  `.launcher:has([data-home-recents] li:nth-child(3)) > .tile` rule that collapsed the picker from a
+  tall 180px/132px dropzone to a 76px compact row once three or more recent files filled a grid row - a
+  deliberate, pre-existing design choice, dated well before server-rendering this shell. Server-rendering
+  is what made it a CLS bug: `recents` is `null` on every first render (server and client alike, by the
+  hydration-match rule above), so the bundled-sample fallback always renders exactly one list item on
+  that first frame - the `:has()` selector's tall shape - regardless of what the real cache holds. The
+  very next frame, once the mount effect reads real recents, three or more of them flipped the selector
+  and the tile visibly collapsed by 104px (180 to 76) right under the visitor's cursor. Measured CLS was
+  0.0487 at 3 recents and climbed to 0.0785 at 4-6 (it plateaus past 4 because the compact shape itself
+  stops changing). The fix made the compact shape unconditional: since the fallback already guarantees
+  at least one item whenever this component isn't in `final` mode, the tall shape was never actually
+  reachable by a real visitor to begin with - only by the SSR/pre-hydration frame this component itself
+  renders. Removing the `:has()` conditional makes the tile's shape identical across every frame, for
+  every recents count from 0 through 6. Confirmed with `measure-cls.mjs`-style instrumentation
+  (`new PerformanceObserver({type:'layout-shift'})` seeded via `page.addInitScript` writing
+  `pdf-toolkit:workspace:recent-files` before navigation): 0.0000-0.0004 at 0-3 recents after the fix.
+
+  **A second, smaller, and *accepted* source remains at 4-6 recents: 0.0386, unchanged by the tile
+  fix.** The recents grid is three columns; four to six items need a second row that one to three don't,
+  and that row's arrival moves the picker tile (and, per measured `LayoutShift` sources, page content
+  below the hero) down by its height - a real position change of an element that existed in the prior
+  frame, which is exactly what the Layout Instability API counts, unlike the tile's own in-place swap
+  above. Eliminating it outright would mean reserving two-row height in the recents grid unconditionally,
+  which - given `.home-workspace`'s `min-height: 13rem` is already the deliberate floor for the *common*
+  case (see above) - would push that reservation to roughly double for every first-time visitor and
+  everyone with fewer than four saved files, to smooth a transition only visitors with four or more
+  matter to. That trade was rejected: 0.0386 is comfortably inside Google's "good" CLS band (< 0.1) on
+  its own, the visitor population it affects is the smaller, more-invested returning-user segment, and
+  the alternative cost lands on every visitor on every load. Re-open this only if real-user CLS on `/`
+  (Search Console / CrUX field data) actually shows it, not from this synthetic measurement alone.
 - **The demo and the launcher have opposite rendering constraints, so they cannot simply swap.** This
   looks like an easy conditional and is not. Marketing and demo copy must be server-rendered or it stops
   counting as the SEO surface (Part II §1.1), so a demo is always present in the document, and hiding it
