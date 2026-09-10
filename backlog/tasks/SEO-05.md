@@ -94,3 +94,14 @@ Re-measurement date: **2026-10-08**.
 *Update 2026-09-10:* Shlomi's fresh Search Console export the same day (see SEO-01) reconfirmed the
 cluster numbers above exactly (16/9.88 for "compress pdf to 100kb free", etc.) - pre-change baseline
 confirmed from the primary source. "After" side waits for the 2026-10-08 refresh.
+
+*Update 2026-09-11 (from SEO-04):* `/compress/` may have the same exposure SEO-04 uncovered on
+`/redact/` - Google was serving an indexed title and description from before 2026-08-29 there, so a
+shipped snippet change was invisible in the SERP. **Before reading the 2026-10-08 CTR as a verdict on
+this edit, check that the indexed snippet actually changed**: search the cluster's top query and compare
+the displayed title against what `curl https://pdkef.com/compress/` serves. A flat CTR against a stale
+snippet means "not yet recrawled", not "the hypothesis was wrong".
+
+Whether `/compress/` was in fact stale was never checked - the finding is `/redact/`'s and the shared
+commit is the reason to suspect it here. Indexing for `/compress/` was requested on 2026-09-11 either
+way, so the recrawl is queued regardless of which it turns out to be.
