@@ -71,23 +71,21 @@ if (compressToolIndex !== -1) {
             <p>Merge, sign, split, redact and compress PDFs. No signup, no install, nothing leaves your device.</p>
           </header>
         </div>
-        <div class="home-scene">
-          <div class="workspace-launcher home-workspace" id="home-files" data-working-area>
-            {/* client:load, not client:only: a client:only island emits no HTML
-                at build time, so the dropzone tile and the recent-documents
-                card only existed once the Preact bundle had loaded and visibly
-                arrived after the page had painted. Server-rendering the shell
-                is only safe while FileDropzone's first client render matches it
-                exactly - see the note on the `recents` state there, which is
-                what keeps browser storage out of the render body. Reverting
-                either half alone brings back the duplicate tiles of 203b204. */}
-            <FileDropzone client:load toolTarget="sign" />
-          </div>
-          <div class="demo-track" data-demo-track="mobile">
-            <div class="home-frame" data-demo-frame data-demo-pin="mobile" data-working-area>
-              <HeroDemo />
-            </div>
-          </div>
+        {/* Source order is the mobile reading order: header, launcher, dock,
+            then the demo. Desktop places the same four into a two-column grid
+            with the demo beside the launcher, which is a purely visual
+            arrangement - so a screen reader still meets the tools before a
+            screen-tall decorative story, at both breakpoints. */}
+        <div class="workspace-launcher home-workspace" id="home-files" data-working-area>
+          {/* client:load, not client:only: a client:only island emits no HTML
+              at build time, so the dropzone tile and the recent-documents
+              card only existed once the Preact bundle had loaded and visibly
+              arrived after the page had painted. Server-rendering the shell
+              is only safe while FileDropzone's first client render matches it
+              exactly - see the note on the `recents` state there, which is
+              what keeps browser storage out of the render body. Reverting
+              either half alone brings back the duplicate tiles of 203b204. */}
+          <FileDropzone client:load toolTarget="sign" />
         </div>
         <nav class="home-dock" aria-label="PDF tools">
             {homeTools.map((tool) => (
@@ -100,6 +98,11 @@ if (compressToolIndex !== -1) {
               </a>
             ))}
         </nav>
+        <div class="demo-track" data-demo-track="mobile">
+          <div class="home-frame" data-demo-frame data-demo-pin="mobile" data-working-area>
+            <HeroDemo />
+          </div>
+        </div>
       </section>
     </div>
     <div id="home-information">
@@ -432,11 +435,30 @@ if (compressToolIndex !== -1) {
     height: 100svh;
     width: 100%;
     display: grid;
+    /* A full-bleed grid, so the header and dock can span edge to edge while
+       the launcher and demo sit inside the same 1280px content block the
+       page had when they lived in a constrained wrapper: two 588px columns
+       either side of a 40px gap column is 1216px, plus a 32px minimum gutter
+       each side. The gap is a real column rather than `column-gap`, which
+       would also space the gutters and pull the content narrower. Expressing
+       it here rather than in a wrapper is what lets the demo be a sibling
+       *after* the dock in source order while still rendering beside the
+       launcher. */
+    grid-template-columns:
+      [full-start] minmax(32px, 1fr)
+      [content-start] minmax(312px, 588px)
+      40px
+      minmax(0, 588px) [content-end]
+      minmax(32px, 1fr) [full-end];
     grid-template-rows: auto minmax(0, 1fr) auto;
-    grid-template-areas: "header" "scene" "dock";
+    grid-template-areas:
+      "header header   header header header"
+      ".      launcher .      demo   ."
+      "dock   dock     dock   dock   dock";
   }
   .home-header { grid-area: header; }
-  .home-scene { grid-area: scene; min-height: 0; }
+  .workspace-launcher { grid-area: launcher; align-self: center; }
+  .demo-track { grid-area: demo; align-self: center; }
   .home-dock { grid-area: dock; }
   /* The demo pin's own frame just fills whichever cell holds it; the pin
      behavior itself lives on .home-hero (desktop) or .home-frame (mobile,
@@ -522,7 +544,6 @@ if (compressToolIndex !== -1) {
      CROSSFADE_END against it - they are fractions of this span, so a shorter
      tour speeds both stories up silently. */
   .home-tour { height: calc(100svh + 1116svh); }
-  .home-scene { position: relative; display: grid; grid-template-columns: minmax(312px, 1fr) minmax(0, 1fr); align-items: center; gap: 40px; width: 100%; max-width: 1280px; margin-inline: auto; padding: 0 32px; box-sizing: border-box; }
   .workspace-launcher { justify-self: start; width: 100%; max-width: 440px; padding-block: 24px; box-sizing: border-box; }
   [data-working-area][data-drag-over] { outline: 3px dashed var(--color-primary); outline-offset: -10px; background: var(--color-success-soft); }
   #home-information { position: relative; padding-top: 24px; }
@@ -670,19 +691,17 @@ if (compressToolIndex !== -1) {
     .hero-header p { font-size: 0.85rem; }
     .home-workspace { box-sizing: border-box; flex: 1 0 auto; min-height: 13rem; max-width: none; margin-inline: 0; padding: 24px; display: flex; align-items: flex-start; justify-content: center; }
     .home-tour { height: auto; }
-    /* The scene is a pure layout wrapper (see the desktop rule above); on
-       mobile it drops out of rendering entirely so its two children -
-       the launcher and the demo track - become direct items of .home-hero's
-       own grid instead of a nested one. */
-    .home-scene { display: contents; }
-    .workspace-launcher { grid-area: launcher; max-width: none; }
+    /* Both stretch here, undoing the desktop centring: the launcher has to
+       fill the 1fr row that makes up the rest of the first screen, and the
+       demo track has to fill the tall row its pinned frame travels through. */
+    .workspace-launcher { max-width: none; align-self: stretch; }
     .home-dock { gap: 12px; padding: 10px 16px; justify-content: flex-start; }
     .app-card { flex-basis: 72px; }
     .app-tile { width: 52px; height: 52px; }
     .demo-track {
-      grid-area: demo;
-      /* Replaces the old .home-scene inset now that .home-scene itself
-         renders as nothing: keeps the pinned demo off the screen edges. */
+      align-self: stretch;
+      /* Keeps the pinned demo off the screen edges; the desktop layout gets
+         the same inset from its grid's gutter columns instead. */
       padding-inline: 16px;
     }
     /* While either demo is playing, restore the same quiet page frame used
