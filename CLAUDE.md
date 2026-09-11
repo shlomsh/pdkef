@@ -273,6 +273,35 @@ status feedback.
 - JSON-LD (`SeoSchema.astro`: `SoftwareApplication` with `Person` author, `FAQPage`) must stay valid — verify with Google's Rich Results Test after edits. `HowTo` schema was intentionally removed (Google deprecated HowTo rich results in 2023); don't re-add it.
 - Target Lighthouse SEO + Performance ≥ 95 — keep the island lean, lazy-load thumbnails, avoid layout shift.
 
+## Search acquisition (SEO work beyond the invariants above)
+
+**The SEO memory is one file: [docs/seo-competitive-findings.md](./docs/seo-competitive-findings.md).**
+Read it before any search-related work; it holds the status board, the lessons, the dated standings,
+the plan with its gates, and the reference material (competitor research, refresh procedure, review
+protocol). Task state lives in the `SEO-*` tickets under `backlog/tasks/`, epic `search-acquisition`.
+
+**What goes where, so the memory stays focused.** The findings doc says *what is true now*; a ticket
+says *how we found out*. A ticket owns its diagnosis, SERP captures, before/after tables and dead ends
+at whatever length the work needed. The doc gets one status row per ticket and, if the ticket learned
+something that outlives it, one line in its "What we know" section with a link back - never a
+re-explanation. Standings in the doc are replaced at each refresh, not appended; git is the timeline.
+If a section of the doc starts narrating, move the narrative to the ticket. Do not create a second
+SEO document; extend the one that exists.
+
+Four standing rules, each learned the expensive way (evidence in the doc's section 2):
+
+- **Verify any external audit against `src/data/tools.js` and `src/lib/` before accepting its gap
+  list.** The report that started the epic proposed building target-size compression that had
+  already shipped.
+- **No template-swapped doorway pages.** A new content page must teach something verifiable and
+  disclose the awkward fact; three pages differing by a number are rejected on sight. New long-tail
+  pages go through the content-pages collection, never new `.astro` files.
+- **A copy change is not done until the page is recrawled.** "Indexed" is not "current": Google served
+  a two-week-old title for `/redact/` while the live page had the new one. A copy ticket ends with an
+  indexing request, and no CTR reading is a verdict until the indexed snippet matches the live one.
+- **Google blocks scripted SERP fetches from this environment.** Real Google SERPs come from Shlomi's
+  screenshots; ask rather than guess. Bing/DuckDuckGo show who competes, never our Google position.
+
 ## UI & State Invariants
 
 - **The home page is one canonical DOM that CSS reshapes per breakpoint. Nothing is ever re-parented
