@@ -1,6 +1,7 @@
 ---
 import { getImage } from 'astro:assets';
 import SpeedInsights from '@vercel/speed-insights/astro';
+import OrganizationSchema from '../components/OrganizationSchema.astro';
 import ogImageSrc from '../assets/og-image.jpg';
 
 interface Props {
@@ -77,6 +78,8 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
         this link needs a stable unhashed path, so it points at the icon set. */}
     <link rel="icon" href="/icons/icon-512.png" type="image/png" sizes="512x512" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <OrganizationSchema />
 
     <slot name="head" />
   </head>
