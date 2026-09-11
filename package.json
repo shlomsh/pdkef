@@ -1,7 +1,7 @@
 {
   "name": "pdkef",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Free, open-source PDF tools that run 100% locally in your browser - no upload, no signup, no watermark.",
   "license": "MIT",
