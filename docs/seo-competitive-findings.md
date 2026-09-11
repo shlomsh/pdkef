@@ -58,7 +58,7 @@ all of it (section 6). Tickets whose only remaining step is that read are `block
 | LOC-05 Hebrew guides | open, shipped | 2026-09-11 | seven of eight published and live for Shlomi's review on the deployed site (`offline-pdf-form-filler` held: its English is a retired redirect); five were stale against SEO-08's screenshots and were updated; links resolve inside `/he/` where an edition exists | one indexing request per URL once the daily quota resets, dated in LOC-05; outcome folded into LOC-03's read |
 | LOC-06 per-locale refresh table | done | 2026-09-11 | `seo-refresh.mjs` gained section 3.7 (pages grouped by `src/i18n/localePrefixes.js` prefix next to their English sibling, non-Latin queries clustered by detected script, a country breakdown for the locale's pilot country); pure logic in `scripts/seoRefreshLib.mjs`, unit-tested (`src/lib/seoRefresh.test.js`, 27 tests); findings doc section 3.7 added as "not yet run" and section 6 procedure updated - no real numbers yet, that is the 2026-10-08 read | 2026-10-08: first real per-locale table, folded into LOC-03's outcome |
 | LOC-07 second-language ROI | done | 2026-09-11 | Verdict: not now. In-language demand is necessary but not sufficient - this domain hasn't beaten Indonesian's competitive field once, in English, at any position better than 36. Retired LOC-04; declined Part 2 (unmeasured languages) since a harder-to-verify language isn't worth measuring when the clearest-demand one already failed the field test | revisit alongside the two signals above |
-| LOC-08 Tamil/Telugu demand check | open | 2026-09-11 | Reopened Part 2 for India specifically, on Shlomi's call (best-converting country). Incumbent check done: Telugu has one real native competitor page (PDF24, all four tools); Tamil has none among the majors checked - PDF24 and Sejda both serve English at Tamil-tagged URLs. Telugu Trends/SERP links built and ready for Shlomi; Tamil sent to a lighter reconnaissance pass first (no verified phrasing exists yet to spend a full Trends chart on) | Shlomi's Telugu Trends + SERP screenshots, Tamil reconnaissance SERPs |
+| LOC-08 Tamil/Telugu demand check | done | 2026-09-12 | Both no. Telugu: Trends flat at 0 on all four anchor tasks (8 native and romanized probes, phrasing from PDF24's real Telugu pages); `hl=te` SERPs are Google's own translations of English pages plus PDF24, related searches all English. Tamil: no native phrasing exists to chart; all 40 `hl=ta` results are Google-translated English pages, the only Tamil content is English-titled YouTube videos. GSC India, last 28 days: all 50 queries English, zero Tamil/Telugu script or transliteration, same 100kb and blur clusters. With Hindi, Telugu and Tamil flat on every instrument, Marathi/Gujarati/Kannada/Malayalam stay unmeasured and the India list stops here | |
 | LOC-09 Hebrew home page | open | 2026-09-11 | design in `docs/home-page-localization-plan.md`; `/he/` is the one URL the edition's switcher cannot offer; waits on LOC-03's first read | |
 
 ---
@@ -84,6 +84,15 @@ Durable lessons, one line each, newest first. The ticket has the evidence.
   English page. Direct URL fetches like this are a cheap first pass before spending Shlomi's Trends
   screenshot budget on a language - they can rule a phrasing in or out, but never substitute for the
   real `hl`/`gl` SERP. ([LOC-08](../backlog/tasks/LOC-08.md))
+- **On a language Google machine-translates results into, a SERP full of "translated incumbents" is a
+  sign of thin native demand, not an opening.** Telugu and Tamil (`hl=te`/`hl=ta`, `gl=IN`) returned
+  top tens where nearly every result carried Google's "translated, see original (English)" badge -
+  Google backfilling the SERP with its own translations of iLovePDF, Smallpdf, Adobe and the rest,
+  applied to every English page equally, ours included. The decision rule's criterion 2 ("an incumbent
+  is machine-translated") was written for a competitor's sloppy localization; when the translator is
+  Google, a native edition competes with Google's translation of the whole English field, and the
+  badge count says there was no native field for anyone to build. Read it as a "no" signal, alongside a
+  flat Trends line. ([LOC-08](../backlog/tasks/LOC-08.md))
 - **"Free, open submission" directories commonly gate on traction anyway, and it is rarely visible until
   you try.** openalternative.co hard-blocks under 10 GitHub stars (confirmed by the form itself, not
   documentation); awesome-selfhosted gates on a tagged release 4+ months old, found only by reading its
