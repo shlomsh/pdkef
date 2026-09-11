@@ -63,32 +63,8 @@
      before a file is picked, so the empty box doesn't need to carry as much
      height on its own. */
   .dropzone[data-compact] {
-    /* One row - icon, "Drop PDF here", the picker button and the privacy
-       pill side by side - instead of the stacked column. The column version
-       still cost ~250px even with the tighter padding, and on Compress that
-       was the single biggest reason the page's own button sat below a
-       laptop viewport before a file was even picked. */
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.6rem 1.25rem;
-    min-height: 0;
-    padding: 0.85rem 1rem;
-  }
-
-  .dropzone[data-compact] .dropzone-icon {
-    width: 36px;
-    height: 36px;
-    margin-bottom: 0;
-  }
-
-  .dropzone[data-compact] .file-picker-button {
-    margin-top: 0;
-    padding: 0.55rem 1.2rem;
-  }
-
-  .dropzone[data-compact] .privacy-line {
-    margin: 0;
+    min-height: 6.5rem;
+    padding: 0.75rem;
   }
 }
 
