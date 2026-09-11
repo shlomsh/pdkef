@@ -93,9 +93,9 @@ export const tools = [
     // this stays a request path and not a gap list.
     languages: {
       tag: 'Languages',
-      heading: 'Right-to-left native, and 20 languages deep',
+      heading: 'Right-to-left native. 20 languages deep. Unmatched, free.',
       lead:
-        "20 languages and scripts, which is more than any other free browser-based PDF signer I have found, and right-to-left is native here rather than bolted on: a Hebrew or Arabic box grows leftward from a fixed right edge, exactly the way you write. Conjunct letters, vowel signs and ligatures are shaped for the download the same way they look on screen, and the font travels inside the file you download, so your name looks like your name on whatever opens it. Type in it, sign in it, send it. Tap a language below for the specifics.",
+        "20 languages and scripts, the most complete language support of any free, browser-based PDF signer, and right-to-left is native here, not bolted on: a Hebrew or Arabic box grows leftward from a fixed right edge, exactly the way you write. Conjunct letters, vowel signs and ligatures are shaped correctly for the download, not just on screen, and every font is embedded inside the file itself, so your name looks like your name on any device that opens it. Type it, sign it, send it. Tap a language below for the specifics.",
       supportedHeading: 'Supported now',
       // Ordered by roughly how many people speak each language, most to
       // least, so the card leads with what the most visitors are searching
@@ -205,9 +205,9 @@ export const tools = [
           note: "Fill a Turkish form and sign your name in Turkish. Ten text fonts carry the complete 29-letter alphabet, the same ten that carry the full accented set in the Latin-script note above, plus Kalam and Mali if you want a handwritten look, either of which also works for a typed signature. The three letters that set Turkish apart from plain accented Latin, Ğ, İ and Ş, are exactly what that general Latin-Ext sample does not check, so I verified them against the real font files rather than assuming coverage carried over.",
         },
       ],
-      notYetHeading: "Don't see your language? Ask, and it's next.",
+      notYetHeading: "Don't see your language? Ask, and it moves to the front of the queue.",
       notYet:
-        "This is world-class language and font support, in a tool that costs nothing. Every language above took real work to get right: a font screened letter by letter against its actual glyphs, shaping checked against hundreds of test words, right-to-left and complex scripts treated as first-class rather than as an afterthought. Months went into it, because the whole point of this tool is that it should just work for you, in your language, on your phone, for free. If yours is not on the list yet, it is one request away. Ask below, and it goes to the front of the queue.",
+        "This is the most complete language support of any free, browser-based PDF signer: every font screened letter by letter against what it can actually draw, shaping checked against hundreds of test words per script, right-to-left and complex scripts built in as first-class citizens rather than an afterthought. If your language is not listed yet, ask below and it goes straight to the front of the queue.",
       languageRequestUrl: 'https://github.com/shlomsh/pdkef/issues/new?title=%5BLanguage%20request%5D%20&body=Which%20language%20would%20you%20like%20PDkef%20to%20support%3F%0A%0AHow%20would%20you%20use%20it%3F',
       contributeUrl: 'https://github.com/shlomsh/pdkef',
     },
@@ -253,7 +253,7 @@ export const tools = [
       },
       {
         question: 'Will my language come out right in the downloaded PDF, or turn into empty boxes?',
-        answer: "It comes out right, and that is exactly why the fonts ship with the tool instead of relying on whatever happens to be installed. Every bundled font is checked against the glyphs actually inside the font file, and the font travels inside the PDF you download, so your text looks the same on any device that opens it, with no empty rectangles where your script should be. If you pick a font that cannot draw your script, the tool switches to one that can and tells you it did. And in the rare case that nothing bundled can draw a character, you are told while you are typing it, not after you have filled in the whole form, so you can ask for that language without losing your work.",
+        answer: "Right, every time, because the fonts ship inside the tool instead of depending on whatever happens to be installed on your device. Every bundled font is checked against the letters actually inside the font file, and it travels embedded inside the PDF you download, so your text looks exactly the same on any device that opens it, with no empty rectangles where your script should be. Pick a font that cannot draw your script and the tool automatically switches to one that can, then tells you it happened. In the rare case nothing bundled can draw a character, you find out while you are typing it, not after you have filled in the whole form, so you can request that language without losing your work.",
       },
       {
         question: 'Can I fill and sign a PDF in Hebrew (חתימה על PDF)?',
