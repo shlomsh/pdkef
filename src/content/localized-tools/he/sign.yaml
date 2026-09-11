@@ -1,10 +1,11 @@
-# LOC-03: Hebrew pilot draft for /he/sign/. Not yet reviewed by a native
-# speaker in-house - status stays 'draft' until Shlomi reviews and flips it
-# to 'published' with reviewer/reviewedAt/reviewNotes. The editor itself
-# stays English behind ToolPageLayout's "controls are in English" notice,
-# the pilot decision LOC-02.md carries over unchanged for Sign - only this
-# page's crawlable shell (title, h1, intro, steps, FAQ) is translated, so
-# 'sign' is deliberately NOT added to LOCALIZED_TOOL_ISLANDS.
+# LOC-03: Hebrew pilot for /he/sign/, reviewed in-house and published (see
+# backlog/tasks/LOC-03.md). The editor itself stays English behind
+# ToolPageLayout's "controls are in English" notice, the pilot decision
+# LOC-02.md carries over unchanged for Sign - only this page's crawlable
+# shell (title, h1, intro, steps, FAQ) is translated, so 'sign' is
+# deliberately NOT added to LOCALIZED_TOOL_ISLANDS. The 20-language card
+# stays English-edition-only too (see ToolPageLayout.astro) pending its own
+# reviewed translation.
 #
 # Phrasing follows LOC-03's SERP-derived hypotheses: "חתימה על PDF" /
 # "לחתום על קובץ PDF" / "מילוי טופס PDF" lead, none of the five incumbents
@@ -21,7 +22,12 @@
 # order they appear in English.
 toolSlug: 'sign'
 locale: 'he'
-status: 'draft'
+status: 'published'
+reviewer: 'Shlomi Shemesh'
+reviewedAt: '2026-09-11'
+reviewNotes: >-
+  Reviewed the rendered page (desktop and mobile, RTL, editor-stays-English
+  notice) and approved the wording, terminology and typography for publish.
 sourceHash: 'fnv1a64:b7ab6ec597083451'
 seoTitle: 'חתימה על PDF בחינם - מילוי טפסים, בלי הרשמה | PDkef'
 seoDescription: >-

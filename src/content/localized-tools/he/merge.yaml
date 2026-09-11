@@ -1,7 +1,5 @@
-# LOC-02 draft fixture: proves the localized-tool route end to end. Not
-# reviewed and not published - see LOC-02.md's acceptance list ("/he/merge/
-# renders end to end from a draft YAML as a noindex preview"). LOC-03 is the
-# ticket that reviews real Hebrew tool copy and flips this to published.
+# Started as LOC-02's draft fixture proving the localized-tool route end to
+# end; reviewed and published under LOC-03 (see backlog/tasks/LOC-03.md).
 #
 # Terminology follows what Israelis actually search and what the incumbents
 # use (LOC-01's SERP captures; tools.pdf24.org/he/): "מיזוג PDF" is the
@@ -11,7 +9,12 @@
 # the file never leaves the device.
 toolSlug: 'merge'
 locale: 'he'
-status: 'draft'
+status: 'published'
+reviewer: 'Shlomi Shemesh'
+reviewedAt: '2026-09-11'
+reviewNotes: >-
+  Reviewed the rendered page (desktop and mobile, RTL) and approved the
+  wording, terminology and typography for publish.
 sourceHash: 'fnv1a64:79624031b57e0dc0'
 seoTitle: 'מיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
@@ -31,7 +34,7 @@ aboutLead: >-
   הקבצים שלכם לא עוזבים את המכשיר.
 freeNoteLead: >-
   מזגו כמה קבצי PDF שתרצו, בכל סדר, בלי סימן מים ובלי הגבלת עמודים. המיזוג
-  רץ על המכשיר שלכם, אז אין מה להעלות ואין שימוש למדוד.
+  רץ על המכשיר שלכם, אז אין מה להעלות ואין מכסות.
 steps:
   - title: 'הוסיפו את קבצי ה-PDF'
     text: 'בחרו קבצים, או גררו ושחררו כאן את הקבצים שרוצים לאחד.'
@@ -56,7 +59,7 @@ faq:
       ו-Windows.
   - question: 'יש הגבלה על גודל הקובץ או מספר העמודים?'
     answer: >-
-      PDkef לא מגביל שום דבר באופן מלאכותי. המגבלה היחידה היא הזיכרון הפנוי
+      PDkef לא מציב שום מגבלה מלאכותית. המגבלה היחידה היא הזיכרון הפנוי
       במכשיר שלכם, כי המיזוג מתבצע מקומית.
   - question: 'אפשר לאחד קבלות סרוקות או דוחות לקובץ PDF אחד?'
     answer: >-
