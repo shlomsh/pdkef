@@ -331,7 +331,7 @@ export const tools = [
     ariaLabel: 'Blur & Redact PDF tool',
     aboutHeading: 'How to blur, black out, white out or delete PDF content',
     aboutLead:
-      'Choose the result you want. Delete removes a selected text or image element from the PDF page. Blur softens visual detail, Blackout creates a solid cover, and Whiteout clears an area visually. Blur, Blackout and Whiteout work on typed PDFs and scans.',
+      "Choose the result you want. Delete removes a selected text or image element from the PDF page. Blur softens visual detail, Blackout creates a solid cover, and Whiteout clears an area visually. Blur, Blackout and Whiteout work on typed PDFs and scans, and because the marked page is flattened into one image on download, the redaction is permanent: there's no text layer left underneath to recover.",
     freeNoteLead:
       'Blur or black out PDFs for free, with no signup, watermark, or daily cap. Your file and saved draft stay on your device. For examples and the trade-offs, see <a class="font-medium text-[var(--color-primary-text)]" href="/blur-vs-blackout-vs-delete-pdf/">Blur, Blackout or Delete: the visual guide</a>. Want to work offline? <a class="font-medium text-[var(--color-primary-text)]" href="/install-pdf-app/">Install PDkef</a> and let its required assets load before disconnecting.',
     aboutSketch: 'grid',
@@ -416,7 +416,7 @@ export const tools = [
     ariaLabel: 'PDF to Image tool',
     aboutHeading: 'How to convert PDF to JPG or PNG online for free',
     aboutLead:
-      'Turn a PDF into images for a slideshow, a social post, or a page you need to paste into an email - right in your browser, with a resolution you pick yourself.',
+      'Turn a PDF into images for a slideshow, a social post, or a page you need to paste into an email - right in your browser, with a resolution you pick yourself. A multi-page PDF downloads as separate image files rather than one zip, so each one lands on its own.',
     freeNoteLead:
       "Convert as many PDFs to JPG or PNG as you like, at full resolution with no watermark. Because conversion runs on your device, there's nothing to upload and no server cost to pass on to you.",
     aboutSketch: 'arcs',
@@ -433,7 +433,7 @@ export const tools = [
       { question: 'Does PDkef add a watermark to converted images?', answer: 'No. JPG and PNG exports here have no watermark and no forced resolution downgrade. Because the conversion runs on your device, there is no server cost to recoup by limiting quality.' },
       { question: 'Are my files uploaded to a server?', answer: 'No. PDkef runs entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.' },
       { question: 'What is the difference between PNG and JPG?', answer: 'PNG keeps a transparent background and is lossless, which is best for text-heavy or graphic pages. JPG uses a white background and smaller file sizes, which works well for photos and scans.' },
-      { question: 'What happens with a multi-page PDF?', answer: 'By default each page is converted to its own image file, downloadable individually or all at once. You can also choose "Single combined image" to stack every page into one tall image instead.' },
+      { question: 'What happens with a multi-page PDF?', answer: 'By default each page is converted to its own image file. "Download all" saves them one at a time rather than as a single zip file, since this tool has no zip library bundled - your browser may ask to allow multiple downloads the first time. You can also choose "Single combined image" to stack every page into one tall image instead.' },
       { question: 'Can I turn a scanned worksheet or slide deck into images?', answer: 'Yes. Upload the PDF, choose JPG or PNG, and each page - a scanned worksheet, presentation slide, or contract page - becomes its own image file ready to share or embed.' },
       { question: 'Can I convert just a few pages instead of the whole PDF?', answer: 'Yes. Enter a page range in the page selector, for example 1-3,5,8, and only those pages convert. Useful for pulling one diagram or photo out of a long scanned document without converting the rest.' },
       { question: 'What resolution do the images come out at?', answer: 'Pick Standard (about 72 DPI, the smallest files, fine for screens), High (about 144 DPI, sharp for most printing, and the default) or Maximum (about 216 DPI, best for zooming in or large prints). The setting controls how many pixels each page is rendered at, so a higher one gives you a sharper and larger image.' },
@@ -460,7 +460,7 @@ export const tools = [
     ariaLabel: 'Image to PDF tool',
     aboutHeading: 'How to combine images into a PDF online for free',
     aboutLead:
-      'Turn a stack of photographed pages, scanned receipts, or screenshots into one PDF you can actually send - reorder them first, then combine, right in your browser.',
+      "Turn a stack of photographed pages, scanned receipts, or screenshots into one PDF you can actually send - reorder them first, then combine, right in your browser. Nothing is uploaded, which matters most for what people actually photograph this way: ID pages, medical forms, signed consent slips.",
     freeNoteLead:
       "Combine as many JPG or PNG images into a PDF as you like, at their original quality with no watermark. Because it runs on your device, there's nothing to upload and no limits to ration.",
     aboutSketch: 'arcs',
@@ -551,7 +551,7 @@ export const tools = [
     ariaLabel: 'PDF compress tool',
     aboutHeading: 'How to compress a PDF online for free',
     aboutLead:
-      'Reduce the file size of your PDFs, right in your browser. No upload, no server. To reach a small target, pages are turned into images, so selectable text and links are lost on any page that changes. If your file is already under the target, it comes back untouched - nothing lost.',
+      "Reduce the file size of your PDFs, right in your browser. No upload, no server. To reach a small target, pages are turned into images, so selectable text and links are lost on any page that changes. If your file is already under the target, it comes back untouched - nothing lost. If a target can't be hit without making the document unreadable, the tool says so and hands you the smallest readable result instead of quietly handing back something too big or too blurry to use.",
     freeNoteLead:
       "Shrink PDFs to a target like 100KB for strict portal limits as many times as you need, with no watermark or daily cap. Because compression runs on your device, there's nothing to upload and no server cost to pass on to you.",
     aboutSketch: 'waves',
