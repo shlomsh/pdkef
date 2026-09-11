@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { acceptQuality, negotiateRepresentation } from './acceptNegotiation.js';
+import { acceptQuality, negotiateRepresentation, markdownRoute } from './acceptNegotiation.js';
 
 describe('acceptQuality', () => {
   it('gives an exact type match q=1 when unqualified', () => {
@@ -96,5 +96,47 @@ describe('negotiateRepresentation', () => {
 
   it('does not treat an explicit q=0 on both types as acceptable', () => {
     expect(negotiateRepresentation('text/html;q=0, text/markdown;q=0, */*')).toBe('unacceptable');
+  });
+});
+
+describe('markdownRoute', () => {
+  const redirectSources = new Set(['/compress', '/remove-pages', '/remove-pages/']);
+
+  it('maps the home page to /index.md', () => {
+    expect(markdownRoute('/', redirectSources)).toEqual({ kind: 'markdown', path: '/index.md' });
+  });
+
+  it('maps a canonical trailing-slash path to its .md twin', () => {
+    expect(markdownRoute('/compress/', redirectSources)).toEqual({ kind: 'markdown', path: '/compress.md' });
+    expect(markdownRoute('/how-to-sign-a-pdf-on-mac/', redirectSources)).toEqual({
+      kind: 'markdown',
+      path: '/how-to-sign-a-pdf-on-mac.md',
+    });
+  });
+
+  it('passes a non-slash path through when vercel.json has a redirect for it', () => {
+    // A real route's non-slash form, and a retired route: both must reach
+    // Vercel's redirect so the agent is sent to the canonical URL.
+    expect(markdownRoute('/compress', redirectSources)).toEqual({ kind: 'passthrough' });
+    expect(markdownRoute('/remove-pages', redirectSources)).toEqual({ kind: 'passthrough' });
+  });
+
+  it('reports a non-slash path with no redirect as not found', () => {
+    // The scanner probe: curl .../some-path-that-does-not-exist (no slash).
+    expect(markdownRoute('/some-path-that-does-not-exist', redirectSources)).toEqual({ kind: 'not-found' });
+  });
+
+  it('still routes a nonexistent trailing-slash path to a .md fetch (the fetch 404s)', () => {
+    expect(markdownRoute('/nope/', redirectSources)).toEqual({ kind: 'markdown', path: '/nope.md' });
+  });
+});
+
+describe('markdownRoute against the real vercel.json', () => {
+  it('passes every real route non-slash form through and rejects a fake path', async () => {
+    const { default: vercelConfig } = await import('../../vercel.json');
+    const sources = new Set(vercelConfig.redirects.map((r) => r.source));
+    expect(markdownRoute('/compress', sources)).toEqual({ kind: 'passthrough' });
+    expect(markdownRoute('/about', sources)).toEqual({ kind: 'passthrough' });
+    expect(markdownRoute('/some-path-that-does-not-exist', sources)).toEqual({ kind: 'not-found' });
   });
 });

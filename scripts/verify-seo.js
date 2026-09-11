@@ -93,14 +93,30 @@ for (const file of htmlFiles) {
   const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
   let hasSoftwareApp = false;
   let faqSchema = null;
+  let organizationSchema = null;
 
   for (const script of jsonLdScripts) {
     try {
       const data = JSON.parse(script.textContent);
       if (data['@type'] === 'SoftwareApplication') hasSoftwareApp = true;
       if (data['@type'] === 'FAQPage') faqSchema = data;
+      if (data['@type'] === 'Organization') organizationSchema = data;
     } catch (e) {
       error(`Invalid JSON-LD syntax: ${e.message}`);
+    }
+  }
+
+  // 4b. The site-wide Organization schema (BaseLayout -> OrganizationSchema.astro)
+  // must reach every page with the fields agent-readiness checks look for.
+  // contactPoint is the one that can silently regress: it is what lets an
+  // agent verify the site is a real, reachable thing.
+  if (!organizationSchema) {
+    error('Missing Organization JSON-LD');
+  } else {
+    if (organizationSchema.name !== 'PDkef') error(`Organization JSON-LD name is "${organizationSchema.name}", expected "PDkef"`);
+    const cp = organizationSchema.contactPoint;
+    if (!cp || cp['@type'] !== 'ContactPoint' || !cp.contactType || !cp.url) {
+      error('Organization JSON-LD is missing a ContactPoint with contactType and url');
     }
   }
 

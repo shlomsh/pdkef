@@ -62,3 +62,32 @@ export function negotiateRepresentation(acceptHeader) {
   if (htmlQ === 0 && markdownQ === 0) return 'unacceptable';
   return markdownQ > htmlQ ? 'markdown' : 'html';
 }
+
+/**
+ * Where a Markdown-preferring request for `pathname` should go. Returns
+ * `{ kind: 'markdown', path }` (fetch that prebuilt .md twin),
+ * `{ kind: 'passthrough' }` (let Vercel's own routing answer), or
+ * `{ kind: 'not-found' }` (serve /404.md with a real 404).
+ *
+ * The non-slash branch is the subtle one. A real route's non-slash form
+ * (/compress) must pass through so vercel.json's canonical redirect fires
+ * and the agent re-requests /compress/ - the middleware never serves
+ * Markdown at a non-canonical URL. But a nonexistent non-slash path
+ * (/some-path-that-does-not-exist, which is exactly what an agent-readiness
+ * scanner probes) has no redirect to fire, so passing it through handed a
+ * Markdown-preferring agent the full HTML 404 shell. The two cases are told
+ * apart by `redirectSources`, the literal `source` list from vercel.json:
+ * scripts/check-trailing-slash-redirects.js fails CI if any real route lacks
+ * its non-slash entry there, so a non-slash path that matches no source is,
+ * by that invariant, not a page - no probe fetch needed.
+ *
+ * @param {string} pathname
+ * @param {Set<string>} redirectSources
+ * @returns {{ kind: 'markdown', path: string } | { kind: 'passthrough' } | { kind: 'not-found' }}
+ */
+export function markdownRoute(pathname, redirectSources) {
+  if (pathname === '/') return { kind: 'markdown', path: '/index.md' };
+  if (pathname.endsWith('/')) return { kind: 'markdown', path: `${pathname.slice(0, -1)}.md` };
+  if (redirectSources.has(pathname)) return { kind: 'passthrough' };
+  return { kind: 'not-found' };
+}
