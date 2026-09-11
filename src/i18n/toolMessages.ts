@@ -580,6 +580,12 @@ const englishFileDropzoneMessages: FileDropzoneMessages = {
 
 // LOC-09's own draft (see he.yaml's own status: draft), reviewed alongside it
 // before either can publish - not yet reviewed by a native speaker.
+// LOC-09: an AI draft, not reviewed copy - the same caveat hebrewMergeMessages
+// above carries, and for the same reason. These ship on /he/ today because the
+// launcher is the Hebrew home page's whole point and English buttons inside a
+// Hebrew page are worse than an unreviewed translation, but they are pending
+// Shlomi's read-through alongside src/content/localized-home/he.yaml's own
+// reviewNotes. Do not treat these values as approved copy.
 const hebrewFileDropzoneMessages: FileDropzoneMessages = {
   handoffFailed: 'לא הצלחנו לשמור את הקובץ הזה במכשיר שלכם. נסו שוב.',
   multipleFilesPicked: 'בחרו כאן קובץ PDF אחד, או השתמשו במיזוג PDF למטה בשביל כמה קבצים.',
@@ -630,6 +636,7 @@ const englishRecentFilesMessages: RecentFilesMessages = {
   justNow: 'just now',
 };
 
+// LOC-09: an AI draft, not reviewed copy - see hebrewFileDropzoneMessages above.
 const hebrewRecentFilesMessages: RecentFilesMessages = {
   heading: 'קבצים אחרונים',
   openSampleAriaLabel: 'פתיחת קובץ הדוגמה, {name}',

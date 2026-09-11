@@ -113,7 +113,9 @@ const englishMessages = {
   inEnglish: 'in English',
   lastUpdated: 'Last updated',
   airplaneModeNotice: 'Turn on airplane mode and give it a try. It still works.',
-  heroDemoEnglishNotice: 'The interactive demo below is still shown in English.',
+  // No "below": the demo sits beside the launcher on desktop and below it only
+  // on mobile, and the same one string is rendered at both breakpoints.
+  heroDemoEnglishNotice: 'The interactive demo is still shown in English.',
 } satisfies DocumentationShellMessages;
 
 const hebrewMessages = {
@@ -151,7 +153,7 @@ const hebrewMessages = {
   inEnglish: 'באנגלית',
   lastUpdated: 'עודכן לאחרונה',
   airplaneModeNotice: 'הפעילו מצב טיסה ונסו. זה עדיין עובד.',
-  heroDemoEnglishNotice: 'ההדגמה האינטראקטיבית למטה עדיין מוצגת באנגלית.',
+  heroDemoEnglishNotice: 'ההדגמה האינטראקטיבית עדיין מוצגת באנגלית.',
 } satisfies DocumentationShellMessages;
 
 /**
