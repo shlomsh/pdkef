@@ -16,6 +16,7 @@ import { getElementDefinition } from '../../registry/index.ts';
 import { findUnrepresentableCharacters } from '../../text/textCoverage.js';
 import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '../../text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../../../constants/signGeometry.js';
+import { hasFillableAcroForm } from './pdfObjects.js';
 
 /**
  * Thrown by signPdf's coverage pre-pass (docs/hebrew-text-shaping-export.md,
@@ -41,6 +42,24 @@ export class FontUnavailableError extends Error {
     super(`${family} is not available for PDF export`);
     this.name = 'FontUnavailableError';
     this.family = family;
+  }
+}
+
+/**
+ * Thrown when a source PDF's AcroForm exists but pdf-lib's `form.flatten()`
+ * throws on it (MOBI-02). Flattening bakes each widget's current appearance
+ * into its page and removes the form, which is the export policy for any
+ * document that carries one - see the policy note above `signPdf`. A
+ * document this cannot be done to safely must fail the whole export rather
+ * than silently fall back to drawing over the still-live, empty fields:
+ * that silent fallback is the exact defect MOBI-02 exists to fix, so it is
+ * not an acceptable failure mode to land in by accident.
+ */
+export class FormFlattenError extends Error {
+  constructor(cause) {
+    super(`Could not flatten the source PDF's form fields: ${cause?.message ?? cause}`);
+    this.name = 'FormFlattenError';
+    this.cause = cause;
   }
 }
 
@@ -89,6 +108,18 @@ export function pageGeometryFromPdfLibPage(page) {
   });
 }
 
+// Export policy (MOBI-02): a source PDF that carries an AcroForm is flattened
+// before any of PDkef's own content is drawn. Without this, every widget
+// annotation ships intact and still empty, and most viewers paint widget
+// annotations above ordinary page content - so the recipient can open the
+// returned form and see a live, empty field box covering the text PDkef just
+// drew. The sender never sees this: pdf.js paints widget appearances as page
+// content in the editor's own canvas. Flattening removes that gap and is
+// almost always what a recipient wants from a returned form; the tradeoff
+// (the document stops being fillable) is accepted because the answers are
+// already baked into page content by the time export runs. See
+// backlog/tasks/MOBI-02.md for the two alternatives considered and rejected.
+//
 // Bakes each element through its registry owner. Document loading and font caching
 // stay here because they are PDF-wide concerns, not per-element behavior.
 export async function signPdf(file, elements, onProgress) {
@@ -144,6 +175,26 @@ export async function signPdf(file, elements, onProgress) {
   // whole point is "refused" and "partially written" are never both true.
   const { characters: missingCharacters, pageNumbers } = await findUnrepresentableCharacters(elements, loadCustomFont);
   if (missingCharacters.length > 0) throw new UnrepresentableTextError(missingCharacters, pageNumbers);
+
+  // Flatten before drawing any element, not after: pdf-lib's flatten() bakes
+  // each widget's appearance by *appending* content-stream operators to its
+  // page (the same `page.pushOperators` this file uses below for its own
+  // elements), so flattening first is what keeps PDkef's own content on top
+  // of the flattened field rather than under it - flattening after the draw
+  // loop would reproduce the exact "empty box on top of the answer" defect
+  // this exists to fix. `hasFillableAcroForm` is the cheap catalog-only
+  // check (see its own comment for why it never calls `getForm()` on a
+  // document with no form); calling `getForm()` here, only once a form is
+  // confirmed to exist, is what actually strips any XFA data as flatten's
+  // documented side effect - accepted because a flattened document has no
+  // further use for it either way.
+  if (hasFillableAcroForm(pdfDoc)) {
+    try {
+      pdfDoc.getForm().flatten();
+    } catch (error) {
+      throw new FormFlattenError(error);
+    }
+  }
 
   for (let i = 0; i < elements.length; i++) {
     const element = elements[i];

@@ -435,6 +435,28 @@ export function collectCheckboxGlyphs(page) {
   return boxes;
 }
 
+/**
+ * Cheaply reports whether a document carries an AcroForm with at least one
+ * field, for the MOBI-02 export-flatten decision in sign.js.
+ *
+ * This deliberately goes through `pdfDoc.catalog.getAcroForm()` - a plain
+ * dict lookup - rather than `pdfDoc.getForm()`. `getForm()` strips a
+ * document's XFA data as a side effect unless it was loaded with
+ * `preserveXFA`, so merely *checking* whether a form exists must not itself
+ * be the thing that degrades a hybrid XFA/AcroForm document. This check is
+ * also the fast path for the common case of no form at all (both fixtures
+ * in `__fixtures__/` have none, per MOBI-03): no widget resolution, no
+ * appearance-stream work, just one dict read.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFDocument} pdfDoc
+ * @returns {boolean}
+ */
+export function hasFillableAcroForm(pdfDoc) {
+  const acroForm = pdfDoc.catalog.getAcroForm();
+  if (!acroForm) return false;
+  return (acroForm.getFields()?.length ?? 0) > 0;
+}
+
 /** True when a widget inherits the PDF button field type from itself or a parent. */
 function isButtonWidget(context, widget) {
   let field = widget;
