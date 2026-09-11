@@ -223,4 +223,62 @@ const localizedPages = defineCollection({
     }),
 });
 
-export const collections = { contentPages, localizedPages };
+// LOC-02: the same reviewed-translation gate as localizedPages above, for tool
+// pages instead of standalone guides. The English source here is not a
+// content-collection entry - it's an object literal in src/data/tools.js - so
+// there is no English `tools` collection to cross-check against at schema
+// level; src/i18n/localizedTools.ts does that at build time the same way
+// documentation.ts cross-checks localizedPages against contentPages, by
+// comparing sourceHash against a hash computed from the normalized tool.js
+// entry (see normalizeToolSource there - the field list must match toolFields
+// below).
+const toolStep = z.strictObject({
+  title: plain(2, 40),
+  text: plain(10, 220),
+});
+const toolFaqItem = z.strictObject({
+  question: plain(10, 120),
+  answer: plain(20, 700),
+});
+const toolFields = z.strictObject({
+  seoTitle: plain(20, 75).refine((value) => value.endsWith(' | PDkef'), 'must end with " | PDkef", the site-wide title suffix'),
+  seoDescription: plain(60, 220),
+  schemaName: plain(3, 60),
+  toolName: plain(2, 40),
+  h1: plain(10, 90),
+  subhead: plain(30, 700),
+  ariaLabel: plain(5, 60),
+  aboutHeading: plain(10, 90),
+  aboutLead: inline(30, 700),
+  freeNoteLead: inline(30, 700),
+  steps: z.array(toolStep).min(2).max(6),
+  faq: z.array(toolFaqItem).min(3).max(12),
+});
+
+const localizedTools = defineCollection({
+  loader: glob({
+    pattern: '**/*.yaml',
+    base: './src/content/localized-tools',
+    generateId: ({ entry }) => entry.replace(/\.yaml$/, ''),
+  }),
+  schema: toolFields
+    .extend({
+      toolSlug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+      locale: z.enum(DOCUMENTATION_LOCALE_IDS).refine((locale) => locale !== 'en', 'English stays in src/data/tools.js'),
+      status: z.enum(['draft', 'published']),
+      sourceHash: z.string().regex(/^fnv1a64:[a-f0-9]{16}$/, 'must be the normalized English tool source hash'),
+      reviewer: plain(3, 120).optional(),
+      reviewedAt: z.iso.date().optional(),
+      reviewNotes: plain(20, 600).optional(),
+    })
+    .superRefine((entry, ctx) => {
+      if (entry.status !== 'published') return;
+      for (const field of ['reviewer', 'reviewedAt', 'reviewNotes'] as const) {
+        if (!entry[field]) {
+          ctx.addIssue({ code: 'custom', path: [field], message: `is required when status is published` });
+        }
+      }
+    }),
+});
+
+export const collections = { contentPages, localizedPages, localizedTools };
