@@ -35,6 +35,30 @@ sections:
           - >-
             <strong>Tap Download and check the new PDF.</strong> The filename starts with
             "signed_". Open it to check the signature, dates, and every page before sending it back.
+      - kind: 'image'
+        src: '/images/sign-guide/picker.jpg'
+        alt: 'Real PDkef editor showing the empty file picker with Drop PDF here'
+        width: 720
+        height: 256
+        caption: >-
+          <strong>Open pdkef.com/sign and choose your file.</strong> There is no account or upload
+          step; the PDF loads straight into the browser.
+      - kind: 'image'
+        src: '/images/sign-guide/signature-methods.jpg'
+        alt: 'Real PDkef Create Signature dialog with Draw, Type, and Upload tabs'
+        width: 640
+        height: 623
+        caption: >-
+          <strong>Draw, type, or upload a signature.</strong> Typed signatures use a handwriting
+          font; drawn ones follow your finger or stylus.
+      - kind: 'image'
+        src: '/images/sign-guide/filled-and-signed.jpg'
+        alt: 'Real PDkef editor showing a practice form filled in with text, a checked box, and a typed signature'
+        width: 720
+        height: 643
+        caption: >-
+          <strong>The same document, filled in and signed.</strong> Text, a checked box, and a
+          typed signature, all placed before download.
   - sketch: 'waves'
     icon: 'FileEdit'
     iconPos: 'cl'
