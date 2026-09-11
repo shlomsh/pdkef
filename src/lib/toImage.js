@@ -3,6 +3,8 @@
 // The worker URL uses Vite's native `new URL(..., import.meta.url)` asset
 // pattern (see thumbnails.js) so it's bundled as a same-origin asset, never
 // fetched from a CDN.
+import { getPdfRenderContext } from '../editor/adapters/pdf/renderContext.js';
+
 let pdfjsLib;
 
 async function getPdfjs() {
@@ -81,7 +83,7 @@ async function renderPageToCanvas(page, scale, format) {
   const canvas = document.createElement('canvas');
   canvas.width = viewport.width;
   canvas.height = viewport.height;
-  const context = canvas.getContext('2d');
+  const context = getPdfRenderContext(canvas);
   fillWhiteIfJpeg(context, canvas.width, canvas.height, format);
   await page.render({ canvasContext: context, viewport }).promise;
   return canvas;

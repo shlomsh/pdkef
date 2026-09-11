@@ -10,6 +10,7 @@ import ProgressRing from './ProgressRing.tsx';
 import ErrorMessage from './ErrorMessage.tsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { describeFile } from '../lib/format.js';
+import { getPdfRenderContext } from '../editor/adapters/pdf/renderContext.js';
 
 let pdfjsLib: any;
 async function getPdfjs() {
@@ -102,7 +103,7 @@ export default function PdfSplitTool() {
           const canvas = document.createElement('canvas');
           canvas.width = viewport.width;
           canvas.height = viewport.height;
-          const context = canvas.getContext('2d');
+          const context = getPdfRenderContext(canvas);
           
           await page.render({ canvasContext: context, viewport }).promise;
           const url = canvas.toDataURL('image/png');

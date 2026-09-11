@@ -1,5 +1,6 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { getPdfjs } from './pdfjsLoader.js';
+import { getPdfRenderContext } from './renderContext.js';
 import { getElementDefinition } from '../../registry/index.ts';
 
 /**
@@ -39,7 +40,7 @@ export async function redactPdf(file, elements, onProgress) {
       const canvas = document.createElement('canvas');
       canvas.width = viewport.width;
       canvas.height = viewport.height;
-      const ctx = canvas.getContext('2d');
+      const ctx = getPdfRenderContext(canvas);
       
       // Render the original PDF page to the canvas
       const renderContext = {

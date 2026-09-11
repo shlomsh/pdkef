@@ -1036,6 +1036,16 @@ and fails if it calls `onChange`/`dispatch`/`setState` directly.
   drifts. Guarding the batch against the glyph's `hmtx` advance does not catch it. Full analysis,
   including why HarfBuzz WASM is not needed and how to calibrate a parity harness, in
   **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)**.
+- **pdf.js inherits the page's text direction into the canvas, and paints glyphs wrong under
+  `dir="rtl"`.** It draws each glyph with its own `fillText` at the default `textAlign: start` and
+  never sets `direction`, so on a `/he/` edition "start" resolves to right-aligned and every glyph lands
+  shifted left by its own advance - Hebrew *and* Latin, since the shift is per glyph, not per script.
+  `/he/sign/` tore "כרטיס עובד" into "כרט ס ע בד" while `/sign/` was fine with the same file. Every
+  pdf.js render site takes its context from `getPdfRenderContext` (`src/editor/adapters/pdf/
+  renderContext.js`), which forces `ltr`; `renderContext.test.js` scans for a render call that does not,
+  and `e2e/localized/pdf-render-direction.spec.js` requires the two editions to paint the same page
+  bitmap. A detached canvas inherits the *document root's* direction, so the offscreen paths
+  (thumbnails, compress, to-image, redact flatten) were exposed too, not just the editor canvas.
 - **Some editor bugs require a browser, not jsdom.** Unit tests are the first guardrail for pure math,
   but jsdom cannot verify rendered toolbar overlap, real `getBoundingClientRect()` relationships after
   CSS/Floating UI, or whether the toolbar follows a DOM-mutated drag before `pointerup`.

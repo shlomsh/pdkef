@@ -1,4 +1,5 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
+import { getPdfRenderContext } from '../editor/adapters/pdf/renderContext.js';
 
 let pdfjsLib;
 
@@ -69,7 +70,7 @@ export async function compressPdf(file, { level = 'medium', onProgress } = {}) {
       const canvas = document.createElement('canvas');
       canvas.width = viewport.width;
       canvas.height = viewport.height;
-      const context = canvas.getContext('2d');
+      const context = getPdfRenderContext(canvas);
 
       // JPEG has no transparency - fill white first to prevent black background
       context.fillStyle = '#ffffff';
@@ -167,7 +168,7 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
         const canvas = document.createElement('canvas');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        const context = canvas.getContext('2d');
+        const context = getPdfRenderContext(canvas);
         context.fillStyle = '#ffffff';
         context.fillRect(0, 0, canvas.width, canvas.height);
         await page.render({ canvasContext: context, viewport }).promise;

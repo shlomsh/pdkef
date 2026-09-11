@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'preact/hooks';
 import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist';
 import type { PageGeometry } from '../editor/geometry/coords.ts';
+import { getPdfRenderContext } from '../editor/adapters/pdf/renderContext.js';
 import workspaceStyles from './SignTool/Workspace.module.css';
 
 // Dedicated canvas rendering component for clean lifecycles and race-free layout paints
@@ -37,9 +38,9 @@ export default function PdfPageCanvas({
         canvas.width = viewport.width;
         canvas.height = viewport.height;
 
-        const context = canvas.getContext('2d');
+        const context = getPdfRenderContext(canvas);
         if (!context || !active) return;
-        renderTask = page.render({ canvas, viewport });
+        renderTask = page.render({ canvasContext: context, viewport });
         await renderTask.promise;
       } catch (err) {
         // Cancellation is the normal teardown path when a document/page is
