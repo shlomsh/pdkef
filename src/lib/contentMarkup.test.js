@@ -103,6 +103,23 @@ describe('renderInline', () => {
     );
   });
 
+  it("emits a bare <strong> for the 'inherit' tone, never class=\"\"", () => {
+    // LOC-09: this tone exists so a string moving out of hardcoded template
+    // markup and into a content object renders byte-for-byte as it did. The
+    // home page's draft-persistence line is the caller; it inherits the muted
+    // paragraph's color and the browser's default weight, and emitting an
+    // empty class attribute would already be a diff against that.
+    const rendered = renderInline('Available in <strong>Sign &amp; Fill</strong>.', 'inherit');
+    expect(rendered).toBe('Available in <strong>Sign &amp; Fill</strong>.');
+    expect(rendered).not.toContain('class');
+  });
+
+  it('still classes links under the inherit tone - only <strong> is left bare', () => {
+    expect(renderInline('<a href="/sign/">Sign</a>', 'inherit')).toBe(
+      `<a class="${INLINE_LINK_CLASS}" href="/sign/">Sign</a>`,
+    );
+  });
+
   it('leaves entities alone', () => {
     expect(renderInline('Sign &amp; Fill')).toBe('Sign &amp; Fill');
   });

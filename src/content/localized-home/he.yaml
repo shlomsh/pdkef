@@ -20,6 +20,7 @@ description: 'חבילת כלי PDF חינמית וקוד פתוח שרצה כו
 h1: 'כלי PDF חינמיים שרצים על המכשיר שלכם'
 h1Accent: 'על המכשיר שלכם'
 subhead: 'מיזוג, חתימה, פיצול, טשטוש וכיווץ קבצי PDF. בלי הרשמה, בלי התקנה, שום דבר לא יוצא מהמכשיר שלכם.'
+faqKicker: 'כמה תשובות שימושיות'
 faq:
   - question: 'האם הכלים באמת חינמיים?'
     answer: 'כן. כל כלי חינמי לגמרי, בלי תשלום, בלי הגבלת שימוש ובלי סימני מים.'
@@ -86,4 +87,4 @@ reviewNotes: >-
   Hebrew copy drafted by Claude Sonnet 5 per docs/home-page-localization-plan.md
   section 7. Not a native human review - pending Shlomi's own read-through of
   the rendered page before this goes live.
-sourceHash: 'fnv1a64:cf70cc82c4b64c34'
+sourceHash: 'fnv1a64:1a1073e0e90f80db'

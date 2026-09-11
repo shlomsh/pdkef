@@ -82,7 +82,7 @@ const resolvedHomeContext = await getLocalizedHomeContext(locale);
 const alternates = Astro.props.alternates ?? resolvedHomeContext.alternates;
 const variants = Astro.props.variants ?? resolvedHomeContext.variants;
 
-const { title, description, faq, founderStory, draftPersistence, offlineInstall, privacyOpenSource, closing } = home;
+const { title, description, faqKicker, faq, founderStory, draftPersistence, offlineInstall, privacyOpenSource, closing } = home;
 
 // h1/h1Accent: see src/data/homeContent.js's header comment. h1Accent is
 // validated (content.config.ts's localizedHome schema, and by construction
@@ -296,7 +296,10 @@ if (compressToolIndex !== -1) {
             <p class="type-lead space-content-row mt-0 text-[var(--color-text)]">
               {draftPersistence.paragraph}
             </p>
-            <p class="type-body m-0 text-[var(--color-muted)]" set:html={renderInline(draftPersistence.availability, 'muted')} />
+            {/* 'inherit', not 'muted': this line's two tool names have always
+                rendered as a bare <strong> inheriting the muted paragraph, and
+                moving the string into homeContent.js must not restyle it. */}
+            <p class="type-body m-0 text-[var(--color-muted)]" set:html={renderInline(draftPersistence.availability, 'inherit')} />
           </div>
         </div>
       </FeatureCard>
@@ -390,7 +393,10 @@ if (compressToolIndex !== -1) {
     <FeatureCard class="relative isolate overflow-hidden">
       <CardDecor sketch="rings" icon={HelpCircle} iconPos="bl" iconSize={300} parallax />
       <div class="space-heading-content text-center">
-        <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">{messages.faqTag}</span>
+        {/* home.faqKicker, not messages.faqTag: the shell catalogue's tag is
+            what every tool and guide page says ("Got questions?"), and the home
+            page has always said something else. See homeContent.js. */}
+        <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">{faqKicker}</span>
         <h2 class="type-section m-0 text-[var(--color-text)]">{messages.faqHeading}</h2>
       </div>
       <div class="space-layout-gap grid grid-cols-2 gap-x-12 max-[768px]:grid-cols-1">
