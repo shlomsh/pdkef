@@ -51,6 +51,11 @@ test('the app bar, hero and file list mirror under dir="rtl"', async ({ page }) 
 
 test('a loaded file lists its row mirrored: handle at the inline start, remove at the inline end', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
+  // Wait for the client:load island to finish hydrating before touching the file
+  // input. The <input type=file> accepts files even unhydrated, but its Preact
+  // onChange only attaches after hydration - an early setInputFiles is silently
+  // dropped and the row never appears, which is how this spec flaked in CI.
+  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await page.setInputFiles('input[type=file]', {
     name: 'sample.pdf',
     mimeType: 'application/pdf',
