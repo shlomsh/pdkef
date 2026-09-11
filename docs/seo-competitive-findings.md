@@ -183,6 +183,18 @@ Worth noting inside that cluster: "how to sign on pdf file sent through whatsapp
 (19 impressions, positions 48-50). PDkef's own copy already names the WhatsApp attachment case. We are
 being shown for our own story and losing it on authority.
 
+*Progress note, 2026-09-11 (SEO-12):* the full review ran against this cluster, end to end. Real Google
+and Bing SERPs (screenshots) plus WebSearch for the three highest-impression queries confirm the shape
+above with primary data: page one is Apple/Microsoft first-party docs, Adobe, Dropbox, Smallpdf, video
+results, and - on Bing - four sponsored slots making exactly SEO-11's four claims ("Free", "Works on
+Any Device", "Secure") with no evidence, from upload-based tools. No result in ten across three queries
+and two engines mentions language/script support; this is a device-workflow query, not a language one.
+Zero language-name or comb-field-vocabulary queries exist anywhere in the full 207-row export, not just
+this cluster - there is no query-derived wording to add for either. Conclusion: SEO-07 already shipped
+everything this review would have proposed (the language card, the native-script FAQ questions, the
+WhatsApp section, the plain-language comb-field description); no further copy change is warranted. Full
+method and reasoning in [SEO-12](../backlog/tasks/SEO-12.md#progress-2026-09-11).
+
 ---
 
 ## 3. The competitive landscape (deep research, 2026-09)
@@ -368,7 +380,11 @@ Every review ticket (SEO-12 through SEO-16) follows this:
 
 1. Pull the tool's queries out of the latest Search Console export (section 1). Rank them by
    impressions. These are the words real people use, and they outrank any keyword-volume estimate in
-   section 3's research.
+   section 3's research. **Check first that the cluster's queries actually land on the tool's own
+   page** - cross-reference against the "By page" table. SEO-12 found that Sign's entire 58-query
+   cluster ranks on the four OS guides, not on `/sign/` itself, which ranks on queries GSC withholds
+   under its privacy filter. Running the top-ten analysis without this check means analysing the wrong
+   page's SERP.
 2. Read the top ten results for the three highest-impression queries. Record what each page leads with,
    what it claims, what it hides, and what its actual limits are behind the signup wall.
 3. Compare against our page's current copy, word by word, including `seoTitle`, `seoDescription`, `h1`,
@@ -387,3 +403,11 @@ grow from a fixed right edge, comb-field detection), states the acceptance crite
 competitor references), and is explicit about where the review should be sceptical of its own
 enthusiasm ("supports 11 scripts" is a marketing sentence; "the letters come out in the right order in
 the file you download" is the thing a person needed). Read it before starting SEO-13 through SEO-16.
+
+**SEO-12 is also the model for a review that correctly concludes "no change."** It ran the method end
+to end - real SERP samples for the three highest-impression queries, a full re-derivation of the query
+list from the raw export rather than the cluster summary, a word-by-word comparison against the pages
+that actually rank - and found that a prior ticket (SEO-07) had already shipped everything this one
+would have proposed. It said so, with the evidence for each "already correct" verdict, rather than
+inventing a copy change to have something to ship. The next four reviews should read this as permission
+to reach the same conclusion where it is true.
