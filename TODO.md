@@ -164,6 +164,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | LOC-11 | P2 | [LOC-11](backlog/tasks/LOC-11.md) · Top-languages research: is there untapped in-language traffic behind the site's top countries? |
 | LOC-12 | P3 | [LOC-12](backlog/tasks/LOC-12.md) · Two-month country and language re-check, due 2026-11-12 |
 | LOC-13 | P2 | [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins |
+| LOC-14 | P2 | [LOC-14](backlog/tasks/LOC-14.md) · Indonesian target-size compress: run the ROI gate on the size-limit family autocomplete surfaced |
 
 
 ## Migrated context and history

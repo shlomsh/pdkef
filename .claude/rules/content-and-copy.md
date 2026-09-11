@@ -189,6 +189,9 @@ Four standing rules, each learned the expensive way (evidence in the doc's secti
   indexing request, and no CTR reading is a verdict until the indexed snippet matches the live one.
 - **Google blocks scripted SERP fetches from this environment.** Real Google SERPs come from Shlomi's
   screenshots; ask rather than guess. Bing/DuckDuckGo show who competes, never our Google position.
+  Autocomplete does answer (`node scripts/seo-autocomplete.mjs <hl> <gl> <seed...>`): use it to find
+  the phrasings a locale actually types before asking for Trends or SERP screenshots, seeding
+  verb-first and without the word "pdf" (LOC-11 has the method and the 2026-09-12 sweep).
 
 **Page localization is a settled question with a review date; do not reopen it from first principles.**
 Twelve languages were measured in 2026-09 (Trends, real `hl`/`gl` SERPs, GSC by country). The

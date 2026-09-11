@@ -210,14 +210,14 @@ SERP's shape), and Spain's `y sin aplicación` is the sign-without-an-app intent
 
 | Language | 1. Trends share | 2. Weak incumbent to beat | 3. Reviewer | Verdict |
 | --- | --- | --- | --- | --- |
-| Vietnamese | **Cleared, 6x to 12x** on compress, merge, sign | **Not met**: majors native, six-figure reviews, on-device claim already held by O.Convertor | None | Demand yes, generic tool page no (Indonesian's shape) |
-| Turkish | **Cleared** on compress (13x); sign at parity | **Not met**: same field; target-size related searches (`5 MB`, `10 MB`, `80`) are the opening | None | Same; **strongest niche signal** |
+| Vietnamese | **Cleared, 6x to 12x** on compress, merge, sign. **Blur (group E, 2026-09-12): below Trends' floor**, `làm mờ pdf` three one-week blips and a rise in the last two weeks, the other four phrasings flat at 0 | **Not met**: majors native, six-figure reviews, on-device claim already held by O.Convertor | None | Demand yes, generic tool page no (Indonesian's shape); **blur pilot no**, the demand half fails |
+| Turkish | **Cleared** on compress (13x); sign at parity. **Target-size (group F, 2026-09-12): below Trends' floor**, `pdf küçültme` a strong steady line, `pdf boyutu küçültme` about a tenth of it, `1 mb` / `5 mb` / `10 mb` forms all flat at 0 | **Not met**: same field; target-size related searches (`5 MB`, `10 MB`, `80`) are the opening | None | Same; the niche signal is real in related searches and autocomplete but too small for Trends, same shape as Spanish |
 | Spanish | **Cleared, 13x to 20x** | **Not met**: iLovePDF's home language; UnePDF holds the on-device claim at 3; `a 1MB / a 2MB` related searches | Easiest to source | Same; **easiest niche pilot to staff** |
 | Italian | **Cleared, 7x**; not on Google's translated-results list, so a native page adds the most | **Not met**: same field, regispro.it holds the on-device claim | Sourceable | Same |
 | Arabic (UAE) | **Fails**: English 10x to 17x | Native field, moot | | **No** for the UAE; Egypt and Saudi unmeasured and not in the top twenty |
 | Filipino | **Fails, measured 2026-09-12:** English leads on all four tasks (`compress pdf` ~80 and `pdf compressor` ~60; `merge pdf` ~75; `sign pdf` ~40; `pdf to jpg` ~85) and every Filipino or code-switched form is flat at 0 with a one-week blip apiece. The Philippines searches this niche in English. | A second-tier native field exists (pdf2go, piliapp, compress2go), moot | | **No.** The English pages are already the right pages for the Philippines, which is also the country with the most impressions of the seven pulled (100, all English blur). |
-| Bengali | Not run | One major (PDF24) plus second-tier native pages; related searches in Bengali | | Open; run the Trends chart before deciding |
-| Urdu | Not run | | | Not run |
+| Bengali | **Fails, measured 2026-09-12 (group D):** Bangladesh searches all four tasks in English; the Bengali forms are flat | One major (PDF24) plus second-tier native pages, moot | | **No**, same shape as India and the Philippines |
+| Urdu | Not run; Pakistan is not in the top twenty and its neighbours (India, Bangladesh) both search in English | | | Not run, deprioritised |
 
 ## Recommendation to LOC-10 (2026-09-12)
 
@@ -285,6 +285,68 @@ SERP's shape), and Spain's `y sin aplicación` is the sign-without-an-app intent
 **F. Turkish target-size, for the record as the second pilot candidate** (`geo=TR`)
 
 - Trends: [pdf küçültme / pdf küçültme 5 mb / pdf küçültme 10 mb / pdf küçültme 1 mb / pdf boyutu küçültme](https://trends.google.com/trends/explore?date=today%2012-m&geo=TR&q=pdf%20k%C3%BC%C3%A7%C3%BCltme,pdf%20k%C3%BC%C3%A7%C3%BCltme%205%20mb,pdf%20k%C3%BC%C3%A7%C3%BCltme%2010%20mb,pdf%20k%C3%BC%C3%A7%C3%BCltme%201%20mb,pdf%20boyutu%20k%C3%BC%C3%A7%C3%BCltme&hl=en) · SERP [pdf küçültme 5 mb](https://www.google.com/search?q=pdf%20k%C3%BC%C3%A7%C3%BCltme%205%20mb&hl=tr&gl=TR)
+
+## The unknown unknowns: an autocomplete sweep (2026-09-12)
+
+Everything above tested *our* queries in translation. The question Shlomi raised is the query we never
+thought of because it is not a translation of anything: a local document type, a portal's size limit, a
+phrasing that has no English equivalent. Three sources answer it, and two of them are fetchable from
+this environment, unlike SERPs and Trends:
+
+1. **Google autocomplete** (`suggestqueries.google.com`, `hl` + `gl`) answers scripted requests.
+   Suggestions are ranked by what people in that locale type, and they complete to phrasings we never
+   seeded. `node scripts/seo-autocomplete.mjs <hl> <gl> <seed...> [--letters]` runs the sweep. Two
+   things matter in the seeding: run it verb-first as well as `pdf`-first (Vietnamese, Spanish and
+   Indonesian put the verb before the noun, so a `pdf ...` prefix never reaches "nén pdf" or
+   "memperkecil pdf"; that is exactly where the unknowns hide), and seed the *task* without the word
+   pdf ("giảm dung lượng", "boyut küçültme", "bajar peso", "memperkecil ukuran") to see what else the
+   locale shrinks, merges or signs.
+2. **The incumbents' localized page titles.** iLovePDF's sitemap lists 25 locales with 51 pages each
+   (`/id/mengompres-pdf`, `/vi/...`), PDF24's `/id/kompres-pdf` answers with its native title. The
+   titles are the keyword bets of teams that have Keyword Planner data; what they localize and what
+   they do not is a free map of the field. Fetchable with `curl`.
+3. **Per-domain keyword tools**, which is the direct answer to "which queries does domain X rank for in
+   country Y": Google Keyword Planner ("Discover new keywords", "Start with a website", set the
+   location and language; free with an Ads account, shows monthly volume ranges), Semrush and Ahrefs
+   Site Explorer organic keywords filtered by country (paid; the free views are truncated to a handful
+   of rows), SimilarWeb's free top-five. These need a login, so they are Shlomi's to run; the
+   Keyword Planner run on `ilovepdf.com/id/` and `/vi/` with the matching location is the one worth
+   doing, because it returns volumes, which autocomplete never does.
+
+**Sweep run 2026-09-12** (`vi`/VN, `tr`/TR, `es`/MX, `it`/IT, `id`/ID; 26 letter seeds plus 30 to 45
+verb and task seeds each; 495 to 646 distinct suggestions per locale; raw output in the session
+scratchpad, reproducible with the script):
+
+- **The size-limit family is the unknown unknown, and it is densest in Indonesian.** `kompres pdf 1 mb`,
+  `kompres pdf jadi 1 mb`, `mengecilkan pdf 200 kb` / `300 kb` / `500kb` / `dibawah 1 mb` / `kurang
+  dari 1 mb`, `memperkecil pdf 100 kb` / `400 kb` / `2 mb` / `10 mb`, `kompres pdf di bawah 200kb`,
+  `pdf 200 kb`, `pdf 300 kb`, `ukuran file lamaran kerja via email` (job-application file size),
+  `kompres pdf sesuai ukuran yang diinginkan` (compress to the size you want). This is the
+  `/pdf-wont-compress-to-100kb/` intent in its natural home: Indonesian job and civil-service portals
+  (CPNS, SKCK) publish hard KB limits. Indonesian was also the one language at Trends parity with
+  English in LOC-01, and it is on Google's translated-results list. Handed to [LOC-14](LOC-14.md) to
+  run the gate.
+- **Vietnamese has the same family**: `nén pdf dưới 1mb` / `2mb` / `3mb` / `5mb` / `10mb` / `15mb` /
+  `20mb` / `500kb`, `siêu nén pdf dưới 1mb`, `giảm dung lượng file scan pdf`, `nén file pdf cực mạnh`.
+  `nén pdf dưới 2mb` was the suggestion most seeds converged on. Below Trends' floor by the Turkish
+  and Spanish precedent, but autocomplete's threshold is lower than Trends', so it is real repeat
+  volume; second candidate after Indonesian.
+- **Mexico and Italy carry it too** (`pdf menos de 1mb` / `500kb` / `300 kb`, `reducir pdf a 2mb`,
+  `comprimir pdf a 2mb`; `ridurre pdf a 2 mb`, `comprimere pdf a 1 mb gratis`), consistent with the
+  related-searches blocks we saw, and with the Trends reading that it is small.
+- **The archetype of a query we would never have guessed:** Turkish `dosya boyutu en fazla 1.5 mb
+  büyüklüğünde pdf formatında olacaktır` ("the file must be a PDF of at most 1.5 MB"), a portal's
+  requirement sentence pasted into Google verbatim. Portal-limit copy is a query.
+- **The adjacent demand is images, not PDFs.** Every locale's task seeds complete to photos before
+  PDFs: `nén ảnh dưới 1mb`, `1 mb fotoğraf yapma`, `2 mb fotoğraf`, `bajar el peso de una imagen`,
+  `memperkecil ukuran foto` / `foto jpg`, `ridurre peso foto`. An image-to-target-KB tool is a
+  product gap, not a localization question; noted for the SEO epic, not acted on here.
+- **Nothing surfaced that maps to a tool we lack in the PDF space** beyond conversions (`pdf to word`
+  leads in every locale, in English even in Vietnam and Mexico) and repair (`pdf bị lỗi font chữ`,
+  `memperbaiki pdf`), which are out of scope by design.
+- **Reading caveat:** suggestions under English-shaped seeds (`pdf 1 mb`) are partly global
+  (`pdf 2 mb se kam` is Hindi, returned for `gl=MX`); only the native-verb suggestions are locale
+  evidence.
 
 ## The ROI gate (goes into the findings doc section 2 with the decision)
 
