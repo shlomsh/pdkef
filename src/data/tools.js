@@ -366,7 +366,7 @@ export const tools = [
     sitemapChangefreq: 'monthly',
     seoTitle: 'Merge PDF Online Free - Combine PDFs in Your Browser | PDkef',
     seoDescription:
-      'Merge PDF files online for free. Drag, reorder, and combine PDFs in your browser instantly. No upload, no signup, no watermark.',
+      'Merge PDF files online for free, with no file limit. Drag, reorder, and combine PDFs in your browser instantly. No upload, no signup, no watermark.',
     schemaName: 'PDkef - Merge PDF',
     toolName: 'Merge PDF',
     h1: 'Merge PDF Online Free: Combine Files in Your Browser',
@@ -506,7 +506,7 @@ export const tools = [
     aboutLead:
       'Extract pages or split a PDF file into separate documents, right in your browser. No upload, no server. Your files never leave your device.',
     freeNoteLead:
-      "Extract pages or split a PDF into separate files as often as you like, with no watermark or page caps. Because it runs on your device, there's nothing to upload and no usage to ration.",
+      "Extract pages or split a PDF into separate files as often as you like, with no watermark or page caps. Because it runs on your device, there's nothing to upload and no usage to ration. Want to remove a few pages and keep the rest of the original document? Use <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/edit-pdf/\">Edit PDF Pages</a> instead: Split pulls the pages you pick out into a new file, Edit Pages deletes them and keeps everything else.",
     aboutSketch: 'grid',
     aboutIconPos: 'tr',
     faqSketch: 'arcs',
@@ -524,7 +524,7 @@ export const tools = [
       { question: 'What is the difference between Combined and Separate mode?', answer: 'Combined mode takes all selected pages and merges them into a single output PDF document. Separate mode extracts each selected page as its own individual PDF file.' },
       { question: 'Is there a limit on file size or number of pages?', answer: "There is no artificial limit. The tool can handle any file size and page count, constrained only by your device's system memory." },
       { question: 'Can I pull a single chapter or receipt out of a large PDF?', answer: 'Yes. Type the page range for just the chapter, invoice, or receipt you need, and Split extracts exactly those pages into their own file.' },
-      { question: 'Is this a PDF page extractor?', answer: 'Yes. Splitting and extracting are the same operation here: pick the pages you want and choose Separate mode to pull each one out as its own file, or Combined mode to extract a range into a single new PDF.' },
+      { question: 'Is this a PDF page extractor?', answer: 'Yes. Splitting and extracting are the same operation here: pick the pages you want and choose Separate mode to pull each one out as its own file, or Combined mode to extract a range into a single new PDF. If you want to remove a few pages and keep the rest of the document instead, use Edit PDF Pages.' },
     ],
   },
 
@@ -639,7 +639,7 @@ export const tools = [
     aboutLead:
       'Edit, rotate, reorder, and delete pages from your PDF, right in your browser. Your file stays on your device; PDF processing never uploads it.',
     freeNoteLead:
-      "Remove, rotate, reorder, and number pages in as many PDFs as you like, with no watermark or daily cap. Because every edit runs on your device, there's nothing to upload and no usage to ration.",
+      "Remove, rotate, reorder, and number pages in as many PDFs as you like, with no watermark or daily cap. Because every edit runs on your device, there's nothing to upload and no usage to ration. Want to pull a few pages out into their own file instead, leaving the original untouched? Use <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/split/\">Split PDF</a> to extract them.",
     aboutSketch: 'arcs',
     aboutIconPos: 'br',
     faqSketch: 'waves',
