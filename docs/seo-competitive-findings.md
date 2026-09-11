@@ -56,7 +56,7 @@ all of it (section 6). Tickets whose only remaining step is that read are `block
 | LOC-03 Hebrew pilot | open, shipped | 2026-09-11 | `/he/compress/`, `/he/merge/`, `/he/sign/` reviewed by Shlomi and live (indexable, in the sitemap); indexing requested 2026-09-11, so the eight-week read runs to 2026-11-06 | 2026-10-08: Hebrew queries in GSC via LOC-06's per-locale table |
 | LOC-04 Indonesian pilot | retired | 2026-09-11 | LOC-01 cleared demand (Trends parity on compress/sign) but LOC-07's ROI judgment found criterion 2 fails on the real SERP (iLovePDF/Smallpdf/Adobe/PDF24/Canva, 300k-700k reviews each, same field `/merge/` loses to in English at position 36.13/0 clicks) and Indonesian is already machine-bridged by Google's translated-results list | reopen only alongside LOC-03 producing impressions, or an English page reaching page one on its own head term |
 | LOC-05 Hebrew guides | open, shipped | 2026-09-11 | seven of eight published and live for Shlomi's review on the deployed site (`offline-pdf-form-filler` held: its English is a retired redirect); five were stale against SEO-08's screenshots and were updated; links resolve inside `/he/` where an edition exists | one indexing request per URL once the daily quota resets, dated in LOC-05; outcome folded into LOC-03's read |
-| LOC-06 per-locale refresh table | open | 2026-09-11 | not started; needed before the 2026-10-08 refresh can judge the Hebrew pilot at all | |
+| LOC-06 per-locale refresh table | done | 2026-09-11 | `seo-refresh.mjs` gained section 3.7 (pages grouped by `src/i18n/localePrefixes.js` prefix next to their English sibling, non-Latin queries clustered by detected script, a country breakdown for the locale's pilot country); pure logic in `scripts/seoRefreshLib.mjs`, unit-tested (`src/lib/seoRefresh.test.js`, 27 tests); findings doc section 3.7 added as "not yet run" and section 6 procedure updated - no real numbers yet, that is the 2026-10-08 read | 2026-10-08: first real per-locale table, folded into LOC-03's outcome |
 | LOC-07 second-language ROI | done | 2026-09-11 | Verdict: not now. In-language demand is necessary but not sufficient - this domain hasn't beaten Indonesian's competitive field once, in English, at any position better than 36. Retired LOC-04; declined Part 2 (unmeasured languages) since a harder-to-verify language isn't worth measuring when the clearest-demand one already failed the field test | revisit alongside the two signals above |
 | LOC-08 Tamil/Telugu demand check | open | 2026-09-11 | Reopened Part 2 for India specifically, on Shlomi's call (best-converting country). Incumbent check done: Telugu has one real native competitor page (PDF24, all four tools); Tamil has none among the majors checked - PDF24 and Sejda both serve English at Tamil-tagged URLs. Telugu Trends/SERP links built and ready for Shlomi; Tamil sent to a lighter reconnaissance pass first (no verified phrasing exists yet to spend a full Trends chart on) | Shlomi's Telugu Trends + SERP screenshots, Tamil reconnaissance SERPs |
 | LOC-09 Hebrew home page | open | 2026-09-11 | design in `docs/home-page-localization-plan.md`; `/he/` is the one URL the edition's switcher cannot offer; waits on LOC-03's first read | |
@@ -247,6 +247,37 @@ Bing/DuckDuckGo 2026-09-10 for the SEO-04/05 rows. The softest column here.
 | Offline / installable | full PWA | none | Underused. |
 | Indexed page count | 12 of 22 URLs earning impressions (2026-09-10) | thousands | SEO-06, SEO-28. |
 
+### 3.7 By locale
+
+**Not yet run - first read at the 2026-10-08 refresh** ([LOC-06](../backlog/tasks/LOC-06.md)). The
+sections above cluster queries by English intent words and read pages by their own URL, so a Hebrew
+query lands in no cluster and `/he/compress/` is invisible next to `/compress/` even though both are
+in the export. `node scripts/seo-refresh.mjs` now prints this section too (section 6 step 2 covers
+both at once); paste its output over the tables below rather than the numbers shown here, which are
+the shape the script prints, not a measurement.
+
+Same privacy-filter caveat as 3.1, more so here: a locale with only a handful of impressions has
+proportionally more of its queries omitted by Search Console's privacy filter, so the query list below
+is a lower bound on what the locale actually receives - more than usual, since a small locale's whole
+query list can sit under the filter's threshold.
+
+**/he/ pages vs. their English sibling**
+
+| Page | Clicks | Impressions | CTR | Position | English sibling | Sibling clicks | Sibling impressions | Sibling CTR | Sibling position |
+| --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: |
+| _not yet run_ | | | | | | | | | |
+
+Pilot country for `/he/`: Israel (`src/i18n/localePrefixes.js`'s `pilotCountry` map). _Country row not
+yet read._
+
+**Non-Latin queries, by script**
+
+_Not yet run._ Every query in `Queries.csv` that carries a non-Latin script (Hebrew, Arabic,
+Devanagari, Bengali, Tamil, Telugu, Thai, CJK - `\p{Script=...}` per `scripts/seoRefreshLib.mjs`)
+prints as its own cluster with the raw query string, clicks, impressions and position, grouped by
+script and sorted by impressions - the direct check of whether the Hebrew phrasing LOC-01 predicted
+(e.g. "כיווץ" over "דחיסה") is what actually arrived.
+
 ---
 
 ## 4. The plan and its gates
@@ -319,8 +350,9 @@ Monthly, plus after any ticket that claims a ranking or CTR change. Next: **2026
 1. **Export.** Search Console, Performance -> Search results, Search type = Web, Date = Last 3 months,
    Export -> CSV, unzip. For indexing: Indexing -> Pages, export Coverage, and drill into any
    not-indexed category with 5+ pages for its URL list.
-2. **Run `node scripts/seo-refresh.mjs <export folder>`.** It prints the section 3.1 to 3.3 tables.
-   Paste over the existing ones - replace, do not append.
+2. **Run `node scripts/seo-refresh.mjs <export folder>`.** It prints the section 3.1 to 3.3 tables,
+   and section 3.7 (by locale - LOC-06) in the same pass. Paste every table over the existing ones -
+   replace, do not append.
 3. **Crawl dates.** Read `Last crawled` from URL Inspection for all URLs into
    `docs/seo-last-crawled.json`, run `npm run seo:crawl-staleness`, update 3.4. The printed stale list
    is the reindex queue; submit each once.
@@ -332,7 +364,8 @@ Monthly, plus after any ticket that claims a ranking or CTR change. Next: **2026
    refresh date at the top of this section.
 
 Known gap: `Queries.csv` omits low-volume queries (privacy filter), so cluster totals are a lower
-bound and `Pages.csv` is the exact site-wide number.
+bound and `Pages.csv` is the exact site-wide number. This hits section 3.7 hardest of all - see the
+caveat there.
 
 ---
 
