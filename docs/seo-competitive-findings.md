@@ -31,7 +31,7 @@ all of it (section 6).
 | --- | --- | --- | --- | --- |
 | SEO-01 baseline, `lastmod`, indexing requests | done | 2026-09-11 | 27 URLs tracked, 11 indexed, 9 never crawled; `lastmod` shipped; **9 of the 11 indexed pages are stale** (crawled before their last content change); indexing requested for all 9 stale + all 9 never-crawled | 2026-10-08: recapture `seo-last-crawled.json`, see whether the requested URLs moved and whether `/merge/` and `/unlock/` (not requested) moved too |
 | SEO-02 standings + refresh procedure | done | 2026-09-10 | `seo-refresh.mjs` reproduces section 3 from an export; procedure in section 6 | monthly |
-| SEO-03 external signals | open, in progress | 2026-09-11 | repo-side work done: description/homepage/topics fixed on GitHub, README's language paragraph corrected from 11 to the real 20; referring-domain baseline still not captured; venue list in [section 8](#8-reference-seo-03-venue-list-and-outreach-log) | needs outreach on the listed venues, plus a referring-domain count at the next refresh |
+| SEO-03 external signals | open, in progress | 2026-09-11 | repo-side work done (description/homepage/topics fixed, README's language paragraph corrected from 11 to the real 20); referring-domain baseline captured at zero external mentions (proxy method, see caveat); six candidate venues listed, none approached | [section 8](#8-reference-seo-03-venue-list-and-outreach-log): needs outreach go-ahead, plus a re-check at the next refresh |
 | SEO-04 blur zero-click | open, blocked on a recrawl | 2026-09-11 | meta rewritten 09-10; real SERP captured 09-11 shows Google serving the pre-08-29 title, so the change has never been seen; AI Overview cites us on 2 of 3 queries (zero-click by design); recrawl requested | 2026-10-08: first check whether the indexed title changed; only then is CTR a verdict |
 | SEO-05 compress CTR + honesty | open, same recrawl exposure | 2026-09-10 | meta now leads with the honest miss ("if it can't hit the target, we say so"); rasterization + passthrough disclosed above the FAQ; interim signal 2026-09-11: `file compressor to 100kb` got its first clicks (4/95, 4.2% CTR) but this predates the fix being indexed, not a verdict yet | same first check as SEO-04 |
 | SEO-06 never-crawled nine | open | 2026-09-11 | nine linked from `/redact/` and `/compress/`; `/image-to-pdf/` and `/pdf-to-image/` leads differentiated; `/edit-pdf/` got no content work (descoped, not done) | 2026-10-08 coverage recheck = **the Week 4 gate** |
@@ -418,9 +418,23 @@ checked against what is true today; "met" does not mean submitted.
 | Hacker News (Show HN) | Working product, genuine "I built this" framing | Yes | Not yet posted |
 | Privacy Guides community (discourse/forum) | On-topic privacy tool, disclosed authorship | Yes | Not yet posted |
 
-### Not yet measured
+### Referring-domain baseline (2026-09-11)
 
-- **Referring-domain count** - no baseline captured yet. Needs a run at the next monthly refresh
-  (section 6) alongside the Search Console pull, once a tool for it is picked (Bing Webmaster Tools'
-  free backlink report is the most likely candidate available from this environment; confirm before
-  relying on it).
+**Zero external mentions found.** Web searches for `pdkef.com` and `"pdkef"` (blocking pdkef.com's own
+results) surface only our own pages, unrelated acronym collisions (a Wikipedia disambiguation, a
+malware registry entry, word-unscrambler sites) and one coincidental Imgur album URL - nothing that is
+actually about this product. Repo-side signal is consistent with that: 4 GitHub stars, 0 forks, 0
+network dependents, domain registered/launched 2026-06-30 (about 10 weeks old at this measurement). This
+matches the epic's own standing diagnosis - a new domain with no authority yet - and gives SEO-03 an
+honest starting point: there is nothing to protect or build on, only somewhere to go up from.
+
+**Method caveat, read before trusting this number at the next refresh.** This is a general web-search
+proxy, not an authoritative backlink index - it can miss a real referring link that never got indexed
+by this search tool, and it cannot enumerate a *count* of referring domains the way a proper link-graph
+tool does. Search Console's own Links report (Shlomi's account) or Bing Webmaster Tools' free backlink
+report would both be more precise; neither is accessible from this environment. Treat "zero found by web
+search" as a floor, not a verified zero, until one of those is checked.
+
+**Next measurement:** re-run the same two searches at the 2026-10-08 refresh (section 6) and record
+whatever the venue outreach below produced by then. If a real backlink tool becomes available (Shlomi's
+GSC/Bing access), prefer it over this proxy from that point on.
