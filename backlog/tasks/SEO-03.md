@@ -124,3 +124,32 @@ over the search proxy if one becomes accessible.
 - Checked and **rejected as candidates**: `feross/awesome-pwa` (dead since 2021, 4 stars, not worth
   pursuing); `py-pdf/awesome-pdf` (161 stars but stale since 2024, and scoped specifically to Python
   libraries - off-topic for an end-user web app).
+
+**Third pass, 2026-09-11 (evening): the two PDF awesome-lists submitted, release history started.**
+
+- **OneOffTech/awesome-pdf** - submitted via their "Add Entry" issue template, per their
+  `contributing.md`: [OneOffTech/awesome-pdf#81](https://github.com/OneOffTech/awesome-pdf/issues/81),
+  category Creation and production, authorship disclosed in the body.
+- **abhi18av/awesome-pdf** - already submitted by a parallel session sixteen minutes earlier:
+  [abhi18av/awesome-pdf#68](https://github.com/abhi18av/awesome-pdf/pull/68), from the same
+  `shlomsh:add-pdkef` fork branch. This session had forked, drafted a longer line (adding the
+  20-language Sign fact, in the list's own `–` style) and was about to push when the fork's existing
+  branch rejected the push as behind. Left #68 as-is: one PR per venue, and a force-push over another
+  session's open PR is worse than a shorter entry. Lesson for parallel agents: **check
+  `gh pr list --author shlomsh` on the venue repo before forking**, the same way we now check a
+  venue's own gates before drafting.
+- **Release history** - `package.json` bumped 0.1.0 to 1.0.0 (`054b8db` on `main`), notes drafted at
+  [docs/release-notes-v1.0.0.md](../../docs/release-notes-v1.0.0.md). `git tag` and
+  `gh release create` were both refused by the agent sandbox's permission classifier, so the tag and
+  the GitHub release are Shlomi's to run:
+
+  ```bash
+  git tag -a v1.0.0 054b8db -m "PDkef 1.0.0" && git push origin v1.0.0
+  gh release create v1.0.0 --title "PDkef 1.0.0" --notes-file docs/release-notes-v1.0.0.md
+  ```
+
+  Chose `1.0.0` over tagging the existing `0.1.0`: a 0.x tag on a product ten weeks live with nine
+  working tools reads as "not ready" in exactly the directories this ticket submits to. The
+  awesome-selfhosted four-month clock starts at the tag date, so the tag should not wait.
+- Still queued from the second pass: Astro Showcase (comment on withastro/roadmap#521), the PWA
+  directories, Lissy93/awesome-privacy (rules unchecked).
