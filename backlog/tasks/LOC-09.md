@@ -107,15 +107,54 @@ file publishing to `main` pushes it to production without his separate sign-off.
    flexbox's automatic RTL mirroring applies with zero code changes, per §4.1's own finding. Whether a
    mirrored dock is actually correct for a UI element meant to read as a fixed "macOS dock" position is
    still an open product question - review this visually on `/he/`.
-3. **Native review of the Hebrew copy.** `he.yaml` is an AI-produced draft (this session), not a native
+3. **The tool dock's *text* is still English, and it is not disclosed on the page.** Separate from the
+   mirroring question above: `gridTitle`/`gridDescription` are not in `TOOL_SOURCE_FIELDS`
+   (`src/i18n/localizedTools.ts`), so all nine dock labels ("Sign & Fill PDF", "Merge PDF"...) and
+   their nine tooltip sentences render in English on `/he/`. That is the design doc's own §9 open
+   question #3 - whether those two fields join the localized-tool source set, which changes every
+   localized tool page and not just home - so it is deliberately not resolved here.
+   **Measured on the built page, because the size of it is the argument:** `/he/` is 2,045 Hebrew
+   letters against 2,706 Latin, a whole-page script purity of **0.430**, under the guard's 0.5 floor.
+   It passes only because of the `[data-home-demo]` exemption in item 1; with the demo excluded it is
+   still **0.682**, and the dock is most of that remainder. The demo at least says it is English. The
+   dock does not, and the dock is what CLAUDE.md says the home page exists for. Worth weighing when
+   §9 #3 is decided.
+4. **Native review of the Hebrew copy.** `he.yaml` is an AI-produced draft (this session), not a native
    review - CLAUDE.md is explicit that "AI drafts are not native review." It is `status: published` per
    the decision above, but Shlomi has not yet read through the rendered page; `reviewNotes` says so.
+   The same applies to the new Hebrew `FileDropzone`/`RecentFiles` catalogues in
+   `src/i18n/toolMessages.ts`, which now carry that caveat in a comment the way `hebrewMergeMessages`
+   already did.
+
+**Found in review and fixed here, so nobody re-derives them:**
+
+- The HomePageLayout extraction quietly changed two things on the English `/`. The FAQ kicker started
+  reading `DocumentationShellMessages.faqTag` ("Got questions?", what every tool and guide page says)
+  instead of the home page's own "A few useful answers", and the draft-persistence line's two tool
+  names picked up `renderInline`'s `muted` tone where they had always been a bare `<strong>`. Home now
+  owns a `faqKicker` field and `renderInline` has an `inherit` tone. `dist/index.html` was diffed
+  against a fresh build of `6b4fde2` before and after; the only remaining deltas are the reciprocal
+  hreflang links, the footer language switcher and the island props payload.
+- The locale's own home page was missing from its offline pack (`getPublishedEditionPaths` unioned
+  tool and guide variants only), so an installed Hebrew PWA would have answered `/he/` offline with
+  sw.js's `/` fallback - the English shell.
+- `getStaticPaths` here took every `localizedHome` entry regardless of `status`. Since this route has
+  no preview branch, a draft would have built as an ordinary indexable page that the sitemap and the
+  alternates both excluded. Now filtered.
+- **`/he/` has no static-hosting or routing problem, despite an earlier report that `astro preview`
+  404s on it.** Verified three ways on this branch: `dist/he/index.html` exists with the right
+  content, a plain `python3 -m http.server` over `dist/` answers `/he/` `200`, and `astro preview`
+  itself answers `/` `/sign/` `/he/` `/he/sign/` `/he/open-source-pdf-editor/` all `200`. The earlier
+  404 was the preview daemon reusing a port against another build - the trap CLAUDE.md's Commands
+  section already names ("one preview, on 4173, per worktree"). Do not add a Vercel caveat for this.
 
 **What "done" means right now:** infrastructure-complete and live/indexable, with the Hebrew copy an
 unreviewed AI draft flagged as such in `he.yaml`'s own `reviewNotes`. Still open: (1) Shlomi's own
 read-through of the rendered `/he/` page, updating `reviewer`/`reviewedAt`/`reviewNotes` for real once
 he has; (2) a product decision on HeroDemo's RTL treatment (§4.2); (3) a product decision on whether the
-tool dock's automatic RTL mirroring (§4.1) is the wanted behavior, or needs an explicit override.
+tool dock's automatic RTL mirroring (§4.1) is the wanted behavior, or needs an explicit override;
+(4) §9 open question #3, whether `gridTitle`/`gridDescription` join `TOOL_SOURCE_FIELDS` so the dock
+reads in-language - deferred item 3 above has the purity measurement that bears on it.
 
 **Known gap, still not fixed here** (see the "Known gap to fold in" note above): the home page's
 Markdown twin (`index.md.ts`) has no locale-aware equivalent, so `Accept: text/markdown` on `/he/` falls
