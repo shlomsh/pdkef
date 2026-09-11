@@ -109,6 +109,35 @@ describe('language purity (guard 3)', () => {
     expect(problems).toHaveLength(1);
     expect(problems[0]).toMatch(/language purity 0\.\d+ .* is below 0\.5/);
   });
+
+  // LOC-09: the home page's HeroDemo stays English on purpose (the RTL/
+  // direction-of-motion question in docs/home-page-localization-plan.md,
+  // section 4.2 is unresolved), disclosed via HomePageLayout.astro's
+  // data-hero-demo-english-notice marker - the same disclosed-English
+  // exception as the tool-island case above, applied to [data-home-demo].
+  function homePage({ body, demoText, notice }) {
+    const html = `<!doctype html><html lang="he" dir="rtl"><head>
+      <link rel="canonical" href="${SITE}/he/">
+      <meta name="robots" content="noindex, follow">
+    </head><body>
+      <h1>${body}</h1>
+      ${notice ? '<p data-hero-demo-english-notice>ההדגמה עדיין באנגלית.</p>' : ''}
+      <section data-home-demo>${demoText}</section>
+    </body></html>`;
+    return new JSDOM(html).window.document;
+  }
+
+  it('excludes [data-home-demo] from the purity count when the demo-is-English notice is present', () => {
+    const document = homePage({ body: HEBREW, demoText: `${ENGLISH} ${ENGLISH} ${ENGLISH} ${ENGLISH}`, notice: true });
+    expect(check(document, '/he/')).toEqual([]);
+  });
+
+  it('SABOTAGE: an English demo still fails purity without the demo-is-English notice', () => {
+    const document = homePage({ body: HEBREW, demoText: `${ENGLISH} ${ENGLISH} ${ENGLISH} ${ENGLISH}`, notice: false });
+    const problems = check(document, '/he/');
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/language purity 0\.\d+ .* is below 0\.5/);
+  });
 });
 
 describe('sitemap membership follows publication (guard 4)', () => {
