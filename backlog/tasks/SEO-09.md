@@ -1,7 +1,7 @@
 ---
 id: "SEO-09"
 title: "Split ranks at 85 for extract queries because it never uses the word"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "search-acquisition"
 phase: "near-term"

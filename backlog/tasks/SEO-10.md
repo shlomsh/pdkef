@@ -1,7 +1,7 @@
 ---
 id: "SEO-10"
 title: "Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "search-acquisition"
 phase: "near-term"
@@ -42,3 +42,9 @@ A promise of no limits that a visitor discovers is false on a 400MB file costs m
 - No competitor is named or alluded to anywhere in the new copy.
 - `npm run test:seo`, `npm run test:css` and `npm run test:weight` pass; single `<h1>` preserved.
 - Position and CTR before and after in the SEO-02 table.
+
+*Update 2026-09-11:* The no-limit fact now renders in server-rendered HTML above the tool on `/merge/`
+(one sentence, `OfflineProof` register: state it, then the device-memory caveat, no badges), and
+`seoDescription` was rewritten to mention the limit people search for. `npm run test:seo`, `test:css`,
+`test:weight` and the full unit suite pass. Left open: the before/after position and CTR reading in the
+SEO-02 table, which needs a Search Console pull after the change is live and recrawled.
