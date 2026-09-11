@@ -56,6 +56,8 @@ export interface DocumentationShellMessages {
   inEnglish: string;
   /** SEO-29: label before the git-derived date on a content page's header. */
   lastUpdated: string;
+  /** Shown on Sign/Redact tool pages, invites the visitor to test offline. */
+  airplaneModeNotice: string;
 }
 
 export type AppBarMessages = Pick<DocumentationShellMessages, 'homeAriaLabel' | 'onDevice'>;
@@ -103,6 +105,7 @@ const englishMessages = {
   worksOffline: 'Works offline',
   inEnglish: 'in English',
   lastUpdated: 'Last updated',
+  airplaneModeNotice: 'Turn on airplane mode and give it a try. It still works.',
 } satisfies DocumentationShellMessages;
 
 const hebrewMessages = {
@@ -139,6 +142,7 @@ const hebrewMessages = {
   worksOffline: 'עובד גם בלי אינטרנט',
   inEnglish: 'באנגלית',
   lastUpdated: 'עודכן לאחרונה',
+  airplaneModeNotice: 'הפעילו מצב טיסה ונסו. זה עדיין עובד.',
 } satisfies DocumentationShellMessages;
 
 /**

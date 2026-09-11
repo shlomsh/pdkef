@@ -51,14 +51,14 @@ export default function EditorToolStatus({ copy, locked, onToggleKeepOn, idle }:
   // over whatever actually did change.
   if (!copy) {
     return (
-      <div className={styles.help}>
+      <div className={styles.help} dir="ltr" lang="en">
         <span>{idle}</span>
       </div>
     );
   }
 
   return (
-    <div className={styles.help} role="status">
+    <div className={styles.help} role="status" dir="ltr" lang="en">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="16" x2="12" y2="12" />
