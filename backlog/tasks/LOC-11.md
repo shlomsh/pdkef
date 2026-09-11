@@ -1,107 +1,166 @@
 ---
 id: "LOC-11"
-title: "Two-month country and language re-check: has anything moved that should reopen localization?"
-status: "open"
-priority: "P3"
+title: "Top-languages research: is there untapped in-language traffic behind the site's top countries?"
+status: "in_progress"
+priority: "P2"
 epic: "localized-search"
-phase: "later"
-depends_on: ["LOC-10"]
+phase: "near-term"
+depends_on: ["LOC-08"]
 legacy_state: "Open"
 ---
 
-# LOC-11 · Two-month country and language re-check: has anything moved that should reopen localization?
+# LOC-11 · Top-languages research: is there untapped in-language traffic behind the site's top countries?
 
-**Due 2026-11-12.** Written when [LOC-10](LOC-10.md) removed page localization (2026-09-12). This is
-the one standing check the epic leaves behind: a cheap, scheduled look at whether the countries and
-languages have shifted enough to reconsider, so the removal is a decision with a review date rather
-than a door closed for good.
+## Why this exists
 
-## Baseline (2026-09-10 standings, 3 months)
+Shlomi, 2026-09-12: "users will use their own language for search" and "I will want more validation
+around the top languages to see we are not missing out on untapped traffic." [LOC-10](LOC-10.md) had
+made the case for removing page localization; he stopped the removal to do this research first. This
+ticket is that research. It reports into LOC-10, which decides.
 
-India 36 clicks / 813 impressions at 12.66, by a distance. Israel 8 / 20 at 6.65 (40% CTR). United
-States 4 / 360 at 31.97. Then Malaysia, Indonesia, the Philippines, Pakistan. Every India query in
-English; Israel's four queries in English; Indonesia leaked two in-language queries onto the English
-page (`gabung pdf free online`, `pdf combine gratis`, 1 impression each). Section 3.3 of
-`docs/seo-competitive-findings.md` holds the table.
+The blind spot is real and GSC cannot see it by construction: Search Console only reports queries we
+already rank for, and with no page in a language there is nothing for Google to rank there (SEO-27's
+lesson). The evidence so far says the intuition holds in some markets and not others, so it is
+measured per language, never assumed either way:
 
-**The one language that had real demand was Indonesian** ([LOC-01](LOC-01.md): Trends parity with
-English on compress and sign, merge about half, pdf-to-jpg a quarter; iLovePDF takes 12.8% of its
-traffic from Indonesia). It was declined on field, not demand ([LOC-07](LOC-07.md)): the `hl=id` SERP
-is owned by the majors at 300k-700k reviews each, and this domain loses to that field in English at
-position 36 on `/merge/`. That is what would have to change.
+- **Held:** Indonesian (Trends parity with English on compress and sign; in-language queries leaking
+  onto the English page). Declined on field, not demand ([LOC-07](LOC-07.md)).
+- **Did not hold:** India, the top country by a distance, where all 50 recent queries are English and
+  Hindi, Telugu and Tamil are flat at zero ([LOC-01](LOC-01.md), [LOC-08](LOC-08.md)); Israel, four
+  English queries, Hebrew a third of English at best. The vocabulary of this niche ("pdf", "merge",
+  "compress", "jpg") stays English inside many languages.
 
-## What to do
+## The site's top twenty countries (GSC, 2026-09-12) and their languages
 
-1. Pull GSC by country for the last three months and compare against the baseline. Note any country
-   that has entered the top five or moved by more than 2x in clicks or impressions.
-2. Run `npm run seo:refresh` on the export. Its non-Latin query clustering (kept from LOC-06 for
-   exactly this) lists any in-language queries reaching English pages; report the count per script.
-3. For Indonesia specifically: the position of `/merge/`, `/compress/` and `/sign/` on their own
-   English queries with `gl=ID` (Shlomi's browser, `hl=en&gl=ID`). Field check, not demand check.
-4. Only if a country moved: re-run that language's Trends comparison from LOC-01's report
-   (`docs/localized-search-research-brief-report.md`), same five-term format.
+India, United States, Indonesia, Malaysia, Philippines, Vietnam, Pakistan, United Kingdom, Bangladesh,
+Israel, Turkey, New Zealand, United Arab Emirates, South Africa, Canada, Mexico, Hong Kong, Singapore,
+Morocco, Italy.
 
-## Top-languages sweep: is there untapped in-language traffic we cannot see?
+| Already measured | Unmeasured, this ticket | English-search countries |
+| --- | --- | --- |
+| Hebrew (IL), Indonesian (ID), Malay (MY), Hindi, Telugu, Tamil (IN) | **Vietnamese** (VN, 6th), **Turkish** (TR, 11th), **Spanish** (MX, 16th), **Italian** (IT, 20th), **Arabic** (AE 13th, MA 19th), **Filipino** (PH, 5th), **Bengali** (BD, 9th), **Urdu** (PK, 7th); Traditional Chinese (HK, 17th) noted, not charted | US, UK, NZ, ZA, CA, SG |
 
-Shlomi's standing concern (2026-09-12): users search in their own language, so a market can be
-invisible in GSC simply because we have no page in that language for Google to rank. That is the SEO-27
-blind spot, and GSC cannot measure it by construction: it only reports queries we already rank for.
-The evidence so far says the intuition holds in some markets and not others, so it has to be measured
-per language, never assumed either way:
+**The site's top queries, all countries (same day): all English, all niche.** `blur pdf online`,
+`blur pdf`, `file compressor to 100kb`, `reduce file size to 100kb`, `pdf blur online`, `blur text in
+pdf`, `extract pdf`, `sign pdf on iphone`, `blackout text in pdf free`, `how to sign pdf on computer`.
+The majors do not compete on blur or on 100kb; that is why this domain ranks there and sits at
+position 36 on `/merge/`. Keep this in view when reading a native "compress pdf" chart: demand there is
+real and irrelevant if the field is the one we already lose to in English.
 
-- **Held:** Indonesian (Trends parity on compress and sign; in-language queries leaking onto the
-  English page).
-- **Did not hold:** India, the top country by a distance, where all 50 queries are English and Hindi,
-  Telugu and Tamil are flat at zero on Trends; Israel, where the four queries are English and Hebrew is
-  a third of English at best. The vocabulary of this niche ("pdf", "merge", "compress", "jpg") stays
-  English inside most languages, which is why native terms come back flat more often than not.
+## Incumbent check, 2026-09-12 (direct URL fetches of each major's own locale routes; status, `lang`, title)
 
-**Method, per language (the LOC-01 three-source method, unchanged):**
+| Language | PDF24 | Smallpdf | iLovePDF | Sejda | Read |
+| --- | --- | --- | --- | --- | --- |
+| Vietnamese | native, all four tools ("Nén file PDF", "Ghép file PDF", "Ký PDF", "Chuyển đổi PDF sang JPG") | native ("Giảm dung lượng PDF", "Ghép file PDF", "Ký PDF", "Chuyển PDF sang JPG") | localized under its own slugs (the guessed URL 404s; the edition exists) | native | Full native ecosystem |
+| Turkish | native ("PDF küçültme", "PDF birleştirme", "PDF imzalama") | native ("PDF Küçültme", "PDF Birleştirme", "PDF JPG Çevirme") | own slugs | native ("PDF'yi online sıkıştır", "PDF Dosyalarını Online Birleştir") | Full native ecosystem |
+| Spanish | native ("Comprimir PDF", "Unir PDF", "Firmar PDF") | native ("Comprime PDF", "Unir PDF", "Firmar PDF") | iLovePDF is a Spanish company | native | The most saturated field possible |
+| Italian | native ("Comprimi PDF", "Unisci PDF", "Firma il PDF") | own slugs ("Unisci PDF", "PDF in JPG" resolved) | own slugs | native ("Comprimere PDF online", "Unisci PDF online") | Full native ecosystem |
+| Arabic | native | native | native | native | Full native ecosystem (LOC-01 said so already) |
+| Filipino | `/tl/` resolves 200 but `lang="en"`, English title | 404 | 404 | 404 | **No incumbent at all**, same shape as Tamil |
+| Bengali | native ("PDF সংকোচন করুন", "PDF একত্রিত করা", "PDF সই করুন") | 404 | 404 | `lang="bn"` on an English page | One real incumbent, same shape as Telugu |
+| Urdu | `/ur/` resolves 200, English | 404 | 404 | `lang="ur"` on an English page | No native incumbent, same shape as Tamil |
+| Trad. Chinese | serves *simplified* Chinese at `/zh-tw/` | 404 | native `zh-Hant` | 404 | Mixed; Hong Kong also searches in English |
 
-1. Take the top ten countries by impressions from the refreshed table. Map each to its main search
-   language. Already measured and closed: Hebrew, Indonesian, Malay, Hindi, Telugu, Tamil. Queued from
-   LOC-01 and never run: **Filipino** (marked "later": competitor titles code-switch, Filipino verb plus
-   English object) and **Urdu** (no evidence either way; next step was the GSC Pakistan filter). Any new
-   country in the top ten gets its language added to the list.
-2. For each unmeasured language: fetch the majors' own localized tool pages (`/<lang>/compress-pdf`
-   and siblings on PDF24, Smallpdf, iLovePDF, Sejda) to lift real native phrasing, exactly as LOC-08 did
-   for Telugu. A language none of them has built is a data point on its own.
-3. Build the five-term Trends links (English, two romanized or code-switched, two native-script) and
-   the `hl`/`gl` SERP links for the four anchor tasks, and hand them to Shlomi to screenshot, same
-   format as LOC-08's "For Shlomi" section. Read the SERPs for two things: how many results carry
-   Google's "translated, see original" badge (a SERP Google has to backfill with its own translations
-   of English pages is thin native demand, LOC-08's lesson), and whether the related-searches block is
-   in the language or in English.
-4. Check Google's translated-results list for the language. On a listed language, our English page
-   already reaches those searchers translated, so the untapped share is only what a native page adds
-   over Google's translation of the same field.
-5. Score against the ROI gate below. Record the verdict in this ticket in LOC-01's per-language table
-   format, whatever it is, so the next check does not re-measure it.
+**Google's translated-results list, verified from Google's own documentation on 2026-09-12:** Arabic,
+Bengali, English, French, German, Gujarati, Hindi, Indonesian, Kannada, Korean, Malayalam, Marathi,
+Persian, Portuguese, Spanish, Tamil, Telugu, Thai, Turkish, Urdu, Vietnamese. On a listed language our
+English page already reaches searchers translated by Google, so the untapped share is only what a
+native page adds over that. **Not listed:** Italian, Filipino, Hebrew, Malay, Chinese, Japanese. Those
+are the languages where a native page adds the most, and on our list that is Italian (rank 20) and
+Filipino (rank 5, no incumbent, but LOC-01 found the queries code-switch).
 
-Budget: one language at a time, Filipino and Urdu first because they are already in the top seven.
-Do not build anything from this ticket; a language that clears both gates gets its own restore ticket.
+## For Shlomi: ready-to-click links
 
-## The ROI gate (also recorded in the findings doc, section 2)
+Five terms per Trends chart (English yardstick first, then native phrasing lifted from the titles
+above; the fifth term is sometimes constructed and should be read as the weaker one), twelve months,
+the country's own geo. One SERP per task on the primary native term. Two things to read off every
+SERP: how many results carry Google's "translated, see original" badge (LOC-08: a SERP Google backfills
+with its own translations is thin native demand), and whether the related-searches block is in the
+language or in English.
 
-Reopen page localization for a language only when **both** hold:
+**Vietnamese** (`hl=vi&gl=VN`; incumbents: PDF24, Smallpdf, Sejda all native; iLovePDF too (own slugs); on Google's translated-results list: yes)
 
-- **Demand:** in-language search volume for the anchor tasks of the order of the English page's own
-  traffic from that country, measured on Trends and visible as in-language queries in GSC. Hebrew never
-  met this; Indonesian did.
+- Compress: Trends [compress pdf / nén pdf / nén file pdf / giảm dung lượng pdf / nén pdf trực tuyến](https://trends.google.com/trends/explore?date=today%2012-m&geo=VN&q=compress%20pdf,n%C3%A9n%20pdf,n%C3%A9n%20file%20pdf,gi%E1%BA%A3m%20dung%20l%C6%B0%E1%BB%A3ng%20pdf,n%C3%A9n%20pdf%20tr%E1%BB%B1c%20tuy%E1%BA%BFn&hl=en) · SERP [nén pdf](https://www.google.com/search?q=n%C3%A9n%20pdf&hl=vi&gl=VN)
+- Sign: Trends [sign pdf / ký pdf / ký file pdf / chữ ký pdf / điền và ký pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=VN&q=sign%20pdf,k%C3%BD%20pdf,k%C3%BD%20file%20pdf,ch%E1%BB%AF%20k%C3%BD%20pdf,%C4%91i%E1%BB%81n%20v%C3%A0%20k%C3%BD%20pdf&hl=en) · SERP [ký pdf](https://www.google.com/search?q=k%C3%BD%20pdf&hl=vi&gl=VN)
+- Merge: Trends [merge pdf / ghép file pdf / ghép pdf / hợp nhất pdf / gộp file pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=VN&q=merge%20pdf,gh%C3%A9p%20file%20pdf,gh%C3%A9p%20pdf,h%E1%BB%A3p%20nh%E1%BA%A5t%20pdf,g%E1%BB%99p%20file%20pdf&hl=en) · SERP [ghép file pdf](https://www.google.com/search?q=gh%C3%A9p%20file%20pdf&hl=vi&gl=VN)
+- PDF to JPG: Trends [pdf to jpg / chuyển pdf sang jpg / chuyển đổi pdf sang jpg / pdf sang jpg / đổi pdf sang ảnh](https://trends.google.com/trends/explore?date=today%2012-m&geo=VN&q=pdf%20to%20jpg,chuy%E1%BB%83n%20pdf%20sang%20jpg,chuy%E1%BB%83n%20%C4%91%E1%BB%95i%20pdf%20sang%20jpg,pdf%20sang%20jpg,%C4%91%E1%BB%95i%20pdf%20sang%20%E1%BA%A3nh&hl=en) · SERP [chuyển pdf sang jpg](https://www.google.com/search?q=chuy%E1%BB%83n%20pdf%20sang%20jpg&hl=vi&gl=VN)
+
+**Turkish** (`hl=tr&gl=TR`; incumbents: PDF24, Smallpdf, Sejda all native; iLovePDF too; on Google's translated-results list: yes)
+
+- Compress: Trends [compress pdf / pdf küçültme / pdf sıkıştır / pdf sıkıştırma / pdf boyutu küçültme](https://trends.google.com/trends/explore?date=today%2012-m&geo=TR&q=compress%20pdf,pdf%20k%C3%BC%C3%A7%C3%BCltme,pdf%20s%C4%B1k%C4%B1%C5%9Ft%C4%B1r,pdf%20s%C4%B1k%C4%B1%C5%9Ft%C4%B1rma,pdf%20boyutu%20k%C3%BC%C3%A7%C3%BCltme&hl=en) · SERP [pdf küçültme](https://www.google.com/search?q=pdf%20k%C3%BC%C3%A7%C3%BCltme&hl=tr&gl=TR)
+- Sign: Trends [sign pdf / pdf imzalama / pdf imzala / pdf imza / pdf doldur ve imzala](https://trends.google.com/trends/explore?date=today%2012-m&geo=TR&q=sign%20pdf,pdf%20imzalama,pdf%20imzala,pdf%20imza,pdf%20doldur%20ve%20imzala&hl=en) · SERP [pdf imzalama](https://www.google.com/search?q=pdf%20imzalama&hl=tr&gl=TR)
+- Merge: Trends [merge pdf / pdf birleştirme / pdf birleştir / pdf birleştirici / pdf dosyalarını birleştir](https://trends.google.com/trends/explore?date=today%2012-m&geo=TR&q=merge%20pdf,pdf%20birle%C5%9Ftirme,pdf%20birle%C5%9Ftir,pdf%20birle%C5%9Ftirici,pdf%20dosyalar%C4%B1n%C4%B1%20birle%C5%9Ftir&hl=en) · SERP [pdf birleştirme](https://www.google.com/search?q=pdf%20birle%C5%9Ftirme&hl=tr&gl=TR)
+- PDF to JPG: Trends [pdf to jpg / pdf jpg çevirme / pdf jpg dönüştürme / pdf'yi jpg'ye dönüştür / pdf jpg çevir](https://trends.google.com/trends/explore?date=today%2012-m&geo=TR&q=pdf%20to%20jpg,pdf%20jpg%20%C3%A7evirme,pdf%20jpg%20d%C3%B6n%C3%BC%C5%9Ft%C3%BCrme,pdf%27yi%20jpg%27ye%20d%C3%B6n%C3%BC%C5%9Ft%C3%BCr,pdf%20jpg%20%C3%A7evir&hl=en) · SERP [pdf jpg çevirme](https://www.google.com/search?q=pdf%20jpg%20%C3%A7evirme&hl=tr&gl=TR)
+
+**Spanish** (`hl=es&gl=MX`; incumbents: PDF24, Smallpdf, Sejda all native; iLovePDF is a Spanish company; on Google's translated-results list: yes)
+
+- Compress: Trends [compress pdf / comprimir pdf / comprime pdf / reducir pdf / reducir tamaño pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=MX&q=compress%20pdf,comprimir%20pdf,comprime%20pdf,reducir%20pdf,reducir%20tama%C3%B1o%20pdf&hl=en) · SERP [comprimir pdf](https://www.google.com/search?q=comprimir%20pdf&hl=es&gl=MX)
+- Sign: Trends [sign pdf / firmar pdf / firma pdf / rellenar y firmar pdf / firma digital pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=MX&q=sign%20pdf,firmar%20pdf,firma%20pdf,rellenar%20y%20firmar%20pdf,firma%20digital%20pdf&hl=en) · SERP [firmar pdf](https://www.google.com/search?q=firmar%20pdf&hl=es&gl=MX)
+- Merge: Trends [merge pdf / unir pdf / juntar pdf / combinar pdf / unir archivos pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=MX&q=merge%20pdf,unir%20pdf,juntar%20pdf,combinar%20pdf,unir%20archivos%20pdf&hl=en) · SERP [unir pdf](https://www.google.com/search?q=unir%20pdf&hl=es&gl=MX)
+- PDF to JPG: Trends [pdf to jpg / convertir pdf a jpg / pdf a jpg / pasar pdf a jpg / convertir pdf a imagen](https://trends.google.com/trends/explore?date=today%2012-m&geo=MX&q=pdf%20to%20jpg,convertir%20pdf%20a%20jpg,pdf%20a%20jpg,pasar%20pdf%20a%20jpg,convertir%20pdf%20a%20imagen&hl=en) · SERP [convertir pdf a jpg](https://www.google.com/search?q=convertir%20pdf%20a%20jpg&hl=es&gl=MX)
+
+**Italian** (`hl=it&gl=IT`; incumbents: PDF24, Sejda native; Smallpdf and iLovePDF too (own slugs); on Google's translated-results list: no)
+
+- Compress: Trends [compress pdf / comprimi pdf / comprimere pdf / ridurre pdf / ridurre dimensioni pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=IT&q=compress%20pdf,comprimi%20pdf,comprimere%20pdf,ridurre%20pdf,ridurre%20dimensioni%20pdf&hl=en) · SERP [comprimi pdf](https://www.google.com/search?q=comprimi%20pdf&hl=it&gl=IT)
+- Sign: Trends [sign pdf / firma pdf / firmare pdf / compila e firma pdf / firma digitale pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=IT&q=sign%20pdf,firma%20pdf,firmare%20pdf,compila%20e%20firma%20pdf,firma%20digitale%20pdf&hl=en) · SERP [firma pdf](https://www.google.com/search?q=firma%20pdf&hl=it&gl=IT)
+- Merge: Trends [merge pdf / unisci pdf / unire pdf / unire file pdf / unisci file pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=IT&q=merge%20pdf,unisci%20pdf,unire%20pdf,unire%20file%20pdf,unisci%20file%20pdf&hl=en) · SERP [unisci pdf](https://www.google.com/search?q=unisci%20pdf&hl=it&gl=IT)
+- PDF to JPG: Trends [pdf to jpg / convertire pdf in jpg / pdf in jpg / da pdf a jpg / pdf a jpg](https://trends.google.com/trends/explore?date=today%2012-m&geo=IT&q=pdf%20to%20jpg,convertire%20pdf%20in%20jpg,pdf%20in%20jpg,da%20pdf%20a%20jpg,pdf%20a%20jpg&hl=en) · SERP [convertire pdf in jpg](https://www.google.com/search?q=convertire%20pdf%20in%20jpg&hl=it&gl=IT)
+
+**Arabic** (`hl=ar&gl=AE`; incumbents: PDF24, Smallpdf, iLovePDF, Sejda all native (LOC-01 already noted the deep ecosystem); on Google's translated-results list: yes)
+
+- Compress: Trends [compress pdf / ضغط pdf / ضغط ملف pdf / تقليص حجم pdf / تصغير حجم pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=AE&q=compress%20pdf,%D8%B6%D8%BA%D8%B7%20pdf,%D8%B6%D8%BA%D8%B7%20%D9%85%D9%84%D9%81%20pdf,%D8%AA%D9%82%D9%84%D9%8A%D8%B5%20%D8%AD%D8%AC%D9%85%20pdf,%D8%AA%D8%B5%D8%BA%D9%8A%D8%B1%20%D8%AD%D8%AC%D9%85%20pdf&hl=en) · SERP [ضغط pdf](https://www.google.com/search?q=%D8%B6%D8%BA%D8%B7%20pdf&hl=ar&gl=AE)
+- Sign: Trends [sign pdf / توقيع pdf / توقيع ملف pdf / التوقيع على ملف pdf / تعبئة وتوقيع pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=AE&q=sign%20pdf,%D8%AA%D9%88%D9%82%D9%8A%D8%B9%20pdf,%D8%AA%D9%88%D9%82%D9%8A%D8%B9%20%D9%85%D9%84%D9%81%20pdf,%D8%A7%D9%84%D8%AA%D9%88%D9%82%D9%8A%D8%B9%20%D8%B9%D9%84%D9%89%20%D9%85%D9%84%D9%81%20pdf,%D8%AA%D8%B9%D8%A8%D8%A6%D8%A9%20%D9%88%D8%AA%D9%88%D9%82%D9%8A%D8%B9%20pdf&hl=en) · SERP [توقيع pdf](https://www.google.com/search?q=%D8%AA%D9%88%D9%82%D9%8A%D8%B9%20pdf&hl=ar&gl=AE)
+- Merge: Trends [merge pdf / دمج pdf / دمج ملفات pdf / دمج ملفين pdf / جمع ملفات pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=AE&q=merge%20pdf,%D8%AF%D9%85%D8%AC%20pdf,%D8%AF%D9%85%D8%AC%20%D9%85%D9%84%D9%81%D8%A7%D8%AA%20pdf,%D8%AF%D9%85%D8%AC%20%D9%85%D9%84%D9%81%D9%8A%D9%86%20pdf,%D8%AC%D9%85%D8%B9%20%D9%85%D9%84%D9%81%D8%A7%D8%AA%20pdf&hl=en) · SERP [دمج pdf](https://www.google.com/search?q=%D8%AF%D9%85%D8%AC%20pdf&hl=ar&gl=AE)
+- PDF to JPG: Trends [pdf to jpg / تحويل pdf إلى jpg / تحويل pdf الى صور / pdf الى jpg / تحويل ملف pdf إلى صورة](https://trends.google.com/trends/explore?date=today%2012-m&geo=AE&q=pdf%20to%20jpg,%D8%AA%D8%AD%D9%88%D9%8A%D9%84%20pdf%20%D8%A5%D9%84%D9%89%20jpg,%D8%AA%D8%AD%D9%88%D9%8A%D9%84%20pdf%20%D8%A7%D9%84%D9%89%20%D8%B5%D9%88%D8%B1,pdf%20%D8%A7%D9%84%D9%89%20jpg,%D8%AA%D8%AD%D9%88%D9%8A%D9%84%20%D9%85%D9%84%D9%81%20pdf%20%D8%A5%D9%84%D9%89%20%D8%B5%D9%88%D8%B1%D8%A9&hl=en) · SERP [تحويل pdf إلى jpg](https://www.google.com/search?q=%D8%AA%D8%AD%D9%88%D9%8A%D9%84%20pdf%20%D8%A5%D9%84%D9%89%20jpg&hl=ar&gl=AE)
+
+**Filipino** (`hl=tl&gl=PH`; no incumbent: PDF24 `/tl/` falls back to English, Smallpdf, iLovePDF and Sejda 404; not on the translated-results list). Reconnaissance SERPs only, phrasing constructed on LOC-01's observed pattern (Filipino verb, English object), so read the SERP and the autocomplete, not the phrasing:
+
+- Compress: [paano mag compress ng pdf](https://www.google.com/search?q=paano%20mag%20compress%20ng%20pdf&hl=tl&gl=PH)
+- Merge: [paano pagsamahin ang pdf files](https://www.google.com/search?q=paano%20pagsamahin%20ang%20pdf%20files&hl=tl&gl=PH)
+- Sign: [paano pumirma sa pdf](https://www.google.com/search?q=paano%20pumirma%20sa%20pdf&hl=tl&gl=PH)
+- PDF to JPG: [paano gawing jpg ang pdf](https://www.google.com/search?q=paano%20gawing%20jpg%20ang%20pdf&hl=tl&gl=PH)
+
+**Bengali** (`hl=bn&gl=BD`; PDF24 native only, same shape as Telugu; on the translated-results list). Two reconnaissance SERPs on PDF24's own title terms:
+
+- Compress: [pdf সংকোচন](https://www.google.com/search?q=pdf%20%E0%A6%B8%E0%A6%82%E0%A6%95%E0%A7%8B%E0%A6%9A%E0%A6%A8&hl=bn&gl=BD)
+- Sign: [pdf সই](https://www.google.com/search?q=pdf%20%E0%A6%B8%E0%A6%87&hl=bn&gl=BD)
+
+**Urdu** (`hl=ur&gl=PK`; no native incumbent: PDF24 `/ur/` falls back to English, Sejda tags an English page `lang="ur"`; on the translated-results list). Two reconnaissance SERPs, romanized, constructed:
+
+- Compress: [pdf compress karne ka tarika](https://www.google.com/search?q=pdf%20compress%20karne%20ka%20tarika&hl=ur&gl=PK)
+- Sign: [pdf par sign kaise karen](https://www.google.com/search?q=pdf%20par%20sign%20kaise%20karen&hl=ur&gl=PK)
+
+**Two more checks that cost nothing while you are in GSC:**
+
+1. **Per-country queries and positions** for Vietnam, Turkey, Mexico, Italy, the Philippines and the
+   UAE (3 months). This is the field check: if a country's queries are all English blur/100kb at
+   position 15+, the domain has no foothold there and a native page would start from zero authority
+   in a field the majors own natively.
+2. **The niche angle.** In-language versions of the queries we actually win: blur and compress-to-100kb.
+   Constructed, so treat as SERP probes and not as demand: Vietnamese `làm mờ pdf`, Turkish `pdf
+   bulanıklaştırma`, Spanish `difuminar pdf`, Italian `sfocare pdf`. If a native blur SERP has no tool
+   result, only how-to articles, that is the one kind of opening consistent with where this domain
+   already ranks. Report what shows, not a volume.
+
+## The ROI gate (goes into the findings doc section 2 with the decision)
+
+Reopen or keep page localization for a language only when **both** hold:
+
+- **Demand:** in-language search volume for the anchor tasks (or for the niche queries we win) of the
+  order of the English page's own traffic from that country, on Trends and visible as in-language
+  queries in GSC. Hebrew never met this; Indonesian did.
 - **Field:** an English tool page already ranks in the top ten in that country on its own query, so the
   domain has shown it can compete in that field before a native edition asks it to. Indonesian never
   met this.
 
-A language that clears both is worth restoring the mechanism for (git history at `464a067`, the last
-commit before LOC-10). One that clears demand alone is LOC-07's answer again; one that clears neither
-is LOC-08's. Do not reopen on brand or sentiment grounds; the origin story is served by Hebrew inside
-the PDF, which the Sign tool still does.
+A language on Google's translated-results list needs a stronger case on both, because the English page
+already reaches its searchers.
 
 ## Acceptance
 
-- Country table refreshed in the findings doc section 3.3, in-language query count per script noted.
-- Every top-ten country's language either already closed in LOC-01/LOC-08 or measured here with a
-  verdict row; Filipino and Urdu measured at minimum.
-- A one-paragraph verdict here: nothing moved (close, and schedule the next check with the regular
-  SEO refresh rather than a dedicated ticket), or a named language clearing both gates (open a
-  restore ticket that starts from LOC-10's keep-list in reverse).
+- Every unmeasured language above has a verdict row in LOC-01's table format (Trends share / field /
+  reviewer / verdict), with the evidence line and the screenshots noted, whatever the outcome.
+- The per-country GSC positions recorded for the six countries named.
+- The niche-angle SERPs read and recorded.
+- One paragraph handed to [LOC-10](LOC-10.md): keep or remove, and why. LOC-10 decides; this ticket
+  measures. No page built here.
