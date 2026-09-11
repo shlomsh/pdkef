@@ -63,7 +63,7 @@ does it worse and makes us sound like everyone else.
 ## Progress (2026-09-11)
 
 **Shipped:** the table, the no-competitor-framing rule, and the per-tool method now live as
-[section 6 of docs/seo-competitive-findings.md](../../docs/seo-competitive-findings.md#6-the-positioning-review-protocol-seo-11),
+[section 7 of docs/seo-competitive-findings.md](../../docs/seo-competitive-findings.md#7-reference-the-positioning-review-protocol-seo-11) (section 6 at the time; renumbered 2026-09-11 when the doc was restructured),
 not only in this ticket file, so SEO-12 through SEO-16 can link a stable section instead of copying the
 protocol into each ticket. Every claim in the table was re-checked against the current site: no
 `src/data/tools.js`, `.astro` page, or `content-pages` entry uses any of the banned phrases about our

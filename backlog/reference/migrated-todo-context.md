@@ -1755,7 +1755,7 @@ links to GitHub Issues and Discussions instead, which adds zero network surface.
   the text" are the same option**, so that door is already closed.
 - **[docs/view-density-control-spec.md](../../docs/view-density-control-spec.md)** - the Relaxed / Condensed
   / Full screen control, why density is a global preference and why only Sign and Redact expose it.
-- **[seo-audit-output/](../../seo-audit-output/)** - SEO strategy and reference material.
+- ~~`seo-audit-output/`~~ - the July 2026 audit (pre-domain, hand-maintained sitemap era). Removed 2026-09-11 as superseded; current SEO memory is [docs/seo-competitive-findings.md](../../docs/seo-competitive-findings.md).
 
 ## Full ticket history
 
