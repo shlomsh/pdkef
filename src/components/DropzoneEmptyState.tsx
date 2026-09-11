@@ -1,7 +1,8 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import type { Ref } from 'preact';
 import styles from './Dropzone.module.css';
 import { englishShellMessages, type ShellMessages } from '../i18n/toolMessages';
+import { isIOSDevice } from '../lib/platform.ts';
 
 interface DropzoneEmptyStateProps {
   multiple?: boolean;
@@ -11,6 +12,11 @@ interface DropzoneEmptyStateProps {
   onFiles: (files: File[] | FileList) => void;
   compact?: boolean;
   messages?: ShellMessages;
+  /** MOBI-09: opt-in only (the Sign tool page sets this; every other
+   * BasePdfTool caller leaves it unset). Whether the notice actually shows
+   * still depends on the mount-effect iOS check below - this only says
+   * "this tool is allowed to show it at all". */
+  showIosFilesHint?: boolean;
 }
 
 /** Empty-state file picker shared by the PDF tool pages. */
@@ -22,8 +28,22 @@ export default function DropzoneEmptyState({
   onFiles,
   compact = false,
   messages = englishShellMessages,
+  showIosFilesHint = false,
 }: DropzoneEmptyStateProps) {
   const [isDragOver, setIsDragOver] = useState(false);
+  // `false` on the server and on this component's first client render, same
+  // agreement `recents` makes in FileDropzone.tsx and for the same reason:
+  // the server has no `navigator` to check, so deciding this from the render
+  // body (or a useState initializer that reads it) would make the client's
+  // first render disagree with the server's markup, and Preact repairs that
+  // mismatch by keeping the server's node and appending its own rather than
+  // replacing it. Only the mount effect below may read `navigator`.
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    if (!showIosFilesHint) return;
+    setIsIOS(isIOSDevice(typeof navigator === 'undefined' ? undefined : navigator));
+  }, [showIosFilesHint]);
 
   const onInputChange = (event: Event) => {
     // Read the list out before resetting the input - `value = ''` empties a
@@ -105,6 +125,10 @@ export default function DropzoneEmptyState({
         </svg>
         {messages.privacyLine}
       </p>
+
+      {isIOS && (
+        <p class={styles['ios-files-hint']}>{messages.iosFilesHint}</p>
+      )}
     </div>
   );
 }

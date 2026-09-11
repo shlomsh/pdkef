@@ -357,6 +357,15 @@ export interface ShellMessages {
   pageCountOne: string;
   pageCountOther: string;
   pageOf: string;
+  /** MOBI-09: iOS has no Web Share Target, so the Android share-sheet path
+   * this suite is built around doesn't exist there. Shown only on the Sign
+   * tool's empty state (BasePdfTool's `showIosFilesHint`), only once
+   * `src/lib/platform.ts`'s mount-effect check confirms iOS - never on the
+   * server render or the first client render, to keep the hydration match
+   * FileDropzone.tsx's `recents` comment already documents. Describes the
+   * Files-app route, never Web Share Target by name, and never implies iOS
+   * gets the Android path. */
+  iosFilesHint: string;
 }
 
 const englishShellMessages: ShellMessages = {
@@ -401,6 +410,7 @@ const englishShellMessages: ShellMessages = {
   pageCountOne: '1 page',
   pageCountOther: '{count} pages',
   pageOf: 'Page {current} of {total}',
+  iosFilesHint: 'On iPhone or iPad, share the PDF to Files from Mail, WhatsApp, or any other app, then tap Choose file. It opens on Recents, with the file you just saved at the top.',
 };
 
 const hebrewShellMessages: ShellMessages = {
@@ -445,6 +455,7 @@ const hebrewShellMessages: ShellMessages = {
   pageCountOne: '1 עמוד',
   pageCountOther: '{count} עמודים',
   pageOf: 'עמוד {current} מתוך {total}',
+  iosFilesHint: 'באייפון או אייפד, שתפו את קובץ ה-PDF ל-Files מתוך Mail, WhatsApp או כל אפליקציה אחרת, ואז לחצו על בחירת קובץ. הוא ייפתח בכרטיסיית "אחרונים" ב-Files, עם הקובץ ששמרתם הרגע למעלה.',
 };
 
 const shellMessages: Partial<Record<DocumentationLocaleId, ShellMessages>> = {

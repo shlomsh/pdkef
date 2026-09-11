@@ -933,6 +933,11 @@ function PdfSignToolInner({ shellMessages }: { shellMessages?: Partial<ShellMess
       ownsShell
       shellMessages={shellMessages}
       checkingDraft={isRestoring}
+      // MOBI-09: iOS has no Web Share Target, so the Android share-sheet path
+      // the rest of this tool's mobile handling assumes doesn't exist there.
+      // Scoped to Sign only, per the ticket - Sign is where the "someone
+      // shared me a form over WhatsApp/Mail" case actually lands.
+      showIosFilesHint
     >
       {hasFiles && status !== 'loading' && (
         <SignDefaultsContext.Provider
