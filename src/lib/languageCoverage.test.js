@@ -19,7 +19,6 @@ import { describe, it, expect } from 'vitest';
 import { tools } from './../data/tools.js';
 import { HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
 import { LANGUAGE_COVERAGE, COMBINATION_COVERAGE, CYRILLIC_ANCHOR } from './fontCoverageReport.js';
-import { FONT_COVERAGE } from './fontCoverageTable.js';
 
 const signTool = tools.find((t) => t.slug === 'sign');
 const signLanguages = signTool.languages;
@@ -28,37 +27,6 @@ function faqAnswer(fragment) {
   const entry = signTool.faq.find((item) => item.question.includes(fragment));
   if (!entry) throw new Error(`No Sign FAQ question containing ${JSON.stringify(fragment)} - did the copy get renamed?`);
   return entry.answer;
-}
-
-/**
- * The scripts the card and the FAQ name as having no bundled font at all
- * (SEO-07), each with one representative codepoint from its Unicode block.
- *
- * The codepoint is the whole point: the *claim* is prose, but whether it is
- * still true is decided below against FONT_COVERAGE, the file generated from
- * the real bytes of every TTF in public/fonts/. So a font landing that draws
- * Gujarati fails this file rather than leaving the page telling visitors we
- * cannot do something we now can - the same direction of check the
- * "supported" blocks above run, pointed at the other end of the catalogue.
- */
-const NAMED_UNCOVERED_SCRIPTS = {
-  Gujarati: 0x0a97,   // GUJARATI LETTER KA
-  Kannada: 0x0c95,    // KANNADA LETTER KA
-  Odia: 0x0b15,       // ORIYA LETTER KA
-  Sinhala: 0x0d9a,    // SINHALA LETTER ALPAPRAANA KAYANNA
-  Khmer: 0x1780,      // KHMER LETTER KA
-  Lao: 0x0e81,        // LAO LETTER KO
-  Burmese: 0x1000,    // MYANMAR LETTER KA
-  Amharic: 0x1200,    // ETHIOPIC SYLLABLE HA
-  Armenian: 0x0531,   // ARMENIAN CAPITAL LETTER AYB
-  Georgian: 0x10d0,   // GEORGIAN LETTER AN
-  emoji: 0x1f600,     // GRINNING FACE
-};
-
-function familiesDrawing(codePoint) {
-  return Object.keys(FONT_COVERAGE).filter((file) =>
-    FONT_COVERAGE[file].some(([start, end]) => codePoint >= start && codePoint <= end)
-  );
 }
 
 function supportedNote(name) {
@@ -267,40 +235,35 @@ describe('Sign Languages card: request and contribution path', () => {
   });
 
   /**
-   * SEO-07 reversed the previous rule here, which was that the card should
-   * emphasize broad support "without naming individual gaps". That framing
-   * came from retiring FONT-04's roadmap (2026-09-02): the card used to
-   * promise specific languages were coming, and the fix was to stop
-   * promising. Not naming a gap at all went one step further than that fix
-   * needed to, and left the page silent on a limit CLAUDE.md's standing rule
-   * says is owed to the reader - the same rule that has the Sign FAQ list the
-   * six Bengali shaper divergences by name. Saying "these have no font yet,
-   * ask if you want one" is a statement of where the tool stops, not a
-   * roadmap, so it satisfies both.
+   * The card does NOT enumerate the scripts with no bundled font, by an
+   * explicit owner decision (2026-09-11). SEO-07's acceptance had asked for
+   * the opposite and it was built that way first; the call on reading it was
+   * that a list of gaps sitting inside the strongest claim on the page reads
+   * as a disclaimer, and dates badly besides, since languages here are added
+   * on request and the list is wrong the week someone asks. See the comment
+   * above `languages:` in tools.js.
+   *
+   * The disclosure it replaces is not lost, it moved: the editor names any
+   * character it cannot draw while you are typing it, which is the FAQ entry
+   * pinned in the next describe. This test keeps the card on the request
+   * path - the failure it guards against is a future agent reading SEO-07's
+   * acceptance list, or this file's own history, and helpfully putting the
+   * list back.
    */
-  it('names every script with no bundled font at all, in the card and again in the FAQ', () => {
+  it('points at a request rather than enumerating gaps', () => {
     const notYet = signLanguages.notYet;
-    const faq = faqAnswer('cannot draw a character');
+    const faq = faqAnswer('empty boxes');
 
-    for (const script of Object.keys(NAMED_UNCOVERED_SCRIPTS)) {
-      expect(notYet).toContain(script);
-      expect(faq).toContain(script);
+    for (const script of ['Gujarati', 'Kannada', 'Odia', 'Sinhala', 'Khmer', 'Lao', 'Burmese', 'Amharic', 'Armenian', 'Georgian', 'emoji']) {
+      expect(notYet, `"${script}" is back in the card's request copy`).not.toContain(script);
+      expect(faq, `"${script}" is back in the coverage FAQ`).not.toContain(script);
     }
+    expect(notYet.toLowerCase()).toContain('ask');
   });
 
-  it('every script it names as uncovered really is uncovered by every bundled font file', () => {
-    for (const [script, codePoint] of Object.entries(NAMED_UNCOVERED_SCRIPTS)) {
-      expect(
-        { script, drawnBy: familiesDrawing(codePoint) },
-      ).toEqual({ script, drawnBy: [] });
-    }
-  });
-
-  it('never names a supported language as a gap', () => {
-    const supportedTerms = ['Japanese', 'Bengali', 'Chinese', 'Korean', 'Pashto', 'Tamil', 'Telugu', 'Punjabi', 'Malayalam', 'Hebrew', 'Arabic', 'Urdu', 'Thai', 'Turkish', 'Vietnamese', 'Greek'];
-    for (const term of supportedTerms) {
+  it('never names a supported language as a gap either', () => {
+    for (const term of ['Japanese', 'Bengali', 'Chinese', 'Korean', 'Pashto', 'Tamil', 'Telugu', 'Punjabi', 'Malayalam', 'Hebrew', 'Thai', 'Turkish', 'Vietnamese', 'Greek']) {
       expect(signLanguages.notYet).not.toContain(term);
-      expect(faqAnswer('cannot draw a character')).not.toContain(term);
     }
   });
 
@@ -317,17 +280,28 @@ describe('Sign Languages card: request and contribution path', () => {
  * that ticket recorded - so these guard the statement, not the behaviour.
  */
 describe('Sign page: the guarantees SEO-07 brought up out of the design docs', () => {
-  it('the hero subhead names the language count the card actually lists, so the two cannot drift', () => {
-    expect(signTool.subhead).toContain(`${signLanguages.supported.length} languages and scripts`);
+  it('the subhead and the card heading both name the count the card actually lists, so none of the three can drift', () => {
+    const count = signLanguages.supported.length;
+    expect(signTool.subhead).toContain(`${count} languages and scripts`);
+    expect(signLanguages.heading).toContain(String(count));
+    expect(signLanguages.lead).toContain(`${count} languages and scripts`);
   });
 
-  it('states the refuse-while-typing guarantee as a guarantee, in the card lead and in the FAQ', () => {
-    expect(signLanguages.lead).toContain('while you are still typing');
-    expect(faqAnswer('cannot draw a character')).toContain('while you are typing');
+  /**
+   * The guarantee is stated as a promise kept ("it comes out right"), not as
+   * a caveat, which is why it lives in the FAQ and not in the card's lead -
+   * but it must still be stated. Losing the "while you are typing" half turns
+   * it into an ordinary coverage boast that every competitor also makes.
+   */
+  it('states the refuse-while-typing guarantee in the FAQ, telling-you-first half included', () => {
+    const faq = faqAnswer('empty boxes');
+    expect(faq).toContain('while you are typing it');
+    expect(faq).toContain('not after you have filled in the whole form');
   });
 
   it('states right-to-left growth in plain words rather than design-doc vocabulary', () => {
     expect(signLanguages.lead).toContain('grows leftward from a fixed right edge');
+    expect(signLanguages.heading.toLowerCase()).toContain('right-to-left');
   });
 
   it('states comb fields in plain words, in the subhead, a step, and the FAQ', () => {
