@@ -224,6 +224,16 @@ in that table matter beyond the count:
   done. Same for SEO-09's `/split/` vocabulary work, whose `bb88469` groundwork from 2026-08-09 has
   never been indexed either.
 
-**Indexing requested today for `/`, `/redact/` and `/compress/`.** Still to request: `/split/`,
-`/sign/`, and the four `how-to-sign-a-pdf-on-*` guides. The script prints the list; run it after the
-next capture and it becomes the reindex queue.
+**Indexing requested 2026-09-11 for all nine stale URLs** - `/`, `/redact/` and `/compress/` earlier
+in the day, then `/split/`, `/sign/` and the four `how-to-sign-a-pdf-on-*` guides once the sweep named
+them. Google's own dialog says resubmitting does not move a URL up the queue, so these are submitted
+once and left alone. The script prints the list; run it after the next capture and it becomes the
+reindex queue.
+
+**What the 2026-10-08 refresh should do with this table.** Recapture all 21 crawl dates into
+`docs/seo-last-crawled.json` and re-run. Two different things can then be read off it. Whether the
+nine requests were honoured: any of the nine still showing a pre-2026-09-11 crawl date was not. And
+whether the recrawls were *only* because we asked: watch `/merge/` and `/unlock/`, which were not
+requested - if they also get recrawled, the site's crawl rate is rising on its own; if they stay on
+their August dates while the requested nine move, the recrawls were bought one at a time and the
+allocation problem the SEO-06 prompt describes is still there.
