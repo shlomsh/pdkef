@@ -551,7 +551,7 @@ export const tools = [
     ariaLabel: 'PDF compress tool',
     aboutHeading: 'How to compress a PDF online for free',
     aboutLead:
-      'Reduce the file size of your PDFs, right in your browser. No upload, no server. To reach a small target, pages are turned into images, so selectable text and links are lost on any page that changes. If your file is already under the target, it comes back untouched - nothing lost.',
+      "Reduce the file size of your PDFs, right in your browser. No upload, no server. To reach a small target, pages are turned into images, so selectable text and links are lost on any page that changes. If your file is already under the target, it comes back untouched - nothing lost. If a target can't be hit without making the document unreadable, the tool says so and hands you the smallest readable result instead of quietly handing back something too big or too blurry to use.",
     freeNoteLead:
       "Shrink PDFs to a target like 100KB for strict portal limits as many times as you need, with no watermark or daily cap. Because compression runs on your device, there's nothing to upload and no server cost to pass on to you.",
     aboutSketch: 'waves',
