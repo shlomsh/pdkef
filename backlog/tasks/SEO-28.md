@@ -75,15 +75,20 @@ this ticket is measurement and a decision point, not a code fix, because no code
 - The header/sitemap/link-count checks above are the diagnosis; nothing here changes `src/`. A future
   agent reopening this should re-derive at least the link-count check before assuming it still holds
   (SEO-06-style content or link work in the meantime could change it).
-- `/split/` gets an indexing request (SEO-01's capture found `/redact/`, `/` and `/compress/` already
-  requested on 2026-09-11; `/split/` was not). This is Search Console, so it is Shlomi's action, not
-  something this ticket can execute - flagged here so it is not lost.
+- ~~`/split/` gets an indexing request~~ - done. This section originally flagged `/split/` as missed;
+  SEO-01's 2026-09-11 update recorded all nine stale URLs requested that same day, `/split/` included.
 - Re-run `npm run seo:crawl-staleness` at the next `docs/seo-last-crawled.json` capture (SEO-01/SEO-02's
-  shared 2026-10-08 refresh) and record here whether `/redact/` and `/split/` have been recrawled. Two
-  outcomes, and what each means:
-  - **Recrawled, and the crawl date now sits after their most recent content change:** the
-    "crawl-age/demand-model" hypothesis is supported - close this ticket, no code fix was needed, the
-    domain's crawl trust caught up.
+  shared 2026-10-08 refresh) and record here whether `/redact/` and `/split/` have been recrawled.
+  **SEO-01's 2026-09-11 update sets up the control this ticket needed and didn't have to ask for
+  separately**: `/merge/` and `/unlock/` were deliberately left off the indexing-request list, so the
+  same capture separates "did asking work" from "is the domain's crawl rate rising on its own" -
+  exactly the two things this ticket's outcomes below need distinguished. Read them together:
+  - **`/redact/`/`/split/` recrawled current, and `/merge/`/`/unlock/` also moved without being
+    asked:** the domain's crawl trust is rising on its own - the "crawl-age/demand-model" hypothesis is
+    supported. Close this ticket, no code fix was needed.
+  - **`/redact/`/`/split/` recrawled current, but `/merge/`/`/unlock/` did not move:** the recrawl was
+    bought by the indexing request, not earned by rising trust. That is a real result, but it means the
+    allocation problem is still there under the surface - note it and keep watching rather than closing.
   - **Still stale, unchanged from this capture:** the hypothesis is wrong or incomplete. Escalate: check
     whether Search Console's own Crawl Stats report (page fetched, by response, by purpose - available to
     Shlomi, not to this environment) shows Googlebot deprioritizing these URLs specifically, and widen the
