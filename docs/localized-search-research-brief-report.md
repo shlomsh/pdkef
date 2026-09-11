@@ -40,9 +40,9 @@ in scope even where raw volume looks small.
 
 | Language | Anchor-task in-language share | Strongest tool (this pass) | Incumbent quality | Google translated-results? | Recommendation |
 |---|---|---|---|---|---|
-| Hebrew | Not measured (Trends/Keyword Planner inaccessible here) | Sign / fill-form | 5 localized incumbents per query, all upload-site translated copy, none native-quality per ticket's existing screenshots | **No** | Decided already (ticket): pilot, LOC-02/03 underway |
-| Indonesian | Not measured directly; iLovePDF gets 22.2% of its global traffic from Indonesia (cited source below) — strong indirect signal | Sign (Mekari Sign is an Indonesia-only native competitor) / Compress | Native-quality on the majors (Smallpdf, PDF24); at least one aggregator claims on-device processing already (needs verification) | Yes | **Pilot** — evidence in this pass supports the ticket's expectation |
-| Malay | Not measured; every major has a `/ms/` page but a Malaysian consumer blog (ecentral.my, wiser.my) recommends the *English* tools rather than a Malay-native one, and "pdf ke jpg" in Malay returned zero Malay-specific results | Sign (richer native ecosystem than compress/convert) | Mixed: sign pages read native, but organic demand signal for convert/compress in Malay looks thin | No | **Later** — thinner than Indonesian on this pass; worth one real SERP check before deciding |
+| Hebrew | **Measured**: small vs. English on all 4 anchor tasks — merge steadiest (~1/3, sustained), sign near-zero | Sign / fill-form | 5 localized incumbents per query, all upload-site translated copy, none native-quality per ticket's existing screenshots | **No** | Decided already (ticket): pilot, LOC-02/03 underway |
+| Indonesian | **Measured**: compress and sign at/near parity with English (2 of 4 tasks); merge ~half; pdf-to-jpg weak (~1/5). Also: iLovePDF gets 22.2% of its global traffic from Indonesia | Sign (Mekari Sign is an Indonesia-only native competitor) / Compress | Native-quality on the majors (Smallpdf, PDF24); at least one aggregator claims on-device processing already (needs verification) | Yes | **Pilot** — criterion 1 cleared outright |
+| Malay | **Measured: all 4 anchor tasks came back flat at 0** — no in-language search volume large enough for Trends to plot, while English held its normal line | Sign (richer native ecosystem than compress/convert, but see Trends result) | Mixed: sign pages read native, but organic demand signal for convert/compress in Malay looks thin | No | **No** — the Trends zero settles what the thinner qualitative signal only suggested |
 | Hindi | Not measured; strong qualitative signal that real typed queries are Hinglish/Latin script, not Devanagari (YouTube titles, tutorial-site titles) | Compress (only because it's the most-searched task generally, not because Hindi-script demand is proven) | Split: Adobe and Smallpdf ship real Devanagari pages; Canva and a "Pi7" competitor only exist as Google-Translate proxy URLs, i.e. no native page at all | Yes | **No** (matches the ticket's stated expectation) — the Hinglish pattern held up |
 | Filipino/Tagalog | Not measured | PDF-to-JPG / general convert | Adobe and PDFSimpli ship pages, but titles code-switch heavily ("Paano Mag-convert ng PDF sa JPG" — Filipino verb, English object) | No | **Later** — real demand looks code-switched rather than absent; a Tagalog page would itself be a mixed-register page, which is unlike every other language here and needs a native call, not a volume number |
 | Urdu | Not measured; romanized-query search surfaced only Hindi-Devanagari competitor pages, no Urdu-script results | Unclear | No evidence of a dedicated Urdu tool page from any major competitor found this pass | Yes | **No** for now — thinnest evidence of any language checked; revisit if Shlomi's Pakistan GSC country filter (source 3 of the ticket) shows anything |
@@ -53,8 +53,9 @@ in scope even where raw volume looks small.
 
 Not independently measurable from this environment — Google Trends' comparison UI and Keyword Planner
 are both inaccessible (JS-rendered / authenticated; one direct fetch attempt on Trends returned an
-empty app shell, confirming rather than working around the limitation). The one indirect volume signal
-obtained:
+empty app shell, confirming rather than working around the limitation). **Update 2026-09-11: Shlomi ran
+the comparisons himself and sent screenshots** (region-locked, past 12 months, Web Search category) —
+this closes the gap for Hebrew and Indonesian below. Malay is still pending, in progress.
 
 - **iLovePDF**, via Similarweb (fetched via search, not logged into the tool): Indonesia is **22.2%** of
   `ilovepdf.com`'s traffic (behind India at 22.2% also cited, so effectively tied for largest), and its
@@ -64,13 +65,56 @@ obtained:
   gratis` already leaking through on an English-only page). Source:
   [Similarweb: ilovepdf.com](https://www.similarweb.com/website/ilovepdf.com/),
   [Similarweb: ilovepdf.com.cn](https://www.similarweb.com/website/ilovepdf.com.cn/).
-- No equivalent number found for Malay, Hindi, Filipino, Urdu, Bengali, or Arabic in this pass.
 
-**This section is the biggest gap in this report and the one Shlomi's tool access can close directly.**
-Recommended next step: run the four anchor tasks (compress, merge, sign, pdf-to-jpg) through Google
-Trends' own comparison UI, native-language term vs. English term, region set per country, for Hebrew,
-Indonesian, and Malay specifically — those three are the ones this report's other evidence can't settle
-on its own (Hindi and the four light-pass languages already have a directional answer from B/C below).
+### Google Trends, read from Shlomi's screenshots (Israel and Indonesia, past 12 months)
+
+**Hebrew (Israel).** Read off the "Average" bars, native term against English term, all four anchor
+tasks:
+
+| Task | Hebrew term | English term | Read |
+| --- | --- | --- | --- |
+| Compress | `כיווץ קובץ pdf` | `compress pdf` | Near-zero baseline, sporadic spikes to ~25-45 roughly every 6-8 weeks; average maybe 5-10% of the English line. A four-way comparison adding `דחיסת קובץ pdf` and `חינם דחיסת pdf` shows both other Hebrew synonyms at the same low, spiky level — no Hebrew phrasing for compress clears meaningful volume against English, confirming the ticket's existing SERP-side read (thin competition, but also thin raw demand by this measure). |
+| Merge | `מיזוג קבצי pdf` | `merge pdf` | The strongest Hebrew showing of the four: a **steady**, non-spiky line at roughly a third of the English line's height throughout the whole 12 months, not an intermittent pulse like compress. Real, sustained demand, just smaller. |
+| Sign | `חתימה על pdf` | `sign pdf` | Weakest of the four — the Hebrew line is essentially flat at zero for the entire 12 months, with one small uptick only in the last few weeks of the window. |
+| PDF to JPG | `pdf ל jpg` | `pdf to jpg` | Small, intermittent spikes (~15-20) against a steady English line around 65-100 — similar pattern to compress. |
+
+**Read against the decision rule:** none of Hebrew's four anchor tasks show a native term at a share
+"comparable" to English by the letter of criterion 1 — merge comes closest (steady ~1/3) and sign comes
+closest to zero. This matches the ticket's own framing that for Hebrew this number is "informative, not
+decisive" (criterion 2 and 3 already carried the decision). It also explains *why* the SERP is thin
+(freepdfconvert/AvePDF holding page one): raw query volume for the Hebrew phrasing is real but small,
+which is consistent with a market few competitors have bothered building deep, reviewed pages for.
+
+**Indonesian.** Same read, same four tasks:
+
+| Task | Indonesian term | English term | Read |
+| --- | --- | --- | --- |
+| Compress | `kompres pdf` | `compress pdf` | **Near parity, and the Indonesian line is often at or above the English one** — the two track each other closely for the full 12 months, with `kompres pdf`'s average bar reading slightly taller than `compress pdf`'s. This is the clearest "comparable share" result in the whole report. |
+| Merge | `gabungkan pdf` | `merge pdf` | English leads (~80 vs ~43 on the average bars), but Indonesian is a real, steady ~half, not a spike pattern. |
+| Sign | `tanda tangan pdf` | `sign pdf` | Close to parity for most of the window (both in the 25-50 band), with `sign pdf` spiking above it twice; Indonesian is competitive, not marginal. |
+| PDF to JPG | `pdf ke jpg` | `pdf to jpg` | The one weak spot, same as Hebrew's pattern — Indonesian holds a small but steady ~18-25% share against a dominant English line. |
+
+**Read against the decision rule:** Indonesian clears criterion 1 outright — compress and sign are at or
+near parity, which is two of the four anchor tasks the rule asks for. This is the strongest evidence in
+the report for treating Indonesian as the pilot candidate, now backed by an actual Trends comparison
+rather than the indirect Similarweb signal alone.
+
+**Malay.** Shlomi ran the same four comparisons (`mampatkan pdf`, `gabungkan pdf`, `tandatangan pdf`,
+`tukar pdf ke jpg`, each against its English counterpart, geo=MY). **All four came back flat at 0** —
+Google Trends registered no measurable volume for any of the Malay terms over the past 12 months, while
+the English terms held their usual line. This is a cleaner, more decisive result than Hebrew's (which at
+least showed a real, if small, signal on merge): for Malay, on this pass, there is no in-language search
+behavior for any of the four anchor tasks large enough for Trends to plot at all. It matches the weaker
+qualitative read from section B/C below (Malay blogs recommending English tool brands by name, `pdf ke
+jpg` finding zero native competitor pages) rather than contradicting it, and it settles the "later vs.
+no" question the earlier draft of this section left open: **no**, not a candidate on this evidence.
+Every `/ms/` page the majors built (section B/C) looks like the cheap-to-localize case the brief warned
+about — competitors translating because it costs them nothing, not because Malay-language demand asked
+for it.
+
+No equivalent Trends number exists yet for Hindi, Filipino, Urdu, Bengali, or Arabic — Hindi's case
+rests on the qualitative Hinglish evidence in section B/C below rather than a Trends number, and the
+four light-pass languages weren't measured this way at all.
 
 ## B/C. Phrasing and incumbents, by language
 
@@ -105,10 +149,37 @@ queries — matches the ticket's own GSC finding of `gabung pdf free online`), `
 itself stays Latin/untransliterated in every case, as expected. Modifier `gratis` is near-universal;
 `online` is kept as a loanword rather than translated.
 
-**Verdict: pilot, matching the ticket's expectation.** Criterion 2 (a mixed/machine incumbent to beat)
-is only partly met — the majors' Indonesian pages are good, not weak — but the *cloud-vs-device* framing
-is open (PDF24 says outright it uploads to a German server) and the market size signal (iLovePDF's
-~22% Indonesia traffic share) is real and cited.
+**Update 2026-09-11 — real SERPs (Shlomi's screenshots, `hl=id&gl=ID`), all four anchor tasks:**
+
+| Query | Top five | Read |
+| --- | --- | --- |
+| `kompres pdf` | iLovePDF, Smallpdf (4.5★, 511,392 reviews), **Telkom University** (`stage-pdf.telkomuniversity.ac.id`), Adobe (4.6★, 281,831 reviews), PDF24 | An `.ac.id` university domain holding a page-one slot for a commercial-intent query is unusual and worth noting, but doesn't change the competitive picture: every other result is a mature global player. |
+| `gabungkan pdf` | iLovePDF, Smallpdf (4.8★, 703,341 reviews), PDF24 (5.0★, 24,054), PrintFriendly, CamScanner | CamScanner (a mobile scanning app) also competing here is new information — a different incumbent shape than the pure-PDF-tool field. |
+| `tanda tangan pdf` | iLovePDF, PDF24 (4.9★, 3,251), Smallpdf (4.6★, 35,846), PDFgear (4.9★, 10,143), a Google Play app listing | |
+| `pdf ke jpg` | iLovePDF, Smallpdf (4.6★, 323,280 reviews), Canva, PDF24 (5.0★, 4,925), Adobe | |
+
+**This is the opposite competitive shape from Hebrew.** Hebrew's top five (existing ticket evidence)
+were thin: two small upload sites (freepdfconvert, AvePDF) holding page one alongside the majors, no
+review data shown. Indonesian's top five, on all four queries, are **every major global player**
+(iLovePDF, Smallpdf, Adobe, PDF24, Canva), each with a fully native-Indonesian title and snippet, and
+most carrying `AggregateRating` star snippets with review counts in the hundreds of thousands
+(Smallpdf: 511k-703k reviews across these four queries alone). Nothing in these five results, on any of
+the four queries, reads as mixed-language or machine-translated. **Criterion 2, read against what the
+SERP actually shows rather than the earlier direct-fetch sample, is not clearly met.** The two openings
+identified from direct page fetches still stand — PDF24 names its own German server (a cloud-vs-device
+opening) and no result claims on-device processing — but "a weak incumbent to beat" is not an accurate
+description of this SERP; it is the same `AggregateRating` pattern this project already declined to
+adopt for Hebrew (SEO-04), now at a much larger scale (hundreds of thousands of reviews, not thousands).
+Recommend re-reading this against criterion 2 explicitly before LOC-04 commits: the case for Indonesian
+now rests on criterion 1 (which cleared cleanly) and the honest device-privacy gap, not on facing a weak
+field.
+
+**Verdict: pilot, but on criterion 1 and the device-privacy gap — not on a weak incumbent.** Criterion 2
+as originally written ("at least one incumbent is mixed-language or machine-translated") does not hold
+up against the real SERP: every top-five result across all four queries is native-quality, and most
+carry large review counts. The market-size case (criterion 1, cleared) and the honest gap (no incumbent
+claims on-device processing) still argue for a pilot, but going in should not assume a thin field the
+way Hebrew's is.
 
 ### Malay
 
@@ -126,11 +197,28 @@ signals suggest the underlying organic demand is thinner than Indonesian's:
 - `"tandatangan pdf"` (sign), by contrast, did surface a full set of native `/ms/` and `/my_ms/` pages —
   so the signal is task-dependent, not uniformly absent.
 
-**Verdict: later, not no.** This is thinner than Indonesian on every signal gathered here, but "every
-major built the page anyway" (cheap-to-translate, as the brief itself notes competitors do regardless
-of demand) is not itself evidence of absence. Malay and Filipino are also both missing from Google's
-translated-results list, which is the one structural argument for revisiting this with a real Trends
-check before settling on "later" for good.
+**Update 2026-09-11 — real SERPs (Shlomi's screenshots, `hl=ms&gl=MY`), all four anchor tasks:**
+
+| Query | Top results | Read |
+| --- | --- | --- |
+| `mampatkan pdf` | iLovePDF, Smallpdf (ms-MY), Adobe, freepdfconvert, rightpdf.com, a Google Play app, Xodo, pdf2go.com, compress2go, a Chrome extension | Full native ecosystem, no AI Overview shown, **no star-rating snippet on any result** — unlike every Indonesian query, which carried `AggregateRating` counts in the hundreds of thousands. |
+| `gabungkan pdf` | iLovePDF (native), freepdfconvert, Smallpdf (ms-MY), Xodo, **an AI Overview** ("Anda boleh menggabungkan fail PDF dengan pantas menggunakan perkhidmatan percuma seperti iLovePDF atau Smallpdf"), Adobe, pdf2go, EasePDF, and a **second iLovePDF result lower down marked "Terjemahkan halaman ini"** (translate this page) whose snippet reads "Layanan gratis" — Indonesian, not Malay. | Google is reaching into iLovePDF's *Indonesian* page as a fallback result on a Malaysia SERP and offering to translate it. That is a direct, visible sign that Malay-specific content is thin enough for Google to blur the Malay/Indonesian boundary rather than that competitors haven't tried. |
+| `tandatangan pdf` | iLovePDF (native), three video results (YouTube, TikTok, YouTube — real Malay-language video content responding to this exact task), Smallpdf (ms-MY), Adobe, pdf2go, an AI Overview, and **PDF24's result marked "Sign PDF - 100% free & online" with "Terjemahkan halaman ini"** — i.e. PDF24 has no Malay-specific sign page indexed here; Google is offering to translate its English one. | Same fallback pattern as merge, on a different competitor. Video results are a genuine engagement signal, but neither of the two things that would prove deep, monetizable demand (reviews, a complete native competitor set) is present. |
+| `tukar pdf ke jpg` | iLovePDF, Smallpdf (ms-MY), an AI Overview, Adobe, freepdfconvert, Xodo, DeftPDF, a Google Play app, pdf2go | Fully native this time, no translate-page fallback visible — this is the one query where Malay coverage looks complete. |
+
+**This sharpens rather than reverses the Trends-based "no."** Two things stand out against Indonesian's
+SERPs. First, **zero `AggregateRating` snippets across all four Malay queries** — Indonesian carried
+star ratings with hundreds of thousands of reviews on almost every result; Malay carries none, on any
+query. Review count is a real proxy for transaction/engagement volume, and its total absence here is a
+second, independent signal pointing the same direction as the Trends zero. Second, **on two of the four
+queries Google itself doesn't have a matching native page to show** and falls back to a differently
+localized page (Indonesian) or the English original with a translate offer — undercutting the earlier
+light-pass framing that "every major built the `/ms/` page anyway": that's true of the brand's site
+existing, not of every task having complete Malay-specific coverage. The AI Overviews and video results
+show *some* real informational demand exists (people are asking "how do I sign a PDF" in Malay), but
+none of the signals that would justify a reviewed page investment — comparable Trends volume, review
+counts, complete native competitor coverage — are present. **Verdict: no**, now on two independent
+measures rather than Trends alone.
 
 ### Hindi
 
