@@ -142,6 +142,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SEO-25 | P3 | [SEO-25](backlog/tasks/SEO-25.md) · A before-and-after preview on Compress, so quality is shown rather than promised |
 | SEO-26 | P3 | [SEO-26](backlog/tasks/SEO-26.md) · Say what PDkef does not do, and why, on a page that already exists |
 | SEO-27 | P3 | [SEO-27](backlog/tasks/SEO-27.md) · Decide the localization question: Hebrew is nearly free, Hindi is not the win it looks like |
+| SEO-28 | P1 | [SEO-28](backlog/tasks/SEO-28.md) · Redact and Split earn the most and are recrawled the least, and nothing we control explains it |
 
 
 ## Migrated context and history

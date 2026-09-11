@@ -227,3 +227,9 @@ in that table matter beyond the count:
 **Indexing requested today for `/`, `/redact/` and `/compress/`.** Still to request: `/split/`,
 `/sign/`, and the four `how-to-sign-a-pdf-on-*` guides. The script prints the list; run it after the
 next capture and it becomes the reindex queue.
+
+**Whether "budget spent on the wrong pages" is SEO-06's problem or a different one is checked and
+answered in [SEO-28](./SEO-28.md): different.** Header, sitemap-lastmod and internal-link-count checks
+all rule out an on-page cause for `/redact/`/`/split/` specifically - `/redact/` in particular is the
+second-most-linked page on the site and was still skipped, the opposite of what a linking defect would
+look like. SEO-28 tracks it as recrawl-scheduling behavior, re-measured at the next capture.
