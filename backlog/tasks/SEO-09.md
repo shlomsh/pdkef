@@ -35,6 +35,14 @@ at all. Two consequences: the baseline for this ticket is a page a month older t
 and whatever vocabulary change ships here is not done when it merges - it is done when it is recrawled.
 Request indexing for `/split/` as part of finishing, and confirm with `npm run seo:crawl-staleness`.
 
+*Update 2026-09-11:* Vocabulary work landed (freeNoteLead cross-links between `/split/` and `/edit-pdf/`
+stating the extract-vs-remove distinction each way, and the "Is this a PDF page extractor?" FAQ entry
+reconciled to name Edit PDF Pages as the alternative) - h1/subhead/steps already said "extract" before
+this ticket was filed, so no change was needed there. Indexing requested for `/split/` again today
+(Shlomi, still showing **2026-07-05** as of this commit - too soon for Google to have acted on it).
+Re-run `npm run seo:crawl-staleness` at the next capture to confirm the recrawl landed before reading
+position movement on the extract cluster.
+
 **The work is vocabulary, not features.** Decide where "extract" belongs in the title, h1, subhead and
 step copy without losing "split", which is the higher-volume head term and is currently the whole
 identity of the page. The two are the same operation to a user, so this is a phrasing problem with a

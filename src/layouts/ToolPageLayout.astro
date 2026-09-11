@@ -90,6 +90,16 @@ const { tool } = Astro.props;
       </p>
     )}
 
+    {/* SEO-10: the no-limit fact, stated where a visitor scanning the SERP
+        result actually lands, not buried in the FAQ below the tool. Kept to
+        one plain sentence, no badge, in the OfflineProof register: state the
+        fact, then the one honest caveat, no intensifiers, no competitor. */}
+    {tool.slug === 'merge' && (
+      <p class="type-body mx-auto mb-4 max-w-[54rem] px-6 text-center text-[var(--color-muted)] min-[1024px]:mb-2">
+        Combine as many files as you like. Nothing is uploaded, so there's nothing to meter, only your device's own memory.
+      </p>
+    )}
+
     <main class="!flex !min-h-0 !flex-1 !flex-col !px-4 !pb-4 min-[560px]:!px-6 min-[768px]:!pb-5">
       <section id="app" class="!my-0 !flex !min-h-0 !w-full !flex-1 !items-center !justify-center min-[1024px]:!items-start min-[1024px]:!justify-start" aria-label={tool.ariaLabel}>
         <slot />
