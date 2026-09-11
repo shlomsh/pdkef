@@ -3,6 +3,14 @@
 // the actual pages. Prerendered to /sitemap.xml at build time (static
 // output). The home page is listed explicitly; every tool and content page
 // comes from its registry with its own priority/changefreq.
+//
+// The <?xml-stylesheet?> PI points at public/sitemap.xsl, which exists
+// purely so this renders readably when a human (or Chrome) opens the URL
+// directly - once the <xhtml:link> hreflang alternates below were added,
+// Chrome stopped showing its default XML tree view for this file (it treats
+// any XHTML-namespaced element as "real HTML" and falls back to unstyled
+// rendering instead). Search engines ignore the PI and parse the XML as-is;
+// see public/sitemap.xsl's own header comment for the full story.
 import { tools, toolsBySlug } from '../data/tools.js';
 import { contentPages } from '../data/contentPages.js';
 import { getCollection } from 'astro:content';
@@ -93,6 +101,7 @@ export async function GET({ site }) {
   ];
 
   const body = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${urls
   .map(
