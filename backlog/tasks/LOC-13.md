@@ -68,6 +68,39 @@ Decide and record in this ticket; the recommended shape:
 - Redirect pair in `vercel.json`, `npm run test:redirects`, `check-css-duplication` re-based only if
   the page count moves it, per the usual rules.
 
+## Go/no-go data, 2026-09-12 (Shlomi's Trends and SERP screenshots, same day the ticket opened)
+
+**Demand: below Trends' floor.** Chart of the five target-size terms alone (`comprimir pdf a 1mb`, `a
+2mb`, `a 500 kb`, `reducir pdf a 1mb`, `al máximo`, `geo=MX`, 12 months): zeros all year with two
+one-week blips, the shape Trends draws when a term is too small to clear its threshold. Against
+`comprimir pdf` (~65) and `reducir tamaño pdf` (~9), every target-size term reads 0. Spain
+(`comprimir pdf` ~74, `reducir tamaño pdf` ~21) is the same shape. For scale, the English niche this
+page was modelled on (`file compressor to 100kb`) yields about 100 impressions a month, and that is
+already small.
+
+**Field: occupied, and the majors are now entering it.**
+
+| Query (`hl=es&gl=MX`) | Dedicated target-size pages in the top ten |
+| --- | --- |
+| `comprimir pdf a 2mb` | Zamzar (Google-translated), **Pi7 `comprimir-pdf-a-2mb` ("sin subir archivos")**, 11zon `compress-pdf-to-2mb`; iLovePDF, pdf2go, PDF24, Adobe, PDFgear generic; AI Overview |
+| `comprimir pdf a 1mb` | 11zon, Zamzar (translated), Pi7, **Smallpdf `comprimir-un-pdf-a-1-mb-gratis`, dated 24 Jun 2026**; PDFgear names 100kb/200kb/1mb in its snippet; video "Archivos menores a 1 MB en minutos" by **Prepa en Línea-SEP** |
+| `comprimir pdf a 500 kb` | **Adobe 500 KB page (translated, 281,831 reviews)**, Zamzar (translated), 11zon, Duplichecker (translated), LightPDF (100KB to 2MB custom), **safelocaltools.com "Comprimir PDF a 500 KB, 1 MB o 2 MB": "comprímelo hasta el tamaño máximo que exige tu portal"** |
+| `reducir tamaño pdf a 1mb` | 11zon, Smallpdf 1 MB, Pi7, Zamzar, DocHub; SEP video again |
+| `comprimir pdf a 2mb` (`gl=ES`) | 11zon, Pi7, Wondershare `pdf.wondershare.es` 2MB (188,357 reviews), DocHub; related searches add `a 10 MB` |
+
+Same tier of competitor as the English 100kb SERP (11zon, Pi7, Zamzar, LightPDF), where this domain
+ranks at 9.4 after a year of authority on the query, plus Smallpdf and Adobe now building the pages in
+Spanish, plus a local-tools site with the portal-limit angle already written.
+
+**The one verifiable hook found:** Prepa en Línea-SEP, the federal online high school, publishes its
+own "files under 1 MB" video, so a 1 MB limit at a Mexican government portal is real and citable. If
+this page is built, that is where its number comes from.
+
+**Read:** as scoped, the page would produce a number too small to learn from (the Hebrew problem),
+against a paid reviewer and a schema extension. Recommendation to Shlomi: hold until LOC-03's Hebrew
+read (2026-11-06) and LOC-12 (2026-11-12), and grow the English base first, since localization
+multiplies what the English pages already win. Decision pending.
+
 ## Term and slug come from the data, not from this ticket
 
 LOC-11's "For Shlomi" section has the Trends and SERP links for the target-size terms
