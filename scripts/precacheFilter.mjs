@@ -1,4 +1,5 @@
 import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from './font-manifest.mjs';
+import { isLocalizedPath } from '../src/i18n/localePrefixes.js';
 
 /**
  * Which built assets the service worker downloads before anyone asks for
@@ -47,6 +48,16 @@ import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from './font-manifest.mjs';
  * Regular - which is why this keep-list is one face rather than one family,
  * and why it's read off `faces.normal` rather than every entry the
  * manifest's (currently unused) `precache` flag would pull in.
+ *
+ * Localized HTML (`/he/...`, any prefix in src/i18n/localePrefixes.js) is
+ * the second exclusion (LOC-02): a locale must cost only its own visitors
+ * bytes, and nine tools times N languages of page shells would otherwise
+ * land in every visitor's cache. A localized page instead asks sw.js to
+ * precache its edition's published pages as a pack (the same mechanism as
+ * font packs, `pdkef:locale-pack-provision`), so a Hebrew visitor has the
+ * whole edition offline after one visit while the JS - shared,
+ * content-hashed, already in the manifest - downloads once. The HTML is
+ * cheap; the rule is what stops the multiplication.
  */
 const defaultFontEntry = FONT_MANIFEST.find((font) => font.family === DEFAULT_FONT_FAMILY);
 export const PRECACHED_FONTS = [`fonts/${defaultFontEntry.faces.normal}`];
@@ -54,5 +65,6 @@ export const PRECACHED_FONTS = [`fonts/${defaultFontEntry.faces.normal}`];
 export function shouldPrecache(relative, { manifestName, workerName }) {
   if (relative === manifestName || relative === workerName) return false;
   if (relative.startsWith('fonts/')) return PRECACHED_FONTS.includes(relative);
+  if (relative.endsWith('.html') && isLocalizedPath(relative)) return false;
   return true;
 }

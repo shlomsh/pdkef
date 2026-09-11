@@ -11,6 +11,7 @@ import ToolFaqCard from '../components/ToolFaqCard.astro';
 import ToolCrossLinks from '../components/ToolCrossLinks.astro';
 import Footer from '../components/Footer.astro';
 import DocumentationLanguageSelector from '../components/DocumentationLanguageSelector.astro';
+import LocalePackRequest from '../components/LocalePackRequest.astro';
 import type { DocumentationShellMessages } from '../i18n/documentationMessages';
 import '../styles/contentPage.css';
 
@@ -106,4 +107,6 @@ const {
   <ToolCrossLinks currentSlug="" />
 
   <Footer labels={messages} />
+
+  {locale !== 'en' && <LocalePackRequest locale={locale as any} />}
 </BaseLayout>

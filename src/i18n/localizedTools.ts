@@ -18,7 +18,7 @@ import {
   type DocumentationFreshness,
   type DocumentationSourceHash,
 } from './documentationFreshness';
-import { isDocumentationPreview } from './documentation';
+import { getDocumentationVariants, isDocumentationPreview } from './documentation';
 
 export type LocalizedToolStatus = 'draft' | 'published';
 
@@ -199,3 +199,17 @@ export async function getLocalizedToolContext(toolSlug: string, requestedLocale:
  * and the .astro route below wires it up.
  */
 export const LOCALIZED_TOOL_ISLANDS = new Set(['merge', 'compress']);
+
+/**
+ * Every published page of one edition - tool pages and guides - as site
+ * paths, for the offline locale pack a localized page asks sw.js to warm
+ * (LOC-02). Published only, whatever the build mode: a draft has nothing to
+ * warm, and the pack a page names is one of verify-seo's guards.
+ */
+export async function getPublishedEditionPaths(locale: DocumentationLocaleId): Promise<string[]> {
+  const [toolVariants, guideVariants] = await Promise.all([getLocalizedToolVariants(), getDocumentationVariants()]);
+  return [...toolVariants, ...guideVariants]
+    .filter((variant) => variant.locale === locale && variant.status === 'published')
+    .map((variant) => variant.path)
+    .sort();
+}
