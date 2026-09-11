@@ -155,4 +155,8 @@ over the search proxy if one becomes accessible.
   [withastro/roadmap#521](https://github.com/withastro/roadmap/discussions/521). Found by reading the
   thread's last comments before drafting (the check the abhi18av entry above recommends); not posted
   again.
+- **Release published** - Shlomi ran `gh release create` from the main checkout:
+  [v1.0.0](https://github.com/shlomsh/pdkef/releases/tag/v1.0.0), 2026-09-11 19:54 UTC, tag at
+  `038b5d7` (main had moved past `054b8db` by then, which is fine - the release includes the notes file
+  itself). awesome-selfhosted eligible from 2027-01-12.
 - Still queued from the second pass: the PWA directories, Lissy93/awesome-privacy (rules unchecked).
