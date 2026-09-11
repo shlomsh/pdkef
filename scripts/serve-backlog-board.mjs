@@ -12,6 +12,7 @@ const lanes = {
   'mobile-round-trip': 'Mobile round trip',
   'site-quality': 'Site quality',
   'search-acquisition': 'Search acquisition',
+  'localized-search': 'Localized search',
 };
 const statusLabels = { open: 'Open', in_progress: 'In progress', blocked: 'Blocked', done: 'Done', retired: 'Retired' };
 

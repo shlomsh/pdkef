@@ -224,7 +224,6 @@ _None._
 | SEO-04 | P1 | [SEO-04](backlog/tasks/SEO-04.md) · Thirteen blur queries are on page one and earning zero clicks |
 | SEO-05 | P1 | [SEO-05](backlog/tasks/SEO-05.md) · The 100KB cluster ranks and does not convert, and the page implies something untrue |
 | SEO-06 | P1 | [SEO-06](backlog/tasks/SEO-06.md) · Nine URLs have never been crawled, and three of them are working tools |
-| SEO-08 | P2 | [SEO-08](backlog/tasks/SEO-08.md) · The four OS how-to guides rank between 44 and 58, and one of them is our best-read page |
 | SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |
 | SEO-17 | P2 | [SEO-17](backlog/tasks/SEO-17.md) · One content page on portal size limits, instead of three doorway pages |
 | SEO-18 | P2 | [SEO-18](backlog/tasks/SEO-18.md) · One page on signing a PDF in your own language, generated from the coverage data |
@@ -238,6 +237,8 @@ _None._
 | SEO-26 | P3 | [SEO-26](backlog/tasks/SEO-26.md) · Say what PDkef does not do, and why, on a page that already exists |
 | SEO-27 | P3 | [SEO-27](backlog/tasks/SEO-27.md) · Decide the localization question: Hebrew is nearly free, Hindi is not the win it looks like |
 | SEO-28 | P1 | [SEO-28](backlog/tasks/SEO-28.md) · Redact and Split earn the most and are recrawled the least, and nothing we control explains it |
+| SEO-29 | P3 | [SEO-29](backlog/tasks/SEO-29.md) · Every ranking how-to competitor shows a visible date or byline; our content pages show neither |
+| SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before |
 
 ### In progress
 
@@ -257,11 +258,41 @@ _None._
 | SEO-01 | P1 | [SEO-01](backlog/tasks/SEO-01.md) · An indexing baseline, and the two mechanical reasons pages are not being crawled |
 | SEO-02 | P1 | [SEO-02](backlog/tasks/SEO-02.md) · A standings table against the competition that is maintained, not written once |
 | SEO-07 | P1 | [SEO-07](backlog/tasks/SEO-07.md) · The Sign page says almost nothing about the one advantage nobody can copy |
+| SEO-08 | P2 | [SEO-08](backlog/tasks/SEO-08.md) · The four OS how-to guides rank between 44 and 58, and one of them is our best-read page |
 | SEO-11 | P1 | [SEO-11](backlog/tasks/SEO-11.md) · The positioning review protocol: what we may claim, and what proves it |
 | SEO-12 | P1 | [SEO-12](backlog/tasks/SEO-12.md) · Positioning review: Sign, the tool with the biggest gap between what it does and what it says |
 | SEO-13 | P2 | [SEO-13](backlog/tasks/SEO-13.md) · Positioning review: Compress, where the honest answer costs us the query |
 | SEO-14 | P2 | [SEO-14](backlog/tasks/SEO-14.md) · Positioning review: Blur and Redact, the cluster we are already winning |
 | SEO-15 | P2 | [SEO-15](backlog/tasks/SEO-15.md) · Positioning review: the three tools Google has never looked at |
+
+### Retired
+
+_None._
+
+## Localized search
+
+### Open
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| LOC-01 | P2 | [LOC-01](backlog/tasks/LOC-01.md) · Measure non-English demand from outside Search Console: the gate for the second language |
+| LOC-02 | P2 | [LOC-02](backlog/tasks/LOC-02.md) · Localized tool pages: the route, the reviewed copy source, and the island message catalogue |
+| LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house |
+| LOC-04 | P3 | [LOC-04](backlog/tasks/LOC-04.md) · Indonesian: the one large market where the category is searched in-language, gated on LOC-01 and the Hebrew pilot |
+| LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
+| LOC-06 | P3 | [LOC-06](backlog/tasks/LOC-06.md) · Per-locale measurement: extend the refresh procedure so localized pages are read separately |
+
+### In progress
+
+_None._
+
+### Blocked
+
+_None._
+
+### Done
+
+_None._
 
 ### Retired
 

@@ -45,7 +45,7 @@ all of it (section 6).
 | SEO-14 Blur/Redact review | done | 2026-09-11 | shipped one line making flattening-makes-it-permanent visible in `aboutLead`, same move as SEO-13; blur-vs-removal caveat and the three-page cluster checked, no change needed | |
 | SEO-15 Image-to-PDF/PDF-to-Image/Edit-Pages review | done | 2026-09-11 | shipped: image-to-pdf's privacy fact tied to what it protects (ID pages, consent forms); pdf-to-image's no-zip limitation disclosed above the fold and in FAQ; edit-pdf's candidate differentiator didn't survive the competitive check, no change shipped there | |
 | SEO-09, 10, 16 to 27 | open | | not started | per section 4 |
-| LOC-01 to 06 (`localized-search` epic) | open | 2026-09-11 | non-English demand is unmeasurable from GSC by construction; LOC-01 measures it from outside, LOC-02/03 build localized tool pages with Hebrew first, gated on section 4's crawl gate | LOC-01 verdict table |
+| LOC-01 to 06 (`localized-search` epic) | open | 2026-09-11 | Hebrew decided on 2026-09-11 SERP captures (thin competition, no incumbent claims on-device or RTL); LOC-02/03 build `/he/compress/`, `/he/merge/`, `/he/sign/` now; LOC-01 measures demand from outside GSC and gates the second language only; section 4's URL gate is an English-effort rule and does not apply here | LOC-03 recrawl, then Hebrew queries in GSC |
 
 ---
 

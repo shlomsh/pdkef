@@ -20,6 +20,7 @@ const epics = [
   ['mobile-round-trip', 'Mobile round trip', 'Mobile round trip: fill a form from a chat and send it back'],
   ['site-quality', 'Site quality', 'Site quality: accessibility, CSS correctness and theming'],
   ['search-acquisition', 'Search acquisition', 'Search acquisition: competitive keyword gaps'],
+  ['localized-search', 'Localized search', 'Localized search: non-English query demand and localized tool pages'],
 ];
 const statuses = [
   ['open', 'Open'],
