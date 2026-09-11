@@ -142,7 +142,10 @@ export default defineConfig({
       // comment on the script has the exact command to recompute it.
       scriptDirective: {
         src: ["'self'"],
-        hashes: ['sha256-j3OvyGCzR3SfgCzVvdAo2zAyZx91ozmlidBezH+RL60=']
+        // Recomputed for LOC-02's draft-hint fix (last path segment instead of
+        // every slash stripped, so a locale prefix like /he/ doesn't leak into
+        // the draft-hint key - see ToolPageLayout.astro's comment on the script).
+        hashes: ['sha256-7Dl4kn157x5qAPORXEcZZoT/2ruo3vYGZpKTCOWr7aw=']
       },
       styleDirective: { src: ["'self'"] }
     }

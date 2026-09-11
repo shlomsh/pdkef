@@ -17,12 +17,75 @@ import RelatedGuides from '../components/RelatedGuides.astro';
 import ToolCrossLinks from '../components/ToolCrossLinks.astro';
 import Footer from '../components/Footer.astro';
 import OfflineProof from '../components/OfflineProof.astro';
+import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
+import { getLocalizedToolContext } from '../i18n/localizedTools';
 import '../styles/toolPage.css';
 
-const { tool } = Astro.props;
+interface Variant {
+  locale?: string;
+  lang?: string;
+  path?: string;
+  href?: string;
+  label?: string;
+  nativeName?: string;
+  isCurrent?: boolean;
+}
+
+interface Props {
+  tool: any;
+  // LOC-02: every prop below defaults so the nine existing English tool pages
+  // (<ToolPageLayout tool={tool}><Island client:load /></ToolPageLayout>, no
+  // other props) render byte-identical to before this ticket.
+  lang?: string;
+  dir?: 'ltr' | 'rtl';
+  canonical?: string;
+  alternates?: { lang?: string; hreflang?: string; href: string }[];
+  noindex?: boolean;
+  locale?: string;
+  variants?: Variant[];
+  preview?: boolean;
+  messages?: DocumentationShellMessages;
+  previewNotice?: string;
+  /** True when this locale's edition has no reviewed island message
+   * catalogue yet (see LOCALIZED_TOOL_ISLANDS in src/i18n/localizedTools.ts) -
+   * the Sign/Redact "editor stays English" pilot decision, generalized. */
+  toolControlsEnglish?: boolean;
+}
+
+const {
+  tool,
+  lang = 'en',
+  dir = 'ltr',
+  canonical,
+  noindex = false,
+  locale = 'en',
+  preview = false,
+  messages = documentationShellMessages.en!,
+  previewNotice,
+  toolControlsEnglish = false,
+}: Props = Astro.props;
+
+// The nine English pages pass neither `alternates` nor `variants`, and they
+// still have to carry the reciprocal hreflang set and the footer switcher
+// once a localized edition is published (LOC-02 guard 1: every hreflang
+// group is reciprocal). Resolve both from the registry here rather than
+// making each page file know about localization. The localized route passes
+// its own, computed from the same function.
+const resolved = await getLocalizedToolContext(tool.slug, locale);
+const alternates = Astro.props.alternates ?? resolved.alternates;
+const variants = Astro.props.variants ?? resolved.variants;
 ---
 
-<BaseLayout title={tool.seoTitle} description={tool.seoDescription}>
+<BaseLayout
+  title={tool.seoTitle}
+  description={tool.seoDescription}
+  lang={lang}
+  dir={dir}
+  canonical={canonical}
+  alternates={alternates}
+  noindex={noindex}
+  socialImageAlt={messages.socialImageAlt}
+>
   <Fragment slot="head">
     <SeoSchema name={tool.schemaName} description={tool.seoDescription} faq={tool.faq} />
 
@@ -50,12 +113,17 @@ const { tool } = Astro.props;
 
         No tool.slug interpolation on purpose: every tool page must emit this
         exact same script text so one hash covers all of them. The slug comes
-        from location.pathname at runtime instead. Tools with no draft feature
-        (merge, split, ...) just look up a key that's never set — harmless. */}
+        from location.pathname at runtime instead - the LAST path segment,
+        not every slash stripped out, so a locale prefix never leaks into the
+        key (LOC-02: `/he/sign/` must read the same draft hint as `/sign/`,
+        not look up a key under 'hesign' that nothing ever writes). Tools with
+        no draft feature (merge, split, ...) just look up a key that's never
+        set — harmless. */}
     <script is:inline>
       (function () {
         try {
-          var slug = location.pathname.replace(/\//g, '');
+          var segments = location.pathname.split('/').filter(Boolean);
+          var slug = segments[segments.length - 1] || '';
           var density = localStorage.getItem('pdf-toolkit:view-density') || 'condensed';
           document.documentElement.setAttribute('data-view-density', density);
           if (density === 'condensed' && localStorage.getItem('pdf-toolkit:workspace:has-draft:' + slug) === '1') {
@@ -66,7 +134,7 @@ const { tool } = Astro.props;
     </script>
   </Fragment>
 
-  <AppBar toolName={tool.toolName}>
+  <AppBar toolName={tool.toolName} labels={messages}>
     {/* Unified with the home page's own top-bar chips (AppBar.astro's
         `.trust-chip` styling) instead of a second, plainer row that used to
         live in ToolHero.astro under the H1 - one chip treatment, one place
@@ -89,8 +157,25 @@ const { tool } = Astro.props;
     </span>
   </AppBar>
 
+  {preview && (
+    <aside class="mx-auto mt-4 max-w-[720px] rounded-[var(--radius-md)] border border-[var(--color-primary-tint)] bg-[var(--color-primary-soft)] px-4 py-3 text-center text-[0.9rem] text-[var(--color-text)]" role="status">
+      {previewNotice ?? messages.previewNotice}
+    </aside>
+  )}
+
   <div class="flex min-h-[calc(100svh-3.5rem)] flex-col">
     <ToolHero icon={tool.icon} title={tool.h1} subhead={tool.subhead} slug={tool.slug} condensable={tool.condenseOnLoad !== false} />
+
+    {/* LOC-02: the Sign/Redact "editor stays English" pilot decision,
+        generalized to any localized tool page whose island has no reviewed
+        message catalogue yet (LOCALIZED_TOOL_ISLANDS in localizedTools.ts).
+        Stated once, near the top, rather than left for the visitor to
+        discover mid-task when a button turns out to still be English. */}
+    {toolControlsEnglish && (
+      <p class="type-body mx-auto mb-4 max-w-[54rem] px-6 text-center text-[var(--color-muted)] min-[1024px]:mb-2">
+        {messages.toolControlsEnglishNotice}
+      </p>
+    )}
 
     {/* The airplane-mode invitation (DEMO-04): the one idea in that ticket
         that isn't already said elsewhere on this page - the app bar's
@@ -114,8 +199,12 @@ const { tool } = Astro.props;
     {/* SEO-10: the no-limit fact, stated where a visitor scanning the SERP
         result actually lands, not buried in the FAQ below the tool. Kept to
         one plain sentence, no badge, in the OfflineProof register: state the
-        fact, then the one honest caveat, no intensifiers, no competitor. */}
-    {tool.slug === 'merge' && (
+        fact, then the one honest caveat, no intensifiers, no competitor.
+        English edition only (LOC-02): it is hardcoded English, and a
+        localized edition's own freeNoteLead already states the no-limit
+        fact in its language; an English sentence in a Hebrew hero is the
+        exact incumbent weakness LOC-01 documents. */}
+    {tool.slug === 'merge' && locale === 'en' && (
       <p class="type-body mx-auto mb-4 max-w-[54rem] px-6 text-center text-[var(--color-muted)] min-[1024px]:mb-2">
         Combine as many files as you like. Nothing is uploaded, so there's nothing to meter, only your device's own memory.
       </p>
@@ -147,13 +236,14 @@ const { tool } = Astro.props;
     freeNoteLead={tool.freeNoteLead}
     sketch={tool.aboutSketch}
     iconPos={tool.aboutIconPos}
+    labels={messages}
   />
 
-  <ToolFaqCard faq={tool.faq} sketch={tool.faqSketch} iconPos={tool.faqIconPos} />
+  <ToolFaqCard faq={tool.faq} sketch={tool.faqSketch} iconPos={tool.faqIconPos} labels={{ tag: messages.faqTag, heading: messages.faqHeading }} />
 
-  <RelatedGuides currentSlug={tool.slug} />
+  <RelatedGuides currentSlug={tool.slug} locale={locale} labels={{ relatedHeading: messages.relatedHeading }} />
 
-  <ToolCrossLinks currentSlug={tool.slug} />
+  <ToolCrossLinks currentSlug={tool.slug} labels={messages} />
 
-  <Footer />
+  <Footer variants={variants} locale={locale} labels={messages} />
 </BaseLayout>

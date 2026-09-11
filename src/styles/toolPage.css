@@ -39,6 +39,7 @@
 @source "../layouts/ToolPageLayout.astro";
 @source "../components/AppBar.astro";
 @source "../components/CardDecor.astro";
+@source "../components/DocumentationLanguageSelector.astro";
 @source "../components/FeatureCard.astro";
 @source "../components/OfflineProof.astro";
 @source "../components/RelatedGuides.astro";
@@ -59,3 +60,5 @@
 @source "../pages/sign.astro";
 @source "../pages/split.astro";
 @source "../pages/unlock.astro";
+/* LOC-02: localized tool pages, same shell components as above. */
+@source "../pages/[locale]/[tool].astro";

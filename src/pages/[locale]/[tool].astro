@@ -1,0 +1,89 @@
+---
+// LOC-02: localized tool pages. Mirrors [locale]/[contentPage].astro's shape
+// (same locale-routing pattern, same reviewer/sourceHash gate, same draft ->
+// noindex-preview behaviour) but renders a tool page - ToolPageLayout plus
+// that tool's real Preact island - instead of a static guide.
+//
+// Adding a tool here means two things, not one: publish a localizedTools
+// entry (src/content/localized-tools/<locale>/<tool>.yaml) AND, if that
+// tool's island doesn't already accept a `messages` prop, add it to
+// LOCALIZED_TOOL_ISLANDS in src/i18n/localizedTools.ts plus a branch below.
+// Until then the page still builds - it renders the tool's real component in
+// English, behind the "controls are in English" notice ToolPageLayout shows
+// for that case - the same pilot decision already made for Sign/Redact.
+import ToolPageLayout from '../../layouts/ToolPageLayout.astro';
+import { documentationLocales, getDocumentationLocaleByPrefix } from '../../i18n/documentationLocales';
+import {
+  getLocalizedToolContext,
+  getLocalizedToolVariants,
+  mergeLocalizedTool,
+  LOCALIZED_TOOL_ISLANDS,
+} from '../../i18n/localizedTools';
+import { getDocumentationShellMessages } from '../../i18n/documentationMessages';
+import { getToolMessages } from '../../i18n/toolMessages';
+import { toolsBySlug } from '../../data/tools.js';
+import PdfMergeTool from '../../components/PdfMergeTool.tsx';
+import PdfCompressTool from '../../components/PdfCompressTool.tsx';
+
+export async function getStaticPaths() {
+  const variants = await getLocalizedToolVariants();
+  return variants
+    .filter((variant) => variant.locale !== 'en')
+    .map((variant) => {
+      const locale = documentationLocales.find((record) => record.id === variant.locale)!;
+      return {
+        params: { locale: locale.prefix, tool: variant.toolSlug },
+        props: { toolSlug: variant.toolSlug, localeId: variant.locale },
+      };
+    });
+}
+
+const { toolSlug, localeId } = Astro.props;
+const routeLocale = getDocumentationLocaleByPrefix(Astro.params.locale ?? '');
+if (!routeLocale || routeLocale.id !== localeId) {
+  throw new Error(`Invalid localized tool route: ${Astro.params.locale}`);
+}
+
+const englishTool = toolsBySlug[toolSlug];
+if (!englishTool) throw new Error(`Localized tool route references unknown tool: ${toolSlug}`);
+
+const context = await getLocalizedToolContext(toolSlug, localeId);
+const tool = context.effectiveLocale === 'en'
+  ? englishTool
+  : mergeLocalizedTool(englishTool, (context.entry as { data: Record<string, any> }).data);
+
+const messages = getDocumentationShellMessages(context.effectiveLocale);
+// ARCH-09's freshness gate, same as guides: a stale draft still previews, with
+// the more specific "needs review" notice rather than the plain draft one.
+const stale = context.preview && context.freshness === 'stale';
+
+const islandLocalized = LOCALIZED_TOOL_ISLANDS.has(toolSlug);
+const toolMessages = islandLocalized ? getToolMessages(toolSlug, context.effectiveLocale) : undefined;
+
+// The island is localized too, or the page is not (LOC-02.md). A published
+// page claiming a localized island but missing that locale's reviewed
+// message catalogue is a build error, not a silent English fallback.
+if (context.entry && (context.entry as any).data?.status === 'published' && islandLocalized && !toolMessages) {
+  throw new Error(
+    `${toolSlug}/${context.effectiveLocale} is published but has no reviewed island message catalogue in src/i18n/toolMessages.ts`,
+  );
+}
+---
+
+<ToolPageLayout
+  tool={tool}
+  lang={context.lang}
+  dir={context.dir}
+  canonical={context.path}
+  alternates={context.preview ? [] : context.alternates}
+  noindex={context.preview}
+  locale={context.effectiveLocale}
+  variants={context.variants}
+  preview={context.preview}
+  messages={messages}
+  previewNotice={stale ? messages.stalePreviewNotice : messages.previewNotice}
+  toolControlsEnglish={context.effectiveLocale !== 'en' && !islandLocalized}
+>
+  {toolSlug === 'merge' && <PdfMergeTool client:load messages={toolMessages as any} />}
+  {toolSlug === 'compress' && <PdfCompressTool client:load messages={toolMessages as any} />}
+</ToolPageLayout>
