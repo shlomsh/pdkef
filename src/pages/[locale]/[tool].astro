@@ -24,6 +24,13 @@ import { getToolMessages } from '../../i18n/toolMessages';
 import { toolsBySlug } from '../../data/tools.js';
 import PdfMergeTool from '../../components/PdfMergeTool.tsx';
 import PdfCompressTool from '../../components/PdfCompressTool.tsx';
+import PdfSignTool from '../../components/PdfSignTool.tsx';
+// LOC-03: only /sign/ renders text in the bundled font catalogue (typed
+// signatures, text elements, the font picker) - see sign.astro's identical
+// import and editorFonts.css's header comment. /he/sign/ needs it too, since
+// the editor itself stays English (LOC-02's pilot decision) but still has to
+// draw the Hebrew text a visitor types into it.
+import '../../styles/editorFonts.css';
 
 export async function getStaticPaths() {
   const variants = await getLocalizedToolVariants();
@@ -86,4 +93,5 @@ if (context.entry && (context.entry as any).data?.status === 'published' && isla
 >
   {toolSlug === 'merge' && <PdfMergeTool client:load messages={toolMessages as any} />}
   {toolSlug === 'compress' && <PdfCompressTool client:load messages={toolMessages as any} />}
+  {toolSlug === 'sign' && <PdfSignTool client:load />}
 </ToolPageLayout>

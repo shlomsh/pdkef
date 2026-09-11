@@ -158,6 +158,21 @@
       "source": "/sign-pdf-no-signup",
       "destination": "/sign-pdf-no-signup/",
       "permanent": true
+    },
+    {
+      "source": "/he/compress",
+      "destination": "/he/compress/",
+      "permanent": true
+    },
+    {
+      "source": "/he/merge",
+      "destination": "/he/merge/",
+      "permanent": true
+    },
+    {
+      "source": "/he/sign",
+      "destination": "/he/sign/",
+      "permanent": true
     }
   ]
 }
