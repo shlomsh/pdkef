@@ -394,6 +394,19 @@ Every review ticket (SEO-12 through SEO-16) follows this:
    four general claims above, and a review that invents a fifth is doing harm.
 5. Propose concrete copy, with the diff, and the evidence for each claim it makes.
 
+**When step 1 has nothing to run on.** A page with zero Search Console impressions (SEO-15 hit this for
+`/edit-pdf/`, `/image-to-pdf/` and `/pdf-to-image/`) has no queries to rank by impressions, so step 1
+cannot run as written. Substitute, in this order: section 3's competitor-research volumes and named
+players for the closest matching query; a WebSearch sweep of the phrasings competitors themselves target
+for the tool's core operations (record engine and date, same as step 2 already requires); and an explicit
+check of the full query export for anything adjacent in intent, even if it lands on a different page,
+recorded as "checked, nothing found" if it turns up nothing rather than skipped silently. **State this
+substitution plainly in the review, and do not let it read as equivalent to step 1's real evidence**: the
+substitute describes what the competitive field does and does not say, not what our own visitors search
+for or click, and a review built on it should hedge its confidence accordingly - a name-a-differentiator
+finding from a real Search Console number (SEO-04, SEO-13, SEO-14) and one from this substitution (SEO-15)
+are not the same strength of claim, even when both are written up with equal rigor.
+
 ### The worked example
 
 SEO-12 (the Sign review) is the model for the other four: it names the specific advantage precisely
