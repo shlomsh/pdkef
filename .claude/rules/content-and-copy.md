@@ -190,4 +190,14 @@ Four standing rules, each learned the expensive way (evidence in the doc's secti
 - **Google blocks scripted SERP fetches from this environment.** Real Google SERPs come from Shlomi's
   screenshots; ask rather than guess. Bing/DuckDuckGo show who competes, never our Google position.
 
+**Page localization is a settled question with a review date; do not reopen it from first principles.**
+Twelve languages were measured in 2026-09 (Trends, real `hl`/`gl` SERPs, GSC by country). The
+mechanism (`/he/` editions, `src/i18n/`, the review and freshness gates) stays; no generic tool page
+gets localized into a new language, because every native SERP is the same field this domain loses to
+in English; the one pilot on the table (a Spanish target-size page, LOC-13) is on hold until the
+English base is bigger. The findings doc's section 2 has the three-part lesson, LOC-10 the decision,
+LOC-11 the evidence, LOC-12 the re-check due 2026-11-12. A new language proposal starts from LOC-11's
+ROI gate (native demand of the order of the English page's own traffic in that country, and an
+English page of ours already in the top ten on the same kind of query), not from a hunch.
+
 
