@@ -244,7 +244,7 @@ const hebrewCompressMessages: CompressMessages = {
   skippedMany: 'דילגנו על {count} קבצים - הם לא PDF.',
   compressionOptionsLabel: 'אפשרויות כיווץ',
   ourPick: 'הבחירה שלנו',
-  levelHighName: 'כיווץ קיצוני',
+  levelHighName: 'כיווץ מקסימלי',
   levelHighTag: 'הגודל הקטן ביותר',
   levelHighDesc: 'ההקטנה המרבית האפשרית. תמונות יורדו לרזולוציה של 72 DPI.',
   levelHighPros: 'הקובץ הקטן ביותר (הקטנה של 60-80%)',
@@ -259,13 +259,13 @@ const hebrewCompressMessages: CompressMessages = {
   levelLowDesc: 'כיווץ מינימלי. שומר על תמונות חדות וברורות ברזולוציה של 150 DPI.',
   levelLowPros: 'תמונות חדות וטקסט ברור, קרוב לאיכות המקורית',
   levelLowCons: 'הקטנת גודל מינימלית (10-30%)',
-  targetName: 'גודל יעד',
-  targetTag: 'בחרו KB',
+  targetName: 'גודל בהתאמה אישית',
+  targetTag: 'גודל לבחירה בק״ב',
   targetDesc: 'כווצו לגודל קובץ מסוים, למשל למגבלת העלאה של 100KB.',
   targetPros: 'מגיע אוטומטית למגבלות העלאה מדויקות של פורטלים',
   targetCons: 'האיכות מותאמת לפי הצורך כדי להגיע לגודל',
   targetBadge: 'מדויק',
-  targetSizeLabel: 'גודל יעד',
+  targetSizeLabel: 'גודל בהתאמה אישית',
   compress: 'כיווץ PDF',
   compressing: 'מכווצים…',
   addPdfToCompress: 'הוסיפו PDF למעלה כדי לכווץ',
@@ -352,6 +352,11 @@ export interface ShellMessages {
   clearConfirm: string;
   clearBody: string;
   clearOf: string;
+  /** describeFile (src/lib/format.js) page-count clause of the file-info bar,
+   * e.g. "3 pages · 1.4 MB" or "Page 2 of 3". */
+  pageCountOne: string;
+  pageCountOther: string;
+  pageOf: string;
 }
 
 const englishShellMessages: ShellMessages = {
@@ -393,6 +398,9 @@ const englishShellMessages: ShellMessages = {
   clearConfirm: 'Clear all',
   clearBody: 'This empties the list{of} and the order you put it in. Nothing is removed from your device.',
   clearOf: ' of {summary}',
+  pageCountOne: '1 page',
+  pageCountOther: '{count} pages',
+  pageOf: 'Page {current} of {total}',
 };
 
 const hebrewShellMessages: ShellMessages = {
@@ -434,6 +442,9 @@ const hebrewShellMessages: ShellMessages = {
   clearConfirm: 'ניקוי הכול',
   clearBody: 'הרשימה{of} והסדר שקבעתם יתרוקנו. שום דבר לא נמחק מהמכשיר שלכם.',
   clearOf: ' של {summary}',
+  pageCountOne: '1 עמוד',
+  pageCountOther: '{count} עמודים',
+  pageOf: 'עמוד {current} מתוך {total}',
 };
 
 const shellMessages: Partial<Record<DocumentationLocaleId, ShellMessages>> = {

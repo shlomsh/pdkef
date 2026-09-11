@@ -117,7 +117,7 @@ export default function RedactToolbar({
         />
       }
     >
-      <div className={styles.toolbar} role="toolbar" aria-label="PDF redaction">
+      <div className={styles.toolbar} role="toolbar" aria-label="PDF redaction" dir="ltr" lang="en">
         <ArmHint tool="delete" label="Delete" action={TOOL_COPY.delete.action} locked={activeStyle === 'delete' && toolLocked} autoShowTool={autoShowTool}>
           <button
             type="button"

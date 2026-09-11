@@ -926,7 +926,7 @@ function PdfSignToolInner({ shellMessages }: { shellMessages?: Partial<ShellMess
       onFilesAdded={handleFilesAdded}
       multiple={false}
       fileLabel={file?.name}
-      fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null)}
+      fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null, shellMessages)}
       draftSaveState={draftSaveState}
       hasWork={elements.length > 0}
       workNoun="your annotations"
