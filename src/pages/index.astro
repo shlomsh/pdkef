@@ -9,20 +9,12 @@ import HeroDemo from '../components/HeroDemo/HeroDemo.astro';
 import OfflineProof from '../components/OfflineProof.astro';
 import '../styles/homePage.css';
 
-const title = 'Free PDF Tools - Private, Local, No Sign-Up | PDkef';
-const description = 'A free, open-source suite of PDF tools that run entirely in your browser. Merge, sign, split, redact, compress, and convert PDFs with nothing uploaded, no account, and no watermark. Your files never leave your device.';
-
 import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, HelpCircle, ShieldCheck, InfinityIcon, Lock, Code2, Type, PenLine, Trash2, Scale } from 'lucide-preact';
 import { tools } from '../data/tools.js';
 import FileDropzone from '../components/FileDropzone.tsx';
+import { homeContent } from '../data/homeContent.js';
 
-// FAQ schema and visible answers share one source.
-const faq = [
-  { question: 'Are the tools really free?', answer: 'Yes. Every tool is free, with no paywalls, usage limits, or watermarks.' },
-  { question: 'Do I need to sign up or create an account?', answer: 'No account, email, or trial period. Just open a tool and get started.' },
-  { question: 'Are my files uploaded to a server?', answer: 'No. Your PDFs stay on your device. Every tool runs locally in your desktop or mobile browser.' },
-  { question: 'Is PDkef open source?', answer: 'Yes. The code is MIT licensed and open for anyone to inspect, use, or improve.' },
-];
+const { title, description, faq } = homeContent;
 
 // The tool list (home grid + hero card) comes from the shared registry, so it
 // stays in sync with the tool pages and the sitemap. Ordered by SEO priority.

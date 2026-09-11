@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Footer from '../components/Footer.astro';
+import SeoSchema from '../components/SeoSchema.astro';
+import { renderInline } from '../lib/contentMarkup.ts';
+import { staticPages } from '../data/staticPages.js';
+import '../styles/staticPage.css';
+
+const page = staticPages.find((p) => p.slug === 'privacy');
+if (!page) throw new Error('staticPages is missing the "privacy" entry');
+---
+
+<BaseLayout title={page.title} description={page.description}>
+  <SeoSchema name="PDkef" description={page.description} />
+  <header class="mx-auto max-w-[720px] px-6 pb-6 pt-[4.5rem]">
+    <h1 class="type-hero space-heading-content mt-0 text-[var(--color-text)]">{page.h1}</h1>
+  </header>
+
+  <main>
+    <section class="mx-auto max-w-[720px] px-6 pb-16 text-[var(--color-text)]">
+      {page.sections.map((section) => (
+        <div class="mb-8 last:mb-0">
+          {section.heading && (
+            <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">{section.heading}</h2>
+          )}
+          {section.paragraphs.map((paragraph) => (
+            <p class="type-body mb-4 leading-[1.7] text-[var(--color-muted)] last:mb-0" set:html={renderInline(paragraph)} />
+          ))}
+        </div>
+      ))}
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>

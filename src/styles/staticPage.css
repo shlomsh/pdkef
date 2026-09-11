@@ -1,0 +1,15 @@
+/* Entry stylesheet for the trust-anchor static pages (/about/, /contact/,
+   /privacy/): src/pages/about.astro, contact.astro, privacy.astro. Same
+   "one utility set per page family" split as toolPage.css/licensesPage.css -
+   see toolPage.css for the four-tier CSS ownership note. These three share
+   one sheet rather than getting one each because they're the same shape
+   (header + prose sections + footer) and none renders alone often enough to
+   justify its own utility set. */
+@import "./global.css";
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "./sharedSources.css";
+
+@source "../pages/about.astro";
+@source "../pages/contact.astro";
+@source "../pages/privacy.astro";
+@source "../lib/contentMarkup.ts";

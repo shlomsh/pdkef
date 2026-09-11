@@ -19,13 +19,20 @@ export const APPROVED_RUNTIME_LICENSES = new Set([
 // Every production dependency must be reviewed here. Astro and its Preact
 // integration are browser runtime packages, but their compiler/dev-server
 // dependency trees are build-only and deliberately not traversed below.
+// @vercel/functions is the same shape of exception for a different reason:
+// it never reaches the browser at all. It backs middleware.ts, which Vercel
+// deploys and runs on its own Edge Runtime at request time (see CLAUDE.md's
+// "Markdown content negotiation" section) - so it belongs in this reviewed
+// list (Apache-2.0, approved), but its own dependency tree (OIDC, its CLI
+// helpers) is edge/deploy tooling, not "browser-shipped JavaScript" this
+// inventory is scoped to.
 export const RUNTIME_ROOT_PACKAGES = [
   '@astrojs/preact', '@cantoo/pdf-lib', '@floating-ui/dom', '@floating-ui/react', '@pdf-lib/fontkit',
-  '@vercel/analytics', '@vercel/speed-insights', 'astro', 'bidi-js', 'lucide-preact', 'pdfjs-dist', 'preact',
-  'regenerator-runtime', 'signature_pad', 'sortablejs',
+  '@vercel/analytics', '@vercel/functions', '@vercel/speed-insights', 'astro', 'bidi-js', 'lucide-preact',
+  'pdfjs-dist', 'preact', 'regenerator-runtime', 'signature_pad', 'sortablejs',
 ];
 
-const BUILD_ONLY_CLOSURES = new Set(['astro', '@astrojs/preact']);
+const BUILD_ONLY_CLOSURES = new Set(['astro', '@astrojs/preact', '@vercel/functions']);
 
 // The complete browser-code closure of the roots above. New transitive code
 // must be added explicitly after review, rather than inheriting approval from

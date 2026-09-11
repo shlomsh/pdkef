@@ -1,0 +1,29 @@
+---
+// Site-wide Organization + WebSite JSON-LD, rendered once by BaseLayout on
+// every page (unlike SeoSchema.astro's SoftwareApplication/FAQPage, which
+// describe a specific tool page). This is the entity graph a search engine
+// or an agent uses to recognize "PDkef" as one real, identifiable thing
+// rather than a bare domain name - the schema equivalent of the /about,
+// /contact and /privacy trust-anchor pages.
+const organization = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'PDkef',
+  url: 'https://pdkef.com/',
+  logo: 'https://pdkef.com/icons/icon-512.png',
+  founder: { '@type': 'Person', name: 'Shlomi Shemesh', url: 'https://github.com/shlomsh' },
+  sameAs: ['https://github.com/shlomsh/pdkef', 'https://github.com/shlomsh'],
+};
+
+const website = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'PDkef',
+  url: 'https://pdkef.com/',
+  description:
+    'A free, open-source suite of PDF tools that run entirely in your browser. Merge, sign, split, redact, compress, and convert PDFs with nothing uploaded, no account, and no watermark.',
+};
+---
+
+<script is:inline type="application/ld+json" set:html={JSON.stringify(organization)} />
+<script is:inline type="application/ld+json" set:html={JSON.stringify(website)} />
