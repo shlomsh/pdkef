@@ -174,9 +174,16 @@ chart and SERP, one language at a time - is not free. Re-open Part 2 only alongs
 Indonesian (see the two signals above); there is no standalone case for measuring a harder-to-verify
 language first.
 
+**Reopened 2026-09-11 as [LOC-08](LOC-08.md), on Shlomi's explicit call.** India is the domain's
+best-converting country (§3.3) and he judged that worth a direct check independent of Indonesian's
+result. LOC-08 scopes it to Tamil and Telugu first (unmeasured; Hindi's flat-zero result is not being
+re-opened) and carries the same field-check warning this ticket's Part 1 verdict rests on: clearing the
+demand gate is not sufficient by itself, per Indonesian.
+
 ### What this closes and what stays open
 
 - [LOC-04](LOC-04.md) retired; see it for the full closure record.
+- [LOC-08](LOC-08.md) opened same-day to carry Part 2 forward for Tamil and Telugu specifically.
 - LOC-02/LOC-03 (Hebrew) are unaffected - Hebrew was decided on its own evidence, independent of this
   judgment, and stays in progress.
 - [LOC-06](LOC-06.md) (per-locale measurement) still matters for Hebrew regardless of this verdict.

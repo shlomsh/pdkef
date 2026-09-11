@@ -158,6 +158,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
 | LOC-06 | P3 | [LOC-06](backlog/tasks/LOC-06.md) · Per-locale measurement: extend the refresh procedure so localized pages are read separately |
 | LOC-07 | P3 | [LOC-07](backlog/tasks/LOC-07.md) · Is a second language worth building at all? The ROI judgment on LOC-01's evidence, and the languages it never measured |
+| LOC-08 | P3 | [LOC-08](backlog/tasks/LOC-08.md) · Tamil and Telugu demand check: reopening LOC-07 Part 2 for India's other major languages |
 
 
 ## Migrated context and history

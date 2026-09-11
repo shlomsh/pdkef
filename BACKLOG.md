@@ -279,6 +279,7 @@ _None._
 | LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house |
 | LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
 | LOC-06 | P3 | [LOC-06](backlog/tasks/LOC-06.md) · Per-locale measurement: extend the refresh procedure so localized pages are read separately |
+| LOC-08 | P3 | [LOC-08](backlog/tasks/LOC-08.md) · Tamil and Telugu demand check: reopening LOC-07 Part 2 for India's other major languages |
 
 ### In progress
 
