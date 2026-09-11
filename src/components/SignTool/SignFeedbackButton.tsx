@@ -35,6 +35,8 @@ export default function SignFeedbackButton({ className, labelClassName }: { clas
       title={FEEDBACK_TITLE}
       data-label-priority="1"
       data-optional-control="feedback"
+      dir="ltr"
+      lang="en"
     >
       <Bug size={18} strokeWidth={2.2} aria-hidden="true" />
       <span className={labelClassName}>Feedback</span>

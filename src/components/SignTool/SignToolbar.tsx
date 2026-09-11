@@ -246,7 +246,7 @@ export default function SignToolbar({
   return (
     <>
       <ToolShell editor status={statusLine}>
-        <div className={styles.toolbar} role="toolbar" aria-label="PDF annotations">
+        <div className={styles.toolbar} role="toolbar" aria-label="PDF annotations" dir="ltr" lang="en">
           <ArmHint tool="text" label="Text" action={TOOL_COPY.text.action} locked={selectedTool === 'text' && toolLocked} autoShowTool={autoShowTool}>
             <button
               type="button"
