@@ -416,7 +416,7 @@ export const tools = [
     ariaLabel: 'PDF to Image tool',
     aboutHeading: 'How to convert PDF to JPG or PNG online for free',
     aboutLead:
-      'Convert PDF pages to images, right in your browser. No upload, no server. Your files never leave your device.',
+      'Turn a PDF into images for a slideshow, a social post, or a page you need to paste into an email - right in your browser, with a resolution you pick yourself.',
     freeNoteLead:
       "Convert as many PDFs to JPG or PNG as you like, at full resolution with no watermark. Because conversion runs on your device, there's nothing to upload and no server cost to pass on to you.",
     aboutSketch: 'arcs',
@@ -435,6 +435,8 @@ export const tools = [
       { question: 'What is the difference between PNG and JPG?', answer: 'PNG keeps a transparent background and is lossless, which is best for text-heavy or graphic pages. JPG uses a white background and smaller file sizes, which works well for photos and scans.' },
       { question: 'What happens with a multi-page PDF?', answer: 'By default each page is converted to its own image file, downloadable individually or all at once. You can also choose "Single combined image" to stack every page into one tall image instead.' },
       { question: 'Can I turn a scanned worksheet or slide deck into images?', answer: 'Yes. Upload the PDF, choose JPG or PNG, and each page - a scanned worksheet, presentation slide, or contract page - becomes its own image file ready to share or embed.' },
+      { question: 'Can I convert just a few pages instead of the whole PDF?', answer: 'Yes. Enter a page range in the page selector, for example 1-3,5,8, and only those pages convert. Useful for pulling one diagram or photo out of a long scanned document without converting the rest.' },
+      { question: 'What resolution do the images come out at?', answer: 'Pick Standard (about 72 DPI, the smallest files, fine for screens), High (about 144 DPI, sharp for most printing, and the default) or Maximum (about 216 DPI, best for zooming in or large prints). The setting controls how many pixels each page is rendered at, so a higher one gives you a sharper and larger image.' },
     ],
   },
 
@@ -458,7 +460,7 @@ export const tools = [
     ariaLabel: 'Image to PDF tool',
     aboutHeading: 'How to combine images into a PDF online for free',
     aboutLead:
-      'Combine images into one PDF, right in your browser. No upload, no server. Your files never leave your device.',
+      'Turn a stack of photographed pages, scanned receipts, or screenshots into one PDF you can actually send - reorder them first, then combine, right in your browser.',
     freeNoteLead:
       "Combine as many JPG or PNG images into a PDF as you like, at their original quality with no watermark. Because it runs on your device, there's nothing to upload and no limits to ration.",
     aboutSketch: 'arcs',
@@ -477,6 +479,8 @@ export const tools = [
       { question: 'Will my images be resized or compressed?', answer: 'No. Each image is embedded into its PDF page at full, original quality and at its native dimensions - no recompression or downscaling.' },
       { question: 'Can I combine scanned documents or school presentations into one PDF?', answer: 'Yes. This is exactly the use case it was built for - add as many image pages as you like (scanned pages, photographed slides, screenshots), reorder them, and download a single combined PDF.' },
       { question: 'Is there a limit on the number of images?', answer: "No artificial limit. The only constraint is your device's available memory, since everything runs locally." },
+      { question: 'Can I mix JPG and PNG images in the same PDF?', answer: "Yes. Add any combination of JPG and PNG files and they combine into one PDF together, each embedded in its own format - there's no need to convert everything to one type first." },
+      { question: 'Why does each page come out a different size?', answer: 'Every PDF page is sized to match its image exactly, one image pixel to one PDF point, so a portrait photo becomes a portrait page and a wide screenshot becomes a wide page. Nothing is cropped, stretched, or letterboxed to fit a standard paper size.' },
     ],
   },
 
