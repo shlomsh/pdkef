@@ -44,5 +44,6 @@ positive one, and it is what MOBI-06 needs in order to be worth starting.
 
 ## Status 2026-09-11: blocked
 
-Marked blocked by Shlomi on the board cleanup; skipped for now. MOBI-08 stays gated on it. Record the
-reason and what unblocks it here when it is picked back up.
+Marked blocked by Shlomi on the board cleanup: verifying the Android share-sheet round trip needs real
+hardware, which is not available right now. MOBI-08 stays gated on it. Unblocks when an Android phone
+with Chrome and WhatsApp is to hand for half an hour.

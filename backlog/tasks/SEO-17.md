@@ -68,3 +68,5 @@ Shipped; nothing left to build, but **indexing has not been requested for `/pdf-
 the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
 check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
 today; close it, or reopen it with a finding, from that refresh.
+
+**2026-09-11, later:** Shlomi attempted the indexing request for `/pdf-wont-compress-to-100kb/` and Search Console answered *Quota Exceeded* (the day's quota went to the three `/he/` tool pages). Still unrequested; retry on the next day and record the date here.
