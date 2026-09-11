@@ -251,6 +251,7 @@ export default function BasePdfTool({
     <ToolShellContext.Provider value={shell}>
     <div
       class={pdfToolStyles['tool-card']}
+      data-compact={compact || undefined}
       onDragEnter={onWorkspaceDragEnter}
       onDragOver={onWorkspaceDragOver}
       onDragLeave={onWorkspaceDragLeave}
