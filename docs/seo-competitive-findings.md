@@ -31,7 +31,7 @@ all of it (section 6).
 | --- | --- | --- | --- | --- |
 | SEO-01 baseline, `lastmod`, indexing requests | done | 2026-09-11 | 27 URLs tracked, 11 indexed, 9 never crawled; `lastmod` shipped; **9 of the 11 indexed pages are stale** (crawled before their last content change); indexing requested for all 9 stale + all 9 never-crawled | 2026-10-08: recapture `seo-last-crawled.json`, see whether the requested URLs moved and whether `/merge/` and `/unlock/` (not requested) moved too |
 | SEO-02 standings + refresh procedure | done | 2026-09-10 | `seo-refresh.mjs` reproduces section 3 from an export; procedure in section 6 | monthly |
-| SEO-03 external signals | open, in progress | 2026-09-11 | repo-side work done (description/homepage/topics fixed, README's language paragraph corrected from 11 to the real 20); referring-domain baseline captured at zero external mentions (proxy method, see caveat); six candidate venues listed, none approached | [section 8](#8-reference-seo-03-venue-list-and-outreach-log): needs outreach go-ahead, plus a re-check at the next refresh |
+| SEO-03 external signals | open, in progress | 2026-09-11 | repo-side work done (description/homepage/topics fixed, README's language paragraph corrected from 11 to the real 20); referring-domain baseline captured at zero external mentions (proxy method, see caveat); first outreach submitted (pluja/awesome-privacy PR); awesome-selfhosted found ineligible (no tagged release) | [section 8](#8-reference-seo-03-venue-list-and-outreach-log): watch PR #1103 for review outcome, work through the remaining venues |
 | SEO-04 blur zero-click | open, blocked on a recrawl | 2026-09-11 | meta rewritten 09-10; real SERP captured 09-11 shows Google serving the pre-08-29 title, so the change has never been seen; AI Overview cites us on 2 of 3 queries (zero-click by design); recrawl requested | 2026-10-08: first check whether the indexed title changed; only then is CTR a verdict |
 | SEO-05 compress CTR + honesty | open, same recrawl exposure | 2026-09-10 | meta now leads with the honest miss ("if it can't hit the target, we say so"); rasterization + passthrough disclosed above the FAQ; interim signal 2026-09-11: `file compressor to 100kb` got its first clicks (4/95, 4.2% CTR) but this predates the fix being indexed, not a verdict yet | same first check as SEO-04 |
 | SEO-06 never-crawled nine | open | 2026-09-11 | nine linked from `/redact/` and `/compress/`; `/image-to-pdf/` and `/pdf-to-image/` leads differentiated; `/edit-pdf/` got no content work (descoped, not done) | 2026-10-08 coverage recheck = **the Week 4 gate** |
@@ -403,15 +403,16 @@ Update in place; do not append a new list each pass.
 - **Release history** - not started. No tags or GitHub releases exist (`git tag` shows only three
   `archive/*` branches-as-tags; `gh release list` is empty). Next increment for this ticket.
 
-### Candidate venues, not yet approached
+### Candidate venues and outreach log
 
-Each needs a real outreach action (a submission, a post, a PR to a list) that this pass did not take -
-posting to a third party is scoped separately from the repo-metadata work above. Entry criteria are
-checked against what is true today; "met" does not mean submitted.
+Entry criteria are checked against each venue's own stated contribution rules, not assumed - see the
+awesome-selfhosted row below for why that check matters.
 
 | Venue | Entry criteria | Met? | Status |
 | --- | --- | --- | --- |
-| awesome-selfhosted / awesome-privacy-tools style lists | Open source, works without an account, active repo | Yes | Not yet submitted - needs a PR against each list's own contribution format |
+| pluja/awesome-privacy (19.7k stars) | Clear privacy/own-your-data policy; no third-party trackers beyond their approved Analytics list; open source preferred | Yes on policy and source; **borderline on trackers** - pdkef.com runs Vercel Web Analytics, which is not on their approved-analytics list and their own copy says to avoid "any private service" analytics. Submitted anyway (Shlomi's call, 2026-09-11): defensible in substance (anonymized, cookieless, same-origin) even if a reviewer could read the checklist literally. | **Submitted 2026-09-11**: [pluja/awesome-privacy#1103](https://github.com/pluja/awesome-privacy/pull/1103), added to the `Utilities` section (no dedicated PDF-tools category exists on this list). Awaiting review - their stated cadence is monthly batches. |
+| awesome-selfhosted (awesome-selfhosted-data) | Requires a tagged GitHub release **more than 4 months old**; no such requirement was obvious from the README alone, found only by reading their actual `CONTRIBUTING.md` | **No** - PDkef has zero GitHub releases (only three `archive/*` branch tags). An immediate submission would get their own canned rejection reply. | Not submitted. Blocked on shipping a first tagged release, then waiting 4 months from that date - this is what makes "release history" a real prerequisite for this venue, not just a nice-to-have. |
+| Lissy93/awesome-privacy (9.8k stars) | Not yet checked | Unknown | Not evaluated - a second, comparable privacy list; check its own contributing rules before submitting, don't assume they match pluja's |
 | AlternativeTo.net | Real, working product with a URL | Yes | Not yet listed |
 | Product Hunt | Live product, real launch post | Yes | Not yet launched |
 | r/privacy, r/opensource, r/selfhosted (Reddit) | Honest disclosure of authorship, no drive-by link | Yes, if posted as "I built this" rather than a plain link | Not yet posted |
