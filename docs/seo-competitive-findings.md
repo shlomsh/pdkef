@@ -60,6 +60,10 @@ all of it (section 6). Tickets whose only remaining step is that read are `block
 | LOC-07 second-language ROI | done | 2026-09-11 | Verdict: not now. In-language demand is necessary but not sufficient - this domain hasn't beaten Indonesian's competitive field once, in English, at any position better than 36. Retired LOC-04; declined Part 2 (unmeasured languages) since a harder-to-verify language isn't worth measuring when the clearest-demand one already failed the field test | revisit alongside the two signals above |
 | LOC-08 Tamil/Telugu demand check | done | 2026-09-12 | Both no. Telugu: Trends flat at 0 on all four anchor tasks (8 native and romanized probes, phrasing from PDF24's real Telugu pages); `hl=te` SERPs are Google's own translations of English pages plus PDF24, related searches all English. Tamil: no native phrasing exists to chart; all 40 `hl=ta` results are Google-translated English pages, the only Tamil content is English-titled YouTube videos. GSC India, last 28 days: all 50 queries English, zero Tamil/Telugu script or transliteration, same 100kb and blur clusters. With Hindi, Telugu and Tamil flat on every instrument, Marathi/Gujarati/Kannada/Malayalam stay unmeasured and the India list stops here | |
 | LOC-09 Hebrew home page | open | 2026-09-11 | design in `docs/home-page-localization-plan.md`; `/he/` is the one URL the edition's switcher cannot offer; waits on LOC-03's first read | |
+| LOC-10 keep or remove localization | done, keep | 2026-09-12 | Removal case made on cost (freshness gate taxes every English edit on 10 pages, Hebrew strings, the pdf.js RTL bug class, ratchet re-base) and on a demand ceiling generalised from India and Israel. LOC-11 refuted the ceiling the same day; Shlomi: keep. No generic tool page gets localized into a new language; the niche is the entry | LOC-13 pilot, LOC-12 re-check |
+| LOC-11 top-languages research | in progress | 2026-09-12 | Vietnam, Turkey, Mexico, Italy search natively at 6x to 20x the English term; India, Israel, Malaysia, UAE are the exceptions. Every native SERP is the majors natively, and a local site already holds the on-device claim in Vietnamese (O.Convertor), Spanish (UnePDF, position 3) and Italian (regispro.it). Opening: target-size compress in every related-searches block, and blur in Vietnamese | Filipino and Bengali Trends, GSC per-country positions |
+| LOC-12 two-month re-check | open, due 2026-11-12 | 2026-09-12 | Countries and in-language queries re-checked against the 2026-09-10 baseline; ROI gate in LOC-11 | |
+| LOC-13 Spanish target-size pilot | open | 2026-09-12 | One Mexican portal-limits page (SEO-17's model), paid native reviewer, standalone localized page (not an hreflang twin); reads eight weeks after indexing | Reviewer sourcing, portal limits research |
 
 ---
 
@@ -84,6 +88,14 @@ Durable lessons, one line each, newest first. The ticket has the evidence.
   English page. Direct URL fetches like this are a cheap first pass before spending Shlomi's Trends
   screenshot budget on a language - they can rule a phrasing in or out, but never substitute for the
   real `hl`/`gl` SERP. ([LOC-08](../backlog/tasks/LOC-08.md))
+- **In-language search is the norm in most of this site's top countries; India and Israel were the
+  exceptions the "tens of impressions" ceiling was generalised from.** Vietnam, Turkey, Mexico and
+  Italy search the native term at 6x to 20x the English one on Trends; the UAE, Malaysia, India and
+  Israel search in English. Demand was never the blocker: every native SERP is iLovePDF, Smallpdf,
+  PDF24, Adobe and Canva with native pages and six-figure review counts, and a local site already
+  holds the on-device claim in three of them. The rule that survives: **localize the query family this
+  domain already ranks for (target-size compress, blur), never the generic tool page**, and check the
+  related-searches block of the native SERP for that family before building. ([LOC-11](../backlog/tasks/LOC-11.md), decision in [LOC-10](../backlog/tasks/LOC-10.md), pilot in [LOC-13](../backlog/tasks/LOC-13.md))
 - **On a language Google machine-translates results into, a SERP full of "translated incumbents" is a
   sign of thin native demand, not an opening.** Telugu and Tamil (`hl=te`/`hl=ta`, `gl=IN`) returned
   top tens where nearly every result carried Google's "translated, see original (English)" badge -
