@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// SEO-02: reproduces section 1's cluster/page tables in
+// SEO-02: reproduces the section 3 standings tables (3.1 to 3.3) in
 // docs/seo-competitive-findings.md from a Search Console export, so the
 // next refresh follows a recipe instead of re-deriving a compatible-looking
 // method. Manual steps this script does not (and cannot) do are in the
-// "Refresh procedure" section of the findings doc itself, not here.
+// refresh procedure (section 6 of the findings doc), not here.
 //
 // Usage:
 //   node scripts/seo-refresh.mjs <path to the "Performance on Search" export folder>
@@ -16,7 +16,7 @@
 // used here).
 //
 // What this script cannot do: assign a "who ranks above us" competitor
-// column (section 4) - that stays a manual SERP check, same limitation
+// column (section 3.5) - that stays a manual SERP check, same limitation
 // SEO-04/SEO-05 hit (Google blocks scripted/automated SERP fetches). It also
 // cannot get an exact site-wide query count - see the privacy-filtering note
 // below - so cluster totals from this script are a documented lower bound,
@@ -45,7 +45,7 @@ async function readCsv(dir, filename) {
   return parseCsv(text);
 }
 
-// One row per cluster in section 1's "By intent cluster" table. Order here
+// One row per cluster in section 3.1's "By intent cluster" table. Order here
 // is the order printed. A query can match more than one pattern (e.g.
 // "compress password protected pdf" reads as both compress- and
 // unlock-intent); that overlap is accepted, not deduplicated, because
