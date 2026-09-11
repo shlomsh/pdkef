@@ -265,3 +265,54 @@ pages are stale, and `/redact/` is the second-oldest of them despite carrying 64
 rather than hypothetical. If the card still shows the blue mark on 2026-10-08 with `/` recrawled, the
 separate-favicon-crawler explanation is the one left standing, and the URL-rename cache-bust becomes a
 decision to weigh on evidence instead of a guess.
+
+## Which blur phrasing to optimise for, decided from the 2026-09-11 export
+
+Shlomi asked whether `blur pdf online free` or `blur text in pdf online free` matters more, given the
+first performs better. The 28-day "Top queries" view cannot answer that: it lists what we already win,
+and we win `blur pdf` largely because the title and h1 already say it. The right lens is the queries we
+are *losing*, so this uses the 3-month export of 2026-09-11 (`Queries.csv`, last 3 months, web) and
+sums the zero-click rows by cluster.
+
+| Cluster | Impressions won (clicks) | Impressions lost (0-click rows) | Share of own demand lost |
+| --- | ---: | ---: | ---: |
+| `blur pdf` and variants, no "text" | ~453 (20) | ~159 | ~26% |
+| `blur text in pdf` and variants | ~40 (3) | ~102 | ~72% |
+
+Generic blur is roughly four times the demand and already converts most of it; the "text" phrasing is
+a quarter the size and loses nearly three quarters of what it gets. By absolute lost impressions the
+generic cluster is still the bigger prize (159 against 102), so **the primary target does not change:
+the title and h1 stay on `blur pdf online free`.** SEO-14 already argued the same conclusion from the
+ranking side.
+
+The "text" cluster is not one problem but two, and only one of them is this ticket's:
+
+- `blur text in pdf online free` (24 impressions, position 6.79, 0 clicks) and `blur pdf online free`
+  (24, position 7.00, 0 clicks) are **identical**. Page one, real impressions, no clicks, on both
+  phrasings alike. That is the zero-click pattern the SERP capture above already explained (AI
+  Overview and video carousel), and it is blocked on the recrawl like the rest of the thirteen.
+  Twenty-four impressions in three months is also too small a sample to read a 0% as a verdict on
+  either phrasing.
+- **`blur text in pdf` itself (36 impressions, position 11.58, 0 clicks) is a rank gap, not a
+  snippet gap.** It is the one row of the thirteen that sits on page two, and the SERP capture shows
+  why: Google reads it as how-to intent (Tungsten's step-by-step guide and a video carousel above us)
+  and we answer with a tool page. Closing it is a ranking question and the copy freeze on `/redact/`
+  does not touch it.
+
+**What shipped for the second point.** Not a `/redact/` edit; the freeze above stands. Every inbound
+link to `/redact/` on the site read "Blur & Redact", "Redact tool" or "PDF redaction tool", so no
+anchor on the site carried the word "text" at all, and the blur guide's own Blur section
+(`src/content/content-pages/blur-vs-blackout-vs-delete-pdf.yaml`) did not link to the tool. One
+paragraph added there: how to blur text (choose Blur, drag a box over the words, no text-selection
+step, zoom in on a phone), with the link text `blur text in a PDF`, and the blurred-pixels caveat
+restated. It teaches the awkward fact rather than promising text selection the tool does not have.
+That page is itself unindexed (SEO-06), so the anchor is worth little until it is crawled; it is the
+right page for the sentence regardless, and it is the only lever that does not add a variable to
+this ticket's measurement.
+
+**Deliberately not done.** A how-to content page for `blur text in pdf` would match the SERP's intent
+better than the tool page does, but SEO-14 measured the existing three-page redaction cluster and
+found no room for a fourth, and SEO-06 has not yet shown the two existing guides can get indexed at
+all. Revisit only at the 2026-10-08 refresh, and only if `/blur-vs-blackout-vs-delete-pdf/` is by
+then indexed and drawing `blur text` impressions of its own; if it is, extend that page rather than
+add one.

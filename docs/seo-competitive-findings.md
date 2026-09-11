@@ -90,6 +90,11 @@ Durable lessons, one line each, newest first. The ticket has the evidence.
 - **AI Overviews cite us and cost us the click.** On `blur text in pdf online free` PDkef is the first
   tool named, accurately, and gets 0% CTR at position 6.65. Being cited is a GEO asset, not a click; no
   snippet rewrite reaches it. ([SEO-04](../backlog/tasks/SEO-04.md#the-real-serp-captured-at-last-2026-09-11))
+- **Judge a phrasing by the impressions it loses, not the clicks it wins.** The "Top queries" view
+  flatters whatever the title already says. Summing zero-click rows: generic `blur pdf` loses ~26% of
+  its demand, `blur text in pdf` loses ~72%, but generic is four times the size, so it stays primary.
+  `blur text in pdf` alone is a page-two rank gap on a how-to SERP, not a snippet problem.
+  ([SEO-04](../backlog/tasks/SEO-04.md#which-blur-phrasing-to-optimise-for-decided-from-the-2026-09-11-export))
 - **Google discards our meta description on some queries** and snippets from body copy, so the intro
   paragraph in `src/data/tools.js` is doing snippet work whether we meant it to or not. ([SEO-04](../backlog/tasks/SEO-04.md))
 - **Do not emit `AggregateRating`.** PDF24 carries review stars on every blur SERP; we have no reviews,

@@ -140,6 +140,12 @@ sections:
           The box remains adjustable in the editor and is baked into the page on Download.
       - kind: 'prose'
         text: >-
+          To <a href="/redact/">blur text in a PDF</a>, choose Blur and drag a box over the words.
+          There is no text-selection step, so on a phone zoom in first to place the box precisely.
+          After Download the page is one flattened image and the words are gone as text, but blurred
+          pixels can still hint at a short or predictable value.
+      - kind: 'prose'
+        text: >-
           Blur is a design choice rather than a substitute for Blackout. Choose the result that fits
           your document: softened context with Blur, an explicit solid cover with Blackout, a clean
           patch with Whiteout, or actual element removal with Delete.
