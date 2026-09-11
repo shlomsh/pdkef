@@ -6,9 +6,11 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { PDFDocument, PDFName, PDFNumber, degrees } from '@cantoo/pdf-lib';
 import {
   FontUnavailableError,
+  FormFlattenError,
   signPdf,
   UnrepresentableTextError
 } from './sign.js';
+import { hasFillableAcroForm } from './pdfObjects.js';
 import { hexToRgbFractions, getEffectiveTextDirection } from '../../../lib/signHelpers.js';
 import { percentToPoints } from '../../geometry/coords.js';
 import { applyAffineTransform, createPageGeometry, pageGeometryFromPdfJsPage } from '../../geometry/coords.js';
@@ -18,6 +20,22 @@ function getFixtureFile(name = 'num-1.pdf') {
   const filePath = path.resolve(__dirname, '../../../lib/__fixtures__', name);
   const buffer = fs.readFileSync(filePath);
   return new File([buffer], name, { type: 'application/pdf' });
+}
+
+// Builds a minimal PDF carrying one AcroForm text field, left unfilled - the
+// MOBI-02 scenario: a returned form whose live, empty widget would otherwise
+// sit on top of whatever PDkef draws over it. The field's rect roughly
+// matches where the tests below place a PDkef text element, so the fixture
+// exercises the actual "answer drawn over a form field" case rather than an
+// unrelated field and an unrelated text box that happen to share a page.
+async function buildAcroFormFixture() {
+  const source = await PDFDocument.create();
+  const page = source.addPage([400, 500]);
+  const form = source.getForm();
+  const field = form.createTextField('applicant.name');
+  field.addToPage(page, { x: 40, y: 420, width: 200, height: 30 });
+  const bytes = await source.save();
+  return new File([bytes], 'acroform-fixture.pdf', { type: 'application/pdf' });
 }
 
 // signPdf fetches bundled fonts from same-origin `/fonts/<name>.ttf` at runtime.
@@ -346,6 +364,84 @@ describe('sign.js signPdf', () => {
       const error = await signPdf(file, [element]).catch((e) => e);
       expect(error).toBeInstanceOf(UnrepresentableTextError);
       expect(error.characters).toEqual(['😀']);
+    });
+  });
+
+  describe('MOBI-02: flattens a source AcroForm on export', () => {
+    it('removes the live AcroForm and its widget annotations, keeping the drawn text', async () => {
+      const file = await buildAcroFormFixture();
+      const element = {
+        id: 'el-answer', type: 'text', pageIndex: 0, left: 10, top: 10,
+        text: 'Jane Doe', fontFamily: 'Arimo', fontSize: 14, color: '#000000',
+      };
+
+      const blob = await signPdf(file, [element]);
+
+      const output = await PDFDocument.load(await blob.arrayBuffer());
+      // No fillable field left, and no widget annotations left on the page to
+      // paint an empty box over the answer - the whole point of MOBI-02. (An
+      // empty `/AcroForm` dict with a `/DR` resources entry can legitimately
+      // survive flatten() - pdf-lib doesn't delete the catalog entry itself -
+      // so the field count is the meaningful assertion, not dict presence.)
+      expect(hasFillableAcroForm(output)).toBe(false);
+      expect(output.getForm().getFields()).toHaveLength(0);
+      const annots = output.getPage(0).node.Annots();
+      expect(annots === undefined || annots.size() === 0).toBe(true);
+
+      // The answer PDkef drew is still there, and still text (not rasterized).
+      const items = await getTextItems(blob);
+      expect(items.map((item) => item.str).join('')).toContain('Jane Doe');
+    });
+
+    it('is inert on a document with no AcroForm - the common case - never calling getForm()', async () => {
+      const getFormSpy = vi.spyOn(PDFDocument.prototype, 'getForm');
+      const file = getFixtureFile();
+      const element = {
+        id: 'el-plain', type: 'text', pageIndex: 0, left: 10, top: 10,
+        text: 'No form here', fontFamily: 'Arimo', fontSize: 14, color: '#000000',
+      };
+
+      const blob = await signPdf(file, [element]);
+
+      expect(blob).toBeInstanceOf(Blob);
+      // hasFillableAcroForm's whole point is answering this without ever
+      // calling getForm() - which would strip XFA data as a side effect on a
+      // hybrid document, and which is unnecessary work on the common case of
+      // no form at all (both `__fixtures__/` PDFs used across this epic have
+      // none, per MOBI-03).
+      expect(getFormSpy).not.toHaveBeenCalled();
+    });
+
+    it('hasFillableAcroForm itself agrees: false for the plain fixture, true once a field is added', async () => {
+      const plainDoc = await PDFDocument.load(await getFixtureFile().arrayBuffer());
+      expect(hasFillableAcroForm(plainDoc)).toBe(false);
+
+      const formDoc = await PDFDocument.load(await (await buildAcroFormFixture()).arrayBuffer());
+      expect(hasFillableAcroForm(formDoc)).toBe(true);
+    });
+
+    it('fails loudly with FormFlattenError, rather than silently exporting the unflattened form, when flatten() throws', async () => {
+      const originalGetForm = PDFDocument.prototype.getForm;
+      const getFormSpy = vi.spyOn(PDFDocument.prototype, 'getForm').mockImplementation(function stubbedGetForm() {
+        const form = originalGetForm.call(this);
+        form.flatten = () => {
+          throw new Error('stubbed flatten failure');
+        };
+        return form;
+      });
+
+      const file = await buildAcroFormFixture();
+      const element = {
+        id: 'el-answer', type: 'text', pageIndex: 0, left: 10, top: 10,
+        text: 'Jane Doe', fontFamily: 'Arimo', fontSize: 14, color: '#000000',
+      };
+
+      const error = await signPdf(file, [element]).catch((e) => e);
+      expect(error).toBeInstanceOf(FormFlattenError);
+      expect(error.name).toBe('FormFlattenError');
+      expect(error.cause).toBeInstanceOf(Error);
+      expect(error.cause.message).toBe('stubbed flatten failure');
+      expect(getFormSpy).toHaveBeenCalled();
     });
   });
 });
