@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { acceptQuality } from './acceptNegotiation.js';
+import { acceptQuality, negotiateRepresentation } from './acceptNegotiation.js';
 
 describe('acceptQuality', () => {
   it('gives an exact type match q=1 when unqualified', () => {
@@ -51,5 +51,50 @@ describe('acceptQuality', () => {
 
   it('ignores a non-numeric q value rather than throwing', () => {
     expect(acceptQuality('text/markdown;q=not-a-number', 'text/markdown')).toBe(1);
+  });
+});
+
+describe('negotiateRepresentation', () => {
+  // The production bug this guards: */* is curl's own default Accept header
+  // (sent with no -H at all), and it matches text/markdown exactly as well as
+  // text/html. That tie must resolve to HTML, or every plain curl and every
+  // crawler with an unspecific Accept gets Markdown instead of the page.
+  it('resolves a bare */* (curl default) to HTML, not Markdown', () => {
+    expect(negotiateRepresentation('*/*')).toBe('html');
+  });
+
+  it('resolves an absent Accept header to HTML', () => {
+    expect(negotiateRepresentation(null)).toBe('html');
+    expect(negotiateRepresentation('')).toBe('html');
+  });
+
+  it('resolves an explicit tie between the two types to HTML', () => {
+    expect(negotiateRepresentation('text/markdown, text/html')).toBe('html');
+    expect(negotiateRepresentation('text/*')).toBe('html');
+  });
+
+  it('resolves a typical browser Accept header to HTML', () => {
+    expect(
+      negotiateRepresentation('text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'),
+    ).toBe('html');
+  });
+
+  it('serves Markdown only when it is strictly preferred over HTML', () => {
+    expect(negotiateRepresentation('text/markdown')).toBe('markdown');
+    expect(negotiateRepresentation('text/markdown, text/html;q=0.9')).toBe('markdown');
+    expect(negotiateRepresentation('text/markdown, */*;q=0.1')).toBe('markdown');
+  });
+
+  it('keeps HTML when it is preferred, even with Markdown also listed', () => {
+    expect(negotiateRepresentation('text/html, text/markdown;q=0.5')).toBe('html');
+  });
+
+  it('reports an Accept that names neither representation as unacceptable (406)', () => {
+    expect(negotiateRepresentation('application/json')).toBe('unacceptable');
+    expect(negotiateRepresentation('image/webp, image/png;q=0.9')).toBe('unacceptable');
+  });
+
+  it('does not treat an explicit q=0 on both types as acceptable', () => {
+    expect(negotiateRepresentation('text/html;q=0, text/markdown;q=0, */*')).toBe('unacceptable');
   });
 });

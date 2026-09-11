@@ -36,3 +36,29 @@ export function acceptQuality(acceptHeader, targetType) {
 
   return exact ?? partial ?? wildcard ?? 0;
 }
+
+/**
+ * The one decision middleware.ts acts on: which representation a page
+ * request gets. Returns 'html', 'markdown', or 'unacceptable' (a real 406).
+ *
+ * The decision lives here rather than inline in middleware.ts because
+ * middleware.ts only runs on Vercel's Edge Runtime and is not covered by any
+ * unit test, and this exact decision is where the first production bug in
+ * this feature lived: acceptQuality() was correct and tested, but the caller
+ * compared its two answers with a strict `<`, so a *tie* fell through to
+ * Markdown. Ties are common - `Accept: * / *` is curl's own default header
+ * (sent with no -H at all), and it matches text/markdown exactly as well as
+ * it matches text/html - so every plain curl, and every crawler or bot with
+ * an unspecific Accept, was served Markdown instead of the page.
+ *
+ * Rule: Markdown only when the client prefers it strictly over HTML. A tie,
+ * an absent header, or HTML preferred all resolve to HTML, the default every
+ * client that did not explicitly ask for something else expects.
+ */
+export function negotiateRepresentation(acceptHeader) {
+  if (!acceptHeader) return 'html';
+  const htmlQ = acceptQuality(acceptHeader, 'text/html');
+  const markdownQ = acceptQuality(acceptHeader, 'text/markdown');
+  if (htmlQ === 0 && markdownQ === 0) return 'unacceptable';
+  return markdownQ > htmlQ ? 'markdown' : 'html';
+}

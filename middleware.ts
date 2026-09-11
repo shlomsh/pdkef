@@ -23,7 +23,7 @@
 // `text/html,...,*/*;q=0.8` still gets HTML even though */* technically
 // matches text/markdown too.
 import { next } from '@vercel/functions';
-import { acceptQuality } from './src/lib/acceptNegotiation.js';
+import { negotiateRepresentation } from './src/lib/acceptNegotiation.js';
 
 export const config = {
   // Keep this broad and do the real filtering (extension check) in code
@@ -50,18 +50,19 @@ export default async function middleware(request: Request) {
   // same negotiation logic.
   if (HAS_EXTENSION.test(pathname)) return next();
 
-  const accept = request.headers.get('accept');
-  const htmlQ = accept ? acceptQuality(accept, 'text/html') : 1;
-  const markdownQ = accept ? acceptQuality(accept, 'text/markdown') : 0;
+  // The whole decision is one pure, unit-tested function - see
+  // negotiateRepresentation's doc comment for the production bug that put
+  // it there (a tie, e.g. curl's default `Accept: */*`, was served Markdown).
+  const representation = negotiateRepresentation(request.headers.get('accept'));
 
-  if (accept && htmlQ === 0 && markdownQ === 0) {
+  if (representation === 'unacceptable') {
     return new Response('Not Acceptable: this page is available as text/html or text/markdown.', {
       status: 406,
       headers: new Headers({ 'Content-Type': 'text/plain; charset=utf-8', Vary: VARY_VALUE }),
     });
   }
 
-  if (markdownQ === 0 || markdownQ < htmlQ) {
+  if (representation === 'html') {
     return next({ headers: new Headers({ Vary: VARY_VALUE }) });
   }
 
