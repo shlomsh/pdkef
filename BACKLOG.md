@@ -80,7 +80,7 @@ _None._
 | --- | --- | --- |
 | SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |
 | SEO-18 | P2 | [SEO-18](backlog/tasks/SEO-18.md) · One page on signing a PDF in your own language, generated from the coverage data |
-| SEO-19 | P2 | [SEO-19](backlog/tasks/SEO-19.md) · New tool: compress an image to a target size, because people are already asking us to |
+| SEO-19 | P1 | [SEO-19](backlog/tasks/SEO-19.md) · New tool: compress an image to a target size, because people are already asking us to |
 | SEO-20 | P2 | [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for |
 | SEO-21 | P2 | [SEO-21](backlog/tasks/SEO-21.md) · New tool: flatten a PDF, which also closes a defect in the Sign export |
 | SEO-22 | P3 | [SEO-22](backlog/tasks/SEO-22.md) · New tool: extract the images embedded in a PDF, without a zip dependency |
