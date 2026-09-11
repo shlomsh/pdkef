@@ -33,10 +33,13 @@
 
 /* Opt-in only (BasePdfTool.tsx's `compact` prop, e.g. Compress) - other
    tools' `.tool-card` and `.tool-primary-action` are untouched. Squeezes the
-   generic wrapper padding and the button's top margin a bit further at
-   desktop, on top of the tool's own compact spacing, for a tool whose
-   children already render enough content to need every spare pixel. */
-@media (min-width: 1024px) {
+   generic wrapper padding and the button's top margin a bit further, on top
+   of the tool's own compact spacing, for a tool whose children already
+   render enough content to need every spare pixel - but only once height is
+   actually short (see the matching `max-height: 820px` gate in
+   PdfCompressTool.module.css's compaction block; a normal-height desktop
+   viewport has the room and shouldn't pay this tax). */
+@media (min-width: 1024px) and (max-height: 820px) {
   .tool-card[data-compact] {
     padding: 1rem;
   }

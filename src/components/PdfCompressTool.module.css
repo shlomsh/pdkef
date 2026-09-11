@@ -445,46 +445,13 @@
   }
 }
 
-/* Desktop-only compaction: with the options grid now visible before a file
-   is even picked (this session's redesign) plus the unified AppBar chips,
-   the page was ~70-100px taller than a typical laptop viewport. These trims
-   are about fitting a fixed-height desktop viewport, not about shrinking
-   touch targets or line length anywhere. Budget, measured at 1440px wide
-   with a file open: the button's bottom edge has to clear ~650px, which is
-   what a 1366x768 laptop leaves under Chrome's tab strip and bookmarks bar. */
+/* Desktop-width niceties: unconditioned on height, because these are about
+   arranging content for a wide row, not about saving vertical space. Target
+   Size reads as one line on desktop - icon, title, tag, then the description
+   running on to the right, rather than title over description. Same content,
+   half the height, on any desktop-width viewport regardless of how tall it
+   is. */
 @media (min-width: 1024px) {
-  .compress-options {
-    margin: 0.75rem 0;
-  }
-
-  .compress-card {
-    padding: 0.85rem 1rem;
-    gap: 0.35rem;
-  }
-
-  .compress-card.is-recommended,
-  .target-card {
-    padding-top: 1.2rem;
-  }
-
-  .compress-card-desc {
-    line-height: 1.35;
-  }
-
-  .pro-item,
-  .con-item {
-    line-height: 1.3;
-  }
-
-  .compress-pro-con {
-    margin-top: 0.2rem;
-    padding-top: 0.4rem;
-    gap: 0.2rem;
-  }
-
-  /* Target Size reads as one line on desktop: icon, title, tag, then the
-     description running on to the right, rather than title over
-     description. Same content, half the height. */
   .target-card-main {
     align-items: center;
   }
@@ -512,6 +479,49 @@
   .target-card .compress-card-desc {
     flex: 1 1 18rem;
     min-width: 0;
+  }
+}
+
+/* Short-viewport compaction only: with the options grid now visible before a
+   file is even picked (this session's redesign) plus the unified AppBar
+   chips, the page was ~70-100px taller than a typical laptop viewport. These
+   trims are about fitting a fixed-height desktop viewport, not about
+   shrinking touch targets or line length anywhere - so they only kick in
+   once height is actually the constraint, not for every desktop-width
+   window. Budget, measured at 1440px wide with a file open: the button's
+   bottom edge has to clear ~650px, which is what a 1366x768 laptop leaves
+   under Chrome's tab strip and bookmarks bar - `max-height: 820px` covers
+   that class of device (and anything shorter) while a normal MacBook/desktop
+   viewport (usually 850-1000px+ of content height) gets the breathing room
+   of the base card styles above instead of paying this tax for no reason. */
+@media (min-width: 1024px) and (max-height: 820px) {
+  .compress-options {
+    margin: 0.75rem 0;
+  }
+
+  .compress-card {
+    padding: 0.85rem 1rem;
+    gap: 0.35rem;
+  }
+
+  .compress-card.is-recommended,
+  .target-card {
+    padding-top: 1.2rem;
+  }
+
+  .compress-card-desc {
+    line-height: 1.35;
+  }
+
+  .pro-item,
+  .con-item {
+    line-height: 1.3;
+  }
+
+  .compress-pro-con {
+    margin-top: 0.2rem;
+    padding-top: 0.4rem;
+    gap: 0.2rem;
   }
 
   .target-size-panel {
