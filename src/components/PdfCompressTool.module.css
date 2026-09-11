@@ -38,6 +38,44 @@
   box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-sm);
 }
 
+/* The one-click "just pick this" option, called out with the theme's success
+   (sea-glass lime) color so it reads as the site's pick independent of
+   selection state - not just another card that happens to be selected. */
+.compress-card.is-recommended {
+  border-color: var(--color-success);
+  padding-top: 1.6rem;
+}
+
+.compress-card.is-recommended.is-selected {
+  background: var(--color-success-soft);
+  box-shadow: 0 0 0 1px var(--color-success), var(--shadow-sm);
+}
+
+.compress-card.is-recommended.is-selected .compress-card-tag {
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success-soft) 70%, transparent);
+}
+
+.compress-card.is-recommended.is-selected .compress-pro-con {
+  border-color: color-mix(in srgb, var(--color-success) 30%, transparent);
+}
+
+.recommended-ribbon {
+  position: absolute;
+  top: 0;
+  left: 1.1rem;
+  transform: translateY(-50%);
+  background: var(--color-success);
+  color: var(--color-surface);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
+}
+
 .compress-card-header {
   display: flex;
   flex-wrap: wrap;
@@ -89,6 +127,78 @@
 
 .compress-card.is-selected .compress-pro-con {
   border-color: var(--color-primary-soft);
+}
+
+/* Target Size spans the full width of the grid rather than sitting as a
+   fourth equal tile: it's the one option that needs a number from the
+   visitor, not just a click, so it reads as a distinct "set your own limit"
+   row rather than blending into the three quality presets. */
+/* Deliberately darker than the three preset cards, even unselected: a good
+   share of this cluster's traffic (SEO-05, SEO-13) arrives already knowing
+   they need an exact number - "compress pdf to 100kb" - so this reads as the
+   precise/advanced option on sight, not just another equal-weight choice. */
+.target-card {
+  grid-column: 1 / -1;
+  cursor: pointer;
+  position: relative;
+  padding-top: 1.6rem;
+  border-color: var(--color-primary-ring);
+  background: var(--color-primary-tint);
+}
+
+.target-card:hover {
+  border-color: var(--color-primary);
+}
+
+.target-card.is-selected {
+  border-color: var(--color-primary-active);
+  background: var(--color-primary-soft);
+  box-shadow: 0 0 0 1px var(--color-primary-active), var(--shadow-sm);
+}
+
+.target-card-badge {
+  position: absolute;
+  top: 0;
+  left: 1.1rem;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--color-primary-active);
+  color: var(--color-surface);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
+}
+
+.target-card-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.target-card-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-active);
+  color: var(--color-surface);
+}
+
+.target-card-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .pro-item, .con-item {
@@ -188,11 +298,12 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
-  margin: -0.5rem 0 1.5rem;
+  margin-top: 0.9rem;
   padding: 1rem 1.25rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  cursor: default;
 }
 
 .target-size-label {

@@ -36,15 +36,16 @@ const COMPRESSION_LEVELS = [
     pros: 'Crisp images and clear text, close to original quality',
     cons: 'Minimal size reduction (10-30%)'
   },
-  {
-    id: 'target',
-    name: 'Target Size',
-    tag: 'Choose KB',
-    desc: 'Compress down to a specific file size, e.g. for a 100KB upload limit.',
-    pros: 'Hits exact portal upload limits automatically',
-    cons: 'Quality adjusts as needed to reach the size'
-  }
 ];
+
+const TARGET_LEVEL = {
+  id: 'target',
+  name: 'Target Size',
+  tag: 'Choose KB',
+  desc: 'Compress down to a specific file size, e.g. for a 100KB upload limit.',
+  pros: 'Hits exact portal upload limits automatically',
+  cons: 'Quality adjusts as needed to reach the size'
+};
 
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
 
@@ -177,80 +178,136 @@ export default function PdfCompressTool() {
         </p>
       )}
 
-      {hasFiles && (
-        <div class="tool-workspace">
-          <div class={styles['compress-options']} role="radiogroup" aria-label="Compression Options">
-            {COMPRESSION_LEVELS.map((opt) => (
-              <div
-                key={opt.id}
-                class={`${styles['compress-card']}${level === opt.id ? ` ${styles['is-selected']}` : ''}`}
-                role="radio"
-                aria-checked={level === opt.id}
-                tabIndex={0}
-                onClick={() => handleLevelChange(opt.id)}
-                onKeyDown={(e) => {
-                  if (e.key === ' ' || e.key === 'Enter') {
-                    e.preventDefault();
-                    handleLevelChange(opt.id);
-                  }
-                }}
-              >
-                <div class={styles['compress-card-header']}>
-                  <span class={styles['compress-card-title']}>{opt.name}</span>
-                  <span class={styles['compress-card-tag']}>{opt.tag}</span>
-                </div>
-                <p class={styles['compress-card-desc']}>{opt.desc}</p>
-                <div class={styles['compress-pro-con']}>
-                  <div class={styles['pro-item']}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    <span>{opt.pros}</span>
-                  </div>
-                  <div class={styles['con-item']}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                    <span>{opt.cons}</span>
-                  </div>
-                </div>
+      {/* Rendered whether or not a file is loaded yet: a visitor who has only
+          seen the dropzone should see what the tool actually does before
+          they commit to picking a file, not after. Picking a card here only
+          sets `level` - it costs nothing without a file, and the choice
+          carries over the moment one is dropped in. */}
+      <div>
+        <div class={styles['compress-options']} role="radiogroup" aria-label="Compression Options">
+          {COMPRESSION_LEVELS.map((opt) => (
+            <div
+              key={opt.id}
+              class={`${styles['compress-card']}${level === opt.id ? ` ${styles['is-selected']}` : ''}${opt.id === 'medium' ? ` ${styles['is-recommended']}` : ''}`}
+              role="radio"
+              aria-checked={level === opt.id}
+              tabIndex={0}
+              onClick={() => handleLevelChange(opt.id)}
+              onKeyDown={(e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                  e.preventDefault();
+                  handleLevelChange(opt.id);
+                }
+              }}
+            >
+              {opt.id === 'medium' && <span class={styles['recommended-ribbon']}>Our pick</span>}
+              <div class={styles['compress-card-header']}>
+                <span class={styles['compress-card-title']}>{opt.name}</span>
+                <span class={styles['compress-card-tag']}>{opt.tag}</span>
               </div>
-            ))}
-          </div>
-
-          {level === 'target' && (
-            <div class={styles['target-size-panel']}>
-              <label class={styles['target-size-label']} for="target-size-input">
-                Target size
-              </label>
-              <div class={styles['target-size-input-row']}>
-                <input
-                  id="target-size-input"
-                  type="number"
-                  min="10"
-                  step="10"
-                  value={targetKB}
-                  onInput={(e) => handleTargetKBChange(Number(e.currentTarget.value))}
-                />
-                <span class={styles['target-size-unit']}>KB</span>
-              </div>
-              <div class={styles['target-size-presets']}>
-                {TARGET_SIZE_PRESETS_KB.map((kb) => (
-                  <button
-                    key={kb}
-                    type="button"
-                    class={`${styles['target-size-preset']}${targetKB === kb ? ` ${styles['is-selected']}` : ''}`}
-                    onClick={() => handleTargetKBChange(kb)}
-                  >
-                    {kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB`}
-                  </button>
-                ))}
+              <p class={styles['compress-card-desc']}>{opt.desc}</p>
+              <div class={styles['compress-pro-con']}>
+                <div class={styles['pro-item']}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>{opt.pros}</span>
+                </div>
+                <div class={styles['con-item']}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                  <span>{opt.cons}</span>
+                </div>
               </div>
             </div>
-          )}
+          ))}
 
-          {status !== 'done' && (
+          {/* Target Size is functionally different from the three presets -
+              it needs a number from the user - so it gets its own full-width
+              row and an icon-led header instead of blending in as a fourth
+              equal card. The KB input expands inline underneath once it's
+              selected, rather than in a separate panel below the grid. */}
+          <div
+            class={`${styles['compress-card']} ${styles['target-card']}${level === 'target' ? ` ${styles['is-selected']}` : ''}`}
+            role="radio"
+            aria-checked={level === 'target'}
+            tabIndex={0}
+            onClick={() => handleLevelChange('target')}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                handleLevelChange('target');
+              }
+            }}
+          >
+            <span class={styles['target-card-badge']}>
+              Precise
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="9" r="6" />
+                <path d="M9 14.2 7 22l5-3 5 3-2-7.8" />
+              </svg>
+            </span>
+            <div class={styles['target-card-main']}>
+              {/* Target/crosshair in the card body - the medal-with-ribbon
+                  lives once, in the badge above, so it isn't repeated here. */}
+              <span class={styles['target-card-icon']} aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="8" />
+                  <circle cx="12" cy="12" r="4" />
+                  <circle cx="12" cy="12" r="0.5" fill="currentColor" />
+                </svg>
+              </span>
+              <div class={styles['target-card-body']}>
+                <div class={styles['compress-card-header']}>
+                  <span class={styles['compress-card-title']}>{TARGET_LEVEL.name}</span>
+                  <span class={styles['compress-card-tag']}>{TARGET_LEVEL.tag}</span>
+                </div>
+                <p class={styles['compress-card-desc']}>{TARGET_LEVEL.desc}</p>
+              </div>
+            </div>
+
+            {level === 'target' && (
+              <div
+                class={styles['target-size-panel']}
+                // Card-level onClick would otherwise fire again for every
+                // click inside the input/presets - it's already selected.
+                onClick={(e) => e.stopPropagation()}
+              >
+                <label class={styles['target-size-label']} for="target-size-input">
+                  Target size
+                </label>
+                <div class={styles['target-size-input-row']}>
+                  <input
+                    id="target-size-input"
+                    type="number"
+                    min="10"
+                    step="10"
+                    value={targetKB}
+                    onInput={(e) => handleTargetKBChange(Number(e.currentTarget.value))}
+                  />
+                  <span class={styles['target-size-unit']}>KB</span>
+                </div>
+                <div class={styles['target-size-presets']}>
+                  {TARGET_SIZE_PRESETS_KB.map((kb) => (
+                    <button
+                      key={kb}
+                      type="button"
+                      class={`${styles['target-size-preset']}${targetKB === kb ? ` ${styles['is-selected']}` : ''}`}
+                      onClick={() => handleTargetKBChange(kb)}
+                    >
+                      {kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {hasFiles ? (
+          status !== 'done' && (
             <button
               type="button"
               class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}`}
@@ -263,15 +320,20 @@ export default function PdfCompressTool() {
                 'Compress PDF'
               )}
             </button>
-          )}
+          )
+        ) : (
+          <button type="button" class={pdfToolStyles['tool-primary-action']} disabled>
+            Add a PDF above to compress
+          </button>
+        )}
 
-          {status === 'error' && (
+        {hasFiles && status === 'error' && (
             <ErrorMessage title="Compression failed.">
               The file may be password-protected or corrupted. Please try another PDF.
             </ErrorMessage>
           )}
 
-          {status === 'done' && downloadUrl && (
+          {hasFiles && status === 'done' && downloadUrl && (
             <>
               <div class={styles['compression-stats']}>
                 <p class={styles['stats-title']}>PDF Successfully Compressed!</p>
@@ -309,8 +371,7 @@ export default function PdfCompressTool() {
               <PdfShareButton visible={shareReady} onShare={handleShare} label="Share Compressed PDF" />
             </>
           )}
-        </div>
-      )}
+      </div>
 
       <p class="sr-only" role="status" aria-live="polite">
         {announcement}
