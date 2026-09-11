@@ -46,6 +46,14 @@ vi.mock('../lib/compress.js', () => {
   };
 });
 
+vi.mock('../lib/thumbnails.js', () => {
+  return {
+    renderComparePreview: vi.fn((fileOrBlob) =>
+      Promise.resolve(`data:image/png;base64,${fileOrBlob instanceof File ? 'before' : 'after'}`),
+    ),
+  };
+});
+
 describe('PdfCompressTool UI flow', () => {
   let container;
 
@@ -170,6 +178,73 @@ describe('PdfCompressTool UI flow', () => {
 
     window.URL.createObjectURL = originalCreateObjectURL;
     nativeShare.restore();
+  });
+
+  it('does not render a comparison until the visitor asks for one, then lazily renders page-1 previews', async () => {
+    const thumbnails = await import('../lib/thumbnails.js');
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const file = makePdfFile('quality_check.pdf', 200000);
+
+    await act(async () => {
+      setInputFiles(input, [file]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:comparetesturl');
+
+    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    // The comparison never runs on its own - SEO-25's "not by default on
+    // mobile" bar is met trivially here because it never runs by default
+    // on any device.
+    expect(container.querySelector(`.${styles['compare-panel']}`)).toBeNull();
+    expect(thumbnails.renderComparePreview).not.toHaveBeenCalled();
+
+    const toggle = container.querySelector(`.${styles['compare-toggle-button']}`);
+    expect(toggle).not.toBeNull();
+    expect(toggle.textContent).toContain('Compare with original');
+
+    await act(async () => {
+      toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
+    expect(thumbnails.renderComparePreview).toHaveBeenCalledWith(file);
+    const panel = container.querySelector(`.${styles['compare-panel']}`);
+    expect(panel).not.toBeNull();
+    expect(panel.querySelectorAll('img')).toHaveLength(2);
+    expect(toggle.textContent).toContain('Hide comparison');
+
+    // Toggling closed hides the panel without re-rendering the previews.
+    await act(async () => {
+      toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(container.querySelector(`.${styles['compare-panel']}`)).toBeNull();
+
+    await act(async () => {
+      toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
+
+    window.URL.createObjectURL = originalCreateObjectURL;
   });
 
   it('switches to Target Size mode, edits the KB value, and compresses to target', async () => {
