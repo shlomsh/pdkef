@@ -86,6 +86,9 @@ jobs:
     - name: Verify SEO invariants
       run: npm run test:seo
 
+    - name: Verify trailing-slash redirects cover every real route
+      run: npm run test:redirects
+
     - name: Check CSS correctness and duplication
       run: npm run test:css
 
