@@ -41,6 +41,46 @@ position 36 on `/merge/`. That is what would have to change.
 4. Only if a country moved: re-run that language's Trends comparison from LOC-01's report
    (`docs/localized-search-research-brief-report.md`), same five-term format.
 
+## Top-languages sweep: is there untapped in-language traffic we cannot see?
+
+Shlomi's standing concern (2026-09-12): users search in their own language, so a market can be
+invisible in GSC simply because we have no page in that language for Google to rank. That is the SEO-27
+blind spot, and GSC cannot measure it by construction: it only reports queries we already rank for.
+The evidence so far says the intuition holds in some markets and not others, so it has to be measured
+per language, never assumed either way:
+
+- **Held:** Indonesian (Trends parity on compress and sign; in-language queries leaking onto the
+  English page).
+- **Did not hold:** India, the top country by a distance, where all 50 queries are English and Hindi,
+  Telugu and Tamil are flat at zero on Trends; Israel, where the four queries are English and Hebrew is
+  a third of English at best. The vocabulary of this niche ("pdf", "merge", "compress", "jpg") stays
+  English inside most languages, which is why native terms come back flat more often than not.
+
+**Method, per language (the LOC-01 three-source method, unchanged):**
+
+1. Take the top ten countries by impressions from the refreshed table. Map each to its main search
+   language. Already measured and closed: Hebrew, Indonesian, Malay, Hindi, Telugu, Tamil. Queued from
+   LOC-01 and never run: **Filipino** (marked "later": competitor titles code-switch, Filipino verb plus
+   English object) and **Urdu** (no evidence either way; next step was the GSC Pakistan filter). Any new
+   country in the top ten gets its language added to the list.
+2. For each unmeasured language: fetch the majors' own localized tool pages (`/<lang>/compress-pdf`
+   and siblings on PDF24, Smallpdf, iLovePDF, Sejda) to lift real native phrasing, exactly as LOC-08 did
+   for Telugu. A language none of them has built is a data point on its own.
+3. Build the five-term Trends links (English, two romanized or code-switched, two native-script) and
+   the `hl`/`gl` SERP links for the four anchor tasks, and hand them to Shlomi to screenshot, same
+   format as LOC-08's "For Shlomi" section. Read the SERPs for two things: how many results carry
+   Google's "translated, see original" badge (a SERP Google has to backfill with its own translations
+   of English pages is thin native demand, LOC-08's lesson), and whether the related-searches block is
+   in the language or in English.
+4. Check Google's translated-results list for the language. On a listed language, our English page
+   already reaches those searchers translated, so the untapped share is only what a native page adds
+   over Google's translation of the same field.
+5. Score against the ROI gate below. Record the verdict in this ticket in LOC-01's per-language table
+   format, whatever it is, so the next check does not re-measure it.
+
+Budget: one language at a time, Filipino and Urdu first because they are already in the top seven.
+Do not build anything from this ticket; a language that clears both gates gets its own restore ticket.
+
 ## The ROI gate (also recorded in the findings doc, section 2)
 
 Reopen page localization for a language only when **both** hold:
@@ -60,6 +100,8 @@ the PDF, which the Sign tool still does.
 ## Acceptance
 
 - Country table refreshed in the findings doc section 3.3, in-language query count per script noted.
+- Every top-ten country's language either already closed in LOC-01/LOC-08 or measured here with a
+  verdict row; Filipino and Urdu measured at minimum.
 - A one-paragraph verdict here: nothing moved (close, and schedule the next check with the regular
   SEO refresh rather than a dedicated ticket), or a named language clearing both gates (open a
   restore ticket that starts from LOC-10's keep-list in reverse).
