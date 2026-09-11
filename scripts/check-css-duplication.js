@@ -184,7 +184,20 @@ const distDir = path.join(__dirname, '..', 'dist');
 // +0.14x each), and ARCH-13 existed because the previous margin was thin
 // enough that an ordinary UI change tripped the gate. Re-base it when pages are
 // added, saying so, exactly as the entries above do.
-const MAX_DUPLICATION_FACTOR = 7.00;
+//
+// Re-based (7.00x -> 7.75x) on 2026-09-11 when LOC-02/LOC-03 published the
+// first localized tool pages (/he/merge/, /he/compress/, /he/sign/) and the
+// same day added /pdf-wont-compress-to-100kb/ and the agent-readiness trust
+// pages (23 -> 29 pages). Measured at 29 pages: 7.62x (1,226,740 bytes shipped
+// / 160,938 bytes distinct). Page-count growth as described above, not new
+// duplication: a localized tool page is the tool family's own entry sheet
+// rendered again with different text, so distinct bytes barely moved
+// (159,877 -> 160,938) while the two page-count-invariant ratchets both
+// improved in the same build (worst-page dead bytes 9,430 -> 9,367,
+// single-page utilities 124 -> 119). Expect roughly +0.14x per further
+// localized page; a whole nine-tool edition is ~+1.3x and will need its own
+// re-base when it lands.
+const MAX_DUPLICATION_FACTOR = 7.75;
 // Lowered (29,000 -> 27,500) on 2026-08-29 to bank most of two fixes that took
 // /licenses/ from 29,021 (red) to 26,635, neither of which was a style change:
 //   - 905 distinct bytes of utilities were being compiled out of the impeccable

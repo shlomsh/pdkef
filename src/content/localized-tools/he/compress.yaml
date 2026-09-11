@@ -1,8 +1,5 @@
-# LOC-03: Hebrew pilot draft for /he/compress/. Not yet reviewed by a native
-# speaker in-house (see LOC-03.md's acceptance list) - status stays 'draft'
-# until Shlomi reviews this copy and flips it to 'published' with
-# reviewer/reviewedAt/reviewNotes filled in. The island message catalogue
-# (src/i18n/toolMessages.ts's hebrewCompressMessages) needs the same pass.
+# LOC-03: Hebrew pilot for /he/compress/, reviewed in-house and published
+# (see backlog/tasks/LOC-03.md).
 #
 # Phrasing follows LOC-03's SERP-derived hypotheses (LOC-01's 2026-09-11
 # captures): every incumbent titles with "דחיסה" while the typed query is
@@ -12,7 +9,12 @@
 # (ל-100KB, ל-200KB) mirror the English anchor task.
 toolSlug: 'compress'
 locale: 'he'
-status: 'draft'
+status: 'published'
+reviewer: 'Shlomi Shemesh'
+reviewedAt: '2026-09-11'
+reviewNotes: >-
+  Reviewed the rendered page (desktop and mobile, RTL) and approved the
+  wording, terminology and typography for publish.
 sourceHash: 'fnv1a64:1b244c796a387baa'
 seoTitle: 'כיווץ קובץ PDF ל-100KB בחינם - הקטנת גודל | PDkef'
 seoDescription: >-
