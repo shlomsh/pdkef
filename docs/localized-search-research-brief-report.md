@@ -43,7 +43,7 @@ in scope even where raw volume looks small.
 | Hebrew | **Measured**: small vs. English on all 4 anchor tasks — merge steadiest (~1/3, sustained), sign near-zero | Sign / fill-form | 5 localized incumbents per query, all upload-site translated copy, none native-quality per ticket's existing screenshots | **No** | Decided already (ticket): pilot, LOC-02/03 underway |
 | Indonesian | **Measured**: compress and sign at/near parity with English (2 of 4 tasks); merge ~half; pdf-to-jpg weak (~1/5). Also: iLovePDF gets 22.2% of its global traffic from Indonesia | Sign (Mekari Sign is an Indonesia-only native competitor) / Compress | Native-quality on the majors (Smallpdf, PDF24); at least one aggregator claims on-device processing already (needs verification) | Yes | **Pilot** — criterion 1 cleared outright |
 | Malay | **Measured: all 4 anchor tasks came back flat at 0** — no in-language search volume large enough for Trends to plot, while English held its normal line | Sign (richer native ecosystem than compress/convert, but see Trends result) | Mixed: sign pages read native, but organic demand signal for convert/compress in Malay looks thin | No | **No** — the Trends zero settles what the thinner qualitative signal only suggested |
-| Hindi | Not measured; strong qualitative signal that real typed queries are Hinglish/Latin script, not Devanagari (YouTube titles, tutorial-site titles) | Compress (only because it's the most-searched task generally, not because Hindi-script demand is proven) | Split: Adobe and Smallpdf ship real Devanagari pages; Canva and a "Pi7" competitor only exist as Google-Translate proxy URLs, i.e. no native page at all | Yes | **No** (matches the ticket's stated expectation) — the Hinglish pattern held up |
+| Hindi | **Measured: flat at 0 on all 4 anchor tasks** for both Hinglish and Devanagari probes (16 terms) against a dominant English line; GSC India shows zero Hinglish leakage | None — English wins every task in India | Split: Adobe and Smallpdf ship real Devanagari pages; Canva and a "Pi7" competitor only exist as Google-Translate proxy URLs, i.e. no native page at all | Yes | **No** — measured, not inferred; closes SEO-27's Hindi question |
 | Filipino/Tagalog | Not measured | PDF-to-JPG / general convert | Adobe and PDFSimpli ship pages, but titles code-switch heavily ("Paano Mag-convert ng PDF sa JPG" — Filipino verb, English object) | No | **Later** — real demand looks code-switched rather than absent; a Tagalog page would itself be a mixed-register page, which is unlike every other language here and needs a native call, not a volume number |
 | Urdu | Not measured; romanized-query search surfaced only Hindi-Devanagari competitor pages, no Urdu-script results | Unclear | No evidence of a dedicated Urdu tool page from any major competitor found this pass | Yes | **No** for now — thinnest evidence of any language checked; revisit if Shlomi's Pakistan GSC country filter (source 3 of the ticket) shows anything |
 | Bengali | Not measured; romanized-query search returned zero Bengali-specific results at all | Unclear | No competitor Bengali tool page surfaced | Yes | **No** — weakest signal of the set, though the query wasn't tried in native script, which is a real gap in this pass, not a confirmed absence |
@@ -112,9 +112,39 @@ Every `/ms/` page the majors built (section B/C) looks like the cheap-to-localiz
 about — competitors translating because it costs them nothing, not because Malay-language demand asked
 for it.
 
-No equivalent Trends number exists yet for Hindi, Filipino, Urdu, Bengali, or Arabic — Hindi's case
-rests on the qualitative Hinglish evidence in section B/C below rather than a Trends number, and the
-four light-pass languages weren't measured this way at all.
+**Hindi (India).** Shlomi ran all four anchor tasks with five terms per chart (Trends' maximum): the
+English term, two Hinglish (Latin-script Hindi) variants, and two Devanagari variants, so one chart
+answers both "do Indians type this in Hindi script?" and "do they type it in Hinglish?" against the
+English baseline. Phrasing was lifted from real pages (Smallpdf's `पीडीएफ कम्प्रेस करे`, PDF24/SodaPDF's
+`PDF मर्ज करें`, iLovePDF/PDF24's `PDF पर हस्ताक्षर करें`, YouTube titles for `pdf merge kaise kare` and
+`pdf me sign kaise kare`), except PDF-to-JPG, where no Hindi-language page exists to lift from.
+
+| Task | English | Hinglish probes | Devanagari probes | Read |
+| --- | --- | --- | --- | --- |
+| Compress | `compress pdf` at 55-100 all year | `pdf compress kaise kare`, `pdf ka size kam` | `पीडीएफ कम्प्रेस`, `पीडीएफ साइज कम` | **All four non-English lines flat at 0.** |
+| Merge | `merge pdf` at 60-100 | `pdf merge kaise kare` | `pdf मर्ज`, `पीडीएफ मर्ज`, `pdf जोड़ें` | **All four flat at 0.** |
+| Sign | `sign pdf` at 35-100 | `pdf sign kaise kare`, `pdf me sign kaise kare` | `pdf पर हस्ताक्षर`, `pdf साइन` | **All four flat at 0.** |
+| PDF to JPG | `pdf to jpg` at 65-100 | `pdf to jpg kaise kare`, `pdf ko jpg kaise banaye` | `पीडीएफ को जेपीजी`, `pdf से jpg` | **All four flat at 0** (phrasing unverified for this task, so weakest of the four). |
+
+**Read against the decision rule:** the Malay pattern, not the Hebrew one — sixteen non-English probes
+across four tasks, none registering. One caveat on the Hinglish side: Trends matches search *terms*, so a
+four-word Hinglish phrase is structurally disadvantaged against a two-word English one, and a flat line
+there is weaker evidence than a flat Devanagari line. Two things close that gap. The two-word probes
+(`pdf ka size kam`, `pdf मर्ज`, `pdf साइन`) are also flat, and the GSC India pull (below) shows **zero
+Hinglish queries reaching an English page**, where Indonesia's filter did leak `gabung pdf free
+online`. Hindi's "no" is now measured on two independent instruments rather than inferred from
+tutorial titles.
+
+**GSC, Country = India, 3 months, Queries tab (Shlomi, 2026-09-11).** All English, no exceptions, and
+no Hinglish (`kaise`, `ka`, `ko`) anywhere in the list. Two clusters: **blur/redact** (`pdf blur online`
+35 impressions / 3 clicks, `blur pdf` 49 / 1, `blur pdf online` 49 / 1, `blur text in pdf` 24 / 0, plus a
+long tail of `blackout`/`pixelate` variants) and **compress-to-a-portal-limit** (`file compressor to
+100kb` 95 / 4, `reduce file size to 100kb` 41 / 0, `compress pdf to 100kb free` 17 / 0, `compress pdf
+110 kb` 9 / 0, and a dozen more 100kb/110kb phrasings). India is where the size-limit query lives -
+this is SEO-17's audience - and it is asked entirely in English.
+
+No Trends number exists yet for Filipino, Urdu, Bengali, or Arabic; those four weren't measured this
+way at all.
 
 ## B/C. Phrasing and incumbents, by language
 
@@ -240,9 +270,12 @@ stated expectation exactly:
   "PDF" and "size" in English inside the sentence, which is exactly the code-switched register the brief
   asked about, not a clean Devanagari phrase competing against a clean English one.
 
-**Verdict: no, as the ticket expected**, closing SEO-27's Hindi question with this pass's evidence: real
-tool-shaped queries are typed in Hinglish/Latin script or plain English, not Devanagari, and building a
-Devanagari page would target a register people don't appear to type in for this task.
+**Verdict: no, now measured.** The qualitative read above (tool-shaped queries typed in Hinglish or
+English, not Devanagari) held up against real instruments: section A's four Trends charts show every
+Hinglish and Devanagari probe flat at 0 against a dominant English line, and the GSC India filter shows
+zero Hinglish leakage onto our English pages. A Devanagari page would target a register people don't
+type for this task, and even the Hinglish register doesn't register at Trends scale. This closes
+SEO-27's Hindi question with evidence rather than inference.
 
 ### Filipino/Tagalog (light pass)
 

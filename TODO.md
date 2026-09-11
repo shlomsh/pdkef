@@ -157,6 +157,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | LOC-04 | P3 | [LOC-04](backlog/tasks/LOC-04.md) · Indonesian: the one large market where the category is searched in-language, gated on LOC-01 and the Hebrew pilot |
 | LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
 | LOC-06 | P3 | [LOC-06](backlog/tasks/LOC-06.md) · Per-locale measurement: extend the refresh procedure so localized pages are read separately |
+| LOC-07 | P3 | [LOC-07](backlog/tasks/LOC-07.md) · Is a second language worth building at all? The ROI judgment on LOC-01's evidence, and the languages it never measured |
 
 
 ## Migrated context and history

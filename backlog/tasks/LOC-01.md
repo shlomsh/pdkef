@@ -1,7 +1,7 @@
 ---
 id: "LOC-01"
 title: "Measure non-English demand from outside Search Console: the gate for the second language"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "localized-search"
 phase: "near-term"
@@ -122,16 +122,53 @@ real check despite thinner competitor build-out.
 | Hebrew | **Measured (Shlomi's Trends screenshots, 2026-09-11):** small vs. English on all 4 anchor tasks — merge steadiest (~1/3), sign near-zero, compress/pdf-to-jpg sporadic spikes only. Does not clear "comparable share" by the letter of criterion 1. | Met — thin upload-site competition, no on-device/RTL claim (existing evidence) | Yes (in-house) | **Decided: pilot** (unchanged — criterion 1 was already "informative, not decisive" for Hebrew per the ticket) |
 | Indonesian | **Measured (Shlomi's Trends screenshots, 2026-09-11):** compress and sign at or near parity with English (2 of 4 anchor tasks — clears the rule outright); merge ~half; pdf-to-jpg the weak spot (~1/5-1/4). Backed by iLovePDF's ~22% Indonesia traffic share (Similarweb) as a secondary signal. | **Measured (Shlomi's SERP screenshots, `hl=id&gl=ID`, all 4 anchor tasks): not met.** Every top-five result on every query is a mature global player (iLovePDF, Smallpdf, Adobe, PDF24, Canva) with a native-quality title and, on most, an `AggregateRating` snippet carrying review counts in the hundreds of thousands (Smallpdf: 511k-703k). No mixed-language or machine-translated incumbent found. The cloud-vs-device gap (PDF24 names its own German server; nobody claims on-device) still stands as a real opening, but it is not the "weak incumbent" criterion 2 asks for. | Not yet confirmed | **Pilot, but re-scoped** — carried by criterion 1 (cleared) and the honest device-privacy gap, not by a weak field; criterion 2 as originally written does not hold |
 | Malay | **Measured (Shlomi's Trends screenshots, 2026-09-11): all 4 anchor tasks flat at 0** against a normal English line — no in-language search volume for compress/merge/sign/convert large enough for Trends to register. Cleanly fails criterion 1. | **Measured (Shlomi's SERP screenshots, `hl=ms&gl=MY`, all 4 anchor tasks): a second independent "no" signal.** Zero `AggregateRating` snippets on any of the four queries (vs. Indonesian's hundreds-of-thousands review counts) — no proxy for real engagement volume. On 2 of 4 queries (merge, sign) Google has no matching native Malay page from the top competitors and falls back to a translated Indonesian page or an untranslated English one, undercutting the "every major built the `/ms/` page" framing. AI Overviews and a few Malay-language videos appear, showing some informational curiosity, but not the volume a reviewed page needs. | Not evaluated (moot) | **No** — confirmed twice over: Trends volume and SERP engagement signal both point the same way |
-| Hindi | Not measured; strong qualitative signal that real queries are Hinglish/Latin script (YouTube/tutorial titles), not Devanagari, even on Adobe's own Devanagari H1 ("PDF का size..." keeps "PDF"/"size" in Latin) | Not applicable — the phrasing itself doesn't clear criterion 1 | N/A | **No** — closes SEO-27's Hindi question with evidence, as the ticket expected |
+| Hindi | **Measured (Shlomi's Trends screenshots, 2026-09-11): flat at 0 on all 4 anchor tasks**, for both Hinglish and Devanagari probes (16 non-English terms, phrasing lifted from Smallpdf/PDF24/iLovePDF's own Hindi pages and YouTube titles) against an English line at 35-100. **GSC India (source 3, same day): all English, zero Hinglish leakage** - unlike Indonesia's filter, which leaked `gabung pdf free online`. Two clusters: blur/redact and compress-to-100kb (SEO-17's audience, asking in English). | Not applicable - criterion 1 fails on two instruments | N/A | **No** - measured, not inferred; closes SEO-27's Hindi question |
 | Filipino/Tagalog | Not measured; competitor titles code-switch (Filipino verb + English object) rather than reading as clean Tagalog | Not evaluated | Not evaluated | **Later** — not on Google's translated-results list either, so worth one real check |
 | Urdu | Not measured; romanized query surfaced only Hindi pages, no Urdu-script evidence either way | Not evaluated | Not evaluated | **No evidence yet** — next step is Shlomi's GSC Pakistan filter (method source 3), not this report |
 | Bengali | Not measured; romanized query surfaced zero Bengali-specific results | Not evaluated | Not evaluated | **No evidence yet**, weakest priority to re-check |
 | Arabic | Not measured; deep native ecosystem on every major competitor for both compress and sign | Not met — competitors are native-quality already | Not yet confirmed | **On Google's translated-results list**, so marginal gain of our own edition is smaller than the competitor count suggests; not scoped as a pilot from this pass |
 
-**The Trends gap is now closed for all three candidates (2026-09-11).** Hebrew and Indonesian both
-cleared their Trends check (Indonesian outright, on 2 of 4 anchor tasks; Hebrew weakly, as expected).
-Malay's came back flat at 0 on all four, closing that question as **no** rather than the earlier
-"later" — no further Malay SERP screenshots needed on this evidence. **Still open before LOC-04 can
-pick a second language with confidence:** Shlomi's SERP screenshots for the Indonesian query list in
-the report (mirroring the Hebrew screenshots above — Malay's is now moot), and confirming criterion 3
-(a native Indonesian reviewer) before LOC-04 actually starts.
+**Measurement is complete for every candidate this ticket named (2026-09-11).** Trends and SERPs are
+in for Hebrew, Indonesian, Malay and Hindi; GSC by country is in for Israel, Malaysia, Indonesia and
+India. Malay and Hindi are flat at 0 on every instrument. Hebrew is small but real and costs nothing to
+review. Indonesian is the only language with real in-language volume, and it is also the one where the
+SERP is owned end to end by iLovePDF, Smallpdf, Adobe, PDF24 and Canva with review counts in the
+hundreds of thousands - a field this domain does not yet beat in *English* (`/merge/` sits at position
+36 on its own query, per the findings doc). **What remains is a judgment, not a measurement:** whether a
+paid-reviewed Indonesian edition, on a domain Google crawls slowly (SEO-06, SEO-28) and where Google
+already serves our English page machine-translated to Indonesian searchers, can earn back its cost
+against that field. See the ROI note below.
+
+## ROI note (2026-09-11): the question this ticket hands on, not answers
+
+Shlomi's read on seeing the Hindi and Malay zeros: "maybe there is ROI negative for this effort". The
+evidence supports asking it seriously, and it is deliberately not answered here - it is
+[LOC-07](LOC-07.md), for a fresh agent with the numbers in front of it rather than the person who
+gathered them.
+
+The shape of the question, so LOC-07 starts from the evidence and not from scratch:
+
+- **Cost is the reviewer, and it is zero for exactly one language.** Hebrew is reviewed in-house; every
+  other language is paid per page, and machine translation reviewed by nobody is the one version
+  Google's spam policy names. So Hebrew's small volume can still be positive; Indonesian's larger
+  volume has to clear a real cost.
+- **The one language with volume is the one with the hardest field.** Indonesian's four SERPs are
+  owned by iLovePDF, Smallpdf, Adobe, PDF24 and Canva, with `AggregateRating` counts of 300k-700k.
+  This domain has not beaten that field in English: `/merge/` is at position 36.13 with 0 clicks on
+  its own query (findings doc, section 3). A language edition does not carry more authority than the
+  English original.
+- **Google already bridges the gap for Indonesian.** It is on the translated-results list; an
+  Indonesian searcher can already reach our English page machine-translated. Hebrew, Malay and
+  Filipino are not on the list - which is an argument *for* Hebrew and irrelevant for Malay (no
+  volume to bridge).
+- **Crawl budget is the binding constraint on this domain.** Nine English pages have never been
+  crawled (SEO-06) and the two best pages are recrawled least (SEO-28). Three more `/id/` pages join
+  that queue.
+- **What would change the answer.** (a) The Hebrew pilot (LOC-03) producing measurable in-language
+  impressions - it is the calibration for what a localized page earns here. (b) An English tool page
+  reaching page one for its own query, which would show the domain can compete with the same field.
+  (c) A GSC "Translated results" reading showing Indonesian searchers are already arriving on the
+  English page in numbers - that is the demand a native page would upgrade rather than create.
+
+Status: this ticket is done - every measurement it scoped is in, with sources. LOC-04 now depends on
+LOC-07 as well as LOC-03.

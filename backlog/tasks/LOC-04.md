@@ -5,7 +5,7 @@ status: "open"
 priority: "P3"
 epic: "localized-search"
 phase: "later"
-depends_on: ["LOC-01", "LOC-03"]
+depends_on: ["LOC-01", "LOC-03", "LOC-07"]
 legacy_state: "Open"
 ---
 
