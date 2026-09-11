@@ -142,7 +142,7 @@ of scope," each for a stated reason above, not by default. `npm run test:seo` an
 `languageCoverage.test.js` both pass on the current tree; no file was changed by this review's
 conclusions.
 
-**Folded back into SEO-11 (docs/seo-competitive-findings.md section 6):** the per-tool method's step 1
+**Folded back into SEO-11 (docs/seo-competitive-findings.md, now section 7):** the per-tool method's step 1
 ("pull the tool's queries... rank them by impressions") silently assumes the cluster's queries rank on
 the tool's own page. For Sign they did not - all 58 queries belong to the four OS guides, and `/sign/`
 ranks on queries GSC withholds entirely. A reviewer who skips checking the "By page" table against the

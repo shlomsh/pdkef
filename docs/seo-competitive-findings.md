@@ -1,80 +1,106 @@
-# Search acquisition: findings, standings, and the running plan
+# Search acquisition: what is true now, and what to do next
 
 **Owner:** the `search-acquisition` epic in [backlog/tasks/](../backlog/tasks/) (`SEO-*`).
-**Status of this file:** living. It is the persistent memory for the epic - the competitor research,
-the measured standings, and the week-by-week order of work. An agent picking up an `SEO-*` ticket
-should read this first, and update the standings table (SEO-02) rather than re-deriving it.
+**Read this before any SEO work.** It is the epic's one shared memory. Sections 1 to 4 are the part to
+read every time; 5 to 7 are reference, there when a ticket needs them.
 
-Two things this file is deliberately not. It is not a task tracker: task state lives in the ticket
-files. And it is not a place to record intentions - every row below is either a measurement with its
-date and source, or a decision with its reasoning.
+## 0. What goes here, and what does not
+
+**This file says what is true now. Tickets say how we found out.** A ticket owns its own diagnosis,
+SERP captures, before/after tables and dead ends, at whatever length the work needed. This file gets
+the result: one status row, and one line in section 2 if the ticket learned something that outlives it,
+with a link back. If a section here starts narrating, it is in the wrong file - move the narrative to
+the ticket and leave the conclusion.
+
+Three further rules. Every number carries its measurement date. Standings are **replaced** at each
+refresh, never appended; git history is the timeline. A stale row stays visible with its old date
+rather than being deleted - a term that went to zero is exactly the one worth seeing.
+
+Instruments: `scripts/seo-refresh.mjs` (Search Console export to the section 3 tables),
+`scripts/seo-crawl-staleness.mjs` with `docs/seo-last-crawled.json` (crawl date vs content-change date
+per URL, `npm run seo:crawl-staleness`). Both are run at the monthly refresh (section 6), not in CI.
 
 ---
 
-## 1. Where the traffic actually is (Google Search Console, last 3 months to 2026-09-07)
+## 1. Status board
 
-### Refresh procedure (SEO-02)
+**Next refresh and re-measurement for everything below: 2026-10-08.** One Search Console pull covers
+all of it (section 6).
 
-Follow this literally; it's what produced every number below and in section 4's standings table.
+| Ticket | State | Date | Result in one line | Next check |
+| --- | --- | --- | --- | --- |
+| SEO-01 baseline, `lastmod`, indexing requests | done | 2026-09-11 | 27 URLs tracked, 11 indexed, 9 never crawled; `lastmod` shipped; **9 of the 11 indexed pages are stale** (crawled before their last content change); indexing requested for all 9 stale + all 9 never-crawled | 2026-10-08: recapture `seo-last-crawled.json`, see whether the requested URLs moved and whether `/merge/` and `/unlock/` (not requested) moved too |
+| SEO-02 standings + refresh procedure | done | 2026-09-10 | `seo-refresh.mjs` reproduces section 3 from an export; procedure in section 6 | monthly |
+| SEO-03 external signals | open | | not started; no referring-domain baseline yet | needs a first venue list |
+| SEO-04 blur zero-click | open, blocked on a recrawl | 2026-09-11 | meta rewritten 09-10; real SERP captured 09-11 shows Google serving the pre-08-29 title, so the change has never been seen; AI Overview cites us on 2 of 3 queries (zero-click by design); recrawl requested | 2026-10-08: first check whether the indexed title changed; only then is CTR a verdict |
+| SEO-05 compress CTR + honesty | open, same recrawl exposure | 2026-09-10 | meta now leads with the honest miss ("if it can't hit the target, we say so"); rasterization + passthrough disclosed above the FAQ | same first check as SEO-04 |
+| SEO-06 never-crawled nine | open | 2026-09-11 | nine linked from `/redact/` and `/compress/`; `/image-to-pdf/` and `/pdf-to-image/` leads differentiated; `/edit-pdf/` got no content work (descoped, not done) | 2026-10-08 coverage recheck = **the Week 4 gate** |
+| SEO-07 `/sign/` language story | done | 2026-09-11 | language card leads with the claim; comb fields, RTL growth and refuse-while-typing now stated; title changed | 2026-10-08: `/sign/` CTR vs 2.38%, after recrawl |
+| SEO-11 review protocol | done | 2026-09-11 | section 7 | |
+| SEO-12 Sign review | done, no change | 2026-09-11 | method run end to end; SEO-07 had already shipped everything it would propose; the "no change" verdict is the model for SEO-13 to 16 | |
+| SEO-28 Redact/Split recrawl starvation | open | 2026-09-11 | the two best pages are the least crawled and nothing we control (headers, `lastmod`, link counts) explains it; separate mechanism from SEO-06 | 2026-10-08 crawl dates |
+| SEO-08, 09, 10, 13 to 27 | open | | not started | per section 4 |
 
-1. **Export.** In Search Console: **Performance -> Search results**, set Search type = **Web**, Date =
-   **Last 3 months**, then **Export -> CSV**. Unzip it - you get `Queries.csv`, `Pages.csv`,
-   `Countries.csv`, `Devices.csv`, `Chart.csv`, `Filters.csv`, `Search appearance.csv`. For the indexing
-   side (SEO-01, refreshed on the same cadence): **Indexing -> Pages**, Export the top-level Coverage
-   report, and separately drill into any "not indexed" category with 5+ pages to export that category's
-   URL list. Same for `Coverage` and `Coverage Drilldown` folders.
-2. **Run the script.** `node scripts/seo-refresh.mjs <path to the unzipped Performance export folder>`.
-   It prints Markdown tables for "By page" (exact, from `Pages.csv`), "By intent cluster" (best-effort,
-   see below), "By country" and "By device" (both exact). Paste the output over the matching tables
-   below - **replace, don't append**; this file is a snapshot of the current state, and the git history
-   is what carries the timeline.
-3. **What the script cannot do**, and stays manual: the "Who is above us" / competitor columns in
-   section 4, and everything in section 3, since Google blocks scripted SERP fetches (hit during SEO-04/
-   SEO-05 - see those tickets) and there's no API access to a rank-tracking or backlink tool in this
-   environment. Sample competitor snippets by hand (Bing/DuckDuckGo results for the same query are a
-   usable proxy for *who else is playing this SERP*, not for *our* Google ranking - that only ever comes
-   from the GSC export itself) and record the sampling date next to whatever you write down, since
-   competitor data is the softest number in this file and the one most likely to be silently stale.
-4. **Update the two date lines**: this section's "Exported" line and section 4's "Last refreshed" line,
-   both to the export date. Do not overwrite a term's row if this refresh no longer has data for it
-   (e.g. a query cluster that stopped ranking) - leave the row with its last-known numbers and its old
-   date rather than deleting it; a term that went to zero is exactly the one worth keeping visible.
+---
 
-**One documented gap in the cluster table**, found running this end to end on 2026-09-10: Search
-Console's `Queries.csv` omits some individual queries to protect searcher privacy (a standard, permanent
-GSC behaviour), and it hits small clusters hardest - summing all matched queries for **unlock** landed
-5 impressions, 3 short of the previous refresh's 8, because a few omitted low-volume queries are a bigger
-share of a small total (not a real ranking drop - see that row below). The **By page** numbers don't have this problem (they come from `Pages.csv`, which is a
-complete per-page aggregate, not a per-query breakdown) and are the authoritative site-wide total. Read
-the cluster table as a lower bound, not an exact count - this is inherent to what Search Console exposes,
-not a bug in the script to fix.
+## 2. What we know
 
-**Cadence:** monthly, plus immediately after any ticket in this epic claims a ranking or CTR change (its
-own before/after numbers land in its ticket file, per that ticket's acceptance criteria - this table only
-needs the reproducible baseline, not every ticket's before/after). **Next scheduled refresh: 2026-10-08**,
-already set as the SEO-01/04/05 re-measurement date so one pull covers all four.
+Durable lessons, one line each, newest first. The ticket has the evidence.
 
-Exported 2026-09-10. Web search only. 71 clicks, ~2,318 impressions site-wide.
+- **"Indexed" is not "current".** Google held `/redact/`'s title from before 2026-08-29 while the live
+  page served the new one; a copy change is not measurable until the *indexed snippet* changes. Check
+  the SERP title before reading any CTR as a verdict. ([SEO-01](../backlog/tasks/SEO-01.md#addendum-2026-09-11-an-indexed-page-can-be-stale-enough-to-hide-shipped-work), [SEO-04](../backlog/tasks/SEO-04.md))
+- **A copy ticket's definition of done includes an indexing request**, or the work is merged and
+  invisible. `/redact/` was 65 days stale, `/split/` 35. ([SEO-01](../backlog/tasks/SEO-01.md))
+- **The pages that earn the most are recrawled the least**, and it is not internal links, headers or
+  `lastmod` - all checked, all equal or better. Open question, scoped as [SEO-28](../backlog/tasks/SEO-28.md).
+- **Resubmitting a URL does not move it up the crawl queue** (Google's own dialog). Submit once, leave it.
+- **AI Overviews cite us and cost us the click.** On `blur text in pdf online free` PDkef is the first
+  tool named, accurately, and gets 0% CTR at position 6.65. Being cited is a GEO asset, not a click; no
+  snippet rewrite reaches it. ([SEO-04](../backlog/tasks/SEO-04.md#the-real-serp-captured-at-last-2026-09-11))
+- **Google discards our meta description on some queries** and snippets from body copy, so the intro
+  paragraph in `src/data/tools.js` is doing snippet work whether we meant it to or not. ([SEO-04](../backlog/tasks/SEO-04.md))
+- **Do not emit `AggregateRating`.** PDF24 carries review stars on every blur SERP; we have no reviews,
+  and fabricated structured data is worse than none. Declined deliberately. ([SEO-04](../backlog/tasks/SEO-04.md))
+- **The Sign query cluster is device intent, not language intent, and it ranks on the OS guides, not
+  `/sign/`.** All 58 queries are iphone/android/computer/whatsapp phrasings at positions 43-66;
+  `/sign/` itself ranks on queries GSC withholds, so we do not know what it ranks for. The language
+  advantage's search demand is **unmeasured**. ([SEO-07](../backlog/tasks/SEO-07.md), [SEO-12](../backlog/tasks/SEO-12.md))
+- **Check which page a query cluster actually lands on before analysing its SERP.** Cross-reference
+  the cluster against the By-page table; SEO-12 nearly analysed the wrong page's competitors.
+- **Unique-text share does not discriminate winners from losers** (`/redact/` 52.9%, `/merge/` 28.8%),
+  inflates when any text is added, and penalises cross-link cards. Do not use it as a diagnosis.
+  ([SEO-06](../backlog/tasks/SEO-06.md))
+- **Google blocks scripted SERP fetches from this environment.** Real Google SERPs come from Shlomi's
+  screenshots; Bing/DuckDuckGo are a proxy for *who competes*, never for *our* Google position.
+- **Search Console's `Queries.csv` drops low-volume queries** (privacy filter); cluster totals are a
+  lower bound, `Pages.csv` is exact. ([SEO-02](../backlog/tasks/SEO-02.md))
+- **External audits guess at what we already have.** The report that started this epic proposed
+  building target-size compression that had shipped before it was written. Verify any gap list against
+  `src/data/tools.js` and `src/lib/` first.
+- **The favicon Google shows is a separate crawler with its own cache**; do not rename the icon to
+  bust it. Re-check after `/` is recrawled. ([SEO-04](../backlog/tasks/SEO-04.md))
 
-**The trajectory is the headline.** Impressions ran 3-15/day through July, 50-110/day in late August,
-and 100-196/day in the first week of September, with average position improving from the 30s to ~10.5.
-The domain is not stalled; it is early and accelerating. That is the context for every sequencing call
-below: the constraint is crawl trust and click-through, not a shortage of page ideas.
+---
 
-### By intent cluster
+## 3. Standings
 
-Impressions are the documented lower bound above, not an exact count - see the refresh procedure.
+Source: Search Console, Web, last 3 months, **exported 2026-09-10** (data to 2026-09-07). 71 clicks,
+~2,318 impressions site-wide. Impressions grew from 3-15/day in July to 100-196/day in early September,
+average position from the 30s to ~10.5: early and accelerating, not stalled.
+
+### 3.1 By intent cluster (lower bound - see section 6)
 
 | Cluster | Clicks | Impressions | Weighted position | Measured | Read |
 | --- | ---: | ---: | ---: | --- | --- |
-| blur / redact | 22 | 717 | 13.5 | 2026-09-10 | The franchise. Already page one on the specific terms. |
-| compress to a size | 7 | 194 | 9.8 | 2026-09-10 | Page one, converting poorly. |
-| sign | 0 | 154 | 51.7 | 2026-09-10 | 58 distinct queries, no clicks, page five. |
-| split / extract | 0 | 88 | 84.9 | 2026-09-10 | We rank for the wrong vocabulary. |
-| unlock | 0 | 5 | 66.0 | 2026-09-10 | Barely present - and this cluster is small enough that the privacy-filtering gap above is a big share of it; treat 5 as a floor, not the true count. |
+| blur / redact | 22 | 717 | 13.5 | 2026-09-10 | The franchise. Page one on the specific terms, zero-click on 13 of them (SEO-04). |
+| compress to a size | 7 | 194 | 9.8 | 2026-09-10 | Page one, converting poorly. 128 impressions are non-PDF "file/image to 100kb" (SEO-19). |
+| sign | 0 | 154 | 51.7 | 2026-09-10 | Device-intent queries ranking on the OS guides, not `/sign/`. |
+| split / extract | 0 | 88 | 84.9 | 2026-09-10 | We rank for a vocabulary we do not use (SEO-09). |
+| unlock | 0 | 5 | 66.0 | 2026-09-10 | Floor, not count - privacy filter hits small clusters hardest. |
 | merge | 0 | 6 | 90.0 | 2026-09-10 | Barely present. |
 
-### By page
+### 3.2 By page (exact)
 
 | Page | Clicks | Impressions | CTR | Position |
 | --- | ---: | ---: | ---: | ---: |
@@ -91,115 +117,83 @@ Impressions are the documented lower bound above, not an exact count - see the r
 | `/licenses` (no trailing slash) | 0 | 16 | 0% | 12.88 |
 | `/how-to-sign-a-pdf-on-mac/` | 0 | 4 | 0% | 9.00 |
 
-Absent from the report entirely, therefore earning nothing: `/edit-pdf/`, `/image-to-pdf/`,
-`/pdf-to-image/`, and every landing page except the four OS guides.
+Absent entirely: `/edit-pdf/`, `/image-to-pdf/`, `/pdf-to-image/`, and every landing page except the
+four OS guides.
 
-### By country and device
+### 3.3 Country and device (2026-09-10)
 
-India 36 clicks / 813 impressions at position 12.66 is the audience, by a distance. Israel is second by
-clicks (8) on only 20 impressions - a 40% CTR at position 6.65, which is a small but genuine signal.
-Then the United States (4 / 360 at 31.97), Malaysia, Indonesia, the Philippines, Pakistan.
+India 36 clicks / 813 impressions at 12.66, by a distance. Israel 8 clicks from 20 impressions (40% CTR
+at 6.65). United States 4 / 360 at 31.97. Then Malaysia, Indonesia, the Philippines, Pakistan. Every
+India query is in English. Desktop 52 / 1,764 at 25.21; mobile 18 / 430 at 14.70 - mobile ranks better
+and is under-served.
 
-Desktop 52 clicks / 1,764 impressions at position 25.21; mobile 18 / 430 at 14.70. Mobile ranks
-markedly better than desktop and is under-served by impressions - worth remembering for a product that
-describes itself as mobile-first.
+### 3.4 Indexing and crawl state (captured 2026-09-11)
 
-### Indexing state (SEO-01, 2026-09-10)
+27 URLs tracked, 11 indexed. **Never crawled (9):** `/blur-vs-blackout-vs-delete-pdf/`, `/edit-pdf/`,
+`/image-to-pdf/`, `/install-pdf-app/`, `/offline-pdf-form-filler/`, `/open-source-pdf-editor/`,
+`/pdf-to-image/`, `/permanently-delete-text-from-pdf/`, `/sign-pdf-no-signup/` - plus `/licenses/`.
+Submitted 2026-09-10. Cohort grew from 4 to 9 on 2026-08-29 when newer pages entered the sitemap; read as
+not-yet-promoted on a three-month-old domain, not a quality verdict.
 
-Full detail and reasoning in [SEO-01](../backlog/tasks/SEO-01.md). Summary: 27 pages tracked, 11
-indexed, 16 not - split as 9 "Discovered - currently not indexed" (the nine URLs below, submitted for
-indexing via URL Inspection on 2026-09-10, none yet crawled), 4 "Page with redirect", 2 "Excluded by
-noindex tag" and 1 "Crawled - currently not indexed" (the last three not yet identified by exact URL).
-The nine:
+**Stale (9 of the 11 crawled):** crawled before their content last changed. Worst: `/redact/` (crawled
+2026-07-07, content 2026-09-10) and `/split/` (2026-07-05 vs 2026-08-09). Also stale: `/compress/`,
+`/sign/`, all four OS guides, `/`. Current: `/merge/`, `/unlock/`. All nine stale URLs submitted
+2026-09-11. Full table in [SEO-01](../backlog/tasks/SEO-01.md); rerun `npm run seo:crawl-staleness`
+after the next capture.
 
-`/blur-vs-blackout-vs-delete-pdf/`, `/edit-pdf/`, `/image-to-pdf/`, `/install-pdf-app/`,
-`/offline-pdf-form-filler/`, `/open-source-pdf-editor/`, `/pdf-to-image/`,
-`/permanently-delete-text-from-pdf/`, `/sign-pdf-no-signup/`.
+### 3.5 Against the competition (last refreshed 2026-09-10)
 
-This cohort was 4 pages from mid-July to 2026-08-28, then jumped to 9 on 2026-08-29 when several newer
-pages (Unlock, Image to PDF, Edit Pages, two content pages) entered the sitemap - none of the 11 indexed
-pages has grown since 2026-08-18 while the not-indexed count climbed from 8 to 16 over the same window.
-Read as: the newer pages simply haven't been promoted yet, on a domain that's ~3 months old, not a
-content-quality signal. Re-measure alongside the rest of this section: **2026-10-08**.
+"Who is above us" is manual sampling from the 2026-09 research unless dated otherwise, cross-checked on
+Bing/DuckDuckGo 2026-09-10 for the SEO-04/05 rows. The softest column here.
 
-*(All performance numbers above - by page, by query, by country/device - were pulled fresh from a
-2026-09-10 Search Console export and matched what's already recorded here exactly. No drift since this
-section was first written, same day.)*
+| Winning term | Our position | Our impressions | Measured | Who is above us | Gap to close | Ticket |
+| --- | ---: | ---: | --- | --- | --- | --- |
+| blur pdf online | 8.78 | 160 | 2026-09-10 | supertool, small utility sites | Snippet CTR + AI Overview; index is stale | SEO-04 |
+| blur text in pdf | 11.44 | 32 | 2026-09-10 | mixed utilities | Rank + snippet | SEO-04 |
+| compress pdf to 100kb (cluster) | 9.8 | 194 | 2026-09-10 | smallseotools, PDNob, DocHub | Snippet CTR, honest size guidance | SEO-05, SEO-17 |
+| file compressor to 100kb | 9.60 | 81 | 2026-09-10 | generic file compressors | We do not have the tool yet | SEO-19 |
+| sign pdf on android / iphone (cluster) | 51.7 | 154 | 2026-09-10 | DocHub, Smallpdf, OS vendor docs | Rank, from near zero; ranks on the OS guides | SEO-08 |
+| `/sign/` itself (queries withheld) | 11.64 | 42 | 2026-09-10 | unknown | Title changed 2026-09-11; re-measure CTR vs 2.38% | SEO-07 |
+| extract pdf / pdf extractor | 84.9 | 88 | 2026-09-10 | iLovePDF, Sejda | Vocabulary: we say "split" | SEO-09 |
+| merge pdf | 90.0 | 6 | 2026-09-10 | iLovePDF, Smallpdf | Authority | SEO-10, SEO-03 |
+| unlock / protect pdf | 66.0 | 5 | 2026-09-10 | Smallpdf, iLovePDF | Authority; lower-bound count | SEO-16 |
+| jpg to pdf | not present | 0 | 2026-09-10 | iLovePDF, Smallpdf | `/image-to-pdf/` is not indexed | SEO-06, SEO-15 |
 
----
+### 3.6 Non-ranking dimensions
 
-## 2. The three findings that reorder the plan
-
-**2.1 We are on page one for blur and not being clicked.** Thirteen blur and blackout queries sit at
-positions 5.8 to 11.4, carry 160 impressions between them, and returned **zero clicks**:
-
-| Query | Impressions | Position |
-| --- | ---: | ---: |
-| blur text in pdf | 32 | 11.44 |
-| blur text in pdf online free | 23 | 6.65 |
-| pdf blur tool | 17 | 8.47 |
-| blur pdf online free | 16 | 7.38 |
-| blur in pdf | 16 | 8.12 |
-| blackout text in pdf free | 13 | 9.77 |
-| blur out pdf | 10 | 9.30 |
-| pdf blur text | 8 | 9.88 |
-| pdf text blur online | 7 | 7.14 |
-| blur text pdf | 7 | 7.57 |
-| blur the pdf | 7 | 7.86 |
-| online pdf blur tool | 6 | 5.83 |
-| black and blur pdf | 5 | 9.00 |
-
-A page-one position with no clicks is a snippet problem, not a ranking problem. This is the cheapest
-available win on the site and no keyword-volume research can see it. SEO-04.
-
-**2.2 People are asking us to compress things that are not PDFs.** 128 impressions and 6 clicks came
-from queries with no "pdf" in them at all - "file compressor to 100kb" (81 impressions, position 9.6),
-"reduce file size to 100kb" (26), "image size reduce to 100kb", "100 kb document size". They land on
-`/compress/`, which only accepts PDFs. That is measured demand for a target-size *image* compressor,
-which is a small, wholly client-side canvas tool. SEO-19.
-
-**2.3 The sign cluster is our worst-performing and our strongest product.** 58 distinct sign queries,
-154 impressions, weighted position 51.7, zero clicks. `/sign/` itself drew 42 impressions in three
-months. Meanwhile the tool supports Hebrew, Arabic, Pashto, Bengali, Devanagari, Tamil, Telugu,
-Gurmukhi, Thai, Cyrillic and Greek with real font embedding, native RTL, and comb-field detection -
-support no free browser-side signer we know of matches, aimed squarely at the country already sending
-us the most traffic. The page says almost none of this. SEO-07, SEO-12, SEO-18.
-
-*Progress note, 2026-09-11 (SEO-07):* the page now says it - the language card leads with the claim
-(right-to-left native, 20 languages, world-class font support for free), the subhead carries the
-language count and the printed-box behaviour above the fold, comb fields are described in a step and
-an FAQ entry (the feature had no user-facing mention anywhere on the site before this), and the
-refuse-while-typing guarantee is an FAQ entry framed as a promise kept. A list of the scripts with no
-bundled font was built and then removed on Shlomi's call: the section is marketing, and gaps go
-through the request path, not a list. **One finding from that ticket changes how the rest of this cluster should be
-read, and it is not what the section above assumed:** there is not a single language-intent sign query
-in the export. All 58 are device intent (iphone, android, computer, windows, whatsapp), and all sit at
-positions 43-66, which is the four OS guides, not `/sign/`. `/sign/` itself ranks at 11.64 on queries
-Search Console withholds under its privacy filter, so **we do not know what it ranks for**. The
-language advantage is real and is now stated, but its search demand is unmeasured here - SEO-18 should
-open with that question rather than treat it as settled.
-
-Worth noting inside that cluster: "how to sign on pdf file sent through whatsapp" appears five times
-(19 impressions, positions 48-50). PDkef's own copy already names the WhatsApp attachment case. We are
-being shown for our own story and losing it on authority.
-
-*Progress note, 2026-09-11 (SEO-12):* the full review ran against this cluster, end to end. Real Google
-and Bing SERPs (screenshots) plus WebSearch for the three highest-impression queries confirm the shape
-above with primary data: page one is Apple/Microsoft first-party docs, Adobe, Dropbox, Smallpdf, video
-results, and - on Bing - four sponsored slots making exactly SEO-11's four claims ("Free", "Works on
-Any Device", "Secure") with no evidence, from upload-based tools. No result in ten across three queries
-and two engines mentions language/script support; this is a device-workflow query, not a language one.
-Zero language-name or comb-field-vocabulary queries exist anywhere in the full 207-row export, not just
-this cluster - there is no query-derived wording to add for either. Conclusion: SEO-07 already shipped
-everything this review would have proposed (the language card, the native-script FAQ questions, the
-WhatsApp section, the plain-language comb-field description); no further copy change is warranted. Full
-method and reasoning in [SEO-12](../backlog/tasks/SEO-12.md#progress-2026-09-11).
+| Dimension | Us | Incumbents | Honest read |
+| --- | --- | --- | --- |
+| Domain authority | new (launched ~2026-06) | DR 59-83 | The binding constraint. Only SEO-03 moves it. |
+| Free | no account, cap, watermark or paid tier | freemium with daily caps | Real and checkable. State it plainly, never as an attack. |
+| Privacy | on-device, demonstrable offline in devtools | asserted, files uploaded | The one claim a competitor structurally cannot copy. |
+| Open source | MIT, auditable | closed | Underused. |
+| Language support (Sign) | 11+ scripts, native RTL, comb fields | Latin-centric | Largest unmatched product advantage; search demand for it unmeasured. |
+| Offline / installable | full PWA | none | Underused. |
+| Indexed page count | 12 of 22 URLs earning impressions (2026-09-10) | thousands | SEO-06, SEO-28. |
 
 ---
 
-## 3. The competitive landscape (deep research, 2026-09)
+## 4. The plan and its gates
 
-Incumbents, for scale. Nothing here is winnable head-on and nothing here should be treated as a target.
+Gates matter more than dates. A phase that starts before its gate is met spends crawl budget the domain
+does not have. Status of each ticket is in section 1, not here.
+
+| Window | Work | Gate to start |
+| --- | --- | --- |
+| Week 1 (Sep 10-16) | SEO-01, 02, 04, 05 - measure, then the free clicks. No new URLs. | none - **done** |
+| Week 2 (Sep 17-23) | SEO-06, 07, 11, 12, **28** - the structural problems. | none - 07/11/12 done early; 06 and 28 open |
+| Week 3 (Sep 24-30) | SEO-08, 09, 10, 13, 17 (first new URL). | SEO-09 and SEO-08 must end with an indexing request, per section 2 |
+| Week 4 (Oct 1-7) | SEO-14, 15, 18. **Re-measure everything on 2026-10-08.** | **Gate:** if none of the never-crawled nine has been crawled, stop adding URLs; effort goes to SEO-03 |
+| Weeks 5-6 (Oct 8-21) | SEO-19 (image compressor - the one new tool with measured demand), then SEO-20 (crop). One tool per week. | Week 4 gate passed |
+| Weeks 7-8 (Oct 22 - Nov 4) | SEO-21 (flatten, with MOBI-02), SEO-22 (extract images). | previous tool indexed |
+| Week 9 onwards | SEO-23, 24, 16, then 25, 26, 27. | re-order at every boundary |
+| Throughout | SEO-03 external signals. The only work that moves the constraint; it does not live in this repo. | |
+
+---
+
+## 5. Reference: the competitive landscape (deep research, 2026-09)
+
+Incumbents, for scale. None is a target.
 
 | Platform | Monthly organic visits | Authority | Main audience | Top organic drivers |
 | --- | --- | --- | --- | --- |
@@ -209,205 +203,100 @@ Incumbents, for scale. Nothing here is winnable head-on and nothing here should 
 | sejda.com | 10.3M | DR 81 | US, Western Europe | "edit pdf online", "pdf editor", "compress pdf" |
 | pdfgear.com | 2.9M | DR 65 | US, East Asia | brand, "free pdf editor", "convert pdf" |
 
-They rank on brand demand, task completion and age, not on page copy. Their structural weaknesses are
-the same four in every case: files are uploaded to a server, "free" is usually freemium with a daily
-cap or a watermark, privacy is asserted rather than demonstrable, and the long tail of
-execution-specific queries is unserved. Those four are the whole basis of our positioning, and SEO-11
-turns them into claims we can actually evidence.
+They rank on brand demand, task completion and age. Their shared weaknesses - upload to a server,
+freemium behind "free", privacy asserted not demonstrable, the execution-specific long tail unserved -
+are the basis of our positioning; section 7 turns them into claims we can evidence.
 
-### Winning queries the research identified, and what we decided
+### The winning queries the research identified, and what we decided
 
-| Query | Est. volume | Who wins it now | Our decision | Ticket |
+| Query | Est. volume | Who wins it now | Decision | Ticket |
 | --- | --- | --- | --- | --- |
-| compress pdf to 100kb / 200kb / 500kb | 280k-600k combined | smallseotools, PDNob, DocHub | `/compress/` already carries this h1 and the feature. Reject the three doorway variants; fix CTR and write one honest guide. | SEO-05, SEO-17 |
-| make pdf look scanned | 40k-90k | supertool, scanyourpdf, LookScanned | Build. Fragmented SERP, wholly client-side, and it belongs in a one-stop suite. | SEO-24 |
-| grayscale pdf / pdf to black and white | 30k-80k | supertool, Cloudinary | Build, late. Must disclose that our path rasterizes. | SEO-23 |
-| flatten pdf online | 20k-50k | mytulify, toolspivot | Build. Also closes MOBI-02, where filled forms export with live empty widgets. | SEO-21 |
-| extract images from pdf | 40k-100k | digitalheroesco, toolscopilot | Build, late. Zip-free per the PdfToImage precedent. | SEO-22 |
-| crop pdf online | 30k-70k | launchvibe, toolslabpro, Sejda | Build. Lossless CropBox edit, reuses the editor's box gesture, no trade-off to disclose. | SEO-20 |
-| merge pdf online free no limit | 60k-140k | iLovePDF, supertool | Expand `/merge/`. The fact is already in the FAQ; move it where it is read. | SEO-10 |
-| permanently redact pdf | 15k-35k | Adobe, Sejda | Expand `/redact/`. Add the searched word and a test the reader can run. | SEO-04 |
-| sign pdf online without account | 25k-60k | DocHub, Smallpdf | Expand both pages. Reject merging `/sign-pdf-no-signup/` into `/sign/`. | SEO-07 |
-| compress pdf without losing quality | 45k-110k | supertool, DocHub | Expand honestly: we rasterize, so we cannot claim lossless. | SEO-05, SEO-25 |
+| compress pdf to 100kb / 200kb / 500kb | 280k-600k combined | smallseotools, PDNob, DocHub | `/compress/` already carries this h1 and the feature. **Rejected** the three doorway variants; fix CTR and write one honest guide. | SEO-05, SEO-17 |
+| make pdf look scanned | 40k-90k | supertool, scanyourpdf, LookScanned | Build. One-stop-shop reasoning recorded in the ticket. | SEO-24 |
+| grayscale pdf / black and white | 30k-80k | supertool, Cloudinary | Build, late; disclose that we rasterize. | SEO-23 |
+| flatten pdf online | 20k-50k | mytulify, toolspivot | Build; also closes MOBI-02. | SEO-21 |
+| extract images from pdf | 40k-100k | digitalheroesco, toolscopilot | Build, late; zip-free per the PdfToImage precedent. | SEO-22 |
+| crop pdf online | 30k-70k | launchvibe, toolslabpro, Sejda | Build; lossless CropBox, reuses the editor's box gesture. | SEO-20 |
+| merge pdf online free no limit | 60k-140k | iLovePDF, supertool | Expand `/merge/`; the fact is in the FAQ, move it where it is read. | SEO-10 |
+| permanently redact pdf | 15k-35k | Adobe, Sejda | Expand `/redact/`; the searched word plus a test the reader can run. | SEO-04 |
+| sign pdf online without account | 25k-60k | DocHub, Smallpdf | Expand both pages. **Rejected** merging `/sign-pdf-no-signup/` into `/sign/`. | SEO-07 |
+| compress pdf without losing quality | 45k-110k | supertool, DocHub | **Rejected** as a claim: we rasterize. Disclose instead. | SEO-05, SEO-25 |
 
 ### Rejected as architecturally impossible
 
-Recorded so they are not re-proposed. Each conflicts with no backend, no upload, no accounts.
-
 | Query | Volume | Why not |
 | --- | --- | --- |
-| pdf to word / pdf to docx | 5M+ | Layout reconstruction into OpenXML needs a server-side engine; a client-side approximation returns broken tables and a bounce. |
-| pdf ocr / extract text from scanned pdf | 300k+ | 20MB+ of language data per language and a locked UI thread on mobile. |
-| e-sign with audit trail | 100k+ | eIDAS/ESIGN needs server PKI, a timestamping authority and tamper-evident logs. |
-| ai chat with pdf / summarize pdf | 500k+ | External LLM endpoints; sends document content off-device. |
+| pdf to word / docx | 5M+ | Layout reconstruction into OpenXML needs a server-side engine. |
+| pdf ocr / text from scanned pdf | 300k+ | 20MB+ language data per language; locks the UI thread on mobile. |
+| e-sign with audit trail | 100k+ | Needs server PKI, a timestamping authority, tamper-evident logs. |
+| ai chat / summarize pdf | 500k+ | External LLM endpoints; content leaves the device. |
 | cloud batch compress 500mb | 50k+ | Exceeds per-tab heap. |
 
-SEO-26 covers saying so on the site, in a section rather than a page.
+SEO-26 covers saying so on an existing page. Never a page targeting one of these.
 
 ---
 
-## 4. Standings against the competition (SEO-02 keeps this current)
+## 6. Reference: the refresh procedure (SEO-02)
 
-Refresh monthly, or after any ticket that claims a ranking change, following section 1's refresh
-procedure. "Our position/impressions" come straight from the same GSC export as section 1 (exact for a
-single query, lower-bound for a cluster - see that section's note). "Who is above us" is manual SERP
-sampling, the softest data in this file: it comes from the section 3 deep research (dated **2026-09**,
-no finer granularity than the month) unless a row says otherwise. The two rows SEO-04 and SEO-05 touched
-also carry a **2026-09-10** cross-check against Bing/DuckDuckGo results for the same queries (not
-Google - direct Google SERP capture is blocked for scripted fetches, see those tickets), used only to
-see who else competes on that SERP, not to read our own Google position.
+Monthly, plus after any ticket that claims a ranking or CTR change. Next: **2026-10-08**.
 
-**Last refreshed: 2026-09-10.**
+1. **Export.** Search Console, Performance -> Search results, Search type = Web, Date = Last 3 months,
+   Export -> CSV, unzip. For indexing: Indexing -> Pages, export Coverage, and drill into any
+   not-indexed category with 5+ pages for its URL list.
+2. **Run `node scripts/seo-refresh.mjs <export folder>`.** It prints the section 3.1 to 3.3 tables.
+   Paste over the existing ones - replace, do not append.
+3. **Crawl dates.** Read `Last crawled` from URL Inspection for all URLs into
+   `docs/seo-last-crawled.json`, run `npm run seo:crawl-staleness`, update 3.4. The printed stale list
+   is the reindex queue; submit each once.
+4. **Before reading any CTR as a verdict**, check that the indexed SERP title matches the live one for
+   that page (section 2, first lesson). A stale index makes a flat CTR mean "not yet crawled".
+5. **Manual columns**: "Who is above us" in 3.5 from Shlomi's Google screenshots, with Bing/DuckDuckGo
+   as a proxy for who competes only. Record the sampling date.
+6. Update every "measured"/"exported"/"captured" date, the status board in section 1, and the next
+   refresh date at the top of this section.
 
-| Winning term | Our position | Our impressions | Measured | Who is above us | Gap to close | Ticket |
-| --- | ---: | ---: | --- | --- | --- | --- |
-| blur pdf online | 8.78 | 160 | 2026-09-10 | supertool, small utility sites (2026-09; cross-checked 2026-09-10) | Snippet CTR, not rank | SEO-04 |
-| blur text in pdf | 11.44 | 32 | 2026-09-10 | mixed utilities (2026-09; cross-checked 2026-09-10) | Rank + snippet | SEO-04 |
-| compress pdf to 100kb (cluster) | 9.8 | 194 | 2026-09-10 | smallseotools, PDNob, DocHub (2026-09; cross-checked 2026-09-10) | Snippet CTR, honest size guidance | SEO-05, SEO-17 |
-| file compressor to 100kb | 9.60 | 81 | 2026-09-10 | generic file compressors (2026-09) | We do not have the tool yet | SEO-19 |
-| sign pdf on android / iphone (cluster) | 51.7 | 154 | 2026-09-10 | DocHub, Smallpdf, OS vendor docs (2026-09) | Rank, from near zero. Note this cluster is the OS guides', not `/sign/`'s - see 2.3's progress note | SEO-08, SEO-12 |
-| `/sign/` itself (queries withheld by GSC) | 11.64 | 42 | 2026-09-10 | unknown - no query in the export matches this position | Title changed 2026-09-11 (SEO-07); re-measure CTR against 2.38% | SEO-07 |
-| extract pdf / pdf extractor | 84.9 | 88 | 2026-09-10 | iLovePDF, Sejda (2026-09) | Vocabulary: we say "split" | SEO-09 |
-| merge pdf | 90.0 | 6 | 2026-09-10 | iLovePDF, Smallpdf (2026-09) | Authority | SEO-10, SEO-03 |
-| unlock / protect pdf | 66.0 | 5 | 2026-09-10 | Smallpdf, iLovePDF (2026-09) | Authority - and this cluster's impressions are a documented lower bound, see section 1 | SEO-16 |
-| jpg to pdf | not present | 0 | 2026-09-10 | iLovePDF, Smallpdf (2026-09) | `/image-to-pdf/` is not indexed | SEO-06, SEO-15 |
-
-### Non-ranking dimensions
-
-| Dimension | Us | Incumbents | Honest read |
-| --- | --- | --- | --- |
-| Domain authority | new (launched ~2026-06) | DR 59-83 | The binding constraint. Only SEO-03 moves it. |
-| Free | free, no cap, no watermark, no account | freemium with daily caps and paid tiers | A real, checkable difference. Say it plainly, never as a competitor attack. |
-| Privacy | on-device, demonstrable with devtools offline | asserted, files uploaded | Our only claim a competitor structurally cannot copy. |
-| Open source | MIT, auditable | closed | Underused. |
-| Language support (Sign) | 11+ scripts, native RTL, comb fields | Latin-centric | Largest unmatched product advantage, aimed at our largest audience. |
-| Offline / installable | full PWA, works with no connection | none | Underused. |
-| Indexed page count | 12 of 22 URLs earning impressions (2026-09-10, exact - see By page) | thousands | SEO-06. |
+Known gap: `Queries.csv` omits low-volume queries (privacy filter), so cluster totals are a lower
+bound and `Pages.csv` is the exact site-wide number.
 
 ---
 
-## 5. The running plan (weeks from 2026-09-10)
+## 7. Reference: the positioning review protocol (SEO-11)
 
-Gates matter more than dates. A phase that starts before its gate is met spends crawl budget the
-domain does not have.
-
-**Week 1 (Sep 10-16) - measure, then take the free clicks.**
-SEO-01 (indexing baseline, sitemap `lastmod`, GSC indexing requests), SEO-02 (standings table above
-becomes a maintained artefact), SEO-04 (blur snippets), SEO-05 (compress snippets and honest quality
-copy). No new URLs this week.
-
-*Progress note, 2026-09-10:* All four Week 1 tickets done. SEO-01: sitemap `lastmod` and the non-slash-
-link check shipped and verified against a real build; the indexing baseline (27 pages tracked, 11
-indexed, the nine never-indexed URLs confirmed submitted via URL Inspection, none crawled yet) came from
-Shlomi's own Search Console exports and is recorded in section 1 and SEO-01's ticket. SEO-02: the refresh
-procedure is written (top of section 1) and backed by `scripts/seo-refresh.mjs`, run end to end against
-that same export - section 1 and section 4's tables above are its output. SEO-04 and SEO-05 shipped a
-diagnosed snippet change plus (for SEO-05) the above-the-FAQ rasterization/passthrough disclosure - see
-each ticket for the diagnosis, since direct Google SERP capture was blocked by bot-detection this session
-and the hypotheses are built from our own served meta plus the real competitive field on other engines
-instead. **Re-measurement date for all four: 2026-10-08**, which doubles as SEO-02's next scheduled
-refresh.
-
-**Week 2 (Sep 17-23) - the two structural problems.**
-SEO-06 (make the nine never-indexed URLs worth crawling), SEO-07 (`/sign/` states the language
-advantage), SEO-11 (the positioning-review protocol), SEO-12 (the Sign review, first agent-run one).
-
-*Progress note, 2026-09-11:* SEO-07 done, ahead of its week. Its `/sign/` title change and its finding
-about withheld queries both re-measure on **2026-10-08** with the rest.
-
-**Week 3 (Sep 24-30) - the losing clusters.**
-SEO-08 (OS guides at position 44-58), SEO-09 (`/split/` and the "extract" vocabulary), SEO-10
-(`/merge/`), SEO-13 (Compress review), SEO-17 (the portal-size-limit guide - first new URL of the epic).
-
-**Week 4 (Oct 1-7) - re-measure and decide.**
-SEO-14, SEO-15 (remaining reviews), SEO-18 (the language page). Pull a fresh GSC export and update
-section 1 and section 4. **Gate:** if none of the nine never-indexed URLs has been crawled by now,
-stop adding URLs and put the effort into SEO-03 instead.
-
-**Weeks 5-6 (Oct 8-21) - first new tools, one at a time.**
-SEO-19 (image compressor to a target size - the only one with measured demand behind it), then SEO-20
-(crop). Each ships alone, with a week between launches, so its indexing can be attributed.
-
-**Weeks 7-8 (Oct 22 - Nov 4).** SEO-21 (flatten, with MOBI-02), SEO-22 (extract images).
-
-**Week 9 onwards.** SEO-23 (grayscale), SEO-24 (scanned look), SEO-16 (remaining reviews), then the
-deferred SEO-25, SEO-26, SEO-27. Re-measure and re-order at every phase boundary; this list is the
-current best order, not a commitment to it.
-
-**Running throughout:** SEO-03 (external signals). It is the only work that moves the constraint, it
-does not live in this repo, and it will not happen unless it stays on the board.
-
----
-
-## 6. The positioning review protocol (SEO-11)
-
-SEO-12 through SEO-16 are per-tool deep reviews, each intended to be run by its own agent with a real
-token budget. Five agents reviewing five tools against five private notions of what PDkef stands for
-would produce five incompatible voices. This section is the shared brief they all start from - written
-once, here, and every review ticket references it rather than restating it.
+SEO-12 through SEO-16 are per-tool deep reviews, each run by its own agent with a real token budget.
+This is the shared brief; each review ticket links here rather than restating it. SEO-12 is the worked
+example, including for **a review that correctly concludes "no change"**.
 
 ### The four claims, and the evidence each needs
 
-Every competitor in this market says it is free, private, fast and easy. Three of those four are, for
-them, marketing. For us they are consequences of an architecture, which means we can evidence them and
-they cannot. **A review may lean on a claim only with its evidence attached.**
+Every competitor says it is free, private, fast and easy. For us these are consequences of an
+architecture, which means we can evidence them. **A review may lean on a claim only with its evidence.**
 
 | Claim | What is actually true | What proves it | What we must never say |
 | --- | --- | --- | --- |
-| Free | No account, no cap, no watermark, no paid tier, and none planned. It is free because it costs almost nothing to run. | The product itself, and the absence of any upgrade path anywhere in it. | "Free tier". "Free forever" as a promise. Anything implying a paid version is coming. |
-| Private | Nothing is uploaded. There is no PDF backend to upload to. | A visitor can open devtools, go offline, and watch the tool work. `/open-source-pdf-editor/` already documents that test. | "Military-grade", "100% secure", "breach-proof". Security theatre in place of the demonstration. |
-| Open source | MIT, auditable, the repository is public. | The repository and `/licenses/`. | Implying an audit has been performed that has not. |
-| Works on any device | Mobile-first, installable, works offline once provisioned. | Mobile ranks better than desktop in our own Search Console data (section 1, By country and device). | "Works everywhere" without naming the browser constraints that exist. |
+| Free | No account, no cap, no watermark, no paid tier, none planned. Free because it costs almost nothing to run. | The product, and the absence of any upgrade path in it. | "Free tier". "Free forever" as a promise. Anything implying a paid version. |
+| Private | Nothing is uploaded; there is no PDF backend. | Open devtools, go offline, watch it work. `/open-source-pdf-editor/` documents the test. | "Military-grade", "100% secure", "breach-proof". |
+| Open source | MIT, auditable, public repository. | The repository and `/licenses/`. | Implying an audit that has not happened. |
+| Works on any device | Mobile-first, installable, offline once provisioned. | Mobile ranks better than desktop in our own data (3.3). | "Works everywhere" without the browser constraints. |
 
-*Re-checked as still true, 2026-09-11: no `src/data/tools.js`, `.astro` page, or `content-pages` entry
-uses any phrase in the "must never say" column against our own product; `/open-source-pdf-editor/`
-still carries the devtools-offline test; `/licenses/` still exists and is the license source of truth.*
+Re-checked 2026-09-11: no `src/data/tools.js`, `.astro` or content-page entry uses a "never say" phrase
+about our own product.
 
-### The rule that keeps this honest, and it is the one that will be tempting to break
+### The rule that will be tempting to break
 
-Competitors being freemium in disguise, or being unable to prove their privacy claims, is *true* and is
-*not ours to say*. CLAUDE.md's first voice principle is explicit: explain, do not compete; no "unlike
-[Competitor]" framing; the tools registry had competitor references removed deliberately and they are
-not going back (see "Product, voice & copy" in CLAUDE.md).
-
-The correct move is to state our own fact so plainly that the comparison happens in the reader's head.
-"Your file does not leave your device" does that work. "Unlike other tools, we don't upload your file"
-does it worse and makes us sound like everyone else.
+Competitors being freemium in disguise, or unable to prove their privacy claims, is *true* and is *not
+ours to say*. State our own fact so plainly that the comparison happens in the reader's head. "Your file
+does not leave your device" does that; "unlike other tools, we don't upload your file" makes us sound
+like everyone else. CLAUDE.md, voice principle 1.
 
 ### The per-tool method
 
-Every review ticket (SEO-12 through SEO-16) follows this:
-
-1. Pull the tool's queries out of the latest Search Console export (section 1). Rank them by
-   impressions. These are the words real people use, and they outrank any keyword-volume estimate in
-   section 3's research. **Check first that the cluster's queries actually land on the tool's own
-   page** - cross-reference against the "By page" table. SEO-12 found that Sign's entire 58-query
-   cluster ranks on the four OS guides, not on `/sign/` itself, which ranks on queries GSC withholds
-   under its privacy filter. Running the top-ten analysis without this check means analysing the wrong
-   page's SERP.
-2. Read the top ten results for the three highest-impression queries. Record what each page leads with,
-   what it claims, what it hides, and what its actual limits are behind the signup wall.
-3. Compare against our page's current copy, word by word, including `seoTitle`, `seoDescription`, `h1`,
-   `subhead`, `gridDescription`, the step copy and every FAQ answer in `src/data/tools.js`.
-4. Name the differentiator this specific tool has that the competition structurally cannot match. Some
-   have a strong one (Sign's language support; Redact's flattening being verifiable). Some have only the
-   four general claims above, and a review that invents a fifth is doing harm.
-5. Propose concrete copy, with the diff, and the evidence for each claim it makes.
-
-### The worked example
-
-SEO-12 (the Sign review) is the model for the other four: it names the specific advantage precisely
-(real font embedding across eleven scripts, UAX#9 bidi, per-glyph shaped positioning, RTL boxes that
-grow from a fixed right edge, comb-field detection), states the acceptance criteria in SEO-11's terms
-(query list, top-ten analysis, word-by-word comparison, named differentiator, evidenced claims, no
-competitor references), and is explicit about where the review should be sceptical of its own
-enthusiasm ("supports 11 scripts" is a marketing sentence; "the letters come out in the right order in
-the file you download" is the thing a person needed). Read it before starting SEO-13 through SEO-16.
-
-**SEO-12 is also the model for a review that correctly concludes "no change."** It ran the method end
-to end - real SERP samples for the three highest-impression queries, a full re-derivation of the query
-list from the raw export rather than the cluster summary, a word-by-word comparison against the pages
-that actually rank - and found that a prior ticket (SEO-07) had already shipped everything this one
-would have proposed. It said so, with the evidence for each "already correct" verdict, rather than
-inventing a copy change to have something to ship. The next four reviews should read this as permission
-to reach the same conclusion where it is true.
+1. Pull the tool's queries from the latest export, ranked by impressions. **First check which page the
+   cluster actually lands on** against 3.2 - Sign's whole cluster ranks on the OS guides, not `/sign/`.
+2. Read the top ten for the three highest-impression queries (Shlomi's Google screenshots; Bing as a
+   proxy for the field). Record what each leads with, claims, hides, and limits behind the signup wall.
+3. Compare word by word against our `seoTitle`, `seoDescription`, `h1`, `subhead`, `gridDescription`,
+   steps and every FAQ answer in `src/data/tools.js`.
+4. Name the differentiator this tool has that competitors structurally cannot match. Some have only the
+   four claims above; a review that invents a fifth is doing harm.
+5. Propose concrete copy as a diff, with evidence per claim - or state, with evidence, that no change
+   is warranted.

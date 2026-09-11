@@ -227,8 +227,6 @@ _None._
 | SEO-08 | P2 | [SEO-08](backlog/tasks/SEO-08.md) · The four OS how-to guides rank between 44 and 58, and one of them is our best-read page |
 | SEO-09 | P2 | [SEO-09](backlog/tasks/SEO-09.md) · Split ranks at 85 for extract queries because it never uses the word |
 | SEO-10 | P2 | [SEO-10](backlog/tasks/SEO-10.md) · Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it |
-| SEO-11 | P1 | [SEO-11](backlog/tasks/SEO-11.md) · The positioning review protocol: what we may claim, and what proves it |
-| SEO-12 | P1 | [SEO-12](backlog/tasks/SEO-12.md) · Positioning review: Sign, the tool with the biggest gap between what it does and what it says |
 | SEO-13 | P2 | [SEO-13](backlog/tasks/SEO-13.md) · Positioning review: Compress, where the honest answer costs us the query |
 | SEO-14 | P2 | [SEO-14](backlog/tasks/SEO-14.md) · Positioning review: Blur and Redact, the cluster we are already winning |
 | SEO-15 | P2 | [SEO-15](backlog/tasks/SEO-15.md) · Positioning review: the three tools Google has never looked at |
@@ -244,6 +242,7 @@ _None._
 | SEO-25 | P3 | [SEO-25](backlog/tasks/SEO-25.md) · A before-and-after preview on Compress, so quality is shown rather than promised |
 | SEO-26 | P3 | [SEO-26](backlog/tasks/SEO-26.md) · Say what PDkef does not do, and why, on a page that already exists |
 | SEO-27 | P3 | [SEO-27](backlog/tasks/SEO-27.md) · Decide the localization question: Hebrew is nearly free, Hindi is not the win it looks like |
+| SEO-28 | P1 | [SEO-28](backlog/tasks/SEO-28.md) · Redact and Split earn the most and are recrawled the least, and nothing we control explains it |
 
 ### In progress
 
@@ -260,6 +259,8 @@ _None._
 | SEO-01 | P1 | [SEO-01](backlog/tasks/SEO-01.md) · An indexing baseline, and the two mechanical reasons pages are not being crawled |
 | SEO-02 | P1 | [SEO-02](backlog/tasks/SEO-02.md) · A standings table against the competition that is maintained, not written once |
 | SEO-07 | P1 | [SEO-07](backlog/tasks/SEO-07.md) · The Sign page says almost nothing about the one advantage nobody can copy |
+| SEO-11 | P1 | [SEO-11](backlog/tasks/SEO-11.md) · The positioning review protocol: what we may claim, and what proves it |
+| SEO-12 | P1 | [SEO-12](backlog/tasks/SEO-12.md) · Positioning review: Sign, the tool with the biggest gap between what it does and what it says |
 
 ### Retired
 
