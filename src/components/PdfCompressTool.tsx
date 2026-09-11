@@ -10,42 +10,7 @@ import ErrorMessage from './ErrorMessage.tsx';
 import DownloadButton from './DownloadButton.tsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { describeFile } from '../lib/format.js';
-
-const COMPRESSION_LEVELS = [
-  {
-    id: 'high',
-    name: 'Extreme Compression',
-    tag: 'Smallest Size',
-    desc: 'Maximum file size reduction. Images will be downscaled to 72 DPI.',
-    pros: 'Smallest file size (60-80% reduction)',
-    cons: 'Lower resolution, images may look pixelated/fuzzy'
-  },
-  {
-    id: 'medium',
-    name: 'Recommended',
-    tag: 'Good Quality',
-    desc: 'Optimal balance between size reduction and visual quality.',
-    pros: 'Excellent balance of size reduction (40-60%) & clarity',
-    cons: 'Slight loss of crispness when zoomed in'
-  },
-  {
-    id: 'low',
-    name: 'High Quality',
-    tag: 'High Quality',
-    desc: 'Minimal compression. Keeps images crisp and clear at 150 DPI.',
-    pros: 'Crisp images and clear text, close to original quality',
-    cons: 'Minimal size reduction (10-30%)'
-  },
-];
-
-const TARGET_LEVEL = {
-  id: 'target',
-  name: 'Target Size',
-  tag: 'Choose KB',
-  desc: 'Compress down to a specific file size, e.g. for a 100KB upload limit.',
-  pros: 'Hits exact portal upload limits automatically',
-  cons: 'Quality adjusts as needed to reach the size'
-};
+import { englishCompressMessages, formatMessage, type CompressMessages } from '../i18n/toolMessages';
 
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
 
@@ -57,7 +22,22 @@ function formatBytes(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-export default function PdfCompressTool() {
+interface PdfCompressToolProps {
+  /** LOC-02: server-rendered by src/pages/[locale]/[tool].astro for a
+   * localized edition; every key not overridden keeps the English default. */
+  messages?: Partial<CompressMessages>;
+}
+
+export default function PdfCompressTool({ messages: messagesProp }: PdfCompressToolProps = {}) {
+  const t: CompressMessages = { ...englishCompressMessages, ...messagesProp };
+
+  const COMPRESSION_LEVELS = [
+    { id: 'high', name: t.levelHighName, tag: t.levelHighTag, desc: t.levelHighDesc, pros: t.levelHighPros, cons: t.levelHighCons },
+    { id: 'medium', name: t.levelMediumName, tag: t.levelMediumTag, desc: t.levelMediumDesc, pros: t.levelMediumPros, cons: t.levelMediumCons },
+    { id: 'low', name: t.levelLowName, tag: t.levelLowTag, desc: t.levelLowDesc, pros: t.levelLowPros, cons: t.levelLowCons },
+  ];
+  const TARGET_LEVEL = { id: 'target', name: t.targetName, tag: t.targetTag, desc: t.targetDesc, pros: t.targetPros, cons: t.targetCons };
+
   const [file, setFile] = useState<File | null>(null);
   const [level, setLevel] = useState('medium');
   const [targetKB, setTargetKB] = useState(100);
@@ -92,7 +72,7 @@ export default function PdfCompressTool() {
     if (pdfs.length > 0) {
       setFile(pdfs[0]);
       resetOutput();
-      setAnnouncement(`File "${pdfs[0].name}" loaded. Select a compression option to continue.`);
+      setAnnouncement(formatMessage(t.loaded, { name: pdfs[0].name }));
     }
   };
 
@@ -111,7 +91,7 @@ export default function PdfCompressTool() {
     if (!file) return;
     setStatus('processing');
     setProgress(0);
-    setAnnouncement('Starting PDF compression...');
+    setAnnouncement(t.starting);
 
     try {
       let compressedBlob;
@@ -136,19 +116,19 @@ export default function PdfCompressTool() {
       setDownloadBlob(compressedBlob);
       prepare(compressedBlob, file.name.replace(/\.pdf$/i, '') + '-compressed.pdf');
       setStatus('done');
-      setAnnouncement('PDF compression complete. Your file is ready.');
+      setAnnouncement(t.complete);
     } catch (err) {
       console.error(err);
       setStatus('error');
-      setAnnouncement('PDF compression failed.');
+      setAnnouncement(t.failed);
     }
   };
 
   const handleShare = async () => {
     const result = await sharePrepared();
-    if (result.status === 'shared') setAnnouncement('Compressed PDF shared successfully.');
-    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your compressed PDF is still ready.');
-    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
+    if (result.status === 'shared') setAnnouncement(t.sharedSuccessfully);
+    else if (result.status === 'canceled') setAnnouncement(t.sharingCanceled);
+    else if (result.status === 'error') setAnnouncement(t.shareError);
   };
 
   const hasFiles = !!file;
@@ -174,8 +154,8 @@ export default function PdfCompressTool() {
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
           {rejectedFiles.length === 1
-            ? `Skipped “${rejectedFiles[0]}” - not a PDF.`
-            : `Skipped ${rejectedFiles.length} files - not PDFs.`}
+            ? formatMessage(t.skippedOne, { name: rejectedFiles[0] })
+            : formatMessage(t.skippedMany, { count: rejectedFiles.length })}
         </p>
       )}
 
@@ -185,7 +165,7 @@ export default function PdfCompressTool() {
           sets `level` - it costs nothing without a file, and the choice
           carries over the moment one is dropped in. */}
       <div>
-        <div class={styles['compress-options']} role="radiogroup" aria-label="Compression Options">
+        <div class={styles['compress-options']} role="radiogroup" aria-label={t.compressionOptionsLabel}>
           {COMPRESSION_LEVELS.map((opt) => (
             <div
               key={opt.id}
@@ -201,7 +181,7 @@ export default function PdfCompressTool() {
                 }
               }}
             >
-              {opt.id === 'medium' && <span class={styles['recommended-ribbon']}>Our pick</span>}
+              {opt.id === 'medium' && <span class={styles['recommended-ribbon']}>{t.ourPick}</span>}
               <div class={styles['compress-card-header']}>
                 <span class={styles['compress-card-title']}>{opt.name}</span>
                 <span class={styles['compress-card-tag']}>{opt.tag}</span>
@@ -244,7 +224,7 @@ export default function PdfCompressTool() {
             }}
           >
             <span class={styles['target-card-badge']}>
-              Precise
+              {t.targetBadge}
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="9" r="6" />
                 <path d="M9 14.2 7 22l5-3 5 3-2-7.8" />
@@ -277,7 +257,7 @@ export default function PdfCompressTool() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <label class={styles['target-size-label']} for="target-size-input">
-                  Target size
+                  {t.targetSizeLabel}
                 </label>
                 <div class={styles['target-size-input-row']}>
                   <input
@@ -316,60 +296,60 @@ export default function PdfCompressTool() {
               onClick={handleCompress}
             >
               {status === 'processing' ? (
-                <ProgressRing progress={progress} label="Compressing…" />
+                <ProgressRing progress={progress} label={t.compressing} />
               ) : (
-                'Compress PDF'
+                t.compress
               )}
             </button>
           )
         ) : (
           <button type="button" class={pdfToolStyles['tool-primary-action']} disabled>
-            Add a PDF above to compress
+            {t.addPdfToCompress}
           </button>
         )}
 
         {hasFiles && status === 'error' && (
-            <ErrorMessage title="Compression failed.">
-              The file may be password-protected or corrupted. Please try another PDF.
+            <ErrorMessage title={t.compressionFailedTitle}>
+              {t.compressionFailedBody}
             </ErrorMessage>
           )}
 
           {hasFiles && status === 'done' && downloadUrl && (
             <>
               <div class={styles['compression-stats']}>
-                <p class={styles['stats-title']}>PDF Successfully Compressed!</p>
+                <p class={styles['stats-title']}>{t.successTitle}</p>
                 <div class={styles['stats-grid']}>
                   <div class={styles['metric-item']}>
-                    <span class={styles['metric-label']}>Original Size</span>
+                    <span class={styles['metric-label']}>{t.originalSize}</span>
                     <span class={styles['metric-val']}>{formatBytes(file.size)}</span>
                   </div>
                   <div class={styles['metric-item']}>
-                    <span class={styles['metric-label']}>Compressed Size</span>
+                    <span class={styles['metric-label']}>{t.compressedSize}</span>
                     <span class={styles['metric-val']}>{formatBytes(compressedSize as number)}</span>
                   </div>
                   <div class={styles['metric-item']}>
-                    <span class={styles['metric-label']}>Space Saved</span>
+                    <span class={styles['metric-label']}>{t.spaceSaved}</span>
                     <span class={styles['metric-saving']}>
-                      {savingsPercent > 0 ? `Saved ${savingsPercent}%` : 'No size reduction'}
+                      {savingsPercent > 0 ? formatMessage(t.savedPercent, { percent: savingsPercent }) : t.noReduction}
                     </span>
                   </div>
                 </div>
                 {level === 'target' && !metTarget && (
                   <p class={styles['compress-warning']}>
-                    <strong>Closest achievable size:</strong> {formatBytes(targetKB * 1024)} couldn't be reached without making the document unreadable, so this is the smallest readable result.
+                    {formatMessage(t.closestAchievable, { size: formatBytes(targetKB * 1024) })}
                   </p>
                 )}
                 <p class={styles['compress-warning']}>
-                  <strong>Notice:</strong> Compression rasterizes PDF pages into images to reduce file size. Embedded links and text selection/copying will be disabled on the compressed document.
+                  {t.rasterizeNotice}
                 </p>
               </div>
 
               <DownloadButton
                 href={downloadUrl}
                 download={file.name.replace(/\.pdf$/i, '') + '-compressed.pdf'}
-                label="Download Compressed PDF"
+                label={t.downloadLabel}
               />
-              <PdfShareButton visible={shareReady} onShare={handleShare} label="Share Compressed PDF" />
+              <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} />
             </>
           )}
       </div>
