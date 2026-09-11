@@ -163,6 +163,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | LOC-10 | P1 | [LOC-10](backlog/tasks/LOC-10.md) · Keep or remove page localization: decide after LOC-11 has measured the top languages |
 | LOC-11 | P2 | [LOC-11](backlog/tasks/LOC-11.md) · Top-languages research: is there untapped in-language traffic behind the site's top countries? |
 | LOC-12 | P3 | [LOC-12](backlog/tasks/LOC-12.md) · Two-month country and language re-check, due 2026-11-12 |
+| LOC-13 | P2 | [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins |
 
 
 ## Migrated context and history

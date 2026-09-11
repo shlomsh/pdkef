@@ -139,6 +139,7 @@ _None._
 | LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
 | LOC-09 | P3 | [LOC-09](backlog/tasks/LOC-09.md) · Localize the home page, so /he/ is a real edition and not a 404 beside three Hebrew tool pages |
 | LOC-12 | P3 | [LOC-12](backlog/tasks/LOC-12.md) · Two-month country and language re-check, due 2026-11-12 |
+| LOC-13 | P2 | [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins |
 
 ### In progress
 
@@ -148,9 +149,7 @@ _None._
 
 ### Blocked
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| LOC-10 | P1 | [LOC-10](backlog/tasks/LOC-10.md) · Keep or remove page localization: decide after LOC-11 has measured the top languages |
+_None._
 
 ### Done
 
@@ -161,6 +160,7 @@ _None._
 | LOC-06 | P3 | [LOC-06](backlog/tasks/LOC-06.md) · Per-locale measurement: extend the refresh procedure so localized pages are read separately |
 | LOC-07 | P3 | [LOC-07](backlog/tasks/LOC-07.md) · Is a second language worth building at all? The ROI judgment on LOC-01's evidence, and the languages it never measured |
 | LOC-08 | P3 | [LOC-08](backlog/tasks/LOC-08.md) · Tamil and Telugu demand check: reopening LOC-07 Part 2 for India's other major languages |
+| LOC-10 | P1 | [LOC-10](backlog/tasks/LOC-10.md) · Keep or remove page localization: decide after LOC-11 has measured the top languages |
 
 ### Retired
 
