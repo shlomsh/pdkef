@@ -76,7 +76,7 @@ const lastModifiedLabel = new Intl.DateTimeFormat(lang, { dateStyle: 'long', tim
     <SeoSchema name={schemaName} description={description} faq={faq} />
   </Fragment>
 
-  <AppBar toolName={breadcrumb} labels={messages} />
+  <AppBar toolName={breadcrumb} labels={messages} locale={locale} />
 
   {preview && <aside class="mx-auto mt-4 max-w-[720px] rounded-[var(--radius-md)] border border-[var(--color-primary-tint)] bg-[var(--color-primary-soft)] px-4 py-3 text-center text-[0.9rem] text-[var(--color-text)]" role="status">{previewNotice ?? messages.previewNotice}</aside>}
 

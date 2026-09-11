@@ -5,13 +5,46 @@ import dialogStyles from './Dialog.module.css';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
 import styles from './FileDropzone.module.css';
 import { SAMPLE_FILE_NAME, SAMPLE_PREVIEW_SRC } from './sampleDocument.ts';
+import { tools } from '../data/tools.js';
+import { englishFileDropzoneMessages, formatMessage, type FileDropzoneMessages } from '../i18n/toolMessages';
+import type { RecentFilesMessages } from '../i18n/toolMessages';
 
 function readHomeRecents(): RecentFileItem[] {
   return readRecentFiles()
     .slice(0, 6)
     .map((entry: any) => ({ ...entry, cacheId: entry.id }));
 }
-export default function FileDropzone({ toolTarget, final = false }: { toolTarget: string; final?: boolean }) {
+
+/* Splits messages.confirmHandoffBody on its literal '{file}'/'{draft}'
+   placeholders and re-inserts the two file names as styled spans, so a
+   translated sentence can reorder them freely while keeping the
+   .confirm-file emphasis - the same idea as BasePdfTool.tsx's own
+   renderTemplate, using the plain placeholder text as the split marker
+   instead of a NUL sentinel. */
+function renderConfirmBody(template: string, file: string, draft: string) {
+  return template.split(/(\{file\}|\{draft\})/).map((part, index) => {
+    if (part === '{file}') return <span key={index} class={dialogStyles['confirm-file']}>{file}</span>;
+    if (part === '{draft}') return <span key={index} class={dialogStyles['confirm-file']}>{draft}</span>;
+    return part;
+  });
+}
+export default function FileDropzone({
+  toolTarget,
+  final = false,
+  messages = englishFileDropzoneMessages,
+  recentFilesMessages,
+  // LOC-09: the practice-document caption used to hardcode "Sign & Fill"
+  // regardless of what a localized edition of that tool calls itself
+  // (docs/home-page-localization-plan.md, section 2 row 21). Defaults to the
+  // English tool registry's own name, so every existing caller is unaffected.
+  toolDisplayName,
+}: {
+  toolTarget: string;
+  final?: boolean;
+  messages?: FileDropzoneMessages;
+  recentFilesMessages?: RecentFilesMessages;
+  toolDisplayName?: string;
+}) {
   const [pending, setPending] = useState<{ file: File; draftName?: string; tool: string } | null>(null);
   // `null` means "browser storage has not been read yet", and it is the state
   // both the server render and the client's first render start from, so the
@@ -37,16 +70,16 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
       if (discardDraft && !(await deleteDraft(tool))) throw new Error('draft');
       window.location.href = `/${tool}/`;
     } catch {
-      setError('PDkef could not save this file on your device. Please try again.');
+      setError(messages.handoffFailed);
       setBusy(false);
     }
   };
   const handleFiles = async (files: FileList | File[]) => {
     const incoming = Array.from(files || []);
     if (!incoming.length || busy) return;
-    if (incoming.length > 1) { setError('Choose one PDF here, or use Merge PDF below for several files.'); return; }
+    if (incoming.length > 1) { setError(messages.multipleFilesPicked); return; }
     const file = incoming[0];
-    if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { setError('Please choose a PDF file.'); return; }
+    if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { setError(messages.notAPdf); return; }
     setError('');
     const draft: any = await loadDraft(toolTarget);
     if (draft?.fileBytes) setPending({ file, draftName: draft.fileName, tool: toolTarget });
@@ -72,7 +105,7 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
         await handOff(file, { tool: target });
       }
     } catch {
-      setError('That recent file is no longer available in this browser.');
+      setError(messages.recentFileUnavailable);
       setBusy(false);
     }
   };
@@ -125,8 +158,9 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
       const response = await fetch('/images/redaction-guide/sample.pdf');
       if (!response.ok) throw new Error('sample');
       await handleFiles([new File([await response.blob()], SAMPLE_FILE_NAME, { type: 'application/pdf' })]);
-    } catch { setError('The sample could not be loaded. Please try again or choose your own PDF.'); }
+    } catch { setError(messages.sampleLoadFailed); }
   };
+  const resolvedToolDisplayName = toolDisplayName ?? tools.find(t => t.slug === toolTarget)?.gridTitle ?? toolTarget;
   return (
     <div ref={container} class={final ? styles.final : styles.launcher}>
       {!final && <RecentFiles
@@ -139,6 +173,7 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
         onOpenSample={sample}
         onOpenRecent={openRecent}
         busy={busy}
+        messages={recentFilesMessages}
       />}
 
       {/* The practice document is offered as a document, not as a sentence
@@ -163,14 +198,14 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
           <path d="M34 68c4-5 7 4 11-1s6 3 9 0" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" />
         </svg>
         <strong>{SAMPLE_FILE_NAME}</strong>
-        <span>Practice document · opens in Sign &amp; Fill</span>
+        <span>{formatMessage(messages.practiceDocumentCaption, { tool: resolvedToolDisplayName })}</span>
       </button>}
       <button type="button" class={styles.tile} data-home-picker disabled={busy} onClick={() => input.current?.click()}>
         <svg width="36" height="42" viewBox="0 0 36 42" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
           <path d="M6 2h16l9 9v28H6zM22 2v10h9M12 26h13M18.5 19.5v13" />
         </svg>
-        <strong>{busy ? 'Opening…' : 'Choose files'}</strong>
-        <span>or drop PDFs here</span>
+        <strong>{busy ? messages.opening : messages.chooseFiles}</strong>
+        <span>{messages.orDropPdfsHere}</span>
       </button>
       <input ref={input} type="file" accept="application/pdf,.pdf" hidden onChange={event => {
         const files = Array.from(event.currentTarget.files || []);
@@ -178,13 +213,18 @@ export default function FileDropzone({ toolTarget, final = false }: { toolTarget
         void handleFiles(files);
       }} />
       {error && <p class={styles.error} role="alert">{error}</p>}
-      <ConfirmDialog open={!!pending} titleId={final ? 'confirm-final-handoff' : 'confirm-handoff'} title="Open this instead?" confirmLabel="Open it"
+      <ConfirmDialog
+        open={!!pending}
+        titleId={final ? 'confirm-final-handoff' : 'confirm-handoff'}
+        title={messages.confirmHandoffTitle}
+        confirmLabel={messages.confirmHandoffConfirm}
+        cancelLabel={messages.cancelLabel}
+        closeLabel={messages.closeLabel}
         onCancel={() => setPending(null)} onConfirm={() => {
           const next = pending; setPending(null);
           if (next) void handOff(next.file, { discardDraft: true, tool: next.tool });
         }}>
-        Opening <span class={dialogStyles['confirm-file']}>{pending?.file.name}</span> replaces your saved work in{' '}
-        <span class={dialogStyles['confirm-file']}>{pending?.draftName}</span>. That can’t be undone.
+        {renderConfirmBody(messages.confirmHandoffBody, pending?.file.name ?? '', pending?.draftName ?? '')}
       </ConfirmDialog>
     </div>
   );

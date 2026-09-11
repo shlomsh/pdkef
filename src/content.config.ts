@@ -281,4 +281,106 @@ const localizedTools = defineCollection({
     }),
 });
 
-export const collections = { contentPages, localizedPages, localizedTools };
+// LOC-09: the same reviewed-translation gate as localizedPages/localizedTools
+// above, for the home page - one entry per locale (there is exactly one home
+// page per locale, unlike guides/tools keyed by pageId), so no pageId field.
+// The English source is src/data/homeContent.js; src/i18n/localizedHome.ts
+// cross-checks a localized entry's sourceHash against it the same way
+// localizedTools.ts does for tools.js, by hashing the normalized object
+// (HOME_SOURCE_FIELDS there must match the field list below).
+const homeFaqItem = z.strictObject({ question: plain(10, 120), answer: plain(20, 400) });
+
+const homeFounderStoryPill = z.strictObject({ title: plain(2, 40), subtitle: plain(4, 80) });
+
+const homeFounderStory = z.strictObject({
+  kicker: plain(3, 60),
+  heading: plain(10, 90),
+  paragraph1: plain(40, 400),
+  paragraph2: plain(40, 400),
+  paragraph3: plain(20, 300),
+  // Exactly three: the template renders a fixed 3-row list (Free Forever /
+  // Private / Open Source in English), not a variable-length one.
+  pills: z.array(homeFounderStoryPill).length(3),
+});
+
+const homeDraftPersistence = z.strictObject({
+  kicker: plain(3, 60),
+  heading: plain(10, 90),
+  paragraph: plain(40, 400),
+  pill: plain(3, 40),
+  // Carries <strong> around the two tool names it names by name.
+  availability: inline(20, 400),
+});
+
+const homeOfflineTab = z.strictObject({
+  label: plain(3, 40),
+  // Exactly three numbered steps per tab, matching the template's <ol>.
+  steps: z.array(inline(10, 300)).length(3),
+});
+
+const homeOfflineInstall = z.strictObject({
+  heading: plain(10, 90),
+  lead: plain(20, 400),
+  // Exactly three: Chrome & Edge, Safari (iOS), Safari (macOS) - the
+  // template renders a fixed three-tab switcher, not a variable-length one.
+  tabs: z.array(homeOfflineTab).length(3),
+});
+
+const homePrivacyOpenSource = z.strictObject({
+  kicker: plain(3, 60),
+  heading: plain(10, 90),
+  privacyHeading: plain(3, 40),
+  privacyBody: plain(20, 400),
+  openSourceHeading: plain(3, 40),
+  openSourceBody: inline(20, 400),
+  openSourcePill: plain(3, 40),
+});
+
+const homeClosing = z.strictObject({
+  heading: plain(3, 60),
+  backLink: plain(3, 60),
+});
+
+const localizedHome = defineCollection({
+  loader: glob({
+    pattern: '*.yaml',
+    base: './src/content/localized-home',
+    // One file per locale (localized-home/he.yaml), so the id IS the locale -
+    // there is no pageId dimension the way guides/tools have one.
+    generateId: ({ entry }) => entry.replace(/\.yaml$/, ''),
+  }),
+  schema: z.strictObject({
+    title: plain(20, 75).refine((value) => value.endsWith(' | PDkef'), 'must end with " | PDkef", the site-wide title suffix'),
+    description: plain(60, 220),
+    h1: plain(10, 90),
+    // The trailing phrase of h1 that renders in the accent-colored <span>;
+    // superRefine below checks it is really a suffix of h1, so the two
+    // fields can never say something the rendered text does not.
+    h1Accent: plain(2, 40),
+    subhead: plain(30, 400),
+    faq: z.array(homeFaqItem).min(4).max(6),
+    founderStory: homeFounderStory,
+    draftPersistence: homeDraftPersistence,
+    offlineInstall: homeOfflineInstall,
+    privacyOpenSource: homePrivacyOpenSource,
+    closing: homeClosing,
+    locale: z.enum(DOCUMENTATION_LOCALE_IDS).refine((locale) => locale !== 'en', 'English stays in src/data/homeContent.js'),
+    status: z.enum(['draft', 'published']),
+    sourceHash: z.string().regex(/^fnv1a64:[a-f0-9]{16}$/, 'must be the normalized English home source hash'),
+    reviewer: plain(3, 120).optional(),
+    reviewedAt: z.iso.date().optional(),
+    reviewNotes: plain(20, 600).optional(),
+  }).superRefine((entry, ctx) => {
+    if (!entry.h1.endsWith(entry.h1Accent)) {
+      ctx.addIssue({ code: 'custom', path: ['h1Accent'], message: 'must be an exact trailing substring of h1' });
+    }
+    if (entry.status !== 'published') return;
+    for (const field of ['reviewer', 'reviewedAt', 'reviewNotes'] as const) {
+      if (!entry[field]) {
+        ctx.addIssue({ code: 'custom', path: [field], message: `is required when status is published` });
+      }
+    }
+  }),
+});
+
+export const collections = { contentPages, localizedPages, localizedTools, localizedHome };

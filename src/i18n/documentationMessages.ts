@@ -58,6 +58,13 @@ export interface DocumentationShellMessages {
   lastUpdated: string;
   /** Shown on Sign/Redact tool pages, invites the visitor to test offline. */
   airplaneModeNotice: string;
+  /** LOC-09: shown on a localized home page - the same "editor stays
+   * English" pilot decision as `toolControlsEnglishNotice` above, applied to
+   * HeroDemo (docs/home-page-localization-plan.md, section 4.2's RTL/
+   * direction-of-motion question is unresolved and out of scope; shipping
+   * the demo in English with this notice is the pragmatic stand-in, not a
+   * translation of it). */
+  heroDemoEnglishNotice: string;
 }
 
 export type AppBarMessages = Pick<DocumentationShellMessages, 'homeAriaLabel' | 'onDevice'>;
@@ -106,6 +113,7 @@ const englishMessages = {
   inEnglish: 'in English',
   lastUpdated: 'Last updated',
   airplaneModeNotice: 'Turn on airplane mode and give it a try. It still works.',
+  heroDemoEnglishNotice: 'The interactive demo below is still shown in English.',
 } satisfies DocumentationShellMessages;
 
 const hebrewMessages = {
@@ -143,6 +151,7 @@ const hebrewMessages = {
   inEnglish: 'באנגלית',
   lastUpdated: 'עודכן לאחרונה',
   airplaneModeNotice: 'הפעילו מצב טיסה ונסו. זה עדיין עובד.',
+  heroDemoEnglishNotice: 'ההדגמה האינטראקטיבית למטה עדיין מוצגת באנגלית.',
 } satisfies DocumentationShellMessages;
 
 /**

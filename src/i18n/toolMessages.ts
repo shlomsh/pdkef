@@ -529,6 +529,123 @@ export function getShellMessages(locale: DocumentationLocaleId): ShellMessages |
   return shellMessages[locale];
 }
 
+/**
+ * LOC-09: the home page's launcher tile (src/components/FileDropzone.tsx) had
+ * no i18n hooks at all - every string was a hardcoded literal, and it took no
+ * `messages` prop. Additive and backward compatible: the component defaults
+ * to `englishFileDropzoneMessages` when no prop is passed, so every existing
+ * caller (the two `<FileDropzone>` instances on the English home page) is
+ * unaffected. `confirmHandoffBody` takes `{file}`/`{draft}` placeholders via
+ * `formatMessage`, so a translated sentence can reorder them freely (unlike
+ * BasePdfTool.tsx's replace-confirmation, this dialog's file names are not
+ * re-wrapped in a styled `<span>` after formatting - a minor simplification,
+ * not a behavior this ticket depends on).
+ */
+export interface FileDropzoneMessages {
+  handoffFailed: string;
+  multipleFilesPicked: string;
+  notAPdf: string;
+  recentFileUnavailable: string;
+  sampleLoadFailed: string;
+  opening: string;
+  chooseFiles: string;
+  orDropPdfsHere: string;
+  /** '{tool}' is filled from the `toolDisplayName` prop, so the destination
+   * tool's name is never hardcoded to English ("Sign & Fill") - docs/
+   * home-page-localization-plan.md, section 2 row 21. */
+  practiceDocumentCaption: string;
+  confirmHandoffTitle: string;
+  confirmHandoffConfirm: string;
+  confirmHandoffBody: string;
+  cancelLabel: string;
+  closeLabel: string;
+}
+
+const englishFileDropzoneMessages: FileDropzoneMessages = {
+  handoffFailed: 'PDkef could not save this file on your device. Please try again.',
+  multipleFilesPicked: 'Choose one PDF here, or use Merge PDF below for several files.',
+  notAPdf: 'Please choose a PDF file.',
+  recentFileUnavailable: 'That recent file is no longer available in this browser.',
+  sampleLoadFailed: 'The sample could not be loaded. Please try again or choose your own PDF.',
+  opening: 'Opening…',
+  chooseFiles: 'Choose files',
+  orDropPdfsHere: 'or drop PDFs here',
+  practiceDocumentCaption: 'Practice document · opens in {tool}',
+  confirmHandoffTitle: 'Open this instead?',
+  confirmHandoffConfirm: 'Open it',
+  confirmHandoffBody: 'Opening {file} replaces your saved work in {draft}. That can’t be undone.',
+  cancelLabel: 'Cancel',
+  closeLabel: 'Close dialog',
+};
+
+// LOC-09's own draft (see he.yaml's own status: draft), reviewed alongside it
+// before either can publish - not yet reviewed by a native speaker.
+const hebrewFileDropzoneMessages: FileDropzoneMessages = {
+  handoffFailed: 'לא הצלחנו לשמור את הקובץ הזה במכשיר שלכם. נסו שוב.',
+  multipleFilesPicked: 'בחרו כאן קובץ PDF אחד, או השתמשו במיזוג PDF למטה בשביל כמה קבצים.',
+  notAPdf: 'בחרו קובץ PDF.',
+  recentFileUnavailable: 'הקובץ הזה כבר לא זמין בדפדפן הזה.',
+  sampleLoadFailed: 'לא הצלחנו לטעון את קובץ הדוגמה. נסו שוב או בחרו קובץ PDF משלכם.',
+  opening: 'פותחים…',
+  chooseFiles: 'בחירת קבצים',
+  orDropPdfsHere: 'או גררו לכאן קבצי PDF',
+  practiceDocumentCaption: 'מסמך לתרגול · נפתח בכלי {tool}',
+  confirmHandoffTitle: 'לפתוח את זה במקום?',
+  confirmHandoffConfirm: 'פתיחה',
+  confirmHandoffBody: 'פתיחת {file} תחליף את העבודה השמורה שלכם ב-{draft}. אי אפשר לבטל את זה.',
+  cancelLabel: 'ביטול',
+  closeLabel: 'סגירת החלון',
+};
+
+const fileDropzoneMessages: Partial<Record<DocumentationLocaleId, FileDropzoneMessages>> = {
+  en: englishFileDropzoneMessages,
+  he: hebrewFileDropzoneMessages,
+};
+
+export function getFileDropzoneMessages(locale: DocumentationLocaleId): FileDropzoneMessages {
+  return fileDropzoneMessages[locale] ?? englishFileDropzoneMessages;
+}
+
+/** RecentFiles.tsx's own strings. Rendered only by FileDropzone
+ * (src/components/FileDropzone.tsx:132), so it is passed through from
+ * there rather than resolved independently. `Intl.RelativeTimeFormat`'s
+ * "N minutes ago"-style phrases already resolve against the *browser's* own
+ * locale, independent of the page's content locale - deliberately left
+ * alone (docs/home-page-localization-plan.md, section 2 row 8) - only the
+ * "just now" fallback below 60 seconds is a literal string this catalogue
+ * owns. */
+export interface RecentFilesMessages {
+  heading: string;
+  /** '{name}' placeholder. */
+  openSampleAriaLabel: string;
+  /** '{name}' placeholder. */
+  openRecentAriaLabel: string;
+  justNow: string;
+}
+
+const englishRecentFilesMessages: RecentFilesMessages = {
+  heading: 'Recent files',
+  openSampleAriaLabel: 'Open bundled sample PDF, {name}',
+  openRecentAriaLabel: 'Open recent PDF, {name}',
+  justNow: 'just now',
+};
+
+const hebrewRecentFilesMessages: RecentFilesMessages = {
+  heading: 'קבצים אחרונים',
+  openSampleAriaLabel: 'פתיחת קובץ הדוגמה, {name}',
+  openRecentAriaLabel: 'פתיחת קובץ אחרון, {name}',
+  justNow: 'הרגע',
+};
+
+const recentFilesMessages: Partial<Record<DocumentationLocaleId, RecentFilesMessages>> = {
+  en: englishRecentFilesMessages,
+  he: hebrewRecentFilesMessages,
+};
+
+export function getRecentFilesMessages(locale: DocumentationLocaleId): RecentFilesMessages {
+  return recentFilesMessages[locale] ?? englishRecentFilesMessages;
+}
+
 export {
   englishMergeMessages,
   hebrewMergeMessages,
@@ -536,4 +653,8 @@ export {
   hebrewCompressMessages,
   englishShellMessages,
   hebrewShellMessages,
+  englishFileDropzoneMessages,
+  hebrewFileDropzoneMessages,
+  englishRecentFilesMessages,
+  hebrewRecentFilesMessages,
 };

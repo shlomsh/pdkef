@@ -16,13 +16,24 @@
 import { Image } from 'astro:assets';
 import logo from '../assets/logo.png';
 import type { AppBarMessages } from '../i18n/documentationMessages';
+import { documentationHomePath, getDocumentationLocale, type DocumentationLocaleId } from '../i18n/documentationLocales';
 
 interface Props {
   toolName?: string;
   isHome?: boolean;
   labels?: AppBarMessages;
+  /** LOC-09: every caller already knows its own locale (ToolPageLayout,
+   * ContentPageLayout, the two home routes), so the brand/back link can
+   * point at that locale's own home instead of the English root always -
+   * `documentationHomePath(locale)` gives `/he/` on a Hebrew page instead of
+   * a 404. Also drives the hover-reveal back arrow's direction: it pointed
+   * left on every page, including RTL ones, where "back" should point right. */
+  locale?: string;
 }
-const { toolName, isHome = false, labels = {} as AppBarMessages } = Astro.props;
+const { toolName, isHome = false, labels = {} as AppBarMessages, locale = 'en' } = Astro.props;
+const localeRecord = getDocumentationLocale(locale) ?? getDocumentationLocale('en')!;
+const homeHref = documentationHomePath(locale as DocumentationLocaleId);
+const isRtl = localeRecord.dir === 'rtl';
 
 // One toolbar geometry and one brand-pill style for every page - home and
 // tool alike - so the only thing that differs page-to-page is the
@@ -41,10 +52,10 @@ const brandClasses = 'group inline-flex items-center gap-[0.55rem] text-[var(--c
 
 <div data-home-bar={isHome || undefined} class="sticky top-0 z-20 border-b-[0.5px] border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_86%,transparent)] backdrop-blur-[10px] backdrop-saturate-[1.2]">
   <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-[0.85rem] px-6 max-[560px]:gap-[0.55rem] max-[560px]:px-4 min-[1024px]:px-8">
-    <a href="/" class={brandClasses} aria-label={isHome ? 'PDkef homepage' : (labels.homeAriaLabel ?? 'PDkef home, all tools')}>
+    <a href={homeHref} class={brandClasses} aria-label={isHome ? 'PDkef homepage' : (labels.homeAriaLabel ?? 'PDkef home, all tools')}>
       {!isHome && (
         <span class="inline-flex w-0 items-center overflow-hidden text-[var(--color-muted-light)] opacity-0 transition-[width,opacity] duration-[180ms] ease-out group-hover:w-4 group-hover:opacity-100" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class={isRtl ? 'rtl-flip' : undefined} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
           </svg>
         </span>
@@ -129,6 +140,17 @@ const brandClasses = 'group inline-flex items-center gap-[0.55rem] text-[var(--c
     width: 14px;
     height: 14px;
     display: block;
+  }
+
+  /* LOC-09: the hover-reveal back arrow is drawn as a left-pointing chevron
+     and stays correct for an LTR page as-is. On an RTL page "back" should
+     point right, so the locale-aware `isRtl` check above adds this class
+     rather than an inline style="transform:..." attribute - verify-csp.js
+     fails the build on any literal style= in dist/, and this is a static
+     class, not per-element runtime geometry (Part II section 5's inline-style
+     exemption is for continuous floats, not this). */
+  .rtl-flip {
+    transform: scaleX(-1);
   }
 
   /* Tool pages only (home keeps its own rules in index.astro, untouched).

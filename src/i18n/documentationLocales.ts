@@ -44,3 +44,15 @@ export function documentationPath(pageId: string, locale: DocumentationLocaleId 
   if (!record) throw new Error(`Unknown documentation locale: ${locale}`);
   return record.prefix ? `/${record.prefix}/${pageId}/` : `/${pageId}/`;
 }
+
+/**
+ * The locale root - "the home page", which has no pageId. `documentationPath`
+ * can't express this (calling it with an empty pageId would produce the wrong
+ * `/he//`), so home gets its own two-line helper: LOC-09,
+ * docs/home-page-localization-plan.md, section 5.1.
+ */
+export function documentationHomePath(locale: DocumentationLocaleId = 'en'): string {
+  const record = getDocumentationLocale(locale);
+  if (!record) throw new Error(`Unknown documentation locale: ${locale}`);
+  return record.prefix ? `/${record.prefix}/` : '/';
+}
