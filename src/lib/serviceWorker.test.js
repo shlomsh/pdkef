@@ -247,6 +247,53 @@ describe('offline-first service worker', () => {
     expect(worker.entries.has('https://pdkef.test/__pdkef/offline-font-pack/Noto%20Sans%20Bengali')).toBe(false);
   });
 
+  // LOC-02: locale packs. HTML only, one edition per request, and never
+  // anything outside that edition's prefix.
+  it('provisions every published page of an edition and reports it ready', async () => {
+    const worker = createWorker(vi.fn(async (request) => new Response(`page:${new URL(request.url).pathname}`)));
+    const pack = { prefix: 'he', urls: ['/he/merge/', '/he/compress/', '/he/how-to-sign-a-pdf-on-android/'] };
+
+    expect(await dispatchMessage(worker, { type: 'pdkef:locale-pack-status', packs: [pack] }))
+      .toEqual({ ok: true, ready: { he: false } });
+    expect(await dispatchMessage(worker, { type: 'pdkef:locale-pack-provision', packs: [pack] }))
+      .toEqual({ ok: true, ready: { he: true } });
+    expect([...worker.entries.keys()]).toEqual(expect.arrayContaining([
+      'https://pdkef.test/he/merge/',
+      'https://pdkef.test/he/compress/',
+      'https://pdkef.test/he/how-to-sign-a-pdf-on-android/',
+      'https://pdkef.test/__pdkef/offline-locale-pack/he',
+    ]));
+
+    // A provisioned page then serves offline on its first navigation, the
+    // whole point of warming it: same cache key the navigation handler reads.
+    worker.fetchImpl.mockRejectedValue(new Error('offline'));
+    const { response } = await dispatchFetch(worker, { method: 'GET', mode: 'navigate', url: 'https://pdkef.test/he/compress/' });
+    expect(await response.text()).toBe('page:/he/compress/');
+  });
+
+  it('refuses a pack that names a page outside its own edition, and caches nothing from it', async () => {
+    const worker = createWorker(vi.fn(async () => new Response('page')));
+    const result = await dispatchMessage(worker, {
+      type: 'pdkef:locale-pack-provision',
+      packs: [{ prefix: 'he', urls: ['/he/merge/', '/merge/'] }],
+    });
+    expect(result.ok).toBe(false);
+    expect(worker.fetchImpl).not.toHaveBeenCalled();
+    expect(worker.entries.size).toBe(0);
+  });
+
+  it('does not report an edition ready when one of its pages cannot be fetched', async () => {
+    const worker = createWorker(vi.fn(async (request) => (
+      request.url.endsWith('/he/compress/') ? new Response('gone', { status: 404 }) : new Response('page')
+    )));
+    const result = await dispatchMessage(worker, {
+      type: 'pdkef:locale-pack-provision',
+      packs: [{ prefix: 'he', urls: ['/he/merge/', '/he/compress/'] }],
+    });
+    expect(result.ok).toBe(false);
+    expect(worker.entries.has('https://pdkef.test/__pdkef/offline-locale-pack/he')).toBe(false);
+  });
+
   it('revalidates provisioned font packs into an upgraded cache before deleting the old cache', async () => {
     const worker = createWorker(vi.fn(async (request) => new Response(`fresh:${new URL(request.url).pathname}`)));
     const oldEntries = worker.entriesByCache.get('pdkef-previous');
@@ -448,9 +495,24 @@ describe('precache manifest delivery policy', () => {
     expect(shouldPrecache('how-to-sign-a-pdf-on-iphone/index.html', names)).toBe(true);
     expect(shouldPrecache('blur-vs-blackout-vs-delete-pdf/index.html', names)).toBe(true);
     expect(shouldPrecache('future-documentation-page/index.html', names)).toBe(true);
-    expect(shouldPrecache('de/pdf-unterschreiben/index.html', names)).toBe(true);
     expect(shouldPrecache('_astro/pdf.worker.min.abc123.mjs', names)).toBe(true);
     expect(shouldPrecache('_astro/PdfToImageTool.abc123.js', names)).toBe(true);
+  });
+
+  // LOC-02 guard 5: a locale must cost only its own visitors bytes. Localized
+  // HTML is warmed by a per-edition pack (see the locale-pack tests below), not
+  // by the manifest every visitor downloads.
+  it('leaves localized HTML out of the manifest, for every registered prefix', () => {
+    expect(shouldPrecache('he/merge/index.html', names)).toBe(false);
+    expect(shouldPrecache('he/how-to-sign-a-pdf-on-android/index.html', names)).toBe(false);
+    expect(shouldPrecache('zh-hans/sign/index.html', names)).toBe(false);
+    expect(shouldPrecache('fr-ca/compress/index.html', names)).toBe(false);
+    // Sabotage control: the same slugs at the English root stay in.
+    expect(shouldPrecache('merge/index.html', names)).toBe(true);
+    expect(shouldPrecache('how-to-sign-a-pdf-on-android/index.html', names)).toBe(true);
+    // Only HTML is per-locale; a script under a locale-looking path would be a
+    // shared asset and is not what this rule is about.
+    expect(shouldPrecache('he/something.js', names)).toBe(true);
   });
 
   it('never caches the manifest or the worker as entries in their own manifest', () => {

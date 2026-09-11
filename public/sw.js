@@ -51,6 +51,25 @@ const FONT_PACK_MESSAGE = {
   provision: 'pdkef:font-pack-provision',
 };
 
+// LOC-02: localized editions are the same idea one level up. Their HTML is
+// left out of the precache manifest (scripts/precacheFilter.mjs) so an
+// English visitor never downloads a Hebrew page shell; a localized page then
+// asks for its edition's published pages as a pack. The JS those pages
+// hydrate with is the same content-hashed chunk set the English pages use,
+// already in the app-shell precache, so a pack is HTML only.
+//
+// Deliberately NOT migrated across builds the way font packs are: a page
+// shell from a previous build references that build's chunks, which the
+// activate handler is about to delete, so retaining it offline would be the
+// exact "page renders, PDF silently never appears" failure the no-skipWaiting
+// rule exists to prevent. The marker goes with the old cache, and the next
+// online visit to any page of the edition re-provisions it.
+const LOCALE_PACK_MARKER_PATH = '/__pdkef/offline-locale-pack/';
+const LOCALE_PACK_MESSAGE = {
+  status: 'pdkef:locale-pack-status',
+  provision: 'pdkef:locale-pack-provision',
+};
+
 // Raised when this origin serves no build manifest at all — a 404, not a
 // network blip. The worker is then running somewhere it was never built for
 // (a dev server on a port that once ran `npm run preview`, or a deploy that
@@ -228,6 +247,58 @@ async function migrateFontPacks(previousCaches, currentCache) {
   });
 }
 
+// A pack names one edition by its URL prefix and only pages under that
+// prefix; anything else is refused rather than cached, so a page cannot ask
+// the worker to warm URLs outside its own edition.
+function validLocalePack(pack) {
+  return !!pack
+    && typeof pack.prefix === 'string'
+    && /^[a-z]{2,3}(?:-[a-z0-9]+)?$/.test(pack.prefix)
+    && Array.isArray(pack.urls)
+    && pack.urls.length > 0
+    && pack.urls.length <= 64
+    && pack.urls.every((url) => typeof url === 'string'
+      && url.startsWith(`/${pack.prefix}/`)
+      && /^\/[a-z]{2,3}(?:-[a-z0-9]+)?\/[a-z0-9]+(?:-[a-z0-9]+)*\/$/.test(url));
+}
+
+function localePackMarker(prefix) {
+  return `${LOCALE_PACK_MARKER_PATH}${encodeURIComponent(prefix)}`;
+}
+
+async function localePackReady(cache, pack) {
+  if (!await cache.match(resolve(localePackMarker(pack.prefix)))) return false;
+  const pages = await Promise.all(pack.urls.map((url) => cache.match(url)));
+  return pages.every(Boolean);
+}
+
+async function provisionLocalePack(cache, pack) {
+  // Same key shape the navigation handler reads back (the bare pathname, see
+  // navigationCacheKey), so a provisioned page serves offline on its first
+  // navigation rather than only after it has been visited once.
+  await forEachLimited(pack.urls, PRECACHE_CONCURRENCY, async (url) => {
+    if (await cache.match(url)) return;
+    const response = await fetchFresh(url);
+    if (!response.ok) throw new Error(`Failed to provision ${url}: ${response.status}`);
+    await cache.put(url, response);
+  });
+  await cache.put(resolve(localePackMarker(pack.prefix)), new Response(JSON.stringify(pack), {
+    headers: { 'Content-Type': 'application/json' },
+  }));
+}
+
+async function handleLocalePackMessage(data) {
+  const packs = Array.isArray(data?.packs) ? data.packs : [];
+  if (packs.length === 0 || !packs.every(validLocalePack)) throw new Error('Invalid offline locale pack.');
+  const cache = await caches.open(CACHE_VERSION);
+  if (data.type === LOCALE_PACK_MESSAGE.provision) {
+    await forEachLimited(packs, 1, (pack) => provisionLocalePack(cache, pack));
+  }
+  return Object.fromEntries(await Promise.all(
+    packs.map(async (pack) => [pack.prefix, await localePackReady(cache, pack)]),
+  ));
+}
+
 async function handleFontPackMessage(data) {
   const packs = Array.isArray(data?.packs) ? data.packs : [];
   if (packs.length === 0 || !packs.every(validFontPack)) throw new Error('Invalid offline font pack.');
@@ -379,11 +450,14 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-  if (![FONT_PACK_MESSAGE.status, FONT_PACK_MESSAGE.provision].includes(event.data?.type)) return;
+  const type = event.data?.type;
+  const isFontPack = [FONT_PACK_MESSAGE.status, FONT_PACK_MESSAGE.provision].includes(type);
+  const isLocalePack = [LOCALE_PACK_MESSAGE.status, LOCALE_PACK_MESSAGE.provision].includes(type);
+  if (!isFontPack && !isLocalePack) return;
   const reply = event.ports?.[0];
   if (!reply) return;
   event.waitUntil(
-    handleFontPackMessage(event.data)
+    (isFontPack ? handleFontPackMessage(event.data) : handleLocalePackMessage(event.data))
       .then((ready) => reply.postMessage({ ok: true, ready }))
       .catch((error) => reply.postMessage({ ok: false, error: error.message })),
   );

@@ -17,6 +17,7 @@ import RelatedGuides from '../components/RelatedGuides.astro';
 import ToolCrossLinks from '../components/ToolCrossLinks.astro';
 import Footer from '../components/Footer.astro';
 import OfflineProof from '../components/OfflineProof.astro';
+import LocalePackRequest from '../components/LocalePackRequest.astro';
 import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
 import { getLocalizedToolContext } from '../i18n/localizedTools';
 import '../styles/toolPage.css';
@@ -246,4 +247,6 @@ const variants = Astro.props.variants ?? resolved.variants;
   <ToolCrossLinks currentSlug={tool.slug} labels={messages} />
 
   <Footer variants={variants} locale={locale} labels={messages} />
+
+  {locale !== 'en' && <LocalePackRequest locale={locale as any} />}
 </BaseLayout>

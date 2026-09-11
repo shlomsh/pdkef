@@ -1,0 +1,34 @@
+---
+// LOC-02: a localized page's request for its edition to be available offline.
+// The published page list is serialized at build time into data attributes
+// and read by the bundled script below, which Astro hashes automatically -
+// nothing here is `is:inline`, and no inline JSON block is added for
+// verify-csp.js to have to exempt. Renders nothing for an edition with no
+// published pages, so a draft preview asks for nothing.
+import type { DocumentationLocaleId } from '../i18n/documentationLocales';
+import { getDocumentationLocale } from '../i18n/documentationLocales';
+import { getPublishedEditionPaths } from '../i18n/localizedTools';
+
+interface Props { locale: DocumentationLocaleId }
+const { locale } = Astro.props;
+const prefix = getDocumentationLocale(locale)?.prefix ?? '';
+const urls = prefix ? await getPublishedEditionPaths(locale) : [];
+---
+
+{urls.length > 0 && <div hidden data-locale-pack={prefix} data-locale-pack-urls={urls.join(',')}></div>}
+
+<script>
+  import { provisionLocalePack } from '../lib/localeOfflinePacks.js';
+  if (import.meta.env.PROD) {
+    const block = document.querySelector<HTMLElement>('[data-locale-pack]');
+    const prefix = block?.dataset.localePack;
+    const urls = block?.dataset.localePackUrls?.split(',').filter(Boolean) ?? [];
+    if (prefix && urls.length > 0) {
+      // After 'load', same as the worker registration itself in BaseLayout:
+      // warming an edition must never sit in front of the page's own paint.
+      window.addEventListener('load', () => {
+        provisionLocalePack({ prefix, urls }).catch(() => {});
+      });
+    }
+  }
+</script>
