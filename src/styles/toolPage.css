@@ -1,6 +1,6 @@
-/* Entry stylesheet for the nine tool pages (/merge/, /split/, /compress/,
-   /edit-pdf/, /pdf-to-image/, /unlock/, /image-to-pdf/, /redact/, /sign/),
-   imported by ToolPageLayout.astro.
+/* Entry stylesheet for the ten tool pages (/merge/, /split/, /compress/,
+   /compress-image/, /edit-pdf/, /pdf-to-image/, /unlock/, /image-to-pdf/,
+   /redact/, /sign/), imported by ToolPageLayout.astro.
  *
  * ------------------------------------------------------------------------
  * CSS OWNERSHIP (ARCH-13). Four tiers, and which file owns each:
@@ -52,6 +52,7 @@
 @source "../data/tools.js";
 @source "../data/contentPages.js";
 @source "../pages/compress.astro";
+@source "../pages/compress-image.astro";
 @source "../pages/edit-pdf.astro";
 @source "../pages/image-to-pdf.astro";
 @source "../pages/merge.astro";

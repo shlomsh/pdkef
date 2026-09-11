@@ -296,9 +296,86 @@ const compressMessages: Partial<Record<DocumentationLocaleId, CompressMessages>>
   he: hebrewCompressMessages,
 };
 
+/**
+ * SEO-19: the standalone Compress Image tool (JPG/PNG to a target size, e.g.
+ * 100KB). Deliberately its own catalogue rather than reusing CompressMessages
+ * - there is no quality-level grid here, only Target Size, and the result
+ * needs image-specific facts (dimensions, JPEG-only output) that a PDF result
+ * never states. English only for now: SEO-19 ships this tool in English
+ * first, and LOC-11's ROI gate applies before any localized edition.
+ */
+export interface CompressImageMessages {
+  skippedOne: string;
+  skippedMany: string;
+  targetSizeLabel: string;
+  compress: string;
+  compressing: string;
+  addImageToCompress: string;
+  compressionFailedTitle: string;
+  compressionFailedBody: string;
+  successTitle: string;
+  originalSize: string;
+  compressedSize: string;
+  spaceSaved: string;
+  savedPercent: string;
+  noReduction: string;
+  originalDimensions: string;
+  outputDimensions: string;
+  closestAchievable: string;
+  formatNotice: string;
+  downloadLabel: string;
+  shareLabel: string;
+  loaded: string;
+  starting: string;
+  complete: string;
+  missedTarget: string;
+  failed: string;
+  sharedSuccessfully: string;
+  sharingCanceled: string;
+  shareError: string;
+  workNoun: string;
+}
+
+const englishCompressImageMessages: CompressImageMessages = {
+  skippedOne: 'Skipped "{name}" - not a JPG or PNG.',
+  skippedMany: 'Skipped {count} files - not JPG or PNG.',
+  targetSizeLabel: 'Target size',
+  compress: 'Compress Image',
+  compressing: 'Compressing…',
+  addImageToCompress: 'Add a JPG or PNG above to compress',
+  compressionFailedTitle: 'Compression failed.',
+  compressionFailedBody: 'The file may be corrupted or an unsupported image. Please try another JPG or PNG.',
+  successTitle: 'Image Successfully Compressed!',
+  originalSize: 'Original Size',
+  compressedSize: 'Compressed Size',
+  spaceSaved: 'Space Saved',
+  savedPercent: 'Saved {percent}%',
+  noReduction: 'No size reduction',
+  originalDimensions: 'Original Dimensions',
+  outputDimensions: 'Output Dimensions',
+  closestAchievable: "Closest achievable size: {size} couldn't be reached on this photo without making it unusable, so this is the smallest result found.",
+  formatNotice: 'Notice: once compressed, the output is a JPEG. A transparent PNG background is filled in white, and re-encoding drops EXIF metadata, including location. A screenshot or scan of text can show visible JPEG artefacts, especially at a small target.',
+  downloadLabel: 'Download Compressed Image',
+  shareLabel: 'Share Compressed Image',
+  loaded: 'File "{name}" loaded. Set a target size and compress.',
+  starting: 'Starting image compression...',
+  complete: 'Image compression complete. Your file is ready.',
+  missedTarget: 'Target missed. Showing the smallest result found instead.',
+  failed: 'Image compression failed.',
+  sharedSuccessfully: 'Compressed image shared successfully.',
+  sharingCanceled: 'Sharing canceled. Your compressed image is still ready.',
+  shareError: 'Could not open the share sheet. Please try again.',
+  workNoun: 'the compressed image you just made',
+};
+
+const compressImageMessages: Partial<Record<DocumentationLocaleId, CompressImageMessages>> = {
+  en: englishCompressImageMessages,
+};
+
 const toolMessageTables: Record<string, Partial<Record<DocumentationLocaleId, unknown>>> = {
   merge: mergeMessages,
   compress: compressMessages,
+  'compress-image': compressImageMessages,
 };
 
 export function getToolMessages(toolSlug: string, locale: DocumentationLocaleId): unknown | undefined {
@@ -308,7 +385,7 @@ export function getToolMessages(toolSlug: string, locale: DocumentationLocaleId)
 /**
  * The shell every tool is built on (BasePdfTool: empty-state dropzone, the
  * file identity/control row, the two confirmation dialogs). One catalogue for
- * all nine tools, because the shell is one component on purpose - see
+ * every tool, because the shell is one component on purpose - see
  * BasePdfTool's header comment on why "start over" is decided once. A tool
  * page passes this alongside its own catalogue; Sign and Redact take it too,
  * since the dropzone and the confirmations are the shell, not the editor.
@@ -472,6 +549,7 @@ export {
   hebrewMergeMessages,
   englishCompressMessages,
   hebrewCompressMessages,
+  englishCompressImageMessages,
   englishShellMessages,
   hebrewShellMessages,
 };

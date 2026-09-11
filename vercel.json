@@ -65,6 +65,11 @@
       "permanent": true
     },
     {
+      "source": "/compress-image",
+      "destination": "/compress-image/",
+      "permanent": true
+    },
+    {
       "source": "/edit-pdf",
       "destination": "/edit-pdf/",
       "permanent": true

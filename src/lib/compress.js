@@ -1,5 +1,6 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { getPdfRenderContext } from '../editor/adapters/pdf/renderContext.js';
+import { searchTargetSize } from './targetSizeSearch.js';
 
 let pdfjsLib;
 
@@ -14,7 +15,9 @@ async function getPdfjs() {
   return pdfjsLib;
 }
 
-function canvasToBlob(canvas, type, quality) {
+// Exported so compressImage.js's search can reuse it and the two tools
+// cannot drift on how a canvas becomes a Blob.
+export function canvasToBlob(canvas, type, quality) {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error('Canvas export failed'))),
@@ -104,16 +107,19 @@ export async function compressPdf(file, { level = 'medium', onProgress } = {}) {
 // rendered if the previous (higher-DPI) tier can't hit the target even at
 // the lowest JPEG quality.
 const TARGET_SCALE_LADDER = [1.5, 1.1, 0.85, 0.65, 0.5]; // ~108, 79, 61, 47, 36 DPI
-const MIN_QUALITY = 0.05;
-const MAX_QUALITY = 0.92;
-const QUALITY_SEARCH_STEPS = 6;
+// Quality bounds and search budget are exported so compressImage.js's search
+// uses the exact same numbers - the FAQ describes one search behaviour for
+// both tools, and they must not drift apart.
+export const MIN_QUALITY = 0.05;
+export const MAX_QUALITY = 0.92;
+export const QUALITY_SEARCH_STEPS = 6;
 // Hard wall-clock budget for the whole DPI-tier x quality search. The loops
 // above are already finite (5 tiers x 6 steps), but each step's cost scales
 // with page count and resolution, so a large/adversarial PDF could still
 // take a very long time to exhaust every tier. Once the budget is spent we
 // stop searching and ship the best-effort result found so far rather than
 // let the tab hang.
-const MAX_SEARCH_MS = 20000;
+export const MAX_SEARCH_MS = 20000;
 // Conservative per-page allowance for PDF container overhead (page object,
 // xref entries, etc.) so the byte-budget search doesn't overshoot the
 // caller's target once the pages are actually assembled into a PDF.
@@ -151,14 +157,12 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
   try {
     const totalPages = pdf.numPages;
     const pageBudget = Math.max(1, targetBytes - totalPages * PDF_OVERHEAD_BYTES_PER_PAGE);
-
-    let bestResult = null; // { quality, blobs, viewports, totalSize }
     const deadline = Date.now() + MAX_SEARCH_MS;
 
-    for (let scaleIndex = 0; scaleIndex < TARGET_SCALE_LADDER.length; scaleIndex += 1) {
-      if (bestResult && Date.now() > deadline) break; // time's up - ship the best-effort result
-      const scale = TARGET_SCALE_LADDER[scaleIndex];
-
+    // A "handle" here is every page rendered at one DPI tier; "encode" turns
+    // that whole tier into per-page JPEG blobs and reports their combined
+    // size, which is what the byte budget above is measured against.
+    const renderAtScale = async (scale, scaleIndex) => {
       const rendered = [];
       for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
         const page = await pdf.getPage(pageNumber);
@@ -176,51 +180,30 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
         rendered.push({ canvas, nativeViewport });
         onProgress?.((scaleIndex + pageNumber / totalPages) / (TARGET_SCALE_LADDER.length + 1));
       }
+      return rendered;
+    };
 
-      const floorBlobs = await Promise.all(
-        rendered.map((r) => canvasToBlob(r.canvas, 'image/jpeg', MIN_QUALITY)),
-      );
-      const floorSize = sumBlobSizes(floorBlobs);
+    const encode = async (rendered, quality) => {
+      const blobs = await Promise.all(rendered.map((r) => canvasToBlob(r.canvas, 'image/jpeg', quality)));
+      return { size: sumBlobSizes(blobs), blobs };
+    };
 
-      // Keep the smallest result seen so far as a fallback, in case no tier
-      // (even the lowest DPI at minimum quality) fits the target.
-      if (!bestResult || floorSize < bestResult.totalSize) {
-        bestResult = {
-          quality: MIN_QUALITY,
-          blobs: floorBlobs,
-          viewports: rendered.map((r) => r.nativeViewport),
-          totalSize: floorSize,
-        };
-      }
-
-      if (floorSize > pageBudget) continue; // even minimum quality is too big at this DPI
-
-      // Binary search the highest quality, at this DPI, that still fits.
-      let lo = MIN_QUALITY;
-      let hi = MAX_QUALITY;
-      let feasible = bestResult;
-      for (let step = 0; step < QUALITY_SEARCH_STEPS; step += 1) {
-        if (Date.now() > deadline) break; // time's up - keep the best quality found so far
-        const mid = (lo + hi) / 2;
-        const blobs = await Promise.all(rendered.map((r) => canvasToBlob(r.canvas, 'image/jpeg', mid)));
-        const totalSize = sumBlobSizes(blobs);
-        if (totalSize <= pageBudget) {
-          feasible = { quality: mid, blobs, viewports: rendered.map((r) => r.nativeViewport), totalSize };
-          lo = mid;
-        } else {
-          hi = mid;
-        }
-      }
-
-      bestResult = feasible;
-      break; // this DPI tier fits the target - no need to drop further
-    }
+    const best = await searchTargetSize({
+      scales: TARGET_SCALE_LADDER,
+      renderAtScale,
+      encode,
+      budgetBytes: pageBudget,
+      minQuality: MIN_QUALITY,
+      maxQuality: MAX_QUALITY,
+      qualitySteps: QUALITY_SEARCH_STEPS,
+      deadlineMs: deadline,
+    });
 
     const pdfDoc = await PDFDocument.create();
-    for (let i = 0; i < bestResult.blobs.length; i += 1) {
-      const imgBytes = await bestResult.blobs[i].arrayBuffer();
+    for (let i = 0; i < best.handle.length; i += 1) {
+      const imgBytes = await best.encoded.blobs[i].arrayBuffer();
       const img = await pdfDoc.embedJpg(imgBytes);
-      const viewport = bestResult.viewports[i];
+      const viewport = best.handle[i].nativeViewport;
       const newPage = pdfDoc.addPage([viewport.width, viewport.height]);
       newPage.drawImage(img, { x: 0, y: 0, width: viewport.width, height: viewport.height });
     }
