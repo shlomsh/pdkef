@@ -131,7 +131,7 @@ const hebrewMessages = {
   contact: 'יצירת קשר',
   privacy: 'פרטיות',
   toolControlsEnglishNotice: 'הכפתורים והתפריטים של הכלי עדיין באנגלית.',
-  starOnGithub: 'כוכב ב-GitHub',
+  starOnGithub: 'תנו כוכב ב-GitHub',
   mitLicensed: 'רישיון MIT',
   worksOffline: 'עובד גם בלי אינטרנט',
   inEnglish: 'באנגלית',
