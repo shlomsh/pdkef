@@ -40,7 +40,7 @@ export default function PdfPageCanvas({
 
         const context = getPdfRenderContext(canvas);
         if (!context || !active) return;
-        renderTask = page.render({ canvasContext: context, viewport });
+        renderTask = page.render({ canvasContext: context, canvas, viewport });
         await renderTask.promise;
       } catch (err) {
         // Cancellation is the normal teardown path when a document/page is
