@@ -1,0 +1,241 @@
+/**
+ * LOC-02: message catalogues for the tool islands that have one. Mirrors
+ * documentationMessages.ts's shape (a typed English-default object per
+ * locale, in one file the reviewer pass touches) but for the strings a
+ * Preact island itself renders, rather than the static shell around it.
+ *
+ * These are NOT part of the localizedTools content collection: the YAML
+ * entries own the page's crawlable copy (title, h1, FAQ...), validated
+ * against src/data/tools.js by content.config.ts's schema. An island's
+ * button labels and live-region announcements are a different surface with
+ * a different reviewer concern (they're never read by a crawler, since the
+ * island's client-side interactions are what produces them), so they get
+ * their own small table here instead of being smuggled into the SEO schema.
+ *
+ * Every string may carry `{placeholder}` tokens; interpolate with `format()`
+ * rather than template-literal-ing user data into the object itself, so the
+ * object stays a plain, JSON-serializable prop (Astro serializes island
+ * props as JSON - a function couldn't cross that boundary at all).
+ */
+import type { DocumentationLocaleId } from './documentationLocales';
+
+export function formatMessage(template: string, params: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (match, key) => (key in params ? String(params[key]) : match));
+}
+
+export interface MergeMessages {
+  skippedOne: string;
+  skippedMany: string;
+  sortAZ: string;
+  sortZA: string;
+  sortOldest: string;
+  sortNewest: string;
+  addPageNumbers: string;
+  reorderHint: string;
+  dragHandleLabel: string;
+  removeLabel: string;
+  merging: string;
+  addOneMore: string;
+  mergeCount: string;
+  errorMessage: string;
+  mergedReady: string;
+  mergingFailed: string;
+  filesAddedOne: string;
+  filesAddedMany: string;
+  fileRemoved: string;
+  fileMovedTo: string;
+  filesReordered: string;
+  cleared: string;
+  sharedSuccessfully: string;
+  sharingCanceled: string;
+  shareError: string;
+}
+
+const englishMergeMessages: MergeMessages = {
+  skippedOne: 'Skipped "{name}" - not a PDF.',
+  skippedMany: 'Skipped {count} files - not PDFs.',
+  sortAZ: 'A–Z',
+  sortZA: 'Z–A',
+  sortOldest: 'Oldest',
+  sortNewest: 'Newest',
+  addPageNumbers: 'Add page numbers',
+  reorderHint: 'Drag a file by its handle to reorder, or focus a file and press the arrow up or down keys to move it.',
+  dragHandleLabel: '{name}, position {position} of {total}. Drag, or press arrow up or down to move.',
+  removeLabel: 'Remove {name}',
+  merging: 'Merging…',
+  addOneMore: 'Add 1 more to merge',
+  mergeCount: 'Merge {count} PDFs',
+  errorMessage: 'A file may be damaged or password-protected - remove it and try again.',
+  mergedReady: 'Your merged PDF is ready.',
+  mergingFailed: 'Merging failed.',
+  filesAddedOne: '1 file added.',
+  filesAddedMany: '{count} files added.',
+  fileRemoved: '{name} removed.',
+  fileMovedTo: '{name} moved to position {position} of {total}.',
+  filesReordered: 'Files reordered.',
+  cleared: 'Cleared. Add PDFs to start again.',
+  sharedSuccessfully: 'Merged PDF shared successfully.',
+  sharingCanceled: 'Sharing canceled. Your merged PDF is still ready.',
+  shareError: 'Could not open the share sheet. Please try again.',
+};
+
+// LOC-02's own throwaway draft fixture (proves the route end to end for
+// /he/merge/, per LOC-02.md's acceptance list) - not reviewed, not the
+// island catalogue LOC-03 will ship. Do not treat these values as approved
+// copy; the merge.yaml fixture they pair with is a draft for the same reason.
+const hebrewMergeMessages: MergeMessages = {
+  skippedOne: 'דילגנו על "{name}" - זה לא קובץ PDF.',
+  skippedMany: 'דילגנו על {count} קבצים - הם לא PDF.',
+  sortAZ: 'א–ת',
+  sortZA: 'ת–א',
+  sortOldest: 'הישן קודם',
+  sortNewest: 'החדש קודם',
+  addPageNumbers: 'הוספת מספרי עמודים',
+  reorderHint: 'גררו קובץ מהידית שלו כדי לסדר מחדש, או התמקדו בקובץ ולחצו על חץ למעלה או למטה כדי להזיז אותו.',
+  dragHandleLabel: '{name}, מקום {position} מתוך {total}. גררו, או לחצו על חץ למעלה או למטה כדי להזיז.',
+  removeLabel: 'הסרת {name}',
+  merging: 'ממזגים…',
+  addOneMore: 'הוסיפו עוד קובץ אחד כדי למזג',
+  mergeCount: 'מיזוג {count} קבצי PDF',
+  errorMessage: 'ייתכן שאחד הקבצים פגום או מוגן בסיסמה - הסירו אותו ונסו שוב.',
+  mergedReady: 'ה-PDF המאוחד מוכן.',
+  mergingFailed: 'המיזוג נכשל.',
+  filesAddedOne: 'נוסף קובץ אחד.',
+  filesAddedMany: 'נוספו {count} קבצים.',
+  fileRemoved: '{name} הוסר.',
+  fileMovedTo: '{name} עבר למקום {position} מתוך {total}.',
+  filesReordered: 'הקבצים סודרו מחדש.',
+  cleared: 'הרשימה נוקתה. הוסיפו קבצי PDF כדי להתחיל מחדש.',
+  sharedSuccessfully: 'ה-PDF המאוחד שותף.',
+  sharingCanceled: 'השיתוף בוטל. ה-PDF המאוחד עדיין מוכן.',
+  shareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
+};
+
+export interface CompressMessages {
+  skippedOne: string;
+  skippedMany: string;
+  compressionOptionsLabel: string;
+  ourPick: string;
+  levelHighName: string;
+  levelHighTag: string;
+  levelHighDesc: string;
+  levelHighPros: string;
+  levelHighCons: string;
+  levelMediumName: string;
+  levelMediumTag: string;
+  levelMediumDesc: string;
+  levelMediumPros: string;
+  levelMediumCons: string;
+  levelLowName: string;
+  levelLowTag: string;
+  levelLowDesc: string;
+  levelLowPros: string;
+  levelLowCons: string;
+  targetName: string;
+  targetTag: string;
+  targetDesc: string;
+  targetPros: string;
+  targetCons: string;
+  targetBadge: string;
+  targetSizeLabel: string;
+  compress: string;
+  compressing: string;
+  addPdfToCompress: string;
+  compressionFailedTitle: string;
+  compressionFailedBody: string;
+  successTitle: string;
+  originalSize: string;
+  compressedSize: string;
+  spaceSaved: string;
+  savedPercent: string;
+  noReduction: string;
+  closestAchievable: string;
+  rasterizeNotice: string;
+  downloadLabel: string;
+  shareLabel: string;
+  loaded: string;
+  starting: string;
+  complete: string;
+  failed: string;
+  sharedSuccessfully: string;
+  sharingCanceled: string;
+  shareError: string;
+}
+
+const englishCompressMessages: CompressMessages = {
+  skippedOne: 'Skipped "{name}" - not a PDF.',
+  skippedMany: 'Skipped {count} files - not PDFs.',
+  compressionOptionsLabel: 'Compression Options',
+  ourPick: 'Our pick',
+  levelHighName: 'Extreme Compression',
+  levelHighTag: 'Smallest Size',
+  levelHighDesc: 'Maximum file size reduction. Images will be downscaled to 72 DPI.',
+  levelHighPros: 'Smallest file size (60-80% reduction)',
+  levelHighCons: 'Lower resolution, images may look pixelated/fuzzy',
+  levelMediumName: 'Recommended',
+  levelMediumTag: 'Good Quality',
+  levelMediumDesc: 'Optimal balance between size reduction and visual quality.',
+  levelMediumPros: 'Excellent balance of size reduction (40-60%) & clarity',
+  levelMediumCons: 'Slight loss of crispness when zoomed in',
+  levelLowName: 'High Quality',
+  levelLowTag: 'High Quality',
+  levelLowDesc: 'Minimal compression. Keeps images crisp and clear at 150 DPI.',
+  levelLowPros: 'Crisp images and clear text, close to original quality',
+  levelLowCons: 'Minimal size reduction (10-30%)',
+  targetName: 'Target Size',
+  targetTag: 'Choose KB',
+  targetDesc: 'Compress down to a specific file size, e.g. for a 100KB upload limit.',
+  targetPros: 'Hits exact portal upload limits automatically',
+  targetCons: 'Quality adjusts as needed to reach the size',
+  targetBadge: 'Precise',
+  targetSizeLabel: 'Target size',
+  compress: 'Compress PDF',
+  compressing: 'Compressing…',
+  addPdfToCompress: 'Add a PDF above to compress',
+  compressionFailedTitle: 'Compression failed.',
+  compressionFailedBody: 'The file may be password-protected or corrupted. Please try another PDF.',
+  successTitle: 'PDF Successfully Compressed!',
+  originalSize: 'Original Size',
+  compressedSize: 'Compressed Size',
+  spaceSaved: 'Space Saved',
+  savedPercent: 'Saved {percent}%',
+  noReduction: 'No size reduction',
+  closestAchievable: "Closest achievable size: {size} couldn't be reached without making the document unreadable, so this is the smallest readable result.",
+  rasterizeNotice: 'Notice: Compression rasterizes PDF pages into images to reduce file size. Embedded links and text selection/copying will be disabled on the compressed document.',
+  downloadLabel: 'Download Compressed PDF',
+  shareLabel: 'Share Compressed PDF',
+  loaded: 'File "{name}" loaded. Select a compression option to continue.',
+  starting: 'Starting PDF compression...',
+  complete: 'PDF compression complete. Your file is ready.',
+  failed: 'PDF compression failed.',
+  sharedSuccessfully: 'Compressed PDF shared successfully.',
+  sharingCanceled: 'Sharing canceled. Your compressed PDF is still ready.',
+  shareError: 'Could not open the share sheet. Please try again.',
+};
+
+/**
+ * Per-tool, per-locale message tables. Adding a locale here does not publish
+ * anything by itself - content.config.ts's reviewer/sourceHash gate on the
+ * localizedTools entry is the publication gate; this only has to exist
+ * before that entry's status can be 'published' (enforced in
+ * src/pages/[locale]/[tool].astro).
+ */
+const mergeMessages: Partial<Record<DocumentationLocaleId, MergeMessages>> = {
+  en: englishMergeMessages,
+  he: hebrewMergeMessages,
+};
+
+const compressMessages: Partial<Record<DocumentationLocaleId, CompressMessages>> = {
+  en: englishCompressMessages,
+};
+
+const toolMessageTables: Record<string, Partial<Record<DocumentationLocaleId, unknown>>> = {
+  merge: mergeMessages,
+  compress: compressMessages,
+};
+
+export function getToolMessages(toolSlug: string, locale: DocumentationLocaleId): unknown | undefined {
+  return toolMessageTables[toolSlug]?.[locale];
+}
+
+export { englishMergeMessages, hebrewMergeMessages, englishCompressMessages };

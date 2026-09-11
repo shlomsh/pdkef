@@ -14,6 +14,7 @@ import ErrorMessage from './ErrorMessage.tsx';
 import DownloadButton from './DownloadButton.tsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { formatFileSize } from '../lib/format.js';
+import { englishMergeMessages, formatMessage, type MergeMessages } from '../i18n/toolMessages';
 
 let nextId = 0;
 
@@ -28,7 +29,15 @@ function toEntry(file: File): FileEntry {
   return { id: nextId++, file, pdfCreationDate: null, thumbnail: null };
 }
 
-export default function PdfMergeTool() {
+interface PdfMergeToolProps {
+  /** LOC-02: server-rendered by src/pages/[locale]/[tool].astro for a
+   * localized edition; every key not overridden keeps the English default,
+   * so a partial catalogue degrades to English rather than to `undefined`. */
+  messages?: Partial<MergeMessages>;
+}
+
+export default function PdfMergeTool({ messages: messagesProp }: PdfMergeToolProps = {}) {
+  const t: MergeMessages = { ...englishMergeMessages, ...messagesProp };
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [status, setStatus] = useState('idle'); // idle | merging | done | error
   const [progress, setProgress] = useState(0);
@@ -89,7 +98,7 @@ export default function PdfMergeTool() {
     clearPrepared();
     clearDownload();
     setAnnouncement(
-      `${newEntries.length} file${newEntries.length === 1 ? '' : 's'} added.`,
+      newEntries.length === 1 ? t.filesAddedOne : formatMessage(t.filesAddedMany, { count: newEntries.length }),
     );
 
     // Thumbnails and PDF metadata are nice-to-have, not blocking - render
@@ -114,13 +123,13 @@ export default function PdfMergeTool() {
   const removeEntry = useCallback((id: number) => {
     setEntries((current) => {
       const removed = current.find((e) => e.id === id);
-      if (removed) setAnnouncement(`${removed.file.name} removed.`);
+      if (removed) setAnnouncement(formatMessage(t.fileRemoved, { name: removed.file.name }));
       return current.filter((e) => e.id !== id);
     });
     setStatus('idle');
     clearPrepared();
     clearDownload();
-  }, []);
+  }, [t.fileRemoved]);
 
   const reset = useCallback(() => {
     setEntries([]);
@@ -130,8 +139,8 @@ export default function PdfMergeTool() {
     setRejectedFiles([]);
     setAddPageNumbers(false);
     clearDownload();
-    setAnnouncement('Cleared. Add PDFs to start again.');
-  }, []);
+    setAnnouncement(t.cleared);
+  }, [t.cleared]);
 
   const moveEntry = useCallback((id: number, delta: number) => {
     setEntries((current) => {
@@ -141,13 +150,13 @@ export default function PdfMergeTool() {
       const next = [...current];
       const [moved] = next.splice(index, 1);
       next.splice(newIndex, 0, moved);
-      setAnnouncement(`${moved.file.name} moved to position ${newIndex + 1} of ${next.length}.`);
+      setAnnouncement(formatMessage(t.fileMovedTo, { name: moved.file.name, position: newIndex + 1, total: next.length }));
       return next;
     });
     setStatus('idle');
     clearPrepared();
     clearDownload();
-  }, []);
+  }, [t.fileMovedTo]);
 
   const onItemKeyDown = useCallback(
     (event: KeyboardEvent, id: number) => {
@@ -167,8 +176,8 @@ export default function PdfMergeTool() {
     setStatus('idle');
     clearPrepared();
     clearDownload();
-    setAnnouncement('Files reordered.');
-  }, []);
+    setAnnouncement(t.filesReordered);
+  }, [t.filesReordered]);
 
   const handleMerge = useCallback(async () => {
     if (entries.length < 2) return;
@@ -183,19 +192,19 @@ export default function PdfMergeTool() {
       setDownloadBlob(blob);
       prepare(blob, 'merged.pdf');
       setStatus('done');
-      setAnnouncement('Your merged PDF is ready.');
+      setAnnouncement(t.mergedReady);
     } catch (err) {
       console.error(err);
       setStatus('error');
-      setAnnouncement('Merging failed.');
+      setAnnouncement(t.mergingFailed);
     }
-  }, [entries]);
+  }, [entries, t.mergedReady, t.mergingFailed]);
 
   const handleShare = async () => {
     const result = await sharePrepared();
-    if (result.status === 'shared') setAnnouncement('Merged PDF shared successfully.');
-    else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your merged PDF is still ready.');
-    else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
+    if (result.status === 'shared') setAnnouncement(t.sharedSuccessfully);
+    else if (result.status === 'canceled') setAnnouncement(t.sharingCanceled);
+    else if (result.status === 'error') setAnnouncement(t.shareError);
   };
 
   const hasFiles = entries.length > 0;
@@ -216,8 +225,8 @@ export default function PdfMergeTool() {
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
           {rejectedFiles.length === 1
-            ? `Skipped “${rejectedFiles[0]}” - not a PDF.`
-            : `Skipped ${rejectedFiles.length} files - not PDFs.`}
+            ? formatMessage(t.skippedOne, { name: rejectedFiles[0] })
+            : formatMessage(t.skippedMany, { count: rejectedFiles.length })}
         </p>
       )}
 
@@ -225,16 +234,16 @@ export default function PdfMergeTool() {
         <>
           <div class={sortToolbarStyles.toolbar} role="toolbar" aria-label="Sort files">
             <button type="button" class={sortToolbarStyles.button} onClick={() => applySort(sortByName, 'asc')}>
-              A–Z
+              {t.sortAZ}
             </button>
             <button type="button" class={sortToolbarStyles.button} onClick={() => applySort(sortByName, 'desc')}>
-              Z–A
+              {t.sortZA}
             </button>
             <button type="button" class={sortToolbarStyles.button} onClick={() => applySort(sortByDate, 'asc')}>
-              Oldest
+              {t.sortOldest}
             </button>
             <button type="button" class={sortToolbarStyles.button} onClick={() => applySort(sortByDate, 'desc')}>
-              Newest
+              {t.sortNewest}
             </button>
             <label class={pdfToolStyles['page-numbers-toggle']}>
               <input
@@ -247,13 +256,12 @@ export default function PdfMergeTool() {
                   clearDownload();
                 }}
               />
-              <span>Add page numbers</span>
+              <span>{t.addPageNumbers}</span>
             </label>
           </div>
 
           <p class="sr-only" id="reorder-hint">
-            Drag a file by its handle to reorder, or focus a file and press the
-            arrow up or down keys to move it.
+            {t.reorderHint}
           </p>
 
           <ul class={styles['file-list']} ref={listRef} aria-describedby="reorder-hint">
@@ -263,7 +271,7 @@ export default function PdfMergeTool() {
                   class={styles['drag-handle']}
                   tabIndex={0}
                   role="button"
-                  aria-label={`${entry.file.name}, position ${index + 1} of ${entries.length}. Drag, or press arrow up or down to move.`}
+                  aria-label={formatMessage(t.dragHandleLabel, { name: entry.file.name, position: index + 1, total: entries.length })}
                   onKeyDown={(e) => onItemKeyDown(e, entry.id)}
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -287,7 +295,7 @@ export default function PdfMergeTool() {
                 <button
                   type="button"
                   class={styles['remove-button']}
-                  aria-label={`Remove ${entry.file.name}`}
+                  aria-label={formatMessage(t.removeLabel, { name: entry.file.name })}
                   onClick={() => removeEntry(entry.id)}
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -305,17 +313,17 @@ export default function PdfMergeTool() {
             onClick={handleMerge}
           >
             {status === 'merging' ? (
-              <ProgressRing progress={progress} label="Merging…" />
+              <ProgressRing progress={progress} label={t.merging} />
             ) : entries.length === 1 ? (
-              'Add 1 more to merge'
+              t.addOneMore
             ) : (
-              `Merge ${entries.length} PDFs`
+              formatMessage(t.mergeCount, { count: entries.length })
             )}
           </button>
 
           {status === 'error' && (
             <ErrorMessage>
-              A file may be damaged or password-protected - remove it and try again.
+              {t.errorMessage}
             </ErrorMessage>
           )}
 
