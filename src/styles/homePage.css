@@ -7,6 +7,7 @@
 
 @source "../components/AppBar.astro";
 @source "../components/CardDecor.astro";
+@source "../components/DocumentationLanguageSelector.astro";
 @source "../components/FeatureCard.astro";
 @source "../components/HeroDemo";
 @source "../components/OfflineProof.astro";

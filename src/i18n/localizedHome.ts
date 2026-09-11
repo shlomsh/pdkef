@@ -17,7 +17,6 @@ import {
   type DocumentationFreshness,
   type DocumentationSourceHash,
 } from './documentationFreshness';
-import { isDocumentationPreview } from './documentation';
 
 export type LocalizedHomeStatus = 'draft' | 'published';
 
@@ -87,48 +86,57 @@ export interface LocalizedHomeVariant {
   locale: DocumentationLocaleId;
   path: string;
   status: LocalizedHomeStatus | 'english';
-  preview: boolean;
   freshness: DocumentationFreshness;
   sourceHash?: DocumentationSourceHash;
   expectedSourceHash?: DocumentationSourceHash;
   entry?: unknown;
 }
 
+/**
+ * Deliberately simpler than getLocalizedToolVariants/getDocumentationVariants:
+ * there is no draft-renders-as-noindex-preview path here. Every entry in the
+ * localizedHome collection builds a real, indexable page - a product decision
+ * (not an oversight) to skip the separate preview/review-gate step the other
+ * two collections use, since a native review happens on the rendered page
+ * before publish regardless of what this pipeline does. `status` is kept on
+ * the schema/entry for shape parity with localizedTools (and in case a
+ * locale is pulled later), but nothing here branches on it - a `status:
+ * 'draft'` entry would still build and still be reachable, it would just be
+ * excluded from the sitemap/alternates by the `status === 'published'`
+ * filter in src/pages/sitemap.xml.js, same as this function's own alternates
+ * computation below. sourceHash staleness is still enforced at build time
+ * (validateDocumentationTranslationFreshness throws for a published entry
+ * whose hash disagrees with the current English source) - that is a content-
+ * integrity check, not preview/draft UX, and stays.
+ */
 export async function getLocalizedHomeVariants(): Promise<LocalizedHomeVariant[]> {
   const entries = await localizedHomeEntries();
-  const previewBuild = isDocumentationPreview();
-  const localizedVariants = entries
-    .map((entry) => {
-      const { freshness, expectedSourceHash } = validateDocumentationTranslationFreshness(
-        normalizeHomeSource(homeContent),
-        {
-          id: entry.id,
-          pageId: 'home',
-          status: entry.data.status as LocalizedHomeStatus,
-          sourceHash: entry.data.sourceHash,
-        },
-      );
-      return {
-        locale: localeId(entry.data.locale),
-        path: documentationHomePath(localeId(entry.data.locale)),
+  const localizedVariants = entries.map((entry) => {
+    const { freshness, expectedSourceHash } = validateDocumentationTranslationFreshness(
+      normalizeHomeSource(homeContent),
+      {
+        id: entry.id,
+        pageId: 'home',
         status: entry.data.status as LocalizedHomeStatus,
-        preview: entry.data.status === 'draft',
-        freshness,
-        sourceHash: entry.data.sourceHash as DocumentationSourceHash,
-        expectedSourceHash,
-        entry,
-      };
-    })
-    // Draft translations are review-only, including in a local preview build
-    // (isDocumentationPreview) - same rule as guides and tools.
-    .filter((variant) => variant.status === 'published' || previewBuild);
+        sourceHash: entry.data.sourceHash,
+      },
+    );
+    return {
+      locale: localeId(entry.data.locale),
+      path: documentationHomePath(localeId(entry.data.locale)),
+      status: entry.data.status as LocalizedHomeStatus,
+      freshness,
+      sourceHash: entry.data.sourceHash as DocumentationSourceHash,
+      expectedSourceHash,
+      entry,
+    };
+  });
 
   return [
     {
       locale: 'en' as const,
       path: documentationHomePath('en'),
       status: 'english' as const,
-      preview: false,
       freshness: 'current' as const,
       sourceHash: homeSourceHash(homeContent),
       entry: homeContent,
@@ -165,10 +173,9 @@ export async function getLocalizedHomeContext(requestedLocale: string = 'en') {
     lang: effective.locale,
     dir: getDocumentationLocale(effective.locale)!.dir,
     path: effective.path,
-    preview: effective.preview,
     freshness: effective.freshness,
     variants: allVariants
-      .filter((variant) => variant.status === 'english' || variant.status === 'published' || variant.preview)
+      .filter((variant) => variant.status === 'english' || variant.status === 'published')
       .map((variant) => ({
         ...variant,
         nativeName: getDocumentationLocale(variant.locale)!.nativeName,
