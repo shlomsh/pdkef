@@ -212,3 +212,15 @@ branch.
 - **`build && preview` was run as `build` + `verify-csp.js` against `dist/`**, not with a live preview
   server. No script, style or config changed, so the CSP-hash class of bug this acceptance line exists to
   catch is covered by the script; hydration in a real browser is not.
+
+## Related but separate: recrawl recency on already-indexed pages (2026-09-11)
+
+SEO-01's 2026-09-11 capture found `/redact/` and `/split/` - the two pages with real traffic - both
+crawled once in July and skipped in every crawl pass since, while worse-linked pages got recrawled in
+August. That reads like the same "crawl budget going to the wrong place" story this ticket tells for the
+never-crawled nine, so it was checked here rather than assumed. It is not the same mechanism: `/redact/`
+carries 28 inbound internal links (more than any page here except `/sign/`) and `/split/` ties the two
+pages that *were* recrawled, so the internal-linking and distinctiveness levers this ticket uses have
+nothing to act on for either page - the problem is recrawl scheduling on pages that already rank, not
+crawl discovery on pages that don't. Scoped separately as
+[SEO-28](./SEO-28.md), which has the full header/sitemap/link-count check.

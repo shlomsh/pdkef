@@ -237,3 +237,11 @@ whether the recrawls were *only* because we asked: watch `/merge/` and `/unlock/
 requested - if they also get recrawled, the site's crawl rate is rising on its own; if they stay on
 their August dates while the requested nine move, the recrawls were bought one at a time and the
 allocation problem the SEO-06 prompt describes is still there.
+
+**Whether "budget spent on the wrong pages" is SEO-06's problem or a different one is checked and
+answered in [SEO-28](./SEO-28.md): different.** Header, sitemap-lastmod and internal-link-count checks
+all rule out an on-page cause for `/redact/`/`/split/` specifically - `/redact/` in particular is the
+second-most-linked page on the site and was still skipped, the opposite of what a linking defect would
+look like. SEO-28 tracks it as recrawl-scheduling behavior, and the `/merge/`/`/unlock/` control group
+this refresh sets up is exactly the same observation SEO-28's recheck needs - one capture now answers
+both.
