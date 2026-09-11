@@ -40,7 +40,7 @@ all of it (section 6).
 | SEO-12 Sign review | done, no change | 2026-09-11 | method run end to end; SEO-07 had already shipped everything it would propose; the "no change" verdict is the model for SEO-13 to 16 | |
 | SEO-28 Redact/Split recrawl starvation | open | 2026-09-11 | the two best pages are the least crawled and nothing we control (headers, `lastmod`, link counts) explains it; separate mechanism from SEO-06 | 2026-10-08 crawl dates |
 | SEO-08 OS how-to guides | done | 2026-09-11 | top-ten read: Adobe/HowToGeek win on authority alone (SEO-03 territory); real peer group (other client-side tool vendors) wins on a visible date/byline (SEO-29) and on showing the tool, not just describing it - a subhead-comparison draft was reversed on product guidance (these pages document PDkef's own flow, not a comparison), so the shipped fix is three real `/sign/` screenshots added to all four guides instead; WhatsApp already covered on all four, no change; consolidation rejected | 2026-10-08 positions |
-| SEO-29 visible date/byline on content pages | open | 2026-09-11 | new, split out of SEO-08 - schema + template change, not a copy fix | not started |
+| SEO-29 visible date on content pages | done | 2026-09-11 | "Last updated <date>" line in the content-page header, on all 11 pages and every localized edition; git-derived through the same `src/lib/gitLastModified.js` the sitemap and the Markdown twins now read, so the three cannot disagree; no byline (a real author exists in the schema, rendering it is a positioning call left open) | 2026-10-08: guide-cluster positions, read alongside SEO-08 and not attributed to this alone |
 | SEO-13 Compress review | done | 2026-09-11 | ran end to end; passthrough and no-cap were already visible outside the FAQ (SEO-05); shipped one line stating the honest miss in `aboutLead`; non-PDF-keyword traffic recommendation fed into SEO-19, not built now | |
 | SEO-14 Blur/Redact review | done | 2026-09-11 | shipped one line making flattening-makes-it-permanent visible in `aboutLead`, same move as SEO-13; blur-vs-removal caveat and the three-page cluster checked, no change needed | |
 | SEO-15 Image-to-PDF/PDF-to-Image/Edit-Pages review | done | 2026-09-11 | shipped: image-to-pdf's privacy fact tied to what it protects (ID pages, consent forms); pdf-to-image's no-zip limitation disclosed above the fold and in FAQ; edit-pdf's candidate differentiator didn't survive the competitive check, no change shipped there | |
@@ -81,9 +81,11 @@ Durable lessons, one line each, newest first. The ticket has the evidence.
 - **Against a peer group of similarly-resourced competitors (not the Adobe/HowToGeek authority tier),
   the ranking gap is a visible date or byline, not content depth.** Every one of ten SERP results for
   "how to sign a pdf on android" carries a publish date, an "updated" stamp, or an author byline; none
-  of our content pages do, though the git-derived date `sitemap.xml.js` already computes for `lastmod`
-  could back one. Scoped as [SEO-29](../backlog/tasks/SEO-29.md) rather than folded into the ticket that
-  found it. ([SEO-08](../backlog/tasks/SEO-08.md))
+  of our content pages did. **Closed by [SEO-29](../backlog/tasks/SEO-29.md) on 2026-09-11**: the
+  date the sitemap already derived from git now renders in every content page's header, and in its
+  Markdown twin, from one shared module. Note that shipping it re-dated all eleven pages to the same day
+  (the template changed), so the 2026-10-08 refresh should not read that as per-page freshness.
+  ([SEO-08](../backlog/tasks/SEO-08.md), [SEO-29](../backlog/tasks/SEO-29.md))
 - **"Indexed" is not "current".** Google held `/redact/`'s title from before 2026-08-29 while the live
   page served the new one; a copy change is not measurable until the *indexed snippet* changes. Check
   the SERP title before reading any CTR as a verdict. ([SEO-01](../backlog/tasks/SEO-01.md#addendum-2026-09-11-an-indexed-page-can-be-stale-enough-to-hide-shipped-work), [SEO-04](../backlog/tasks/SEO-04.md))

@@ -99,9 +99,13 @@ function blockToMarkdown(block) {
   }
 }
 
-/** A contentPages collection entry's `.data` (plus its id/slug) -> Markdown. */
-export function contentPageToMarkdown(slug, page) {
+/** A contentPages collection entry's `.data` (plus its id/slug) -> Markdown.
+ * `lastModified` is the same git-derived ISO timestamp the HTML page shows as
+ * "Last updated" (SEO-29); it is optional only so the pure renderer stays
+ * testable without git. */
+export function contentPageToMarkdown(slug, page, { lastModified } = {}) {
   const parts = [`# ${page.h1}`, '', inlineToMarkdown(page.subhead), '', `URL: ${absoluteUrl(`/${slug}/`)}`];
+  if (lastModified) parts.push(`Last updated: ${lastModified.slice(0, 10)}`);
 
   for (const section of page.sections) {
     parts.push('', `## ${inlineToMarkdown(section.heading)}`, '');

@@ -117,6 +117,12 @@ describe('contentPageToMarkdown', () => {
     expect(md).toContain('### Q?');
   });
 
+  it('adds a calendar-date "Last updated" line only when a timestamp is supplied', () => {
+    expect(contentPageToMarkdown('a-guide', page)).not.toContain('Last updated');
+    const md = contentPageToMarkdown('a-guide', page, { lastModified: '2026-09-11T21:54:25.000Z' });
+    expect(md).toContain('URL: https://pdkef.com/a-guide/\nLast updated: 2026-09-11');
+  });
+
   // Every real content-pages entry is exercised by `npm run build` itself
   // (src/pages/[slug].md.ts calls contentPageToMarkdown for each collection
   // entry) rather than here: astro:content is deliberately unavailable under

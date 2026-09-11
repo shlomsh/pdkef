@@ -9,6 +9,7 @@ import { CONTENT_ICONS } from '../data/contentIcons';
 import { contentPages } from '../data/contentPages.js';
 import { getDocumentationContext } from '../i18n/documentation';
 import { getDocumentationShellMessages } from '../i18n/documentationMessages';
+import { documentationSourceFiles, lastModifiedFor } from '../lib/gitLastModified.js';
 
 export async function getStaticPaths() {
   const entries = await getCollection('contentPages');
@@ -48,6 +49,7 @@ const messages = getDocumentationShellMessages(context.effectiveLocale);
   locale="en"
   variants={context.variants}
   messages={messages}
+  lastModified={lastModifiedFor(documentationSourceFiles(pageId))}
 >
   <ContentPage
     entry={entry}
