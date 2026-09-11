@@ -180,6 +180,13 @@ are full of real native pages.
 | `paano mag compress ng pdf` (PH) | AI Overview in Filipino, Adobe (Filipino), **pdf2go `/fil/` (27,337 reviews)**, piliapp `tl.`, PrintFriendly, compress2go `/fil/`, two English YouTube videos. | The incumbent probe above was too narrow: a real Filipino field exists on the second tier. Trends not run yet. |
 | `pdf সংকোচন` (BD) | PDF24 (native), Xodo (native), 11zon, pdf2go, PrintFriendly, miniimagesvideos, rakko.tools, omnipdfsuite, all Bengali pages; AI answer. **Related searches all Bengali, including `পিডিএফ কম্প্রেসার 100`.** | Unlike Telugu, the related block is in the language. Trends not run yet. |
 
+**The niche angle, two SERPs (blur, the query family this domain ranks for in English):**
+
+| Query | Top ten | Read |
+| --- | --- | --- |
+| `làm mờ pdf` (VN) | Lumin blog (native), PDFSimpli `/vi/`, **a Facebook post ("em muốn làm mờ chữ trong file pdf", >10 comments) and a Reddit r/pdf thread ranking**, AI Overview, iLovePDF (generic editor), Smallpdf `redact-pdf`, PDF24 `lam-toi-pdf` ("Bôi đen", 743 reviews), **DocHub and Adobe both Google-translated**. Related searches in Vietnamese: `Cách làm mờ chữ trong pdf`, `Chèn hình mờ vào PDF` (watermark), `Làm rõ file PDF bị mờ online` (sharpen a blurry PDF). | **The English "blur pdf" SERP, in a thinner field**: UGC ranking, translated backfill, and only redact tools answering a blur query. The shape this domain already wins. Caveat: `làm mờ` splits three ways (blur / watermark / unblur), so its Trends line overstates blur alone. |
+| `sfocare pdf` (IT) | Google rewrites to `oscurare pdf` (redact) and flags tool results "Missing: blur"; iLovePDF `censura-pdf`, PDF24 `oscurare-pdf`, Smallpdf `oscura-pdf`, Wondershare blur guide, Aranzulla, pdf2go, YouTube, Evernote (off-topic). | **No opening**: Italian blur demand is too small for Google to keep the word, and redact is served natively by the majors. |
+
 **Per-language verdict (criterion 1 / 2 / 3 against the decision rule):**
 
 | Language | 1. Trends share | 2. Weak incumbent to beat | 3. Reviewer | Verdict |
@@ -201,13 +208,15 @@ are full of real native pages.
    confirmations: the native `compress` and `merge` SERPs are the field this domain loses to in English,
    and the on-device differentiator is already claimed by a local site in Vietnamese, Spanish and
    Italian.
-3. **Pilot the niche this domain already wins.** Target-size compression (`file compressor to 100kb`
+3. **Pilot the niche this domain already wins.** Two candidates, both measured above. Target-size compression (`file compressor to 100kb`
    at 9.4, the site's best-converting query) shows up in the related-searches block of every strong
    market (`PDF küçültme 5 MB`, `comprimir pdf a 1MB`, `nén PDF dưới 2MB`, `পিডিএফ কম্প্রেসার 100`) and
    the majors do not build those pages. One localized target-size page, one market, a paid native
    reviewer, the SEO-17 rule applied (name the real portal limit behind the number, or do not build),
    eight weeks before a second. Spanish (Mexico) is the easiest to staff; Turkish has the clearest
-   target-size cluster.
+   target-size cluster. The second candidate is **blur in Vietnamese**, the one native SERP that has the
+   English blur SERP's shape (UGC ranking, translated backfill, redact tools answering a blur query);
+   it needs a Vietnamese reviewer and a term that separates blur from watermark and unblur.
 4. **Hebrew stays as is** and reads at LOC-03's date (2026-11-06). It is the weakest demand case of
    everything measured; LOC-09 waits.
 
