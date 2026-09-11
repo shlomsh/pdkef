@@ -23,6 +23,15 @@ export async function getStaticPaths() {
   const variants = await getLocalizedHomeVariants();
   return variants
     .filter((variant) => variant.locale !== 'en')
+    // Published only. This route has no draft/noindex-preview branch by
+    // design (see the header comment), so an unfiltered draft would not
+    // render as a preview - it would build as an ordinary indexable page
+    // that sitemap.xml.js and getLocalizedHomeContext both exclude on the
+    // same `status === 'published'` test. That combination is the worst of
+    // both: a crawlable page with no sitemap entry and no reciprocal
+    // hreflang. Not reachable today (he is the only entry and it is
+    // published); this is what keeps the next locale from finding out.
+    .filter((variant) => variant.status === 'published')
     .map((variant) => {
       const locale = documentationLocales.find((record) => record.id === variant.locale)!;
       return {
