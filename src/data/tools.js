@@ -331,7 +331,7 @@ export const tools = [
     ariaLabel: 'Blur & Redact PDF tool',
     aboutHeading: 'How to blur, black out, white out or delete PDF content',
     aboutLead:
-      'Choose the result you want. Delete removes a selected text or image element from the PDF page. Blur softens visual detail, Blackout creates a solid cover, and Whiteout clears an area visually. Blur, Blackout and Whiteout work on typed PDFs and scans.',
+      "Choose the result you want. Delete removes a selected text or image element from the PDF page. Blur softens visual detail, Blackout creates a solid cover, and Whiteout clears an area visually. Blur, Blackout and Whiteout work on typed PDFs and scans, and because the marked page is flattened into one image on download, the redaction is permanent: there's no text layer left underneath to recover.",
     freeNoteLead:
       'Blur or black out PDFs for free, with no signup, watermark, or daily cap. Your file and saved draft stay on your device. For examples and the trade-offs, see <a class="font-medium text-[var(--color-primary-text)]" href="/blur-vs-blackout-vs-delete-pdf/">Blur, Blackout or Delete: the visual guide</a>. Want to work offline? <a class="font-medium text-[var(--color-primary-text)]" href="/install-pdf-app/">Install PDkef</a> and let its required assets load before disconnecting.',
     aboutSketch: 'grid',
