@@ -63,8 +63,8 @@
      before a file is picked, so the empty box doesn't need to carry as much
      height on its own. */
   .dropzone[data-compact] {
-    min-height: 8rem;
-    padding: 1rem;
+    min-height: 6.5rem;
+    padding: 0.75rem;
   }
 }
 

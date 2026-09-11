@@ -31,6 +31,21 @@
   }
 }
 
+/* Opt-in only (BasePdfTool.tsx's `compact` prop, e.g. Compress) - other
+   tools' `.tool-card` and `.tool-primary-action` are untouched. Squeezes the
+   generic wrapper padding and the button's top margin a bit further at
+   desktop, on top of the tool's own compact spacing, for a tool whose
+   children already render enough content to need every spare pixel. */
+@media (min-width: 1024px) {
+  .tool-card[data-compact] {
+    padding: 1rem;
+  }
+
+  .tool-card[data-compact] .tool-primary-action {
+    margin-top: var(--space-3);
+  }
+}
+
 /* BasePdfTool is a centered flex item inside #app at desktop sizes. Preserve
    the full-width contract that existed before this wrapper moved out of the
    global stylesheet: without an explicit width, it shrink-wraps to its
