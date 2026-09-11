@@ -1,12 +1,12 @@
 ---
 id: "LOC-08"
 title: "Tamil and Telugu demand check: reopening LOC-07 Part 2 for India's other major languages"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "localized-search"
 phase: "later"
 depends_on: ["LOC-07"]
-legacy_state: "Open"
+legacy_state: "Done 2026-09-12"
 ---
 
 # LOC-08 · Tamil and Telugu demand check: reopening LOC-07 Part 2 for India's other major languages
@@ -114,10 +114,82 @@ five-term Trends comparison next; if they turn up nothing (empty results, only E
 Tamil autocomplete suggestions), that is itself the answer for Tamil and this ticket can close it
 without ever needing a Trends chart, the same way LOC-01 closed Hindi.
 
-**GSC check (source 3 of the method, unchanged):** the India Queries filter is already pulled
-(LOC-01, 2026-09-11) and showed every query in English with zero Hinglish leakage - worth re-checking
-for Tamil/Telugu-script leakage specifically (a query containing Tamil or Telugu characters, or an
-obvious transliteration), which wasn't isolated in that pass.
+## Telugu evidence, 2026-09-12 (Shlomi's Trends and SERP screenshots)
+
+**Trends, all four charts (12 months, `geo=IN`, five terms each): every term at zero.** Compress,
+merge, sign and pdf-to-jpg alike, native script and romanized alike, none of the eight Telugu
+probes registered against the English line. Same shape as Hindi and Malay in LOC-01, and one step
+flatter than Hindi, whose English line at least sat at 35-100 while the probes read zero. (If the
+English term itself also read zero the chart did not load, which changes nothing here: the eight
+Telugu terms carrying no share is the reading criterion 1 asks about.)
+
+**SERPs, `hl=te&gl=IN`, desktop, all four anchor queries.** What Google actually serves when asked
+in Telugu:
+
+| Query | What the top ten are | Read |
+| --- | --- | --- |
+| `pdf కుదించు` (compress) | pdf2go, Smallpdf, freepdfconvert, Canva, PDFAid, Dpdf, bigpdf/11zon - every one of them carrying Google's own "అనువదించబడింది · ఒరిజినల్‌ను చూడండి (English)" badge (translated by Google, see original). PDF24 is the only native Telugu page. iLovePDF ranks with its English title and a "translate this page" link. AI Overview in Telugu at position 2. | Google fills the Telugu SERP by machine-translating English pages on the fly. One real native page (PDF24) in ten. |
+| `pdf విలీనం` (merge) | Smallpdf, pdf2go, Adobe, freepdfconvert, Sejda, Jotform, all Google-translated; PDF24 native at 8; iLovePDF English at 10; a Japanese site (rakko.tools) with a Telugu title dated four days ago. AI Overview at 2. | Same shape. A four-day-old Japanese page reaching the top ten says the native field is close to empty. |
+| `pdf పై సంతకం` (sign) | AI Overview first, then PDF24 native, then DigiSigner, Adobe, Lumin, PrintFriendly, RAD PDF, Signer.Digital, Canva, Smallpdf, every one Google-translated. | Same shape. |
+| `pdf jpg గా మార్చు` (pdf to jpg) | iLovePDF, Smallpdf, Pdf2Jpg.net, Canva, TinyWow, Adobe, pdf2go, CloudConvert, all served in **English** with a "translate this page" link; PDF24 native at 2; AI Overview at 4. The "people also search for" block is entirely English (`JPG to PDF`, `PDF to JPG online free`, `Compress PDF to JPG 100 KB online free`). | Here Google does not even bother translating: it serves English pages to a Telugu query, and the related searches it has seen from these users are all English. |
+
+**Against the decision rule:**
+
+| Language | 1. Trends share | 2. Weak incumbent to beat | 3. Reviewer available | Verdict |
+| --- | --- | --- | --- | --- |
+| Telugu | **Measured: flat at 0 on all 4 anchor tasks**, 8 native and romanized probes, phrasing lifted from PDF24's real Telugu titles. Cleanly fails criterion 1, same as Hindi and Malay. | **Met by the letter and hollow in substance.** Nearly every incumbent on every query is machine-translated, but the translating is Google's, not the site's: Telugu is on Google's translated-results list, so any English page (ours included) is already served to these searchers in Telugu. A native edition would not be beating a sloppy incumbent, it would be competing with Google's own translation of the same competitors, plus PDF24's real page. Related searches being all English says the searchers themselves query in English. | Not evaluated (moot) | **No.** Zero in-language volume on Trends, and a SERP Google has to backfill with translations and English pages. Closes Telugu on this pass. |
+
+The rakko.tools result is worth one line beyond the table: a Japanese utility site published a Telugu
+merge page four days before this screenshot and reached the top ten immediately. That is what an
+empty native field looks like from the outside, and it is not an opening. It is the absence of
+searchers to compete for.
+
+## Tamil evidence, 2026-09-12 (Shlomi's reconnaissance SERPs, `hl=ta&gl=IN`, desktop)
+
+All four code-switched queries (`pdf ஐ compress செய்வது எப்படி` and siblings) returned the same shape:
+
+| Query | What the top ten are | Read |
+| --- | --- | --- |
+| compress | AI Overview, then a **video block of three YouTube how-tos** (two titled in English with "in Tamil" appended: "How to Compress PDF file size with HiPDF in Tamil", "how to reduce pdf file size in tamil"), then Adobe, pdf2go, Sejda, Smallpdf, freepdfconvert, iLovePDF blog, APITemplate.io, PDF24 - **every web result Google-translated** ("Google மொழிபெயர்த்தது · ஒரிஜினலைக் காட்டு (English)"), PDF24 included, which confirms the incumbent table above: its `/ta/` route is not a Tamil page. | Zero native Tamil web pages. The only Tamil-language content Google can find is YouTube, and even those are titled in English. |
+| merge | AI Overview, three "in Tamil" YouTube videos, then Adobe, Smallpdf, iLovePDF blog, Sejda, pdf2go, Jotform, PDF24, PDFgear, all Google-translated. | Same. |
+| sign | AI Overview, then Certinal blog, iLovePDF blog, Lumin, Docusign blog, pdfAssistant.ai blog, Adobe, Smallpdf, Canva, all Google-translated, and one YouTube video ("how to add digital signature in pdf in tamil") at 10. | Same, thinner: half the results are vendor blog posts rather than tool pages. |
+| pdf to jpg | AI Overview, then Adobe, Smallpdf, freepdfconvert, pdf2go, Canva, iLovePDF blog, PDF Techno, FreeConvert, PDFgear, all Google-translated. No video block. | Same. |
+
+Forty results across four queries, and not one native Tamil web page from anyone. The Tamil demand
+that exists is served by YouTube creators, and they title their videos in English with "in Tamil" as
+a suffix, which is the code-switching pattern the general-web pass above found and is itself the
+answer to "what phrasing would a Trends chart test": there is no native phrase to lift, because the
+people asking do not use one. No competitor phrase and no autocomplete suggestion surfaced that would
+justify building a five-term Trends chart, so per the acceptance clause this closes Tamil as "no
+signal found", the way LOC-01 closed Hindi.
+
+| Language | 1. Trends share | 2. Weak incumbent to beat | 3. Reviewer available | Verdict |
+| --- | --- | --- | --- | --- |
+| Tamil | **Not chartable:** the reconnaissance SERPs produced no verified native phrasing to measure, and the only Tamil-language results are English-titled YouTube videos. Not run, by design (see "reconnaissance first" above). | **Met by the letter and hollow in substance**, same as Telugu: all forty results are Google's own translations of English pages. Nobody, PDF24 included, has a Tamil page, and Google backfills the whole SERP itself. | Not evaluated (moot) | **No.** No native field, no native phrasing, and Google already serving every English page (ours included) translated. Closes Tamil on this pass. |
+
+## Verdict (2026-09-12): both no, and the list stops here
+
+Telugu fails criterion 1 outright (zero on all four Trends charts). Tamil could not even be given a
+chart, because no native phrasing exists to test. Both SERPs share a feature that LOC-01 only saw on
+Arabic and that reshapes criterion 2 for any language on Google's translated-results list: the SERP
+is full of "machine-translated incumbents", but the translator is Google, applied to every English
+page equally, so a native edition would compete with Google's translation of iLovePDF, Smallpdf and
+Adobe, not with a sloppy competitor. That makes "an incumbent is machine-translated" a signal of thin
+native demand rather than an opening, and the rule should be read that way from now on (findings doc,
+section 2).
+
+Marathi, Gujarati, Kannada and Malayalam stay unmeasured. With Hindi, Telugu and Tamil (India's three
+largest languages after English) all flat, and the GSC India filter showing every query in English,
+nothing here argues for continuing down the list. The GSC re-check for Tamil/Telugu-script
+queries (below) came back empty the same day, so all three instruments agree.
+
+**GSC check (source 3 of the method), done 2026-09-12.** India, last 28 days, Queries tab, 50 rows:
+every query in English, not one containing a Tamil or Telugu character and no transliteration of
+either (nothing like `kudinchu`, `santhakam`, `surukku`). Same two clusters LOC-01 saw in the 3-month
+window: compress-to-100kb (`file compressor to 100kb` 4 clicks / 100 impressions, `reduce file size to
+100kb` 0 / 52, plus `110 kb` and `80 kb to 100kb` variants) and blur/blackout (`blur pdf` 1 / 43,
+`pdf blur` 2 / 15). India's searchers reach this domain in English, for SEO-17's page and for
+`/redact/`, and the script filter that LOC-01 did not isolate turns up empty. Loose end closed.
 
 ## Acceptance
 
