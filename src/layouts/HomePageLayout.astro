@@ -31,6 +31,7 @@ import { tools } from '../data/tools.js';
 import FileDropzone from '../components/FileDropzone.tsx';
 import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
 import { getFileDropzoneMessages, getRecentFilesMessages } from '../i18n/toolMessages';
+import { getLocalizedHomeContext } from '../i18n/localizedHome';
 import { renderInline } from '../lib/contentMarkup';
 
 interface Variant {
@@ -49,12 +50,9 @@ interface Props {
   dir?: 'ltr' | 'rtl';
   canonical?: string;
   alternates?: { lang?: string; hreflang?: string; href: string }[];
-  noindex?: boolean;
   locale?: string;
   variants?: Variant[];
-  preview?: boolean;
   messages?: DocumentationShellMessages;
-  previewNotice?: string;
   /** The name FileDropzone's practice-document caption uses for its
    * destination tool ("opens in {tool}") - defaults to the exact English
    * string the hardcoded caption always used, so the English page is
@@ -69,15 +67,20 @@ const {
   lang = 'en',
   dir = 'ltr',
   canonical,
-  alternates = [],
-  noindex = false,
   locale = 'en',
-  variants = [],
-  preview = false,
   messages = documentationShellMessages.en!,
-  previewNotice,
   signToolDisplayName = 'Sign & Fill',
 }: Props = Astro.props;
+
+// Same fallback ToolPageLayout.astro uses: a caller that already computed its
+// own alternates/variants (the localized route) passes them explicitly, and
+// the plain English page (index.astro, which historically passed neither)
+// gets them resolved here instead - which is what makes the English root
+// advertise a reciprocal hreflang="he" link once a Hebrew edition publishes,
+// without index.astro needing to know that edition exists.
+const resolvedHomeContext = await getLocalizedHomeContext(locale);
+const alternates = Astro.props.alternates ?? resolvedHomeContext.alternates;
+const variants = Astro.props.variants ?? resolvedHomeContext.variants;
 
 const { title, description, faq, founderStory, draftPersistence, offlineInstall, privacyOpenSource, closing } = home;
 
@@ -113,7 +116,7 @@ if (compressToolIndex !== -1) {
 }
 ---
 
-<BaseLayout title={title} description={description} lang={lang} dir={dir} canonical={canonical} alternates={alternates} noindex={noindex} socialImageAlt={messages.socialImageAlt}>
+<BaseLayout title={title} description={description} lang={lang} dir={dir} canonical={canonical} alternates={alternates} socialImageAlt={messages.socialImageAlt}>
   <Fragment slot="head">
     <SeoSchema name="PDkef" description={description} faq={faq} />
     {/* The hero demo's handwritten caption ('Caveat Demo' in HeroDemo.module.css)
@@ -130,12 +133,6 @@ if (compressToolIndex !== -1) {
       crossorigin
     />
   </Fragment>
-
-  {preview && (
-    <aside class="mx-auto mt-4 max-w-[720px] rounded-[var(--radius-md)] border border-[var(--color-primary-tint)] bg-[var(--color-primary-soft)] px-4 py-3 text-center text-[0.9rem] text-[var(--color-text)]" role="status">
-      {previewNotice ?? messages.previewNotice}
-    </aside>
-  )}
 
   <main id="home-content">
     <div class="home-tour" id="home-tour" data-demo-track="desktop">

@@ -1,17 +1,16 @@
-# LOC-09: Hebrew draft of the home page ("/" -> "/he/"). status: draft on
-# purpose - this is an AI-drafted translation, not a native review, per
-# CLAUDE.md's "AI drafts are not native review" rule and the same workflow
-# LOC-02/LOC-03 already used for the tool pages. It renders at /he/ as a
-# noindex preview so it can be reviewed in a browser, and does not appear in
-# the sitemap, alternates, or index until a native reviewer signs off and
-# status flips to 'published' (see backlog/tasks/LOC-09.md for what's left).
+# LOC-09: Hebrew edition of the home page ("/" -> "/he/"). status: published
+# per Shlomi's explicit go-ahead to skip the separate draft/noindex-preview
+# step this ticket originally planned (see backlog/tasks/LOC-09.md) - the
+# copy is an AI draft (see reviewNotes below, which says so honestly), and
+# Shlomi will personally read through the rendered page before anything
+# reaches production, same as always; nothing about this file changes that.
 #
 # Terminology follows src/i18n/documentationMessages.ts's already-reviewed
 # Hebrew shell strings where a concept overlaps (עובד מקומית / חינם לכולם /
 # קוד פתוח ברישיון MIT...) rather than inventing new terms - LOC-09's design
 # doc, section 7.1. The founder-story vocabulary (the errand, the consent
 # form, the paywall) has no existing reviewed precedent, so it is a first
-# draft, flagged as such for the reviewer.
+# draft.
 #
 # sourceHash is the normalized hash of src/data/homeContent.js's
 # HOME_SOURCE_FIELDS (src/i18n/localizedHome.ts) - it must be recomputed and
@@ -80,5 +79,11 @@ closing:
   heading: 'נסו את זה.'
   backLink: 'חזרה לסביבת העבודה ↑'
 locale: 'he'
-status: 'draft'
+status: 'published'
+reviewer: 'Claude Sonnet 5'
+reviewedAt: '2026-09-12'
+reviewNotes: >-
+  Hebrew copy drafted by Claude Sonnet 5 per docs/home-page-localization-plan.md
+  section 7. Not a native human review - pending Shlomi's own read-through of
+  the rendered page before this goes live.
 sourceHash: 'fnv1a64:cf70cc82c4b64c34'

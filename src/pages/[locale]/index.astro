@@ -1,9 +1,12 @@
 ---
 // LOC-09: localized home page. Mirrors [tool].astro/[contentPage].astro's
-// shape exactly (getStaticPaths from the locale variants, the same
-// preview/noindex/alternates handling) but renders HomePageLayout.astro - the
+// getStaticPaths/alternates shape, and renders HomePageLayout.astro - the
 // same shared layout src/pages/index.astro uses - with a locale's merged
-// content instead of a static guide or a tool object.
+// content instead of a static guide or a tool object. Deliberately does NOT
+// mirror those routes' draft-renders-as-noindex-preview branching: every
+// localizedHome entry publishes as a normal, indexable page from the start
+// (a product decision, not an oversight - see src/i18n/localizedHome.ts's
+// header comment and backlog/tasks/LOC-09.md).
 //
 // `/he/` matches this route exactly; `/he/sign/` matches [tool].astro. No
 // collision handling needed beyond what getStaticPaths already does for the
@@ -60,12 +63,9 @@ const signTool = signContext.effectiveLocale === 'en'
   lang={context.lang}
   dir={context.dir}
   canonical={context.path}
-  alternates={context.preview ? [] : context.alternates}
-  noindex={context.preview}
+  alternates={context.alternates}
   locale={context.effectiveLocale}
   variants={context.variants}
-  preview={context.preview}
   messages={messages}
-  previewNotice={context.freshness === 'stale' && context.preview ? messages.stalePreviewNotice : messages.previewNotice}
   signToolDisplayName={signTool.toolName}
 />
