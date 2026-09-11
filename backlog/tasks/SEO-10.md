@@ -51,7 +51,7 @@ SEO-02 table, which needs a Search Console pull after the change is live and rec
 
 ## Status 2026-09-11: blocked on the 2026-10-08 refresh
 
-Shipped and indexing requested; nothing left to build. The remaining work is reading the verdict from
+Shipped; nothing left to build. **No indexing request, deliberately**: `/merge/` is one of the two control URLs SEO-01/SEO-28 left unrequested on 2026-09-11 (with `/unlock/`) to separate a bought recrawl from a rising crawl rate. Requesting it would buy this ticket its verdict and destroy that control, so this waits for a natural recrawl; if 2026-10-08 shows `/merge/` still on its August date, decide then whether the control has told us what it can and request it. The remaining work is reading the verdict from
 the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
 check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
 today; close it, or reopen it with a finding, from that refresh.
