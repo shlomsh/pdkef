@@ -255,7 +255,13 @@ and that stability is exactly what is holding the stale cache. Trading a deliber
 is not worth it while a recrawl of `/` should fix it anyway. Re-check the card at the 2026-10-08 refresh;
 if the logo is still blue after `/redact/` and `/` have been recrawled, revisit then with evidence.
 
-*Update 2026-09-11:* `/` submitted for indexing too, so that condition is now set up to be testable
+*Update 2026-09-11, later:* URL Inspection gives the exact number - **`/redact/` was last crawled on
+2026-07-07**, 65 days before the capture and **two days before the 2026-07-09 logo change**. So the
+separate-favicon-crawler reasoning above is not needed to explain the blue mark: the page copy Google
+holds is from before the retheme in every respect. The full sweep is in SEO-01; nine of eleven crawled
+pages are stale, and `/redact/` is the second-oldest of them despite carrying 64% of clicks.
+
+`/` submitted for indexing too, so that condition is now set up to be testable
 rather than hypothetical. If the card still shows the blue mark on 2026-10-08 with `/` recrawled, the
 separate-favicon-crawler explanation is the one left standing, and the URL-rename cache-bust becomes a
 decision to weigh on evidence instead of a guess.
