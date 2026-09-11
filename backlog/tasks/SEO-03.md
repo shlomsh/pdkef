@@ -151,5 +151,8 @@ over the search proxy if one becomes accessible.
   Chose `1.0.0` over tagging the existing `0.1.0`: a 0.x tag on a product ten weeks live with nine
   working tools reads as "not ready" in exactly the directories this ticket submits to. The
   awesome-selfhosted four-month clock starts at the tag date, so the tag should not wait.
-- Still queued from the second pass: Astro Showcase (comment on withastro/roadmap#521), the PWA
-  directories, Lissy93/awesome-privacy (rules unchecked).
+- **Astro Showcase** - also already posted by the parallel session, 19:34 UTC, in
+  [withastro/roadmap#521](https://github.com/withastro/roadmap/discussions/521). Found by reading the
+  thread's last comments before drafting (the check the abhi18av entry above recommends); not posted
+  again.
+- Still queued from the second pass: the PWA directories, Lissy93/awesome-privacy (rules unchecked).
