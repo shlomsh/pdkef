@@ -38,6 +38,7 @@ import {
   Trash2,
   WifiOff,
   Layers,
+  ScanText,
 } from 'lucide-preact';
 
 export const landingPages = [
@@ -96,6 +97,15 @@ export const landingPages = [
     blurb: 'Remove selectable elements, keep the remaining text, and know the limits.',
     icon: Trash2,
     hub: 'redact',
+    sitemapPriority: '0.6',
+    sitemapChangefreq: 'monthly',
+  },
+  {
+    href: '/pdf-wont-compress-to-100kb/',
+    label: "Why 100KB won't fit",
+    blurb: 'Real measured examples: how many pages actually fit before text blurs.',
+    icon: ScanText,
+    hub: 'compress',
     sitemapPriority: '0.6',
     sitemapChangefreq: 'monthly',
   },

@@ -1,0 +1,164 @@
+title: 'Why a PDF Won''t Compress to 100KB | PDkef'
+description: >-
+  Real files run through the actual compressor: how many pages fit in 100KB before text blurs,
+  why portals cap uploads this small, and what to do when your document can't get there.
+breadcrumb: 'PDF size limits'
+icon: 'ScanText'
+kicker: 'Measured, not promised'
+h1: 'Why Won''t My PDF Compress to 100KB?'
+subhead: >-
+  A 100KB limit is really one number split across every page in your file. This page runs real
+  documents through PDkef's own compressor and shows what actually happens at 1, 5 and 10 pages,
+  so you can tell whether your file is close or genuinely won't fit.
+primaryCta:
+  href: '/compress/'
+  label: 'Open the free PDF compressor'
+sections:
+  - variant: 'highlight'
+    sketch: 'grid'
+    icon: 'ScanText'
+    iconPos: 'tr'
+    kicker: 'The number that actually matters'
+    heading: 'A page count, not a file size, decides whether 100KB is realistic'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          One page gets the whole 100KB budget. Ten pages split that budget ten ways. That single
+          fact predicts most of what happens when you try to hit a small target: a one-page form
+          compresses comfortably, and a ten-page scan of the same form does not, even though
+          nothing else about the document changed.
+      - kind: 'prose'
+        text: >-
+          Here is why. To reach a small target, PDkef turns each page into an image, then searches
+          for the smallest JPEG quality that still fits. If quality alone cannot get there, it
+          steps down through five resolutions in turn, from about 108 DPI down to about 36 DPI,
+          trying each one before giving up further detail. A typed, vector PDF skips all of this:
+          if the file is already under the target, it is kept exactly as it is.
+  - sketch: 'waves'
+    icon: 'HardDriveDownload'
+    iconPos: 'br'
+    kicker: 'Four real files, one target'
+    heading: 'What 100KB actually looks like at different page counts'
+    blocks:
+      - kind: 'table'
+        caption: 'Every row was produced by running the file through PDkef''s own Target Size mode at 100KB.'
+        headers: ['Document', 'Original size', 'Result at a 100KB target', 'Still readable?']
+        rows:
+          - ['One typed page (native PDF text)', '3.5 KB', 'Kept unchanged, already under target', 'Yes, perfectly, it was never rasterized']
+          - ['One scanned page (phone photo)', '459 KB', '100 KB, 78% smaller', 'Yes, crisp and fully legible']
+          - ['Five scanned pages', '2.23 MB', '100 KB total, 96% smaller', 'Yes, fully readable with mild softening']
+          - ['Ten scanned pages', '4.46 MB', '97 KB total, 98% smaller', 'Headline sharp, body paragraphs blurred']
+      - kind: 'prose'
+        text: >-
+          The typed page never needed compressing at all: native PDF text is already tiny, and
+          PDkef only rasterizes a page when a target actually requires it. The other three rows are
+          the same scanned form at 1, 5 and 10 pages, each compressed with nothing else changed.
+  - sketch: 'rings'
+    icon: 'AlertTriangle'
+    iconPos: 'cl'
+    kicker: 'The awkward part'
+    heading: 'A ten-page scan can hit 100KB and still be hard to read'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          The ten-page result above technically met the 100KB target. It also spends roughly 10KB
+          per page, which is not enough to keep body text sharp once it has been through a search
+          for the smallest file that fits. The form's title and field labels stayed legible; full
+          paragraphs did not. That is the honest ceiling, not a bug in the tool: a portal asking for
+          100KB across ten pages is asking for something that may not stay comfortably readable, no
+          matter which compressor you use, because the arithmetic is the same everywhere.
+      - kind: 'checklist'
+        items:
+          - >-
+            <strong>Split the document first.</strong> If the portal accepts multiple uploads, use
+            <a href="/split/">Split PDF</a> to submit fewer pages per file, so each one gets a
+            larger share of the size budget.
+          - >-
+            <strong>Check whether a higher limit is actually required.</strong> Many forms show
+            "up to 500KB" or "up to 1MB" once you look past the placeholder text; 100KB is
+            frequently a default, not a hard technical ceiling.
+          - >-
+            <strong>Scan in grayscale at a lower resolution to start.</strong> A black-and-white
+            document scanned at 150 DPI grayscale is a fraction of the size of the same page
+            scanned in colour at 300 DPI, before any compression at all.
+          - >-
+            <strong>Accept the trade for genuinely long documents.</strong> A ten-plus page scan
+            aimed at 100KB will lose some sharpness. Try 200KB or 500KB if the portal allows it;
+            the difference in legibility is large for a small increase in size.
+  - sketch: 'grid'
+    icon: 'FileText'
+    iconPos: 'tr'
+    kicker: 'Why the limit exists at all'
+    heading: 'Real portals, and the size caps they actually publish'
+    blocks:
+      - kind: 'table'
+        caption: 'Pulled from each portal''s own published guidelines, not a third party''s estimate.'
+        headers: ['Portal', 'What it caps', 'Documented limit']
+        rows:
+          - ['IBPS (bank recruitment exams)', 'ID proof, certificates, combined marksheet PDF', 'PDF only, 500 KB maximum']
+          - ['NTA UGC-NET (and similar NTA exams)', 'Candidate photograph upload', '10 KB to 200 KB, JPEG only']
+          - ['NTA UGC-NET (and similar NTA exams)', 'Candidate signature upload', '4 KB to 30 KB, JPEG only']
+      - kind: 'prose'
+        text: >-
+          IBPS's own recruitment guidelines state that identity proof, certificates and the
+          <strong>consolidated marksheet</strong> (candidates are told to combine every semester
+          into a single PDF) must be uploaded as one PDF file, capped at 500KB
+          (<a href="https://ibpsreg.ibps.in" target="_blank" rel="noopener noreferrer">ibps.in
+          candidate portal</a>). These caps were set for slow connections and small server quotas,
+          and most have outlived the reason they exist, but the portals still enforce them.
+      - kind: 'prose'
+        text: >-
+          The National Testing Agency's UGC-NET information bulletin specifies a 10KB to 200KB
+          photograph and a 4KB to 30KB signature, both JPEG, quoted directly from its
+          <a href="https://ugcnet.nta.ac.in/images/information-bulletin-for-ugc-net-june-2025-16042025.pdf" target="_blank" rel="noopener noreferrer">published information bulletin</a>.
+  - variant: 'highlight'
+    sketch: 'waves'
+    icon: 'WifiOff'
+    iconPos: 'br'
+    kicker: 'Free, private, no account'
+    heading: 'Try it on your own file before deciding what to do next'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          <a href="/compress/">Open the free PDF compressor</a>, choose Target Size, and enter the
+          limit your portal actually asks for. The file never leaves your device, so there is no
+          upload wait to find out whether it fits: you will know in seconds, and you can raise the
+          target or split the file if it does not.
+faq:
+  - question: 'Why can''t I compress a 10-page PDF to 100KB?'
+    answer: >-
+      A 100KB target is split across every page. Ten pages leaves roughly 10KB per page once
+      container overhead is subtracted, which is enough for a compressor to hit the number but not
+      enough to keep full paragraphs of body text sharp. Titles and short labels usually stay
+      legible; dense text does not.
+  - question: 'How many pages can actually fit in 100KB and stay readable?'
+    answer: >-
+      In PDkef's own measured test, one scanned page compressed to 100KB stayed crisp, and five
+      pages sharing that same 100KB stayed fully readable with only mild softening. Ten pages was
+      the point where body paragraphs became hard to read. Your own document's readability depends
+      on font size and how much text is on each page, so treat five as a rough comfortable ceiling
+      rather than a guarantee.
+  - question: 'Does compressing a PDF to 100KB remove the selectable text?'
+    answer: >-
+      Yes, when the target actually requires shrinking the file. PDkef reaches a small target by
+      turning each page into a compressed image, which means the text is no longer selectable or
+      searchable in that page. If your file is already under the target, it is left completely
+      unchanged, so a small typed document usually keeps its real text.
+  - question: 'Why do exam and government portals cap uploads at 100KB or 200KB?'
+    answer: >-
+      Most of these limits were set years ago for slow connections and small server storage
+      quotas. IBPS still caps combined-document PDFs at 500KB, and the National Testing Agency
+      caps a UGC-NET photograph at 10KB to 200KB and a signature at 4KB to 30KB. The limits have
+      mostly outlived the reason they were set, but the portals continue to enforce them.
+  - question: 'What should I do if my scanned document genuinely won''t fit the limit?'
+    answer: >-
+      Split it into smaller files if the portal accepts more than one upload, so each file gets a
+      larger share of the size budget. Check whether the portal actually requires exactly 100KB or
+      merely defaults to showing that figure. If you are scanning from scratch, use grayscale and a
+      lower resolution before compressing rather than starting from a large colour scan.
+  - question: 'Is a typed PDF ever too big to hit 100KB?'
+    answer: >-
+      Rarely. A native, typed PDF stores text as text, not as an image, so a single page is
+      usually a few kilobytes even before compression. PDkef only rasterizes a page when the
+      target actually requires shrinking it, so a typed document that is already small is returned
+      unchanged rather than needlessly degraded.
