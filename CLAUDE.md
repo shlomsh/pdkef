@@ -147,6 +147,12 @@ Things to know before touching them:
   so a card cannot get the wrong rhythm because someone copied classes from a different page.
 - **Adding a *kind* of content means editing the schema and the route.** Adding a page, or rewording
   one, means editing one YAML file and nothing else.
+- **The "Last updated" date in the header is git-derived, never authored (SEO-29).**
+  `src/lib/gitLastModified.js` dates a page by the commit history of its YAML plus the route template
+  (a localized edition by its own translation file), and the sitemap's `<lastmod>`, the header line and
+  the page's Markdown twin all read that one function, so they cannot disagree. Do not add a date field
+  to the YAML. A commit to `[contentPage].astro` re-dates every English page at once, which is honest
+  (they all changed) but worth knowing before reading the dates as per-page freshness.
 - **One accepted cost:** all eight pages share one route, so they share one CSS bundle, and
   `CompareTable.astro`'s scoped styles now inline on all eight rather than the four that render a
   table (+~320 brotli bytes on those four; duplication factor 9.73x → 9.79x against the 9.85x ratchet).

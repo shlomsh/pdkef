@@ -44,6 +44,9 @@ interface Props {
   preview?: boolean;
   messages: DocumentationShellMessages;
   previewNotice?: string;
+  /** ISO timestamp from src/lib/gitLastModified.js - the same value the
+   * sitemap reports as <lastmod> for this URL, never a hand-typed date. */
+  lastModified: string;
 }
 
 const {
@@ -58,7 +61,14 @@ const {
   primaryCta,
   faq,
   lang = 'en', dir = 'ltr', canonical, alternates, noindex = false, locale = 'en', variants = [], preview = false, messages, previewNotice,
+  lastModified,
 } = Astro.props;
+
+// SEO-29: the date is formatted at build time in UTC so the same commit
+// renders the same string on every machine. `datetime` carries the calendar
+// date only; the reader-facing text follows the page's own language.
+const lastModifiedDate = lastModified.slice(0, 10);
+const lastModifiedLabel = new Intl.DateTimeFormat(lang, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(lastModified));
 ---
 
 <BaseLayout title={title} description={description} lang={lang} dir={dir} canonical={canonical} alternates={alternates} noindex={noindex} socialImageAlt={messages.socialImageAlt}>
@@ -85,6 +95,9 @@ const {
     <span class="mb-2 block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">{kicker}</span>
     <h1 class="type-hero space-heading-content mt-0 text-[var(--color-text)]">{h1}</h1>
     <p class="type-lead mx-auto mb-0 mt-0 max-w-[56ch] text-[var(--color-muted)]">{subhead}</p>
+    <p class="mb-0 mt-5 text-[0.85rem] text-[var(--color-muted)]">
+      {messages.lastUpdated} <time datetime={lastModifiedDate}>{lastModifiedLabel}</time>
+    </p>
   </header>
 
   <DocumentationLanguageSelector variants={variants} currentLocale={locale} label={messages.language} />

@@ -54,6 +54,8 @@ export interface DocumentationShellMessages {
   worksOffline: string;
   /** Suffix on a cross-link card whose target has no edition in this locale. */
   inEnglish: string;
+  /** SEO-29: label before the git-derived date on a content page's header. */
+  lastUpdated: string;
 }
 
 export type AppBarMessages = Pick<DocumentationShellMessages, 'homeAriaLabel' | 'onDevice'>;
@@ -100,6 +102,7 @@ const englishMessages = {
   mitLicensed: 'MIT licensed',
   worksOffline: 'Works offline',
   inEnglish: 'in English',
+  lastUpdated: 'Last updated',
 } satisfies DocumentationShellMessages;
 
 const hebrewMessages = {
@@ -135,6 +138,7 @@ const hebrewMessages = {
   mitLicensed: 'רישיון MIT',
   worksOffline: 'עובד גם בלי אינטרנט',
   inEnglish: 'באנגלית',
+  lastUpdated: 'עודכן לאחרונה',
 } satisfies DocumentationShellMessages;
 
 /**

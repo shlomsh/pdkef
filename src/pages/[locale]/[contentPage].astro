@@ -5,6 +5,7 @@ import { CONTENT_ICONS } from '../../data/contentIcons';
 import { documentationLocales, getDocumentationLocaleByPrefix } from '../../i18n/documentationLocales';
 import { getDocumentationContext, getDocumentationVariants } from '../../i18n/documentation';
 import { getDocumentationShellMessages } from '../../i18n/documentationMessages';
+import { documentationSourceFiles, lastModifiedFor } from '../../lib/gitLastModified.js';
 
 export async function getStaticPaths() {
   const variants = await getDocumentationVariants();
@@ -53,6 +54,7 @@ const stale = context.preview && context.freshness === 'stale';
   variants={context.variants}
   preview={context.preview}
   messages={messages}
+  lastModified={lastModifiedFor(documentationSourceFiles(pageId, context.effectiveLocale))}
   previewNotice={stale ? messages.stalePreviewNotice : messages.previewNotice}
 >
   <ContentPage

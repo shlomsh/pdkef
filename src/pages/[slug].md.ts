@@ -16,6 +16,7 @@ import { getCollection } from 'astro:content';
 import { tools } from '../data/tools.js';
 import { staticPages } from '../data/staticPages.js';
 import { toolToMarkdown, contentPageToMarkdown, staticPageToMarkdown } from '../lib/markdownRender.js';
+import { documentationSourceFiles, lastModifiedFor } from '../lib/gitLastModified.js';
 
 export async function getStaticPaths() {
   const toolEntries = tools.map((tool) => ({
@@ -26,7 +27,7 @@ export async function getStaticPaths() {
   const contentPageEntries = await getCollection('contentPages');
   const contentEntries = contentPageEntries.map((entry) => ({
     params: { slug: entry.id },
-    props: { markdown: contentPageToMarkdown(entry.id, entry.data) },
+    props: { markdown: contentPageToMarkdown(entry.id, entry.data, { lastModified: lastModifiedFor(documentationSourceFiles(entry.id)) }) },
   }));
 
   const staticEntries = staticPages.map((page) => ({
