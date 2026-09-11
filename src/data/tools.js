@@ -547,7 +547,7 @@ export const tools = [
     toolName: 'Compress PDF',
     h1: 'Compress PDF to 100KB Free: Reduce File Size',
     subhead:
-      'Need a PDF under 100KB for an application or upload form? Choose a target size and check the result. Some files need a larger limit to stay readable. Your document stays on your device.',
+      'Need a PDF under 100KB for an application or upload form? Choose a target size and check the result. Some files need a larger limit to stay readable. Private: your file never leaves your device.',
     ariaLabel: 'PDF compress tool',
     aboutHeading: 'How to compress a PDF online for free',
     aboutLead:
