@@ -531,9 +531,13 @@ export const tools = [
   {
     slug: 'compress',
     href: '/compress/',
-    // One short options card - collapsing the hero buys no space here and
-    // just leaves the page looking sparse (see docs/view-density-control-spec.md 4.7).
-    condenseOnLoad: false,
+    // Was `false` while Compress was one short options card. Since the options
+    // grid (three presets plus the full-width Target Size row) started
+    // rendering before a file is even picked, the page with a file open is
+    // taller than a laptop viewport, and on a phone the Compress button sat
+    // ~550px below the fold. Folding the hero once a file is open is what
+    // brings the action back on screen (see docs/view-density-control-spec.md 4.7).
+    condenseOnLoad: true,
     icon: Shrink,
     gridTitle: 'Compress PDF',
     gridDescription:

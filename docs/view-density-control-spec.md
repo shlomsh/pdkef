@@ -308,7 +308,8 @@ tool inherits the useful behaviour and only the exceptions carry the flag.
 |---|---|---|
 | `sign`, `redact` | `true` | Full-page document editor; the whole point |
 | `merge`, `split`, `edit-pdf`, `pdf-to-image`, `image-to-pdf` | `true` | File list / page grid, grows tall |
-| `compress`, `unlock` | `false` | One short options card; collapsing buys no space and leaves the page looking sparse |
+| `compress` | `true` | Was `false` (one short options card). Since the three preset cards plus the Target Size row render before a file is picked, the page with a file open overflows a laptop viewport and pushes the Compress button below the fold on a phone; folding the hero is what brings it back |
+| `unlock` | `false` | One short options card; collapsing buys no space and leaves the page looking sparse |
 
 Only Sign and Redact get the control, because only they have a toolbar to put it
 in. The five middle tools condense automatically with no override; their hero
@@ -351,7 +352,7 @@ If it is not, the working tree has drifted - find out why before writing code.
      segment, not to some third state.
    - With a saved draft and density Relaxed, reload: hero must **not**
      pre-collapse.
-   - `/compress/` with a file: hero stays relaxed.
+   - `/unlock/` with a file: hero stays relaxed. (`/compress/` used to be the example here; it condenses now, see 4.7.)
 6. At 390px: plain Full screen button, uniform row, no segmented control.
 
 ### New tests
