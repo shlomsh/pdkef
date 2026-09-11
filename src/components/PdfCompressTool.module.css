@@ -377,3 +377,35 @@
   background: var(--color-primary-soft);
   border-color: var(--color-primary);
 }
+
+/* Desktop-only compaction: with the options grid now visible before a file
+   is even picked (this session's redesign) plus the unified AppBar chips,
+   the page was ~70-100px taller than a typical laptop viewport. Mobile is a
+   naturally scrolling context and keeps the roomier spacing above - these
+   trims are about fitting a fixed-height desktop viewport, not about
+   shrinking touch targets or line length anywhere. */
+@media (min-width: 1024px) {
+  .compress-options {
+    margin: 1rem 0;
+  }
+
+  .compress-card {
+    padding: 1rem;
+    gap: 0.4rem;
+  }
+
+  .compress-card.is-recommended,
+  .target-card {
+    padding-top: 1.35rem;
+  }
+
+  .compress-pro-con {
+    margin-top: 0.2rem;
+    padding-top: 0.4rem;
+    gap: 0.2rem;
+  }
+
+  .target-card-body {
+    gap: 0.35rem;
+  }
+}

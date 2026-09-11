@@ -35,6 +35,7 @@ interface BasePdfToolProps {
   /** Optional anonymous lifecycle reporting for this tool. */
   analyticsTool?: AnalyticsTool;
   analyticsStatus?: string;
+  compact?: boolean;
 }
 
 /**
@@ -85,6 +86,14 @@ export default function BasePdfTool({
   checkingDraft = false,
   analyticsTool,
   analyticsStatus,
+  /* Opt-in: shrinks the empty-state dropzone at desktop widths (see
+     Dropzone.module.css's `[data-compact]` rule). For a tool whose children
+     already render a full options grid below the dropzone even before a
+     file is picked (Compress) - the dropzone doesn't need to carry as much
+     visual weight on its own once there's real content under it. Every
+     other tool, and the home page's own FileDropzone, never set this, so
+     their dropzone is unaffected. */
+  compact = false,
 }: BasePdfToolProps) {
   const [isDraggingOverWorkspace, setIsDraggingOverWorkspace] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
@@ -252,7 +261,7 @@ export default function BasePdfTool({
           // Same dropzone box, so nothing resizes when this resolves either way -
           // just a neutral holding message instead of "drop a file here", which
           // would be actively misleading the moment before a draft loads over it.
-          <div class={styles.dropzone} aria-busy="true">
+          <div class={styles.dropzone} data-compact={compact || undefined} aria-busy="true">
             <p class={styles['dropzone-text']}>Checking for a saved draft…</p>
           </div>
         ) : (
@@ -262,6 +271,7 @@ export default function BasePdfTool({
             message={emptyStateMessage}
             inputRef={fileInputRef}
             onFiles={receiveFiles}
+            compact={compact}
           />
         )
       )}

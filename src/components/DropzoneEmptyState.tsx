@@ -8,6 +8,7 @@ interface DropzoneEmptyStateProps {
   message?: string;
   inputRef?: Ref<HTMLInputElement>;
   onFiles: (files: File[] | FileList) => void;
+  compact?: boolean;
 }
 
 /** Empty-state file picker shared by the PDF tool pages. */
@@ -17,6 +18,7 @@ export default function DropzoneEmptyState({
   message,
   inputRef,
   onFiles,
+  compact = false,
 }: DropzoneEmptyStateProps) {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -44,6 +46,7 @@ export default function DropzoneEmptyState({
       // .dropzone for the box styling but must never be hidden by it) - see
       // the `html[data-draft-hint]` rule in Dropzone.module.css.
       data-empty-state
+      data-compact={compact || undefined}
       onDragOver={(e) => {
         e.preventDefault();
         setIsDragOver(true);
