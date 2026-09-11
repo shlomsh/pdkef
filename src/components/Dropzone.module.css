@@ -183,6 +183,19 @@
   flex-shrink: 0;
 }
 
+/* MOBI-09: the Files-app route notice, shown only on iOS (DropzoneEmptyState.tsx's
+   mount-effect check) and only where a tool opts in (currently the Sign tool
+   only). Plain body text, not another pill like .privacy-line - it is
+   supplementary guidance, not a trust signal, and doesn't need the same
+   visual weight. */
+.ios-files-hint {
+  margin: var(--space-2) 0 0;
+  max-width: 32rem;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 /* The loaded state is not styled here any more. Once a file is picked the
    dropzone is replaced by the identity line and control row, which are one
    joined object and live in ToolShell.module.css. */

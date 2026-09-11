@@ -50,6 +50,12 @@ interface BasePdfToolProps {
   /** The shell's own strings (dropzone, file actions, confirmations) for a
    * localized page; every key not given keeps its English default. */
   shellMessages?: Partial<ShellMessages>;
+  /** MOBI-09: opt-in per tool page (currently the Sign tool only - see its
+   * ticket for why the Files-app notice is scoped there rather than shown
+   * shell-wide). Forwarded to DropzoneEmptyState, which still gates the
+   * actual notice on a mount-effect iOS check; this only says the tool is
+   * allowed to show it. */
+  showIosFilesHint?: boolean;
 }
 
 /**
@@ -109,6 +115,7 @@ export default function BasePdfTool({
      their dropzone is unaffected. */
   compact = false,
   shellMessages,
+  showIosFilesHint = false,
 }: BasePdfToolProps) {
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
   const work = workNoun ?? sm.workDefault;
@@ -291,6 +298,7 @@ export default function BasePdfTool({
             onFiles={receiveFiles}
             compact={compact}
             messages={sm}
+            showIosFilesHint={showIosFilesHint}
           />
         )
       )}
