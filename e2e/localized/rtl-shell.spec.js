@@ -10,6 +10,12 @@ import { test, expect } from '@playwright/test';
 test.use({ serviceWorkers: 'block' });
 
 const PAGE = '/he/merge/';
+// LOC-09: the app bar's brand/back link points at the *current locale's* home
+// (`documentationHomePath(locale)` in AppBar.astro), not the English root - so
+// on a /he/ page it is "/he/", and a locator hardcoding 'a[href="/"]' matches
+// nothing here. Derived from PAGE rather than written out, so moving this spec
+// to another locale's page cannot leave a stale literal behind.
+const LOCALE_HOME = `/${PAGE.split('/')[1]}/`;
 
 test.beforeEach(async ({ page }) => {
   const response = await page.goto(PAGE);
@@ -26,7 +32,8 @@ test('the app bar, hero and file list mirror under dir="rtl"', async ({ page }) 
 
   // App bar: brand pill at the inline start (right), on-device badge pushed
   // to the inline end via ms-auto - the mirror of the English layout.
-  const brand = page.locator('[data-home-bar], header, .sticky').first().locator('a[href="/"]').first();
+  const brand = page.locator('[data-home-bar], header, .sticky').first().locator(`a[href="${LOCALE_HOME}"]`).first();
+  await expect(brand, 'the brand link should point at this locale\'s own home, not the English root').toHaveCount(1);
   const badge = page.locator('[data-on-device]');
   const brandBox = await brand.boundingBox();
   const badgeBox = await badge.boundingBox();
