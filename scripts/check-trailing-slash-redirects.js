@@ -39,7 +39,6 @@ if (vercelConfig.trailingSlash === true) {
 }
 
 const redirects = Array.isArray(vercelConfig.redirects) ? vercelConfig.redirects : [];
-const redirectSources = new Set(redirects.map((r) => r.source));
 
 // Routes a redirect already forwards elsewhere (a retired page superseded by a redirect,
 // e.g. offline-pdf-form-filler -> install-pdf-app) don't need a self-referential slash

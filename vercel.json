@@ -45,6 +45,21 @@
       "permanent": true
     },
     {
+      "source": "/about",
+      "destination": "/about/",
+      "permanent": true
+    },
+    {
+      "source": "/contact",
+      "destination": "/contact/",
+      "permanent": true
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy/",
+      "permanent": true
+    },
+    {
       "source": "/compress",
       "destination": "/compress/",
       "permanent": true
