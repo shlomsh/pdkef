@@ -100,3 +100,35 @@ criterion 1, the in-language share against English in Israel, which needs Trends
 from the research brief; the SERPs above show the demand is real enough to have five localized
 incumbents, not how large it is. For Hebrew that number is informative, not decisive, per the paragraph
 above; it is decisive for Indonesian.
+
+## Evidence captured 2026-09-11 (research brief report)
+
+[docs/localized-search-research-brief-report.md](../../docs/localized-search-research-brief-report.md)
+committed, run against the brief with the tools reachable from this environment (no Trends comparison
+UI, no Keyword Planner, no `hl`/`gl`-scoped SERPs — all recorded as "not checked" per the brief's own
+rule rather than guessed). Its one clean, source-backed finding: Google's published
+["Translated results"](https://developers.google.com/search/docs/appearance/translated-results)
+language list covers Indonesian, Hindi, Bengali, Urdu and Arabic but **not** Hebrew, Malay, or
+Filipino/Tagalog — so an English pdkef page is already machine-bridged to searchers in the first group
+today, and never reaches the second group at all until we build something. That cuts the other way from
+raw competitor-page counts: it weakens the case for Hindi/Bengali/Urdu (Google already covers the gap)
+and strengthens the standing case for Hebrew (already decided) and reopens Malay/Filipino as worth a
+real check despite thinner competitor build-out.
+
+**Per-language verdict (criterion 1 / 2 / 3 against the decision rule above):**
+
+| Language | 1. Trends share | 2. Weak incumbent to beat | 3. Reviewer available | Verdict |
+| --- | --- | --- | --- | --- |
+| Hebrew | Not measured this pass (needs Trends); ticket's existing SERP evidence stands | Met — thin upload-site competition, no on-device/RTL claim (existing evidence) | Yes (in-house) | **Decided: pilot** (unchanged) |
+| Indonesian | Not measured directly; iLovePDF's ~22% Indonesia traffic share is a strong indirect signal | Partly met — majors are native-quality, but PDF24 names its own server location (cloud, not device) and a real gap is open there | Not yet confirmed | **Pilot** |
+| Malay | Not measured | Weak signal only — Malay consumer sites recommend English tools by name for compress/convert; `pdf ke jpg` in Malay found zero native pages, but `tandatangan pdf` found a full native set | Not yet confirmed | **Later** — needs the real Trends/SERP check listed in the report before Indonesian's "pilot" template is trusted here too |
+| Hindi | Not measured; strong qualitative signal that real queries are Hinglish/Latin script (YouTube/tutorial titles), not Devanagari, even on Adobe's own Devanagari H1 ("PDF का size..." keeps "PDF"/"size" in Latin) | Not applicable — the phrasing itself doesn't clear criterion 1 | N/A | **No** — closes SEO-27's Hindi question with evidence, as the ticket expected |
+| Filipino/Tagalog | Not measured; competitor titles code-switch (Filipino verb + English object) rather than reading as clean Tagalog | Not evaluated | Not evaluated | **Later** — not on Google's translated-results list either, so worth one real check |
+| Urdu | Not measured; romanized query surfaced only Hindi pages, no Urdu-script evidence either way | Not evaluated | Not evaluated | **No evidence yet** — next step is Shlomi's GSC Pakistan filter (method source 3), not this report |
+| Bengali | Not measured; romanized query surfaced zero Bengali-specific results | Not evaluated | Not evaluated | **No evidence yet**, weakest priority to re-check |
+| Arabic | Not measured; deep native ecosystem on every major competitor for both compress and sign | Not met — competitors are native-quality already | Not yet confirmed | **On Google's translated-results list**, so marginal gain of our own edition is smaller than the competitor count suggests; not scoped as a pilot from this pass |
+
+**Still open before LOC-04 can pick a second language with confidence:** a real Google Trends
+comparison (native term vs. English term, region-locked) for Hebrew, Indonesian, and Malay — the one
+thing this environment could not do — and Shlomi's SERP screenshots for the Indonesian and Malay query
+lists in the report (mirroring the Hebrew screenshots above).
