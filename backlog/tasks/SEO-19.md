@@ -2,7 +2,7 @@
 id: "SEO-19"
 title: "New tool: compress an image to a target size, because people are already asking us to"
 status: "open"
-priority: "P2"
+priority: "P1"
 epic: "search-acquisition"
 phase: "near-term"
 depends_on: ["SEO-06", "SEO-13"]
@@ -18,6 +18,22 @@ three months, 128 impressions and 6 clicks came from queries with no "pdf" in th
 `file compressor to 100kb` (81 impressions, position 9.60, 3 clicks), `reduce file size to 100kb` (26 at
 9.50), `compress file size to 100kb`, `100kb file compressor`, `image size reduce to 100kb`,
 `100 kb document size`. They land on `/compress/`, which only accepts PDFs, and bounce.
+
+**Raised to P1 on 2026-09-12: the demand is global and native, not a GSC leak.** [LOC-11](LOC-11.md)'s
+autocomplete sweep (five locales, `node scripts/seo-autocomplete.mjs`) seeded the *shrink* task without
+the word pdf and every locale completed to photos before PDFs: Vietnamese `nén ảnh dưới 1mb` / `dưới
+2mb`, `chụp ảnh dưới 2mb`, `giảm dung lượng ảnh đã chụp trên iphone`; Turkish `1 mb fotoğraf yapma`,
+`2 mb fotoğraf boyutu`, `2 mb fotoğraf nasıl olur`; Spanish (Mexico) `bajar el peso de una imagen`,
+`reducir peso de imagen jpg`, `reducir tamaño de fotos`; Italian `ridurre peso foto`, `ridurre
+dimensioni jpg`; Indonesian `memperkecil ukuran foto jpg`, `mengecilkan ukuran file foto`, `ukuran
+file lamaran kerja via email`, `kompres foto 200 kb`. The pattern is one intent, a portal or job
+application with a hard KB limit on a photo, and the same limit family (`100 kb`, `200 kb`, `300 kb`,
+`1 mb`, `2 mb`) as our English target-size queries. The PDF version of this family is below Trends'
+floor in every language we checked (LOC-11, LOC-13); the image version is what people type first. It
+is the one product gap the localization research surfaced, and it is served in English by the same
+page shape that already ranks (`/pdf-wont-compress-to-100kb/`, position 9.4): honest target-size,
+portal limits cited, the miss stated. Ship it in English first; the localization gate (LOC-11) applies
+to it afterwards like any other page, and Indonesian is first in line there ([LOC-14](LOC-14.md)).
 
 The intent behind them is the same one behind the whole 100KB cluster and it is strongest in India:
 application portals cap the photo, the signature and the document separately, often at 20-50KB for a
