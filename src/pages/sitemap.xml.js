@@ -4,10 +4,11 @@
 // output). The home page is listed explicitly; every tool and content page
 // comes from its registry with its own priority/changefreq.
 import { execSync } from 'node:child_process';
-import { tools } from '../data/tools.js';
+import { tools, toolsBySlug } from '../data/tools.js';
 import { contentPages } from '../data/contentPages.js';
 import { getCollection } from 'astro:content';
-import { documentationPath } from '../i18n/documentationLocales';
+import { documentationPath, getDocumentationLocale } from '../i18n/documentationLocales';
+import { getLocalizedToolVariants } from '../i18n/localizedTools';
 
 const FALLBACK_SITE = 'https://pdkef.com';
 
@@ -66,6 +67,27 @@ export async function GET({ site }) {
     (entry) => entry.data.status === 'published',
   );
 
+  // LOC-02: localized tool editions. `status === 'published'` is checked here
+  // again even though getLocalizedToolVariants already drops drafts outside a
+  // PDKEF_DOCS_PREVIEW build: a preview build must still emit a production
+  // sitemap, and the guard in verify-seo.js (no draft URL in the sitemap)
+  // is what proves it. A locale whose hreflang is undefined in the registry
+  // (fil-PH, prs-AF) is listed as a URL but gets no alternate annotation,
+  // on any edition, rather than a guessed code.
+  const publishedToolEditions = (await getLocalizedToolVariants()).filter(
+    (variant) => variant.status === 'published',
+  );
+  const toolAlternates = (slug) => {
+    const editions = [
+      { hreflang: 'en', href: `${base}${documentationPath(slug)}` },
+      ...publishedToolEditions
+        .filter((variant) => variant.toolSlug === slug && getDocumentationLocale(variant.locale).hreflang)
+        .map((variant) => ({ hreflang: getDocumentationLocale(variant.locale).hreflang, href: `${base}${variant.path}` })),
+    ];
+    if (editions.length < 2) return [];
+    return [...editions, { hreflang: 'x-default', href: `${base}${documentationPath(slug)}` }];
+  };
+
   const urls = [
     { loc: `${base}/`, changefreq: 'monthly', priority: '1.0', lastmod: lastmodFor(['src/pages/index.astro']) },
     ...tools.map((tool) => ({
@@ -73,6 +95,17 @@ export async function GET({ site }) {
       changefreq: tool.sitemapChangefreq,
       priority: tool.sitemapPriority,
       lastmod: lastmodFor([`src/pages/${tool.slug}.astro`, 'src/data/tools.js']),
+      alternates: toolAlternates(tool.slug),
+    })),
+    ...publishedToolEditions.map((variant) => ({
+      loc: `${base}${variant.path}`,
+      changefreq: toolsBySlug[variant.toolSlug].sitemapChangefreq,
+      priority: toolsBySlug[variant.toolSlug].sitemapPriority,
+      lastmod: lastmodFor([
+        `src/content/localized-tools/${variant.locale}/${variant.toolSlug}.yaml`,
+        'src/pages/[locale]/[tool].astro',
+      ]),
+      alternates: toolAlternates(variant.toolSlug),
     })),
     ...contentPages.map((page) => ({
       loc: `${base}${page.href}`,
@@ -92,14 +125,16 @@ export async function GET({ site }) {
   ];
 
   const body = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${urls
   .map(
     (u) => `  <url>
     <loc>${u.loc}</loc>
     <lastmod>${u.lastmod}</lastmod>
     <changefreq>${u.changefreq}</changefreq>
-    <priority>${u.priority}</priority>
+    <priority>${u.priority}</priority>${(u.alternates ?? [])
+      .map((alternate) => `\n    <xhtml:link rel="alternate" hreflang="${alternate.hreflang}" href="${alternate.href}" />`)
+      .join('')}
   </url>`
   )
   .join('\n')}
