@@ -137,7 +137,6 @@ _None._
 | --- | --- | --- |
 | LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house |
 | LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
-| LOC-06 | P3 | [LOC-06](backlog/tasks/LOC-06.md) · Per-locale measurement: extend the refresh procedure so localized pages are read separately |
 | LOC-08 | P3 | [LOC-08](backlog/tasks/LOC-08.md) · Tamil and Telugu demand check: reopening LOC-07 Part 2 for India's other major languages |
 | LOC-09 | P3 | [LOC-09](backlog/tasks/LOC-09.md) · Localize the home page, so /he/ is a real edition and not a 404 beside three Hebrew tool pages |
 
@@ -155,6 +154,7 @@ _None._
 | --- | --- | --- |
 | LOC-01 | P2 | [LOC-01](backlog/tasks/LOC-01.md) · Measure non-English demand from outside Search Console: the gate for the second language |
 | LOC-02 | P2 | [LOC-02](backlog/tasks/LOC-02.md) · Localized tool pages: the route, the reviewed copy source, and the island message catalogue |
+| LOC-06 | P3 | [LOC-06](backlog/tasks/LOC-06.md) · Per-locale measurement: extend the refresh procedure so localized pages are read separately |
 | LOC-07 | P3 | [LOC-07](backlog/tasks/LOC-07.md) · Is a second language worth building at all? The ROI judgment on LOC-01's evidence, and the languages it never measured |
 
 ### Retired

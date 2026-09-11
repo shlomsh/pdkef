@@ -5,6 +5,14 @@
 // method. Manual steps this script does not (and cannot) do are in the
 // refresh procedure (section 6 of the findings doc), not here.
 //
+// LOC-06 added section 3.7 (by locale): pages grouped by URL prefix from
+// src/i18n/localePrefixes.js next to their English sibling, non-Latin
+// queries clustered by detected script instead of the English-intent
+// CLUSTER_PATTERNS below, and a country breakdown for each locale's pilot
+// country (src/i18n/localePrefixes.js's pilotCountry map). The pure logic
+// for all of that lives in scripts/seoRefreshLib.mjs, unit-tested from
+// src/lib/seoRefresh.test.js.
+//
 // Usage:
 //   node scripts/seo-refresh.mjs <path to the "Performance on Search" export folder>
 //
@@ -24,21 +32,13 @@
 // totals are the Pages.csv sums, which are printed here too and are exact.
 import { readFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
-
-function parseCsv(text) {
-  const lines = text.trim().split(/\r?\n/);
-  const header = lines[0].split(',');
-  return lines.slice(1).map((line) => {
-    // These exports never quote fields (no commas inside values), so a
-    // plain split is safe and avoids pulling in a CSV parser dependency.
-    const cells = line.split(',');
-    const row = {};
-    header.forEach((key, i) => {
-      row[key] = cells[i];
-    });
-    return row;
-  });
-}
+import {
+  parseCsv,
+  weightedPosition,
+  groupQueriesByScript,
+  groupPagesByLocale,
+  countryRowForLocale,
+} from './seoRefreshLib.mjs';
 
 async function readCsv(dir, filename) {
   const text = await readFile(join(dir, filename), 'utf8');
@@ -59,13 +59,6 @@ const CLUSTER_PATTERNS = [
   ['unlock', /unlock|password|protect/i],
   ['merge', /merge|combine|gabung/i],
 ];
-
-function weightedPosition(rows) {
-  const impressions = rows.reduce((sum, r) => sum + Number(r.Impressions), 0);
-  if (impressions === 0) return null;
-  const weighted = rows.reduce((sum, r) => sum + Number(r.Position) * Number(r.Impressions), 0);
-  return weighted / impressions;
-}
 
 function fmt(n, digits = 1) {
   return n === null ? '-' : n.toFixed(digits);
@@ -149,6 +142,76 @@ async function main() {
     console.log('| --- | ---: | ---: | ---: | ---: |');
     for (const r of devices) {
       console.log(`| ${r.Device} | ${r.Clicks} | ${r.Impressions} | ${r.CTR} | ${Number(r.Position).toFixed(2)} |`);
+    }
+  }
+
+  // LOC-06: which non-English queries appear at all, and how each localized
+  // page performs against its English sibling. Paste this whole block over
+  // findings doc section 3.7 - replace, do not append, same rule as the
+  // other section 3 tables.
+  console.log('\n### 3.7 By locale\n');
+  console.log(
+    'Same privacy-filter caveat as the by-intent table above, more so here: a locale with only a' +
+      ' handful of impressions has proportionally more of its queries omitted by the privacy filter,' +
+      ' so the query list below is a lower bound on what it actually receives - more than usual, since' +
+      " a small locale's whole query list can sit under the filter's threshold. Pages.csv counts below" +
+      ' are exact, same as the By page table above.\n',
+  );
+
+  const localeGroups = groupPagesByLocale(pages);
+  if (!localeGroups.length) {
+    console.log(
+      'No localized page (a URL under a prefix in src/i18n/localePrefixes.js) appears in Pages.csv this period.\n',
+    );
+  }
+  for (const { prefix, pilotCountry, pages: localePages } of localeGroups) {
+    console.log(`#### /${prefix}/ pages vs. their English sibling\n`);
+    console.log(
+      '| Page | Clicks | Impressions | CTR | Position | English sibling | Sibling clicks | Sibling impressions | Sibling CTR | Sibling position |',
+    );
+    console.log('| --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: |');
+    for (const p of localePages) {
+      const sib = p.sibling;
+      console.log(
+        `| \`${p.path}\` | ${p.clicks} | ${p.impressions} | ${p.ctr} | ${p.position.toFixed(2)} | ` +
+          `${sib ? `\`${sib.path}\`` : `\`${p.siblingPath}\` (no impressions this period)`} | ${
+            sib ? sib.clicks : '-'
+          } | ${sib ? sib.impressions : '-'} | ${sib ? sib.ctr : '-'} | ${sib ? sib.position.toFixed(2) : '-'} |`,
+      );
+    }
+
+    if (pilotCountry) {
+      const countryInfo = countryRowForLocale(countries, prefix);
+      console.log(`\nPilot country for /${prefix}/: ${pilotCountry} (src/i18n/localePrefixes.js's pilotCountry map).`);
+      if (countryInfo?.row) {
+        const r = countryInfo.row;
+        console.log(
+          `${pilotCountry}: ${r.Clicks} clicks, ${r.Impressions} impressions, ${r.CTR} CTR, position ${Number(
+            r.Position,
+          ).toFixed(2)} (from Countries.csv, site-wide - not filtered to /${prefix}/ pages, since Search Console` +
+            ' does not cross-filter Countries.csv by page).',
+        );
+      } else {
+        console.log(`${pilotCountry} has no row in Countries.csv this period (zero, or below the export's threshold).`);
+      }
+    }
+    console.log('');
+  }
+
+  console.log('#### Non-Latin queries, by script\n');
+  console.log(
+    'Every query in Queries.csv is its own row here (not deduplicated across pages), grouped by the' +
+      ' first non-Latin script it contains - the direct test of whether the phrasing LOC-01 predicted' +
+      ' is what actually arrived.\n',
+  );
+  const scriptGroups = groupQueriesByScript(queries);
+  if (!scriptGroups.length) {
+    console.log('No query in Queries.csv this period carries a non-Latin script (see the privacy-filter caveat above).');
+  }
+  for (const { script, rows, clicks, impressions, weightedPosition: wp } of scriptGroups) {
+    console.log(`**${script}** - ${clicks} clicks, ${impressions} impressions, weighted position ${fmt(wp)}:`);
+    for (const r of rows) {
+      console.log(`  - "${r['Top queries']}" - ${r.Clicks} clicks, ${r.Impressions} impressions, position ${r.Position}`);
     }
   }
 }
