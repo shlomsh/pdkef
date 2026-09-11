@@ -106,3 +106,28 @@ snippet means "not yet recrawled", not "the hypothesis was wrong".
 **2026-08-09**, a month before this ticket's 2026-09-10 change. The snippet fix has never been indexed.
 Indexing was requested the same day. Do not read the 2026-10-08 CTR until the indexed title has changed
 (SEO-01 has the full sweep and `npm run seo:crawl-staleness` the instrument).
+
+*Interim signal, 2026-09-11 - logged, not a verdict.* Shlomi's Search Console screenshot (28-day view,
+filtered to the query `file compressor to 100kb`) shows 4 clicks / 95 impressions, 4.2% CTR, avg.
+position 9.4, with the daily trend showing zero clicks before roughly 2026-09-02 and climbing through
+2026-09-07/08. SEO-13's word-for-word capture of this same query from the 2026-09-10 export had it at
+81 impressions, position 9.60, **zero** clicks - so this is real movement, not noise. It predates the fix
+above being indexed (confirmed stale as of today, this same update), so it cannot be attributed to this
+ticket's snippet change or to SEO-13's copy change; log it as a pre-fix baseline for the 2026-10-08
+comparison and re-check whether the climb continues once the indexed snippet actually changes. Folded
+into `docs/seo-competitive-findings.md` section 2.
+
+*Competitive context, 2026-09-11.* Shlomi also supplied a real Google SERP screenshot for
+`compress pdf free online` (mobile, dark mode): top four organic results are iLovePDF ("Compress PDF
+online. Same PDF quality less file size"), PDF24 Tools ("100% free & online... No limits and no
+watermarks", 4.9★/14,951 reviews), Smallpdf ("Reduce PDF File Size with Free Compressor... browser-
+based"), Adobe. **This is not one of this ticket's three target queries** (`compress pdf to 100kb free`,
+`100 compress pdf`, `file compressor to 100kb`) - it's the broader head term, not the 100KB-target
+cluster - so it doesn't close the "rendered SERP for the three queries" acceptance item, but it's a
+useful independent cross-check: the same four players (iLovePDF, PDF24, Smallpdf, Adobe) that the
+DuckDuckGo-proxy sampling on 2026-09-10 found for the target-size queries also show up here on real
+Google, which is some confirmation the proxy sampling wasn't misleading. PDF24's star rating is the one
+new data point - a competitor showing review-count social proof that we deliberately don't fake (CLAUDE.md,
+"do not emit `AggregateRating`" - see section 2 of the findings doc). Real Google screenshots for the
+exact three target queries are still the open item; ask Shlomi for those when convenient rather than
+treating this broader capture as satisfying it.
