@@ -197,7 +197,16 @@ const distDir = path.join(__dirname, '..', 'dist');
 // single-page utilities 124 -> 119). Expect roughly +0.14x per further
 // localized page; a whole nine-tool edition is ~+1.3x and will need its own
 // re-base when it lands.
-const MAX_DUPLICATION_FACTOR = 7.75;
+//
+// Re-based (7.75x -> 9.00x) on 2026-09-11 when LOC-05 published seven Hebrew
+// guides (29 -> 36 pages; /he/offline-pdf-form-filler/ held as draft because
+// its English is a redirect). Measured on main the same day, before the guides:
+// 7.63x, worst-page dead bytes 9,709, single-page utilities 114. With them:
+// 8.81x, 9,709, 114 - the two page-count-invariant ratchets did not move by a
+// byte, and distinct bytes are unchanged at 160,871, so this is the +0.14x per
+// added page predicted above (7 x 0.14 = 0.98; measured +1.18, the guides'
+// content-page sheet being a little heavier than a tool page's).
+const MAX_DUPLICATION_FACTOR = 9.0;
 // Lowered (29,000 -> 27,500) on 2026-08-29 to bank most of two fixes that took
 // /licenses/ from 29,021 (red) to 26,635, neither of which was a style change:
 //   - 905 distinct bytes of utilities were being compiled out of the impeccable

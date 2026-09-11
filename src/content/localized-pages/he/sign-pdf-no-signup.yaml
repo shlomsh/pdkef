@@ -1,6 +1,9 @@
 pageId: 'sign-pdf-no-signup'
 locale: 'he'
-status: 'draft'
+status: 'published'
+reviewer: 'Shlomi Shemesh'
+reviewedAt: '2026-09-11'
+reviewNotes: 'Published 2026-09-11 at the reviewer request, to be reviewed on the live site rather than in a preview build; wording, maqaf and geresh typography still to be checked on the deployed pages.'
 sourceHash: 'fnv1a64:b3bb696d7a4206e2'
 title: 'חתימה על PDF בלי הרשמה | PDkef'
 description: 'חתמו על PDF בלי לפתוח חשבון או למסור אימייל. הבינו את ההבדל בין חתימה אלקטרונית נראית לעין לחתימה דיגיטלית מבוססת תעודה, והורידו את העותק מהמכשיר.'
@@ -10,7 +13,7 @@ kicker: 'בלי חשבון'
 h1: 'חתימה על PDF בלי הרשמה'
 subhead: 'אפשר לבחור PDF, להוסיף חתימה נראית לעין ולהוריד עותק חדש בלי מסך כניסה. חשוב להבדיל בין חתימה אלקטרונית רגילה לבין חתימה דיגיטלית המבוססת על תעודה.'
 primaryCta:
-  href: '/sign/'
+  href: '/he/sign/'
   label: 'חתימה על PDF עכשיו'
 sections:
   - sketch: 'arcs'
@@ -61,7 +64,7 @@ sections:
     blocks:
       - kind: 'steps'
         items:
-          - '<strong>פתחו את <a href="/sign/">Sign &amp; Fill</a></strong> ובחרו או גררו את ה‑PDF.'
+          - '<strong>פתחו את <a href="/he/sign/">Sign &amp; Fill</a></strong> ובחרו או גררו את ה‑PDF.'
           - '<strong>ציירו, הקלידו או העלו חתימה,</strong> והוסיפו טקסט או סימנים נחוצים.'
           - '<strong>הורידו את ה‑PDF החתום.</strong> פתחו אותו ובדקו שהוא עומד בדרישות לפני שליחה.'
 faq:

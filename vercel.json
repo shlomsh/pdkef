@@ -173,6 +173,41 @@
       "source": "/he/sign",
       "destination": "/he/sign/",
       "permanent": true
+    },
+    {
+      "source": "/he/how-to-sign-a-pdf-on-android",
+      "destination": "/he/how-to-sign-a-pdf-on-android/",
+      "permanent": true
+    },
+    {
+      "source": "/he/how-to-sign-a-pdf-on-iphone",
+      "destination": "/he/how-to-sign-a-pdf-on-iphone/",
+      "permanent": true
+    },
+    {
+      "source": "/he/how-to-sign-a-pdf-on-mac",
+      "destination": "/he/how-to-sign-a-pdf-on-mac/",
+      "permanent": true
+    },
+    {
+      "source": "/he/how-to-sign-a-pdf-on-windows",
+      "destination": "/he/how-to-sign-a-pdf-on-windows/",
+      "permanent": true
+    },
+    {
+      "source": "/he/install-pdf-app",
+      "destination": "/he/install-pdf-app/",
+      "permanent": true
+    },
+    {
+      "source": "/he/open-source-pdf-editor",
+      "destination": "/he/open-source-pdf-editor/",
+      "permanent": true
+    },
+    {
+      "source": "/he/sign-pdf-no-signup",
+      "destination": "/he/sign-pdf-no-signup/",
+      "permanent": true
     }
   ]
 }
