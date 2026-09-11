@@ -1,7 +1,7 @@
 ---
 id: "MOBI-01"
 title: "Verify the Android share-sheet round trip on real hardware"
-status: "open"
+status: "blocked"
 priority: "P1"
 epic: "mobile-round-trip"
 phase: "quick-win"
@@ -41,3 +41,8 @@ named Android and Chrome version, tap by tap, with the real total. Any divergenc
 assumed is stated explicitly, and each defect found is filed separately and linked here. If the path
 does not work, say so and say where it breaks; a negative result closes this ticket just as well as a
 positive one, and it is what MOBI-06 needs in order to be worth starting.
+
+## Status 2026-09-11: blocked
+
+Marked blocked by Shlomi on the board cleanup; skipped for now. MOBI-08 stays gated on it. Record the
+reason and what unblocks it here when it is picked back up.

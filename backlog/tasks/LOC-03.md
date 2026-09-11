@@ -137,3 +137,7 @@ switcher were translated on review (`82a88c2`, `5a1af03`). `/he/compress/`, `/he
 the date here.** Per the findings doc, a copy ticket is not done until it is recrawled, and the
 eight-week success read (and [LOC-07](LOC-07.md)'s calibration) counts from that request, not from
 the deploy.
+
+**Indexing requested 2026-09-11** for `/he/compress/`, `/he/merge/` and `/he/sign/` (Shlomi, Search
+Console URL Inspection). The eight-week success read counts from this date: first check at the
+2026-10-08 refresh, through LOC-06's per-locale table; the eight-week mark is 2026-11-06.
