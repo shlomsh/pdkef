@@ -88,14 +88,24 @@ Durable lessons, one line each, newest first. The ticket has the evidence.
   English page. Direct URL fetches like this are a cheap first pass before spending Shlomi's Trends
   screenshot budget on a language - they can rule a phrasing in or out, but never substitute for the
   real `hl`/`gl` SERP. ([LOC-08](../backlog/tasks/LOC-08.md))
-- **In-language search is the norm in most of this site's top countries; India and Israel were the
-  exceptions the "tens of impressions" ceiling was generalised from.** Vietnam, Turkey, Mexico and
-  Italy search the native term at 6x to 20x the English one on Trends; the UAE, Malaysia, India and
-  Israel search in English. Demand was never the blocker: every native SERP is iLovePDF, Smallpdf,
-  PDF24, Adobe and Canva with native pages and six-figure review counts, and a local site already
-  holds the on-device claim in three of them. The rule that survives: **localize the query family this
-  domain already ranks for (target-size compress, blur), never the generic tool page**, and check the
-  related-searches block of the native SERP for that family before building. ([LOC-11](../backlog/tasks/LOC-11.md), decision in [LOC-10](../backlog/tasks/LOC-10.md), pilot in [LOC-13](../backlog/tasks/LOC-13.md))
+- **Page localization, measured across twelve languages (2026-09-11/12): keep the mechanism, build
+  nothing generic, and grow the English base before localizing anything.** Three findings, each
+  the opposite of what the previous one suggested, so read all three. (1) In-language search is the
+  norm, not the exception: Vietnam, Turkey, Mexico and Italy search the native term at 6x to 20x the
+  English one, and Indonesia at parity; India, Israel, Malaysia, the UAE and the Philippines search
+  in English. The "tens of impressions" ceiling that argued for removal was generalised from India
+  and Israel, the two exceptions. (2) Demand was never the blocker. Every native SERP is iLovePDF,
+  Smallpdf, PDF24, Adobe and Canva with native pages and six-figure review counts, a local site
+  already holds the on-device claim in Vietnamese, Spanish and Italian, and GSC by country shows the
+  domain's own foothold is seven clicks across seven countries in a quarter, all English blur queries
+  at positions 30 to 50. (3) The niche we win in English (target-size compress) is below Trends'
+  floor in Spanish and already has dedicated native pages from Pi7, 11zon, Smallpdf and Adobe. So:
+  localize only a query family this domain already ranks for, only where the native SERP for that
+  family is thin, and only once the English number is big enough that a fraction of it is readable.
+  Today that number is about 70 clicks a quarter, which is why LOC-13 is held. Hebrew stays as the
+  one live experiment and reads 2026-11-06. ([LOC-10](../backlog/tasks/LOC-10.md) decision,
+  [LOC-11](../backlog/tasks/LOC-11.md) evidence, [LOC-12](../backlog/tasks/LOC-12.md) re-check,
+  [LOC-13](../backlog/tasks/LOC-13.md) pilot on hold)
 - **On a language Google machine-translates results into, a SERP full of "translated incumbents" is a
   sign of thin native demand, not an opening.** Telugu and Tamil (`hl=te`/`hl=ta`, `gl=IN`) returned
   top tens where nearly every result carried Google's "translated, see original (English)" badge -
