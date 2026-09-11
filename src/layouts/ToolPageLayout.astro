@@ -211,7 +211,12 @@ const variants = Astro.props.variants ?? resolved.variants;
       </p>
     )}
 
-    <main class="!flex !min-h-0 !flex-1 !flex-col !px-4 !pb-4 min-[560px]:!px-6 min-[768px]:!pb-5">
+    {/* !max-w-[1280px] overrides global.css's bare `main { max-width: 1400px }`
+        (still 1400 for every other page type - content guides, licenses,
+        404 - which never asked to match home). Keeps this tool's drop
+        zone/card area the same width as the app bar and hero above it, now
+        that both moved to home's 1280px. */}
+    <main class="!flex !min-h-0 !flex-1 !flex-col !max-w-[1280px] !px-4 !pb-4 min-[560px]:!px-6 min-[768px]:!pb-5">
       <section id="app" class="!my-0 !flex !min-h-0 !w-full !flex-1 !items-center !justify-center min-[1024px]:!items-start min-[1024px]:!justify-start" aria-label={tool.ariaLabel}>
         <slot />
       </section>
