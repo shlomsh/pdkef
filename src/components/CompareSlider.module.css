@@ -1,0 +1,95 @@
+/* Before/after reveal slider (SEO-25). --reveal is written directly by the
+   gesture controller during a drag (CompareSlider.tsx's writeDOM) - never a
+   Tailwind class, since it's a continuous runtime float (CLAUDE.md §3.1). */
+.compare-slider {
+  --reveal: 50%;
+  position: relative;
+  width: 100%;
+  max-width: 32rem;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  background: var(--color-surface-sunken);
+  cursor: ew-resize;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.compare-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+/* The base layer sets the container's intrinsic height (auto), so it's the
+   only non-absolutely-positioned image in the stack. */
+.compare-slider > .compare-image {
+  height: auto;
+}
+
+.compare-after {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 calc(100% - var(--reveal)) 0 0);
+}
+
+.compare-tag {
+  position: absolute;
+  top: 0.6rem;
+  z-index: 1;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-surface);
+  background: rgba(35, 64, 74, 0.68);
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
+}
+
+.compare-tag-after {
+  left: 0.6rem;
+}
+
+.compare-tag-before {
+  right: 0.6rem;
+}
+
+.compare-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--reveal);
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px rgba(35, 64, 74, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.compare-handle:focus-visible .compare-handle-grip {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.compare-handle-grip {
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-primary-text);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

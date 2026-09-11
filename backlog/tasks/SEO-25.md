@@ -41,3 +41,46 @@ part of the default compress flow, and the page-weight budget still applies.
 - Any gesture path routes through `src/editor/`'s controller and passes the golden-rule check.
 - `npm run test:weight` and the CSP `build && preview` pass.
 - Effect on the compress cluster's CTR recorded in the SEO-02 table at the following refresh.
+
+## Implementation (2026-09-11)
+
+**Picked up ahead of its own gate, on Shlomi's explicit instruction.** This ticket's `depends_on`
+(SEO-05, SEO-13) are both `done`, but the second half of the stated gate - "the standings table shows
+what they moved" - has not happened yet: that needs the 2026-10-08 refresh (section 1 of the findings
+doc), same recrawl exposure SEO-05/SEO-13 are themselves still waiting on. Noted here so review isn't
+surprised the gate reads incomplete.
+
+**What shipped.** A before/after reveal slider on `/compress/`, opt-in on every device (a "Compare with
+original" toggle inside the results card; nothing renders until it's tapped - see
+`PdfCompressTool.tsx`'s `handleToggleCompare`). On open it lazily `import()`s `renderComparePreview`
+(new export in `src/lib/thumbnails.js`, 900px page-1 render, `File | Blob` either side) for the original
+file and the compressed `Blob` (kept in a ref, not React state - see the comment there), then renders
+`CompareSlider.tsx`.
+
+The slider's drag is a real gesture, not a toggle: it reuses `src/editor/gestures/controller.ts`'s
+`startGesture` exactly as Sign/Redact's drag/resize do (see `useDraggableElement.js` for the sibling
+pattern) - `computePatch` only computes a clamped 0-100 percent from the pointer position, `writeDOM`
+writes it straight to the `--reveal` CSS custom property on the container (no Preact state per frame),
+and `commit` calls `setPosition` exactly once, on release. Keyboard control (arrows/Home/End) is
+supported as a non-gesture, single-commit-per-keypress path, which needs no golden-rule exemption
+because there's no continuous pointermove involved. `npm run test:gesture-golden-rule` passes.
+
+**Mobile-cost measurement, not just an assumption.** The panel is lazy on *every* device, which already
+satisfies "not by default on mobile" on its own, but "opt-in" is only a real answer if it's still fast
+enough once a visitor does tap it. `e2e/compress/compare-preview.spec.js` opens the panel under 4x CPU
+throttling (CDP `Emulation.setCPUThrottlingRate`, the same multiplier Lighthouse's mobile preset uses)
+at a 390x844 viewport, against a real 4-page fixture PDF: **measured 1.2s** (1178-1206ms across runs)
+from tap to both page-1 previews rendered. That's roughly the cost of one extra page-render at the scale
+`compressPdf`'s "Recommended" tier already used for every page in the document a moment earlier (see the
+comment on `renderComparePreview`), so a device that just finished compressing the whole document can
+afford two more page renders on request.
+
+**Verification.** `npm test` (2140 tests, including new `CompareSlider.test.tsx` and an added
+`PdfCompressTool.test.tsx` case), `npm run test:css`, `npm run test:weight`, `npm run test:seo`,
+`npm run test:csp`, and a manual `build && preview` pass in a real browser (drag confirmed live, network
+tab confirmed `thumbnails.js` only loads after the toggle is tapped, no CSP violations, no new
+`_vercel`/external network calls) all pass. Full numbers in the session report.
+
+**Left for the next refresh (2026-10-08), per acceptance criterion 5**: CTR effect on the
+compress-quality cluster. This needs the same Search Console pull as SEO-05/SEO-13/SEO-04 - see the
+findings doc status board row for SEO-25 rather than duplicating the number here once it exists.

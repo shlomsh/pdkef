@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 import { compressPdf, compressPdfToTarget } from '../lib/compress.js';
 import { useObjectUrls } from '../lib/useObjectUrls.js';
 import BasePdfTool from './BasePdfTool.tsx';
@@ -8,6 +8,7 @@ import PdfShareButton from './PdfShareButton.tsx';
 import ProgressRing from './ProgressRing.tsx';
 import ErrorMessage from './ErrorMessage.tsx';
 import DownloadButton from './DownloadButton.tsx';
+import CompareSlider from './CompareSlider.tsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { describeFile } from '../lib/format.js';
 import { englishCompressMessages, formatMessage, type CompressMessages } from '../i18n/toolMessages';
@@ -50,12 +51,64 @@ export default function PdfCompressTool({ messages: messagesProp }: PdfCompressT
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
 
+  // Before/after preview (SEO-25). The compressed Blob itself never needs to
+  // be state - only its object URL (above) does, for the download link -
+  // but the slider needs the raw bytes to rasterize page 1, so it's kept in
+  // a ref rather than duplicating it into render-triggering state.
+  const compressedBlobRef = useRef<Blob | null>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [comparePreviews, setComparePreviews] = useState<{ before: string; after: string } | null>(null);
+  const [compareStatus, setCompareStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+
   const resetOutput = () => {
     clearPrepared();
     setStatus('idle');
     setProgress(0);
     setCompressedSize(null);
     clearDownload();
+    compressedBlobRef.current = null;
+    setCompareOpen(false);
+    setComparePreviews(null);
+    setCompareStatus('idle');
+  };
+
+  // Renders page 1 of the original and page 1 of the compressed result to
+  // data URLs for the CompareSlider, on demand only.
+  //
+  // Deliberately lazy for every visitor, not gated by a mobile/desktop
+  // check: the panel never renders until this fires, so it already never
+  // "runs by default" anywhere, which is the acceptance bar (SEO-25). A
+  // measured cost still matters, because "opt-in" only helps if the visitor
+  // who *does* tap it isn't left waiting or out of memory on a phone. Per
+  // the comment on `renderComparePreview` (src/lib/thumbnails.js), each
+  // preview costs about one page-render at roughly the same scale the
+  // compressor itself already used for every page in the document that was
+  // just processed on this device - so a device that could compress the
+  // whole document a moment ago can afford two more page renders now. An
+  // emulated-low-end-mobile Playwright run (e2e/compress/compare-preview.spec.js,
+  // 4x CPU throttling, 375x812 viewport) measured this panel opening in
+  // well under a second; see that spec for the recorded number.
+  const handleToggleCompare = async () => {
+    if (compareOpen) {
+      setCompareOpen(false);
+      return;
+    }
+    setCompareOpen(true);
+    if (comparePreviews || compareStatus === 'loading' || !file || !compressedBlobRef.current) return;
+
+    setCompareStatus('loading');
+    try {
+      const { renderComparePreview } = await import('../lib/thumbnails.js');
+      const [before, after] = await Promise.all([
+        renderComparePreview(file),
+        renderComparePreview(compressedBlobRef.current),
+      ]);
+      setComparePreviews({ before, after });
+      setCompareStatus('idle');
+    } catch (err) {
+      console.error(err);
+      setCompareStatus('error');
+    }
   };
 
   const handleFilesAdded = (files: FileList | File[]) => {
@@ -113,6 +166,7 @@ export default function PdfCompressTool({ messages: messagesProp }: PdfCompressT
 
       setCompressedSize(compressedBlob.size);
       setMetTarget(didMeetTarget);
+      compressedBlobRef.current = compressedBlob;
       setDownloadBlob(compressedBlob);
       prepare(compressedBlob, file.name.replace(/\.pdf$/i, '') + '-compressed.pdf');
       setStatus('done');
@@ -342,6 +396,43 @@ export default function PdfCompressTool({ messages: messagesProp }: PdfCompressT
                 <p class={styles['compress-warning']}>
                   {t.rasterizeNotice}
                 </p>
+
+                {/* Opt-in and lazy on every device (see handleToggleCompare) -
+                    a visitor decides for themselves whether the notice above
+                    is a dealbreaker for their document instead of taking our
+                    word for it. */}
+                <button
+                  type="button"
+                  class={styles['compare-toggle-button']}
+                  onClick={handleToggleCompare}
+                  aria-expanded={compareOpen}
+                >
+                  {compareOpen ? 'Hide comparison' : 'Compare with original'}
+                </button>
+
+                {compareOpen && (
+                  <div class={styles['compare-panel']}>
+                    {compareStatus === 'loading' && (
+                      <p class={styles['compare-status']}>Rendering page 1 for comparison…</p>
+                    )}
+                    {compareStatus === 'error' && (
+                      <p class={styles['compare-status']}>Couldn't render a preview for this file.</p>
+                    )}
+                    {comparePreviews && (
+                      <>
+                        <CompareSlider
+                          beforeSrc={comparePreviews.before}
+                          afterSrc={comparePreviews.after}
+                          beforeLabel="Original"
+                          afterLabel="Compressed"
+                        />
+                        <p class={styles['compare-caption']}>
+                          Drag to compare page 1. The rest of the document compresses the same way.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               <DownloadButton

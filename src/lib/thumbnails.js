@@ -90,6 +90,31 @@ export function renderDraftPreview(file) {
   });
 }
 
+/**
+ * The Compress tool's before/after slider (SEO-25) renders page 1 of the
+ * original file next to page 1 of the compressed result, wide enough to
+ * actually show the JPEG artifacting a compression level introduces - the
+ * 150px list thumbnail above is too small to judge quality by. 900px is
+ * roughly the same render cost as one page of `compressPdf`'s own 1.5x
+ * ("Recommended") tier against a standard 612pt-wide page (scale ~= 1.47),
+ * so opening the comparison costs about one extra page-render on top of
+ * what compression itself already did - see PdfCompressTool.tsx for why
+ * that stays affordable even opt-in on a phone.
+ *
+ * Deliberately takes a `File | Blob`, unlike `renderThumbnail`'s File-only
+ * doc comment above: the compressed side is a `Blob` fresh out of
+ * `PDFDocument.save()`, never a `File`, and `arrayBuffer()` is all either
+ * type needs to give pdf.js.
+ *
+ * @param {File | Blob} fileOrBlob
+ * @returns {Promise<string>} data URL
+ */
+export const COMPARE_PREVIEW_WIDTH = 900;
+
+export function renderComparePreview(fileOrBlob) {
+  return renderThumbnail(fileOrBlob, { width: COMPARE_PREVIEW_WIDTH, type: 'image/png' });
+}
+
 export async function renderPdfThumbnails(file, onPageRender) {
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();
