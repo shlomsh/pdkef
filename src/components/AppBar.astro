@@ -1,9 +1,10 @@
 ---
-// Shared suite app bar for tool pages. The brand pill is a back-to-home link
-// (reveals a back arrow on hover) that signals "part of a suite"; the optional
-// breadcrumb is a nav label, NOT the page <h1>. Right side carries a quiet
-// "on-device" privacy badge. Pure inline SVG, no script, so it adds no CSP
-// surface. Uses a logo square + wordmark for the brand pill.
+// Shared app bar for every page, home and tool alike - one toolbar, one
+// geometry. On tool pages the brand link doubles as a back-to-home link and
+// reveals a back arrow on hover; the optional breadcrumb next to it is a nav
+// label, NOT the page <h1>. Right side carries a quiet "on-device" privacy
+// badge. Pure inline SVG, no script, so it adds no CSP surface. Uses a logo
+// square + wordmark for the brand pill.
 //
 // The logo goes through astro:assets rather than a public/ path. It used to be
 // <img src="/favicon.png">, which shipped the 512x512, 150KB master to every
@@ -23,31 +24,34 @@ interface Props {
 }
 const { toolName, isHome = false, labels = {} as AppBarMessages } = Astro.props;
 
-const maxWidthClass = isHome ? 'max-w-[1280px]' : 'max-w-[1400px]';
-
-const brandClasses = isHome
-  ? 'inline-flex items-center gap-[0.55rem] text-[var(--color-text)] no-underline'
-  : 'group inline-flex items-center gap-[0.45rem] rounded-[var(--radius-pill)] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] py-[0.3rem] pe-3 ps-[0.4rem] text-[var(--color-text)] no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-x-px hover:border-[var(--color-border-strong)]';
+// One toolbar geometry and one brand-pill style for every page - home and
+// tool alike - so the only thing that differs page-to-page is the
+// breadcrumb slotted in below. Previously tool pages ran a narrower 1400px
+// bar with a bordered "back" pill and a smaller logo/wordmark than home's
+// plain 1280px one; that made the trust chips sit visibly closer to the
+// viewport edge than on home (measured ~80px vs ~148px of right-side margin
+// at a 1512px viewport) and gave every tool page a second, slightly
+// different-looking header instead of the same one. The hover-reveal back
+// arrow stays tool-pages-only (home has nowhere to "go back" to) but is
+// invisible at rest, so it doesn't change the at-rest look this unifies.
+// (Dropping the pill also drops its ps-/pe- logical padding - there's no
+// longer a bordered box to pad, so nothing here is RTL-direction-sensitive.)
+const brandClasses = 'group inline-flex items-center gap-[0.55rem] text-[var(--color-text)] no-underline';
 ---
 
 <div data-home-bar={isHome || undefined} class="sticky top-0 z-20 border-b-[0.5px] border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_86%,transparent)] backdrop-blur-[10px] backdrop-saturate-[1.2]">
-  <div class={`mx-auto flex h-14 ${maxWidthClass} items-center gap-[0.85rem] px-6 max-[560px]:gap-[0.55rem] max-[560px]:px-4`}>
-    {isHome ? (
-      <a href="/" class={brandClasses} aria-label="PDkef homepage">
-        <Image src={logo} width={32} height={32} densities={[1, 2]} loading="eager" decoding="sync" alt="" aria-hidden="true" class="block shrink-0 rounded-md" />
-        <span class="text-[1.1rem] font-bold">PDkef</span>
-      </a>
-    ) : (
-      <a href="/" class={brandClasses} aria-label={labels.homeAriaLabel ?? 'PDkef home, all tools'}>
+  <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-[0.85rem] px-6 max-[560px]:gap-[0.55rem] max-[560px]:px-4 min-[1024px]:px-8">
+    <a href="/" class={brandClasses} aria-label={isHome ? 'PDkef homepage' : (labels.homeAriaLabel ?? 'PDkef home, all tools')}>
+      {!isHome && (
         <span class="inline-flex w-0 items-center overflow-hidden text-[var(--color-muted-light)] opacity-0 transition-[width,opacity] duration-[180ms] ease-out group-hover:w-4 group-hover:opacity-100" aria-hidden="true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
           </svg>
         </span>
-        <Image src={logo} width={24} height={24} densities={[1, 2]} loading="eager" decoding="sync" alt="" aria-hidden="true" class="block shrink-0 rounded-md" />
-        <span class="text-[0.95rem] font-bold">PDkef</span>
-      </a>
-    )}
+      )}
+      <Image src={logo} width={32} height={32} densities={[1, 2]} loading="eager" decoding="sync" alt="" aria-hidden="true" class="block shrink-0 rounded-md" />
+      <span class="text-[1.1rem] font-bold">PDkef</span>
+    </a>
 
     {toolName && (
       <span class="inline-flex min-w-0 items-center gap-[0.35rem] text-[0.85rem] font-semibold text-[var(--color-muted)]">
