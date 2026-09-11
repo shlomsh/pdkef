@@ -31,7 +31,7 @@ all of it (section 6).
 | --- | --- | --- | --- | --- |
 | SEO-01 baseline, `lastmod`, indexing requests | done | 2026-09-11 | 27 URLs tracked, 11 indexed, 9 never crawled; `lastmod` shipped; **9 of the 11 indexed pages are stale** (crawled before their last content change); indexing requested for all 9 stale + all 9 never-crawled | 2026-10-08: recapture `seo-last-crawled.json`, see whether the requested URLs moved and whether `/merge/` and `/unlock/` (not requested) moved too |
 | SEO-02 standings + refresh procedure | done | 2026-09-10 | `seo-refresh.mjs` reproduces section 3 from an export; procedure in section 6 | monthly |
-| SEO-03 external signals | open | | not started; no referring-domain baseline yet | needs a first venue list |
+| SEO-03 external signals | open, in progress | 2026-09-11 | repo-side work done: description/homepage/topics fixed on GitHub, README's language paragraph corrected from 11 to the real 20; referring-domain baseline still not captured; venue list in [section 8](#8-reference-seo-03-venue-list-and-outreach-log) | needs outreach on the listed venues, plus a referring-domain count at the next refresh |
 | SEO-04 blur zero-click | open, blocked on a recrawl | 2026-09-11 | meta rewritten 09-10; real SERP captured 09-11 shows Google serving the pre-08-29 title, so the change has never been seen; AI Overview cites us on 2 of 3 queries (zero-click by design); recrawl requested | 2026-10-08: first check whether the indexed title changed; only then is CTR a verdict |
 | SEO-05 compress CTR + honesty | open, same recrawl exposure | 2026-09-10 | meta now leads with the honest miss ("if it can't hit the target, we say so"); rasterization + passthrough disclosed above the FAQ; interim signal 2026-09-11: `file compressor to 100kb` got its first clicks (4/95, 4.2% CTR) but this predates the fix being indexed, not a verdict yet | same first check as SEO-04 |
 | SEO-06 never-crawled nine | open | 2026-09-11 | nine linked from `/redact/` and `/compress/`; `/image-to-pdf/` and `/pdf-to-image/` leads differentiated; `/edit-pdf/` got no content work (descoped, not done) | 2026-10-08 coverage recheck = **the Week 4 gate** |
@@ -382,3 +382,45 @@ that actually rank - and found that a prior ticket (SEO-07) had already shipped 
 would have proposed. It said so, with the evidence for each "already correct" verdict, rather than
 inventing a copy change to have something to ship. The next four reviews should read this as permission
 to reach the same conclusion where it is true.
+
+---
+
+## 8. Reference: SEO-03 venue list and outreach log
+
+Kept here rather than in the ticket, per SEO-03's own acceptance line: this is a living list re-checked
+at every refresh (like section 3), not a diagnosis with a shelf life (like a ticket's own narrative).
+Update in place; do not append a new list each pass.
+
+### Done (2026-09-11)
+
+- **The GitHub repo itself.** Description rewritten from Merge-only to the full nine-tool suite;
+  homepage corrected from the `pdkef.vercel.app` preview domain to `https://pdkef.com`; 15 topics added
+  (there were none): `pdf`, `pdf-tools`, `pdf-editor`, `pdf-merge`, `pdf-signer`, `client-side`,
+  `privacy`, `privacy-tools`, `offline-first`, `static-site`, `astro`, `preact`, `webassembly`,
+  `open-source`, `pwa`. README's language paragraph corrected from naming 11 languages to the real 20
+  (`src/data/tools.js`'s `languages.supported` array) - it had gone stale as scripts shipped and was
+  undercounting the product's own strongest differentiator. Full change: [SEO-03](../backlog/tasks/SEO-03.md#implementation-2026-09-11).
+- **Release history** - not started. No tags or GitHub releases exist (`git tag` shows only three
+  `archive/*` branches-as-tags; `gh release list` is empty). Next increment for this ticket.
+
+### Candidate venues, not yet approached
+
+Each needs a real outreach action (a submission, a post, a PR to a list) that this pass did not take -
+posting to a third party is scoped separately from the repo-metadata work above. Entry criteria are
+checked against what is true today; "met" does not mean submitted.
+
+| Venue | Entry criteria | Met? | Status |
+| --- | --- | --- | --- |
+| awesome-selfhosted / awesome-privacy-tools style lists | Open source, works without an account, active repo | Yes | Not yet submitted - needs a PR against each list's own contribution format |
+| AlternativeTo.net | Real, working product with a URL | Yes | Not yet listed |
+| Product Hunt | Live product, real launch post | Yes | Not yet launched |
+| r/privacy, r/opensource, r/selfhosted (Reddit) | Honest disclosure of authorship, no drive-by link | Yes, if posted as "I built this" rather than a plain link | Not yet posted |
+| Hacker News (Show HN) | Working product, genuine "I built this" framing | Yes | Not yet posted |
+| Privacy Guides community (discourse/forum) | On-topic privacy tool, disclosed authorship | Yes | Not yet posted |
+
+### Not yet measured
+
+- **Referring-domain count** - no baseline captured yet. Needs a run at the next monthly refresh
+  (section 6) alongside the Search Console pull, once a tool for it is picked (Bing Webmaster Tools'
+  free backlink report is the most likely candidate available from this environment; confirm before
+  relying on it).
