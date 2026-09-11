@@ -34,7 +34,7 @@ const distDir = path.join(__dirname, '..', 'dist');
  * grows in small increments. The JS is the half that regresses violently and
  * silently: one static import that should have been dynamic pulls a PDF library
  * into the island chunk, and nothing here would have said a word. This codebase
- * already has form on exactly that axis (see CLAUDE.md on vite.optimizeDeps and
+ * already has form on exactly that axis (see docs/troubleshooting.md on vite.optimizeDeps and
  * the dynamic-import cascade).
  *
  * "Eagerly referenced" starts from every /_astro/*.js the built HTML names
@@ -115,7 +115,7 @@ const distDir = path.join(__dirname, '..', 'dist');
 // the Languages card work; then Punjabi, Telugu and Tamil landed, and each new
 // language is a card entry whose note explains what actually works in that
 // script - the Punjabi and Telugu ones also have to explain why the font is
-// not that script's Noto face (see CLAUDE.md's font section). That is 728
+// not that script's Noto face (see .claude/rules/fonts-and-text.md). That is 728
 // bytes brotli of static, crawlable copy on the one page it belongs on, which
 // is the SEO surface earning its keep rather than a regression.
 //

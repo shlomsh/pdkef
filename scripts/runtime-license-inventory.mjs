@@ -21,7 +21,7 @@ export const APPROVED_RUNTIME_LICENSES = new Set([
 // dependency trees are build-only and deliberately not traversed below.
 // @vercel/functions is the same shape of exception for a different reason:
 // it never reaches the browser at all. It backs middleware.ts, which Vercel
-// deploys and runs on its own Edge Runtime at request time (see CLAUDE.md's
+// deploys and runs on its own Edge Runtime at request time (see .claude/rules/routing-and-pages.md's
 // "Markdown content negotiation" section) - so it belongs in this reviewed
 // list (Apache-2.0, approved), but its own dependency tree (OIDC, its CLI
 // helpers) is edge/deploy tooling, not "browser-shipped JavaScript" this

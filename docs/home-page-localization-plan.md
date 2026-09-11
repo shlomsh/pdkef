@@ -1,3 +1,5 @@
+> **Note:** the `CLAUDE.md` "UI & State Invariants" section cited below now lives in `.claude/rules/home-page.md`.
+
 # Home page (`/`) localization design
 
 Date: 2026-09-11. Scope: localizing the marketing home page (`/`, `src/pages/index.astro`) into Hebrew

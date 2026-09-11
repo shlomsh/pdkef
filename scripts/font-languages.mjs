@@ -195,7 +195,7 @@ const DEVANAGARI_VOWELS = 'अआइईउऊऋएऐओऔ';
 // sentence uses; see the REPORT BACK notes for the measured numbers. Mukta
 // (FONT-08a, upright, added alongside Kalam) also reads "full" against this
 // same exclusion - measured separately, not inherited from Kalam's result,
-// per the catalogue-is-ours-to-curate rule (CLAUDE.md).
+// per the catalogue-is-ours-to-curate rule (.claude/rules/fonts-and-text.md).
 const DEVANAGARI_CONSONANTS = rangeOf(0x0915, 0x0939)
   .filter((cp) => cp !== 0x0929 && cp !== 0x0934)
   .map((cp) => String.fromCodePoint(cp))
@@ -227,7 +227,7 @@ const THAI_DIGITS = '๐๑๒๓๔๕๖๗๘๙';
 // src/data/tools.js's Sign languages card states the kanji scope (jōyō +
 // jinmeiyō, 2,999 characters, via the bundled Noto Sans JP subset) as prose
 // rather than as something this report measures - it cannot verify a claim
-// it has no data to check, and README/CLAUDE.md say so plainly instead of
+// it has no data to check, and README and the Sign languages card say so plainly instead of
 // letting "full" imply more than kana.
 const JAPANESE_HIRAGANA = rangeOf(0x3041, 0x3096).map((cp) => String.fromCodePoint(cp)).join('');
 const JAPANESE_KATAKANA = [...rangeOf(0x30a1, 0x30fa), 0x30fc].map((cp) => String.fromCodePoint(cp)).join(''); // ァ..ヺ + ー (prolonged sound mark)
@@ -257,7 +257,7 @@ const BENGALI_DIGITS = '০১২৩৪৫৬৭৮৯';
 // The two letters that distinguish Assamese from Bengali proper - RA (ৰ,
 // replacing র) and VA (ৱ). Kept separate from BENGALI_* rather than folded
 // in, so "covers Bengali" and "covers Assamese" stay two different claims -
-// see CLAUDE.md's Bengali entry for why this line exists at all.
+// see the Bengali entry in .claude/rules/fonts-and-text.md for why this line exists at all.
 const ASSAMESE_EXTRA_LETTERS = 'ৰৱ';
 
 // Korean: every modern Hangul syllable (U+AC00-U+D7A3, 11,172 precomposed

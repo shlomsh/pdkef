@@ -1,3 +1,5 @@
+> **Status: stale on current state (all three layers it calls "open" shipped).** Kept because source comments cite its analysis; the verified-from-code map is [docs/wysiwyg-text-architecture.md](./wysiwyg-text-architecture.md). The `CLAUDE.md` font rules it refers to now live in `.claude/rules/fonts-and-text.md`.
+
 # Hebrew text in the PDF export
 
 The design record for why exported Hebrew does not match what the Sign editor shows. Opened 2026-08-21

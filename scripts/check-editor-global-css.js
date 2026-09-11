@@ -10,8 +10,8 @@ const globalCssPath = path.join(__dirname, '..', 'src', 'styles', 'global.css');
 // future tool built on src/editor/) must keep 0 of its own classes in the
 // global stylesheet. E2.3/E2.4 already emptied Sign's and Redact's; this set
 // must stay empty. Do not add a selector here - move it into the owning
-// component's CSS Module instead (see CLAUDE.md Part II §3.1's styling
-// boundary and CLAUDE.md's "Styling direction" section).
+// component's CSS Module instead (see .claude/rules/styling.md: the styling
+// boundary and "Styling direction" sections).
 const allowedEditorClasses = new Set();
 
 const css = fs.readFileSync(globalCssPath, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
