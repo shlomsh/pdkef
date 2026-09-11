@@ -19,7 +19,14 @@ removing anything and spend more time on research before we make the final decis
 removed; the agent had not committed. This ticket now holds the decision, and it is **blocked on
 [LOC-11](LOC-11.md)**, which measures the top languages behind the site's top twenty countries
 (Vietnamese, Turkish, Spanish, Italian, Arabic, Filipino, Bengali, Urdu). The cost side below is
-measured and does not change; the demand side is what LOC-11 adds. Decide here when it reports.
+measured and does not change; the demand side is what LOC-11 adds.
+
+**LOC-11 reported the same day, and the demand premise below is refuted.** Vietnam, Turkey, Mexico
+and Italy search natively at 6x to 20x the English term; India, Israel, Malaysia and the UAE are the
+exceptions the "tens of impressions" ceiling was generalised from. The field premise holds (every
+native SERP is the majors, natively, with the on-device claim already taken by a local site in three
+of them). Recommendation in LOC-11: **keep the mechanism, do not localize generic tool pages, pilot
+one localized target-size compress page in one strong market.** Awaiting Shlomi's confirmation.
 
 ## The case for removal, as made on 2026-09-12
 

@@ -142,6 +142,75 @@ language or in English.
    result, only how-to articles, that is the one kind of opening consistent with where this domain
    already ranks. Report what shows, not a volume.
 
+## Evidence, 2026-09-12 (Shlomi's Trends and SERP screenshots, same day)
+
+**Trends, twelve months, native terms against the English yardstick (average bars, read off the charts):**
+
+| Country | Task | English | Native | Ratio |
+| --- | --- | --- | --- | --- |
+| Vietnam | compress | `compress pdf` ~6 | `nén pdf` ~72, `nén file pdf` ~60, `giảm dung lượng pdf` ~30 | ~12x |
+| Vietnam | merge | `merge pdf` ~7 | `ghép pdf` ~80, `ghép file pdf` ~70, `gộp file pdf` ~20 | ~11x |
+| Vietnam | sign | `sign pdf` ~8 | `ký pdf` ~50, `ký file pdf` ~24, `chữ ký pdf` ~18 | ~6x |
+| Turkey | compress | ~6 | `pdf küçültme` ~77, `pdf sıkıştırma` ~15 | ~13x |
+| Turkey | sign | `sign pdf` ~38 | `pdf imza` ~30, `pdf imzalama` ~2 | parity |
+| Mexico | compress | ~5 | `comprimir pdf` ~65, `reducir pdf` ~13 | ~13x |
+| Mexico | merge | ~4 | `unir pdf` ~78, `juntar pdf` ~13 | ~20x |
+| Italy | compress | ~11 | `comprimi pdf` ~74, `ridurre pdf` ~19, `comprimere pdf` ~17 | ~7x |
+| UAE | compress | `compress pdf` ~78 | `ضغط pdf` ~8, `ضغط ملف pdf` ~6 | English 10x |
+| UAE | merge | `merge pdf` ~83 | `دمج pdf` ~5, `دمج ملفات pdf` ~4 | English 17x |
+
+**This refutes the premise LOC-10's removal case rested on.** "The ceiling is tens of impressions" was
+generalised from India and Israel, which turn out to be the exceptions: in Vietnam, Turkey, Mexico and
+Italy the native term is the market and the English term is the rounding error. Shlomi's intuition
+("users will use their own language for search") holds for most of the top twenty; India, Israel,
+Malaysia and the UAE (an expat market) are where it does not.
+
+**SERPs, native primary term, desktop.** No Google-translated backfill on any of them; these fields
+are full of real native pages.
+
+| Query | Top ten | Read |
+| --- | --- | --- |
+| `nén pdf` (VN) | iLovePDF (native `/giam-dung-luong-pdf`), Smallpdf (511,392 reviews), PDF24 (14,955), FreePDFConvert, imagestool (native VN), Canva, Adobe, WPS; AI Overview; YouTube images. Related searches all Vietnamese, including `Nén PDF dưới 2MB`. | Majors native, six-figure review counts. |
+| `ghép file pdf` (VN) | iLovePDF, Smallpdf (703,341), PDF24 (24,060), **O.Convertor at 4 with "Xử Lý Cục Bộ, file không cần upload"** (local processing, no upload), Canva, PDFStuff, FreePDFConvert, CleverPDF, CellphoneS blog. | The on-device claim is already taken in Vietnamese. |
+| `pdf küçültme` (TR) | iLovePDF, Smallpdf (511,392), PDF24, PDF Guru (35,139), Adobe, Xodo, PDF Candy (211,139), pdfforge, i2PDF, Duplichecker. Related: `PDF küçültme 10 MB`, `PDF küçültme 5 MB`, `PDF küçültme 80`. | Majors native. **Target-size demand visible in the related block.** |
+| `comprimir pdf` (MX) | iLovePDF, Adobe, Smallpdf (511,392), PDF24, PDFSmart, compress2go, AvePDF, PDFgear (10,143), Canva, PDF House. Related: `Comprimir PDF a 1mb`, `a 2MB`, `a 2MB gratis`, `al máximo`. | Same, plus **target-size demand**. |
+| `unir pdf` (MX) | iLovePDF, Smallpdf (703,341), **UnePDF.com at 3: "Sin subir archivos, tus archivos nunca salen de tu dispositivo"**, PDF24, CamScanner, PDFgear, Adobe, PDFChef, Sejda. | The on-device claim is already at position 3 in Spanish. |
+| `comprimi pdf` (IT) | iLovePDF (`/comprimere_pdf`), PDF24 (`/comprimi-pdf`), Adobe, Smallpdf, Canva, Foxit, PDFescape, **regispro.it: "no uploading to servers, no account required"**, Wondershare, Xodo. (Screenshot was Chrome-translated to English; the slugs are Italian, all native pages.) | Same, and the on-device claim is taken here too. |
+| `دمج pdf` (AE) | iLovePDF, FreePDFConvert, Jotform, AvePDF, PDFAid, Smallpdf (703,341), Subformer, pdf2go, PDF Candy (666,765), WPS. | Native Arabic field, but the demand is English in the UAE. |
+| `paano mag compress ng pdf` (PH) | AI Overview in Filipino, Adobe (Filipino), **pdf2go `/fil/` (27,337 reviews)**, piliapp `tl.`, PrintFriendly, compress2go `/fil/`, two English YouTube videos. | The incumbent probe above was too narrow: a real Filipino field exists on the second tier. Trends not run yet. |
+| `pdf সংকোচন` (BD) | PDF24 (native), Xodo (native), 11zon, pdf2go, PrintFriendly, miniimagesvideos, rakko.tools, omnipdfsuite, all Bengali pages; AI answer. **Related searches all Bengali, including `পিডিএফ কম্প্রেসার 100`.** | Unlike Telugu, the related block is in the language. Trends not run yet. |
+
+**Per-language verdict (criterion 1 / 2 / 3 against the decision rule):**
+
+| Language | 1. Trends share | 2. Weak incumbent to beat | 3. Reviewer | Verdict |
+| --- | --- | --- | --- | --- |
+| Vietnamese | **Cleared, 6x to 12x** on compress, merge, sign | **Not met**: majors native, six-figure reviews, on-device claim already held by O.Convertor | None | Demand yes, generic tool page no (Indonesian's shape) |
+| Turkish | **Cleared** on compress (13x); sign at parity | **Not met**: same field; target-size related searches (`5 MB`, `10 MB`, `80`) are the opening | None | Same; **strongest niche signal** |
+| Spanish | **Cleared, 13x to 20x** | **Not met**: iLovePDF's home language; UnePDF holds the on-device claim at 3; `a 1MB / a 2MB` related searches | Easiest to source | Same; **easiest niche pilot to staff** |
+| Italian | **Cleared, 7x**; not on Google's translated-results list, so a native page adds the most | **Not met**: same field, regispro.it holds the on-device claim | Sourceable | Same |
+| Arabic (UAE) | **Fails**: English 10x to 17x | Native field, moot | | **No** for the UAE; Egypt and Saudi unmeasured and not in the top twenty |
+| Filipino | Not run | A second-tier native field exists (pdf2go, piliapp, compress2go) | | Open; run the Trends chart before deciding |
+| Bengali | Not run | One major (PDF24) plus second-tier native pages; related searches in Bengali | | Open; run the Trends chart before deciding |
+| Urdu | Not run | | | Not run |
+
+## Recommendation to LOC-10 (2026-09-12)
+
+1. **Keep the mechanism.** The removal case's demand premise was wrong; the maintenance cost is real
+   and is accepted knowingly.
+2. **Do not localize a generic tool page into a new language.** LOC-07's lesson now has four more
+   confirmations: the native `compress` and `merge` SERPs are the field this domain loses to in English,
+   and the on-device differentiator is already claimed by a local site in Vietnamese, Spanish and
+   Italian.
+3. **Pilot the niche this domain already wins.** Target-size compression (`file compressor to 100kb`
+   at 9.4, the site's best-converting query) shows up in the related-searches block of every strong
+   market (`PDF küçültme 5 MB`, `comprimir pdf a 1MB`, `nén PDF dưới 2MB`, `পিডিএফ কম্প্রেসার 100`) and
+   the majors do not build those pages. One localized target-size page, one market, a paid native
+   reviewer, the SEO-17 rule applied (name the real portal limit behind the number, or do not build),
+   eight weeks before a second. Spanish (Mexico) is the easiest to staff; Turkish has the clearest
+   target-size cluster.
+4. **Hebrew stays as is** and reads at LOC-03's date (2026-11-06). It is the weakest demand case of
+   everything measured; LOC-09 waits.
+
 ## The ROI gate (goes into the findings doc section 2 with the decision)
 
 Reopen or keep page localization for a language only when **both** hold:
@@ -149,9 +218,10 @@ Reopen or keep page localization for a language only when **both** hold:
 - **Demand:** in-language search volume for the anchor tasks (or for the niche queries we win) of the
   order of the English page's own traffic from that country, on Trends and visible as in-language
   queries in GSC. Hebrew never met this; Indonesian did.
-- **Field:** an English tool page already ranks in the top ten in that country on its own query, so the
-  domain has shown it can compete in that field before a native edition asks it to. Indonesian never
-  met this.
+- **Field:** an English page of ours already ranks in the top ten on the *same kind of query* (not the
+  same language), so the domain has shown it can compete in that field before a native edition asks it
+  to. Generic compress/merge: never met, in any language. Target-size compress: met in English
+  (`file compressor to 100kb`, position 9.4), which is why the niche is the only pilot on the table.
 
 A language on Google's translated-results list needs a stronger case on both, because the English page
 already reaches its searchers.
