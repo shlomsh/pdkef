@@ -220,6 +220,53 @@ are full of real native pages.
 4. **Hebrew stays as is** and reads at LOC-03's date (2026-11-06). It is the weakest demand case of
    everything measured; LOC-09 waits.
 
+## For Shlomi, round two (2026-09-12): the missing data
+
+**A. Spanish target-size, the pilot's own term choice** (`geo=MX`, `hl=es&gl=MX`)
+
+- Trends: [comprimir pdf a 1mb / a 2mb / a 500 kb / reducir pdf a 1mb / comprimir pdf al máximo](https://trends.google.com/trends/explore?date=today%2012-m&geo=MX&q=comprimir%20pdf%20a%201mb,comprimir%20pdf%20a%202mb,comprimir%20pdf%20a%20500%20kb,reducir%20pdf%20a%201mb,comprimir%20pdf%20al%20m%C3%A1ximo&hl=en)
+- Trends, the yardstick: [comprimir pdf / comprimir pdf a 1mb / comprimir pdf a 2mb / comprimir pdf al máximo / reducir tamaño pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=MX&q=comprimir%20pdf,comprimir%20pdf%20a%201mb,comprimir%20pdf%20a%202mb,comprimir%20pdf%20al%20m%C3%A1ximo,reducir%20tama%C3%B1o%20pdf&hl=en)
+- SERP: [comprimir pdf a 2mb](https://www.google.com/search?q=comprimir%20pdf%20a%202mb&hl=es&gl=MX)
+- SERP: [comprimir pdf a 1mb](https://www.google.com/search?q=comprimir%20pdf%20a%201mb&hl=es&gl=MX)
+- SERP: [comprimir pdf a 500 kb](https://www.google.com/search?q=comprimir%20pdf%20a%20500%20kb&hl=es&gl=MX)
+- SERP: [reducir tamaño pdf a 1mb](https://www.google.com/search?q=reducir%20tama%C3%B1o%20pdf%20a%201mb&hl=es&gl=MX)
+- Same term in Spain, to see if one page could serve both: [comprimir pdf a 2mb, geo=ES](https://trends.google.com/trends/explore?date=today%2012-m&geo=ES&q=comprimir%20pdf,comprimir%20pdf%20a%201mb,comprimir%20pdf%20a%202mb,comprimir%20pdf%20al%20m%C3%A1ximo,reducir%20tama%C3%B1o%20pdf&hl=en) · [SERP hl=es&gl=ES](https://www.google.com/search?q=comprimir%20pdf%20a%202mb&hl=es&gl=ES)
+
+**B. GSC per-country queries and positions, 3 months** (if a link opens without the country filter, add it by hand: Countries tab, then the country)
+
+- [Vietnam](https://search.google.com/search-console/performance/search-analytics?resource_id=sc-domain%3Apdkef.com&num_of_months=3&breakdown=query&country=VNM)
+- [Turkey](https://search.google.com/search-console/performance/search-analytics?resource_id=sc-domain%3Apdkef.com&num_of_months=3&breakdown=query&country=TUR)
+- [Mexico](https://search.google.com/search-console/performance/search-analytics?resource_id=sc-domain%3Apdkef.com&num_of_months=3&breakdown=query&country=MEX)
+- [Italy](https://search.google.com/search-console/performance/search-analytics?resource_id=sc-domain%3Apdkef.com&num_of_months=3&breakdown=query&country=ITA)
+- [Philippines](https://search.google.com/search-console/performance/search-analytics?resource_id=sc-domain%3Apdkef.com&num_of_months=3&breakdown=query&country=PHL)
+- [United Arab Emirates](https://search.google.com/search-console/performance/search-analytics?resource_id=sc-domain%3Apdkef.com&num_of_months=3&breakdown=query&country=ARE)
+- [Bangladesh](https://search.google.com/search-console/performance/search-analytics?resource_id=sc-domain%3Apdkef.com&num_of_months=3&breakdown=query&country=BGD)
+- [Spain](https://search.google.com/search-console/performance/search-analytics?resource_id=sc-domain%3Apdkef.com&num_of_months=3&breakdown=query&country=ESP)
+
+**C. Filipino Trends** (`geo=PH`; the code-switched forms are the ones LOC-01 saw in the wild, so English is expected to lead, and the question is by how much)
+
+- Compress: [compress pdf / i-compress ang pdf / paano mag compress ng pdf / compress ng pdf / pdf compressor](https://trends.google.com/trends/explore?date=today%2012-m&geo=PH&q=compress%20pdf,i-compress%20ang%20pdf,paano%20mag%20compress%20ng%20pdf,compress%20ng%20pdf,pdf%20compressor&hl=en)
+- Merge: [merge pdf / pagsamahin ang pdf / paano mag merge ng pdf / pagsama sama ng pdf / pdf merger](https://trends.google.com/trends/explore?date=today%2012-m&geo=PH&q=merge%20pdf,pagsamahin%20ang%20pdf,paano%20mag%20merge%20ng%20pdf,pagsama%20sama%20ng%20pdf,pdf%20merger&hl=en)
+- Sign: [sign pdf / pumirma sa pdf / paano mag sign sa pdf / lagdaan ang pdf / e-signature pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=PH&q=sign%20pdf,pumirma%20sa%20pdf,paano%20mag%20sign%20sa%20pdf,lagdaan%20ang%20pdf,e-signature%20pdf&hl=en)
+- PDF to JPG: [pdf to jpg / gawing jpg ang pdf / paano gawing jpg ang pdf / pdf to jpg converter / pdf to picture](https://trends.google.com/trends/explore?date=today%2012-m&geo=PH&q=pdf%20to%20jpg,gawing%20jpg%20ang%20pdf,paano%20gawing%20jpg%20ang%20pdf,pdf%20to%20jpg%20converter,pdf%20to%20picture&hl=en)
+
+**D. Bengali Trends** (`geo=BD`; terms from PDF24's Bengali titles and the related-searches block you captured)
+
+- Compress: [compress pdf / pdf সংকোচন / পিডিএফ কম্প্রেসার / পিডিএফ ফাইল ছোট করার নিয়ম / pdf ছোট করা](https://trends.google.com/trends/explore?date=today%2012-m&geo=BD&q=compress%20pdf,pdf%20%E0%A6%B8%E0%A6%82%E0%A6%95%E0%A7%8B%E0%A6%9A%E0%A6%A8,%E0%A6%AA%E0%A6%BF%E0%A6%A1%E0%A6%BF%E0%A6%8F%E0%A6%AB%20%E0%A6%95%E0%A6%AE%E0%A7%8D%E0%A6%AA%E0%A7%8D%E0%A6%B0%E0%A7%87%E0%A6%B8%E0%A6%BE%E0%A6%B0,%E0%A6%AA%E0%A6%BF%E0%A6%A1%E0%A6%BF%E0%A6%8F%E0%A6%AB%20%E0%A6%AB%E0%A6%BE%E0%A6%87%E0%A6%B2%20%E0%A6%9B%E0%A7%8B%E0%A6%9F%20%E0%A6%95%E0%A6%B0%E0%A6%BE%E0%A6%B0%20%E0%A6%A8%E0%A6%BF%E0%A6%AF%E0%A6%BC%E0%A6%AE,pdf%20%E0%A6%9B%E0%A7%8B%E0%A6%9F%20%E0%A6%95%E0%A6%B0%E0%A6%BE&hl=en)
+- Merge: [merge pdf / pdf একত্রিত / পিডিএফ মার্জ / pdf যুক্ত করা / pdf জোড়া](https://trends.google.com/trends/explore?date=today%2012-m&geo=BD&q=merge%20pdf,pdf%20%E0%A6%8F%E0%A6%95%E0%A6%A4%E0%A7%8D%E0%A6%B0%E0%A6%BF%E0%A6%A4,%E0%A6%AA%E0%A6%BF%E0%A6%A1%E0%A6%BF%E0%A6%8F%E0%A6%AB%20%E0%A6%AE%E0%A6%BE%E0%A6%B0%E0%A7%8D%E0%A6%9C,pdf%20%E0%A6%AF%E0%A7%81%E0%A6%95%E0%A7%8D%E0%A6%A4%20%E0%A6%95%E0%A6%B0%E0%A6%BE,pdf%20%E0%A6%9C%E0%A7%8B%E0%A6%A1%E0%A6%BC%E0%A6%BE&hl=en)
+- Sign: [sign pdf / pdf সই / পিডিএফ সাইন / pdf স্বাক্ষর / pdf তে সই](https://trends.google.com/trends/explore?date=today%2012-m&geo=BD&q=sign%20pdf,pdf%20%E0%A6%B8%E0%A6%87,%E0%A6%AA%E0%A6%BF%E0%A6%A1%E0%A6%BF%E0%A6%8F%E0%A6%AB%20%E0%A6%B8%E0%A6%BE%E0%A6%87%E0%A6%A8,pdf%20%E0%A6%B8%E0%A7%8D%E0%A6%AC%E0%A6%BE%E0%A6%95%E0%A7%8D%E0%A6%B7%E0%A6%B0,pdf%20%E0%A6%A4%E0%A7%87%20%E0%A6%B8%E0%A6%87&hl=en)
+- PDF to JPG: [pdf to jpg / pdf কে jpg / পিডিএফ টু জেপিজি / pdf থেকে jpg / পিডিএফ কনভার্টার](https://trends.google.com/trends/explore?date=today%2012-m&geo=BD&q=pdf%20to%20jpg,pdf%20%E0%A6%95%E0%A7%87%20jpg,%E0%A6%AA%E0%A6%BF%E0%A6%A1%E0%A6%BF%E0%A6%8F%E0%A6%AB%20%E0%A6%9F%E0%A7%81%20%E0%A6%9C%E0%A7%87%E0%A6%AA%E0%A6%BF%E0%A6%9C%E0%A6%BF,pdf%20%E0%A6%A5%E0%A7%87%E0%A6%95%E0%A7%87%20jpg,%E0%A6%AA%E0%A6%BF%E0%A6%A1%E0%A6%BF%E0%A6%8F%E0%A6%AB%20%E0%A6%95%E0%A6%A8%E0%A6%AD%E0%A6%BE%E0%A6%B0%E0%A7%8D%E0%A6%9F%E0%A6%BE%E0%A6%B0&hl=en)
+- Bengali SERP, merge and sign on PDF24's terms: [pdf একত্রিত](https://www.google.com/search?q=pdf%20%E0%A6%8F%E0%A6%95%E0%A6%A4%E0%A7%8D%E0%A6%B0%E0%A6%BF%E0%A6%A4&hl=bn&gl=BD) · [pdf সই](https://www.google.com/search?q=pdf%20%E0%A6%B8%E0%A6%87&hl=bn&gl=BD)
+
+**E. Vietnamese blur, to separate blur from watermark and unblur** (`geo=VN`)
+
+- Trends: [làm mờ pdf / làm mờ chữ trong pdf / chèn hình mờ vào pdf / làm rõ file pdf bị mờ / che thông tin pdf](https://trends.google.com/trends/explore?date=today%2012-m&geo=VN&q=l%C3%A0m%20m%E1%BB%9D%20pdf,l%C3%A0m%20m%E1%BB%9D%20ch%E1%BB%AF%20trong%20pdf,ch%C3%A8n%20h%C3%ACnh%20m%E1%BB%9D%20v%C3%A0o%20pdf,l%C3%A0m%20r%C3%B5%20file%20pdf%20b%E1%BB%8B%20m%E1%BB%9D,che%20th%C3%B4ng%20tin%20pdf&hl=en)
+- SERP on the blur-only phrasing: [làm mờ chữ trong pdf](https://www.google.com/search?q=l%C3%A0m%20m%E1%BB%9D%20ch%E1%BB%AF%20trong%20pdf&hl=vi&gl=VN) · [che thông tin trong pdf](https://www.google.com/search?q=che%20th%C3%B4ng%20tin%20trong%20pdf&hl=vi&gl=VN)
+
+**F. Turkish target-size, for the record as the second pilot candidate** (`geo=TR`)
+
+- Trends: [pdf küçültme / pdf küçültme 5 mb / pdf küçültme 10 mb / pdf küçültme 1 mb / pdf boyutu küçültme](https://trends.google.com/trends/explore?date=today%2012-m&geo=TR&q=pdf%20k%C3%BC%C3%A7%C3%BCltme,pdf%20k%C3%BC%C3%A7%C3%BCltme%205%20mb,pdf%20k%C3%BC%C3%A7%C3%BCltme%2010%20mb,pdf%20k%C3%BC%C3%A7%C3%BCltme%201%20mb,pdf%20boyutu%20k%C3%BC%C3%A7%C3%BCltme&hl=en) · SERP [pdf küçültme 5 mb](https://www.google.com/search?q=pdf%20k%C3%BC%C3%A7%C3%BCltme%205%20mb&hl=tr&gl=TR)
+
 ## The ROI gate (goes into the findings doc section 2 with the decision)
 
 Reopen or keep page localization for a language only when **both** hold:
