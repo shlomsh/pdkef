@@ -80,22 +80,25 @@ up. What was genuinely absent from the page:
 - **Which scripts have no bundled font at all.** Named nowhere. `languageCoverage.test.js` actively
   asserted they were *not* named.
 
-### The reversal on naming gaps, made deliberately
+### The gap list: built, then removed on the owner's call
 
-`559f0d1` (2026-09-02) retired FONT-04's roadmap and changed the card from promising specific
-languages were coming to a demand-driven ask. It went one step further than that needed and stopped
-naming gaps at all, pinned by a test titled "emphasizes broad support without naming individual gaps".
-This ticket is newer and explicit ("Known limits are named, not omitted"), and CLAUDE.md's standing
-rule - a known divergence is named to the user rather than left to be discovered, the same rule that
-has the Sign FAQ list the six Bengali shaper divergences - points the same way. Saying "these have no
-font yet, ask if you want one" is a statement of where the tool stops, not a roadmap, so it satisfies
-both. The test was flipped rather than deleted, and now asserts in **both** directions: every named
-script appears in the card and the FAQ, and every named script really has zero covering glyphs across
-every file in `FONT_COVERAGE` (generated from the real bytes in `public/fonts/`). A font landing that
-draws Gujarati therefore fails the build rather than leaving the page understating the tool.
+The acceptance above says "Known limits are named, not omitted. At minimum: which scripts have no
+bundled font at all." That was built first: the eleven scripts with no covering glyph in any bundled
+font (Gujarati, Kannada, Odia, Sinhala, Khmer, Lao, Burmese, Amharic, Armenian, Georgian, emoji),
+named in the card and the FAQ, each verified against `FONT_COVERAGE` by a test.
 
-Named: Gujarati, Kannada, Odia, Sinhala, Khmer, Lao, Burmese, Amharic, Armenian, Georgian, emoji. All
-eleven verified at zero covering font files.
+**Shlomi reversed it on review (2026-09-11), and the acceptance criterion above is superseded by that
+call.** The language section is the strongest product claim on the page and reads as marketing: 20
+languages, right-to-left native, world-class font support for a tool that costs nothing, and a
+request path for anything missing. A list of gaps in the middle of that reads as a disclaimer and
+dates badly, since languages are added on request and the list is wrong the week someone asks. The
+disclosure it replaced still happens, in the place it is actually useful: the editor names any
+character it cannot draw *while you type it*, and the FAQ says so.
+
+`languageCoverage.test.js` now pins the opposite direction - the card and the coverage FAQ must **not**
+name any of those eleven - so a future agent reading this ticket's acceptance list does not put it
+back. The Bengali six divergences are unchanged and still named in the FAQ; that is a per-cluster
+rendering note on a supported language, not a gap list.
 
 ### `seoTitle` / `seoDescription`, re-examined against the export
 
@@ -138,18 +141,21 @@ changed above the fold that a SERP can see, so `/sign/`'s impressions and CTR ag
 
 - `subhead` now states the language count and the comb behaviour above the fold, replacing "Language
   support and practical limits are listed below."
-- `languages.lead` states RTL growth and the refuse-while-typing guarantee.
-- `languages.notYet` names the eleven uncovered scripts.
+- `languages.heading` / `lead` now carry the claim: right-to-left native, 20 languages, more than any
+  other free browser-based signer found, fonts embedded so the file looks right anywhere.
+- `languages.notYet` is the closing boast plus the request path (world-class support, months of work,
+  free; ask and it goes to the front of the queue). No gap list, per the section above.
 - Two FAQ entries, mirrored into `<SeoSchema>` automatically since both read `tool.faq`: the printed
-  boxes ("The form has a row of little boxes, one per letter") and the refusal guarantee ("What happens
-  if the tool cannot draw a character I type?").
+  boxes ("The form has a row of little boxes, one per letter") and the guarantee, framed as a promise
+  kept ("Will my language come out right in the downloaded PDF, or turn into empty boxes?"), which is
+  where the refuse-while-typing behaviour is stated.
 - The "Add text & signatures" step names the printed boxes.
-- `languageCoverage.test.js` gained a `describe` pinning all four of the above plus the six Bengali
-  divergences, and the uncovered-script assertion described above. The comb copy is pinned as *not*
-  containing the word "comb": that is the form-printing term of art and means nothing to the person
-  holding the form.
+- `languageCoverage.test.js` gained a `describe` pinning the count in three places (subhead, heading,
+  lead), RTL wording, the comb copy, the refuse-while-typing sentence in the FAQ, and the six Bengali
+  divergences; plus the no-gap-list guard. The comb copy is pinned as *not* containing the word "comb":
+  that is the form-printing term of art and means nothing to the person holding the form.
 
-Verified: `npx vitest run` (2130 passed), `npm run build`, `npm run test:seo` (23 pages),
+Verified: `npx vitest run` (2129 passed), `npm run build`, `npm run test:seo` (23 pages),
 `verify-csp.js`, `npm run test:css`, `check-page-weight.js` (`/sign/` 340,523 of 400,000 brotli).
 Single `<h1>` preserved; the languages card renders above the FAQ in the body.
 

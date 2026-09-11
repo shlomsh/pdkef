@@ -165,11 +165,13 @@ Gurmukhi, Thai, Cyrillic and Greek with real font embedding, native RTL, and com
 support no free browser-side signer we know of matches, aimed squarely at the country already sending
 us the most traffic. The page says almost none of this. SEO-07, SEO-12, SEO-18.
 
-*Progress note, 2026-09-11 (SEO-07):* the page now says it - the language card's lead states
-right-to-left growth and the refuse-while-typing guarantee, the subhead carries the language count and
-the printed-box behaviour above the fold, comb fields are described in a step and an FAQ entry (the
-feature had no user-facing mention anywhere on the site before this), and the eleven scripts with no
-bundled font are named. **One finding from that ticket changes how the rest of this cluster should be
+*Progress note, 2026-09-11 (SEO-07):* the page now says it - the language card leads with the claim
+(right-to-left native, 20 languages, world-class font support for free), the subhead carries the
+language count and the printed-box behaviour above the fold, comb fields are described in a step and
+an FAQ entry (the feature had no user-facing mention anywhere on the site before this), and the
+refuse-while-typing guarantee is an FAQ entry framed as a promise kept. A list of the scripts with no
+bundled font was built and then removed on Shlomi's call: the section is marketing, and gaps go
+through the request path, not a list. **One finding from that ticket changes how the rest of this cluster should be
 read, and it is not what the section above assumed:** there is not a single language-intent sign query
 in the export. All 58 are device intent (iphone, android, computer, windows, whatsapp), and all sit at
 positions 43-66, which is the four OS guides, not `/sign/`. `/sign/` itself ranks at 11.64 on queries
