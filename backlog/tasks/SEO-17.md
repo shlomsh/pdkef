@@ -64,7 +64,7 @@ measurements. Four to twelve FAQ entries.
 
 ## Status 2026-09-11: blocked on the 2026-10-08 refresh
 
-Shipped and indexing requested; nothing left to build. The remaining work is reading the verdict from
+Shipped; nothing left to build, but **indexing has not been requested for `/pdf-wont-compress-to-100kb/`** - a new URL is not in any earlier batch, so this one needs its own request, dated here when made. The remaining work is reading the verdict from
 the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
 check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
 today; close it, or reopen it with a finding, from that refresh.
