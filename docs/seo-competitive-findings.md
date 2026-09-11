@@ -53,6 +53,7 @@ all of it (section 6).
 | LOC-02, 03, 05, 06 (`localized-search` epic, Hebrew) | open | 2026-09-11 | Hebrew decided on 2026-09-11 SERP captures (thin competition, no incumbent claims on-device or RTL); LOC-02/03 build `/he/compress/`, `/he/merge/`, `/he/sign/`; three pages drafted and mechanism-complete, waiting on Shlomi's review + publish + indexing request; section 4's URL gate is an English-effort rule and does not apply here | LOC-03 publish + first indexed impressions - the calibration LOC-07 named as the reopen signal for a second language |
 | LOC-04 Indonesian pilot | retired | 2026-09-11 | LOC-01 cleared demand (Trends parity on compress/sign) but LOC-07's ROI judgment found criterion 2 fails on the real SERP (iLovePDF/Smallpdf/Adobe/PDF24/Canva, 300k-700k reviews each, same field `/merge/` loses to in English at position 36.13/0 clicks) and Indonesian is already machine-bridged by Google's translated-results list | reopen only alongside LOC-03 producing impressions, or an English page reaching page one on its own head term |
 | LOC-07 second-language ROI | done | 2026-09-11 | Verdict: not now. In-language demand is necessary but not sufficient - this domain hasn't beaten Indonesian's competitive field once, in English, at any position better than 36. Retired LOC-04; declined Part 2 (unmeasured languages) since a harder-to-verify language isn't worth measuring when the clearest-demand one already failed the field test | revisit alongside the two signals above |
+| LOC-08 Tamil/Telugu demand check | open | 2026-09-11 | Reopened Part 2 for India specifically, on Shlomi's call (best-converting country). Incumbent check done: Telugu has one real native competitor page (PDF24, all four tools); Tamil has none among the majors checked - PDF24 and Sejda both serve English at Tamil-tagged URLs. Telugu Trends/SERP links built and ready for Shlomi; Tamil sent to a lighter reconnaissance pass first (no verified phrasing exists yet to spend a full Trends chart on) | Shlomi's Telugu Trends + SERP screenshots, Tamil reconnaissance SERPs |
 
 ---
 
@@ -69,6 +70,14 @@ Durable lessons, one line each, newest first. The ticket has the evidence.
   an auto-translated English page is unmeasured. A translated page inherits the domain's authority, not
   the competitors'; check whether the domain can already compete in that field in English before
   spending a paid reviewer's budget on a native edition of the same fight. ([LOC-07](../backlog/tasks/LOC-07.md), retiring [LOC-04](../backlog/tasks/LOC-04.md))
+- **Absence of a localized competitor page is itself a data point, and it can mean either "no demand"
+  or "no one has bothered yet" - only Trends tells the two apart.** Checking Tamil and Telugu directly
+  (fetching each major's own `/ta/`/`/te/` URLs rather than guessing from a screenshot) found PDF24 has
+  a real, native Telugu page for every anchor tool but serves plain English at the identical Tamil URL
+  despite it resolving with a `200`; Sejda's `/ta/` route carries a `lang="ta"` tag on an entirely
+  English page. Direct URL fetches like this are a cheap first pass before spending Shlomi's Trends
+  screenshot budget on a language - they can rule a phrasing in or out, but never substitute for the
+  real `hl`/`gl` SERP. ([LOC-08](../backlog/tasks/LOC-08.md))
 - **"Free, open submission" directories commonly gate on traction anyway, and it is rarely visible until
   you try.** openalternative.co hard-blocks under 10 GitHub stars (confirmed by the form itself, not
   documentation); awesome-selfhosted gates on a tagged release 4+ months old, found only by reading its
