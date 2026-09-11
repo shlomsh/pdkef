@@ -215,7 +215,7 @@ SERP's shape), and Spain's `y sin aplicación` is the sign-without-an-app intent
 | Spanish | **Cleared, 13x to 20x** | **Not met**: iLovePDF's home language; UnePDF holds the on-device claim at 3; `a 1MB / a 2MB` related searches | Easiest to source | Same; **easiest niche pilot to staff** |
 | Italian | **Cleared, 7x**; not on Google's translated-results list, so a native page adds the most | **Not met**: same field, regispro.it holds the on-device claim | Sourceable | Same |
 | Arabic (UAE) | **Fails**: English 10x to 17x | Native field, moot | | **No** for the UAE; Egypt and Saudi unmeasured and not in the top twenty |
-| Filipino | Not run | A second-tier native field exists (pdf2go, piliapp, compress2go) | | Open; run the Trends chart before deciding |
+| Filipino | **Fails, measured 2026-09-12:** English leads on all four tasks (`compress pdf` ~80 and `pdf compressor` ~60; `merge pdf` ~75; `sign pdf` ~40; `pdf to jpg` ~85) and every Filipino or code-switched form is flat at 0 with a one-week blip apiece. The Philippines searches this niche in English. | A second-tier native field exists (pdf2go, piliapp, compress2go), moot | | **No.** The English pages are already the right pages for the Philippines, which is also the country with the most impressions of the seven pulled (100, all English blur). |
 | Bengali | Not run | One major (PDF24) plus second-tier native pages; related searches in Bengali | | Open; run the Trends chart before deciding |
 | Urdu | Not run | | | Not run |
 
