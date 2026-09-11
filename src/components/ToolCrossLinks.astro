@@ -15,13 +15,33 @@
 // FAQ cards would bury the footer. This is a compact strip.
 import { tools } from '../data/tools.js';
 import type { CrossLinksMessages } from '../i18n/documentationMessages';
+import { getToolCardCopy } from '../i18n/cardMessages';
+import { documentationPath } from '../i18n/documentationLocales';
 
 interface Props {
   currentSlug: string;
-  labels?: CrossLinksMessages;
+  labels?: CrossLinksMessages & { inEnglish?: string };
+  /** The page's locale, and the site paths of every page published in it
+   * (src/i18n/localizedTools.ts getPublishedEditionPaths). A card links to
+   * the localized edition when there is one, otherwise to the English page
+   * with `labels.inEnglish` said out loud - never to a URL that 404s. */
+  locale?: string;
+  editionPaths?: readonly string[];
 }
 
-const { currentSlug, labels } = Astro.props;
+const { currentSlug, labels, locale = 'en', editionPaths = [] } = Astro.props;
+const published = new Set(editionPaths);
+const cardFor = (tool: { slug: string; href: string; gridTitle: string; gridDescription: string }) => {
+  const copy = getToolCardCopy(locale, tool.slug);
+  const localizedHref = locale === 'en' ? tool.href : documentationPath(tool.slug, locale as any);
+  const href = published.has(localizedHref) ? localizedHref : tool.href;
+  return {
+    href,
+    title: copy?.title ?? tool.gridTitle,
+    description: copy?.description ?? tool.gridDescription,
+    english: locale !== 'en' && href === tool.href,
+  };
+};
 const others = tools.filter((tool) => tool.slug !== currentSlug);
 ---
 
@@ -38,21 +58,30 @@ const others = tools.filter((tool) => tool.slug !== currentSlug);
   </div>
 
   <ul class="space-layout-gap m-0 grid list-none grid-cols-3 p-0 max-[768px]:grid-cols-2 max-[560px]:grid-cols-1">
-    {others.map((tool) => (
+    {others.map((tool) => {
+      const card = cardFor(tool);
+      return (
       <li class="m-0 p-0">
         <a
-          href={tool.href}
+          href={card.href}
+          hreflang={card.english ? 'en' : undefined}
           class="group flex h-full items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-inherit no-underline transition-[transform,border-color,color] duration-150 ease-out hover:-translate-y-px hover:border-[var(--color-border-strong)] focus-visible:-translate-y-px focus-visible:border-[var(--color-border-strong)]"
         >
           <span class="flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary-soft)] text-[var(--color-primary-text)] [&_svg]:block [&_svg]:size-[55%]">
             <tool.icon strokeWidth={1.5} />
           </span>
           <span class="min-w-0">
-            <span class="type-card block text-[var(--color-text)]">{tool.gridTitle}</span>
-            <span class="type-body mt-1 block text-[var(--color-muted)]">{tool.gridDescription}</span>
+            <span class="type-card block text-[var(--color-text)]">
+              {card.title}
+              {card.english && labels?.inEnglish && (
+                <span class="ms-2 inline-block align-middle text-[0.7rem] font-semibold uppercase text-[var(--color-muted)]" lang="en" title={labels.inEnglish}>EN</span>
+              )}
+            </span>
+            <span class="type-body mt-1 block text-[var(--color-muted)]">{card.description}</span>
           </span>
         </a>
       </li>
-    ))}
+      );
+    })}
   </ul>
 </section>

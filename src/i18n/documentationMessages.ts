@@ -40,11 +40,20 @@ export interface DocumentationShellMessages {
   reportBug: string;
   feedbackAndIdeas: string;
   licenses: string;
+  about: string;
+  contact: string;
+  privacy: string;
   /** LOC-02: shown on a localized tool page whose island has no reviewed
    * message catalogue yet (see LOCALIZED_TOOL_ISLANDS in localizedTools.ts) -
    * the same "editor stays English" pilot decision as Sign/Redact, stated on
    * the page rather than left for the visitor to discover mid-task. */
   toolControlsEnglishNotice: string;
+  /** ToolPageLayout's app-bar trust chips. */
+  starOnGithub: string;
+  mitLicensed: string;
+  worksOffline: string;
+  /** Suffix on a cross-link card whose target has no edition in this locale. */
+  inEnglish: string;
 }
 
 export type AppBarMessages = Pick<DocumentationShellMessages, 'homeAriaLabel' | 'onDevice'>;
@@ -55,7 +64,7 @@ export type CrossLinksMessages = Pick<DocumentationShellMessages, 'crossLinksKic
 export type AboutCardMessages = Pick<DocumentationShellMessages, 'howItWorks' | 'freeForEveryone' | 'openSourceNote'>;
 export type FooterMessages = Pick<
   DocumentationShellMessages,
-  'builtWith' | 'by' | 'github' | 'reportBug' | 'feedbackAndIdeas' | 'licenses' | 'language'
+  'builtWith' | 'by' | 'github' | 'reportBug' | 'feedbackAndIdeas' | 'licenses' | 'language' | 'about' | 'contact' | 'privacy'
 >;
 
 const englishMessages = {
@@ -83,12 +92,19 @@ const englishMessages = {
   reportBug: 'Report a bug',
   feedbackAndIdeas: 'Feedback & ideas',
   licenses: 'Licenses',
+  about: 'About',
+  contact: 'Contact',
+  privacy: 'Privacy',
   toolControlsEnglishNotice: "This tool's buttons and menus are still in English.",
+  starOnGithub: 'Star us on GitHub',
+  mitLicensed: 'MIT licensed',
+  worksOffline: 'Works offline',
+  inEnglish: 'in English',
 } satisfies DocumentationShellMessages;
 
 const hebrewMessages = {
   homeAriaLabel: 'דף הבית של PDkef, כל הכלים',
-  onDevice: 'במכשיר שלך',
+  onDevice: 'עובד מקומית',
   language: 'שפה',
   previewNotice: 'תרגום בתצוגה מקדימה לבדיקת דוברי עברית. דף זה אינו מאונדקס.',
   stalePreviewNotice: 'התרגום בתצוגה מקדימה דורש בדיקה לאחר שינוי במקור האנגלי. דף זה אינו מאונדקס.',
@@ -111,7 +127,14 @@ const hebrewMessages = {
   reportBug: 'דיווח על תקלה',
   feedbackAndIdeas: 'משוב ורעיונות',
   licenses: 'רישיונות',
+  about: 'אודות',
+  contact: 'יצירת קשר',
+  privacy: 'פרטיות',
   toolControlsEnglishNotice: 'הכפתורים והתפריטים של הכלי עדיין באנגלית.',
+  starOnGithub: 'כוכב ב-GitHub',
+  mitLicensed: 'רישיון MIT',
+  worksOffline: 'עובד גם בלי אינטרנט',
+  inEnglish: 'באנגלית',
 } satisfies DocumentationShellMessages;
 
 /**

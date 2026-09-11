@@ -14,7 +14,7 @@ import ErrorMessage from './ErrorMessage.tsx';
 import DownloadButton from './DownloadButton.tsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { formatFileSize } from '../lib/format.js';
-import { englishMergeMessages, formatMessage, type MergeMessages } from '../i18n/toolMessages';
+import { englishMergeMessages, formatMessage, type MergeMessages, type ShellMessages } from '../i18n/toolMessages';
 
 let nextId = 0;
 
@@ -34,9 +34,10 @@ interface PdfMergeToolProps {
    * localized edition; every key not overridden keeps the English default,
    * so a partial catalogue degrades to English rather than to `undefined`. */
   messages?: Partial<MergeMessages>;
+  shellMessages?: Partial<ShellMessages>;
 }
 
-export default function PdfMergeTool({ messages: messagesProp }: PdfMergeToolProps = {}) {
+export default function PdfMergeTool({ messages: messagesProp, shellMessages }: PdfMergeToolProps = {}) {
   const t: MergeMessages = { ...englishMergeMessages, ...messagesProp };
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [status, setStatus] = useState('idle'); // idle | merging | done | error
@@ -208,7 +209,7 @@ export default function PdfMergeTool({ messages: messagesProp }: PdfMergeToolPro
   };
 
   const hasFiles = entries.length > 0;
-  const fileSummary = `${entries.length} PDF${entries.length === 1 ? '' : 's'}`;
+  const fileSummary = entries.length === 1 ? t.fileSummaryOne : formatMessage(t.fileSummaryMany, { count: entries.length });
 
   return (
     <BasePdfTool
@@ -220,6 +221,7 @@ export default function PdfMergeTool({ messages: messagesProp }: PdfMergeToolPro
       fileMeta={formatFileSize(entries.reduce((total, entry) => total + entry.file.size, 0))}
       onClearAll={reset}
       clearSummary={fileSummary}
+      shellMessages={shellMessages}
     >
 
       {rejectedFiles.length > 0 && (

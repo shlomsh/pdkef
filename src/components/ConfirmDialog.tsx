@@ -10,6 +10,8 @@ interface ConfirmDialogProps {
   onCancel: () => void;
   onConfirm: () => void;
   children?: ComponentChildren;
+  cancelLabel?: string;
+  closeLabel?: string;
 }
 
 /**
@@ -39,6 +41,8 @@ export default function ConfirmDialog({
   onCancel,
   onConfirm,
   children,
+  cancelLabel = 'Cancel',
+  closeLabel = 'Close dialog',
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
@@ -76,7 +80,7 @@ export default function ConfirmDialog({
     >
       <div class={styles.header}>
         <h3 id={titleId}>{title}</h3>
-        <button type="button" class={styles.close} onClick={onCancel} aria-label="Close dialog">
+        <button type="button" class={styles.close} onClick={onCancel} aria-label={closeLabel}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
             <path d="M4 4l8 8M12 4l-8 8" />
           </svg>
@@ -87,7 +91,7 @@ export default function ConfirmDialog({
       </div>
       <div class={styles.footer}>
         <button type="button" class={`${styles.button} ${styles.secondary}`} onClick={onCancel}>
-          Cancel
+          {cancelLabel}
         </button>
         <button
           type="button"

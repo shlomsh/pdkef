@@ -2,6 +2,7 @@ import { createContext } from 'preact';
 import type { ComponentChildren } from 'preact';
 import { useContext } from 'preact/hooks';
 import styles from './ToolShell.module.css';
+import { englishShellMessages, type ShellMessages } from '../i18n/toolMessages';
 
 interface FileAction {
   label: string;
@@ -17,6 +18,9 @@ interface ToolShellContextValue {
   fileMeta?: string;
   draftSaveState?: 'idle' | 'pending' | 'saved' | 'error' | 'conflict';
   multiple?: boolean;
+  /** The shell's own copy (dropzone, actions, confirmations), defaulting to
+   * English; BasePdfTool supplies a locale's catalogue on a localized page. */
+  messages?: ShellMessages;
 }
 
 /* The file-level actions, keyed by what the tool takes. Label, short label,
@@ -114,15 +118,15 @@ export function useToolShell() {
  * it.
  */
 export default function ToolShell({ editor = false, status = null, children }: { editor?: boolean; status?: ComponentChildren; children?: ComponentChildren }) {
-  const { fileLabel, fileMeta, draftSaveState = 'idle', multiple } = useToolShell();
+  const { fileLabel, fileMeta, draftSaveState = 'idle', multiple, messages = englishShellMessages } = useToolShell();
   const draftStatus = draftSaveState === 'saved'
-    ? { label: 'Draft saved', className: styles.saved }
+    ? { label: messages.draftSaved, className: styles.saved }
     : draftSaveState === 'pending'
-      ? { label: 'Saving draft…', className: styles.pending }
+      ? { label: messages.draftSaving, className: styles.pending }
       : draftSaveState === 'error'
-        ? { label: 'Draft not saved', className: styles.error }
+        ? { label: messages.draftNotSaved, className: styles.error }
         : draftSaveState === 'conflict'
-          ? { label: 'Newer draft in another tab — saving here will replace it', className: styles.error }
+          ? { label: messages.draftConflict, className: styles.error }
         : null;
 
   return (
@@ -142,7 +146,7 @@ export default function ToolShell({ editor = false, status = null, children }: {
 
         <span class={styles.text}>
           <span class={styles.name}>
-            {fileLabel || (multiple ? 'Files loaded' : 'PDF loaded')}
+            {fileLabel || (multiple ? messages.filesLoaded : messages.pdfLoaded)}
           </span>
           {(fileMeta || draftStatus) && (
             <span class={styles.meta}>
@@ -176,12 +180,18 @@ export default function ToolShell({ editor = false, status = null, children }: {
  * two different intents.
  */
 export function FileActions() {
-  const { multiple, requestReplace, requestClear } = useToolShell();
+  const { multiple, requestReplace, requestClear, messages = englishShellMessages } = useToolShell();
+  const localized = (key: 'add' | 'replace' | 'clear'): FileAction => ({
+    ...FILE_ACTIONS[key],
+    label: messages[`${key}Label`],
+    shortLabel: messages[`${key}Short`],
+    title: messages[`${key}Title`],
+  });
 
   return (
     <>
-      <ActionButton action={FILE_ACTIONS[multiple ? 'add' : 'replace']} onClick={requestReplace} />
-      {multiple && <ActionButton action={FILE_ACTIONS.clear} onClick={requestClear} highlight />}
+      <ActionButton action={localized(multiple ? 'add' : 'replace')} onClick={requestReplace} />
+      {multiple && <ActionButton action={localized('clear')} onClick={requestClear} highlight />}
     </>
   );
 }

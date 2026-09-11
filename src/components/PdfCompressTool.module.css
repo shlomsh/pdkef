@@ -504,6 +504,9 @@
   .target-card .compress-card-header {
     width: auto;
     flex: none;
+    /* On one line with the description (see .target-card-body above), the
+       tag pill sits beside the title, not above its baseline. */
+    align-items: center;
   }
 
   .target-card .compress-card-desc {

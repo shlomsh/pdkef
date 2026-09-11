@@ -11,7 +11,7 @@ import DownloadButton from './DownloadButton.tsx';
 import CompareSlider from './CompareSlider.tsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { describeFile } from '../lib/format.js';
-import { englishCompressMessages, formatMessage, type CompressMessages } from '../i18n/toolMessages';
+import { englishCompressMessages, formatMessage, type CompressMessages, type ShellMessages } from '../i18n/toolMessages';
 
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
 
@@ -27,9 +27,10 @@ interface PdfCompressToolProps {
   /** LOC-02: server-rendered by src/pages/[locale]/[tool].astro for a
    * localized edition; every key not overridden keeps the English default. */
   messages?: Partial<CompressMessages>;
+  shellMessages?: Partial<ShellMessages>;
 }
 
-export default function PdfCompressTool({ messages: messagesProp }: PdfCompressToolProps = {}) {
+export default function PdfCompressTool({ messages: messagesProp, shellMessages }: PdfCompressToolProps = {}) {
   const t: CompressMessages = { ...englishCompressMessages, ...messagesProp };
 
   const COMPRESSION_LEVELS = [
@@ -202,7 +203,8 @@ export default function PdfCompressTool({ messages: messagesProp }: PdfCompressT
       fileLabel={file?.name}
       fileMeta={describeFile(file)}
       hasWork={status === 'done'}
-      workNoun="the compressed PDF you just made"
+      workNoun={t.workNoun}
+      shellMessages={shellMessages}
       compact
     >
       {rejectedFiles.length > 0 && (

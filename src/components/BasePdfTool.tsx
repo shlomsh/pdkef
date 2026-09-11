@@ -7,6 +7,17 @@ import ConfirmDialog from './ConfirmDialog.tsx';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 import ToolShell, { FileActions, ToolShellContext } from './ToolShell.tsx';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/productAnalytics.ts';
+import { englishShellMessages, formatMessage, type ShellMessages } from '../i18n/toolMessages';
+
+/* Splits a formatted sentence on the \u0000key\u0000 markers left in place of
+   the file names and renders those names as marked spans, so a localized
+   template can put them anywhere in the sentence while they keep the
+   .confirm-file styling. */
+function renderTemplate(text: string, values: Record<string, string>, className: string) {
+  return text.split('\u0000').map((part, index) =>
+    index % 2 === 1 ? <span key={index} class={className}>{values[part] ?? ''}</span> : part,
+  );
+}
 
 function hasFilePayload(event: DragEvent) {
   return Array.from(event.dataTransfer?.types || []).includes('Files');
@@ -36,6 +47,9 @@ interface BasePdfToolProps {
   analyticsTool?: AnalyticsTool;
   analyticsStatus?: string;
   compact?: boolean;
+  /** The shell's own strings (dropzone, file actions, confirmations) for a
+   * localized page; every key not given keeps its English default. */
+  shellMessages?: Partial<ShellMessages>;
 }
 
 /**
@@ -66,7 +80,7 @@ export default function BasePdfTool({
   hasWork = false,
   /* What the confirmation calls the thing being discarded, in the tool's own
      words: it reads "...and discards your redaction boxes." */
-  workNoun = 'the work you have done here',
+  workNoun,
   /* List tools only. Its presence is what puts a Clear all beside Add files:
      for a list those are two genuinely different intents, not the drift this
      shell exists to remove. */
@@ -94,7 +108,10 @@ export default function BasePdfTool({
      other tool, and the home page's own FileDropzone, never set this, so
      their dropzone is unaffected. */
   compact = false,
+  shellMessages,
 }: BasePdfToolProps) {
+  const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
+  const work = workNoun ?? sm.workDefault;
   const [isDraggingOverWorkspace, setIsDraggingOverWorkspace] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
   const [confirmPickerOpen, setConfirmPickerOpen] = useState(false);
@@ -245,7 +262,7 @@ export default function BasePdfTool({
     onClearAll?.();
   };
 
-  const shell = { fileLabel, fileMeta, draftSaveState, multiple, requestReplace, requestClear };
+  const shell = { fileLabel, fileMeta, draftSaveState, multiple, requestReplace, requestClear, messages: sm };
 
   return (
     <ToolShellContext.Provider value={shell}>
@@ -263,7 +280,7 @@ export default function BasePdfTool({
           // just a neutral holding message instead of "drop a file here", which
           // would be actively misleading the moment before a draft loads over it.
           <div class={styles.dropzone} data-compact={compact || undefined} aria-busy="true">
-            <p class={styles['dropzone-text']}>Checking for a saved draft…</p>
+            <p class={styles['dropzone-text']}>{sm.checkingDraft}</p>
           </div>
         ) : (
           <DropzoneEmptyState
@@ -273,6 +290,7 @@ export default function BasePdfTool({
             inputRef={fileInputRef}
             onFiles={receiveFiles}
             compact={compact}
+            messages={sm}
           />
         )
       )}
@@ -309,7 +327,7 @@ export default function BasePdfTool({
             />
             <path d="M9.5 13.5h5M12.5 11l2.5 2.5-2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-          <p>{multiple ? 'Drop to add more files' : 'Drop to replace the current file'}</p>
+          <p>{multiple ? sm.dropToAddMore : sm.dropToReplace}</p>
         </div>
       )}
 
@@ -326,30 +344,38 @@ export default function BasePdfTool({
       <ConfirmDialog
         open={!!pendingFiles || confirmPickerOpen}
         titleId="confirm-replace-title"
-        title="Replace this file?"
-        confirmLabel={pendingFiles ? 'Replace file' : 'Choose a file'}
+        title={sm.replaceDialogTitle}
+        confirmLabel={pendingFiles ? sm.replaceConfirmFile : sm.replaceConfirmChoose}
+        cancelLabel={sm.cancel}
+        closeLabel={sm.closeDialog}
         onCancel={cancelReplace}
         onConfirm={confirmReplace}
       >
-        {pendingFiles ? (
-          <>Opening <span class={dialogStyles['confirm-file']}>{pendingFiles[0]?.name}</span> closes </>
-        ) : (
-          <>Choosing another file closes </>
+        {/* The sentence is one template so a translator can reorder it; the
+            two file names are re-inserted as marked spans after formatting. */}
+        {renderTemplate(
+          formatMessage(pendingFiles ? sm.replaceOpening : sm.replaceChoosing, {
+            file: '\u0000file\u0000',
+            current: '\u0000current\u0000',
+            work,
+          }),
+          { file: pendingFiles?.[0]?.name ?? '', current: fileLabel || sm.theCurrentPdf },
+          dialogStyles['confirm-file'],
         )}
-        <span class={dialogStyles['confirm-file']}>{fileLabel || 'the current PDF'}</span> and discards {workNoun}.
-        That can’t be undone.{draftSaveState === 'saved' ? ' Your saved draft goes with it.' : ''}
+        {' '}{sm.replaceTail}{draftSaveState === 'saved' ? ` ${sm.replaceDraftGoes}` : ''}
       </ConfirmDialog>
 
       <ConfirmDialog
         open={confirmClearOpen}
         titleId="confirm-clear-title"
-        title="Clear all files?"
-        confirmLabel="Clear all"
+        title={sm.clearDialogTitle}
+        confirmLabel={sm.clearConfirm}
+        cancelLabel={sm.cancel}
+        closeLabel={sm.closeDialog}
         onCancel={cancelClear}
         onConfirm={confirmClear}
       >
-        This empties the list{clearSummary ? ` of ${clearSummary}` : ''} and the order you put it in.
-        Nothing is removed from your device.
+        {formatMessage(sm.clearBody, { of: clearSummary ? formatMessage(sm.clearOf, { summary: clearSummary }) : '' })}
       </ConfirmDialog>
     </div>
     </ToolShellContext.Provider>

@@ -49,6 +49,8 @@ export interface MergeMessages {
   sharedSuccessfully: string;
   sharingCanceled: string;
   shareError: string;
+  fileSummaryOne: string;
+  fileSummaryMany: string;
 }
 
 const englishMergeMessages: MergeMessages = {
@@ -77,6 +79,8 @@ const englishMergeMessages: MergeMessages = {
   sharedSuccessfully: 'Merged PDF shared successfully.',
   sharingCanceled: 'Sharing canceled. Your merged PDF is still ready.',
   shareError: 'Could not open the share sheet. Please try again.',
+  fileSummaryOne: '1 PDF',
+  fileSummaryMany: '{count} PDFs',
 };
 
 // LOC-02's own throwaway draft fixture (proves the route end to end for
@@ -109,6 +113,8 @@ const hebrewMergeMessages: MergeMessages = {
   sharedSuccessfully: 'ה-PDF המאוחד שותף.',
   sharingCanceled: 'השיתוף בוטל. ה-PDF המאוחד עדיין מוכן.',
   shareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
+  fileSummaryOne: 'PDF אחד',
+  fileSummaryMany: '{count} קבצי PDF',
 };
 
 export interface CompressMessages {
@@ -160,6 +166,7 @@ export interface CompressMessages {
   sharedSuccessfully: string;
   sharingCanceled: string;
   shareError: string;
+  workNoun: string;
 }
 
 const englishCompressMessages: CompressMessages = {
@@ -211,6 +218,7 @@ const englishCompressMessages: CompressMessages = {
   sharedSuccessfully: 'Compressed PDF shared successfully.',
   sharingCanceled: 'Sharing canceled. Your compressed PDF is still ready.',
   shareError: 'Could not open the share sheet. Please try again.',
+  workNoun: 'the compressed PDF you just made',
 };
 
 /**
@@ -280,6 +288,7 @@ const hebrewCompressMessages: CompressMessages = {
   sharedSuccessfully: 'ה-PDF המכווץ שותף.',
   sharingCanceled: 'השיתוף בוטל. ה-PDF המכווץ עדיין מוכן.',
   shareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
+  workNoun: 'ה-PDF המכווץ שיצרתם',
 };
 
 const compressMessages: Partial<Record<DocumentationLocaleId, CompressMessages>> = {
@@ -296,4 +305,151 @@ export function getToolMessages(toolSlug: string, locale: DocumentationLocaleId)
   return toolMessageTables[toolSlug]?.[locale];
 }
 
-export { englishMergeMessages, hebrewMergeMessages, englishCompressMessages, hebrewCompressMessages };
+/**
+ * The shell every tool is built on (BasePdfTool: empty-state dropzone, the
+ * file identity/control row, the two confirmation dialogs). One catalogue for
+ * all nine tools, because the shell is one component on purpose - see
+ * BasePdfTool's header comment on why "start over" is decided once. A tool
+ * page passes this alongside its own catalogue; Sign and Redact take it too,
+ * since the dropzone and the confirmations are the shell, not the editor.
+ */
+export interface ShellMessages {
+  dropHereMany: string;
+  dropHereOne: string;
+  chooseFilesMany: string;
+  chooseFileOne: string;
+  privacyLine: string;
+  checkingDraft: string;
+  dropToAddMore: string;
+  dropToReplace: string;
+  filesLoaded: string;
+  pdfLoaded: string;
+  draftSaved: string;
+  draftSaving: string;
+  draftNotSaved: string;
+  draftConflict: string;
+  addLabel: string;
+  addShort: string;
+  addTitle: string;
+  replaceLabel: string;
+  replaceShort: string;
+  replaceTitle: string;
+  clearLabel: string;
+  clearShort: string;
+  clearTitle: string;
+  cancel: string;
+  closeDialog: string;
+  replaceDialogTitle: string;
+  replaceConfirmFile: string;
+  replaceConfirmChoose: string;
+  replaceOpening: string;
+  replaceChoosing: string;
+  replaceTail: string;
+  replaceDraftGoes: string;
+  theCurrentPdf: string;
+  workDefault: string;
+  clearDialogTitle: string;
+  clearConfirm: string;
+  clearBody: string;
+  clearOf: string;
+}
+
+const englishShellMessages: ShellMessages = {
+  dropHereMany: 'Drop PDFs here',
+  dropHereOne: 'Drop PDF here',
+  chooseFilesMany: 'Choose files',
+  chooseFileOne: 'Choose file',
+  privacyLine: 'Private. Files never leave your device.',
+  checkingDraft: 'Checking for a saved draft…',
+  dropToAddMore: 'Drop to add more files',
+  dropToReplace: 'Drop to replace the current file',
+  filesLoaded: 'Files loaded',
+  pdfLoaded: 'PDF loaded',
+  draftSaved: 'Draft saved',
+  draftSaving: 'Saving draft…',
+  draftNotSaved: 'Draft not saved',
+  draftConflict: 'Newer draft in another tab — saving here will replace it',
+  addLabel: 'Add files',
+  addShort: 'Add',
+  addTitle: 'Add more files',
+  replaceLabel: 'Replace file',
+  replaceShort: 'Replace',
+  replaceTitle: 'Replace the current file',
+  clearLabel: 'Clear all',
+  clearShort: 'Clear',
+  clearTitle: 'Remove every file and start again',
+  cancel: 'Cancel',
+  closeDialog: 'Close dialog',
+  replaceDialogTitle: 'Replace this file?',
+  replaceConfirmFile: 'Replace file',
+  replaceConfirmChoose: 'Choose a file',
+  replaceOpening: 'Opening {file} closes {current} and discards {work}.',
+  replaceChoosing: 'Choosing another file closes {current} and discards {work}.',
+  replaceTail: 'That can’t be undone.',
+  replaceDraftGoes: 'Your saved draft goes with it.',
+  theCurrentPdf: 'the current PDF',
+  workDefault: 'the work you have done here',
+  clearDialogTitle: 'Clear all files?',
+  clearConfirm: 'Clear all',
+  clearBody: 'This empties the list{of} and the order you put it in. Nothing is removed from your device.',
+  clearOf: ' of {summary}',
+};
+
+const hebrewShellMessages: ShellMessages = {
+  dropHereMany: 'גררו לכאן קבצי PDF',
+  dropHereOne: 'גררו לכאן קובץ PDF',
+  chooseFilesMany: 'בחירת קבצים',
+  chooseFileOne: 'בחירת קובץ',
+  privacyLine: 'פרטי. הקבצים לא עוזבים את המכשיר שלכם.',
+  checkingDraft: 'בודקים אם יש טיוטה שמורה…',
+  dropToAddMore: 'שחררו כדי להוסיף קבצים',
+  dropToReplace: 'שחררו כדי להחליף את הקובץ הנוכחי',
+  filesLoaded: 'הקבצים נטענו',
+  pdfLoaded: 'ה-PDF נטען',
+  draftSaved: 'הטיוטה נשמרה',
+  draftSaving: 'שומרים טיוטה…',
+  draftNotSaved: 'הטיוטה לא נשמרה',
+  draftConflict: 'יש טיוטה חדשה יותר בלשונית אחרת. שמירה כאן תחליף אותה',
+  addLabel: 'הוספת קבצים',
+  addShort: 'הוספה',
+  addTitle: 'הוספת קבצים נוספים',
+  replaceLabel: 'החלפת קובץ',
+  replaceShort: 'החלפה',
+  replaceTitle: 'החלפת הקובץ הנוכחי',
+  clearLabel: 'ניקוי הכול',
+  clearShort: 'ניקוי',
+  clearTitle: 'הסרת כל הקבצים והתחלה מחדש',
+  cancel: 'ביטול',
+  closeDialog: 'סגירת החלון',
+  replaceDialogTitle: 'להחליף את הקובץ?',
+  replaceConfirmFile: 'החלפת קובץ',
+  replaceConfirmChoose: 'בחירת קובץ',
+  replaceOpening: 'פתיחת {file} סוגרת את {current} ומוחקת את {work}.',
+  replaceChoosing: 'בחירת קובץ אחר סוגרת את {current} ומוחקת את {work}.',
+  replaceTail: 'אי אפשר לבטל את זה.',
+  replaceDraftGoes: 'הטיוטה השמורה תימחק איתו.',
+  theCurrentPdf: 'ה-PDF הנוכחי',
+  workDefault: 'העבודה שעשיתם כאן',
+  clearDialogTitle: 'לנקות את כל הקבצים?',
+  clearConfirm: 'ניקוי הכול',
+  clearBody: 'הרשימה{of} והסדר שקבעתם יתרוקנו. שום דבר לא נמחק מהמכשיר שלכם.',
+  clearOf: ' של {summary}',
+};
+
+const shellMessages: Partial<Record<DocumentationLocaleId, ShellMessages>> = {
+  en: englishShellMessages,
+  he: hebrewShellMessages,
+};
+
+export function getShellMessages(locale: DocumentationLocaleId): ShellMessages | undefined {
+  return shellMessages[locale];
+}
+
+export {
+  englishMergeMessages,
+  hebrewMergeMessages,
+  englishCompressMessages,
+  hebrewCompressMessages,
+  englishShellMessages,
+  hebrewShellMessages,
+};

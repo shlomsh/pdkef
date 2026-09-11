@@ -20,7 +20,7 @@ import {
   LOCALIZED_TOOL_ISLANDS,
 } from '../../i18n/localizedTools';
 import { getDocumentationShellMessages } from '../../i18n/documentationMessages';
-import { getToolMessages } from '../../i18n/toolMessages';
+import { getShellMessages, getToolMessages } from '../../i18n/toolMessages';
 import { toolsBySlug } from '../../data/tools.js';
 import PdfMergeTool from '../../components/PdfMergeTool.tsx';
 import PdfCompressTool from '../../components/PdfCompressTool.tsx';
@@ -65,6 +65,7 @@ const messages = getDocumentationShellMessages(context.effectiveLocale);
 const stale = context.preview && context.freshness === 'stale';
 
 const islandLocalized = LOCALIZED_TOOL_ISLANDS.has(toolSlug);
+const shellMessages = getShellMessages(context.effectiveLocale);
 const toolMessages = islandLocalized ? getToolMessages(toolSlug, context.effectiveLocale) : undefined;
 
 // The island is localized too, or the page is not (LOC-02.md). A published
@@ -91,7 +92,7 @@ if (context.entry && (context.entry as any).data?.status === 'published' && isla
   previewNotice={stale ? messages.stalePreviewNotice : messages.previewNotice}
   toolControlsEnglish={context.effectiveLocale !== 'en' && !islandLocalized}
 >
-  {toolSlug === 'merge' && <PdfMergeTool client:load messages={toolMessages as any} />}
-  {toolSlug === 'compress' && <PdfCompressTool client:load messages={toolMessages as any} />}
-  {toolSlug === 'sign' && <PdfSignTool client:load />}
+  {toolSlug === 'merge' && <PdfMergeTool client:load messages={toolMessages as any} shellMessages={shellMessages} />}
+  {toolSlug === 'compress' && <PdfCompressTool client:load messages={toolMessages as any} shellMessages={shellMessages} />}
+  {toolSlug === 'sign' && <PdfSignTool client:load shellMessages={shellMessages} />}
 </ToolPageLayout>
