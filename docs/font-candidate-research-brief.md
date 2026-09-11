@@ -1,3 +1,5 @@
+> **Note:** the `CLAUDE.md` font section this brief cites ("Fonts must render identically on screen and in the export") now lives in `.claude/rules/fonts-and-text.md`.
+
 # Font candidate research brief
 
 Rules for screening a new font before it is proposed for the Sign tool's catalogue, and the current

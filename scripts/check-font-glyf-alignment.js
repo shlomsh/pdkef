@@ -29,7 +29,7 @@ const fontsDir = path.join(__dirname, '..', 'public', 'fonts');
  * comparing per-glyph path-command counts before/after across a 60-glyph sample
  * (0 mismatches) and confirming the `.notdef`-glyph subset of `नमस्ते` renders
  * identically. See the "devanagari-kalam" case in
- * `e2e/sign/export-render-guard.spec.js` and CLAUDE.md's font-subsetting notes.
+ * `e2e/sign/export-render-guard.spec.js` and .claude/rules/fonts-and-text.md's font-subsetting notes.
  *
  * This script parses `loca` the same way fontkit's subsetter will and fails, by
  * name, on any bundled font with an odd-aligned offset - so a font added later
@@ -119,7 +119,7 @@ if (failures.length > 0) {
       "padding):\n\n  from fontTools.ttLib import TTFont\n  f = TTFont(path)\n  f['glyf'].padding = 4\n  f.save(path)\n\n" +
       'Then re-verify outlines are unchanged (compare per-glyph path-command counts before/after) before ' +
       'overwriting the bundled file. This exact fix was applied to Kalam-Regular.ttf and Kalam-Bold.ttf; ' +
-      'see the comment at the top of this script and CLAUDE.md.',
+      'see the comment at the top of this script and .claude/rules/fonts-and-text.md.',
   );
   process.exit(1);
 }

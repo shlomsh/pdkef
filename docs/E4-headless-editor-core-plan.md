@@ -1,3 +1,5 @@
+> **Status: landed (E4.1 through E4.4 all shipped).** The "E4.3 is next" lines below are historical. Every `CLAUDE.md Part II §N` reference in this document now resolves to `.claude/rules/editor.md` (§1.2, §2, §3.2, §4, §5 editor hazards, §6, §7) or `.claude/rules/styling.md` (§3.1); the two always-loaded invariants (§1.1, §1.2 headline) are in `CLAUDE.md` itself.
+
 # E4 Low-Level Design — Headless TS Editor Core (Lane E)
 
 > Execution plan for backlog epic **E4** (tickets E4.2, E4.3, E4.4) on the

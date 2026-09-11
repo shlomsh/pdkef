@@ -116,7 +116,7 @@ for (const file of allFiles) {
   // The other half of the same failure: the lookup is right but the key is not.
   // A CSS Module returns undefined for a missing key and Preact renders that as
   // `class="undefined"` - no error, no warning, just an unstyled element. This is
-  // the same symptom CLAUDE.md's worktree-node_modules note describes, arrived at
+  // the same symptom docs/troubleshooting.md's worktree-node_modules note describes, arrived at
   // by a typo or by renaming a rule without its call sites.
   for (const m of source.matchAll(/\b(\w+)(?:\['([^']+)'\]|\.([A-Za-z_]\w*))/g)) {
     const owner = moduleImports.get(m[1]);

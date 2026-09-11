@@ -4,6 +4,9 @@ dist/
 .DS_Store
 *.log
 .vercel
-.claude/
+# .claude/ is local (settings, worktrees, skills) except rules/, which is
+# team-shared agent guidance loaded per matching file. See CLAUDE.md.
+.claude/*
+!.claude/rules/
 playwright-report/
 test-results/

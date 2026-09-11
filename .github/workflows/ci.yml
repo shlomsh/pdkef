@@ -48,6 +48,13 @@ jobs:
     - name: Validate backlog and generated indexes
       run: npm run check:backlog
 
+    # CLAUDE.md loads into every agent session; the topic detail lives in
+    # .claude/rules/*.md, loaded only for matching files. Fails if CLAUDE.md
+    # exceeds its line budget, a rule lacks paths: frontmatter, or a glob
+    # matches nothing. Source-only, so it runs before anything that builds.
+    - name: Validate agent guidance budget
+      run: npm run check:guidance
+
     - name: Run tests
       run: npm run test
 

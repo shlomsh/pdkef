@@ -1,3 +1,5 @@
+> **Note:** the `CLAUDE.md Part II §3.2` / `§1.1` references below now resolve to `.claude/rules/editor.md` and the invariants list in `CLAUDE.md`.
+
 # Editor module boundaries plan
 
 Opened **2026-08-29**. Execution state lives only in the canonical

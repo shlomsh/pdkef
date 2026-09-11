@@ -146,7 +146,7 @@ const distDir = path.join(__dirname, '..', 'dist');
 // bytes shipped / 112,846 bytes distinct), so the limit is set just above that
 // at 9.35x. MAX_PAGE_DEAD_BYTES and MAX_SINGLE_PAGE_UTILITIES are unaffected by
 // this page (still 29,021 / 135 with or without it) - see the note where this
-// script is invoked from CI/CLAUDE.md for the pre-existing 29,021 vs 29,000
+// script is invoked from CI (documented in .claude/rules/styling.md) for the pre-existing 29,021 vs 29,000
 // /licenses/ failure, which predates and is unrelated to this page.
 //
 // Re-based again (9.35x -> 9.60x) on 2026-08-29, and measured on a tree with the

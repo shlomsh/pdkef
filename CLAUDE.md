@@ -1,1147 +1,140 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code and any other coding agent working in this repository.
-Nothing in it is Claude-specific; `AGENTS.md` used to hold a second copy and drifted badly, so there
-is deliberately only one.
+Guidance for Claude Code and any other coding agent in this repository. This file is deliberately
+short: it holds what every agent needs in every session. Everything else is loaded on demand:
 
-**This is the only guidance file.** It absorbed the former `ARCHITECTURE.md` (design standard, now
-Part II below) and `PRODUCT.md` (voice and positioning, now the "Product, voice & copy" section).
-Two other files remain, each with a distinct audience:
+- **`.claude/rules/*.md`** - topic rules with `paths:` frontmatter, loaded automatically when you read a
+  matching file. Each starts with a one-paragraph summary; the table at the end of this file says which
+  rule covers what. If you are working from a prompt alone, open the relevant rule before editing.
+- **[docs/troubleshooting.md](./docs/troubleshooting.md)** - read *before* debugging when an island
+  silently does nothing, a whole Playwright suite goes red at once, or hydration dies on `'__H'`.
+- **[TODO.md](./TODO.md)** - the single backlog (generated from `backlog/tasks/`). No task state here.
+- **[README.md](./README.md)** - for humans and the GitHub landing page, not agent guidance.
+- **`docs/`** - design records for individual pieces of work, linked from the rule that needs them.
+  [docs/sign-tool-product-decisions.md](./docs/sign-tool-product-decisions.md) is the confirmed Sign
+  scope; consult it before reviving assumptions from older proposals.
 
-- **[README.md](./README.md)** - for humans, and the project's public GitHub landing page. Not agent
-  guidance; keep it readable and welcoming rather than exhaustive.
-- **[TODO.md](./TODO.md)** - the single backlog: what is open, what shipped, and the reasoning and
-  post-mortems behind past decisions. **No task state lives in this file.**
-
-`docs/` holds detailed design records for individual pieces of work, linked from where they matter.
-
-The confirmed Sign Tool scope is recorded in
-[docs/sign-tool-product-decisions.md](./docs/sign-tool-product-decisions.md): languages in PDF
-content, text-derived direction with an English/LTR default, one language per text element,
-Chrome acceptance, offline processing, shared user-scoped storage, and anonymous maintenance
-telemetry. Consult it before reviving assumptions from older proposals. Task state remains in TODO.
-
----
-
-# Part I - Working in this repo today
+**Keeping this file thin is a rule, enforced by `npm run check:guidance` in CI.** A lesson earns one
+line here only if every agent needs it every session; its narrative and evidence go in the topic rule
+(or a `docs/` record the rule links). Never paste a post-mortem into this file.
 
 ## What this is
 
-A 100% client-side, no-backend static web app that provides a suite of PDF tools (Merge, Split, Remove Pages, Compress, PDF to Image, Sign, Unlock) in the browser, optimized to rank for specific PDF manipulation SEO keywords. There is no PDF processing server: files must never leave the user's device. This is the central product constraint; do not introduce any upload/API call that sends file contents off-device. Processing must work offline once required assets are provisioned. Anonymous maintenance telemetry is permitted under the privacy invariants below and must never block the tools. Runtime code dependencies must use the reviewed permissive allowlist (MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clause, Zlib, or 0BSD; no AGPL/commercial libraries). `npm run test:licenses` verifies the browser-runtime inventory, locked versions, notices, and policy in CI.
-
-### Implementation status (Phase 1)
-
-Per-tool status — **see [TODO.md](./TODO.md) for the actionable, picked-up-by-the-next-agent task list.**
-
-| Tool | Route | Component | Functional? | Indexed? |
-| --- | --- | --- | --- | --- |
-| Merge | `/merge` | `PdfMergeTool.jsx` | ✅ yes (reference impl) | ✅ in sitemap |
-| Sign | `/sign` | `PdfSignTool.jsx` | ✅ implemented (real `pdfDoc.save()` + download) | ✅ in sitemap |
-| Split | `/split` | `PdfSplitTool.jsx` | ✅ implemented (`src/lib/split.js`) | ✅ in sitemap |
-| Compress | `/compress` | `PdfCompressTool.jsx` | ✅ implemented (`src/lib/compress.js`, rasterizes + re-encodes pages) | ✅ in sitemap |
-| Edit Pages | `/edit-pdf` | `PdfEditPagesTool.jsx` | ✅ implemented (`src/lib/editPages.js`; reorder, remove, rotate, add page numbers) | ✅ in sitemap |
-| PDF to Image | `/pdf-to-image` | `PdfToImageTool.jsx` | ✅ implemented (`src/lib/toImage.js` + real downloads) | ✅ in sitemap |
-| Unlock / Protect | `/unlock` | `PdfSecurityTool.jsx` | ✅ implemented (`src/lib/security.js`; auto-detects — encrypted files unlock, unencrypted files get protected). The `/protect` route was killed as redundant and 301s to `/unlock` (see `vercel.json`); the tool covers both intents on one page. | ✅ in sitemap |
-| Image to PDF | `/image-to-pdf` | `PdfImageToPdfTool.jsx` | ✅ implemented (`src/lib/imageToPdf.js`, embeds JPG/PNG via `@cantoo/pdf-lib`, one page per image at native size) | ✅ in sitemap |
-| Redact | `/redact` | `PdfRedactTool.jsx` | ✅ implemented (blackout/blur/whiteout, rasterizes redacted pages) | ✅ in sitemap |
-
-All Phase 1 tools are now functional and promoted (de-noindexed, in the sitemap generated by `src/pages/sitemap.xml.js`, with a visible "How it works" + FAQ section and a matching `<SeoSchema>` on their pages). Unlock and Image to PDF were added beyond the original Phase 1 scope per SEO research identifying them as high client-side-fit, lower-competition keywords that reinforce the privacy-first positioning — Image to PDF (JPG/PNG batches into one PDF) was the original motivating use case for building this app. Remaining open items are tracked in [TODO.md](./TODO.md), the single backlog.
-
-**Definition of done for promoting any tool (do these as one unit — see TODO.md):** (1) implement the real `src/lib/` logic, no network calls; (2) replace the `setTimeout` mock in the component with the real call + download, mirroring `PdfMergeTool.jsx`; (3) add a visible "How it works" + FAQ section to the `.astro` page and a matching `<SeoSchema>` (FAQ schema only — HowTo schema was removed, deprecated by Google in 2023; structured data must match on-page content); (4) remove `noindex` from the page; (5) the route appears in the sitemap automatically once it's in `src/data/tools.js` (`src/pages/sitemap.xml.js` generates `/sitemap.xml` from that registry - nothing to hand-edit); (6) `npm run build && npm run preview` to confirm CSP/hydration (the dev server cannot catch CSP regressions — see the CSP section).
+A 100% client-side, static web app: a suite of PDF tools (Merge, Split, Edit Pages, Compress, PDF to
+Image, Image to PDF, Sign, Redact, Unlock/Protect) that run in the browser and rank for specific PDF
+keywords. **There is no PDF-processing server and files must never leave the device.** Processing works
+offline once assets are provisioned. All nine tools are implemented, indexed and registered in
+`src/data/tools.js`. Runtime dependencies must use the permissive-license allowlist (MIT, Apache-2.0,
+ISC, BSD-2/3, Zlib, 0BSD); `npm run test:licenses` enforces it.
 
 ## Commands
 
 ```bash
 npm install
 npm run dev       # local dev server (astro dev)
-npm run build     # production build to dist/ (astro build)
-npm run preview   # preview the production build locally
+npm run build     # production build to dist/
+npm run preview   # preview the production build (serves dist/ from disk)
 npm test          # unit/component tests (Vitest + jsdom)
 npm run test:e2e  # browser guardrails (Playwright; keep under e2e/<module>/)
 ```
 
-E2E tests are intentionally sparse guardrails, not a duplicate unit suite. Keep them under
-`e2e/<module>/` (for example `e2e/sign/`) and maintain roughly a 1:10 e2e-to-unit/component ratio.
-Use Playwright only where jsdom cannot prove the behavior: rendered toolbar rects, drag-time toolbar
-following before `pointerup`, page/viewport edge behavior, hydration/CSP-visible flows.
-
-**A whole Playwright suite going red at once usually means it tested the wrong build, not that the
-build broke.** Two things about the preview server cause this, and both look like something else:
-
-- **`playwright.config.js` reuses whatever is already listening on its port** (4173 by default,
-  `reuseExistingServer` outside CI). Worktrees share a port namespace, so a stray `astro preview` left
-  running by *another worktree of this repo* is silently accepted, and every spec then runs against a
-  different project's `dist/`. The tell is uniform failure with locators timing out on elements that
-  obviously exist: the suite is not finding your markup because your markup is not being served.
-  Check what owns the port before believing the result:
-  `lsof -a -p <pid> -d cwd -Fn` prints a listening process's worktree.
-- **`astro preview` allows exactly one instance per project**, managed as a daemon. A second
-  `npm run preview` does not start and does not crash; it prints "Preview server already running at
-  ..." and exits 0, which reads like a mysterious early exit when Playwright launches it. Use
-  `npx astro preview stop` and restart on the port you want, rather than adding a second one. A running
-  preview serves `dist/` from disk, so a rebuild is picked up with no restart.
-
-The practical rule for parallel agents: **one preview, on 4173, for the whole worktree**, and let
-everything share it. Handing each agent its own port does not work and quietly produces the first
-failure mode above.
-
-The editor intentionally uses runtime inline styles for geometry/Floating UI. This is **not** a CSP
-problem and never was: per-property CSSOM writes (`el.style.width = ...`) are not governed by
-`style-src`. The real `style-src` violations were a finite set of SSR-serialized static attributes,
-since converted to classes, and `verify-csp.js` now fails the build on any literal `style=` in `dist/`.
-Do not "fix" the gesture path's inline geometry on CSP grounds. Full reasoning in Part II §5.
-
-Deploy: push to `main` → Vercel auto-deploys (GitHub integration), custom domain attached in Vercel dashboard.
-
-**If a tool's file picker opens but selecting files does nothing in `npm run dev`**, and the browser console shows `504 (Outdated Optimize Dep)` for entries under `node_modules/.vite/deps/`, the dev server's Vite dependency cache has gone stale relative to `node_modules` — typically because `npm install` ran while an old `astro dev` process was still running. The dynamic import of the island component then fails (`[astro-island] Error hydrating ... Failed to fetch dynamically imported module`), so its `onChange` handler never attaches — same end-user symptom as the CSP hydration bug below, different cause, and only happens in dev. Fix: stop the dev server, `rm -rf node_modules/.vite`, restart `npm run dev`.
-
-This same stale-dep-cache class can also surface as a **503** (not just 504) on a specific pre-bundled dep — e.g. `node_modules/.vite/deps/sortablejs.js` returning 503, which cascades into the *importing* island failing with the same `[astro-island] Error hydrating ... Failed to fetch dynamically imported module` error, even though the failing request is a transitive dependency, not the component file itself. Diagnose by checking the Network tab (not just console) for any non-200 response under `node_modules/.vite/deps/` or `node_modules/<pkg>/` during the page load that hydration-errored — the failing dep points at what to blame, and the symptom is identical across every tool since they all share `BasePdfTool.jsx`'s hydration path (don't assume a per-tool code bug just because it reproduces on multiple tool pages). Same fix: kill the dev server, `rm -rf node_modules/.vite`, restart. A `.astro/dev.log` reference to a different/old project directory path is a stale leftover from a prior crashed run (e.g. before a repo rename) and is *not* diagnostic of the current process — check the currently-running PID's actual behavior instead of trusting old log lines.
-
-**A third way "file selection does nothing" happens, and the only one jsdom cannot catch: reading `input.files` after resetting `input.value`.** `<input type=file>.files` is a *live* FileList, and assigning `value = ''` (which every handler here does, so re-picking the same file still fires `change`) empties it in place. Read the list into an array *before* clearing the input. This is invisible under Vitest because the tests install `files` with `Object.defineProperty`, which survives the reset — so `npm test` passes completely and the built app silently does nothing on every tool at once. Same end-user symptom as the CSP and stale-dep-cache bugs above; different cause, and the tell is that it reproduces in `npm run dev` too, with no console error and no CSP violation.
-
-**A fourth cause, and the one to suspect first when clearing `node_modules/.vite` does *not* help: an incomplete `vite.optimizeDeps.include` in `astro.config.mjs`.** Every dep Vite discovers *late* (i.e. reachable only from inside an island, so its startup crawl of the `.astro` entry points never sees it) bumps the dep optimizer's `browserHash`, and every module already resolved under the previous hash then fails as `504 (Outdated Optimize Dep)`. Vite's recovery is a full reload pushed over HMR, so *one* late discovery is survivable. Several in a single page load are not: they strand the astro-island bootstrap and the Astro dev toolbar together, the toolbar's own dynamic import throws inside `initApp` (`Cannot read properties of undefined (reading 'send')`, repeated), and the HMR channel dies before the rescue reload is ever sent. The page is then stuck with two optimizer generations of Preact at once, and hydration dies in `preact_hooks` on **`Cannot read properties of undefined (reading '__H')`** — `preact/hooks` from one generation reading `currentComponent.__H` out of the other's module state. The island never mounts, so the tool's file input does nothing and a loaded PDF silently never renders. Clearing `node_modules/.vite` is useless here: the next cold load rebuilds the identical cascade, which is the tell that distinguishes this from the stale-cache causes above. **Diagnose by `?v=` hash, not by console text**: in the Network tab every `/node_modules/.vite/deps/` request should carry one shared hash (plus a second, separate one for Astro's dev-toolbar environment, which legitimately runs its own optimizer). Three or more distinct hashes in one load means the cascade. `preact.js` and `preact_hooks.js` disagreeing is the specific fatal case. Fix by adding the offending package to `optimizeDeps.include` — do not disable the dev toolbar, which is collateral rather than cause. Test cold and in an Incognito window, since this only reproduces on a first load against a fresh optimizer cache. This shipped incomplete once: the list covered the five deps behind an explicit `import()` but missed three ordinary top-level imports inside islands (`signature_pad`, `lucide-preact`, `@vercel/analytics`), which is the easy assumption to repeat — **being statically imported does not make a dep visible to the startup crawl if the only path to it is through an island.**
-
-**A freshly-created `git worktree` needs its own `npm install` before running tests — a missing or partial `node_modules` there breaks CSS Modules silently, not just the dev server.** If a worktree directory happens to contain *any* `node_modules` folder — even an empty one, or one holding only leftover `.astro`/`.vite` cache directories from a stray build/test run — Node's module resolution stops there instead of walking up to the real install in the main checkout, since Node stops at the first `node_modules` it finds. Most imports still resolve fine (Vite/Rollup's own resolver falls through to the parent anyway), but two things break in a way that's easy to misdiagnose: (1) **CSS Modules under Vitest silently resolve to `{}`** — `import styles from './X.module.css'` gives you `styles.foo === undefined`, so `class={styles.foo}` renders `class="undefined"`, `container.querySelector('.foo')` returns `null`, and every test touching that class fails with no error pointing at the real cause; (2) pdfjs's `new URL('pdf.worker.mjs', import.meta.url)` asset resolution gets rewritten against the worktree's phantom path instead of the real `node_modules`, breaking any test that spins up a real pdf.js worker. Both look like ordinary test failures, not an environment problem. Fix: `rm -rf` the worktree's stray `node_modules`, then run `npm install` inside the worktree — don't assume a worktree can safely share or skip installing its own `node_modules` just because the main checkout has one.
+- E2E tests are sparse guardrails, roughly 1 e2e per 10 unit tests, only for what jsdom cannot prove
+  (rendered rects, drag-time behaviour, page-edge behaviour, hydration/CSP flows).
+- **One preview, on 4173, per worktree.** `astro preview` is a one-instance daemon and Playwright reuses
+  whatever owns the port, so a second preview or a per-agent port silently tests another build.
+- A fresh `git worktree` needs its own `npm install`; a missing or partial `node_modules` there breaks
+  CSS Modules silently (`styles.foo === undefined`), not just the dev server.
+- Deploy: push to `main` and Vercel auto-deploys.
 
 ## Architecture
 
-Built with **Astro** in static output mode (`output: 'static'` in `astro.config.mjs`, no SSR adapter). Astro prerenders everything to flat HTML at build time — there is no server at runtime, only static files served by Vercel.
-
-The page follows an **islands architecture**:
-- `src/pages/` (e.g., `index.astro`, `merge.astro`) + `src/layouts/BaseLayout.astro` + `src/components/SeoSchema.astro` render the entire SEO surface (H1, how-it-works, FAQ, JSON-LD) as **static HTML with zero JS shipped**. This content must stay server-rendered at build time, not injected client-side, so crawlers see it without executing scripts.
-- The interactive PDF tools (`PdfMergeTool.jsx`, `PdfSplitTool.jsx`, etc.) are **Preact islands** (`client:load`), mounted into the `#app` section of their respective pages. They wrap around a common `BasePdfTool.jsx` which handles the drag-and-drop file picking layout (with `FileDropzone.jsx` for the dropzone UI). `Footer.astro` is the shared site footer. All the actual file-handling logic lives in these components and in `src/lib/`. (Only `PdfMergeTool.jsx` is functionally wired up — see "Implementation status" above.)
-
-Library logic:
-- `src/lib/merge.js` — `@cantoo/pdf-lib` glue: `mergePdfs(files, onProgress) -> Blob`, plus `resolvePdfCreationDate(file)` which reads a PDF's internal `/CreationDate` metadata.
-- `src/lib/sort.js` — `sortByName` (natural/locale-numeric) and `sortByDate`. Date sort is a cascading fallback: filename-embedded date (regex) → PDF internal creation date → `File.lastModified`. **The browser File API cannot read OS file creation/birth time** — `lastModified` is the only filesystem timestamp available, and it changes when a file is copied/downloaded, so it's intentionally the last resort, not the primary signal.
-- `src/lib/thumbnails.js` — lazy (dynamically imported) `pdfjs-dist` page-1 rendering to a canvas/data-URL. The worker URL uses Vite's native `new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url)` asset pattern, so Vite bundles and content-hashes it as a same-origin asset automatically — no copy plugin needed, never fetched from a CDN.
-- `src/editor/workspace/draftStore.js` + `src/components/SignTool/useDraftPersistence.js` — **crash-safe draft persistence** for the Sign and Redact tools. `draftStore.js` is a dependency-free native IndexedDB wrapper (DB `pdf-toolkit-drafts`, store `drafts` keyed by tool name so there's one active draft per tool) that stores the full source PDF bytes **plus** the edit state (annotations / redaction boxes), with a 14-day auto-expiry and graceful no-op degradation when IndexedDB is unavailable. `useDraftPersistence.js` is the Preact hook that debounce-autosaves while `status === 'editing'`, flushes on `visibilitychange`/`pagehide`, silently restores the last draft on mount (the draft is the source of truth; download does **not** clear it), and clears when a different file is loaded over it (the shared "Replace file" action, which absorbed the old "Start over") or after the 14-day expiry. Both `PdfSignTool.jsx` and `PdfRedactTool.jsx` refactor their loaders into a shared `loadPdf()` reused by fresh picks and restore, and call `seedUniqueId()` (in `sign.js`) after restore so new element ids don't collide with restored ones. **Everything stays on-device — nothing is uploaded, preserving the core privacy constraint.** This is a flagship, differentiating feature (server-free crash recovery); it is surfaced as supporting SEO copy on the `sign`, `redact`, and home pages (intro copy + a benefit bullet + one FAQ entry per tool page, mirrored into `<SeoSchema>`'s `faq` array like every other FAQ).
-
-Drag-to-reorder uses **SortableJS**, wired directly to the DOM list in `PdfMergeTool.jsx`; on drop, the final DOM order is read back into Preact state, which remains the single source of truth for every re-render.
-
-### The SEO landing pages are a content collection, not eight page files
-
-The eight standalone SEO pages (four OS how-to guides, four long-tail landing pages) are **not** `.astro`
-files. Each one is a YAML entry in `src/content/content-pages/`, validated by the Zod schema in
-`src/content.config.ts` and rendered by the single dynamic route `src/pages/[contentPage].astro`. They
-were eight near-identical `.astro` files; the duplication was the small problem, and the big one was
-that nothing checked the copy - a page missing a FAQ answer, or linking to `/sign` without the trailing
-slash, was a perfectly valid `.astro` file. `verify-seo.js` caught a subset of it after the fact, from
-the built HTML. Now it is a build error that names the file and the field.
-
-Things to know before touching them:
-
-- **The entry id is the URL.** `how-to-sign-a-pdf-on-mac.yaml` renders at `/how-to-sign-a-pdf-on-mac/`.
-  These pages rank, so the loader sets `generateId` explicitly rather than letting Astro slugify, and
-  renaming a file renames a live URL - add the redirect in `vercel.json` (slash-terminated, both sides).
-- **Two registries, cross-checked at build time.** The collection owns what a page *says*;
-  `src/data/contentPages.js` still owns where it *sits* (hub tool, cross-link card, sitemap entry).
-  Neither derives from the other, so `getStaticPaths` fails the build if a slug appears in one and not
-  the other - a content file with no registry entry is an orphan page, a registry entry with no content
-  file is a 404 in the sitemap. Both used to be possible.
-- **Body copy is a two-tag dialect, and content files never carry a class.** `<strong>` and
-  `<a href="...">`, nothing else; `src/lib/contentMarkup.ts` validates it (unsupported tag, unbalanced
-  tag, bare `&`, internal link without its trailing slash, external link without
-  `rel="noopener noreferrer"`) and puts the design system's classes back on at render. Everything else -
-  card spacing rhythm, step numbering, the class strings themselves - is derived by the route template,
-  so a card cannot get the wrong rhythm because someone copied classes from a different page.
-- **Adding a *kind* of content means editing the schema and the route.** Adding a page, or rewording
-  one, means editing one YAML file and nothing else.
-- **The "Last updated" date in the header is git-derived, never authored (SEO-29).**
-  `src/lib/gitLastModified.js` dates a page by the commit history of its YAML plus the route template
-  (a localized edition by its own translation file), and the sitemap's `<lastmod>`, the header line and
-  the page's Markdown twin all read that one function, so they cannot disagree. Do not add a date field
-  to the YAML. A commit to `[contentPage].astro` re-dates every English page at once, which is honest
-  (they all changed) but worth knowing before reading the dates as per-page freshness.
-- **One accepted cost:** all eight pages share one route, so they share one CSS bundle, and
-  `CompareTable.astro`'s scoped styles now inline on all eight rather than the four that render a
-  table (+~320 brotli bytes on those four; duplication factor 9.73x → 9.79x against the 9.85x ratchet).
-  Two root-level dynamic routes would collide, and splitting by URL prefix would hard-code the guides'
-  slugs into routing, so this is the price of one template.
-
-## Theme / color palette
-
-All color is driven by CSS custom properties defined once in `src/styles/global.css`'s `:root` block — never hardcode a hex/rgba color in a component or another stylesheet; reference the variable (e.g. `var(--color-primary)`) so the palette stays swappable from one place.
-
-Current palette ("Sea Glass" — teal and cool grays, replacing the earlier navy + electric blue theme):
-- `--color-bg: #f4f9fa`, `--color-surface: #ffffff`, `--color-surface-sunken: #c4e1e6` — cool white/glass surfaces.
-- `--color-text: #23404a`, `--color-muted: #4a6570`, `--color-muted-light: #a4ccd9` — deep teal ink, readable muted slate, then decorative-only pale slate. `--color-muted-light` must not carry readable text.
-- `--color-primary: #3e7c8d` (hover `#397281`, active `#356d7d`, soft tint `#eef6f8`, tint `#e6f1f3`) — the surface accent used for primary buttons, focus rings and borders. `--color-primary-text: #397281` is the readable foreground form used for links, accent-coloured text and controls whose icon and label share `currentColor`; do not use the surface token as text.
-- `--color-success: #5c7a3a` (hover `#4a632f`, soft `#ebffd8`), `--color-danger: #b84c58` (soft `#fcf1f3`) — both were retuned alongside the retheme to read well against the cool teal base; don't recolor these without a reason.
-
-When changing the theme in the future: update the `:root` block in `global.css`, then `grep -rn "rgba(0\|#[0-9a-f]\{6\}"` across `src/` and `public/` for any color literal that escaped the variable system (several button/dropzone shadows and the body background glow were historically hardcoded as `rgba(...)` rather than referencing a variable — re-check these). Also update `theme-color` in `BaseLayout.astro` and `theme_color`/`background_color` in `public/manifest.webmanifest` to match, since those aren't CSS and don't pick up the `:root` vars automatically. A pure color-only change doesn't touch scripts or CSP, so a `npm run dev` visual check is enough — full `build && preview` isn't required unless the change also touches scripts/`astro.config.mjs`.
-
-## Product, voice & copy (read before writing or editing any user-facing text)
-
-*This section absorbed the former `PRODUCT.md`. It is the whole brand voice, not a summary.*
-
-### Who it is for
-
-Privacy-conscious users who need to manipulate PDFs (merge, split, compress, rotate, sign, extract
-pages, convert formats) without uploading files to a server. They trust their own device more than
-cloud services and prioritize keeping personal or sensitive documents offline.
-
-### What the home page is for (it is a router, not a tool)
-
-`/` is not the Sign tool with extra copy around it. Google indexes the nine tool routes directly and
-that is where search traffic lands, so the home page's job is to turn a visitor into a *tool user*,
-not to be a dropzone wired to one tool. Judge changes to it on that, and note that the answer is often
-the opposite of the right answer for a tool page: screens of story in front of `/sign` fight a visitor
-who arrived with intent, while on `/` they are the point.
-
-Register matters as much as content. Documentation plus a working demo is the target; a marketing pitch
-is not. Showing the thing working, beside material that explains it, is the sweet spot the voice rules
-above are trying to protect.
-
-This positioning is the reason the landing demo sits above the documentation rather than below it. The
-full reasoning, the four arguments behind it, and the conditions under which it should be re-opened are
-recorded in `backlog/tasks/DEMO-05.md`.
-
-### Origin (the story the copy draws on)
-
-PDkef began with a real errand. My partner needed to download all her course slides into a single PDF
-before an exam, and separately to sign a summer-camp consent form that had arrived over WhatsApp. We
-went looking for tools. One capped the number of pages. One wanted a paid subscription plus a Windows
-install. One just felt like a place you would not want to send personal documents. So I built the tool
-I wanted for myself, and named it PDF + *kef* ("fun" in Hebrew) = PDkef.
-
-The motivation is the point, not the effort. I believe simple tools like these should be free and
-accessible to everyone, everywhere, on any device. I wanted this for myself, and then I wanted to share
-it, so it saves other people the same time and hassle instead of sending them to a paywall or a sketchy
-upload site. Every messaging decision traces back to that belief.
-
-**Do not frame PDkef around how little time it took ("a weekend project", "built in a weekend").** It
-minimizes the work, ages badly, and misses the actual reason the tool exists.
-
-### Brand personality
-
-- **Tone:** warm, personal, modest. A builder sharing something useful, not a company selling a product.
-- **Three words:** generous, honest, capable.
-- **Emotional goal:** "Oh, I can just do this, for free, and my files stay with me." Relief and a small
-  delight, not a security lecture.
-- **Founder voice is an asset.** First person ("I built this because...") is welcome and
-  differentiating. Most tools in this space hide behind a faceless brand; PDkef does not have to.
-
-### Anti-references (what this must never resemble)
-
-Slick SaaS onboarding with dark patterns ("upgrade now"); signup walls or account creation; vague
-privacy policies or hidden tracking; gratuitous animations that slow down workflows; overcomplicated
-UIs with features users don't need; heavy branding that competes with the actual tools.
-
-### Voice & messaging principles
-
-The market is crowded and most competitors sound salesy. PDkef wins by sounding like a person who made
-something and wants to share it.
-
-1. **Explain, don't compete.** State why the tool exists and how it works. Do not argue against named
-   competitors or take an us-vs-them tone. "Your file stays on your device" carries itself and needs no
-   "unlike [Competitor]" attached. (`src/data/tools.js` FAQs no longer name competitors; do not add that
-   framing back.)
-2. **Lead with discovery, not fear.** The strongest hook is telling people something genuinely useful
-   they may not know, for example "you can fill and sign a PDF without printing and scanning." That is a
-   gift, not a pitch. Privacy is a reason to trust the tool, not the headline.
-3. **Plain facts over intensifiers.** "Runs on your device. Free. Open source." reads as more true than
-   "100% secure, instant, zero-limit." Pick the one honest word. Overselling reads like the paywalled
-   sites we are not.
-4. **Privacy at human altitude.** Frame it the way a normal person would ("I would not want to upload a
-   consent form to a random site"), not with corporate security language ("military-grade, breach-proof").
-5. **Free because it should be, not as a funnel.** Avoid "free tier" framing that implies a paid tier is
-   coming. It is free because it costs almost nothing to run and because access to this should not be gated.
-6. **For everyone, on any device.** Mobile-first and global reach are true and underused. Say them plainly.
-7. **A little kef is fine.** The name is a pun; the voice can be light and human. Modest and warm, never
-   corporate, never hype. **No em dashes** (use spaced hyphens, commas, or split the sentence).
-
-All copy lives in `.astro` / `src/data/tools.js` / `src/content/content-pages/*.yaml` (the eight SEO
-landing pages - see "The SEO landing pages are a content collection" above), rendered at build time and
-never injected client-side (see SEO invariants below).
-
-### Design principles
-
-1. **Privacy by default.** Visible, transparent proof that files never leave the device. Every page
-   surface should reinforce this without being preachy.
-2. **One tool, one job.** Each tool does exactly one thing well. No feature creep or bundling.
-3. **Fast and predictable.** Minimal clicks to completion. Clear visual feedback at every step.
-4. **Accessible to everyone.** No gatekeeping on ability.
-
-### Accessibility & inclusion
-
-WCAG 2.1 AA minimum. Keyboard navigation and screen-reader support. Contrast of 4.5:1 for body text and
-3:1 for large text. No motion or flashing that could trigger vestibular issues. Clear error messages and
-status feedback.
-
-## SEO invariants (don't regress these)
-
-- Primary keyword ("pdf merge online free", "split pdf", etc.) stays in `<title>`, the single `<h1>`, and meta description for each specific tool page.
-- Only one `<h1>` per page.
-- All marketing/how-to/FAQ content stays build-time rendered - in `.astro` files, or in the `contentPages` collection the eight SEO landing pages are authored as - and is never moved into the Preact island. The rule is "static HTML a crawler sees without running scripts", not "must be an `.astro` file".
-- `robots.txt` (a static file in `public/`) and `/sitemap.xml` (generated by `src/pages/sitemap.xml.js` from `src/data/tools.js` - see "URL canonicalization" below) must stay reachable and accurate; `astro.config.mjs`'s `site` must match the real deployed domain (currently `https://pdkef.com`).
-- Canonical URL, Open Graph + Twitter Card tags (`BaseLayout.astro`) must stay present.
-- JSON-LD (`SeoSchema.astro`: `SoftwareApplication` with `Person` author, `FAQPage`) must stay valid — verify with Google's Rich Results Test after edits. `HowTo` schema was intentionally removed (Google deprecated HowTo rich results in 2023); don't re-add it.
-- Target Lighthouse SEO + Performance ≥ 95 — keep the island lean, lazy-load thumbnails, avoid layout shift.
-
-## Search acquisition (SEO work beyond the invariants above)
-
-**The SEO memory is one file: [docs/seo-competitive-findings.md](./docs/seo-competitive-findings.md).**
-Read it before any search-related work; it holds the status board, the lessons, the dated standings,
-the plan with its gates, and the reference material (competitor research, refresh procedure, review
-protocol). Task state lives in the `SEO-*` tickets under `backlog/tasks/`, epic `search-acquisition`.
-
-**What goes where, so the memory stays focused.** The findings doc says *what is true now*; a ticket
-says *how we found out*. A ticket owns its diagnosis, SERP captures, before/after tables and dead ends
-at whatever length the work needed. The doc gets one status row per ticket and, if the ticket learned
-something that outlives it, one line in its "What we know" section with a link back - never a
-re-explanation. Standings in the doc are replaced at each refresh, not appended; git is the timeline.
-If a section of the doc starts narrating, move the narrative to the ticket. Do not create a second
-SEO document; extend the one that exists.
-
-Four standing rules, each learned the expensive way (evidence in the doc's section 2):
-
-- **Verify any external audit against `src/data/tools.js` and `src/lib/` before accepting its gap
-  list.** The report that started the epic proposed building target-size compression that had
-  already shipped.
-- **No template-swapped doorway pages.** A new content page must teach something verifiable and
-  disclose the awkward fact; three pages differing by a number are rejected on sight. New long-tail
-  pages go through the content-pages collection, never new `.astro` files.
-- **A copy change is not done until the page is recrawled.** "Indexed" is not "current": Google served
-  a two-week-old title for `/redact/` while the live page had the new one. A copy ticket ends with an
-  indexing request, and no CTR reading is a verdict until the indexed snippet matches the live one.
-- **Google blocks scripted SERP fetches from this environment.** Real Google SERPs come from Shlomi's
-  screenshots; ask rather than guess. Bing/DuckDuckGo show who competes, never our Google position.
-
-## UI & State Invariants
-
-- **The home page is one canonical DOM that CSS reshapes per breakpoint. Nothing is ever re-parented
-  after load.** `.home-tour > .home-hero` holds four siblings in the mobile reading order - header,
-  launcher, dock, then the demo track - and two `grid-template-areas` arrange them: five columns and
-  three rows on desktop, one column and four rows below 1024px. **Source order is the mobile order on
-  purpose**, so a screen reader meets the tools before a screen-tall decorative story; desktop moves
-  the demo up beside the launcher purely by naming grid areas. That is why the desktop grid is
-  full-bleed (`minmax(32px, 1fr)` gutters around two 588px columns either side of a 40px gap column,
-  which is the old 1280px content block to the pixel) rather than a wrapper element: a wrapper would
-  force the demo to be a DOM sibling of the launcher and put it back before the dock. This replaced a script
-  that moved the hero into the sticky frame after hydration; because the server-rendered HTML was the
-  mobile shape, every desktop visitor watched the whole hero jump, and that single re-parent was
-  **0.243 of a 0.244 CLS**. If you find yourself writing DOM-moving code to satisfy a breakpoint here,
-  that is the bug returning. The shift was never the only cost: moving an island's ancestors
-  disconnects and reconnects it, which re-enters `astro-island` and re-runs `start()` (measured at four
-  `astro:hydrate` dispatches per desktop load under the old script). Only `@astrojs/preact`'s bail on
-  `!element.hasAttribute("ssr")` kept that from becoming a second real mount, which is a thin thing to
-  have been relying on.
-- **Which element pins differs per breakpoint, and that is inherent, not an accident.** Desktop pins
-  the whole hero (`position: sticky`, so the header, launcher, demo and dock hold still together while
-  the story scrubs); mobile pins only `.home-frame`, after the first screen has scrolled away. Both
-  arrange for exactly **1116svh** of travel, which is what keeps `SIGN_END` / `CROSSFADE_START` /
-  `CROSSFADE_END` in `ScrollDriver.tsx` valid - they are fractions of that span. `ScrollDriver` finds
-  the live one by asking which `[data-demo-pin]` computes to `position: sticky` and pairing it with the
-  matching `[data-demo-track]`, rather than re-testing the breakpoint in JS where it could drift from
-  the CSS. Re-resolve on resize; a stale pin reads a now-unpinned element's `top`.
-- **The launcher's height is viewport-derived, not content-derived, and that is load-bearing.** It sits
-  in a `1fr` row inside a viewport-height box at both breakpoints, so `FileDropzone` arriving cannot
-  change the *row's* size. Sizing that row to its content would hand the first paint back to whenever
-  the island hydrates. This does not mean content inside that row is immune to shifting once it grows
-  past one line of recent files - see the 4-6-recents paragraph below, where the row's own available
-  space still lets its content push the picker tile down.
-- **`--home-nav-height` is measured at runtime on purpose.** `AppBar.astro`'s bar is an `h-14` row plus
-  a `border-b-[0.5px]` hairline, so it renders at 56.5px, not the 56px the utility implies, and both
-  `.home-header`'s `padding-top` and the card stack's sticky band derive from it. The CSS default is
-  `calc(3.5rem + 0.5px)` so a real browser needs no correction and the page keeps a measured CLS of 0;
-  the one-element measurement in `homeWorkspace.ts` only changes anything where rendering disagrees,
-  which headless Chromium does by rounding that hairline up to a whole pixel. Hard-coding it instead
-  put `e2e/card-reveal.spec.js` 0.063px from failing in CI. `e2e/home/nav-height.spec.js` pins it.
-- **The home page's first screen is one composed unit, and inserting anything into it breaks the
-  dock.** `index.astro` wraps the hero, the dropzone and the tool grid in a single
-  `min-h-[calc(100svh-3.5rem)]` flex column with `justify-center`, and pins the grid to the bottom with
-  `mt-auto`. That is deliberate: the grid reads as a macOS dock, and an experienced visitor uses it to
-  jump straight to the tool they came for, so it has to stay on the first screen. Anything added
-  *inside* that wrapper pushes the dock off the viewport and costs those visitors their shortcut. New
-  full-height sections go after the wrapper, not in it. The dropzone's `min-height: 13rem` reservation
-  inside it (`.home-workspace` in `index.astro`, and `.dropzone` in `Dropzone.module.css`) is a
-  separate, load-bearing thing: it is the floor that keeps the first paint from moving the dock while
-  the launcher settles.
-- **`FileDropzone` is `client:load`, and the directive and its `recents` state are one decision.** A
-  `client:only` island emits no HTML at build time, so the whole launcher - dashed picker tile, "Choose
-  files", the starter-document card and its thumbnail - existed only after the Preact bundle had loaded,
-  and visibly arrived after the page had painted. Server-rendering it is only safe while the component's
-  first client render reproduces the server's markup exactly, which is why `recents` starts as `null`
-  ("storage not read yet") and browser storage is read only from the mount effect. Recent files live in
-  `localStorage`; no server render can know about them, and Preact repairs a hydration mismatch by
-  keeping the server's nodes and *appending* its own, which is how duplicate recent tiles shipped in the
-  earlier `client:load` attempt (fixed by `203b204`).
-  **Changing either half alone brings that back.** Both halves have their own guard with a checked
-  sabotage control: `e2e/home/recent-files.spec.js` renders `/` with JavaScript disabled and asserts the
-  shell is in the document, and `FileDropzone.test.tsx` asserts the first render shows the starter card
-  and has not called `readRecentFiles`. What server rendering cannot buy is the recent tiles themselves:
-  they always arrive after mount, so a returning visitor sees the starter card swapped for their own
-  files. The card swap alone is not a layout shift and never was.
-
-  **The picker tile's own shape used to change too, and that is what the "0 with 0 and with 4
-  recents" claim this paragraph used to make was missing.** `FileDropzone.module.css` had a
-  `.launcher:has([data-home-recents] li:nth-child(3)) > .tile` rule that collapsed the picker from a
-  tall 180px/132px dropzone to a 76px compact row once three or more recent files filled a grid row - a
-  deliberate, pre-existing design choice, dated well before server-rendering this shell. Server-rendering
-  is what made it a CLS bug: `recents` is `null` on every first render (server and client alike, by the
-  hydration-match rule above), so the bundled-sample fallback always renders exactly one list item on
-  that first frame - the `:has()` selector's tall shape - regardless of what the real cache holds. The
-  very next frame, once the mount effect reads real recents, three or more of them flipped the selector
-  and the tile visibly collapsed by 104px (180 to 76) right under the visitor's cursor. Measured CLS was
-  0.0487 at 3 recents and climbed to 0.0785 at 4-6 (it plateaus past 4 because the compact shape itself
-  stops changing). The fix made the compact shape unconditional: since the fallback already guarantees
-  at least one item whenever this component isn't in `final` mode, the tall shape was never actually
-  reachable by a real visitor to begin with - only by the SSR/pre-hydration frame this component itself
-  renders. Removing the `:has()` conditional makes the tile's shape identical across every frame, for
-  every recents count from 0 through 6. Confirmed with `measure-cls.mjs`-style instrumentation
-  (`new PerformanceObserver({type:'layout-shift'})` seeded via `page.addInitScript` writing
-  `pdf-toolkit:workspace:recent-files` before navigation): 0.0000-0.0004 at 0-3 recents after the fix.
-
-  **A second, smaller, and *accepted* source remains at 4-6 recents: ~0.02, unchanged by the tile
-  fix.** (Measured 0.0386 on the pre-restructuring `.home-scene` layout, 0.0211 on the current full-bleed
-  grid above - re-measure again if that grid changes.) The recents grid is three columns; four to six
-  items need a second row that one to three don't, and that row's arrival moves the picker tile (and,
-  per measured `LayoutShift` sources, page content below the hero) down by its height - a real position
-  change of an element that existed in the prior frame, which is exactly what the Layout Instability API
-  counts, unlike the tile's own in-place swap above. Eliminating it outright would mean reserving
-  two-row height in the recents grid unconditionally, which - given `.home-workspace`'s `min-height:
-  13rem` is already the deliberate floor for the *common* case (see above) - would push that reservation
-  to roughly double for every first-time visitor and everyone with fewer than four saved files, to
-  smooth a transition only visitors with four or more matter to. That trade was rejected: ~0.02-0.04 is
-  comfortably inside Google's "good" CLS band (< 0.1) on its own, the visitor population it affects is
-  the smaller, more-invested returning-user segment, and the alternative cost lands on every visitor on
-  every load. Re-open this only if real-user CLS on `/` (Search Console / CrUX field data) actually
-  shows it, not from this synthetic measurement alone.
-- **The demo and the launcher have opposite rendering constraints, so they cannot simply swap.** This
-  looks like an easy conditional and is not. Marketing and demo copy must be server-rendered or it stops
-  counting as the SEO surface (Part II §1.1), so a demo is always present in the document, and hiding it
-  after hydration means a returning visitor watches it flash and then collapse by several screens, which
-  is exactly the layout shift the reservation above exists to prevent. Deciding before first paint needs
-  a synchronous inline script, and hand-hashing an `is:inline` script for CSP is fragile and breaks
-  silently (see the CSP section). If a conditional is genuinely wanted, **collapse rather than remove**:
-  a class on `<html>` written by the same bundled script that already registers the service worker,
-  driving a CSS `max-height`. That keeps the markup crawlable and the CSP posture intact.
-- **FAQ disclosure**: The "How it works & FAQ" content resides below the app and acts as a details-summary element. The summary contains the hero text, and a click interceptor script prevents clicks on the text from toggling the panel. Only clicking the styled `.faq-toggle` link (anchor-like visual) triggers the toggle.
-- **Merge & Download Flow**:
-  - Once merging is complete, the "Merge PDFs" button turns grey (`.is-done` class) to step back, and focus is shifted to the "Download PDF" button (`ref` + `useEffect` on status change).
-  - Any subsequent mutation of files (adding, removing, reordering, or sorting) resets the state to `'idle'` and revokes/clears the generated `downloadUrl`.
-- **Fonts must render identically on screen and in the export**: `src/lib/fonts.js` owns the catalogue and `resolveFontFamily(family, text)`, which both `TextNode.jsx` (editor), `SignatureDialog.jsx` (typed signatures), and `src/editor/registry/text.ts` (export) call — never bypass it by rendering `element.fontFamily` directly. Reason: the editor loads each TTF via `@font-face` and the browser silently substitutes a *system* font per character for glyphs the file lacks, while a PDF embeds one font per run with no fallback, so a missing glyph exports as an empty rectangle. That mismatch is invisible in the app and only shows up in the downloaded file; it shipped once as Latin-only Heebo/Assistant builds turning Hebrew into boxes. Latin-only handwriting faces (Caveat, Dancing Script, Great Vibes, Pacifico, Sacramento) have no Hebrew glyphs by design, so Hebrew in them substitutes to Gveret Levin (handwriting) or Arimo (upright), for the whole element rather than per character so both sides can agree exactly. `src/lib/fontCoverage.test.js` checks the real asset bytes of every family claimed Hebrew-capable — if you add a font, add it to the catalogue and let that test judge it.
-
-  **The substitution is table-driven, and the table is the feature, not a detail.** `SCRIPT_FALLBACKS` in `fonts.js` carries one row per script (Hebrew, Devanagari, Thai, Cyrillic, Greek): a pattern, the fonts that can actually draw it, and a handwriting and an upright fallback. Hebrew is just the first row. **Adding a font for a new script is not finished until it has a row** - Mali shipped bundled and advertised for Thai with no row, so Thai text still resolved to a font without Thai glyphs and still died at download, which is exactly the bug the whole module exists to prevent. `fontCoverage.test.js` verifies every row against the real TTFs in both directions: every font listed can draw the script, and **every font left off cannot**. That second assertion is the one that catches a bundled-but-unrouted face, so do not weaken it into a one-way check.
-
-  **Two rules follow from the table, and both are about not lying to the user.** A substitution must be *explained*, never silent - `resolveFontSubstitution` returns the script that forced the change and the editor shows a notice, because the font visibly changes under the user as they type. And when no bundled font can draw something at all (Arabic, CJK, emoji), the honest answer is still a refusal, but it belongs **while they are typing**, not at Download. That
-  guarantee is now split across two modules that must keep agreeing. `src/lib/textCoverage.js` is the
-  *export* side: it walks the document against the real font bytes, owns the document-level message
-  strings, and is what `signPdf` refuses with. `src/lib/textFontSupport.js` is the *editing* side: a
-  synchronous presentation model derived from the generated glyph data in `fonts.js`, rendered by
-  `FontPickerMenu.tsx` and by `TextNode.tsx` through `SignTool/FontSupportNotice.tsx`, so a text box can
-  be marked as needing attention while it is being typed into. **Neither is allowed to answer a coverage
-  question on its own terms:** both resolve the family through `fonts.js`, both truncate comb fields
-  through `textForCoverage` in `comb.js`, and both run the same missing-glyph transforms, which is what
-  keeps the live notice and the refusal from naming different characters. `textCoverage.test.js` compares
-  the two answers against real TTFs; that comparison is the guard, so do not add a coverage rule to one
-  side without the other. (The former `useFontCoverageNotice.js` hook is gone; do not reintroduce a third
-  path.)
-
-  **Bengali ships with six named shaper disagreements, and that is a curation decision, not an
-  oversight.** `e2e/sign/bengali-shaping-guard.spec.js` pixel-checks 262 generated cases against
-  Chromium; 256 match. The six that do not are listed by id in `KNOWN_FONTKIT_DIVERGENCES` in
-  `e2e/sign/fixtures/bengaliCorpus.js` with their measurements, and they fall into two named groups.
-  **Component placement on a retroflex consonant:** ট্র and ঠ্র place the zero-advance ra-phala tail
-  differently against a retroflex half-form (about 42% pixel diff at an *identical* advance width, so
-  a positioning disagreement rather than a missing glyph, and the other eight consonants tested pass),
-  and টি misplaces the TTA flag at an exactly matching advance. **Conjunct assembly:** ক্ক is a GSUB
-  gap where fontkit emits three unligated glyphs with a visible virama at 161.4px where Chromium
-  ligates to 78.9px; স্ক is drawn with no headline component over its KA part and under-reports its
-  advance by 14%; and দ্ধ draws correctly but reports an 18%-short advance. They are excluded from the
-  enforced corpus so the guard still protects the other 256, and each exclusion is named rather than
-  dropped. **The precedent this is measured against is Playpen Sans Hebrew, which was removed from the
-  catalogue entirely for an 88% systemic disagreement.** 2.3% across six narrow, enumerable clusters in
-  two named groups is a different thing, and the Sign page's Bengali FAQ names all six to the user
-  rather than claiming parity we do not have. **The list is now at the size where the next finding
-  should change the answer rather than extend it**: if a seventh appears, or if SIGN-20 shows the
-  advance class is wider than the clusters named here, re-open the drop-or-keep decision instead of
-  adding a line. Note also that দ্ধ's defect is one this pixel guard is structurally poor at seeing -
-  হ্ন and ক্ত carry the same advance error and still pass, because their ink matches (SIGN-20).
-
-  **A font's Noto face is not automatically the right one, and "does fontkit crash on it" is the first
-  thing to measure.** Punjabi and Telugu (landed 2026-08-28) both ship on a **non-Noto** face, because
-  fontkit throws an uncaught `Cannot read properties of null (reading 'xCoordinate')` inside
-  `GPOSProcessor.getAnchor` on Noto Sans Gurmukhi (203 of 500 generated cases, and most ordinary words -
-  ਸਿੰਘ "Singh" included) and on Noto Sans Telugu (4 of 630, all consonant+virama+RA, which is ప్ర, which
-  is in ఆంధ్రప్రదేశ్). **This is the same crash that blocks Noto Nastaliq Urdu**, so it is a general
-  fontkit limit, not a Nastaliq quirk. Two things make it worth a standing rule rather than a footnote.
-  First, it **reaches the real export path**: `signPdf` rejects with that raw `TypeError`, not a clean
-  `UnrepresentableTextError`, so shipping it means a crashing Download rather than an honest refusal -
-  the one outcome this whole module exists to prevent. Second, it is **invisible to every other check** -
-  coverage is full, the `glyf` alignment guard passes, the font is real and OFL and looks correct in the
-  browser, because Chromium's shaper has no such problem. Only running the generated corpus through
-  fontkit finds it. So: **before wiring any new font, shape the whole corpus through fontkit and count
-  the crashes.** It costs one script and it eliminated two candidates here. Replacements are screened the
-  way the Arabic candidates were (Mukta Mahee for Punjabi, Anek Telugu for Telugu; Noto Sans Tamil needed
-  no screening and shipped as-is), and the Sign card *says* why the font is not the expected Noto one
-  rather than quietly substituting - `languageCoverage.test.js` pins that explanation.
-
-  **Font screening protocol: three independent checks, and a candidate that clears one has not been
-  screened.** Learned the expensive way across the Gurmukhi/Telugu crashes and SIGN-19.
-  (1) **Does fontkit crash on it?** Shape the whole generated corpus through fontkit and count uncaught
-  throws - the paragraph above. (2) **Does fontkit pick the same glyphs as Chromium?** The per-script
-  pixel guard - but that guard only means something if it renders **above ~256px**, because below Skia's
-  bitmap-glyph limit `fillText` draws cached bitmaps while the guard's reconstruction fills outlines
-  through `Path2D`, and the two rasterisers disagree enough to swamp real findings. (3) **Does fontkit
-  report the same advances as Chromium?** **Nothing checks this yet - SIGN-20.** A pixel diff is close to
-  blind to it, because an advance error lives in the trailing space *after* the ink: Bengali হ্ন is 21px
-  (28%) short at a 6.16% pixel diff and ক্ত is 20px short at 7.27%, and both still pass the enforced
-  corpus. In an export that overlaps whatever follows. Until SIGN-20 lands, do not read a green shaping
-  guard as a statement about cluster advances.
-
-  **Handwriting faces are the hard case, and thin ones are the hardest.** They are the noisiest under
-  every pixel comparison here - the only two exported-PDF render baseline cases that ever drifted across
-  platforms were Caveat and Great Vibes - and they carry a failure the upright faces do not: Caveat's
-  `measureText` disagrees with fontkit's summed advances by **5.1px on "Sarah Levi"** on macOS, which is
-  kerning one side applies and the other does not. So screen a handwriting candidate for **kerning
-  parity**, not just glyph coverage and shaping. The Latin/Caveat guard is already `test.skip`ped as red
-  for a related reason; do not read the other Latin guards' green as covering it.
-
-  **Separating a real advance divergence from the browser's own rounding has a clean bound**, established
-  under SIGN-19: whole-pixel advance rounding can move a cluster by at most `glyphCount x 0.5px`, so
-  anything past that is the font or the shaper. Checked against every known case, it separates them
-  cleanly (হ্ন 21px against a 1.5px bound; `phrase:jumhuriya` 2.008px against an 8.5px bound).
-
-  **Every font accepted before 2026-08-29 was screened against a tolerance loose enough to hide a real
-  divergence, so re-screen before trusting an old green.** The Arabic guard's tolerance was **22.33%** -
-  it admitted roughly a quarter of the pixels differing - and Bengali's was 14.48%. This is not
-  theoretical: fixing the geometry immediately surfaced two real divergences in a face that had been
-  shipping as clean (`টি` had been *passing by 0.7 points* and is genuinely malformed; `স্ক` is drawn with
-  no bar across its top), taking Noto Sans Bengali's known-divergence list from three entries to six
-  without the font changing at all. **Arabic, Pashto and Bengali have been re-measured at the new
-  geometry; Devanagari, Tamil, Telugu and Gurmukhi have not** - they still run at the old small render
-  size, and their greens are in exactly the category Bengali's was. Re-screening them is a one-line
-  geometry change per guard and is the cheap move before leaning on those scripts or adding a language.
-
-  **Adding a font: the work required.** Derived from what the last additions actually touched, because
-  the expensive failures here have all been *omissions* rather than mistakes. Do these as one unit.
-
-  1. **Screen the candidate** against the three checks above, plus license (OFL 1.1 or Apache-2.0 only,
-     copyright line taken from the font's own `OFL.txt`, never paraphrased) and static-vs-variable.
-  2. **Add the TTFs to `public/fonts/`** and run `npm run test:fonts`. If the `glyf` table is unaligned,
-     repad to `padding = 4` in fontTools and verify outlines, metrics and cmap are byte-identical across
-     every glyph - roughly half the Brahmic faces landed so far needed this.
-  3. **Register it in `src/lib/fonts.js`** (`HANDWRITING_FONTS` or `TEXT_FONTS`) and add an `@font-face`
-     to `src/styles/editorFonts.css`. Add it to `src/components/FontPickerMenu.tsx` if it needs a label.
-  4. **For a new script, add a `SCRIPT_FALLBACKS` row.** A bundled-but-unrouted face is the exact bug
-     that module exists to prevent - Mali shipped advertised for Thai with no row and still died at
-     download. `fontCoverage.test.js` judges the row in both directions against the real bytes.
-  5. **Update `scripts/font-languages.mjs`** if the font brings a new language or character set, then
-     **regenerate both derived files and commit them**: `npm run generate:font-coverage` writes
-     `src/lib/fontCoverageTable.js`, and `npm run generate:font-coverage-report` writes
-     `src/lib/fontCoverageReport.js`. Both are marked GENERATED - do not hand-edit; their tests
-     regenerate in memory and fail on any disagreement.
-  6. **Add a per-script shaping guard** (corpus + spec on `shapingGuardHarness.js`) **rendered above
-     ~256px**, and record its measured floor, tolerance and sabotage-control result in the spec's module
-     doc. A guard whose sabotage control cannot fail it is measuring nothing.
-  7. **Add an `exportRenderCorpus.js` case, and recapture the baseline** - `exportRenderBaseline.json` is
-     **runner-pinned** and can no longer be captured on a dev machine, so run the CI workflow manually
-     with the `update-export-render-baseline` input and commit the printed file after reviewing the
-     diff. **This is the step that has already been missed once**: FONT-05 added three CJK cases without
-     baselines and CI went red on "these corpus cases have no baseline, so nothing checked them". Expect
-     the diff to be purely additive; existing signatures changing means a rendering change to look at,
-     not a baseline to rubber-stamp.
-  8. **Add the attribution** to `THIRD_PARTY_LICENSES.md` and `src/pages/licenses.astro`
-     (`fontAttribution.test.js` pins this), and **update the user-facing copy** in `src/data/tools.js` -
-     the language list, the per-language note, and the FAQ answer. Any known divergence must be named to
-     the user there, not left for them to find.
-  9. **Check page weight.** Fonts load on demand rather than being precached wholesale, but repo weight
-     and per-font download size still count; flag anything oversized rather than landing it quietly.
-
-  **The four Brahmic guards and what each actually proves.** Bengali is a fixed calibration set
-  (259/259); Gurmukhi (140/140), Telugu (486/486) and Tamil (265/265) use `autoCalibrate`, which
-  partitions the corpus by fontkit's own substituted/not-substituted judgment instead of a hand-picked
-  set. That choice is deliberate and worth keeping: Bengali's calibration set could be hand-built because
-  its akhn/blwf/vatu/pstf/rphf features were readable straight off the font's GSUB table, and this
-  project has no equivalent in-house reference for the other three - so hand-classifying "which cases
-  have no shaping ambiguity" would have been a guess, and a wrong guess there produces a falsely wide
-  tolerance rather than a visible failure. Let the harness partition it.
-
-  **Fonts are subsetted on export, and that is a recent inversion of a long-standing invariant.**
-  `signPdf` embeds with `{ subset: true }`, so a downloaded PDF carries only the glyphs it draws: one
-  Arimo text box went from 279 KB to 5.7 KB, and Arimo + Heebo + Pacifico together from 348 KB to
-  11 KB. Two rules hold it up. First, `drawShapedRun` emits glyph ids itself rather than going through
-  `encodeText`, so it must do the subset embedder's own bookkeeping - `includeGlyph` for the remapped
-  id, plus `glyphs`, `glyphIdMap` and `glyphCache.invalidate()`, which are what the `/W` widths and the
-  ToUnicode CMap are later built from. `remapGlyphForSubset` in `text.ts` does all four and **throws**
-  if a pdf-lib upgrade renames any of them; do not soften that into a fallback, because emitting a raw
-  id against a subsetted font draws plausible-looking wrong glyphs rather than failing.
-  Second, **fontkit's TTF subsetter cannot read unaligned glyph outlines**. Kalam shipped with a
-  51-byte (odd) `.notdef`, and since every subset includes glyph 0, every glyph after it was garbage -
-  which reached the W1 render guard as one drifted case out of 21 and nothing else. It was repadded
-  (`font['glyf'].padding = 4` in fontTools; outlines, metrics and cmap all verified byte-identical
-  across all 1,027 glyphs) and `npm run test:fonts` now fails the build on any unaligned bundled font.
-  The lesson generalises past this one bug: **outline format does not predict whether a font subsets
-  correctly.** Five other bundled families share Kalam's `indexToLocFormat` and are all fine. Test the
-  font, not the format - and note that the older records disagree about this (TODO.md blames CFF and
-  variable builds, the design record says corruption reproduces on a static `glyf` font). Both
-  generalised from one sample; alignment was the actual variable.
-
-  **Glyph coverage is one stage of five, and all five now exist.** Drawing text correctly is
-  normalization, bidi, itemization, shaping, positioning. The export has normalization
-  (`composeHebrewClusters`, NFC plus gated Hebrew presentation-form recomposition), bidi
-  (`resolveBidiRuns`, UAX#9 via `bidi-js`, resolved with the element's explicit paragraph direction and
-  never auto-detected), element-level itemization plus a refusal for anything no font covers, shaping
-  (fontkit, per bidi run then per whitespace segment) and positioning (per-glyph `Tm`/`Tj`/`Ts`).
-  **These once presented as unrelated bugs and were not**, and swapping fontkit for a bigger shaper would
-  have fixed exactly one of the three, which is why it was the most expensive wrong move available.
-  Full analysis and the per-font measurements are in
-  **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)** - **note that document
-  is stale on current state** (its layer 1/2/3 headers still say "open" and all three shipped);
-  **[docs/wysiwyg-text-architecture.md](./docs/wysiwyg-text-architecture.md)** supersedes it there and
-  carries the map verified from code.
-  Three standing rules come out of it. First, **the catalogue is ours to curate**: we owe correct output
-  for the fonts we ship, not for every font that exists, so a font that cannot be made to match the
-  editor gets dropped or marked Latin-only rather than given a special path. Second, **never fix a
-  rendering mismatch by rasterising text to an image** - it makes the download stop being text
-  (no selection, search, copy or accessibility) to paper over a positioning bug. Third, and this is the
-  one that is easy to lose: **having all five stages is not agreement.** The editor is still Chrome and
-  the exporter is still fontkit, so shaping specifically is proven per font, per script, by a guard - and
-  five of the seven shipped scripts do not have one. Do not read a green run on Hebrew as a statement
-  about Latin.
-
-  **And be precise about which platform a guard proves agreement on.** The per-font shaping guards
-  compare fontkit against *the browser that runs them*, so what they prove is agreement on the machine
-  that ran them - which, for a release, means the `ubuntu-latest` CI runner, since that is what gates
-  `main`. That used to be a much weaker statement than it looked: the guards passed on macOS and failed
-  on Linux on the same commit, because the comparison was picking up two artefacts of the measuring
-  browser rather than of the exported PDF (SIGN-19). Both are now removed or measured, so the Arabic,
-  Pashto and Bengali guards give the same verdict on both platforms and a green run means the same
-  thing wherever it happened. Two caveats survive that fix and should not be quietly dropped. The
-  **exported-PDF render guard is different**: its baseline is platform-bound, pinned to the CI runner,
-  and it **skips** on a developer's machine - so a green local `npm run test:e2e` has not run it at all,
-  and only CI's green covers it. And **there are no Linux users** - macOS, Windows, iPhone and Android
-  are the platforms, Linux is the build machine - so where the runner's rasteriser differs from a
-  user's, the runner is an instrument to correct, never a fidelity target to calibrate towards. Full
-  record: [docs/shaping-guard-platform-calibration.md](./docs/shaping-guard-platform-calibration.md).
-
-## Privacy invariants
-
-- No `fetch`/`XHR` of file bytes, ever. No tracking of PDF content or user identity. The current integration is same-origin Vercel Web Analytics for basic page views.
-- Anonymous usage/error telemetry is permitted for maintenance, with an explicit allowlist and sanitized codes: no filenames, entered text, signatures, document/user IDs, or raw exception payloads. See [the confirmed scope](./docs/sign-tool-product-decisions.md). Telemetry must not block offline processing.
-- No cookies or accounts and no PDF processing backend. Permission for anonymous telemetry does not authorize content logging or user tracking.
-- A strict CSP locks down `connect-src 'self'` (no external script/connect origins) as a browser-enforced backstop against an accidental external call being added later. See "Content-Security-Policy" below for how it's actually wired — it's split across two layers, not a single static header.
-
-## Content-Security-Policy (read this before touching CSP, scripts, or astro.config.mjs)
-
-The CSP is intentionally split across two layers:
-
-1. **`astro.config.mjs`'s `security.csp`** (Astro 6+ built-in feature) auto-computes sha256 hashes for every inline `<script>`/`<style>` Astro emits or processes (the astro-island hydration bootstrap, JSON-LD blocks, any non-`is:inline` script written in a `.astro` file) and bakes them into a per-page `<meta http-equiv="Content-Security-Policy">` tag, regenerated on every build. This governs `script-src`, `style-src`, and whatever else is listed in `security.csp.directives`.
-2. **`vercel.json`'s header CSP** only adds `frame-ancestors 'none'` — the one directive a `<meta>` CSP cannot express (must be an HTTP header per spec). Do not add `script-src`, `style-src`, or `default-src` back into the header: a second policy with `default-src 'self'` and no script-src would re-block scripts via fallback even though the meta tag allows them — CSP policies are combined as the *intersection* of every active policy, not a single merged list.
-
-**Past incident, don't repeat it:** an earlier strict CSP (`script-src 'self'`, no hashes, no `unsafe-inline`) silently blocked Astro's inline hydration bootstrap script. The page looked fine — static HTML rendered, no visible console error reported by the user — but the Preact island never hydrated, so `PdfMergeTool.jsx`'s `onChange` handler was never attached. Symptom: clicking "Choose files" still opened the native OS file picker (that part is plain HTML, no JS required), but selecting files did nothing, because nothing was listening. **If file selection or any other island interaction silently does nothing in production but works in `npm run dev`, suspect the CSP first** — check the browser's actual CSP violation console errors (look past just "no JS errors," CSP violations log as their own category) and diff `dist/index.html`'s generated `<meta>` CSP hash list against the actual inline scripts present (see git history of this file's commit "Fix CSP blocking the merge tool from hydrating at all" for the exact verification method: extract every `<script>` tag's body, sha256+base64 it, confirm it's in the meta tag's hash list — `type="application/ld+json"` scripts are exempt, since CSP's `script-src` only governs executable script types, not data blocks).
-
-**`is:inline` scripts are NOT auto-hashed.** Astro's CSP hashing only covers scripts that go through its bundling pipeline. If you need a literal inline script, either give it manually-computed hashes via `security.csp.scriptDirective.hashes` (fragile — breaks silently if you ever edit the script content), or — strongly preferred — drop `is:inline` and let Astro bundle it normally (see `BaseLayout.astro`'s service worker registration script for the working pattern). A bundled/processed script gets its hash added automatically and never goes stale.
-
-**This feature is build/preview-only.** Per Astro's own docs, `security.csp` does not apply in `astro dev` — the Vite dev server doesn't support it. This means **the CSP bug class above cannot be reproduced or caught in `npm run dev`** — it only manifests in `npm run build && npm run preview` or the real deployment. Always do a build+preview pass (or check the live Vercel deployment) before considering any change to scripts, `astro.config.mjs`, or `vercel.json` verified.
-
-## URL canonicalization (trailing slashes)
-
-Astro's default `build.format: 'directory'` emits `dist/sign/index.html`, so every canonical URL, the generated sitemap (`src/pages/sitemap.xml.js`, driven by `src/data/tools.js` hrefs) and every internal link ends in a slash.
-
-**`vercel.json` no longer uses the blanket `"trailingSlash": true` setting - it lists one explicit redirect per real route instead**, each `source: "/<route>"` (no slash) → `destination: "/<route>/"` (canonical), `permanent: true`. Two things forced this off the simpler global setting, both found while making 404s agent-friendly (HTTP-404-01):
-
-1. **A blanket `trailingSlash: true` redirects *every* extensionless path - real or fake - before Vercel checks whether it exists.** `curl -s -o /dev/null -w "%{http_code}" https://pdkef.com/some-fake-path` (no `-L`) got a `308`, not a `404`, because the redirect fires first regardless of what's behind it. A browser or crawler that follows redirects still lands on a real 404, but a non-redirect-following agent (or a strict "is my site agent-ready" scanner) reads the 308 as "this path might exist." Vercel's `trailingSlash` toggle can't be scoped to only real routes - it's all-or-nothing - so the fix is an explicit per-route list: a fake path matches no redirect and falls straight through to `404.html` with a real `404`, while a real route without its slash still 308s to the canonical form (the original problem this section describes below).
-2. **Without the blanket redirect, every real route needs its own entry, or its non-slash form 404s outright** instead of canonicalizing - which is worse for SEO than the duplicate-content problem the redirect exists to prevent. `scripts/check-trailing-slash-redirects.js` (`npm run test:redirects`, wired into CI after `npm run build`) reads the actual `dist/` output and fails the build by name if any real route's non-slash form is missing from `vercel.json`'s `redirects` or points somewhere unexpected - the same "cross-check two lists at build time" pattern the content-pages collection uses. It also fails if `trailingSlash: true` ever comes back, since that would silently defeat every per-route entry.
-
-Without the redirect (in either form), the non-slash form of a real route serves a duplicate `200` instead of canonicalizing - Search Console files it under "Alternate page with proper canonical tag" and burns crawl budget on a URL that will never be indexed.
-
-**Vercel still applies whatever's in `redirects` *before* filesystem routing**, so a route already superseded by a redirect (e.g. `/offline-pdf-form-filler/` → `/install-pdf-app/`, kept from an earlier retirement) stays superseded even though Astro still builds a page at that path - the redirect wins over the file every time, and that page's build output is effectively dead weight. `check-trailing-slash-redirects.js` knows to skip adding a self-referential entry for a route already covered by a superseding redirect; don't add one by hand either.
-
-**Every redirect `destination` must be slash-terminated** (that's the canonical form). `source` is now deliberately either slash-terminated (an old, retired route) or not (a live route's non-slash form) depending on which one it's covering - a route usually needs *both* forms as separate entries pointing at the same destination, since Vercel no longer auto-normalizes one into the other for you the way the global setting used to. This is also why a retired route's redirect (`/remove-pages/` → `/edit-pdf/`) now has a second, non-slash-sourced sibling (`/remove-pages` → `/edit-pdf/`) rather than relying on trailingSlash to funnel the non-slash form into the slash one first - relying on that chaining was exactly the "shipped broken once" incident (a redirect whose `source` omitted the slash never fired, because trailingSlash rewrote the request first and the rule then missed).
-
-When adding an internal link, write the slash (`href="/licenses/"`); a non-slash link costs a redirect hop on every crawl. `grep -rho 'href="/[a-z0-9-]\+"' dist/ --include='*.html'` after a build should return nothing. **When adding a new route** (a new tool, a new content-pages entry, a new static `.astro` page), add its non-slash → slash redirect pair to `vercel.json` in the same change - `npm run test:redirects` catches a missed one, but only after the fact.
-
-## Trust-anchor pages (/about/, /contact/, /privacy/)
-
-Three real, indexed static pages exist for the reason AI-agent readiness scanners check for them: they're what an agent (or a cautious human) checks to decide a site is a legitimate, real thing before recommending or using it. `src/data/staticPages.js` is their single source (title, description, h1, prose sections in the same `<strong>`/`<a href="...">` inline dialect content-pages use, rendered through `renderInline()` from `src/lib/contentMarkup.ts`), consumed by `src/pages/about.astro`/`contact.astro`/`privacy.astro` and by their Markdown twins (see below). They share one Tailwind family, `src/styles/staticPage.css` - same shape (header + prose sections + footer), none renders often enough alone to earn its own utility set. Linked from `Footer.astro` (every page) and from each other's prose, so they're crawlable, not orphaned.
-
-`/contact/` points at GitHub Issues and Discussions (already the footer's own "Report a bug"/"Feedback & ideas" links) rather than an email address - there isn't a support inbox, and inventing one would be worse than not having a contact page. The site-wide `Organization` JSON-LD (`src/data/organizationSchema.js`, rendered by `OrganizationSchema.astro` from `BaseLayout`) follows the same rule: its `contactPoint` is a `ContactPoint` with `contactType` and the GitHub Issues `url`, no `email`/`telephone`, and there is deliberately no `address` until there is a real, publishable one. `organizationSchema.test.js` pins the ContactPoint to the link `/contact/` leads with, and `verify-seo.js` fails the build if any page ships without the Organization schema or its ContactPoint. `/privacy/` states only what's independently true elsewhere in this file (the Privacy invariants section above): no accounts, no cookies, same-origin Vercel Web Analytics, the anonymous-telemetry allowlist, the IndexedDB draft-persistence facts, and the CSP `connect-src 'self'` backstop - it does not make a legal/compliance claim ("GDPR compliant") this project cannot back.
-
-## Markdown content negotiation (Accept: text/markdown)
-
-**This is the first thing in this codebase that runs at request time rather than at build time.** Everything else in Part I's "What this is" is still true: there is still no PDF-processing server, and this addition never sees a PDF byte - it only ever inspects the `Accept` header on a request for a marketing/doc page and picks which prebuilt file to serve. But "no server at runtime" (§1.1) stops being literally true the moment `middleware.ts` exists, so read this section before assuming that invariant still holds unconditionally.
-
-**Why it exists:** acceptmarkdown.com-style agent-readiness checks send `Accept: text/markdown` and expect the *same URL* to answer with Markdown, `Content-Type: text/markdown; charset=utf-8`, and `Vary: Accept` on every negotiated response (so a CDN never serves the wrong cached variant to the next request), plus a real `406` when neither representation is acceptable. **A purely static site cannot do this** - Astro prerenders once at build time, so there is nothing left at request time to inspect the header with. Publishing plain `.md` files at their own URLs (which this also does, and is valuable on its own - see below) does not satisfy a check that specifically requires the *same* URL to answer differently by header, so the real fix needed *something* to run per request. The alternative considered and rejected was `output: 'server'` (Astro's own SSR, with its own request-time middleware) - full server-side rendering for the entire site's marketing surface, to serve a header-negotiation feature on a handful of pages, in a codebase whose §1.1 explicitly keeps the SEO shell static on purpose. Vercel's platform-level Routing Middleware (`middleware.ts` at the project root) is the narrower alternative: it runs before Astro's static output is served, independent of and unrelated to Astro's own (SSR-only, therefore inactive here) middleware system, and touches only this one concern.
-
-**What actually exists:**
-- **`src/lib/markdownRender.js`** renders Markdown from the *same structured data* every other renderer already uses - `tools.js` fields for tool pages, the `contentPages` collection's `.data` for content pages, `staticPages.js` for the trust-anchor pages, `homeContent.js` for `/`. This is deliberate: it is not an HTML-to-Markdown converter run against `dist/*.html`. Tool pages in particular have no single "crawlable content" DOM region to scrape - `ToolPageLayout.astro`'s own `<main>` wraps only the interactive island (which renders nothing static, by design), while the actual SEO copy (`ToolAboutCard`, `ToolFaqCard`) sits *outside* it as siblings. Reading the same structured data every other renderer reads is what keeps the Markdown from ever disagreeing with the HTML or the FAQ JSON-LD, the same way `SeoSchema.astro`'s FAQPage schema already can't drift from a tool's `faq` array.
-- **`src/pages/[slug].md.ts`, `index.md.ts`, `404.md.ts`** are prerendered Astro endpoints (the same static-endpoint pattern `sitemap.xml.js` already uses) producing `/sign.md`, `/about.md`, `/index.md`, `/404.md`, etc. at build time - one per tool page, content-pages entry, and trust-anchor page, automatically, with no registry to keep in sync (unlike the vercel.json redirect list above, a new tool or content page gets its Markdown twin for free the moment it exists in its own registry/collection). `/licenses/` is the one real page with no Markdown twin yet (low value, table-driven third-party license text, and `noindex`'d already) - middleware.ts's 404 fallback below is what that gap actually does in practice.
-- **`middleware.ts`** (project root, Vercel's file-convention Routing Middleware, Edge runtime) does the actual negotiation, backed by the pure, unit-tested `acceptQuality()` in `src/lib/acceptNegotiation.js` (RFC 9110 q-value precedence: exact type > `type/*` > `*/*`, so an ordinary browser's trailing `*/*;q=0.8` never outranks its own explicit `text/html`). On a canonical (trailing-slash) URL with Markdown preferred, it `fetch()`es that path's own `.md` sibling from the same deployment and re-wraps it with the right headers; if there isn't one, it falls back to `/404.md` with a real `404` status - which is also what a genuinely nonexistent path gets, and also what `/licenses/` gets today (a real page answering 404-flavored Markdown to a Markdown request only, HTML unaffected). Everything else (HTML preferred, or no `Accept` at all) passes through via `next()`, adding only `Vary: Accept, Accept-Encoding` - so the ordinary HTML path, and every existing redirect/404 behavior this file already documents, is unchanged. A non-canonical (non-slash) URL requesting Markdown is deliberately *not* served Markdown here - a real route's non-slash form still needs `vercel.json`'s own redirect to fire first (per the canonicalization rules above), and a well-behaved agent re-requests the canonical URL Vercel points it to with the same header. `markdownRoute()` (same module, unit-tested) tells that case apart from a nonexistent non-slash path by reading `vercel.json`'s redirect `source` list, which `middleware.ts` imports directly: every real route has its non-slash entry there (CI-enforced by `check-trailing-slash-redirects.js`), so a non-slash path matching no source is not a page and gets the Markdown `404` rather than passing through to the HTML 404 shell. That distinction matters because `curl .../some-path-that-does-not-exist` (no slash) is exactly what agent-readiness scanners probe. The decision itself - HTML, Markdown, or `406` - is `negotiateRepresentation()`, also unit-tested; Markdown is served only on a *strict* preference, because `Accept: */*` (curl's default) matches both types equally and a tie once shipped serving Markdown to every non-browser client.
-- **`@vercel/functions`** (Apache-2.0, already a transitive dependency of Astro's own `unstorage`) supplies `next()` for the pass-through-with-added-header case; nothing else from it is used. It's listed as a `BUILD_ONLY_CLOSURES` root in `scripts/runtime-license-inventory.mjs`, the same treatment `astro` itself gets, because - like `astro` - it never reaches the browser; unlike the browser-shipped packages that inventory is titled for, it runs only on Vercel's own Edge Runtime.
-
-**This cannot be verified with `npm run dev`, `npm run build && npm run preview`, or GitHub Actions CI** - none of them run Vercel's Routing Middleware at all, so this is a strictly stronger version of the CSP-invisible-in-dev hazard below: a build can go green while the negotiation itself has never actually executed anywhere. The only way to prove it works is a real Vercel deployment: `curl -s -o /dev/null -w "%{http_code} %{content_type}\n" -H "Accept: text/markdown" https://pdkef.com/sign/` must print `200 text/markdown; charset=utf-8`, and the same request without the header must still print the normal HTML content type with `Vary: Accept, Accept-Encoding` present. Test a fake path with the header too (`.../some-fake-path/` → `404` with a Markdown body) and an unsatisfiable `Accept` (`Accept: application/json` with no `*/*` → `406`).
-
-## PWA
-
-There is no PWA build plugin (`vite-plugin-pwa` and `@vite-pwa/astro` were both tried and dropped — see git history "Migrate to Astro" and "Reinstall on patched Astro 7.0.3" commits for why: `vite-plugin-pwa`'s `closeBundle` hook doesn't survive Astro's multi-pass static build, and `@vite-pwa/astro` doesn't yet certify Astro 7). Instead:
-- `public/manifest.webmanifest` is a hand-written static file, copied verbatim by Astro.
-- `public/sw.js` is a small, hand-written, dependency-free service worker: cache-first-with-background-refresh for navigations, cache-first for every other same-origin asset. `CACHE_VERSION` is **not** hand-bumped - `scripts/generate-precache-manifest.mjs` runs after `astro build`, walks `dist/`, writes `dist/precache-manifest.json` and substitutes a content hash of it for the `__BUILD_ID__` placeholder, so each deploy gets its own cache automatically.
-- **Three invariants in `sw.js`, each of which fixed a bug where the page rendered but the PDF silently never appeared. Don't quietly revert them:**
-  - **No `skipWaiting()`.** An update must not take control of a page still running the previous build, because `activate` deletes that build's cache and those pages lazy-import content-hashed chunks (pdfjs, `pdf.worker.min.mjs`, the font TTFs) long after first paint. Activating early pulled the cache out from under a live tab mid-edit. The cost is one visit of staleness; the alternative is an unreproducible broken editor.
-  - **Precaching is best-effort per URL**, except `/` (the offline navigation fallback), which must succeed. The manifest is the entire build, so on a weak connection something will fail; failing the whole install left the visitor with no offline shell at all and re-downloaded the whole site on every subsequent visit. A missed asset still loads from the network and is cached on first use. Requests go through a small concurrency pool for the same reason.
-  - **A 404 on the manifest makes the worker uninstall itself** (`OrphanedWorkerError` → `removeSelf`), and cache deletion is scoped to the `pdkef-` prefix. A worker installed by `npm run preview` is scoped to the *origin*, which on localhost is just a port, so it kept serving that build's assets cache-first to `astro dev` afterwards. The page then got modules from two different Vite optimize passes and hydration died on `Cannot read properties of undefined (reading '__H')` in `preact_hooks` - with nothing in the console naming the cache. The tell is two different `?v=` hashes on `preact.js` and `preact_hooks.js` in the Network tab; Vite stamps one `browserHash` per optimize pass, so two means two generations are live at once. Prefer different ports for `dev` and `preview` regardless.
-- Registration lives in `BaseLayout.astro` as a non-`is:inline` script (see the CSP section above for why it must not be `is:inline`). It registers only when `import.meta.env.PROD`; in dev it does the opposite and actively unregisters any worker plus deletes any `pdkef-` cache, so a leftover preview worker heals on the next reload instead of poisoning the dev server indefinitely.
-
-Icons referenced in the manifest are generated and live in `public/icons/` (`icon-192`, `icon-512`, `icon-512-maskable`, `apple-touch-icon`, plus `favicon-16`/`favicon-32`).
-
-## Astro/Vercel version pinning — don't casually upgrade
-
-Astro is pinned to `^7.0.3`, not the `@vite-pwa/astro`-certified `^5.x` line, **on purpose**: `npm audit` showed Astro's own published security advisories (XSS via `define:vars`, slot names, spread props; SSRF) cover every version through `7.0.0-beta`, including all of 5.x. Downgrading to satisfy some other package's peer range would mean shipping a known-vulnerable Astro. If a future dependency wants an older Astro, re-verify with `npm audit` before downgrading — don't assume an older major is safer just because more tooling has caught up to it.
-
-## Styling direction (scoped hybrid, not a wholesale Tailwind migration)
-
-The decided direction is a **scoped hybrid**, documented in full in Part II §3.1 below:
-
-- **Tailwind** for the static/SEO `.astro` surface only (pages, heroes, cards, footer, dropzones, static buttons) - no runtime state, no cascades. `global.css`'s `@theme` block deliberately skips Tailwind's default theme (CSS budget), so a utility whose scale step isn't declared there (e.g. `font-bold`, `rounded-2xl`) silently compiles to **no CSS at all** - not an error, just a missing rule. Declare the token before using a new utility class. `npm run test:css` runs `scripts/check-dead-utilities.js`, which fails the build if any class in the built HTML has no matching selector.
-
-  **That guard only sees an island's initial server-rendered markup**, because it reads the built HTML. Any class that appears only after an interaction - a loaded file, an open dialog, an error - is invisible to it, and two real defects lived in that gap for months (`UndoHistoryModal.jsx` rendering raw strings against a CSS Module nothing imported, so the Undo dialog shipped unstyled; `.hint-message` deleted from `global.css` and never re-homed, so five tools' "not a PDF" notice rendered as bare text). `scripts/check-class-resolution.js` is the source-side complement and runs first in `test:css`: it reads `src/**/*.jsx` and fails on a class string with no rule anywhere, a raw string whose rule is CSS-Modules-hashed, or a `styles['key']` lookup missing from the module it points at (which renders `class="undefined"`). **If you are about to allowlist a class in either script, check whether it has a rule in some `.module.css` first - if it does, the bug is a missing import, not a hook.**
-  **The utility layer is compiled per page family, not once for the repo (ARCH-13).** There are five
-  entry stylesheets in `src/styles/` - `homePage.css`, `toolPage.css`, `contentPage.css`,
-  `licensesPage.css`, `notFoundPage.css` - and each one imports `global.css`, then
-  `tailwindcss/utilities.css` with **`source(none)`**, then an explicit `@source` list naming the markup
-  that family can render (the shell's share is factored into `sharedSources.css`). Every page imports
-  exactly one of them, so nothing is inlined twice into a page, and a page no longer carries the other
-  families' utilities: `/licenses/` went from 27,308 dead bytes to 1,100, and site-wide duplication from
-  8.39x to 5.79x. `global.css` is now tokens, element defaults and the `.type-*`/`.space-*` roles only -
-  still the one tier paid for 22 times, so a rule belongs there only if every page needs it. **Adding a
-  component to a family means adding it to that family's entry sheet.** Forgetting is a build failure,
-  not a silent visual bug: `check-dead-utilities.js` checks each page against *its own* stylesheet and
-  names the page and the class. Full ownership note in `src/styles/toolPage.css`.
-
-  This retires the old "documentation is not a template" hazard **structurally**, and the `@source not`
-  list with it. Tailwind v4's default scan used to walk the whole project and read prose for utility
-  candidates - root `.md` files, `docs/`, and the impeccable plugin's rule tables under `.github/` were
-  all compiling real utilities into the one stylesheet every page inlined, invisibly (no error, no
-  failing class, just a heavier stylesheet on every page; the old `scrum-board.data.js` was worth 83
-  bytes per page by itself). With `source(none)` nothing is scanned unless a family asked for it, so a
-  new note, report or plugin data file cannot reintroduce it. The trade is the opposite failure mode -
-  under-sourcing rather than over-sourcing - which is why the per-page guard above had to land in the
-  same change.
-
-  **One side effect to know about:** the page's own stylesheet is now emitted **before** the
-  components' CSS Modules, where it used to come after. Only `global.css`'s *unlayered* rules are
-  order-sensitive at all (a layered rule loses to an unlayered module rule at any order), and of those
-  only `:focus-visible` can tie with a module rule - `.sr-only`, `.merge-tool` and `.disclosures` are
-  never written on an element that also carries a module class, and the rest are element selectors,
-  `*` or `#app`. So the entire delta is that `:focus-visible { border-radius: 4px }` no longer beats
-  the 59 module rules that set their own radius: a keyboard-focused editor card used to snap from
-  16px to 4px while focused and now keeps its shape. No element loses a focus ring (checked
-  mechanically: no module suppresses `outline` at single-class specificity without defining its own
-  `:focus-visible`). This was kept rather than re-encoded, because the old precedence was an accident
-  of emission order and the same hazard Part II §5 already records twice.
-
-  **`@theme` is `static`** for a related reason: Tailwind otherwise emits only the tokens its generated
-  utilities reference, which was survivable when one utility set covered the site and is not now that
-  each family compiles its own. `--shadow-sm`, `--ease-out`, `--radius-md` and the `--font-weight-*`
-  steps are read by the editor's CSS Modules, which Tailwind cannot see, so their emission would
-  otherwise depend on some unrelated `.astro` file happening to use `shadow-sm` on that same page. Costs
-  580 bytes a page, the same as the tree-shaken set happened to be.
-- **CSS Modules** (scoped, colocated per component) for the canvas editor (`SignTool/*`, `RedactTool`, `ElementToolbar`, resizers, element nodes). Keep semantic class names so the descendant-combinator state cascades (e.g. `.sign-element.active .sign-element-actions`) survive as real CSS inside module scope.
-- **Inline styles / CSS custom properties** for per-element runtime geometry (`top/left/width/height/fontSize` percentages) - these are continuous floats the Tailwind JIT cannot emit classes for.
-
-This is explicitly **not** "finish the wholesale Tailwind migration." The goal is to kill the single global CSS monolith by scoping styles, not to Tailwind-ify the editor.
-
-**Status (landed, 2026-07):** this direction is now complete. The static/SEO surface is on Tailwind utilities (E3); the editor `.sign-*`/`.sig-*` styles are colocated in CSS Modules with **0 editor selectors left in `global.css`** (E2.3, enforced by `scripts/check-editor-global-css.js`); and the framework-agnostic `src/editor/` core + per-type registry is in place with **Sign and Redact converged onto it** (E4). Remaining migration items are the E6 launch backlog only.
-
-**The old "the branch broke the PDF math" framing is stale - do not act on it.** That warning described one snapshot: an early wip commit that (wrongly) routed `pointermove` through React state and thrashed reconciliation. The **resize perf fix already landed on the same wip branch** with the correct deferred-DOM pattern. That per-frame `onChange` on resize in `src/components/SignTool/DraggableWrapper.jsx` `handleResizeMove` was fixed under backlog E0.1, so Sign drag and resize follow the golden rule. The gesture golden rule (mutate the DOM during a gesture, commit React state once on `pointerup`) is non-negotiable and is now captured in Part II §1.2 / §4 along with the other still-true lessons from the retired learnings doc (invisible-toolbar cascade hazard, CSP-invisible-in-dev hazard). Read Part II before touching editor styling or the gesture path. **Status (E4 landed):** every gesture path - Sign **and** Redact, drag/resize/create alike - now routes through the single `src/editor/gestures/controller.ts`, which mutates the DOM during the gesture and commits state exactly once on release. Both tools share the headless `src/editor/` core and per-type registry (per-type resize/serialize/schema; box-resize has one owner, CI-guarded). The full editor-core low-level design (audit + `src/editor/` layout + per-ticket plan) is **[docs/E4-headless-editor-core-plan.md](./docs/E4-headless-editor-core-plan.md)**.
-
-**Editor tool arming model (invariants, each fixed a shipped bug - don't quietly revert them):**
-- **Tools are one-shot, and the arming gesture is shared by Sign and Redact via `src/lib/toolArming.js`'s
-  `makeArmTool`, so the two toolbars cannot drift apart on it.** An armed tool disarms itself after one
-  committed placement (`DISARM_TOOL` in Sign's reducer, fired from every creation path in
-  `useWorkspaceGestures.js`; `disarmTool()` in `PdfRedactTool.jsx`, called from the box-commit and
-  mark-for-deletion paths), so the click *after* a placement means "deselect" and reaches the
-  workspace's deselect handler. Before this, a tool stayed armed until Esc while the creation handlers
-  called `stopPropagation`, so clicking empty space to get out of what you were doing silently placed a
-  stray element - and with a drag tool it was worse, since `ENSURE_MINIMUM_SIZE` promotes a zero-size
-  drag into a default-size box. Redact had no such model at all before this: `activeStyle` defaulted to
-  `'delete'` and stayed selected forever, so the editor arrived already armed and a drag anywhere on a
-  freshly opened document drew a box. Repeat placement is opt-in: double-click a tool button to lock it
-  (`SET_TOOL` with `{ tool, locked: true }` in Sign; `setTool(tool, true)` in Redact). The toggle
-  buttons read the click count off their existing `onClick` (`e.detail >= 2`) rather than using
-  `ondblclick`, because a real dblclick fires after two clicks and the second would disarm before the
-  lock landed. Shapes is the exception and locks from its own button via a real `ondblclick`: a menu
-  item can't be double-clicked (the first click unmounts it, so the second lands on the page), and
-  there the two clicks only toggle the popover, never the tool. **Escape is one of three ways out of a
-  locked tool, and the least available one.** There is no Escape key on a phone, and a double-tap is
-  the browser's zoom gesture, not this app's - so the "Stop" chip in the shared status line
-  (`EditorToolStatus.jsx`, rendered by both toolbars) is the only exit that exists on touch at all.
-  Don't simplify that chip away as redundant with Escape or double-click; for a touch user it is not a
-  shortcut, it is the only way in.
-- **Redact's page `touch-action` is armed with the tool, not left unconditionally `none`.** In
-  `PdfRedactTool.jsx` it's `activeStyle && activeStyle !== 'delete' ? 'none' : 'auto'`: a drawing tool
-  (blackout/whiteout/blur) has to own the touch so a drag draws a box instead of scrolling the page,
-  but Delete places by tapping a highlighted run, not dragging, so it leaves the browser's own panning
-  alone. Before the arming model landed, `touch-action: none` was set unconditionally and `activeStyle`
-  always had a tool selected (Delete, by default), so the two bugs compounded: a phone could not scroll
-  the redact document at all, from the moment it opened.
-- **Selection and text editing are separate states.** `activeElementId` means selected (toolbar points
-  at it, Backspace deletes it, drag moves it); `editingElementId` means a text edit session is open.
-  A text element is a live `<textarea>`, so without the split there was no state where a text box was
-  selected but not being typed into, and Backspace could never delete one - only the trash icon worked.
-  The invariant (`editingElementId` is null or equals `activeElementId`) is enforced **only** in the
-  reducer, so no call site has to remember to close a session. Escape unwinds one level at a time.
-  Outside a session the textarea is inert (`text-input-inert`: `pointer-events: none`, plus `tabIndex
-  -1` and `readOnly`), which is also what lets a text box be dragged from its middle. jsdom does not
-  implement `pointer-events`, so that one is guarded in Playwright or not at all.
-- **`TOOL_COPY` owns every tool-facing string**, visible and announced, so the two can't drift. Both
-  toolbars keep their own `TOOL_COPY` object under the same contract - `SignToolbar.jsx` for Sign's
-  tools, `RedactToolbar.jsx` for Delete/Blackout/Whiteout/Blur - and `EditorToolStatus.jsx` (the shared
-  status line both render) only ever reads through it, never a raw tool id. Never interpolate a raw
-  tool id into copy. Keep "click and" on the drag tools: "drag on a page" reads as dragging the tool
-  from the toolbar onto the page, which older editors really did work like and this does not. Guarded
-  by tests in `SignToolbar.test.jsx`.
-
-**Sign editor positioning/color pitfalls (current guardrail work):**
-- Text toolbar placement must stay stable above the element: LTR uses `top-start`, RTL uses
-  `top-end`. Do not reintroduce Floating UI vertical `flip()` to `bottom-*`; that made the toolbar
-  jump underneath selected text. Use horizontal `shift()` within the PDF page boundary instead.
-- The toolbar should be validated in a real browser for actual rects and during live drag; jsdom can
-  only assert middleware config and committed state.
-- Text defaults and whiteout defaults are separate. New text may inherit the active/last edited text
-  size, color, font, and typed-language direction; whiteout must use its own remembered whiteout color,
-  not text/shape color.
-- The main Sign/Redact toolbar (`SignToolbar.module.css`, shared by both tools and `FullscreenButton`)
-  holds every control to a 44x44 CSS px touch target - `--btn-min-size`, the figure WCAG 2.5.5 (AAA)
-  and Apple's HIG agree on. Below 920px the row is icon-only and every control shares one explicit
-  `flex-basis` of `--btn-min-size`; at 560px and below it also drops to `flex-grow: 0` and the toolbar
-  centres each wrapped line. Three rules hold this together, and each one is load-bearing:
-  - **Size every control from `.toolbar > *`, never from `.toolbar .dropdown`.** The row mixes bare
-    `<button>`s with `<div class="dropdown">` popover wrappers. A `.toolbar .dropdown` rule outranks
-    `.toolbar > *`, so any `flex` on it silently wins and sizes those two controls differently. That,
-    plus `flex-basis: 0` letting a border-box button floor at its own padding+border while a
-    padding-less wrapper floors at 0, is why the dropdowns once rendered ~13px wide beside ~31px
-    buttons. An explicit shared basis makes the markup underneath irrelevant.
-  - **`flex-grow: 0` once it actually wraps.** Growing items size each line independently, so a line
-    of five and a line of four end up different button widths - the same asymmetry stacked vertically.
-    Growing items also eat all the free space, leaving `justify-content` nothing to centre. Above the
-    wrap point they keep growing, so a single row still fills the bar.
-  - **A per-line cap, or flex strands the remainder.** Flex packs greedily, so nine controls wrapped
-    as 8+1 and seven as 6+1. `--controls-per-row` (half the control count, rounded up; derived from
-    the markup with `:has(> :nth-child(N))`) becomes each control's `flex-basis` share, capping the
-    line and giving 5+4 and 4+3 instead. It engages only inside `@container` queries sized to "one
-    full line of controls no longer fits" - those two pixel figures are the one hand-computed thing
-    in the file and must be redone if `--btn-min-size`, `--toolbar-gap` or `--toolbar-padding` change
-    at that breakpoint.
-  - **Flex, not grid, for the wrapped rows.** Grid rows share one set of columns, so a partial last row
-    is always packed into the leading columns; only a wrapping flex container centres each line.
-
-  Guarded by `e2e/sign/toolbar-touch-targets.spec.js` - jsdom has no layout, so only a real browser can
-  prove the rects.
-
-  Above 920px the same row must never truncate a label. Two rules hold that, and the reasoning lives in
-  the desktop block of `SignToolbar.module.css`: the toolbar takes a **full row of its own** (the file
-  identity line stacks above it at every width - it used to share the line and cost the toolbar 256px,
-  which is why every label ellipsised on a 1512px MacBook Pro), and nothing in the row may **shrink**, so
-  a button either shows its whole label, drops it for the icon at a container-query threshold, or the row
-  wraps. Ellipsis is the one outcome that is always a bug, because it also hides itself: the row still
-  measures as fitting. Label-drop order is by how much the icon carries on its own - Undo/Full screen/
-  Replace first, this app's own vocabulary (Text, Symbols, Shapes, Whiteout, Sign) last, Download/Share
-  never. Don't renumber `data-label-priority` back the other way on the "learned by icon" argument; that
-  is true of the second document someone signs here, not the first.
-
----
-
-# Part II - Design & architecture standard (the north star)
-
-*This part absorbed the former `ARCHITECTURE.md`.* Part I describes the repo as it exists now; this
-part is the target architecture the codebase migrates toward and the boundaries every change must
-respect. It supersedes the long-retired `TAILWIND_MIGRATION_LEARNINGS.md`, whose still-true lessons are
-folded into "Gesture golden rule" and "Known hazards" below.
-
-**Status:** the migration this standard describes is structurally complete. The remaining open items,
-and the reasoning behind what was built, are in [TODO.md](./TODO.md).
-
-## 1. The two invariants that constrain every change
-
-Everything below is subordinate to these. If a change threatens either, it is wrong by definition.
-
-### 1.1 The SEO / privacy shell is sacred, and it is also the biggest architectural asset
-
-- Marketing, how-it-works, FAQ, and JSON-LD are authored in `.astro` and **rendered at build time as
-  static HTML with zero JS shipped**. Crawlers see everything without executing scripts.
-- **No file bytes ever leave the device.** No `fetch`/`XHR` of PDF contents, no third-party API, no
-  server (there isn't one). CSP `connect-src 'self'` is the browser-enforced backstop. One narrow,
-  documented exception to "no server": `middleware.ts` now runs at request time for Accept-header
-  Markdown negotiation - it never sees a PDF byte, so this invariant is intact, but "no server" is no
-  longer literally true. See Part I's "Markdown content negotiation" section before assuming otherwise.
-- Because the static content and the interactive tools are separated by the Astro **island wall**, the
-  entire editor can be re-architected freely **without any risk to SEO or privacy**. Lean on this: keep
-  the wall, and editor refactors stay cheap and safe.
-- **Off the table:** SSR, moving marketing content into JS, any external `connect-src`, anything that
-  ships JS to the SEO surface.
-
-### 1.2 The gesture hot path stays as it is, it is already correct
-
-Dragging and resizing PDF elements needs 60fps real-time feedback. The production pattern achieves it by
-keeping the framework out of the loop during a gesture:
-
-- **During the gesture (`pointermove`):** mutate the DOM directly
-  (`elementRef.current.style.transform = ...` / `.width` / SVG `x1/y1`...). No React state per frame.
-- **On release (`pointerup`):** dispatch **one** state update (`onChange`) with the final
-  percentage-based coordinates, then clear the inline overrides so state resumes control.
-- React state is the single source of truth **between** gestures, never **during** one.
-
-**Do not** introduce a store (Zustand/Redux/signals) for live gesture state. Routing high-frequency
-pointer events through reactive state is what caused the historical "reconciliation thrash." This is
-non-negotiable and applies equally to drag **and** resize (see §4).
-
-## 2. The core diagnosis this architecture responds to
-
-The recurring pain, *"adding a feature breaks an unrelated part"*, is not a CSS-framework problem. It is
-the signature of **missing enforced boundaries**:
-
-1. A single ~3,400-line `global.css`: one shared cascade namespace where any change can collide.
-2. God-components that branch on concrete element type (`type === 'line'` / `!isLine`): adding a type
-   means editing the monolith.
-3. Untyped shared state: breakage surfaces at runtime in an unrelated tool, not at edit time.
-4. Invariants (CSP, SEO, the gesture rule) kept as **prose**: remembered, not enforced.
-
-The target below makes every boundary either **scoped-by-construction** or **compiler-enforced**.
-
-## 3. Layered target architecture
-
-| Layer | Rule | Why |
-|---|---|---|
-| **Tokens** | The *only* global CSS is `:root` design tokens (colors, spacing, type). | Removes the shared-cascade namespace that is the #1 "change X breaks Y" source. |
-| **Styling** | Static/marketing → **Tailwind utilities**. Interactive + editor → **CSS Modules colocated per component**. Dynamic geometry → inline styles / CSS custom properties. | Right tool per surface; scoping makes cross-component breakage structurally impossible. |
-| **Editor core** | A framework-agnostic `editor/` core (plain TS, no Preact) owns the document model, geometry math, and gesture controllers. Preact is a thin render/event shell over it. | Testable without a DOM renderer; reusable across Sign **and** Redact; unifies drag+resize. |
-| **Element registry** | Each element type is a module `{ create, render, resizeBehavior, serialize, schema }` in a registry, no `switch`. | Adding a type touches only new files. Direct fix for "new feature breaks old feature." |
-| **Types** | TypeScript on the model, geometry, and core first; UI follows. | Compiler catches breakage at edit time instead of at runtime in an unrelated tool. |
-| **Guardrails** | CSP, SEO, CSS-duplication, page-weight, and editor-state invariants are **CI checks**, not docs. | Maintainability stays fixed only when invariants are enforced. |
-
-### 3.1 The styling boundary (the rule people will be tempted to break)
-
-- **Tailwind** for `.astro` pages, cards, heroes, footer, dropzones, static buttons: no runtime state,
-  no cascades. This is where utility-first genuinely shines.
-- **CSS Modules** (preferred over `@apply`) for `SignTool/*`, `RedactTool`, `ElementToolbar`, resizers,
-  and element nodes. Keep semantic class names (`.sign-element`, `.active`, `.sign-element-actions`) so
-  **descendant-combinator state cascades survive as real CSS inside module scope**. CSS Modules give
-  true scoping and colocation; `@apply` scatters editor styling back into a global file and drifts from
-  the JSX.
-- **Inline styles / CSS custom properties** for per-element geometry (`top/left/width/height/fontSize`
-  percentages). These are continuous runtime floats and **cannot** be Tailwind utilities (the JIT only
-  emits classes it sees at build time; there is no `top-[43.7%]` for an arbitrary value).
-
-**The one styling rule to remember:** the editor's stateful/cascade appearance is **never** expressed as
-inline conditional utility strings. State lives once (a class on the parent); CSS fans it out.
-
-### 3.2 The editor core (the step-function change)
-
-Extracting hooks moved code around but left every invariant as prose the next code path could ignore. A
-framework-agnostic `editor/` core (plain TS) makes each invariant *structural*:
-
-- **Document model** - elements as one typed union, one schema per type. Sign and Redact converge on it,
-  so model divergence becomes a compile error rather than a runtime shim.
-- **Geometry math** - pure functions with **one owner per element type** (the registry). Duplicated math
-  becomes impossible: there is nowhere to put a second copy, and a clamp scoped to one type's module
-  cannot corrupt another (the exact failure mode of the whiteout regression, §5).
-- **Gesture controllers** - drag, resize, **and create** behind **one** "imperative-during,
-  commit-on-release" abstraction. The golden rule stops being a convention and becomes the *only* path a
-  gesture can take: every gesture commits exactly once, on release, because the single controller is
-  what commits.
-
-Preact then only renders from state and binds events to the core. Sign and Redact share the core and a
-common PDF-workspace substrate (load, page render, draft persistence).
-
-**All three are now reality:** every Sign and Redact creation/drag/resize routes through
-`editor/gestures/controller.ts`; the per-handle anchor-preserving resize arithmetic has exactly one
-owner in `editor/registry/boxResize.ts` (CI-enforced); and both editors key elements on the flat `type`
-discriminant in `editorModel.ts`, with `blackout`, `blur` and `whiteout` each a registry module. Full
-design record: [docs/E4-headless-editor-core-plan.md](./docs/E4-headless-editor-core-plan.md).
-
-## 4. Gesture golden rule
-
-> During a gesture, mutate the DOM directly for real-time feedback. Commit React state **once**, on
-> release. Never route continuous drag/resize/**create** through reactive state.
-
-The rule governs **three** gesture kinds, not two: **drag** (move), **resize** (all handles), and
-**create** (click-place or drag-draw a new element). All three are continuous pointer interactions; all
-three must mutate the DOM live and commit once.
-
-- ✅ `handlePointerMove` writes `element.style.transform` (drag) or `.width/.height/.left/.top` and SVG
-  `x1/y1/x2/y2` (resize) directly; accumulates the final value in a local.
-- ✅ `handlePointerUp` calls `onChange(final)` exactly once, then clears inline overrides.
-- ❌ Calling `onChange(...)`/`dispatch(...)`/`setState(...)` inside `pointermove`. This is the
-  reconciliation thrash.
-
-Enforced statically by `scripts/check-gesture-golden-rule.js`, which scans every `computePatch` body
-and fails if it calls `onChange`/`dispatch`/`setState` directly.
-
-## 5. Known hazards (do not relearn these)
-
-- **Invisible floating toolbars.** Replacing the semantic cascade
-  (`.sign-element.active .sign-element-actions`) with naive utilities produced white text on a
-  transparent background inside a white container. Keep active-state visibility in CSS (§3.1).
-- **CSP is invisible in dev.** Astro's `security.csp` (auto-hashing of inline scripts/styles) does
-  **not** run in `astro dev`, only in `build`/`preview`/production. Any change to styles, scripts,
-  `astro.config.mjs`, or `vercel.json` **must** be verified with `npm run build && npm run preview`. A
-  silently-blocked hydration bootstrap looks fine (static HTML renders) but the island never hydrates.
-  Do not add `script-src`/`default-src` back into the `vercel.json` header CSP: policies intersect, and
-  a second `default-src 'self'` re-blocks scripts the meta tag allows.
-- **`build.inlineStylesheets: 'always'` is a measured decision, not a leftover default.** Every page
-  inlines its whole stylesheet, which ships 1,060,961 raw bytes of CSS across 20 pages for 107,384
-  bytes of distinct rules and is the main input to the duplication factor (9.73x when this was written;
-  5.79x since ARCH-13 split the utility layer per page family). That looks like an
-  obvious win to reclaim, and it is not. `'auto'` was built and benchmarked head to head (2026-08-20)
-  and lost every scenario: an external `<link rel="stylesheet">` is render-blocking and is discovered
-  only after the document parses, and Astro emits no preload for it, so it serializes an extra round
-  trip in front of first paint while also costing *more* first-view bytes (/sign/: 43,097 vs 41,723
-  brotli). Modelled render-blocking time put `'auto'` behind at every network profile (+150ms slow 4G,
-  +60ms fast 4G, +25ms broadband), with and without TCP slow start. The multi-page case does not
-  rescue it, because `'auto'` emits six stylesheets rather than one and only `global.css` is used by
-  all 20 pages, so a second page view usually discovers a fresh sheet and pays the RTT again. Even an
-  idealized hybrid (only `global.css` external) needs 5 to 15 page views in a single session to repay
-  its one round trip, against a traffic model of cold single-page visits from search. Two guardrails
-  also assume this setting and silently go blind without it (§6.5). Full numbers live in the comment
-  on `inlineStylesheets` in `astro.config.mjs`; the duplication factor being "inflated by the config"
-  is a known property, not a bug to fix by flipping it.
-- **`legacy-peer-deps` is a smell, not a fix.** Astro is pinned to `^7.0.3` on purpose (security
-  advisories cover every version through 7.0-beta). Any tool that forces `legacy-peer-deps` to install
-  must be re-audited against that pin before adoption.
-- **Shared geometry post-processing across handles/types (the whiteout-resize regression).** A single
-  clamp added to the end of the shared `handleResizeMove` (`newLeft = min(100 - width, newLeft)`) was
-  applied to **every** handle, including right/bottom handles that never move `left`/`top`, so growing a
-  box's right edge past the page silently yanked the un-dragged left edge inward. The lesson: on-page
-  bounds must be expressed **per handle, against that handle's true anchor edge** (cap the dragged
-  *dimension*, never post-process another edge).
-- **Vacuous geometry tests from unmocked 0x0 rects.** The whiteout tests that *should* have caught the
-  above were hollow: they rendered against jsdom's default 0x0 element rect, which turns every pixel
-  delta into ±Infinity and saturates both the MIN and MAX clamp identically, so the position math is
-  never exercised. **Geometry/gesture tests must assert against a realistic mocked page-wrapper rect**
-  (e.g. 600x800); a test that passes with a 0x0 rect is proving nothing. The invariant suites carry a
-  non-vacuity meta-guard for exactly this reason.
-- **Floating UI feedback loops & measure-then-mutate drift.** Toolbar placement is delegated to Floating
-  UI deriving position from the anchor rect only (never its own already-positioned rect), and
-  gesture-time measurement is read-only at pointer-down (never in a render effect). These prevent the
-  "toolbar freaking out near the top edge" and the draft-restore sizing drift.
-- **Toolbar vertical flip is not a harmless overflow fix.** The element toolbar stays above the selected
-  element; LTR text aligns it to the element's left edge, RTL to the right edge. Letting Floating UI
-  `flip()` to a `bottom-*` placement made the toolbar jump underneath text in real use. Keep vertical
-  placement stable (`top-start` / `top-end`) and use `shift()` only for horizontal page bounds. Real
-  browser tests must assert rendered toolbar rects, because jsdom can only inspect the config.
-- **Creation defaults are per tool family, not one global color bucket.** Text, symbols, lines and
-  shapes use the remembered drawing/text color. Whiteout uses its own remembered whiteout color and must
-  not inherit the active text or shape color.
-- **`page.drawText()` throws away the shaping it just computed.** pdf-lib's `encodeText` calls
-  `font.layout()` (full GSUB/GPOS, so it picks the right glyphs) and then keeps only `glyphs[].id`,
-  discarding the `positions` array that says where each mark attaches. The PDF places everything by the
-  `/W` widths instead, so Hebrew vowel points land wrong and, in the worst font, letters overlap. The
-  shaping is not missing, it is discarded, so the fix is to emit each glyph at its shaped position, not
-  to rasterise. **Do not batch glyphs into a shared `showText` run** as an optimisation: a batched run
-  advances by `/W`, not by the shaper's advances, and where they disagree the rest of the run silently
-  drifts. Guarding the batch against the glyph's `hmtx` advance does not catch it. Full analysis,
-  including why HarfBuzz WASM is not needed and how to calibrate a parity harness, in
-  **[docs/hebrew-text-shaping-export.md](./docs/hebrew-text-shaping-export.md)**.
-- **pdf.js inherits the page's text direction into the canvas, and paints glyphs wrong under
-  `dir="rtl"`.** It draws each glyph with its own `fillText` at the default `textAlign: start` and
-  never sets `direction`, so on a `/he/` edition "start" resolves to right-aligned and every glyph lands
-  shifted left by its own advance - Hebrew *and* Latin, since the shift is per glyph, not per script.
-  `/he/sign/` tore "כרטיס עובד" into "כרט ס ע בד" while `/sign/` was fine with the same file. Every
-  pdf.js render site takes its context from `getPdfRenderContext` (`src/editor/adapters/pdf/
-  renderContext.js`), which forces `ltr`; `renderContext.test.js` scans for a render call that does not,
-  and `e2e/localized/pdf-render-direction.spec.js` requires the two editions to paint the same page
-  bitmap. A detached canvas inherits the *document root's* direction, so the offscreen paths
-  (thumbnails, compress, to-image, redact flatten) were exposed too, not just the editor canvas.
-- **Some editor bugs require a browser, not jsdom.** Unit tests are the first guardrail for pure math,
-  but jsdom cannot verify rendered toolbar overlap, real `getBoundingClientRect()` relationships after
-  CSS/Floating UI, or whether the toolbar follows a DOM-mutated drag before `pointerup`.
-- **Never reveal something with an IntersectionObserver that JS first hid.** An observer only learns
-  about states a rendered frame actually passed through, so a single-step scroll - the End key, a
-  scrollbar drag, a `scrollIntoView()` - moves an element from below the viewport to above it with no
-  intersecting frame in between, and the callback simply never runs. Anything the script hid on the way
-  in then stays hidden for good while still occupying its full height. That shipped as FeatureCard's
-  card reveal and read on `/sign/` as a screen-tall blank gap after "Free for everyone". A scroll
-  listener that re-checks skipped elements patches the symptom; the fix is to stop sampling, and derive
-  the state from scroll position instead - a CSS scroll-driven animation (`animation-timeline: view()`)
-  behind `@supports`, so the hidden state is the start of an animation that is guaranteed to run and
-  cannot outlive the mechanism that undoes it. `e2e/card-reveal.spec.js` pins it.
-- **`animation-range` accepts a bare length and silently means something else with it.**
-  `entry 0% 15vh` looks like "fade over the first 15vh of entry" and parses as `entry 150px` to
-  `entry 100%` - the length is read as the range *start*. The reveal then ran over ~750px instead of
-  ~150px, which is invisible in a screenshot of a settled page and only shows up as body copy sitting
-  at 35% opacity whenever a visitor stops scrolling mid-range. Write both ends with range names
-  (`entry 0% entry 15%`) and remember a scroll-linked animation has no duration of its own: whatever it
-  is mid-way through is a state the reader can park on indefinitely, so it must not be one that fails
-  the contrast floor. Note also that `entry` is capped at the *scrollport's* height, not the subject's,
-  so a percentage of it is stable across cards of very different heights - `cover` is not.
-- **CSP style attributes are a separate risk from hashed `<style>` tags, and the intuitive diagnosis is
-  wrong.** The editor's runtime geometry writes per-property CSSOM (`el.style.width = ...`), which
-  `style-src` does **not** govern: only literal `style="..."` markup, `setAttribute('style', ...)` and
-  `.style.cssText =` are checked. When `style-src` violations appeared, the cause was a finite set of
-  SSR-serialized static attributes, not the gesture path. The posture is now strict `style-src` with no
-  `unsafe-inline` and no `style-src-attr`; `verify-csp.js` fails the build on any literal `style=` in
-  `dist/`, and e2e asserts zero `securitypolicyviolation` events. Note that Preact routes object
-  `style={{}}` props through per-key `setProperty` (exempt) but string `style="..."` props through
-  `cssText` (governed).
-
-## 6. Executable guardrails (the invariants are CI, not prose)
-
-Run by `ci.yml`; see Part I "Commands" for the npm scripts.
-
-1. **CSP hash gate** (`verify-csp.js`) - the generated `<meta>` CSP still covers every emitted inline
-   script/style, and no element carries a literal `style="..."` attribute.
-2. **SEO invariants** (`verify-seo.js`) - exactly one `<h1>` per page; `<title>`, meta description,
-   canonical, OG/Twitter present; JSON-LD validates; FAQ schema matches on-page content.
-3. **Class resolution** (`check-class-resolution.js`, `check-dead-utilities.js`) - no class string
-   without a matching rule, and no Tailwind utility compiling to nothing. `check-dead-utilities.js`
-   asks that question **per page**, against that page's own inline stylesheet, not against the whole
-   build concatenated. That distinction was cosmetic while one utility sheet went to every page and is
-   load-bearing since ARCH-13: it is what turns a missing `@source` in a page family's entry sheet into
-   a named build failure instead of a page that quietly renders unstyled.
-4. **Editor CSS ratchet** (`check-editor-global-css.js`) - zero `sign-`/`sig-`/`redact-`/`editor-`/`el-`
-   selectors in `global.css`.
-5. **CSS duplication** (`check-css-duplication.js`) - hard ratchets on duplication factor, dead bytes
-   and single-page utilities. Every number here measures a mistake, so these only ever go down. The
-   one exception is the duplication factor, which is page-count-sensitive by construction (see the
-   hazard on `inlineStylesheets` in §5): re-base it when pages are added, and say so. Both this
-   script and `check-page-weight.js` read inline `<style>` only, so they measure the real stylesheet
-   only while `build.inlineStylesheets` stays `'always'`. Current limits, after ARCH-13 changed the
-   delivery model rather than the numbers: **7.00x** duplication (measured 5.79x), **10,000** worst-page
-   dead bytes (measured 7,567 on `/split/`), **148** single-page utilities (measured 144). The first two
-   were 9.60x and 27,750 with ~1% of margin left, which is the state ARCH-13 existed to fix - **the fix
-   is to narrow what a page carries, never to raise a limit.**
-6. **Page weight** (`check-page-weight.js`) - two separate budgets per page: document plus
-   eagerly-referenced JS (brotli), and eagerly-referenced images (raw, since they are already
-   compressed and served as-is). Deliberately *not* ratchets: features grow page weight and that is
-   not a defect. Runtime-`import()` chunks are uncounted on purpose, so one becoming eager shows up
-   as a jump. The image budget counts the **largest** `srcset` candidate (a retina device downloads
-   the 2x, and a budget should measure the worst realistic case), skips `loading="lazy"`, and skips
-   favicons and manifest icons (fetched once per origin, not per page). It exists because the brand
-   logo shipped for months as a 512x512, 153,946-byte PNG painted at 24px in the app bar on 18 of 21
-   pages, and a guard whose whole job is first-load weight said nothing because it only looked at
-   `.js`. Images referenced from CSS `url()` are still invisible here.
-7. **Gesture golden rule** (`check-gesture-golden-rule.js`) - §4, statically enforced.
-**A Playwright test that fetches more than one dynamically-served asset must block service workers.**
-`test.use({ serviceWorkers: 'block' })`. The app's own production service worker takes control partway
-through a page load and then serves fetches from inside its own execution context, where `page.route()`
-cannot see them - so an interception that works for the first asset silently 404s on the second. Found
-while screening candidate Arabic fonts against the preview build, and it costs an hour to diagnose
-because the first fetch succeeding makes the interception look correct.
-
-8. **Playwright e2e** - reserved for what jsdom cannot prove (rendered rects, drag-time toolbar
-   following, page-edge behavior, hydration/CSP flows). Keep the suite sparse, roughly one e2e test per
-   ten unit/component tests, under `e2e/<module>/`. Includes a site-wide CSP smoke sweep. Also includes
-   `export-render-guard.spec.js` (landed as W1 of the WYSIWYG text epic, see TODO.md): runs the real
-   `signPdf` in-browser and rasterises the produced PDF with pdf.js to compare against per-case baselines.
-   One rasteriser only (never poppler against Chromium - measured cross-rasteriser noise is 80-88%), and
-   never "is there ink" as a pass condition, since `.notdef` commonly draws more ink than the glyph it
-   replaced.
-9. **Bundled font `glyf` alignment** (`check-font-glyf-alignment.js`, `npm run test:fonts`) - no bundled
-   TTF may have an odd `loca` offset. See "Fonts are subsetted on export" below for why an unaligned
-   font silently corrupts the download.
-
-## 7. Anti-patterns (a change doing any of these is wrong)
-
-- Routing live drag/resize through React state or a store (§1.2, §4).
-- Expressing editor active/selection state as inline conditional utility strings instead of a CSS
-  cascade (§3.1).
-- Trying to encode per-element runtime geometry as Tailwind classes (§3.1).
-- Adding a `script-src`/`default-src` to the `vercel.json` header CSP (§5).
-- Deleting semantic `.sign-*` cascades without verifying every conditional state (active, RTL, dark,
-  mobile, whiteout) in a **running** editor (§5).
-- Landing a styles/scripts/config change without a `build && preview` CSP pass (§5).
-- Introducing a dependency that forces `legacy-peer-deps` without re-auditing the Astro pin (§5).
+**Astro, `output: 'static'`, islands.** Every page is prerendered to flat HTML at build time.
+
+- The SEO surface (H1, how-it-works, FAQ, JSON-LD) is `.astro` / `src/data/*.js` /
+  `src/content/content-pages/*.yaml`, rendered at build time with zero JS shipped.
+- The tools are Preact islands (`src/components/Pdf*Tool.tsx`, `client:load`) over `BasePdfTool.tsx`.
+  Sign and Redact share the framework-free `src/editor/` core (model, geometry, gesture controller,
+  per-type registry) and on-device IndexedDB draft persistence (`src/editor/workspace/draftStore.js`).
+- Tool logic lives in `src/lib/` (`merge.js`, `split.js`, `compress.js`, `toImage.js`, ...) and
+  `src/editor/`. `pdfjs-dist`'s worker is bundled as a same-origin asset, never fetched from a CDN.
+- One request-time exception to "no server": `middleware.ts` negotiates `Accept: text/markdown` for the
+  marketing pages. It never sees a PDF byte.
+- Styling is a scoped hybrid: Tailwind utilities for the static `.astro` surface, CSS Modules for the
+  editor, inline styles only for per-element runtime geometry. `global.css` holds tokens and element
+  defaults only.
+
+## Invariants every change must respect
+
+Each of these fixed a shipped bug or protects the product's reason to exist. The rule file named in
+brackets carries the evidence; do not relearn it.
+
+- **No file bytes ever leave the device.** No `fetch`/XHR of PDF contents, no external `connect-src`,
+  no cookies or accounts. Anonymous, allowlisted maintenance telemetry is permitted and must never block
+  the tools. CSP `connect-src 'self'` is the backstop. [csp-scripts-pwa]
+- **The SEO shell stays static HTML.** Marketing, how-to, FAQ and JSON-LD are never moved into an
+  island or injected client-side. One `<h1>` per page; primary keyword in title, h1 and description;
+  FAQ JSON-LD must match on-page content. Off the table: SSR, any external `connect-src`, any JS
+  shipped to the SEO surface. [content-and-copy]
+- **CSP is invisible in `astro dev`.** Any change to scripts, styles, `astro.config.mjs` or
+  `vercel.json` is verified only by `npm run build && npm run preview`. Never `is:inline` a script;
+  never add `script-src`/`default-src` to the `vercel.json` header. [csp-scripts-pwa]
+- **Gesture golden rule.** Drag, resize and create mutate the DOM during the gesture and commit state
+  exactly once on release, through `src/editor/gestures/controller.ts`. Never route `pointermove`
+  through state or a store. Statically enforced by `check-gesture-golden-rule.js`. [editor]
+- **Tools are one-shot; selection and text editing are separate states.** An armed tool disarms after
+  one placement; double-click locks it; the "Stop" chip is the only exit on touch. [editor]
+- **Fonts render identically on screen and in the export.** Always resolve a family through
+  `src/editor/text/fonts.js`; every script needs a `SCRIPT_FALLBACKS` row and a shaping guard; never rasterise
+  text to fix a mismatch. Adding a font is a nine-step unit of work. [fonts-and-text]
+- **Every canonical URL ends in a slash.** Internal links carry the slash; a new route needs its
+  non-slash → slash redirect pair in `vercel.json` in the same change (`npm run test:redirects`).
+  [routing-and-pages]
+- **Colors come from `:root` tokens in `global.css`, never literals.** Tailwind's `@theme` skips the
+  default scale, so an undeclared utility compiles to *nothing*; declare the token first. A component
+  must be listed in its page family's entry sheet in `src/styles/` or its utilities are missing on that
+  page (`npm run test:css` names the page). [styling]
+- **The home page is one canonical DOM that CSS reshapes; nothing is re-parented after load**, and its
+  first screen (hero, launcher, dock) is one composed unit that nothing gets inserted into. [home-page]
+- **Never reveal with an IntersectionObserver what JS first hid**; derive reveal state from scroll
+  position (`animation-timeline: view()`). [home-page]
+- **Service worker: no `skipWaiting()`, best-effort precache except `/`, self-uninstall on a 404
+  manifest.** [csp-scripts-pwa]
+- **Astro stays on `^7.0.3`**: older majors carry published advisories; anything needing
+  `legacy-peer-deps` is re-audited first. [csp-scripts-pwa]
+
+## Voice (for any user-facing text)
+
+Warm, modest, honest: a person sharing something useful, not a company selling a product. First person
+is welcome. Plain facts over intensifiers ("Runs on your device. Free. Open source."). Privacy at human
+altitude, never security jargon. Explain, don't compete: no competitor names, no us-vs-them. Free
+because it should be, not as a funnel. **No em dashes** (use spaced hyphens, commas, or split the
+sentence). Never frame PDkef around how little time it took to build. The full voice guide, origin
+story and SEO rules are in [content-and-copy]; SEO work starts from
+[docs/seo-competitive-findings.md](./docs/seo-competitive-findings.md).
+
+## CI guardrails (invariants are checks, not prose)
+
+`ci.yml` runs, in order: `check:backlog`, `check:guidance`, `test`, `typecheck`,
+`test:editor-dependency-directions`, the single-owner box-resize grep, `test:gesture-golden-rule`,
+`check-class-resolution`,
+`test:fonts`, `test:licenses`, `test:dependency-governance`, then `build`, `test:csp`, `test:seo`,
+`test:redirects`, `test:css`, `test:weight`, and Playwright. Ratchets (CSS duplication, dead bytes,
+editor selectors in `global.css`) only ever go down: **the fix is to narrow what a page carries, never
+to raise a limit.** Page-weight budgets are budgets, not ratchets.
+
+## Where the detail lives
+
+| Rule file (`.claude/rules/`) | Loads when you read | Headline |
+| --- | --- | --- |
+| `editor.md` | `src/editor/**`, `src/components/SignTool/**`, tool islands, `src/lib/**` | design standard, arming/selection model, toolbar layout, editor hazards |
+| `fonts-and-text.md` | `src/editor/text/**`, `src/lib/*ont*`, `public/fonts/**`, shaping guards | screening protocol, per-script guards, subsetting, the five text stages |
+| `styling.md` | `src/styles/**`, any `.css`, CSS guard scripts | palette, per-family utility sheets, CSS Modules boundary, ratchets |
+| `csp-scripts-pwa.md` | `astro.config.mjs`, `vercel.json`, layouts, `public/sw.js`, `package.json` | CSP layers and incidents, service worker invariants, version pinning |
+| `routing-and-pages.md` | `src/pages/**`, `src/data/**`, `middleware.ts`, `vercel.json` | tool registry, redirects, trust pages, Markdown negotiation |
+| `content-and-copy.md` | `src/content/**`, `src/data/**`, `.astro` components, SEO docs | content collection, full voice guide, SEO invariants and acquisition |
+| `home-page.md` | `src/pages/index.astro`, `HeroDemo/**`, `FileDropzone*`, `e2e/home/**` | layout/CLS invariants, launcher vs demo, scroll-driven reveal |
+
+Design records: [docs/E4-headless-editor-core-plan.md](./docs/E4-headless-editor-core-plan.md) (editor
+core), [docs/wysiwyg-text-architecture.md](./docs/wysiwyg-text-architecture.md) (text pipeline, current),
+[docs/shaping-guard-platform-calibration.md](./docs/shaping-guard-platform-calibration.md) (why a guard's
+green means what it means).
