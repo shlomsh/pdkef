@@ -35,6 +35,12 @@ export const homeContent = {
   h1: 'Free PDF tools that run on your device',
   h1Accent: 'on your device',
   subhead: 'Merge, sign, split, redact and compress PDFs. No signup, no install, nothing leaves your device.',
+  // The home page's own FAQ kicker, deliberately not DocumentationShellMessages'
+  // shared `faqTag`. The shell's English value is "Got questions?", which every
+  // tool and guide page says; home has always said this instead, and reading it
+  // from the shared catalogue quietly rewrote the English home page's copy.
+  // A locale translates this field like any other home string.
+  faqKicker: 'A few useful answers',
   faq: [
     { question: 'Are the tools really free?', answer: 'Yes. Every tool is free, with no paywalls, usage limits, or watermarks.' },
     { question: 'Do I need to sign up or create an account?', answer: 'No account, email, or trial period. Just open a tool and get started.' },

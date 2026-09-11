@@ -26,14 +26,22 @@ export const INLINE_LINK_CLASS =
   'text-[var(--color-primary-text)] underline underline-offset-2 hover:text-[var(--color-primary-hover)]';
 
 /**
- * `<strong>` has two forms, and the difference is not decorative: inside a
+ * `<strong>` has three forms, and the difference is not decorative: inside a
  * muted block (the three-column cards, which are `text-[var(--color-muted)]`)
  * a bold run has to reassert the full-strength ink or it reads as no emphasis
  * at all. Callers pass the tone of the block they are rendering into.
+ *
+ * `inherit` is the deliberate no-op: the bold run keeps the browser's default
+ * weight and its parent's color, because that is what the design already
+ * committed to somewhere the design system never had an opinion. It exists so
+ * a string moving from hardcoded markup into a content object cannot silently
+ * restyle itself on the way - `renderInline` emits a bare `<strong>` for it,
+ * not `class=""`, so the rendered bytes are unchanged.
  */
 export const STRONG_CLASS = {
   body: 'font-semibold',
   muted: 'font-semibold text-[var(--color-text)]',
+  inherit: '',
 } as const;
 
 export type InlineTone = keyof typeof STRONG_CLASS;
@@ -130,7 +138,11 @@ export function renderInline(value: string, tone: InlineTone = 'body'): string {
   if (problems.length > 0) {
     throw new Error(`Unrenderable inline HTML: ${problems.join('; ')}`);
   }
-  return value
-    .replaceAll('<a href=', `<a class="${INLINE_LINK_CLASS}" href=`)
-    .replaceAll('<strong>', `<strong class="${STRONG_CLASS[tone]}">`);
+  const linked = value.replaceAll('<a href=', `<a class="${INLINE_LINK_CLASS}" href=`);
+  // An empty tone leaves the tag alone rather than emitting `class=""`, so
+  // "render this through the content object" is byte-for-byte what hardcoding
+  // a bare <strong> in the template used to produce.
+  return STRONG_CLASS[tone]
+    ? linked.replaceAll('<strong>', `<strong class="${STRONG_CLASS[tone]}">`)
+    : linked;
 }

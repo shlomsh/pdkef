@@ -358,6 +358,13 @@ const localizedHome = defineCollection({
     // fields can never say something the rendered text does not.
     h1Accent: plain(2, 40),
     subhead: plain(30, 400),
+    // The home page's FAQ kicker is its own copy, not the shell catalogue's
+    // `faqTag` that every tool and guide page shares: home has always said
+    // something different in English ("A few useful answers" against the
+    // shell's "Got questions?"), and reading it from the shared catalogue
+    // silently rewrote the English home page. Owned here so a locale can
+    // translate it without the two ever being forced to agree.
+    faqKicker: plain(3, 60),
     faq: z.array(homeFaqItem).min(4).max(6),
     founderStory: homeFounderStory,
     draftPersistence: homeDraftPersistence,

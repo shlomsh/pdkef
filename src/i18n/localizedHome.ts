@@ -37,6 +37,7 @@ const HOME_SOURCE_FIELDS = [
   'h1',
   'h1Accent',
   'subhead',
+  'faqKicker',
   'faq',
   'founderStory',
   'draftPersistence',
