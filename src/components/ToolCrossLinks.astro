@@ -14,12 +14,14 @@
 // on desktop, and a third near-full-viewport panel below the how-it-works and
 // FAQ cards would bury the footer. This is a compact strip.
 import { tools } from '../data/tools.js';
+import type { CrossLinksMessages } from '../i18n/documentationMessages';
 
 interface Props {
   currentSlug: string;
+  labels?: CrossLinksMessages;
 }
 
-const { currentSlug } = Astro.props;
+const { currentSlug, labels } = Astro.props;
 const others = tools.filter((tool) => tool.slug !== currentSlug);
 ---
 
@@ -28,10 +30,10 @@ const others = tools.filter((tool) => tool.slug !== currentSlug);
   aria-labelledby="more-tools-heading"
 >
   <div class="space-heading-content text-center">
-    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">Same suite</span>
-    <h2 id="more-tools-heading" class="type-section m-0 text-[var(--color-text)]">More PDF tools</h2>
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">{labels?.crossLinksKicker ?? 'Same suite'}</span>
+    <h2 id="more-tools-heading" class="type-section m-0 text-[var(--color-text)]">{labels?.crossLinksHeading ?? 'More PDF tools'}</h2>
     <p class="type-body mx-auto mt-3 mb-0 max-w-[46rem] text-[var(--color-muted)]">
-      Every one of these runs on your device, free, with nothing uploaded.
+      {labels?.crossLinksSubhead ?? "Every one of these runs on your device, free, with nothing uploaded."}
     </p>
   </div>
 

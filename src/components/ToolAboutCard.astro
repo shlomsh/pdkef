@@ -4,6 +4,7 @@
 // watermark treatment inside their Tailwind-positioned card surface.
 import FeatureCard from './FeatureCard.astro';
 import CardDecor from './CardDecor.astro';
+import { documentationShellMessages, type AboutCardMessages } from '../i18n/documentationMessages';
 
 interface Step {
   title: string;
@@ -23,42 +24,46 @@ interface Props {
   freeNoteLead?: string;
   sketch?: 'arcs' | 'waves' | 'rings' | 'grid';
   iconPos?: 'tr' | 'tl' | 'br' | 'bl' | 'cr' | 'cl';
+  /** LOC-02: the card's own chrome, from the shell messages. English tool
+   * pages pass nothing and get the English defaults below. */
+  labels?: AboutCardMessages;
 }
 
-// Defined once for the whole suite so the open-source message can never drift.
-const sharedOpenSource =
-  'It\'s open source under the MIT license, so anyone can read the code, <a class="font-medium text-[var(--color-primary-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">fork it on GitHub</a>, or share it. Simple PDF tools should be free for everyone.';
-
+// Defined once for the whole suite so the open-source message can never
+// drift; the English string itself lives in documentationMessages.ts now,
+// next to its translations.
 const defaultLead =
   "PDkef runs entirely in your browser, so there's no server to pay for and no reason to charge you, add a watermark, show ads, or ask you to sign up. Use it as much as you like.";
 
 const {
   icon,
-  tag = 'How it works',
+  tag,
   heading,
   lead,
   steps,
   freeNoteLead = defaultLead,
   sketch = 'arcs',
   iconPos = 'tr',
+  labels = documentationShellMessages.en!,
 } = Astro.props;
+const resolvedTag = tag ?? labels.howItWorks;
 ---
 
 <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
   <CardDecor sketch={sketch} icon={icon} iconPos={iconPos} iconSize={280} />
   <div>
-    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">{tag}</span>
+    <span class="mb-2 inline-block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">{resolvedTag}</span>
     <h2 class="type-section space-heading-content mt-0 text-[var(--color-text)]">{heading}</h2>
     <p class="type-lead space-content-row mt-0 max-w-[68ch] text-[var(--color-text)]">{lead}</p>
-    <ol class="mb-7 mt-0 flex list-decimal flex-col gap-[0.6rem] pl-5">
+    <ol class="mb-7 mt-0 flex list-decimal flex-col gap-[0.6rem] ps-5">
       {steps.map((step) => (
         <li class="type-lead text-[var(--color-muted)]"><strong class="font-semibold text-[var(--color-text)]">{step.title}.</strong> {step.text}</li>
       ))}
     </ol>
     <section class="mt-7 border-t border-[var(--color-border)] pt-7">
-      <h2 class="type-feature space-heading-content mt-0 text-[var(--color-text)]">Free for everyone</h2>
+      <h2 class="type-feature space-heading-content mt-0 text-[var(--color-text)]">{labels.freeForEveryone}</h2>
       <p class="type-lead mb-[0.9rem] mt-0 max-w-[64ch] text-[var(--color-muted)]" set:html={freeNoteLead} />
-      <p class="type-lead m-0 max-w-[64ch] text-[var(--color-muted)]" set:html={sharedOpenSource} />
+      <p class="type-lead m-0 max-w-[64ch] text-[var(--color-muted)]" set:html={labels.openSourceNote} />
     </section>
   </div>
 </FeatureCard>
