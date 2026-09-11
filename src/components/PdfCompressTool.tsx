@@ -169,6 +169,7 @@ export default function PdfCompressTool() {
       fileMeta={describeFile(file)}
       hasWork={status === 'done'}
       workNoun="the compressed PDF you just made"
+      compact
     >
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">

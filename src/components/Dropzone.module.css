@@ -54,6 +54,18 @@
   .dropzone {
     padding: 1.5rem;
   }
+
+  /* Opt-in only (BasePdfTool.tsx's `compact` prop) - never the bare
+     `.dropzone` rule above, which stays the shared floor for every other
+     tool and for home's FileDropzone (see this file's own header comment on
+     why `.dropzone` must not diverge between the two). Used by Compress,
+     whose children render a full options grid below the dropzone even
+     before a file is picked, so the empty box doesn't need to carry as much
+     height on its own. */
+  .dropzone[data-compact] {
+    min-height: 8rem;
+    padding: 1rem;
+  }
 }
 
 .dropzone.is-dragover {

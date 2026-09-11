@@ -66,7 +66,28 @@ const { tool } = Astro.props;
     </script>
   </Fragment>
 
-  <AppBar toolName={tool.toolName} />
+  <AppBar toolName={tool.toolName}>
+    {/* Unified with the home page's own top-bar chips (AppBar.astro's
+        `.trust-chip` styling) instead of a second, plainer row that used to
+        live in ToolHero.astro under the H1 - one chip treatment, one place
+        it can go stale. */}
+    <a class="trust-chip" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer" aria-label="Star us on GitHub">
+      <svg class="trust-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" /></svg>
+      <span>Star us on GitHub</span>
+    </a>
+    <a class="trust-chip" href="/licenses/" aria-label="MIT licensed">
+      <svg class="trust-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3v18" /><path d="M7 7l-4 6a4 4 0 0 0 8 0l-4-6z" /><path d="M17 7l-4 6a4 4 0 0 0 8 0l-4-6z" /><path d="M6 21h12" /><path d="M8 5h8" />
+      </svg>
+      <span>MIT licensed</span>
+    </a>
+    <span class="trust-chip" aria-label="Works offline">
+      <svg class="trust-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 20h.01" /><path d="M8.5 16.429a5 5 0 0 1 7 0" /><path d="M5 12.859a10 10 0 0 1 5.17-2.69" /><path d="M19 12.859a10 10 0 0 0-2.007-1.523" /><path d="M2 8.82a15 15 0 0 1 4.177-2.643" /><path d="M22 8.82a15 15 0 0 0-11.288-3.764" /><path d="m2 2 20 20" />
+      </svg>
+      <span>Works offline</span>
+    </span>
+  </AppBar>
 
   <div class="flex min-h-[calc(100svh-3.5rem)] flex-col">
     <ToolHero icon={tool.icon} title={tool.h1} subhead={tool.subhead} slug={tool.slug} condensable={tool.condenseOnLoad !== false} />

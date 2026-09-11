@@ -41,14 +41,17 @@ test('aligns every tool title row with its breadcrumb grid at desktop width', as
   }
 });
 
-// The hero icon tile is taller than the <h1>'s first line box, and several tool
-// titles wrap to two or more lines, so the tile is centred on the FIRST line
-// rather than on the whole title block. Only a real browser has line boxes:
-// jsdom reports every rect as zero, and the regression this guards (the UA's
-// `h1 { margin-block-start: 0.67em }` surviving because Tailwind's preflight is
-// deliberately not imported) shifted the title down by 20.8px with no CSS of
-// ours to point at. Range rects, not the <h1> box, isolate that first line.
-test('centres each tool hero icon on the first line of its title', async ({ page }) => {
+// Icon and title are flush top-aligned (zero margin on both, `items-start` on
+// the row) rather than the icon being nudged down to centre against the
+// title's first line - that looked fine for a one-line title but left the
+// icon visibly adrift once a longer h1 (Compress's) wrapped to two or three
+// lines and the eye compared the icon against the whole block. Only a real
+// browser has line boxes: jsdom reports every rect as zero, and the
+// regression this guards (the UA's `h1 { margin-block-start: 0.67em }`
+// surviving because Tailwind's preflight is deliberately not imported)
+// shifted the title down by 20.8px with no CSS of ours to point at. Range
+// rects, not the <h1> box, isolate the first line's own top.
+test('top-aligns each tool hero icon with the first line of its title', async ({ page }) => {
   for (const width of [1440, 1100, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     for (const route of toolRoutes) {
@@ -62,13 +65,13 @@ test('centres each tool hero icon on the first line of its title', async ({ page
         const [firstLine] = range.getClientRects();
         return {
           lines: range.getClientRects().length,
-          tileCentre: tile.top + tile.height / 2,
-          lineCentre: firstLine.top + firstLine.height / 2,
+          tileTop: tile.top,
+          lineTop: firstLine.top,
         };
       });
 
       const where = `${route} @ ${width}px (${measured.lines} title line(s))`;
-      expect(Math.abs(measured.tileCentre - measured.lineCentre), where).toBeLessThanOrEqual(1.5);
+      expect(Math.abs(measured.tileTop - measured.lineTop), where).toBeLessThanOrEqual(4);
     }
   }
 });

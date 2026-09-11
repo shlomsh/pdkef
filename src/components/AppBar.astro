@@ -65,6 +65,86 @@ const brandClasses = isHome
       </svg>
       {labels.onDevice ?? 'On-device'}
     </span>
-    {isHome && <div class="home-trust"><slot /></div>}
+    {/* Same slot on every page, home or tool: one trust-chip pill style
+        (below), instead of home carrying its own chips inline in the bar and
+        every tool page repeating a second, plainer white-pill row inside
+        ToolHero. Tool pages pass their chips from ToolPageLayout.astro; home
+        passes its own from index.astro. Two different wrapper classes on
+        purpose: index.astro's own scoped CSS targets `.home-header
+        .home-trust` for home's sticky-pin layout and its own responsive
+        rules (icon-only chips, not a full hide, at small widths) - left
+        completely alone here. `.tool-trust` gets its own, simpler responsive
+        rules below, scoped so they can never reach home's markup. */}
+    <div class={isHome ? 'home-trust' : 'tool-trust'}><slot /></div>
   </div>
 </div>
+
+<style>
+  /* Base trust-chip look, shared by every page that renders one: the sea-glass
+     tint home already used, now the one definition instead of a second, plainer
+     white-pill version living in ToolHero.astro. `:global` because chips are
+     slotted content, authored by the parent (index.astro / ToolPageLayout.astro),
+     not part of this component's own template - Astro's scoped CSS does not
+     reach into a `<slot/>`'s children otherwise. Home's own
+     `.home-header :global(.home-trust .trust-chip)` rule in index.astro is more
+     specific (ancestor-qualified) and keeps winning there unchanged; this is
+     what tool pages, which have no `.home-header` ancestor, actually get. */
+  :global(.trust-chip) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 1.8rem;
+    box-sizing: border-box;
+    border: 0.5px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-primary-tint);
+    padding: 0.3rem 0.7rem;
+    color: var(--color-text);
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: color 150ms ease-out, border-color 150ms ease-out, background-color 150ms ease-out, box-shadow 150ms ease-out;
+  }
+
+  :global(a.trust-chip:hover) {
+    border-color: var(--color-border-strong);
+    background: var(--color-primary-soft);
+    color: var(--color-primary-text);
+  }
+
+  :global(a.trust-chip:focus-visible) {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-focus);
+    color: var(--color-primary-text);
+  }
+
+  :global(.trust-chip-icon) {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    display: block;
+  }
+
+  /* Tool pages only (home keeps its own rules in index.astro, untouched).
+     Below 1024px the bar has a breadcrumb and three chips plus the on-device
+     badge competing for one fixed-height row - drop each chip's label and
+     keep the icon, same pattern `[data-on-device]` already uses under 560px. */
+  @media (max-width: 1023px) {
+    :global(.tool-trust) {
+      gap: 0.35rem;
+    }
+    :global(.tool-trust .trust-chip) {
+      gap: 0;
+      padding: 0.3rem;
+      font-size: 0;
+    }
+  }
+
+  @media (max-width: 560px) {
+    :global(.tool-trust) {
+      display: none;
+    }
+  }
+</style>
