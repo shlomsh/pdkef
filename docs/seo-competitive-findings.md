@@ -33,13 +33,19 @@ all of it (section 6).
 | SEO-02 standings + refresh procedure | done | 2026-09-10 | `seo-refresh.mjs` reproduces section 3 from an export; procedure in section 6 | monthly |
 | SEO-03 external signals | open | | not started; no referring-domain baseline yet | needs a first venue list |
 | SEO-04 blur zero-click | open, blocked on a recrawl | 2026-09-11 | meta rewritten 09-10; real SERP captured 09-11 shows Google serving the pre-08-29 title, so the change has never been seen; AI Overview cites us on 2 of 3 queries (zero-click by design); recrawl requested | 2026-10-08: first check whether the indexed title changed; only then is CTR a verdict |
-| SEO-05 compress CTR + honesty | open, same recrawl exposure | 2026-09-10 | meta now leads with the honest miss ("if it can't hit the target, we say so"); rasterization + passthrough disclosed above the FAQ | same first check as SEO-04 |
+| SEO-05 compress CTR + honesty | open, same recrawl exposure | 2026-09-10 | meta now leads with the honest miss ("if it can't hit the target, we say so"); rasterization + passthrough disclosed above the FAQ; interim signal 2026-09-11: `file compressor to 100kb` got its first clicks (4/95, 4.2% CTR) but this predates the fix being indexed, not a verdict yet | same first check as SEO-04 |
 | SEO-06 never-crawled nine | open | 2026-09-11 | nine linked from `/redact/` and `/compress/`; `/image-to-pdf/` and `/pdf-to-image/` leads differentiated; `/edit-pdf/` got no content work (descoped, not done) | 2026-10-08 coverage recheck = **the Week 4 gate** |
 | SEO-07 `/sign/` language story | done | 2026-09-11 | language card leads with the claim; comb fields, RTL growth and refuse-while-typing now stated; title changed | 2026-10-08: `/sign/` CTR vs 2.38%, after recrawl |
 | SEO-11 review protocol | done | 2026-09-11 | section 7 | |
 | SEO-12 Sign review | done, no change | 2026-09-11 | method run end to end; SEO-07 had already shipped everything it would propose; the "no change" verdict is the model for SEO-13 to 16 | |
 | SEO-28 Redact/Split recrawl starvation | open | 2026-09-11 | the two best pages are the least crawled and nothing we control (headers, `lastmod`, link counts) explains it; separate mechanism from SEO-06 | 2026-10-08 crawl dates |
-| SEO-08, 09, 10, 13 to 27 | open | | not started | per section 4 |
+| SEO-08 OS how-to guides | done | 2026-09-11 | top-ten read: Adobe/HowToGeek win on authority alone (SEO-03 territory); real peer group (other client-side tool vendors) wins on a visible date/byline (SEO-29) and on showing the tool, not just describing it - a subhead-comparison draft was reversed on product guidance (these pages document PDkef's own flow, not a comparison), so the shipped fix is three real `/sign/` screenshots added to all four guides instead; WhatsApp already covered on all four, no change; consolidation rejected | 2026-10-08 positions |
+| SEO-29 visible date/byline on content pages | open | 2026-09-11 | new, split out of SEO-08 - schema + template change, not a copy fix | not started |
+| SEO-13 Compress review | done | 2026-09-11 | ran end to end; passthrough and no-cap were already visible outside the FAQ (SEO-05); shipped one line stating the honest miss in `aboutLead`; non-PDF-keyword traffic recommendation fed into SEO-19, not built now | |
+| SEO-14 Blur/Redact review | done | 2026-09-11 | shipped one line making flattening-makes-it-permanent visible in `aboutLead`, same move as SEO-13; blur-vs-removal caveat and the three-page cluster checked, no change needed | |
+| SEO-15 Image-to-PDF/PDF-to-Image/Edit-Pages review | done | 2026-09-11 | shipped: image-to-pdf's privacy fact tied to what it protects (ID pages, consent forms); pdf-to-image's no-zip limitation disclosed above the fold and in FAQ; edit-pdf's candidate differentiator didn't survive the competitive check, no change shipped there | |
+| SEO-09, 10, 16 to 27 | open | | not started | per section 4 |
+| LOC-01 to 06 (`localized-search` epic) | open | 2026-09-11 | non-English demand is unmeasurable from GSC by construction; LOC-01 measures it from outside, LOC-02/03 build localized tool pages with Hebrew first, gated on section 4's crawl gate | LOC-01 verdict table |
 
 ---
 
@@ -47,6 +53,32 @@ all of it (section 6).
 
 Durable lessons, one line each, newest first. The ticket has the evidence.
 
+- **Search Console cannot see non-English demand on an English-only site.** It lists only queries we
+  got impressions for, and an English page gets none on `כיווץ קובץ pdf`; so "every India query is in
+  English" describes what we rank for, not what people type. The blind spot is measured from outside
+  GSC (Trends by country, autocomplete, incumbents' localized pages) in the `localized-search` epic,
+  [LOC-01](../backlog/tasks/LOC-01.md) first; localized *tool* pages, not guides, are what compete for
+  those queries. ([SEO-27](../backlog/tasks/SEO-27.md) addendum)
+- **The non-PDF `file compressor to 100kb` query started converting**, ahead of the scheduled refresh:
+  Shlomi's Search Console screenshot (28-day view, captured 2026-09-11) shows 4 clicks / 95 impressions,
+  4.2% CTR, avg. position 9.4, with clicks first appearing around 2026-09-02 and climbing through
+  2026-09-07/08 - up from the zero-click state SEO-13 recorded for this exact query (81 impressions,
+  position 9.60, 0 clicks, as of the 2026-09-10 export). **Do not credit this to the SEO-05/SEO-13 copy
+  changes** - both shipped 2026-09-10/11 and, per SEO-05's own indexing check, were still unindexed as of
+  2026-09-11, so the uptick predates them being visible in the SERP at all. Logged as a pre-fix baseline
+  ahead of the 2026-10-08 refresh, not a verdict. ([SEO-05](../backlog/tasks/SEO-05.md))
+- **These guides document PDkef's own flow; they are not a place to lead with a comparison, even to a
+  built-in OS tool.** A subhead draft that opened by naming the built-in tool's limits (matching what
+  `/how-to-sign-a-pdf-on-mac/` already does) was reversed on direct product guidance mid-ticket: the
+  page's job is to show the tool working, not to frame it against alternatives. The shipped fix was
+  three real screenshots of `/sign/` instead. Read this before drafting comparison-led copy for any
+  future how-to guide. ([SEO-08](../backlog/tasks/SEO-08.md))
+- **Against a peer group of similarly-resourced competitors (not the Adobe/HowToGeek authority tier),
+  the ranking gap is a visible date or byline, not content depth.** Every one of ten SERP results for
+  "how to sign a pdf on android" carries a publish date, an "updated" stamp, or an author byline; none
+  of our content pages do, though the git-derived date `sitemap.xml.js` already computes for `lastmod`
+  could back one. Scoped as [SEO-29](../backlog/tasks/SEO-29.md) rather than folded into the ticket that
+  found it. ([SEO-08](../backlog/tasks/SEO-08.md))
 - **"Indexed" is not "current".** Google held `/redact/`'s title from before 2026-08-29 while the live
   page served the new one; a copy change is not measurable until the *indexed snippet* changes. Check
   the SERP title before reading any CTR as a verdict. ([SEO-01](../backlog/tasks/SEO-01.md#addendum-2026-09-11-an-indexed-page-can-be-stale-enough-to-hide-shipped-work), [SEO-04](../backlog/tasks/SEO-04.md))
@@ -182,7 +214,7 @@ does not have. Status of each ticket is in section 1, not here.
 | --- | --- | --- |
 | Week 1 (Sep 10-16) | SEO-01, 02, 04, 05 - measure, then the free clicks. No new URLs. | none - **done** |
 | Week 2 (Sep 17-23) | SEO-06, 07, 11, 12, **28** - the structural problems. | none - 07/11/12 done early; 06 and 28 open |
-| Week 3 (Sep 24-30) | SEO-08, 09, 10, 13, 17 (first new URL). | SEO-09 and SEO-08 must end with an indexing request, per section 2 |
+| Week 3 (Sep 24-30) | SEO-09, 10, 13, 17 (first new URL). SEO-08 done early. | SEO-09 must end with an indexing request, per section 2 |
 | Week 4 (Oct 1-7) | SEO-14, 15, 18. **Re-measure everything on 2026-10-08.** | **Gate:** if none of the never-crawled nine has been crawled, stop adding URLs; effort goes to SEO-03 |
 | Weeks 5-6 (Oct 8-21) | SEO-19 (image compressor - the one new tool with measured demand), then SEO-20 (crop). One tool per week. | Week 4 gate passed |
 | Weeks 7-8 (Oct 22 - Nov 4) | SEO-21 (flatten, with MOBI-02), SEO-22 (extract images). | previous tool indexed |
