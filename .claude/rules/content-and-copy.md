@@ -163,7 +163,7 @@ status feedback.
 
 ## Search acquisition (SEO work beyond the invariants above)
 
-**The SEO memory is one file: [docs/seo-competitive-findings.md](./docs/seo-competitive-findings.md).**
+**The SEO memory is one file: [docs/seo-competitive-findings.md](../../docs/seo-competitive-findings.md).**
 Read it before any search-related work; it holds the status board, the lessons, the dated standings,
 the plan with its gates, and the reference material (competitor research, refresh procedure, review
 protocol). Task state lives in the `SEO-*` tickets under `backlog/tasks/`, epic `search-acquisition`.
