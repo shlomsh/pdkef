@@ -138,6 +138,8 @@ _None._
 | LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house |
 | LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
 | LOC-09 | P3 | [LOC-09](backlog/tasks/LOC-09.md) · Localize the home page, so /he/ is a real edition and not a 404 beside three Hebrew tool pages |
+| LOC-10 | P1 | [LOC-10](backlog/tasks/LOC-10.md) · Remove page localization: the Hebrew editions and the mechanism behind them |
+| LOC-11 | P3 | [LOC-11](backlog/tasks/LOC-11.md) · Two-month country and language re-check: has anything moved that should reopen localization? |
 
 ### In progress
 
