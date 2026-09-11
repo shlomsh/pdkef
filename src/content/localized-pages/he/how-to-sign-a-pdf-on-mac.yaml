@@ -1,7 +1,10 @@
 pageId: 'how-to-sign-a-pdf-on-mac'
 locale: 'he'
-status: 'draft'
-sourceHash: 'fnv1a64:1e4fc70e7b1f01d4'
+status: 'published'
+reviewer: 'Shlomi Shemesh'
+reviewedAt: '2026-09-11'
+reviewNotes: 'Published 2026-09-11 at the reviewer request, to be reviewed on the live site rather than in a preview build; wording, maqaf and geresh typography still to be checked on the deployed pages.'
+sourceHash: 'fnv1a64:a41934c8231d99be'
 title: 'איך לחתום על PDF ב‑Mac | PDkef'
 description: 'חתמו ומלאו PDF ב‑Mac דרך הדפדפן. מתי Preview מספיק, מתי צריך להוסיף טקסט או תיבות, ואיך לשמור עותק מוכן לשליחה.'
 breadcrumb: 'Mac'
@@ -10,7 +13,7 @@ kicker: 'macOS, בדפדפן'
 h1: 'איך לחתום על PDF ב‑Mac'
 subhead: 'Preview מתאים היטב לחתימה פשוטה. כשצריך למלא טופס סרוק, להוסיף טקסט במספר מקומות או לסמן תיבות, אפשר לעבוד עם קובץ מקומי בדפדפן ולשמור עותק חדש.'
 primaryCta:
-  href: '/sign/'
+  href: '/he/sign/'
   label: 'לחתימה על PDF עכשיו'
 sections:
   - variant: 'highlight'
@@ -23,9 +26,33 @@ sections:
       - kind: 'steps'
         items:
           - '<strong>אתרו את קובץ ה‑PDF</strong> בתיקייה, ב‑Downloads או בקובץ שצורף למייל.'
-          - '<strong>פתחו את <a href="/sign/">pdkef.com/sign</a> בדפדפן</strong> ובחרו או גררו אליו את הקובץ.'
+          - '<strong>פתחו את <a href="/he/sign/">pdkef.com/sign</a> בדפדפן</strong> ובחרו או גררו אליו את הקובץ.'
           - '<strong>מלאו את הטופס והוסיפו חתימה.</strong> אפשר לצייר, להקליד או להעלות תמונת חתימה; הגדילו את הדף לפני הצבת פריטים קטנים.'
           - '<strong>הורידו את העותק המוגמר.</strong> בדקו אותו לפני המשלוח ושמרו את המקור ללא שינוי.'
+      - kind: 'image'
+        src: '/images/sign-guide/picker.jpg'
+        alt: 'עורך PDkef האמיתי עם בוחר הקבצים הריק והכיתוב Drop PDF here'
+        width: 720
+        height: 256
+        caption: >-
+          <strong>פותחים את pdkef.com/sign ובוחרים קובץ.</strong> אין חשבון ואין שלב העלאה; ה‑PDF
+          נטען ישירות לדפדפן.
+      - kind: 'image'
+        src: '/images/sign-guide/signature-methods.jpg'
+        alt: 'חלון יצירת החתימה האמיתי של PDkef עם הלשוניות ציור, הקלדה והעלאה'
+        width: 640
+        height: 623
+        caption: >-
+          <strong>מציירים, מקלידים או מעלים חתימה.</strong> חתימה מוקלדת משתמשת בגופן כתב יד;
+          חתימה מצוירת עוקבת אחרי משטח המגע.
+      - kind: 'image'
+        src: '/images/sign-guide/filled-and-signed.jpg'
+        alt: 'עורך PDkef האמיתי עם טופס תרגול מלא: טקסט, תיבה מסומנת וחתימה מוקלדת'
+        width: 720
+        height: 643
+        caption: >-
+          <strong>אותו מסמך, מלא וחתום.</strong> טקסט, תיבה מסומנת וחתימה מוקלדת, כולם הוצבו
+          לפני ההורדה.
   - sketch: 'grid'
     icon: 'PenLine'
     iconPos: 'br'
