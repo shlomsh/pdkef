@@ -74,9 +74,28 @@ positioning is the product.
 **Venue list and outreach log:** kept in the findings doc per this ticket's own acceptance line (a
 living, refresh-checked artifact rather than ticket narrative) -
 [docs/seo-competitive-findings.md §8](../../docs/seo-competitive-findings.md#8-reference-seo-03-venue-list-and-outreach-log).
-Six candidate venues listed, entry criteria checked, none yet approached - outreach (a submission, a
-post, a PR) is a separate action from this pass's repo-metadata work and needs its own go-ahead before
-posting anything under Shlomi's name. Referring-domain baseline captured the same day: zero external
-mentions found by web search (proxy method, not an authoritative link-graph count - see the doc's
-caveat), consistent with 4 GitHub stars / 0 forks on a ~10-week-old domain. Re-check at the next
-monthly refresh, and prefer a real backlink tool over the search proxy if one becomes accessible.
+Referring-domain baseline captured the same day: zero external mentions found by web search (proxy
+method, not an authoritative link-graph count - see the doc's caveat), consistent with 4 GitHub stars /
+0 forks on a ~10-week-old domain. Re-check at the next monthly refresh, and prefer a real backlink tool
+over the search proxy if one becomes accessible.
+
+**First outreach, 2026-09-11: submitted, one found ineligible.**
+
+- **awesome-selfhosted** - checked its actual `CONTRIBUTING.md` before drafting anything, not just its
+  README: it requires a tagged GitHub release more than 4 months old, and PDkef has none (only
+  `archive/*` branch tags). Would have hit their canned rejection reply. Not submitted; this is what
+  makes "release history" (this ticket's other open item) a real prerequisite for this specific venue,
+  not just a nice-to-have.
+- **pluja/awesome-privacy** (19.7k stars) - submitted:
+  [pluja/awesome-privacy#1103](https://github.com/pluja/awesome-privacy/pull/1103), added under
+  `Utilities` (their existing sections don't have a PDF-tools category; "Office" is full office suites,
+  "File Management and Sharing" is file transfer, neither fits). One entry-criteria wrinkle, decided by
+  Shlomi rather than assumed: their checklist requires no trackers beyond their approved Analytics list,
+  and pdkef.com's Vercel Web Analytics isn't on it. Submitted as-is without calling it out in the PR -
+  defensible in substance (anonymized, cookieless, same-origin) even if a reviewer reads the checklist
+  literally. Their stated review cadence is monthly batches; check back for the outcome rather than
+  re-pinging.
+- **Lissy93/awesome-privacy** (9.8k stars) - a second, comparable list, not yet evaluated. Check its own
+  contributing rules before submitting; don't assume they match pluja's.
+- AlternativeTo.net, Product Hunt, Reddit (r/privacy, r/opensource, r/selfhosted), Show HN, Privacy
+  Guides community - still not approached.
