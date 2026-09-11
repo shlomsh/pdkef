@@ -9,6 +9,7 @@ import type {
 } from '../editor/model/editorModel.ts';
 import type { SavedSignature } from '../editor/model/savedSignature.ts';
 import BasePdfTool from './BasePdfTool.tsx';
+import type { ShellMessages } from '../i18n/toolMessages';
 import { SignToolProvider, useSignTool } from './SignTool/SignToolContext.tsx';
 import { SignDefaultsContext } from './SignTool/SignDefaultsContext.tsx';
 import { SavedSignaturesContext } from './SignTool/SavedSignaturesContext.tsx';
@@ -85,15 +86,18 @@ function isTextDirection(value: string): value is TextDirection {
 // page on the device the user is holding, so this must not fire mid-edit.
 const SPECULATIVE_EXPORT_DEBOUNCE_MS = 1500;
 
-export default function PdfSignTool() {
+/* The editor itself stays English (LOC-02's pilot decision); the dropzone,
+   file row and confirmations around it are the shared shell and follow the
+   page's language like every other tool. */
+export default function PdfSignTool({ shellMessages }: { shellMessages?: Partial<ShellMessages> } = {}) {
   return (
     <SignToolProvider>
-      <PdfSignToolInner />
+      <PdfSignToolInner shellMessages={shellMessages} />
     </SignToolProvider>
   );
 }
 
-function PdfSignToolInner() {
+function PdfSignToolInner({ shellMessages }: { shellMessages?: Partial<ShellMessages> }) {
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
   // The loaded PDF's bytes as state as well as a ref: the ref is what the
@@ -927,6 +931,7 @@ function PdfSignToolInner() {
       hasWork={elements.length > 0}
       workNoun="your annotations"
       ownsShell
+      shellMessages={shellMessages}
       checkingDraft={isRestoring}
     >
       {hasFiles && status !== 'loading' && (

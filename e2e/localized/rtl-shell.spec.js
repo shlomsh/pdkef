@@ -39,11 +39,14 @@ test('the app bar, hero and file list mirror under dir="rtl"', async ({ page }) 
   const page_width = await page.evaluate(() => document.documentElement.clientWidth);
   expect(h1Box.x + h1Box.width, 'h1 should hug the right side of the page in RTL').toBeGreaterThan(page_width / 2);
 
-  // Footer switcher lists both editions with the current one marked.
-  const switcher = page.locator('footer nav.documentation-languages');
+  // Footer switcher: a <details> menu showing the current edition, listing
+  // the other published one as a real anchor once opened.
+  const switcher = page.locator('footer details[data-lang-menu]');
   await expect(switcher).toBeVisible();
-  await expect(switcher.locator('[aria-current="page"]')).toHaveText('עברית');
-  await expect(switcher.locator('a[href="/merge/"]')).toHaveText('English');
+  await expect(switcher.locator('summary')).toContainText('עברית');
+  await switcher.locator('summary').click();
+  await expect(switcher.locator('[aria-current="page"]')).toContainText('עברית');
+  await expect(switcher.locator('a[href="/merge/"]')).toContainText('English');
 });
 
 test('a loaded file lists its row mirrored: handle at the inline start, remove at the inline end', async ({ page }) => {

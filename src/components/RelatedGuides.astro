@@ -26,16 +26,22 @@
 // same rule wraps sign's six cards into balanced rows.
 import { contentPagesForTool } from '../data/contentPages.js';
 import type { RelatedGuidesMessages } from '../i18n/documentationMessages';
+import { getGuideCardCopy } from '../i18n/cardMessages';
+import { documentationPath } from '../i18n/documentationLocales';
 
 interface Props {
   currentSlug: string;
   heading?: string;
   locale?: string;
-  labels?: RelatedGuidesMessages;
+  labels?: RelatedGuidesMessages & { inEnglish?: string };
   resolveLink?: (pageId: string, locale: string) => { href: string; fallback?: boolean };
+  /** Site paths of every page published in `locale`; a card links to the
+   * localized guide when there is one, else to English with an EN mark. */
+  editionPaths?: readonly string[];
 }
 
-const { currentSlug, heading, locale = 'en', labels = {} as RelatedGuidesMessages, resolveLink } = Astro.props as Props;
+const { currentSlug, heading, locale = 'en', labels = {} as Props['labels'], resolveLink, editionPaths = [] } = Astro.props as Props;
+const published = new Set(editionPaths);
 const resolvedHeading = heading ?? labels?.relatedHeading ?? 'Documentation';
 const related = contentPagesForTool(currentSlug);
 ---
@@ -49,15 +55,21 @@ const related = contentPagesForTool(currentSlug);
     <ul class="related-guides-grid">
       {related.map((page) => {
         const pageId = page.href.replace(/^\//, '').replace(/\/$/, '');
-        const link = resolveLink?.(pageId, locale);
+        const localizedHref = locale === 'en' ? page.href : documentationPath(pageId, locale as any);
+        const link = resolveLink?.(pageId, locale) ?? { href: published.has(localizedHref) ? localizedHref : page.href };
+        const copy = getGuideCardCopy(locale, pageId);
+        const english = locale !== 'en' && link.href === page.href;
         return <li>
-          <a href={link?.href ?? page.href} class="related-guides-card">
+          <a href={link.href} hreflang={english ? 'en' : undefined} class="related-guides-card">
             <span class="related-guides-icon">
               <page.icon strokeWidth={1.5} />
             </span>
             <span class="related-guides-text">
-              <span class="related-guides-title">{page.label}</span>
-              <span class="related-guides-blurb">{page.blurb}</span>
+              <span class="related-guides-title">
+                {copy?.title ?? page.label}
+                {english && labels?.inEnglish && <span class="related-guides-en" lang="en" title={labels.inEnglish}>EN</span>}
+              </span>
+              <span class="related-guides-blurb">{copy?.description ?? page.blurb}</span>
             </span>
           </a>
         </li>;
@@ -112,6 +124,8 @@ const related = contentPagesForTool(currentSlug);
      against the first columns instead of centring itself - the exact
      asymmetry a flex row's own justify-content avoids, because flex centres
      each wrapped line independently. */
+  .related-guides-en { display: inline-block; margin-inline-start: .5rem; vertical-align: middle; font-size: .7rem; font-weight: 600; color: var(--color-muted); }
+
   .related-guides-grid {
     display: flex;
     flex-wrap: wrap;

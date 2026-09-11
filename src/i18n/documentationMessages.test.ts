@@ -21,7 +21,7 @@ describe('documentation shell messages', () => {
     expect(getDocumentationLocale('he')?.dir).toBe('rtl');
     expect(messages).toMatchObject({
       language: 'שפה',
-      onDevice: 'במכשיר שלך',
+      onDevice: 'עובד מקומית',
       openSignTool: expect.stringContaining('באנגלית'),
     });
   });

@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import type { Ref } from 'preact';
 import styles from './Dropzone.module.css';
+import { englishShellMessages, type ShellMessages } from '../i18n/toolMessages';
 
 interface DropzoneEmptyStateProps {
   multiple?: boolean;
@@ -9,6 +10,7 @@ interface DropzoneEmptyStateProps {
   inputRef?: Ref<HTMLInputElement>;
   onFiles: (files: File[] | FileList) => void;
   compact?: boolean;
+  messages?: ShellMessages;
 }
 
 /** Empty-state file picker shared by the PDF tool pages. */
@@ -19,6 +21,7 @@ export default function DropzoneEmptyState({
   inputRef,
   onFiles,
   compact = false,
+  messages = englishShellMessages,
 }: DropzoneEmptyStateProps) {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -69,11 +72,11 @@ export default function DropzoneEmptyState({
       </svg>
 
       <p class={styles['dropzone-text']}>
-        <strong>{message || `Drop PDF${multiple ? 's' : ''} here`}</strong>
+        <strong>{message || (multiple ? messages.dropHereMany : messages.dropHereOne)}</strong>
       </p>
 
       <label class={styles['file-picker-button']}>
-        Choose file{multiple ? 's' : ''}
+        {multiple ? messages.chooseFilesMany : messages.chooseFileOne}
         <input
           ref={inputRef}
           type="file"
@@ -100,7 +103,7 @@ export default function DropzoneEmptyState({
             stroke-linejoin="round"
           />
         </svg>
-        Private. Files never leave your device.
+        {messages.privacyLine}
       </p>
     </div>
   );
