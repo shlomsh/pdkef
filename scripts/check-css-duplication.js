@@ -220,19 +220,37 @@ const distDir = path.join(__dirname, '..', 'dist');
 // of that shared bundle (~24,461 bytes) is now shipped an 11th time. Limit
 // set just above the measured 9.17x.
 //
-// Re-based again (9.20x -> 9.35x) on 2026-09-12 (LOC-09) when /he/ published as a
-// home edition (37 -> 38 pages): homePage.css now sources DocumentationLanguageSelector.astro
-// (the footer switcher, previously invisible on home because it was always
-// called with zero variants) so both `/` and `/he/` can show it now that a
-// second published home edition exists to switch to - the same component
-// toolPage.css and contentPage.css already source independently, so this is
-// a third per-family compile of ~14 small utility classes already counted
-// twice, not a new rule. Measured before: 8.82x (worst-page dead bytes 9,765,
-// single-page utilities 114); after: 9.25x, 9,765, 114 - the two page-count-
-// invariant ratchets did not move, confirming this is duplication-by-page-
-// count exactly like the re-base above, not a new leak. Limit set just above
-// the measured value, same margin as every prior re-base here.
-const MAX_DUPLICATION_FACTOR = 9.35;
+// Re-based (9.00x -> 9.45x) on 2026-09-12 (LOC-09) when /he/ published as a
+// home edition (36 -> 37 pages). homePage.css now also sources
+// DocumentationLanguageSelector.astro (the footer switcher, previously
+// invisible on home because it was always called with zero variants) so both
+// `/` and `/he/` can show it now that a second published home edition exists
+// to switch to - the same component toolPage.css and contentPage.css already
+// source independently, so this is a third per-family compile of ~14 small
+// utility classes already counted twice, not a new rule.
+//
+// Measured on main (36 pages): 8.81x, worst-page dead bytes 9,709,
+// single-page utilities 114. On this branch (37 pages): 9.25x, 9,765, 32.
+// Both companion ratchets moved, and each for a reason worth naming rather
+// than rounding away:
+//   - Dead bytes +56 on /split/, an English tool page this ticket never
+//     touches. That is AppBar.astro's new `.rtl-flip` rule, which mirrors the
+//     back arrow under dir="rtl" and therefore matches nothing on an LTR
+//     page. Every English page pays those bytes so the Hebrew ones are not
+//     wrong; 56 against a 10,000 limit is the right side of that trade.
+//   - Single-page utilities 114 -> 32, which looks like a win and is not one
+//     to bank: `/he/` renders the home family's utilities a second time, so
+//     what used to be unique to `/` is now on two pages. It is the same
+//     page-count artifact as the factor itself, read from the other end.
+//
+// Headroom, deliberately: a page costs ~+0.14x (see the note above), so a
+// limit at 9.30x - where this first landed - left less than one page of room
+// and would have failed the build on the next locale page for no reason but
+// arithmetic. 9.45x is measured + 0.20x, the widest margin any re-base here
+// has used, and the one the ARCH-13 note argues for. It is not licence to
+// grow: the two ratchets above are the ones that catch a real leak, and they
+// still only go down.
+const MAX_DUPLICATION_FACTOR = 9.45;
 // Lowered (29,000 -> 27,500) on 2026-08-29 to bank most of two fixes that took
 // /licenses/ from 29,021 (red) to 26,635, neither of which was a style change:
 //   - 905 distinct bytes of utilities were being compiled out of the impeccable
