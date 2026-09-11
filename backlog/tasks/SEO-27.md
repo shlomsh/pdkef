@@ -1,12 +1,12 @@
 ---
 id: "SEO-27"
 title: "Decide the localization question: Hebrew is nearly free, Hindi is not the win it looks like"
-status: "open"
+status: "retired"
 priority: "P3"
 epic: "search-acquisition"
 phase: "later"
 depends_on: ["SEO-01"]
-legacy_state: "Open"
+legacy_state: "Retired 2026-09-11 - superseded by LOC-01 and LOC-05"
 ---
 
 # SEO-27 · Decide the localization question: Hebrew is nearly free, Hindi is not the win it looks like
@@ -70,3 +70,11 @@ guides here do not cover, now live in the `localized-search` epic: [LOC-01](LOC-
 [LOC-02](LOC-02.md) builds the route, [LOC-03](LOC-03.md) is the Hebrew pilot. This ticket keeps its
 scope: the decision on, and review of, the eight Hebrew guide drafts, now sequenced by
 [LOC-05](LOC-05.md) to publish alongside the Hebrew tool pages rather than before them.
+
+## Retired 2026-09-11: superseded
+
+Both halves of this ticket now live elsewhere. The Hindi decision was settled by measurement in
+[LOC-01](LOC-01.md) (flat at zero on every instrument, Hinglish included; the trigger to reopen is a
+non-English query appearing in Search Console, which [LOC-06](LOC-06.md) makes visible). The review
+and publication of the eight Hebrew guide drafts is [LOC-05](LOC-05.md), sequenced after the Hebrew
+tool pages. Nothing here is still owned by this ticket.

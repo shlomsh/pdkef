@@ -1,7 +1,7 @@
 ---
 id: "SEO-09"
 title: "Split ranks at 85 for extract queries because it never uses the word"
-status: "in_progress"
+status: "blocked"
 priority: "P2"
 epic: "search-acquisition"
 phase: "near-term"
@@ -65,3 +65,10 @@ say which query goes where and make the two pages link to each other on exactly 
   retained in title and meta description.
 - Position for the extract cluster recorded before and after in the SEO-02 table. Expect movement from
   85 to be slow and partly authority-bound; a small improvement here is a real one.
+
+## Status 2026-09-11: blocked on the 2026-10-08 refresh
+
+Shipped and indexing requested; nothing left to build. The remaining work is reading the verdict from
+the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
+check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
+today; close it, or reopen it with a finding, from that refresh.

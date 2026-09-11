@@ -1,12 +1,12 @@
 ---
 id: "LOC-02"
 title: "Localized tool pages: the route, the reviewed copy source, and the island message catalogue"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "localized-search"
 phase: "near-term"
 depends_on: []
-legacy_state: "Open"
+legacy_state: "Done 2026-09-11"
 ---
 
 # LOC-02 · Localized tool pages: the route, the reviewed copy source, and the island message catalogue
@@ -109,3 +109,16 @@ site's caching model, so the pilot does not relearn it.
 - Page weight of a localized tool page within the same budget as its English page; the Hebrew fonts
   are system fonts for page text, not the editor's bundled TTFs.
 - No English copy changed as a side effect. This ticket adds a route; it does not edit `tools.js`.
+
+## Done 2026-09-11
+
+Everything in the design above shipped across the LOC-02/LOC-03 commits: `src/pages/[locale]/[tool].astro`
+from the `localizedTools` collection with the same review gate as guides; localized island messages
+(`src/i18n/toolMessages.ts`, and the shared shell catalogue in `82a88c2`); RTL shell audit; the footer
+switcher; sitemap `xhtml:link` alternates and reciprocal `hreflang` + `x-default`; the five
+`verify-seo.js` guards including language purity (with the `excludeIsland` case for editors that stay
+English, and sabotage pairs in `src/lib/localizedSeoChecks.test.js`); `/he/` excluded from the precache
+manifest (`scripts/precacheFilter.mjs`); drafts keyed by tool id. Verified by the LOC-03 progress note's
+full test run and the `e2e/localized/` RTL/CSP guardrail. Known gap, tracked in
+[docs/home-page-localization-plan.md](../../docs/home-page-localization-plan.md) and [LOC-09](LOC-09.md):
+the Markdown twins (`[slug].md.ts`) are English-only.

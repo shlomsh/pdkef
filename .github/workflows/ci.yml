@@ -41,6 +41,13 @@ jobs:
     - name: Install poppler-utils (pdftotext, for the W6 extraction guard)
       run: sudo apt-get update && sudo apt-get install -y poppler-utils
 
+    # backlog/tasks/*.md is the canonical board; BACKLOG.md and TODO.md are
+    # generated from it. Fails on malformed task metadata, a dependency that
+    # does not resolve, or a stale generated view (ARCH-12). Source-only, so it
+    # runs before anything that costs a build.
+    - name: Validate backlog and generated indexes
+      run: npm run check:backlog
+
     - name: Run tests
       run: npm run test
 

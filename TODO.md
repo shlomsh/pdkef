@@ -1,4 +1,4 @@
-<!-- GENERATED COMPATIBILITY INDEX: edit backlog/tasks/*.md, then run node scripts/generate-backlog.mjs -->
+<!-- GENERATED COMPATIBILITY INDEX: edit backlog/tasks/*.md, then run npm run generate:backlog -->
 
 # TODO
 
@@ -31,7 +31,6 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SIGN-17 | P1 | [SIGN-17](backlog/tasks/SIGN-17.md) · Fix CI-red tests from in-flight SIGN-04/SIGN-09 direction work |
 | SIGN-18 | P1 | [SIGN-18](backlog/tasks/SIGN-18.md) · The Sign toolbar's per-row cap stopped matching when the Feedback control made it ten |
 | SIGN-19 | P1 | [SIGN-19](backlog/tasks/SIGN-19.md) · Four shaping/render guards passed on macOS and failed on Linux CI |
-| SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |
 | SIGN-21 | P1 | [SIGN-21](backlog/tasks/SIGN-21.md) · Make the browser guard helpers reachable from the preview server |
 | SIGN-22 | P1 | [SIGN-22](backlog/tasks/SIGN-22.md) · Restore the CSS release gate after adding language-request actions |
 | SIGN-23 | P1 | [SIGN-23](backlog/tasks/SIGN-23.md) · Make non-default language fonts explicitly offline-ready |
@@ -72,6 +71,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | FONT-06 | P3 | [FONT-06](backlog/tasks/FONT-06.md) · Urdu in Nastaliq |
 | FONT-07 | P3 | [FONT-07](backlog/tasks/FONT-07.md) · Emoji |
 | FONT-08 | P3 | [FONT-08](backlog/tasks/FONT-08.md) · Second-font / missing-style research across every single-font script |
+| SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |
 
 
 ## The landing story and demo
@@ -159,6 +159,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | LOC-06 | P3 | [LOC-06](backlog/tasks/LOC-06.md) · Per-locale measurement: extend the refresh procedure so localized pages are read separately |
 | LOC-07 | P3 | [LOC-07](backlog/tasks/LOC-07.md) · Is a second language worth building at all? The ROI judgment on LOC-01's evidence, and the languages it never measured |
 | LOC-08 | P3 | [LOC-08](backlog/tasks/LOC-08.md) · Tamil and Telugu demand check: reopening LOC-07 Part 2 for India's other major languages |
+| LOC-09 | P3 | [LOC-09](backlog/tasks/LOC-09.md) · Localize the home page, so /he/ is a real edition and not a 404 beside three Hebrew tool pages |
 
 
 ## Migrated context and history

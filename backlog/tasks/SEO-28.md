@@ -1,7 +1,7 @@
 ---
 id: "SEO-28"
 title: "Redact and Split earn the most and are recrawled the least, and nothing we control explains it"
-status: "open"
+status: "blocked"
 priority: "P1"
 epic: "search-acquisition"
 phase: "near-term"
@@ -95,3 +95,9 @@ this ticket is measurement and a decision point, not a code fix, because no code
     investigation to `robots.txt`, canonical tag correctness, or a crawl-budget ceiling from SEO-03's
     external-signals scope rather than continuing to look for an on-page cause this round already ruled
     out.
+
+## Status 2026-09-11: blocked on the 2026-10-08 crawl-date capture
+
+Diagnosis complete, nothing in `src/` to change. The three outcomes above are decided by the next
+`docs/seo-last-crawled.json` capture on **2026-10-08**, read against the `/merge/` and `/unlock/`
+control. Marked `blocked` until then.

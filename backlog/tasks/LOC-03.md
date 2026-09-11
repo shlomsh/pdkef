@@ -124,3 +124,16 @@ sign). No English copy or `tools.js` touched.
 maqaf/geresh typography, and the `חתימה דיגיטלית` trap; flips `status` to `'published'` with
 `reviewer`/`reviewedAt`/`reviewNotes`; deploys; requests indexing for the three URLs and records the
 date here.
+
+## Status 2026-09-11: published, indexing not yet requested
+
+Shlomi reviewed all three YAML files and both message catalogues the same day (`reviewer`,
+`reviewedAt` 2026-09-11, `status: 'published'`, commit `71ca953`); the shell, cross-link cards and
+switcher were translated on review (`82a88c2`, `5a1af03`). `/he/compress/`, `/he/merge/` and
+`/he/sign/` are live, indexable (no `noindex`) and in the sitemap - confirmed against the deployed site.
+**The eight Hebrew guides are still `draft`** (noindex, not built); that is [LOC-05](LOC-05.md).
+
+**One step left before this is done: request indexing for the three URLs in Search Console and record
+the date here.** Per the findings doc, a copy ticket is not done until it is recrawled, and the
+eight-week success read (and [LOC-07](LOC-07.md)'s calibration) counts from that request, not from
+the deploy.

@@ -1,7 +1,7 @@
 ---
 id: "SEO-05"
 title: "The 100KB cluster ranks and does not convert, and the page implies something untrue"
-status: "open"
+status: "blocked"
 priority: "P1"
 epic: "search-acquisition"
 phase: "quick-win"
@@ -131,3 +131,10 @@ new data point - a competitor showing review-count social proof that we delibera
 "do not emit `AggregateRating`" - see section 2 of the findings doc). Real Google screenshots for the
 exact three target queries are still the open item; ask Shlomi for those when convenient rather than
 treating this broader capture as satisfying it.
+
+## Status 2026-09-11: blocked on the 2026-10-08 refresh
+
+Shipped and indexing requested; nothing left to build. The remaining work is reading the verdict from
+the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
+check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
+today; close it, or reopen it with a finding, from that refresh.

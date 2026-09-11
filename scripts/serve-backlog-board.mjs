@@ -1,19 +1,13 @@
 #!/usr/bin/env node
 import { createServer } from 'node:http';
 import { readTasks } from './backlog-data.mjs';
+import { epics, isEpicActive } from './backlog-epics.mjs';
 
 const port = Number(process.env.BACKLOG_PORT || 4321);
 const host = '127.0.0.1';
-const lanes = {
-  'sign-tool-architecture': 'Sign tool architecture',
-  'editor-architecture': 'Editor architecture',
-  'fonts-and-script-support': 'Fonts and script support',
-  'landing-story-demo': 'Landing story and demo',
-  'mobile-round-trip': 'Mobile round trip',
-  'site-quality': 'Site quality',
-  'search-acquisition': 'Search acquisition',
-  'localized-search': 'Localized search',
-};
+// Lanes come from the shared epic registry (scripts/backlog-epics.mjs), so an
+// epic registered for the generated views is a lane here by construction.
+const lanes = Object.fromEntries(epics.map((epic) => [epic.key, epic.label]));
 const statusLabels = { open: 'Open', in_progress: 'In progress', blocked: 'Blocked', done: 'Done', retired: 'Retired' };
 
 function clientTask(task) {
@@ -57,6 +51,7 @@ function page() {
     .ticket-header { display: flex; justify-content: space-between; gap: 8px; align-items: center; color: var(--muted); font-size: .82rem; }
     .ticket-title { display: block; margin: 9px 0 7px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
     .empty { padding: 10px 0; } .error { color: var(--p1); margin-top: 10px; }
+    .closed-note { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--muted); font-size: .88rem; margin: 0 0 18px; }
     @media (max-width: 1120px) { .columns { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 560px) { main { padding: 18px 16px; } .columns { grid-template-columns: 1fr; } }
   </style>
@@ -73,6 +68,7 @@ function page() {
     <div class="legend" aria-label="Priority colors"><span><i class="dot P1" aria-hidden="true"></i> P1 requirement, fidelity, or release risk</span><span><i class="dot P2" aria-hidden="true"></i> P2 reliability and maintainability</span><span><i class="dot P3" aria-hidden="true"></i> P3 optional expansion</span></div>
     <section class="selected" aria-live="polite"><p class="selected-label">Selected task</p><h2 id="selected-title">Loading…</h2><div class="selected-meta" id="selected-meta"></div><p class="selected-detail" id="selected-detail"></p></section>
     <p class="error" id="error" role="alert" hidden></p>
+    <p class="closed-note" id="closed-note" hidden><span id="closed-summary"></span> <button class="filter" type="button" id="toggle-closed" aria-pressed="false">Show closed epics</button></p>
     <div class="lanes" id="lanes"></div>
   </main>
   <script>
@@ -94,14 +90,22 @@ function page() {
     const liveStatus = document.getElementById('live-status');
     const error = document.getElementById('error');
     let activePriority = 'all';
+    let showClosed = false;
     let tasks = [];
-    let selectedId = 'SIGN-05';
+    let closedLanes = [];
+    let selectedId = null;
+    const closedNote = document.getElementById('closed-note');
+    const closedSummary = document.getElementById('closed-summary');
+    const toggleClosed = document.getElementById('toggle-closed');
     function esc(value) { return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
     function selectTask(task) { if (!task) return; selectedId = task.id; selectedTitle.textContent = task.id + ' · ' + task.title; selectedMeta.innerHTML = '<span><i class="dot ' + task.priority + '" aria-hidden="true"></i> ' + esc(task.priority) + '</span><span>' + esc(task.statusLabel) + '</span><span>' + esc(task.lane) + '</span>'; selectedDetail.textContent = task.detail; }
     function card(task) { return '<button class="ticket" type="button" data-ticket="' + esc(task.id) + '" aria-label="Show ' + esc(task.id + ': ' + task.title) + '"><span class="ticket-header"><span>' + esc(task.id) + '</span><i class="dot ' + esc(task.priority) + '" aria-label="' + esc(task.priority) + '"></i></span><span class="ticket-title">' + esc(task.title) + '</span><span class="ticket-state">' + esc(task.statusLabel) + '</span></button>'; }
-    function render() { const visible = tasks.filter((task) => activePriority === 'all' || task.priority === activePriority); laneRoot.innerHTML = lanes.map((lane) => '<section><h2>' + lane + '</h2><div class="columns">' + columns.map(([status, label]) => { const items = visible.filter((task) => task.lane === lane && task.status === status); return '<section aria-label="' + lane + ', ' + label + '"><div class="column-heading"><h3>' + label + '</h3><span class="count">' + items.length + '</span></div><div class="stack">' + (items.map(card).join('') || '<p class="empty">No tasks</p>') + '</div></section>'; }).join('') + '</div></section>').join(''); selectTask(tasks.find((task) => task.id === selectedId) || tasks[0]); }
-    async function refresh() { try { const response = await fetch('/api/tasks', { cache: 'no-store' }); if (!response.ok) throw new Error('The task files could not be read.'); tasks = await response.json(); error.hidden = true; liveStatus.textContent = 'Updated ' + new Date().toLocaleTimeString(); render(); } catch (caught) { error.hidden = false; error.textContent = caught.message; liveStatus.textContent = 'Update failed'; } }
-    document.addEventListener('click', (event) => { const filter = event.target.closest('[data-priority]'); if (filter) { activePriority = filter.dataset.priority; document.querySelectorAll('[data-priority]').forEach((button) => button.setAttribute('aria-pressed', String(button === filter))); render(); return; } const ticket = event.target.closest('[data-ticket]'); if (ticket) selectTask(tasks.find((item) => item.id === ticket.dataset.ticket)); });
+    // A closed epic (every task done or retired) is history, not a lane of
+    // empty columns; it is hidden until asked for, and named in the note so
+    // nobody wonders where it went.
+    function render() { const visible = tasks.filter((task) => activePriority === 'all' || task.priority === activePriority); const shown = lanes.filter((lane) => showClosed || !closedLanes.includes(lane)); closedNote.hidden = closedLanes.length === 0; closedSummary.textContent = closedLanes.length + ' closed epic' + (closedLanes.length === 1 ? '' : 's') + ': ' + closedLanes.join(', ') + '.'; toggleClosed.textContent = showClosed ? 'Hide closed epics' : 'Show closed epics'; toggleClosed.setAttribute('aria-pressed', String(showClosed)); laneRoot.innerHTML = shown.map((lane) => '<section><h2>' + lane + '</h2><div class="columns">' + columns.map(([status, label]) => { const items = visible.filter((task) => task.lane === lane && task.status === status); return '<section aria-label="' + lane + ', ' + label + '"><div class="column-heading"><h3>' + label + '</h3><span class="count">' + items.length + '</span></div><div class="stack">' + (items.map(card).join('') || '<p class="empty">No tasks</p>') + '</div></section>'; }).join('') + '</div></section>').join(''); selectTask(tasks.find((task) => task.id === selectedId) || tasks.find((task) => task.status === 'open') || tasks[0]); }
+    async function refresh() { try { const response = await fetch('/api/tasks', { cache: 'no-store' }); if (!response.ok) throw new Error('The task files could not be read.'); const payload = await response.json(); tasks = payload.tasks; closedLanes = payload.closedLanes; error.hidden = true; liveStatus.textContent = 'Updated ' + new Date().toLocaleTimeString(); render(); } catch (caught) { error.hidden = false; error.textContent = caught.message; liveStatus.textContent = 'Update failed'; } }
+    document.addEventListener('click', (event) => { if (event.target.closest('#toggle-closed')) { showClosed = !showClosed; render(); return; } const filter = event.target.closest('[data-priority]'); if (filter) { activePriority = filter.dataset.priority; document.querySelectorAll('[data-priority]').forEach((button) => button.setAttribute('aria-pressed', String(button === filter))); render(); return; } const ticket = event.target.closest('[data-ticket]'); if (ticket) selectTask(tasks.find((item) => item.id === ticket.dataset.ticket)); });
     refresh(); setInterval(refresh, 2000);
   </script>
 </body>
@@ -116,9 +120,10 @@ const server = createServer(async (request, response) => {
   }
   if (request.url === '/api/tasks') {
     try {
-      const tasks = (await readTasks()).map(clientTask);
+      const all = await readTasks();
+      const closedLanes = epics.filter((epic) => !isEpicActive(epic.key, all)).map((epic) => epic.label);
       response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-      response.end(JSON.stringify(tasks));
+      response.end(JSON.stringify({ tasks: all.map(clientTask), closedLanes }));
     } catch (error) {
       response.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
       response.end(JSON.stringify({ error: error.message }));

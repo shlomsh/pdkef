@@ -4,7 +4,7 @@ title: "Recalibrate the export-render guard's cross-platform tolerance"
 status: "done"
 priority: "P1"
 epic: "fonts-and-script-support"
-phase: "release-blocker-rode-sign-19"
+phase: "release-blocker"
 depends_on: []
 legacy_state: "Done 2026-08-29"
 ---
