@@ -1,12 +1,12 @@
 ---
 id: "LOC-10"
 title: "Keep or remove page localization: decide after LOC-11 has measured the top languages"
-status: "blocked"
+status: "done"
 priority: "P1"
 epic: "localized-search"
 phase: "near-term"
 depends_on: ["LOC-11"]
-legacy_state: "Open"
+legacy_state: "Done 2026-09-12"
 ---
 
 # LOC-10 · Keep or remove page localization: decide after LOC-11 has measured the top languages
@@ -21,12 +21,23 @@ removed; the agent had not committed. This ticket now holds the decision, and it
 (Vietnamese, Turkish, Spanish, Italian, Arabic, Filipino, Bengali, Urdu). The cost side below is
 measured and does not change; the demand side is what LOC-11 adds.
 
+## Decision: keep (Shlomi, 2026-09-12)
+
+"Keep it." The mechanism, the three Hebrew tool pages and the seven Hebrew guides all stay as they
+are. The maintenance cost below is accepted knowingly, on the strength of LOC-11's finding that
+in-language search is the norm in most of the site's top countries, not the exception. What follows
+from it: no generic tool page gets localized into a new language (that field is lost in every language
+measured); the next localization work is [LOC-13](LOC-13.md), one Spanish target-size compress page;
+Hebrew reads at LOC-03's date and LOC-09 waits for it; [LOC-12](LOC-12.md) re-checks the countries on
+2026-11-12. The removal plan below stays as the record of what a removal would touch, should LOC-12
+ever call for it.
+
 **LOC-11 reported the same day, and the demand premise below is refuted.** Vietnam, Turkey, Mexico
 and Italy search natively at 6x to 20x the English term; India, Israel, Malaysia and the UAE are the
 exceptions the "tens of impressions" ceiling was generalised from. The field premise holds (every
 native SERP is the majors, natively, with the on-device claim already taken by a local site in three
 of them). Recommendation in LOC-11: **keep the mechanism, do not localize generic tool pages, pilot
-one localized target-size compress page in one strong market.** Awaiting Shlomi's confirmation.
+one localized target-size compress page in one strong market.** Confirmed above.
 
 ## The case for removal, as made on 2026-09-12
 
