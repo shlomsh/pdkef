@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { JSDOM } from 'jsdom';
+import { localizedPageProblems, sitemapLocations } from './localizedSeoChecks.mjs';
 
 const distDir = path.join(process.cwd(), 'dist');
 
@@ -22,6 +23,12 @@ const htmlFiles = getHtmlFiles(distDir);
 let hasError = false;
 const pagesByCanonical = new Map();
 const alternateLinks = [];
+// LOC-02: the localized-page guards (language purity, sitemap membership,
+// offline pack) need every page's canonical and noindex state first, so they
+// run in a second pass below.
+const localizedPages = [];
+const sitemapPath = path.join(distDir, 'sitemap.xml');
+const sitemapLocs = fs.existsSync(sitemapPath) ? sitemapLocations(fs.readFileSync(sitemapPath, 'utf8')) : new Set();
 
 for (const file of htmlFiles) {
   const relPath = path.relative(process.cwd(), file);
@@ -54,9 +61,11 @@ for (const file of htmlFiles) {
   if (isLocalizedDocumentation) {
     if (!html.getAttribute('lang')) error('Localized documentation is missing html lang');
     if (!['ltr', 'rtl'].includes(html.getAttribute('dir') || 'ltr')) error('html dir must be ltr or rtl');
+    localizedPages.push({ relPath, document, error });
   }
 
   const isNoindex = Boolean(document.querySelector('meta[name="robots"][content*="noindex"]'));
+  if (canonical) pagesByCanonical.get(canonical).isNoindex = isNoindex;
   const alternates = Array.from(document.querySelectorAll('link[rel="alternate"][hreflang]'));
   if (isNoindex && alternates.length > 0) {
     error('Noindex preview page must not advertise hreflang alternates');
@@ -127,6 +136,22 @@ for (const file of htmlFiles) {
     if (pageQuestionsNodes.length > 0) {
       error(`Page has FAQ elements but no FAQPage JSON-LD`);
     }
+  }
+}
+
+// LOC-02 guards 3-5 over every localized page, now that every page's
+// canonical and noindex state is known. See scripts/localizedSeoChecks.mjs.
+for (const page of localizedPages) {
+  const canonical = page.document.querySelector('link[rel="canonical"]')?.getAttribute('href') ?? '';
+  const siteBase = canonical ? new URL(canonical).origin : '';
+  for (const problem of localizedPageProblems({
+    relPath: page.relPath,
+    document: page.document,
+    sitemapLocs,
+    builtCanonicals: pagesByCanonical,
+    siteBase,
+  })) {
+    page.error(problem);
   }
 }
 
