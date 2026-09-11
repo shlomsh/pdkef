@@ -76,5 +76,7 @@ living, refresh-checked artifact rather than ticket narrative) -
 [docs/seo-competitive-findings.md §8](../../docs/seo-competitive-findings.md#8-reference-seo-03-venue-list-and-outreach-log).
 Six candidate venues listed, entry criteria checked, none yet approached - outreach (a submission, a
 post, a PR) is a separate action from this pass's repo-metadata work and needs its own go-ahead before
-posting anything under Shlomi's name. Referring-domain baseline also not yet captured; needs a tool
-picked and run at the next monthly refresh.
+posting anything under Shlomi's name. Referring-domain baseline captured the same day: zero external
+mentions found by web search (proxy method, not an authoritative link-graph count - see the doc's
+caveat), consistent with 4 GitHub stars / 0 forks on a ~10-week-old domain. Re-check at the next
+monthly refresh, and prefer a real backlink tool over the search proxy if one becomes accessible.
