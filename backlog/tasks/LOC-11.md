@@ -187,6 +187,25 @@ are full of real native pages.
 | `làm mờ pdf` (VN) | Lumin blog (native), PDFSimpli `/vi/`, **a Facebook post ("em muốn làm mờ chữ trong file pdf", >10 comments) and a Reddit r/pdf thread ranking**, AI Overview, iLovePDF (generic editor), Smallpdf `redact-pdf`, PDF24 `lam-toi-pdf` ("Bôi đen", 743 reviews), **DocHub and Adobe both Google-translated**. Related searches in Vietnamese: `Cách làm mờ chữ trong pdf`, `Chèn hình mờ vào PDF` (watermark), `Làm rõ file PDF bị mờ online` (sharpen a blurry PDF). | **The English "blur pdf" SERP, in a thinner field**: UGC ranking, translated backfill, and only redact tools answering a blur query. The shape this domain already wins. Caveat: `làm mờ` splits three ways (blur / watermark / unblur), so its Trends line overstates blur alone. |
 | `sfocare pdf` (IT) | Google rewrites to `oscurare pdf` (redact) and flags tool results "Missing: blur"; iLovePDF `censura-pdf`, PDF24 `oscurare-pdf`, Smallpdf `oscura-pdf`, Wondershare blur guide, Aranzulla, pdf2go, YouTube, Evernote (off-topic). | **No opening**: Italian blur demand is too small for Google to keep the word, and redact is served natively by the majors. |
 
+**GSC per country, 3 months (the field check), 2026-09-12:**
+
+| Country | Clicks / impressions | Avg position | Queries reaching the domain |
+| --- | --- | --- | --- |
+| Vietnam | 1 / 56 | 48.5 | `blur on pdf`, `blurred document`, `blur text in pdf online`, all English |
+| Turkey | 1 / 27 | 43.5 | `blur pdf`, `pdf deduction`, `pdf blur` |
+| Mexico | 1 / 22 | 39.0 | `pixelate pdf`, `blur pdf online`, `pef password` |
+| Philippines | 1 / 100 | 33.4 | `pdf blur tool`, `blur pdf online`, `how to blur text in pdf`; impressions rising through early September |
+| UAE | 2 / 24 | 13.1 | `blur the pdf online`, `blur pdf free`, `how to blur text in pdf free` |
+| Bangladesh | 0 / 32 | 31.7 | `pdf blur online`, `blur text in pdf`, `blur information in pdf` |
+| Spain | 0 / 11 | 33.8 | `pdf blur tool`, `how can i sign a document on my laptop`, and one Spanish leak: `y sin aplicación` |
+
+Seven clicks across seven countries in a quarter, every query the English blur family, positions 30
+to 50 except the UAE. **The field gate fails on the domain's own numbers:** there is no English
+foothold in any of these countries for a native page to build on. Two details to keep: blur is the one
+family that reaches all seven at once (which is why the Vietnamese blur SERP had the English blur
+SERP's shape), and Spain's `y sin aplicación` is the sign-without-an-app intent
+`/sign-pdf-no-signup/` already targets in English, the same kind of leak Indonesia showed in LOC-01.
+
 **Per-language verdict (criterion 1 / 2 / 3 against the decision rule):**
 
 | Language | 1. Trends share | 2. Weak incumbent to beat | 3. Reviewer | Verdict |
