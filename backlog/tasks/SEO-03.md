@@ -99,3 +99,28 @@ over the search proxy if one becomes accessible.
   contributing rules before submitting; don't assume they match pluja's.
 - AlternativeTo.net, Product Hunt, Reddit (r/privacy, r/opensource, r/selfhosted), Show HN, Privacy
   Guides community - still not approached.
+
+**Second pass, 2026-09-11: openalternative.co rejected, four more candidates researched and queued.**
+
+- **openalternative.co** - Shlomi filled out the submit form (project name, website, repo URL,
+  "alternative to" field) and it hard-rejected at submit time: *"This repository has fewer than 10
+  stars. Please come back once the project has gained more traction."* The requirement is stated right
+  on the form next to the Repository URL field, so this was findable before attempting, and next time
+  should be checked the same way awesome-selfhosted's `CONTRIBUTING.md` was - by reading the actual
+  submission surface, not assuming an "open directory" has no gate. Logged as the second confirmed
+  traction gate; re-attempt once the repo passes 10 stars (currently 4).
+- **abhi18av/awesome-pdf** (56 stars, active, last push 2026-08-14) and **OneOffTech/awesome-pdf** (30
+  stars, active, last push 2026-07-26) - both PDF-specific curated lists, the closest topical fit found
+  so far. abhi18av has a dedicated "Online PDF Tools" section already listing near-identical competitors
+  (PDFGem, abcdtools, Fluranto); standard PR, no CONTRIBUTING.md or star gate found. OneOffTech's
+  "Creation and production" category lists similar tools (BentoPDF, Stirling-PDF); submission is via
+  their "Add Entry" GitHub issue template, not a PR. Neither yet submitted.
+- **Astro Showcase** - genuinely on-topic (the site is actually built with Astro). Submission is posting
+  the URL as a comment in [withastro/roadmap#521](https://github.com/withastro/roadmap/discussions/521);
+  no stated requirements or gate found. Not yet posted.
+- **PWA directories** (pwa-directory.appspot.com "Gulliver", appsco.pe) - PDkef is a real installable
+  PWA, so this is a legitimate fit; neither directory's exact submission flow has been checked in detail
+  yet.
+- Checked and **rejected as candidates**: `feross/awesome-pwa` (dead since 2021, 4 stars, not worth
+  pursuing); `py-pdf/awesome-pdf` (161 stars but stale since 2024, and scoped specifically to Python
+  libraries - off-topic for an end-user web app).
