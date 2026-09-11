@@ -19,6 +19,9 @@ import {
   type DocumentationSourceHash,
 } from './documentationFreshness';
 import { getDocumentationVariants, isDocumentationPreview } from './documentation';
+// One-way: localizedHome.ts reads documentationLocales/documentationFreshness
+// and src/data/homeContent.js, never this module, so this import adds no cycle.
+import { getLocalizedHomeVariants } from './localizedHome';
 
 export type LocalizedToolStatus = 'draft' | 'published';
 
@@ -201,14 +204,24 @@ export async function getLocalizedToolContext(toolSlug: string, requestedLocale:
 export const LOCALIZED_TOOL_ISLANDS = new Set(['merge', 'compress']);
 
 /**
- * Every published page of one edition - tool pages and guides - as site
- * paths, for the offline locale pack a localized page asks sw.js to warm
- * (LOC-02). Published only, whatever the build mode: a draft has nothing to
- * warm, and the pack a page names is one of verify-seo's guards.
+ * Every published page of one edition - the locale's home page, its tool
+ * pages and its guides - as site paths, for the offline locale pack a
+ * localized page asks sw.js to warm (LOC-02). Published only, whatever the
+ * build mode: a draft has nothing to warm, and the pack a page names is one
+ * of verify-seo's guards.
+ *
+ * The home edition (LOC-09) has to be in here, and was missed when the
+ * collection landed. sw.js's navigation fallback is `/` - the *English*
+ * shell - so a locale root left out of its own pack is the one page in the
+ * edition an installed PWA answers in the wrong language offline.
  */
 export async function getPublishedEditionPaths(locale: DocumentationLocaleId): Promise<string[]> {
-  const [toolVariants, guideVariants] = await Promise.all([getLocalizedToolVariants(), getDocumentationVariants()]);
-  return [...toolVariants, ...guideVariants]
+  const [homeVariants, toolVariants, guideVariants] = await Promise.all([
+    getLocalizedHomeVariants(),
+    getLocalizedToolVariants(),
+    getDocumentationVariants(),
+  ]);
+  return [...homeVariants, ...toolVariants, ...guideVariants]
     .filter((variant) => variant.locale === locale && variant.status === 'published')
     .map((variant) => variant.path)
     .sort();
