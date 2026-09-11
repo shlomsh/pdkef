@@ -173,7 +173,10 @@ const variants = Astro.props.variants ?? resolved.variants;
         Stated once, near the top, rather than left for the visitor to
         discover mid-task when a button turns out to still be English. */}
     {toolControlsEnglish && (
-      <p class="type-body mx-auto mb-4 max-w-[54rem] px-6 text-center text-[var(--color-muted)] min-[1024px]:mb-2">
+      <p
+        class="type-body mx-auto mb-4 max-w-[54rem] px-6 text-center text-[var(--color-muted)] min-[1024px]:mb-2"
+        data-tool-controls-english
+      >
         {messages.toolControlsEnglishNotice}
       </p>
     )}
@@ -231,8 +234,22 @@ const variants = Astro.props.variants ?? resolved.variants;
   {/* Only Sign declares `languages` today; every other tool renders nothing
       here. It goes above "How it works" because "will my language come out
       right" is the question that decides whether the rest of the page
-      matters. */}
-  {tool.languages && <ToolLanguagesCard languages={tool.languages} />}
+      matters.
+
+      English edition only (LOC-03): the 20-language deep-dive table is not
+      in TOOL_SOURCE_FIELDS (src/i18n/localizedTools.ts) - mergeLocalizedTool
+      deliberately leaves `languages` structural, like sketches and icons,
+      because translating 20 detailed technical claims about font/script
+      coverage accurately needs the same native + technical review this
+      whole file requires everywhere else, not a first pass. Rendering the
+      English card unchanged on a localized page would be exactly the
+      "Hebrew headline over an English tool" pattern the language-purity
+      guard (scripts/localizedSeoChecks.mjs) exists to catch, so it is
+      hidden rather than shipped untranslated; the RTL/Hebrew-font
+      differentiator LOC-03.md asks this page to lead with instead lives in
+      the translated subhead, aboutLead and FAQ (see he/sign.yaml). Revisit
+      once the card itself has a reviewed translation. */}
+  {tool.languages && locale === 'en' && <ToolLanguagesCard languages={tool.languages} />}
 
   <ToolAboutCard
     icon={tool.icon}

@@ -225,8 +225,66 @@ const mergeMessages: Partial<Record<DocumentationLocaleId, MergeMessages>> = {
   he: hebrewMergeMessages,
 };
 
+// LOC-03: not yet reviewed by a native speaker in-house (see LOC-03.md's
+// acceptance list, "the island message catalogues for Compress and Merge
+// reviewed in the same pass") - pairs with he/compress.yaml's own draft
+// status. Terminology follows the same SERP-derived vocabulary as that file
+// ("כיווץ" as the lead term, "PDF" and file-size units left in Latin script,
+// matching every incumbent on the Hebrew SERPs).
+const hebrewCompressMessages: CompressMessages = {
+  skippedOne: 'דילגנו על "{name}" - זה לא קובץ PDF.',
+  skippedMany: 'דילגנו על {count} קבצים - הם לא PDF.',
+  compressionOptionsLabel: 'אפשרויות כיווץ',
+  ourPick: 'הבחירה שלנו',
+  levelHighName: 'כיווץ קיצוני',
+  levelHighTag: 'הגודל הקטן ביותר',
+  levelHighDesc: 'ההקטנה המרבית האפשרית. תמונות יורדו לרזולוציה של 72 DPI.',
+  levelHighPros: 'הקובץ הקטן ביותר (הקטנה של 60-80%)',
+  levelHighCons: 'רזולוציה נמוכה יותר, תמונות עלולות להיראות מפוקסלות או מטושטשות',
+  levelMediumName: 'מומלץ',
+  levelMediumTag: 'איכות טובה',
+  levelMediumDesc: 'האיזון האופטימלי בין הקטנת גודל לאיכות חזותית.',
+  levelMediumPros: 'איזון מצוין בין הקטנת גודל (40-60%) לבהירות',
+  levelMediumCons: 'ירידה קלה בחדות בהתקרבות',
+  levelLowName: 'איכות גבוהה',
+  levelLowTag: 'איכות גבוהה',
+  levelLowDesc: 'כיווץ מינימלי. שומר על תמונות חדות וברורות ברזולוציה של 150 DPI.',
+  levelLowPros: 'תמונות חדות וטקסט ברור, קרוב לאיכות המקורית',
+  levelLowCons: 'הקטנת גודל מינימלית (10-30%)',
+  targetName: 'גודל יעד',
+  targetTag: 'בחרו KB',
+  targetDesc: 'כווצו לגודל קובץ מסוים, למשל למגבלת העלאה של 100KB.',
+  targetPros: 'מגיע אוטומטית למגבלות העלאה מדויקות של פורטלים',
+  targetCons: 'האיכות מותאמת לפי הצורך כדי להגיע לגודל',
+  targetBadge: 'מדויק',
+  targetSizeLabel: 'גודל יעד',
+  compress: 'כיווץ PDF',
+  compressing: 'מכווצים…',
+  addPdfToCompress: 'הוסיפו PDF למעלה כדי לכווץ',
+  compressionFailedTitle: 'הכיווץ נכשל.',
+  compressionFailedBody: 'ייתכן שהקובץ מוגן בסיסמה או פגום. נסו קובץ PDF אחר.',
+  successTitle: 'ה-PDF כווץ בהצלחה!',
+  originalSize: 'גודל מקורי',
+  compressedSize: 'גודל אחרי כיווץ',
+  spaceSaved: 'נחסך',
+  savedPercent: 'נחסכו {percent}%',
+  noReduction: 'אין הקטנה בגודל',
+  closestAchievable: 'הגודל הקרוב ביותר שהושג: לא הצלחנו להגיע ל-{size} בלי להפוך את המסמך לבלתי קריא, אז זו התוצאה הקריאה הכי קטנה.',
+  rasterizeNotice: 'שימו לב: הכיווץ הופך את עמודי ה-PDF לתמונות כדי להקטין את גודל הקובץ. קישורים מוטבעים וחיפוש/העתקת טקסט יהיו מושבתים במסמך המכווץ.',
+  downloadLabel: 'הורדת PDF מכווץ',
+  shareLabel: 'שיתוף PDF מכווץ',
+  loaded: 'הקובץ "{name}" נטען. בחרו אפשרות כיווץ כדי להמשיך.',
+  starting: 'מתחילים בכיווץ ה-PDF...',
+  complete: 'כיווץ ה-PDF הושלם. הקובץ שלכם מוכן.',
+  failed: 'כיווץ ה-PDF נכשל.',
+  sharedSuccessfully: 'ה-PDF המכווץ שותף.',
+  sharingCanceled: 'השיתוף בוטל. ה-PDF המכווץ עדיין מוכן.',
+  shareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
+};
+
 const compressMessages: Partial<Record<DocumentationLocaleId, CompressMessages>> = {
   en: englishCompressMessages,
+  he: hebrewCompressMessages,
 };
 
 const toolMessageTables: Record<string, Partial<Record<DocumentationLocaleId, unknown>>> = {
@@ -238,4 +296,4 @@ export function getToolMessages(toolSlug: string, locale: DocumentationLocaleId)
   return toolMessageTables[toolSlug]?.[locale];
 }
 
-export { englishMergeMessages, hebrewMergeMessages, englishCompressMessages };
+export { englishMergeMessages, hebrewMergeMessages, englishCompressMessages, hebrewCompressMessages };

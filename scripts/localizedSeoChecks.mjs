@@ -37,10 +37,24 @@ export const MIN_SCRIPT_PURITY = {
 
 const NON_VISIBLE = 'script, style, noscript, template';
 
-/** The text a reader sees: body content minus scripts, styles and templates. */
-export function visibleText(document) {
+/**
+ * The text a reader sees: body content minus scripts, styles and templates.
+ *
+ * `excludeIsland`, LOC-03: a page whose editor stays English on purpose
+ * (ToolPageLayout's `data-tool-controls-english` notice - the Sign/Redact
+ * pilot decision from LOC-02.md) SSR-renders that entire English island
+ * inside `#app` before hydration, which is disclosed and intentional, not
+ * the incumbent failure this guard exists to catch (a translated headline
+ * over an untranslated tool). Excluding `#app`'s text on exactly those pages
+ * measures what LOC-02/LOC-03 actually translate - the static shell around
+ * the island - rather than penalizing a page for the one part of it that is
+ * honestly labeled English. A page with no such notice (or whose island IS
+ * localized) is scored on its full body, unchanged.
+ */
+export function visibleText(document, { excludeIsland = false } = {}) {
   const clone = document.body.cloneNode(true);
   clone.querySelectorAll(NON_VISIBLE).forEach((node) => node.remove());
+  if (excludeIsland) clone.querySelectorAll('#app').forEach((node) => node.remove());
   return clone.textContent ?? '';
 }
 
@@ -83,7 +97,8 @@ export function localizedPageProblems({ relPath, document, sitemapLocs, builtCan
   const pattern = TARGET_SCRIPTS[lang];
   const floor = MIN_SCRIPT_PURITY[lang];
   if (pattern && floor !== undefined) {
-    const { purity, letters, scriptLetters } = scriptPurity(visibleText(document), pattern);
+    const excludeIsland = Boolean(document.querySelector('[data-tool-controls-english]'));
+    const { purity, letters, scriptLetters } = scriptPurity(visibleText(document, { excludeIsland }), pattern);
     if (purity < floor) {
       problems.push(
         `language purity ${purity.toFixed(3)} (${scriptLetters} of ${letters} letters in the ${lang} script) is below ${floor}: ` +

@@ -20,14 +20,15 @@ const SITE = 'https://pdkef.com';
 const HEBREW = 'מזגו ואחדו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו מספרי עמודים והורידו. הקובץ נשאר אצלכם במכשיר.';
 const ENGLISH = 'Combine multiple PDFs into a single document, reorder pages by drag-and-drop, and optionally add page numbers before you export.';
 
-function page({ path, lang = 'he', noindex = false, body = '', tool = true, pack = null }) {
+function page({ path, lang = 'he', noindex = false, body = '', tool = true, pack = null, appText = '', toolControlsEnglish = false }) {
   const html = `<!doctype html><html lang="${lang}" dir="rtl"><head>
     <link rel="canonical" href="${SITE}${path}">
     ${noindex ? '<meta name="robots" content="noindex, follow">' : ''}
     <script>var notVisible = "this text is code, not copy, and stays out of the count";</script>
     <style>.x{content:"neither is this"}</style>
   </head><body>
-    ${tool ? '<section id="app"></section>' : ''}
+    ${tool ? `<section id="app">${appText}</section>` : ''}
+    ${toolControlsEnglish ? '<p data-tool-controls-english>Editor controls are in English.</p>' : ''}
     <h1>${body}</h1>
     ${pack ? `<div hidden data-locale-pack="${pack.prefix}" data-locale-pack-urls="${pack.urls.join(',')}"></div>` : ''}
   </body></html>`;
@@ -76,6 +77,37 @@ describe('language purity (guard 3)', () => {
   it('is not a localized page at all at the English root', () => {
     expect(localeForRelPath('dist/merge/index.html')).toBeNull();
     expect(localeForRelPath('dist/he/merge/index.html')).toEqual({ prefix: 'he' });
+  });
+
+  // LOC-03: /he/sign/ keeps its editor English on purpose (ToolPageLayout's
+  // "controls are in English" notice, LOC-02's pilot decision) and SSR-renders
+  // that whole island's English UI text before hydration. Without an
+  // exception this would fail the same purity guard as a real Hebrew-headline-
+  // over-English-tool page, for a reason that is disclosed rather than an
+  // incumbent-style defect - so the marker element that notice renders lets
+  // the guard exclude #app's text on exactly those pages.
+  it('excludes the #app island from the purity count when the editor-stays-English notice is present', () => {
+    const document = page({
+      path: '/he/sign/',
+      noindex: true,
+      body: HEBREW,
+      appText: `${ENGLISH} ${ENGLISH} ${ENGLISH} ${ENGLISH}`,
+      toolControlsEnglish: true,
+    });
+    expect(check(document, '/he/sign/')).toEqual([]);
+  });
+
+  it('SABOTAGE: an English island still fails purity without the editor-stays-English notice', () => {
+    const document = page({
+      path: '/he/sign/',
+      noindex: true,
+      body: HEBREW,
+      appText: `${ENGLISH} ${ENGLISH} ${ENGLISH} ${ENGLISH}`,
+      toolControlsEnglish: false,
+    });
+    const problems = check(document, '/he/sign/');
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/language purity 0\.\d+ .* is below 0\.5/);
   });
 });
 

@@ -67,3 +67,60 @@ will say whether people search for it; the claim belongs on the page either way.
   and at least one of the three target phrasings is in the top 20 for Israel. Record the outcome in the
   findings doc either way; a pilot that finds no demand is a finished pilot, and it closes LOC-04
   rather than expanding it.
+
+## Progress 2026-09-11: copy drafted and mechanism completed, review still pending
+
+Draft (unreviewed, `status: 'draft'`, `noindex` preview) content shipped for all three tools, phrased
+per this ticket's SERP-derived hypotheses and the "translated, not re-authored" FAQ rule:
+`src/content/localized-tools/he/{merge,compress,sign}.yaml`. Merge's draft carried over from LOC-02
+unchanged. Compress mirrors merge's pattern exactly (island localized, `hebrewCompressMessages` added
+to `src/i18n/toolMessages.ts`). Sign is the harder case and needed real mechanism work, not just copy:
+
+- **The route never actually rendered Sign.** `src/pages/[locale]/[tool].astro` had branches for merge
+  and compress only; added the `PdfSignTool` import, the `editorFonts.css` import (needed so a Hebrew
+  signer's own typed text renders with the right bundled font, even though the editor chrome stays
+  English), and the render branch.
+- **The language-purity guard (`scripts/localizedSeoChecks.mjs`) had never been measured against a
+  page whose editor stays English on purpose.** It failed `/he/sign/` outright (0.270 against the 0.5
+  floor) - not because of the editor (its SSR output is empty; `PdfSignTool` renders nothing before
+  hydration) but because `ToolLanguagesCard`'s 20-language deep-dive table is structural, not in
+  `TOOL_SOURCE_FIELDS`, and stayed English. Rather than ship it untranslated (exactly the "Hebrew
+  headline over English tool" pattern the guard exists to catch) or hand-translate 20 technical
+  font/script claims without native+technical review in one sitting, the card is now English-edition-only
+  (`ToolPageLayout.astro`); the RTL/Hebrew-font differentiator this ticket asks Sign to lead with instead
+  lives in the translated subhead, aboutLead and the Hebrew-specific FAQ item. Also added a
+  `data-tool-controls-english` marker and an `excludeIsland` option to the purity check itself, for the
+  general case (any future tool whose island stays English disclosed via the notice), with a sabotage
+  test pair in `src/lib/localizedSeoChecks.test.js`.
+- **`vercel.json`** gained the three routes' non-slash → slash redirect pairs (`/he/compress`,
+  `/he/merge`, `/he/sign`), verified against a real "as if published" build (see below) rather than
+  guessed - `npm run test:redirects` only checks routes that exist in `dist/`, so this was invisible
+  until publishing was actually simulated.
+
+**Verified, not just written**: full `npm test` (2196 tests), `test:seo`, `test:css` (both the ordinary
+build and a temporary local-only "as if published" build - not committed - to catch what only shows up
+once these are real), `test:csp`, `test:redirects`, `test:weight`, `test:fonts`, the `e2e/localized/`
+Playwright RTL/CSP guardrail, and real-browser screenshots at desktop and mobile widths for all three
+pages (RTL mirroring, switcher, localized islands for merge/compress, the English-editor notice on
+sign). No English copy or `tools.js` touched.
+
+**What is deliberately not done here, and why:**
+
+- **No native review.** `reviewer`/`reviewedAt`/`reviewNotes` are unset and status stays `'draft'` on
+  purpose - this ticket's whole premise is that the review is satisfiable in-house (Shlomi), and an
+  agent self-attesting a human review would defeat the point of requiring one. The draft renders as a
+  noindex preview only (`PDKEF_DOCS_PREVIEW=1` build); it changes nothing on the live site as committed.
+- **No indexing requests.** Nothing is published or deployed yet; a GSC indexing request needs a live,
+  published URL.
+- **The Sign language card stays English** on this pass (see above) - a follow-up once it has its own
+  reviewed translation, not blocking this pilot's core hypothesis test.
+- **Found, not caused, and flagged rather than fixed silently:** the working tree had an uncommitted
+  `vercel.json` top-level `"build": { "env": { "PDKEF_DOCS_PREVIEW": "1" } }` block that predates this
+  session's edits and isn't part of this diff - if committed as-is it would make every production
+  Vercel build include every draft page (this ticket's three included) on the live site. Left in place
+  rather than removed unilaterally; flagged to Shlomi before anyone commits.
+
+**Next step**: Shlomi reviews the three YAML files (and the two message catalogues) for wording,
+maqaf/geresh typography, and the `חתימה דיגיטלית` trap; flips `status` to `'published'` with
+`reviewer`/`reviewedAt`/`reviewNotes`; deploys; requests indexing for the three URLs and records the
+date here.
