@@ -11,6 +11,7 @@ export const ANALYTICS_TOOLS = [
   'split',
   'edit-pdf',
   'compress',
+  'compress-image',
   'pdf-to-image',
   'image-to-pdf',
   'sign',

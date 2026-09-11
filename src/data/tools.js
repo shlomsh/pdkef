@@ -27,6 +27,7 @@ import {
   FileLock2,
   FileEdit,
   Eraser,
+  ImageMinus,
 } from 'lucide-preact';
 
 export const tools = [
@@ -575,6 +576,54 @@ export const tools = [
       { question: 'Does compressing a PDF affect text search or copying?', answer: 'When PDkef compresses a file, it turns pages into images. The output loses selectable text and embedded links, so keep the original if you need search or screen-reader text access. The exception is Target Size when the original is already under the limit: it is returned unchanged.' },
       { question: 'Is there a limit on the file size I can compress?', answer: "No artificial limit - no daily task cap, no watermark, no paywall. Most online compressors impose limits because server processing costs them money. This tool runs entirely on your device, so the only constraint is your device's available memory." },
       { question: 'Can I target a custom size, like 110KB or 250KB, not just the presets?', answer: 'Yes. The 100 KB, 200 KB, 500 KB, and 1 MB quick-picks are shortcuts. Enter your own limit in the KB field, then check whether the downloaded result met it. A target is not a guarantee that every PDF can fit while remaining readable.' },
+    ],
+  },
+
+  {
+    slug: 'compress-image',
+    href: '/compress-image/',
+    // Same reasoning as compress: the target-size panel renders before a file
+    // is even picked, so the hero folds once one is open or the Compress
+    // button sits below the fold on a phone (docs/view-density-control-spec.md 4.7).
+    condenseOnLoad: true,
+    icon: ImageMinus,
+    gridTitle: 'Compress Image',
+    gridDescription:
+      'Shrink a JPG or PNG toward a size limit like 100KB, for portals that cap a photo separately, with no daily cap.',
+    sitemapPriority: '0.8',
+    sitemapChangefreq: 'monthly',
+    seoTitle: 'Compress Image to 100KB Free - Reduce Photo Size | PDkef',
+    seoDescription:
+      "Compress a photo to 100KB or less, free, right in your browser. If it can't hit the target, we say so instead of guessing. No upload, signup, or watermark.",
+    schemaName: 'PDkef - Compress Image',
+    toolName: 'Compress Image',
+    h1: 'Compress Image to 100KB Free: Reduce Photo Size',
+    subhead:
+      'Need a photo under 100KB, or smaller, for a job portal or application form? Choose a target size and check the result. A very small target on a large photo may not be reachable. Private: your photo never leaves your device.',
+    ariaLabel: 'Compress image tool',
+    aboutHeading: 'How to compress an image online for free',
+    aboutLead:
+      "Reduce the file size of a JPG or PNG, right in your browser. No upload, no server. If your photo is already under the target, it comes back unchanged. Otherwise the output is a JPEG: a transparent PNG background is filled in white, and re-encoding drops EXIF metadata, including location. If a tiny target can't be hit without making a large photo unreadable, the tool says so and hands you the smallest result it found instead of quietly returning something too big.",
+    freeNoteLead:
+      "Shrink a photo to a target like 100KB, or 20KB for a strict portal photo cap, as many times as you need, with no watermark or daily limit. Because compression runs on your device, there's nothing to upload and no server cost to pass on to you. Need to shrink a PDF document instead? Use <a class=\"font-medium text-[var(--color-primary-text)]\" href=\"/compress/\">Compress PDF</a>.",
+    aboutSketch: 'arcs',
+    aboutIconPos: 'br',
+    faqSketch: 'grid',
+    faqIconPos: 'tl',
+    steps: [
+      { title: 'Add your photo', text: 'Select or drag in the JPG or PNG you want to shrink. It stays on your device.' },
+      { title: 'Set a target size', text: 'Enter a limit in KB, or pick a shortcut like 20 KB, 50 KB, or 100 KB for a portal photo cap.' },
+      { title: 'Compress and download', text: 'Click Compress Image, check the actual output size and dimensions, and save your file.' },
+    ],
+    faq: [
+      { question: 'Can I compress an image to 100KB for free?', answer: 'Yes. Enter 100 KB as the target, or use the shortcut, and compress. The tool tries to get at or below the limit, not exactly 100KB. A large, detailed photo may not fit that small; check the actual output size before uploading it to a portal.' },
+      { question: 'How does target size compression work for a photo?', answer: 'If the image is already under the target, it is kept unchanged. Otherwise, the tool searches image scale and JPEG quality settings until it gets at or below your target, within a time limit. If it cannot reach the target, it returns the smallest result found and tells you the target was missed. Everything happens in your browser.' },
+      { question: 'What file type does the compressed image come out as?', answer: 'A JPEG, whatever format you started with, whenever the tool had to compress it. If your original was a PNG with a transparent background, that transparency is filled in white first, since a JPEG has no transparency of its own. A file that is already under the target comes back exactly as it was, PNG included.' },
+      { question: 'Will compressing a screenshot or scan of text look blurry?', answer: 'It can. JPEG compression is built for photos, and a small target size can leave visible artefacts around sharp edges like text or fine lines, more so on a screenshot or scanned document than on an ordinary photo. If the result looks too rough to read, try a larger target.' },
+      { question: 'Does compressing remove information from my photo?', answer: 'Yes. Re-encoding to JPEG drops EXIF metadata, including the location a phone camera often records, along with the camera model and timestamp. That is a side effect of redrawing the pixels rather than a deliberate scrub, so do not rely on it as one, but the compressed copy carries none of it. If you need to keep that metadata, do not run the photo through this tool.' },
+      { question: 'Is this built for job applications and portals that cap photo size?', answer: "Yes, exactly that. Many application portals cap a photo at 20 to 50KB and a document at 100 to 200KB, checked separately, so one \"under 100KB\" result does not necessarily clear the photo limit. Set your own target here, including one below 100KB, to match whatever the portal actually asks for." },
+      { question: 'Is my photo uploaded anywhere?', answer: 'No. Compression is 100% client-side and runs entirely in your browser. Your photo, including a scanned ID, passport photo, or signature image, never leaves your device.' },
+      { question: "What's the difference between this and Compress PDF?", answer: 'This tool takes a JPG or PNG image and shrinks it to a target size. Compress PDF does the same for a PDF document. Use whichever matches what you actually have; if a form needs both a smaller document and a smaller photo, use both tools.' },
     ],
   },
 

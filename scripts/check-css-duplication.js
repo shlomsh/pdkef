@@ -206,7 +206,20 @@ const distDir = path.join(__dirname, '..', 'dist');
 // byte, and distinct bytes are unchanged at 160,871, so this is the +0.14x per
 // added page predicted above (7 x 0.14 = 0.98; measured +1.18, the guides'
 // content-page sheet being a little heavier than a tool page's).
-const MAX_DUPLICATION_FACTOR = 9.0;
+//
+// Re-based (9.00x -> 9.20x) on 2026-09-12 when SEO-19 added the tenth tool
+// page, /compress-image/ (36 -> 37 pages). Measured immediately before this
+// page (built with its registry entry and page file removed): 8.82x
+// (1,419,225 bytes shipped / 160,998 bytes distinct), worst-page dead bytes
+// 9,709 (/split/), single-page utilities 114. With it: 9.17x (1,476,586 /
+// 161,062), worst-page dead bytes 9,717 (/compress-image/, still under the
+// 10,000 limit), single-page utilities 114 - unchanged, confirming page-count
+// growth rather than new duplication: the new page reuses PdfCompressTool's
+// existing target-size markup and CSS Modules classes almost entirely
+// (distinct bytes moved by only 64), and one whole tool-family page's worth
+// of that shared bundle (~24,461 bytes) is now shipped an 11th time. Limit
+// set just above the measured 9.17x.
+const MAX_DUPLICATION_FACTOR = 9.2;
 // Lowered (29,000 -> 27,500) on 2026-08-29 to bank most of two fixes that took
 // /licenses/ from 29,021 (red) to 26,635, neither of which was a style change:
 //   - 905 distinct bytes of utilities were being compiled out of the impeccable

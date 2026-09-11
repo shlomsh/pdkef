@@ -1,7 +1,7 @@
 ---
 id: "SEO-19"
 title: "New tool: compress an image to a target size, because people are already asking us to"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "search-acquisition"
 phase: "near-term"
@@ -12,6 +12,13 @@ legacy_state: "Open"
 # SEO-19 · New tool: compress an image to a target size, because people are already asking us to
 
 ## Scope and acceptance
+
+**Build log.** 2026-09-12: built as `/compress-image/` (`src/lib/compressImage.js` over the shared
+`src/lib/targetSizeSearch.js`, which `compressPdfToTarget` now uses too; island
+`PdfCompressImageTool.tsx` with 20/50/100/200/500 KB presets; registry, redirect pair, entry sheet,
+`llms.txt`, analytics allowlist). All CI checks green on the build. Left open until the real-browser
+pass with a phone JPEG and a transparent PNG and the indexing request are done; ships alone in its
+week per the acceptance below.
 
 **This is the only new tool in the epic with measured demand behind it rather than an estimate.** In
 three months, 128 impressions and 6 clicks came from queries with no "pdf" in them at all:

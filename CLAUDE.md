@@ -21,9 +21,9 @@ line here only if every agent needs it every session; its narrative and evidence
 ## What this is
 
 A 100% client-side, static web app: a suite of PDF tools (Merge, Split, Edit Pages, Compress, PDF to
-Image, Image to PDF, Sign, Redact, Unlock/Protect) that run in the browser and rank for specific PDF
-keywords. **There is no PDF-processing server and files must never leave the device.** Processing works
-offline once assets are provisioned. All nine tools are implemented, indexed and registered in
+Image, Image to PDF, Sign, Redact, Unlock/Protect, plus Compress Image) that run in the browser and
+rank for specific PDF keywords. **There is no PDF-processing server and files must never leave the
+device.** Processing works offline once assets are provisioned. All ten tools are implemented, indexed and registered in
 `src/data/tools.js`. Runtime dependencies must use the permissive-license allowlist (MIT, Apache-2.0,
 ISC, BSD-2/3, Zlib, 0BSD); `npm run test:licenses` enforces it.
 
