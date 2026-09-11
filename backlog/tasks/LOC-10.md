@@ -1,20 +1,27 @@
 ---
 id: "LOC-10"
-title: "Remove page localization: the Hebrew editions and the mechanism behind them"
-status: "open"
+title: "Keep or remove page localization: decide after LOC-11 has measured the top languages"
+status: "blocked"
 priority: "P1"
 epic: "localized-search"
 phase: "near-term"
-depends_on: ["LOC-08"]
+depends_on: ["LOC-11"]
 legacy_state: "Open"
 ---
 
-# LOC-10 · Remove page localization: the Hebrew editions and the mechanism behind them
+# LOC-10 · Keep or remove page localization: decide after LOC-11 has measured the top languages
 
-## Decision (Shlomi, 2026-09-12)
+## Status: decision deferred (Shlomi, 2026-09-12)
 
-The localized-search epic measured every candidate it named and the answer is that page localization
-does not pay for its upkeep on this domain. The code comes out; the findings stay.
+The case for removal below was made and accepted on 2026-09-12, and a removal agent was started.
+Shlomi stopped it the same hour: "we might have come to a conclusion too fast. Let's not be hasty with
+removing anything and spend more time on research before we make the final decision." Nothing was
+removed; the agent had not committed. This ticket now holds the decision, and it is **blocked on
+[LOC-11](LOC-11.md)**, which measures the top languages behind the site's top twenty countries
+(Vietnamese, Turkish, Spanish, Italian, Arabic, Filipino, Bengali, Urdu). The cost side below is
+measured and does not change; the demand side is what LOC-11 adds. Decide here when it reports.
+
+## The case for removal, as made on 2026-09-12
 
 **What was measured.** Israel in GSC: 8 clicks from 20 impressions in three months, all English
 queries. Trends put Hebrew at about a third of English on merge, near zero on sign, sporadic on
@@ -47,7 +54,7 @@ ceiling Trends and GSC already drew. If a language ever clears the bar in [LOC-1
 mechanism is in git history at `464a067` and was a few days of work; restoring it then is cheaper than
 carrying it for months on the chance.
 
-## Scope
+## Scope, if the decision is remove
 
 **Delete.**
 
@@ -97,7 +104,7 @@ indexing requests made on 2026-09-11 from resolving to 404s.
   acceptable; do not leave a dead `he` branch.
 - `src/lib/format.js` locale-aware number formatting, if it is used by English pages.
 
-## Acceptance
+## Acceptance, if the decision is remove
 
 - `npm run build`, `npm test`, `npm run typecheck`, `npm run test:redirects`, `npm run test:css`,
   `npm run check:backlog` all green; `npm run test:e2e` green with `e2e/localized/` gone.
@@ -107,10 +114,18 @@ indexing requests made on 2026-09-11 from resolving to 404s.
   measured value, with the dated note updated. Ratchets only go down.
 - `curl -sI https://pdkef.com/he/sign/` returns a 301 to `/sign/` after deploy (verify on production;
   `vercel.json` redirects do not run in preview).
-- LOC-03, LOC-05 and LOC-09 retired with a one-line pointer here. The findings doc's status board
-  rows updated; section 2 gains the ROI gate written in LOC-11. This epic closes.
+- LOC-03, LOC-05 and LOC-09 retired with a one-line pointer here; LOC-02 and LOC-06 get an outcome
+  addendum saying what happened to what they built. The findings doc's status board rows updated;
+  section 2 gains the ROI gate written in LOC-11. [LOC-12](LOC-12.md) stays open as the scheduled
+  re-check.
 - Nothing in `src/editor/` changes. `git diff --stat main -- src/editor/` is empty.
 
-## Handoff notes
+## If the decision is keep
+
+Then the maintenance cost is accepted knowingly, and two things follow: the freshness gate stays a
+build error (a stale published Hebrew page is worse than none), and LOC-09 (the Hebrew home page)
+and any new language go through LOC-11's ROI gate first. Record the reasoning here either way.
+
+## Handoff notes (removal)
 
 Work from the grep, not from memory: `grep -rn -E "locali[sz]ed|i18n/|hreflang|documentationLocales|/he/" src scripts e2e vercel.json astro.config.mjs` is the starting list, and every hit is either deleted, or kept for a reason named in the keep-list. When a shared file has both a localization branch and something else, remove only the branch. The build is the judge: `check-dead-utilities.js` will name any class left behind by removed markup, and `verify-seo.js` will fail on a sitemap entry with no page.
