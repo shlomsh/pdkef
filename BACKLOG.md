@@ -44,7 +44,6 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| MOBI-01 | P1 | [MOBI-01](backlog/tasks/MOBI-01.md) · Verify the Android share-sheet round trip on real hardware |
 | MOBI-02 | P2 | [MOBI-02](backlog/tasks/MOBI-02.md) · A form filled in PDkef still ships with its live, empty fields |
 | MOBI-06 | P2 | [MOBI-06](backlog/tasks/MOBI-06.md) · Field-to-field navigation so filling a form never needs aiming |
 | MOBI-08 | P2 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |
@@ -56,7 +55,9 @@ _None._
 
 ### Blocked
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| MOBI-01 | P1 | [MOBI-01](backlog/tasks/MOBI-01.md) · Verify the Android share-sheet round trip on real hardware |
 
 ### Done
 
