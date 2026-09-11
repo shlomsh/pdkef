@@ -1,12 +1,12 @@
 ---
 id: "SEO-11"
 title: "The positioning review protocol: what we may claim, and what proves it"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "search-acquisition"
 phase: "near-term"
 depends_on: ["SEO-02"]
-legacy_state: "Open"
+legacy_state: "Done 2026-09-11"
 ---
 
 # SEO-11 · The positioning review protocol: what we may claim, and what proves it
@@ -59,3 +59,19 @@ does it worse and makes us sound like everyone else.
 - One worked example exists, so the next agent has a model rather than a description: SEO-12 is it.
 - The no-competitor-framing rule is stated in the protocol in the form a reviewer will actually hit it -
   as the sentence-level rewrite above, not as an abstract principle.
+
+## Progress (2026-09-11)
+
+**Shipped:** the table, the no-competitor-framing rule, and the per-tool method now live as
+[section 6 of docs/seo-competitive-findings.md](../../docs/seo-competitive-findings.md#6-the-positioning-review-protocol-seo-11),
+not only in this ticket file, so SEO-12 through SEO-16 can link a stable section instead of copying the
+protocol into each ticket. Every claim in the table was re-checked against the current site: no
+`src/data/tools.js`, `.astro` page, or `content-pages` entry uses any of the banned phrases about our
+own product ("free tier" appears once, in `sign-pdf-no-signup.yaml`, describing why *competitors* need
+accounts, not claiming one for us); `/open-source-pdf-editor/` still documents the devtools-offline
+test; `/licenses/` still exists. SEO-12 is named as the worked example - it already follows the method
+end to end in its own scope section, so no changes were needed there.
+
+**Not done here, on purpose:** SEO-12 through SEO-16's actual per-tool reviews. This ticket is the
+protocol only; those are separate P1/P2/P3 tickets with their own token budgets, per the scope note
+above.
