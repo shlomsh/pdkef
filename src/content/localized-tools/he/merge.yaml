@@ -1,0 +1,56 @@
+# LOC-02 draft fixture: proves the localized-tool route end to end. Not
+# reviewed and not published - see LOC-02.md's acceptance list ("/he/merge/
+# renders end to end from a draft YAML as a noindex preview"). LOC-03 is the
+# ticket that reviews real Hebrew tool copy and flips this to published.
+toolSlug: 'merge'
+locale: 'he'
+status: 'draft'
+sourceHash: 'fnv1a64:79624031b57e0dc0'
+seoTitle: 'מיזוג PDF בחינם - איחוד קבצים בדפדפן | PDkef'
+seoDescription: >-
+  מזגו קבצי PDF בחינם, בלי הגבלת קבצים. גררו, סדרו מחדש ואחדו PDF-ים בדפדפן.
+  הקובץ נשאר במכשיר שלכם, בלי הרשמה ובלי סימן מים.
+schemaName: 'PDkef - מיזוג PDF'
+toolName: 'מיזוג PDF'
+h1: 'מיזוג PDF בחינם: איחוד קבצים בדפדפן'
+subhead: >-
+  איחדו כמה קבצי PDF למסמך אחד, סדרו עמודים בגרירה, ואפשר להוסיף מספרי עמודים
+  לפני ההורדה.
+ariaLabel: 'כלי מיזוג PDF'
+aboutHeading: 'איך למזג קבצי PDF בחינם בדפדפן'
+aboutLead: >-
+  איחדו כמה קבצי PDF לאחד, ישירות בדפדפן. בלי העלאה, בלי שרת. הקבצים שלכם לא
+  עוזבים את המכשיר.
+freeNoteLead: >-
+  איחדו כמה קבצי PDF שתרצו, בכל סדר, בלי סימן מים ובלי הגבלת עמודים. מכיוון
+  שהמיזוג רץ על המכשיר שלכם, אין מה להעלות ואין צריכה למדוד.
+steps:
+  - title: 'הוספת קבצי PDF'
+    text: 'בחרו או גררו לכאן את הקבצים שתרצו לאחד.'
+  - title: 'סידור לפי הסדר'
+    text: 'מיינו לפי שם או תאריך, או גררו קבצים לסדר הרצוי.'
+  - title: 'מיזוג והורדה'
+    text: >-
+      סמנו "הוספת מספרי עמודים" אם רוצים מספור רציף, ואז לחצו על מיזוג קבצי
+      PDF ושמרו את הקובץ המאוחד.
+faq:
+  - question: 'האם PDkef באמת חינמי?'
+    answer: >-
+      כן. PDkef חינמי לחלוטין, בלי הגבלות, בלי הרשמה ובלי סימן מים על קובץ
+      ה-PDF המאוחד.
+  - question: 'האם הקבצים שלי מועלים לשרת?'
+    answer: >-
+      לא. PDkef פועל כולו בדפדפן שלכם. קבצי ה-PDF לא נשלחים ברשת בשום שלב -
+      הם נשארים במכשיר שלכם כל הזמן.
+  - question: 'האם PDkef עובד בנייד?'
+    answer: >-
+      כן. PDkef עובד בכרום באנדרואיד וב-iOS, וגם בדפדפנים לשולחן העבודה
+      במחשבי Mac ו-Windows.
+  - question: 'יש הגבלת גודל קובץ או מספר עמודים?'
+    answer: >-
+      אין הגבלה מלאכותית מטעם PDkef. המגבלה היחידה היא הזיכרון הפנוי במכשיר
+      שלכם, מכיוון שהמיזוג מתבצע מקומית.
+  - question: 'אפשר לאחד קבלות או דוחות סרוקים לקובץ אחד?'
+    answer: >-
+      כן, זה אחד השימושים הנפוצים. הוסיפו כל עמוד סרוק או דוח PDF, סדרו
+      אותם, ומזגו לקובץ אחד לדוח הוצאות, תיק עבודות או ספר.
