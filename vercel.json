@@ -150,6 +150,11 @@
       "permanent": true
     },
     {
+      "source": "/pdf-wont-compress-to-100kb",
+      "destination": "/pdf-wont-compress-to-100kb/",
+      "permanent": true
+    },
+    {
       "source": "/sign-pdf-no-signup",
       "destination": "/sign-pdf-no-signup/",
       "permanent": true
