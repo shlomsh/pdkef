@@ -290,13 +290,51 @@ like everyone else. CLAUDE.md, voice principle 1.
 
 ### The per-tool method
 
-1. Pull the tool's queries from the latest export, ranked by impressions. **First check which page the
-   cluster actually lands on** against 3.2 - Sign's whole cluster ranks on the OS guides, not `/sign/`.
-2. Read the top ten for the three highest-impression queries (Shlomi's Google screenshots; Bing as a
-   proxy for the field). Record what each leads with, claims, hides, and limits behind the signup wall.
-3. Compare word by word against our `seoTitle`, `seoDescription`, `h1`, `subhead`, `gridDescription`,
-   steps and every FAQ answer in `src/data/tools.js`.
-4. Name the differentiator this tool has that competitors structurally cannot match. Some have only the
-   four claims above; a review that invents a fifth is doing harm.
-5. Propose concrete copy as a diff, with evidence per claim - or state, with evidence, that no change
-   is warranted.
+Every review ticket (SEO-12 through SEO-16) follows this:
+
+1. Pull the tool's queries out of the latest Search Console export (section 1). Rank them by
+   impressions. These are the words real people use, and they outrank any keyword-volume estimate in
+   section 3's research. **Check first that the cluster's queries actually land on the tool's own
+   page** - cross-reference against the "By page" table. SEO-12 found that Sign's entire 58-query
+   cluster ranks on the four OS guides, not on `/sign/` itself, which ranks on queries GSC withholds
+   under its privacy filter. Running the top-ten analysis without this check means analysing the wrong
+   page's SERP.
+2. Read the top ten results for the three highest-impression queries. Record what each page leads with,
+   what it claims, what it hides, and what its actual limits are behind the signup wall.
+3. Compare against our page's current copy, word by word, including `seoTitle`, `seoDescription`, `h1`,
+   `subhead`, `gridDescription`, the step copy and every FAQ answer in `src/data/tools.js`.
+4. Name the differentiator this specific tool has that the competition structurally cannot match. Some
+   have a strong one (Sign's language support; Redact's flattening being verifiable). Some have only the
+   four general claims above, and a review that invents a fifth is doing harm.
+5. Propose concrete copy, with the diff, and the evidence for each claim it makes.
+
+**When step 1 has nothing to run on.** A page with zero Search Console impressions (SEO-15 hit this for
+`/edit-pdf/`, `/image-to-pdf/` and `/pdf-to-image/`) has no queries to rank by impressions, so step 1
+cannot run as written. Substitute, in this order: section 3's competitor-research volumes and named
+players for the closest matching query; a WebSearch sweep of the phrasings competitors themselves target
+for the tool's core operations (record engine and date, same as step 2 already requires); and an explicit
+check of the full query export for anything adjacent in intent, even if it lands on a different page,
+recorded as "checked, nothing found" if it turns up nothing rather than skipped silently. **State this
+substitution plainly in the review, and do not let it read as equivalent to step 1's real evidence**: the
+substitute describes what the competitive field does and does not say, not what our own visitors search
+for or click, and a review built on it should hedge its confidence accordingly - a name-a-differentiator
+finding from a real Search Console number (SEO-04, SEO-13, SEO-14) and one from this substitution (SEO-15)
+are not the same strength of claim, even when both are written up with equal rigor.
+
+### The worked example
+
+SEO-12 (the Sign review) is the model for the other four: it names the specific advantage precisely
+(real font embedding across eleven scripts, UAX#9 bidi, per-glyph shaped positioning, RTL boxes that
+grow from a fixed right edge, comb-field detection), states the acceptance criteria in SEO-11's terms
+(query list, top-ten analysis, word-by-word comparison, named differentiator, evidenced claims, no
+competitor references), and is explicit about where the review should be sceptical of its own
+enthusiasm ("supports 11 scripts" is a marketing sentence; "the letters come out in the right order in
+the file you download" is the thing a person needed). Read it before starting SEO-13 through SEO-16.
+
+**SEO-12 is also the model for a review that correctly concludes "no change."** It ran the method end
+to end - real SERP samples for the three highest-impression queries, a full re-derivation of the query
+list from the raw export rather than the cluster summary, a word-by-word comparison against the pages
+that actually rank - and found that a prior ticket (SEO-07) had already shipped everything this one
+would have proposed. It said so, with the evidence for each "already correct" verdict, rather than
+inventing a copy change to have something to ship. The next four reviews should read this as permission
+to reach the same conclusion where it is true.
