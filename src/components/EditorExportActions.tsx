@@ -136,7 +136,7 @@ export default function EditorExportActions({
   }
 
   return (
-    <div className={workspaceStyles['export-actions']}>
+    <div className={workspaceStyles['export-actions']} dir="ltr" lang="en">
       {downloadButton}
       {shareButton}
     </div>

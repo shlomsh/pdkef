@@ -13,7 +13,7 @@ import styles from './EditorPageHeader.module.css';
  */
 export default function EditorPageHeader({ pageNumber, onClear, clearTitle }: { pageNumber: number; onClear: (() => void) | null; clearTitle?: string }) {
   return (
-    <div className={styles['page-header']} data-editor-page-header>
+    <div className={styles['page-header']} data-editor-page-header dir="ltr" lang="en">
       <span className={styles['page-number']} data-editor-page-number>Page {pageNumber}</span>
       {onClear && (
         <button
