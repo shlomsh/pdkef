@@ -1,5 +1,4 @@
 {
-  "trailingSlash": true,
   "headers": [
     {
       "source": "/(.*)",
@@ -21,13 +20,123 @@
       "permanent": true
     },
     {
+      "source": "/remove-pages",
+      "destination": "/edit-pdf/",
+      "permanent": true
+    },
+    {
       "source": "/protect/",
+      "destination": "/unlock/",
+      "permanent": true
+    },
+    {
+      "source": "/protect",
       "destination": "/unlock/",
       "permanent": true
     },
     {
       "source": "/offline-pdf-form-filler/",
       "destination": "/install-pdf-app/",
+      "permanent": true
+    },
+    {
+      "source": "/offline-pdf-form-filler",
+      "destination": "/install-pdf-app/",
+      "permanent": true
+    },
+    {
+      "source": "/compress",
+      "destination": "/compress/",
+      "permanent": true
+    },
+    {
+      "source": "/edit-pdf",
+      "destination": "/edit-pdf/",
+      "permanent": true
+    },
+    {
+      "source": "/image-to-pdf",
+      "destination": "/image-to-pdf/",
+      "permanent": true
+    },
+    {
+      "source": "/licenses",
+      "destination": "/licenses/",
+      "permanent": true
+    },
+    {
+      "source": "/merge",
+      "destination": "/merge/",
+      "permanent": true
+    },
+    {
+      "source": "/pdf-to-image",
+      "destination": "/pdf-to-image/",
+      "permanent": true
+    },
+    {
+      "source": "/redact",
+      "destination": "/redact/",
+      "permanent": true
+    },
+    {
+      "source": "/sign",
+      "destination": "/sign/",
+      "permanent": true
+    },
+    {
+      "source": "/split",
+      "destination": "/split/",
+      "permanent": true
+    },
+    {
+      "source": "/unlock",
+      "destination": "/unlock/",
+      "permanent": true
+    },
+    {
+      "source": "/blur-vs-blackout-vs-delete-pdf",
+      "destination": "/blur-vs-blackout-vs-delete-pdf/",
+      "permanent": true
+    },
+    {
+      "source": "/how-to-sign-a-pdf-on-android",
+      "destination": "/how-to-sign-a-pdf-on-android/",
+      "permanent": true
+    },
+    {
+      "source": "/how-to-sign-a-pdf-on-iphone",
+      "destination": "/how-to-sign-a-pdf-on-iphone/",
+      "permanent": true
+    },
+    {
+      "source": "/how-to-sign-a-pdf-on-mac",
+      "destination": "/how-to-sign-a-pdf-on-mac/",
+      "permanent": true
+    },
+    {
+      "source": "/how-to-sign-a-pdf-on-windows",
+      "destination": "/how-to-sign-a-pdf-on-windows/",
+      "permanent": true
+    },
+    {
+      "source": "/install-pdf-app",
+      "destination": "/install-pdf-app/",
+      "permanent": true
+    },
+    {
+      "source": "/open-source-pdf-editor",
+      "destination": "/open-source-pdf-editor/",
+      "permanent": true
+    },
+    {
+      "source": "/permanently-delete-text-from-pdf",
+      "destination": "/permanently-delete-text-from-pdf/",
+      "permanent": true
+    },
+    {
+      "source": "/sign-pdf-no-signup",
+      "destination": "/sign-pdf-no-signup/",
       "permanent": true
     }
   ]
