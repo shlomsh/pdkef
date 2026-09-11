@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest';
 
 describe('Homepage Tooltips', () => {
   it('ensures app-tooltip has industry-standard margin and arrow styles', () => {
-    const astroPath = path.join(process.cwd(), 'src/pages/index.astro');
+    // LOC-09: the home page's markup/CSS moved from index.astro into the
+    // shared HomePageLayout.astro (also rendered by src/pages/[locale]/index.astro),
+    // so the English page's own style block lives there now.
+    const astroPath = path.join(process.cwd(), 'src/layouts/HomePageLayout.astro');
     const content = fs.readFileSync(astroPath, 'utf8');
 
     // Extract the <style> block

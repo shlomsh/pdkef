@@ -138,7 +138,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
     </script>
   </Fragment>
 
-  <AppBar toolName={tool.toolName} labels={messages}>
+  <AppBar toolName={tool.toolName} labels={messages} locale={locale}>
     {/* Unified with the home page's own top-bar chips (AppBar.astro's
         `.trust-chip` styling) instead of a second, plainer row that used to
         live in ToolHero.astro under the H1 - one chip treatment, one place

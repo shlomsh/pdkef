@@ -1,5 +1,6 @@
 import { tools } from '../data/tools.js';
 import styles from './RecentFiles.module.css';
+import { englishRecentFilesMessages, formatMessage, type RecentFilesMessages } from '../i18n/toolMessages';
 
 /** Recent source documents, or the bundled practice form when the cache is empty. */
 export interface RecentFileItem {
@@ -16,23 +17,25 @@ export default function RecentFiles({
   onOpenSample,
   onOpenRecent,
   busy = false,
+  messages = englishRecentFilesMessages,
 }: {
   files: RecentFileItem[];
   onOpenSample?: () => void;
   onOpenRecent?: (file: RecentFileItem) => void;
   busy?: boolean;
+  messages?: RecentFilesMessages;
 }) {
   if (!files.length) return null;
 
   return (
     <section data-home-recents class={styles.card} aria-labelledby="recent-files-heading">
-      <h2 class="sr-only" id="recent-files-heading">Recent files</h2>
+      <h2 class="sr-only" id="recent-files-heading">{messages.heading}</h2>
       <ul class={styles.list}>
         {files.map((file) => {
           const meta = tools.find(t => t.slug === file.tool);
           if (!meta) return null;
           const isBundledSample = file.bundledSample === true;
-          const savedAtLabel = formatSavedAt(file.savedAt);
+          const savedAtLabel = formatSavedAt(file.savedAt, messages);
           const preview = file.preview
             ? <img
                 class={styles.preview}
@@ -51,7 +54,7 @@ export default function RecentFiles({
               <button
                 type="button"
                 class={styles.document}
-                aria-label={`Open bundled sample PDF, ${file.fileName}`}
+                aria-label={formatMessage(messages.openSampleAriaLabel, { name: file.fileName })}
                 disabled={busy}
                 onClick={onOpenSample}
               >
@@ -62,7 +65,7 @@ export default function RecentFiles({
               <button
                 type="button"
                 class={styles.document}
-                aria-label={`Open recent PDF, ${file.fileName}`}
+                aria-label={formatMessage(messages.openRecentAriaLabel, { name: file.fileName })}
                 disabled={busy}
                 onClick={() => onOpenRecent?.(file)}
               >
@@ -80,13 +83,18 @@ export default function RecentFiles({
 
 /**
  * "12 minutes ago" from a timestamp, or '' if there isn't a usable one.
- * Intl.RelativeTimeFormat is native, so this costs no dependency.
+ * Intl.RelativeTimeFormat is native, so this costs no dependency, and it
+ * resolves "N minutes/hours/days ago" against the *browser's own* locale
+ * (the `undefined` locale argument) rather than the page's content locale on
+ * purpose - see RecentFilesMessages' header comment. Only the "just now"
+ * fallback below 60 seconds is a literal string this module owns, so it is
+ * the one piece `messages` overrides.
  */
-export function formatSavedAt(savedAt: number | undefined) {
+export function formatSavedAt(savedAt: number | undefined, messages: RecentFilesMessages = englishRecentFilesMessages) {
   if (typeof savedAt !== 'number' || !Number.isFinite(savedAt)) return '';
   const seconds = Math.round((savedAt - Date.now()) / 1000);
   const magnitude = Math.abs(seconds);
-  if (magnitude < 60) return 'just now';
+  if (magnitude < 60) return messages.justNow;
 
   const units: [Intl.RelativeTimeFormatUnit, number][] = [
     ['day', 86400],

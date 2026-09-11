@@ -1,0 +1,71 @@
+---
+// LOC-09: localized home page. Mirrors [tool].astro/[contentPage].astro's
+// shape exactly (getStaticPaths from the locale variants, the same
+// preview/noindex/alternates handling) but renders HomePageLayout.astro - the
+// same shared layout src/pages/index.astro uses - with a locale's merged
+// content instead of a static guide or a tool object.
+//
+// `/he/` matches this route exactly; `/he/sign/` matches [tool].astro. No
+// collision handling needed beyond what getStaticPaths already does for the
+// sibling routes (docs/home-page-localization-plan.md, section 5.1).
+import HomePageLayout from '../../layouts/HomePageLayout.astro';
+import { documentationLocales, getDocumentationLocaleByPrefix } from '../../i18n/documentationLocales';
+import { getLocalizedHomeContext, getLocalizedHomeVariants, mergeLocalizedHome } from '../../i18n/localizedHome';
+import { getLocalizedToolContext, mergeLocalizedTool } from '../../i18n/localizedTools';
+import { getDocumentationShellMessages } from '../../i18n/documentationMessages';
+import { homeContent } from '../../data/homeContent.js';
+import { toolsBySlug } from '../../data/tools.js';
+
+export async function getStaticPaths() {
+  const variants = await getLocalizedHomeVariants();
+  return variants
+    .filter((variant) => variant.locale !== 'en')
+    .map((variant) => {
+      const locale = documentationLocales.find((record) => record.id === variant.locale)!;
+      return {
+        params: { locale: locale.prefix },
+        props: { localeId: variant.locale },
+      };
+    });
+}
+
+const { localeId } = Astro.props;
+const routeLocale = getDocumentationLocaleByPrefix(Astro.params.locale ?? '');
+if (!routeLocale || routeLocale.id !== localeId) {
+  throw new Error(`Invalid localized home route: ${Astro.params.locale}`);
+}
+
+const context = await getLocalizedHomeContext(localeId);
+const home = context.effectiveLocale === 'en'
+  ? homeContent
+  : mergeLocalizedHome(homeContent, (context.entry as { data: Record<string, any> }).data);
+
+const messages = getDocumentationShellMessages(context.effectiveLocale);
+
+// The practice-document caption names its destination tool by name (docs/
+// home-page-localization-plan.md, section 2 row 21) - use that tool's own
+// localized name (the Sign tool's toolName field) when it has a published
+// edition in this locale, the same "documentation translated, editor stays
+// English" split /he/sign/ itself already draws, rather than hardcoding
+// "Sign & Fill" on every locale.
+const englishSignTool = toolsBySlug['sign'];
+const signContext = await getLocalizedToolContext('sign', context.effectiveLocale);
+const signTool = signContext.effectiveLocale === 'en'
+  ? englishSignTool
+  : mergeLocalizedTool(englishSignTool, (signContext.entry as { data: Record<string, any> }).data);
+---
+
+<HomePageLayout
+  home={home}
+  lang={context.lang}
+  dir={context.dir}
+  canonical={context.path}
+  alternates={context.preview ? [] : context.alternates}
+  noindex={context.preview}
+  locale={context.effectiveLocale}
+  variants={context.variants}
+  preview={context.preview}
+  messages={messages}
+  previewNotice={context.freshness === 'stale' && context.preview ? messages.stalePreviewNotice : messages.previewNotice}
+  signToolDisplayName={signTool.toolName}
+/>

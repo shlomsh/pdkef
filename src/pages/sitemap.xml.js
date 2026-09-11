@@ -14,8 +14,9 @@
 import { tools, toolsBySlug } from '../data/tools.js';
 import { contentPages } from '../data/contentPages.js';
 import { getCollection } from 'astro:content';
-import { documentationPath, getDocumentationLocale } from '../i18n/documentationLocales';
+import { documentationPath, documentationHomePath, getDocumentationLocale } from '../i18n/documentationLocales';
 import { getLocalizedToolVariants } from '../i18n/localizedTools';
+import { getLocalizedHomeVariants } from '../i18n/localizedHome';
 import { lastModifiedFor as lastmodFor, documentationSourceFiles } from '../lib/gitLastModified.js';
 
 const FALLBACK_SITE = 'https://pdkef.com';
@@ -67,8 +68,46 @@ export async function GET({ site }) {
     return [...editions, { hreflang: 'x-default', href: `${base}${documentationPath(slug)}` }];
   };
 
+  // LOC-09: the home page's own alternates group - independent from every
+  // tool's (docs/home-page-localization-plan.md, section 6), modeled directly
+  // on toolAlternates above. No alternate annotation until a second published
+  // edition exists, matching every other page family's rule; a draft
+  // localized home (status !== 'published') is excluded by
+  // getLocalizedHomeVariants' own filter in a non-preview build, same as
+  // getLocalizedToolVariants above.
+  const publishedHomeEditions = (await getLocalizedHomeVariants()).filter(
+    (variant) => variant.status === 'published',
+  );
+  const homeAlternates = () => {
+    const editions = [
+      { hreflang: 'en', href: `${base}${documentationHomePath('en')}` },
+      ...publishedHomeEditions
+        .filter((variant) => getDocumentationLocale(variant.locale).hreflang)
+        .map((variant) => ({ hreflang: getDocumentationLocale(variant.locale).hreflang, href: `${base}${variant.path}` })),
+    ];
+    if (editions.length < 2) return [];
+    return [...editions, { hreflang: 'x-default', href: `${base}${documentationHomePath('en')}` }];
+  };
+
   const urls = [
-    { loc: `${base}/`, changefreq: 'monthly', priority: '1.0', lastmod: lastmodFor(['src/pages/index.astro']) },
+    {
+      loc: `${base}/`,
+      changefreq: 'monthly',
+      priority: '1.0',
+      lastmod: lastmodFor(['src/pages/index.astro', 'src/layouts/HomePageLayout.astro', 'src/data/homeContent.js']),
+      alternates: homeAlternates(),
+    },
+    ...publishedHomeEditions.map((variant) => ({
+      loc: `${base}${variant.path}`,
+      changefreq: 'monthly',
+      priority: '0.9',
+      lastmod: lastmodFor([
+        `src/content/localized-home/${variant.locale}.yaml`,
+        'src/pages/[locale]/index.astro',
+        'src/layouts/HomePageLayout.astro',
+      ]),
+      alternates: homeAlternates(),
+    })),
     ...tools.map((tool) => ({
       loc: `${base}${tool.href}`,
       changefreq: tool.sitemapChangefreq,

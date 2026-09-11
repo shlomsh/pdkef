@@ -1,0 +1,84 @@
+# LOC-09: Hebrew draft of the home page ("/" -> "/he/"). status: draft on
+# purpose - this is an AI-drafted translation, not a native review, per
+# CLAUDE.md's "AI drafts are not native review" rule and the same workflow
+# LOC-02/LOC-03 already used for the tool pages. It renders at /he/ as a
+# noindex preview so it can be reviewed in a browser, and does not appear in
+# the sitemap, alternates, or index until a native reviewer signs off and
+# status flips to 'published' (see backlog/tasks/LOC-09.md for what's left).
+#
+# Terminology follows src/i18n/documentationMessages.ts's already-reviewed
+# Hebrew shell strings where a concept overlaps (עובד מקומית / חינם לכולם /
+# קוד פתוח ברישיון MIT...) rather than inventing new terms - LOC-09's design
+# doc, section 7.1. The founder-story vocabulary (the errand, the consent
+# form, the paywall) has no existing reviewed precedent, so it is a first
+# draft, flagged as such for the reviewer.
+#
+# sourceHash is the normalized hash of src/data/homeContent.js's
+# HOME_SOURCE_FIELDS (src/i18n/localizedHome.ts) - it must be recomputed and
+# this file re-reviewed if the English source changes.
+title: 'כלי PDF חינמיים - פרטי, מקומי, בלי הרשמה | PDkef'
+description: 'חבילת כלי PDF חינמית וקוד פתוח שרצה כולה בדפדפן שלכם. מיזוג, חתימה, פיצול, טשטוש, כיווץ והמרה של קבצי PDF, בלי העלאה לשרת, בלי חשבון ובלי סימן מים. הקבצים שלכם לא עוזבים את המכשיר.'
+h1: 'כלי PDF חינמיים שרצים על המכשיר שלכם'
+h1Accent: 'על המכשיר שלכם'
+subhead: 'מיזוג, חתימה, פיצול, טשטוש וכיווץ קבצי PDF. בלי הרשמה, בלי התקנה, שום דבר לא יוצא מהמכשיר שלכם.'
+faq:
+  - question: 'האם הכלים באמת חינמיים?'
+    answer: 'כן. כל כלי חינמי לגמרי, בלי תשלום, בלי הגבלת שימוש ובלי סימני מים.'
+  - question: 'צריך להירשם או ליצור חשבון?'
+    answer: 'לא. בלי חשבון, בלי אימייל ובלי תקופת ניסיון. פותחים כלי ומתחילים.'
+  - question: 'הקבצים שלי מועלים לשרת?'
+    answer: 'לא. קובצי ה-PDF שלכם נשארים במכשיר. כל כלי פועל מקומית בדפדפן, במחשב או בנייד.'
+  - question: 'האם PDkef קוד פתוח?'
+    answer: 'כן. הקוד ברישיון MIT ופתוח לכל מי שרוצה לבדוק אותו, להשתמש בו או לשפר אותו.'
+founderStory:
+  kicker: 'למה בניתי את זה'
+  heading: 'כלי PDF פשוטים, שנועדו לשיתוף'
+  paragraph1: 'לבת הזוג שלי היה צריך למזג שקופיות קורס לפני מבחן, ולחתום על טופס קייטנה שהגיע בוואטסאפ. הכלים שמצאנו הגבילו את מספר העמודים, דרשו מנוי, או ביקשו להעלות מסמכים אישיים.'
+  paragraph2: 'אז בניתי את PDkef. רציתי שכלי PDF יומיומיים יהיו חינמיים וזמינים לכולם, בכל מכשיר. ואז רציתי לשתף אותם.'
+  paragraph3: 'הכול פועל בדפדפן שלכם. זה שומר על פרטיות הקבצים שלכם, ומאפשר לכלים להישאר זולים מספיק כדי להישאר חינמיים.'
+  pills:
+    - title: 'חינם לתמיד'
+      subtitle: 'בלי הגבלות, בלי תפסים'
+    - title: 'פרטי'
+      subtitle: 'הקבצים לא עוזבים את המכשיר שלכם'
+    - title: 'קוד פתוח'
+      subtitle: 'בדקו את הקוד בעצמכם'
+draftPersistence:
+  kicker: 'פרטיות ונוחות'
+  heading: 'סוגרים את הלשונית. שומרים על ההתקדמות.'
+  paragraph: 'קובץ ה-PDF והעריכות שלכם נשמרים בדפדפן הזה תוך כדי העבודה. חוזרים אחרי סגירת לשונית או הפעלה מחדש של המחשב, וממשיכים מהטיוטה השמורה.'
+  pill: 'נשמר אוטומטית במכשיר'
+  availability: 'זמין בכלים <strong>חתימה ומילוי</strong> ו<strong>טשטוש ומחיקה</strong>. הטיוטות נשארות במכשיר הזה, וניקוי נתוני הדפדפן מוחק אותן.'
+offlineInstall:
+  heading: 'כלי ה-PDF שלכם, גם בלי אינטרנט'
+  lead: 'התקינו את PDkef כדי לקבל מקום על מסך הבית. ברגע שכלי מוכן לעבודה לא מקוונת, תוכלו לעבוד גם בלי חיבור לאינטרנט.'
+  tabs:
+    - label: 'Chrome ו-Edge'
+      steps:
+        - 'גשו לאתר בכרום או באדג׳.'
+        - 'לחצו על סמל <strong>ההתקנה</strong> (מסך עם חץ למטה) בצד שורת הכתובת.'
+        - 'לחלופין, פתחו את תפריט הדפדפן (שלוש נקודות), בחרו <strong>שמירה ושיתוף</strong>, ולחצו על <strong>התקנת PDkef</strong>.'
+    - label: 'Safari (iOS)'
+      steps:
+        - 'פתחו את האתר ב-<strong>Safari</strong> באייפון או באייפד.'
+        - 'הקישו על כפתור <strong>השיתוף</strong> (ריבוע עם חץ למעלה) בסרגל הכלים.'
+        - 'גללו ברשימת האפשרויות ובחרו <strong>הוספה למסך הבית</strong>.'
+    - label: 'Safari (macOS)'
+      steps:
+        - 'פתחו את האתר ב-<strong>Safari</strong> במחשב Mac.'
+        - 'לחצו על כפתור <strong>השיתוף</strong> בסרגל הכלים של Safari, בפינה הימנית העליונה.'
+        - 'בחרו <strong>הוספה לדוק...</strong> מהתפריט הנפתח ולחצו על <strong>הוספה</strong>.'
+privacyOpenSource:
+  kicker: 'שקוף ובטוח'
+  heading: 'פרטי מעצם התכנון. פתוח לבדיקה.'
+  privacyHeading: 'פרטיות'
+  privacyBody: 'מיזוג, חתימה, טשטוש ועוד, ישירות בדפדפן שלכם. קובצי ה-PDF נשארים במכשיר שלכם, בלי העלאות ובלי שרת עיבוד.'
+  openSourceHeading: 'קוד פתוח'
+  openSourceBody: 'PDkef ברישיון MIT. <a href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">קראו את הקוד ב-GitHub</a>, או עיינו ב<a href="/licenses/">רישיונות הקוד הפתוח</a> שמאחורי הכלים.'
+  openSourcePill: 'רישיון MIT'
+closing:
+  heading: 'נסו את זה.'
+  backLink: 'חזרה לסביבת העבודה ↑'
+locale: 'he'
+status: 'draft'
+sourceHash: 'fnv1a64:cf70cc82c4b64c34'

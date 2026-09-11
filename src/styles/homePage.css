@@ -13,3 +13,5 @@
 @source "../components/SeoSchema.astro";
 @source "../data/tools.js";
 @source "../pages/index.astro";
+@source "../pages/[locale]/index.astro";
+@source "../layouts/HomePageLayout.astro";
