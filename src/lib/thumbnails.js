@@ -5,6 +5,8 @@
 // content-hashes the worker as a same-origin asset automatically, so it's
 // never fetched from a CDN - required for both offline support and the
 // no-third-party-network privacy guarantee.
+import { getPdfRenderContext } from '../editor/adapters/pdf/renderContext.js';
+
 let pdfjsLib;
 
 async function getPdfjs() {
@@ -54,7 +56,7 @@ export async function renderThumbnail(file, opts = {}) {
     const canvas = document.createElement('canvas');
     canvas.width = viewport.width;
     canvas.height = viewport.height;
-    const context = canvas.getContext('2d');
+    const context = getPdfRenderContext(canvas);
 
     // A PDF page is paper: it assumes white behind it. Canvas starts
     // transparent, and JPEG has no alpha, so without this the transparent
@@ -132,7 +134,7 @@ export async function renderPdfThumbnails(file, onPageRender) {
       const canvas = document.createElement('canvas');
       canvas.width = viewport.width;
       canvas.height = viewport.height;
-      const context = canvas.getContext('2d');
+      const context = getPdfRenderContext(canvas);
 
       await page.render({ canvasContext: context, viewport }).promise;
       const dataUrl = canvas.toDataURL('image/png');
