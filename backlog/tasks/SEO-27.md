@@ -57,3 +57,16 @@ Small absolute numbers, but a real signal and the cheapest localisation availabl
 - A recorded decision on Hindi with the query evidence above, and a stated trigger that would reopen it.
 - `hreflang` and canonical correctness verified for anything published; `npm run test:seo` passes.
 - The decision and its reasoning summarised in the findings doc, not only here.
+
+## Addendum (2026-09-11): the "every India query is in English" argument is a blind spot, not a finding
+
+Shlomi's correction, recorded so the reasoning above is not reused: Search Console only lists queries
+the site got impressions for, and an English-only site never gets an impression on a Hebrew or
+Indonesian query. So the export *cannot* contain non-English queries whatever the demand is, and "not
+one of the top 200 queries is in Devanagari" says nothing about how India searches. The Hindi
+conclusion above may still be right (the category is plausibly searched in English and Hinglish in
+India), but it has to be shown from outside GSC. That measurement, and the localized *tool* pages the
+guides here do not cover, now live in the `localized-search` epic: [LOC-01](LOC-01.md) measures,
+[LOC-02](LOC-02.md) builds the route, [LOC-03](LOC-03.md) is the Hebrew pilot. This ticket keeps its
+scope: the decision on, and review of, the eight Hebrew guide drafts, now sequenced by
+[LOC-05](LOC-05.md) to publish alongside the Hebrew tool pages rather than before them.

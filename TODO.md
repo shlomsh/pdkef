@@ -143,6 +143,20 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SEO-26 | P3 | [SEO-26](backlog/tasks/SEO-26.md) · Say what PDkef does not do, and why, on a page that already exists |
 | SEO-27 | P3 | [SEO-27](backlog/tasks/SEO-27.md) · Decide the localization question: Hebrew is nearly free, Hindi is not the win it looks like |
 | SEO-28 | P1 | [SEO-28](backlog/tasks/SEO-28.md) · Redact and Split earn the most and are recrawled the least, and nothing we control explains it |
+| SEO-29 | P3 | [SEO-29](backlog/tasks/SEO-29.md) · Every ranking how-to competitor shows a visible date or byline; our content pages show neither |
+| SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before |
+
+
+## Localized search: non-English query demand and localized tool pages
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| LOC-01 | P2 | [LOC-01](backlog/tasks/LOC-01.md) · Measure non-English demand from outside Search Console: the gate for the second language |
+| LOC-02 | P2 | [LOC-02](backlog/tasks/LOC-02.md) · Localized tool pages: the route, the reviewed copy source, and the island message catalogue |
+| LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house |
+| LOC-04 | P3 | [LOC-04](backlog/tasks/LOC-04.md) · Indonesian: the one large market where the category is searched in-language, gated on LOC-01 and the Hebrew pilot |
+| LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
+| LOC-06 | P3 | [LOC-06](backlog/tasks/LOC-06.md) · Per-locale measurement: extend the refresh procedure so localized pages are read separately |
 
 
 ## Migrated context and history
