@@ -27,6 +27,14 @@ There is also a long tail of typo and non-English variants in the same cluster -
 `cut pf`, `divide pdg`, `pdf breaker`, `sparge pdf`, `pef split` - which is what a page looks like when
 Google has classified it correctly but ranks it nowhere. Those are not targets; they are a symptom.
 
+**Before starting (added 2026-09-11):** `/split/` was last crawled by Google on **2026-07-05**. The
+position-85 numbers above describe that snapshot. `Extract Pages` has been in the title and h1 since
+2026-07-04, so Google did see that - but `bb88469` (2026-08-09, "Answer the 'extractor' and custom-target
+searches people already make"), including the FAQ entry this ticket calls buried, has never been indexed
+at all. Two consequences: the baseline for this ticket is a page a month older than the one in the repo,
+and whatever vocabulary change ships here is not done when it merges - it is done when it is recrawled.
+Request indexing for `/split/` as part of finishing, and confirm with `npm run seo:crawl-staleness`.
+
 **The work is vocabulary, not features.** Decide where "extract" belongs in the title, h1, subhead and
 step copy without losing "split", which is the higher-volume head term and is currently the whole
 identity of the page. The two are the same operation to a user, so this is a phrasing problem with a

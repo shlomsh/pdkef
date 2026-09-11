@@ -190,6 +190,40 @@ URL Inspection does not provide.
 and its interesting half is hand-entered, so in `ci.yml` it would only buy a check that fails for
 reasons no commit caused. It is a report to run at the monthly SEO-02 refresh.
 
-**Still outstanding:** the manual capture itself. Nobody has read the 21 crawl dates out of URL
-Inspection yet, so the file is still all `null` and the script currently reports "0 proven stale, 21
-with no crawl date". That sweep is the remaining work, and it needs console access.
+**Capture done 2026-09-11** (Shlomi, URL Inspection, all 21 URLs). The ten never-crawled URLs are the
+nine Discovered ones plus `/licenses/`, as expected. The eleven crawled ones are where the news is:
+
+| URL | Content changed | Last crawled | Verdict |
+| --- | --- | --- | --- |
+| `/split/` | 2026-08-09 | **2026-07-05** | STALE, 35 days |
+| `/redact/` | 2026-09-10 | **2026-07-07** | STALE, 65 days |
+| `/compress/` | 2026-09-10 | 2026-08-09 | STALE |
+| `/how-to-sign-a-pdf-on-windows/` | 2026-08-29 | 2026-08-20 | STALE |
+| `/how-to-sign-a-pdf-on-iphone/` | 2026-09-05 | 2026-08-20 | STALE |
+| `/sign/` | 2026-09-09 | 2026-08-21 | STALE |
+| `/how-to-sign-a-pdf-on-android/` | 2026-09-05 | 2026-08-21 | STALE |
+| `/how-to-sign-a-pdf-on-mac/` | 2026-09-04 | 2026-08-23 | STALE |
+| `/` | 2026-09-10 | 2026-08-30 | STALE |
+| `/merge/` | 2026-08-14 | 2026-08-18 | current |
+| `/unlock/` | 2026-08-10 | 2026-08-21 | current |
+
+**Nine of the eleven crawled pages are stale.** What ranks for them is not what we serve. Three things
+in that table matter beyond the count:
+
+- **The two pages that earn the most are crawled the least.** `/redact/` (64% of all clicks) was last
+  crawled on 2026-07-07 and `/split/` on 2026-07-05, both over two months ago. Googlebot visited the
+  site repeatedly through late August - eight URLs between 08-18 and 08-30 - and skipped both of them
+  every time. So this is not simply "the domain gets little crawl budget"; it is budget being spent on
+  the wrong pages, and the two that hold the traffic getting none of it.
+- **`/redact/`'s 07-07 crawl predates the 2026-07-09 logo change by two days.** SEO-04 saw the old blue
+  mark in the AI Overview card and had to reason about a separate favicon crawler; the simpler
+  explanation is now on the table - the page copy Google holds is from before the retheme, full stop.
+- **The entire Sign cluster is stale**: `/sign/` and all four OS guides. SEO-07 is rewriting the Sign
+  page's language story right now, into a page Google last read on 2026-08-21. That work is not done
+  when it merges; it is done when it is recrawled, and an indexing request belongs in its definition of
+  done. Same for SEO-09's `/split/` vocabulary work, whose `bb88469` groundwork from 2026-08-09 has
+  never been indexed either.
+
+**Indexing requested today for `/`, `/redact/` and `/compress/`.** Still to request: `/split/`,
+`/sign/`, and the four `how-to-sign-a-pdf-on-*` guides. The script prints the list; run it after the
+next capture and it becomes the reindex queue.

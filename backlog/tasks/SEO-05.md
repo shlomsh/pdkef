@@ -102,6 +102,7 @@ this edit, check that the indexed snippet actually changed**: search the cluster
 the displayed title against what `curl https://pdkef.com/compress/` serves. A flat CTR against a stale
 snippet means "not yet recrawled", not "the hypothesis was wrong".
 
-Whether `/compress/` was in fact stale was never checked - the finding is `/redact/`'s and the shared
-commit is the reason to suspect it here. Indexing for `/compress/` was requested on 2026-09-11 either
-way, so the recrawl is queued regardless of which it turns out to be.
+*Confirmed 2026-09-11, not just suspected:* URL Inspection shows `/compress/` last crawled on
+**2026-08-09**, a month before this ticket's 2026-09-10 change. The snippet fix has never been indexed.
+Indexing was requested the same day. Do not read the 2026-10-08 CTR until the indexed title has changed
+(SEO-01 has the full sweep and `npm run seo:crawl-staleness` the instrument).
