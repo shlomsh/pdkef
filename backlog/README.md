@@ -15,11 +15,19 @@ legacy_state: "Open"
 ---
 ```
 
-Edit a task file directly, then regenerate the Markdown summaries if you want committed snapshots:
+Edit a task file directly, then regenerate the Markdown summaries:
 
 ```sh
-node scripts/generate-backlog.mjs
+npm run generate:backlog
 ```
+
+CI runs `npm run check:backlog`, which validates every task file (filename matches id, unique ids, the
+enums above, `depends_on` targets exist, no self-dependencies or cycles, epic registered in
+`scripts/backlog-epics.mjs`) and fails if `BACKLOG.md` or `TODO.md` is stale, so a task edit is not
+finished until the views are regenerated and committed. Adding an epic is one row in
+`scripts/backlog-epics.mjs`; both the generated views and the board read it. An epic whose every task is
+done or retired collapses into a "Closed epics" section at the bottom of `BACKLOG.md` and behind a
+"Show closed epics" toggle on the board, so the lane view is live work only.
 
 For a browser view that stays synchronized without generating HTML, run the localhost-only viewer:
 

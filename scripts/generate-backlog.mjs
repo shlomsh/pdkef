@@ -1,34 +1,18 @@
 #!/usr/bin/env node
+// Writes BACKLOG.md and TODO.md from backlog/tasks/*.md. With --check it
+// validates the task files and exits non-zero if either generated view is
+// stale, without writing anything; CI runs that mode (ARCH-12).
 import { readFile, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
-import { readTasks } from './backlog-data.mjs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { readTasks, validateTasks } from './backlog-data.mjs';
+import { epics, statuses, isEpicActive } from './backlog-epics.mjs';
 
-const projectDirectory = resolve(new URL('..', import.meta.url).pathname);
+const projectDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const backlogPath = resolve(projectDirectory, 'BACKLOG.md');
 const todoPath = resolve(projectDirectory, 'TODO.md');
 const contextPath = resolve(projectDirectory, 'backlog/reference/migrated-todo-context.md');
-
-// [key, BACKLOG.md label, TODO.md heading]. The third field exists because the
-// compatibility index kept its original, longer headings when the monolithic
-// TODO was split, and those headings are linked to from docs/. Adding an epic
-// is one row here plus the matching lane in serve-backlog-board.mjs.
-const epics = [
-  ['sign-tool-architecture', 'Sign tool architecture', 'Sign Tool architecture review (2026-08-28)'],
-  ['editor-architecture', 'Editor architecture', 'Editor module boundaries (architecture)'],
-  ['fonts-and-script-support', 'Fonts and script support', 'Internationalization: fonts for scripts beyond Hebrew/Latin'],
-  ['landing-story-demo', 'Landing story and demo', 'The landing story and demo'],
-  ['mobile-round-trip', 'Mobile round trip', 'Mobile round trip: fill a form from a chat and send it back'],
-  ['site-quality', 'Site quality', 'Site quality: accessibility, CSS correctness and theming'],
-  ['search-acquisition', 'Search acquisition', 'Search acquisition: competitive keyword gaps'],
-  ['localized-search', 'Localized search', 'Localized search: non-English query demand and localized tool pages'],
-];
-const statuses = [
-  ['open', 'Open'],
-  ['in_progress', 'In progress'],
-  ['blocked', 'Blocked'],
-  ['done', 'Done'],
-  ['retired', 'Retired'],
-];
+const REGENERATE = 'npm run generate:backlog';
 
 function link(task) {
   return `[${task.id}](backlog/tasks/${task.id}.md) · ${task.title}`;
@@ -39,21 +23,30 @@ function table(tasks) {
   return ['| ID | Priority | Task |', '| --- | --- | --- |', ...tasks.map((task) => `| ${task.id} | ${task.priority} | ${link(task)} |`), ''].join('\n');
 }
 
-function summary(tasks) {
-  const sections = epics.map(([key, label]) => {
-    const groups = statuses.map(([status, statusLabel]) => {
-      const items = tasks.filter((task) => task.epic === key && task.status === status);
-      return `### ${statusLabel}\n\n${table(items)}`;
-    }).join('\n');
-    return `## ${label}\n\n${groups}`;
+function epicSection(epic, tasks, visibleStatuses) {
+  const groups = visibleStatuses.map(([status, statusLabel]) => {
+    const items = tasks.filter((task) => task.epic === epic.key && task.status === status);
+    return `### ${statusLabel}\n\n${table(items)}`;
   }).join('\n');
-  return `<!-- GENERATED FILE: edit backlog/tasks/*.md, then run node scripts/generate-backlog.mjs -->
+  return `## ${epic.label}\n\n${groups}`;
+}
+
+export function summary(tasks) {
+  const active = epics.filter((epic) => isEpicActive(epic.key, tasks));
+  const closed = epics.filter((epic) => !isEpicActive(epic.key, tasks));
+  const sections = active.map((epic) => epicSection(epic, tasks, statuses)).join('\n');
+  // A closed epic has only done/retired tasks, so its open/in-progress/blocked
+  // tables would all read "_None._" - list what it shipped and nothing else.
+  const history = closed.length
+    ? `\n# Closed epics\n\nEvery task in these epics is done or retired. They collapse here so the board above is only live work; the task files keep the full record.\n\n${closed.map((epic) => epicSection(epic, tasks, statuses.filter(([status]) => status === 'done' || status === 'retired'))).join('\n')}`
+    : '';
+  return `<!-- GENERATED FILE: edit backlog/tasks/*.md, then run ${REGENERATE} -->
 
 # Backlog
 
 The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This summary is generated and read-only.
 
-${sections}`;
+${sections}${history}`;
 }
 
 function slug(heading) {
@@ -66,10 +59,10 @@ function slug(heading) {
     .replace(/\s+/g, '-');
 }
 
-function compatibilityIndex(tasks, context) {
-  const reserved = new Set(['Open work', ...epics.map(([, , heading]) => heading)]);
+export function compatibilityIndex(tasks, context) {
+  const reserved = new Set(['Open work', ...epics.map((epic) => epic.heading)]);
   const references = context.split('\n').filter((line) => /^#{2,3}\s+/.test(line)).map((line) => line.replace(/^#+\s+/, '')).filter((heading) => !reserved.has(heading));
-  return `<!-- GENERATED COMPATIBILITY INDEX: edit backlog/tasks/*.md, then run node scripts/generate-backlog.mjs -->
+  return `<!-- GENERATED COMPATIBILITY INDEX: edit backlog/tasks/*.md, then run ${REGENERATE} -->
 
 # TODO
 
@@ -79,7 +72,7 @@ function compatibilityIndex(tasks, context) {
 
 See [BACKLOG.md](BACKLOG.md) for the generated status view.
 
-${epics.map(([key, , heading]) => `## ${heading}\n\n${table(tasks.filter((task) => task.epic === key))}`).join('\n\n')}
+${epics.map((epic) => `## ${epic.heading}\n\n${table(tasks.filter((task) => task.epic === epic.key))}`).join('\n\n')}
 
 ## Migrated context and history
 
@@ -89,8 +82,31 @@ ${references.map((heading) => `### ${heading}\n\nSee [migrated context](backlog/
 `;
 }
 
-const tasks = await readTasks();
-const context = await readFile(contextPath, 'utf8');
-await writeFile(backlogPath, summary(tasks));
-await writeFile(todoPath, compatibilityIndex(tasks, context));
-console.log(`Generated BACKLOG.md and TODO.md from ${tasks.length} canonical task files.`);
+async function main() {
+  const check = process.argv.includes('--check');
+  const tasks = await readTasks();
+  const errors = validateTasks(tasks);
+  if (errors.length) {
+    console.error(`Backlog validation failed (${errors.length}):\n${errors.map((error) => `  - ${error}`).join('\n')}`);
+    process.exit(1);
+  }
+  const context = await readFile(contextPath, 'utf8');
+  const generated = [[backlogPath, summary(tasks)], [todoPath, compatibilityIndex(tasks, context)]];
+  if (check) {
+    const stale = [];
+    for (const [path, content] of generated) {
+      const current = await readFile(path, 'utf8').catch(() => '');
+      if (current !== content) stale.push(path.slice(projectDirectory.length));
+    }
+    if (stale.length) {
+      console.error(`Generated backlog views are stale: ${stale.join(', ')}. Run \`${REGENERATE}\` and commit the result.`);
+      process.exit(1);
+    }
+    console.log(`Backlog valid: ${tasks.length} task files, BACKLOG.md and TODO.md current.`);
+    return;
+  }
+  for (const [path, content] of generated) await writeFile(path, content);
+  console.log(`Generated BACKLOG.md and TODO.md from ${tasks.length} canonical task files.`);
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

@@ -1,7 +1,7 @@
 ---
 id: "SEO-06"
 title: "Nine URLs have never been crawled, and three of them are working tools"
-status: "open"
+status: "blocked"
 priority: "P1"
 epic: "search-acquisition"
 phase: "near-term"
@@ -224,3 +224,9 @@ pages that *were* recrawled, so the internal-linking and distinctiveness levers 
 nothing to act on for either page - the problem is recrawl scheduling on pages that already rank, not
 crawl discovery on pages that don't. Scoped separately as
 [SEO-28](./SEO-28.md), which has the full header/sitemap/link-count check.
+
+## Status 2026-09-11: blocked on the Week 4 gate
+
+Content and link work shipped; `/edit-pdf/` deliberately descoped (see above). What remains is the
+coverage recheck on **2026-10-08**, which is also the gate for every new-URL ticket (SEO-19 to 24).
+Marked `blocked` until that capture; reopen with a finding if any of the nine is still uncrawled.

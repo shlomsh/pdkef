@@ -1,7 +1,7 @@
 ---
 id: "SEO-03"
 title: "External signals: the work that moves the constraint and does not live in this repo"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "search-acquisition"
 phase: "longer-term"

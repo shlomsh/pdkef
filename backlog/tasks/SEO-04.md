@@ -1,7 +1,7 @@
 ---
 id: "SEO-04"
 title: "Thirteen blur queries are on page one and earning zero clicks"
-status: "open"
+status: "blocked"
 priority: "P1"
 epic: "search-acquisition"
 phase: "quick-win"
@@ -316,3 +316,10 @@ found no room for a fourth, and SEO-06 has not yet shown the two existing guides
 all. Revisit only at the 2026-10-08 refresh, and only if `/blur-vs-blackout-vs-delete-pdf/` is by
 then indexed and drawing `blur text` impressions of its own; if it is, extend that page rather than
 add one.
+
+## Status 2026-09-11: blocked on the 2026-10-08 refresh
+
+Shipped and indexing requested; nothing left to build. The remaining work is reading the verdict from
+the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
+check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
+today; close it, or reopen it with a finding, from that refresh.

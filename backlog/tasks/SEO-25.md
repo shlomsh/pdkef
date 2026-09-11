@@ -1,7 +1,7 @@
 ---
 id: "SEO-25"
 title: "A before-and-after preview on Compress, so quality is shown rather than promised"
-status: "open"
+status: "blocked"
 priority: "P3"
 epic: "search-acquisition"
 phase: "later"
@@ -84,3 +84,10 @@ tab confirmed `thumbnails.js` only loads after the toggle is tapped, no CSP viol
 **Left for the next refresh (2026-10-08), per acceptance criterion 5**: CTR effect on the
 compress-quality cluster. This needs the same Search Console pull as SEO-05/SEO-13/SEO-04 - see the
 findings doc status board row for SEO-25 rather than duplicating the number here once it exists.
+
+## Status 2026-09-11: blocked on the 2026-10-08 refresh
+
+Shipped and indexing requested; nothing left to build. The remaining work is reading the verdict from
+the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
+check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
+today; close it, or reopen it with a finding, from that refresh.

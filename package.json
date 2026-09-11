@@ -29,6 +29,7 @@
     "generate:licenses": "node scripts/runtime-license-inventory.mjs --write",
     "generate:language-acceptance": "node scripts/generate-language-acceptance.mjs",
     "generate:backlog": "node scripts/generate-backlog.mjs",
+    "check:backlog": "node scripts/generate-backlog.mjs --check",
     "backlog:serve": "node scripts/serve-backlog-board.mjs",
     "seo:crawl-staleness": "node scripts/seo-crawl-staleness.mjs"
   },

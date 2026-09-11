@@ -1,7 +1,7 @@
 ---
 id: "SEO-17"
 title: "One content page on portal size limits, instead of three doorway pages"
-status: "open"
+status: "blocked"
 priority: "P2"
 epic: "search-acquisition"
 phase: "near-term"
@@ -61,3 +61,10 @@ measurements. Four to twelve FAQ entries.
 - The ten-page-scan limitation is stated in the body, not only in a FAQ answer.
 - `npm run test:seo` passes; FAQ mirrored; single `<h1>`; trailing slashes correct.
 - It is the only new URL shipped that week, per the epic's sequencing.
+
+## Status 2026-09-11: blocked on the 2026-10-08 refresh
+
+Shipped and indexing requested; nothing left to build. The remaining work is reading the verdict from
+the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
+check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
+today; close it, or reopen it with a finding, from that refresh.

@@ -1,7 +1,7 @@
 ---
 id: "SEO-10"
 title: "Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it"
-status: "in_progress"
+status: "blocked"
 priority: "P2"
 epic: "search-acquisition"
 phase: "near-term"
@@ -48,3 +48,10 @@ A promise of no limits that a visitor discovers is false on a 400MB file costs m
 `seoDescription` was rewritten to mention the limit people search for. `npm run test:seo`, `test:css`,
 `test:weight` and the full unit suite pass. Left open: the before/after position and CTR reading in the
 SEO-02 table, which needs a Search Console pull after the change is live and recrawled.
+
+## Status 2026-09-11: blocked on the 2026-10-08 refresh
+
+Shipped and indexing requested; nothing left to build. The remaining work is reading the verdict from
+the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
+check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
+today; close it, or reopen it with a finding, from that refresh.
