@@ -98,6 +98,18 @@ const iconTone = slug === 'sign'
     display: none;
   }
 
+  /* Below the desktop breakpoint the hero opens with 56px (pt-14) of air
+     above the title. That is the opening-statement spacing; once a file is
+     open the title is orientation, and on a phone those 56px were a real
+     share of what pushed a tool's primary action (Compress's button, most
+     visibly) below the fold. */
+  @media (max-width: 1023px) {
+    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable],
+    :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] {
+      padding-top: 1.5rem;
+    }
+  }
+
   /* The title stays, one step quieter: it is orientation now rather than the
      page's opening statement. */
   @media (min-width: 1024px) {

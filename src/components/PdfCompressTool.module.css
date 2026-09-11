@@ -426,25 +426,54 @@
   border-color: var(--color-primary);
 }
 
-/* Desktop-only compaction: with the options grid now visible before a file
-   is even picked (this session's redesign) plus the unified AppBar chips,
-   the page was ~70-100px taller than a typical laptop viewport. Mobile is a
-   naturally scrolling context and keeps the roomier spacing above - these
-   trims are about fitting a fixed-height desktop viewport, not about
-   shrinking touch targets or line length anywhere. */
-@media (min-width: 1024px) {
+/* Phones: the four cards stack, and with every card carrying its pros/cons
+   the Compress button landed ~550px below the fold once a file was open.
+   Only the selected card shows its pros/cons here (Recommended by default);
+   tapping another card selects it and opens them. Nothing is lost, it is
+   one tap away, and the whole options list fits in about half the height. */
+@media (max-width: 1023px) {
   .compress-options {
     margin: 1rem 0;
   }
 
   .compress-card {
     padding: 1rem;
-    gap: 0.4rem;
+  }
+
+  .compress-card:not(.is-selected) .compress-pro-con {
+    display: none;
+  }
+}
+
+/* Desktop-only compaction: with the options grid now visible before a file
+   is even picked (this session's redesign) plus the unified AppBar chips,
+   the page was ~70-100px taller than a typical laptop viewport. These trims
+   are about fitting a fixed-height desktop viewport, not about shrinking
+   touch targets or line length anywhere. Budget, measured at 1440px wide
+   with a file open: the button's bottom edge has to clear ~650px, which is
+   what a 1366x768 laptop leaves under Chrome's tab strip and bookmarks bar. */
+@media (min-width: 1024px) {
+  .compress-options {
+    margin: 0.75rem 0;
+  }
+
+  .compress-card {
+    padding: 0.85rem 1rem;
+    gap: 0.35rem;
   }
 
   .compress-card.is-recommended,
   .target-card {
-    padding-top: 1.35rem;
+    padding-top: 1.2rem;
+  }
+
+  .compress-card-desc {
+    line-height: 1.35;
+  }
+
+  .pro-item,
+  .con-item {
+    line-height: 1.3;
   }
 
   .compress-pro-con {
@@ -453,7 +482,37 @@
     gap: 0.2rem;
   }
 
+  /* Target Size reads as one line on desktop: icon, title, tag, then the
+     description running on to the right, rather than title over
+     description. Same content, half the height. */
+  .target-card-main {
+    align-items: center;
+  }
+
+  .target-card-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
   .target-card-body {
-    gap: 0.35rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.85rem;
+  }
+
+  .target-card .compress-card-header {
+    width: auto;
+    flex: none;
+  }
+
+  .target-card .compress-card-desc {
+    flex: 1 1 18rem;
+    min-width: 0;
+  }
+
+  .target-size-panel {
+    margin-top: 0.6rem;
+    padding: 0.6rem 1rem;
   }
 }
