@@ -210,7 +210,7 @@ SERP's shape), and Spain's `y sin aplicación` is the sign-without-an-app intent
 
 | Language | 1. Trends share | 2. Weak incumbent to beat | 3. Reviewer | Verdict |
 | --- | --- | --- | --- | --- |
-| Vietnamese | **Cleared, 6x to 12x** on compress, merge, sign. **Blur (group E, 2026-09-12): below Trends' floor**, `làm mờ pdf` three one-week blips and a rise in the last two weeks, the other four phrasings flat at 0 | **Not met**: majors native, six-figure reviews, on-device claim already held by O.Convertor | None | Demand yes, generic tool page no (Indonesian's shape); **blur pilot no**, the demand half fails |
+| Vietnamese | **Cleared, 6x to 12x** on compress, merge, sign. **Blur (group E, 2026-09-12): below Trends' floor**, `làm mờ pdf` three one-week blips and a rise in the last two weeks, the other four phrasings flat at 0. **Target-size (2026-09-12): below the floor too**, `nén pdf` strong and steady, `giảm dung lượng pdf` about 40% of it, `dưới 1mb` / `2mb` / `5mb` flat at 0 with one blip | **Not met**: majors native, six-figure reviews, on-device claim already held by O.Convertor | None | Demand yes, generic tool page no (Indonesian's shape); **blur pilot no**, the demand half fails |
 | Turkish | **Cleared** on compress (13x); sign at parity. **Target-size (group F, 2026-09-12): below Trends' floor**, `pdf küçültme` a strong steady line, `pdf boyutu küçültme` about a tenth of it, `1 mb` / `5 mb` / `10 mb` forms all flat at 0 | **Not met**: same field; target-size related searches (`5 MB`, `10 MB`, `80`) are the opening | None | Same; the niche signal is real in related searches and autocomplete but too small for Trends, same shape as Spanish |
 | Spanish | **Cleared, 13x to 20x** | **Not met**: iLovePDF's home language; UnePDF holds the on-device claim at 3; `a 1MB / a 2MB` related searches | Easiest to source | Same; **easiest niche pilot to staff** |
 | Italian | **Cleared, 7x**; not on Google's translated-results list, so a native page adds the most | **Not met**: same field, regispro.it holds the on-device claim | Sourceable | Same |
@@ -330,7 +330,7 @@ scratchpad, reproducible with the script):
   `20mb` / `500kb`, `siêu nén pdf dưới 1mb`, `giảm dung lượng file scan pdf`, `nén file pdf cực mạnh`.
   `nén pdf dưới 2mb` was the suggestion most seeds converged on. Below Trends' floor by the Turkish
   and Spanish precedent, but autocomplete's threshold is lower than Trends', so it is real repeat
-  volume; second candidate after Indonesian.
+  volume; second candidate after Indonesian. **Measured the same day: below Trends' floor** (`nén pdf` steady, `giảm dung lượng pdf` at 40% of it, all `dưới N mb` forms flat), so Vietnamese drops out and Indonesian is the only in-language candidate with an open question.
 - **Mexico and Italy carry it too** (`pdf menos de 1mb` / `500kb` / `300 kb`, `reducir pdf a 2mb`,
   `comprimir pdf a 2mb`; `ridurre pdf a 2 mb`, `comprimere pdf a 1 mb gratis`), consistent with the
   related-searches blocks we saw, and with the Trends reading that it is small.
