@@ -1,12 +1,12 @@
 ---
 id: "SEO-25"
 title: "A before-and-after preview on Compress, so quality is shown rather than promised"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "search-acquisition"
 phase: "later"
 depends_on: ["SEO-05", "SEO-13"]
-legacy_state: "Open"
+legacy_state: "Done 2026-09-11"
 ---
 
 # SEO-25 · A before-and-after preview on Compress, so quality is shown rather than promised
