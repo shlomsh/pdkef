@@ -32,6 +32,9 @@ import FileDropzone from '../components/FileDropzone.tsx';
 import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
 import { getFileDropzoneMessages, getRecentFilesMessages } from '../i18n/toolMessages';
 import { getLocalizedHomeContext } from '../i18n/localizedHome';
+import { getPublishedEditionPaths } from '../i18n/localizedTools';
+import { getToolCardCopy } from '../i18n/cardMessages';
+import { documentationPath } from '../i18n/documentationLocales';
 import { renderInline } from '../lib/contentMarkup';
 
 interface Variant {
@@ -104,16 +107,35 @@ const heroDemoIsEnglishOnly = locale !== 'en';
 // Keep the landing toolbar's priority distinct: Compress is intentionally the
 // third shortcut without changing the shared registry or sitemap ordering.
 //
-// Tool dock labels (gridTitle/gridDescription) stay English on every locale:
-// they are not in TOOL_SOURCE_FIELDS (src/i18n/localizedTools.ts), a
-// structural gap the design doc names as its own open question (section 9,
-// item 3) rather than something LOC-09 resolves - see backlog/tasks/LOC-09.md.
-const homeTools = [...tools];
-const compressToolIndex = homeTools.findIndex((tool) => tool.slug === 'compress');
+const homeToolsOrder = [...tools];
+const compressToolIndex = homeToolsOrder.findIndex((tool) => tool.slug === 'compress');
 if (compressToolIndex !== -1) {
-  const [compressTool] = homeTools.splice(compressToolIndex, 1);
-  homeTools.splice(2, 0, compressTool);
+  const [compressTool] = homeToolsOrder.splice(compressToolIndex, 1);
+  homeToolsOrder.splice(2, 0, compressTool);
 }
+
+// Dock labels and links, localized the same way ToolCrossLinks.astro already
+// localizes its own cross-link cards: getToolCardCopy(locale, slug) for the
+// title/description (src/i18n/cardMessages.ts - every tool already has a
+// reviewed Hebrew entry there), and documentationPath(slug, locale) for the
+// href when that tool has a published edition in this locale, else the
+// English href (never a URL that 404s). gridTitle/gridDescription still
+// aren't in TOOL_SOURCE_FIELDS (design doc section 9, item 3) - this reuses
+// the cross-link cards' existing, separate localization path instead of
+// resolving that open question.
+const dockEditionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(locale as any);
+const dockPublished = new Set(dockEditionPaths);
+const homeTools = homeToolsOrder.map((tool) => {
+  const copy = getToolCardCopy(locale, tool.slug);
+  const localizedHref = locale === 'en' ? tool.href : documentationPath(tool.slug, locale as any);
+  const href = dockPublished.has(localizedHref) ? localizedHref : tool.href;
+  return {
+    ...tool,
+    href,
+    gridTitle: copy?.title ?? tool.gridTitle,
+    gridDescription: copy?.description ?? tool.gridDescription,
+  };
+});
 ---
 
 <BaseLayout title={title} description={description} lang={lang} dir={dir} canonical={canonical} alternates={alternates} socialImageAlt={messages.socialImageAlt}>
@@ -138,7 +160,7 @@ if (compressToolIndex !== -1) {
     <div class="home-tour" id="home-tour" data-demo-track="desktop">
       <section class="home-hero" aria-labelledby="home-heading" data-demo-pin="desktop">
         <div class="home-header">
-          <AppBar isHome locale={locale}>
+          <AppBar isHome locale={locale} labels={messages}>
             <a class="trust-chip" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer" aria-label={messages.starOnGithub}>
               <svg class="trust-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" /></svg>
               <span>{messages.starOnGithub}</span>
@@ -183,7 +205,7 @@ if (compressToolIndex !== -1) {
         </nav>
         <div class="demo-track" data-demo-track="mobile">
           <div class="home-frame" data-demo-frame data-demo-pin="mobile" data-working-area>
-            <HeroDemo />
+            <HeroDemo dir={dir} />
           </div>
         </div>
       </section>
