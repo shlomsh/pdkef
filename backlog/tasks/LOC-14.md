@@ -65,6 +65,47 @@ Read the Trends charts the usual way: a chart of only small terms showing zeros 
 means the family is below the floor, and the verdict is the Turkish one. If `kompres pdf 1 mb` holds
 a steady line against `kompres pdf`, record the share.
 
+## Keyword Planner results (2026-09-12)
+
+Shlomi ran both Keyword Planner passes (location Indonesia, language Indonesian; the account's billing
+currency shows as ILS in the bid columns, that's cosmetic and unrelated to the location filter, which
+was confirmed set to Indonesia only for this run - an earlier pass had picked up a stray "Indonesia and
+Israel" location and was redone).
+
+**The three seed keywords, exact monthly average:**
+
+| Keyword | Avg. monthly searches | Three-month change | YoY |
+| --- | ---: | ---: | ---: |
+| kompres pdf 1 mb | 50,000 | -90% | 0% |
+| mengecilkan pdf 200 kb | 500 | 0% | 0% |
+| kompres foto 200 kb | 500 | -90% | 0% |
+
+**The "compress PDF to 1MB" family clears the bar decisively.** Beyond the 50,000/month head term,
+40+ close variants each register 500-5,000/month (`kompres pdf jadi 1 mb`, `kompres pdf ke 1 mb`,
+`kompres pdf kurang dari 1 mb`, `mengecilkan pdf 1 mb`, `perkecil pdf 1 mb`, `compress pdf 1 mb gratis`,
+and many more phrasing variants on kompres/mengecilkan/mengompres/memperkecil/perkecil x
+jadi/menjadi/ke/ki bawah/kurang dari). Summed, this single intent is worth well into the tens of
+thousands of monthly searches in Indonesian - the largest, most validated keyword family measured
+anywhere in this epic's Keyword Planner data.
+
+**The "200KB" family is smaller and mostly photo, not PDF.** The high-volume 200kb rows are JPG/photo
+compression (`kompres foto jadi 200 kb`: 5,000; `kompres jpg 200 kb`: 5,000; `kompres jpg menjadi 200
+kb`: 5,000) - that intent belongs to the Compress Image tool, not this one. The PDF-specific 200kb
+variants (`mengecilkan pdf 200 kb`, `kecilkan pdf 200kb`, `memperkecil ukuran pdf 200 kb`, `mengecilkan
+ukuran pdf 200 kb`) are each ~500/month, summing to roughly 2,000-2,500/month for PDF+200kb
+specifically - real but modest next to the 1MB family, borderline against the "few thousand = a page"
+line rather than clearing it.
+
+**A real trend signal, not noise:** dozens of independent "di bawah 1 mb" / "kurang dari 1 mb" /
+"dibawah 1 mb" ("under 1MB") variants show **+900% YoY** together, while the flat "1 mb" / "jadi 1 mb"
+phrasing sits mostly flat or down (several "kompres ... online" 1mb/200kb variants show **-90%
+three-month**, also consistent across multiple independent rows). Read together: search behavior is
+shifting from "compress to 1MB" toward "get it under 1MB" phrasing. If this family becomes a page, lead
+with "under 1MB," not "to 1MB."
+
+This satisfies the Keyword Planner half of the ready-to-click links above. Trends, SERP and GSC
+readings are still outstanding before the gate can be read; see Acceptance.
+
 ## Acceptance
 
 - Trends, SERP and GSC readings recorded here in LOC-11's verdict-row format.
