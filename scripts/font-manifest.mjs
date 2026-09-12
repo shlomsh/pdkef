@@ -191,6 +191,12 @@ export const FONT_MANIFEST = [
     faces: normal('Gayathri-Regular.ttf', 'Gayathri-Bold.ttf'),
     license: { version: '1.1', url: 'https://fonts.google.com/specimen/Gayathri', copyright: 'Copyright 2019 The Gayathri Project Authors (https://gitlab.com/smc/fonts/gayathri)' },
   },
+  {
+    family: 'Suranna', kind: 'text', styleTag: 'serif',
+    metrics: { ascent: 1.412, descent: 0.778 },
+    faces: normal('Suranna-Regular.ttf'),
+    license: { version: '1.0.5', url: 'https://fonts.google.com/specimen/Suranna', copyright: "Copyright (c) 2012 Andhrapradesh Society for Knowledge Networks (fonts.siliconandhra.org). Copyright (c) 2011, Cyreal (www.cyreal.org) with Reserved Font Name 'Prata'" },
+  },
 ];
 
 export const FONT_FILES = FONT_MANIFEST.flatMap((font) => Object.values(font.faces));

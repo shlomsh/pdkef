@@ -395,6 +395,18 @@ export const FONT_MANIFEST = Object.freeze([
       "normal": "Gayathri-Regular.ttf",
       "bold": "Gayathri-Bold.ttf"
     }
+  },
+  {
+    "family": "Suranna",
+    "kind": "text",
+    "styleTag": "serif",
+    "metrics": {
+      "ascent": 1.412,
+      "descent": 0.778
+    },
+    "faces": {
+      "normal": "Suranna-Regular.ttf"
+    }
   }
 ]);
 

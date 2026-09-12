@@ -93,9 +93,9 @@ export const LANGUAGE_ACCEPTANCE_MATRIX = [
   },
   {
     order: 13, status: 'shipped', id: 'telugu', languages: ['Telugu'], regions: ['India'],
-    coverageIds: ['telugu'], families: ['Anek Telugu'], sample: 'తెలుగు ౨౦౨౬', direction: 'ltr',
-    shaping: { status: 'guarded', guards: ['e2e/sign/telugu-shaping-guard.spec.js'] },
-    visual: { guards: ['e2e/sign/telugu-shaping-guard.spec.js'], cases: [] },
+    coverageIds: ['telugu'], families: ['Anek Telugu', 'Suranna'], sample: 'తెలుగు ౨౦౨౬', direction: 'ltr',
+    shaping: { status: 'guarded', guards: ['e2e/sign/telugu-shaping-guard.spec.js', 'e2e/sign/telugu-suranna-shaping-guard.spec.js'] },
+    visual: { guards: ['e2e/sign/telugu-shaping-guard.spec.js', 'e2e/sign/telugu-suranna-shaping-guard.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['telugu-suranna'] },
   },
   {
     order: 14, status: 'shipped', id: 'tamil', languages: ['Tamil'], regions: ['India', 'Sri Lanka'],

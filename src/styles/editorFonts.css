@@ -377,3 +377,9 @@
   font-weight: 700;
   src: url('/fonts/Gayathri-Bold.ttf') format('truetype');
 }
+@font-face {
+  font-family: 'Suranna';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Suranna-Regular.ttf') format('truetype');
+}

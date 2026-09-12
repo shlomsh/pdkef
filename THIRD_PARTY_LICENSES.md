@@ -1624,6 +1624,7 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - IBM Plex Sans Thai (<https://fonts.google.com/specimen/IBM+Plex+Sans+Thai>)
 - Anek Malayalam (<https://fonts.google.com/specimen/Anek+Malayalam>)
 - Gayathri (<https://fonts.google.com/specimen/Gayathri>)
+- Suranna (<https://fonts.google.com/specimen/Suranna>)
 <!-- END GENERATED TEXT FONT LIST -->
 
 ```
