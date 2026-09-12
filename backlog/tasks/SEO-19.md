@@ -76,10 +76,13 @@ file lamaran kerja via email`, `kompres foto 200 kb`. The pattern is one intent,
 application with a hard KB limit on a photo, and the same limit family (`100 kb`, `200 kb`, `300 kb`,
 `1 mb`, `2 mb`) as our English target-size queries. The PDF version of this family is below Trends'
 floor in every language we checked (LOC-11, LOC-13); the image version is what people type first. It
-is the one product gap the localization research surfaced, and it is served in English by the same
-page shape that already ranks (`/pdf-wont-compress-to-100kb/`, position 9.4): honest target-size,
-portal limits cited, the miss stated. Ship it in English first; the localization gate (LOC-11) applies
-to it afterwards like any other page, and Indonesian is first in line there ([LOC-14](LOC-14.md)).
+is the one product gap the localization research surfaced, and in English that intent already converts
+today, on `/compress/` (`file compressor to 100kb`, position 9.4, 4 clicks / 95 impressions in the 28
+days to 2026-09-11). `/pdf-wont-compress-to-100kb/` is the page shape built for that intent, honest
+target-size, portal limits cited, the miss stated, but its own ability to rank is unmeasured: it has
+not been indexed yet, and whether the page shape itself earns position is exactly what SEO-17's
+eight-week read decides. Ship it in English first; the localization gate (LOC-11) applies to it
+afterwards like any other page, and Indonesian is first in line there ([LOC-14](LOC-14.md)).
 
 The intent behind them is the same one behind the whole 100KB cluster and it is strongest in India:
 application portals cap the photo, the signature and the document separately, often at 20-50KB for a
