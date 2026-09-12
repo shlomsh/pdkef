@@ -273,18 +273,25 @@ export default function PageStrip({
   })();
 
   const filePosition = new Map(entries.map((e, i) => [e.id, i + 1]));
+  // Numbers are output positions: what the page will be in the merged file
+  // (and what "Add page numbers" would stamp). A skipped page shows the
+  // number it would take, struck, so the pages behind it keep the numbers
+  // they will really get.
+  const outputTotal = outputPageCount(plan);
+  let outputCounter = 0;
   const items: JSX.Element[] = [];
   plan.forEach((entry, index) => {
     const file = fileById(entry.fileId);
     if (!file) return;
-    const position = index + 1;
+    if (!entry.skipped) outputCounter += 1;
+    const position = entry.skipped ? outputCounter + 1 : outputCounter;
     if (index > 0 && plan[index - 1].fileId !== entry.fileId) {
       items.push(<li key={`divider-${entry.key}`} class={styles.divider} role="presentation" aria-hidden="true" />);
     }
     const thumbnail = thumbnails.current.get(entry.key);
     const label = formatMessage(t.pageItemLabel, {
       number: position,
-      total: plan.length,
+      total: outputTotal,
       file: file.file.name,
       state: entry.skipped ? t.skippedState : '',
     });

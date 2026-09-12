@@ -1031,6 +1031,9 @@ export interface RecentFilesMessages {
   /** '{name}' placeholder. */
   openRecentAriaLabel: string;
   justNow: string;
+  /** MERGE-13: the page count on a saved Merge draft's card. */
+  pageCountOne: string;
+  pageCountOther: string;
 }
 
 const englishRecentFilesMessages: RecentFilesMessages = {
@@ -1038,6 +1041,8 @@ const englishRecentFilesMessages: RecentFilesMessages = {
   openSampleAriaLabel: 'Open bundled sample PDF, {name}',
   openRecentAriaLabel: 'Open recent PDF, {name}',
   justNow: 'just now',
+  pageCountOne: '1 page',
+  pageCountOther: '{count} pages',
 };
 
 // LOC-09: an AI draft, not reviewed copy - see hebrewFileDropzoneMessages above.
@@ -1046,6 +1051,8 @@ const hebrewRecentFilesMessages: RecentFilesMessages = {
   openSampleAriaLabel: 'פתיחת קובץ הדוגמה, {name}',
   openRecentAriaLabel: 'פתיחת קובץ אחרון, {name}',
   justNow: 'הרגע',
+  pageCountOne: 'עמוד אחד',
+  pageCountOther: '{count} עמודים',
 };
 
 const recentFilesMessages: Partial<Record<DocumentationLocaleId, RecentFilesMessages>> = {
