@@ -10,7 +10,13 @@
 // only :root tokens from global.css, never its literals - that file's
 // rgba()/hex values are fine for a runtime-driven island but would be a
 // literal-color regression here.
+import { cspSha256 } from '../lib/cspHash.js';
 import { renderInline } from '../lib/contentMarkup';
+// The figure's CSS as a raw string, not a stylesheet in the module graph
+// (see compareFigure.css): emitted below as <style is:inline>, so only a
+// page that renders the figure carries it, and hashed here so the page's
+// CSP style-src accepts it. Astro hashes only the styles it bundles itself.
+import compareFigureCss from './compareFigure.css?raw';
 
 interface Props {
   beforeSrc: string;
@@ -24,9 +30,14 @@ interface Props {
 }
 
 const { beforeSrc, afterSrc, beforeLabel, afterLabel, alt, width, height, caption } = Astro.props;
+// `Astro.csp` is typed optional (it exists only with the CSP feature on, which
+// astro.config.mjs enables); without it the page would ship the style
+// unhashed and test:csp would say so.
+Astro.csp?.insertStyleHash(cspSha256(compareFigureCss));
 ---
 
-<figure>
+<style is:inline set:html={compareFigureCss}></style>
+<figure class="compare-figure">
   <div class="compare-figure-box">
     <img class="compare-figure-image" src={beforeSrc} alt={alt} width={width} height={height} loading="lazy" decoding="async" />
     <img class="compare-figure-image compare-figure-after" src={afterSrc} alt="" aria-hidden="true" width={width} height={height} loading="lazy" decoding="async" />
@@ -34,98 +45,6 @@ const { beforeSrc, afterSrc, beforeLabel, afterLabel, alt, width, height, captio
     <span class="compare-figure-tag compare-figure-tag-before">{beforeLabel}</span>
     <span class="compare-figure-tag compare-figure-tag-after">{afterLabel}</span>
   </div>
-  <figcaption set:html={renderInline(caption, 'muted')} />
+  <figcaption class="compare-figure-caption" set:html={renderInline(caption, 'muted')} />
 </figure>
 
-<style>
-  figure { margin: 0 0 1.5rem; }
-  figure:last-child { margin-bottom: 0; }
-
-  .compare-figure-box {
-    position: relative;
-    width: 100%;
-    overflow: hidden;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: var(--color-surface);
-    box-shadow: var(--shadow-sm);
-  }
-
-  /* The in-flow "before" image sizes the box from its width/height
-     attributes (no CLS, no inline style for CSP to block); the "after"
-     image is laid over it and clipped to the right half. */
-  .compare-figure-image {
-    display: block;
-    width: 100%;
-    height: auto;
-    object-fit: cover;
-  }
-
-  .compare-figure-after {
-    position: absolute;
-    inset: 0;
-    height: 100%;
-    clip-path: inset(0 0 0 50%);
-  }
-
-  .compare-figure-rule {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    width: 2px;
-    transform: translateX(-50%);
-    background: var(--color-surface);
-    box-shadow: 0 0 0 1px var(--color-border);
-  }
-
-  .compare-figure-rule::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 2.25rem;
-    height: 2.25rem;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    background: var(--color-surface);
-    box-shadow: var(--shadow-md);
-  }
-
-  .compare-figure-rule::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0.5rem;
-    height: 0.5rem;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    background: var(--color-primary);
-    z-index: 1;
-  }
-
-  .compare-figure-tag {
-    position: absolute;
-    top: 0.6rem;
-    z-index: 1;
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--color-surface);
-    background: var(--color-text);
-    padding: 0.2rem 0.55rem;
-    border-radius: var(--radius-pill);
-  }
-
-  .compare-figure-tag-before {
-    inset-inline-start: 0.6rem;
-  }
-
-  .compare-figure-tag-after {
-    inset-inline-end: 0.6rem;
-  }
-
-  figcaption { margin-top: 0.75rem; font-size: 0.9rem; line-height: 1.6; color: var(--color-muted); }
-</style>

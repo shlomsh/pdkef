@@ -271,7 +271,19 @@ const distDir = path.join(__dirname, '..', 'dist');
 // and existing icons. Measured on the same tree with LOC-05's CTA mark:
 // 9.80x (1,623,969 / 165,744) at 39 pages, 9.96x (1,651,513 / 165,744) at 40.
 // Limit at the smallest two-decimal value that clears the measured figure.
-const MAX_DUPLICATION_FACTOR = 9.97;
+// Lowered (9.97x -> 9.92x) on 2026-09-13 (LOC-15) while adding a page, the
+// Indonesian /id/kompres-pdf-di-bawah-1-mb/ (40 -> 41 pages), by paying for
+// it with the SEO-31 residue named above: CompareFigure.astro's CSS is now a
+// raw string emitted as <style is:inline> (with its CSP hash registered via
+// Astro.csp.insertStyleHash) only on the page that renders the figure,
+// instead of a scoped block Astro attached to every page importing
+// ContentPage.astro. Astro follows dynamic imports for CSS too, so a
+// conditional import alone changed nothing (measured: identical bytes).
+// Measured on the same tree: 9.94x (1,656,840 / 166,645) at 40 pages before,
+// 9.76x (1,623,856 / 166,379) at 40 after, 9.92x (1,649,819 / 166,379) at 41
+// with the new page. CompareTable's scoped block is the same leak (thirteen
+// content pages, four render a table) and the next narrowing.
+const MAX_DUPLICATION_FACTOR = 9.92;
 // Lowered (29,000 -> 27,500) on 2026-08-29 to bank most of two fixes that took
 // /licenses/ from 29,021 (red) to 26,635, neither of which was a style change:
 //   - 905 distinct bytes of utilities were being compiled out of the impeccable
