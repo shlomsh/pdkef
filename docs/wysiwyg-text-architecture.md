@@ -39,7 +39,7 @@ Every claim in this section was read from the code or measured on 2026-08-27, no
 | 1 | Normalization | Chrome + its HarfBuzz | `composeHebrewClusters` ([hebrewComposition.js:105](../src/lib/hebrewComposition.js#L105)): `NFC` then Hebrew presentation-form recomposition, gated on `hasGlyph` | **no** - two implementations, agreement measured for Hebrew only |
 | 2 | Bidi (UAX#9) | Chrome (ICU), paragraph direction pinned by `dir` ([TextNode.tsx:110,173](../src/components/SignTool/nodes/TextNode.tsx#L110)) | `resolveBidiRuns` ([bidiRuns.js:73](../src/lib/bidiRuns.js#L73)) via `bidi-js`, same paragraph direction from `getEffectiveTextDirection` | **no**, but both implement one published spec against the same explicit paragraph level |
 | 3 | Itemization | Chrome, **per character**, into *system* fonts we cannot embed | element-level only: `resolveFontFamily` ([text.ts:383](../src/editor/registry/text.ts#L383)), then refuse ([sign.js:112](../src/lib/sign.js#L112)) | **yes, by refusal** - the two can only agree or stop |
-| 4 | Shaping | Chrome's HarfBuzz, segmented word-by-word by Blink's ShapeCache | fontkit `layout()` per bidi run, then per whitespace segment (`toShapingSegments`, [text.ts:237](../src/editor/registry/text.ts#L237)) | **no** - two independent shapers, and this is the open problem |
+| 4 | Shaping | Chrome's HarfBuzz, one call per DOM text run (LayoutNG); spaces are inside the run, so a kern pair or contextual rule that spans one fires | fontkit `layout()` per bidi run, spaces inside the run ([textPdf.ts:140](../src/editor/registry/textPdf.ts#L140); the per-whitespace split H9 added was reverted 2026-09-12, see §1.2 item 5) | **no** - two independent shapers, and this is the open problem |
 | 5 | Positioning | Chrome | `drawShapedRun`, one `Tm`+`Tj` per glyph, `Ts` for vertical offset ([text.ts:263](../src/editor/registry/text.ts#L263)) | ours alone; nothing to disagree with |
 
 Two things sit outside the table and matter:
@@ -90,6 +90,24 @@ brief that commissioned this work.
    with it.) What was genuinely true when this was written was
    **nothing renders the produced PDF and looks at the ink** - closed 2026-08-27 (W1) by
    `e2e/sign/export-render-guard.spec.js`; see §8 Stage 1.
+5. **"Blink shapes word by word, so a feature whose context crosses a space never fires on screen"**
+   (`f10af8e`'s H9, `docs/hebrew-text-shaping-export.md` "The browser shapes word by word", and the
+   first version of this table's row 4). True only of what H9 measured with: canvas `measureText` with
+   no `textRendering` set, the one Chromium path that goes through the word-by-word `CachingWordShaper`.
+   The editor's textarea is DOM layout, which shapes a run whole; `text-rendering: optimizeLegibility`
+   on `body` also flips canvas to whole-run. Found 2026-09-12 while screening Mynerve for Greek:
+   `Νικόλαος Δημητρίου` in Arimo and Tinos measured 113 units narrower in the browser than the
+   per-word export, and the pair is a GPOS `kern` on `space + Δ`. Measured across all 35 bundled fonts
+   on 36 multi-word strings (a DOM `<span>` and a `<textarea>`, both under `optimizeLegibility`, against
+   fontkit whole-run and per-word): whole-run agrees with the DOM on every string in every font;
+   per-word misses in nine (Arimo 6/20, Tinos 7/20, PT Sans 8/12 up to 7.96px on `Dr. Alan T. Vance`,
+   Heebo, Vazirmatn, Mukta, Mukta Mahee, Tiro Tamil, Tiro Gurmukhi), always a space next to a
+   triangular or overhanging capital (A T V W Y L P F, Greek Α Δ Λ Τ Υ Ρ Γ), 37 to 113 units. No
+   Hebrew, Arabic, Thai, Indic or CJK sample differs between the two, so H9 had no measured benefit
+   anywhere and a measured cost in every Latin, Greek and Cyrillic name. **Fixed 2026-09-12**: the export
+   shapes per bidi run again, `textShaping.test.js` pins `Tel Aviv`'s `A` at the kerned pen through
+   `serializeText`, and the three Guard A specs shape per run. The Hebrew record's section is left as
+   written, per item 3.
 
 ## 1.3 The guard map, and the reason it is the strongest argument in this document
 
@@ -613,8 +631,8 @@ taken.** §1.5 is that option, taken deliberately, in the one place its price is
 
 Shipping HarfBuzz for the export does not give one shaper on both sides. It gives:
 
-- Chrome's HarfBuzz, at Chrome's version, under **Blink's** normalization, itemization and word-by-word
-  ShapeCache segmentation, drawing the editor;
+- Chrome's HarfBuzz, at Chrome's version, under **Blink's** normalization, itemization and run
+  segmentation, drawing the editor;
 - our HarfBuzz, at our version, under **our** normalization, bidi and segmentation, drawing the export;
 - **and fontkit as well**, because it cannot be removed: `@cantoo/pdf-lib`'s `CustomFontEmbedder` is
   built on a fontkit instance ([sign.js:74](../src/lib/sign.js#L74) registers it), and every metric,

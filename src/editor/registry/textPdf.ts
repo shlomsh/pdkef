@@ -87,12 +87,6 @@ export function drawShapedRun(page: PDFPage, { text, pdfFont, size, x, y, color,
   page.pushOperators(...ops);
 }
 
-function toShapingSegments(run: { text: string; direction: BidiDirection }): { text: string; direction: BidiDirection }[] {
-  const parts = run.text.split(/( )/).filter((part) => part !== '');
-  const ordered = run.direction === 'rtl' ? [...parts].reverse() : parts;
-  return ordered.map((text) => ({ text, direction: run.direction }));
-}
-
 export async function serializeText(element: TextElement, { page, pdfWidth, pdfX, pdfY, loadCustomFont, baselineOffset }: SerializeContext): Promise<void> {
   const { text, fontSize, fontFamily, fontWeight, fontStyle, color } = element;
   const textValue = text || '';
@@ -133,10 +127,19 @@ export async function serializeText(element: TextElement, { page, pdfWidth, pdfX
   textValue.split(/\r?\n/).forEach((rawLine, lineIndex) => {
     const line = normalizeTabsForBidi(rawLine);
     const y = baselineAdjustedY - lineIndex * lineHeight;
+    // Each bidi run is shaped whole, spaces included. The editor's textarea is
+    // DOM layout, and Blink shapes a DOM text run in one HarfBuzz call, so a
+    // kern pair that spans a space (Arimo's `space + A/T/V/Y` and their Greek
+    // counterparts, up to 113 units; PT Sans up to 8px on a name) fires on
+    // screen. It has to fire here too. Splitting a run at spaces (H9, reverted
+    // 2026-09-12) mirrored canvas `measureText` with no `textRendering` set,
+    // the one Chromium path that shapes word by word, which the editor never
+    // uses; measured across all 35 bundled fonts, whole-run shaping matches
+    // the DOM on every multi-word string and per-space shaping misses in nine
+    // fonts. Record: docs/wysiwyg-text-architecture.md, layer 4.
     const runs = resolveBidiRuns(line, paragraphDirection)
       .map((run) => ({ ...run, text: stripInvisibleFormatting(run.text) }))
-      .filter((run) => run.text !== '')
-      .flatMap(toShapingSegments);
+      .filter((run) => run.text !== '');
     const runWidths = runs.map((run) => shapedWidth(resolvedFont, run.text, fontSizeInPoints, run.direction));
     if (runWidths.some((runWidth) => runWidth === null)) {
       const fallbackLine = stripInvisibleFormatting(line);

@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { normalizeTabsForBidi, shapedWidth, stripInvisibleFormatting, unrepresentableCharacters } from './text.ts';
-import { drawShapedRun } from './textPdf.ts';
+import { drawShapedRun, serializeText } from './textPdf.ts';
 import { resolveBidiRuns } from '../text/bidiRuns.js';
 import { composeHebrewClusters } from '../text/hebrewComposition.js';
 
@@ -474,36 +474,46 @@ describe('directional marks survive into bidi resolution', () => {
 });
 
 /**
- * H9: the browser shapes word by word, so we must too, or a feature whose
- * context crosses a space fires in the export and not on screen.
+ * A kern pair that spans a space fires in the export, because it fires on
+ * screen. The editor's textarea is DOM layout, which Blink shapes as one
+ * HarfBuzz run; only canvas `measureText` with no `textRendering` set shapes
+ * word by word, and that is what H9 measured against when it split each run
+ * at spaces (reverted 2026-09-12, see textPdf.ts). Arimo's `space + A` is
+ * -113 units, so `Tel Aviv` is the non-vacuous case: whole-run and per-word
+ * shaping genuinely differ here, and the export must produce the whole-run
+ * number, which is the one the DOM produces.
  */
-describe('per-segment shaping matches the browser\'s word-by-word shaping', () => {
-  it('does not apply a kern pair that spans a space', async () => {
+describe('a bidi run is shaped whole, so a kern pair that spans a space fires', () => {
+  it('shapedWidth applies Arimo\'s space-spanning kern pair', async () => {
     const font = await embedFont('Arimo-Regular.ttf');
     const size = 32;
-    // Non-vacuity: this string really does carry a space-spanning kern in this
-    // font, so whole-line and per-segment shaping genuinely differ. Without
-    // this the assertion below could pass on a string with no kern at all.
-    const wholeLine = shapedWidth(font, 'Tel Aviv', size);
-    const perSegment = ['Tel', ' ', 'Aviv'].reduce((sum, part) => sum + shapedWidth(font, part, size), 0);
-    expect(wholeLine).not.toBeCloseTo(perSegment, 6);
-    // 113 font units at 2048 upm, measured against the browser's measureText.
-    expect((perSegment - wholeLine) / size * font.embedder.font.unitsPerEm).toBeCloseTo(113, 0);
+    const wholeRun = shapedWidth(font, 'Tel Aviv', size);
+    const perWord = ['Tel', ' ', 'Aviv'].reduce((sum, part) => sum + shapedWidth(font, part, size), 0);
+    // 113 font units at 2048 upm, the pair's GPOS value. (`Tel Aviv` also
+    // carries within-word pairs, T-e and A-v, which both sides apply alike;
+    // only the space-spanning one separates whole-run from per-word.)
+    expect((perWord - wholeRun) / size * font.embedder.font.unitsPerEm).toBeCloseTo(113, 0);
   });
 
-  it('reverses an RTL run\'s segments, so the first-typed word sits rightmost', async () => {
+  it('serializeText places the glyph after the space at the kerned position, not the per-word one', async () => {
     const font = await embedFont('Arimo-Regular.ttf');
     const fk = font.embedder.font;
-    const ids = (text) => fk.layout(text, undefined, undefined, undefined, 'rtl').glyphs.map((glyph) => glyph.id);
-    const line = 'שלום עולם';
-    const segments = line.split(/( )/).filter((part) => part !== '');
-
-    // Shaping the segments in reversed order reproduces exactly what shaping
-    // the whole run produces; forward order does not. This is what pins the
-    // segment ordering in toShapingSegments to something checkable.
-    const reversed = [...segments].reverse().flatMap(ids);
-    const forward = segments.flatMap(ids);
-    expect(reversed).toEqual(ids(line));
-    expect(forward).not.toEqual(ids(line));
+    const size = 32;
+    const page = mockPage(font);
+    await serializeText(
+      // No `width`: a text element with one is a comb (isComb), which skips
+      // bidi and shaping altogether.
+      { type: 'text', text: 'Tel Aviv', fontSize: size, fontFamily: 'Arimo', fontWeight: 'normal', fontStyle: 'normal', color: '#000000', left: 0, top: 0, page: 1 },
+      { page, pdfWidth: 612, pdfHeight: 792, pdfX: 0, pdfY: 700, loadCustomFont: async () => font, baselineOffset: () => 0 },
+    );
+    const ops = page.pushOperators.mock.calls.flat();
+    const xs = ops.filter((op) => op.name === 'Tm').map((op) => Number(op.args[4].asNumber()));
+    expect(xs).toHaveLength(8);
+    // Glyph index 4 is `A`. Under per-word shaping its pen was the shaped
+    // width of `Tel` plus the space's full hmtx advance; whole-run shaping
+    // shortens that space by the pair.
+    const perWordPen = shapedWidth(font, 'Tel', size) + fk.glyphForCodePoint(0x20).advanceWidth / fk.unitsPerEm * size;
+    expect(xs[4]).toBeCloseTo(perWordPen - 113 / fk.unitsPerEm * size, 6);
+    expect(xs[4]).not.toBeCloseTo(perWordPen, 3);
   });
 });
