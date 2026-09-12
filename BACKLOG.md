@@ -10,7 +10,6 @@ The canonical backlog is the task-file collection in [backlog/tasks/](backlog/ta
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| FONT-08 | P3 | [FONT-08](backlog/tasks/FONT-08.md) · Second-font / missing-style research across every single-font script |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |
 
 ### In progress
@@ -29,6 +28,7 @@ _None._
 | FONT-02 | P2 | [FONT-02](backlog/tasks/FONT-02.md) · One font manifest |
 | FONT-03 | P2 | [FONT-03](backlog/tasks/FONT-03.md) · Malayalam |
 | FONT-05 | P2 | [FONT-05](backlog/tasks/FONT-05.md) · Export-render-guard corpus cases for Simplified Chinese, Traditional Chinese and Korean |
+| FONT-08 | P3 | [FONT-08](backlog/tasks/FONT-08.md) · Second-font / missing-style research across every single-font script |
 
 ### Retired
 

@@ -291,7 +291,7 @@ Check 1 **0/478** on the same corpus that crashed Noto Sans Malayalam 33/35 on r
 `Copyright 2019 The Gayathri Project Authors (https://gitlab.com/smc/fonts/gayathri)`. **Screen
 further, top pick**; SMC maintains the mlm2 lookups specifically for cross-engine parity.
 
-### Thai, second handwriting face (next to Mali)
+### Thai, second handwriting face (resolved: Sriracha landed 2026-09-12)
 
 **Sriracha** (Cadson Demak + Pablo Impallari, OFL 1.1,
 [OFL.txt](https://github.com/cadsondemak/sriracha/blob/master/OFL.txt)). Loopless informal hand against
