@@ -87,3 +87,5 @@ changed and that the Hebrew title/description/subhead/faq do not yet mirror them
 review. Status stays `published`, reviewer/reviewedAt untouched.
 
 Indexing request and CTR/position read at the 2026-10-08 refresh are still open, per Acceptance.
+
+*2026-09-12:* deployed; indexing requested for `/` in Search Console the same day. Hebrew edition re-reviewed and approved by Shlomi on the deployed site. Nothing left but the 2026-10-08 read.

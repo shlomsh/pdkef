@@ -75,3 +75,5 @@ the whole worktree.
 (`toolSourceHash`) to clear the freshness gate; the Hebrew wording itself was not touched (it already
 carries both senses), and `reviewNotes` records that pending Shlomi's review. No indexing request was
 made, per the acceptance section above.
+
+*2026-09-12:* deployed; no indexing request, per the SEO-28 control. `/he/merge/` re-reviewed and approved by Shlomi on the deployed site.

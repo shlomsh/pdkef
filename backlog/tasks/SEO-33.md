@@ -81,3 +81,5 @@ seo/css/weight suites were left to the lead running them once for the whole work
 (`toolSourceHash`) to clear the freshness gate; the Hebrew wording itself was not touched, and
 `reviewNotes` records that pending Shlomi's review. Indexing request and position read stay open,
 per the acceptance section above.
+
+*2026-09-12:* deployed; indexing requested for `/compress/` in Search Console the same day. Hebrew edition re-reviewed and approved by Shlomi on the deployed site. Nothing left but the 2026-10-08 read.
