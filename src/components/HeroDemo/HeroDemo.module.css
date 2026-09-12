@@ -1389,6 +1389,18 @@
     rotate: -4deg;
   }
 
+  /* The hand-drawn arrow points at the demo phone, which sits to the caption's
+     right in the default LTR grid. On the Hebrew edition the same grid mirrors
+     under dir="rtl" (design doc section 4.3 - grid-template-areas mirrors for
+     free), putting the phone on the caption's left instead, so the arrow has
+     to point the other way too or it visibly points at empty space. Mirrored
+     with scaleX(-1) rather than redrawn coordinates, so it stays the exact
+     same hand-drawn stroke, just flipped - the same approach AppBar.astro's
+     .rtl-flip already uses for its own hover-reveal arrow. `rotate` (a
+     separate CSS property from `transform`) still applies its own -4deg on
+     top, unaffected. */
+  .caption-arrow-rtl { transform: scaleX(-1); }
+
   .scroll-hint {
     display: flex;
     flex-direction: column;

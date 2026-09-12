@@ -8,7 +8,34 @@
 import ScrollDriver from './ScrollDriver';
 import styles from './HeroDemo.module.css';
 
+interface Props {
+  dir?: 'ltr' | 'rtl';
+}
+const { dir = 'ltr' } = Astro.props;
+const isRtl = dir === 'rtl';
+
 const rootSelector = `.${styles.root}`;
+
+// LOC-09 leaves the demo itself (sr-only narration, simulated phone-screen
+// content, chat bubbles) English-only - docs/home-page-localization-plan.md
+// section 4.2's question of whether the whole story's animation grammar
+// should mirror under RTL is still open and out of scope here. The two
+// caption headlines and their arrows are a narrower, since-decided case: they
+// are short, sit outside the fixed-pixel phone-screen overlay, and the arrow
+// literally points at the phone, which *does* move sides under RTL (the
+// grid mirrors for free, see HomePageLayout.astro/home-page.md section 4.3),
+// so leaving the arrow pointing right on a page where the phone is now on the
+// left would be wrong regardless of language. Caption text follows the same
+// call for the same reason: an isolated arrow flip with an unchanged
+// English caption reads like a rendering bug, not a design choice.
+const captionArrowClass = isRtl ? `${styles['caption-arrow']} ${styles['caption-arrow-rtl']}` : styles['caption-arrow'];
+const signCaption = isRtl
+  ? { before: 'מילוי, ', marker: 'חתימה', after: ',', line2: 'ושליחה בחזרה.' }
+  : { before: 'Fill, ', marker: 'sign', after: ',', line2: 'send it back.' };
+const blurCaption = isRtl
+  ? { before: 'מה ש', marker: 'פרטי', after: ',', line2: 'נשאר פרטי.' }
+  : { before: 'Keep the ', marker: 'private', after: '', line2: 'bits private.' };
+const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : { line1: 'Scroll to', line2: 'explore' };
 ---
 
 <section class={styles.root} data-home-demo aria-label="How PDkef works, shown as two short stories">
@@ -45,12 +72,12 @@ const rootSelector = `.${styles.root}`;
     </p>
     <div class={styles.stage} data-hero-stage>
       <h2 class={`type-section ${styles.caption}`}>
-        <svg class={styles['caption-arrow']} viewBox="0 0 150 46" aria-hidden="true" focusable="false">
+        <svg class={captionArrowClass} viewBox="0 0 150 46" aria-hidden="true" focusable="false">
           <path d="M3 36C36 8 88 5 133 26"></path>
           <path d="M121 13L134 26L117 32"></path>
         </svg>
-        <span class={styles['caption-copy']}>Fill, <span class={styles['caption-marker']}>sign</span>,<br />send it back.</span>
-        <span class={styles['scroll-hint']} aria-hidden="true"><span>Scroll to<br />explore</span></span>
+        <span class={styles['caption-copy']}>{signCaption.before}<span class={styles['caption-marker']}>{signCaption.marker}</span>{signCaption.after}<br />{signCaption.line2}</span>
+        <span class={styles['scroll-hint']} aria-hidden="true"><span>{scrollHint.line1}<br />{scrollHint.line2}</span></span>
       </h2>
       <div class={styles['progress-rail']} aria-hidden="true">
         <span class={`${styles['progress-seg']} ${styles['progress-seg-current']}`}></span>
@@ -265,12 +292,12 @@ const rootSelector = `.${styles.root}`;
     </p>
     <div class={styles.stage} data-hero-stage>
       <h2 class={`type-section ${styles.caption}`}>
-        <svg class={styles['caption-arrow']} viewBox="0 0 150 46" aria-hidden="true" focusable="false">
+        <svg class={captionArrowClass} viewBox="0 0 150 46" aria-hidden="true" focusable="false">
           <path d="M3 36C36 8 88 5 133 26"></path>
           <path d="M121 13L134 26L117 32"></path>
         </svg>
-        <span class={styles['caption-copy']}>Keep the <span class={styles['caption-marker']}>private</span><br />bits private.</span>
-        <span class={styles['scroll-hint']} aria-hidden="true"><span>Scroll to<br />explore</span></span>
+        <span class={styles['caption-copy']}>{blurCaption.before}<span class={styles['caption-marker']}>{blurCaption.marker}</span>{blurCaption.after}<br />{blurCaption.line2}</span>
+        <span class={styles['scroll-hint']} aria-hidden="true"><span>{scrollHint.line1}<br />{scrollHint.line2}</span></span>
       </h2>
       <div class={styles['progress-rail']} aria-hidden="true">
         <span class={`${styles['progress-seg']} ${styles['progress-seg-done']}`}></span>
