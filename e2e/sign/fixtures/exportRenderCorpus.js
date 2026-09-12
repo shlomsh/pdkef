@@ -313,6 +313,18 @@ export const EXPORT_RENDER_CORPUS = [
   // bundled public/fonts/Vazirmatn-Regular.ttf bytes.
   textCase('arabic-vazirmatn', 'مرحبا', { fontFamily: 'Vazirmatn', left: RTL_ANCHOR }),
 
+  // Mynerve (FONT-08): Greek already had a case (greek-tinos, upright), but
+  // that says nothing about Mynerve specifically - a different font, a
+  // different kind (handwriting, `calt`-carrying), embedded from a different
+  // TTF. greek-shaping-guard.spec.js and greek-font-parity.spec.js already
+  // prove fontkit agrees with the browser on Mynerve's shaped glyphs and
+  // advances before a PDF exists; this case is the same "does the file a
+  // user actually receives still match" check every other font addition
+  // here gets. Καλημέρα ("kalimera", "good morning/day") carries a tonos
+  // accent (έ) - confirmed present via fontkit's hasGlyphForCodePoint()
+  // against the real bundled public/fonts/Mynerve-Regular.ttf bytes.
+  textCase('greek-mynerve-handwriting', 'Καλημέρα', { fontFamily: 'Mynerve' }),
+
   // --- The comb path: positions by cell index, skips bidi, has its own
   // geometry. `width` is what makes an element a comb (see comb.js).
   textCase('comb-ltr', 'AB12', { fontFamily: 'Arimo', width: 40, combCells: 6 }),

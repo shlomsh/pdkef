@@ -23,7 +23,7 @@ A shipped row means its real alphabet coverage is checked against bundled font b
 | 15 | shipped | Tamil | India; Sri Lanka | Noto Sans Tamil, Tiro Tamil | LTR | e2e/sign/tamil-shaping-guard.spec.js<br>e2e/sign/tamil-tiro-shaping-guard.spec.js | e2e/sign/tamil-shaping-guard.spec.js<br>e2e/sign/tamil-tiro-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
 | 16 | shipped | Punjabi (Gurmukhi) | India | Mukta Mahee, Tiro Gurmukhi | LTR | e2e/sign/gurmukhi-shaping-guard.spec.js<br>e2e/sign/gurmukhi-tiro-shaping-guard.spec.js | e2e/sign/gurmukhi-shaping-guard.spec.js<br>e2e/sign/gurmukhi-tiro-shaping-guard.spec.js |
 | 17 | shipped | Malayalam | India | Anek Malayalam, Gayathri | LTR | e2e/sign/malayalam-shaping-guard.spec.js<br>e2e/sign/malayalam-gayathri-shaping-guard.spec.js | e2e/sign/malayalam-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js<br>e2e/sign/malayalam-gayathri-shaping-guard.spec.js |
-| 18 | shipped | Greek | Greece; Cyprus | Arimo, Tinos, Cousine | LTR | not-applicable | e2e/sign/export-render-guard.spec.js |
+| 18 | shipped | Greek | Greece; Cyprus | Arimo, Tinos, Cousine, Mynerve | LTR | e2e/sign/greek-shaping-guard.spec.js<br>e2e/sign/greek-font-parity.spec.js | e2e/sign/greek-shaping-guard.spec.js<br>e2e/sign/greek-font-parity.spec.js<br>e2e/sign/export-render-guard.spec.js |
 | 19 | shipped | Hebrew | Israel | Arimo, Tinos, Cousine, Assistant, Heebo, Alef, Gveret Levin, Amatic SC | RTL | e2e/sign/hebrew-font-parity.spec.js<br>e2e/sign/hebrew-composition-guard.spec.js | e2e/sign/hebrew-font-parity.spec.js<br>e2e/sign/export-render-guard.spec.js |
 | 20 | planned | Gujarati, Kannada, Odia | India | — | LTR | pending | pending |
 | 21 | planned | Emoji | Global | — | LTR | pending | pending |

@@ -133,9 +133,14 @@ export const LANGUAGE_ACCEPTANCE_MATRIX = [
   },
   {
     order: 18, status: 'shipped', id: 'greek', languages: ['Greek'], regions: ['Greece', 'Cyprus'],
-    coverageIds: ['greek'], families: ['Arimo', 'Tinos', 'Cousine'], sample: 'Καλημέρα 2026', direction: 'ltr',
-    shaping: { status: 'not-applicable', reason: 'No joining or reordering feature is required for the accepted sample.' },
-    visual: { guards: ['e2e/sign/export-render-guard.spec.js'], cases: ['greek-tinos'] },
+    coverageIds: ['greek'], families: ['Arimo', 'Tinos', 'Cousine', 'Mynerve'], sample: 'Καλημέρα 2026', direction: 'ltr',
+    // FONT-08: Mynerve (handwriting) carries `calt`, so "no joining or
+    // reordering feature is required" stopped being true for the whole row
+    // the moment it joined - greek-shaping-guard.spec.js and
+    // greek-font-parity.spec.js are the guards that actually proved fontkit
+    // and the browser agree on it.
+    shaping: { status: 'guarded', guards: ['e2e/sign/greek-shaping-guard.spec.js', 'e2e/sign/greek-font-parity.spec.js'] },
+    visual: { guards: ['e2e/sign/greek-shaping-guard.spec.js', 'e2e/sign/greek-font-parity.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['greek-tinos', 'greek-mynerve-handwriting'] },
   },
   {
     order: 19, status: 'shipped', id: 'hebrew', languages: ['Hebrew'], regions: ['Israel'],
