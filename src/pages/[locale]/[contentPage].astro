@@ -5,6 +5,7 @@ import { CONTENT_ICONS } from '../../data/contentIcons';
 import { documentationLocales, getDocumentationLocaleByPrefix } from '../../i18n/documentationLocales';
 import { getDocumentationContext, getDocumentationVariants } from '../../i18n/documentation';
 import { getDocumentationShellMessages } from '../../i18n/documentationMessages';
+import { getPublishedEditionPaths } from '../../i18n/localizedTools';
 import { documentationSourceFiles, lastModifiedFor } from '../../lib/gitLastModified.js';
 
 export async function getStaticPaths() {
@@ -33,6 +34,10 @@ const messages = getDocumentationShellMessages(context.effectiveLocale);
 // ARCH-09 supplies source freshness separately from publication state. A stale
 // draft remains a noindex preview, with a more specific localized notice.
 const stale = context.preview && context.freshness === 'stale';
+// LOC-05: the same published-paths list ToolPageLayout already fetches for
+// ToolCrossLinks/RelatedGuides, so the primaryCta's English-fallback
+// disclosure asks the identical question rather than a second one.
+const editionPaths = await getPublishedEditionPaths(context.effectiveLocale as any);
 ---
 
 <ContentPageLayout
@@ -56,6 +61,7 @@ const stale = context.preview && context.freshness === 'stale';
   messages={messages}
   lastModified={lastModifiedFor(documentationSourceFiles(pageId, context.effectiveLocale))}
   previewNotice={stale ? messages.stalePreviewNotice : messages.previewNotice}
+  editionPaths={editionPaths}
 >
   <ContentPage
     entry={entry}

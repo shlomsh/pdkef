@@ -94,6 +94,7 @@ _None._
 | SEO-09 | P2 | [SEO-09](backlog/tasks/SEO-09.md) · Read 2026-10-08 · Split ranks at 85 for extract queries because it never uses the word |
 | SEO-10 | P2 | [SEO-10](backlog/tasks/SEO-10.md) · Read 2026-10-08 · Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it |
 | SEO-17 | P2 | [SEO-17](backlog/tasks/SEO-17.md) · Read 2026-10-08 · One content page on portal size limits, instead of three doorway pages |
+| SEO-18 | P2 | [SEO-18](backlog/tasks/SEO-18.md) · Read 2026-11-07 · One page on signing a PDF in your own language, generated from the coverage data |
 | SEO-25 | P3 | [SEO-25](backlog/tasks/SEO-25.md) · Read 2026-10-08 · A before-and-after preview on Compress, so quality is shown rather than promised |
 | SEO-28 | P1 | [SEO-28](backlog/tasks/SEO-28.md) · Read 2026-10-08 · Redact and Split earn the most and are recrawled the least, and nothing we control explains it |
 | SEO-31 | P1 | [SEO-31](backlog/tasks/SEO-31.md) · Read 2026-11-07 · One content page on photo and signature size limits, as inbound content for /compress-image/ |
@@ -116,7 +117,6 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |
-| SEO-18 | P2 | [SEO-18](backlog/tasks/SEO-18.md) · One page on signing a PDF in your own language, generated from the coverage data |
 | SEO-26 | P3 | [SEO-26](backlog/tasks/SEO-26.md) · Say what PDkef does not do, and why, on a page that already exists |
 | SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before |
 
@@ -173,7 +173,6 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
 | LOC-16 | P2 | [LOC-16](backlog/tasks/LOC-16.md) · Finish the Hebrew edition: HeroDemo, the rest of the Sign editor, the compress-hub guides, and the home page sign-off |
 
 ### In progress
@@ -186,7 +185,9 @@ _None._
 
 ### Done
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
 
 ### Retired
 

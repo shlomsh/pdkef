@@ -101,14 +101,18 @@ createShapingGuardTest({
 // `field-date` ("12.09.2026") was briefly excluded on the Linux runner only:
 // measured on ubuntu-latest (CI run 34705365402) it read 28.21% against a
 // 27.06% tolerance (rasteriser floor 4.35%, advance-quantisation floor
-// 18.04%) while measuring 0.00% on macOS with no kern pair anywhere in it, so
-// the excess was the runner's FreeType hinting moving Amatic SC's thin,
-// narrow digits further than the per-advance rounding the floor model then
-// assumed (native 845px against 846px rounded and 847.8px exact). The
-// instrument was corrected rather than the tolerance widened: the harness
-// now reads each glyph's hinted advance back from the browser
-// (`hintedAdvancePx` in `./fixtures/shapingGuardHarness.js`) and measures
-// the floor on that placement, and the case runs on every platform again.
+// 18.04%) while measuring 0.00% on macOS with no kern pair anywhere in it.
+// The excess was one pixel of advance the floor model could not see: the
+// runner rounds a half-pixel tie down (Amatic SC's "1" is 82.5px at this
+// size, 82 on the runner, 83 to `Math.round`), so the string is 845px there
+// against the 846px round-to-nearest predicted (847.8px exact), and on
+// digits this thin one pixel is a lot of ink. The instrument was corrected
+// rather than the tolerance widened: the harness reads each glyph's hinted
+// advance back from the browser (`hintedAdvancePx` in
+// `./fixtures/shapingGuardHarness.js`) and measures the floor on that
+// placement. Re-measured on the runner (CI run 34717406027): floor 28.26%,
+// tolerance 42.39%, native width reproduced on 18/18 cases, 0 failing, and
+// the case runs on every platform again.
 createShapingGuardTest({
   scriptName: 'Cyrillic',
   candidateName: 'AmaticSC',

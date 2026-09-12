@@ -1,0 +1,190 @@
+title: 'Sign a PDF in Your Own Language | PDkef'
+description: >-
+  Whether your language survives the download comes down to the font and how it shapes conjuncts,
+  vowel signs and right-to-left text. Here is what is verified for 20 languages, and what is not.
+breadcrumb: 'Sign in your language'
+icon: 'Type'
+kicker: '20 languages, one signer'
+h1: 'Sign a PDF in Your Own Language, Not Just English'
+subhead: >-
+  This tool ships fonts for 20 languages and scripts, each checked letter by letter against the real
+  font files rather than assumed to work. This page says which fonts draw which languages, what the
+  tool does the moment a character cannot be drawn, and the divergences worth knowing before you rely
+  on it for something that matters.
+primaryCta:
+  href: '/sign/'
+  label: 'Open the free PDF signer'
+sections:
+  - variant: 'highlight'
+    sketch: 'grid'
+    icon: 'Type'
+    iconPos: 'tr'
+    kicker: 'What decides whether your language works'
+    heading: 'Two things decide it: the font, and how it shapes your script'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          This tool ships with fonts for 20 languages and scripts, and whether yours is one of them
+          comes down to two separate questions: does a bundled font actually contain every letter your
+          language needs, and does that font draw conjuncts, vowel signs and joined letters the same
+          way in the file you download as it does on your screen. Both are checked against the real
+          font files rather than assumed, which is what this page reports.
+      - kind: 'prose'
+        text: >-
+          The table further down is checked against that same coverage data by a test that fails
+          the build the moment the two disagree, so it cannot quietly drift from what ships. It shows
+          a selection: the full list of all 20
+          languages and scripts lives on the <a href="/sign/">Sign page's languages card</a>, with its
+          own row for each one.
+  - sketch: 'waves'
+    icon: 'CheckCircle2'
+    iconPos: 'cl'
+    kicker: 'No empty rectangles after the fact'
+    heading: 'A missing letter is flagged while you type, not after you download'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          As you type, the editor checks every character against the font you picked and tells you the
+          moment one cannot be drawn, switching automatically to a font that can and naming the change.
+          That check runs from the same generated glyph data the export itself uses, not a guess made
+          on the fly.
+      - kind: 'prose'
+        text: >-
+          If a character still cannot be drawn by anything bundled, because it belongs to a script this
+          tool has no font for at all, the download itself refuses rather than quietly producing empty
+          rectangles where your text should be. You find out before you have filled in the whole form,
+          not after.
+  - sketch: 'rings'
+    icon: 'Compass'
+    iconPos: 'br'
+    kicker: 'Right-to-left, not bolted on'
+    heading: 'Hebrew, Arabic and Urdu boxes grow the way you actually write'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          A Hebrew or Arabic text box grows leftward from a fixed right edge as you type, the same
+          direction the script itself runs, instead of stretching rightward the way a left-to-right box
+          does. Letters join and change shape depending on their neighbours in Arabic and Urdu, the way
+          handwriting actually connects.
+      - kind: 'prose'
+        text: >-
+          That direction is not only a screen effect: the exported PDF keeps the underlying characters
+          in the correct order too, following the Unicode bidirectional algorithm from the box's own
+          declared direction rather than guessing it from the text. What you see while typing is what
+          opens in the downloaded file.
+  - sketch: 'grid'
+    icon: 'ListChecks'
+    iconPos: 'bl'
+    kicker: 'Generated from the font files, not hand-typed'
+    heading: 'Eight of the twenty languages, and what to know about each'
+    blocks:
+      - kind: 'table'
+        caption: >-
+          Eight of the twenty languages and scripts this tool signs, generated from the same
+          font-coverage data that backs the Sign page's own languages card.
+        headers: ['Language', 'Font that draws it', 'Handwriting face?', 'What to know']
+        rows:
+          - ['Hebrew', 'Heebo, or Gveret Levin for a handwritten signature', 'Yes, Gveret Levin or Amatic SC', 'Grows leftward from a fixed right edge; vowel points placed correctly for the download, not just on screen.']
+          - ['Arabic', 'Scheherazade New, or Vazirmatn', 'No', 'Letters join like handwriting; box grows leftward from a fixed right edge, same as Hebrew.']
+          - ['Urdu', 'Scheherazade New, or Vazirmatn', 'No', 'Same two fonts as Arabic; both are upright, not Nastaliq, the sloped calligraphic style Urdu is usually set in.']
+          - ['Devanagari (Hindi)', 'Mukta, or Kalam for a handwritten look', 'Yes, Kalam or Tillana', 'Conjunct letters and vowel signs reordered and reshaped correctly for the download; the same fonts cover Marathi too.']
+          - ['Bengali (Bangla)', 'Noto Sans Bengali, or Hind Siliguri', 'No', 'Noto Sans Bengali draws six rare conjunct clusters slightly differently in the download than on screen, named below; Hind Siliguri has none of those six.']
+          - ['Punjabi (Gurmukhi)', 'Mukta Mahee, or Tiro Gurmukhi', 'No', 'Ships on these two, not the Noto face: Noto Sans Gurmukhi breaks the download on common words such as the surname Singh, written ਸਿੰਘ.']
+          - ['Telugu', 'Anek Telugu, or Suranna', 'No', 'Ships on these two, not the Noto face: Noto Sans Telugu miscrafts a cluster inside the state name Andhra Pradesh itself, ఆంధ్రప్రదేశ్.']
+          - ['Japanese', 'Noto Sans JP', 'No', 'Covers hiragana, katakana and the two government kanji lists, 2,999 characters, not all of Han; anything outside them is flagged as you type.']
+      - kind: 'prose'
+        text: >-
+          This is a selection, not the full list: it favours the languages with something specific to
+          say, a right-to-left direction, a named divergence, or a script limit, over the ones that
+          simply work end to end. Every one of the 20 languages and scripts has its own row on the
+          <a href="/sign/">Sign page's languages card</a>.
+  - sketch: 'waves'
+    icon: 'AlertTriangle'
+    iconPos: 'tl'
+    kicker: 'The known divergences, named'
+    heading: 'What does not match perfectly, said plainly rather than buried'
+    blocks:
+      - kind: 'checklist'
+        items:
+          - >-
+            <strong>Bengali:</strong> Noto Sans Bengali draws six rare conjunct clusters slightly
+            differently in the downloaded file than on screen; Hind Siliguri, the second bundled
+            Bengali font, has none of those six.
+          - >-
+            <strong>Punjabi and Telugu:</strong> both ship on a font other than the default Noto one,
+            because Noto Sans Gurmukhi and Noto Sans Telugu each miscraft a cluster common enough to
+            break ordinary words in that language.
+          - >-
+            <strong>Urdu:</strong> the two bundled fonts draw every letter and join them correctly, but
+            both are upright. Urdu is conventionally set in Nastaliq, a sloped, cascading style, and
+            neither font offers it.
+          - >-
+            <strong>Chinese, Japanese and Korean:</strong> each covers a defined, curated set of
+            characters rather than the full Han block Unicode allows, and anything outside that set is
+            flagged as you type rather than left to guess.
+          - >-
+            <strong>Emoji:</strong> no bundled font draws it at all, in any language.
+  - sketch: 'rings'
+    icon: 'Lightbulb'
+    iconPos: 'cr'
+    kicker: 'If your language is not here'
+    heading: 'Some scripts have no bundled font yet'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          A handful of scripts have no bundled font at all today: Gujarati, Kannada, Odia, Sinhala,
+          Khmer, Lao, Burmese, Amharic, Armenian and Georgian among them. A form in one of those
+          languages cannot be filled or signed here yet, and the tool would tell you the moment you
+          tried rather than let it slip into a download.
+      - kind: 'prose'
+        text: >-
+          Languages get added on request, not on a fixed schedule, so this list is honest about today
+          and likely to shrink. <a href="https://github.com/shlomsh/pdkef/issues/new?title=%5BLanguage%20request%5D%20&amp;body=Which%20language%20would%20you%20like%20PDkef%20to%20support%3F%0A%0AHow%20would%20you%20use%20it%3F" target="_blank" rel="noopener noreferrer">Ask for yours</a> and it moves to the front of the queue.
+  - variant: 'highlight'
+    sketch: 'grid'
+    icon: 'WifiOff'
+    iconPos: 'br'
+    kicker: 'Free, private, no account'
+    heading: 'Try it in your own language before you trust it with a form'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          <a href="/sign/">Open the free PDF signer</a>, pick your language's font from the menu, and
+          type a real line to see it filled in before you commit to a whole form. Nothing you type
+          leaves your device, there is no account to create, and a draft of your work saves itself in
+          this browser if you need to come back to it.
+faq:
+  - question: 'Which languages can I sign a PDF in here?'
+    answer: >-
+      Twenty languages and scripts today, checked letter by letter against the actual font files
+      rather than assumed to work: every Latin-script language, Hebrew, Arabic, Farsi, Urdu, Pashto,
+      Russian and other Cyrillic scripts, Greek, Hindi, Marathi, Thai, Japanese, Bengali, Assamese,
+      Vietnamese, Turkish, Korean, Punjabi, Telugu, Tamil and Malayalam. The table above names a
+      selection with something specific to say about it.
+  - question: 'What happens if I type a character no font can draw?'
+    answer: >-
+      You find out while you are still typing. The editor checks each character against the selected
+      font and switches to one that can draw it if one exists, or names the character it cannot draw
+      otherwise. A document with a character nothing bundled can render is refused at download instead
+      of silently producing an empty box.
+  - question: 'Does a Hebrew or Arabic text box grow in the wrong direction?'
+    answer: >-
+      No. It grows leftward from a fixed right edge as you type, matching the direction the script
+      itself runs, and the exported PDF keeps that same character order rather than reversing it. This
+      is native behavior, not a workaround applied after the fact.
+  - question: 'Why don''t Punjabi and Telugu use the standard Noto font?'
+    answer: >-
+      Because the Noto fonts for those two scripts miscraft a cluster common enough to break ordinary
+      words, including a common Punjabi surname and the state name Andhra Pradesh in Telugu. Two other
+      fonts were chosen for each language specifically because they draw those clusters correctly.
+  - question: 'Can I sign a PDF in Urdu using the Nastaliq style?'
+    answer: >-
+      Not yet. Urdu text draws correctly, every letter present and properly joined, but in an upright
+      style rather than Nastaliq, the sloped, cascading calligraphic style Urdu is conventionally set
+      in. The result is fully legible, just in a different style than expected.
+  - question: 'Is my language supported if it is not in the table above?'
+    answer: >-
+      Possibly. The table shows a selection of 8, not all 20 supported languages and scripts; the Sign
+      page's languages card lists every one. A handful of scripts, including Gujarati, Kannada, Odia,
+      Sinhala, Khmer, Lao, Burmese, Amharic, Armenian, Georgian and emoji, have no bundled font at all
+      yet, and can be requested.
