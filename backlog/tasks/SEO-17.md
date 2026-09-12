@@ -71,6 +71,12 @@ today; close it, or reopen it with a finding, from that refresh.
 
 **2026-09-11, later:** Shlomi attempted the indexing request for `/pdf-wont-compress-to-100kb/` and Search Console answered *Quota Exceeded* (the day's quota went to the three `/he/` tool pages). Still unrequested; retry on the next day and record the date here.
 
+**2026-09-12:** Shlomi reports the request for `/pdf-wont-compress-to-100kb/` went in on 2026-09-11
+(so a retry later that day succeeded after the quota error above; the two notes are not in conflict
+unless the first attempt was the one that counted) and he resubmitted it on 2026-09-12 together with
+`/compress-image/` and `/photo-and-signature-size-for-forms/`. The eight-week read counts from
+2026-09-11 and is due 2026-11-06. Dates also in `docs/seo-last-crawled.json` under `indexingRequested`.
+
 ## Photo and signature caps added (2026-09-12, SEO-19 follow-up)
 
 Added one IBPS photograph/signature row to the portals table, one prose block, one FAQ entry, and a
