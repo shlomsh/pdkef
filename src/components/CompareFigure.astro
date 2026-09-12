@@ -1,0 +1,127 @@
+---
+// A static before/after split image (SEO-31), the non-interactive sibling of
+// CompareSlider.tsx (src/components/CompareSlider.module.css): that component
+// is a Preact island driven by a drag gesture, which is right for a tool demo
+// but wrong for a content page - the SEO surface ships zero JS (CLAUDE.md).
+// This renders a fixed 50/50 split with plain CSS: the after image is clipped
+// to its right half with a static `clip-path`, no script, no state.
+//
+// Colours borrow CompareSlider's look (the tag pills, the handle) but read
+// only :root tokens from global.css, never its literals - that file's
+// rgba()/hex values are fine for a runtime-driven island but would be a
+// literal-color regression here.
+import { renderInline } from '../lib/contentMarkup';
+
+interface Props {
+  beforeSrc: string;
+  afterSrc: string;
+  beforeLabel: string;
+  afterLabel: string;
+  alt: string;
+  width: number;
+  height: number;
+  caption: string;
+}
+
+const { beforeSrc, afterSrc, beforeLabel, afterLabel, alt, width, height, caption } = Astro.props;
+---
+
+<figure>
+  <div class="compare-figure-box" style={`aspect-ratio: ${width} / ${height};`}>
+    <img class="compare-figure-image" src={beforeSrc} alt={alt} width={width} height={height} loading="lazy" decoding="async" />
+    <img class="compare-figure-image compare-figure-after" src={afterSrc} alt="" aria-hidden="true" width={width} height={height} loading="lazy" decoding="async" />
+    <div class="compare-figure-rule" aria-hidden="true"></div>
+    <span class="compare-figure-tag compare-figure-tag-before">{beforeLabel}</span>
+    <span class="compare-figure-tag compare-figure-tag-after">{afterLabel}</span>
+  </div>
+  <figcaption set:html={renderInline(caption, 'muted')} />
+</figure>
+
+<style>
+  figure { margin: 0 0 1.5rem; }
+  figure:last-child { margin-bottom: 0; }
+
+  .compare-figure-box {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .compare-figure-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .compare-figure-after {
+    position: absolute;
+    inset: 0;
+    clip-path: inset(0 0 0 50%);
+  }
+
+  .compare-figure-rule {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    transform: translateX(-50%);
+    background: var(--color-surface);
+    box-shadow: 0 0 0 1px var(--color-border);
+  }
+
+  .compare-figure-rule::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2.25rem;
+    height: 2.25rem;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-md);
+  }
+
+  .compare-figure-rule::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.5rem;
+    height: 0.5rem;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: var(--color-primary);
+    z-index: 1;
+  }
+
+  .compare-figure-tag {
+    position: absolute;
+    top: 0.6rem;
+    z-index: 1;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-surface);
+    background: var(--color-text);
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius-pill);
+  }
+
+  .compare-figure-tag-before {
+    inset-inline-start: 0.6rem;
+  }
+
+  .compare-figure-tag-after {
+    inset-inline-end: 0.6rem;
+  }
+
+  figcaption { margin-top: 0.75rem; font-size: 0.9rem; line-height: 1.6; color: var(--color-muted); }
+</style>
