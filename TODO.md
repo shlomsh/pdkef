@@ -196,6 +196,30 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | LOC-16 | P2 | [LOC-16](backlog/tasks/LOC-16.md) · Finish the Hebrew edition: HeroDemo, the rest of the Sign editor, the compress-hub guides, and the home page sign-off |
 
 
+## Merge: the tool people return to and recommend (2026-09-13 review)
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| MERGE-01 | P1 | [MERGE-01](backlog/tasks/MERGE-01.md) · A valid 3-page PDF renders a blank thumbnail in the Merge list |
+| MERGE-02 | P1 | [MERGE-02](backlog/tasks/MERGE-02.md) · Merge rejects PDFs with an empty MIME type that Compress accepts |
+| MERGE-03 | P1 | [MERGE-03](backlog/tasks/MERGE-03.md) · Download replaces Merge in place, named after the first file, with pages and size |
+| MERGE-04 | P2 | [MERGE-04](backlog/tasks/MERGE-04.md) · Name the file that failed to merge and offer to merge the rest |
+| MERGE-05 | P2 | [MERGE-05](backlog/tasks/MERGE-05.md) · The subhead promises page reordering the tool does not do yet |
+| MERGE-06 | P1 | [MERGE-06](backlog/tasks/MERGE-06.md) · Merge on a phone: the action within reach, one sort control, an options row, a pinned button |
+| MERGE-07 | P2 | [MERGE-07](backlog/tasks/MERGE-07.md) · Every row says pages: counts, sizes, true aspect, undo on remove, duplicates, insert where dropped |
+| MERGE-08 | P1 | [MERGE-08](backlog/tasks/MERGE-08.md) · The assembled document: every page of the result, in order, rendered on device before any merge |
+| MERGE-09 | P1 | [MERGE-09](backlog/tasks/MERGE-09.md) · Page-level editing: rotate, skip and reorder pages across files, all free |
+| MERGE-10 | P1 | [MERGE-10](backlog/tasks/MERGE-10.md) · Add more documents while the assembled pages are on screen |
+| MERGE-11 | P1 | [MERGE-11](backlog/tasks/MERGE-11.md) · Easy defaults: the simple merge is pick files, then Download, with nothing else in the way |
+| MERGE-12 | P1 | [MERGE-12](backlog/tasks/MERGE-12.md) · One tap: pre-merge on idle so Download is instant, with progress that tells the truth |
+| MERGE-13 | P1 | [MERGE-13](backlog/tasks/MERGE-13.md) · A merge survives a crash: the file set and page edits saved on device, restored on return |
+| MERGE-14 | P2 | [MERGE-14](backlog/tasks/MERGE-14.md) · After Download, carry the result into Compress, Sign or Split without re-picking it |
+| MERGE-15 | P3 | [MERGE-15](backlog/tasks/MERGE-15.md) · Spike: a bookmark per source file in the merged PDF |
+| MERGE-16 | P2 | [MERGE-16](backlog/tasks/MERGE-16.md) · Read the merge funnel before and after each phase, with the guardrails that keep it honest |
+| MERGE-17 | P3 | [MERGE-17](backlog/tasks/MERGE-17.md) · One quiet line after the first merge: it works offline and can be installed |
+| MERGE-18 | P2 | [MERGE-18](backlog/tasks/MERGE-18.md) · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant |
+
+
 ## Localization pilots: one target-size page per language, no generic tool pages
 
 | ID | Priority | Task |

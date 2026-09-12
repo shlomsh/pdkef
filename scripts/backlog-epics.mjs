@@ -24,6 +24,10 @@ export const epics = [
   { key: 'english-base', label: 'English base', heading: 'Grow the English base: authority and on-page work that can move now, no new tool' },
   { key: 'new-tools-gated', label: 'New tools (gated)', heading: 'New tools, gated on the 2026-10-08 crawl read of the never-crawled nine (SEO-06)' },
   { key: 'hebrew-edition', label: 'Hebrew edition', heading: 'Hebrew: the one live localization experiment' },
+  // 2026-09-13: the Merge tool review (Shlomi: an experience good enough that
+  // people return and recommend it). Product work only; merge copy and SEO stay
+  // closed under SEO-35.
+  { key: 'merge-tool', label: 'Merge tool', heading: 'Merge: the tool people return to and recommend (2026-09-13 review)' },
   { key: 'localization-pilots', label: 'Localization pilots', heading: 'Localization pilots: one target-size page per language, no generic tool pages' },
 ];
 
