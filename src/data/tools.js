@@ -108,7 +108,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 24 text fonts and 11 handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: 11 of the 24 text fonts and four of the 11 handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 25 text fonts and 11 handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: 12 of the 25 text fonts and four of the 11 handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -128,7 +128,7 @@ export const tools = [
         {
           native: 'বাংলা 🇧🇩🇮🇳',
           name: 'Bengali',
-          note: "Fill a Bengali form and sign your name in Bengali, in Noto Sans Bengali. Conjunct letters, reph, and vowel signs like ি that you type after a consonant but that belong before it are reordered and reshaped for the download, not just on screen. Six rare clusters are known to draw a little differently in the file than they do on screen, and they are named in the FAQ below rather than left for you to find. The same font carries Assamese's two extra letters, ৰ and ৱ, so Assamese works too. There is no handwriting-style Bengali face yet, so a typed signature comes out upright rather than cursive.",
+          note: "Fill a Bengali form and sign your name in Bengali, in Noto Sans Bengali or Hind Siliguri, either of which also works for a typed signature. Conjunct letters, reph, and vowel signs like ি that you type after a consonant but that belong before it are reordered and reshaped for the download, not just on screen. Noto Sans Bengali has six rare clusters known to draw a little differently in the file than they do on screen, named in the FAQ below rather than left for you to find; Hind Siliguri has none. Both fonts carry Assamese's two extra letters, ৰ and ৱ, so Assamese works too. There is no handwriting-style Bengali face yet, so a typed signature comes out upright rather than cursive.",
         },
         {
           native: 'తెలుగు 🇮🇳',
@@ -203,7 +203,7 @@ export const tools = [
         {
           native: 'Türkçe 🇹🇷',
           name: 'Turkish',
-          note: "Fill a Turkish form and sign your name in Turkish. Eleven text fonts carry the complete 29-letter alphabet, the same eleven that carry the full accented set in the Latin-script note above, plus Kalam, Mali and Tillana if you want a handwritten look, any of which also works for a typed signature. The three letters that set Turkish apart from plain accented Latin, Ğ, İ and Ş, are exactly what that general Latin-Ext sample does not check, so I verified them against the real font files rather than assuming coverage carried over.",
+          note: "Fill a Turkish form and sign your name in Turkish. 12 text fonts carry the complete 29-letter alphabet, the same 12 that carry the full accented set in the Latin-script note above, plus Kalam, Mali and Tillana if you want a handwritten look, any of which also works for a typed signature. The three letters that set Turkish apart from plain accented Latin, Ğ, İ and Ş, are exactly what that general Latin-Ext sample does not check, so I verified them against the real font files rather than assuming coverage carried over.",
         },
       ],
       notYetHeading: "Don't see your language? Ask, and it moves to the front of the queue.",
@@ -294,7 +294,7 @@ export const tools = [
       },
       {
         question: 'Can I fill and sign a PDF in Bengali (পিডিএফে বাংলায় স্বাক্ষর)?',
-        answer: "Yes. Bengali is a complex script, where a vowel sign like ি is typed after its consonant but has to be drawn before it, and consonant clusters form ligatures rather than sitting side by side - the bundled Noto Sans Bengali font handles both, so what you see on screen is what gets embedded in the file you download. Six clusters are the exception and we would rather name them than let you discover them: ট্র, ঠ্র and টি are drawn with one of their parts slightly out of place, ক্ক comes out as two letters with a visible virama instead of a single joined form, স্ক loses the bar across its top, and দ্ধ draws correctly but leaves too little room after itself, so the next letter can sit too close. Everything else in a 262-case check matched the screen exactly. Assamese, which shares almost all of the same script, also works: the same font carries its two extra letters, ৰ and ৱ. There is no handwriting-style Bengali face yet, so a typed signature comes out upright, not cursive.",
+        answer: "Yes. Bengali is a complex script, where a vowel sign like ি is typed after its consonant but has to be drawn before it, and consonant clusters form ligatures rather than sitting side by side. Two bundled fonts handle it, Noto Sans Bengali and Hind Siliguri, so what you see on screen is what gets embedded in the file you download either way. Noto Sans Bengali has six clusters that are the exception, and we would rather name them than let you discover them: ট্র, ঠ্র and টি are drawn with one of their parts slightly out of place, ক্ক comes out as two letters with a visible virama instead of a single joined form, স্ক loses the bar across its top, and দ্ধ draws correctly but leaves too little room after itself, so the next letter can sit too close. Everything else in a 262-case check matched the screen exactly, and Hind Siliguri passed that same 262-case check with none of those six. Assamese, which shares almost all of the same script, also works with either font: both carry its two extra letters, ৰ and ৱ. There is no handwriting-style Bengali face yet, so a typed signature comes out upright, not cursive.",
       },
       {
         question: 'Can I fill and sign a PDF in Chinese (简体中文/繁體中文)?',
@@ -306,7 +306,7 @@ export const tools = [
       },
       {
         question: 'Can I type Turkish (PDF üzerinde Türkçe imza) when signing a PDF?',
-        answer: "Yes. Ten text fonts (Arimo, Tinos, Cousine, Heebo, Alef, PT Sans and others) and three handwriting faces, Kalam, Mali and Tillana, carry the complete 29-letter Turkish alphabet, checked letter by letter against the real font files rather than assumed from general Latin coverage. That check matters here specifically for Ğ, İ and Ş, the three letters that make Turkish its own alphabet and that a general accented-Latin font does not necessarily draw. Kalam, Mali and Tillana also work for a typed signature.",
+        answer: "Yes. 12 text fonts (Arimo, Tinos, Cousine, Heebo, Alef, PT Sans and others) and three handwriting faces, Kalam, Mali and Tillana, carry the complete 29-letter Turkish alphabet, checked letter by letter against the real font files rather than assumed from general Latin coverage. That check matters here specifically for Ğ, İ and Ş, the three letters that make Turkish its own alphabet and that a general accented-Latin font does not necessarily draw. Kalam, Mali and Tillana also work for a typed signature.",
       },
     ],
   },

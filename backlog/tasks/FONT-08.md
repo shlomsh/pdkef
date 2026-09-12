@@ -294,3 +294,55 @@ Devanagari's *second handwriting* face (Kalam was the only one; Mukta, landed un
 - **Copy**: `src/data/tools.js`'s Hindi/Marathi languages-card note and FAQ answer, plus the Latin-script and Turkish notes/FAQ, updated to name Tillana and the new counts.
 - **Export-render corpus**: `devanagari-tillana` case added to `e2e/sign/fixtures/exportRenderCorpus.js` (नमस्ते, matching `devanagari-kalam`'s string). `exportRenderBaseline.json` deliberately not touched (runner-pinned, CI-only) - `export-render-guard.spec.js` skips locally on macOS as expected; the new case needs `update-export-render-baseline` on the next CI run before that guard covers it.
 - **Side effect on the Hebrew `/he/sign/` page**: the FAQ text change (Hindi/Marathi and Turkish answers, which the Hebrew page does not translate - see its own file comment) changed the English `sign` tool's `sourceHash`, which the published Hebrew translation pins. Verified none of the changed fields are part of Hebrew's translated FAQ subset, so no re-review was needed; bumped the pin in `src/content/localized-tools/he/sign.yaml` with a dated comment explaining why, rather than leaving the build broken or taking the page offline.
+## Landed 2026-09-12: Hind Siliguri (Bengali/Assamese second choice)
+
+**Bengali's second choice, closed.** Noto Sans Bengali was the only bundled Bengali face; Hind Siliguri
+(Indian Type Foundry, OFL 1.1, static Regular 250,052 bytes / Bold 287,660 bytes, upright humanist
+sans) joins it, per the top-ranked FONT-08b candidate in
+[docs/font-candidate-research-brief.md](./docs/font-candidate-research-brief.md)'s Bengali row. License
+copyright (`Copyright (c) 2015 Indian Type Foundry (info@indiantypefoundry.com)`) verified against the
+font's own `OFL.txt` fetched from the google/fonts mirror and against the embedded name table's
+`copyright` field - identical. Embedded version `1.001` (from the name table's `Version 1.001;PS
+1.0;...` string, same convention as every other manifest entry).
+
+- **Screen 1 (fontkit crash):** 0/262 throws shaping `bengaliCorpus.js`'s full, unfiltered case set
+  (the five shaping-axis groups - preBaseVowel, reph, raphala, yaphala, conjuncts - concatenated
+  without Noto's own `KNOWN_FONTKIT_DIVERGENCES` filter, since those exclusions are Noto's, not Hind
+  Siliguri's).
+- **Screen 2 (pixel guard, `e2e/sign/bengali-hind-siliguri-shaping-guard.spec.js`):** self-calibrating
+  (`autoCalibrate`), 400px geometry (above Skia's ~256px bitmap-glyph limit, matching the current
+  Bengali/Devanagari/Malayalam standard). The five curated axis groups alone gave `autoCalibrate`
+  nothing to partition from (0/262 non-substituting on a first pass, since every case is constructed to
+  trigger a shaping feature) - extended the corpus with 60 calibration-filler cases (bare consonants and
+  consonant+plain-AA pairs, the same zero-ambiguity shape the Noto Sans Bengali guard's own hand-picked
+  `CALIBRATION_SET` uses), for 322 corpus strings total. Result: 60 non-substituting (calibration:
+  rasteriser floor 0.00%, advance-quantisation floor 0.00%), 262 substituting and under test, **262/262
+  passed at the 4% tolerance floor - zero divergent cases**, unlike Noto Sans Bengali's six. Sabotage
+  control (glyph draw order reversed on every substituting case, run once locally, not shipped): 208/262
+  failed with the calibration/floor measurement unchanged, proving the guard detects rather than
+  rubber-stamps.
+- **Screen 3 (advance parity, SIGN-20-style spot check, not a shipped assertion):** fontkit's summed
+  shaped glyph advances vs. the same browser's `measureText` across all 322 corpus + calibration
+  strings - **max widthDiff 0.000px**, zero cases past SIGN-19's `glyphCount x 0.5px` rounding bound.
+- **`glyf` alignment:** passed as shipped, no repad needed (`npm run test:fonts`, 64 fonts checked).
+- **Coverage:** full Bengali base alphabet (vowels, consonants, khanda ta, vowel signs, marks, digits),
+  full Assamese extras (ৰ, ৱ), full Latin ASCII + digits - all verified against the real TTF bytes via
+  fontkit's `hasGlyphForCodePoint`.
+
+**Wired into the catalogue** (`scripts/font-manifest.mjs` → regenerated
+`src/editor/text/fontManifest.js`, `src/styles/editorFonts.css`, `THIRD_PARTY_LICENSES.md`;
+`src/lib/fontCoverageTable.js` and `src/lib/fontCoverageReport.js` regenerated), the Sign page's Bengali
+language-card note and FAQ (now two fonts, Hind Siliguri's zero divergences named alongside Noto's six,
+which stay named because they are still real for that font), and
+`e2e/sign/fixtures/exportRenderCorpus.js` (`bengali-hind-siliguri` case, স্বাগতম "welcome", a real
+conjunct-bearing word - `exportRenderBaseline.json` not touched; pending the `update-export-render-
+baseline` CI workflow per the nine-step rule, since that file is runner-pinned).
+
+**Known issue surfaced by this change, not fixed here:** editing the Sign tool's English FAQ (required
+by this landing) invalidates `/he/sign/`'s published-translation `sourceHash`
+(`src/i18n/documentationFreshness.ts`), which `npm run build` correctly refuses as a build error per
+LOC-10's accepted design ("a stale published Hebrew page is worse than none"). This is not specific to
+Hind Siliguri - any font landing that touches the Sign FAQ hits the same gate, and several are landing
+in parallel right now. Needs Shlomi's own review of `/he/sign/` (native review, not an AI self-attestation
+per LOC-09's standing rule) before this branch - or the merged set of parallel font-landing branches -
+can build clean again.

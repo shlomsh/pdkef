@@ -487,6 +487,19 @@ export const FONT_MANIFEST = Object.freeze([
       "normal": "Tillana-Regular.ttf",
       "bold": "Tillana-Bold.ttf"
     }
+  },
+  {
+    "family": "Hind Siliguri",
+    "kind": "text",
+    "styleTag": "sans",
+    "metrics": {
+      "ascent": 1.116,
+      "descent": 0.501
+    },
+    "faces": {
+      "normal": "HindSiliguri-Regular.ttf",
+      "bold": "HindSiliguri-Bold.ttf"
+    }
   }
 ]);
 

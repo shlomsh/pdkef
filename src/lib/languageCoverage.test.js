@@ -233,8 +233,11 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(turkish).toEqual(ext);
     expect(turkish).toContain('Kalam');
     expect(turkish).toContain('Mali');
+    // The note's count is text fonts only - Kalam and Mali are named
+    // separately as the handwriting option, not folded into this number.
+    const turkishUprightCount = LANGUAGE_COVERAGE.turkish.full.filter((f) => f.style === 'upright').length;
     const note = supportedNote('Turkish');
-    expect(note).toContain('Eleven text fonts');
+    expect(note).toContain(`${numberWord(turkishUprightCount)} text fonts`);
     expect(note).toContain('Kalam');
     expect(note).toContain('Mali');
     expect(note).toContain('Ğ');
@@ -242,15 +245,18 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(note).toContain('Ş');
   });
 
-  it('Bengali: exactly Noto Sans Bengali, matching LANGUAGE_COVERAGE.bengali.full, and the note also claims Assamese', () => {
-    expect(LANGUAGE_COVERAGE.bengali.full.map((f) => f.family)).toEqual(['Noto Sans Bengali']);
-    // Same font, same claim - LANGUAGE_COVERAGE.assamese is a separate report
-    // row (Bengali's set plus RA/VA) so a font that only covered Bengali
-    // proper and not the two extra Assamese letters would show up here as a
-    // real disagreement, not something this test has to hand-derive.
-    expect(LANGUAGE_COVERAGE.assamese.full.map((f) => f.family)).toEqual(['Noto Sans Bengali']);
+  it('Bengali: Noto Sans Bengali and Hind Siliguri, matching LANGUAGE_COVERAGE.bengali.full, and the note also claims Assamese', () => {
+    // FONT-08b: Hind Siliguri joined the previously Noto-Sans-Bengali-only
+    // Bengali row as a second upright choice.
+    expect(LANGUAGE_COVERAGE.bengali.full.map((f) => f.family)).toEqual(['Noto Sans Bengali', 'Hind Siliguri']);
+    // Same two fonts, same claim - LANGUAGE_COVERAGE.assamese is a separate
+    // report row (Bengali's set plus RA/VA) so a font that only covered
+    // Bengali proper and not the two extra Assamese letters would show up
+    // here as a real disagreement, not something this test has to hand-derive.
+    expect(LANGUAGE_COVERAGE.assamese.full.map((f) => f.family)).toEqual(['Noto Sans Bengali', 'Hind Siliguri']);
     const note = supportedNote('Bengali');
     expect(note).toContain('Noto Sans Bengali');
+    expect(note).toContain('Hind Siliguri');
     expect(note).toContain('Assamese');
     expect(note).toContain('no handwriting-style Bengali face');
   });

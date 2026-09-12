@@ -247,6 +247,12 @@ export const FONT_MANIFEST = [
     faces: normal('Tillana-Regular.ttf', 'Tillana-Bold.ttf'),
     license: { version: '1.1', url: 'https://fonts.google.com/specimen/Tillana', copyright: 'Copyright (c) 2014, Indian Type Foundry (info@indiantypefoundry.com)' },
   },
+  {
+    family: 'Hind Siliguri', kind: 'text', styleTag: 'sans',
+    metrics: { ascent: 1.116, descent: 0.501 },
+    faces: normal('HindSiliguri-Regular.ttf', 'HindSiliguri-Bold.ttf'),
+    license: { version: '1.001', url: 'https://fonts.google.com/specimen/Hind+Siliguri', copyright: 'Copyright (c) 2015 Indian Type Foundry (info@indiantypefoundry.com)' },
+  },
 ];
 
 export const FONT_FILES = FONT_MANIFEST.flatMap((font) => Object.values(font.faces));
