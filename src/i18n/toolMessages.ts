@@ -26,20 +26,12 @@ export function formatMessage(template: string, params: Record<string, string | 
 export interface MergeMessages {
   skippedOne: string;
   skippedMany: string;
-  sortAZ: string;
-  sortZA: string;
-  sortOldest: string;
-  sortNewest: string;
   addPageNumbers: string;
   reorderHint: string;
   dragHandleLabel: string;
   removeLabel: string;
-  merging: string;
   addOneMore: string;
-  mergeCount: string;
-  errorMessage: string;
   mergedReady: string;
-  mergingFailed: string;
   filesAddedOne: string;
   filesAddedMany: string;
   fileRemoved: string;
@@ -127,20 +119,12 @@ export interface MergeMessages {
 const englishMergeMessages: MergeMessages = {
   skippedOne: 'Skipped "{name}" - not a PDF.',
   skippedMany: 'Skipped {count} files - not PDFs.',
-  sortAZ: 'A–Z',
-  sortZA: 'Z–A',
-  sortOldest: 'Oldest',
-  sortNewest: 'Newest',
   addPageNumbers: 'Add page numbers',
   reorderHint: 'Drag a file by its handle to reorder, or focus a file and press the arrow up or down keys to move it.',
   dragHandleLabel: '{name}, position {position} of {total}. Drag, or press arrow up or down to move.',
   removeLabel: 'Remove {name}',
-  merging: 'Merging…',
   addOneMore: 'Add 1 more to merge',
-  mergeCount: 'Merge {count} PDFs',
-  errorMessage: 'A file may be damaged or password-protected - remove it and try again.',
   mergedReady: 'Your merged PDF is ready.',
-  mergingFailed: 'Merging failed.',
   filesAddedOne: '1 file added.',
   filesAddedMany: '{count} files added.',
   fileRemoved: '{name} removed.',
@@ -218,20 +202,12 @@ const englishMergeMessages: MergeMessages = {
 const hebrewMergeMessages: MergeMessages = {
   skippedOne: 'דילגנו על "{name}" - זה לא קובץ PDF.',
   skippedMany: 'דילגנו על {count} קבצים - הם לא PDF.',
-  sortAZ: 'א–ת',
-  sortZA: 'ת–א',
-  sortOldest: 'הישן קודם',
-  sortNewest: 'החדש קודם',
   addPageNumbers: 'הוספת מספרי עמודים',
   reorderHint: 'גררו קובץ מהידית שלו כדי לסדר מחדש, או התמקדו בקובץ ולחצו על חץ למעלה או למטה כדי להזיז אותו.',
   dragHandleLabel: '{name}, מקום {position} מתוך {total}. גררו, או לחצו על חץ למעלה או למטה כדי להזיז.',
   removeLabel: 'הסרת {name}',
-  merging: 'ממזגים…',
   addOneMore: 'הוסיפו עוד קובץ אחד כדי למזג',
-  mergeCount: 'מיזוג {count} קבצי PDF',
-  errorMessage: 'ייתכן שאחד הקבצים פגום או מוגן בסיסמה - הסירו אותו ונסו שוב.',
   mergedReady: 'ה-PDF המאוחד מוכן.',
-  mergingFailed: 'המיזוג נכשל.',
   filesAddedOne: 'נוסף קובץ אחד.',
   filesAddedMany: 'נוספו {count} קבצים.',
   fileRemoved: '{name} הוסר.',
