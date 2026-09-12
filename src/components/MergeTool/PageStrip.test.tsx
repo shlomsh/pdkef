@@ -82,7 +82,9 @@ describe('PageStrip', () => {
       { id: 2, file: makeFile('b.pdf'), pageCount: 2, error: null },
     ];
     const plan = overrides.plan ?? [...planForFile(1, 2), ...planForFile(2, 2)];
-    const onPlanChange = vi.fn();
+    // The strip commits updaters; the harness applies each to the plan it was
+    // mounted with so the tests can read the resulting plan.
+    const onPlanChange = vi.fn((update) => update(plan));
     const announce = vi.fn();
     const stripRef = createRef();
     container = document.createElement('div');
@@ -140,12 +142,12 @@ describe('PageStrip', () => {
     const first = cards()[0];
     await act(async () => first.querySelectorAll(`.${styles.action}`)[0].click());
     expect(onPlanChange).toHaveBeenCalledTimes(1);
-    expect(onPlanChange.mock.calls[0][0][0]).toMatchObject({ key: '1:0', rotation: 90 });
+    expect(onPlanChange.mock.results[0].value[0]).toMatchObject({ key: '1:0', rotation: 90 });
     expect(announce).toHaveBeenCalledWith('Page 1 rotated to 90 degrees.');
 
     await act(async () => first.querySelectorAll(`.${styles.action}`)[1].click());
     expect(onPlanChange).toHaveBeenCalledTimes(2);
-    expect(onPlanChange.mock.calls[1][0][0]).toMatchObject({ key: '1:0', skipped: true });
+    expect(onPlanChange.mock.results[1].value[0]).toMatchObject({ key: '1:0', skipped: true });
     expect(announce).toHaveBeenLastCalledWith(expect.stringContaining('Page 1 skipped'));
   });
 
@@ -158,7 +160,7 @@ describe('PageStrip', () => {
     expect(card.textContent).toContain('Skipped');
     expect(container.querySelector(`.${styles.count}`).textContent).toContain('1 skipped');
     await act(async () => card.querySelectorAll(`.${styles.action}`)[1].click());
-    expect(onPlanChange.mock.calls[0][0][2]).toMatchObject({ key: '2:0', skipped: false });
+    expect(onPlanChange.mock.results[0].value[2]).toMatchObject({ key: '2:0', skipped: false });
   });
 
   it('keyboard: arrows move across files, R rotates, Delete skips, Enter opens the preview', async () => {
@@ -167,14 +169,14 @@ describe('PageStrip', () => {
     card.focus();
     await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })));
     // Moving page 2 of file 1 past page 1 of file 2 crosses a file boundary.
-    const moved = onPlanChange.mock.calls[0][0];
+    const moved = onPlanChange.mock.results[0].value;
     expect(moved.map((p) => p.key)).toEqual(['1:0', '2:0', '1:1', '2:1']);
 
     await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true })));
-    expect(onPlanChange.mock.calls[1][0][1]).toMatchObject({ key: '1:1', rotation: 90 });
+    expect(onPlanChange.mock.results[1].value[1]).toMatchObject({ key: '1:1', rotation: 90 });
 
     await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })));
-    expect(onPlanChange.mock.calls[2][0][1]).toMatchObject({ key: '1:1', skipped: true });
+    expect(onPlanChange.mock.results[2].value[1]).toMatchObject({ key: '1:1', skipped: true });
 
     await act(async () => {
       card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
@@ -193,7 +195,7 @@ describe('PageStrip', () => {
     const options = createSpy.mock.calls[0][1];
     options.onEnd({ oldIndex: 0, newIndex: 3 });
     expect(onPlanChange).toHaveBeenCalledTimes(1);
-    expect(onPlanChange.mock.calls[0][0].map((p) => p.key)).toEqual(['1:1', '2:0', '2:1', '1:0']);
+    expect(onPlanChange.mock.results[0].value.map((p) => p.key)).toEqual(['1:1', '2:0', '2:1', '1:0']);
     options.onEnd({ oldIndex: 2, newIndex: 2 });
     expect(onPlanChange).toHaveBeenCalledTimes(1);
   });

@@ -19,7 +19,6 @@ import { renderThumbnail } from '../lib/thumbnails.js';
 import { describeFile, formatFileSize } from '../lib/format.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { isIOSDevice } from '../lib/platform.ts';
-import { deleteDraft, loadDraft, saveHandoff } from '../editor/workspace/draftStore.js';
 import BasePdfTool from './BasePdfTool.tsx';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import styles from './FileList.module.css';
@@ -487,8 +486,8 @@ export default function PdfMergeTool({
     setAnnouncement(t.filesReordered);
   }, [t.filesReordered]);
 
-  const onPlanChange = useCallback((next: PlanEntry[]) => {
-    setModel((current) => ({ entries: current.entries, plan: next }));
+  const onPlanChange = useCallback((update: (current: PlanEntry[]) => PlanEntry[]) => {
+    setModel((current) => ({ entries: current.entries, plan: update(current.plan) }));
   }, []);
 
   const onPageNumbersChange = useCallback((event: Event) => {
@@ -634,6 +633,9 @@ export default function PdfMergeTool({
     setHandoffBusy(true);
     setHandoffFailed(false);
     try {
+      // The store is only needed once a result is being handed off, so it
+      // stays out of the eager graph like the strip and the draft hook.
+      const { saveHandoff, deleteDraft } = await import('../editor/workspace/draftStore.js');
       const saved = await saveHandoff(tool, {
         fileName,
         fileType: 'application/pdf',
@@ -651,6 +653,7 @@ export default function PdfMergeTool({
   const requestHandoff = useCallback(async (tool: HandoffTool) => {
     if (handoffBusy || !prepared.blob) return;
     if (tool === 'sign') {
+      const { loadDraft } = await import('../editor/workspace/draftStore.js');
       const draft = (await loadDraft('sign')) as { fileName?: string } | null;
       if (draft) {
         setHandoffConfirm({ tool, draftName: draft.fileName || '' });
@@ -750,7 +753,7 @@ export default function PdfMergeTool({
           {grouped ? (
             <div class={sortToolbarStyles.toolbar} role="toolbar" aria-label={t.sortLabel}>
               <label class={sortToolbarStyles['sort-label']} for="merge-sort">{t.sortLabel}</label>
-              <select id="merge-sort" class={sortToolbarStyles['sort-select']} value={sortMode} onChange={onSortChange}>
+              <select id="merge-sort" class={sortToolbarStyles['sort-select']} aria-label={t.sortLabel} value={sortMode} onChange={onSortChange}>
                 <option value="added">{t.sortAsAdded}</option>
                 <option value="name">{t.sortByName}</option>
                 <option value="date">{t.sortByDate}</option>
@@ -900,7 +903,12 @@ export default function PdfMergeTool({
             )}
 
             {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} />}
+          </div>
 
+          {/* Under the pinned row on phones, in flow: the quiet hand-off verbs
+              (MERGE-14), Start again, and the one-time install line (MERGE-17).
+              Only the primary control sticks to the bottom edge. */}
+          <div>
             {prepared.status === 'ready' && (
               <div class={pdfToolStyles['action-row-secondary']} aria-busy={handoffBusy || undefined}>
                 {(['compress', 'sign', 'split'] as HandoffTool[]).map((tool) => (
