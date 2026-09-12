@@ -28,14 +28,10 @@ reviewedAt: '2026-09-11'
 reviewNotes: >-
   Reviewed the rendered page (desktop and mobile, RTL, editor-stays-English
   notice) and approved the wording, terminology and typography for publish.
-  FONT-08 (2026-09-12) refreshed sourceHash without a new review: the
-  English edits were confined to languages-card notes and FAQ answers
-  outside this page's translated FAQ subset (Cyrillic/Thai, Vietnamese,
-  Arabic/Farsi/Urdu/Pashto, Bengali, Hindi/Marathi, Turkish, Greek), and
-  the languages card is English-edition-only per the note above; nothing
-  this Hebrew page renders changed. The hash was recomputed once on the
-  merged tree rather than per font.
-sourceHash: 'fnv1a64:4c8d741ea8431090'
+  FONT-08 (2026-09-12): sourceHash refreshed mechanically, no new review.
+  Nine second-choice fonts changed nine English FAQ answers, none of them
+  in this page's translated subset; the languages card is English-only.
+sourceHash: 'fnv1a64:663f2054a3c81b97'
 seoTitle: 'חתימה על PDF בחינם - מילוי טפסים, בלי הרשמה | PDkef'
 seoDescription: >-
   חתמו על PDF באייפון, אנדרואיד או במחשב בחינם. הוסיפו טקסט, סימוני וי
