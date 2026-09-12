@@ -193,14 +193,21 @@ Four standing rules, each learned the expensive way (evidence in the doc's secti
   the phrasings a locale actually types before asking for Trends or SERP screenshots, seeding
   verb-first and without the word "pdf" (LOC-11 has the method and the 2026-09-12 sweep).
 
-**Page localization is a settled question with a review date; do not reopen it from first principles.**
-Twelve languages were measured in 2026-09 (Trends, real `hl`/`gl` SERPs, GSC by country). The
-mechanism (`/he/` editions, `src/i18n/`, the review and freshness gates) stays; no generic tool page
-gets localized into a new language, because every native SERP is the same field this domain loses to
-in English; the one pilot on the table (a Spanish target-size page, LOC-13) is on hold until the
-English base is bigger. The findings doc's section 2 has the three-part lesson, LOC-10 the decision,
-LOC-11 the evidence, LOC-12 the re-check due 2026-11-12. A new language proposal starts from LOC-11's
-ROI gate (native demand of the order of the English page's own traffic in that country, and an
-English page of ours already in the top ten on the same kind of query), not from a hunch.
+**Localization is an ongoing programme with one record: the languages page.** It lives at
+https://claude.ai/code/artifact/0758819e-6104-460e-8cf0-05bc3ee84e78 and is the source of truth for
+every language's stage (candidate, measured, decided, building, live, reviewed, read in the field),
+the Hebrew edition's surface-by-surface coverage and review state, and for each held or declined
+language the measured evidence (Trends ratios, SERP field, GSC by country), the verdict against the ROI
+gate, and the date it comes back. `docs/i18n-status/` holds its source (`index.html`) and a snapshot of
+its data (`data/i18n-status.json`); the page edits itself (its Publish writes a new version of the data
+file), so after a decision changes there, sync the snapshot into the repo with the page's Copy JSON
+button, or read the artifact's `data/i18n-status.json` with the Artifact tool. Fifteen languages were
+measured in 2026-09; the mechanism (`/he/` editions, `src/i18n/`, the review and freshness gates)
+stays; no generic tool page gets localized into a new language while every native SERP is the same
+field this domain loses to in English. The findings doc's section 2 has the three-part lesson, LOC-10
+the decision, LOC-11 the evidence and the ROI gate (native demand of the order of the English page's
+own traffic in that country, plus an English page of ours already in the top ten on the same kind of
+query), LOC-12 the re-check due 2026-11-12. A new language proposal starts from the page and that gate,
+not from a hunch, and ends by updating the page.
 
 

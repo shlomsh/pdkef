@@ -112,6 +112,12 @@ sentence). Never frame PDkef around how little time it took to build. The full v
 story and SEO rules are in [content-and-copy]; SEO work starts from
 [docs/seo-competitive-findings.md](./docs/seo-competitive-findings.md).
 
+**Localization is a programme, not a ticket.** Per-language stage, coverage, the measured evidence
+behind every hold and the date it comes back live on the languages page
+(https://claude.ai/code/artifact/0758819e-6104-460e-8cf0-05bc3ee84e78, source and data snapshot in
+`docs/i18n-status/`). Read it before proposing, building or retiring a language; a decision changes
+there first, then in its LOC ticket. [content-and-copy]
+
 ## CI guardrails (invariants are checks, not prose)
 
 `ci.yml` runs, in order: `check:backlog`, `check:guidance`, `test`, `typecheck`,

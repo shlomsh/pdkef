@@ -1,0 +1,673 @@
+{
+  "meta": {
+    "updated": "2026-09-12",
+    "reCheck": {
+      "date": "2026-11-12",
+      "ticket": "LOC-12"
+    },
+    "englishPages": {
+      "tools": [
+        "sign",
+        "redact",
+        "merge",
+        "pdf-to-image",
+        "image-to-pdf",
+        "split",
+        "compress",
+        "compress-image",
+        "unlock",
+        "edit-pdf"
+      ],
+      "guides": [
+        "sign-pdf-no-signup",
+        "install-pdf-app",
+        "offline-pdf-form-filler",
+        "open-source-pdf-editor",
+        "blur-vs-blackout-vs-delete-pdf",
+        "permanently-delete-text-from-pdf",
+        "pdf-wont-compress-to-100kb",
+        "how-to-sign-a-pdf-on-windows",
+        "how-to-sign-a-pdf-on-mac",
+        "how-to-sign-a-pdf-on-iphone",
+        "how-to-sign-a-pdf-on-android"
+      ]
+    },
+    "anchorTasks": [
+      "merge",
+      "sign",
+      "compress",
+      "pdf-to-jpg"
+    ]
+  },
+  "gates": [
+    {
+      "name": "The ROI gate (LOC-11)",
+      "rule": "Reopen or keep a language only when both hold. Demand: in-language search volume for the anchor tasks, or for the niche queries this domain wins, of the order of the English page's own traffic from that country, on Trends and visible as in-language queries in GSC. Field: an English page of ours already ranks in the top ten on the same kind of query, showing the domain can compete in that field before a native edition asks it to.",
+      "source": "LOC-11 § The ROI gate; content-and-copy.md"
+    },
+    {
+      "name": "Translated-results reading",
+      "rule": "On a language Google's translated-results feature covers, a machine-translated incumbent is a sign of thin native demand, not an opening: the translator is Google, applied to the whole English field, so a native page would compete with Google's translation of the majors. Such a language needs a stronger case on both halves of the gate.",
+      "source": "LOC-08 § Verdict; findings doc § 2"
+    },
+    {
+      "name": "Review and freshness gate",
+      "rule": "A localized tool page or guide publishes only with reviewer, reviewedAt, reviewNotes and a sourceHash that matches the English source; an English edit to a translated page fails the build until the translation is re-reviewed. The home edition is the recorded exception: it published as a disclosed AI draft pending Shlomi's own read-through.",
+      "source": "src/content.config.ts; LOC-02; LOC-09"
+    },
+    {
+      "name": "The original pilot rule (LOC-01), superseded in emphasis",
+      "rule": "A language went to a pilot when native phrasing carried a comparable share to English on two of four anchor tasks, at least one incumbent on the top phrasing was mixed-language or machine-translated, and a native reviewer was available. Written before the data. Indonesian met the first and third and was still held, which is what produced the ROI gate.",
+      "source": "LOC-01 § Scope and acceptance; LOC-07"
+    }
+  ],
+  "mechanism": [
+    "A locale is a prefixed route family on the one origin: /he/ (home), /he/<tool>/ and /he/<guide>/, each a content-collection entry that overlays translated fields on the English source (src/i18n/, src/content/localized-*). One origin keeps drafts, IndexedDB and the service worker shared.",
+    "Tool islands take a server-rendered messages catalogue (src/i18n/toolMessages.ts); the shared shell (dropzone, file row, confirmations, app bar, footer) has its own. The Sign and Redact editor stays English behind a disclosed notice, as does the home page's interactive demo.",
+    "RTL is a layout property: logical CSS plus dir on the page; the app bar's arrows and the demo's captions mirror. A language-purity check (scripts/localizedSeoChecks.mjs) scores each localized page's visible text and excludes only the disclosed-English islands.",
+    "Every edition carries reciprocal hreflang with x-default, its own sitemap entries, and an offline pack the page asks the service worker to warm. Search Console reads per locale start at the 2026-10-08 refresh (findings doc § 3.7).",
+    "Evidence for a decision lives in its LOC ticket under backlog/tasks/; this page holds the verdict, the numbers that carried it, and the date it comes back. Edit here, publish, and sync docs/i18n-status/data/i18n-status.json in the repo."
+  ],
+  "languages": [
+    {
+      "code": "he",
+      "name": "Hebrew",
+      "native": "עברית",
+      "dir": "rtl",
+      "stage": "live",
+      "decision": "keep",
+      "decisionTicket": "LOC-03",
+      "decisionDate": "2026-09-11",
+      "reCheck": "2026-11-06",
+      "reasoning": "Chosen first because review costs nothing (in-house), Israel already converts best of any country from English queries, and the Hebrew incumbents are visibly weak: machine-flavoured, LTR-laid-out, none claiming on-device processing or real RTL support. LOC-01 called Hebrew's small Trends share \"informative, not decisive\" for exactly that reason. LOC-11 later confirmed Hebrew is one of the weakest demand cases measured; the decision stands because the marginal cost is zero.",
+      "next": "First read at the 2026-10-08 refresh (LOC-06's per-locale table); success criteria read at the eight-week mark, 2026-11-06: any Hebrew-query impression at all, or one of the three target phrasings in Israel's top 20. Home page still needs Shlomi's native read-through (LOC-09).",
+      "evidence": [
+        {
+          "metric": "Trends share vs English, 4 anchor tasks (IL)",
+          "value": "merge ~1/3, sign ~0, compress and pdf-to-jpg spikes only",
+          "gate": "criterion 1: comparable share",
+          "verdict": "fail",
+          "source": "LOC-01 § Evidence 2026-09-11"
+        },
+        {
+          "metric": "Incumbent quality on Hebrew queries",
+          "value": "thin: freepdfconvert, AvePDF; no on-device or RTL claim",
+          "gate": "criterion 2: weak incumbent",
+          "verdict": "pass",
+          "source": "LOC-01 § verdict table"
+        },
+        {
+          "metric": "Native reviewer",
+          "value": "in-house, zero marginal cost",
+          "gate": "criterion 3: reviewer available",
+          "verdict": "pass",
+          "source": "LOC-01 § verdict table"
+        },
+        {
+          "metric": "GSC Israel, 3 months (baseline 2026-09-10)",
+          "value": "8 clicks / 20 impressions, position 6.65, all English queries",
+          "gate": "India 36/813 at 12.66; US 4/360 at 31.97",
+          "verdict": "na",
+          "source": "LOC-12 § Baseline"
+        },
+        {
+          "metric": "Israel CTR from English queries",
+          "value": "40%, best of any country",
+          "gate": "other top-20 countries",
+          "verdict": "pass",
+          "source": "LOC-03 § Scope"
+        }
+      ],
+      "coverage": {
+        "shell": "reviewed",
+        "home": "published",
+        "tools": {
+          "sign": "reviewed",
+          "merge": "reviewed",
+          "compress": "reviewed"
+        },
+        "guides": {
+          "sign-pdf-no-signup": "reviewed",
+          "install-pdf-app": "reviewed",
+          "open-source-pdf-editor": "reviewed",
+          "how-to-sign-a-pdf-on-windows": "reviewed",
+          "how-to-sign-a-pdf-on-mac": "reviewed",
+          "how-to-sign-a-pdf-on-iphone": "reviewed",
+          "how-to-sign-a-pdf-on-android": "reviewed",
+          "offline-pdf-form-filler": "draft"
+        },
+        "islands": {
+          "merge": "published",
+          "compress": "reviewed",
+          "sign": "decided-english"
+        },
+        "editor": "decided-english"
+      }
+    },
+    {
+      "code": "es",
+      "name": "Spanish",
+      "native": "Español",
+      "dir": "ltr",
+      "stage": "decided",
+      "decision": "hold",
+      "decisionTicket": "LOC-13",
+      "decisionDate": "2026-09-12",
+      "reCheck": "2026-11-12",
+      "reasoning": "Generic tool pages: demand clears by 13x-20x but the field is the most saturated measured (iLovePDF's home language) and UnePDF already holds the on-device claim at position 3 on unir pdf. The niche pilot (a Mexican target-size compress page on a real government 1 MB limit) got its go/no-go data the same day: the target-size terms sit below Trends' floor and the field is already occupied by dedicated pages (Pi7, 11zon, Smallpdf, Adobe). Shlomi: hold, not kill - \"as scoped, the page would produce a number too small to learn from (the Hebrew problem).\"",
+      "next": "Unblocks when LOC-14 (Indonesian target-size) has run and LOC-12 (2026-11-12) has re-read the countries. If Spanish is still the best door then, build the page as scoped, on the Prepa en Línea-SEP 1 MB hook, covering PDF and photo size limits.",
+      "evidence": [
+        {
+          "metric": "Trends, MX: comprimir pdf vs compress pdf",
+          "value": "~65 vs ~5 (13x)",
+          "gate": "demand: native of the order of English",
+          "verdict": "pass",
+          "source": "LOC-11 § Trends table"
+        },
+        {
+          "metric": "Trends, MX: unir pdf vs merge pdf",
+          "value": "~78 vs ~4 (20x)",
+          "gate": "demand",
+          "verdict": "pass",
+          "source": "LOC-11 § Trends table"
+        },
+        {
+          "metric": "Field on comprimir / unir pdf",
+          "value": "iLovePDF, Adobe, Smallpdf (511k reviews); UnePDF on-device claim at #3",
+          "gate": "field: an English page of ours in the top ten on that kind of query",
+          "verdict": "fail",
+          "source": "LOC-11 § SERPs"
+        },
+        {
+          "metric": "Target-size terms, Trends MX and ES",
+          "value": "zeros all year, two one-week blips",
+          "gate": "demand for the pilot's own niche",
+          "verdict": "fail",
+          "source": "LOC-13 § Go/no-go 2026-09-12"
+        },
+        {
+          "metric": "Target-size SERP field (comprimir pdf a 1mb / 2mb / 500 kb)",
+          "value": "Zamzar, Pi7, 11zon, Smallpdf, Adobe 500 KB page (281k reviews), safelocaltools",
+          "gate": "field for the pilot",
+          "verdict": "fail",
+          "source": "LOC-13 § Go/no-go 2026-09-12"
+        },
+        {
+          "metric": "Verifiable local hook",
+          "value": "Prepa en Línea-SEP publishes a 'files under 1 MB' rule",
+          "gate": "a citable portal limit",
+          "verdict": "pass",
+          "source": "LOC-13 § Go/no-go 2026-09-12"
+        }
+      ]
+    },
+    {
+      "code": "id",
+      "name": "Indonesian",
+      "native": "Bahasa Indonesia",
+      "dir": "ltr",
+      "stage": "decided",
+      "decision": "hold",
+      "decisionTicket": "LOC-07",
+      "decisionDate": "2026-09-11",
+      "reCheck": "2026-11-12",
+      "reasoning": "The only language with real, sustained in-language Trends volume (parity on 2 of 4 anchor tasks), clearer than Hebrew ever got. LOC-07 closed the generic tool pages anyway: \"criterion 1 alone does not carry the decision... the one piece of direct evidence this domain has about ranking against this exact competitive field says it currently cannot, and a translation does not change that.\" Expected outcome if built now: page two to three, clicks in the low single digits a month. Indonesian is also on Google's translated-results list. What stays open is narrower: the autocomplete sweep found the densest size-limit query family of any locale (job and civil-service portals with hard KB limits), and LOC-14 runs that family through the ROI gate on its own.",
+      "next": "LOC-14: read the prepared Trends, SERP and GSC links for the size-limit family against the ROI gate. The generic pages (retired LOC-04) reopen only if the Hebrew pilot produces measurable in-language impressions, or an English tool page reaches page one for its own head term.",
+      "evidence": [
+        {
+          "metric": "Trends, ID: kompres pdf vs compress pdf",
+          "value": "at or above English for 12 months",
+          "gate": "demand",
+          "verdict": "pass",
+          "source": "LOC-01 § verdict table"
+        },
+        {
+          "metric": "Trends, ID: tanda tangan pdf vs sign pdf",
+          "value": "near parity; merge ~half; pdf-to-jpg ~1/5",
+          "gate": "demand",
+          "verdict": "pass",
+          "source": "LOC-01 § verdict table"
+        },
+        {
+          "metric": "Field on the 4 anchor queries (hl=id)",
+          "value": "iLovePDF, Smallpdf, Adobe, PDF24, Canva in the top five everywhere; 300k-700k reviews; zero weak incumbents",
+          "gate": "field",
+          "verdict": "fail",
+          "source": "LOC-01; LOC-07 § Part 1"
+        },
+        {
+          "metric": "Our English /merge/ against that field",
+          "value": "position 36, 0 clicks",
+          "gate": "field: top ten on the same kind of query",
+          "verdict": "fail",
+          "source": "LOC-07 § Part 1"
+        },
+        {
+          "metric": "Autocomplete: size-limit family",
+          "value": "kompres pdf 1 mb, mengecilkan pdf 200/300/500kb, ukuran file lamaran kerja via email... densest of 5 locales",
+          "gate": "a niche this domain wins in English (100kb page)",
+          "verdict": "na",
+          "source": "LOC-11 § autocomplete sweep"
+        }
+      ]
+    },
+    {
+      "code": "ur",
+      "name": "Urdu",
+      "native": "اردو",
+      "dir": "rtl",
+      "stage": "measured",
+      "decision": "hold",
+      "decisionTicket": "LOC-11",
+      "decisionDate": "2026-09-12",
+      "reCheck": "2026-11-12",
+      "reasoning": "Not charted on Trends or a real SERP. Deprioritized rather than closed: Pakistan is not in the site's top twenty countries and both neighbours measured (India, Bangladesh) search this niche in English. No native incumbent exists (PDF24 /ur/ is English; Sejda tags an English page lang=ur).",
+      "next": "Needs a fresh case: Pakistan entering the top twenty in LOC-12's country re-check, or an in-language query cluster appearing in GSC's non-Latin script clustering.",
+      "evidence": [
+        {
+          "metric": "Incumbent check (/ur/ routes)",
+          "value": "none native",
+          "gate": "criterion 2",
+          "verdict": "na",
+          "source": "LOC-11 § Incumbent check"
+        },
+        {
+          "metric": "Country rank",
+          "value": "Pakistan outside the top twenty",
+          "gate": "demand proxy",
+          "verdict": "fail",
+          "source": "LOC-11 § table"
+        }
+      ]
+    },
+    {
+      "code": "zh-Hant",
+      "name": "Traditional Chinese",
+      "native": "繁體中文",
+      "dir": "ltr",
+      "stage": "candidate",
+      "decision": "open",
+      "decisionTicket": "LOC-11",
+      "decisionDate": null,
+      "reCheck": null,
+      "reasoning": "Noted, not charted. Hong Kong is the relevant top-twenty country (17th) and also searches in English. Incumbents are mixed: PDF24 serves simplified Chinese at /zh-tw/ (a real gap), iLovePDF has a native zh-Hant edition, Smallpdf and Sejda have none.",
+      "next": "Trends and SERP evidence for hl=zh-TW / gl=HK before any verdict; would go through the ROI gate like the others.",
+      "evidence": [
+        {
+          "metric": "Incumbent check",
+          "value": "PDF24 simplified at /zh-tw/, iLovePDF native, Smallpdf/Sejda 404",
+          "gate": "criterion 2",
+          "verdict": "na",
+          "source": "LOC-11 § Incumbent check"
+        }
+      ]
+    },
+    {
+      "code": "vi",
+      "name": "Vietnamese",
+      "native": "Tiếng Việt",
+      "dir": "ltr",
+      "stage": "decided",
+      "decision": "no",
+      "decisionTicket": "LOC-11",
+      "decisionDate": "2026-09-12",
+      "reCheck": null,
+      "reasoning": "Demand clears by 6x-12x, one of the strongest in the sweep, but the field fails the same way as Indonesian: the majors are native with six-figure reviews and a local competitor (O.Convertor) already holds the on-device claim at position 4. The blur niche, chosen because its native SERP is shaped like the English blur SERP this domain wins, fell below Trends' floor once charted.",
+      "next": "Folds into LOC-12's general re-check. The size-limit family (nén pdf dưới 1mb/2mb...) is real in autocomplete but flat on Trends.",
+      "evidence": [
+        {
+          "metric": "Trends, VN: nén pdf vs compress pdf",
+          "value": "~72 vs ~6 (12x); merge 11x; sign 6x",
+          "gate": "demand",
+          "verdict": "pass",
+          "source": "LOC-11 § Trends table"
+        },
+        {
+          "metric": "Field on nén pdf / ghép file pdf",
+          "value": "majors native, Smallpdf 511k-703k reviews; O.Convertor on-device claim at #4",
+          "gate": "field",
+          "verdict": "fail",
+          "source": "LOC-11 § SERPs"
+        },
+        {
+          "metric": "Blur niche, Trends",
+          "value": "làm mờ pdf: three one-week blips; other phrasings flat",
+          "gate": "niche demand",
+          "verdict": "fail",
+          "source": "LOC-11 § verdict table"
+        },
+        {
+          "metric": "GSC Vietnam, 3 months",
+          "value": "1 click / 56 impressions at 48.5, all English",
+          "gate": "field",
+          "verdict": "fail",
+          "source": "LOC-11 § GSC by country"
+        }
+      ]
+    },
+    {
+      "code": "tr",
+      "name": "Turkish",
+      "native": "Türkçe",
+      "dir": "ltr",
+      "stage": "decided",
+      "decision": "no",
+      "decisionTicket": "LOC-11",
+      "decisionDate": "2026-09-12",
+      "reCheck": null,
+      "reasoning": "Demand clears (13x on compress, parity on sign) but the field is the same saturated one. The target-size niche is real in related searches and autocomplete but too small for Trends, the same shape as Spanish; Turkish is named as the clearest target-size cluster of the four niche candidates but was not opened as its own ticket.",
+      "next": "A documented option, not an open ticket: if the Spanish target-size pilot (LOC-13) ever runs and works, Turkish is the next market with the same shape.",
+      "evidence": [
+        {
+          "metric": "Trends, TR: pdf küçültme vs compress pdf",
+          "value": "~77 vs ~6 (13x); sign at parity",
+          "gate": "demand",
+          "verdict": "pass",
+          "source": "LOC-11 § Trends table"
+        },
+        {
+          "metric": "Field on pdf küçültme",
+          "value": "majors native, Smallpdf 511k reviews",
+          "gate": "field",
+          "verdict": "fail",
+          "source": "LOC-11 § SERPs"
+        },
+        {
+          "metric": "Target-size terms, Trends",
+          "value": "1 mb / 5 mb / 10 mb forms flat at 0",
+          "gate": "niche demand",
+          "verdict": "fail",
+          "source": "LOC-11 § verdict table"
+        },
+        {
+          "metric": "GSC Turkey, 3 months",
+          "value": "1 click / 27 impressions at 43.5, all English",
+          "gate": "field",
+          "verdict": "fail",
+          "source": "LOC-11 § GSC by country"
+        }
+      ]
+    },
+    {
+      "code": "it",
+      "name": "Italian",
+      "native": "Italiano",
+      "dir": "ltr",
+      "stage": "decided",
+      "decision": "no",
+      "decisionTicket": "LOC-11",
+      "decisionDate": "2026-09-12",
+      "reCheck": null,
+      "reasoning": "Demand clears at 7x, and Italian is one of the few top-twenty languages not on Google's translated-results list, so a native page would add the most marginal value of any measured - if the field allowed it. It does not: the majors are native, regispro.it already holds the on-device claim, and the blur angle has no opening because Google rewrites sfocare pdf to oscurare pdf (redact) and the majors serve that natively.",
+      "next": "Folds into LOC-12's general re-check; no niche ticket scoped.",
+      "evidence": [
+        {
+          "metric": "Trends, IT: comprimi pdf vs compress pdf",
+          "value": "~74 vs ~11 (7x)",
+          "gate": "demand",
+          "verdict": "pass",
+          "source": "LOC-11 § Trends table"
+        },
+        {
+          "metric": "Field on comprimi pdf",
+          "value": "iLovePDF, PDF24, Adobe, Smallpdf, Canva, Foxit native; regispro.it on-device claim",
+          "gate": "field",
+          "verdict": "fail",
+          "source": "LOC-11 § SERPs"
+        },
+        {
+          "metric": "Blur niche (sfocare pdf)",
+          "value": "Google rewrites to oscurare pdf; flags 'Missing: blur'",
+          "gate": "niche opening",
+          "verdict": "fail",
+          "source": "LOC-11 § niche table"
+        },
+        {
+          "metric": "Google translated-results list",
+          "value": "not on it",
+          "gate": "marginal value of a native page",
+          "verdict": "pass",
+          "source": "LOC-11 § Incumbent check"
+        }
+      ]
+    },
+    {
+      "code": "fil",
+      "name": "Filipino",
+      "native": "Filipino",
+      "dir": "ltr",
+      "stage": "decided",
+      "decision": "no",
+      "decisionTicket": "LOC-11",
+      "decisionDate": "2026-09-12",
+      "reCheck": null,
+      "reasoning": "\"The Philippines searches this niche in English. The English pages are already the right pages for the Philippines.\" Measured 2026-09-12: English leads on all four anchor tasks and every Filipino or code-switched form is flat, while the Philippines produces the most impressions of the seven countries pulled, all on English queries. Supersedes LOC-01's \"later, worth one real check\".",
+      "next": "Closed; folds into LOC-12's general sweep.",
+      "evidence": [
+        {
+          "metric": "Trends, PH: 4 anchor tasks",
+          "value": "English 40-85; every Filipino form flat at 0",
+          "gate": "demand",
+          "verdict": "fail",
+          "source": "LOC-11 § verdict table"
+        },
+        {
+          "metric": "GSC Philippines, 3 months",
+          "value": "1 click / 100 impressions at 33.4, all English, rising",
+          "gate": "field (English already the right page)",
+          "verdict": "na",
+          "source": "LOC-11 § GSC by country"
+        },
+        {
+          "metric": "Field (paano mag compress ng pdf)",
+          "value": "second-tier native field: pdf2go /fil/ (27k reviews), compress2go, Adobe",
+          "gate": "field",
+          "verdict": "na",
+          "source": "LOC-11 § SERPs"
+        }
+      ]
+    },
+    {
+      "code": "bn",
+      "name": "Bengali",
+      "native": "বাংলা",
+      "dir": "ltr",
+      "stage": "decided",
+      "decision": "no",
+      "decisionTicket": "LOC-11",
+      "decisionDate": "2026-09-12",
+      "reCheck": null,
+      "reasoning": "\"No, same shape as India and the Philippines.\" A real native SERP exists (PDF24, Xodo, 11zon...) and the related searches are genuinely Bengali, but Trends volume for the anchor tasks is flat: Bangladesh searches all four in English.",
+      "next": "Closed on this pass.",
+      "evidence": [
+        {
+          "metric": "Trends, BD: 4 anchor tasks",
+          "value": "Bengali forms flat; English leads",
+          "gate": "demand",
+          "verdict": "fail",
+          "source": "LOC-11 § verdict table"
+        },
+        {
+          "metric": "GSC Bangladesh, 3 months",
+          "value": "0 clicks / 32 impressions at 31.7, all English",
+          "gate": "field",
+          "verdict": "fail",
+          "source": "LOC-11 § GSC by country"
+        },
+        {
+          "metric": "Field (pdf সংকোচন)",
+          "value": "PDF24, Xodo, 11zon, pdf2go, PrintFriendly native; Bengali related searches",
+          "gate": "field",
+          "verdict": "na",
+          "source": "LOC-11 § SERPs"
+        }
+      ]
+    },
+    {
+      "code": "ar",
+      "name": "Arabic",
+      "native": "العربية",
+      "dir": "rtl",
+      "stage": "decided",
+      "decision": "no",
+      "decisionTicket": "LOC-11",
+      "decisionDate": "2026-09-12",
+      "reCheck": null,
+      "reasoning": "Measured for the UAE: English leads native Arabic terms by 10x (compress) to 17x (merge), so demand fails outright. The native field is a full ecosystem (iLovePDF, Smallpdf, PDF Candy...), moot without demand, and Arabic is on Google's translated-results list.",
+      "next": "No for the UAE. Egypt and Saudi Arabia are unmeasured and outside the top twenty; would need a country to enter the top twenty in LOC-12.",
+      "evidence": [
+        {
+          "metric": "Trends, AE: English vs native, 4 tasks",
+          "value": "English 10x-17x native",
+          "gate": "demand",
+          "verdict": "fail",
+          "source": "LOC-11 § Trends table"
+        },
+        {
+          "metric": "Field (دمج pdf)",
+          "value": "iLovePDF, FreePDFConvert, Jotform, AvePDF, Smallpdf 703k, PDF Candy 667k",
+          "gate": "field",
+          "verdict": "fail",
+          "source": "LOC-11 § SERPs"
+        }
+      ]
+    },
+    {
+      "code": "te",
+      "name": "Telugu",
+      "native": "తెలుగు",
+      "dir": "ltr",
+      "stage": "decided",
+      "decision": "no",
+      "decisionTicket": "LOC-08",
+      "decisionDate": "2026-09-12",
+      "reCheck": null,
+      "reasoning": "Cleanly fails demand: every native and romanized probe at zero, flatter than Hindi. Criterion 2 is \"met by the letter and hollow in substance\": the SERP is full of machine-translated pages, but the translator is Google applying itself to the whole English field, so a native page would compete with Google's translation of the majors, not beat a weak competitor. A Japanese site's four-day-old Telugu page reaching the top ten reads as the absence of searchers, not an opening.",
+      "next": "Closed. The reading reshaped how criterion 2 is read for any language on Google's translated-results list (findings doc § 2).",
+      "evidence": [
+        {
+          "metric": "Trends, IN: 8 native and romanized probes",
+          "value": "all at zero",
+          "gate": "demand",
+          "verdict": "fail",
+          "source": "LOC-08 § Telugu evidence"
+        },
+        {
+          "metric": "SERP (hl=te)",
+          "value": "nearly every result 'translated, see original'; PDF24 the one native page",
+          "gate": "criterion 2 as re-read",
+          "verdict": "fail",
+          "source": "LOC-08 § Telugu evidence"
+        },
+        {
+          "metric": "GSC India, 28 days, script filter",
+          "value": "every query English; no Telugu characters or transliterations",
+          "gate": "in-language queries in GSC",
+          "verdict": "fail",
+          "source": "LOC-08 § Verdict"
+        }
+      ]
+    },
+    {
+      "code": "ta",
+      "name": "Tamil",
+      "native": "தமிழ்",
+      "dir": "ltr",
+      "stage": "decided",
+      "decision": "no",
+      "decisionTicket": "LOC-08",
+      "decisionDate": "2026-09-12",
+      "reCheck": null,
+      "reasoning": "Could not even be charted: no verified native phrasing exists to test, because the people asking do not use one (the same code-switching as Filipino). Forty SERP results across four queries held not one native Tamil web page; the only Tamil content is YouTube videos titled in English with 'in Tamil' appended.",
+      "next": "Closed, \"no signal found\", the way LOC-01 closed Hindi. Marathi, Gujarati, Kannada and Malayalam stay unmeasured and out of scope.",
+      "evidence": [
+        {
+          "metric": "Native phrasing",
+          "value": "none verifiable; nothing to chart",
+          "gate": "demand",
+          "verdict": "fail",
+          "source": "LOC-08 § Tamil evidence"
+        },
+        {
+          "metric": "SERP (hl=ta, 4 queries)",
+          "value": "40 results, zero native Tamil pages",
+          "gate": "field",
+          "verdict": "na",
+          "source": "LOC-08 § Tamil evidence"
+        },
+        {
+          "metric": "Incumbents (/ta/ routes)",
+          "value": "PDF24 English under lang=en; Sejda English tagged lang=ta; others 404",
+          "gate": "criterion 2",
+          "verdict": "na",
+          "source": "LOC-08 § Incumbent check"
+        }
+      ]
+    },
+    {
+      "code": "hi",
+      "name": "Hindi",
+      "native": "हिन्दी",
+      "dir": "ltr",
+      "stage": "decided",
+      "decision": "no",
+      "decisionTicket": "LOC-01",
+      "decisionDate": "2026-09-11",
+      "reCheck": null,
+      "reasoning": "\"Measured, not inferred.\" Sixteen Hinglish and Devanagari probes sit flat at zero against an English line at 35-100, and GSC India shows zero Hinglish leakage (unlike Indonesia's gabung pdf free online). India's two real clusters, blur/redact and compress-to-100kb, are asked in English.",
+      "next": "Closed; India's 100% English querying was reconfirmed in LOC-08's 2026-09-12 GSC check.",
+      "evidence": [
+        {
+          "metric": "Trends, IN: 16 non-English probes, 4 tasks",
+          "value": "flat at 0 vs English at 35-100",
+          "gate": "demand",
+          "verdict": "fail",
+          "source": "LOC-01 § verdict table"
+        },
+        {
+          "metric": "GSC India, 3 months",
+          "value": "all English, zero Hinglish",
+          "gate": "in-language queries",
+          "verdict": "fail",
+          "source": "LOC-01 § Evidence"
+        }
+      ]
+    },
+    {
+      "code": "ms",
+      "name": "Malay",
+      "native": "Bahasa Melayu",
+      "dir": "ltr",
+      "stage": "decided",
+      "decision": "no",
+      "decisionTicket": "LOC-01",
+      "decisionDate": "2026-09-11",
+      "reCheck": null,
+      "reasoning": "\"Confirmed twice over: Trends volume and SERP engagement signal both point the same way.\" All four tasks flat at zero, zero review snippets on any Malay query, and on two of four queries no matching native page at all, undercutting the premise that every major built the /ms/ page.",
+      "next": "Closed; folds into LOC-12's general sweep.",
+      "evidence": [
+        {
+          "metric": "Trends, MY: 4 anchor tasks",
+          "value": "all flat at 0",
+          "gate": "demand",
+          "verdict": "fail",
+          "source": "LOC-01 § verdict table"
+        },
+        {
+          "metric": "SERP (hl=ms)",
+          "value": "zero AggregateRating snippets; merge and sign fall back to Indonesian or English",
+          "gate": "field",
+          "verdict": "na",
+          "source": "LOC-01 § verdict table"
+        },
+        {
+          "metric": "GSC Malaysia, 3 months",
+          "value": "19 queries, all English",
+          "gate": "in-language queries",
+          "verdict": "fail",
+          "source": "LOC-01 § Evidence"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,548 @@
+<!--
+  PDkef languages page: the record of the localization programme.
+  Published as a claude.ai artifact (URL in CLAUDE.md) with the `artifact`
+  capability, so its Publish button writes a new version of data/i18n-status.json
+  beside it; this folder is the source of the page and a snapshot of that data,
+  synced by hand after a decision changes on the live page (Copy JSON, or read
+  the artifact's data file with the Artifact tool). Nothing here is served by
+  the site: the folder is documentation, not a route.
+-->
+<title>PDkef Languages</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&display=swap">
+<style>
+  :root {
+    --bg: #f4f9fa; --surface: #ffffff; --sunken: #eaf2f4; --text: #23404a; --muted: #4a6570;
+    --muted-light: #8dbcc7; --border: #d8e8ec; --border-strong: #8dbcc7;
+    --primary: #3e7c8d; --primary-text: #397281; --primary-soft: #eef6f8; --primary-tint: #e6f1f3;
+    --live: #5c7a3a; --live-soft: #ebffd8; --live-ink: #3f5a25;
+    --hold: #9a6b1f; --hold-soft: #fbf3e2; --hold-ink: #6e4a10;
+    --no: #6b7c84; --no-soft: #edf0f2; --no-ink: #4a5a62;
+    --recheck: #147691; --recheck-soft: #e3f2f6;
+    --danger: #b84c58;
+    --shadow: 0 10px 30px rgba(15, 23, 42, 0.07), 0 2px 6px rgba(15, 23, 42, 0.04);
+    --radius: 14px; --radius-sm: 8px; --radius-pill: 999px;
+    --display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1c21; --surface: #16262d; --sunken: #1d3039; --text: #e3eef1; --muted: #a9bfc7;
+      --muted-light: #4f7482; --border: #26404a; --border-strong: #3f6572;
+      --primary: #6fb3c4; --primary-text: #8cc6d4; --primary-soft: #1b323a; --primary-tint: #182b32;
+      --live: #9cc46a; --live-soft: #223118; --live-ink: #c9e7a5;
+      --hold: #d9a54a; --hold-soft: #3a2c12; --hold-ink: #f0d39a;
+      --no: #93a4ac; --no-soft: #223037; --no-ink: #c2ced4;
+      --recheck: #6fc0d9; --recheck-soft: #16323b;
+      --danger: #e08a94;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1c21; --surface: #16262d; --sunken: #1d3039; --text: #e3eef1; --muted: #a9bfc7;
+    --muted-light: #4f7482; --border: #26404a; --border-strong: #3f6572;
+    --primary: #6fb3c4; --primary-text: #8cc6d4; --primary-soft: #1b323a; --primary-tint: #182b32;
+    --live: #9cc46a; --live-soft: #223118; --live-ink: #c9e7a5;
+    --hold: #d9a54a; --hold-soft: #3a2c12; --hold-ink: #f0d39a;
+    --no: #93a4ac; --no-soft: #223037; --no-ink: #c2ced4;
+    --recheck: #6fc0d9; --recheck-soft: #16323b;
+    --danger: #e08a94;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+  a { color: var(--primary-text); }
+  main { max-width: 1120px; margin: 0 auto; padding: 32px 24px 80px; }
+  h1, h2, h3 { font-family: var(--display); font-weight: 400; letter-spacing: 0; text-wrap: balance; margin: 0; }
+  h1 { font-size: 2.8rem; line-height: 1.05; }
+  h2 { font-size: 1.6rem; line-height: 1.2; }
+  h3 { font-size: 1.25rem; }
+  p { margin: 0; max-width: 68ch; }
+  .muted { color: var(--muted); }
+  .num { font-variant-numeric: tabular-nums; }
+  .eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary-text); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.86em; background: var(--sunken); padding: 0.05em 0.35em; border-radius: 4px; }
+
+  header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px; margin-bottom: 28px; }
+  header.top .lede { max-width: 60ch; margin-top: 10px; color: var(--muted); }
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  button { font: inherit; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); padding: 7px 14px; border-radius: var(--radius-pill); font-weight: 600; font-size: 0.86rem; cursor: pointer; }
+  .btn:hover { background: var(--primary-soft); border-color: var(--primary); }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.05); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn:focus-visible, .cell:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+  section { margin-top: 44px; }
+  .section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; margin-bottom: 14px; }
+  .section-head p { color: var(--muted); font-size: 0.92rem; }
+
+  /* Summary tiles */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .tile .big { font-family: var(--display); font-size: 2.2rem; line-height: 1; margin-top: 6px; }
+  .tile .label { font-size: 0.8rem; color: var(--muted); }
+
+  /* Board */
+  .board { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  .board-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 860px; }
+  th, td { text-align: left; padding: 12px 14px; border-top: 1px solid var(--border); vertical-align: middle; }
+  thead th { border-top: 0; background: var(--sunken); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  tbody tr:hover { background: var(--primary-soft); }
+  tbody tr.selectable { cursor: pointer; }
+  td.lang { white-space: nowrap; }
+  td.lang .name { font-family: var(--display); font-size: 1.25rem; }
+  td.lang .native { color: var(--muted); font-size: 0.86rem; margin-inline-start: 8px; }
+  td.lang .code { color: var(--muted-light); font-size: 0.72rem; margin-inline-start: 6px; }
+
+  .ladder { display: inline-grid; grid-auto-flow: column; gap: 3px; vertical-align: middle; }
+  .ladder i { display: block; width: 14px; height: 8px; border-radius: 2px; background: var(--sunken); border: 1px solid var(--border); }
+  .ladder i.on { background: var(--primary); border-color: var(--primary); }
+  .ladder i.on.live { background: var(--live); border-color: var(--live); }
+  .ladder i.on.no { background: var(--no); border-color: var(--no); }
+  .ladder i.on.hold { background: var(--hold); border-color: var(--hold); }
+  .stage-name { font-size: 0.82rem; margin-inline-start: 8px; white-space: nowrap; }
+
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--radius-pill); font-size: 0.78rem; font-weight: 700; white-space: nowrap; border: 1px solid transparent; }
+  .chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .chip.keep { background: var(--live-soft); color: var(--live-ink); border-color: color-mix(in srgb, var(--live) 40%, transparent); }
+  .chip.hold { background: var(--hold-soft); color: var(--hold-ink); border-color: color-mix(in srgb, var(--hold) 40%, transparent); }
+  .chip.no { background: var(--no-soft); color: var(--no-ink); border-color: color-mix(in srgb, var(--no) 40%, transparent); }
+  .chip.open { background: var(--recheck-soft); color: var(--recheck); border-color: color-mix(in srgb, var(--recheck) 40%, transparent); }
+
+  .bar { position: relative; height: 8px; width: 120px; background: var(--sunken); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .bar i { position: absolute; inset: 0 auto 0 0; background: var(--live); border-radius: 3px; }
+  .bar i.draft { background: repeating-linear-gradient(135deg, var(--live) 0 4px, color-mix(in srgb, var(--live) 45%, transparent) 4px 8px); }
+  .cov { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+
+  /* Coverage grid */
+  .grid-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+  .surface-row { display: grid; grid-template-columns: 150px 1fr; gap: 10px 16px; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); }
+  .surface-row:first-of-type { border-top: 0; padding-top: 0; }
+  .surface-row .sname { font-weight: 600; font-size: 0.92rem; }
+  .surface-row .sname small { display: block; font-weight: 400; color: var(--muted); font-size: 0.78rem; }
+  .cells { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cell { border: 1px solid var(--border); background: var(--sunken); color: var(--muted); border-radius: var(--radius-sm); padding: 4px 9px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+  .cell.reviewed { background: var(--live-soft); color: var(--live-ink); border-color: color-mix(in srgb, var(--live) 45%, transparent); }
+  .cell.published { background: var(--live-soft); color: var(--live-ink); border-style: dashed; border-color: var(--live); }
+  .cell.draft { background: var(--hold-soft); color: var(--hold-ink); border-color: color-mix(in srgb, var(--hold) 45%, transparent); }
+  .cell.english { background: transparent; color: var(--muted); }
+  .cell.decided-english { background: transparent; color: var(--muted); border-style: dotted; }
+  .cell[role="button"] { cursor: pointer; }
+  .cell[role="button"]:hover { filter: brightness(0.96); }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 14px; font-size: 0.8rem; color: var(--muted); }
+  .legend .cell { cursor: default; }
+
+  /* Language cards */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .card.wide { grid-column: 1 / -1; }
+  .card .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .card .head h3 { display: flex; align-items: baseline; gap: 8px; }
+  .card .head h3 .native { color: var(--muted); font-family: var(--sans); font-weight: 500; font-size: 0.9rem; }
+  .card .reason { font-size: 0.92rem; }
+  .ev { width: 100%; min-width: 0; border-collapse: collapse; font-size: 0.84rem; }
+  .ev th, .ev td { padding: 6px 8px; border-top: 1px solid var(--border); vertical-align: top; }
+  .ev thead th { border-top: 0; padding-top: 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .ev td.v { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ev td.verdict { white-space: nowrap; font-weight: 700; }
+  .ev td.verdict.pass { color: var(--live-ink); }
+  .ev td.verdict.fail { color: var(--danger); }
+  .ev td.verdict.na { color: var(--muted); }
+  .ev td.src { color: var(--muted); white-space: nowrap; }
+  .next { font-size: 0.86rem; padding: 10px 12px; background: var(--primary-soft); border-radius: var(--radius-sm); }
+  .next b { color: var(--primary-text); }
+  .card .meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; color: var(--muted); }
+
+  /* Gates */
+  .gates { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+  .gate { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; background: var(--surface); }
+  .gate h3 { font-size: 1.15rem; margin-bottom: 4px; }
+  .gate p { font-size: 0.9rem; }
+  .gate .src { margin-top: 8px; font-size: 0.78rem; color: var(--muted); }
+
+  /* Edit drawer */
+  .drawer { position: fixed; inset: 0 0 0 auto; width: min(460px, 100%); background: var(--surface); border-inline-start: 1px solid var(--border); box-shadow: var(--shadow); padding: 22px 22px 32px; overflow-y: auto; z-index: 20; display: flex; flex-direction: column; gap: 14px; }
+  .drawer h2 { font-size: 1.25rem; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 0.78rem; font-weight: 700; color: var(--muted); letter-spacing: 0.02em; }
+  .field input, .field select, .field textarea { font: inherit; font-size: 0.92rem; color: var(--text); background: var(--bg); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 7px 9px; }
+  .field textarea { min-height: 84px; resize: vertical; }
+  .drawer .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .drawer .ev-edit { display: grid; grid-template-columns: 1.2fr 1fr 1fr 0.7fr 0.7fr auto; gap: 6px; align-items: center; }
+  .drawer .ev-edit input, .drawer .ev-edit select { font-size: 0.8rem; padding: 5px 6px; min-width: 0; }
+  .drawer .x { border: 0; background: transparent; color: var(--danger); cursor: pointer; font-size: 1rem; }
+  .status { font-size: 0.84rem; color: var(--muted); min-height: 1.3em; }
+  .status.err { color: var(--danger); }
+  .ro { font-size: 0.8rem; color: var(--muted); padding: 6px 10px; border: 1px dashed var(--border-strong); border-radius: var(--radius-pill); }
+  .backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.25); z-index: 10; }
+
+  footer { margin-top: 56px; font-size: 0.82rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 16px; display: flex; flex-wrap: wrap; gap: 8px 24px; }
+
+  @media (max-width: 720px) {
+    h1 { font-size: 1.9rem; }
+    .surface-row { grid-template-columns: 1fr; gap: 6px; }
+    .drawer .ev-edit { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+
+<main>
+  <header class="top">
+    <div>
+      <div class="eyebrow">PDkef &middot; localization programme</div>
+      <h1>Languages</h1>
+      <p class="lede">Where every language stands, on what evidence, and when each decision comes up again. The page is the record: edits publish a new version of its data file.</p>
+    </div>
+    <div class="toolbar">
+      <span id="updated" class="muted num"></span>
+      <button class="btn" id="copy-json" type="button" title="Copy the data file, to sync docs/i18n-status/data.json in the repo">Copy JSON</button>
+      <span id="mode" class="ro" hidden>Read-only view</span>
+    </div>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <section>
+    <div class="section-head">
+      <h2>The board</h2>
+      <p>One row per language measured or decided. Click a row to edit it.</p>
+    </div>
+    <div class="board"><div class="board-scroll"><table id="board">
+      <thead><tr><th>Language</th><th>Stage</th><th>Decision</th><th>Coverage</th><th>Re-check</th><th>Ticket</th></tr></thead>
+      <tbody></tbody>
+    </table></div></div>
+  </section>
+
+  <section id="coverage-section">
+    <div class="section-head">
+      <h2 id="coverage-title">Coverage</h2>
+      <p id="coverage-sub"></p>
+    </div>
+    <div class="grid-wrap" id="coverage"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Held and declined, with the proof</h2>
+      <p>Each card is the measured case. A hold is not a no: the re-check date is when it comes back.</p>
+    </div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>The gates</h2>
+      <p>A language proposal starts here, not from a hunch.</p>
+    </div>
+    <div class="gates" id="gates"></div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>How it works</h2></div>
+    <div class="grid-wrap" id="mechanism"></div>
+  </section>
+
+  <footer id="foot"></footer>
+</main>
+
+<div id="edit-root" hidden></div>
+
+<script>
+(() => {
+  const DATA_PATH = 'data/i18n-status.json';
+  const STAGES = [
+    ['candidate', 'Candidate'], ['measured', 'Measured'], ['decided', 'Decided'],
+    ['building', 'Building'], ['live', 'Live'], ['reviewed', 'Reviewed'], ['field', 'Read in the field'],
+  ];
+  const STAGE_INDEX = Object.fromEntries(STAGES.map(([k], i) => [k, i]));
+  const DECISIONS = { keep: 'Keep', hold: 'Hold', no: 'No', open: 'Open' };
+  const CELL = {
+    reviewed: 'Reviewed', published: 'Published, AI draft', draft: 'Draft', english: 'English, EN mark', 'decided-english': 'English by decision',
+  };
+  const CELL_CYCLE = ['english', 'draft', 'published', 'reviewed', 'decided-english'];
+
+  let data = null;
+  let artifact = null;
+  let writable = true;
+  let dirty = false;
+
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const el = (tag, attrs = {}, ...children) => {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') node.className = v;
+      else if (k === 'html') node.innerHTML = v;
+      else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+      else if (v !== undefined && v !== null && v !== false) node.setAttribute(k, v === true ? '' : v);
+    }
+    for (const c of children.flat()) if (c !== null && c !== undefined) node.append(c);
+    return node;
+  };
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const fmtDate = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+
+  function coverageStats(lang) {
+    const c = lang.coverage;
+    if (!c) return null;
+    const pages = data.meta.englishPages;
+    const cells = [
+      c.home,
+      ...pages.tools.map((s) => c.tools?.[s] ?? 'english'),
+      ...pages.guides.map((s) => c.guides?.[s] ?? 'english'),
+    ];
+    const done = cells.filter((s) => s === 'reviewed' || s === 'published').length;
+    const reviewed = cells.filter((s) => s === 'reviewed').length;
+    return { total: cells.length, done, reviewed, pct: Math.round((done / cells.length) * 100) };
+  }
+
+  function ladder(lang) {
+    const idx = STAGE_INDEX[lang.stage] ?? 0;
+    const tone = lang.decision === 'keep' ? 'live' : lang.decision === 'hold' ? 'hold' : lang.decision === 'no' ? 'no' : '';
+    const l = el('span', { class: 'ladder', title: STAGES.map(([, n]) => n).join(' > ') });
+    STAGES.forEach(([, n], i) => l.append(el('i', { class: (i <= idx ? 'on ' : '') + tone, title: n })));
+    return l;
+  }
+
+  function render() {
+    $('#updated').textContent = 'Updated ' + fmtDate(data.meta.updated);
+    document.title = 'PDkef Languages';
+
+    // Tiles
+    const live = data.languages.filter((l) => l.decision === 'keep');
+    const hold = data.languages.filter((l) => l.decision === 'hold');
+    const no = data.languages.filter((l) => l.decision === 'no');
+    const he = data.languages.find((l) => l.code === 'he');
+    const st = he ? coverageStats(he) : null;
+    const tiles = $('#tiles'); tiles.replaceChildren(
+      tile(live.length, 'live language' + (live.length === 1 ? '' : 's')),
+      tile(st ? st.pct + '%' : '\u2013', st ? `of ${st.total} pages in Hebrew (${st.reviewed} reviewed)` : 'coverage'),
+      tile(hold.length, 'on hold, with a re-check date'),
+      tile(no.length, 'measured and declined'),
+      tile(fmtDate(data.meta.reCheck.date), `next programme re-check, ${data.meta.reCheck.ticket}`),
+    );
+
+    // Board
+    const order = { keep: 0, hold: 1, open: 2, no: 3 };
+    const rows = [...data.languages].sort((a, b) => (order[a.decision] - order[b.decision]) || (STAGE_INDEX[b.stage] - STAGE_INDEX[a.stage]) || a.name.localeCompare(b.name));
+    const tbody = $('#board tbody'); tbody.replaceChildren();
+    for (const l of rows) {
+      const s = coverageStats(l);
+      const tr = el('tr', { class: writable ? 'selectable' : '', tabindex: writable ? 0 : null, 'data-code': l.code, onclick: () => writable && openEditor(l.code), onkeydown: (e) => { if (writable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openEditor(l.code); } } },
+        el('td', { class: 'lang' }, el('span', { class: 'name' }, l.name), el('span', { class: 'native', lang: l.code }, l.native), el('span', { class: 'code' }, l.code)),
+        el('td', {}, ladder(l), el('span', { class: 'stage-name' }, STAGES[STAGE_INDEX[l.stage] ?? 0][1])),
+        el('td', {}, el('span', { class: 'chip ' + l.decision }, DECISIONS[l.decision] ?? l.decision)),
+        el('td', {}, s ? el('span', { class: 'cov' }, el('span', { class: 'bar' }, el('i', { style: `width:${s.pct}%` })), el('span', { class: 'num' }, `${s.done}/${s.total}`)) : el('span', { class: 'muted' }, '\u2013')),
+        el('td', { class: 'num' }, l.reCheck ? fmtDate(l.reCheck) : el('span', { class: 'muted' }, '\u2013')),
+        el('td', { class: 'muted' }, l.decisionTicket || ''),
+      );
+      tbody.append(tr);
+    }
+
+    // Coverage grid (the live languages; today one)
+    const cov = $('#coverage'); cov.replaceChildren();
+    const liveLangs = data.languages.filter((l) => l.coverage);
+    $('#coverage-section').hidden = liveLangs.length === 0;
+    for (const l of liveLangs) {
+      const s = coverageStats(l);
+      $('#coverage-title').textContent = `Coverage: ${l.name}`;
+      $('#coverage-sub').textContent = `${s.done} of ${s.total} English pages have a ${l.name} edition, ${s.reviewed} of them reviewed by a native reader. ${writable ? 'Click a cell to change its state.' : ''}`;
+      const rowsDef = [
+        ['Shell', 'app bar, dropzone, file row, confirmations, footer', [['shell', l.coverage.shell]]],
+        ['Home page', '/' + l.code + '/', [['home', l.coverage.home]]],
+        ['Tool pages', `${data.meta.englishPages.tools.length} in English`, data.meta.englishPages.tools.map((t) => [t, l.coverage.tools?.[t] ?? 'english'])],
+        ['Guides', `${data.meta.englishPages.guides.length} in English`, data.meta.englishPages.guides.map((g) => [g, l.coverage.guides?.[g] ?? 'english'])],
+        ['Tool islands', 'the buttons and menus inside a tool', Object.entries(l.coverage.islands || {})],
+        ['Editor', 'Sign and Redact canvas, toolbar, status line', [['editor', l.coverage.editor]]],
+      ];
+      for (const [name, sub, cells] of rowsDef) {
+        const c = el('div', { class: 'cells' });
+        for (const [key, state] of cells) {
+          const cell = el('span', { class: 'cell ' + state, title: `${key}: ${CELL[state] ?? state}`, role: writable ? 'button' : null, tabindex: writable ? 0 : null }, key);
+          if (writable) {
+            const cycle = () => { setCell(l, name, key, state); };
+            cell.addEventListener('click', cycle);
+            cell.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycle(); } });
+          }
+          c.append(cell);
+        }
+        cov.append(el('div', { class: 'surface-row' }, el('div', { class: 'sname' }, name, el('small', {}, sub)), c));
+      }
+      const legend = el('div', { class: 'legend' });
+      for (const [k, v] of Object.entries(CELL)) legend.append(el('span', {}, el('span', { class: 'cell ' + k }, v)));
+      cov.append(legend);
+    }
+
+    // Cards for hold / no / open
+    const cards = $('#cards'); cards.replaceChildren();
+    for (const l of rows.filter((x) => x.decision !== 'keep')) cards.append(card(l));
+
+    // Gates
+    const gates = $('#gates'); gates.replaceChildren();
+    for (const g of data.gates) gates.append(el('div', { class: 'gate' }, el('h3', {}, g.name), el('p', {}, g.rule), el('div', { class: 'src' }, 'Source: ' + g.source)));
+
+    // Mechanism
+    const m = $('#mechanism'); m.replaceChildren();
+    for (const line of data.mechanism) m.append(el('p', { style: 'margin:6px 0; max-width: none;' }, line));
+
+    // Footer
+    $('#foot').replaceChildren(
+      el('span', {}, 'Source of record: this page. Repo snapshot: '), el('code', {}, 'docs/i18n-status/'),
+      el('span', {}, 'Evidence lives in the LOC tickets under '), el('code', {}, 'backlog/tasks/'),
+      el('span', {}, 'and '), el('code', {}, 'docs/seo-competitive-findings.md'),
+    );
+  }
+
+  function tile(big, label) { return el('div', { class: 'tile' }, el('div', { class: 'label' }, label), el('div', { class: 'big num' }, String(big))); }
+
+  function card(l) {
+    const c = el('div', { class: 'card' + (l.evidence?.length > 3 ? ' wide' : '') });
+    c.append(el('div', { class: 'head' },
+      el('h3', {}, el('span', {}, l.name), el('span', { class: 'native', lang: l.code }, l.native)),
+      el('span', { class: 'chip ' + l.decision }, DECISIONS[l.decision] ?? l.decision)));
+    c.append(el('div', { class: 'meta' },
+      el('span', {}, 'Stage: ' + (STAGES[STAGE_INDEX[l.stage] ?? 0][1])),
+      l.decisionDate ? el('span', {}, 'Decided ' + fmtDate(l.decisionDate)) : null,
+      l.decisionTicket ? el('span', {}, l.decisionTicket) : null,
+      l.reCheck ? el('span', {}, 'Re-check ' + fmtDate(l.reCheck)) : null));
+    if (l.reasoning) c.append(el('p', { class: 'reason' }, l.reasoning));
+    if (l.evidence?.length) {
+      const t = el('table', { class: 'ev' }, el('thead', {}, el('tr', {}, el('th', {}, 'Measured'), el('th', {}, 'Value'), el('th', {}, 'Against'), el('th', {}, 'Verdict'), el('th', {}, 'Source'))));
+      const tb = el('tbody');
+      for (const e of l.evidence) tb.append(el('tr', {}, el('td', {}, e.metric), el('td', { class: 'v' }, e.value), el('td', {}, e.gate || ''), el('td', { class: 'verdict ' + (e.verdict || 'na') }, ({ pass: 'Pass', fail: 'Fail', na: '\u2013' })[e.verdict] ?? e.verdict), el('td', { class: 'src' }, e.source || '')));
+      t.append(tb);
+      c.append(el('div', { style: 'overflow-x:auto' }, t));
+    }
+    if (l.next) c.append(el('div', { class: 'next' }, el('b', {}, 'What reopens it: '), l.next));
+    return c;
+  }
+
+  // Editing --------------------------------------------------------------
+  function setCell(lang, rowName, key, state) {
+    const nextState = CELL_CYCLE[(CELL_CYCLE.indexOf(state) + 1) % CELL_CYCLE.length];
+    if (rowName === 'Shell') lang.coverage.shell = nextState;
+    else if (rowName === 'Home page') lang.coverage.home = nextState;
+    else if (rowName === 'Tool pages') (lang.coverage.tools ||= {})[key] = nextState;
+    else if (rowName === 'Guides') (lang.coverage.guides ||= {})[key] = nextState;
+    else if (rowName === 'Tool islands') (lang.coverage.islands ||= {})[key] = nextState;
+    else if (rowName === 'Editor') lang.coverage.editor = nextState;
+    markDirty();
+    render();
+  }
+
+  function markDirty() {
+    dirty = true;
+    data.meta.updated = new Date().toISOString().slice(0, 10);
+    let bar = $('#savebar');
+    if (!bar) {
+      bar = el('div', { id: 'savebar', class: 'toolbar', style: 'position:fixed; inset:auto 24px 24px auto; z-index:30; background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--radius-pill); padding:8px 8px 8px 16px; box-shadow:var(--shadow);' },
+        el('span', { class: 'status', id: 'savestatus' }, 'Unsaved changes'),
+        el('button', { class: 'btn', type: 'button', onclick: () => location.reload() }, 'Discard'),
+        el('button', { class: 'btn primary', type: 'button', id: 'save', onclick: save }, 'Publish'));
+      document.body.append(bar);
+    }
+  }
+
+  async function save() {
+    const status = $('#savestatus');
+    const btn = $('#save');
+    if (!artifact) { status.textContent = 'Saving is unavailable in this view. Copy JSON instead.'; status.classList.add('err'); return; }
+    btn.disabled = true; status.textContent = 'Publishing\u2026'; status.classList.remove('err');
+    try {
+      await artifact.publish({ [DATA_PATH]: { content: JSON.stringify(data, null, 2) + '\n', contentType: 'application/json' } });
+      dirty = false;
+      $('#savebar').remove();
+    } catch (err) {
+      const code = err?.code || 'upstream_error';
+      if (code === 'conflict') { status.textContent = 'Someone published first; reloading to the newer version.'; setTimeout(() => location.reload(), 800); return; }
+      if (code === 'not_writer' || code === 'not_granted' || code === 'capability_disabled' || code === 'not_declared') { setReadOnly(); status.textContent = 'This view cannot save. Copy JSON to keep your changes.'; }
+      else if (code === 'rate_limited') status.textContent = 'Publishing too often; wait a moment and try again.';
+      else status.textContent = 'Could not publish (' + code + '). Try once more.';
+      status.classList.add('err');
+      btn.disabled = false;
+    }
+  }
+
+  function setReadOnly() {
+    writable = false;
+    $('#mode').hidden = false;
+    render();
+  }
+
+  function openEditor(code) {
+    const l = data.languages.find((x) => x.code === code);
+    if (!l) return;
+    const root = $('#edit-root'); root.hidden = false; root.replaceChildren();
+    const backdrop = el('div', { class: 'backdrop', onclick: closeEditor });
+    const drawer = el('div', { class: 'drawer', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'edit-title' });
+    const field = (label, input) => el('div', { class: 'field' }, el('label', {}, label), input);
+    const inp = (key, type = 'text') => el('input', { type, value: l[key] ?? '', oninput: (e) => { l[key] = e.target.value; } });
+    const sel = (key, options) => { const s = el('select', { onchange: (e) => { l[key] = e.target.value; } }); for (const [v, n] of options) s.append(el('option', { value: v, selected: l[key] === v }, n)); return s; };
+    const ta = (key) => el('textarea', { oninput: (e) => { l[key] = e.target.value; } }, l[key] ?? '');
+    drawer.append(
+      el('div', { class: 'head', style: 'display:flex; justify-content:space-between; align-items:center;' }, el('h2', { id: 'edit-title' }, l.name), el('button', { class: 'btn', type: 'button', onclick: closeEditor }, 'Close')),
+      el('div', { class: 'row' }, field('Stage', sel('stage', STAGES)), field('Decision', sel('decision', Object.entries(DECISIONS)))),
+      el('div', { class: 'row' }, field('Decision date', inp('decisionDate', 'date')), field('Re-check date', inp('reCheck', 'date')), field('Ticket', inp('decisionTicket'))),
+      field('Reasoning (the argument, in the ticket\'s words)', ta('reasoning')),
+      field('What reopens or advances it', ta('next')),
+    );
+    // Evidence rows
+    const evWrap = el('div', { class: 'field' }, el('label', {}, 'Evidence'));
+    const evList = el('div', { style: 'display:flex; flex-direction:column; gap:6px;' });
+    const renderEv = () => {
+      evList.replaceChildren();
+      (l.evidence ||= []).forEach((e, i) => {
+        const row = el('div', { class: 'ev-edit' },
+          el('input', { placeholder: 'metric', value: e.metric ?? '', oninput: (ev) => { e.metric = ev.target.value; } }),
+          el('input', { placeholder: 'value', value: e.value ?? '', oninput: (ev) => { e.value = ev.target.value; } }),
+          el('input', { placeholder: 'against', value: e.gate ?? '', oninput: (ev) => { e.gate = ev.target.value; } }),
+          (() => { const s = el('select', { onchange: (ev) => { e.verdict = ev.target.value; } }); for (const [v, n] of [['pass', 'Pass'], ['fail', 'Fail'], ['na', '\u2013']]) s.append(el('option', { value: v, selected: (e.verdict || 'na') === v }, n)); return s; })(),
+          el('input', { placeholder: 'source', value: e.source ?? '', oninput: (ev) => { e.source = ev.target.value; } }),
+          el('button', { class: 'x', type: 'button', title: 'Remove', onclick: () => { l.evidence.splice(i, 1); renderEv(); } }, '\u00d7'));
+        evList.append(row);
+      });
+    };
+    renderEv();
+    evWrap.append(evList, el('div', {}, el('button', { class: 'btn', type: 'button', onclick: () => { l.evidence.push({ metric: '', value: '', gate: '', verdict: 'na', source: '' }); renderEv(); } }, '+ Evidence row')));
+    drawer.append(evWrap);
+    drawer.append(el('div', { class: 'row' }, el('button', { class: 'btn primary', type: 'button', onclick: () => { markDirty(); closeEditor(); render(); } }, 'Apply'), el('span', { class: 'status' }, 'Apply, then Publish to save a new version.')));
+    root.append(backdrop, drawer);
+    drawer.querySelector('select')?.focus();
+    document.addEventListener('keydown', escClose);
+  }
+  function escClose(e) { if (e.key === 'Escape') closeEditor(); }
+  function closeEditor() { const root = $('#edit-root'); root.hidden = true; root.replaceChildren(); document.removeEventListener('keydown', escClose); }
+
+  $('#copy-json').addEventListener('click', async () => {
+    const text = JSON.stringify(data, null, 2) + '\n';
+    try { await navigator.clipboard.writeText(text); $('#copy-json').textContent = 'Copied'; }
+    catch { window.prompt('Copy the data file:', text); }
+    setTimeout(() => { $('#copy-json').textContent = 'Copy JSON'; }, 1500);
+  });
+
+  window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+  // Boot -----------------------------------------------------------------
+  (async () => {
+    try {
+      const res = await fetch(DATA_PATH, { cache: 'no-store' });
+      if (!res.ok) throw new Error(res.status);
+      data = await res.json();
+    } catch (err) {
+      $('#tiles').replaceChildren(el('div', { class: 'tile' }, el('div', { class: 'label' }, 'Could not load ' + DATA_PATH + '. The data file must be published beside this page.')));
+      return;
+    }
+    render();
+    // Saving lights up when the runtime answers; the page is complete without it.
+    const use = window.claude?.use;
+    if (typeof use === 'function') {
+      artifact = await use.call(window.claude, 'artifact');
+      if (!artifact) setReadOnly();
+    } else {
+      setReadOnly();
+    }
+  })();
+})();
+</script>
