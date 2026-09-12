@@ -159,6 +159,10 @@ describe('PageStrip', () => {
     expect(card.hasAttribute('data-skipped')).toBe(true);
     expect(card.textContent).toContain('Skipped');
     expect(container.querySelector(`.${styles.count}`).textContent).toContain('1 skipped');
+    // Numbers are output positions: the skipped page shows the number it
+    // would take, and the page after it takes that number for real.
+    expect(cards().map((c) => c.querySelector(`.${styles.number}`).textContent)).toEqual(['1', '2', '3', '3']);
+    expect(cards()[3].getAttribute('aria-label')).toBe('Page 3 of 3, from b.pdf');
     await act(async () => card.querySelectorAll(`.${styles.action}`)[1].click());
     expect(onPlanChange.mock.results[0].value[2]).toMatchObject({ key: '2:0', skipped: false });
   });

@@ -10,6 +10,18 @@ export interface RecentFileItem {
   preview?: string;
   savedAt?: number;
   bundledSample?: boolean;
+  /** MERGE-13: a saved Merge draft rather than a single cached source file -
+   * there is no `cacheId` to hand to `loadRecentFile` for one of these, since
+   * it is not one document but a file set plus a page plan. It renders as a
+   * plain navigation link instead of a button: the tool itself restores its
+   * own draft on load (see useMergeDraft.ts), so there is nothing for
+   * FileDropzone's handoff-confirmation flow to do here. */
+  draft?: boolean;
+  /** Output page count for a draft item, from draftStore's readDraftMeta. */
+  pageCount?: number;
+  /** Where a draft item's link goes; built by FileDropzone from its own
+   * toolHref() so a localized page still resumes the localized edition. */
+  href?: string;
 }
 
 export default function RecentFiles({
@@ -61,6 +73,27 @@ export default function RecentFiles({
                 {identity}
                 <span class={styles.sub}>{meta.gridTitle}</span>
               </button>
+            ) : file.draft ? (
+              // A draft is a plain navigation link, not a button: there is no
+              // handoff confirmation to run first (unlike a recent *source*
+              // file, which could collide with a draft already open in the
+              // target tool - see openRecent in FileDropzone.tsx), because
+              // this already *is* that tool's own draft. The tool restores it
+              // itself on load.
+              <a
+                class={styles.document}
+                aria-label={formatMessage(messages.openRecentAriaLabel, { name: file.fileName })}
+                href={file.href || `/${file.tool}/`}
+              >
+                {identity}
+                <span class={styles.sub}>{meta.gridTitle}</span>
+                {typeof file.pageCount === 'number' && (
+                  <span class={styles.sub}>
+                    {file.pageCount === 1 ? messages.pageCountOne : formatMessage(messages.pageCountOther, { count: file.pageCount })}
+                  </span>
+                )}
+                {savedAtLabel && <span class={styles.sub}>{savedAtLabel}</span>}
+              </a>
             ) : (
               <button
                 type="button"
