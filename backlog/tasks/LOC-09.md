@@ -49,6 +49,22 @@ way, record it.
 
 ## Status (shipped: /he/ is live from the start, not gated behind a draft/preview step)
 
+**As of 2026-09-12 (`7ccd746`):** `/he/` is live, indexable and RTL-correct. The tool dock is fully
+Hebrew - all ten tool cards render title, description and, where a Hebrew edition exists, a Hebrew-page
+href, through `getToolCardCopy(locale, slug)` (`src/i18n/cardMessages.ts`), backed by a unit test that
+fails if a `tools.js` slug or a `contentPages.js` href has no Hebrew card. Every tool and guide card on
+the page is Hebrew as a result; measured whole-page script purity, excluding the disclosed-English
+HeroDemo exemption, is **0.906**. The Sign editor's toolbar row is Hebrew too - stage 1 of localizing
+the island: Text, Symbols, Shapes, Whiteout, Sign, Undo, Feedback, view density, Replace, Share,
+Download and the tip line all read in Hebrew, and the row mirrors under RTL (tools on the right,
+Download on the left) - Shlomi's own decision, made after judging it on the built page. Still English
+inside the Sign editor: the Shapes menu, the signature popover, the signature and undo dialogs, the page
+header, the selected-element toolbar, the screen-reader announcements, and the GitHub feedback template
+(English by decision - issues are triaged in English). Because those surfaces are not yet translated,
+`sign` stays outside `LOCALIZED_TOOL_ISLANDS` (`src/i18n/localizedTools.ts`, currently
+`new Set(['merge', 'compress'])`) - that set gates which tool islands claim to be fully localized, and
+Sign's inventory is only about 40 of its roughly 136 strings done so far.
+
 Phase 0 (infrastructure) and Phase 2 (Hebrew content minus HeroDemo) of the design doc's §8 rollout
 table are implemented and committed. Phase 1 (the HeroDemo RTL/direction-of-motion decision, §4.2) and
 Phase 3 (translating HeroDemo itself) were deliberately **not** attempted - see below. What shipped:
@@ -76,6 +92,70 @@ Phase 3 (translating HeroDemo itself) were deliberately **not** attempted - see 
   `locale` prop), and the brand/back link now points at `documentationHomePath(locale)` instead of a
   hardcoded `/`, wired through from every AppBar caller.
 - `src/content/localized-home/he.yaml`: a full Hebrew translation of every field, `status: published`.
+
+Seven more commits landed since that pass, four on `main` and three on this branch:
+
+- **The tool dock is Hebrew now** (`c33a404`). The nine, now ten with Compress Image, dock labels and
+  tooltip sentences were English regardless of locale (this is the old deferred item 3, resolved -
+  see below). Fixed by reusing `ToolCrossLinks.astro`'s own localization path instead of extending
+  `TOOL_SOURCE_FIELDS`: `getToolCardCopy(locale, slug)` for the title/description,
+  `documentationPath(slug, locale)` for the href when that tool has a published Hebrew edition. Sign,
+  Merge and Compress link to their Hebrew editions from the Hebrew dock; the rest still link to the
+  English page, same as the cross-link cards elsewhere. The same commit fixed `<AppBar isHome
+  locale={locale}>` never receiving `labels`, which had silently rendered the "On-device" trust badge in
+  English on the Hebrew home page while the identical component read "עובד מקומית" on every Hebrew tool
+  page.
+- **Shlomi's own live copy review** (`9eb5984`) edited four Hebrew strings directly on `main`: the H1's
+  emphasis on "only" (אך ורק), the MIT trust chip leading with "open source" rather than the licence
+  name, a shorter GitHub star ask, and Compress's pre-file placeholder. `he.yaml`'s own
+  `reviewer`/`reviewedAt`/`reviewNotes` fields were not touched by this pass - see the still-open list
+  below.
+- **The Hebrew hero caption has its own handwriting font** (`f67e6bc`). It previously fell back to the
+  generic `cursive` keyword because the bundled 'Caveat Demo' face is Latin-only. Gveret Levin, already
+  bundled and OFL-credited as the editor's own Hebrew handwriting fallback, is now subset the same way
+  Caveat Demo is and declared as 'Gveret Levin Demo' for the Hebrew caption, with adjusted
+  size/weight/tracking to match the English caption's visual weight. Only the current locale's caption
+  font is preloaded per page.
+- **`TrustChips.astro`** (`75c3c1b`) now owns the three trust chips on every page. Home and tool pages
+  rendered the same `AppBar` but different chip CSS - home's own `.home-trust .trust-chip` rules
+  out-specified an older copy in `AppBar.astro` - so a tool page's chips differed from home's by border
+  width, padding and badge tint; both now match to 0.1px on `/` and `/merge/`, and the licence chip
+  reads "Open source" instead of the licence name. The same commit carries several LOC-09 review fixes:
+  the `/he/` launcher now hands a dropped file to `/he/sign/`, not the English `/sign/`; Sign's replace
+  confirmation on `/he/sign/` no longer says "your annotations" mid-sentence (`signWorkNoun` in the shell
+  catalogue); the install tabs use logical `me-`/`border-s-` properties so their icon margin and active
+  indicator mirror under `dir="rtl"`; the brand link, tool dock and tablist got Hebrew `aria-label`s; and
+  the CSS duplication limit came down from 9.45x to 9.39x at the time.
+- **Hebrew cards for Compress Image and its guide, plus review fixes** (`18b1f06`). The Hebrew card
+  table in `cardMessages.ts` predated the Compress Image tool (SEO-31) and its guide, so the tenth dock
+  button and the third guide card on `/he/compress/` were still English. Both now have entries, and
+  `src/i18n/cardMessages.test.ts` asserts every `tools.js` slug and every `contentPages.js` href has a
+  Hebrew card, so a future tool or guide cannot ship an English card on a Hebrew page unnoticed.
+  **Measured purity of `/he/`, excluding the disclosed-English HeroDemo: 0.906, up from 0.682** - the
+  dock text was most of that remaining gap. The same commit carries three fixes from Shlomi's review:
+  the Compress Image card drops the "no daily cap" tail (only the two Compress cards had it, the other
+  eight do not), the `/he/compress/` subhead's "פרטי:" becomes "פרטי.", and the airplane-mode line on
+  Sign/Redact now hangs off the tool card's trailing edge (left in RTL, right in LTR) instead of
+  sitting centred between the subhead and the dropzone; measured at 1400px, its text edge is 84 on
+  `/he/sign/` and 1316 on `/sign/`, both equal to the card's edge.
+- **The Sign editor toolbar is Hebrew, stage 1 of localizing the Sign island** (`ab92ce7`). The toolbar
+  row on `/he/sign/` - Text, Symbols, Shapes, Whiteout, Sign, Undo, Feedback, view density, Replace,
+  Share, Download, and the tip line - now reads in Hebrew, through a new `SignMessages` catalogue in
+  `toolMessages.ts` built the same way Merge's and Compress's are: English values verbatim from source
+  (so `/sign/` and every existing test are unchanged) plus a Hebrew object marked as an AI draft pending
+  review. Left English on purpose: the Shapes menu, the signature and undo dialogs, the page header, the
+  selected-element toolbar, the screen-reader announcements (the four templates are in the catalogue but
+  not yet wired), and the GitHub feedback template, which stays English because issues are triaged in
+  English. The toolbar's previously hardcoded `dir="ltr" lang="en"` now comes from the catalogue, so the
+  row mirrors under RTL - tools on the right, Download on the left; Shlomi judged it on the built page
+  and kept it. Two incidental fixes landed alongside: Sign's own Replace control now reads the shell message
+  catalogue through `useToolShell()` instead of the hardcoded `FILE_ACTIONS` label, and the "Delete signature?" confirmation now
+  gets real Cancel/Close labels instead of English shell defaults. Inventory: about 136 strings across
+  five surfaces; this stage covers the roughly 40 in the toolbar row.
+- **The airplane-mode line's wrapper div was a second app-bar locator match** (`7ccd746`).
+  `tool-layout.spec.js` locates the app bar by `body > div > div`, and the notice's box classes moved
+  from a wrapper div onto the `<p>` itself (`w-full` keeps it from shrink-to-fit) so the locator stays
+  unique. Re-measured at 1400px: text edge still 84 on `/he/sign/`, matching the card's own edge.
 
 **No separate draft/noindex-preview step, by explicit decision.** `[tool].astro`/`[contentPage].astro`
 gate a translation behind `status: draft` + `PDKEF_DOCS_PREVIEW=1` + a noindex preview banner before it
@@ -107,24 +187,24 @@ file publishing to `main` pushes it to production without his separate sign-off.
    flexbox's automatic RTL mirroring applies with zero code changes, per §4.1's own finding. Whether a
    mirrored dock is actually correct for a UI element meant to read as a fixed "macOS dock" position is
    still an open product question - review this visually on `/he/`.
-3. **The tool dock's *text* is still English, and it is not disclosed on the page.** Separate from the
-   mirroring question above: `gridTitle`/`gridDescription` are not in `TOOL_SOURCE_FIELDS`
-   (`src/i18n/localizedTools.ts`), so all nine dock labels ("Sign & Fill PDF", "Merge PDF"...) and
-   their nine tooltip sentences render in English on `/he/`. That is the design doc's own §9 open
-   question #3 - whether those two fields join the localized-tool source set, which changes every
-   localized tool page and not just home - so it is deliberately not resolved here.
-   **Measured on the built page, because the size of it is the argument:** `/he/` is 2,045 Hebrew
-   letters against 2,706 Latin, a whole-page script purity of **0.430**, under the guard's 0.5 floor.
-   It passes only because of the `[data-home-demo]` exemption in item 1; with the demo excluded it is
-   still **0.682**, and the dock is most of that remainder. The demo at least says it is English. The
-   dock does not, and the dock is what CLAUDE.md says the home page exists for. Worth weighing when
-   §9 #3 is decided.
-4. **Native review of the Hebrew copy.** `he.yaml` is an AI-produced draft (this session), not a native
-   review - CLAUDE.md is explicit that "AI drafts are not native review." It is `status: published` per
-   the decision above, but Shlomi has not yet read through the rendered page; `reviewNotes` says so.
-   The same applies to the new Hebrew `FileDropzone`/`RecentFiles` catalogues in
-   `src/i18n/toolMessages.ts`, which now carry that caveat in a comment the way `hebrewMergeMessages`
-   already did.
+3. **Resolved: the tool dock's text (§9 open question #3).** This item originally read "the tool dock's
+   *text* is still English, and it is not disclosed on the page," with a measured whole-page purity of
+   0.430 (under the guard's 0.5 floor, passing only via the HeroDemo exemption) and 0.682 with the demo
+   excluded. `c33a404` answered §9 #3 by *not* extending `TOOL_SOURCE_FIELDS`
+   (`src/i18n/localizedTools.ts`): `tools.js` is client-imported (`RecentFiles` renders from it
+   directly), so a Hebrew translation bundle added there would ship to every visitor's browser
+   regardless of locale. `cardMessages.ts` keeps the per-locale table out of the client bundle instead,
+   the same way `documentationMessages.ts` and `toolMessages.ts` already do, and `ToolCrossLinks.astro`'s
+   existing `getToolCardCopy(locale, slug)` path is reused for the dock rather than duplicated. Purity
+   excluding the HeroDemo exemption is now 0.906 (`18b1f06`); see the "what shipped" bullets above.
+4. **Native review of the Hebrew copy, partial.** `he.yaml` still carries `reviewer: 'Claude Sonnet 5'`
+   and a `reviewNotes` saying this is an AI draft pending Shlomi's read-through - that metadata was not
+   touched by `9eb5984`, even though `9eb5984` is Shlomi editing four of `he.yaml`'s own strings live on
+   `main` (the H1 emphasis, the MIT chip, the GitHub star chip, the Compress placeholder). So there has
+   been a real native review pass on part of the file, but the file does not yet say so, and it is not a
+   full read-through or sign-off - see the still-open list below. The same caveat still applies to the
+   Hebrew `FileDropzone`/`RecentFiles` catalogues in `src/i18n/toolMessages.ts` and to the new
+   `SignMessages` Hebrew object (`ab92ce7`), all marked as AI drafts in their own comments.
 
 **Found in review and fixed here, so nobody re-derives them:**
 
@@ -148,13 +228,27 @@ file publishing to `main` pushes it to production without his separate sign-off.
   404 was the preview daemon reusing a port against another build - the trap CLAUDE.md's Commands
   section already names ("one preview, on 4173, per worktree"). Do not add a Vercel caveat for this.
 
-**What "done" means right now:** infrastructure-complete and live/indexable, with the Hebrew copy an
-unreviewed AI draft flagged as such in `he.yaml`'s own `reviewNotes`. Still open: (1) Shlomi's own
-read-through of the rendered `/he/` page, updating `reviewer`/`reviewedAt`/`reviewNotes` for real once
-he has; (2) a product decision on HeroDemo's RTL treatment (§4.2); (3) a product decision on whether the
-tool dock's automatic RTL mirroring (§4.1) is the wanted behavior, or needs an explicit override;
-(4) §9 open question #3, whether `gridTitle`/`gridDescription` join `TOOL_SOURCE_FIELDS` so the dock
-reads in-language - deferred item 3 above has the purity measurement that bears on it.
+**What "done" means right now (2026-09-12):** `/he/` is live, indexable and RTL-correct, with a fully
+Hebrew dock (ten of ten tool cards, guarded by a unit test) and a measured whole-page purity of 0.906
+excluding the disclosed-English HeroDemo. The Sign editor's toolbar row is Hebrew too (stage 1 of 5),
+mirrored under RTL by Shlomi's own decision after seeing it built. Still open:
+
+1. A product decision on HeroDemo's RTL/direction-of-motion treatment (§4.2) - it is still English
+   inside the Hebrew page, unresolved.
+2. A product decision on whether the tool dock's automatic RTL mirroring (§4.1) is the wanted behavior
+   for a UI element meant to read as a fixed "dock" position, or needs an explicit override - still to
+   be judged on the built page.
+3. `he.yaml`'s `reviewer`/`reviewedAt`/`reviewNotes` fields. Shlomi reviewed and edited Hebrew strings
+   live on the rendered page (`9eb5984`), but that pass has not been recorded as a formal sign-off in
+   the file itself.
+4. Sign island localization stages 2 to 5 - roughly 95 of the ~136 inventoried strings, across the
+   Shapes menu, the signature popover, the signature and undo dialogs, the page header, the
+   selected-element toolbar and the screen-reader announcements. Proposed as its own ticket rather than
+   folded into LOC-09.
+5. The two compress-hub guides, `pdf-wont-compress-to-100kb` and `photo-and-signature-size-for-forms`,
+   have no Hebrew edition, so `/he/compress/` is the only Hebrew tool page whose guide cards are all
+   English. Pending Shlomi's call and Israeli portal specifics.
+6. The Markdown twin gap, unchanged - see below.
 
 **Known gap, still not fixed here** (see the "Known gap to fold in" note above): the home page's
 Markdown twin (`index.md.ts`) has no locale-aware equivalent, so `Accept: text/markdown` on `/he/` falls
