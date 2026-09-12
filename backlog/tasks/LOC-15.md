@@ -115,3 +115,137 @@ claims on-device processing. Expected start: page two, a slow climb, not a fast 
   impressions on any of them, same bar as the English page's own in SEO-17.
 - No second Indonesian page and no second language until that read is in.
 - The languages page (`docs/i18n-status/`) updated at each stage change.
+
+## Prep, 2026-09-12: portal limits, measured runs, reviewer brief
+
+Nothing built. Three inputs the page needs before a reviewer is hired, so the reviewer gets a
+skeleton with real numbers rather than a blank brief. The English skeleton for the reviewer is
+[docs/loc-15-reviewer-brief.md](../../docs/loc-15-reviewer-brief.md).
+
+### Portal limits, primary sources only (captured 2026-09-12)
+
+Method: each portal's own page or own guide PDF, fetched and read. Blogs and press quoting a number
+were used only to know where to look; none of their figures are cited. The SSCASN FAQ table below was
+re-read by hand in a browser the same day, on top of the research pass.
+
+**SSCASN / BKN (CPNS, PPPK, Sekolah Kedinasan), the anchor.** Two independent portal-owned sources.
+
+- FAQ, `https://sscasn.bkn.go.id/faq/`, category "Unggah Dokumen", question "Berapa ukuran dan tipe
+  file yang diupload?". Verbatim: "Ketentuan ukuran dan tipe file: 1. Pas Foto maksimal 200 KB (JPG)
+  2. KTP maksimal 200 KB (JPG) 3. Ijazah maksimal 700 KB (PDF) 4. Transkrip maksimal 400 KB (PDF)
+  5. Rapor maksimal 500 KB (PDF) 6. Dokumen Lainnya maksimal 1 MB (PDF) 7. Bukti Bayar maksimal 200
+  KB (JPG) 8. Surat Lamaran maksimal 400 KB (PDF) 9. Surat Keterangan maksimal 500 KB (PDF)". The
+  answer is not tied to a cycle; the site's live cycles at capture were Seleksi Sekolah Kedinasan
+  2026 and Seleksi CASN Sekolah Rakyat 2026.
+- Buku Panduan Pendaftaran SSCASN v1.1 (38 pages), linked from `https://sscasn.bkn.go.id/buku-petunjuk/`,
+  file at `https://loker.bkn.go.id/index.php/s/yrMqSmfFjM7TyRN`. Account creation, p.7: "Unggah
+  dokumen Scan KTP (format JPG/JPEG, maksimal 200 KB);". Document tab, p.25-26: the per-document caps
+  are "sesuai dengan ketentuan yang diinput oleh Admin Instansi", so they vary by agency and
+  formation; the guide's own live example (Gambar 4.10, Kementerian Dalam Negeri, S-1 Ilmu
+  Pemerintahan, Sekolah Kedinasan 2026) shows surat lamaran 1000 KB PDF, ijazah asli 1000 KB PDF,
+  transkrip 1000 KB PDF, pas foto 4x6 500 KB JPG. Same page: "ukuran minimal setiap berkas adalah 80
+  KB dengan ukuran maksimal tergantung jenis berkas" (the screenshot inside the guide says 100 KB;
+  two elements of the same guide disagree on the floor, flag it, do not resolve it).
+
+Reading for the page: the photo caps (pas foto, KTP, bukti bayar) are a firm 200 KB JPG in both
+sources. The PDF caps are per instansi: the FAQ's reference table says 400 to 700 KB for the main
+documents and 1 MB only for "Dokumen Lainnya", while a live 2026 formation shows 1000 KB across the
+board. The page says "under 1 MB is the ceiling you will meet on SSCASN, and many formations ask for
+less, check your own formation's tab", never one universal number. The minimum-size rule (80 or 100
+KB) is the second awkward fact: a file can be rejected for being too small.
+
+**SNPMB (SNBP, UTBK-SNBT 2026).** Two official guide PDFs, both fetched and text-extracted.
+
+- Panduan Pendaftaran UTBK-SNBT 2026, `https://files.snpmb.id/web2026/Panduan%20Pendaftaran%20UTBK%20SNBT%202026.pdf`,
+  p.6, Bukti Tunanetra form: "simpan berkas dengan format PDF dengan ukuran tidak lebih dari 300 KB".
+  p.23, portfolio (Olahraga): video mp4 and pptx up to 50 MB.
+- Panduan Pendaftaran SNBP 2026, `https://files.snpmb.id/web2026/Panduan%20Pendaftaran%20SNBP%202026.pdf`,
+  p.10, Bukti Prestasi: "ukuran maksimal 2MB yang berformat pdf/png/jpg".
+- The account pas foto cap the press quotes (40 to 100 KB) sits behind login and is in neither guide:
+  not verifiable, not cited.
+
+**e-Meterai (DJP / Peruri), found via the SSCASN trail.** `https://e-meterai.co.id/faqs`, "Mengapa
+proses upload dokumen saya selalu gagal?": "format (.pdf) dengan ukuran maksimal 4 MB". SSCASN's surat
+lamaran needs the stamp and then has to fit SSCASN's own cap, so the 4 MB is never the binding one;
+worth one sentence because the stamped PDF is what gets uploaded.
+
+**Not verifiable from a public page (stated as such on the page, or left off it):**
+
+- SKCK, `skck.polri.go.id`: requirements page has no size limit; the upload flow is behind login.
+- Kartu Prakerja, `prakerja.go.id`: whole domain 404 on 2026-09-12; programme paused.
+- KIP Kuliah, `kip-kuliah.kemdiktisaintek.go.id`: the 2026 and 2024 Pedoman Pendaftaran PDFs were
+  fetched and searched; neither contains a KB or MB figure. The upload step is inside SIM KIP Kuliah.
+- LPDP (`lpdp.kemenkeu.go.id`) and DJP (`ereg.pajak.go.id`, Coretax): unreachable from outside
+  Indonesia on the day; a reviewer inside Indonesia can retry both and add what the portal says.
+- M-Paspor, `imigrasi.go.id`: both live FAQ categories checked, no size limit; the upload UI is in
+  the app.
+- Kemnaker Siapkerja: bot-check wall. BPJS: not checked in depth. PPDB: per-province portals, no
+  national number to cite.
+
+So: verified photo caps at 200 KB, verified PDF caps at 300 KB to 2 MB, **no verified PDF cap at 200
+KB anywhere**. The "PDF at 200 KB" section stays, as a "stricter than any portal we could verify"
+section, not as a portal claim.
+
+### Measured runs through the shipped tool (2026-09-12, Chromium, `dist/` from `3cdb1f5`)
+
+Corpus generated in a scratchpad, not committed, same method as SEO-17: synthetic phone-scan pages
+(rendered typed document, warm background, vignette, 1 to 2 degrees of skew, per-pixel noise) at
+2000x2800 px, JPEG q85, 511 to 591 KB per page, assembled with `@cantoo/pdf-lib`; a 3-page typed PDF
+(2,809 B); the CC0 Estany Llat Pixel 8a photo from SEO-31 (2,152,277 B, 4032x2268); a synthetic 3x4
+pas foto (211,365 B, 1200x1600). Every run is the real island on `/compress/`, Target Size mode,
+bytes read from the downloaded file, pages re-rendered at 150 DPI and graded by eye.
+
+| Run | Input | Target | Output | Raster | Time | Grade |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2-page scan | 1,071,796 B | 1000 KB | 238,280 B | 892x1262 | 0.30 s | crisp |
+| 5-page scan | 2,817,495 B | 1000 KB | 632,412 B | 892x1262 | 0.81 s | crisp |
+| 10-page scan | 5,586,408 B | 1000 KB | 959,113 B | 892x1262 | 0.83 s | crisp |
+| 20-page scan | 11,183,228 B | 1000 KB | 1,008,811 B | 892x1262 | 1.33 s | crisp |
+| 40-page scan | 22,336,038 B | 1000 KB | 1,033,034 B, "closest achievable" | 892x1262 | 2.83 s | readable, mild blocking |
+| 2-page scan | 1,071,796 B | 300 KB | 238,280 B | 892x1262 | 0.31 s | crisp |
+| 2-page scan | 1,071,796 B | 200 KB | 203,265 B | 892x1262 | 0.30 s | crisp |
+| 5-page scan | 2,817,495 B | 200 KB | 206,027 B, "closest achievable" | 892x1262 | 0.81 s | crisp |
+| 3-page typed PDF | 2,809 B | 1000 KB | 2,809 B, byte-identical passthrough | vector | 0.03 s | crisp |
+| Pixel 8a photo | 2,152,277 B | 200 KB | 183,357 B | 4032x2268 | 0.82 s | recognisable, colour banding and a magenta cast in sky and slopes |
+| Synthetic pas foto | 211,365 B | 200 KB | 203,242 B | 1200x1600 | 0.20 s | crisp |
+| Synthetic pas foto | 211,365 B | 100 KB | 83,286 B | 1200x1600 | 0.20 s | crisp |
+
+What the numbers say, and their limits:
+
+- Under 1 MB is an easy target for a scan of up to ten pages: the DPI ladder never stepped down in any
+  run, quality alone got there, and every run finished under three seconds including the 22 MB file.
+- **Caveat on the 20 and 40-page rows:** the synthetic pages carry text on the top 40% only, lighter
+  than a real ijazah or transkrip scan. SEO-17's denser corpus is the harder bound (one page at 100
+  KB crisp, ten pages at 100 KB total blurred). The page claims ten pages under 1 MB with confidence,
+  and says twenty or more "usually, depending on how dense the scan is".
+- The two "closest achievable" misses were 0.6% and 0.9% over target with a crisp page:
+  `compressPdfToTarget` budgets 300 bytes per page of container overhead and this corpus ran about
+  230 to 245 bytes over that per page. Tool follow-up, not this ticket: the miss notice says the
+  document would become unreadable, which is not what happened; distinguish a near-miss from a
+  quality floor.
+- 200 KB spread over five scanned pages was still crisp here, which is more than the page needs to
+  promise; the page says two to three scanned pages, since the FAQ-table documents (surat lamaran,
+  transkrip) are that length.
+- The photo is where compression shows: a detailed 2 MB photo at 200 KB kept full resolution and
+  paid in colour (same shape as SEO-31's 20 KB finding, milder). A plain pas foto barely needed
+  compressing. The page says: a pas foto under 200 KB is routine; a busy photo pushed hard picks up
+  colour noise before it loses detail.
+- Units: portals do not say whether "200 KB" means 200,000 or 204,800 bytes; two outputs here (203,242
+  and 203,265 B) sit between the two. The page tells people to aim ten percent under the cap.
+
+Reproduction: `scratchpad/loc15/{gen-pages,assemble-pdfs,gen-pasfoto,run-measurements,render-legibility,extract-image-dims}.mjs`
+against `python3 -m http.server 4331 --directory dist`; `results.json`, `legibility/*.png` and
+`outputs/*` alongside. Scratchpad only; regenerate from the scripts if needed again.
+
+### What building needs (not started, pending approval)
+
+- The standalone `localizedPages` variant LOC-13 designed does not exist yet: the schema still
+  requires `pageId` and `sourceHash`, and `getDocumentationVariants` throws on a `pageId` with no
+  English twin. Needed: a standalone shape (own slug, no hash, same review gate, self-canonical, no
+  hreflang), taught to `src/i18n/documentation.ts`, `src/pages/sitemap.xml.js` and
+  `src/pages/[locale]/[contentPage].astro`.
+- `id` in both locale registries (the "only he and es-co" line above is stale: eleven prefixes are
+  registered today, `id` is not among them), a `PILOT_COUNTRY_BY_PREFIX` row (Indonesia), the
+  `vercel.json` redirect pair, and the CSS ratchet narrowed rather than bumped.
+- Reviewer: Shlomi sources and pays a native Indonesian reviewer; the brief in `docs/` is what they
+  get. The reviewer inside Indonesia can also retry LPDP and DJP, which were unreachable from here.
