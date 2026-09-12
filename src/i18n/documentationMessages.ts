@@ -61,13 +61,6 @@ export interface DocumentationShellMessages {
   lastUpdated: string;
   /** Shown on Sign/Redact tool pages, invites the visitor to test offline. */
   airplaneModeNotice: string;
-  /** LOC-09: shown on a localized home page - the same "editor stays
-   * English" pilot decision as `toolControlsEnglishNotice` above, applied to
-   * HeroDemo (docs/home-page-localization-plan.md, section 4.2's RTL/
-   * direction-of-motion question is unresolved and out of scope; shipping
-   * the demo in English with this notice is the pragmatic stand-in, not a
-   * translation of it). */
-  heroDemoEnglishNotice: string;
   /** The home page's own accessible names: the brand link when it is not a
    * back link (`homeAriaLabel` is the tool-page wording), the tool dock's
    * <nav> and the offline-install tab list. */
@@ -122,9 +115,6 @@ const englishMessages = {
   inEnglish: 'in English',
   lastUpdated: 'Last updated',
   airplaneModeNotice: 'Turn on airplane mode and give it a try. It still works.',
-  // No "below": the demo sits beside the launcher on desktop and below it only
-  // on mobile, and the same one string is rendered at both breakpoints.
-  heroDemoEnglishNotice: 'The interactive demo is still shown in English.',
   homepageAriaLabel: 'PDkef homepage',
   toolDockAriaLabel: 'PDF tools',
   installGuidesAriaLabel: 'Device installation guides',
@@ -165,7 +155,6 @@ const hebrewMessages = {
   inEnglish: 'באנגלית',
   lastUpdated: 'עודכן לאחרונה',
   airplaneModeNotice: 'הפעילו מצב טיסה ונסו. זה עדיין עובד.',
-  heroDemoEnglishNotice: 'ההדגמה האינטראקטיבית עדיין מוצגת באנגלית.',
   homepageAriaLabel: 'דף הבית של PDkef',
   toolDockAriaLabel: 'כלי PDF',
   installGuidesAriaLabel: 'מדריכי התקנה לפי מכשיר',

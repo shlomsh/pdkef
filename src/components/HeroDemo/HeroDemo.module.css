@@ -3,6 +3,22 @@
   --phone-bezel: color-mix(in srgb, var(--color-text) 50%, black);
   --phone-bezel-edge: color-mix(in srgb, var(--color-text) 65%, black);
   --phone-shadow-color: color-mix(in srgb, var(--color-text) 28%, transparent);
+  /* Signed multiplier for every physical-direction (translateX, box-shadow
+     x-offset) declaration below, so the demo's simulated phone navigation
+     mirrors under dir="rtl" instead of always sliding the same physical way
+     regardless of page direction. Decision record:
+     docs/home-page-localization-plan.md section 4.2 - three options were
+     weighed (mirror, keep physically LTR, skip translating the demo); this
+     is option 1, mirror, on the reasoning that a chat UI, iOS/Android push
+     navigation and a share sheet all mirror on a real Hebrew phone, so the
+     simulation should follow rather than looking foreign on an otherwise
+     fully-RTL page. A single custom property rather than a rewrite: every
+     translateX/box-shadow below multiplies by var(--hero-dir) instead of
+     each one growing its own RTL-only counterpart rule. clip-path inset()
+     reveals cannot use this multiplier (their four values are ordered
+     top/right/bottom/left, not a single signed offset) and get an explicit
+     dir="rtl" override instead, next to each one below. */
+  --hero-dir: 1;
   position: relative;
   width: 100%;
   height: 100%;
@@ -18,14 +34,19 @@
      changes nothing about its own box. */
   container-type: size;
 }
+:global(html[dir="rtl"]) .root {
+  --hero-dir: -1;
+}
 .track {
   position: absolute;
   inset: 0;
   /* ScrollDriver treats a story as one panel during the handoff. Moving the
      track (rather than only its phone) keeps the caption, progress rail and
      device in the same spatial relationship and makes story two unmistakably
-     new. */
-  transform: translateX(var(--story-slide, 0%));
+     new. --hero-dir mirrors the slide under dir="rtl" (see .root above);
+     --story-slide itself stays a plain signed percentage written by
+     ScrollDriver.tsx, unaware of page direction. */
+  transform: translateX(calc(var(--hero-dir) * var(--story-slide, 0%)));
   will-change: transform;
 }
 .stage {
@@ -417,23 +438,28 @@
  * The 0.98/50 pair is one expression of "step at the very end"; the numbers
  * are not measurements, they just have to make the ramp shorter than any
  * scroll step a reader can stop inside. */
+/* --hero-dir mirrors this push navigation under dir="rtl" (see .root's
+   comment): the new view still enters over the old one and the leading
+   edge's shadow still casts onto the view it is covering, just from the
+   other side - matching how iOS/Android's own push navigation mirrors on a
+   Hebrew phone. */
 .email-layer {
   opacity: calc(1 - max(0, (var(--p-open, 1) - 0.98) * 50));
-  transform: translateX(calc(var(--p-open, 1) * -18%));
+  transform: translateX(calc(var(--hero-dir) * var(--p-open, 1) * -18%));
 }
 
 .bill-layer {
   opacity: calc(min(1, var(--p-open, 1) * 50) - max(0, (var(--p-send, 1) - 0.98) * 50));
-  transform: translateX(calc((1 - var(--p-open, 1)) * 100%));
+  transform: translateX(calc(var(--hero-dir) * (1 - var(--p-open, 1)) * 100%));
   /* The leading edge casts onto the view it is covering, which is what makes
      the push read as one view over another rather than a redraw. */
-  box-shadow: -10px 0 26px -14px var(--phone-shadow-color);
+  box-shadow: calc(var(--hero-dir) * -10px) 0 26px -14px var(--phone-shadow-color);
 }
 
 .reply-layer {
   opacity: min(1, calc(var(--p-send, 1) * 50));
-  transform: translateX(calc((1 - var(--p-send, 1)) * 100%));
-  box-shadow: -10px 0 26px -14px var(--phone-shadow-color);
+  transform: translateX(calc(var(--hero-dir) * (1 - var(--p-send, 1)) * 100%));
+  box-shadow: calc(var(--hero-dir) * -10px) 0 26px -14px var(--phone-shadow-color);
 }
 
 /* Generic beat-driven fades, shared by both tracks. */
@@ -695,6 +721,27 @@
 
 .blank-value-allergies {
   clip-path: inset(0 calc(100% - (var(--p-fill-allergies, 1) * 100%)) 0 0);
+}
+
+/* Under dir="rtl" each blank still wipes in from its own leading edge, now
+   the field's right side rather than its left - see .root's --hero-dir
+   comment. inset()'s four values are ordered top/right/bottom/left, not a
+   single signed offset, so the right and left components are swapped
+   explicitly here rather than multiplied by --hero-dir. */
+:global(html[dir="rtl"]) .blank-value-name {
+  clip-path: inset(0 0 0 calc(100% - (var(--p-fill-name, 1) * 100%)));
+}
+
+:global(html[dir="rtl"]) .blank-value-guardian {
+  clip-path: inset(0 0 0 calc(100% - (var(--p-fill-guardian, 1) * 100%)));
+}
+
+:global(html[dir="rtl"]) .blank-value-phone {
+  clip-path: inset(0 0 0 calc(100% - (var(--p-fill-phone, 1) * 100%)));
+}
+
+:global(html[dir="rtl"]) .blank-value-allergies {
+  clip-path: inset(0 0 0 calc(100% - (var(--p-fill-allergies, 1) * 100%)));
 }
 
 /* The static line asking the parent to sign below - printed, never filled
@@ -1167,6 +1214,18 @@
   text-align: end;
 }
 
+/* The Hebrew edition's bill values fall back to the sans stack: none of the
+   monospace faces in --font-mono carry Hebrew, so the browser's generic
+   monospace fallback set Hebrew words letter-spaced and visibly not from
+   the same bill as the digits next to them (measured on /he/, 2026-09-12).
+   tabular-nums keeps the digit columns lining up the way the mono face did;
+   .date-line-value is the same case in story one. */
+:global(html[dir="rtl"]) .doc-line span:last-child,
+:global(html[dir="rtl"]) .date-line-value {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Delete: the row's box never changes size, so the deleted line's own
    markup uses .doc-line directly (not a dedicated wrapper class - see the
    .panel-head comment above for why a class with no declarations of its
@@ -1244,6 +1303,16 @@
   composes: redact-bar-base;
   background: var(--color-surface);
   clip-path: inset(0 calc(100% - (var(--p-whiteout, 1) * 100%)) 0 0);
+}
+
+/* Same mirror as the form-field blanks above (see that comment): under
+   dir="rtl" both bars wipe from the right instead of the left. */
+:global(html[dir="rtl"]) .blackout-bar {
+  clip-path: inset(0 0 0 calc(100% - (var(--p-blackout, 1) * 100%)));
+}
+
+:global(html[dir="rtl"]) .whiteout-bar {
+  clip-path: inset(0 0 0 calc(100% - (var(--p-whiteout, 1) * 100%)));
 }
 
 .reply-body {
