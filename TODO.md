@@ -166,6 +166,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | LOC-12 | P3 | [LOC-12](backlog/tasks/LOC-12.md) · Two-month country and language re-check, due 2026-11-12 |
 | LOC-13 | P2 | [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins |
 | LOC-14 | P2 | [LOC-14](backlog/tasks/LOC-14.md) · Indonesian target-size compress: run the ROI gate on the size-limit family autocomplete surfaced |
+| LOC-15 | P1 | [LOC-15](backlog/tasks/LOC-15.md) · Indonesian pilot: one page for getting a PDF under 1 MB and a photo under 200 KB, on the size-limit family that cleared the gate |
 
 
 ## Migrated context and history

@@ -1,7 +1,7 @@
 ---
 id: "LOC-14"
 title: "Indonesian target-size compress: run the ROI gate on the size-limit family autocomplete surfaced"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "localized-search"
 phase: "near-term"
@@ -173,6 +173,30 @@ three-month**, also consistent across multiple independent rows). Read together:
 shifting from "compress to 1MB" toward "get it under 1MB" phrasing. If this family becomes a page, lead
 with "under 1MB," not "to 1MB."
 
+
+## Verdict (2026-09-12)
+
+Demand passes, at 1 MB. Keyword Planner puts `kompres pdf 1 mb` at 50,000 searches a month, with
+40-plus variants at 500 to 5,000 each, against the English pages' entire Indonesian footprint of 151
+impressions a quarter (GSC, 3 months). Trends shows a steady line, about 4% of generic `kompres pdf`
+and about half of bare `pdf 1 mb`, native beating English about 12x at that limit. The 100 to 300 KB
+PDF family is a subsection's worth (2,000 to 2,500 a month, below Trends' floor); the 200 KB volume
+that does clear is photo compression (`kompres foto / jpg 200 kb` at 5,000 each), the Compress Image
+half. One condition is still unread: in-language queries reaching the domain in GSC Indonesia, the
+query table is pending, not failed. One oddity is recorded and not acted on: Keyword Planner's -90%
+three-month change on the head term contradicts a flat Trends line and reads as a Planner artefact.
+
+Field passes as the gate is written, with a caveat. No Indonesian result claims on-device processing,
+and the dedicated target-size pages are the second tier this domain already beats in English (Pi7,
+11zon, Zamzar, LightPDF, FreeCompress), while `/compress/` ranks 9.4 on `file compressor to 100kb`.
+Caveat: the majors hold the generic slots and the AI Overview, a native blog (easypdf.fr, 18 Aug 2026)
+has already published a tested-documents post in SEO-17's shape, and Google ranks translated English
+pages in every tool SERP measured here, so the expected start is page two and a slow climb.
+
+Verdict: build, one page, in LOC-13's shape, as [LOC-15](LOC-15.md). Indonesian is the first language
+whose niche cleared both halves of the gate; every other in-language target-size family measured sat
+below Trends' floor (Turkish, Spanish, Vietnamese). LOC-15 is the build ticket; the GSC Indonesia query
+table, when Shlomi pastes it, is appended here as the last evidence row.
 
 ## Acceptance
 

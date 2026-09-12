@@ -206,13 +206,13 @@
       "name": "Indonesian",
       "native": "Bahasa Indonesia",
       "dir": "ltr",
-      "stage": "decided",
+      "stage": "building",
       "decision": "hold",
-      "decisionTicket": "LOC-07",
-      "decisionDate": "2026-09-11",
+      "decisionTicket": "LOC-15",
+      "decisionDate": "2026-09-12",
       "reCheck": "2026-11-12",
-      "reasoning": "The only language with real, sustained in-language Trends volume (parity on 2 of 4 anchor tasks), clearer than Hebrew ever got. LOC-07 closed the generic tool pages anyway: \"criterion 1 alone does not carry the decision... the one piece of direct evidence this domain has about ranking against this exact competitive field says it currently cannot, and a translation does not change that.\" Expected outcome if built now: page two to three, clicks in the low single digits a month. Indonesian is also on Google's translated-results list. What stays open is narrower: the autocomplete sweep found the densest size-limit query family of any locale (job and civil-service portals with hard KB limits), and LOC-14 runs that family through the ROI gate on its own.",
-      "next": "LOC-14: read the prepared Trends, SERP and GSC links for the size-limit family against the ROI gate. The generic pages (retired LOC-04) reopen only if the Hebrew pilot produces measurable in-language impressions, or an English tool page reaches page one for its own head term.",
+      "reasoning": "Generic tool pages stay held, per LOC-07: \"criterion 1 alone does not carry the decision... the one piece of direct evidence this domain has about ranking against this exact competitive field says it currently cannot, and a translation does not change that.\" Indonesian is also on Google's translated-results list. What LOC-14 found is narrower and cleared the ROI gate on its own: at 1 MB, Keyword Planner puts kompres pdf 1 mb at 50,000/month against the English pages' entire Indonesian footprint of 151 impressions a quarter, and Trends shows a steady native line at roughly 4% of generic kompres pdf, 12x English at that limit. The 100 to 300 KB family sits below Trends' floor. Field passes with a caveat: no Indonesian result claims on-device processing, but the field is the same second tier this domain already beats in English at 9.4.",
+      "next": "LOC-15: source a paid native reviewer, cite the real portal limits (SSCASN/BKN, SKCK, PPPK, SNPMB), build the one standalone page for under-1MB PDF and under-200KB photo, publish and request indexing. Read eight weeks after indexing on the kompres pdf 1 mb / di bawah 1 mb family in GSC Indonesia. The generic pages (retired LOC-04) reopen only if the Hebrew pilot produces measurable in-language impressions, or an English tool page reaches page one for its own head term.",
       "evidence": [
         {
           "metric": "Trends, ID: kompres pdf vs compress pdf",
@@ -248,6 +248,41 @@
           "gate": "a niche this domain wins in English (100kb page)",
           "verdict": "na",
           "source": "LOC-11 § autocomplete sweep"
+        },
+        {
+          "metric": "Keyword Planner: kompres pdf 1 mb",
+          "value": "50,000/month, plus 40+ variants at 500-5,000/month each",
+          "gate": "demand",
+          "verdict": "pass",
+          "source": "LOC-14 § Keyword Planner"
+        },
+        {
+          "metric": "Trends, ID: kompres pdf 1 mb vs kompres pdf / compress pdf to 1mb",
+          "value": "~4% of generic kompres pdf, steady; ~12x compress pdf to 1mb",
+          "gate": "demand",
+          "verdict": "pass",
+          "source": "LOC-14 § Trends"
+        },
+        {
+          "metric": "Trends, ID: 100-300 KB family and portal context terms",
+          "value": "below Trends' floor; ukuran file lamaran kerja / cpns / skck flat at 0",
+          "gate": "niche demand at small limits",
+          "verdict": "fail",
+          "source": "LOC-14 § Trends"
+        },
+        {
+          "metric": "Field on kompres pdf 1 mb (hl=id)",
+          "value": "second tier natively (Pi7, 11zon, Zamzar, LightPDF); no on-device claim; English pages rank as translated backfill",
+          "gate": "field",
+          "verdict": "pass",
+          "source": "LOC-14 § SERPs"
+        },
+        {
+          "metric": "GSC Indonesia, 3 months",
+          "value": "1 click / 151 impressions at 17.6; query table pending",
+          "gate": "in-language queries reaching the domain",
+          "verdict": "na",
+          "source": "LOC-14 § GSC"
         }
       ]
     },

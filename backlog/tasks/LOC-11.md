@@ -218,6 +218,7 @@ SERP's shape), and Spain's `y sin aplicación` is the sign-without-an-app intent
 | Filipino | **Fails, measured 2026-09-12:** English leads on all four tasks (`compress pdf` ~80 and `pdf compressor` ~60; `merge pdf` ~75; `sign pdf` ~40; `pdf to jpg` ~85) and every Filipino or code-switched form is flat at 0 with a one-week blip apiece. The Philippines searches this niche in English. | A second-tier native field exists (pdf2go, piliapp, compress2go), moot | | **No.** The English pages are already the right pages for the Philippines, which is also the country with the most impressions of the seven pulled (100, all English blur). |
 | Bengali | **Fails, measured 2026-09-12 (group D):** Bangladesh searches all four tasks in English; the Bengali forms are flat | One major (PDF24) plus second-tier native pages, moot | | **No**, same shape as India and the Philippines |
 | Urdu | Not run; Pakistan is not in the top twenty and its neighbours (India, Bangladesh) both search in English | | | Not run, deprioritised |
+| Indonesian, target-size | **1 MB clears, 2026-09-12 ([LOC-14](LOC-14.md)):** `kompres pdf 1 mb` steady at ~4% of generic `kompres pdf`, native 12x English; 100 to 300 KB family below Trends' floor | **Second tier natively** (Pi7, 11zon, Zamzar, LightPDF, FreeCompress), no on-device claim in any result, English pages reach these searchers as translated backfill | To source, paid native | **Build, LOC-15**; first niche to clear both halves |
 
 ## Recommendation to LOC-10 (2026-09-12)
 
