@@ -76,7 +76,7 @@ const {
         <li class="self-start overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)]">
           <details class="group">
             <summary
-              class="flex min-h-[4.75rem] cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden"
+              class="lang-support-summary flex min-h-[4.75rem] cursor-pointer list-none items-center justify-between gap-3 px-4 py-3"
             >
               {/* lang="" is unset on purpose: these are language *names*, and
                   the surrounding page is English. Marking each one up as its
@@ -88,7 +88,7 @@ const {
               </span>
               <span
                 aria-hidden="true"
-                class="size-2 shrink-0 rotate-45 border-b-2 border-r-2 border-[var(--color-muted)] transition-transform duration-200 group-open:-rotate-[135deg]"
+                class="lang-chevron shrink-0"
               ></span>
             </summary>
             <p class="m-0 border-t border-[var(--color-border)] px-4 py-3 text-[0.95rem] leading-[1.55] text-[var(--color-muted)]">{language.note}</p>
@@ -104,7 +104,7 @@ const {
         <div class="mt-4 flex flex-wrap gap-3">
           {languageRequestUrl && (
             <a
-              class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] bg-[var(--color-primary)] px-5 py-2.5 text-[0.875rem] font-semibold text-[var(--color-surface)] no-underline shadow-sm transition-[transform,background-color,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:bg-[var(--color-primary-hover)] hover:shadow-md"
+              class="lang-cta lang-cta-primary inline-flex items-center gap-2 rounded-[var(--radius-pill)] bg-[var(--color-primary)] px-5 text-[0.875rem] font-semibold text-[var(--color-surface)] no-underline"
               href={languageRequestUrl}
               target="_blank"
               rel="noopener noreferrer"
@@ -115,7 +115,7 @@ const {
           )}
           {contributeUrl && (
             <a
-              class="inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 py-2.5 text-[0.875rem] font-semibold text-[var(--color-text)] no-underline transition-[transform,border-color,background-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary-text)]"
+              class="lang-cta lang-cta-secondary inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 text-[0.875rem] font-semibold text-[var(--color-text)] no-underline"
               href={contributeUrl}
               target="_blank"
               rel="noopener noreferrer"
@@ -131,3 +131,50 @@ const {
     </section>
   </div>
 </FeatureCard>
+
+<style>
+  /* Only what utilities cannot say without paying for a shadow/transition/
+     hover set that no other file in the tool family renders. This card is
+     Sign-only (see the Props comment above): every class replaced here was
+     single-page utility weight on /sign/ and dead weight on the other nine
+     tool pages under check-css-duplication.js's dead-bytes ratchet. Layout,
+     spacing and color utilities shared with sibling components (FeatureCard,
+     ToolCrossLinks, DocumentationLanguageSelector, ...) stay Tailwind classes
+     above; values below are copied from the Tailwind utilities they replace
+     (`.rotate-45`, `.shadow-sm`, `.hover\:-translate-y-0.5`, ...) so nothing
+     here differs by a pixel. */
+  .lang-support-summary::-webkit-details-marker { display: none; }
+
+  .lang-chevron {
+    width: 0.5rem;
+    height: 0.5rem;
+    rotate: 45deg;
+    border-bottom: 2px solid var(--color-muted);
+    border-right: 2px solid var(--color-muted);
+    transition: rotate 0.2s;
+  }
+  details[open] > summary .lang-chevron { rotate: -135deg; }
+
+  .lang-cta {
+    padding-block: 0.625rem;
+    transition-duration: 0.2s;
+    transition-timing-function: var(--ease-out);
+  }
+  .lang-cta:hover { translate: 0 -0.125rem; }
+  .lang-cta-primary {
+    box-shadow: var(--shadow-sm);
+    transition-property: transform, background-color, box-shadow;
+  }
+  .lang-cta-primary:hover {
+    background: var(--color-primary-hover);
+    box-shadow: var(--shadow-md);
+  }
+  .lang-cta-secondary {
+    transition-property: transform, border-color, background-color, color;
+  }
+  .lang-cta-secondary:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-soft);
+    color: var(--color-primary-text);
+  }
+</style>
