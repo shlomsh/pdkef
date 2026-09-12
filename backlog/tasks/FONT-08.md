@@ -43,3 +43,42 @@ brief; the headlines:
 
 Next step is per-script landing tickets (nine-step unit each), starting where one font closes the most:
 Neucha or Amatic SC (Cyrillic, and Hebrew for the latter), then Hind Siliguri, Gayathri, Tiro Gurmukhi.
+
+## Landed 2026-09-12: Gayathri
+
+Malayalam's first (b) landing: Gayathri (Swathanthra Malayalam Computing, OFL 1.1) added next to Anek
+Malayalam as the script's first second-choice upright face, closing the "no second choice" gap the
+brief's catalogue table names for Malayalam. Static Regular/Bold, 163828/162884 bytes as downloaded.
+`kern` only, no `calt`.
+
+- **Check 1 (fontkit crash):** 0/478 on both Regular and Bold against `malayalamCorpus.js`, matching
+  the research-pass finding recorded above.
+- **`glyf` alignment:** aligned as shipped, no repad needed (`npm run test:fonts`: 64 fonts checked,
+  all loca offsets 2-byte aligned).
+- **Check 2 (pixel-shape guard, self-calibrating, 400px):** 277/277 passed. Of the corpus's 478
+  strings, 201 shape with no contextual substitution (calibration: rasteriser floor 0.00%,
+  displacement floor 0.00%) and 277 substitute and are the cases under test - zero
+  `KNOWN_FONTKIT_DIVERGENCES` entries needed. See
+  `e2e/sign/malayalam-gayathri-shaping-guard.spec.js`.
+- **Check 3 (advance-parity spot check against the SIGN-19 bound, `glyphCount x 0.5px`):** 0/478
+  divergent, max widthDiff 0.000px, run the same way Anek Malayalam's was (fontkit's summed shaped
+  advances vs. this browser's own `measureText` on the identical string). Not wired as a standing
+  assertion, same as every other font this catalogue has screened this way.
+- **Metrics:** real `hhea` ascent 0.732 / descent 0.488 (`fontkit.create(...).ascent`/`.descent`
+  divided by `unitsPerEm`), not transcribed from a spec sheet.
+- **Wired:** `scripts/font-manifest.mjs` (source of the generated `fontManifest.js`/`editorFonts.css`),
+  `npm run generate:font-coverage` and `npm run generate:font-coverage-report` (both regenerated;
+  `LANGUAGE_COVERAGE.malayalam.full` is now `[Anek Malayalam, Gayathri]`), the Sign page's Malayalam
+  card note in `src/data/tools.js` naming both faces, `languageCoverage.test.js` updated to match, and
+  license attribution (`THIRD_PARTY_LICENSES.md`, `src/pages/licenses.astro`, both generated/derived
+  from the manifest - `fontAttribution.test.js` passed without a hand-edit). `exportRenderCorpus.js`
+  got a new `malayalam-gayathri` case (എന്റെ, "my/mine", the non-chillu ന്റ cluster spelling); its
+  baseline is CI-runner-pinned (`exportRenderBaseline.json`) and was deliberately left untouched per
+  `.claude/rules/fonts-and-text.md` - **pending the `update-export-render-baseline` CI workflow run**,
+  the same follow-up FONT-03's own Anek Malayalam landing needed.
+- **Verification:** `npm test` (2305/2305), `npm run typecheck`, `npm run test:fonts`, `npm run build`,
+  `npm run test:csp`, `npm run test:css`, `npm run test:weight` (`/sign/` 346188/400000 brotli budget)
+  all green. `PLAYWRIGHT_PORT=4176 npx playwright test
+  e2e/sign/malayalam-gayathri-shaping-guard.spec.js e2e/sign/malayalam-shaping-guard.spec.js
+  e2e/sign/language-acceptance.spec.js` - 3/3 passed, including the full acceptance matrix now at 117
+  language/face combinations (up from 116).

@@ -185,6 +185,24 @@ export const EXPORT_RENDER_CORPUS = [
   // this file used.
   textCase('malayalam-anek-malayalam', 'നമസ്കാരം', { fontFamily: 'Anek Malayalam' }),
 
+  // Malayalam, second face (FONT-08): Gayathri, added next to Anek Malayalam
+  // as the script's first alternative upright choice. `malayalam-gayathri-
+  // shaping-guard.spec.js` already proves fontkit and Chromium agree on this
+  // font's glyphs before a PDF exists; this case exists for the same reason
+  // the Anek Malayalam one above does - catching a corrupted `glyf` table or
+  // a subset missing composite components on the actual downloaded file.
+  //
+  // എന്റെ ("ente", "my"/"mine", one of the most common words in the
+  // language) carries the non-chillu spelling of the nda/nte cluster
+  // documented in malayalamCorpus.js's module doc: ന (NA) + ് (virama) + റ
+  // (RRA), reordered and drawn as one attached cluster rather than three
+  // separate letters. Every code point confirmed present via fontkit's
+  // hasGlyphForCodePoint() against the real bundled
+  // public/fonts/Gayathri-Regular.ttf bytes, the same verification method
+  // every other case in this file used, and the full string shapes to 3
+  // glyphs from 5 code points (a real substitution, not a plain cmap walk).
+  textCase('malayalam-gayathri', 'എന്റെ', { fontFamily: 'Gayathri' }),
+
   // --- The comb path: positions by cell index, skips bidi, has its own
   // geometry. `width` is what makes an element a comb (see comb.js).
   textCase('comb-ltr', 'AB12', { fontFamily: 'Arimo', width: 40, combCells: 6 }),

@@ -382,6 +382,19 @@ export const FONT_MANIFEST = Object.freeze([
       "normal": "AnekMalayalam-Regular.ttf",
       "bold": "AnekMalayalam-Bold.ttf"
     }
+  },
+  {
+    "family": "Gayathri",
+    "kind": "text",
+    "styleTag": "sans",
+    "metrics": {
+      "ascent": 0.732,
+      "descent": 0.488
+    },
+    "faces": {
+      "normal": "Gayathri-Regular.ttf",
+      "bold": "Gayathri-Bold.ttf"
+    }
   }
 ]);
 
