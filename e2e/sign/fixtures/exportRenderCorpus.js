@@ -238,7 +238,7 @@ export const EXPORT_RENDER_CORPUS = [
   // public/fonts/AnekMalayalam-Regular.ttf bytes (fontkit.create(readFileSync
   // (...)), not .openSync), the same verification method every other case in
   // this file used.
-  textCase('malayalam-anek-malayalam', 'നമസ്കாരം', { fontFamily: 'Anek Malayalam' }),
+  textCase('malayalam-anek-malayalam', 'നമസ്കാരം', { fontFamily: 'Anek Malayalam' }),
 
   // Tamil, second face (FONT-08b): Tiro Tamil, a serif alongside the sans
   // Noto Sans Tamil this guard has no case for either (Tamil's own shaping
