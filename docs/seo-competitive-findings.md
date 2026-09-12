@@ -327,8 +327,8 @@ does not have. Status of each ticket is in section 1, not here.
 | Week 3 (Sep 24-30) | SEO-09, 10, 13, 17 (first new URL). SEO-08 done early. | SEO-09 must end with an indexing request, per section 2 |
 | Week 4 (Oct 1-7) | SEO-14, 15, 18. **Re-measure everything on 2026-10-08.** | **Gate:** if none of the never-crawled nine has been crawled, stop adding URLs; effort goes to SEO-03 |
 | Weeks 5-6 (Oct 8-21) | SEO-19 (image compressor - the one new tool with measured demand; **shipped 2026-09-12 ahead of this gate**, see section 1), then SEO-20 (crop). One tool per week. | Week 4 gate passed |
-| Weeks 7-8 (Oct 22 - Nov 4) | SEO-21 (flatten, with MOBI-02), SEO-22 (extract images). | previous tool indexed |
-| Week 9 onwards | SEO-23, 24, 16, then 25, 26, 27. | re-order at every boundary |
+| Weeks 7-8 (Oct 22 - Nov 4) | SEO-21's flattener code only (MOBI-02's export fix; the tool page is downgraded, see section 5), SEO-22 (extract images). | previous tool indexed |
+| Week 9 onwards | SEO-23, 24, 16, then 25, 26, 27. SEO-21's page waits behind these on a Keyword Planner read. | re-order at every boundary |
 | Throughout | SEO-03 external signals. The only work that moves the constraint; it does not live in this repo. | |
 
 ---
@@ -351,12 +351,20 @@ are the basis of our positioning; section 7 turns them into claims we can eviden
 
 ### The winning queries the research identified, and what we decided
 
+**All "est. volume" figures below came from the deep-research pass, not Keyword Planner or Trends -
+competitor-tool guesswork, not measurement.** SEO-21 checked its own row against Google Trends
+(worldwide, past 12 months) and found `flatten pdf` at 1-2 relative interest against `compress pdf`
+~55-70 and `merge pdf` ~90-100: not "smaller," noise-floor, nowhere near 20k-50k. That row's decision
+and ticket are corrected below. Every other unmeasured row here (make pdf look scanned, grayscale,
+extract images, crop) carries the same risk until it gets the same check; do not schedule build effort
+off this table's volume column without one.
+
 | Query | Est. volume | Who wins it now | Decision | Ticket |
 | --- | --- | --- | --- | --- |
 | compress pdf to 100kb / 200kb / 500kb | 280k-600k combined | smallseotools, PDNob, DocHub | `/compress/` already carries this h1 and the feature. **Rejected** the three doorway variants; fix CTR and write one honest guide. | SEO-05, SEO-17 |
 | make pdf look scanned | 40k-90k | supertool, scanyourpdf, LookScanned | Build. One-stop-shop reasoning recorded in the ticket. | SEO-24 |
 | grayscale pdf / black and white | 30k-80k | supertool, Cloudinary | Build, late; disclose that we rasterize. | SEO-23 |
-| flatten pdf online | 20k-50k | mytulify, toolspivot | Build; also closes MOBI-02. | SEO-21 |
+| flatten pdf online | 20k-50k (Trends check 2026-09-12: ~1-2 relative interest, near-zero) | mytulify, toolspivot | Ship the shared flattener for Sign's export now (also closes MOBI-02); **downgrade the tool page to P3/longer-term** pending a Keyword Planner absolute-volume read. | SEO-21 |
 | extract images from pdf | 40k-100k | digitalheroesco, toolscopilot | Build, late; zip-free per the PdfToImage precedent. | SEO-22 |
 | crop pdf online | 30k-70k | launchvibe, toolslabpro, Sejda | Build; lossless CropBox, reuses the editor's box gesture. | SEO-20 |
 | merge pdf online free no limit | 60k-140k | iLovePDF, supertool | Expand `/merge/`; the fact is in the FAQ, move it where it is read. | SEO-10 |
