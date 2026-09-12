@@ -1,15 +1,17 @@
 ---
 id: "SEO-22"
 title: "New tool: extract the images embedded in a PDF, without a zip dependency"
-status: "open"
+status: "blocked"
 priority: "P3"
-epic: "search-acquisition"
+epic: "new-tools-gated"
 phase: "later"
 depends_on: ["SEO-06"]
 legacy_state: "Open"
 ---
 
 # SEO-22 · New tool: extract the images embedded in a PDF, without a zip dependency
+
+*Re-filed 2026-09-12* from `search-acquisition` into `new-tools-gated`, status `open` to `blocked`.
 
 ## Scope and acceptance
 

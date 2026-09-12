@@ -1,15 +1,17 @@
 ---
 id: "SEO-28"
-title: "Redact and Split earn the most and are recrawled the least, and nothing we control explains it"
+title: "Read 2026-10-08 · Redact and Split earn the most and are recrawled the least, and nothing we control explains it"
 status: "blocked"
 priority: "P1"
-epic: "search-acquisition"
+epic: "seo-awaiting-read"
 phase: "near-term"
 depends_on: ["SEO-01"]
 legacy_state: "Open"
 ---
 
-# SEO-28 · Redact and Split earn the most and are recrawled the least, and nothing we control explains it
+# SEO-28 · Read 2026-10-08 · Redact and Split earn the most and are recrawled the least, and nothing we control explains it
+
+*Re-filed 2026-09-12* from `search-acquisition` into `seo-awaiting-read`, read date 2026-10-08: crawl dates of /redact/ and /split/ against the two control URLs.
 
 ## Scope and acceptance
 

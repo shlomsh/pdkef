@@ -3,13 +3,15 @@ id: "SEO-30"
 title: "A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before"
 status: "open"
 priority: "P2"
-epic: "search-acquisition"
+epic: "english-base"
 phase: "near-term"
 depends_on: ["SEO-05", "SEO-13"]
 legacy_state: "Open"
 ---
 
 # SEO-30 · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before
+
+*Re-filed 2026-09-12* from `search-acquisition` into `english-base`: on-page, no new URL.
 
 ## Scope and acceptance
 

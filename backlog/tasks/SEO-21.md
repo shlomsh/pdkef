@@ -1,15 +1,17 @@
 ---
 id: "SEO-21"
 title: "Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is"
-status: "open"
+status: "blocked"
 priority: "P3"
-epic: "search-acquisition"
+epic: "new-tools-gated"
 phase: "longer-term"
 depends_on: ["MOBI-02", "SEO-06"]
 legacy_state: "Open"
 ---
 
 # SEO-21 · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is
+
+*Re-filed 2026-09-12* from `search-acquisition` into `new-tools-gated`, status `open` to `blocked`: also needs MOBI-02.
 
 ## Why this ticket was rewritten (2026-09-12)
 

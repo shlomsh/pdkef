@@ -72,7 +72,44 @@ _None._
 
 _None._
 
-## Search acquisition
+## Awaiting a read
+
+### Open
+
+_None._
+
+### In progress
+
+_None._
+
+### Blocked
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house |
+| LOC-12 | P3 | [LOC-12](backlog/tasks/LOC-12.md) · Read 2026-11-12 · Two-month country and language re-check, due 2026-11-12 |
+| SEO-04 | P1 | [SEO-04](backlog/tasks/SEO-04.md) · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks |
+| SEO-05 | P1 | [SEO-05](backlog/tasks/SEO-05.md) · Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue |
+| SEO-06 | P1 | [SEO-06](backlog/tasks/SEO-06.md) · Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools |
+| SEO-09 | P2 | [SEO-09](backlog/tasks/SEO-09.md) · Read 2026-10-08 · Split ranks at 85 for extract queries because it never uses the word |
+| SEO-10 | P2 | [SEO-10](backlog/tasks/SEO-10.md) · Read 2026-10-08 · Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it |
+| SEO-17 | P2 | [SEO-17](backlog/tasks/SEO-17.md) · Read 2026-10-08 · One content page on portal size limits, instead of three doorway pages |
+| SEO-25 | P3 | [SEO-25](backlog/tasks/SEO-25.md) · Read 2026-10-08 · A before-and-after preview on Compress, so quality is shown rather than promised |
+| SEO-28 | P1 | [SEO-28](backlog/tasks/SEO-28.md) · Read 2026-10-08 · Redact and Split earn the most and are recrawled the least, and nothing we control explains it |
+| SEO-31 | P1 | [SEO-31](backlog/tasks/SEO-31.md) · Read 2026-11-07 · One content page on photo and signature size limits, as inbound content for /compress-image/ |
+| SEO-33 | P1 | [SEO-33](backlog/tasks/SEO-33.md) · Read 2026-10-08 · Compress ranks page one and never says reduce, shrink, resize or size reducer, the words with the volume |
+| SEO-34 | P1 | [SEO-34](backlog/tasks/SEO-34.md) · Read 2026-10-08 · The home page has the site's best CTR and no query to rank for: target pdf tools |
+| SEO-35 | P2 | [SEO-35](backlog/tasks/SEO-35.md) · Read 2026-10-08 · Merge is an authority fight, not a content fight: add the combine vocabulary, then stop |
+
+### Done
+
+_None._
+
+### Retired
+
+_None._
+
+## English base
 
 ### Open
 
@@ -80,71 +117,88 @@ _None._
 | --- | --- | --- |
 | SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |
 | SEO-18 | P2 | [SEO-18](backlog/tasks/SEO-18.md) · One page on signing a PDF in your own language, generated from the coverage data |
-| SEO-20 | P2 | [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for |
-| SEO-21 | P3 | [SEO-21](backlog/tasks/SEO-21.md) · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is |
-| SEO-22 | P3 | [SEO-22](backlog/tasks/SEO-22.md) · New tool: extract the images embedded in a PDF, without a zip dependency |
-| SEO-23 | P3 | [SEO-23](backlog/tasks/SEO-23.md) · New tool: convert a PDF to grayscale, with the cost stated |
-| SEO-24 | P3 | [SEO-24](backlog/tasks/SEO-24.md) · New tool: make a PDF look scanned |
 | SEO-26 | P3 | [SEO-26](backlog/tasks/SEO-26.md) · Say what PDkef does not do, and why, on a page that already exists |
 | SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before |
-| SEO-32 | P3 | [SEO-32](backlog/tasks/SEO-32.md) · New tool: PDF to Markdown, English-only v1, Hebrew/RTL deferred pending anydoc-wasm's dependency bump |
-| SEO-33 | P1 | [SEO-33](backlog/tasks/SEO-33.md) · Compress ranks page one and never says reduce, shrink, resize or size reducer, the words with the volume |
-| SEO-34 | P1 | [SEO-34](backlog/tasks/SEO-34.md) · The home page has the site's best CTR and no query to rank for: target pdf tools |
-| SEO-35 | P2 | [SEO-35](backlog/tasks/SEO-35.md) · Merge is an authority fight, not a content fight: add the combine vocabulary, then stop |
 
 ### In progress
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| SEO-03 | P2 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |
-| SEO-31 | P1 | [SEO-31](backlog/tasks/SEO-31.md) · One content page on photo and signature size limits, as inbound content for /compress-image/ |
+| SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |
+
+### Blocked
+
+_None._
+
+### Done
+
+_None._
+
+### Retired
+
+_None._
+
+## New tools (gated)
+
+### Open
+
+_None._
+
+### In progress
+
+_None._
 
 ### Blocked
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| SEO-04 | P1 | [SEO-04](backlog/tasks/SEO-04.md) · Thirteen blur queries are on page one and earning zero clicks |
-| SEO-05 | P1 | [SEO-05](backlog/tasks/SEO-05.md) · The 100KB cluster ranks and does not convert, and the page implies something untrue |
-| SEO-06 | P1 | [SEO-06](backlog/tasks/SEO-06.md) · Nine URLs have never been crawled, and three of them are working tools |
-| SEO-09 | P2 | [SEO-09](backlog/tasks/SEO-09.md) · Split ranks at 85 for extract queries because it never uses the word |
-| SEO-10 | P2 | [SEO-10](backlog/tasks/SEO-10.md) · Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it |
-| SEO-17 | P2 | [SEO-17](backlog/tasks/SEO-17.md) · One content page on portal size limits, instead of three doorway pages |
-| SEO-25 | P3 | [SEO-25](backlog/tasks/SEO-25.md) · A before-and-after preview on Compress, so quality is shown rather than promised |
-| SEO-28 | P1 | [SEO-28](backlog/tasks/SEO-28.md) · Redact and Split earn the most and are recrawled the least, and nothing we control explains it |
+| SEO-20 | P2 | [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for |
+| SEO-21 | P3 | [SEO-21](backlog/tasks/SEO-21.md) · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is |
+| SEO-22 | P3 | [SEO-22](backlog/tasks/SEO-22.md) · New tool: extract the images embedded in a PDF, without a zip dependency |
+| SEO-23 | P3 | [SEO-23](backlog/tasks/SEO-23.md) · New tool: convert a PDF to grayscale, with the cost stated |
+| SEO-24 | P3 | [SEO-24](backlog/tasks/SEO-24.md) · New tool: make a PDF look scanned |
+| SEO-32 | P3 | [SEO-32](backlog/tasks/SEO-32.md) · New tool: PDF to Markdown, English-only v1, Hebrew/RTL deferred pending anydoc-wasm's dependency bump |
 
 ### Done
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| SEO-01 | P1 | [SEO-01](backlog/tasks/SEO-01.md) · An indexing baseline, and the two mechanical reasons pages are not being crawled |
-| SEO-02 | P1 | [SEO-02](backlog/tasks/SEO-02.md) · A standings table against the competition that is maintained, not written once |
-| SEO-07 | P1 | [SEO-07](backlog/tasks/SEO-07.md) · The Sign page says almost nothing about the one advantage nobody can copy |
-| SEO-08 | P2 | [SEO-08](backlog/tasks/SEO-08.md) · The four OS how-to guides rank between 44 and 58, and one of them is our best-read page |
-| SEO-11 | P1 | [SEO-11](backlog/tasks/SEO-11.md) · The positioning review protocol: what we may claim, and what proves it |
-| SEO-12 | P1 | [SEO-12](backlog/tasks/SEO-12.md) · Positioning review: Sign, the tool with the biggest gap between what it does and what it says |
-| SEO-13 | P2 | [SEO-13](backlog/tasks/SEO-13.md) · Positioning review: Compress, where the honest answer costs us the query |
-| SEO-14 | P2 | [SEO-14](backlog/tasks/SEO-14.md) · Positioning review: Blur and Redact, the cluster we are already winning |
-| SEO-15 | P2 | [SEO-15](backlog/tasks/SEO-15.md) · Positioning review: the three tools Google has never looked at |
-| SEO-19 | P1 | [SEO-19](backlog/tasks/SEO-19.md) · New tool: compress an image to a target size, because people are already asking us to |
-| SEO-29 | P3 | [SEO-29](backlog/tasks/SEO-29.md) · Every ranking how-to competitor shows a visible date or byline; our content pages show neither |
+_None._
 
 ### Retired
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| SEO-27 | P3 | [SEO-27](backlog/tasks/SEO-27.md) · Decide the localization question: Hebrew is nearly free, Hindi is not the win it looks like |
+_None._
 
-## Localized search
+## Hebrew edition
 
 ### Open
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house |
 | LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
-| LOC-12 | P3 | [LOC-12](backlog/tasks/LOC-12.md) · Two-month country and language re-check, due 2026-11-12 |
-| LOC-15 | P1 | [LOC-15](backlog/tasks/LOC-15.md) · Indonesian pilot: one page for getting a PDF under 1 MB and a photo under 200 KB, on the size-limit family that cleared the gate |
 | LOC-16 | P2 | [LOC-16](backlog/tasks/LOC-16.md) · Finish the Hebrew edition: HeroDemo, the rest of the Sign editor, the compress-hub guides, and the home page sign-off |
+
+### In progress
+
+_None._
+
+### Blocked
+
+_None._
+
+### Done
+
+_None._
+
+### Retired
+
+_None._
+
+## Localization pilots
+
+### Open
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| LOC-15 | P1 | [LOC-15](backlog/tasks/LOC-15.md) · Indonesian pilot: one page for getting a PDF under 1 MB and a photo under 200 KB, on the size-limit family that cleared the gate |
 
 ### In progress
 
@@ -158,23 +212,11 @@ _None._
 
 ### Done
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| LOC-01 | P2 | [LOC-01](backlog/tasks/LOC-01.md) · Measure non-English demand from outside Search Console: the gate for the second language |
-| LOC-02 | P2 | [LOC-02](backlog/tasks/LOC-02.md) · Localized tool pages: the route, the reviewed copy source, and the island message catalogue |
-| LOC-06 | P3 | [LOC-06](backlog/tasks/LOC-06.md) · Per-locale measurement: extend the refresh procedure so localized pages are read separately |
-| LOC-07 | P3 | [LOC-07](backlog/tasks/LOC-07.md) · Is a second language worth building at all? The ROI judgment on LOC-01's evidence, and the languages it never measured |
-| LOC-08 | P3 | [LOC-08](backlog/tasks/LOC-08.md) · Tamil and Telugu demand check: reopening LOC-07 Part 2 for India's other major languages |
-| LOC-09 | P3 | [LOC-09](backlog/tasks/LOC-09.md) · Localize the home page, so /he/ is a real edition and not a 404 beside three Hebrew tool pages |
-| LOC-10 | P1 | [LOC-10](backlog/tasks/LOC-10.md) · Keep or remove page localization: decide after LOC-11 has measured the top languages |
-| LOC-11 | P2 | [LOC-11](backlog/tasks/LOC-11.md) · Top-languages research: is there untapped in-language traffic behind the site's top countries? |
-| LOC-14 | P2 | [LOC-14](backlog/tasks/LOC-14.md) · Indonesian target-size compress: run the ROI gate on the size-limit family autocomplete surfaced |
+_None._
 
 ### Retired
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| LOC-04 | P3 | [LOC-04](backlog/tasks/LOC-04.md) · Indonesian: the one large market where the category is searched in-language, gated on LOC-01 and the Hebrew pilot |
+_None._
 
 # Closed epics
 
@@ -272,3 +314,49 @@ _None._
 ### Retired
 
 _None._
+
+## Search acquisition
+
+### Done
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| SEO-01 | P1 | [SEO-01](backlog/tasks/SEO-01.md) · An indexing baseline, and the two mechanical reasons pages are not being crawled |
+| SEO-02 | P1 | [SEO-02](backlog/tasks/SEO-02.md) · A standings table against the competition that is maintained, not written once |
+| SEO-07 | P1 | [SEO-07](backlog/tasks/SEO-07.md) · The Sign page says almost nothing about the one advantage nobody can copy |
+| SEO-08 | P2 | [SEO-08](backlog/tasks/SEO-08.md) · The four OS how-to guides rank between 44 and 58, and one of them is our best-read page |
+| SEO-11 | P1 | [SEO-11](backlog/tasks/SEO-11.md) · The positioning review protocol: what we may claim, and what proves it |
+| SEO-12 | P1 | [SEO-12](backlog/tasks/SEO-12.md) · Positioning review: Sign, the tool with the biggest gap between what it does and what it says |
+| SEO-13 | P2 | [SEO-13](backlog/tasks/SEO-13.md) · Positioning review: Compress, where the honest answer costs us the query |
+| SEO-14 | P2 | [SEO-14](backlog/tasks/SEO-14.md) · Positioning review: Blur and Redact, the cluster we are already winning |
+| SEO-15 | P2 | [SEO-15](backlog/tasks/SEO-15.md) · Positioning review: the three tools Google has never looked at |
+| SEO-19 | P1 | [SEO-19](backlog/tasks/SEO-19.md) · New tool: compress an image to a target size, because people are already asking us to |
+| SEO-29 | P3 | [SEO-29](backlog/tasks/SEO-29.md) · Every ranking how-to competitor shows a visible date or byline; our content pages show neither |
+
+### Retired
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| SEO-27 | P3 | [SEO-27](backlog/tasks/SEO-27.md) · Decide the localization question: Hebrew is nearly free, Hindi is not the win it looks like |
+
+## Localized search
+
+### Done
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| LOC-01 | P2 | [LOC-01](backlog/tasks/LOC-01.md) · Measure non-English demand from outside Search Console: the gate for the second language |
+| LOC-02 | P2 | [LOC-02](backlog/tasks/LOC-02.md) · Localized tool pages: the route, the reviewed copy source, and the island message catalogue |
+| LOC-06 | P3 | [LOC-06](backlog/tasks/LOC-06.md) · Per-locale measurement: extend the refresh procedure so localized pages are read separately |
+| LOC-07 | P3 | [LOC-07](backlog/tasks/LOC-07.md) · Is a second language worth building at all? The ROI judgment on LOC-01's evidence, and the languages it never measured |
+| LOC-08 | P3 | [LOC-08](backlog/tasks/LOC-08.md) · Tamil and Telugu demand check: reopening LOC-07 Part 2 for India's other major languages |
+| LOC-09 | P3 | [LOC-09](backlog/tasks/LOC-09.md) · Localize the home page, so /he/ is a real edition and not a 404 beside three Hebrew tool pages |
+| LOC-10 | P1 | [LOC-10](backlog/tasks/LOC-10.md) · Keep or remove page localization: decide after LOC-11 has measured the top languages |
+| LOC-11 | P2 | [LOC-11](backlog/tasks/LOC-11.md) · Top-languages research: is there untapped in-language traffic behind the site's top countries? |
+| LOC-14 | P2 | [LOC-14](backlog/tasks/LOC-14.md) · Indonesian target-size compress: run the ROI gate on the size-limit family autocomplete surfaced |
+
+### Retired
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| LOC-04 | P3 | [LOC-04](backlog/tasks/LOC-04.md) · Indonesian: the one large market where the category is searched in-language, gated on LOC-01 and the Hebrew pilot |

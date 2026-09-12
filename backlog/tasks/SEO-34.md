@@ -1,15 +1,17 @@
 ---
 id: "SEO-34"
-title: "The home page has the site's best CTR and no query to rank for: target pdf tools"
-status: "open"
+title: "Read 2026-10-08 · The home page has the site's best CTR and no query to rank for: target pdf tools"
+status: "blocked"
 priority: "P1"
-epic: "search-acquisition"
+epic: "seo-awaiting-read"
 phase: "near-term"
 depends_on: []
 legacy_state: "Open"
 ---
 
-# SEO-34 · The home page has the site's best CTR and no query to rank for: target pdf tools
+# SEO-34 · Read 2026-10-08 · The home page has the site's best CTR and no query to rank for: target pdf tools
+
+*Re-filed 2026-09-12* from `search-acquisition` into `seo-awaiting-read`, status `open` to `blocked`, read date 2026-10-08: shipped, indexing requested 2026-09-12.
 
 ## Why now (decided 2026-09-12)
 

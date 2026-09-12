@@ -166,7 +166,8 @@ status feedback.
 **The SEO memory is one file: [docs/seo-competitive-findings.md](../../docs/seo-competitive-findings.md).**
 Read it before any search-related work; it holds the status board, the lessons, the dated standings,
 the plan with its gates, and the reference material (competitor research, refresh procedure, review
-protocol). Task state lives in the `SEO-*` tickets under `backlog/tasks/`, epic `search-acquisition`.
+protocol). Task state lives in the `SEO-*` and `LOC-*` tickets under `backlog/tasks/`; the findings doc's header names
+the five epics they are filed in.
 
 **What goes where, so the memory stays focused.** The findings doc says *what is true now*; a ticket
 says *how we found out*. A ticket owns its diagnosis, SERP captures, before/after tables and dead ends
