@@ -49,6 +49,10 @@ const hebrewToolCards: Record<string, CardCopy> = {
     title: 'כיווץ PDF',
     description: 'הקטינו PDF לגודל יעד כמו 100KB, עם שליטה באיכות ובלי מכסה יומית.',
   },
+  'compress-image': {
+    title: 'כיווץ תמונה',
+    description: 'הקטינו JPG או PNG לגודל יעד כמו 100KB, לאתרים שמגבילים את גודל התמונה בנפרד.',
+  },
   unlock: {
     title: 'הגנה ופתיחה',
     description: 'הוסיפו סיסמה כדי להגן על PDF, או הסירו סיסמה שאתם מכירים.',
@@ -87,6 +91,10 @@ const hebrewGuideCards: Record<string, CardCopy> = {
   'pdf-wont-compress-to-100kb': {
     title: 'למה 100KB לא מספיק',
     description: 'דוגמאות שנמדדו באמת: כמה עמודים נכנסים לפני שהטקסט מתטשטש.',
+  },
+  'photo-and-signature-size-for-forms': {
+    title: 'גודל תמונה וחתימה לטפסים',
+    description: 'מה קובע אם תמונה לפורטל תתקבל, ומה הכלי הזה לא עושה.',
   },
   'how-to-sign-a-pdf-on-windows': {
     title: 'Windows',
