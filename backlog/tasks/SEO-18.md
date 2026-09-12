@@ -1,15 +1,15 @@
 ---
 id: "SEO-18"
-title: "One page on signing a PDF in your own language, generated from the coverage data"
-status: "open"
+title: "Read 2026-11-07 · One page on signing a PDF in your own language, generated from the coverage data"
+status: "blocked"
 priority: "P2"
-epic: "english-base"
+epic: "seo-awaiting-read"
 phase: "near-term"
 depends_on: ["SEO-07", "SEO-12"]
 legacy_state: "Open"
 ---
 
-# SEO-18 · One page on signing a PDF in your own language, generated from the coverage data
+# SEO-18 · Read 2026-11-07 · One page on signing a PDF in your own language, generated from the coverage data
 
 *Re-filed 2026-09-12* from `search-acquisition` into `english-base`: the sign-language page; the one content URL not gated on the crawl read because it is inbound to /sign/, which is indexed.
 
@@ -146,3 +146,5 @@ of the content-page family's shared bundle. Following the precedent's own method
 value that clears the measured figure"), the re-based limit would be **9.97x**. Left for the ticket
 owner to apply rather than raised in this change, per instruction. Nothing else in `test:css` regressed
 (class resolution, editor-global-CSS, dead-utility check all still pass).
+
+*2026-09-12:* deployed at `6e9da0c`; indexing requested for `/sign-pdf-in-your-language/` in Search Console the same day. Moved to `seo-awaiting-read`, blocked, eight-week read due 2026-11-07 (first look at the 2026-10-08 refresh for crawl and indexing state).
