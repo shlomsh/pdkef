@@ -143,7 +143,7 @@ of surviving screening.
 
 Kept for the record of what was ranked and why; candidate 1 shipped.
 
-1. **Mukta** (Ek Type, OFL 1.1 - [license](https://github.com/EkType/Mukta/blob/master/LICENSE.txt)). Static Regular-ExtraBold, 7 weights, no italics. Upright humanist sans. Claims Devanagari + Gujarati + Gurmukhi + Tamil + Latin. No `calt` found. Same foundry as the already-bundled Mukta Mahee - best odds of a clean fontkit result.
+1. **Mukta** (Ek Type, OFL 1.1 - [license](https://github.com/EkType/Mukta/blob/master/OFL.txt)). Static Regular-ExtraBold, 7 weights, no italics. Upright humanist sans. Claims Devanagari + Gujarati + Gurmukhi + Tamil + Latin. No `calt` found. Same foundry as the already-bundled Mukta Mahee - best odds of a clean fontkit result.
 2. **Anek Devanagari** (Google Fonts, OFL). Variable-only, same family shape as the already-bundled (and already-repadded) Anek Telugu. Upright, contemporary/geometric sans.
 3. **Hind** (Indian Type Foundry, OFL). Static, 5 weights, ~1,146 glyphs incl. conjuncts. Upright humanist sans, widely used for Devanagari body text.
 4. **Poppins** (ITF, OFL). Static, 18 weight/italic files. **Caveat: an open upstream GitHub issue disputes its Devanagari coverage** - verify before trusting the claim.
@@ -162,39 +162,204 @@ not predict fontkit agreement.
 4. **Pridi** (Cadson Demak, OFL claimed, license file not directly verified this pass). Static, 6 weights. The one **serif** option.
 5. Noto Sans/Serif Thai - variable-only, same elevated Noto-crash-risk caveat as Devanagari's Noto entries.
 
-### FONT-08b - second choice, Bengali (currently Noto Sans Bengali only)
+### FONT-08b - the 2026-08-29 web shortlist, superseded
 
-1. **Hind Siliguri** (Indian Type Foundry, OFL). Static, 5 weights, Regular ~244KB. Upright sans, same design language as Mukta/Mukta Mahee. No `calt` found.
-2. **Tiro Bangla** (Tiro Typeworks/"Indigo," OFL). Static Regular + Italic, ~324/330KB. The **serif** option - bigger visual departure, ranked second for that reason.
-3. Noto Serif Bengali - same-publisher serif fallback if both above stall in fontkit.
+The FONT-08b sections from this pass (Bengali, Tamil, Arabic, Gurmukhi/Telugu, Cyrillic/Greek, Sriracha,
+CJK) are superseded by the verified pass below; see git history for the original text. Two of its claims
+did not survive contact with the bytes: Mansalva and Mynerve *do* cover Greek (the pass had them right,
+a later research agent got them wrong), and Sriracha's advertised "2 stylistic sets" are not in the
+file Google Fonts ships.
 
-### FONT-08b - second choice, Tamil (currently Noto Sans Tamil only)
+## FONT-08b shortlist (2026-09-12 pass, verified against font bytes)
 
-1. **Tiro Tamil** (Tiro Typeworks/"Indigo," OFL). Static Regular/Italic, ~197KB. Upright serif; same foundry as the Tiro Bangla pick above, so foundry engineering quality is a known quantity across scripts.
-2. **Catamaran** (OFL). **Variable-only in the google/fonts mirror** - check the upstream repo for static instances before assuming none exist.
-3. Mukta Malar (Ek Type, same family as bundled Mukta Mahee) - lowest novelty, safest fallback.
+A deep-research agent produced the candidate list from the prompt in
+[FONT-08](../backlog/tasks/FONT-08.md); every claim below was then re-checked locally against the TTF
+Google Fonts distributes (`google/fonts` main, or the upstream repo where noted), with this repo's
+`@pdf-lib/fontkit`. What "verified" means per column:
 
-### FONT-08b - second choice, Arabic family (currently Scheherazade New only)
+- **Coverage**: `hasGlyphForCodePoint` over the script's base letters (and Farsi/Urdu/Pashto extras for
+  Arabic), plus ASCII letters and digits. "full" means every probe letter has a glyph.
+- **Features**: the font's `availableFeatures`, filtered to the ones that predict shaper disagreement
+  (`calt`, `ssXX`, `liga`, `kern`, `mark`/`mkmk`, `rlig`).
+- **Check 1**: uncaught throws from `font.layout()` over the repo's own corpus for that script
+  (`e2e/sign/fixtures/*Corpus.js`: Arabic 155 + Pashto 22, Bengali 256, Gurmukhi 500, Telugu 630,
+  Tamil 329, Malayalam 478, Devanagari 185, Latin names 25) or, where no corpus exists, a small ad hoc
+  set (Thai 18 incl. ปั๊กฝ้ายให้ฟังกิ๊บ, Hebrew 11 with niqqud, Cyrillic 8 incl. Ukrainian, Greek 8).
+  **Ad hoc sets are a smoke test, not a corpus**; a landing still needs a real corpus and guard.
+- **glyf**: `scripts/check-font-glyf-alignment.js` pointed at the candidate directory.
+- **©**: the `name` table copyright string, verbatim, which is what `THIRD_PARTY_LICENSES.md` needs
+  (cross-check against the upstream `OFL.txt` on download; the agent's quoted lines were wrong for seven
+  of nineteen fonts, so never copy a copyright line from a research report).
 
-- **Naskh alternatives:** both screened since this pass, see the "Already screened" table. Noto Naskh Arabic fails one guard case; Amiri passes but reads as calligraphic and stays the documented fallback only. A second Naskh is therefore not the lever; the contrast worth having is a modern sans.
-- **Geometric/modern alternative: Vazirmatn** (rastikerdar, OFL - mirror ships variable-only but the [upstream repo](https://github.com/rastikerdar/vazirmatn/tree/master/fonts/ttf) has real static Regular/Bold ~123KB each). Built explicitly for Persian/Arabic/Urdu, geometric sans, visually the furthest from Scheherazade New. **Top pick for a modern-feel second choice.** Cairo (OFL, variable-only, 599KB) is a second geometric option but larger and less explicitly multi-language-targeted.
+**Checks 2 and 3 (pixel guard, advance parity) are not run for any of these.** They need a browser and
+a per-script spec; that is landing work, not research.
 
-### FONT-08b - second choice, Punjabi/Gurmukhi and Telugu
+### The research agent's errors, so the next pass knows what a report cannot be trusted for
 
-- Gurmukhi: **Tiro Gurmukhi** (OFL, static ~151KB, serif) and Noto Serif Gurmukhi (OFL, variable-only) - both distinct in style from the sans Mukta Mahee.
-- Telugu: **Suranna** (Silicon Andhra/Cyreal, OFL, static ~625KB, serif, book-oriented) and Noto Serif Telugu (OFL, variable-only, 543KB). Both **flagged for size** - larger than the Devanagari/Bengali picks above.
+- **Greek inverted.** It discarded Mansalva and Mynerve as "Latin-only" and picked Patrick Hand as the
+  "viable" Greek face. The bytes say the opposite: Patrick Hand has 4 stray Greek glyphs, Mansalva and
+  Mynerve both have all 55 probed. Patrick Hand's copyright line was also attributed to the wrong person.
+- **Foundry wrong.** Tillana is Indian Type Foundry, not Ek Type; the "Ek Type engineering record"
+  argument for ranking it first does not apply.
+- **`calt` claims wrong in both directions.** Sriracha (called HIGH RISK for `calt` + stylistic sets)
+  ships with `liga` and `kern` only. Marck Script ("connected cursive ligatures") has `kern` only.
+  Vazirmatn ("no calt") has `calt` and `ss01`.
+- **Sizes wrong** by up to 3x (Suranna 610KB, not 210KB; Sriracha 312KB, not 185KB; Tiro Gurmukhi
+  147KB, not 280KB). **Static availability wrong** for Cairo (variable-only upstream, no static files).
+- What it got right: every license, every upstream repo URL, the script coverage of every non-Greek
+  candidate, and the style classifications.
 
-### FONT-08b - Cyrillic and Greek handwriting gap (currently zero handwriting option for either)
+### Arabic family (second upright choice next to Scheherazade New)
 
-Pulled from Google Fonts' own metadata, filtered to `category: Handwriting`.
-- **Cyrillic:** Marck Script (OFL, static 84KB) - own docs mention "intelligent OpenType features," **calt risk, flag**; **Neucha** (OFL, static 141KB, single weight, no `calt` mentioned) - simpler, lower-risk pick, **top choice**.
-- **Greek:** genuinely scarce (confirmed by an independent TypeDrawers thread on the same gap). Mansalva (OFL, static 356KB) and Mynerve (OFL, static 279KB, connected-script style, likely `calt`-dependent - flag) are the only two found. Playpen Sans also technically covers both scripts but is **discard by precedent** - this catalogue already dropped its Hebrew sibling for an 88% `calt`-driven shaping failure.
-- Checked in code 2026-09-12: the bundled Caveat, Great Vibes and Pacifico TTFs are Latin-only cuts (0 Cyrillic, 0 Greek glyphs via `hasGlyphForCodePoint`), whatever the Google Fonts metadata says. Something new has to be sourced.
+| | Vazirmatn | Cairo |
+| --- | --- | --- |
+| Foundry, license | Saber Rastikerdar, OFL 1.1 ([OFL.txt](https://github.com/rastikerdar/vazirmatn/blob/master/OFL.txt)) | Mohamed Gaber, OFL 1.1 ([OFL.txt](https://github.com/Gue3bara/Cairo/blob/master/OFL.txt)) |
+| Style vs Scheherazade New | geometric/humanist sans, Latin from Roboto; the sharpest contrast available to a traditional Naskh | geometric Kufi-flavoured sans on Titillium Latin |
+| Static | upstream `fonts/ttf/` has 9 static weights; Regular **119KB** (Google Fonts ships the 235KB variable only) | **variable only**, upstream and Google Fonts; 585KB |
+| Coverage | Arabic, Farsi, Urdu, **Pashto 9/9**, Latin: full | Arabic, Farsi, Urdu, Latin full; **Pashto 0/9** (22/22 Pashto corpus cases hit `.notdef`) |
+| Features | **`calt`, `ss01`**, liga, kern, mark, mkmk, rlig; flag `calt` | kern, mark, mkmk, rlig |
+| Check 1 | 0/155 Arabic, 0/22 Pashto, 0/25 Latin | 0/155, 0/22 (all notdef), 0/25 |
+| glyf | aligned | aligned |
+| © | `Copyright 2015 The Vazirmatn Project Authors (https://github.com/rastikerdar/vazirmatn)` | `Copyright 2009 The Cairo Project Authors (https://github.com/Gue3bara/Cairo)` |
+| Verdict | **screen further, top pick.** The `calt` is the risk to test; IBM Plex Sans Thai showed a `calt` face can pass | **discard.** No Pashto means the Pashto row would substitute the whole element back to Scheherazade New; variable-only and 585KB on top |
 
-### FONT-08b - Sriracha (second Thai handwriting face, already named on the board)
+### Bengali (second choice next to Noto Sans Bengali)
 
-Confirmed real and current: OFL, Cadson Demak (2015) + Pablo Impallari (2014), single static Regular ~320KB, Thai+Latin, on Google Fonts since 2015. Its own listing advertises "2 stylistic sets" and "intelligent OpenType features to recreate handwriting" - **explicit calt-adjacent risk, flag prominently**, the same shape of claim that sank Playpen Sans Hebrew.
+| | Hind Siliguri | Tiro Bangla |
+| --- | --- | --- |
+| Foundry, license | Indian Type Foundry, OFL 1.1 ([OFL.txt](https://github.com/google/fonts/blob/main/ofl/hindsiliguri/OFL.txt), upstream [itfoundry/hind-siliguri](https://github.com/itfoundry/hind-siliguri)) | Tiro Typeworks, OFL 1.1 ([OFL.txt](https://github.com/TiroTypeworks/Indigo/blob/main/LICENSES.txt)) |
+| Style vs Noto Sans Bengali | humanist sans, same family language as Mukta/Mukta Mahee; a modest contrast | traditional literary serif; the big contrast |
+| Static | 5 weights on Google Fonts, Regular 244KB / Bold 280KB | Regular + Italic, 316KB |
+| Coverage | full + Latin | full + Latin |
+| Features | none of the flagged ones (Indic GSUB only) | `ss01` |
+| Check 1 | **0/256** | **fontkit never returns** on ফ্র and শ্র: `layout()` allocates until the heap dies (reproduced at 512MB, 1GB, 2GB and 4GB caps). Other ra-phala clusters (ব্র ভ্র ম্র স্র হ্র) and ফ্য ফ্ল shape fine. শ্র starts শ্রী, the everyday honorific |
+| glyf | aligned | aligned |
+| © | `Copyright (c) 2015 Indian Type Foundry (info@indiantypefoundry.com)` | `Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo)` |
+| Verdict | **screen further, the only Bengali candidate left** | **discard.** A new fontkit failure class: not a throw but a hang, which no `try/catch` in `signPdf` can turn into a clean refusal; the tab simply dies at Download |
 
-### FONT-08b - CJK (Japanese, Chinese SC/TC, Korean)
+### Punjabi/Gurmukhi (second choice next to Mukta Mahee)
 
-Light touch only, per the brief's own cost note: no pre-subsetted alternative distribution stood out as an obvious win. The existing plan (build-time pre-subsetting of the current Noto files, tracked elsewhere on the board) is the right lever, not a second 5-20MB family. Not worth further candidate research until that infrastructure exists.
+**Tiro Gurmukhi** (Tiro Typeworks, OFL 1.1, same Indigo repo and copyright line as Tiro Bangla). Serif
+against a sans. Static Regular + Italic, **147KB**. Coverage full + Latin. Features `liga`, `kern`.
+Check 1 **0/500**. glyf aligned. **Screen further.** The Tiro Bangla hang is in that font's Bengali
+lookups, not in Tiro's engineering generally: Gurmukhi and Tamil shaped their whole corpora cleanly.
+
+### Telugu (second choice next to Anek Telugu)
+
+**Suranna** (Andhrapradesh Society for Knowledge Networks / Cyreal, OFL 1.1,
+[OFL.txt](https://github.com/google/fonts/blob/main/ofl/suranna/OFL.txt)). High-contrast serif against
+a monoline sans. **Single Regular, 610KB, no Bold**; over the 600KB size flag. Coverage full + Latin.
+No flagged features. Check 1 **0/630**. glyf aligned. ©
+`Copyright (c) 2012 Andhrapradesh Society for Knowledge Networks (fonts.siliconandhra.org). Copyright (c) 2011, Cyreal (www.cyreal.org) with Reserved Font Name 'Prata'`.
+**Screen further, with the size and no-Bold caveats stated up front.** It is the only Telugu candidate
+found that is not a Noto face.
+
+### Tamil (second choice next to Noto Sans Tamil)
+
+| | Tiro Tamil | Mukta Malar | Catamaran |
+| --- | --- | --- | --- |
+| Foundry, license | Tiro Typeworks, OFL 1.1 (Indigo repo) | Ek Type, OFL 1.1 ([OFL.txt](https://github.com/EkType/Mukta/blob/master/OFL.txt)) | Pria Ravichandran, OFL 1.1 ([OFL.txt](https://github.com/VanillaandCream/Catamaran-Tamil/blob/master/OFL.txt)) |
+| Style vs Noto Sans Tamil | literary serif; biggest contrast | humanist sans, softer terminals; modest contrast | contemporary sans; least contrast |
+| Static | Regular + Italic, 192KB | 7 weights, Regular 237KB / Bold 247KB | Google Fonts variable 179KB; upstream `Fonts/` has 9 statics |
+| Coverage | full + Latin | full + Latin | full + Latin |
+| Features | liga, kern | **`ss01`, `ss02`**, liga, kern (stylistic sets are opt-in, so lower risk than `calt`; flag anyway) | kern, mark |
+| Check 1 | 0/329 | 0/329 | 0/329 |
+| glyf | aligned | aligned | aligned |
+| © | `Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo)` | `Copyright (c) 2016, Ek Type. All rights reserved.` | `Copyright 2020 The Catamaran Project Authors (https://github.com/VanillaandCream/Catamaran-Tamil)` |
+| Verdict | **screen further, top pick** for contrast | screen further; safest engineering (same foundry as three bundled faces) | screen further, third |
+
+### Malayalam (second choice next to Anek Malayalam)
+
+**Gayathri** (Swathanthra Malayalam Computing, OFL 1.1,
+[OFL.txt](https://gitlab.com/smc/fonts/gayathri/-/blob/master/OFL.txt)). Soft, curved text face against
+Anek's geometry. Static Thin/Regular/Bold, **159KB** each. Coverage full + Latin. Features `kern` only.
+Check 1 **0/478** on the same corpus that crashed Noto Sans Malayalam 33/35 on reph. glyf aligned. ©
+`Copyright 2019 The Gayathri Project Authors (https://gitlab.com/smc/fonts/gayathri)`. **Screen
+further, top pick**; SMC maintains the mlm2 lookups specifically for cross-engine parity.
+
+### Thai, second handwriting face (next to Mali)
+
+**Sriracha** (Cadson Demak + Pablo Impallari, OFL 1.1,
+[OFL.txt](https://github.com/cadsondemak/sriracha/blob/master/OFL.txt)). Loopless informal hand against
+Mali's looped one. Single Regular, **312KB**. Coverage full + Latin. Features **`liga`, `kern` only**:
+despite the listing's "2 stylistic sets and intelligent OpenType features", the shipped file has no
+`calt` and no `ssXX`. Check 1 0/18 ad hoc (incl. the tone-mark stress case). glyf **unaligned**
+(496/966 odd offsets), needs the padding=4 repad. ©
+`Copyright (c) 2015, Cadson Demak (info@cadsondemak.com), Copyright (c) 2014, Pablo Impallari (www.impallari.com|impallari@gmail.com)`.
+**Screen further.** Guard A (advance parity) is what sank Sarabun and Kanit and is the check to run
+first; `e2e/sign/thai-font-parity.spec.js` already knows how.
+
+### Devanagari, second handwriting face (next to Kalam)
+
+| | Tillana | Amita |
+| --- | --- | --- |
+| Foundry, license | **Indian Type Foundry** (not Ek Type), OFL 1.1 ([OFL.txt](https://github.com/google/fonts/blob/main/ofl/tillana/OFL.txt), upstream [itfoundry/tillana](https://github.com/itfoundry/tillana)) | Omnibus-Type / Eduardo Tunni, OFL 1.1 ([OFL.txt](https://github.com/etunni/Amita/blob/master/OFL.txt)) |
+| Style vs Kalam | structured calligraphic brush; clear contrast to a felt-tip | casual flowing hand; closer to Kalam |
+| Static | 5 weights, Regular 321KB / Bold 299KB | Regular 210KB / Bold 215KB |
+| Coverage | full + Latin | full + Latin |
+| Features | liga | liga, kern, mark |
+| Check 1 | 0/185 | 0/185 |
+| glyf | **unaligned** (513/1013), repad | **unaligned** (417/825), repad |
+| © | `Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com)` | `Copyright (c) 2014, Eduardo Rodriguez Tunni. Copyright (c) 2000, Modular Infotech, Pune, INDIA. All rights reserved. Copyright (c) 2011 by Brian J. Bonislawsky DBA Astigmatic (AOETI) (astigma@astigmatic.com). All rights reserved.` (three parties; all under the one OFL) |
+| Verdict | **screen further, top pick** on contrast | screen further, runner-up |
+
+### Cyrillic handwriting (none today)
+
+| | Neucha | Marck Script | Amatic SC |
+| --- | --- | --- | --- |
+| Foundry, license | Jovanny Lemonad, OFL 1.1 ([OFL.txt](https://github.com/google/fonts/blob/main/ofl/neucha/OFL.txt)) | Denis Masharov, OFL 1.1 ([OFL.txt](https://github.com/google/fonts/blob/main/ofl/marckscript/OFL.txt)) | see the Hebrew appendix |
+| Style | upright marker print, discrete letters | connected slanted cursive | condensed hand-drawn **caps only** |
+| Static | single Regular, 138KB | single Regular, 81KB | Regular 148KB / Bold 152KB |
+| Coverage | Cyrillic 70/70 incl. Ukrainian і ї є ґ, Latin | Cyrillic 70/70, Latin | Cyrillic 70/70, Hebrew, Latin |
+| Features | `kern` only, **no GSUB table at all** | `kern` only | liga, kern, mark, mkmk |
+| Check 1 | 0/8 ad hoc | 0/8 ad hoc | 0/8 ad hoc |
+| glyf | aligned | aligned | aligned |
+| © | `Copyright (c) 2005-2010 by Jovanny Lemonad. All rights reserved.` | `Copyright (c) 2011, Denis Masharov <denis.masharov@gmail.com>, Marck Fogel, with Reserved Font Names "Marck Script".` | `Copyright 2015 The Amatic SC Project Authors (https://github.com/googlefonts/AmaticSC)` |
+| Verdict | **screen further, top pick**: the simplest font in this whole pass | screen further; a connected script is where Caveat's 5.1px kerning gap lives, so run check 3 first | screen further as a two-gap font (see below) |
+
+### Greek handwriting (none today)
+
+Only two OFL handwriting faces cover Greek, and both carry `calt`: **Mansalva** (Carolina Short, 347KB,
+`calt` + liga + kern, © `Copyright 2022 The Mansalva Project Authors (https://github.com/carolinashort/mansalva)`)
+and **Mynerve** (Carolina Short, 272KB, `calt` + liga + kern, ©
+`Copyright 2022 The Mynerve Project Authors (https://github.com/carolinashort/MyNerve)`). Both: Greek
+55/55 incl. tonos and dialytika, Latin full, check 1 0/8, glyf aligned. **Patrick Hand is discarded**:
+Latin-only (4/55 Greek), whatever the research report said. Verdict for both: **screen further, `calt`
+flagged**; the pixel guard and advance parity decide, and a `calt` face has passed before (IBM Plex Sans
+Thai). Rank Mynerve first on size. If both fail, Greek stays upright-only and the languages page says so.
+
+### Hebrew, second handwriting face (appendix; Gveret Levin is the only one)
+
+**Amatic SC** (Vernon Adams and contributors, OFL 1.1,
+[OFL.txt](https://github.com/googlefonts/AmaticSC/blob/master/OFL.txt)). Narrow hand-drawn capitals
+against Gveret Levin's flowing pen. Static Regular 148KB / Bold 152KB. Coverage **Hebrew 27/27, Cyrillic
+70/70, Latin**; niqqud shape via `mark`/`mkmk` (שָׁלוֹם lays out as 7 glyphs, no notdef). Check 1 0/11
+Hebrew with niqqud, 0/8 Cyrillic. glyf aligned. **Screen further; it would close the Hebrew and Cyrillic
+handwriting gaps with one 148KB file.** The caveat to say in the picker: it is caps-only, so Latin and
+Cyrillic lowercase render as small capitals. Hebrew has no case, so it is unaffected.
+
+### CJK
+
+Unchanged: not worth candidate research until build-time pre-subsetting exists. Names the agent
+surfaced, **unverified** and recorded only so they are not re-found: Zen Maru Gothic (JP, rounded),
+LXGW WenKai / WenKai TC (SC/TC, kaiti handwriting style), Gowun Batang (KR, serif).
+
+### Cross-script summary
+
+| Script | Top pick | Runner-up | Top pick's open risk |
+| --- | --- | --- | --- |
+| Arabic family | Vazirmatn | none (Cairo discarded, Amiri set aside) | `calt` + `ss01`; run the 151-case Arabic guard and the Pashto corpus |
+| Bengali | Hind Siliguri | none (Tiro Bangla hangs fontkit) | pixel guard vs Noto's six known divergences |
+| Gurmukhi | Tiro Gurmukhi | none | no Bold; Italic is the only second style |
+| Telugu | Suranna | none | 610KB, no Bold |
+| Tamil | Tiro Tamil | Mukta Malar, Catamaran | no Bold |
+| Malayalam | Gayathri | none | none found |
+| Thai handwriting | Sriracha | none | advance parity (what sank Sarabun/Kanit); glyf repad |
+| Devanagari handwriting | Tillana | Amita | glyf repad; kerning parity |
+| Cyrillic handwriting | Neucha | Marck Script, Amatic SC | none found |
+| Greek handwriting | Mynerve | Mansalva | `calt` on both |
+| Hebrew handwriting | Amatic SC | none | caps-only; say so in the picker |
+
+The screening scripts for this pass (`crash-screen.mjs`, byte probe, glyf check redirect) were session
+scratch and are not in the repo; the fixture corpora and `check-font-glyf-alignment.js` are, and
+reproducing the run is download plus two small scripts against them.
