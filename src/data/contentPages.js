@@ -40,6 +40,7 @@ import {
   Layers,
   ScanText,
   IdCard,
+  Languages,
 } from 'lucide-preact';
 
 export const landingPages = [
@@ -117,6 +118,15 @@ export const landingPages = [
     icon: IdCard,
     hub: 'compress-image',
     alsoHub: ['compress'],
+    sitemapPriority: '0.6',
+    sitemapChangefreq: 'monthly',
+  },
+  {
+    href: '/sign-pdf-in-your-language/',
+    label: 'Signing in your own language',
+    blurb: 'Which fonts draw which languages, generated from the real font files.',
+    icon: Languages,
+    hub: 'sign',
     sitemapPriority: '0.6',
     sitemapChangefreq: 'monthly',
   },

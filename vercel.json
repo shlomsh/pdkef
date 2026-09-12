@@ -165,6 +165,11 @@
       "permanent": true
     },
     {
+      "source": "/sign-pdf-in-your-language",
+      "destination": "/sign-pdf-in-your-language/",
+      "permanent": true
+    },
+    {
       "source": "/he",
       "destination": "/he/",
       "permanent": true
