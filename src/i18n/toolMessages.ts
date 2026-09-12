@@ -183,6 +183,7 @@ export interface CompressMessages {
   outputDimensions: string;
   imageClosestAchievable: string;
   formatNotice: string;
+  passthroughNotice: string;
   imageDownloadLabel: string;
   imageShareLabel: string;
   imageLoaded: string;
@@ -266,6 +267,7 @@ const englishCompressMessages: CompressMessages = {
   outputDimensions: 'Output Dimensions',
   imageClosestAchievable: "Closest achievable size: {size} couldn't be reached on this photo without making it unusable, so this is the smallest result found.",
   formatNotice: 'Notice: once compressed, the output is a JPEG. A transparent PNG background is filled in white, and re-encoding drops EXIF metadata, including location. A screenshot or scan of text can show visible JPEG artefacts, especially at a small target.',
+  passthroughNotice: 'Already under the target, so the file is untouched: same file, same format, nothing re-encoded.',
   imageDownloadLabel: 'Download Compressed Image',
   imageShareLabel: 'Share Compressed Image',
   imageLoaded: 'File "{name}" loaded. Set a target size and compress.',
@@ -364,6 +366,7 @@ const hebrewCompressMessages: CompressMessages = {
   outputDimensions: 'מידות לאחר כיווץ',
   imageClosestAchievable: 'הגודל הקרוב ביותר שהושג: לא הצלחנו להגיע ל-{size} בתמונה הזו בלי להפוך אותה לבלתי שמישה, אז זו התוצאה הקטנה ביותר שנמצאה.',
   formatNotice: 'שימו לב: לאחר הכיווץ הפלט הוא JPEG. רקע שקוף בקובץ PNG יתמלא בלבן, וקידוד מחדש מוחק נתוני EXIF, כולל מיקום. צילום מסך או סריקה של טקסט עלולים להראות עיוותי JPEG גלויים, בעיקר בגודל יעד קטן.',
+  passthroughNotice: 'הקובץ כבר קטן מהיעד, אז השארנו אותו כמו שהוא: אותו קובץ, אותו פורמט, בלי קידוד מחדש.',
   imageDownloadLabel: 'הורדת תמונה מכווצת',
   imageShareLabel: 'שיתוף תמונה מכווצת',
   imageLoaded: 'הקובץ "{name}" נטען. קבעו גודל יעד וכווצו.',

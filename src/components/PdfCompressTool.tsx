@@ -107,11 +107,15 @@ export default function PdfCompressTool({
   const [compareOpen, setCompareOpen] = useState(false);
   const [comparePreviews, setComparePreviews] = useState<{ before: string; after: string } | null>(null);
   const [compareStatus, setCompareStatus] = useState<'idle' | 'loading' | 'error'>('idle');
-  // True when compressImageToTarget's passthrough rule fired (the file was
+  // True when either compressor's passthrough rule fired (the file was
   // already under target, so the "compressed" blob is literally the input
-  // File) - see the toggle's render check below for why that hides it
-  // rather than rendering it.
-  const [imagePassthrough, setImagePassthrough] = useState(false);
+  // File, both bytes and reference) - compressImageToTarget on the image
+  // side, compressPdfToTarget on the PDF side (compressPdf with a level
+  // never returns the input, it always re-encodes). See the toggle's render
+  // check below for why that hides it rather than rendering it, and the
+  // notice paragraph for why it replaces the re-encode warning with an
+  // honest "untouched" one.
+  const [passthrough, setPassthrough] = useState(false);
   // Object URLs created for the image-mode comparison (see handleToggleCompare)
   // aren't run through `useObjectUrls` like `downloadUrl` is: that hook's own
   // `url` lands a render after `setBlob` is called, but both sides need to
@@ -150,7 +154,7 @@ export default function PdfCompressTool({
     setCompareOpen(false);
     clearComparePreviews();
     setCompareStatus('idle');
-    setImagePassthrough(false);
+    setPassthrough(false);
   };
 
   // Builds the before/after pair for the CompareSlider. PDF: renders page 1
@@ -293,7 +297,7 @@ export default function PdfCompressTool({
         // itself as `blob` when it was already under target - reference
         // equality here is exactly that check, no size/byte comparison
         // needed. See the toggle's render check below for why that matters.
-        setImagePassthrough(result.blob === activeFile);
+        setPassthrough(result.blob === activeFile);
         compressedBlobRef.current = result.blob;
         setDownloadBlob(result.blob);
         prepareFiles([{ blob: result.blob, filename: deriveDownloadName(activeFile.name, resultType), type: resultType }]);
@@ -332,14 +336,24 @@ export default function PdfCompressTool({
       setCompressedSize(compressedBlob.size);
       setMetTarget(didMeetTarget);
       setOutputType(resultType);
+      // compressPdfToTarget's passthrough rule returns the input File itself
+      // as `blob` when it was already under target, the same reference-
+      // equality check as the image branch above - compressPdf with a level
+      // never returns the input, it always re-encodes, so this is only ever
+      // true via the target path.
+      setPassthrough(compressedBlob === activeFile);
       compressedBlobRef.current = compressedBlob;
       setDownloadBlob(compressedBlob);
       prepareFiles([{ blob: compressedBlob, filename: deriveDownloadName(activeFile.name, resultType), type: resultType }]);
       setStatus('done');
       setAnnouncement(t.complete);
       // Open by default (SEO-25, 2026-09-12): see openCompare's comment.
-      setCompareOpen(true);
-      openCompare();
+      // Except a passthrough result, same as the image branch above - both
+      // sides of the slider would be the same bytes.
+      if (compressedBlob !== activeFile) {
+        setCompareOpen(true);
+        openCompare();
+      }
     } catch (err) {
       console.error(err);
       if (runToken !== runTokenRef.current) return;
@@ -479,7 +493,7 @@ export default function PdfCompressTool({
             )}
 
             <p class={styles['compress-warning']}>
-              {kind === 'image' ? t.formatNotice : t.rasterizeNotice}
+              {passthrough ? t.passthroughNotice : kind === 'image' ? t.formatNotice : t.rasterizeNotice}
             </p>
 
             {/* Open by default as soon as a result exists (see openCompare
@@ -490,10 +504,10 @@ export default function PdfCompressTool({
                 both halves of the tool: a PDF rasterizes page 1 on each
                 side, an image just points at the original `file` and the
                 output blob it already has. Hidden entirely for a passthrough
-                image - the output *is* the input when it was already under
-                target, so both sides of the slider would be the same bytes,
-                which is noise rather than a comparison. */}
-            {!(kind === 'image' && imagePassthrough) && (
+                result (image or PDF) - the output *is* the input when it was
+                already under target, so both sides of the slider would be
+                the same bytes, which is noise rather than a comparison. */}
+            {!passthrough && (
               <>
                 <button
                   type="button"

@@ -723,10 +723,16 @@ describe('PdfCompressTool UI flow', () => {
     expect(toggle).not.toBeNull();
     expect(toggle.textContent).toContain('Hide comparison');
 
+    // Non-passthrough result: the re-encode notice, not the passthrough one.
+    const stats = container.querySelector(`.${styles['compression-stats']}`);
+    expect(stats.textContent).toContain('once compressed, the output is a JPEG');
+    expect(stats.textContent).not.toContain('so the file is untouched');
+
     // Passthrough: compressImageToTarget's early-return hands back the same
     // File as `blob`, so a second, already-under-target image gets no
     // toggle (and no auto-open) at all - a slider comparing a file to
-    // itself is noise.
+    // itself is noise. It also swaps the notice: nothing was re-encoded, so
+    // the format-change warning would be false.
     compressImageLib.compressImageToTarget.mockImplementation((passthroughFile) =>
       Promise.resolve(makeImageResult({ blob: passthroughFile })),
     );
@@ -741,6 +747,65 @@ describe('PdfCompressTool UI flow', () => {
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 20));
     });
+
+    expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
+    expect(container.querySelector(`.${styles['compare-panel']}`)).toBeNull();
+
+    const passthroughStats = container.querySelector(`.${styles['compression-stats']}`);
+    expect(passthroughStats.textContent).toContain('so the file is untouched: same file, same format, nothing re-encoded');
+    expect(passthroughStats.textContent).not.toContain('once compressed, the output is a JPEG');
+
+    window.URL.createObjectURL = originalCreateObjectURL;
+  });
+
+  it('renders passthroughNotice, not rasterizeNotice, and no compare toggle for a PDF target-mode passthrough result', async () => {
+    // compressPdfToTarget's own passthrough rule (src/lib/compress.js,
+    // "Already under target" near line 147) returns the input File itself as
+    // `blob` when the file is already under the target size - the PDF-side
+    // mirror of compressImageToTarget's rule exercised above.
+    compressLib.compressPdfToTarget.mockImplementation((passthroughFile) =>
+      Promise.resolve({ blob: passthroughFile, metTarget: true }),
+    );
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const file = makePdfFile('already_small.pdf', 20_000);
+
+    await act(async () => {
+      setInputFiles(input, [file]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const cards = container.querySelectorAll(`.${styles['compress-card']}`);
+    const targetCard = Array.from(cards).find((c) => c.textContent.includes('Target Size'));
+    await act(async () => {
+      targetCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:pdfpassthrough');
+
+    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(compressLib.compressPdfToTarget).toHaveBeenCalledWith(file, expect.objectContaining({ targetKB: 100 }));
+
+    const stats = container.querySelector(`.${styles['compression-stats']}`);
+    expect(stats).not.toBeNull();
+    expect(stats.textContent).toContain('so the file is untouched: same file, same format, nothing re-encoded');
+    expect(stats.textContent).not.toContain('Compression rasterizes PDF pages');
 
     expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
     expect(container.querySelector(`.${styles['compare-panel']}`)).toBeNull();
