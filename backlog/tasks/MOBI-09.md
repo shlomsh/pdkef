@@ -133,3 +133,13 @@ here reports an Android UA, not an iOS one, so it can't stand in for the real ch
 component tests above exercise the exact same `isIOSDevice()` function and render path against stubbed
 navigator objects instead, which is as close as this environment gets. Status stays `open` until that
 walk is done.
+
+**iPad landscape, measured 2026-09-12.** The desktop grid in `Dropzone.module.css` (`min-width: 1024px`,
+fixed `height: 168px`, two explicit rows) gives this hint an implicit third row, and a CSS-only read
+suggested it could spill past the box. Measured in a real browser instead, against a production build
+served statically, with Playwright's iPad device descriptors (their `iPad` UA is enough for
+`isIOSDevice()` to render the hint): iPad Mini (1024px), iPad gen 7 (1080px) and iPad Pro 11 (1194px)
+landscape, WebKit and Chromium. In every case the dropzone is 168px, `scrollHeight` is 165 to 166
+against a `clientHeight` of the same, and the hint's two lines end 37px above the box's bottom edge
+(`/he/sign/`, whose hint wraps to three lines under `dir="rtl"`, ends 28px above). Nothing overflows;
+`align-content: center` packs the three rows into about 93px and centres them. No change needed.
