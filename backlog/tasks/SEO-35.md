@@ -1,15 +1,17 @@
 ---
 id: "SEO-35"
-title: "Merge is an authority fight, not a content fight: add the combine vocabulary, then stop"
-status: "open"
+title: "Read 2026-10-08 · Merge is an authority fight, not a content fight: add the combine vocabulary, then stop"
+status: "blocked"
 priority: "P2"
-epic: "search-acquisition"
+epic: "seo-awaiting-read"
 phase: "near-term"
 depends_on: []
 legacy_state: "Open"
 ---
 
-# SEO-35 · Merge is an authority fight, not a content fight: add the combine vocabulary, then stop
+# SEO-35 · Read 2026-10-08 · Merge is an authority fight, not a content fight: add the combine vocabulary, then stop
+
+*Re-filed 2026-09-12* from `search-acquisition` into `seo-awaiting-read`, status `open` to `blocked`, read date 2026-10-08: shipped; the decision is the deliverable, the read is expected to be small.
 
 ## The decision (2026-09-12)
 
@@ -75,3 +77,5 @@ the whole worktree.
 (`toolSourceHash`) to clear the freshness gate; the Hebrew wording itself was not touched (it already
 carries both senses), and `reviewNotes` records that pending Shlomi's review. No indexing request was
 made, per the acceptance section above.
+
+*2026-09-12:* deployed; no indexing request, per the SEO-28 control. `/he/merge/` re-reviewed and approved by Shlomi on the deployed site.

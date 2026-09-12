@@ -16,6 +16,19 @@ export const epics = [
   { key: 'site-quality', label: 'Site quality', heading: 'Site quality: accessibility, CSS correctness and theming' },
   { key: 'search-acquisition', label: 'Search acquisition', heading: 'Search acquisition: competitive keyword gaps' },
   { key: 'localized-search', label: 'Localized search', heading: 'Localized search: non-English query demand and localized tool pages' },
+  // 2026-09-12 re-filing: every active SEO-*/LOC-* ticket moved out of the two
+  // epics above into the five below, which answer "what can move today, what is
+  // waiting and until when, what is gated". Done and retired tickets stay where
+  // they were, so those two epics collapse into closed history.
+  { key: 'seo-awaiting-read', label: 'Awaiting a read', heading: 'Shipped and waiting for a dated Search Console read (2026-10-08, then 2026-11-06/07/12)' },
+  { key: 'english-base', label: 'English base', heading: 'Grow the English base: authority and on-page work that can move now, no new tool' },
+  { key: 'new-tools-gated', label: 'New tools (gated)', heading: 'New tools, gated on the 2026-10-08 crawl read of the never-crawled nine (SEO-06)' },
+  { key: 'hebrew-edition', label: 'Hebrew edition', heading: 'Hebrew: the one live localization experiment' },
+  // 2026-09-13: the Merge tool review (Shlomi: an experience good enough that
+  // people return and recommend it). Product work only; merge copy and SEO stay
+  // closed under SEO-35.
+  { key: 'merge-tool', label: 'Merge tool', heading: 'Merge: the tool people return to and recommend (2026-09-13 review)' },
+  { key: 'localization-pilots', label: 'Localization pilots', heading: 'Localization pilots: one target-size page per language, no generic tool pages' },
 ];
 
 export const statuses = [

@@ -1,15 +1,17 @@
 ---
 id: "SEO-10"
-title: "Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it"
+title: "Read 2026-10-08 · Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it"
 status: "blocked"
 priority: "P2"
-epic: "search-acquisition"
+epic: "seo-awaiting-read"
 phase: "near-term"
 depends_on: []
 legacy_state: "Open"
 ---
 
-# SEO-10 · Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it
+# SEO-10 · Read 2026-10-08 · Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it
+
+*Re-filed 2026-09-12* from `search-acquisition` into `seo-awaiting-read`, read date 2026-10-08: shipped; /merge/ is the SEO-28 control, no indexing request.
 
 ## Scope and acceptance
 

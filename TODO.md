@@ -117,39 +117,16 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | --- | --- | --- |
 | SEO-01 | P1 | [SEO-01](backlog/tasks/SEO-01.md) · An indexing baseline, and the two mechanical reasons pages are not being crawled |
 | SEO-02 | P1 | [SEO-02](backlog/tasks/SEO-02.md) · A standings table against the competition that is maintained, not written once |
-| SEO-03 | P2 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |
-| SEO-04 | P1 | [SEO-04](backlog/tasks/SEO-04.md) · Thirteen blur queries are on page one and earning zero clicks |
-| SEO-05 | P1 | [SEO-05](backlog/tasks/SEO-05.md) · The 100KB cluster ranks and does not convert, and the page implies something untrue |
-| SEO-06 | P1 | [SEO-06](backlog/tasks/SEO-06.md) · Nine URLs have never been crawled, and three of them are working tools |
 | SEO-07 | P1 | [SEO-07](backlog/tasks/SEO-07.md) · The Sign page says almost nothing about the one advantage nobody can copy |
 | SEO-08 | P2 | [SEO-08](backlog/tasks/SEO-08.md) · The four OS how-to guides rank between 44 and 58, and one of them is our best-read page |
-| SEO-09 | P2 | [SEO-09](backlog/tasks/SEO-09.md) · Split ranks at 85 for extract queries because it never uses the word |
-| SEO-10 | P2 | [SEO-10](backlog/tasks/SEO-10.md) · Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it |
 | SEO-11 | P1 | [SEO-11](backlog/tasks/SEO-11.md) · The positioning review protocol: what we may claim, and what proves it |
 | SEO-12 | P1 | [SEO-12](backlog/tasks/SEO-12.md) · Positioning review: Sign, the tool with the biggest gap between what it does and what it says |
 | SEO-13 | P2 | [SEO-13](backlog/tasks/SEO-13.md) · Positioning review: Compress, where the honest answer costs us the query |
 | SEO-14 | P2 | [SEO-14](backlog/tasks/SEO-14.md) · Positioning review: Blur and Redact, the cluster we are already winning |
 | SEO-15 | P2 | [SEO-15](backlog/tasks/SEO-15.md) · Positioning review: the three tools Google has never looked at |
-| SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |
-| SEO-17 | P2 | [SEO-17](backlog/tasks/SEO-17.md) · One content page on portal size limits, instead of three doorway pages |
-| SEO-18 | P2 | [SEO-18](backlog/tasks/SEO-18.md) · One page on signing a PDF in your own language, generated from the coverage data |
 | SEO-19 | P1 | [SEO-19](backlog/tasks/SEO-19.md) · New tool: compress an image to a target size, because people are already asking us to |
-| SEO-20 | P2 | [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for |
-| SEO-21 | P3 | [SEO-21](backlog/tasks/SEO-21.md) · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is |
-| SEO-22 | P3 | [SEO-22](backlog/tasks/SEO-22.md) · New tool: extract the images embedded in a PDF, without a zip dependency |
-| SEO-23 | P3 | [SEO-23](backlog/tasks/SEO-23.md) · New tool: convert a PDF to grayscale, with the cost stated |
-| SEO-24 | P3 | [SEO-24](backlog/tasks/SEO-24.md) · New tool: make a PDF look scanned |
-| SEO-25 | P3 | [SEO-25](backlog/tasks/SEO-25.md) · A before-and-after preview on Compress, so quality is shown rather than promised |
-| SEO-26 | P3 | [SEO-26](backlog/tasks/SEO-26.md) · Say what PDkef does not do, and why, on a page that already exists |
 | SEO-27 | P3 | [SEO-27](backlog/tasks/SEO-27.md) · Decide the localization question: Hebrew is nearly free, Hindi is not the win it looks like |
-| SEO-28 | P1 | [SEO-28](backlog/tasks/SEO-28.md) · Redact and Split earn the most and are recrawled the least, and nothing we control explains it |
 | SEO-29 | P3 | [SEO-29](backlog/tasks/SEO-29.md) · Every ranking how-to competitor shows a visible date or byline; our content pages show neither |
-| SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before |
-| SEO-31 | P1 | [SEO-31](backlog/tasks/SEO-31.md) · One content page on photo and signature size limits, as inbound content for /compress-image/ |
-| SEO-32 | P3 | [SEO-32](backlog/tasks/SEO-32.md) · New tool: PDF to Markdown, English-only v1, Hebrew/RTL deferred pending anydoc-wasm's dependency bump |
-| SEO-33 | P1 | [SEO-33](backlog/tasks/SEO-33.md) · Compress ranks page one and never says reduce, shrink, resize or size reducer, the words with the volume |
-| SEO-34 | P1 | [SEO-34](backlog/tasks/SEO-34.md) · The home page has the site's best CTR and no query to rank for: target pdf tools |
-| SEO-35 | P2 | [SEO-35](backlog/tasks/SEO-35.md) · Merge is an authority fight, not a content fight: add the combine vocabulary, then stop |
 
 
 ## Localized search: non-English query demand and localized tool pages
@@ -158,20 +135,97 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | --- | --- | --- |
 | LOC-01 | P2 | [LOC-01](backlog/tasks/LOC-01.md) · Measure non-English demand from outside Search Console: the gate for the second language |
 | LOC-02 | P2 | [LOC-02](backlog/tasks/LOC-02.md) · Localized tool pages: the route, the reviewed copy source, and the island message catalogue |
-| LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house |
 | LOC-04 | P3 | [LOC-04](backlog/tasks/LOC-04.md) · Indonesian: the one large market where the category is searched in-language, gated on LOC-01 and the Hebrew pilot |
-| LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
 | LOC-06 | P3 | [LOC-06](backlog/tasks/LOC-06.md) · Per-locale measurement: extend the refresh procedure so localized pages are read separately |
 | LOC-07 | P3 | [LOC-07](backlog/tasks/LOC-07.md) · Is a second language worth building at all? The ROI judgment on LOC-01's evidence, and the languages it never measured |
 | LOC-08 | P3 | [LOC-08](backlog/tasks/LOC-08.md) · Tamil and Telugu demand check: reopening LOC-07 Part 2 for India's other major languages |
 | LOC-09 | P3 | [LOC-09](backlog/tasks/LOC-09.md) · Localize the home page, so /he/ is a real edition and not a 404 beside three Hebrew tool pages |
 | LOC-10 | P1 | [LOC-10](backlog/tasks/LOC-10.md) · Keep or remove page localization: decide after LOC-11 has measured the top languages |
 | LOC-11 | P2 | [LOC-11](backlog/tasks/LOC-11.md) · Top-languages research: is there untapped in-language traffic behind the site's top countries? |
-| LOC-12 | P3 | [LOC-12](backlog/tasks/LOC-12.md) · Two-month country and language re-check, due 2026-11-12 |
-| LOC-13 | P2 | [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins |
 | LOC-14 | P2 | [LOC-14](backlog/tasks/LOC-14.md) · Indonesian target-size compress: run the ROI gate on the size-limit family autocomplete surfaced |
-| LOC-15 | P1 | [LOC-15](backlog/tasks/LOC-15.md) · Indonesian pilot: one page for getting a PDF under 1 MB and a photo under 200 KB, on the size-limit family that cleared the gate |
+
+
+## Shipped and waiting for a dated Search Console read (2026-10-08, then 2026-11-06/07/12)
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house |
+| LOC-12 | P3 | [LOC-12](backlog/tasks/LOC-12.md) · Read 2026-11-12 · Two-month country and language re-check, due 2026-11-12 |
+| SEO-04 | P1 | [SEO-04](backlog/tasks/SEO-04.md) · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks |
+| SEO-05 | P1 | [SEO-05](backlog/tasks/SEO-05.md) · Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue |
+| SEO-06 | P1 | [SEO-06](backlog/tasks/SEO-06.md) · Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools |
+| SEO-09 | P2 | [SEO-09](backlog/tasks/SEO-09.md) · Read 2026-10-08 · Split ranks at 85 for extract queries because it never uses the word |
+| SEO-10 | P2 | [SEO-10](backlog/tasks/SEO-10.md) · Read 2026-10-08 · Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it |
+| SEO-17 | P2 | [SEO-17](backlog/tasks/SEO-17.md) · Read 2026-10-08 · One content page on portal size limits, instead of three doorway pages |
+| SEO-18 | P2 | [SEO-18](backlog/tasks/SEO-18.md) · Read 2026-11-07 · One page on signing a PDF in your own language, generated from the coverage data |
+| SEO-25 | P3 | [SEO-25](backlog/tasks/SEO-25.md) · Read 2026-10-08 · A before-and-after preview on Compress, so quality is shown rather than promised |
+| SEO-28 | P1 | [SEO-28](backlog/tasks/SEO-28.md) · Read 2026-10-08 · Redact and Split earn the most and are recrawled the least, and nothing we control explains it |
+| SEO-31 | P1 | [SEO-31](backlog/tasks/SEO-31.md) · Read 2026-11-07 · One content page on photo and signature size limits, as inbound content for /compress-image/ |
+| SEO-33 | P1 | [SEO-33](backlog/tasks/SEO-33.md) · Read 2026-10-08 · Compress ranks page one and never says reduce, shrink, resize or size reducer, the words with the volume |
+| SEO-34 | P1 | [SEO-34](backlog/tasks/SEO-34.md) · Read 2026-10-08 · The home page has the site's best CTR and no query to rank for: target pdf tools |
+| SEO-35 | P2 | [SEO-35](backlog/tasks/SEO-35.md) · Read 2026-10-08 · Merge is an authority fight, not a content fight: add the combine vocabulary, then stop |
+
+
+## Grow the English base: authority and on-page work that can move now, no new tool
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |
+| SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |
+| SEO-26 | P3 | [SEO-26](backlog/tasks/SEO-26.md) · Say what PDkef does not do, and why, on a page that already exists |
+| SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before |
+
+
+## New tools, gated on the 2026-10-08 crawl read of the never-crawled nine (SEO-06)
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| SEO-20 | P2 | [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for |
+| SEO-21 | P3 | [SEO-21](backlog/tasks/SEO-21.md) · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is |
+| SEO-22 | P3 | [SEO-22](backlog/tasks/SEO-22.md) · New tool: extract the images embedded in a PDF, without a zip dependency |
+| SEO-23 | P3 | [SEO-23](backlog/tasks/SEO-23.md) · New tool: convert a PDF to grayscale, with the cost stated |
+| SEO-24 | P3 | [SEO-24](backlog/tasks/SEO-24.md) · New tool: make a PDF look scanned |
+| SEO-32 | P3 | [SEO-32](backlog/tasks/SEO-32.md) · New tool: PDF to Markdown, English-only v1, Hebrew/RTL deferred pending anydoc-wasm's dependency bump |
+
+
+## Hebrew: the one live localization experiment
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
 | LOC-16 | P2 | [LOC-16](backlog/tasks/LOC-16.md) · Finish the Hebrew edition: HeroDemo, the rest of the Sign editor, the compress-hub guides, and the home page sign-off |
+
+
+## Merge: the tool people return to and recommend (2026-09-13 review)
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| MERGE-01 | P1 | [MERGE-01](backlog/tasks/MERGE-01.md) · A valid 3-page PDF renders a blank thumbnail in the Merge list |
+| MERGE-02 | P1 | [MERGE-02](backlog/tasks/MERGE-02.md) · Merge rejects PDFs with an empty MIME type that Compress accepts |
+| MERGE-03 | P1 | [MERGE-03](backlog/tasks/MERGE-03.md) · Download replaces Merge in place, named after the first file, with pages and size |
+| MERGE-04 | P2 | [MERGE-04](backlog/tasks/MERGE-04.md) · Name the file that failed to merge and offer to merge the rest |
+| MERGE-05 | P2 | [MERGE-05](backlog/tasks/MERGE-05.md) · The subhead promises page reordering the tool does not do yet |
+| MERGE-06 | P1 | [MERGE-06](backlog/tasks/MERGE-06.md) · Merge on a phone: the action within reach, one sort control, an options row, a pinned button |
+| MERGE-07 | P2 | [MERGE-07](backlog/tasks/MERGE-07.md) · Every row says pages: counts, sizes, true aspect, undo on remove, duplicates, insert where dropped |
+| MERGE-08 | P1 | [MERGE-08](backlog/tasks/MERGE-08.md) · The assembled document: every page of the result, in order, rendered on device before any merge |
+| MERGE-09 | P1 | [MERGE-09](backlog/tasks/MERGE-09.md) · Page-level editing: rotate, skip and reorder pages across files, all free |
+| MERGE-10 | P1 | [MERGE-10](backlog/tasks/MERGE-10.md) · Add more documents while the assembled pages are on screen |
+| MERGE-11 | P1 | [MERGE-11](backlog/tasks/MERGE-11.md) · Easy defaults: the simple merge is pick files, then Download, with nothing else in the way |
+| MERGE-12 | P1 | [MERGE-12](backlog/tasks/MERGE-12.md) · One tap: pre-merge on idle so Download is instant, with progress that tells the truth |
+| MERGE-13 | P1 | [MERGE-13](backlog/tasks/MERGE-13.md) · A merge survives a crash: the file set and page edits saved on device, restored on return |
+| MERGE-14 | P2 | [MERGE-14](backlog/tasks/MERGE-14.md) · After Download, carry the result into Compress, Sign or Split without re-picking it |
+| MERGE-15 | P3 | [MERGE-15](backlog/tasks/MERGE-15.md) · Spike: a bookmark per source file in the merged PDF |
+| MERGE-16 | P2 | [MERGE-16](backlog/tasks/MERGE-16.md) · Read the merge funnel before and after each phase, with the guardrails that keep it honest |
+| MERGE-17 | P3 | [MERGE-17](backlog/tasks/MERGE-17.md) · One quiet line after the first merge: it works offline and can be installed |
+| MERGE-18 | P2 | [MERGE-18](backlog/tasks/MERGE-18.md) · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant |
+
+
+## Localization pilots: one target-size page per language, no generic tool pages
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| LOC-13 | P2 | [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins |
+| LOC-15 | P1 | [LOC-15](backlog/tasks/LOC-15.md) · Indonesian pilot: one page for getting a PDF under 1 MB and a photo under 200 KB, on the size-limit family that cleared the gate |
 
 
 ## Migrated context and history

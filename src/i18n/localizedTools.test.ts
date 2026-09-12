@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeLocalizedTool, normalizeToolSource, toolSourceHash } from './localizedTools';
+import { isPublishedEditionLink, mergeLocalizedTool, normalizeToolSource, toolSourceHash } from './localizedTools';
 
 describe('normalizeToolSource / toolSourceHash', () => {
   const tool = {
@@ -74,5 +74,28 @@ describe('mergeLocalizedTool', () => {
       h1: 'מיזוג PDF',
       faq: [{ question: '?', answer: '.' }],
     });
+  });
+});
+
+// LOC-05: the decision ContentPageLayout's primaryCta now runs before showing
+// its English-fallback "EN" mark - the same question ToolCrossLinks/
+// RelatedGuides answer per card via `editionPaths`, asked once so a plain
+// authored href (the content-pages YAML's primaryCta.href, not a pageId a
+// card can re-derive a localized variant from) doesn't need its own copy of
+// the logic.
+describe('isPublishedEditionLink', () => {
+  const heEditionPaths = ['/he/', '/he/sign/', '/he/install-pdf-app/'];
+
+  it('flags a fallback: a Hebrew page whose CTA target has no Hebrew edition (the open-source guide -> /edit-pdf/)', () => {
+    expect(isPublishedEditionLink('/edit-pdf/', 'he', heEditionPaths)).toBe(false);
+  });
+
+  it('does not flag a Hebrew page whose CTA target already has a Hebrew edition (-> /he/sign/)', () => {
+    expect(isPublishedEditionLink('/he/sign/', 'he', heEditionPaths)).toBe(true);
+  });
+
+  it('never flags an English page, whatever the href', () => {
+    expect(isPublishedEditionLink('/edit-pdf/', 'en', heEditionPaths)).toBe(true);
+    expect(isPublishedEditionLink('/sign/', 'en', [])).toBe(true);
   });
 });

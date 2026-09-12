@@ -3,13 +3,15 @@ id: "LOC-16"
 title: "Finish the Hebrew edition: HeroDemo, the rest of the Sign editor, the compress-hub guides, and the home page sign-off"
 status: "open"
 priority: "P2"
-epic: "localized-search"
+epic: "hebrew-edition"
 phase: "near-term"
 depends_on: ["LOC-09"]
 legacy_state: "Open"
 ---
 
 # LOC-16 · Finish the Hebrew edition: HeroDemo, the rest of the Sign editor, the compress-hub guides, and the home page sign-off
+
+*Re-filed 2026-09-12* from `localized-search` into `hebrew-edition`.
 
 ## Scope and acceptance
 

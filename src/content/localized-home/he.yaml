@@ -85,13 +85,8 @@ reviewer: 'Claude Sonnet 5'
 reviewedAt: '2026-09-12'
 reviewNotes: >-
   Hebrew copy drafted by Claude Sonnet 5 per docs/home-page-localization-plan.md
-  section 7. Not a native human review - pending Shlomi's own read-through of
-  the rendered page before this goes live.
-
-  2026-09-12 (SEO-34): English title, description, subhead and faq changed
-  (title now targets "pdf tools"; description names merge/split/compress/
-  sign/blur/convert; subhead names the ten-tool family; a fifth FAQ entry was
-  added). sourceHash recomputed mechanically to keep publishing; Hebrew title,
-  description, subhead and faq do not yet mirror these changes, pending
-  Shlomi's review.
+  section 7, then read through by Shlomi on the rendered page. 2026-09-12
+  (SEO-34): English title, description, subhead and faq changed to target
+  "pdf tools"; Hebrew does not yet mirror them; re-reviewed and approved by
+  Shlomi on the deployed site the same day.
 sourceHash: 'fnv1a64:4fab6a78a1930af9'

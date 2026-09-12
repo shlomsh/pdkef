@@ -1,15 +1,17 @@
 ---
 id: "SEO-06"
-title: "Nine URLs have never been crawled, and three of them are working tools"
+title: "Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools"
 status: "blocked"
 priority: "P1"
-epic: "search-acquisition"
+epic: "seo-awaiting-read"
 phase: "near-term"
 depends_on: ["SEO-01"]
 legacy_state: "Open"
 ---
 
-# SEO-06 · Nine URLs have never been crawled, and three of them are working tools
+# SEO-06 · Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools
+
+*Re-filed 2026-09-12* from `search-acquisition` into `seo-awaiting-read`, read date 2026-10-08: the Week 4 gate: were any of the never-crawled nine crawled.
 
 ## Scope and acceptance
 

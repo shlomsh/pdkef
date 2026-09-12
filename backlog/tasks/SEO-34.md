@@ -1,15 +1,17 @@
 ---
 id: "SEO-34"
-title: "The home page has the site's best CTR and no query to rank for: target pdf tools"
-status: "open"
+title: "Read 2026-10-08 · The home page has the site's best CTR and no query to rank for: target pdf tools"
+status: "blocked"
 priority: "P1"
-epic: "search-acquisition"
+epic: "seo-awaiting-read"
 phase: "near-term"
 depends_on: []
 legacy_state: "Open"
 ---
 
-# SEO-34 · The home page has the site's best CTR and no query to rank for: target pdf tools
+# SEO-34 · Read 2026-10-08 · The home page has the site's best CTR and no query to rank for: target pdf tools
+
+*Re-filed 2026-09-12* from `search-acquisition` into `seo-awaiting-read`, status `open` to `blocked`, read date 2026-10-08: shipped, indexing requested 2026-09-12.
 
 ## Why now (decided 2026-09-12)
 
@@ -87,3 +89,5 @@ changed and that the Hebrew title/description/subhead/faq do not yet mirror them
 review. Status stays `published`, reviewer/reviewedAt untouched.
 
 Indexing request and CTR/position read at the 2026-10-08 refresh are still open, per Acceptance.
+
+*2026-09-12:* deployed; indexing requested for `/` in Search Console the same day. Hebrew edition re-reviewed and approved by Shlomi on the deployed site. Nothing left but the 2026-10-08 read.

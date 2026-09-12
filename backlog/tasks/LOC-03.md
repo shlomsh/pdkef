@@ -1,15 +1,17 @@
 ---
 id: "LOC-03"
-title: "Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house"
-status: "open"
+title: "Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house"
+status: "blocked"
 priority: "P2"
-epic: "localized-search"
+epic: "seo-awaiting-read"
 phase: "near-term"
 depends_on: ["LOC-02"]
 legacy_state: "Open"
 ---
 
-# LOC-03 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house
+# LOC-03 · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house
+
+*Re-filed 2026-09-12* from `localized-search` into `seo-awaiting-read`, status `open` to `blocked`, read date 2026-11-06: live; eight-week read of the three Hebrew tool pages via the per-locale table.
 
 ## Scope and acceptance
 

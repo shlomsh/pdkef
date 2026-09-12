@@ -110,7 +110,19 @@
  *    `--force-device-scale-factor=2`; 40/40 sampled strings integral in all of
  *    them). So it is measured instead, by `measureDisplacementFloorPct`, and
  *    admitted into the floor - and it measures to zero on a platform that does
- *    not quantise, so it costs macOS nothing.
+ *    not quantise, so it costs macOS nothing. The placement it measures the
+ *    cost of is the browser's own: each glyph's hinted advance is read back
+ *    through `measureText` (`hintedAdvancePx`), because the runner does not
+ *    round the way `Math.round` does - its advances are within 0.50px of
+ *    fontkit's everywhere, but a half-pixel tie goes down, and on Amatic SC's
+ *    "12.09.2026" that is 845px against the 846px round-to-nearest predicted
+ *    (fontkit: 847.8px), enough to fail the case at 28.21% against 27.06%.
+ *    Only the rasteriser's advance for one glyph is measured; every shaping
+ *    decision stays fontkit's, so this cannot absorb a shaper disagreement,
+ *    and glyphs with no cmap entry keep the round-to-nearest model. The run's
+ *    log says how many were which, and how many native widths the model
+ *    reproduces exactly (run 34717406027: all of them on every guard but the
+ *    ones with a known advance divergence or a fallback-modelled glyph).
  *
  * The rule that follows, and the one to keep: **an artefact gets removed from
  * the instrument if it can be, and measured if it cannot. It never gets
@@ -281,7 +293,12 @@ export async function runShapingGuardInPage({
     const { glyphs, positions } = rtl
       ? localFk.layout(text, undefined, undefined, undefined, 'rtl')
       : localFk.layout(text);
-    return glyphs.map((g, i) => ({ path: g.path.toSVG(), pos: positions[i] }));
+    return glyphs.map((g, i) => ({
+      id: g.id,
+      advanceWidth: g.advanceWidth,
+      path: g.path.toSVG(),
+      pos: positions[i],
+    }));
   }
 
   function makeCanvas() {
@@ -305,13 +322,104 @@ export async function runShapingGuardInPage({
     return { ctx, width: ctx.measureText(text).width };
   }
 
+  // One context kept only for `measureText`, so measuring a glyph's advance
+  // does not allocate and clear a full-size canvas per glyph.
+  const measureCtx = makeCanvas();
+  measureCtx.font = `${size}px "${family}"`;
+
+  // The browser's own advance for one glyph, measured rather than modelled.
+  //
+  // A hinting rasteriser does not round an advance the way `Math.round`
+  // does. Measured on the CI runner (run 34717406027) the browser's advance
+  // sits within 0.50px of fontkit's for every glyph in every guard, so it is
+  // rounding and nothing more - but FreeType's fixed-point scaling resolves
+  // an exact half-pixel tie downward where `Math.round` goes up (Amatic SC's
+  // "1" at 300px is 82.5px: the runner says 82, the first version of this
+  // model said 83), and one such glyph is the pixel between the runner's
+  // 845px for "12.09.2026" and the 846px the model predicted; that pixel
+  // failed the case at 28.21% against a 27.06% tolerance whose floor had
+  // assumed round-to-nearest. Guessing at the tie rule would be modelling
+  // again, so the hinted advance is read from the browser per glyph instead,
+  // through `measureText` of the one character whose plain cmap glyph it
+  // is, and the model uses that.
+  //
+  // What keeps this non-circular: the measurement is of the *rasteriser's*
+  // treatment of one glyph's advance width, taken on that glyph alone. Every
+  // shaping decision - which glyph, the kerning, the mark offsets - still
+  // comes from fontkit, so a shaper disagreement on any of those is not
+  // absorbed. Two things are refused so that stays true: a glyph fontkit
+  // would substitute even in isolation (the browser might be measuring a
+  // different glyph), and a measured advance more than
+  // `HINTED_ADVANCE_SANITY_PX` from fontkit's hmtx value (hinting moves an
+  // advance by well under a pixel beyond rounding; anything larger is a
+  // dotted circle the browser inserted for a lone mark, a fallback font, or
+  // a genuine metrics disagreement, none of which belongs in a noise floor).
+  // Glyphs with no cmap entry of their own - contextual forms, conjuncts,
+  // ligatures - cannot be measured this way and keep the round-to-nearest
+  // model. The counts of each are reported, so a run says how much of its
+  // floor was measured and how much was modelled.
+  const HINTED_ADVANCE_SANITY_PX = 1.5;
+  const cmapGlyphToCodePoint = new Map();
+  {
+    const localFk = window['__fontkit'].create(fontBytes);
+    for (const cp of localFk.characterSet) {
+      const id = localFk.glyphForCodePoint(cp).id;
+      if (!cmapGlyphToCodePoint.has(id)) cmapGlyphToCodePoint.set(id, cp);
+    }
+  }
+  const hintedAdvanceCache = new Map(); // glyph id -> { px, reason }
+  const hintedAdvanceStats = { measured: 0, unmeasurable: 0, substituted: 0, rejected: 0, maxDeltaPx: 0 };
+  function hintedAdvancePx(glyph) {
+    if (hintedAdvanceCache.has(glyph.id)) return hintedAdvanceCache.get(glyph.id);
+    const scale = size / fk.unitsPerEm;
+    const exactPx = glyph.advanceWidth * scale;
+    let entry;
+    const cp = cmapGlyphToCodePoint.get(glyph.id);
+    if (cp === undefined) {
+      entry = { px: null, reason: 'unmeasurable' };
+    } else {
+      const ch = String.fromCodePoint(cp);
+      if (substituted(ch)) {
+        entry = { px: null, reason: 'substituted' };
+      } else {
+        const measuredPx = measureCtx.measureText(ch).width;
+        const deltaPx = Math.abs(measuredPx - exactPx);
+        if (deltaPx > HINTED_ADVANCE_SANITY_PX) {
+          entry = { px: null, reason: 'rejected' };
+        } else {
+          entry = { px: measuredPx, reason: 'measured' };
+          hintedAdvanceStats.maxDeltaPx = Math.max(hintedAdvanceStats.maxDeltaPx, deltaPx);
+        }
+      }
+    }
+    hintedAdvanceStats[entry.reason]++;
+    hintedAdvanceCache.set(glyph.id, entry);
+    return entry;
+  }
+
+  // What a browser that quantises advances places this glyph's pen advance
+  // at: the browser's own hinted advance for the glyph where it could be
+  // measured, plus fontkit's kerning for this position rounded the way the
+  // browser rounds a run's advances (a quantising browser reports integral
+  // widths on kerned strings too, so the kern is not left fractional);
+  // otherwise fontkit's advance rounded to the nearest pixel.
+  function quantisedAdvancePx(g) {
+    const scale = size / fk.unitsPerEm;
+    const hinted = hintedAdvancePx(g);
+    if (hinted.px === null) return Math.round(g.pos.xAdvance * scale);
+    const kernPx = (g.pos.xAdvance - g.advanceWidth) * scale;
+    return hinted.px + Math.round(kernPx);
+  }
+
   // `quantizeAdvances` reproduces what a browser that hints advances to whole
   // pixels does to glyph positions (see `measureDisplacementFloorPct` below
-  // and this file's "Two artefacts" note): every glyph's advance is rounded,
-  // and - since RTL anchors from the right - the run starts from the rounded
-  // total rather than the exact one, so the whole-string offset is reproduced
-  // as well as the per-glyph jitter. Modelling only the jitter under-measures
-  // the artefact, which is how the first version of this floor left five
+  // and this file's "Two artefacts" note): every glyph's advance is replaced
+  // by `quantisedAdvancePx` (the browser's own hinted advance where it can
+  // be measured, whole-pixel rounding where it cannot), and - since RTL
+  // anchors from the right - the run starts from the quantised total rather
+  // than the exact one, so the whole-string offset is reproduced as well as
+  // the per-glyph jitter. Modelling only the jitter under-measures the
+  // artefact, which is how the first version of this floor left five
   // Arabic/Pashto cases failing on ~1px of width disagreement.
   //
   // Only ever used to measure that artefact's cost against the
@@ -321,7 +429,7 @@ export async function runShapingGuardInPage({
     ctx.fillStyle = 'white'; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     const scale = size / fk.unitsPerEm;
     const advanceOf = (g) => (quantizeAdvances
-      ? Math.round(g.pos.xAdvance * scale)
+      ? quantisedAdvancePx(g)
       : g.pos.xAdvance * scale);
     const runWidth = quantizeAdvances
       ? glyphList.reduce((sum, g) => sum + advanceOf(g), 0)
@@ -363,10 +471,18 @@ export async function runShapingGuardInPage({
     const overflowsCanvas = rtl
       ? anchorX - native.width < 0 || anchorX > canvasWidth
       : anchorX + native.width > canvasWidth;
+    // The quantised model's own total, next to the native one: on a
+    // quantising browser this is the check that the model reproduces the
+    // browser's placement (a residual of 0.00px on a string whose glyphs
+    // were all measured means the artefact is fully accounted for; a
+    // residual on one where some were modelled says how much the
+    // round-to-nearest fallback misses). Never enters the judgment.
+    const quantisedWidth = glyphs.reduce((sum, g) => sum + quantisedAdvancePx(g), 0);
     return {
       text,
       diffPct,
       widthDiff: Math.abs(native.width - recon.width),
+      quantisedWidthResidual: Math.abs(native.width - quantisedWidth),
       glyphCount: glyphs.length,
       nativeWidth: native.width,
       reconWidth: recon.width,
@@ -380,11 +496,13 @@ export async function runShapingGuardInPage({
    *
    * Measured by rendering each string's reconstruction twice from the SAME
    * fontkit output - once at fontkit's exact positions, once with every glyph
-   * advance rounded to a whole pixel the way a hinting rasteriser reports them
-   * - and diffing those two against each other. The native rendering is not
+   * advance replaced by the quantised one a hinting rasteriser reports (the
+   * browser's own hinted advance for that glyph where `hintedAdvancePx` could
+   * measure it, whole-pixel rounding where it could not) - and diffing those
+   * two against each other. The native rendering of the string is not
    * involved, so this can be measured over the corpus itself without
-   * circularity: it asks "what does whole-pixel placement cost on this ink",
-   * not "is fontkit right".
+   * circularity: it asks "what does the browser's whole-pixel placement cost
+   * on this ink", not "is fontkit right".
    *
    * Zero on a platform whose `measureText` is fractional, because there the
    * browser is not rounding and there is no artefact to admit. Detected rather
@@ -448,6 +566,7 @@ export async function runShapingGuardInPage({
       displacementFloorPct: quantizes ? measureDisplacementFloorPct(corpus.map((entry) => entry.text)) : 0,
       cases: substituting.map(({ id, text }) => ({ id, ...evalOne(text) })),
       calibrationCases: nonSubstituting.map(({ id, text }) => ({ id, ...evalOne(text) })),
+      hintedAdvanceStats,
     };
   }
 
@@ -470,6 +589,7 @@ export async function runShapingGuardInPage({
     displacementFloorPct: quantizes ? measureDisplacementFloorPct(corpus.map((entry) => entry.text)) : 0,
     cases,
     calibrationCases,
+    hintedAdvanceStats,
   };
 }
 
@@ -614,6 +734,20 @@ export function createShapingGuardTest({
         + `advance-quantisation floor ${result.displacementFloorPct.toFixed(2)}% `
         + `(browser quantises advances: ${result.quantizesAdvances}), `
         + `noise floor ${noiseFloorPct.toFixed(2)}%, tolerance ${tolerancePct.toFixed(2)}%, ${failures.length} failing`);
+      // How much of the quantisation floor was measured against the browser's
+      // own hinted advances and how much fell back to round-to-nearest, plus
+      // the evidence that the model reproduces the browser's placement: the
+      // widest gap between a corpus string's native width and the quantised
+      // model's total. See `hintedAdvancePx` in `runShapingGuardInPage`.
+      if (result.quantizesAdvances) {
+        const stats = result.hintedAdvanceStats;
+        const residuals = result.cases.map((c) => c.quantisedWidthResidual);
+        const worst = result.cases.reduce((a, c) => (c.quantisedWidthResidual > a.quantisedWidthResidual ? c : a), result.cases[0]);
+        console.log(`${scriptName} advance model: ${stats.measured} glyphs measured (max ${stats.maxDeltaPx.toFixed(2)}px from fontkit's advance), `
+          + `${stats.unmeasurable} without a cmap entry and ${stats.substituted} substituted in isolation (round-to-nearest), ${stats.rejected} rejected; `
+          + `native width reproduced on ${residuals.filter((r) => r < 0.01).length}/${residuals.length} cases, `
+          + `worst residual ${worst ? `${worst.quantisedWidthResidual.toFixed(2)}px on ${worst.id}` : 'n/a'}`);
+      }
       if (failures.length) {
         console.log('Failing cases:', failures.map((f) => `${f.id} "${f.text}": diff=${f.diffPct.toFixed(2)}% widthDiff=${f.widthDiff.toFixed(2)}px glyphs=${f.glyphCount} nativeWidth=${f.nativeWidth.toFixed(2)} reconWidth=${f.reconWidth.toFixed(2)}`).join('\n'));
       }

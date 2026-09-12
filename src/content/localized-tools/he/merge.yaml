@@ -11,13 +11,13 @@ toolSlug: 'merge'
 locale: 'he'
 status: 'published'
 reviewer: 'Shlomi Shemesh'
-reviewedAt: '2026-09-11'
+reviewedAt: '2026-09-12'
 reviewNotes: >-
-  Reviewed the rendered page (desktop and mobile, RTL) and approved the
-  wording, terminology and typography for publish. 2026-09-12: the English
-  title and h1 gained combine as a co-head alongside merge. The Hebrew
-  wording is unchanged, pending Shlomi's review; the sourceHash below was
-  refreshed mechanically to clear the freshness gate.
+  2026-09-11: reviewed the rendered page (desktop and mobile, RTL) and
+  approved wording, terminology and typography for publish. 2026-09-12:
+  English title and h1 gained combine alongside merge (SEO-35); Hebrew
+  wording unchanged; re-reviewed and approved by Shlomi on the deployed site
+  the same day.
 sourceHash: 'fnv1a64:b2b1453a9a62eb3d'
 seoTitle: 'מיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
