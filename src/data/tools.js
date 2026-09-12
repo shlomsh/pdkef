@@ -365,12 +365,12 @@ export const tools = [
       'Combine multiple PDFs into one document, in any order, with no page limit or watermark.',
     sitemapPriority: '0.9',
     sitemapChangefreq: 'monthly',
-    seoTitle: 'Merge PDF Online Free - Combine PDFs in Your Browser | PDkef',
+    seoTitle: 'Merge or Combine PDF Files Online Free - No Upload | PDkef',
     seoDescription:
       'Merge PDF files online for free, with no file limit. Drag, reorder, and combine PDFs in your browser instantly. No upload, no signup, no watermark.',
     schemaName: 'PDkef - Merge PDF',
     toolName: 'Merge PDF',
-    h1: 'Merge PDF Online Free: Combine Files in Your Browser',
+    h1: 'Merge or Combine PDF Files Free: In Your Browser',
     subhead:
       'Combine multiple PDFs into a single document, reorder pages by drag-and-drop, and optionally add page numbers before you export.',
     ariaLabel: 'PDF merge tool',
@@ -552,7 +552,7 @@ export const tools = [
     toolName: 'Compress PDF',
     h1: 'Compress PDF to 100KB Free: Reduce File Size',
     subhead:
-      'Need a PDF under 100KB for an application or upload form? Choose a target size and check the result. Some files need a larger limit to stay readable. Private: your file never leaves your device.',
+      'Need a PDF under 100KB for an application or upload form? Choose a target size to shrink the file and check the result. Some files need a larger limit to stay readable. Private: your file never leaves your device.',
     ariaLabel: 'PDF compress tool',
     aboutHeading: 'How to compress a PDF online for free',
     aboutLead:
@@ -576,6 +576,8 @@ export const tools = [
       { question: 'Does compressing a PDF affect text search or copying?', answer: 'When PDkef compresses a file, it turns pages into images. The output loses selectable text and embedded links, so keep the original if you need search or screen-reader text access. The exception is Target Size when the original is already under the limit: it is returned unchanged.' },
       { question: 'Is there a limit on the file size I can compress?', answer: "No artificial limit - no daily task cap, no watermark, no paywall. Most online compressors impose limits because server processing costs them money. This tool runs entirely on your device, so the only constraint is your device's available memory." },
       { question: 'Can I target a custom size, like 110KB or 250KB, not just the presets?', answer: 'Yes. The 100 KB, 200 KB, 500 KB, and 1 MB quick-picks are shortcuts. Enter your own limit in the KB field, then check whether the downloaded result met it. A target is not a guarantee that every PDF can fit while remaining readable.' },
+      { question: 'Does this tool resize a PDF?', answer: 'This tool changes file size, not page dimensions. Target Size shrinks how many bytes the file takes up on disk. It does not change the paper size or page dimensions, and every page keeps its original width and height. If you need to change the page size itself, this is not that tool.' },
+      { question: 'Is this a PDF size reducer?', answer: "Yes. Choose Target Size, pick or enter a limit like 100KB, and the tool searches image quality and resolution settings to get at or below it. To reach a small target, pages are turned into images, so selectable text and links are lost on any page that changes. If the target can't be hit without making the document unreadable, it says so and hands you the smallest readable result instead." },
     ],
   },
 

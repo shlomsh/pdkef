@@ -29,12 +29,12 @@
 // (never raw HTML) so a translated h1 cannot smuggle markup through this
 // field the way `inline()`-validated fields intentionally can.
 export const homeContent = {
-  title: 'Free PDF Tools - Private, Local, No Sign-Up | PDkef',
+  title: 'Free PDF Tools Online - Run on Your Device, No Upload | PDkef',
   description:
-    'A free, open-source suite of PDF tools that run entirely in your browser. Merge, sign, split, redact, compress, and convert PDFs with nothing uploaded, no account, and no watermark. Your files never leave your device.',
+    'Free PDF tools that run in your browser: merge, split, compress, sign, blur, and convert files. Nothing is uploaded, so your PDFs never leave your device. No account, no watermark, open source.',
   h1: 'Free PDF tools that run on your device',
   h1Accent: 'on your device',
-  subhead: 'Merge, sign, split, redact and compress PDFs. No signup, no install, nothing leaves your device.',
+  subhead: 'Merge, split, compress, sign, blur and convert. Ten PDF tools, no signup, no install, nothing leaves your device.',
   // The home page's own FAQ kicker, deliberately not DocumentationShellMessages'
   // shared `faqTag`. The shell's English value is "Got questions?", which every
   // tool and guide page says; home has always said this instead, and reading it
@@ -46,6 +46,11 @@ export const homeContent = {
     { question: 'Do I need to sign up or create an account?', answer: 'No account, email, or trial period. Just open a tool and get started.' },
     { question: 'Are my files uploaded to a server?', answer: 'No. Your PDFs stay on your device. Every tool runs locally in your desktop or mobile browser.' },
     { question: 'Is PDkef open source?', answer: 'Yes. The code is MIT licensed and open for anyone to inspect, use, or improve.' },
+    {
+      question: 'Is this a set of free PDF tools with no signup?',
+      answer:
+        'Yes. PDkef is a free set of PDF tools, merge, split, compress, sign, blur, and convert, with no signup and no account. Every tool runs on your device, so your files are never uploaded.',
+    },
   ],
   founderStory: {
     kicker: 'Why I made this',
