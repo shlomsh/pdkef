@@ -246,7 +246,23 @@ const distDir = path.join(__dirname, '..', 'dist');
 //     to bank: `/he/` renders the home family's utilities a second time, so
 //     what used to be unique to `/` is now on two pages. Same page-count
 //     artifact as the factor itself, read from the other end.
-const MAX_DUPLICATION_FACTOR = 9.78;
+// Re-based (9.78x -> 9.81x) on 2026-09-12 (SEO-31) when the "Photo and
+// signature size" content page gained a before/after figure
+// (CompareFigure.astro, a static split-image sibling of the Preact
+// CompareSlider component, same relationship ContentTable/CompareTable
+// already have to their own islands). Page count unchanged at 39 - the page
+// already existed - so this is a real new component's scoped <style>, not
+// page-count growth: it inlines into all twelve content pages the same way
+// CompareTable's own scoped block already does (see content-and-copy.md,
+// "One accepted cost"). Measured immediately before this change, on the same
+// tree (post SEO-32/LOC branch merge): 9.70x (1,591,251 bytes shipped /
+// 164,022 bytes distinct). With it: 9.8011x (1,625,014 / 165,799). Limit set
+// at the smallest two-decimal value that clears the measured figure: there
+// is no headroom to give away on a five-page-family split whose
+// distinct-byte cost (+1,777) already undercuts what it ships (+33,763), the
+// residue being paid by the eleven content pages that do not render this
+// figure.
+const MAX_DUPLICATION_FACTOR = 9.81;
 // Lowered (29,000 -> 27,500) on 2026-08-29 to bank most of two fixes that took
 // /licenses/ from 29,021 (red) to 26,635, neither of which was a style change:
 //   - 905 distinct bytes of utilities were being compiled out of the impeccable

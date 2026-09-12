@@ -215,3 +215,72 @@ unindexed tool page benefits more from having its inbound content ready at the s
 sequencing rule protects against here - there is exactly one other new URL this week
 (`/photo-and-signature-size-for-forms/` itself), not the three-doorway-pages problem the rule exists to
 prevent. Recorded here rather than silently violating the rule.
+
+## Figure (2026-09-12)
+
+The measured table above proves the numbers; it does not show a reader what a compressed photo
+actually looks like. Added a before/after split figure (`src/components/CompareFigure.astro`, a new
+`compareFigure` block in `src/content.config.ts`) to the "Real phone photos, run through Compress
+Image" section, directly under the eight-row table: one real photo, left half original, right half the
+tool's real 20KB output, static markup only (no JS, per the SEO-surface invariant) - the non-interactive
+sibling of the Preact `CompareSlider` island used elsewhere on the site.
+
+**Photo choice.** First pick was a CC0 footbridge photo from Wikimedia Commons; Shlomi rejected it as
+too big to justify (4.83MB original) and asked for something in nature/mountains with a smaller
+original so the "2MB phone photo" framing on this page would hold up literally. Landed on "Estany Llat
+2026.jpg" by Alan Mattingly, Wikimedia Commons, CC0 1.0 Universal: a mountain lake in the Pyrenees shot
+on a Google Pixel 8a, 4032x2268, 2,152,277 bytes (2.05MB), EXIF carrying GPS - close to the page's own
+stated "3 to 6MB" and "1450 by 2576" phone-photo range, and small enough that a full before/after pair
+of renditions stays a trivial page-weight cost.
+
+**Measured (real Compress Image run on the original, headless Chromium, production build,
+2026-09-12).** All three targets hit on the first try, roughly 0.35s each, canvas re-encode dropping
+EXIF (GPS included):
+
+| Target | Output bytes | Output dimensions |
+| --- | --- | --- |
+| 100 KB | 89,605 | 3024x1701 |
+| 50 KB | 49,938 | 2016x1134 |
+| 20 KB | 19,052 | 1210x680 |
+
+The 20KB row is what ships: it is the same order of magnitude as this page's own photo/signature rows
+(the IBPS photograph row alone spans 20-50KB) and the smallest of the three, so the before/after split
+carries the least page weight for the clearest "yes, this really works at a small target" proof.
+
+**What ships.** Two 1210x680 renditions in `public/images/photo-and-signature-size-for-forms/`:
+`estany-llat-before.webp` (140,632 bytes, the original resized to the tool's output size so the split
+lines up pixel for pixel) and `estany-llat-20kb.jpg` (19,052 bytes, byte for byte what Compress Image
+produced). Both `loading="lazy" decoding="async"`, same-origin, so the service worker's cache-first rule
+covers them after the first visit; `npm run test:weight` excludes lazy images from the eager budget by
+design.
+
+**What the right half looks like, and two wrong theories on the way there.** In the built page at 390
+wide (2x and 3x, Chromium and WebKit) the right half's far ridges are blotchy and purple. The builder
+read it as a browser image-decode bug triggered by two rasters painting together; I then read it as
+the browsers' DCT-scaled JPEG decode collapsing 4:2:0 chroma into flat patches, and shipped a WebP
+copy decoded at full resolution to route around it. The WebP blotched the same way. Rendering the file
+alone at 1210, 700 and 350 css px settled it: the purple, patchy haze is in the 19 KB file itself
+(chroma quantized to almost nothing where the distance has no contrast to hide it) and every viewer
+shows it; at 1:1 it reads as ordinary JPEG noise, and downscaling turns the flat patches into blotches.
+So the JPEG ships as is, and the page says what a reader will see: the far ridges go blotchy at 20 KB
+while the lake and forest still read, and a portrait for a form has far less detail to lose. Recording
+the dead ends so the next person does not repeat them.
+
+**Follow-ups for the tool itself (not this ticket).** (1) The target search prefers the largest
+dimensions that fit at any quality: this 20 KB result is 1210x680 at a quality near the floor. A
+605x340 file at a moderate quality may look better at the same byte count for a hazy landscape; worth
+a measured comparison in SEO-19's shape before changing the ladder order. (2) The Compress compare
+panel (SEO-25) shows the output blob at display size, so on a phone a 20 KB result looks like this
+figure's right half; that is honest, and nothing to fix, but the copy around the panel should not
+promise more than that.
+
+**CSS duplication ratchet.** `CompareFigure.astro`'s scoped `<style>` inlines into all twelve content
+pages the same way `CompareTable.astro`'s already does (`content-and-copy.md`, "One accepted cost"), so
+`scripts/check-css-duplication.js`'s `MAX_DUPLICATION_FACTOR` moved 9.78x -> 9.81x: measured 9.70x
+(1,591,251 bytes shipped / 164,022 distinct) immediately before this change, 9.8011x (1,625,014 /
+165,799) with it, on the same 39-page tree. See the dated comment in that file for the full numbers.
+
+**What the right half looks like.** Softer than the left, with mild JPEG blocking in the forest and
+the distant ridges when you look for it, and nothing that stops the picture being a picture. That is
+the honest read of a 19KB file at 1210 by 680, and it is the point of showing it rather than only
+tabulating it. Checked in the built page at 1280 and 390 wide (Chromium, 2026-09-12).

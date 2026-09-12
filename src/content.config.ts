@@ -109,6 +109,20 @@ const blocks = z.discriminatedUnion('kind', [
   listBlock('steps'),
   listBlock('checklist'),
   z.strictObject({
+    kind: z.literal('compareFigure'),
+    // Same asset rule as the `image` block above: local, versioned, one
+    // shared width/height pair so a before/after split lines up pixel for
+    // pixel without either image needing its own aspect ratio.
+    beforeSrc: z.string().regex(/^\/images\/[a-z0-9/-]+\.(?:webp|png|jpg|svg)$/),
+    afterSrc: z.string().regex(/^\/images\/[a-z0-9/-]+\.(?:webp|png|jpg|svg)$/),
+    beforeLabel: plain(2, 30),
+    afterLabel: plain(2, 30),
+    alt: plain(20, 240),
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
+    caption: inline(20, 400),
+  }),
+  z.strictObject({
     kind: z.literal('compare'),
     /** The device's own tool, e.g. "Preview" or "Microsoft Edge". */
     builtInLabel: plain(2, 40),

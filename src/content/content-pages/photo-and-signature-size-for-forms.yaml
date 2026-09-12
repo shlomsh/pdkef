@@ -95,6 +95,28 @@ sections:
           - ['Screenshot of a text web page (PNG, re-encoded to JPEG), at 50 KB', '636 KB', '49.0 KB, 968x2097', 'Headings sharp; body text readable but visibly softened with faint ringing at letter edges; small grey text is borderline']
       - kind: 'prose'
         text: >-
+          Here is what that actually looks like on a real phone photo: the same picture, as taken and
+          brought down to 20 KB. Left is the original, right is the 20 KB file, and you are looking at
+          the actual output, not a mock-up. Look at the far ridges on the right: at 20 KB the haze goes
+          blotchy and slightly purple, while the lake and the forest still read. That is the real trade
+          at a 20 KB cap on a wide landscape; a passport-style photo has far less detail to lose.
+      - kind: 'compareFigure'
+        beforeSrc: '/images/photo-and-signature-size-for-forms/estany-llat-before.webp'
+        afterSrc: '/images/photo-and-signature-size-for-forms/estany-llat-20kb.jpg'
+        beforeLabel: 'Original'
+        afterLabel: '20 KB'
+        alt: >-
+          A mountain lake in the Pyrenees seen from a ridge, forest and peaks behind it, shown as the
+          original photo on the left and the same photo compressed to 20 KB on the right
+        width: 1210
+        height: 680
+        caption: >-
+          <strong>2.05 MB photo from a Google Pixel 8a, 4032x2268, compressed to 19 KB at
+          1210x680.</strong> The right half is the file Compress Image produced, byte for byte, and the
+          phone's location tag is gone from it. Not one of ours (mine stay private): a public-domain
+          photo by Alan Mattingly on Wikimedia Commons, CC0.
+      - kind: 'prose'
+        text: >-
           All three photos here are as uploaded from a phone, 1450 by 2576 pixels, not raw camera
           files; a shot straight off the sensor is bigger still, commonly 3000 by 4000 pixels or
           more. The portrait and letter rows above are the same fact stated two ways: a photo is one
