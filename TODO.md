@@ -146,6 +146,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SEO-29 | P3 | [SEO-29](backlog/tasks/SEO-29.md) · Every ranking how-to competitor shows a visible date or byline; our content pages show neither |
 | SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before |
 | SEO-31 | P1 | [SEO-31](backlog/tasks/SEO-31.md) · One content page on photo and signature size limits, as inbound content for /compress-image/ |
+| SEO-32 | P3 | [SEO-32](backlog/tasks/SEO-32.md) · New tool: PDF to Markdown, English-only v1, Hebrew/RTL deferred pending anydoc-wasm's dependency bump |
 
 
 ## Localized search: non-English query demand and localized tool pages
