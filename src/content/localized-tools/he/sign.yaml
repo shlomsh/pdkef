@@ -29,12 +29,12 @@ reviewNotes: >-
   2026-09-11: reviewed the rendered page (desktop and mobile, RTL,
   editor-stays-English notice) and approved wording, terminology and
   typography for publish. 2026-09-12: re-approved on the rendered preview
-  after the ten FONT-08 font landings and the Turkish/Vietnamese copy fix.
-  The English edits were confined to languages-card notes (not hashed) and
-  to FAQ answers outside this page's translated subset (Hindi/Marathi,
-  Vietnamese, Bengali, Turkish); nothing this page renders changed. Hash
-  recomputed once on the merged tree, not per font.
-sourceHash: 'fnv1a64:67c1d643134a3d40'
+  after the eleven FONT-08 font landings and the Turkish/Vietnamese copy
+  fix. The English edits were confined to languages-card notes (not hashed)
+  and to FAQ answers outside this page's translated subset (Hindi/Marathi,
+  Vietnamese, Bengali, Turkish, Cyrillic/Thai); nothing this page renders
+  changed. Hash recomputed once on the merged tree, not per font.
+sourceHash: 'fnv1a64:d8a1a79d9606755f'
 seoTitle: 'חתימה על PDF בחינם - מילוי טפסים, בלי הרשמה | PDkef'
 seoDescription: >-
   חתמו על PDF באייפון, אנדרואיד או במחשב בחינם. הוסיפו טקסט, סימוני וי
