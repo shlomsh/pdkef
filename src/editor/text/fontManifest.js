@@ -420,6 +420,19 @@ export const FONT_MANIFEST = Object.freeze([
       "normal": "TiroTamil-Regular.ttf",
       "italic": "TiroTamil-Italic.ttf"
     }
+  },
+  {
+    "family": "Tiro Gurmukhi",
+    "kind": "text",
+    "styleTag": "serif",
+    "metrics": {
+      "ascent": 0.755,
+      "descent": 0.245
+    },
+    "faces": {
+      "normal": "TiroGurmukhi-Regular.ttf",
+      "italic": "TiroGurmukhi-Italic.ttf"
+    }
   }
 ]);
 

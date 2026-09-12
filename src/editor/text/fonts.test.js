@@ -344,7 +344,7 @@ describe('FONT_STYLE_TAGS', () => {
 
   it('the serif text fonts never compete: no two of them cover the same script', () => {
     // One serif per script family; a new serif face is added here by name.
-    const SERIF_FONTS = ['Tinos', 'Scheherazade New', 'Suranna', 'Tiro Tamil'];
+    const SERIF_FONTS = ['Tinos', 'Scheherazade New', 'Suranna', 'Tiro Tamil', 'Tiro Gurmukhi'];
     for (const family of SERIF_FONTS) expect(FONT_STYLE_TAGS[family]).toBe('serif');
     expect(Object.entries(FONT_STYLE_TAGS).filter(([, tag]) => tag === 'serif').map(([f]) => f).sort())
       .toEqual([...SERIF_FONTS].sort());

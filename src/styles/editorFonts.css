@@ -395,3 +395,15 @@
   font-weight: 400;
   src: url('/fonts/TiroTamil-Italic.ttf') format('truetype');
 }
+@font-face {
+  font-family: 'Tiro Gurmukhi';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/TiroGurmukhi-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Tiro Gurmukhi';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/TiroGurmukhi-Italic.ttf') format('truetype');
+}

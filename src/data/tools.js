@@ -108,7 +108,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 22 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 22 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 23 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 23 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -143,7 +143,7 @@ export const tools = [
         {
           native: 'ਪੰਜਾਬੀ 🇮🇳🇵🇰',
           name: 'Punjabi',
-          note: "Fill a Punjabi form and sign your name in Gurmukhi, in Mukta Mahee. Tippi and addak, the marks ਸਿੰਘ and ਪੱਗ depend on, sit where they belong, the pairin forms that hang below a letter are drawn as such, and ਿ is moved in front of its consonant for the download. The five letters Gurmukhi gives their own code points (ਖ਼, ਗ਼, ਜ਼, ੜ, ਫ਼) are all there. This is not the Noto face for the same reason Telugu is not: Noto Sans Gurmukhi breaks the download on most ordinary words, ਸਿੰਘ included. There is no handwriting-style Gurmukhi face yet, so a typed signature comes out upright rather than cursive.",
+          note: "Fill a Punjabi form and sign your name in Gurmukhi, in Mukta Mahee by default or Tiro Gurmukhi, a serif alternative, both checked against the same 500-case corpus. Tippi and addak, the marks ਸਿੰਘ and ਪੱਗ depend on, sit where they belong, the pairin forms that hang below a letter are drawn as such, and ਿ is moved in front of its consonant for the download, in either font. The five letters Gurmukhi gives their own code points (ਖ਼, ਗ਼, ਜ਼, ੜ, ਫ਼) are all there. Neither is the Noto face, for the same reason Telugu is not: Noto Sans Gurmukhi breaks the download on most ordinary words, ਸਿੰਘ included. There is no handwriting-style Gurmukhi face yet, so a typed signature comes out upright rather than cursive.",
         },
         {
           native: 'Русский, Українська 🇷🇺🇺🇦🇧🇬',

@@ -387,10 +387,11 @@ describe('Punjabi, Telugu and Tamil', () => {
     expect(note.toLowerCase()).toContain('no handwriting-style telugu face');
   });
 
-  it('Punjabi: exactly Mukta Mahee, and the card explains why it is not the Noto face', () => {
-    expect(LANGUAGE_COVERAGE.punjabi.full.map((f) => f.family)).toEqual(['Mukta Mahee']);
+  it('Punjabi: Mukta Mahee and Tiro Gurmukhi, and the card explains why neither is the Noto face', () => {
+    expect(LANGUAGE_COVERAGE.punjabi.full.map((f) => f.family)).toEqual(['Mukta Mahee', 'Tiro Gurmukhi']);
     const note = supportedNote('Punjabi');
     expect(note).toContain('Mukta Mahee');
+    expect(note).toContain('Tiro Gurmukhi');
     expect(note).toContain('Noto Sans Gurmukhi');
     expect(note.toLowerCase()).toContain('no handwriting-style gurmukhi face');
   });
