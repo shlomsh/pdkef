@@ -72,10 +72,16 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(note).toContain('ऱ');
   });
 
-  it('Thai: Mali and IBM Plex Sans Thai, matching LANGUAGE_COVERAGE.thai.full', () => {
-    expect(LANGUAGE_COVERAGE.thai.full.map((f) => f.family).sort()).toEqual(['IBM Plex Sans Thai', 'Mali']);
+  it('Thai: Mali, Sriracha and IBM Plex Sans Thai, matching LANGUAGE_COVERAGE.thai.full', () => {
+    // FONT-08b: Sriracha joined Mali as Thai's second handwriting face
+    // (2026-09-12) - screened per Guard A (fontkit-vs-browser advance
+    // parity), every Thai sample clean at 0.000px, landed with a recorded
+    // Latin-kerning delta (1.024px on "Sarah Levi") in the same debt class
+    // as Caveat's own known-red Latin case (SIGN-20).
+    expect(LANGUAGE_COVERAGE.thai.full.map((f) => f.family).sort()).toEqual(['IBM Plex Sans Thai', 'Mali', 'Sriracha']);
     const note = supportedNote('Thai');
     expect(note).toContain('Mali');
+    expect(note).toContain('Sriracha');
     expect(note).toContain('IBM Plex Sans Thai');
   });
 
@@ -201,15 +207,15 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(note).toContain('ۍ');
   });
 
-  it('Vietnamese: exactly Arimo, Tinos, Cousine, Mali, Amatic SC and Mynerve, matching LANGUAGE_COVERAGE.vietnamese.full', () => {
+  it('Vietnamese: exactly Arimo, Tinos, Cousine, Mali, Amatic SC, Mynerve and Sriracha, matching LANGUAGE_COVERAGE.vietnamese.full', () => {
     // FONT-08: Amatic SC's full Latin Extended coverage (measured against
     // the real bytes) turned out to include every Vietnamese tone-and-
     // diacritic vowel too, even though the font is a capitals-only display
     // face - a codepoint either has a glyph or it doesn't, regardless of the
     // letterform it draws.
-    expect(LANGUAGE_COVERAGE.vietnamese.full.map((f) => f.family).sort()).toEqual(['Amatic SC', 'Arimo', 'Cousine', 'Mali', 'Mynerve', 'Tinos']);
+    expect(LANGUAGE_COVERAGE.vietnamese.full.map((f) => f.family).sort()).toEqual(['Amatic SC', 'Arimo', 'Cousine', 'Mali', 'Mynerve', 'Sriracha', 'Tinos']);
     const note = supportedNote('Vietnamese');
-    for (const family of ['Arimo', 'Tinos', 'Cousine', 'Mali', 'Amatic SC', 'Mynerve']) {
+    for (const family of ['Arimo', 'Tinos', 'Cousine', 'Mali', 'Amatic SC', 'Mynerve', 'Sriracha']) {
       expect(note).toContain(family);
     }
   });

@@ -139,6 +139,18 @@ export const FONT_MANIFEST = Object.freeze([
     }
   },
   {
+    "family": "Sriracha",
+    "kind": "handwriting",
+    "styleTag": "handwriting",
+    "metrics": {
+      "ascent": 1.22,
+      "descent": 0.55
+    },
+    "faces": {
+      "normal": "Sriracha-Regular.ttf"
+    }
+  },
+  {
     "family": "Arimo",
     "kind": "text",
     "styleTag": "sans",

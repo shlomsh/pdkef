@@ -106,6 +106,12 @@
   src: url('/fonts/AmaticSC-Bold.ttf') format('truetype');
 }
 @font-face {
+  font-family: 'Sriracha';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Sriracha-Regular.ttf') format('truetype');
+}
+@font-face {
   font-family: 'Tillana';
   font-style: normal;
   font-weight: 400;

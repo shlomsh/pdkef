@@ -1587,6 +1587,7 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Pacifico (<https://fonts.google.com/specimen/Pacifico>)
 - Sacramento (<https://fonts.google.com/specimen/Sacramento>)
 - Amatic SC (<https://fonts.google.com/specimen/Amatic+SC>)
+- Sriracha (<https://fonts.google.com/specimen/Sriracha>)
 - Tillana (<https://fonts.google.com/specimen/Tillana>)
 - Mynerve (<https://fonts.google.com/specimen/Mynerve>)
 <!-- END GENERATED HANDWRITING FONT LIST -->

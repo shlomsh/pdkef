@@ -79,6 +79,12 @@ export const FONT_MANIFEST = [
     license: { version: '1.1', url: 'https://fonts.google.com/specimen/Amatic+SC', copyright: 'Copyright 2015 The Amatic SC Project Authors (https://github.com/googlefonts/AmaticSC)' },
   },
   {
+    family: 'Sriracha', kind: 'handwriting', styleTag: 'handwriting',
+    metrics: { ascent: 1.220, descent: 0.550 },
+    faces: normal('Sriracha-Regular.ttf'),
+    license: { version: '1.1', url: 'https://fonts.google.com/specimen/Sriracha', copyright: 'Copyright (c) 2015, Cadson Demak (info@cadsondemak.com), Copyright (c) 2014, Pablo Impallari (www.impallari.com|impallari@gmail.com)' },
+  },
+  {
     family: 'Arimo', kind: 'text', styleTag: 'sans',
     metrics: { ascent: 0.905, descent: 0.212 },
     faces: full('Arimo-Regular.ttf', 'Arimo-Bold.ttf', 'Arimo-Italic.ttf', 'Arimo-BoldItalic.ttf'),
