@@ -104,7 +104,7 @@ const {
         <div class="mt-4 flex flex-wrap gap-3">
           {languageRequestUrl && (
             <a
-              class="lang-cta lang-cta-primary inline-flex items-center gap-2 rounded-[var(--radius-pill)] bg-[var(--color-primary)] px-5 text-[0.875rem] font-semibold text-[var(--color-surface)] no-underline"
+              class="lang-cta lang-cta-primary inline-flex items-center gap-2 rounded-[var(--radius-pill)] bg-[var(--color-primary)] px-5 font-semibold text-[var(--color-surface)] no-underline"
               href={languageRequestUrl}
               target="_blank"
               rel="noopener noreferrer"
@@ -115,7 +115,7 @@ const {
           )}
           {contributeUrl && (
             <a
-              class="lang-cta lang-cta-secondary inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-5 text-[0.875rem] font-semibold text-[var(--color-text)] no-underline"
+              class="lang-cta lang-cta-secondary inline-flex items-center gap-2 rounded-[var(--radius-pill)] border bg-[var(--color-surface)] px-5 font-semibold text-[var(--color-text)] no-underline"
               href={contributeUrl}
               target="_blank"
               rel="noopener noreferrer"
@@ -142,7 +142,11 @@ const {
      ToolCrossLinks, DocumentationLanguageSelector, ...) stay Tailwind classes
      above; values below are copied from the Tailwind utilities they replace
      (`.rotate-45`, `.shadow-sm`, `.hover\:-translate-y-0.5`, ...) so nothing
-     here differs by a pixel. */
+     here differs by a pixel. The two CTA links' font size and the secondary
+     one's border color joined this file the same way (2026-09-12): both were
+     single-page utility weight on /sign/, and folding them into the `.lang-cta`/
+     `.lang-cta-secondary` rules already shipped here costs nothing extra - no
+     new selector, just two more declarations on ones already paid for. */
   .lang-support-summary::-webkit-details-marker { display: none; }
 
   .lang-chevron {
@@ -157,6 +161,7 @@ const {
 
   .lang-cta {
     padding-block: 0.625rem;
+    font-size: 0.875rem;
     transition-duration: 0.2s;
     transition-timing-function: var(--ease-out);
   }
@@ -170,6 +175,7 @@ const {
     box-shadow: var(--shadow-md);
   }
   .lang-cta-secondary {
+    border-color: var(--color-border-strong);
     transition-property: transform, border-color, background-color, color;
   }
   .lang-cta-secondary:hover {

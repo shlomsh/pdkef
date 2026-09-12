@@ -136,14 +136,18 @@ const iconPositionClasses = {
 )}
 
 <style>
-  /* Mask gradients per sketch, hand-written instead of the Tailwind
-     [mask-image:...] / [-webkit-mask-image:...] arbitrary-value pair: five
+  /* Mask gradients per sketch, hand-written instead of Tailwind's arbitrary-
+     value mask-image utility pair (standard and -webkit-prefixed): five
      sketch names share only three distinct gradients, but Tailwind compiled
      all three pairs (each escaped twice, once per prefix) into the tool
      family sheet regardless of which single sketch a given page renders -
      every page pays for the other two (check-css-duplication.js's
      duplication-factor ratchet). Values copied unchanged from the utilities
-     they replace. */
+     they replace. Do not write the old arbitrary-value syntax literally in
+     this comment again, even to describe it - Tailwind's scanner reads
+     comments too, and a bracketed `property:value` string here compiles a
+     real, permanently-dead utility rule into the shared sheet (found
+     2026-09-12, ~4.8KB of shipped bytes across the family for nothing). */
   [data-sketch='arcs'],
   [data-sketch='grid'] {
     mask-image: radial-gradient(135% 135% at 90% 8%, #000 34%, transparent 100%);

@@ -105,7 +105,6 @@
   .dropzone .dropzone-icon {
     grid-column: 1;
     grid-row: 1 / span 2;
-    align-self: center;
     margin-bottom: 0;
     width: 44px;
     height: 44px;
@@ -119,7 +118,12 @@
 
   /* The pill becomes the plain second line of the text stack - "one fewer
      bordered shape" on a box that already has a border of its own. Still an
-     inline-flex so its checkmark glyph and sentence stay on one baseline. */
+     inline-flex so its checkmark glyph and sentence stay on one baseline.
+     Color and weight are not overridden here (Shlomi, 2026-09-12: the line
+     reads as too muted at 400/gray on the first pass - "it is very important
+     and should be highlighted back a notch"), so the base rule's success
+     color and 600 weight carry through; only the pill's own shape (padding,
+     background, radius) is undone for the second-line layout. */
   .dropzone .privacy-line {
     grid-column: 2;
     grid-row: 2;
@@ -127,17 +131,13 @@
     margin: 0;
     padding: 0;
     background: none;
-    color: var(--color-muted);
     border-radius: 0;
     font-size: 0.85rem;
-    font-weight: 400;
-    letter-spacing: normal;
   }
 
   .dropzone .file-picker-button {
     grid-column: 3;
     grid-row: 1 / span 2;
-    align-self: center;
     margin-top: 0;
   }
 
