@@ -1589,8 +1589,10 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 
 The homepage hero demo additionally bundles `CaveatDemo-Bold.ttf`, a Latin-range subset of
 Caveat-Bold.ttf built by `scripts/fonts/build-demo-font-subset.py` and used only by that demo's
-caption. It is the same upstream font under the same license above, not a separately credited
-work; see `scripts/display-only-fonts.mjs` for the full accounting.
+caption, and `GveretLevinDemo-Regular.ttf`, a Hebrew-range subset of GveretLevin-Regular.ttf built
+by `scripts/fonts/build-hebrew-demo-font-subset.py` and used only by the Hebrew edition of that
+same caption. Both are the same upstream fonts under the same license above, not separately
+credited work; see `scripts/display-only-fonts.mjs` for the full accounting.
 
 ```
 This Font Software is licensed under the SIL Open Font License, Version 1.1.

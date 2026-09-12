@@ -35,4 +35,23 @@ export const DISPLAY_ONLY_FONTS = [
       "registered in src/editor/text/fontManifest.js and never handed to " +
       "signPdf, so it carries no export/shaping obligations of its own.",
   },
+  {
+    file: 'GveretLevinDemo-Regular.ttf',
+    // Already credited in THIRD_PARTY_LICENSES.md / /licenses/ (via
+    // FONT_MANIFEST, as the editor's Hebrew handwriting fallback face)
+    // whose OFL 1.1 grant covers this file too - it is the same upstream
+    // bytes, just subset.
+    sourceFamily: 'Gveret Levin',
+    reason:
+      "A Hebrew-range (niqqud, the Hebrew letters, Hebrew punctuation, " +
+      "Basic Latin, plus common punctuation) subset of the bundled editor " +
+      "face GveretLevin-Regular.ttf, built by " +
+      "scripts/fonts/build-hebrew-demo-font-subset.py. Declared under the " +
+      "CSS family name 'Gveret Levin Demo' in " +
+      "src/components/HeroDemo/HeroDemo.module.css and used only by the " +
+      "Hebrew edition of the homepage hero demo's handwritten caption " +
+      "(LOC-09), the Hebrew counterpart to 'Caveat Demo' above. Never " +
+      "registered in src/editor/text/fontManifest.js and never handed to " +
+      "signPdf, so it carries no export/shaping obligations of its own.",
+  },
 ];
