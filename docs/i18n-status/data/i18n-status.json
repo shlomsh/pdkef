@@ -279,9 +279,9 @@
         },
         {
           "metric": "GSC Indonesia, 3 months",
-          "value": "1 click / 151 impressions at 17.6; query table pending",
-          "gate": "in-language queries reaching the domain",
-          "verdict": "na",
+          "value": "1 click / 151 impressions at 17.6, all English blur plus two Indonesian merge leaks past position 70; no target-size query in either language",
+          "gate": "in-language queries reaching the domain (structurally unmeasurable until a page ranks)",
+          "verdict": "fail",
           "source": "LOC-14 § GSC"
         }
       ]
