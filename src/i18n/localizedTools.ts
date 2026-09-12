@@ -226,3 +226,22 @@ export async function getPublishedEditionPaths(locale: DocumentationLocaleId): P
     .map((variant) => variant.path)
     .sort();
 }
+
+/**
+ * LOC-05: the one decision ToolCrossLinks and RelatedGuides already make per
+ * card (`published.has(localizedHref) ? localizedHref : englishHref`, in
+ * reverse - here the caller already knows which href it landed on and only
+ * needs to know whether that's a fallback), pulled out so a third caller
+ * (a content page's primaryCta, which is authored as a plain href rather than
+ * a pageId a card can re-derive a localized variant from) asks the same
+ * question instead of re-deciding it its own way. English is trivially "in
+ * its own edition"; any other locale is in its edition only if `href` is one
+ * of that locale's own published paths from `getPublishedEditionPaths`.
+ */
+export function isPublishedEditionLink(
+  href: string,
+  locale: string,
+  editionPaths: readonly string[],
+): boolean {
+  return locale === 'en' || editionPaths.includes(href);
+}
