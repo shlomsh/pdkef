@@ -1,15 +1,17 @@
 ---
 id: "SEO-33"
-title: "Compress ranks page one and never says reduce, shrink, resize or size reducer, the words with the volume"
-status: "open"
+title: "Read 2026-10-08 · Compress ranks page one and never says reduce, shrink, resize or size reducer, the words with the volume"
+status: "blocked"
 priority: "P1"
-epic: "search-acquisition"
+epic: "seo-awaiting-read"
 phase: "near-term"
 depends_on: []
 legacy_state: "Open"
 ---
 
-# SEO-33 · Compress ranks page one and never says reduce, shrink, resize or size reducer, the words with the volume
+# SEO-33 · Read 2026-10-08 · Compress ranks page one and never says reduce, shrink, resize or size reducer, the words with the volume
+
+*Re-filed 2026-09-12* from `search-acquisition` into `seo-awaiting-read`, status `open` to `blocked`, read date 2026-10-08: shipped, indexing requested 2026-09-12.
 
 ## Why now (decided 2026-09-12)
 
@@ -81,3 +83,5 @@ seo/css/weight suites were left to the lead running them once for the whole work
 (`toolSourceHash`) to clear the freshness gate; the Hebrew wording itself was not touched, and
 `reviewNotes` records that pending Shlomi's review. Indexing request and position read stay open,
 per the acceptance section above.
+
+*2026-09-12:* deployed; indexing requested for `/compress/` in Search Console the same day. Hebrew edition re-reviewed and approved by Shlomi on the deployed site. Nothing left but the 2026-10-08 read.

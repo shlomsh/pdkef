@@ -11,14 +11,13 @@ toolSlug: 'compress'
 locale: 'he'
 status: 'published'
 reviewer: 'Shlomi Shemesh'
-reviewedAt: '2026-09-11'
+reviewedAt: '2026-09-12'
 reviewNotes: >-
-  Reviewed the rendered page (desktop and mobile, RTL) and approved the
-  wording, terminology and typography for publish. 2026-09-12: the English
-  entry gained reduce, shrink and resize vocabulary in the subhead, plus two
-  new FAQ entries (the resize sense and the size reducer sense). The Hebrew
-  wording is unchanged, pending Shlomi's review; the sourceHash below was
-  refreshed mechanically to clear the freshness gate.
+  2026-09-11: reviewed the rendered page (desktop and mobile, RTL) and
+  approved wording, terminology and typography for publish. 2026-09-12:
+  English gained reduce/shrink/resize vocabulary and two FAQ entries
+  (SEO-33); Hebrew wording unchanged; re-reviewed and approved by Shlomi on
+  the deployed site the same day.
 sourceHash: 'fnv1a64:0fc2eb8105152ecb'
 seoTitle: 'כיווץ קובץ PDF ל-100KB בחינם - הקטנת גודל | PDkef'
 seoDescription: >-

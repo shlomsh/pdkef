@@ -1,15 +1,17 @@
 ---
 id: "SEO-04"
-title: "Thirteen blur queries are on page one and earning zero clicks"
+title: "Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks"
 status: "blocked"
 priority: "P1"
-epic: "search-acquisition"
+epic: "seo-awaiting-read"
 phase: "quick-win"
 depends_on: []
 legacy_state: "Open"
 ---
 
-# SEO-04 · Thirteen blur queries are on page one and earning zero clicks
+# SEO-04 · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks
+
+*Re-filed 2026-09-12* from `search-acquisition` into `seo-awaiting-read`, read date 2026-10-08: shipped; verdict needs the indexed title to change first.
 
 ## Scope and acceptance
 

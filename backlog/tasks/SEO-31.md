@@ -1,15 +1,17 @@
 ---
 id: "SEO-31"
-title: "One content page on photo and signature size limits, as inbound content for /compress-image/"
-status: "in_progress"
+title: "Read 2026-11-07 · One content page on photo and signature size limits, as inbound content for /compress-image/"
+status: "blocked"
 priority: "P1"
-epic: "search-acquisition"
+epic: "seo-awaiting-read"
 phase: "near-term"
 depends_on: ["SEO-19"]
 legacy_state: "Open"
 ---
 
-# SEO-31 · One content page on photo and signature size limits, as inbound content for /compress-image/
+# SEO-31 · Read 2026-11-07 · One content page on photo and signature size limits, as inbound content for /compress-image/
+
+*Re-filed 2026-09-12* from `search-acquisition` into `seo-awaiting-read`, status `in_progress` to `blocked`, read date 2026-11-07: live; eight-week read.
 
 ## Why
 

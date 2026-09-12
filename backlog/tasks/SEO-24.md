@@ -1,15 +1,17 @@
 ---
 id: "SEO-24"
 title: "New tool: make a PDF look scanned"
-status: "open"
+status: "blocked"
 priority: "P3"
-epic: "search-acquisition"
+epic: "new-tools-gated"
 phase: "later"
 depends_on: ["SEO-06"]
 legacy_state: "Open"
 ---
 
 # SEO-24 · New tool: make a PDF look scanned
+
+*Re-filed 2026-09-12* from `search-acquisition` into `new-tools-gated`, status `open` to `blocked`.
 
 ## Scope and acceptance
 

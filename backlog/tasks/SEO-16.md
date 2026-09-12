@@ -3,13 +3,15 @@ id: "SEO-16"
 title: "Positioning review: Merge, Split and Protect & Unlock"
 status: "open"
 priority: "P3"
-epic: "search-acquisition"
+epic: "english-base"
 phase: "later"
 depends_on: ["SEO-11", "SEO-09", "SEO-10"]
 legacy_state: "Open"
 ---
 
 # SEO-16 · Positioning review: Merge, Split and Protect & Unlock
+
+*Re-filed 2026-09-12* from `search-acquisition` into `english-base`: after SEO-35, the merge half of this review is settled: say it has only the general claims and stop.
 
 ## Scope and acceptance
 

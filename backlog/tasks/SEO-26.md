@@ -3,13 +3,15 @@ id: "SEO-26"
 title: "Say what PDkef does not do, and why, on a page that already exists"
 status: "open"
 priority: "P3"
-epic: "search-acquisition"
+epic: "english-base"
 phase: "later"
 depends_on: []
 legacy_state: "Open"
 ---
 
 # SEO-26 · Say what PDkef does not do, and why, on a page that already exists
+
+*Re-filed 2026-09-12* from `search-acquisition` into `english-base`: a section on an existing page, no new URL.
 
 ## Scope and acceptance
 

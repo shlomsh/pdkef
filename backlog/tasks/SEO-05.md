@@ -1,15 +1,17 @@
 ---
 id: "SEO-05"
-title: "The 100KB cluster ranks and does not convert, and the page implies something untrue"
+title: "Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue"
 status: "blocked"
 priority: "P1"
-epic: "search-acquisition"
+epic: "seo-awaiting-read"
 phase: "quick-win"
 depends_on: []
 legacy_state: "Open"
 ---
 
-# SEO-05 · The 100KB cluster ranks and does not convert, and the page implies something untrue
+# SEO-05 · Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue
+
+*Re-filed 2026-09-12* from `search-acquisition` into `seo-awaiting-read`, read date 2026-10-08: shipped; same recrawl exposure as SEO-04.
 
 ## Scope and acceptance
 

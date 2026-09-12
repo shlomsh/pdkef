@@ -1,15 +1,17 @@
 ---
 id: "SEO-20"
 title: "New tool: crop a PDF, the only one of these with nothing to apologise for"
-status: "open"
+status: "blocked"
 priority: "P2"
-epic: "search-acquisition"
+epic: "new-tools-gated"
 phase: "near-term"
 depends_on: ["SEO-06"]
 legacy_state: "Open"
 ---
 
 # SEO-20 · New tool: crop a PDF, the only one of these with nothing to apologise for
+
+*Re-filed 2026-09-12* from `search-acquisition` into `new-tools-gated`, status `open` to `blocked`: first tool after the gate.
 
 ## Scope and acceptance
 
