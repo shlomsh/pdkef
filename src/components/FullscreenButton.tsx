@@ -1,12 +1,22 @@
 import styles from './SignTool/SignToolbar.module.css';
 
-export default function FullscreenButton({ isFullscreen, toggleFullscreen }: { isFullscreen: boolean; toggleFullscreen: () => void }) {
+export default function FullscreenButton({
+  isFullscreen,
+  toggleFullscreen,
+  label = 'Full screen',
+  exitLabel = 'Exit full screen',
+}: {
+  isFullscreen: boolean;
+  toggleFullscreen: () => void;
+  label?: string;
+  exitLabel?: string;
+}) {
   return (
     <button
       type="button"
       className={styles.button}
       onClick={toggleFullscreen}
-      title={isFullscreen ? 'Exit full screen' : 'Full screen'}
+      title={isFullscreen ? exitLabel : label}
       data-label-priority="1"
     >
       {isFullscreen ? (
@@ -24,7 +34,7 @@ export default function FullscreenButton({ isFullscreen, toggleFullscreen }: { i
           <path d="M3 16v3a2 2 0 0 0 2 2h3" />
         </svg>
       )}
-      <span className={styles.label}>{isFullscreen ? 'Exit full screen' : 'Full screen'}</span>
+      <span className={styles.label}>{isFullscreen ? exitLabel : label}</span>
     </button>
   );
 }

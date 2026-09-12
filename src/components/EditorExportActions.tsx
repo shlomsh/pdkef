@@ -40,6 +40,18 @@ export interface EditorExportActionsProps {
    * export is blocked. Sign wires this to ExportReadinessNotice; Redact has
    * no such notice and leaves it undefined. */
   describedBy?: string;
+  /** LOC-09 stage 1: toolbar-variant-only label/bidi overrides, read from
+   * src/i18n/toolMessages.ts's SignMessages by SignToolbar.tsx. Default to
+   * this file's own long-standing English literals, so Redact (which passes
+   * none of these) and the completion variant (out of scope this stage, and
+   * which keeps its own hardcoded `dir="ltr" lang="en"` wrapper) are
+   * unaffected. Applied to the two buttons directly rather than a wrapping
+   * element, since the toolbar variant renders them as a bare Fragment on
+   * purpose - see the comment on the `isToolbar` return below. */
+  shareLabel?: string;
+  downloadLabel?: string;
+  dir?: 'ltr' | 'rtl';
+  lang?: string;
 }
 
 function ShareReadyIcon() {
@@ -84,6 +96,10 @@ export default function EditorExportActions({
   downloadTitle,
   shareTitle,
   describedBy,
+  shareLabel = 'Share',
+  downloadLabel = 'Download',
+  dir = 'ltr',
+  lang = 'en',
 }: EditorExportActionsProps) {
   const isToolbar = variant === 'toolbar';
 
@@ -100,9 +116,11 @@ export default function EditorExportActions({
       disabled={disabled}
       title={shareTitle}
       aria-describedby={describedBy}
+      dir={isToolbar ? dir : undefined}
+      lang={isToolbar ? lang : undefined}
     >
       {shareReady ? <ShareReadyIcon /> : <SharePendingIcon />}
-      {isToolbar ? <span className={styles.label}>Share</span> : 'Share'}
+      {isToolbar ? <span className={styles.label}>{shareLabel}</span> : 'Share'}
     </button>
   );
 
@@ -120,9 +138,11 @@ export default function EditorExportActions({
       disabled={disabled}
       title={downloadTitle}
       aria-describedby={describedBy}
+      dir={isToolbar ? dir : undefined}
+      lang={isToolbar ? lang : undefined}
     >
       {isToolbar && <DownloadIcon />}
-      {isToolbar ? <span className={styles.label}>Download</span> : 'Download'}
+      {isToolbar ? <span className={styles.label}>{downloadLabel}</span> : 'Download'}
     </button>
   );
 

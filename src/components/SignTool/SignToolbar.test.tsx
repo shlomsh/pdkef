@@ -8,6 +8,7 @@ import ProductionSignToolbar from './SignToolbar.tsx';
 import { SignToolProvider, useSignTool, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
 import type { SignToolType } from '../../editor/model/editorModel.ts';
 import { SavedSignaturesContext } from './SavedSignaturesContext.tsx';
+import { hebrewSignMessages } from '../../i18n/toolMessages';
 import styles from './SignToolbar.module.css';
 import toolShellStyles from '../ToolShell.module.css';
 
@@ -1059,5 +1060,44 @@ describe('SignToolbar Component', () => {
     expect(radiogroup).not.toBeNull();
     expect(radiogroup.getAttribute('aria-label')).toBe('View density');
     expect(radiogroup.querySelectorAll('[role="radio"]')).toHaveLength(3);
+  });
+
+  // LOC-09 stage 1: the always-visible toolbar row and its status line read
+  // from a `messages` catalogue now (src/i18n/toolMessages.ts's SignMessages).
+  // Every test above mounts with no `messages` prop and keeps asserting the
+  // English literals; this is the one test proving the Hebrew edition is
+  // actually wired up, not just defined in the catalogue.
+  it('renders the toolbar row and idle tip in Hebrew when given the Hebrew catalogue', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    act(() => {
+      render(
+        <SignToolProvider>
+          <SignToolbar
+            setAnnouncement={() => {}}
+            setDialogOpen={() => {}}
+            setUndoModalOpen={() => {}}
+            actionHistory={[]}
+            toggleFullscreen={() => {}}
+            isFullscreen={false}
+            onSavePdf={() => {}}
+            messages={hebrewSignMessages}
+          />
+        </SignToolProvider>,
+        container
+      );
+    });
+
+    const toolbar = query<HTMLElement>(container, `.${styles.toolbar}`);
+    expect(toolbar.getAttribute('dir')).toBe('rtl');
+    expect(toolbar.getAttribute('lang')).toBe('he');
+    expect(toolbar.getAttribute('aria-label')).toBe(hebrewSignMessages.toolbarLabel);
+
+    const textBtn = findExactButton(toolbar, hebrewSignMessages.textButton);
+    expect(textBtn).not.toBeUndefined();
+
+    const tip = query(container, `.${styles.help}`);
+    expect(tip.textContent).toBe(hebrewSignMessages.tipIdle);
   });
 });

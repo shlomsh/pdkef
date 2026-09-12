@@ -394,9 +394,184 @@ const compressMessages: Partial<Record<DocumentationLocaleId, CompressMessages>>
   he: hebrewCompressMessages,
 };
 
+/**
+ * LOC-09 stage 1: the Sign editor's always-visible toolbar row and its status
+ * line only (docs/sign-tool-product-decisions.md's LOC-02 pilot decision kept
+ * the editor English; this is the first crack in that, scoped deliberately
+ * narrow). Popovers, dialogs, element controls and screen-reader announcements
+ * are NOT covered by this catalogue yet and stay English - `toolActive`,
+ * `signToolActive`, `toolLocked` and `toolUnlocked` are defined here so a
+ * later stage has them ready, but SignToolbar.tsx's `setAnnouncement()` calls
+ * do not read them yet.
+ *
+ * `lang`/`dir` let the toolbar's own bidi-isolation wrapper (added in
+ * 5a1af03 as a hardcoded `dir="ltr" lang="en"`, back when the whole editor
+ * was English) follow the catalogue instead: 'ltr'/'en' here, 'rtl'/'he' in
+ * the Hebrew edition, since a Hebrew toolbar should not force its own English
+ * bidi isolation on itself.
+ */
+export interface SignMessages {
+  toolbarLabel: string;
+  textButton: string;
+  symbolsButton: string;
+  shapesButton: string;
+  whiteoutButton: string;
+  signButton: string;
+  newSignatureButton: string;
+  undoButton: string;
+  undoTitle: string;
+  feedbackButton: string;
+  feedbackTitle: string;
+  shareButton: string;
+  downloadButton: string;
+  textAction: string;
+  symbolAction: string;
+  signatureAction: string;
+  whiteoutAction: string;
+  ellipseAction: string;
+  rectangleAction: string;
+  lineAction: string;
+  shapesHintAction: string;
+  tipIdle: string;
+  /** No leading space - EditorToolStatus's idle tip composes `${tipIdle} ${tipEditText}` itself. */
+  tipEditText: string;
+  keepOn: string;
+  keepOnTitleOn: string;
+  keepOnTitleOff: string;
+  hintEsc: string;
+  hintDoubleClick: string;
+  armHint: string;
+  /** Not yet wired into SignToolbar.tsx's setAnnouncement() calls - see this
+   * catalogue's header comment. */
+  toolActive: string;
+  signToolActive: string;
+  toolLocked: string;
+  toolUnlocked: string;
+  selectSignatureTitle: string;
+  downloadTitle: string;
+  shareTitleReady: string;
+  shareTitleUnsaved: string;
+  exportBlockedTitleOne: string;
+  exportBlockedTitleOther: string;
+  viewRelaxed: string;
+  viewCondensed: string;
+  viewFullscreen: string;
+  viewExitFullscreen: string;
+  viewDensityLabel: string;
+  lang: string;
+  dir: 'ltr' | 'rtl';
+}
+
+const englishSignMessages: SignMessages = {
+  toolbarLabel: 'PDF annotations',
+  textButton: 'Text',
+  symbolsButton: 'Symbols',
+  shapesButton: 'Shapes',
+  whiteoutButton: 'Whiteout',
+  signButton: 'Sign',
+  newSignatureButton: 'New Signature',
+  undoButton: 'Undo',
+  undoTitle: 'Undo changes',
+  feedbackButton: 'Feedback',
+  feedbackTitle: 'Report a bug or share feedback about Sign & Fill PDF (opens GitHub)',
+  shareButton: 'Share',
+  downloadButton: 'Download',
+  textAction: 'Click on a page to place a text box.',
+  symbolAction: 'Click on a page to place a symbol.',
+  signatureAction: 'Click on a page to place your signature.',
+  whiteoutAction: 'Click and drag on a page to draw a whiteout box.',
+  ellipseAction: 'Click and drag on a page to draw an ellipse.',
+  rectangleAction: 'Click and drag on a page to draw a rectangle.',
+  lineAction: 'Click and drag on a page to draw a line.',
+  shapesHintAction: 'Draw an ellipse, rectangle, or line.',
+  tipIdle: 'Tip: pick a tool to start.',
+  tipEditText: 'Double-click a text box to edit it.',
+  keepOn: 'Keep {button} on',
+  keepOnTitleOn: 'Switch off to go back to one at a time. {button} stays selected either way.',
+  keepOnTitleOff: 'Keep {button} on to use it several times. Double-clicking {button} does the same.',
+  hintEsc: 'or press Esc to stop entirely',
+  hintDoubleClick: 'or double-click {button}',
+  armHint: 'Double-click to keep {label} on',
+  toolActive: '{button} tool active. {action}',
+  signToolActive: 'Sign tool active. {action}',
+  toolLocked: '{button} stays on after each one. Switch it off, or press Escape, when you are done.',
+  toolUnlocked: '{button} is back to one at a time.',
+  selectSignatureTitle: 'Click here to select or create a signature',
+  downloadTitle: 'Save your changes and download the signed PDF',
+  shareTitleReady: 'Share the signed PDF',
+  shareTitleUnsaved: 'Save your changes to share the signed PDF',
+  exportBlockedTitleOne: '{count} text field needs attention before download or sharing',
+  exportBlockedTitleOther: '{count} text fields need attention before download or sharing',
+  viewRelaxed: 'Relaxed view',
+  viewCondensed: 'Condensed view',
+  viewFullscreen: 'Full screen',
+  viewExitFullscreen: 'Exit full screen',
+  viewDensityLabel: 'View density',
+  lang: 'en',
+  dir: 'ltr',
+};
+
+// LOC-09 stage 1: an AI draft, not yet reviewed by a native speaker - the same
+// caveat hebrewMergeMessages and hebrewCompressMessages above carry. Pending
+// Shlomi's read-through.
+const hebrewSignMessages: SignMessages = {
+  toolbarLabel: 'הערות PDF',
+  textButton: 'טקסט',
+  symbolsButton: 'סימנים',
+  shapesButton: 'צורות',
+  whiteoutButton: 'טיפקס',
+  signButton: 'חתימה',
+  newSignatureButton: 'חתימה חדשה',
+  undoButton: 'ביטול פעולה',
+  undoTitle: 'ביטול השינויים האחרונים',
+  feedbackButton: 'משוב',
+  feedbackTitle: 'דיווח על באג או שיתוף משוב על כלי החתימה והמילוי של PDF (נפתח ב-GitHub)',
+  shareButton: 'שיתוף',
+  downloadButton: 'הורדה',
+  textAction: 'לחצו על עמוד כדי למקם תיבת טקסט.',
+  symbolAction: 'לחצו על עמוד כדי למקם סימן.',
+  signatureAction: 'לחצו על עמוד כדי למקם את החתימה שלכם.',
+  whiteoutAction: 'לחצו וגררו על עמוד כדי לצייר תיבת טיפקס.',
+  ellipseAction: 'לחצו וגררו על עמוד כדי לצייר אליפסה.',
+  rectangleAction: 'לחצו וגררו על עמוד כדי לצייר מלבן.',
+  lineAction: 'לחצו וגררו על עמוד כדי לצייר קו.',
+  shapesHintAction: 'ציירו אליפסה, מלבן או קו.',
+  tipIdle: 'טיפ: בחרו כלי כדי להתחיל.',
+  tipEditText: 'לחצו לחיצה כפולה על תיבת טקסט כדי לערוך אותה.',
+  keepOn: 'להשאיר את {button} פעיל',
+  keepOnTitleOn: 'כבו כדי לחזור לפעולה חד-פעמית. {button} נשאר מסומן בכל מקרה.',
+  keepOnTitleOff: 'השאירו את {button} פעיל כדי להשתמש בו כמה פעמים. לחיצה כפולה על {button} עושה את אותו הדבר.',
+  hintEsc: 'או לחצו Esc כדי לעצור לגמרי',
+  hintDoubleClick: 'או לחצו לחיצה כפולה על {button}',
+  armHint: 'לחיצה כפולה כדי להשאיר את {label} פעיל',
+  toolActive: 'הכלי {button} פעיל. {action}',
+  signToolActive: 'כלי החתימה פעיל. {action}',
+  toolLocked: '{button} יישאר פעיל אחרי כל שימוש. כבו אותו, או לחצו Escape, כשתסיימו.',
+  toolUnlocked: '{button} חזר לפעולה חד-פעמית.',
+  selectSignatureTitle: 'לחצו כאן כדי לבחור או ליצור חתימה',
+  downloadTitle: 'שמרו את השינויים והורידו את ה-PDF החתום',
+  shareTitleReady: 'שתפו את ה-PDF החתום',
+  shareTitleUnsaved: 'שמרו את השינויים כדי לשתף את ה-PDF החתום',
+  exportBlockedTitleOne: '{count} שדה טקסט דורש התייחסות לפני הורדה או שיתוף',
+  exportBlockedTitleOther: '{count} שדות טקסט דורשים התייחסות לפני הורדה או שיתוף',
+  viewRelaxed: 'תצוגה מרווחת',
+  viewCondensed: 'תצוגה מצומצמת',
+  viewFullscreen: 'מסך מלא',
+  viewExitFullscreen: 'יציאה ממסך מלא',
+  viewDensityLabel: 'צפיפות התצוגה',
+  lang: 'he',
+  dir: 'rtl',
+};
+
+const signMessages: Partial<Record<DocumentationLocaleId, SignMessages>> = {
+  en: englishSignMessages,
+  he: hebrewSignMessages,
+};
+
 const toolMessageTables: Record<string, Partial<Record<DocumentationLocaleId, unknown>>> = {
   merge: mergeMessages,
   compress: compressMessages,
+  sign: signMessages,
 };
 
 export function getToolMessages(toolSlug: string, locale: DocumentationLocaleId): unknown | undefined {
@@ -700,6 +875,8 @@ export {
   hebrewMergeMessages,
   englishCompressMessages,
   hebrewCompressMessages,
+  englishSignMessages,
+  hebrewSignMessages,
   englishShellMessages,
   hebrewShellMessages,
   englishFileDropzoneMessages,

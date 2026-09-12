@@ -1,4 +1,5 @@
 import styles from './SignTool/SignToolbar.module.css';
+import { formatMessage } from '../i18n/toolMessages';
 
 /**
  * The editor hint line, shared by the Sign and Redact toolbars: what the armed
@@ -45,20 +46,49 @@ import styles from './SignTool/SignToolbar.module.css';
  * @param {function} props.onToggleKeepOn - flip that setting, leaving the tool armed either way
  * @param {any} props.idle - what to say when no tool is armed
  */
-export default function EditorToolStatus({ copy, locked, onToggleKeepOn, idle }: { copy: any; locked: boolean; onToggleKeepOn: () => void; idle: string }) {
+export default function EditorToolStatus({
+  copy,
+  locked,
+  onToggleKeepOn,
+  idle,
+  // LOC-09 stage 1: individual label props, not a whole message catalogue -
+  // this component is shared with Redact, which stays English by not passing
+  // any of these, so every default here is the exact literal this file used
+  // to hardcode. SignToolbar.tsx is the only caller passing its own values,
+  // read from src/i18n/toolMessages.ts's SignMessages.
+  keepOnLabel = 'Keep {button} on',
+  keepOnTitleOn = 'Switch off to go back to one at a time. {button} stays selected either way.',
+  keepOnTitleOff = 'Keep {button} on to use it several times. Double-clicking {button} does the same.',
+  hintEsc = 'or press Esc to stop entirely',
+  hintDoubleClick = 'or double-click {button}',
+  lang = 'en',
+  dir = 'ltr',
+}: {
+  copy: any;
+  locked: boolean;
+  onToggleKeepOn: () => void;
+  idle: string;
+  keepOnLabel?: string;
+  keepOnTitleOn?: string;
+  keepOnTitleOff?: string;
+  hintEsc?: string;
+  hintDoubleClick?: string;
+  lang?: string;
+  dir?: 'ltr' | 'rtl';
+}) {
   // No tool armed: standing advice, and deliberately not a live region. It is
   // not reporting a change, and announcing it on every state change would talk
   // over whatever actually did change.
   if (!copy) {
     return (
-      <div className={styles.help} dir="ltr" lang="en">
+      <div className={styles.help} dir={dir} lang={lang}>
         <span>{idle}</span>
       </div>
     );
   }
 
   return (
-    <div className={styles.help} role="status" dir="ltr" lang="en">
+    <div className={styles.help} role="status" dir={dir} lang={lang}>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="16" x2="12" y2="12" />
@@ -77,14 +107,10 @@ export default function EditorToolStatus({ copy, locked, onToggleKeepOn, idle }:
         className={`${styles['status-action']}${locked ? ` ${styles['status-action-on']}` : ''}`}
         onClick={onToggleKeepOn}
         aria-checked={locked}
-        title={
-          locked
-            ? `Switch off to go back to one at a time. ${copy.button} stays selected either way.`
-            : `Keep ${copy.button} on to use it several times. Double-clicking ${copy.button} does the same.`
-        }
+        title={formatMessage(locked ? keepOnTitleOn : keepOnTitleOff, { button: copy.button })}
       >
         <span className={styles['status-switch']} aria-hidden="true" />
-        Keep {copy.button} on
+        {formatMessage(keepOnLabel, { button: copy.button })}
       </button>
       {/* Shown only on a device that has the gesture it names: a double-tap is
           the browser's zoom and a phone has no Escape key, so on touch both of
@@ -104,10 +130,10 @@ export default function EditorToolStatus({ copy, locked, onToggleKeepOn, idle }:
           span and needs no measured width to keep in sync. */}
       <span className={styles['status-hint']}>
         <span className={locked ? styles['status-hint-shown'] : styles['status-hint-spare']}>
-          or press Esc to stop entirely
+          {hintEsc}
         </span>
         <span className={locked ? styles['status-hint-spare'] : styles['status-hint-shown']}>
-          or double-click {copy.button}
+          {formatMessage(hintDoubleClick, { button: copy.button })}
         </span>
       </span>
     </div>

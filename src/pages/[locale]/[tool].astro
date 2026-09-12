@@ -68,6 +68,16 @@ const islandLocalized = LOCALIZED_TOOL_ISLANDS.has(toolSlug);
 const shellMessages = getShellMessages(context.effectiveLocale);
 const toolMessages = islandLocalized ? getToolMessages(toolSlug, context.effectiveLocale) : undefined;
 
+// LOC-09 stage 1: Sign's toolbar row and status line are localized, but the
+// rest of the editor (popovers, dialogs, element controls, announcements)
+// is not yet - so 'sign' deliberately stays OUT of LOCALIZED_TOOL_ISLANDS
+// above, which also keeps the "controls are still in English" disclosure and
+// the island's language-purity exemption both true. `signMessages` is read
+// directly instead of through the guarded `toolMessages`, and threaded to
+// PdfSignTool on its own. 'sign' joins LOCALIZED_TOOL_ISLANDS once the
+// popovers, dialogs and element controls are localized too.
+const signMessages = getToolMessages('sign', context.effectiveLocale);
+
 // The island is localized too, or the page is not (LOC-02.md). A published
 // page claiming a localized island but missing that locale's reviewed
 // message catalogue is a build error, not a silent English fallback.
@@ -94,5 +104,5 @@ if (context.entry && (context.entry as any).data?.status === 'published' && isla
 >
   {toolSlug === 'merge' && <PdfMergeTool client:load messages={toolMessages as any} shellMessages={shellMessages} />}
   {toolSlug === 'compress' && <PdfCompressTool client:load messages={toolMessages as any} shellMessages={shellMessages} />}
-  {toolSlug === 'sign' && <PdfSignTool client:load shellMessages={shellMessages} />}
+  {toolSlug === 'sign' && <PdfSignTool client:load shellMessages={shellMessages} messages={signMessages as any} />}
 </ToolPageLayout>

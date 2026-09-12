@@ -11,9 +11,20 @@ import styles from './EditorPageHeader.module.css';
  * unconditionally so a page doesn't shift up and down as its last element is
  * added or removed - the button is what appears and disappears.
  */
-export default function EditorPageHeader({ pageNumber, onClear, clearTitle }: { pageNumber: number; onClear: (() => void) | null; clearTitle?: string }) {
+export default function EditorPageHeader({
+  pageNumber,
+  onClear,
+  clearTitle,
+  // LOC-09 stage 1: "Page N" and "Clear page" stay English this stage (not in
+  // src/i18n/toolMessages.ts's SignMessages yet), but the bidi-isolation
+  // wrapper (5a1af03) can already follow the page's own catalogue once one
+  // exists - PdfWorkspace.tsx (Sign) passes lang/dir from SignMessages;
+  // PdfRedactTool.tsx passes neither, so it keeps this exact default.
+  lang = 'en',
+  dir = 'ltr',
+}: { pageNumber: number; onClear: (() => void) | null; clearTitle?: string; lang?: string; dir?: 'ltr' | 'rtl' }) {
   return (
-    <div className={styles['page-header']} data-editor-page-header dir="ltr" lang="en">
+    <div className={styles['page-header']} data-editor-page-header dir={dir} lang={lang}>
       <span className={styles['page-number']} data-editor-page-number>Page {pageNumber}</span>
       {onClear && (
         <button

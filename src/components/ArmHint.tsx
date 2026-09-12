@@ -14,6 +14,7 @@ import {
   autoUpdate
 } from '@floating-ui/react';
 import styles from './SignTool/SignToolbar.module.css';
+import { formatMessage } from '../i18n/toolMessages';
 
 /**
  * How long a pointer must rest on a tool button before its tooltip appears.
@@ -29,9 +30,7 @@ import styles from './SignTool/SignToolbar.module.css';
  */
 export const HOVER_OPEN_DELAY_MS = 1000;
 
-function armHintText(label: string) {
-  return `Double-click to keep ${label} on`;
-}
+const DEFAULT_HINT_TEMPLATE = 'Double-click to keep {label} on';
 
 /**
  * The one hover tooltip an armable tool button gets - what it does, and the
@@ -92,14 +91,19 @@ function armHintText(label: string) {
  * @param {string} props.action - what the tool does, e.g. "Draw a whiteout box to erase content."
  * @param {boolean} props.locked - true when there is nothing left to teach for this tool
  * @param {string|null} props.autoShowTool - the tool id to force-show for, or null
+ * @param {string} [props.hintTemplate] - the shortcut sentence, with a `{label}`
+ *   placeholder - defaults to the English "Double-click to keep {label} on"
+ *   (LOC-09 stage 1: SignToolbar.tsx passes its own catalogue's `armHint`;
+ *   Redact does not, and keeps this exact default).
  * @param {import('preact').VNode} props.children - the single button (or wrapper) this hint belongs to
  */
-export default function ArmHint({ tool, label, action, locked, autoShowTool, children }: {
+export default function ArmHint({ tool, label, action, locked, autoShowTool, hintTemplate = DEFAULT_HINT_TEMPLATE, children }: {
   tool: string;
   label: string;
   action: string;
   locked: boolean;
   autoShowTool: string | null;
+  hintTemplate?: string;
   children?: import('preact').ComponentChildren;
 }) {
   const [canHover] = useState(
@@ -169,7 +173,7 @@ export default function ArmHint({ tool, label, action, locked, autoShowTool, chi
           >
             {action}
             <br />
-            {armHintText(label)}
+            {formatMessage(hintTemplate, { label })}
           </div>,
           portalTarget
         )}

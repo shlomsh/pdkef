@@ -25,6 +25,7 @@ import {
   captureElementSnapshots,
   type HistoryLogger,
 } from '../../editor/model/actionHistory.ts';
+import { englishSignMessages, type SignMessages } from '../../i18n/toolMessages';
 import pdfToolStyles from '../PdfTool.module.css';
 import workspaceStyles from './Workspace.module.css';
 
@@ -54,7 +55,8 @@ export default function PdfWorkspace({
   placeSignatureAt,
   canSharePdf = false,
   shareReady = false,
-  errorDetail = null
+  errorDetail = null,
+  messages,
 }: {
   status: string;
   isPseudoFullscreen: boolean;
@@ -86,7 +88,14 @@ export default function PdfWorkspace({
   shareReady?: boolean;
   /** Overrides the default error copy below with a specific, nameable reason. */
   errorDetail?: string | null;
+  /** LOC-09 stage 1: the toolbar row's own catalogue, passed straight through
+   * from PdfSignTool.tsx to SignToolbar.tsx - see src/i18n/toolMessages.ts's
+   * SignMessages. Optional and English-default so PdfWorkspace.test.tsx (which
+   * never passes it) is unaffected. Also supplies EditorPageHeader's lang/dir
+   * (bidi-isolation wrapper, 5a1af03) for each rendered page. */
+  messages?: Partial<SignMessages>;
 }) {
+  const t: SignMessages = { ...englishSignMessages, ...messages };
   const placementGestureRef = useRef<(() => void) | null>(null);
   useEffect(() => () => placementGestureRef.current?.(), []);
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
@@ -270,6 +279,7 @@ export default function PdfWorkspace({
             exportBlocked={exportReadiness.blocked}
             exportIssueCount={exportReadiness.blockingFieldCount}
             onReviewExportIssues={reviewExportIssues}
+            messages={messages}
           />
 
           {/* PDF Pages rendering container */}
@@ -285,6 +295,8 @@ export default function PdfWorkspace({
                     pageNumber={pageIdx + 1}
                     onClear={pageElements.length > 0 ? () => clearPage(pageIdx) : null}
                     clearTitle="Clear all annotations on this page"
+                    lang={t.lang}
+                    dir={t.dir}
                   />
                   <div
                     ref={(el) => { pageWrapperRefs.current[pageIdx] = el; }}
