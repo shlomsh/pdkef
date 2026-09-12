@@ -1421,17 +1421,35 @@
   /* Hebrew edition: 'Gveret Levin Demo' (see its @font-face above) in place
      of 'Caveat Demo', the same swap the arrow makes for direction. Gveret
      Levin's letterforms read smaller than Caveat's at an equal font-size (no
-     ascenders/x-height the way Latin cursive has), so the size is bumped up
-     to read as the same visual weight on the page rather than a shrunken
-     afterthought; letter-spacing is removed because Hebrew handwriting is
-     already unjoined letter-to-letter, and Caveat's tracking was there to
-     keep Latin cursive from crowding, which does not apply here. */
+     ascenders/x-height the way Latin cursive has); letter-spacing is removed
+     because Hebrew handwriting is already unjoined letter-to-letter, and
+     Caveat's tracking was there to keep Latin cursive from crowding, which
+     does not apply here.
+
+     Shlomi's read (2026-09-12, /he/ desktop): the note looked bold. It
+     already renders at font-weight: 400 with the real face loaded (measured
+     at 1400 and 1024px) - Gveret Levin ships one weight, so there is no
+     lighter hand face to switch to (Playpen Sans Hebrew was dropped
+     2026-08-23), and the face's own stroke is simply heavier than Caveat's.
+     The original size bump here matched Caveat's *visual weight*; given the
+     stroke itself can't get lighter, that made the note look bolder still,
+     not equivalent. So the note now goes the other way on purpose: one
+     notch smaller than the base `.caption` clamp above (not bumped past it
+     the way the LTR edition's `.caption` override is), plus `--color-muted`
+     in place of the inherited `--color-annotation`, so the ink itself is
+     lighter and the size stays legible rather than a shrunken afterthought.
+     `--color-muted` is scoped to `--home-workspace` #4a6980 inside
+     `.home-hero`/`.home-tour` (HomePageLayout.astro), not the global
+     #4a6570; contrast against `--home-workspace` (#e4f5f7) is ~5.16:1,
+     asserted >= 4.5 by the "refreshed homepage foregrounds" case in
+     src/styles/colorContrast.test.js. */
   .caption-hebrew {
     font-family: 'Gveret Levin Demo', 'Times New Roman', serif;
     font-weight: 400;
-    font-size: clamp(1.5rem, 1.8vw, 2rem);
+    font-size: clamp(1.3rem, 1.6vw, 1.75rem);
     letter-spacing: normal;
     line-height: 1.3;
+    color: var(--color-muted);
   }
 
   .scroll-hint {
