@@ -510,6 +510,7 @@ export default function PdfCompressTool({
       multiple={false}
       accept="application/pdf,image/jpeg,image/png"
       emptyStateMessage={emptyStateMessage ?? t.dropHint}
+      file={file}
       fileLabel={file?.name}
       fileMeta={describeFile(file)}
       hasWork={status === 'done'}

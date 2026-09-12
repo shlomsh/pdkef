@@ -81,6 +81,17 @@
   box-shadow: var(--shadow-xs);
 }
 
+/* Set by FilePreview.tsx once a real thumbnail of the loaded file (an image's
+   own bytes, or a PDF's page-1 render) is ready. Same box, same footprint as
+   the plain glyph above - only the fill and an inset ring change, so nothing
+   shifts when a thumbnail swaps in. `overflow: hidden` clips the image to the
+   box's own rounded corners instead of giving it a radius of its own. */
+.icon-loaded {
+  background: var(--color-surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  overflow: hidden;
+}
+
 .text {
   display: flex;
   flex-direction: column;

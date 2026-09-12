@@ -8,6 +8,10 @@ import toolShellStyles from './ToolShell.module.css';
 import pdfToolStyles from './PdfTool.module.css';
 import { setInputFiles } from '../test/setInputFiles.js';
 
+vi.mock('../lib/thumbnails.js', () => ({
+  renderThumbnail: vi.fn(() => new Promise(() => {})), // never settles - not under test here
+}));
+
 function fileDragEvent(type, { withFiles = true, bubbles = true } = {}) {
   const event = new Event(type, { bubbles, cancelable: true });
   event.dataTransfer = {
@@ -386,6 +390,40 @@ describe('BasePdfTool', () => {
     // The picker behind it still belongs to BasePdfTool, so the tool's own
     // Replace control has something to open.
     expect(container.querySelector('input[type="file"]')).not.toBeNull();
+  });
+
+  // SEO-19 follow-up (Shlomi, 2026-09-12): a single-file tool can now pass the
+  // File itself through to the shell so the identity row shows a thumbnail
+  // instead of the generic glyph (see FilePreview.tsx). This only proves the
+  // prop reaches the shell and renders something in place of the glyph -
+  // FilePreview.test.tsx owns the image/PDF/reject/no-file behaviour itself.
+  it('passes a `file` prop through to the shell, which renders a preview instead of the glyph', () => {
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:base-pdf-tool-preview');
+
+    const file = new File(['fake-image-bytes'], 'photo.jpg', { type: 'image/jpeg' });
+    mount({ hasFiles: true, onFilesAdded: vi.fn(), multiple: false, fileLabel: 'photo.jpg', file });
+
+    const icon = container.querySelector(`.${toolShellStyles.icon}`);
+    expect(icon).not.toBeNull();
+    expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(true);
+    const img = icon.querySelector('img');
+    expect(img).not.toBeNull();
+    expect(img.getAttribute('src')).toBe('blob:base-pdf-tool-preview');
+
+    window.URL.createObjectURL = originalCreateObjectURL;
+  });
+
+  // Merge (and any other `multiple` tool) has its own list thumbnails, so
+  // BasePdfTool drops `file` regardless of what a tool passes - see its own
+  // comment above the shell context value.
+  it('drops the `file` prop for `multiple` tools, keeping the glyph', () => {
+    const file = new File(['fake-image-bytes'], 'photo.jpg', { type: 'image/jpeg' });
+    mount({ hasFiles: true, onFilesAdded: vi.fn(), multiple: true, fileLabel: '3 PDFs', file });
+
+    const icon = container.querySelector(`.${toolShellStyles.icon}`);
+    expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(false);
+    expect(icon.querySelector('img')).toBeNull();
   });
 
   it('does not attach the drop overlay in the empty state', () => {

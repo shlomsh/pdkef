@@ -1,0 +1,11 @@
+/* The thumbnail itself. The box it sits in - size, radius, background, ring -
+   is entirely ToolShell.module.css's `.icon` / `.icon-loaded`; this file only
+   ever touches the image, so a thumbnail can never resize the slot the glyph
+   already occupies. `overflow: hidden` on `.icon-loaded` is what clips this
+   to the box's own rounded corners. */
+.thumbnail {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
