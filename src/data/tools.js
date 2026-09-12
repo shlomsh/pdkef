@@ -203,7 +203,7 @@ export const tools = [
         {
           native: 'Türkçe 🇹🇷',
           name: 'Turkish',
-          note: "Fill a Turkish form and sign your name in Turkish. 12 text fonts carry the complete 29-letter alphabet, the same 12 that carry the full accented set in the Latin-script note above, plus Kalam, Mali and Tillana if you want a handwritten look, any of which also works for a typed signature. The three letters that set Turkish apart from plain accented Latin, Ğ, İ and Ş, are exactly what that general Latin-Ext sample does not check, so I verified them against the real font files rather than assuming coverage carried over.",
+          note: "Fill a Turkish form and sign your name in Turkish. 12 text fonts carry the complete 29-letter alphabet, the same 12 that carry the full accented set in the Latin-script note above, plus Kalam, Mali, Tillana, Mynerve and Amatic SC if you want a handwritten look, any of which also works for a typed signature (Amatic SC draws capitals only, so a lowercase name comes out in small capitals). The three letters that set Turkish apart from plain accented Latin, Ğ, İ and Ş, are exactly what that general Latin-Ext sample does not check, so I verified them against the real font files rather than assuming coverage carried over.",
         },
       ],
       notYetHeading: "Don't see your language? Ask, and it moves to the front of the queue.",
@@ -286,7 +286,7 @@ export const tools = [
       },
       {
         question: 'Can I type Vietnamese (chữ ký PDF bằng tiếng Việt) when signing a PDF?',
-        answer: 'Yes. Arimo, Tinos, Cousine, Mali, Mynerve and Amatic SC all carry the full set of Vietnamese tone-and-diacritic vowels, checked against the real font files rather than assumed from general Latin support. Mali and Amatic SC both double as typed-signature fonts, so you can add a Vietnamese signature without drawing it; Amatic SC draws capitals only, so a lowercase name comes out in small capitals. The other bundled fonts do not carry Vietnamese, so pick one of these five if you need it.',
+        answer: 'Yes. Arimo, Tinos, Cousine, Mali, Mynerve and Amatic SC all carry the full set of Vietnamese tone-and-diacritic vowels, checked against the real font files rather than assumed from general Latin support. Mali, Mynerve and Amatic SC all double as typed-signature fonts, so you can add a Vietnamese signature without drawing it; Amatic SC draws capitals only, so a lowercase name comes out in small capitals. The other bundled fonts do not carry Vietnamese, so pick one of these five if you need it.',
       },
       {
         question: 'Can I fill and sign a PDF in Japanese (PDFに日本語で署名)?',
@@ -306,7 +306,7 @@ export const tools = [
       },
       {
         question: 'Can I type Turkish (PDF üzerinde Türkçe imza) when signing a PDF?',
-        answer: "Yes. 12 text fonts (Arimo, Tinos, Cousine, Heebo, Alef, PT Sans and others) and three handwriting faces, Kalam, Mali and Tillana, carry the complete 29-letter Turkish alphabet, checked letter by letter against the real font files rather than assumed from general Latin coverage. That check matters here specifically for Ğ, İ and Ş, the three letters that make Turkish its own alphabet and that a general accented-Latin font does not necessarily draw. Kalam, Mali and Tillana also work for a typed signature.",
+        answer: "Yes. 12 text fonts (Arimo, Tinos, Cousine, Heebo, Alef, PT Sans and others) and five handwriting faces, Kalam, Mali, Tillana, Mynerve and Amatic SC, carry the complete 29-letter Turkish alphabet, checked letter by letter against the real font files rather than assumed from general Latin coverage. That check matters here specifically for Ğ, İ and Ş, the three letters that make Turkish its own alphabet and that a general accented-Latin font does not necessarily draw. All five handwriting faces also work for a typed signature; Amatic SC draws capitals only, so a lowercase name comes out in small capitals.",
       },
     ],
   },

@@ -239,8 +239,12 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     const turkishUprightCount = LANGUAGE_COVERAGE.turkish.full.filter((f) => f.style === 'upright').length;
     const note = supportedNote('Turkish');
     expect(note).toContain(`${numberWord(turkishUprightCount)} text fonts`);
-    expect(note).toContain('Kalam');
-    expect(note).toContain('Mali');
+    // Every handwriting face the report says carries Turkish is named as the
+    // handwritten option - the note used to name three while the report had
+    // five (Amatic SC and Mynerve both cover it), and nothing caught it.
+    for (const family of LANGUAGE_COVERAGE.turkish.full.filter((f) => f.style === 'handwriting').map((f) => f.family)) {
+      expect(note).toContain(family);
+    }
     expect(note).toContain('Ğ');
     expect(note).toContain('İ');
     expect(note).toContain('Ş');
