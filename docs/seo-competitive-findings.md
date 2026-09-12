@@ -51,6 +51,9 @@ all of it (section 6). Tickets whose only remaining step is that read are `block
 | SEO-25 compress before/after preview | open, shipped ahead of its own gate | 2026-09-12 | drag (or arrow-key) reveal slider shipped on `/compress/`, opt-in on every device (renders nothing until tapped), reusing `src/editor/gestures/controller.ts`'s golden-rule pattern for the drag; picked up before SEO-05/SEO-13's SERP-movement half of the depends_on gate was measured, per Shlomi's explicit go-ahead - see the ticket's Implementation section; 2026-09-12: the comparison also runs on images and opens by default after Compress (a skeleton with a status line while the PDF render is async), and the Download link now replaces the Compress button in place with the result size as its second line, so nothing above the button moves (ticket: Button anchor) | 2026-10-08: CTR effect on the compress-quality cluster, alongside SEO-05/SEO-13/SEO-04 |
 | SEO-19 image to a target size | in progress, shipped ahead of its gate | 2026-09-12 | one compress island accepts PDF, JPEG and PNG and dispatches by type (`src/lib/compressImage.js` over the shared `src/lib/targetSizeSearch.js`); `/compress/` keeps its PDF title and H1, `/compress-image/` is a second URL with an image H1 mounting the same island, kept as an experiment; raised to P1 the same day on LOC-11's autocomplete sweep (photo-to-target-KB is what every locale types first); picked up ahead of the Week 4 gate on Shlomi's call, same as SEO-25; real-browser JPEG/PNG guardrail under `e2e/compress/`; manual pass done 2026-09-12 on the dev server | indexing request for `/compress-image/` (date in SEO-19), then the eight-week fold-in read: image-word queries reach it, it stays; only the format-agnostic family `/compress/` also gets, fold it in with a redirect |
 | SEO-31 photo and signature size page | open, shipped | 2026-09-12 | `/photo-and-signature-size-for-forms/` live, hub `compress-image`; eight-row table of real phone photos run through the shipped image compressor at IBPS/NTA/UPSC targets (portrait, signature, document), crop-first lesson stated in the body, limits cited to the portals' own PDFs; `/pdf-wont-compress-to-100kb/` gained its photo/signature half the same day | indexing request (date in SEO-31), then the same eight-week read as SEO-17 |
+| SEO-33 compress vocabulary | open | 2026-09-12 | decided from the 2026-09-12 three-instrument read (section 2): `/compress/` is our one page-one head-term page and never says "size reducer", "shrink" (twice, body only) or "resize", the 1M-to-10M phrasings Keyword Planner lists for pdkef.com; add them plus two honest FAQ entries, no new URL | indexing request after merge; 2026-10-08 positions on `pdf size reducer`, `shrink pdf size`, `resize pdf` |
+| SEO-34 home page targets `pdf tools` | open | 2026-09-12 | `/` has the site's best CTR (11% at 22.30) and no target query; `pdf tools` is 100K-1M and +900% YoY on the pdkef.com ideas list; title/h1/description shaped around it, layout untouched | indexing request after merge; 2026-10-08 impressions on `pdf tools` / `free pdf tools` |
+| SEO-35 merge decision | open | 2026-09-12 | **merge is an authority fight, not a content fight**: title and h1 gain "combine" (`combine pdf` 1M-10M), nothing else; effort redirected to SEO-03; do not reopen "expand `/merge/`" until the referring-domain count moves | 2026-10-08 with SEO-10; no indexing request (SEO-28 control) |
 | SEO-16, 18, 20 to 24, 26, 30 | open | | not started; 20 to 24 wait on the Week 4 gate | per section 4 |
 | SEO-27 localization decision | retired | 2026-09-11 | superseded: the Hindi half was settled by LOC-01's measurement, the Hebrew-guides half is LOC-05 | |
 | LOC-01 demand measurement | done | 2026-09-11 | Trends + `hl`/`gl` SERPs + GSC-by-country for Hebrew, Indonesian, Malay, Hindi (Shlomi's browser; report in `docs/localized-search-research-brief-report.md`). **Malay and Hindi flat at 0 on every instrument** (16 Hindi probes incl. Hinglish; GSC India all English, zero Hinglish leakage). Hebrew small but real, free to review. Indonesian at parity on compress/sign - and a SERP owned end to end by the majors at 300k-700k reviews; Google already machine-translates our English page there. Criterion 2 of the decision rule does not hold for Indonesian | ROI judgment closed by LOC-07 |
@@ -75,6 +78,21 @@ all of it (section 6). Tickets whose only remaining step is that read are `block
 
 Durable lessons, one line each, newest first. The ticket has the evidence.
 
+- **We win where Trends is flat and lose where it is tall; do not chase the tallest line.** A
+  three-instrument read on 2026-09-12 (Google Trends past 12 months worldwide; iLovePDF's Keyword
+  Planner export; Keyword Planner's ideas list for pdkef.com) said three things at once. `blur pdf`
+  sits at zero on Trends and is 22 of our 71 clicks; `merge pdf` is the tallest line and we hold 6
+  impressions at position 90. iLovePDF's merge page is thin and ranks first on DR 83 plus brand demand
+  (half its Keyword Planner rows are `ilovepdf edit`, `ilovepdf signature`: traffic nobody else can
+  take), so content depth is not what that SERP rewards. The one new signal was the ideas list: `pdf
+  size reducer`, `shrink pdf size`, `resize pdf`, `combine pdf` at 1M-10M and `pdf tools` at 100K-1M
+  (+900% YoY) all describe pages we already have and words we do not use; its "Low competition"
+  column is ad competition, not organic difficulty, so read the volumes and ignore it. Decisions:
+  extend the proven `/compress/` position into the reduce/shrink/resize vocabulary (SEO-33), give `/`
+  a query (SEO-34), add "combine" to merge and otherwise redirect merge effort to SEO-03 (SEO-35);
+  localization stays on hold exactly as LOC-07/LOC-10 concluded, since localizing a head term is
+  fighting the tallest line in a second language with the same authority. ([SEO-33](../backlog/tasks/SEO-33.md),
+  [SEO-34](../backlog/tasks/SEO-34.md), [SEO-35](../backlog/tasks/SEO-35.md))
 - **In-language search volume is necessary and not sufficient; the field and the domain's authority
   decide.** Indonesian cleared the demand gate cleanly (Trends parity with English on 2 of 4 anchor
   tasks, the strongest result any language in this epic produced) and still wasn't worth building: the
@@ -266,7 +284,9 @@ Bing/DuckDuckGo 2026-09-10 for the SEO-04/05 rows. The softest column here.
 | sign pdf on android / iphone (cluster) | 51.7 | 154 | 2026-09-10 | DocHub, Smallpdf, OS vendor docs | Rank, from near zero; ranks on the OS guides | SEO-08 |
 | `/sign/` itself (queries withheld) | 11.64 | 42 | 2026-09-10 | unknown | Title changed 2026-09-11; re-measure CTR vs 2.38% | SEO-07 |
 | extract pdf / pdf extractor | 84.9 | 88 | 2026-09-10 | iLovePDF, Sejda | Vocabulary: we say "split" | SEO-09 |
-| merge pdf | 90.0 | 6 | 2026-09-10 | iLovePDF, Smallpdf | Authority | SEO-10, SEO-03 |
+| merge pdf / combine pdf | 90.0 | 6 | 2026-09-10 | iLovePDF, Smallpdf | Authority; "combine" absent from title/h1 until SEO-35 | SEO-35, SEO-10, SEO-03 |
+| pdf size reducer / shrink pdf size / resize pdf | not present | 0 | 2026-09-12 (Keyword Planner ideas, 1M-10M) | unknown, not yet sampled | Vocabulary: `/compress/` never says it | SEO-33 |
+| pdf tools / free pdf tools | not present | 0 | 2026-09-12 (Keyword Planner ideas, 100K-1M, +900% YoY) | unknown, not yet sampled | `/` targets no query | SEO-34 |
 | unlock / protect pdf | 66.0 | 5 | 2026-09-10 | Smallpdf, iLovePDF | Authority; lower-bound count | SEO-16 |
 | jpg to pdf | not present | 0 | 2026-09-10 | iLovePDF, Smallpdf | `/image-to-pdf/` is not indexed | SEO-06, SEO-15 |
 
@@ -329,6 +349,7 @@ does not have. Status of each ticket is in section 1, not here.
 | Weeks 5-6 (Oct 8-21) | SEO-19 (image compressor - the one new tool with measured demand; **shipped 2026-09-12 ahead of this gate**, see section 1), then SEO-20 (crop). One tool per week. | Week 4 gate passed |
 | Weeks 7-8 (Oct 22 - Nov 4) | SEO-21's flattener code only (MOBI-02's export fix; the tool page is downgraded, see section 5), SEO-22 (extract images). | previous tool indexed |
 | Week 9 onwards | SEO-23, 24, 16, then 25, 26, 27. SEO-21's page waits behind these on a Keyword Planner read. | re-order at every boundary |
+| 2026-09-12 insert | SEO-33, 34, 35 - vocabulary on pages we already hold, no new URLs; decided from the three-instrument read in section 2. | none; the Week 4 gate is about new URLs and these add none |
 | Throughout | SEO-03 external signals. The only work that moves the constraint; it does not live in this repo. | |
 
 ---
