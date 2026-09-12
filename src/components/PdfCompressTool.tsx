@@ -1,5 +1,6 @@
 import { useRef, useState } from 'preact/hooks';
 import { compressPdf, compressPdfToTarget } from '../lib/compress.js';
+import { compressImageToTarget } from '../lib/compressImage.js';
 import { useObjectUrls } from '../lib/useObjectUrls.js';
 import BasePdfTool from './BasePdfTool.tsx';
 import styles from './PdfCompressTool.module.css';
@@ -11,9 +12,36 @@ import DownloadButton from './DownloadButton.tsx';
 import CompareSlider from './CompareSlider.tsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { describeFile } from '../lib/format.js';
+import type { AnalyticsTool } from '../lib/productAnalytics.ts';
 import { englishCompressMessages, formatMessage, type CompressMessages, type ShellMessages } from '../i18n/toolMessages';
 
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
+// Lower than the PDF presets above: the image half of this tool's demand is
+// the photo half of application portals, which commonly cap a photo at
+// 20-50KB, tighter than the document limits the PDF presets target.
+const IMAGE_TARGET_SIZE_PRESETS_KB = [20, 50, 100, 200, 500];
+
+function extensionOf(name: string) {
+  const match = /\.([^./\\]+)$/.exec(name);
+  return match ? match[1].toLowerCase() : '';
+}
+
+/** Derives which half of the tool a file belongs to from its MIME type,
+ * falling back to the filename extension only when the type is empty (some
+ * drag sources hand over a File with no `type` at all). Returns null for
+ * anything else, which both the accept-filter and the dispatch logic below
+ * treat as "reject this file". */
+function deriveKind(file: File | null): 'pdf' | 'image' | null {
+  if (!file) return null;
+  if (file.type === 'application/pdf') return 'pdf';
+  if (file.type === 'image/jpeg' || file.type === 'image/png') return 'image';
+  if (!file.type) {
+    const ext = extensionOf(file.name);
+    if (ext === 'pdf') return 'pdf';
+    if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') return 'image';
+  }
+  return null;
+}
 
 function formatBytes(bytes: number) {
   if (bytes === 0) return '0 Bytes';
@@ -23,14 +51,42 @@ function formatBytes(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+// The PDF search re-encodes as JPEG-in-PDF and the image search re-encodes
+// as JPEG (compressImageToTarget flattens PNG transparency to white), but a
+// file already under the target passes through untouched in both cases, so
+// a small PNG or an already-small PDF stays exactly what it was: name the
+// download by the *output* blob's own type, never by the input's extension
+// or by which half of the tool ran.
+function deriveDownloadName(originalName: string, outputType: string) {
+  const base = originalName.replace(/\.[^./\\]+$/, '') || 'file';
+  const extension = outputType === 'application/pdf' ? 'pdf' : outputType === 'image/png' ? 'png' : 'jpg';
+  return `${base}-compressed.${extension}`;
+}
+
 interface PdfCompressToolProps {
   /** LOC-02: server-rendered by src/pages/[locale]/[tool].astro for a
    * localized edition; every key not overridden keeps the English default. */
   messages?: Partial<CompressMessages>;
   shellMessages?: Partial<ShellMessages>;
+  /** /compress/ stays 'compress'; /compress-image/ (the SEO door for
+   * image-word queries, mounting this same island) passes 'compress-image'. */
+  analyticsTool?: AnalyticsTool;
+  /** What to show before any file is dropped: the PDF quality-level grid
+   * ('levels', the default) or the image-style Target Size panel on its own
+   * ('target', used by /compress-image/'s image-first drop hint). Once a
+   * real file is loaded, `kind` (derived from the file itself) decides -
+   * this only controls the pre-drop guess. */
+  initialMode?: 'levels' | 'target';
+  emptyStateMessage?: string;
 }
 
-export default function PdfCompressTool({ messages: messagesProp, shellMessages }: PdfCompressToolProps = {}) {
+export default function PdfCompressTool({
+  messages: messagesProp,
+  shellMessages,
+  analyticsTool = 'compress',
+  initialMode = 'levels',
+  emptyStateMessage,
+}: PdfCompressToolProps = {}) {
   const t: CompressMessages = { ...englishCompressMessages, ...messagesProp };
 
   const COMPRESSION_LEVELS = [
@@ -48,14 +104,25 @@ export default function PdfCompressTool({ messages: messagesProp, shellMessages 
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [compressedSize, setCompressedSize] = useState<number | null>(null);
   const [metTarget, setMetTarget] = useState(true);
+  const [outputType, setOutputType] = useState('');
+  const [dimensions, setDimensions] = useState<{ width: number; height: number; originalWidth: number; originalHeight: number } | null>(null);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState('');
-  const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
+  const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
 
-  // Before/after preview (SEO-25). The compressed Blob itself never needs to
-  // be state - only its object URL (above) does, for the download link -
-  // but the slider needs the raw bytes to rasterize page 1, so it's kept in
-  // a ref rather than duplicating it into render-triggering state.
+  const kind = deriveKind(file);
+  // Target Size is the only mode for an image - there's no quality-level
+  // grid to show. Before any file is picked, `initialMode` stands in for
+  // that same choice, so /compress-image/ can open straight into the
+  // image-style panel instead of a PDF grid nobody there asked for.
+  const isImageMode = kind === 'image' || (kind === null && initialMode === 'target');
+  const targetSizePresets = isImageMode ? IMAGE_TARGET_SIZE_PRESETS_KB : TARGET_SIZE_PRESETS_KB;
+
+  // Before/after preview (SEO-25), PDF only - see handleToggleCompare below.
+  // The compressed Blob itself never needs to be state - only its object URL
+  // (above) does, for the download link - but the slider needs the raw bytes
+  // to rasterize page 1, so it's kept in a ref rather than duplicating it
+  // into render-triggering state.
   const compressedBlobRef = useRef<Blob | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
   const [comparePreviews, setComparePreviews] = useState<{ before: string; after: string } | null>(null);
@@ -66,6 +133,8 @@ export default function PdfCompressTool({ messages: messagesProp, shellMessages 
     setStatus('idle');
     setProgress(0);
     setCompressedSize(null);
+    setOutputType('');
+    setDimensions(null);
     clearDownload();
     compressedBlobRef.current = null;
     setCompareOpen(false);
@@ -74,7 +143,9 @@ export default function PdfCompressTool({ messages: messagesProp, shellMessages 
   };
 
   // Renders page 1 of the original and page 1 of the compressed result to
-  // data URLs for the CompareSlider, on demand only.
+  // data URLs for the CompareSlider, on demand only. PDF only: a rasterized
+  // page comparison doesn't mean anything for a photo that was already an
+  // image, so the toggle button itself is never rendered in image mode.
   //
   // Deliberately lazy for every visitor, not gated by a mobile/desktop
   // check: the panel never renders until this fires, so it already never
@@ -114,19 +185,16 @@ export default function PdfCompressTool({ messages: messagesProp, shellMessages 
 
   const handleFilesAdded = (files: FileList | File[]) => {
     const incoming = Array.from(files);
-    const pdfs = incoming.filter(f => f.type === 'application/pdf');
-    const rejected = incoming.filter(f => f.type !== 'application/pdf');
+    const accepted = incoming.filter((f) => deriveKind(f) !== null);
+    const rejected = incoming.filter((f) => deriveKind(f) === null);
 
-    if (rejected.length > 0) {
-      setRejectedFiles(rejected.map(f => f.name));
-    } else {
-      setRejectedFiles([]);
-    }
+    setRejectedFiles(rejected.length > 0 ? rejected.map((f) => f.name) : []);
 
-    if (pdfs.length > 0) {
-      setFile(pdfs[0]);
+    if (accepted.length > 0) {
+      const next = accepted[0];
+      setFile(next);
       resetOutput();
-      setAnnouncement(formatMessage(t.loaded, { name: pdfs[0].name }));
+      setAnnouncement(formatMessage(deriveKind(next) === 'image' ? t.imageLoaded : t.loaded, { name: next.name }));
     }
   };
 
@@ -145,10 +213,33 @@ export default function PdfCompressTool({ messages: messagesProp, shellMessages 
     if (!file) return;
     setStatus('processing');
     setProgress(0);
-    setAnnouncement(t.starting);
+    setAnnouncement(kind === 'image' ? t.imageStarting : t.starting);
 
     try {
-      let compressedBlob;
+      if (kind === 'image') {
+        const result = await compressImageToTarget(file, {
+          targetKB,
+          onProgress: setProgress,
+        });
+        const resultType = result.blob.type || 'image/jpeg';
+
+        setCompressedSize(result.blob.size);
+        setMetTarget(result.metTarget);
+        setOutputType(resultType);
+        setDimensions({
+          width: result.width,
+          height: result.height,
+          originalWidth: result.originalWidth,
+          originalHeight: result.originalHeight,
+        });
+        setDownloadBlob(result.blob);
+        prepareFiles([{ blob: result.blob, filename: deriveDownloadName(file.name, resultType), type: resultType }]);
+        setStatus('done');
+        setAnnouncement(result.metTarget ? t.imageComplete : t.missedTarget);
+        return;
+      }
+
+      let compressedBlob: Blob;
       let didMeetTarget = true;
 
       if (level === 'target') {
@@ -165,236 +256,115 @@ export default function PdfCompressTool({ messages: messagesProp, shellMessages 
         });
       }
 
+      const resultType = compressedBlob.type || 'application/pdf';
+
       setCompressedSize(compressedBlob.size);
       setMetTarget(didMeetTarget);
+      setOutputType(resultType);
       compressedBlobRef.current = compressedBlob;
       setDownloadBlob(compressedBlob);
-      prepare(compressedBlob, file.name.replace(/\.pdf$/i, '') + '-compressed.pdf');
+      prepareFiles([{ blob: compressedBlob, filename: deriveDownloadName(file.name, resultType), type: resultType }]);
       setStatus('done');
       setAnnouncement(t.complete);
     } catch (err) {
       console.error(err);
       setStatus('error');
-      setAnnouncement(t.failed);
+      setAnnouncement(kind === 'image' ? t.imageFailed : t.failed);
     }
   };
 
   const handleShare = async () => {
     const result = await sharePrepared();
-    if (result.status === 'shared') setAnnouncement(t.sharedSuccessfully);
-    else if (result.status === 'canceled') setAnnouncement(t.sharingCanceled);
+    if (result.status === 'shared') setAnnouncement(kind === 'image' ? t.imageSharedSuccessfully : t.sharedSuccessfully);
+    else if (result.status === 'canceled') setAnnouncement(kind === 'image' ? t.imageSharingCanceled : t.sharingCanceled);
     else if (result.status === 'error') setAnnouncement(t.shareError);
   };
 
   const hasFiles = !!file;
 
   // Calculate savings percentage
-  const savingsPercent = file && compressedSize 
-    ? Math.round((1 - compressedSize / file.size) * 100) 
+  const savingsPercent = file && compressedSize
+    ? Math.round((1 - compressedSize / file.size) * 100)
     : 0;
 
-  return (
-    <BasePdfTool
-      hasFiles={hasFiles}
-      analyticsTool="compress"
-      analyticsStatus={status}
-      onFilesAdded={handleFilesAdded}
-      multiple={false}
-      fileLabel={file?.name}
-      fileMeta={describeFile(file)}
-      hasWork={status === 'done'}
-      workNoun={t.workNoun}
-      shellMessages={shellMessages}
-      compact
-    >
-      {rejectedFiles.length > 0 && (
-        <p class={pdfToolStyles['hint-message']} role="status">
-          {rejectedFiles.length === 1
-            ? formatMessage(t.skippedOne, { name: rejectedFiles[0] })
-            : formatMessage(t.skippedMany, { count: rejectedFiles.length })}
-        </p>
+  const actionAndResults = (
+    <>
+      {hasFiles ? (
+        status !== 'done' && (
+          <button
+            type="button"
+            class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}`}
+            disabled={status === 'processing'}
+            onClick={handleCompress}
+          >
+            {status === 'processing' ? (
+              <ProgressRing progress={progress} label={t.compressing} />
+            ) : (
+              isImageMode ? t.compressImage : t.compress
+            )}
+          </button>
+        )
+      ) : (
+        <button type="button" class={pdfToolStyles['tool-primary-action']} disabled>
+          {t.addPdfToCompress}
+        </button>
       )}
 
-      {/* Rendered whether or not a file is loaded yet: a visitor who has only
-          seen the dropzone should see what the tool actually does before
-          they commit to picking a file, not after. Picking a card here only
-          sets `level` - it costs nothing without a file, and the choice
-          carries over the moment one is dropped in. */}
-      <div>
-        <div class={styles['compress-options']} role="radiogroup" aria-label={t.compressionOptionsLabel}>
-          {COMPRESSION_LEVELS.map((opt) => (
-            <div
-              key={opt.id}
-              class={`${styles['compress-card']}${level === opt.id ? ` ${styles['is-selected']}` : ''}${opt.id === 'medium' ? ` ${styles['is-recommended']}` : ''}`}
-              role="radio"
-              aria-checked={level === opt.id}
-              tabIndex={0}
-              onClick={() => handleLevelChange(opt.id)}
-              onKeyDown={(e) => {
-                if (e.key === ' ' || e.key === 'Enter') {
-                  e.preventDefault();
-                  handleLevelChange(opt.id);
-                }
-              }}
-            >
-              {opt.id === 'medium' && <span class={styles['recommended-ribbon']}>{t.ourPick}</span>}
-              <div class={styles['compress-card-header']}>
-                <span class={styles['compress-card-title']}>{opt.name}</span>
-                <span class={styles['compress-card-tag']}>{opt.tag}</span>
-              </div>
-              <p class={styles['compress-card-desc']}>{opt.desc}</p>
-              <div class={styles['compress-pro-con']}>
-                <div class={styles['pro-item']}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>{opt.pros}</span>
-                </div>
-                <div class={styles['con-item']}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                  <span>{opt.cons}</span>
-                </div>
-              </div>
-            </div>
-          ))}
+      {hasFiles && status === 'error' && (
+        <ErrorMessage title={t.compressionFailedTitle}>
+          {kind === 'image' ? t.imageCompressionFailedBody : t.compressionFailedBody}
+        </ErrorMessage>
+      )}
 
-          {/* Target Size is functionally different from the three presets -
-              it needs a number from the user - so it gets its own full-width
-              row and an icon-led header instead of blending in as a fourth
-              equal card. The KB input expands inline underneath once it's
-              selected, rather than in a separate panel below the grid. */}
-          <div
-            class={`${styles['compress-card']} ${styles['target-card']}${level === 'target' ? ` ${styles['is-selected']}` : ''}`}
-            role="radio"
-            aria-checked={level === 'target'}
-            tabIndex={0}
-            onClick={() => handleLevelChange('target')}
-            onKeyDown={(e) => {
-              if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                handleLevelChange('target');
-              }
-            }}
-          >
-            <span class={styles['target-card-badge']}>
-              {t.targetBadge}
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="9" r="6" />
-                <path d="M9 14.2 7 22l5-3 5 3-2-7.8" />
-              </svg>
-            </span>
-            <div class={styles['target-card-main']}>
-              {/* Target/crosshair in the card body - the medal-with-ribbon
-                  lives once, in the badge above, so it isn't repeated here. */}
-              <span class={styles['target-card-icon']} aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="8" />
-                  <circle cx="12" cy="12" r="4" />
-                  <circle cx="12" cy="12" r="0.5" fill="currentColor" />
-                </svg>
-              </span>
-              <div class={styles['target-card-body']}>
-                <div class={styles['compress-card-header']}>
-                  <span class={styles['compress-card-title']}>{TARGET_LEVEL.name}</span>
-                  <span class={styles['compress-card-tag']}>{TARGET_LEVEL.tag}</span>
-                </div>
-                <p class={styles['compress-card-desc']}>{TARGET_LEVEL.desc}</p>
+      {hasFiles && status === 'done' && downloadUrl && (
+        <>
+          <div class={styles['compression-stats']}>
+            <p class={styles['stats-title']}>{kind === 'image' ? t.imageSuccessTitle : t.successTitle}</p>
+            <div class={styles['stats-grid']}>
+              <div class={styles['metric-item']}>
+                <span class={styles['metric-label']}>{t.originalSize}</span>
+                <span class={styles['metric-val']}>{formatBytes(file!.size)}</span>
               </div>
-            </div>
-
-            {level === 'target' && (
-              <div
-                class={styles['target-size-panel']}
-                // Card-level onClick would otherwise fire again for every
-                // click inside the input/presets - it's already selected.
-                onClick={(e) => e.stopPropagation()}
-              >
-                <label class={styles['target-size-label']} for="target-size-input">
-                  {t.targetSizeLabel}
-                </label>
-                <div class={styles['target-size-input-row']}>
-                  <input
-                    id="target-size-input"
-                    type="number"
-                    min="10"
-                    step="10"
-                    value={targetKB}
-                    onInput={(e) => handleTargetKBChange(Number(e.currentTarget.value))}
-                  />
-                  <span class={styles['target-size-unit']}>KB</span>
-                </div>
-                <div class={styles['target-size-presets']}>
-                  {TARGET_SIZE_PRESETS_KB.map((kb) => (
-                    <button
-                      key={kb}
-                      type="button"
-                      class={`${styles['target-size-preset']}${targetKB === kb ? ` ${styles['is-selected']}` : ''}`}
-                      onClick={() => handleTargetKBChange(kb)}
-                    >
-                      {kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB`}
-                    </button>
-                  ))}
-                </div>
+              <div class={styles['metric-item']}>
+                <span class={styles['metric-label']}>{t.compressedSize}</span>
+                <span class={styles['metric-val']}>{formatBytes(compressedSize as number)}</span>
               </div>
-            )}
-          </div>
-        </div>
-
-        {hasFiles ? (
-          status !== 'done' && (
-            <button
-              type="button"
-              class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}`}
-              disabled={status === 'processing'}
-              onClick={handleCompress}
-            >
-              {status === 'processing' ? (
-                <ProgressRing progress={progress} label={t.compressing} />
-              ) : (
-                t.compress
+              <div class={styles['metric-item']}>
+                <span class={styles['metric-label']}>{t.spaceSaved}</span>
+                <span class={styles['metric-saving']}>
+                  {savingsPercent > 0 ? formatMessage(t.savedPercent, { percent: savingsPercent }) : t.noReduction}
+                </span>
+              </div>
+              {kind === 'image' && dimensions && (
+                <>
+                  <div class={styles['metric-item']}>
+                    <span class={styles['metric-label']}>{t.originalDimensions}</span>
+                    <span class={styles['metric-val']}>{dimensions.originalWidth} × {dimensions.originalHeight}</span>
+                  </div>
+                  <div class={styles['metric-item']}>
+                    <span class={styles['metric-label']}>{t.outputDimensions}</span>
+                    <span class={styles['metric-val']}>{dimensions.width} × {dimensions.height}</span>
+                  </div>
+                </>
               )}
-            </button>
-          )
-        ) : (
-          <button type="button" class={pdfToolStyles['tool-primary-action']} disabled>
-            {t.addPdfToCompress}
-          </button>
-        )}
+            </div>
 
-        {hasFiles && status === 'error' && (
-            <ErrorMessage title={t.compressionFailedTitle}>
-              {t.compressionFailedBody}
-            </ErrorMessage>
-          )}
+            {/* The honest-miss line: one shared block, worded per kind - a
+                photo's target only ever comes from the image panel, a PDF's
+                only from the Target Size card, so the two conditions never
+                overlap. */}
+            {!metTarget && (kind === 'image' || level === 'target') && (
+              <p class={styles['compress-warning']}>
+                {formatMessage(kind === 'image' ? t.imageClosestAchievable : t.closestAchievable, { size: formatBytes(targetKB * 1024) })}
+              </p>
+            )}
 
-          {hasFiles && status === 'done' && downloadUrl && (
-            <>
-              <div class={styles['compression-stats']}>
-                <p class={styles['stats-title']}>{t.successTitle}</p>
-                <div class={styles['stats-grid']}>
-                  <div class={styles['metric-item']}>
-                    <span class={styles['metric-label']}>{t.originalSize}</span>
-                    <span class={styles['metric-val']}>{formatBytes(file.size)}</span>
-                  </div>
-                  <div class={styles['metric-item']}>
-                    <span class={styles['metric-label']}>{t.compressedSize}</span>
-                    <span class={styles['metric-val']}>{formatBytes(compressedSize as number)}</span>
-                  </div>
-                  <div class={styles['metric-item']}>
-                    <span class={styles['metric-label']}>{t.spaceSaved}</span>
-                    <span class={styles['metric-saving']}>
-                      {savingsPercent > 0 ? formatMessage(t.savedPercent, { percent: savingsPercent }) : t.noReduction}
-                    </span>
-                  </div>
-                </div>
-                {level === 'target' && !metTarget && (
-                  <p class={styles['compress-warning']}>
-                    {formatMessage(t.closestAchievable, { size: formatBytes(targetKB * 1024) })}
-                  </p>
-                )}
+            {kind === 'image' ? (
+              <p class={styles['compress-warning']}>
+                {t.formatNotice}
+              </p>
+            ) : (
+              <>
                 <p class={styles['compress-warning']}>
                   {t.rasterizeNotice}
                 </p>
@@ -435,16 +405,207 @@ export default function PdfCompressTool({ messages: messagesProp, shellMessages 
                     )}
                   </div>
                 )}
+              </>
+            )}
+          </div>
+
+          <DownloadButton
+            href={downloadUrl}
+            download={deriveDownloadName(file!.name, outputType)}
+            label={kind === 'image' ? t.imageDownloadLabel : t.downloadLabel}
+          />
+          <PdfShareButton visible={shareReady} onShare={handleShare} label={kind === 'image' ? t.imageShareLabel : t.shareLabel} />
+        </>
+      )}
+    </>
+  );
+
+  return (
+    <BasePdfTool
+      hasFiles={hasFiles}
+      analyticsTool={analyticsTool}
+      analyticsStatus={status}
+      onFilesAdded={handleFilesAdded}
+      multiple={false}
+      accept="application/pdf,image/jpeg,image/png"
+      emptyStateMessage={emptyStateMessage ?? t.dropHint}
+      fileLabel={file?.name}
+      fileMeta={describeFile(file)}
+      hasWork={status === 'done'}
+      workNoun={kind === 'image' ? t.imageWorkNoun : t.workNoun}
+      shellMessages={shellMessages}
+      compact
+    >
+      {rejectedFiles.length > 0 && (
+        <p class={pdfToolStyles['hint-message']} role="status">
+          {rejectedFiles.length === 1
+            ? formatMessage(t.skippedOne, { name: rejectedFiles[0] })
+            : formatMessage(t.skippedMany, { count: rejectedFiles.length })}
+        </p>
+      )}
+
+      {/* Rendered whether or not a file is loaded yet: a visitor who has only
+          seen the dropzone should see what the tool actually does before
+          they commit to picking a file, not after. Picking a card here only
+          sets `level` - it costs nothing without a file, and the choice
+          carries over the moment one is dropped in. Image mode replaces this
+          whole grid with the standalone Target Size panel, since there is no
+          quality-level choice to make for a photo. */}
+      <div class={isImageMode ? styles['image-target-panel'] : undefined}>
+        {isImageMode ? (
+          <div class={styles['target-size-panel']}>
+            <label class={styles['target-size-label']} for="image-target-size-input">
+              {t.targetSizeLabel}
+            </label>
+            <div class={styles['target-size-input-row']}>
+              <input
+                id="image-target-size-input"
+                type="number"
+                min="5"
+                step="5"
+                value={targetKB}
+                onInput={(e) => handleTargetKBChange(Number(e.currentTarget.value))}
+              />
+              <span class={styles['target-size-unit']}>KB</span>
+            </div>
+            <div class={styles['target-size-presets']}>
+              {targetSizePresets.map((kb) => (
+                <button
+                  key={kb}
+                  type="button"
+                  class={`${styles['target-size-preset']}${targetKB === kb ? ` ${styles['is-selected']}` : ''}`}
+                  onClick={() => handleTargetKBChange(kb)}
+                >
+                  {kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB`}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div class={styles['compress-options']} role="radiogroup" aria-label={t.compressionOptionsLabel}>
+            {COMPRESSION_LEVELS.map((opt) => (
+              <div
+                key={opt.id}
+                class={`${styles['compress-card']}${level === opt.id ? ` ${styles['is-selected']}` : ''}${opt.id === 'medium' ? ` ${styles['is-recommended']}` : ''}`}
+                role="radio"
+                aria-checked={level === opt.id}
+                tabIndex={0}
+                onClick={() => handleLevelChange(opt.id)}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    handleLevelChange(opt.id);
+                  }
+                }}
+              >
+                {opt.id === 'medium' && <span class={styles['recommended-ribbon']}>{t.ourPick}</span>}
+                <div class={styles['compress-card-header']}>
+                  <span class={styles['compress-card-title']}>{opt.name}</span>
+                  <span class={styles['compress-card-tag']}>{opt.tag}</span>
+                </div>
+                <p class={styles['compress-card-desc']}>{opt.desc}</p>
+                <div class={styles['compress-pro-con']}>
+                  <div class={styles['pro-item']}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>{opt.pros}</span>
+                  </div>
+                  <div class={styles['con-item']}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    <span>{opt.cons}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Target Size is functionally different from the three presets -
+                it needs a number from the user - so it gets its own full-width
+                row and an icon-led header instead of blending in as a fourth
+                equal card. The KB input expands inline underneath once it's
+                selected, rather than in a separate panel below the grid. */}
+            <div
+              class={`${styles['compress-card']} ${styles['target-card']}${level === 'target' ? ` ${styles['is-selected']}` : ''}`}
+              role="radio"
+              aria-checked={level === 'target'}
+              tabIndex={0}
+              onClick={() => handleLevelChange('target')}
+              onKeyDown={(e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                  e.preventDefault();
+                  handleLevelChange('target');
+                }
+              }}
+            >
+              <span class={styles['target-card-badge']}>
+                {t.targetBadge}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="9" r="6" />
+                  <path d="M9 14.2 7 22l5-3 5 3-2-7.8" />
+                </svg>
+              </span>
+              <div class={styles['target-card-main']}>
+                {/* Target/crosshair in the card body - the medal-with-ribbon
+                    lives once, in the badge above, so it isn't repeated here. */}
+                <span class={styles['target-card-icon']} aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="8" />
+                    <circle cx="12" cy="12" r="4" />
+                    <circle cx="12" cy="12" r="0.5" fill="currentColor" />
+                  </svg>
+                </span>
+                <div class={styles['target-card-body']}>
+                  <div class={styles['compress-card-header']}>
+                    <span class={styles['compress-card-title']}>{TARGET_LEVEL.name}</span>
+                    <span class={styles['compress-card-tag']}>{TARGET_LEVEL.tag}</span>
+                  </div>
+                  <p class={styles['compress-card-desc']}>{TARGET_LEVEL.desc}</p>
+                </div>
               </div>
 
-              <DownloadButton
-                href={downloadUrl}
-                download={file.name.replace(/\.pdf$/i, '') + '-compressed.pdf'}
-                label={t.downloadLabel}
-              />
-              <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} />
-            </>
-          )}
+              {level === 'target' && (
+                <div
+                  class={styles['target-size-panel']}
+                  // Card-level onClick would otherwise fire again for every
+                  // click inside the input/presets - it's already selected.
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <label class={styles['target-size-label']} for="target-size-input">
+                    {t.targetSizeLabel}
+                  </label>
+                  <div class={styles['target-size-input-row']}>
+                    <input
+                      id="target-size-input"
+                      type="number"
+                      min="10"
+                      step="10"
+                      value={targetKB}
+                      onInput={(e) => handleTargetKBChange(Number(e.currentTarget.value))}
+                    />
+                    <span class={styles['target-size-unit']}>KB</span>
+                  </div>
+                  <div class={styles['target-size-presets']}>
+                    {targetSizePresets.map((kb) => (
+                      <button
+                        key={kb}
+                        type="button"
+                        class={`${styles['target-size-preset']}${targetKB === kb ? ` ${styles['is-selected']}` : ''}`}
+                        onClick={() => handleTargetKBChange(kb)}
+                      >
+                        {kb >= 1024 ? `${kb / 1024} MB` : `${kb} KB`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {actionAndResults}
       </div>
 
       <p class="sr-only" role="status" aria-live="polite">

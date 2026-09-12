@@ -147,6 +147,7 @@ export interface CompressMessages {
   compress: string;
   compressing: string;
   addPdfToCompress: string;
+  dropHint: string;
   compressionFailedTitle: string;
   compressionFailedBody: string;
   successTitle: string;
@@ -167,11 +168,36 @@ export interface CompressMessages {
   sharingCanceled: string;
   shareError: string;
   workNoun: string;
+  /* One island now accepts a PDF, JPEG or PNG (the board-epic-cleanup merge
+   * of the standalone Compress Image tool into this one) and dispatches by
+   * file type at runtime, so its message catalogue carries both flavours.
+   * Every key below this line is the image half - added where a PDF and an
+   * image result need genuinely different wording (a title, a failure
+   * reason, a unit of work); a key above this line already reads correctly
+   * for either kind (sizes, "compressing…", the shared shell strings) and is
+   * not duplicated. See PdfCompressTool.tsx's `kind` dispatch. */
+  compressImage: string;
+  imageCompressionFailedBody: string;
+  imageSuccessTitle: string;
+  originalDimensions: string;
+  outputDimensions: string;
+  imageClosestAchievable: string;
+  formatNotice: string;
+  imageDownloadLabel: string;
+  imageShareLabel: string;
+  imageLoaded: string;
+  imageStarting: string;
+  imageComplete: string;
+  missedTarget: string;
+  imageFailed: string;
+  imageSharedSuccessfully: string;
+  imageSharingCanceled: string;
+  imageWorkNoun: string;
 }
 
 const englishCompressMessages: CompressMessages = {
-  skippedOne: 'Skipped "{name}" - not a PDF.',
-  skippedMany: 'Skipped {count} files - not PDFs.',
+  skippedOne: 'Skipped "{name}" - not a PDF, JPG or PNG.',
+  skippedMany: 'Skipped {count} files - not PDF, JPG or PNG files.',
   compressionOptionsLabel: 'Compression Options',
   ourPick: 'Our pick',
   levelHighName: 'Extreme Compression',
@@ -198,7 +224,8 @@ const englishCompressMessages: CompressMessages = {
   targetSizeLabel: 'Target size',
   compress: 'Compress PDF',
   compressing: 'Compressing…',
-  addPdfToCompress: 'Add a PDF above to compress',
+  addPdfToCompress: 'Add a PDF or image above to compress',
+  dropHint: 'Drop a PDF or image here',
   compressionFailedTitle: 'Compression failed.',
   compressionFailedBody: 'The file may be password-protected or corrupted. Please try another PDF.',
   successTitle: 'PDF Successfully Compressed!',
@@ -219,6 +246,23 @@ const englishCompressMessages: CompressMessages = {
   sharingCanceled: 'Sharing canceled. Your compressed PDF is still ready.',
   shareError: 'Could not open the share sheet. Please try again.',
   workNoun: 'the compressed PDF you just made',
+  compressImage: 'Compress Image',
+  imageCompressionFailedBody: 'The file may be corrupted or an unsupported image. Please try another JPG or PNG.',
+  imageSuccessTitle: 'Image Successfully Compressed!',
+  originalDimensions: 'Original Dimensions',
+  outputDimensions: 'Output Dimensions',
+  imageClosestAchievable: "Closest achievable size: {size} couldn't be reached on this photo without making it unusable, so this is the smallest result found.",
+  formatNotice: 'Notice: once compressed, the output is a JPEG. A transparent PNG background is filled in white, and re-encoding drops EXIF metadata, including location. A screenshot or scan of text can show visible JPEG artefacts, especially at a small target.',
+  imageDownloadLabel: 'Download Compressed Image',
+  imageShareLabel: 'Share Compressed Image',
+  imageLoaded: 'File "{name}" loaded. Set a target size and compress.',
+  imageStarting: 'Starting image compression...',
+  imageComplete: 'Image compression complete. Your file is ready.',
+  missedTarget: 'Target missed. Showing the smallest result found instead.',
+  imageFailed: 'Image compression failed.',
+  imageSharedSuccessfully: 'Compressed image shared successfully.',
+  imageSharingCanceled: 'Sharing canceled. Your compressed image is still ready.',
+  imageWorkNoun: 'the compressed image you just made',
 };
 
 /**
@@ -240,8 +284,8 @@ const mergeMessages: Partial<Record<DocumentationLocaleId, MergeMessages>> = {
 // ("כיווץ" as the lead term, "PDF" and file-size units left in Latin script,
 // matching every incumbent on the Hebrew SERPs).
 const hebrewCompressMessages: CompressMessages = {
-  skippedOne: 'דילגנו על "{name}" - זה לא קובץ PDF.',
-  skippedMany: 'דילגנו על {count} קבצים - הם לא PDF.',
+  skippedOne: 'דילגנו על "{name}" - זה לא קובץ PDF, JPG או PNG.',
+  skippedMany: 'דילגנו על {count} קבצים - הם לא קבצי PDF, JPG או PNG.',
   compressionOptionsLabel: 'אפשרויות כיווץ',
   ourPick: 'הבחירה שלנו',
   levelHighName: 'כיווץ מקסימלי',
@@ -268,7 +312,8 @@ const hebrewCompressMessages: CompressMessages = {
   targetSizeLabel: 'גודל בהתאמה אישית',
   compress: 'כיווץ PDF',
   compressing: 'מכווצים…',
-  addPdfToCompress: 'הוסיפו PDF למעלה כדי לכווץ',
+  addPdfToCompress: 'הוסיפו PDF או תמונה למעלה כדי לכווץ',
+  dropHint: 'גררו לכאן PDF או תמונה',
   compressionFailedTitle: 'הכיווץ נכשל.',
   compressionFailedBody: 'ייתכן שהקובץ מוגן בסיסמה או פגום. נסו קובץ PDF אחר.',
   successTitle: 'ה-PDF כווץ בהצלחה!',
@@ -289,6 +334,23 @@ const hebrewCompressMessages: CompressMessages = {
   sharingCanceled: 'השיתוף בוטל. ה-PDF המכווץ עדיין מוכן.',
   shareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
   workNoun: 'ה-PDF המכווץ שיצרתם',
+  compressImage: 'כיווץ תמונה',
+  imageCompressionFailedBody: 'ייתכן שהקובץ פגום או שזה סוג תמונה לא נתמך. נסו קובץ JPG או PNG אחר.',
+  imageSuccessTitle: 'התמונה כווצה בהצלחה!',
+  originalDimensions: 'מידות מקוריות',
+  outputDimensions: 'מידות לאחר כיווץ',
+  imageClosestAchievable: 'הגודל הקרוב ביותר שהושג: לא הצלחנו להגיע ל-{size} בתמונה הזו בלי להפוך אותה לבלתי שמישה, אז זו התוצאה הקטנה ביותר שנמצאה.',
+  formatNotice: 'שימו לב: לאחר הכיווץ הפלט הוא JPEG. רקע שקוף בקובץ PNG יתמלא בלבן, וקידוד מחדש מוחק נתוני EXIF, כולל מיקום. צילום מסך או סריקה של טקסט עלולים להראות עיוותי JPEG גלויים, בעיקר בגודל יעד קטן.',
+  imageDownloadLabel: 'הורדת תמונה מכווצת',
+  imageShareLabel: 'שיתוף תמונה מכווצת',
+  imageLoaded: 'הקובץ "{name}" נטען. קבעו גודל יעד וכווצו.',
+  imageStarting: 'מתחילים בכיווץ התמונה...',
+  imageComplete: 'כיווץ התמונה הושלם. הקובץ שלכם מוכן.',
+  missedTarget: 'לא הגענו ליעד. מוצגת התוצאה הקטנה ביותר שנמצאה.',
+  imageFailed: 'כיווץ התמונה נכשל.',
+  imageSharedSuccessfully: 'התמונה המכווצת שותפה.',
+  imageSharingCanceled: 'השיתוף בוטל. התמונה המכווצת עדיין מוכנה.',
+  imageWorkNoun: 'התמונה המכווצת שיצרתם',
 };
 
 const compressMessages: Partial<Record<DocumentationLocaleId, CompressMessages>> = {
@@ -296,86 +358,9 @@ const compressMessages: Partial<Record<DocumentationLocaleId, CompressMessages>>
   he: hebrewCompressMessages,
 };
 
-/**
- * SEO-19: the standalone Compress Image tool (JPG/PNG to a target size, e.g.
- * 100KB). Deliberately its own catalogue rather than reusing CompressMessages
- * - there is no quality-level grid here, only Target Size, and the result
- * needs image-specific facts (dimensions, JPEG-only output) that a PDF result
- * never states. English only for now: SEO-19 ships this tool in English
- * first, and LOC-11's ROI gate applies before any localized edition.
- */
-export interface CompressImageMessages {
-  skippedOne: string;
-  skippedMany: string;
-  targetSizeLabel: string;
-  compress: string;
-  compressing: string;
-  addImageToCompress: string;
-  compressionFailedTitle: string;
-  compressionFailedBody: string;
-  successTitle: string;
-  originalSize: string;
-  compressedSize: string;
-  spaceSaved: string;
-  savedPercent: string;
-  noReduction: string;
-  originalDimensions: string;
-  outputDimensions: string;
-  closestAchievable: string;
-  formatNotice: string;
-  downloadLabel: string;
-  shareLabel: string;
-  loaded: string;
-  starting: string;
-  complete: string;
-  missedTarget: string;
-  failed: string;
-  sharedSuccessfully: string;
-  sharingCanceled: string;
-  shareError: string;
-  workNoun: string;
-}
-
-const englishCompressImageMessages: CompressImageMessages = {
-  skippedOne: 'Skipped "{name}" - not a JPG or PNG.',
-  skippedMany: 'Skipped {count} files - not JPG or PNG.',
-  targetSizeLabel: 'Target size',
-  compress: 'Compress Image',
-  compressing: 'Compressing…',
-  addImageToCompress: 'Add a JPG or PNG above to compress',
-  compressionFailedTitle: 'Compression failed.',
-  compressionFailedBody: 'The file may be corrupted or an unsupported image. Please try another JPG or PNG.',
-  successTitle: 'Image Successfully Compressed!',
-  originalSize: 'Original Size',
-  compressedSize: 'Compressed Size',
-  spaceSaved: 'Space Saved',
-  savedPercent: 'Saved {percent}%',
-  noReduction: 'No size reduction',
-  originalDimensions: 'Original Dimensions',
-  outputDimensions: 'Output Dimensions',
-  closestAchievable: "Closest achievable size: {size} couldn't be reached on this photo without making it unusable, so this is the smallest result found.",
-  formatNotice: 'Notice: once compressed, the output is a JPEG. A transparent PNG background is filled in white, and re-encoding drops EXIF metadata, including location. A screenshot or scan of text can show visible JPEG artefacts, especially at a small target.',
-  downloadLabel: 'Download Compressed Image',
-  shareLabel: 'Share Compressed Image',
-  loaded: 'File "{name}" loaded. Set a target size and compress.',
-  starting: 'Starting image compression...',
-  complete: 'Image compression complete. Your file is ready.',
-  missedTarget: 'Target missed. Showing the smallest result found instead.',
-  failed: 'Image compression failed.',
-  sharedSuccessfully: 'Compressed image shared successfully.',
-  sharingCanceled: 'Sharing canceled. Your compressed image is still ready.',
-  shareError: 'Could not open the share sheet. Please try again.',
-  workNoun: 'the compressed image you just made',
-};
-
-const compressImageMessages: Partial<Record<DocumentationLocaleId, CompressImageMessages>> = {
-  en: englishCompressImageMessages,
-};
-
 const toolMessageTables: Record<string, Partial<Record<DocumentationLocaleId, unknown>>> = {
   merge: mergeMessages,
   compress: compressMessages,
-  'compress-image': compressImageMessages,
 };
 
 export function getToolMessages(toolSlug: string, locale: DocumentationLocaleId): unknown | undefined {
@@ -549,7 +534,6 @@ export {
   hebrewMergeMessages,
   englishCompressMessages,
   hebrewCompressMessages,
-  englishCompressImageMessages,
   englishShellMessages,
   hebrewShellMessages,
 };
