@@ -65,6 +65,76 @@ Read the Trends charts the usual way: a chart of only small terms showing zeros 
 means the family is below the floor, and the verdict is the Turkish one. If `kompres pdf 1 mb` holds
 a steady line against `kompres pdf`, record the share.
 
+## Evidence, 2026-09-12 (Shlomi's screenshots)
+
+### Trends (geo=ID, past 12 months, read off the average bars; lead's reading of the four charts)
+
+| Chart | Term | Average | Shape |
+| --- | --- | --- | --- |
+| 1. Size family vs generic | `kompres pdf` | ~75 | Steady line all year, dip to ~30 in one week around late March 2026 |
+| 1. Size family vs generic | `kompres pdf 1 mb` | ~3 to 4 | Steady low line, no zero weeks |
+| 1. Size family vs generic | `mengecilkan pdf 200 kb` | 0 | Flat |
+| 1. Size family vs generic | `memperkecil pdf 500 kb` | 0 | Flat |
+| 1. Size family vs generic | `kompres pdf di bawah 1 mb` | 0 | Flat |
+| 2. Native vs English at 1 MB | `pdf 1 mb` | ~75 | Steady |
+| 2. Native vs English at 1 MB | `kompres pdf 1 mb` | ~38 | Steady, tracks the same shape as `pdf 1 mb` |
+| 2. Native vs English at 1 MB | `compress pdf to 1mb` | ~3 | Blips |
+| 2. Native vs English at 1 MB | `kompres pdf jadi 1 mb` | ~2 | Blips |
+| 2. Native vs English at 1 MB | `mengecilkan pdf menjadi 1 mb` | ~1 | Blips |
+| 3. Small limits | `pdf 200 kb` | ~48 | Spiky but continuous, peaks at 100 in two weeks |
+| 3. Small limits | `compress pdf to 100kb` | ~10 | One-week blips with zeros between |
+| 3. Small limits | `kompres pdf 100 kb` | ~8 | Same shape, one-week blips with zeros between |
+| 3. Small limits | `kompres pdf 300 kb` | ~12 | Same shape, one-week blips with zeros between |
+| 3. Small limits | `mengecilkan pdf 200 kb` | 0 | Flat |
+| 4. Context terms | `ukuran file lamaran kerja` | 0 | Flat |
+| 4. Context terms | `kompres pdf cpns` | 0 | Flat |
+| 4. Context terms | `kompres pdf skck` | 0 | Flat |
+| 4. Context terms | `kompres pdf sesuai ukuran` | 0 | One blip |
+| 4. Context terms | `kompres foto 200 kb` | ~5 | Five isolated spikes (one at 100, one at ~85) with zeros between |
+
+At 1 MB the Indonesian target-size family clears Trends' floor: `kompres pdf 1 mb` is a steady line at
+roughly 4% of generic `kompres pdf` and roughly half of bare `pdf 1 mb`, and native beats English about
+12x at that limit (`kompres pdf 1 mb` ~38 vs `compress pdf to 1mb` ~3). No other language's target-size
+family did this, Turkish, Spanish and Vietnamese all read zeros with one-week blips in LOC-11 and LOC-13.
+
+At 100 to 300 KB, the limits where the English page and `/compress/` win, the Indonesian forms have the
+below-the-floor shape (blips), and the portal-context terms (`ukuran file lamaran kerja`, `cpns`,
+`skck`) are flat at zero, so the "job-application file size" intent that autocomplete surfaced is too
+small for Trends. `kompres foto 200 kb` (the photo half, SEO-19/SEO-31's demand) is blips. `pdf 200 kb`
+at ~48 is a bare term that could carry other intents and is not evidence on its own. Demand half:
+provisionally passes at 1 MB only. Still pending for the gate: the `hl=id` SERPs (field half), GSC
+Indonesia (whether the English pages get any of this family today), Keyword Planner volumes if
+available.
+
+### SERPs (hl=id, gl=ID)
+
+**SERPs, desktop, 2026-09-12.**
+
+| Query | Top ten | Read |
+| --- | --- | --- |
+| `kompres pdf 1 mb` | iLovePDF `/mengompres-pdf` (generic native), Pi7 `pdf.pi7.org/kompres-pdf-1mb` (dedicated native page), Smallpdf generic (511,392 reviews), Zamzar `compress-pdf-1mb` (Google-translated), AI Overview recommending iLovePDF, 11zon bigpdf `reduce-pdf-to-1mb` (dedicated), Canva generic, ihatepdf.cv (translated), easypdf.fr blog "Kompres PDF ke 1 MB Gratis: 5 Jenis Dokumen Diuji (2026)" dated 18 Aug 2026 (a native post already in SEO-17's tested-documents shape), YouTube Neicy Tekno. Related: `Kompres PDF 1 MB gratis`, `Kompres file 1 MB`, `1 MB tanpa mengurangi kualitas`, `1MB ke 500KB`, `500KB`, `sesuai ukuran yang diinginkan`, `1 MB online`, `gratis`. | The English 100kb SERP's second tier (Pi7, 11zon, Zamzar) natively, plus the majors generic, plus a native blog doing our page shape. No on-device claim in the top ten; translated English pages rank. |
+| `mengecilkan pdf 200 kb` | iLovePDF generic, Pi7 `kompres-pdf-200kb`, 11zon `resize-pdf` 200KB, Zamzar 200kb (translated), YouTube Neicy Tekno 200KB, Smallpdf generic, HiPDF, Reddit r/PDFgear (translated), 11zon `compress-pdf-to-200kb`, YouTube KUSNENDAR "CARA KOMPRES PDF MENJADI 200kb DI HP" (39.6k views). Related: `200KB online`, `200kb tidak pecah`, `200kb gratis`, `JPG to PDF 200 KB`, `100KB`, `I love PDF 200KB`, `300kb`. | Same tier; two Indonesian YouTube how-tos, mobile-first. |
+| `kompres pdf di bawah 1 mb` | iLovePDF, Smallpdf, Pi7 1mb, Zamzar (translated), 11zon 1MB, easypdf.fr blog, AI Overview (Smallpdf, iLovePDF), LightPDF "any size" (translated, 68,994 reviews), FreeCompress `compress-pdf-less-than-1mb` with a native title, Adobe (281,831). Related: `1 MB free`, `sesuai ukuran`, `500KB`, `2 MB`, `dibawah 1 MB`, `2 MB gratis`, `1 MB`, `10 MB gratis`. | Same field; the related block runs 500 KB to 10 MB, larger limits than the English cluster. |
+| `kompres pdf sesuai ukuran yang diinginkan` | AI Overview (iLovePDF, PDF24), iLovePDF, PDF24 (14,949), Pi7 `memperkecil-ukuran-pdf`, LightPDF (translated), Telkom University's own WebPDF tool (`stage-pdf.telkomuniversity.ac.id`), a video block of three Indonesian YouTube how-tos with KB numbers in the thumbnails (100/200/500/800 KB; 4.4 MB to 300 KB), PDFResizer, HiPDF, APITemplate (translated). Related: `1 MB`, `500KB`, `sesuai ukuran gratis`, `I love kompres PDF`, `file PDF gratis`, `1 MB free`, `200KB`, `Kompres JPG`. | Custom-target intent is served by the second tier plus a local university tool; `Kompres JPG` in the related block is the photo half (SEO-19). |
+| `ukuran file lamaran kerja via email` | Not a tool SERP. AI Overview: "maksimal 1 MB hingga 2 MB" citing Yureka Education Center and Jobstreet. Results: Scribd, yec.co.id (2020), Glints (Mar 2026), Jobstreet Indonesia, binar.co.id, edunitas.com, Dealls (Oct 2025), nusamandiri.info, Loker.id (Jun 2025), all career advice. Related: `Cara mengecilkan ukuran file pdf untuk lamaran kerja` is the one tool-shaped phrasing; the rest are email templates. | The limit is an email/HR convention of 1 to 2 MB, not a portal cap. The "job application" query is a career-advice intent; the compress intent inside it is `mengecilkan ukuran file pdf untuk lamaran kerja`, which a tool page cannot rank for against HR sites without being that kind of article. |
+
+### Field read (2026-09-12)
+
+No top ten is thin. The dedicated target-size pages are the same second tier this domain ranks
+against at 9.4 in English (Pi7, 11zon, Zamzar, LightPDF), now with FreeCompress and a native blog post
+in SEO-17's shape (easypdf.fr, 18 Aug 2026). The majors hold the generic slots and the AI Overview.
+Google-translated English pages rank in all four tool SERPs, the translated-results backfill LOC-08
+described, so an English page of ours already reaches these searchers in translation. No result claims
+on-device processing. No verdict here; that waits for the query table and Keyword Planner.
+
+### GSC Indonesia, last 3 months
+
+Overview: 1 click, 151 impressions, 0.7% CTR, average position 17.6. Impressions rose from 0 to 2 a
+day in July to 10 to 14 a day in early September. Query table pending.
+
+### Keyword Planner
+
+Run by Shlomi the same day; recorded in the next section.
 ## Keyword Planner results (2026-09-12)
 
 Shlomi ran both Keyword Planner passes (location Indonesia, language Indonesian; the account's billing
@@ -103,8 +173,6 @@ three-month**, also consistent across multiple independent rows). Read together:
 shifting from "compress to 1MB" toward "get it under 1MB" phrasing. If this family becomes a page, lead
 with "under 1MB," not "to 1MB."
 
-This satisfies the Keyword Planner half of the ready-to-click links above. Trends, SERP and GSC
-readings are still outstanding before the gate can be read; see Acceptance.
 
 ## Acceptance
 
