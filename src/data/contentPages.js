@@ -39,6 +39,7 @@ import {
   WifiOff,
   Layers,
   ScanText,
+  IdCard,
 } from 'lucide-preact';
 
 export const landingPages = [
@@ -106,6 +107,16 @@ export const landingPages = [
     blurb: 'Real measured examples: how many pages actually fit before text blurs.',
     icon: ScanText,
     hub: 'compress',
+    sitemapPriority: '0.6',
+    sitemapChangefreq: 'monthly',
+  },
+  {
+    href: '/photo-and-signature-size-for-forms/',
+    label: 'Photo and signature size limits',
+    blurb: 'What decides whether a portal photo fits, and what this tool does not do.',
+    icon: IdCard,
+    hub: 'compress-image',
+    alsoHub: ['compress'],
     sitemapPriority: '0.6',
     sitemapChangefreq: 'monthly',
   },
