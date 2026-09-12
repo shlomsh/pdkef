@@ -10,6 +10,7 @@ import ExportReadinessNotice from './ExportReadinessNotice.tsx';
 import EditorExportActions from '../EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../ToolShell.tsx';
 import { makeArmTool, useAutoArmHint } from '../../lib/toolArming.js';
+import { englishShellMessages, englishSignMessages, formatMessage, type SignMessages } from '../../i18n/toolMessages';
 import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import type { SignToolType } from '../../editor/model/editorModel.ts';
@@ -24,29 +25,12 @@ const isShapeTool = (tool: SignToolType | null): tool is ShapeTool => (
   tool !== null && SHAPE_TOOLS.includes(tool as ShapeTool)
 );
 
-// What each tool is called in front of a user, and the button that arms it.
-// Every visible string and every screen-reader announcement reads from here, so
-// the two cannot drift, and a rename of an internal tool id cannot silently
-// rewrite the UI copy.
-//
-// `action` is written out per tool rather than generated: "a" versus "an" is
-// not worth deriving, and "click" versus "click and drag" is the real
-// difference between the two families, so it belongs in the sentence rather
-// than in a branch around it. Every line is "Click [and drag] on a page to
-// [place|draw] a thing", which teaches both families as one pattern. Keep
-// "click and" on the drag tools: without it, "drag on a page" reads as dragging
-// the tool from the toolbar onto the page, which is not how this works.
-const TOOL_COPY: Record<SignToolType, { action: string; button: string }> = {
-  text:      { action: 'Click on a page to place a text box.',              button: 'Text' },
-  symbol:    { action: 'Click on a page to place a symbol.',                button: 'Symbols' },
-  signature: { action: 'Click on a page to place your signature.',          button: 'Sign' },
-  whiteout:  { action: 'Click and drag on a page to draw a whiteout box.',  button: 'Whiteout' },
-  ellipse:   { action: 'Click and drag on a page to draw an ellipse.',      button: 'Shapes' },
-  rectangle: { action: 'Click and drag on a page to draw a rectangle.',     button: 'Shapes' },
-  line:      { action: 'Click and drag on a page to draw a line.',          button: 'Shapes' },
-};
-
-const isSignToolType = (tool: string): tool is SignToolType => tool in TOOL_COPY;
+// Every SignToolType TOOL_COPY (below) has an entry for - a static list rather
+// than deriving it from TOOL_COPY's own keys, since TOOL_COPY is now built
+// per-render from the message catalogue (LOC-09 stage 1) and this guard has to
+// exist before that render happens.
+const SIGN_TOOL_TYPES: readonly SignToolType[] = ['text', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line'];
+const isSignToolType = (tool: string): tool is SignToolType => (SIGN_TOOL_TYPES as readonly string[]).includes(tool);
 
 export default function SignToolbar({
   setAnnouncement,
@@ -63,7 +47,8 @@ export default function SignToolbar({
   exporting = false,
   exportBlocked = false,
   exportIssueCount = 0,
-  onReviewExportIssues = () => {}
+  onReviewExportIssues = () => {},
+  messages,
 }: {
   setAnnouncement: (msg: string) => void;
   setDialogOpen: (open: boolean) => void;
@@ -83,14 +68,37 @@ export default function SignToolbar({
   exportBlocked?: boolean;
   exportIssueCount?: number;
   onReviewExportIssues?: () => void;
+  /** LOC-09 stage 1: the always-visible toolbar row's own catalogue - see
+   * src/i18n/toolMessages.ts's SignMessages. Optional and English-default so
+   * every existing caller (this file's own tests included) is unaffected;
+   * PdfSignTool.tsx is the only caller passing a Hebrew edition. */
+  messages?: Partial<SignMessages>;
 }) {
   const { state, dispatch } = useSignTool();
   const selectedTool = state.selectedTool;
   const toolLocked = state.toolLocked;
-  const { requestReplace } = useToolShell();
+  const { requestReplace, messages: shellMessages = englishShellMessages } = useToolShell();
   const { savedSignatures, activeSignature, setActiveSignature, onDeleteSavedSignature } = useSavedSignatures();
   const exportDisabled = exporting || exportBlocked;
-  const blockedExportTitle = `${exportIssueCount} text field${exportIssueCount === 1 ? '' : 's'} need${exportIssueCount === 1 ? 's' : ''} attention before download or sharing`;
+
+  const t: SignMessages = { ...englishSignMessages, ...messages };
+
+  // TOOL_COPY owns every tool-facing string (CLAUDE.md's editor rule) - built
+  // from `t` per render rather than as a module constant (LOC-09 stage 1), so
+  // a Hebrew catalogue reaches it the same way the English default does. Not
+  // memoized: `t` is a fresh object every render (the spread above), so a
+  // memo keyed on it would recompute every render anyway.
+  const TOOL_COPY: Record<SignToolType, { action: string; button: string }> = {
+    text:      { action: t.textAction,      button: t.textButton },
+    symbol:    { action: t.symbolAction,    button: t.symbolsButton },
+    signature: { action: t.signatureAction, button: t.signButton },
+    whiteout:  { action: t.whiteoutAction,  button: t.whiteoutButton },
+    ellipse:   { action: t.ellipseAction,   button: t.shapesButton },
+    rectangle: { action: t.rectangleAction, button: t.shapesButton },
+    line:      { action: t.lineAction,      button: t.shapesButton },
+  };
+
+  const blockedExportTitle = formatMessage(exportIssueCount === 1 ? t.exportBlockedTitleOne : t.exportBlockedTitleOther, { count: exportIssueCount });
 
   const [showSigDropdown, setShowSigDropdown] = useState(false);
   const [showShapesDropdown, setShowShapesDropdown] = useState(false);
@@ -239,15 +247,22 @@ export default function SignToolbar({
       copy={activeToolCopy}
       locked={toolLocked}
       onToggleKeepOn={() => selectedTool && (toolLocked ? unlockTool(selectedTool) : lockTool(selectedTool))}
-      idle={`Tip: pick a tool to start.${hasTextElement ? ' Double-click a text box to edit it.' : ''}`}
+      idle={`${t.tipIdle}${hasTextElement ? ` ${t.tipEditText}` : ''}`}
+      keepOnLabel={t.keepOn}
+      keepOnTitleOn={t.keepOnTitleOn}
+      keepOnTitleOff={t.keepOnTitleOff}
+      hintEsc={t.hintEsc}
+      hintDoubleClick={t.hintDoubleClick}
+      lang={t.lang}
+      dir={t.dir}
     />
   );
 
   return (
     <>
       <ToolShell editor status={statusLine}>
-        <div className={styles.toolbar} role="toolbar" aria-label="PDF annotations" dir="ltr" lang="en">
-          <ArmHint tool="text" label="Text" action={TOOL_COPY.text.action} locked={selectedTool === 'text' && toolLocked} autoShowTool={autoShowTool}>
+        <div className={styles.toolbar} role="toolbar" aria-label={t.toolbarLabel} dir={t.dir} lang={t.lang}>
+          <ArmHint tool="text" label={t.textButton} action={TOOL_COPY.text.action} locked={selectedTool === 'text' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
             <button
               type="button"
               className={`${styles.button}${selectedTool === 'text' ? ` ${styles.active}` : ''}${selectedTool === 'text' && toolLocked ? ` ${styles.locked}` : ''}`}
@@ -260,11 +275,11 @@ export default function SignToolbar({
                 <line x1="9" y1="20" x2="15" y2="20" />
                 <line x1="12" y1="4" x2="12" y2="20" />
               </svg>
-              <span className={styles.label}>Text</span>
+              <span className={styles.label}>{t.textButton}</span>
             </button>
           </ArmHint>
 
-          <ArmHint tool="symbol" label="Symbols" action={TOOL_COPY.symbol.action} locked={selectedTool === 'symbol' && toolLocked} autoShowTool={autoShowTool}>
+          <ArmHint tool="symbol" label={t.symbolsButton} action={TOOL_COPY.symbol.action} locked={selectedTool === 'symbol' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
             <button
               type="button"
               className={`${styles.button}${selectedTool === 'symbol' ? ` ${styles.active}` : ''}${selectedTool === 'symbol' && toolLocked ? ` ${styles.locked}` : ''}`}
@@ -275,7 +290,7 @@ export default function SignToolbar({
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
-              <span className={styles.label}>Symbols</span>
+              <span className={styles.label}>{t.symbolsButton}</span>
             </button>
           </ArmHint>
 
@@ -303,7 +318,7 @@ export default function SignToolbar({
               to - the div is already position:relative and already sized to
               match the button exactly (`.toolbar .dropdown > .button { width:
               100% }`), so anchoring here costs nothing visually. */}
-          <ArmHint tool="shapes" label="Shapes" action="Draw an ellipse, rectangle, or line." locked={isShapeTool(selectedTool) && toolLocked} autoShowTool={autoShowTool}>
+          <ArmHint tool="shapes" label={t.shapesButton} action={t.shapesHintAction} locked={isShapeTool(selectedTool) && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
             <div
               className={styles.dropdown}
               onMouseEnter={openShapes}
@@ -327,7 +342,7 @@ export default function SignToolbar({
                       <rect x="13" y="13" width="8" height="8" rx="1" />
                     </svg>
                     <span className={`${styles.label} ${styles['shapes-label']}`}>
-                      Shapes
+                      {t.shapesButton}
                       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="6 9 12 15 18 9" />
                       </svg>
@@ -379,7 +394,7 @@ export default function SignToolbar({
             </div>
           </ArmHint>
 
-          <ArmHint tool="whiteout" label="Whiteout" action={TOOL_COPY.whiteout.action} locked={selectedTool === 'whiteout' && toolLocked} autoShowTool={autoShowTool}>
+          <ArmHint tool="whiteout" label={t.whiteoutButton} action={TOOL_COPY.whiteout.action} locked={selectedTool === 'whiteout' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
             <button
               type="button"
               className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}${selectedTool === 'whiteout' && toolLocked ? ` ${styles.locked}` : ''}`}
@@ -391,7 +406,7 @@ export default function SignToolbar({
                 <path d="M22 21H7" />
                 <path d="m13.3 4 5.3 5.3" />
               </svg>
-              <span className={styles.label}>Whiteout</span>
+              <span className={styles.label}>{t.whiteoutButton}</span>
             </button>
           </ArmHint>
 
@@ -404,10 +419,11 @@ export default function SignToolbar({
               there is no need for a second conditional path. */}
           <ArmHint
             tool="signature"
-            label="Sign"
+            label={t.signButton}
             action={TOOL_COPY.signature.action}
             locked={!activeSignature || (selectedTool === 'signature' && toolLocked)}
             autoShowTool={autoShowTool}
+            hintTemplate={t.armHint}
           >
             <div
               className={styles.dropdown}
@@ -428,7 +444,7 @@ export default function SignToolbar({
                     // teach: once a signature exists, ArmHint's own bubble
                     // (wrapping the div above) covers this button instead, and
                     // showing both would duplicate the description.
-                    title={activeSignature ? undefined : 'Click here to select or create a signature'}
+                    title={activeSignature ? undefined : t.selectSignatureTitle}
                     aria-pressed={selectedTool === 'signature'}
                     data-label-priority="2"
                   >
@@ -436,7 +452,7 @@ export default function SignToolbar({
                       <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
                       <path d="M3 21h18" />
                     </svg>
-                    <span className={styles.label}>Sign</span>
+                    <span className={styles.label}>{t.signButton}</span>
                   </button>
                 }
                 content={
@@ -487,7 +503,7 @@ export default function SignToolbar({
                       <line x1="12" y1="5" x2="12" y2="19" />
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
-                    <span className={styles.label}>New Signature</span>
+                    <span className={styles.label}>{t.newSignatureButton}</span>
                   </button>
                 </div>
               }
@@ -499,7 +515,7 @@ export default function SignToolbar({
             type="button"
             className={styles.button}
             onClick={() => setUndoModalOpen(true)}
-            title="Undo changes"
+            title={t.undoTitle}
             disabled={actionHistory.length === 0}
             data-label-priority="1"
           >
@@ -507,7 +523,7 @@ export default function SignToolbar({
               <path d="M3 7v6h6" />
               <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
             </svg>
-            <span className={styles.label}>Undo</span>
+            <span className={styles.label}>{t.undoButton}</span>
           </button>
 
           {/* Editing actions, including Undo, stay together on the left.
@@ -515,26 +531,43 @@ export default function SignToolbar({
           <SignFeedbackButton
             className={styles.button}
             labelClassName={styles.label}
+            label={t.feedbackButton}
+            title={t.feedbackTitle}
+            lang={t.lang}
+            dir={t.dir}
           />
 
-          <ViewControl isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
+          <ViewControl
+            isFullscreen={isFullscreen}
+            toggleFullscreen={toggleFullscreen}
+            labels={{
+              relaxed: t.viewRelaxed,
+              condensed: t.viewCondensed,
+              fullscreen: t.viewFullscreen,
+              exitFullscreen: t.viewExitFullscreen,
+              densityLabel: t.viewDensityLabel,
+            }}
+          />
 
           {/* The united file action, in the exact slot Start over used to hold.
               Both meant "I want a different file"; this one says it once and
               actually gets you there. BasePdfTool decides whether swapping the
-              file needs confirming - see requestReplace. */}
+              file needs confirming - see requestReplace. The label/title text
+              reads from the shell's own catalogue (fix from LOC-09 stage 1's
+              inventory), the same way ToolShell.tsx's own FileActions() does -
+              only the icon stays FILE_ACTIONS.replace's, since that is not text. */}
           <button
             type="button"
             className={`${styles.button} ${styles.highlight}`}
             onClick={requestReplace}
-            title={FILE_ACTIONS.replace.title}
-            aria-label={FILE_ACTIONS.replace.label}
+            title={shellMessages.replaceTitle}
+            aria-label={shellMessages.replaceLabel}
             data-label-priority="1"
           >
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <path d={FILE_ACTIONS.replace.icon} />
             </svg>
-            <span className={styles.label}>{FILE_ACTIONS.replace.shortLabel}</span>
+            <span className={styles.label}>{shellMessages.replaceShort}</span>
           </button>
 
           <EditorExportActions
@@ -545,8 +578,12 @@ export default function SignToolbar({
             onDownload={onDownloadPdf}
             onPrepareShare={onSavePdf}
             onShare={onSharePdf}
-            downloadTitle={exportBlocked ? blockedExportTitle : 'Save your changes and download the signed PDF'}
-            shareTitle={exportBlocked ? blockedExportTitle : (shareReady ? 'Share the signed PDF' : 'Save your changes to share the signed PDF')}
+            shareLabel={t.shareButton}
+            downloadLabel={t.downloadButton}
+            dir={t.dir}
+            lang={t.lang}
+            downloadTitle={exportBlocked ? blockedExportTitle : t.downloadTitle}
+            shareTitle={exportBlocked ? blockedExportTitle : (shareReady ? t.shareTitleReady : t.shareTitleUnsaved)}
             describedBy={exportBlocked ? 'sign-export-readiness' : undefined}
           />
         </div>

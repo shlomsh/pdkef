@@ -9,7 +9,7 @@ import type {
 } from '../editor/model/editorModel.ts';
 import type { SavedSignature } from '../editor/model/savedSignature.ts';
 import BasePdfTool from './BasePdfTool.tsx';
-import { englishShellMessages, type ShellMessages } from '../i18n/toolMessages';
+import { englishShellMessages, englishSignMessages, type ShellMessages, type SignMessages } from '../i18n/toolMessages';
 import { SignToolProvider, useSignTool } from './SignTool/SignToolContext.tsx';
 import { SignDefaultsContext } from './SignTool/SignDefaultsContext.tsx';
 import { SavedSignaturesContext } from './SignTool/SavedSignaturesContext.tsx';
@@ -88,16 +88,24 @@ const SPECULATIVE_EXPORT_DEBOUNCE_MS = 1500;
 
 /* The editor itself stays English (LOC-02's pilot decision); the dropzone,
    file row and confirmations around it are the shared shell and follow the
-   page's language like every other tool. */
-export default function PdfSignTool({ shellMessages }: { shellMessages?: Partial<ShellMessages> } = {}) {
+   page's language like every other tool.
+
+   LOC-09 stage 1 is the first crack in that: the always-visible toolbar row
+   and its status line now read from `messages` (src/i18n/toolMessages.ts's
+   SignMessages) too. Popovers, dialogs, element controls and announcements
+   are not covered yet and stay English - see that catalogue's header
+   comment. `messages` is optional and English-default, same as
+   `shellMessages`, so every existing English caller is unaffected. */
+export default function PdfSignTool({ shellMessages, messages }: { shellMessages?: Partial<ShellMessages>; messages?: Partial<SignMessages> } = {}) {
   return (
     <SignToolProvider>
-      <PdfSignToolInner shellMessages={shellMessages} />
+      <PdfSignToolInner shellMessages={shellMessages} messages={messages} />
     </SignToolProvider>
   );
 }
 
-function PdfSignToolInner({ shellMessages }: { shellMessages?: Partial<ShellMessages> }) {
+function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial<ShellMessages>; messages?: Partial<SignMessages> }) {
+  const t: SignMessages = { ...englishSignMessages, ...messages };
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
   // The loaded PDF's bytes as state as well as a ref: the ref is what the
@@ -972,6 +980,7 @@ function PdfSignToolInner({ shellMessages }: { shellMessages?: Partial<ShellMess
               canSharePdf={canSharePdf}
               shareReady={shareReady}
               errorDetail={errorDetail}
+              messages={t}
             />
           </SavedSignaturesContext.Provider>
         </SignDefaultsContext.Provider>
@@ -1006,6 +1015,12 @@ function PdfSignToolInner({ shellMessages }: { shellMessages?: Partial<ShellMess
         titleId="confirm-delete-title"
         title="Delete signature?"
         confirmLabel="Delete signature"
+        // LOC-09 stage 1, one-line fix: title/body/confirm stay English for a
+        // later stage, but Cancel/Close already have a reviewed translation on
+        // the shared shell catalogue (ShellMessages) - no reason to render the
+        // English default underneath a Hebrew page.
+        cancelLabel={shellMessages?.cancel}
+        closeLabel={shellMessages?.closeDialog}
         onCancel={() => setSignatureToDelete(null)}
         onConfirm={proceedDeleteSignature}
       >

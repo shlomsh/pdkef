@@ -7,11 +7,26 @@ const RELAXED = 0;
 const CONDENSED = 1;
 const FULLSCREEN = 2;
 
-const SEGMENTS = [
-  { key: 'relaxed', label: 'Relaxed view' },
-  { key: 'condensed', label: 'Condensed view' },
-  { key: 'fullscreen', label: 'Full screen' },
-];
+// LOC-09 stage 1: English defaults, overridable per label - SignToolbar.tsx
+// passes its own catalogue's viewRelaxed/viewCondensed/viewFullscreen/
+// viewExitFullscreen/viewDensityLabel (src/i18n/toolMessages.ts's
+// SignMessages); RedactToolbar.tsx passes none of these and keeps this exact
+// English wording.
+export interface ViewControlLabels {
+  relaxed: string;
+  condensed: string;
+  fullscreen: string;
+  exitFullscreen: string;
+  densityLabel: string;
+}
+
+const DEFAULT_LABELS: ViewControlLabels = {
+  relaxed: 'Relaxed view',
+  condensed: 'Condensed view',
+  fullscreen: 'Full screen',
+  exitFullscreen: 'Exit full screen',
+  densityLabel: 'View density',
+};
 
 function SegmentIcon({ segment }: { segment: string }) {
   if (segment === 'relaxed') {
@@ -49,9 +64,23 @@ function SegmentIcon({ segment }: { segment: string }) {
 // fullscreen has external exits (Esc, F11, browser UI) that would desync a merged
 // enum, and it cannot be restored on load since browsers require a user gesture to
 // enter it. See spec 2.1-2.2.
-export default function ViewControl({ isFullscreen, toggleFullscreen }: { isFullscreen: boolean; toggleFullscreen: () => void }) {
+export default function ViewControl({
+  isFullscreen,
+  toggleFullscreen,
+  labels = DEFAULT_LABELS,
+}: {
+  isFullscreen: boolean;
+  toggleFullscreen: () => void;
+  labels?: ViewControlLabels;
+}) {
   const [density, setDensity] = useViewDensity();
   const segmentRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const SEGMENTS = [
+    { key: 'relaxed', label: labels.relaxed },
+    { key: 'condensed', label: labels.condensed },
+    { key: 'fullscreen', label: labels.fullscreen },
+  ];
 
   const activeIndex = isFullscreen ? FULLSCREEN : (density === 'relaxed' ? RELAXED : CONDENSED);
 
@@ -84,10 +113,10 @@ export default function ViewControl({ isFullscreen, toggleFullscreen }: { isFull
           from its "how many controls does the phone actually see" nth-child
           counting below 920px, where this element is unconditionally
           display:none - see that file's --controls-per-row comment. */}
-      <div className={styles.segmented} data-toolbar-narrow-hidden role="radiogroup" aria-label="View density" onKeyDown={onKeyDown}>
+      <div className={styles.segmented} data-toolbar-narrow-hidden role="radiogroup" aria-label={labels.densityLabel} onKeyDown={onKeyDown}>
         {SEGMENTS.map((segment, index) => {
           const isActive = activeIndex === index;
-          const label = segment.key === 'fullscreen' && isFullscreen ? 'Exit full screen' : segment.label;
+          const label = segment.key === 'fullscreen' && isFullscreen ? labels.exitFullscreen : segment.label;
           return (
             <button
               key={segment.key}
@@ -113,7 +142,12 @@ export default function ViewControl({ isFullscreen, toggleFullscreen }: { isFull
           wrapper div, so the existing "every toolbar button is a direct child of
           .toolbar or .dropdown" structural invariant (SignToolbar.test.tsx) holds
           without change. */}
-      <FullscreenButton isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
+      <FullscreenButton
+        isFullscreen={isFullscreen}
+        toggleFullscreen={toggleFullscreen}
+        label={labels.fullscreen}
+        exitLabel={labels.exitFullscreen}
+      />
     </>
   );
 }
