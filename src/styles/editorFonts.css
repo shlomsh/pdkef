@@ -365,3 +365,15 @@
   font-weight: 700;
   src: url('/fonts/AnekMalayalam-Bold.ttf') format('truetype');
 }
+@font-face {
+  font-family: 'Gayathri';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Gayathri-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Gayathri';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Gayathri-Bold.ttf') format('truetype');
+}

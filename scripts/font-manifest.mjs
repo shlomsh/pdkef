@@ -185,6 +185,12 @@ export const FONT_MANIFEST = [
     faces: normal('AnekMalayalam-Regular.ttf', 'AnekMalayalam-Bold.ttf'),
     license: { version: '1.003', url: 'https://fonts.google.com/specimen/Anek+Malayalam', copyright: 'Copyright 2021 The Anek Project Authors (https://github.com/EkType/Anek)' },
   },
+  {
+    family: 'Gayathri', kind: 'text', styleTag: 'sans',
+    metrics: { ascent: 0.732, descent: 0.488 },
+    faces: normal('Gayathri-Regular.ttf', 'Gayathri-Bold.ttf'),
+    license: { version: '1.1', url: 'https://fonts.google.com/specimen/Gayathri', copyright: 'Copyright 2019 The Gayathri Project Authors (https://gitlab.com/smc/fonts/gayathri)' },
+  },
 ];
 
 export const FONT_FILES = FONT_MANIFEST.flatMap((font) => Object.values(font.faces));

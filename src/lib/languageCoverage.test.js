@@ -405,17 +405,21 @@ describe('Punjabi, Telugu and Tamil', () => {
 });
 
 /**
- * Malayalam (FONT-03, landed after Punjabi/Telugu/Tamil). Same shape of pin
- * as Telugu/Punjabi above: the family is deliberately NOT Noto Sans
- * Malayalam, because fontkit's GPOSProcessor.getAnchor crashes on 33/35 reph
- * cases (RA+virama+consonant, syllable-initial - not a rare pattern, see
+ * Malayalam (FONT-03, landed after Punjabi/Telugu/Tamil; FONT-08 added
+ * Gayathri as a second upright choice next to Anek Malayalam). Same shape of
+ * pin as Telugu/Punjabi above: neither family is Noto Sans Malayalam,
+ * because fontkit's GPOSProcessor.getAnchor crashes on 33/35 reph cases
+ * (RA+virama+consonant, syllable-initial - not a rare pattern, see
  * e2e/sign/fixtures/malayalamCorpus.js's module doc for the measurements).
+ * Gayathri crashes 0/478 on the same corpus - see
+ * e2e/sign/malayalam-gayathri-shaping-guard.spec.js.
  */
 describe('Malayalam', () => {
-  it('Malayalam: exactly Anek Malayalam, and the card explains why it is not the Noto face and names the UAE/Gulf audience', () => {
-    expect(LANGUAGE_COVERAGE.malayalam.full.map((f) => f.family)).toEqual(['Anek Malayalam']);
+  it('Malayalam: Anek Malayalam and Gayathri, and the card explains why neither is the Noto face and names the UAE/Gulf audience', () => {
+    expect(LANGUAGE_COVERAGE.malayalam.full.map((f) => f.family)).toEqual(['Anek Malayalam', 'Gayathri']);
     const note = supportedNote('Malayalam');
     expect(note).toContain('Anek Malayalam');
+    expect(note).toContain('Gayathri');
     expect(note).toContain('Noto Sans Malayalam');
     expect(note).toContain('UAE');
     expect(note.toLowerCase()).toContain('no handwriting-style malayalam face');
