@@ -163,12 +163,13 @@ test.describe('offline workflows (SIGN-07)', () => {
     await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
     await waitForServiceWorkerControl(page);
 
+    // MERGE-12: there is no Merge button any more - the pre-merge runs on
+    // idle and the Download link takes its place once ready.
     const files = await Promise.all(
       ['a.pdf', 'b.pdf'].map(async (name) => ({ name, mimeType: 'application/pdf', buffer: await makePdfBuffer(name) })),
     );
     await page.locator('input[type="file"]').setInputFiles(files);
-    await page.getByRole('button', { name: 'Merge 2 PDFs', exact: true }).click();
-    await expect(page.getByRole('link', { name: 'Download PDF', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Download merged PDF/ })).toHaveAttribute('href', /^blob:/, { timeout: 10_000 });
     await page.waitForLoadState('networkidle');
 
     await context.setOffline(true);
@@ -180,10 +181,9 @@ test.describe('offline workflows (SIGN-07)', () => {
         ['c.pdf', 'd.pdf'].map(async (name) => ({ name, mimeType: 'application/pdf', buffer: await makePdfBuffer(name) })),
       );
       await page.locator('input[type="file"]').setInputFiles(offlineFiles);
-      await page.getByRole('button', { name: 'Merge 2 PDFs', exact: true }).click();
 
-      const download = page.getByRole('link', { name: 'Download PDF', exact: true });
-      await expect(download).toBeVisible();
+      const download = page.getByRole('link', { name: /Download merged PDF/ });
+      await expect(download).toBeVisible({ timeout: 10_000 });
       await expect(download).toHaveAttribute('href', /^blob:/);
     } finally {
       await context.setOffline(false);

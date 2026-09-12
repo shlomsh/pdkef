@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { loadDraft, deleteDraft, saveHandoff, readRecentFiles, loadRecentFile } from '../editor/workspace/draftStore.js';
+import { loadDraft, deleteDraft, saveHandoff, readRecentFiles, loadRecentFile, readDraftMeta } from '../editor/workspace/draftStore.js';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import dialogStyles from './Dialog.module.css';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
@@ -9,10 +9,29 @@ import { tools } from '../data/tools.js';
 import { englishFileDropzoneMessages, formatMessage, type FileDropzoneMessages } from '../i18n/toolMessages';
 import type { RecentFilesMessages } from '../i18n/toolMessages';
 
-function readHomeRecents(): RecentFileItem[] {
-  return readRecentFiles()
-    .slice(0, 6)
-    .map((entry: any) => ({ ...entry, cacheId: entry.id }));
+/* MERGE-13: a saved Merge draft is not one of readRecentFiles()' cached
+   *source* documents (it holds a file set and a page plan, not one PDF), so
+   it is read from draftStore's own hint and prepended, first, ahead of the
+   ordinary recents list - the most recently touched document on this device
+   is either the thing you were in the middle of, or the last thing you
+   opened, and the draft always wins that comparison when one exists. */
+function readHomeRecents(toolHref: (tool: string) => string): RecentFileItem[] {
+  const items: RecentFileItem[] = [];
+  const draft = readDraftMeta('merge');
+  if (draft?.fileName) {
+    items.push({
+      tool: 'merge',
+      fileName: draft.fileName,
+      preview: draft.preview,
+      savedAt: draft.savedAt,
+      draft: true,
+      href: toolHref('merge'),
+      pageCount: typeof draft.pageCount === 'number' && Number.isFinite(draft.pageCount) ? draft.pageCount : undefined,
+    });
+  }
+  return items
+    .concat(readRecentFiles().map((entry: any) => ({ ...entry, cacheId: entry.id })))
+    .slice(0, 6);
 }
 
 /* Splits messages.confirmHandoffBody on its literal '{file}'/'{draft}'
@@ -155,7 +174,7 @@ export default function FileDropzone({
     return () => cleanups.forEach(cleanup => cleanup());
   }, [busy, final]);
   useEffect(() => {
-    const refresh = () => setRecents(readHomeRecents());
+    const refresh = () => setRecents(readHomeRecents(toolHref));
     refresh();
     window.addEventListener('pageshow', refresh);
     window.addEventListener('storage', refresh);

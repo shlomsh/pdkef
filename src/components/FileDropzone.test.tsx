@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone from './FileDropzone.tsx';
-import { loadDraft, deleteDraft, saveDraft, saveHandoff, readRecentFiles, loadRecentFile } from '../editor/workspace/draftStore.js';
+import { loadDraft, deleteDraft, saveDraft, saveHandoff, readRecentFiles, loadRecentFile, readDraftMeta } from '../editor/workspace/draftStore.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 
 vi.mock('../editor/workspace/draftStore.js', () => ({
@@ -13,6 +13,9 @@ vi.mock('../editor/workspace/draftStore.js', () => ({
   saveHandoff: vi.fn(() => Promise.resolve(true)),
   readRecentFiles: vi.fn(() => []),
   loadRecentFile: vi.fn(() => Promise.resolve(null)),
+  // MERGE-13: no merge draft by default; the one test below that cares
+  // overrides this per-case.
+  readDraftMeta: vi.fn(() => null),
 }));
 
 function dropOn(dropzone, files) {
@@ -34,6 +37,7 @@ describe('FileDropzone', () => {
     readRecentFiles.mockReturnValue([]);
     loadRecentFile.mockResolvedValue(null);
     saveHandoff.mockResolvedValue(true);
+    readDraftMeta.mockReturnValue(null);
   });
 
   afterEach(() => {
@@ -158,6 +162,41 @@ describe('FileDropzone', () => {
       expect(container.querySelector('dialog').open).toBe(false);
       expect(deleteDraft).not.toHaveBeenCalled();
       expect(saveHandoff).not.toHaveBeenCalled();
+    });
+
+    it('shows a saved merge draft first, as a plain link straight to the tool', () => {
+      readDraftMeta.mockReturnValue({
+        fileName: 'invoice + 2 more', savedAt: Date.now() - 60_000, pageCount: 7,
+      });
+      readRecentFiles.mockReturnValue([{
+        id: 'sha256:contract', tool: 'sign', fileName: 'contract.pdf', savedAt: Date.now(),
+      }]);
+      mount({ toolTarget: 'sign', href: '/sign?action=open' });
+
+      const items = Array.from(container.querySelectorAll('li'));
+      expect(items).toHaveLength(2);
+      const draftItem = items[0];
+      expect(draftItem.textContent).toContain('invoice + 2 more');
+      expect(draftItem.textContent).toContain('Merge PDF');
+      expect(draftItem.textContent).toContain('7 pages');
+      const link = draftItem.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link.getAttribute('href')).toBe('/merge/');
+      // The second item is still the ordinary cached-file button, unaffected.
+      expect(items[1].querySelector('button[aria-label^="Open recent PDF"]')).not.toBeNull();
+    });
+
+    it('counts a merge draft toward the six-item cap, displacing the oldest recent file', () => {
+      readDraftMeta.mockReturnValue({ fileName: 'a + 1 more', savedAt: Date.now(), pageCount: 1 });
+      readRecentFiles.mockReturnValue(Array.from({ length: 6 }, (_, index) => ({
+        id: `cached-${index}`, tool: 'sign', fileName: `recent-${index}.pdf`, savedAt: Date.now() - index,
+      })));
+      mount();
+
+      const names = Array.from(container.querySelectorAll('li')).map((li) => li.textContent);
+      expect(names).toHaveLength(6);
+      expect(names[0]).toContain('a + 1 more');
+      expect(container.textContent).not.toContain('recent-5.pdf');
     });
 
     it('draws an empty preview box when a cached file has no preview', () => {

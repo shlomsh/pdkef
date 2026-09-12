@@ -402,6 +402,7 @@ export const tools = [
       { question: 'Does PDkef work on mobile?', answer: 'Yes. PDkef works in Chrome on Android and iOS, as well as desktop browsers on macOS and Windows.' },
       { question: 'Is there a file size or page limit?', answer: "No artificial limit is imposed by PDkef. The only constraint is your device's available memory, since merging happens locally." },
       { question: 'Can I combine scanned receipts or reports into one PDF?', answer: 'Yes - this is one of the most common uses. Add each scanned page or report PDF, reorder them, and merge into a single file for an expense report, portfolio, or ebook.' },
+      { question: 'What happens to my files if I close the tab partway through?', answer: 'Nothing is lost. As you add files, reorder them, or rotate and skip pages, the tool auto-saves your file set, page order, rotations, and skips to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. A very large set of files may not fit in your browser\'s local storage; if that happens the tool tells you the draft could not be saved rather than pretending it was, and merging itself keeps working either way. Saved drafts expire after 14 days without a change. On a shared device, clear site data when finished; that also removes saved drafts and preferences.' },
     ],
   },
 
