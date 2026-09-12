@@ -30,6 +30,35 @@ the format-agnostic family `/compress/` also gets, fold it into `/compress/` wit
 until the merge is reviewed, the real-browser pass with a phone JPEG and a transparent PNG is done
 and the indexing request is in; ships alone in its week per the acceptance below.
 
+**Guardrail, tracking and the read rule (2026-09-12).** The real-browser proof jsdom cannot give is
+`e2e/compress/image-target-size.spec.js`: a canvas-generated JPEG of a few hundred KB (no binary
+committed; the test asserts the fixture is 250 to 900 KB so a passthrough can never make it trivial)
+goes through `/compress/` at the 50 KB preset and the download is asserted to be `image/jpeg` by MIME
+type and magic bytes, at or under 50 KB, named `photo-compressed.jpg`; a transparent PNG goes through
+the same flow and the output is asserted JPEG, under target, with the transparent region decoded back
+as white, which is the flatten-to-white claim the FAQ makes. `/compress-image/` and
+`/pdf-wont-compress-to-100kb/` are now in `docs/seo-last-crawled.json`, so the crawl-staleness report
+tracks them and the 2026-10-08 recapture has a row to fill. **Indexing request for `/compress-image/`:
+not yet made; Shlomi dates it here when it goes in.** (`/compress/` was already requested on
+2026-09-11 and is not resubmitted; Google's dialog says a resubmission does not move it up the queue.)
+
+**The eight-week read, due eight weeks after that indexing date.** Pull GSC queries by page for
+`/compress-image/`. If its impressions are only the format-agnostic family `/compress/` also gets
+(`file compressor to 100kb`, `reduce file size to 100kb`, `100 kb document size`), the second URL is
+splitting one intent across two pages: fold it into `/compress/` with a slash-terminated redirect pair
+in `vercel.json`, drop the registry entry, and let `/compress/`'s island (which already takes images)
+carry the demand. If image-word queries reach it (`compress image to 100kb`, `jpg to 50kb`, `photo
+under 20kb`, `reduce photo size`), it stays and gets its own review in SEO-11's shape. Either way the
+verdict is written here with the export date, and the findings doc's status row is replaced, not
+appended.
+
+**One artefact to know before the 2026-10-08 crawl read.** `scripts/seo-crawl-staleness.mjs` now
+reports `/unlock/` as content-changed on 2026-09-12 by `358ca67`, this ticket's first commit. That
+commit only inserted the `compress-image` registry object directly above the `unlock` entry in
+`src/data/tools.js`; the range-based `git log -L` attributes the insertion to the neighbour. Nothing
+visible on `/unlock/` changed, so its crawl date should still be read as SEO-01's unrequested control
+alongside `/merge/`, not as a stale page.
+
 **This is the only new tool in the epic with measured demand behind it rather than an estimate.** In
 three months, 128 impressions and 6 clicks came from queries with no "pdf" in them at all:
 `file compressor to 100kb` (81 impressions, position 9.60, 3 clicks), `reduce file size to 100kb` (26 at
