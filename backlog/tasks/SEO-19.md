@@ -16,9 +16,19 @@ legacy_state: "Open"
 **Build log.** 2026-09-12: built as `/compress-image/` (`src/lib/compressImage.js` over the shared
 `src/lib/targetSizeSearch.js`, which `compressPdfToTarget` now uses too; island
 `PdfCompressImageTool.tsx` with 20/50/100/200/500 KB presets; registry, redirect pair, entry sheet,
-`llms.txt`, analytics allowlist). All CI checks green on the build. Left open until the real-browser
-pass with a phone JPEG and a transparent PNG and the indexing request are done; ships alone in its
-week per the acceptance below.
+`llms.txt`, analytics allowlist). All CI checks green on the build. Same day, product decision (Shlomi): **one compress island, not two.**
+The user has a file and a limit and should not care about the codec, and the format-agnostic queries
+(`file compressor to 100kb`, `100 kb document size`) already land on `/compress/` and bounce on the
+PDF-only guard. So `PdfCompressTool` accepts PDF, JPEG and PNG and dispatches by type after the drop;
+the level grid stays PDF-only, image presets are 20 to 500 KB, the download is named by the output
+blob's type. **`/compress/` keeps its title, H1, description and FAQ exactly**, since "compress PDF" is
+the keyword it holds; only the island's own text changes. `/compress-image/` stays as the door for
+image-word queries ("compress image to 100kb", "jpg to 50kb"), with its own H1, mounting the same
+island opened in target mode. Its URL is an experiment: if after eight weeks its impressions are only
+the format-agnostic family `/compress/` also gets, fold it into `/compress/` with a redirect. The
+"separate route" recommendation under the product questions below is superseded by this. Left open
+until the merge is reviewed, the real-browser pass with a phone JPEG and a transparent PNG is done
+and the indexing request is in; ships alone in its week per the acceptance below.
 
 **This is the only new tool in the epic with measured demand behind it rather than an estimate.** In
 three months, 128 impressions and 6 clicks came from queries with no "pdf" in them at all:

@@ -55,6 +55,12 @@ searchers in Google's own translation; the native page has to beat that, not jus
 
 **GSC, Indonesia, last 3 months**: [queries by country](https://search.google.com/search-console/performance/search-analytics?resource_id=sc-domain%3Apdkef.com&num_of_months=3&breakdown=query&country=IDN) (LOC-01 recorded the English leak; this run is for the target-size rows)
 
+**Volumes, if you have a Google Ads login** (the one source autocomplete and Trends cannot replace):
+Keyword Planner, Discover new keywords, Start with a website, `https://www.ilovepdf.com/id/mengompres-pdf`,
+location Indonesia, language Indonesian; then the same with the seed keywords `kompres pdf 1 mb`,
+`mengecilkan pdf 200 kb`, `kompres foto 200 kb`. Paste the top rows with their monthly ranges here. A
+family at a few thousand a month is a page; at a few hundred it is not.
+
 Read the Trends charts the usual way: a chart of only small terms showing zeros with one-week blips
 means the family is below the floor, and the verdict is the Turkish one. If `kompres pdf 1 mb` holds
 a steady line against `kompres pdf`, record the share.
