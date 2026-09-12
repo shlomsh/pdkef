@@ -135,7 +135,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SEO-18 | P2 | [SEO-18](backlog/tasks/SEO-18.md) · One page on signing a PDF in your own language, generated from the coverage data |
 | SEO-19 | P1 | [SEO-19](backlog/tasks/SEO-19.md) · New tool: compress an image to a target size, because people are already asking us to |
 | SEO-20 | P2 | [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for |
-| SEO-21 | P2 | [SEO-21](backlog/tasks/SEO-21.md) · New tool: flatten a PDF, which also closes a defect in the Sign export |
+| SEO-21 | P2 | [SEO-21](backlog/tasks/SEO-21.md) · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is |
 | SEO-22 | P3 | [SEO-22](backlog/tasks/SEO-22.md) · New tool: extract the images embedded in a PDF, without a zip dependency |
 | SEO-23 | P3 | [SEO-23](backlog/tasks/SEO-23.md) · New tool: convert a PDF to grayscale, with the cost stated |
 | SEO-24 | P3 | [SEO-24](backlog/tasks/SEO-24.md) · New tool: make a PDF look scanned |
