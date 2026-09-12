@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { renderThumbnail } from '../lib/thumbnails.js';
+// Shared with PdfCompressTool.tsx's own kind dispatch: a strict `file.type`
+// check here once meant a File with an empty type (some drag sources hand
+// one over with no type at all) got no thumbnail even though Compress's own
+// extension fallback happily accepted the same file - the two checks had
+// drifted apart.
+import { deriveFileKind } from '../lib/fileKind.js';
 import toolShellStyles from './ToolShell.module.css';
 import styles from './FilePreview.module.css';
 
@@ -48,14 +54,16 @@ export default function FilePreview({ file }: FilePreviewProps) {
 
     if (!file) return undefined;
 
-    if (file.type === 'image/jpeg' || file.type === 'image/png') {
+    const kind = deriveFileKind(file);
+
+    if (kind === 'image') {
       const url = URL.createObjectURL(file);
       objectUrlRef.current = url;
       setPreviewSrc(url);
       return undefined;
     }
 
-    if (file.type === 'application/pdf') {
+    if (kind === 'pdf') {
       let cancelled = false;
       renderThumbnail(file, { width: PDF_PREVIEW_WIDTH })
         .then((dataUrl) => {
