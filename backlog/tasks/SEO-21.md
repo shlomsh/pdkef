@@ -2,9 +2,9 @@
 id: "SEO-21"
 title: "Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is"
 status: "open"
-priority: "P2"
+priority: "P3"
 epic: "search-acquisition"
-phase: "near-term"
+phase: "longer-term"
 depends_on: ["MOBI-02", "SEO-06"]
 legacy_state: "Open"
 ---
@@ -92,10 +92,20 @@ whether the page ever ships.
   field's `/Rect` after flattening; a fixture with one appearance-less widget rejects with
   `FormFlattenError` naming the count, not a partial file.
 
-**Part B, the page, waits on two things.** The `flatten pdf` / `flatten pdf form` volume is from the
-deep-research table in `docs/seo-competitive-findings.md` section 5, unmeasured; Shlomi has Keyword
-Planner (LOC-14), read it there first. And SEO-06's Week 4 gate: no new URL while the nine never-crawled
-pages have not moved.
+**Part B, the page, is downgraded to P3/longer-term on measured evidence.** The deep-research table's
+"20k-50k" for `flatten pdf online` was a competitor-tool guess, never Keyword Planner or Trends. Shlomi
+ran Google Trends worldwide, past 12 months, `flatten pdf` against the site's other core queries:
+`merge pdf` averages ~90-100, `compress pdf` ~55-70, `edit pdf` ~35-75, `flatten pdf` sits at **1-2 for
+the entire window** - not lower demand, noise-floor demand. Trends is relative interest and not a
+volume figure, but a query that can't clear 2 against a 90-100 baseline for a full year is not "smaller
+than compress/merge," it is a query almost nobody is typing. This reverses the old ticket's ranking of
+`flatten pdf online` above `crop pdf online` and `extract images from pdf` in the same table; treat
+every unmeasured row there (SEO-20, SEO-22 through SEO-24) as equally suspect until it gets the same
+check, not just this one. Still get a Keyword Planner absolute-volume read (LOC-14 access) before fully
+retiring the page idea, since Trends can miss a query with real but non-comparative volume, but plan
+resourcing on the assumption it lands closer to zero than to 20k. SEO-06's Week 4 gate (no new URL while
+the nine never-crawled pages have not moved) applies regardless and is a second reason not to build this
+soon.
 
 - `/flatten/`, registered in `src/data/tools.js`, non-slash redirect pair in `vercel.json`, How it works
   and FAQ with matching `<SeoSchema>`, no `noindex`, `npm run build && npm run preview` CSP pass.
@@ -116,5 +126,6 @@ pages have not moved.
   annotations exports byte-comparably to today. Nothing that had an appearance is dropped quietly.
 - MOBI-02's own pending check is done through this code: the filled-form fixture opened in Chrome's
   viewer and macOS Preview, both named with what each showed.
-- Part B: the Keyword Planner reading and the SEO-06 gate outcome are recorded here before the page is
-  built; the scope statement, the reader's test, and the cross-links above are on the page.
+- Part B: the Trends reading above is recorded (done, 2026-09-12); a Keyword Planner absolute-volume
+  read and the SEO-06 gate outcome are recorded here before the page is built; the scope statement, the
+  reader's test, and the cross-links above are on the page.
