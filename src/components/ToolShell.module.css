@@ -260,6 +260,35 @@
   }
 }
 
+/* A wide desktop screen has room the row wasn't using (Shlomi, 2026-09-12,
+   from the /compress/ pass: "make the file name and preview a bit taller so
+   it takes more space which is available on the desktop screen" - on a
+   1300px-wide screen the row read as a thin strip). `:not(.editor)` is the
+   whole reason this is its own block rather than folding into the 560px one
+   above: Sign and Redact's identity line sits inside their sticky toolbar
+   card (see the .editor section below) and stays exactly as it is - this is
+   the plain single-line/list-tool shell only. Mobile is untouched below
+   1024px. FilePreview.tsx's PDF_PREVIEW_WIDTH is raised to match the bigger
+   box so a page-1 render still holds up on retina. */
+@media (min-width: 1024px) {
+  .shell:not(.editor) {
+    padding: 1rem 1.25rem;
+  }
+
+  .shell:not(.editor) .icon {
+    width: 72px;
+    height: 72px;
+  }
+
+  /* One step up the type scale (global.css's .type-* roles) from the name's
+     current size, which sits at roughly .type-body. Meta stays put - it is
+     the secondary line and the row's extra height is spent on the name and
+     the preview, not on it. */
+  .shell:not(.editor) .name {
+    font-size: var(--type-lead-size);
+  }
+}
+
 /* --- Editor variant: Sign and Redact --- */
 
 /* Their control row is a full toolbar rather than a button or two, so it gets a

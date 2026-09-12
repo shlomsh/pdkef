@@ -96,7 +96,7 @@ describe('FilePreview', () => {
     const file = makePdfFile();
     mount({ file });
 
-    expect(thumbnailsLib.renderThumbnail).toHaveBeenCalledWith(file, { width: 112 });
+    expect(thumbnailsLib.renderThumbnail).toHaveBeenCalledWith(file, { width: 144 });
     // Still the glyph until the render settles.
     let icon = container.querySelector(`.${toolShellStyles.icon}`);
     expect(icon.querySelector('img')).toBeNull();
