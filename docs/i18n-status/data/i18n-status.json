@@ -1,6 +1,6 @@
 {
   "meta": {
-    "updated": "2026-09-12",
+    "updated": "2026-09-13",
     "reCheck": {
       "date": "2026-11-12",
       "ticket": "LOC-12"
@@ -64,8 +64,8 @@
   ],
   "mechanism": [
     "A locale is a prefixed route family on the one origin: /he/ (home), /he/<tool>/ and /he/<guide>/, each a content-collection entry that overlays translated fields on the English source (src/i18n/, src/content/localized-*). One origin keeps drafts, IndexedDB and the service worker shared.",
-    "Tool islands take a server-rendered messages catalogue (src/i18n/toolMessages.ts); the shared shell (dropzone, file row, confirmations, app bar, footer) has its own. The Sign and Redact editor stays English behind a disclosed notice, as does the home page's interactive demo.",
-    "RTL is a layout property: logical CSS plus dir on the page; the app bar's arrows and the demo's captions mirror. A language-purity check (scripts/localizedSeoChecks.mjs) scores each localized page's visible text and excludes only the disclosed-English islands.",
+    "Tool islands take a server-rendered messages catalogue (src/i18n/toolMessages.ts); the shared shell (dropzone, file row, confirmations, app bar, footer) has its own. The Sign and Redact editor stays English behind a disclosed notice. The home page's interactive demo renders from its own catalogue (src/i18n/heroDemoMessages.ts), Hebrew since 2026-09-13.",
+    "RTL is a layout property: logical CSS plus dir on the page; the app bar's arrows mirror, and so does the home demo, motion included (one --hero-dir multiplier flips its slides and pushes under dir=rtl). A language-purity check (scripts/localizedSeoChecks.mjs) scores each localized page's visible text and excludes only the disclosed-English tool islands; /he/ scores 0.930 with nothing excluded.",
     "Every edition carries reciprocal hreflang with x-default, its own sitemap entries, and an offline pack the page asks the service worker to warm. Search Console reads per locale start at the 2026-10-08 refresh (findings doc § 3.7).",
     "Evidence for a decision lives in its LOC ticket under backlog/tasks/; this page holds the verdict, the numbers that carried it, and the date it comes back. Edit here, publish, and sync docs/i18n-status/data/i18n-status.json in the repo."
   ],
@@ -81,7 +81,7 @@
       "decisionDate": "2026-09-11",
       "reCheck": "2026-11-06",
       "reasoning": "Chosen first because review costs nothing (in-house), Israel already converts best of any country from English queries, and the Hebrew incumbents are visibly weak: machine-flavoured, LTR-laid-out, none claiming on-device processing or real RTL support. LOC-01 called Hebrew's small Trends share \"informative, not decisive\" for exactly that reason. LOC-11 later confirmed Hebrew is one of the weakest demand cases measured; the decision stands because the marginal cost is zero.",
-      "next": "First read at the 2026-10-08 refresh (LOC-06's per-locale table); success criteria read at the eight-week mark, 2026-11-06: any Hebrew-query impression at all, or one of the three target phrasings in Israel's top 20. As of 2026-09-12 the home page's dock and cards are fully Hebrew and the Sign editor's toolbar row is a Hebrew draft, with the rest of the editor still English (LOC-09).",
+      "next": "First read at the 2026-10-08 refresh (LOC-06's per-locale table); success criteria read at the eight-week mark, 2026-11-06: any Hebrew-query impression at all, or one of the three target phrasings in Israel's top 20. As of 2026-09-13 the home page, its dock, cards and interactive demo are fully Hebrew (LOC-16 item 1, mirrored motion, Shlomi's read on the built page) and the Sign editor's toolbar row is a Hebrew draft, with the rest of the editor still English (LOC-16 item 2).",
       "evidence": [
         {
           "metric": "Trends share vs English, 4 anchor tasks (IL)",

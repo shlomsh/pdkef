@@ -32,9 +32,9 @@ engineering work, not a decision, and it lands here so LOC-09 does not carry an 
 
 **Acceptance**, one line per work item:
 
-1. `/he/` HeroDemo reads in Hebrew; the direction-of-motion question is answered and implemented; the
-   `heroDemoEnglishNotice` shell message and the `[data-home-demo]` purity exemption are both removed;
-   whole-page script purity is re-measured with no exemption in play.
+1. **Done 2026-09-13.** `/he/` HeroDemo reads in Hebrew; the direction-of-motion question is answered
+   (mirror) and implemented; the `heroDemoEnglishNotice` shell message and the `[data-home-demo]` purity
+   exemption are both removed; whole-page purity re-measured with no exemption in play: 0.930.
 2. `sign` joins `LOCALIZED_TOOL_ISLANDS` (`src/i18n/localizedTools.ts`); the sr-only
    `data-tool-controls-english` disclosure disappears from `/he/sign/`; `/he/sign/` still passes the
    purity guard without a tool-island exemption; `/sign/` and its existing tests are untouched.
@@ -48,35 +48,40 @@ engineering work, not a decision, and it lands here so LOC-09 does not carry an 
 5. `Accept: text/markdown` on `/he/` returns a Hebrew markdown twin instead of falling through to
    `/404.md`.
 
-### 1. HeroDemo in Hebrew
+### 1. HeroDemo in Hebrew (done 2026-09-13)
 
-**What exists.** `src/components/HeroDemo/**` renders the demo's two short stories in English inside
-`/he/`, by deliberate LOC-09 deferral, not an oversight. `HomePageLayout.astro` shows a disclosure
-paragraph, `<p data-hero-demo-english-notice>{messages.heroDemoEnglishNotice}</p>`, sitting in
-`.hero-header` below the H1/subhead, reading the `heroDemoEnglishNotice` key already defined (English
-and Hebrew) in `src/i18n/documentationMessages.ts`. `scripts/localizedSeoChecks.mjs`'s language-purity
-guard excludes the demo's own DOM, `#app, [data-home-demo]`, the same disclosed-English mechanism
-`[data-tool-controls-english]` already gets for tool chrome; `data-home-demo` is `HeroDemo.astro`'s own
-root attribute. Without the exemption, `/he/` fails the guard's 0.5 purity floor on the demo's bulk of
-server-rendered English text alone.
+**Shipped.** `src/components/HeroDemo/HeroDemo.astro` renders every string (both sr-only narrations, the
+captions, the simulated chat, form, share sheet, inbox, bill and reply) from a typed catalogue,
+`src/i18n/heroDemoMessages.ts` (`englishHeroDemoMessages` verbatim from the old markup,
+`hebrewHeroDemoMessages` an AI draft that Shlomi read on the built page and approved, the same
+draft/approve path as the dock cards; `heroDemoMessages.test.ts` holds key parity, no empty strings, no
+em dashes). Design doc section 5.5's shape, not a per-locale fork. Story one is an Israeli class group
+and a parents' trip permission slip (אישור-הורים-לטיול.pdf, כיתה ד׳2, מוזיאון המדע); story two a
+חשבון חשמל with Israeli billing terms (מספר חוזה, קוט"ש, ₪). The blurred, blacked-out and whited-out
+values keep their digits. `HomePageLayout.astro` passes `locale`; the `heroDemoEnglishNotice` key, its
+render and style block, and the `[data-home-demo]` exemption in `scripts/localizedSeoChecks.mjs` are
+gone.
 
-**Open sub-decision to settle first.** Design doc §4.2: does the demo's physical `translateX()` panel
-motion mirror for RTL, stay LTR regardless of page direction, or get skipped (the panels swap without
-sliding)? This was explicitly out of scope for LOC-09 and is unresolved. Settle it before writing
-Hebrew copy for the demo, since the direction choice affects which panel edge the copy anchors to.
+**Direction of motion: mirror** (design doc section 4.2 option 1), decided by Shlomi on the built page
+the same day. Reasoning: a Hebrew phone already mirrored its chat bubbles on `/he/` (logical margins),
+and mirrors its push navigation and share sheet, so a phone that kept sliding LTR inside a mirrored chat
+would be the one foreign element. Implementation is not the rewrite section 4.2 feared: one `--hero-dir`
+custom property on `.root` (`1`, `-1` under `html[dir="rtl"]`) multiplies the story slide, the three
+in-phone `translateX()` pushes and their shadow x-offsets; the six `clip-path: inset()` reveals (four
+form blanks, blackout and whiteout bars) get explicit RTL overrides because `inset()` has no signed
+offset to multiply. `ScrollDriver.tsx` is untouched. Two Hebrew-only CSS follow-ups from the screenshot
+pass: bill values fall back to `--font-sans` with tabular digits (no face in `--font-mono` has Hebrew, the
+generic fallback letter-spaced the words), and file names sit in an LTR-isolated `<bdi>` so `.pdf` lands
+on the visual right (Shlomi's call; plain bidi puts it on the left).
 
-**CLS invariant, load-bearing.** `HomePageLayout.astro`'s `.home-tour { height: calc(100svh + 1116svh);
-}` is the sticky-pinned demo's exact scroll-span math (the comment above it: "1116svh. The original
-extra room buys the dwell on the finished first story; the added 176svh pauses the second story on its
-initial inbox"). Hebrew copy that changes the demo's rendered height, panel count, or line-wrap breaks
-this number and reintroduces CLS. Per CLAUDE.md's home-page invariant, verify in a real browser
-(`npm run build && npm run preview`), not by reading the diff.
-
-**When done.** Remove the `heroDemoEnglishNotice` render call and the `[data-home-demo]` exemption in
-`scripts/localizedSeoChecks.mjs`, then re-measure whole-page purity with no exemption in play. Today's
-number, measured with the demo excluded via the exemption, is **0.906** (LOC-09, `18b1f06`); that is the
-floor a translated demo has to clear once the exemption is gone, since removing the exemption folds the
-demo's own script mix back into the whole-page count.
+**Measured on the built page** (Playwright Chromium over `dist/`, 1280x800 and 390x844, both locales):
+CLS 0 on desktop and identical to the English baseline on mobile; the arriving email row still 73.4px
+inside `--email-row-height: 74px`; no clipped or overflowing element inside the Hebrew phone at any
+beat; whole-page purity on `/he/` **0.930** (3983 of 4284 letters) with no exemption, against 0.906
+measured under LOC-09 with the demo excluded; the demo alone 0.983 (remaining Latin: "PDF", ".pdf",
+MTR-88291). English `/` transforms byte-identical before and after; its HTML differs only by Astro's
+`&#39;` escaping and the bare `<bdi>` wrappers. The `.home-tour` scroll-span math was not touched and
+did not need to be.
 
 ### 2. Sign island stages 2 to 5
 
@@ -177,8 +182,8 @@ locale-aware markdown endpoint for the home route alone, not the general locale-
 ## Decided, not to reopen
 
 - The RTL-mirrored tool dock stays; no override for `.home-dock`'s automatic flexbox mirroring.
-- HeroDemo is to be translated, not left English as a permanent state; the direction-of-motion
-  sub-question (item 1) is still open and is the next decision, not this one.
+- HeroDemo is translated (item 1, shipped 2026-09-13) and its motion mirrors under RTL; both were
+  Shlomi's calls on the built page. Not to be reopened as "keep it LTR".
 - The GitHub feedback template inside the Sign editor stays English.
 - The tool dock's title/description text is localized through `cardMessages.ts`
   (`getToolCardCopy(locale, slug)`, reused from `ToolCrossLinks.astro`), not by adding `gridTitle`/
