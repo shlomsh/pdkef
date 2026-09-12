@@ -108,7 +108,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 23 text fonts and ten handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 23 text fonts and three of the ten handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 24 text fonts and ten handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: 11 of the 24 text fonts and three of the ten handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -123,7 +123,7 @@ export const tools = [
         {
           native: 'العربية 🇪🇬🇸🇦🇲🇦',
           name: 'Arabic',
-          note: 'Fill an Arabic form and sign your name in Arabic, set in Scheherazade New, a traditional Naskh face. Letters join and change shape depending on their neighbours, the way handwritten Arabic actually connects, mandatory ligatures like لا are formed, and a text box grows leftward from a fixed right edge, the same right-to-left behaviour Hebrew gets.',
+          note: 'Fill an Arabic form and sign your name in Arabic, in Scheherazade New, a traditional Naskh face, or Vazirmatn, an upright geometric sans for a more modern look. Letters join and change shape depending on their neighbours, the way handwritten Arabic actually connects, mandatory ligatures like لا are formed correctly in both, and a text box grows leftward from a fixed right edge, the same right-to-left behaviour Hebrew gets.',
         },
         {
           native: 'বাংলা 🇧🇩🇮🇳',
@@ -153,7 +153,7 @@ export const tools = [
         {
           native: 'اردو 🇵🇰🇮🇳',
           name: 'Urdu',
-          note: "Fill an Urdu form and sign your name in Urdu, in that same Scheherazade New face, which carries the letters Arabic lacks (ٹ, ڈ, ڑ, ں, ے, ہ, ۃ) and Urdu's own ۰-۹ digits. Urdu is conventionally set in Nastaliq, a sloped, cascading calligraphic style; Scheherazade New is instead a Naskh (upright) design. The text is fully legible and correctly joined in that single supported style.",
+          note: "Fill an Urdu form and sign your name in Urdu, in Scheherazade New or Vazirmatn, both of which carry the letters Arabic lacks (ٹ, ڈ, ڑ, ں, ے, ہ, ۃ) and Urdu's own ۰-۹ digits. Urdu is conventionally set in Nastaliq, a sloped, cascading calligraphic style; both fonts here are upright instead, Scheherazade New a traditional Naskh, Vazirmatn a modern geometric sans. The text is fully legible and correctly joined, just not in Nastaliq.",
         },
         {
           native: '日本語 🇯🇵',
@@ -163,7 +163,7 @@ export const tools = [
         {
           native: 'دری 🇮🇷🇦🇫',
           name: 'Dari and Farsi',
-          note: "Fill a form and sign your name in Dari or Farsi. The same Scheherazade New face Arabic uses carries their extra letters (پ, چ, ژ, گ) and their own ۰-۹ digits, letters join the way Arabic does, and a text box grows leftward from a fixed right edge.",
+          note: "Fill a form and sign your name in Dari or Farsi, in Scheherazade New or Vazirmatn, the same two fonts Arabic uses. Both carry the extra letters Farsi needs (پ, چ, ژ, گ) and their own ۰-۹ digits, letters join the way Arabic does, and a text box grows leftward from a fixed right edge.",
         },
         {
           native: 'Tiếng Việt 🇻🇳',
@@ -183,7 +183,7 @@ export const tools = [
         {
           native: 'پښتو 🇦🇫🇵🇰',
           name: 'Pashto',
-          note: 'Fill a Pashto form and sign your name in Pashto. Scheherazade New carries the eleven letters (ټ, ځ, څ, ډ, ړ, ږ, ښ, ګ, ڼ, ې, ۍ) that make Pashto script-complete, which nothing bundled here could draw until recently. Letters join the way Arabic does, and a text box grows leftward from a fixed right edge.',
+          note: 'Fill a Pashto form and sign your name in Pashto, in Scheherazade New or Vazirmatn. Both carry the eleven letters (ټ, ځ, څ, ډ, ړ, ږ, ښ, ګ, ڼ, ې, ۍ) that make Pashto script-complete, which nothing bundled here could draw until recently. Letters join the way Arabic does, and a text box grows leftward from a fixed right edge.',
         },
         {
           native: 'Ελληνικά 🇬🇷🇨🇾',
@@ -203,7 +203,7 @@ export const tools = [
         {
           native: 'Türkçe 🇹🇷',
           name: 'Turkish',
-          note: "Fill a Turkish form and sign your name in Turkish. Ten text fonts carry the complete 29-letter alphabet, the same ten that carry the full accented set in the Latin-script note above, plus Kalam and Mali if you want a handwritten look, either of which also works for a typed signature. The three letters that set Turkish apart from plain accented Latin, Ğ, İ and Ş, are exactly what that general Latin-Ext sample does not check, so I verified them against the real font files rather than assuming coverage carried over.",
+          note: "Fill a Turkish form and sign your name in Turkish. Eleven text fonts carry the complete 29-letter alphabet, the same eleven that carry the full accented set in the Latin-script note above, plus Kalam and Mali if you want a handwritten look, either of which also works for a typed signature. The three letters that set Turkish apart from plain accented Latin, Ğ, İ and Ş, are exactly what that general Latin-Ext sample does not check, so I verified them against the real font files rather than assuming coverage carried over.",
         },
       ],
       notYetHeading: "Don't see your language? Ask, and it moves to the front of the queue.",
@@ -270,19 +270,19 @@ export const tools = [
       },
       {
         question: 'Can I fill and sign a PDF in Arabic (التوقيع على PDF بالعربية)?',
-        answer: 'Yes. Type Arabic into a text box and letters join and change shape depending on their neighbours, the way handwritten Arabic actually connects, with ligatures like لا formed correctly. The box grows leftward from a fixed right edge, the same right-to-left behaviour Hebrew gets, and what you see on screen is what gets embedded in the file you download.',
+        answer: 'Yes, in either of two fonts: Scheherazade New, a traditional Naskh style, or Vazirmatn, an upright modern sans. Type Arabic into a text box and letters join and change shape depending on their neighbours, the way handwritten Arabic actually connects, with ligatures like لا formed correctly in both. The box grows leftward from a fixed right edge, the same right-to-left behaviour Hebrew gets, and what you see on screen is what gets embedded in the file you download.',
       },
       {
         question: 'Can I fill and sign a PDF in Dari or Farsi (دری/فارسی)?',
-        answer: "Yes. Dari and Farsi use the same Scheherazade New font as Arabic, which also carries their extra letters (پ, چ, ژ, گ) and their own ۰-۹ digits. Letters join the same way Arabic does, and the box grows leftward from a fixed right edge, so what you see on screen is what gets embedded in the file you download.",
+        answer: "Yes. Dari and Farsi use the same two fonts as Arabic, Scheherazade New and Vazirmatn, both of which carry the extra letters Farsi needs (پ, چ, ژ, گ) and their own ۰-۹ digits. Letters join the same way Arabic does, and the box grows leftward from a fixed right edge, so what you see on screen is what gets embedded in the file you download.",
       },
       {
         question: 'Can I fill and sign a PDF in Urdu (اردو میں PDF پر دستخط)?',
-        answer: "Yes, with one honest caveat worth knowing before you rely on it. Urdu uses the same Scheherazade New font as Arabic, which also carries the letters Arabic lacks (ٹ, ڈ, ڑ, ں, ے, ہ, ۃ) and Urdu's own ۰-۹ digits, so text joins correctly and nothing is missing. But Urdu is conventionally set in Nastaliq, a sloped, cascading calligraphic style, and Scheherazade New is Naskh, an upright style, the same family Arabic and Farsi use here. The result is fully legible and correctly joined, just in an unfamiliar style, similar to how Japanese kanji shapes look to a Chinese reader on this page.",
+        answer: "Yes, with one honest caveat worth knowing before you rely on it. Urdu uses the same two fonts as Arabic, Scheherazade New and Vazirmatn, both of which carry the letters Arabic lacks (ٹ, ڈ, ڑ, ں, ے, ہ, ۃ) and Urdu's own ۰-۹ digits, so text joins correctly and nothing is missing. But Urdu is conventionally set in Nastaliq, a sloped, cascading calligraphic style, and both fonts here are upright instead: Scheherazade New a traditional Naskh, Vazirmatn a modern geometric sans. The result is fully legible and correctly joined, just in an unfamiliar style, similar to how Japanese kanji shapes look to a Chinese reader on this page.",
       },
       {
         question: 'Can I fill and sign a PDF in Pashto (پښتو کې PDF لاسلیک)?',
-        answer: "Yes. Pashto used to be missing eleven letters (ټ, ځ, څ, ډ, ړ, ږ, ښ, ګ, ڼ, ې, ۍ) from every bundled font, including the Arabic one, so it has its own answer here rather than sharing Arabic's. Scheherazade New, the font Arabic, Dari and Farsi also use on this page, draws all eleven, so a Pashto word joins and shapes correctly and what you see on screen is what gets embedded in the file you download.",
+        answer: "Yes. Pashto used to be missing eleven letters (ټ, ځ, څ, ډ, ړ, ږ, ښ, ګ, ڼ, ې, ۍ) from every bundled font, including the Arabic one, so it has its own answer here rather than sharing Arabic's. Both Scheherazade New and Vazirmatn, the fonts Arabic, Dari and Farsi also use on this page, draw all eleven, so a Pashto word joins and shapes correctly and what you see on screen is what gets embedded in the file you download.",
       },
       {
         question: 'Can I type Vietnamese (chữ ký PDF bằng tiếng Việt) when signing a PDF?',

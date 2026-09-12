@@ -269,6 +269,19 @@ export const FONT_MANIFEST = Object.freeze([
     }
   },
   {
+    "family": "Vazirmatn",
+    "kind": "text",
+    "styleTag": "sans",
+    "metrics": {
+      "ascent": 1.025,
+      "descent": 0.537
+    },
+    "faces": {
+      "normal": "Vazirmatn-Regular.ttf",
+      "bold": "Vazirmatn-Bold.ttf"
+    }
+  },
+  {
     "family": "Noto Sans JP",
     "kind": "text",
     "styleTag": "sans",

@@ -269,6 +269,19 @@ export const EXPORT_RENDER_CORPUS = [
   // verification method every other case in this file used.
   textCase('gurmukhi-tiro-gurmukhi', 'ਸਿੰਘ', { fontFamily: 'Tiro Gurmukhi' }),
 
+  // Vazirmatn (FONT-08b): the Arabic family's second choice alongside
+  // Scheherazade New above - an upright geometric sans rather than a
+  // traditional Naskh, screened specifically for the calt/ss01 risk class
+  // that dropped Playpen Sans Hebrew (arabic-vazirmatn-shaping-guard.spec.js
+  // already proves fontkit picks the same glyphs as Chromium, 155/155 Arabic
+  // and 22/22 Pashto at 0.00% floor, and arabic-vazirmatn-font-parity.spec.js
+  // proves matching advances). This case exists purely to catch what those
+  // guards cannot see on the file a user actually receives - a corrupted
+  // `glyf` table or a subset missing composite components. Every code point
+  // confirmed present via fontkit's hasGlyphForCodePoint() against the real
+  // bundled public/fonts/Vazirmatn-Regular.ttf bytes.
+  textCase('arabic-vazirmatn', 'مرحبا', { fontFamily: 'Vazirmatn', left: RTL_ANCHOR }),
+
   // --- The comb path: positions by cell index, skips bidi, has its own
   // geometry. `width` is what makes an element a comb (see comb.js).
   textCase('comb-ltr', 'AB12', { fontFamily: 'Arimo', width: 40, combCells: 6 }),
