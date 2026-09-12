@@ -18,8 +18,10 @@ reviewNotes: >-
   Hebrew unchanged; re-approved by Shlomi on the deployed site. 2026-09-13:
   MERGE-05/09/12 rewrote the English subhead and steps 2-3 (every page shown,
   pages reorder/rotate/skip, no Merge button); Hebrew subhead and step 2
-  unchanged, step 3 an AI draft. Pending Shlomi's review.
-sourceHash: 'fnv1a64:c45b136f39eb5f0c'
+  unchanged, step 3 an AI draft. Pending Shlomi's review. 2026-09-13:
+  MERGE-13 added an FAQ entry on merge drafts; the Hebrew answer is an AI
+  draft, pending review.
+sourceHash: 'fnv1a64:017009bf0346627d'
 seoTitle: 'מיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
   מזגו ואחדו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו
@@ -69,3 +71,13 @@ faq:
     answer: >-
       כן, זה אחד השימושים הנפוצים. הוסיפו כל עמוד סרוק או דוח PDF, סדרו
       אותם, ומזגו לקובץ אחד לדוח הוצאות, לתיק עבודות או לספר.
+  - question: 'מה קורה לקבצים שלי אם סוגרים את הלשונית באמצע?'
+    answer: >-
+      שום דבר לא הולך לאיבוד. תוך כדי הוספת קבצים, שינוי סדר, סיבוב או דילוג
+      על עמודים, הכלי שומר אוטומטית את קבוצת הקבצים, סדר העמודים, הסיבובים
+      והדילוגים באחסון המקומי של הדפדפן, ומשחזר הכול אוטומטית בפעם הבאה
+      שתפתחו את הכלי באותו מכשיר. קבוצת קבצים גדולה מאוד אולי לא תיכנס
+      לאחסון המקומי של הדפדפן; במקרה כזה הכלי מודיע שהטיוטה לא נשמרה במקום
+      להעמיד פנים שכן, והמיזוג עצמו ממשיך לעבוד בכל מקרה. טיוטות שמורות פגות
+      תוקף אחרי 14 יום בלי שינוי. במכשיר משותף, נקו את נתוני האתר בסיום; זה
+      גם מוחק טיוטות שמורות והעדפות.

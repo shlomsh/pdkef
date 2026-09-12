@@ -55,6 +55,17 @@ function makeFile(name) {
 
 const flush = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Polls instead of sleeping a fixed time: under a loaded machine (the full
+// suite in parallel) a fixed 20ms wait once let this file flake.
+async function waitFor(predicate, timeoutMs = 2000) {
+  const start = Date.now();
+  while (!predicate()) {
+    if (Date.now() - start > timeoutMs) throw new Error('waitFor: condition not met in time');
+    // Each poll is its own act(): renders are held back inside one.
+    await act(async () => { await flush(5); });
+  }
+}
+
 describe('PageStrip', () => {
   let container;
   let originalIO;
@@ -121,18 +132,16 @@ describe('PageStrip', () => {
     const { rerender, entries } = mount();
     expect(thumbnailsLib.openThumbnailSource).not.toHaveBeenCalled();
 
-    await act(async () => {
-      observers.at(-1).intersect(['1:1', '2:0']);
-      await flush(20);
-    });
+    await act(async () => { observers.at(-1).intersect(['1:1', '2:0']); });
+    await waitFor(() => container.querySelectorAll(`.${styles.thumb}`).length === 2);
     expect(thumbnailsLib.openThumbnailSource).toHaveBeenCalledTimes(2);
     const imgs = Array.from(container.querySelectorAll(`.${styles.thumb}`)).map((img) => img.getAttribute('src'));
     expect(imgs).toEqual(['data:image/png;base64,a.pdf-1', 'data:image/png;base64,b.pdf-0']);
 
     // Removing file 1 cancels its renders and destroys its document.
     rerender({ entries: [entries[1]], plan: planForFile(2, 2) });
-    await act(async () => { await flush(5); });
     const sourceA = sources.find((s) => s.file.name === 'a.pdf');
+    await waitFor(() => sourceA.destroy.mock.calls.length > 0);
     expect(sourceA.destroy).toHaveBeenCalled();
     expect(cards().map((card) => card.dataset.key)).toEqual(['2:0', '2:1']);
   });
@@ -182,10 +191,8 @@ describe('PageStrip', () => {
     await act(async () => card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })));
     expect(onPlanChange.mock.results[2].value[1]).toMatchObject({ key: '1:1', skipped: true });
 
-    await act(async () => {
-      card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-      await flush(20);
-    });
+    await act(async () => { card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    await waitFor(() => container.querySelector('dialog') !== null);
     const dialog = container.querySelector('dialog');
     expect(dialog).not.toBeNull();
     expect(dialog.textContent).toContain('Page 2 of 4');
