@@ -94,6 +94,7 @@ _None._
 | --- | --- | --- |
 | SEO-03 | P2 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |
 | SEO-19 | P1 | [SEO-19](backlog/tasks/SEO-19.md) · New tool: compress an image to a target size, because people are already asking us to |
+| SEO-31 | P1 | [SEO-31](backlog/tasks/SEO-31.md) · One content page on photo and signature size limits, as inbound content for /compress-image/ |
 
 ### Blocked
 
