@@ -1,6 +1,10 @@
 # Search acquisition: what is true now, and what to do next
 
-**Owner:** the `search-acquisition` epic in [backlog/tasks/](../backlog/tasks/) (`SEO-*`).
+**Owner:** the `SEO-*` and `LOC-*` tickets in [backlog/tasks/](../backlog/tasks/). Since the 2026-09-12
+re-filing they sit in five epics that answer what can move and what is waiting: `seo-awaiting-read`
+(shipped, blocked on a dated Search Console read), `english-base` (authority and on-page work that can
+move now), `new-tools-gated` (blocked on SEO-06's crawl read), `hebrew-edition` and
+`localization-pilots`. `search-acquisition` and `localized-search` hold only closed history.
 **Read this before any SEO work.** It is the epic's one shared memory. Sections 1 to 4 are the part to
 read every time; 5 to 7 are reference, there when a ticket needs them.
 
@@ -25,8 +29,9 @@ per URL, `npm run seo:crawl-staleness`). Both are run at the monthly refresh (se
 ## 1. Status board
 
 **Next refresh and re-measurement for everything below: 2026-10-08.** One Search Console pull covers
-all of it (section 6). Tickets whose only remaining step is that read are `blocked` on the board (SEO-04,
-05, 06, 09, 10, 17, 25, 28), so the Open lane holds only work that can move today.
+all of it (section 6). Tickets whose only remaining step is a dated read live in the `seo-awaiting-read` epic as
+`blocked`, with the read date at the front of their title, so the Open lane holds only work that can
+move today.
 
 | Ticket | State | Date | Result in one line | Next check |
 | --- | --- | --- | --- | --- |

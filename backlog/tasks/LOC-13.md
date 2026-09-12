@@ -3,13 +3,15 @@ id: "LOC-13"
 title: "Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins"
 status: "blocked"
 priority: "P2"
-epic: "localized-search"
+epic: "localization-pilots"
 phase: "near-term"
 depends_on: ["LOC-10", "LOC-11"]
 legacy_state: "Open"
 ---
 
 # LOC-13 · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins
+
+*Re-filed 2026-09-12* from `localized-search` into `localization-pilots`: held until the English target-size number is big enough that a Spanish fraction of it is readable (LOC-10).
 
 ## Why this page and not `/es/compress/`
 

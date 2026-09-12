@@ -1,15 +1,17 @@
 ---
 id: "LOC-12"
-title: "Two-month country and language re-check, due 2026-11-12"
-status: "open"
+title: "Read 2026-11-12 · Two-month country and language re-check, due 2026-11-12"
+status: "blocked"
 priority: "P3"
-epic: "localized-search"
+epic: "seo-awaiting-read"
 phase: "later"
 depends_on: ["LOC-10"]
 legacy_state: "Open"
 ---
 
-# LOC-12 · Two-month country and language re-check, due 2026-11-12
+# LOC-12 · Read 2026-11-12 · Two-month country and language re-check, due 2026-11-12
+
+*Re-filed 2026-09-12* from `localized-search` into `seo-awaiting-read`, status `open` to `blocked`, read date 2026-11-12: a dated re-check, nothing to build before it.
 
 Shlomi asked for this on 2026-09-12, alongside the keep-or-remove decision in [LOC-10](LOC-10.md):
 whatever that decision is, re-check the site's main countries two months on and make sure there is no

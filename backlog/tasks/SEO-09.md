@@ -1,15 +1,17 @@
 ---
 id: "SEO-09"
-title: "Split ranks at 85 for extract queries because it never uses the word"
+title: "Read 2026-10-08 · Split ranks at 85 for extract queries because it never uses the word"
 status: "blocked"
 priority: "P2"
-epic: "search-acquisition"
+epic: "seo-awaiting-read"
 phase: "near-term"
 depends_on: []
 legacy_state: "Open"
 ---
 
-# SEO-09 · Split ranks at 85 for extract queries because it never uses the word
+# SEO-09 · Read 2026-10-08 · Split ranks at 85 for extract queries because it never uses the word
+
+*Re-filed 2026-09-12* from `search-acquisition` into `seo-awaiting-read`, read date 2026-10-08: shipped; confirm /split/ recrawled, then read the extract cluster.
 
 ## Scope and acceptance
 

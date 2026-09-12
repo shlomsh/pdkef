@@ -1,15 +1,17 @@
 ---
 id: "SEO-25"
-title: "A before-and-after preview on Compress, so quality is shown rather than promised"
+title: "Read 2026-10-08 · A before-and-after preview on Compress, so quality is shown rather than promised"
 status: "blocked"
 priority: "P3"
-epic: "search-acquisition"
+epic: "seo-awaiting-read"
 phase: "later"
 depends_on: ["SEO-05", "SEO-13"]
 legacy_state: "Open"
 ---
 
-# SEO-25 · A before-and-after preview on Compress, so quality is shown rather than promised
+# SEO-25 · Read 2026-10-08 · A before-and-after preview on Compress, so quality is shown rather than promised
+
+*Re-filed 2026-09-12* from `search-acquisition` into `seo-awaiting-read`, read date 2026-10-08: shipped; CTR effect on the compress-quality cluster.
 
 ## Scope and acceptance
 

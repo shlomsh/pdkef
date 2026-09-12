@@ -2,14 +2,16 @@
 id: "SEO-03"
 title: "External signals: the work that moves the constraint and does not live in this repo"
 status: "in_progress"
-priority: "P2"
-epic: "search-acquisition"
+priority: "P1"
+epic: "english-base"
 phase: "longer-term"
 depends_on: []
 legacy_state: "Open"
 ---
 
 # SEO-03 · External signals: the work that moves the constraint and does not live in this repo
+
+*Re-filed 2026-09-12* from `search-acquisition` into `english-base`: the only lever on authority, which every read above says is the binding constraint; raised to P1.
 
 ## Scope and acceptance
 

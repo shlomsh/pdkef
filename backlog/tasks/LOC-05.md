@@ -3,13 +3,15 @@ id: "LOC-05"
 title: "Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links"
 status: "open"
 priority: "P3"
-epic: "localized-search"
+epic: "hebrew-edition"
 phase: "near-term"
 depends_on: ["LOC-03"]
 legacy_state: "Open"
 ---
 
 # LOC-05 · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links
+
+*Re-filed 2026-09-12* from `localized-search` into `hebrew-edition`: left: one indexing request per URL, and the /edit-pdf/ CTA disclosure gap.
 
 ## Scope and acceptance
 

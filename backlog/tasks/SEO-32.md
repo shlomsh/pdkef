@@ -1,15 +1,17 @@
 ---
 id: "SEO-32"
 title: "New tool: PDF to Markdown, English-only v1, Hebrew/RTL deferred pending anydoc-wasm's dependency bump"
-status: "open"
+status: "blocked"
 priority: "P3"
-epic: "search-acquisition"
+epic: "new-tools-gated"
 phase: "later"
-depends_on: []
+depends_on: ["SEO-06"]
 legacy_state: "Open"
 ---
 
 # SEO-32 · New tool: PDF to Markdown, English-only v1, Hebrew/RTL deferred pending anydoc-wasm's dependency bump
+
+*Re-filed 2026-09-12* from `search-acquisition` into `new-tools-gated`, status `open` to `blocked`: also blocked on the anydoc-wasm dependency bump.
 
 ## Scope and acceptance
 

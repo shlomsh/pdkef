@@ -3,13 +3,15 @@ id: "LOC-15"
 title: "Indonesian pilot: one page for getting a PDF under 1 MB and a photo under 200 KB, on the size-limit family that cleared the gate"
 status: "open"
 priority: "P1"
-epic: "localized-search"
+epic: "localization-pilots"
 phase: "near-term"
 depends_on: ["LOC-14"]
 legacy_state: "Open"
 ---
 
 # LOC-15 · Indonesian pilot: one page for getting a PDF under 1 MB and a photo under 200 KB, on the size-limit family that cleared the gate
+
+*Re-filed 2026-09-12* from `localized-search` into `localization-pilots`: gate passed at 1 MB (LOC-14); next is reviewer sourcing and portal-limit research.
 
 ## Why this page and not `/id/compress/`
 

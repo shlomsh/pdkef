@@ -3,13 +3,15 @@ id: "SEO-18"
 title: "One page on signing a PDF in your own language, generated from the coverage data"
 status: "open"
 priority: "P2"
-epic: "search-acquisition"
+epic: "english-base"
 phase: "near-term"
 depends_on: ["SEO-07", "SEO-12"]
 legacy_state: "Open"
 ---
 
 # SEO-18 · One page on signing a PDF in your own language, generated from the coverage data
+
+*Re-filed 2026-09-12* from `search-acquisition` into `english-base`: the sign-language page; the one content URL not gated on the crawl read because it is inbound to /sign/, which is indexed.
 
 ## Scope and acceptance
 
