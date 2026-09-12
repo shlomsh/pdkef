@@ -165,3 +165,113 @@
 .remove-button:active {
   transform: scale(0.92);
 }
+
+/* --- MERGE-07: the Merge list says pages --- */
+
+/* A PDF page at its true aspect. The shared .thumb above is a 40x52 `cover`
+   box, which shows a landscape page as a slice of its top edge; Merge opts
+   into a fixed 44x58 `contain` box instead, so row height stays stable and
+   the page shows as it is (letterboxed on the surface colour, never cropped).
+   ImageToPdf keeps the cover box: a photo thumbnail is better filled. */
+.thumb.is-page {
+  width: 44px;
+  height: 58px;
+  object-fit: contain;
+  object-position: center;
+  background: var(--color-surface);
+}
+
+/* Name over a muted meta line ("3 pages · 4.9 KB"). The column takes the
+   flexible width the bare .file-name used to take. */
+.file-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.file-text .file-name {
+  flex: none;
+  padding: 0;
+  margin: 0;
+}
+
+.file-meta {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* MERGE-04: the row of a file that cannot take part (unreadable or
+   password-protected) is marked in place, so the error block below and the
+   list agree on which file it is. */
+.file-item[data-error] {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.file-item[data-error] .file-meta {
+  color: var(--color-danger);
+}
+
+/* Insertion line: dropping files onto the list inserts where they land, and
+   this is the line that says where. The attribute is written straight onto
+   the row during the native drag (a DOM write, not state - the gesture rule
+   in editor.md) and read back once on drop. `z-index: 3` lifts the marked
+   row above BasePdfTool's tinted drop overlay (`.drop-overlay`, z-index 2 in
+   the same stacking context), or the line would be painted under it. */
+.file-item {
+  position: relative;
+}
+
+.file-item[data-insert-before] {
+  z-index: 3;
+}
+
+.file-item[data-insert-before]::before,
+.file-list[data-insert-end]::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-primary);
+}
+
+.file-item[data-insert-before]::before {
+  top: -0.4rem;
+}
+
+.file-list {
+  position: relative;
+}
+
+.file-list[data-insert-end]::after {
+  bottom: -0.4rem;
+  z-index: 3;
+}
+
+/* MERGE-07: "Removed X · Undo" and the duplicate nudge share one quiet
+   status row: text, then the one action as a plain link-styled button. */
+.status-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+
+.status-action {
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: none;
+  border: 0;
+  padding: 0.25rem 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}

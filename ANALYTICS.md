@@ -1,6 +1,6 @@
 # PDkef analytics approach
 
-Last updated: 2026-09-09
+Last updated: 2026-09-13
 
 ## Purpose
 
@@ -50,7 +50,7 @@ standard Vercel property allowance and makes breakdowns consistent.
 | Event | When it fires | What it answers |
 | --- | --- | --- |
 | `tool_file_accepted` | A valid local input is accepted by a tool | Which tool visitors actually begin using |
-| `tool_operation_started` | The user starts merge, compress, conversion, edit, unlock/protect, signing, or redaction | Where an accepted file becomes active work |
+| `tool_operation_started` | The user starts merge, compress, conversion, edit, unlock/protect, signing, or redaction. For Merge, which has no explicit Merge step since MERGE-12, this is the tap on Download; the background pre-merges that make Download instant are not counted | Where an accepted file becomes active work |
 | `tool_result_ready` | Local processing completes and an output is ready | Successful completions by tool |
 | `tool_operation_failed` | A processing operation reaches a known failure state | Aggregate failure pressure by tool |
 
@@ -104,3 +104,4 @@ additions if their question remains unanswered:
 | 2026-09-09 | Use Vercel Analytics and Speed Insights; do not add PostHog/replay. | PDKef handles sensitive documents locally and needs aggregate product-health signals, not behavioural surveillance. |
 | 2026-09-09 | Remove the 10% sampling rate for approved maintenance events. | Traffic is low enough that complete aggregate counts are more useful and remain within the privacy boundary. |
 | 2026-09-09 | Start with four lifecycle events and one closed `tool` property. | This supports tool usage, aggregate funnel stages, success, and failure while minimising collection and keeping Vercel breakdowns usable. |
+| 2026-09-13 | Merge (MERGE-12) counts `tool_operation_started` on the Download tap, `tool_result_ready` when that tapped download is delivered, and `tool_operation_failed` on each entry into its error state; pre-merges on idle are not counted. | The explicit Merge step was removed, so the person's intent now lives in the Download tap, which is what `tool_operation_started` measured before. Counting every idle pre-merge would inflate "started" with work nobody asked for (each list change restarts one) and make the accepted to started to ready funnel in MERGE-16 incomparable with the pre-change baseline. Flagged for Shlomi. |

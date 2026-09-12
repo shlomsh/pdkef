@@ -51,6 +51,77 @@ export interface MergeMessages {
   shareError: string;
   fileSummaryOne: string;
   fileSummaryMany: string;
+  /* MERGE-06 / MERGE-11: one Sort control (a native select) plus Reverse
+   * order, and an Options disclosure collapsed by default. */
+  sortLabel: string;
+  sortAsAdded: string;
+  sortByName: string;
+  sortByDate: string;
+  reverseOrder: string;
+  optionsSummary: string;
+  /** MERGE-03: the output file name is one template so a locale can phrase
+   * "{name} + {count} more" its own way; the PDF Title is the same string. */
+  outputName: string;
+  savesAs: string;
+  /* MERGE-12: Download is the only primary control. `preparing` labels the
+   * progress ring shown when the tap arrives before the pre-merge finished. */
+  downloadLabel: string;
+  preparing: string;
+  startAgain: string;
+  /* MERGE-04: the failed file is named, with one action. */
+  errorUnreadable: string;
+  errorEncrypted: string;
+  unlockLink: string;
+  removeAndMergeRest: string;
+  errorTooLarge: string;
+  rowUnreadable: string;
+  rowEncrypted: string;
+  /* MERGE-07: undo on remove, duplicate nudge. */
+  removedUndo: string;
+  undo: string;
+  alreadyAdded: string;
+  addAnyway: string;
+  pageCountUnknown: string;
+  /* MERGE-09: once a page crosses a file boundary the list can no longer be
+   * dragged as whole files; this note and its one action replace the sort row. */
+  pagesRearranged: string;
+  resetOrder: string;
+  /* MERGE-08 / MERGE-09: the page strip and its per-page controls. */
+  pagesHeading: string;
+  editPages: string;
+  doneEditing: string;
+  stripHint: string;
+  fileTag: string;
+  pageItemLabel: string;
+  skippedState: string;
+  skippedBadge: string;
+  rotatePage: string;
+  skipPage: string;
+  includePage: string;
+  openPreview: string;
+  pageSkipped: string;
+  pageIncluded: string;
+  pageRotated: string;
+  pageMoved: string;
+  previewTitle: string;
+  previewClose: string;
+  previewPrev: string;
+  previewNext: string;
+  previewLoading: string;
+  /* MERGE-14: three quiet verbs under Download; MERGE-17: one quiet line
+   * after the first result in this browser. */
+  handoffCompress: string;
+  handoffSign: string;
+  handoffSplit: string;
+  handoffConfirmTitle: string;
+  handoffConfirmBody: string;
+  handoffConfirm: string;
+  handoffFailed: string;
+  installLine: string;
+  installWithPrompt: string;
+  installLink: string;
+  installIos: string;
+  installOther: string;
 }
 
 const englishMergeMessages: MergeMessages = {
@@ -81,6 +152,64 @@ const englishMergeMessages: MergeMessages = {
   shareError: 'Could not open the share sheet. Please try again.',
   fileSummaryOne: '1 PDF',
   fileSummaryMany: '{count} PDFs',
+  sortLabel: 'Sort',
+  sortAsAdded: 'As added',
+  sortByName: 'Name',
+  sortByDate: 'Date',
+  reverseOrder: 'Reverse order',
+  optionsSummary: 'Options',
+  outputName: '{name} + {count} more',
+  savesAs: 'Saves as {name}',
+  downloadLabel: 'Download merged PDF',
+  preparing: 'Preparing…',
+  startAgain: 'Start again',
+  errorUnreadable: '"{name}" could not be read. It may be damaged, or not a PDF after all.',
+  errorEncrypted: '"{name}" is password-protected. Remove the password first, on your device, then add it again.',
+  unlockLink: 'Open Unlock',
+  removeAndMergeRest: 'Remove it and merge the rest',
+  errorTooLarge: 'This set is too large for this device to merge in the browser. Try fewer files at a time.',
+  rowUnreadable: 'Could not read',
+  rowEncrypted: 'Password-protected',
+  removedUndo: 'Removed {name}',
+  undo: 'Undo',
+  alreadyAdded: '"{name}" is already in the list.',
+  addAnyway: 'Add anyway',
+  pageCountUnknown: 'Reading…',
+  pagesRearranged: 'Pages were rearranged across files, so the files no longer move as a whole.',
+  resetOrder: 'Reset order',
+  pagesHeading: 'Pages',
+  editPages: 'Edit pages',
+  doneEditing: 'Done',
+  stripHint: 'Drag a page to reorder, or focus a page and press the left or right arrow keys to move it, R to rotate it, Delete to skip it.',
+  fileTag: 'File {number}',
+  pageItemLabel: 'Page {number} of {total}, from {file}{state}',
+  skippedState: ', skipped',
+  skippedBadge: 'Skipped',
+  rotatePage: 'Rotate page {number}',
+  skipPage: 'Skip page {number}',
+  includePage: 'Include page {number} again',
+  openPreview: 'Open page {number} larger',
+  pageSkipped: 'Page {number} skipped. It stays here and is left out of the download.',
+  pageIncluded: 'Page {number} included again.',
+  pageRotated: 'Page {number} rotated to {degrees} degrees.',
+  pageMoved: 'Page moved to position {position} of {total}.',
+  previewTitle: 'Page {number} of {total}',
+  previewClose: 'Close',
+  previewPrev: 'Previous page',
+  previewNext: 'Next page',
+  previewLoading: 'Rendering the page…',
+  handoffCompress: 'Compress it',
+  handoffSign: 'Sign it',
+  handoffSplit: 'Split it',
+  handoffConfirmTitle: 'Replace the saved draft?',
+  handoffConfirmBody: 'That tool still has a draft saved on this device: {draft}. Opening the merged file there replaces it.',
+  handoffConfirm: 'Replace and open',
+  handoffFailed: 'Could not hand the file over. Download it instead.',
+  installLine: 'This page is saved in your browser now, so merging works even without a connection.',
+  installWithPrompt: 'You can also {install} it like an app.',
+  installLink: 'install',
+  installIos: 'To keep it on your home screen, tap Share, then Add to Home Screen.',
+  installOther: 'To keep it on your home screen, look for Install or Add to Home Screen in your browser menu.',
 };
 
 // LOC-02's own throwaway draft fixture (proves the route end to end for
@@ -115,6 +244,66 @@ const hebrewMergeMessages: MergeMessages = {
   shareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
   fileSummaryOne: 'PDF אחד',
   fileSummaryMany: '{count} קבצי PDF',
+  // MERGE-02..12 (2026-09-13): AI draft, not reviewed copy, same caveat as
+  // the rest of this catalogue. Flagged for Shlomi's review in the epic report.
+  sortLabel: 'מיון',
+  sortAsAdded: 'לפי סדר ההוספה',
+  sortByName: 'לפי שם',
+  sortByDate: 'לפי תאריך',
+  reverseOrder: 'היפוך הסדר',
+  optionsSummary: 'אפשרויות',
+  outputName: '{name} + עוד {count}',
+  savesAs: 'יישמר בשם {name}',
+  downloadLabel: 'הורדת ה-PDF המאוחד',
+  preparing: 'מכינים…',
+  startAgain: 'להתחיל מחדש',
+  errorUnreadable: 'לא הצלחנו לקרוא את "{name}". ייתכן שהקובץ פגום, או שהוא בכלל לא PDF.',
+  errorEncrypted: '"{name}" מוגן בסיסמה. הסירו קודם את הסיסמה, על המכשיר שלכם, ואז הוסיפו אותו שוב.',
+  unlockLink: 'לפתיחת כלי ההסרה',
+  removeAndMergeRest: 'להסיר אותו ולמזג את השאר',
+  errorTooLarge: 'הסט הזה גדול מדי למיזוג בדפדפן על המכשיר הזה. נסו פחות קבצים בכל פעם.',
+  rowUnreadable: 'לא ניתן לקרוא',
+  rowEncrypted: 'מוגן בסיסמה',
+  removedUndo: '{name} הוסר',
+  undo: 'ביטול',
+  alreadyAdded: '"{name}" כבר ברשימה.',
+  addAnyway: 'להוסיף בכל זאת',
+  pageCountUnknown: 'קוראים…',
+  pagesRearranged: 'העמודים סודרו מחדש בין הקבצים, אז הקבצים כבר לא זזים כיחידה אחת.',
+  resetOrder: 'איפוס הסדר',
+  pagesHeading: 'עמודים',
+  editPages: 'עריכת עמודים',
+  doneEditing: 'סיום',
+  stripHint: 'גררו עמוד כדי לסדר מחדש, או התמקדו בעמוד ולחצו על חץ שמאלה או ימינה כדי להזיז אותו, R כדי לסובב, Delete כדי לדלג עליו.',
+  fileTag: 'קובץ {number}',
+  pageItemLabel: 'עמוד {number} מתוך {total}, מתוך {file}{state}',
+  skippedState: ', מדולג',
+  skippedBadge: 'מדולג',
+  rotatePage: 'סיבוב עמוד {number}',
+  skipPage: 'דילוג על עמוד {number}',
+  includePage: 'החזרת עמוד {number}',
+  openPreview: 'הגדלת עמוד {number}',
+  pageSkipped: 'דילגנו על עמוד {number}. הוא נשאר כאן ולא ייכלל בהורדה.',
+  pageIncluded: 'עמוד {number} הוחזר.',
+  pageRotated: 'עמוד {number} סובב ל-{degrees} מעלות.',
+  pageMoved: 'העמוד עבר למקום {position} מתוך {total}.',
+  previewTitle: 'עמוד {number} מתוך {total}',
+  previewClose: 'סגירה',
+  previewPrev: 'העמוד הקודם',
+  previewNext: 'העמוד הבא',
+  previewLoading: 'מציירים את העמוד…',
+  handoffCompress: 'לכווץ אותו',
+  handoffSign: 'לחתום עליו',
+  handoffSplit: 'לפצל אותו',
+  handoffConfirmTitle: 'להחליף את הטיוטה השמורה?',
+  handoffConfirmBody: 'בכלי הזה עדיין שמורה טיוטה על המכשיר: {draft}. פתיחת הקובץ המאוחד שם תחליף אותה.',
+  handoffConfirm: 'להחליף ולפתוח',
+  handoffFailed: 'לא הצלחנו להעביר את הקובץ. הורידו אותו במקום.',
+  installLine: 'הדף הזה שמור עכשיו בדפדפן, אז המיזוג עובד גם בלי חיבור לאינטרנט.',
+  installWithPrompt: 'אפשר גם {install} אותו כמו אפליקציה.',
+  installLink: 'להתקין',
+  installIos: 'כדי לשמור אותו במסך הבית, לחצו על שיתוף ואז על הוספה למסך הבית.',
+  installOther: 'כדי לשמור אותו במסך הבית, חפשו "התקנה" או "הוספה למסך הבית" בתפריט הדפדפן.',
 };
 
 export interface CompressMessages {

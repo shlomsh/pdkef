@@ -20,15 +20,18 @@ import pdfToolStyles from './PdfTool.module.css';
  * exactly as before. `preventScroll` on the focus call is also part of that
  * fix: the button no longer moves when a result lands, so nothing should
  * scroll the viewport to it either.
+ *
+ * `onClick` (MERGE-12) lets Merge count the tap itself: the browser handles
+ * the download through the anchor as before, the tool only observes it.
  */
-export default function DownloadButton({ href, download, label = 'Download PDF', detail }: { href: string; download: string; label?: string; detail?: string }) {
+export default function DownloadButton({ href, download, label = 'Download PDF', detail, onClick }: { href: string; download: string; label?: string; detail?: string; onClick?: (event: MouseEvent) => void }) {
   const ref = useRef<HTMLAnchorElement | null>(null);
   useEffect(() => {
     ref.current?.focus({ preventScroll: true });
   }, []);
 
   return (
-    <a ref={ref} class={pdfToolStyles['download-button']} href={href} download={download}>
+    <a ref={ref} class={pdfToolStyles['download-button']} href={href} download={download} onClick={onClick}>
       <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
         <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />

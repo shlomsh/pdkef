@@ -1,0 +1,343 @@
+/* MERGE-08 / MERGE-09: the assembled document. One horizontal strip of every
+   page of every file in output order, grouped by file with a divider, rendered
+   on device before any merge. Own container rules; the card internals are
+   written once here rather than copied from PageGrid.module.css (the CSS
+   duplication ratchet forbids copying rule text), and PageGrid is left as is. */
+
+.section {
+  margin-top: var(--space-4);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.heading {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.count {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
+/* The one touch-only control (MERGE-11): on a phone the per-page buttons
+   appear only after Edit pages is tapped, so a simple merge never sees them.
+   Pointer devices reveal them on hover and focus instead, and hide the toggle. */
+.edit-toggle {
+  margin-inline-start: auto;
+  min-height: 44px;
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .edit-toggle {
+    display: none;
+  }
+}
+
+.strip {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.75rem;
+  list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  /* Inertial horizontal panning on touch; the page cards themselves opt out
+     while a drag handle is held (SortableJS sets its own). */
+  touch-action: pan-x;
+}
+
+.page {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--strip-card, 120px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.4rem 0.4rem;
+  scroll-snap-align: start;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.18s var(--ease-out), border-color 0.18s var(--ease-out), opacity 0.18s var(--ease-out);
+}
+
+.page:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.page:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.page.is-chosen {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-lg);
+}
+
+.page.is-ghost {
+  opacity: 0.35;
+  background: var(--color-primary-soft);
+  border: 1px dashed var(--color-primary);
+}
+
+.page.is-dragging {
+  cursor: grabbing;
+}
+
+/* A skipped page stays visible, dimmed, with its number struck through, so
+   what was left out is still on screen and one tap brings it back. Nothing is
+   deleted from the source. */
+.page[data-skipped] {
+  opacity: 0.55;
+}
+
+.page[data-skipped] .number {
+  text-decoration: line-through;
+}
+
+.thumb-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--color-surface-sunken);
+  border-radius: 4px;
+  box-shadow: var(--shadow-xs);
+}
+
+.thumb {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.2s var(--ease-out);
+}
+
+/* Rotation is additive on the page's own rotation and previewed in place;
+   the export applies the same delta through pageOps.applyRotation. A quarter
+   turn inside a portrait box is shown scaled to fit rather than reflowing the
+   strip, so neighbours never jump. */
+.page[data-rotation='90'] .thumb {
+  transform: rotate(90deg) scale(0.75);
+}
+
+.page[data-rotation='180'] .thumb {
+  transform: rotate(180deg);
+}
+
+.page[data-rotation='270'] .thumb {
+  transform: rotate(270deg) scale(0.75);
+}
+
+.open-preview {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.number {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.tag {
+  position: absolute;
+  top: 0.25rem;
+  inset-inline-start: 0.25rem;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: var(--color-primary-soft);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.skipped-badge {
+  position: absolute;
+  top: 0.25rem;
+  inset-inline-end: 0.25rem;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+/* Per-page controls: rotate and skip. Hidden until hover or focus on pointer
+   devices, and until Edit pages on touch (`[data-editing]` on the strip). */
+.actions {
+  display: flex;
+  gap: 0.25rem;
+  min-height: 34px;
+  visibility: hidden;
+}
+
+.page:hover .actions,
+.page:focus-within .actions,
+.strip[data-editing] .actions {
+  visibility: visible;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color 0.15s var(--ease-out), background-color 0.15s var(--ease-out);
+}
+
+.action:hover {
+  color: var(--color-primary-text);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.action:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Thin divider between files; SortableJS ignores it (`filter`). */
+.divider {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 2px;
+  margin: 0.25rem 0.1rem;
+  border-radius: 1px;
+  background: var(--color-border-strong);
+}
+
+/* MERGE-10: dropping a file onto the strip inserts its pages there. Same
+   pattern as the file list's insertion line: a DOM attribute written during
+   the native drag, lifted above the card's drop overlay with z-index. */
+.page[data-insert-before] {
+  z-index: 3;
+}
+
+.page[data-insert-before]::before,
+.strip[data-insert-end]::after {
+  content: '';
+  position: absolute;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--color-primary);
+}
+
+.page[data-insert-before]::before {
+  inset-inline-start: -0.4rem;
+}
+
+.strip[data-insert-end]::after {
+  inset-inline-end: 0.25rem;
+  z-index: 3;
+}
+
+@media (max-width: 767px) {
+  .strip {
+    --strip-card: 96px;
+    gap: 0.45rem;
+    padding: 0.5rem;
+  }
+
+  .page {
+    padding: 0.4rem 0.3rem 0.3rem;
+  }
+
+  .actions {
+    min-height: 0;
+  }
+
+  .strip:not([data-editing]) .actions {
+    display: none;
+  }
+}
+
+/* --- The preview dialog (PagePreviewDialog.tsx) --- */
+.preview-dialog {
+  max-width: min(92vw, 720px);
+}
+
+.preview-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  max-height: 70vh;
+  padding: 1rem;
+  overflow: auto;
+  background: var(--color-surface-sunken);
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 66vh;
+  object-fit: contain;
+  box-shadow: var(--shadow-md);
+  background: var(--color-surface);
+}
+
+.preview-body[data-rotation='90'] .preview-image {
+  transform: rotate(90deg) scale(0.8);
+}
+
+.preview-body[data-rotation='180'] .preview-image {
+  transform: rotate(180deg);
+}
+
+.preview-body[data-rotation='270'] .preview-image {
+  transform: rotate(270deg) scale(0.8);
+}
+
+.preview-loading {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}

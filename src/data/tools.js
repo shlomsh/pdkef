@@ -380,7 +380,7 @@ export const tools = [
     toolName: 'Merge PDF',
     h1: 'Merge or Combine PDF Files Free: In Your Browser',
     subhead:
-      'Combine multiple PDFs into a single document, reorder files by drag-and-drop, and optionally add page numbers before you download.',
+      'Combine multiple PDFs into a single document, see every page before you download, and reorder, rotate or skip pages by drag-and-drop. Page numbers are optional.',
     ariaLabel: 'PDF merge tool',
     aboutHeading: 'How to merge PDF files online for free',
     aboutLead:
@@ -393,7 +393,7 @@ export const tools = [
     faqIconPos: 'bl',
     steps: [
       { title: 'Add your PDFs', text: 'Select or drag-and-drop the files you want to combine.' },
-      { title: 'Reorder them', text: 'Sort by name or date, or drag files into the order you want.' },
+      { title: 'Arrange them', text: 'Sort by name or date, drag files into the order you want, or work on the pages themselves: every page of the result is shown below the list, and you can drag one anywhere, rotate it or skip it.' },
       { title: 'Download', text: 'Open Options if you want sequential page numbers, then tap Download. The merged file is built on your device as you go, so it is ready when you are.' },
     ],
     faq: [
