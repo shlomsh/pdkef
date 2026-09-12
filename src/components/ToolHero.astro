@@ -87,34 +87,79 @@ const iconTone = slug === 'sign'
      all. The draft-hint trigger already bakes the density check into whether
      `data-draft-hint` gets set (ToolPageLayout.astro's inline script only
      sets it when density is condensed), so it only needs the condensable
-     gate repeated here - not the density one again. */
-  :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable],
-  :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] {
-    padding-bottom: 0.75rem;
-  }
+     gate repeated here - not the density one again.
 
-  :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable] [data-hero-sub],
-  :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] [data-hero-sub] {
-    display: none;
-  }
-
-  /* Below the desktop breakpoint the hero opens with 56px (pt-14) of air
-     above the title. That is the opening-statement spacing; once a file is
-     open the title is orientation, and on a phone those 56px were a real
-     share of what pushed a tool's primary action (Compress's button, most
-     visibly) below the fold. */
+     A third gate, viewport width, was added 2026-09-12 (Shlomi, from the
+     /compress/ and /merge/ pass: picking a file used to shrink this title and
+     drop the subhead at every width, which is what made the option cards and
+     the primary button jump up underneath it). Below 1024px that fold-away is
+     still doing real work: docs/view-density-control-spec.md 4.7 and
+     src/data/tools.js record it by name for Compress and Compress Image
+     specifically ("the Compress button sat ~550px below the fold" on a
+     phone), and it is kept there, unchanged, for exactly that reason. At
+     1024px and up the fold-away's own stated purpose - fit the page in a
+     desktop viewport after a file is picked - is now met a different way: the
+     dropzone/identity-row box below is a fixed 168px on desktop instead of
+     the ~320px stacked dropzone that used to sit there (see
+     Dropzone.module.css and ToolShell.module.css), which still buys back
+     more vertical space than this fold-away used to cost. See the fit
+     numbers this traded against in pick-stability.mjs's report. Confirm the
+     fit again before ever reverting this split. */
   @media (max-width: 1023px) {
+    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable],
+    :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] {
+      padding-bottom: 0.75rem;
+    }
+
+    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable] [data-hero-sub],
+    :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] [data-hero-sub] {
+      display: none;
+    }
+
+    /* Below the desktop breakpoint the hero opens with 56px (pt-14) of air
+       above the title. That is the opening-statement spacing; once a file is
+       open the title is orientation, and on a phone those 56px were a real
+       share of what pushed a tool's primary action (Compress's button, most
+       visibly) below the fold. */
     :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable],
     :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] {
       padding-top: 1.5rem;
     }
   }
 
-  /* The title stays, one step quieter: it is orientation now rather than the
-     page's opening statement. */
+  /* Sign and Redact are the one exception to "no condensing at desktop"
+     above, and the reason is a different rule than Compress's: their
+     `ViewControl` (>=920px segmented Relaxed/Condensed/Full screen control,
+     see docs/view-density-control-spec.md) is a user-facing preference
+     whose *only* visible effect is this hero fold - there is nothing else
+     for "Condensed" to do (`ViewControl.tsx`/`useViewDensity.js` only ever
+     write the `data-view-density` attribute this file reads). The spec's own
+     worked example is a 1512x870 laptop, i.e. desktop width; disabling the
+     fold there would make that control's Condensed segment do nothing on a
+     real desktop, which is not the "stop condensing on desktop" this ticket
+     asked for - that request was about the automatic, permanent fold on
+     tools with no control to turn it back on.
+
+     Nothing here can reach `src/data/tools.js` or add a marker to
+     `ToolShell.tsx` (both out of scope for this change), so Sign/Redact are
+     told apart by `ViewControl`'s own DOM footprint instead:
+     `[aria-label="View density"]`, which only that control renders and only
+     once a file is open - the same moment `[data-tool-shell]` and this gate
+     start mattering. Every other condensable tool (Compress included) has
+     no such element and falls through to the desktop-relaxed rule above. */
   @media (min-width: 1024px) {
-    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable],
-    :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] {
+    :global(html[data-view-density='condensed']:has([aria-label='View density'])) .tool-hero[data-hero-condensable],
+    :global(html[data-draft-hint]:has([aria-label='View density'])) .tool-hero[data-hero-condensable] {
+      padding-bottom: 0.75rem;
+    }
+
+    :global(html[data-view-density='condensed']:has([aria-label='View density'])) .tool-hero[data-hero-condensable] [data-hero-sub],
+    :global(html[data-draft-hint]:has([aria-label='View density'])) .tool-hero[data-hero-condensable] [data-hero-sub] {
+      display: none;
+    }
+
+    :global(html[data-view-density='condensed']:has([aria-label='View density'])) .tool-hero[data-hero-condensable],
+    :global(html[data-draft-hint]:has([aria-label='View density'])) .tool-hero[data-hero-condensable] {
       --hero-title: 1.75rem;
       --hero-icon: 2.5rem;
     }

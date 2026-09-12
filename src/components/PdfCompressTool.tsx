@@ -354,28 +354,69 @@ export default function PdfCompressTool({
     ? Math.round((1 - compressedSize / file.size) * 100)
     : 0;
 
+  // The honest-miss condition (see the notice below) also decides what the
+  // Download button's second line says - "closest achievable" rather than a
+  // savings percentage that would misrepresent a target that wasn't hit.
+  const missedTargetSize = !metTarget && (kind === 'image' || level === 'target');
+
+  // Button anchor (SEO-25, 2026-09-12): a visitor's first read of the result
+  // is now this line, inside the button they just pressed, rather than a
+  // separate stats card they have to scroll to - see openCompare's comment
+  // for why the card itself moved below the button. compressedSize is only
+  // ever set alongside status 'done', so this stays undefined otherwise.
+  // t.downloadDetailSmaller/t.downloadDetailClosest are their own short
+  // messages, deliberately separate from t.closestAchievable (a full
+  // sentence meant for the notice paragraph below, not a button's second
+  // line).
+  const downloadDetail = compressedSize == null
+    ? undefined
+    : missedTargetSize
+      ? formatMessage(t.downloadDetailClosest, { size: formatBytes(compressedSize) })
+      : savingsPercent > 0
+        ? formatMessage(t.downloadDetailSmaller, { size: formatBytes(compressedSize), percent: savingsPercent })
+        : formatBytes(compressedSize);
+
   const actionAndResults = (
     <>
-      {hasFiles ? (
-        status !== 'done' && (
-          <button
-            type="button"
-            class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}`}
-            disabled={status === 'processing'}
-            onClick={handleCompress}
-          >
-            {status === 'processing' ? (
-              <ProgressRing progress={progress} label={t.compressing} />
-            ) : (
-              isImageMode ? t.compressImage : t.compress
-            )}
+      {/* Button anchor (SEO-25, 2026-09-12): one wrapper for the whole
+          action slot so the Compress button and the Download+Share pair
+          that replaces it on completion sit at the same top coordinate -
+          see the matching CSS comment in PdfCompressTool.module.css for why
+          each child's own margin-top is zeroed here instead of left to
+          collide with the wrapper's. Nothing above this wrapper (the option
+          cards, the target panel) is touched by any of this. */}
+      <div class={styles['result-action']}>
+        {hasFiles && status === 'done' && downloadUrl ? (
+          <>
+            <DownloadButton
+              href={downloadUrl}
+              download={deriveDownloadName(file!.name, outputType)}
+              label={kind === 'image' ? t.imageDownloadLabel : t.downloadLabel}
+              detail={downloadDetail}
+            />
+            <PdfShareButton visible={shareReady} onShare={handleShare} label={kind === 'image' ? t.imageShareLabel : t.shareLabel} />
+          </>
+        ) : hasFiles ? (
+          status !== 'done' && (
+            <button
+              type="button"
+              class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}`}
+              disabled={status === 'processing'}
+              onClick={handleCompress}
+            >
+              {status === 'processing' ? (
+                <ProgressRing progress={progress} label={t.compressing} />
+              ) : (
+                isImageMode ? t.compressImage : t.compress
+              )}
+            </button>
+          )
+        ) : (
+          <button type="button" class={pdfToolStyles['tool-primary-action']} disabled>
+            {t.addPdfToCompress}
           </button>
-        )
-      ) : (
-        <button type="button" class={pdfToolStyles['tool-primary-action']} disabled>
-          {t.addPdfToCompress}
-        </button>
-      )}
+        )}
+      </div>
 
       {hasFiles && status === 'error' && (
         <ErrorMessage title={t.compressionFailedTitle}>
@@ -383,6 +424,9 @@ export default function PdfCompressTool({
         </ErrorMessage>
       )}
 
+      {/* Everything below here renders under the button row (see the wrapper
+          above): the stats card, the notice, and the compare toggle/panel.
+          The card grows downward; nothing above the buttons moves. */}
       {hasFiles && status === 'done' && downloadUrl && (
         <>
           <div class={styles['compression-stats']}>
@@ -449,7 +493,7 @@ export default function PdfCompressTool({
                   onClick={handleToggleCompare}
                   aria-expanded={compareOpen}
                 >
-                  {compareOpen ? 'Hide comparison' : 'Compare with original'}
+                  {compareOpen ? t.compareHide : t.compareShow}
                 </button>
 
                 {compareOpen && (
@@ -489,13 +533,6 @@ export default function PdfCompressTool({
               </>
             )}
           </div>
-
-          <DownloadButton
-            href={downloadUrl}
-            download={deriveDownloadName(file!.name, outputType)}
-            label={kind === 'image' ? t.imageDownloadLabel : t.downloadLabel}
-          />
-          <PdfShareButton visible={shareReady} onShare={handleShare} label={kind === 'image' ? t.imageShareLabel : t.shareLabel} />
         </>
       )}
     </>

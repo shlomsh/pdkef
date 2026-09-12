@@ -192,3 +192,91 @@ download/share row never jumps once the real previews land) in place of the slid
 `compareStatus === 'loading'`, with the pulse itself opted into `prefers-reduced-motion:
 no-preference` per CLAUDE.md's motion rule and the status text carrying `aria-live="polite"` so it's
 announced once rather than on every re-render.
+
+## Button anchor (2026-09-12)
+
+**Diagnosis.** Opening the comparison by default (previous section) made the flicker Shlomi then
+reported worse, not better: clicking Compress inserted the whole result card - title, stats grid,
+notice and now the ~500px comparison panel - *above* the button/download row, which were siblings in
+that order (`compression-stats` div, then `DownloadButton`, then `PdfShareButton`). The button a
+visitor had just pressed jumped roughly 650px down the page to make room, and `DownloadButton`'s
+`useEffect(() => ref.current?.focus(), [])` then scrolled the viewport straight to wherever it landed.
+Nothing was wrong with any single piece; the ordering put the biggest new content block above the one
+element the user's attention (and now the browser's focus) was already on.
+
+**Decision (Shlomi's, "the button is the anchor").** Nothing above the button row changes when a
+result lands. The Compress button turns into the Download button in the *same slot*; Share sits
+directly under Download; the result summary (size + percent saved, or "closest achievable" on a missed
+target) rides on the Download button itself as a second line rather than waiting in a card below.
+Everything else - the stats card, the rasterize/format notice, the compare toggle and panel - now
+renders *below* the button row and grows downward.
+
+**What shipped.**
+
+- `PdfCompressTool.tsx`: `actionAndResults` now wraps the button state in one `<div class={styles['result-action']}>` - either the lone Compress/disabled button, or `DownloadButton` + `PdfShareButton` once `status === 'done'` - as the first thing rendered, before the (unmoved) error message and the (now-relocated) `compression-stats` block. The options grid / Target Size panel above it, and the toggle/panel logic inside `compression-stats`, are untouched - the JSX diff is purely the reorder plus the new `downloadDetail` computation (mirrors `savingsPercent`/`metTarget`, worded "closest achievable: `<size>`" on a missed target, matching the honest-miss notice's own condition).
+- `PdfCompressTool.module.css`: new `.result-action` rule - `margin-top: var(--space-5)` on the wrapper, with `.result-action > button:first-child` / `> a:first-child` zeroing the Compress button's and Download link's own margin-top (1.5rem and 1rem respectively, from `PdfTool.module.css` - unchanged for every other tool) so both states share exactly one top margin instead of two different ones.
+- `DownloadButton.tsx`: new optional `detail?: string` prop, rendered as a second line inside a `<span class="download-button-label">` wrapping the existing label text - it's inside the anchor, so it's part of the accessible name with no extra work. Also switched the focus effect to `ref.current?.focus({ preventScroll: true })`, since the button no longer moves and nothing should scroll to it. Both changes are additive: no `detail` (every tool but Compress) renders the same single line as before, just one span deeper in the DOM.
+- `PdfTool.module.css`: `.download-button-label` (column flex, centered, so the existing row's own `align-items: center` still centers the whole two-line block) and `.download-button-detail` (0.8rem, muted via `opacity: 0.85`) - the two rules DownloadButton's own module doesn't have, per its "PdfTool.module.css only if the button's second line needs a rule there" scope.
+
+**Measured, real browser, dev server (not `preview`).** An ad-hoc Playwright script (not `npm run test:e2e` - see CLAUDE.md's one-preview-per-worktree rule) dropped a 3-page PDF fixture into `/compress/` and a JPEG fixture into `/compress-image/` at 1400x900 and 390x844, and measured the *gap* between the element immediately above the button (the last option card / the Target Size panel) and the button wrapper's own top, before and after clicking Compress:
+
+| tool | viewport | gap before | gap after | option/target card top | equal? |
+| --- | --- | --- | --- | --- | --- |
+| compress (pdf) | 1400x900 | 24.000px | 24.000px | unchanged | yes |
+| compress (pdf) | 390x844 | 24.000px | 24.000px | unchanged | yes |
+| compress-image | 1400x900 | 24.000px | 24.000px | unchanged | yes |
+| compress-image | 390x844 | 24.000px | 24.000px | unchanged (own top, see caveat) | yes |
+
+The gap (24px = `--space-5`, the same 1.5rem the Compress button always had) is exact and identical
+before/after in all four cases - the wrapper, not either child, owns it. `window.scrollY` was unchanged
+by the state transition itself in every case (the 531px scroll recorded on PDF mobile happens
+immediately on click, before compression even resolves - it's Playwright's own scroll-into-view for an
+off-screen button, present before this change too, not something `openCompare` or `DownloadButton`
+causes).
+
+**One pre-existing, out-of-scope caveat found while measuring.** On `/compress-image/` at 390x844
+only, the Target Size panel's *absolute page position* moves up by about 108px after compression,
+even though the gap above the button (24px) and `scrollY` (0) are both unchanged. Traced to
+`ToolPageLayout.astro`'s mobile section (`!items-center !justify-center`, outside every file this
+ticket owns): it vertically centers short content and stops once content is tall enough, and the
+image tool's pre-compress content (just the Target Size panel) is short enough to be centered while
+compressed PDFs' options grid already wasn't. The same total content, in the *old* button order, would
+have crossed the same height threshold by the same amount - this is a page-shell behaviour orthogonal
+to which element sits in the button slot, not a regression from this reorder. Left as-is; flagged here
+rather than touched, since `ToolPageLayout.astro` isn't part of this ticket's ownership and another
+worktree is on the shared shell files concurrently.
+
+**Tests.** `PdfCompressTool.test.tsx`: existing assertions on the button/download-button/stats-card
+already went by class name rather than DOM order, so the reorder alone didn't break any of the 14
+cases; added one assertion (`'runs compression and displays results'`) that the Download button's text
+contains the computed detail line ("19 Bytes, 100% smaller" against the mocked 19-byte compressed
+blob). `e2e/compress/image-target-size.spec.js`'s `readDownload()` used `getByRole('link', { name:
+'Download Compressed Image', exact: true })`, which stops matching once the link's accessible name
+gains the detail suffix - changed to `{ name: /^Download Compressed Image/ }`.
+`e2e/tool-output-paths.spec.js`'s parameterised Compress row had the same problem (`downloadName:
+'Download Compressed PDF', exact matching still used by every other tool in that list); gave it an
+optional `downloadNameMatch: /^Download Compressed PDF/` the loop prefers over the exact match when
+present, rather than loosening every tool's assertion. `compare-preview.spec.js` needed no changes - it
+never asserts the download link's name. Ran `npx vitest run src/components/PdfCompressTool.test.tsx
+src/components/DownloadButton src/components/CompareSlider.test.tsx` (14 passed - no `DownloadButton`
+test file exists yet), `npm run typecheck` (0 errors), `npm run test:gesture-golden-rule` (passed -
+untouched by this change), `node scripts/check-class-resolution.js` (passed). The two edited e2e specs
+were read against the new markup but not executed via `npm run test:e2e` (`playwright.config.js`'s
+`webServer` runs `npm run preview`, out of scope for this worktree - see CLAUDE.md's one-preview rule);
+the team lead runs the full Playwright suite.
+
+**Localization follow-up (same day).** The first pass of this fix hardcoded the download detail line
+and the compare toggle's two labels as English literals in `PdfCompressTool.tsx`, on the theory that
+the "Compare with original"/"Hide comparison" toggle text earlier in this ticket had already made that
+call. Caught before this was a done: `/he/compress/` is a live, reviewed page, and those literals would
+have rendered in English inside an otherwise-Hebrew primary button and toggle. Fixed by adding four keys
+to `CompressMessages` in `src/i18n/toolMessages.ts` - `downloadDetailSmaller` ('{size}, {percent}%
+smaller' / '{size}, קטן ב-{percent}%'), `downloadDetailClosest` ('closest achievable: {size}' /
+'הגודל הקרוב ביותר: {size}'), `compareShow` ('Compare with original' / 'השוואה למקור'), `compareHide`
+('Hide comparison' / 'הסתרת ההשוואה') - in both `englishCompressMessages` and
+`hebrewCompressMessages`, using the same `formatMessage`/`{placeholder}` substitution every other
+sized/counted message in the file already uses. `downloadDetail` now calls `formatMessage(t.downloadDetailClosest, ...)` /
+`formatMessage(t.downloadDetailSmaller, ...)` instead of building the string inline, and the toggle
+button reads `t.compareShow`/`t.compareHide`. Re-ran `npx vitest run src/components/PdfCompressTool.test.tsx
+src/components/DownloadButton src/components/CompareSlider.test.tsx` and `npm run typecheck` after the
+change (see the report for results).

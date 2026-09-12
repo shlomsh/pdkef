@@ -3,12 +3,12 @@ import { renderThumbnail } from '../lib/thumbnails.js';
 import toolShellStyles from './ToolShell.module.css';
 import styles from './FilePreview.module.css';
 
-// Twice the CSS box's desktop size (72px, see `.icon`'s 1024px rule in
+// Twice the CSS box's desktop size (96px, see `.icon`'s 1024px rule in
 // ToolShell.module.css) so the render holds up on a retina screen at the
 // size it now actually shows at; renderThumbnail's default is tuned for the
 // Merge list's own 150px thumbnails, not this slot. The same render is reused
 // at the smaller mobile box too - oversized there, never undersized.
-const PDF_PREVIEW_WIDTH = 144;
+const PDF_PREVIEW_WIDTH = 192;
 
 interface FilePreviewProps {
   file?: File | null;

@@ -44,6 +44,12 @@ const tools = [
     file: { name: 'source.pdf', mimeType: 'application/pdf', bufferFn: makePdfBuffer },
     actionName: 'Compress PDF',
     downloadName: 'Download Compressed PDF',
+    // Not exact (SEO-25 "button anchor", 2026-09-12): DownloadButton's
+    // `detail` prop adds a second, smaller line inside the link ("<size>,
+    // <n>% smaller"), which is part of its accessible name for free - so an
+    // exact match on just the label stops finding it. Every other tool in
+    // this list still passes no `detail` and keeps its exact match.
+    downloadNameMatch: /^Download Compressed PDF/,
     downloadAttr: 'source-compressed.pdf',
   },
   {
@@ -92,7 +98,9 @@ test.describe('uncovered tools produce a real downloadable file', () => {
 
       await page.getByRole('button', { name: tool.actionName, exact: true }).click();
 
-      const download = page.getByRole('link', { name: tool.downloadName, exact: true });
+      const download = tool.downloadNameMatch
+        ? page.getByRole('link', { name: tool.downloadNameMatch })
+        : page.getByRole('link', { name: tool.downloadName, exact: true });
       await expect(download).toBeVisible();
 
       const href = await download.getAttribute('href');

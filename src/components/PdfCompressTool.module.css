@@ -223,6 +223,25 @@
   color: var(--color-muted);
 }
 
+/* Button anchor (SEO-25, 2026-09-12) - see PdfCompressTool.tsx's
+   actionAndResults comment. One wrapper for the Compress button and the
+   Download+Share pair that replaces it, so the two states share one top
+   margin instead of each carrying their own (.tool-primary-action's
+   margin-top is 1.5rem/--space-5, .download-button's is 1rem/--space-4 -
+   PdfTool.module.css, unchanged for every other tool). `:first-child` only
+   zeroes the margin of whichever element actually opens the slot (the lone
+   Compress button, or the Download link ahead of the Share button) - Share's
+   own margin-top is left alone, it's the gap between Download and Share, not
+   the gap above the slot. */
+.result-action {
+  margin-top: var(--space-5);
+}
+
+.result-action > button:first-child,
+.result-action > a:first-child {
+  margin-top: 0;
+}
+
 /* Compression Stats Results */
 .compression-stats {
   background: var(--color-primary-soft);

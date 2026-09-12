@@ -198,6 +198,13 @@ describe('PdfCompressTool UI flow', () => {
     expect(downloadBtn).not.toBeNull();
     expect(downloadBtn.getAttribute('href')).toBe('blob:testurl');
 
+    // SEO-25 "button anchor" (2026-09-12): the result summary now rides on
+    // the Download button itself as a second line, computed from the same
+    // sizes the stats card shows above - the mocked compressPdf blob
+    // ('%PDF-1.4-compressed') is 19 bytes against a 100000-byte input, a
+    // 100% reduction once rounded.
+    expect(downloadBtn.textContent).toContain('19 Bytes, 100% smaller');
+
     const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
