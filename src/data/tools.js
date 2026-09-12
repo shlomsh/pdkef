@@ -286,7 +286,7 @@ export const tools = [
       },
       {
         question: 'Can I type Vietnamese (chữ ký PDF bằng tiếng Việt) when signing a PDF?',
-        answer: 'Yes. Arimo, Tinos, Cousine, Mali, Sriracha, Mynerve and Amatic SC all carry the full set of Vietnamese tone-and-diacritic vowels, checked against the real font files rather than assumed from general Latin support. Mali, Mynerve and Amatic SC all double as typed-signature fonts, so you can add a Vietnamese signature without drawing it; Amatic SC draws capitals only, so a lowercase name comes out in small capitals. The other bundled fonts do not carry Vietnamese, so pick one of these five if you need it.',
+        answer: 'Yes. Arimo, Tinos, Cousine, Mali, Sriracha, Mynerve and Amatic SC all carry the full set of Vietnamese tone-and-diacritic vowels, checked against the real font files rather than assumed from general Latin support. Mali, Sriracha, Mynerve and Amatic SC all double as typed-signature fonts, so you can add a Vietnamese signature without drawing it; Amatic SC draws capitals only, so a lowercase name comes out in small capitals. The other bundled fonts do not carry Vietnamese, so pick one of these seven if you need it.',
       },
       {
         question: 'Can I fill and sign a PDF in Japanese (PDFに日本語で署名)?',
@@ -306,7 +306,7 @@ export const tools = [
       },
       {
         question: 'Can I type Turkish (PDF üzerinde Türkçe imza) when signing a PDF?',
-        answer: "Yes. 12 text fonts (Arimo, Tinos, Cousine, Heebo, Alef, PT Sans and others) and six handwriting faces, Kalam, Mali, Sriracha, Tillana, Mynerve and Amatic SC, carry the complete 29-letter Turkish alphabet, checked letter by letter against the real font files rather than assumed from general Latin coverage. That check matters here specifically for Ğ, İ and Ş, the three letters that make Turkish its own alphabet and that a general accented-Latin font does not necessarily draw. All five handwriting faces also work for a typed signature; Amatic SC draws capitals only, so a lowercase name comes out in small capitals.",
+        answer: "Yes. 12 text fonts (Arimo, Tinos, Cousine, Heebo, Alef, PT Sans and others) and six handwriting faces, Kalam, Mali, Sriracha, Tillana, Mynerve and Amatic SC, carry the complete 29-letter Turkish alphabet, checked letter by letter against the real font files rather than assumed from general Latin coverage. That check matters here specifically for Ğ, İ and Ş, the three letters that make Turkish its own alphabet and that a general accented-Latin font does not necessarily draw. All six handwriting faces also work for a typed signature; Amatic SC draws capitals only, so a lowercase name comes out in small capitals.",
       },
     ],
   },
