@@ -177,7 +177,9 @@ describe('resolveFontFamily across every script the catalogue covers', () => {
     // handwriting-tagged one, wins over Arimo when the request itself was
     // handwriting-tagged (§3.2/§3.3). A request that was already sans/upright
     // still lands on Arimo, first in catalogue order among sans candidates.
-    expect(resolveFontFamily('Caveat', 'Привіт')).toBe('Amatic SC');
+    // Amatic SC (also handwriting, also Cyrillic) qualifies too; Neucha wins on
+    // catalogue order, which is what the tiebreak falls back to between peers.
+    expect(resolveFontFamily('Caveat', 'Привіт')).toBe('Neucha');
     expect(resolveFontFamily('Assistant', 'Привіт')).toBe('Arimo');
     expect(resolveFontFamily('Arimo', 'Привіт')).toBe('Arimo');
   });

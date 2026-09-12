@@ -76,6 +76,12 @@
   src: url('/fonts/Mali-BoldItalic.ttf') format('truetype');
 }
 @font-face {
+  font-family: 'Neucha';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Neucha-Regular.ttf') format('truetype');
+}
+@font-face {
   font-family: 'Pacifico';
   font-style: normal;
   font-weight: 400;

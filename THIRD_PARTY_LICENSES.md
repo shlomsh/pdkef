@@ -1583,6 +1583,7 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Gveret Levin (<https://fonts.google.com/specimen/Gveret+Levin>)
 - Kalam (<https://fonts.google.com/specimen/Kalam>)
 - Mali (<https://fonts.google.com/specimen/Mali>)
+- Neucha (<https://fonts.google.com/specimen/Neucha>)
 - Pacifico (<https://fonts.google.com/specimen/Pacifico>)
 - Sacramento (<https://fonts.google.com/specimen/Sacramento>)
 - Amatic SC (<https://fonts.google.com/specimen/Amatic+SC>)

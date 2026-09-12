@@ -83,6 +83,7 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(CYRILLIC_ANCHOR.familiesCoveringAllSeven.every((f) => f.style === 'upright')).toBe(true);
     const note = supportedNote('Russian, Ukrainian, and other Cyrillic');
     expect(note).toContain('PT Sans');
+    expect(note).toContain('Neucha');
   });
 
   it('Russian/Ukrainian/other Cyrillic: Amatic SC is the six-language handwriting option, matching LANGUAGE_COVERAGE.cyrillicRussian.full', () => {
@@ -95,6 +96,19 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     const note = supportedNote('Russian, Ukrainian, and other Cyrillic');
     expect(note).toContain('Amatic SC');
     expect(note).toContain('capitals only');
+    expect(note).toContain('Kazakh');
+  });
+
+  it('Neucha (FONT-08, handwriting): full on six of the seven Cyrillic anchor languages, partial on Kazakh', () => {
+    const sixFull = ['cyrillicRussian', 'cyrillicUkrainian', 'cyrillicBelarusian', 'cyrillicBulgarian', 'cyrillicSerbian', 'cyrillicMacedonian'];
+    for (const id of sixFull) {
+      expect(LANGUAGE_COVERAGE[id].full.map((f) => f.family)).toContain('Neucha');
+    }
+    expect(LANGUAGE_COVERAGE.cyrillicKazakh.full.map((f) => f.family)).not.toContain('Neucha');
+    const kazakhPartial = LANGUAGE_COVERAGE.cyrillicKazakh.partial.find((f) => f.family === 'Neucha');
+    expect(kazakhPartial).toBeTruthy();
+    const note = supportedNote('Russian, Ukrainian, and other Cyrillic');
+    expect(note).toContain('Neucha');
     expect(note).toContain('Kazakh');
   });
 
