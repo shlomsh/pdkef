@@ -440,6 +440,77 @@ describe('PdfCompressTool UI flow', () => {
     window.URL.createObjectURL = originalCreateObjectURL;
   });
 
+  it('does not render a comparison for an image until the visitor asks for one, builds it from two object URLs with no rasterization, then hides the toggle entirely for a passthrough result', async () => {
+    const thumbnails = await import('../lib/thumbnails.js');
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const file = makeImageFile('portrait.jpg', 900_000);
+
+    await act(async () => {
+      setInputFiles(input, [file]);
+    });
+
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    let nextBlobUrl = 0;
+    window.URL.createObjectURL = vi.fn(() => `blob:image-compare-${nextBlobUrl++}`);
+
+    let button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+
+    // Same "never runs by default" bar as the PDF case.
+    expect(container.querySelector(`.${styles['compare-panel']}`)).toBeNull();
+    expect(thumbnails.renderComparePreview).not.toHaveBeenCalled();
+
+    const toggle = container.querySelector(`.${styles['compare-toggle-button']}`);
+    expect(toggle).not.toBeNull();
+    expect(toggle.textContent).toContain('Compare with original');
+
+    await act(async () => {
+      toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    // Image mode never rasterizes - two object URLs, no thumbnails import.
+    expect(thumbnails.renderComparePreview).not.toHaveBeenCalled();
+
+    const panel = container.querySelector(`.${styles['compare-panel']}`);
+    expect(panel).not.toBeNull();
+    const images = panel.querySelectorAll('img');
+    expect(images).toHaveLength(2);
+    images.forEach((img) => expect(img.getAttribute('src')).toMatch(/^blob:image-compare-/));
+
+    // Passthrough: compressImageToTarget's early-return hands back the same
+    // File as `blob`, so a second, already-under-target image gets no
+    // toggle at all - a slider comparing a file to itself is noise.
+    compressImageLib.compressImageToTarget.mockImplementation((passthroughFile) =>
+      Promise.resolve(makeImageResult({ blob: passthroughFile })),
+    );
+    const tinyFile = makeImageFile('tiny.jpg', 5_000);
+    await act(async () => {
+      setInputFiles(input, [tinyFile]);
+    });
+    button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+
+    expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
+
+    window.URL.createObjectURL = originalCreateObjectURL;
+  });
+
   it('rejects a file that is not a PDF, JPG or PNG', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
