@@ -1585,6 +1585,7 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Mali (<https://fonts.google.com/specimen/Mali>)
 - Pacifico (<https://fonts.google.com/specimen/Pacifico>)
 - Sacramento (<https://fonts.google.com/specimen/Sacramento>)
+- Amatic SC (<https://fonts.google.com/specimen/Amatic+SC>)
 <!-- END GENERATED HANDWRITING FONT LIST -->
 
 The homepage hero demo additionally bundles `CaveatDemo-Bold.ttf`, a Latin-range subset of

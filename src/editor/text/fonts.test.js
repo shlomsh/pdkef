@@ -165,18 +165,21 @@ describe('resolveFontFamily across every script the catalogue covers', () => {
     expect(resolveFontFamily('Arimo', 'สวัสดี')).toBe('IBM Plex Sans Thai');
     expect(resolveFontFamily('Caveat', 'नमस्ते')).toBe('Kalam');
     expect(resolveFontFamily('Caveat', 'สวัสดี')).toBe('Mali');
-    // Cyrillic and Greek only need rescuing from a font without them; Arimo
-    // has both, so it must be left alone rather than swapped for no reason.
-    // Under the coverage rule (unlike the old per-script table, which special-
-    // cased PT Sans as Cyrillic's designated fallback) any Cyrillic-capable
-    // catalogue family is a valid candidate and Arimo, first in catalogue
-    // order among sans-tagged candidates and already the default family,
-    // wins the tiebreak - see §3.2/§3.3.
-    expect(resolveFontFamily('Caveat', 'Привіт')).toBe('Arimo');
-    expect(resolveFontFamily('Assistant', 'Привіт')).toBe('Arimo');
-    expect(resolveFontFamily('Arimo', 'Привіт')).toBe('Arimo');
+    // Greek only needs rescuing from a font without it; Arimo has it, so it
+    // must be left alone rather than swapped for no reason.
     expect(resolveFontFamily('Pacifico', 'Ελλάδα')).toBe('Arimo');
     expect(resolveFontFamily('Arimo', 'Ελλάδα')).toBe('Arimo');
+    // Cyrillic is the same shape as Devanagari/Thai above, since FONT-08
+    // added Amatic SC as Cyrillic's first handwriting face: requesting from
+    // a handwriting font now lands on the handwriting candidate rather than
+    // jumping to upright Arimo. Under the coverage rule any Cyrillic-capable
+    // catalogue family is a valid candidate, and Amatic SC, the only
+    // handwriting-tagged one, wins over Arimo when the request itself was
+    // handwriting-tagged (§3.2/§3.3). A request that was already sans/upright
+    // still lands on Arimo, first in catalogue order among sans candidates.
+    expect(resolveFontFamily('Caveat', 'Привіт')).toBe('Amatic SC');
+    expect(resolveFontFamily('Assistant', 'Привіт')).toBe('Arimo');
+    expect(resolveFontFamily('Arimo', 'Привіт')).toBe('Arimo');
   });
 
   it('resolves mixed scripts deterministically', () => {

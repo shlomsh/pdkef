@@ -87,6 +87,18 @@
   font-weight: 400;
   src: url('/fonts/Sacramento-Regular.ttf') format('truetype');
 }
+@font-face {
+  font-family: 'Amatic SC';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/AmaticSC-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Amatic SC';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/AmaticSC-Bold.ttf') format('truetype');
+}
 
 /* --- Text fonts --- */
 @font-face {

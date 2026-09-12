@@ -66,6 +66,13 @@ export const FONT_MANIFEST = [
     license: { version: '1.1', url: 'https://fonts.google.com/specimen/Sacramento', copyright: 'Copyright The Sacramento Project Authors' },
   },
   {
+    family: 'Amatic SC', kind: 'handwriting', styleTag: 'handwriting',
+    metrics: { ascent: 1.016, descent: 0.245 },
+    faces: normal('AmaticSC-Regular.ttf', 'AmaticSC-Bold.ttf'),
+    acceptance: { hebrewMarkPlacement: true },
+    license: { version: '1.1', url: 'https://fonts.google.com/specimen/Amatic+SC', copyright: 'Copyright 2015 The Amatic SC Project Authors (https://github.com/googlefonts/AmaticSC)' },
+  },
+  {
     family: 'Arimo', kind: 'text', styleTag: 'sans',
     metrics: { ascent: 0.905, descent: 0.212 },
     faces: full('Arimo-Regular.ttf', 'Arimo-Bold.ttf', 'Arimo-Italic.ttf', 'Arimo-BoldItalic.ttf'),

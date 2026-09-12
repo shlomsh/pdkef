@@ -89,6 +89,13 @@ export const EXPORT_RENDER_CORPUS = [
   textCase('hebrew-nikud-arimo', 'בְּרֵאשִׁית', { fontFamily: 'Arimo', left: RTL_ANCHOR }),
   textCase('hebrew-heebo', 'שלום עולם', { fontFamily: 'Heebo', left: RTL_ANCHOR }),
 
+  // --- Amatic SC (FONT-08): Hebrew's second handwriting face, screened via
+  // H8 (hebrewMarkPlacement.test.js) before its acceptance flag was set.
+  // Nikud, not plain text, because mark placement is exactly what H8 proves
+  // and what a corrupted glyf/subset would most plausibly break first on a
+  // face this condensed.
+  textCase('hebrew-nikud-amatic-sc', 'בְּרֵאשִׁית', { fontFamily: 'Amatic SC', left: RTL_ANCHOR }),
+
   // --- A family with no Hebrew glyphs at all, so the export embeds a
   // different one than the element asked for. "A substituted font" is one of
   // the four failure modes; this is the case that pins the substitution.
@@ -104,6 +111,13 @@ export const EXPORT_RENDER_CORPUS = [
   textCase('devanagari-kalam', 'नमस्ते', { fontFamily: 'Kalam' }),
   textCase('thai-mali', 'สวัสดี', { fontFamily: 'Mali' }),
   textCase('cyrillic-pt-sans', 'Привіт', { fontFamily: 'PT Sans' }),
+
+  // --- Amatic SC (FONT-08): Cyrillic's first handwriting face, proven
+  // against real fontkit/Chromium agreement by cyrillic-shaping-guard.spec.js
+  // before a PDF exists; this case is what catches a corrupted glyf or a
+  // subset missing a component on the file a user actually receives, the
+  // same division of labour as every other script pair in this file.
+  textCase('cyrillic-amatic-sc', 'Привіт', { fontFamily: 'Amatic SC' }),
   textCase('greek-tinos', 'Καλημέρα', { fontFamily: 'Tinos' }),
 
   // --- Japanese and Bengali: shipped, user-selectable scripts this guard has
