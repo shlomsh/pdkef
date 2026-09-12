@@ -1,7 +1,7 @@
 ---
 id: "LOC-11"
 title: "Top-languages research: is there untapped in-language traffic behind the site's top countries?"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "localized-search"
 phase: "near-term"
@@ -362,6 +362,14 @@ Reopen or keep page localization for a language only when **both** hold:
 
 A language on Google's translated-results list needs a stronger case on both, because the English page
 already reaches its searchers.
+
+## Closed 2026-09-12
+
+Every language in the top twenty has a verdict row; Urdu is the one not run, deprioritised because
+Pakistan is outside the top twenty and both neighbours search in English. The paragraph went to LOC-10
+(keep). The open threads have their own tickets: [LOC-14](LOC-14.md) (Indonesian target-size, the only
+in-language candidate left with a question), [LOC-13](LOC-13.md) (Spanish, held), [LOC-12](LOC-12.md)
+(the November re-check), and SEO-19 (the image-to-target-size product gap the sweep surfaced, now P1).
 
 ## Acceptance
 
