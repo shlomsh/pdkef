@@ -407,6 +407,19 @@ export const FONT_MANIFEST = Object.freeze([
     "faces": {
       "normal": "Suranna-Regular.ttf"
     }
+  },
+  {
+    "family": "Tiro Tamil",
+    "kind": "text",
+    "styleTag": "serif",
+    "metrics": {
+      "ascent": 0.755,
+      "descent": 0.245
+    },
+    "faces": {
+      "normal": "TiroTamil-Regular.ttf",
+      "italic": "TiroTamil-Italic.ttf"
+    }
   }
 ]);
 

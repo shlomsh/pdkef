@@ -108,7 +108,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 21 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 21 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 22 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 22 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -138,7 +138,7 @@ export const tools = [
         {
           native: 'தமிழ் 🇮🇳🇱🇰🇸🇬',
           name: 'Tamil',
-          note: "Fill a Tamil form and sign your name in Tamil, in Noto Sans Tamil, which also serves Sri Lanka, Singapore and Malaysia where Tamil is an official language. Vowel signs that you type after a consonant but that belong before it are reordered for the download, and the fused traditional ligatures ordinary Tamil print uses (ங்க, ஞ்ச, ண்ட, ந்த, ன்ற, and ஸ்ரீ in a name) are formed rather than left as separate letters. The five Grantha letters loanwords need (ஜ, ஶ, ஷ, ஸ, ஹ) are there too, so ஜனவரி sets properly. There is no handwriting-style Tamil face yet, so a typed signature comes out upright rather than cursive.",
+          note: "Fill a Tamil form and sign your name in Tamil, in Noto Sans Tamil or Tiro Tamil, a serif face that gives you a second look. Both also serve Sri Lanka, Singapore and Malaysia where Tamil is an official language. Vowel signs that you type after a consonant but that belong before it are reordered for the download, and the fused traditional ligatures ordinary Tamil print uses (ங்க, ஞ்ச, ண்ட, ந்த, ன்ற, and ஸ்ரீ in a name) are formed rather than left as separate letters, in either font. The five Grantha letters loanwords need (ஜ, ஶ, ஷ, ஸ, ஹ) are there too, so ஜனவரி sets properly. There is no handwriting-style Tamil face yet, so a typed signature comes out upright rather than cursive.",
         },
         {
           native: 'ਪੰਜਾਬੀ 🇮🇳🇵🇰',

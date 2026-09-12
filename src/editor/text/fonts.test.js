@@ -342,11 +342,12 @@ describe('FONT_STYLE_TAGS', () => {
     expect(Object.values(FONT_STYLE_TAGS).filter((tag) => tag === 'mono')).toEqual(['mono']);
   });
 
-  it('Tinos, Scheherazade New and Suranna are serif, and never compete - Latin, Arabic and Telugu share no text font', () => {
-    expect(FONT_STYLE_TAGS.Tinos).toBe('serif');
-    expect(FONT_STYLE_TAGS['Scheherazade New']).toBe('serif');
-    expect(FONT_STYLE_TAGS.Suranna).toBe('serif');
-    expect(Object.values(FONT_STYLE_TAGS).filter((tag) => tag === 'serif')).toEqual(['serif', 'serif', 'serif']);
+  it('the serif text fonts never compete: no two of them cover the same script', () => {
+    // One serif per script family; a new serif face is added here by name.
+    const SERIF_FONTS = ['Tinos', 'Scheherazade New', 'Suranna', 'Tiro Tamil'];
+    for (const family of SERIF_FONTS) expect(FONT_STYLE_TAGS[family]).toBe('serif');
+    expect(Object.entries(FONT_STYLE_TAGS).filter(([, tag]) => tag === 'serif').map(([f]) => f).sort())
+      .toEqual([...SERIF_FONTS].sort());
   });
 });
 
