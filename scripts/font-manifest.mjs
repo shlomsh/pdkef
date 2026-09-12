@@ -241,6 +241,12 @@ export const FONT_MANIFEST = [
     faces: { normal: 'TiroGurmukhi-Regular.ttf', italic: 'TiroGurmukhi-Italic.ttf' },
     license: { version: '1.52', url: 'https://fonts.google.com/specimen/Tiro+Gurmukhi', copyright: 'Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo)' },
   },
+  {
+    family: 'Tillana', kind: 'handwriting', styleTag: 'handwriting',
+    metrics: { ascent: 1.158, descent: 0.484 },
+    faces: normal('Tillana-Regular.ttf', 'Tillana-Bold.ttf'),
+    license: { version: '1.1', url: 'https://fonts.google.com/specimen/Tillana', copyright: 'Copyright (c) 2014, Indian Type Foundry (info@indiantypefoundry.com)' },
+  },
 ];
 
 export const FONT_FILES = FONT_MANIFEST.flatMap((font) => Object.values(font.faces));

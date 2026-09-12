@@ -474,6 +474,19 @@ export const FONT_MANIFEST = Object.freeze([
       "normal": "TiroGurmukhi-Regular.ttf",
       "italic": "TiroGurmukhi-Italic.ttf"
     }
+  },
+  {
+    "family": "Tillana",
+    "kind": "handwriting",
+    "styleTag": "handwriting",
+    "metrics": {
+      "ascent": 1.158,
+      "descent": 0.484
+    },
+    "faces": {
+      "normal": "Tillana-Regular.ttf",
+      "bold": "Tillana-Bold.ttf"
+    }
   }
 ]);
 

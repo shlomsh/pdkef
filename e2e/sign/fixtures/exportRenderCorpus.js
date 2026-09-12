@@ -186,6 +186,22 @@ export const EXPORT_RENDER_CORPUS = [
   // bytes.
   textCase('korean-noto-sans-kr', '안녕하세요', { fontFamily: 'Noto Sans KR' }),
 
+  // Devanagari, second bundled face (FONT-08): Tillana, a handwriting-style
+  // face added alongside the existing handwriting Kalam and upright Mukta.
+  // Like the Bengali/CJK/Malayalam cases above, devanagari-tillana-shaping-
+  // guard.spec.js already proves fontkit picks the same glyphs as Chromium
+  // (185/185, floor 0.03%) before a PDF exists, so this case exists purely
+  // to catch what that guard cannot see on the file a user actually
+  // receives - a corrupted `glyf` table or a subset missing composite
+  // components, exactly the class of defect the repad this font needed
+  // (glyf padding=4, ~half the bundled loca offsets were odd) could have
+  // introduced if the repad had gone wrong. नमस्ते ("namaste", the same
+  // common greeting devanagari-kalam above uses) reuses a string already
+  // confirmed present via fontkit's hasGlyphForCodePoint() against the real
+  // Tillana-Regular.ttf bytes, so this case differs from devanagari-kalam
+  // only in which font renders the ink.
+  textCase('devanagari-tillana', 'नमस्ते', { fontFamily: 'Tillana' }),
+
   // Malayalam (FONT-03): shipped, user-selectable script this guard has
   // never had a case for. Like Bengali/CJK above, `malayalam-shaping-guard.
   // spec.js` already proves fontkit picks the same glyphs as Chromium
