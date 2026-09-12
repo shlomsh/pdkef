@@ -2,6 +2,7 @@ import { createContext } from 'preact';
 import type { ComponentChildren } from 'preact';
 import { useContext } from 'preact/hooks';
 import styles from './ToolShell.module.css';
+import FilePreview from './FilePreview.tsx';
 import { englishShellMessages, type ShellMessages } from '../i18n/toolMessages';
 
 interface FileAction {
@@ -16,6 +17,11 @@ interface ToolShellContextValue {
   requestClear: () => void;
   fileLabel?: string;
   fileMeta?: string;
+  /** The loaded file itself, single-file tools only (BasePdfTool drops this
+   * for `multiple` tools - see its own comment). Optional and usually absent:
+   * only lets the identity row show a real thumbnail (FilePreview.tsx)
+   * instead of the generic glyph when a tool has it to give. */
+  file?: File | null;
   draftSaveState?: 'idle' | 'pending' | 'saved' | 'error' | 'conflict';
   multiple?: boolean;
   /** The shell's own copy (dropzone, actions, confirmations), defaulting to
@@ -118,7 +124,7 @@ export function useToolShell() {
  * it.
  */
 export default function ToolShell({ editor = false, status = null, children }: { editor?: boolean; status?: ComponentChildren; children?: ComponentChildren }) {
-  const { fileLabel, fileMeta, draftSaveState = 'idle', multiple, messages = englishShellMessages } = useToolShell();
+  const { fileLabel, fileMeta, file, draftSaveState = 'idle', multiple, messages = englishShellMessages } = useToolShell();
   const draftStatus = draftSaveState === 'saved'
     ? { label: messages.draftSaved, className: styles.saved }
     : draftSaveState === 'pending'
@@ -132,17 +138,7 @@ export default function ToolShell({ editor = false, status = null, children }: {
   return (
     <div class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}`} data-tool-shell>
       <div class={styles.identity}>
-        <span class={styles.icon} aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M6 3.5h8l5 5V19a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19V5A1.5 1.5 0 0 1 6.5 3.5Z"
-              stroke="currentColor"
-              stroke-width="1.6"
-              stroke-linejoin="round"
-            />
-            <path d="M14 3.5V8a1 1 0 0 0 1 1h4.5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-          </svg>
-        </span>
+        <FilePreview file={file} />
 
         <span class={styles.text}>
           <span class={styles.name}>

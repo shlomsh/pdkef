@@ -36,6 +36,14 @@ interface BasePdfToolProps {
   emptyStateMessage?: string;
   fileLabel?: string;
   fileMeta?: string;
+  /** The loaded file itself, for a single-file tool that already holds it in
+   * its own state (see PdfCompressTool.tsx for the shape - `fileLabel`/
+   * `fileMeta` derived alongside it). Passed straight through to the shell
+   * context so ToolShell can show a real thumbnail (FilePreview.tsx) instead
+   * of the generic glyph. Optional: a tool that doesn't pass it, or a
+   * `multiple` tool (dropped below regardless - Merge has its own
+   * thumbnails), gets today's icon unchanged. */
+  file?: File | null;
   draftSaveState?: 'idle' | 'pending' | 'saved' | 'error' | 'conflict';
   hasWork?: boolean;
   workNoun?: string;
@@ -79,6 +87,7 @@ export default function BasePdfTool({
   emptyStateMessage,
   fileLabel,
   fileMeta,
+  file = null,
   draftSaveState = 'idle',
   /* Is there anything a replacement would destroy? False skips the
      confirmation entirely: nothing has been done to this file yet, so asking
@@ -269,7 +278,11 @@ export default function BasePdfTool({
     onClearAll?.();
   };
 
-  const shell = { fileLabel, fileMeta, draftSaveState, multiple, requestReplace, requestClear, messages: sm };
+  // A thumbnail is only ever the right call for a single loaded file - Merge
+  // and any other `multiple` tool has its own list of thumbnails, so `file`
+  // is dropped here regardless of what a tool passes in, rather than trusting
+  // every call site to gate it itself.
+  const shell = { fileLabel, fileMeta, file: multiple ? null : file, draftSaveState, multiple, requestReplace, requestClear, messages: sm };
 
   return (
     <ToolShellContext.Provider value={shell}>
