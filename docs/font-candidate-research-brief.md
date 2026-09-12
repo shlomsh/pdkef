@@ -97,6 +97,8 @@ Single-font scripts and their gap type, as of 2026-09-12:
 | Devanagari | Kalam (handwriting), Mukta (upright) | both | upright gap **closed** 2026-08-29 (FONT-08a); Kalam is still the only handwriting face |
 | Thai | Mali (handwriting), IBM Plex Sans Thai (upright) | both | upright gap **closed** 2026-08-29 (FONT-08a); Mali is still the only handwriting face, Sriracha named as the unscreened same-day runner-up |
 | Malayalam | Anek Malayalam | upright | no second choice (landed via FONT-03 after Noto Sans Malayalam crashed fontkit) |
+| Devanagari | Kalam | handwriting | **no upright option at all** (FONT-08a) |
+| Thai | Mali, Sriracha | handwriting | **no upright option at all** (FONT-08a; IBM Plex Sans Thai later closed this) - Sriracha landed 2026-09-12 as a second handwriting face, not an upright one; see the "Already screened" table below |
 | Arabic/Farsi/Dari/Urdu/Pashto | Scheherazade New | upright (traditional Naskh) | no second choice |
 | Bengali | Noto Sans Bengali | upright | no second choice |
 | Punjabi/Gurmukhi | Mukta Mahee | upright | no second choice |
@@ -245,6 +247,9 @@ Pulled from Google Fonts' own metadata, filtered to `category: Handwriting`.
 | glyf | aligned | aligned |
 | © | `Copyright (c) 2015 Indian Type Foundry (info@indiantypefoundry.com)` | `Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo)` |
 | Verdict | **screen further, the only Bengali candidate left** | **discard.** A new fontkit failure class: not a throw but a hang, which no `try/catch` in `signPdf` can turn into a clean refusal; the tab simply dies at Download |
+### FONT-08b - Sriracha (second Thai handwriting face) - screened and landed 2026-09-12
+
+Confirmed real and current: OFL, Cadson Demak (2015) + Pablo Impallari (2014), single static Regular ~320KB, Thai+Latin, on Google Fonts since 2015. Its own listing advertises "2 stylistic sets" and "intelligent OpenType features to recreate handwriting" - flagged prominently before screening, the same shape of claim that sank Playpen Sans Hebrew. The flag turned out false: the shipped file carries no `calt` at all. Full screening record, including the recorded (not blocking) Latin-kerning delta, in the "Already screened" table below and backlog/tasks/FONT-08.md's "2026-09-12: Sriracha" entry.
 
 ### Punjabi/Gurmukhi (second choice next to Mukta Mahee)
 
@@ -389,3 +394,12 @@ mean it landed - see the result column.
 | Kanit | Thai upright (FONT-08a) | Rejected - failed Guard A (0.3-1.0% of string width) | `backlog/tasks/FONT-08.md` |
 | IBM Plex Sans Thai | Thai upright (FONT-08a) | **Landed** 2026-08-29 | `e2e/sign/thai-font-parity.spec.js` |
 | Mukta | Devanagari upright (FONT-08a) | **Landed** 2026-08-29, first candidate tried | `e2e/sign/devanagari-mukta-shaping-guard.spec.js` |
+Full three-check screenings run since the 2026-08-29 candidate pass above, with a landed-or-not verdict. Detailed measurements live in backlog/tasks/FONT-08.md and the commit that ran each screening; this table is the index so a future pass does not re-propose a candidate already ruled on.
+
+| Candidate | Script / slot | Verdict | Why |
+| --- | --- | --- | --- |
+| Mukta | Devanagari, upright | **Landed** | Passed all three checks on the first try - 0/185 fontkit crashes, 185/185 pixel-diff, 0.000px advance parity. Commit `7239685`. |
+| Sarabun | Thai, upright | **Rejected** | Failed Guard A (fontkit-vs-browser advance parity) on ordinary Thai words, 1.4-3.0% of string width, despite no `calt`. |
+| Kanit | Thai, upright | **Rejected** | Failed Guard A on ordinary Thai words, 0.3-1.0% of string width, despite no `calt`. |
+| IBM Plex Sans Thai | Thai, upright | **Landed** | Carries `calt` (flagged) but passed Guard A cleanly (0.05px unhinted tolerance) on every sample, including the tall-consonant/tone-mark stress case ปั๊กฝ้ายให้ฟังกิ๊บ. Commit `e877548`. |
+| Sriracha | Thai, second handwriting face (next to Mali) | **Landed, 2026-09-12** | All 16 Thai samples (the four `thai-font-parity.spec.js` samples plus 12 ordinary words/names with spaces, including the tall-consonant/tone-mark case) matched fontkit and the browser to 0.000px - Thai shaping itself is clean, no `calt` in the shipped file despite the listing's "intelligent OpenType features" claim. The required Latin-kerning check (the font carries `kern`) does disagree: "Sarah Levi" is off by 1.024px (0.70% of string width, 10 glyphs), inside the same 0.3-3.0% band that sank Sarabun and Kanit on Guard A's Thai side. Decision (Shlomi, 2026-09-12): Thai parity is the check that decides a Thai face and it is clean; the Latin delta is the same debt class the catalogue already carries for Caveat (5.1px on this name, recorded `test.fixme` under SIGN-20), so it is recorded rather than blocking. Wired into `scripts/font-manifest.mjs`, shipped from `public/fonts/Sriracha-Regular.ttf`. See backlog/tasks/FONT-08.md's "2026-09-12: Sriracha" entry. |

@@ -10,7 +10,7 @@ export const LANGUAGE_ACCEPTANCE_MATRIX = [
     order: 1, status: 'shipped', id: 'latin-core',
     languages: ['English', 'Spanish', 'French', 'German', 'Portuguese', 'Indonesian', 'Malay', 'Filipino', 'Irish', 'Polish'],
     regions: ['Latin script; regional accents are covered by the separate Latin Extended set'],
-    coverageIds: ['latin', 'latinExt'], families: ['Kalam', 'Mali', 'Arimo', 'Tinos', 'Cousine', 'Heebo', 'Alef', 'PT Sans', 'Noto Sans Bengali', 'Mukta Mahee', 'Noto Sans Tamil', 'Mukta'],
+    coverageIds: ['latin', 'latinExt'], families: ['Kalam', 'Mali', 'Sriracha', 'Arimo', 'Tinos', 'Cousine', 'Heebo', 'Alef', 'PT Sans', 'Noto Sans Bengali', 'Mukta Mahee', 'Noto Sans Tamil', 'Mukta'],
     sample: 'Zażółć café 2026', direction: 'ltr',
     shaping: { status: 'guarded', guards: ['e2e/sign/latin-shaping-guard.spec.js'] },
     visual: { guards: ['e2e/sign/latin-shaping-guard.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['latin-arimo', 'latin-pacifico', 'latin-caveat', 'latin-great-vibes'] },
@@ -97,15 +97,20 @@ export const LANGUAGE_ACCEPTANCE_MATRIX = [
   },
   {
     order: 12, status: 'shipped', id: 'vietnamese', languages: ['Vietnamese'], regions: ['Vietnam'],
-    coverageIds: ['vietnamese'], families: ['Arimo', 'Tinos', 'Cousine', 'Mali', 'Amatic SC'], sample: 'Cảm ơn 2026', direction: 'ltr',
+    coverageIds: ['vietnamese'], families: ['Arimo', 'Tinos', 'Cousine', 'Mali', 'Amatic SC', 'Sriracha'], sample: 'Cảm ơn 2026', direction: 'ltr',
     shaping: { status: 'not-applicable', reason: 'The accepted text uses precomposed Latin glyphs without contextual reordering.' },
     visual: { guards: ['e2e/sign/latin-shaping-guard.spec.js'], cases: [] },
   },
   {
     order: 13, status: 'shipped', id: 'thai', languages: ['Thai'], regions: ['Thailand'],
-    coverageIds: ['thai'], families: ['Mali', 'IBM Plex Sans Thai'], sample: 'สวัสดี ๒๐๒๖', direction: 'ltr',
-    shaping: { status: 'guarded', guards: ['e2e/sign/thai-font-parity.spec.js'] },
-    visual: { guards: ['e2e/sign/thai-font-parity.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['thai-mali'] },
+    coverageIds: ['thai'], families: ['Mali', 'Sriracha', 'IBM Plex Sans Thai'], sample: 'สวัสดี ๒๐๒๖', direction: 'ltr',
+    // FONT-08b, 2026-09-12: Sriracha joined Mali as Thai's second handwriting
+    // face. Guard A (thai-sriracha-font-parity.spec.js) is clean on every
+    // Thai sample (0.000px); it landed with one recorded Latin-kerning delta
+    // (1.024px on "Sarah Levi", test.fixme, same debt class as Caveat's own
+    // known-red Latin case under SIGN-20) - see backlog/tasks/FONT-08.md.
+    shaping: { status: 'guarded', guards: ['e2e/sign/thai-font-parity.spec.js', 'e2e/sign/thai-sriracha-font-parity.spec.js'] },
+    visual: { guards: ['e2e/sign/thai-font-parity.spec.js', 'e2e/sign/thai-sriracha-font-parity.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['thai-mali', 'thai-sriracha'] },
   },
   {
     order: 14, status: 'shipped', id: 'telugu', languages: ['Telugu'], regions: ['India'],

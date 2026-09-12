@@ -108,7 +108,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 25 text fonts and 12 handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: 12 of the 25 text fonts and five of the 12 handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 25 text fonts and 13 handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: 12 of the 25 text fonts and six of the 13 handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -168,7 +168,7 @@ export const tools = [
         {
           native: 'Tiếng Việt 🇻🇳',
           name: 'Vietnamese',
-          note: 'Fill a Vietnamese form and sign your name in Vietnamese, in Arimo, Tinos or Cousine, or sign in Mali, Mynerve or Amatic SC for a handwritten look. I checked these letter by letter against the real font files rather than assuming general Latin coverage carried over: every tone-and-diacritic vowel (ạ ả ấ ầ ẩ ẫ ậ ắ ằ ẳ ẵ ặ and the rest) is there, in all six. Amatic SC draws capitals only, so a lowercase Vietnamese name comes out in small capitals rather than a cursive script. The other bundled fonts do not carry Vietnamese, so they are left off its list.',
+          note: 'Fill a Vietnamese form and sign your name in Vietnamese, in Arimo, Tinos or Cousine, or sign in Mali, Sriracha, Mynerve or Amatic SC for a handwritten look. I checked these letter by letter against the real font files rather than assuming general Latin coverage carried over: every tone-and-diacritic vowel (ạ ả ấ ầ ẩ ẫ ậ ắ ằ ẳ ẵ ặ and the rest) is there, in all seven. Amatic SC draws capitals only, so a lowercase Vietnamese name comes out in small capitals rather than a cursive script. The other bundled fonts do not carry Vietnamese, so they are left off its list.',
         },
         {
           native: '한국어 🇰🇷',
@@ -178,7 +178,7 @@ export const tools = [
         {
           native: 'ไทย 🇹🇭',
           name: 'Thai',
-          note: 'Fill a Thai form in IBM Plex Sans Thai, an upright text face, or sign your name in Mali, a handwriting face that doubles as a typed signature. Tone marks and the vowels that sit above and below the line land where they belong instead of drifting off the letter, in either font.',
+          note: 'Fill a Thai form in IBM Plex Sans Thai, an upright text face, or sign your name in Mali or Sriracha, two handwriting faces with a different feel, Mali looped and rounded, Sriracha loopless and quicker, both doubling as a typed signature. Tone marks and the vowels that sit above and below the line land where they belong instead of drifting off the letter, in all three fonts.',
         },
         {
           native: 'پښتو 🇦🇫🇵🇰',
@@ -203,7 +203,7 @@ export const tools = [
         {
           native: 'Türkçe 🇹🇷',
           name: 'Turkish',
-          note: "Fill a Turkish form and sign your name in Turkish. 12 text fonts carry the complete 29-letter alphabet, the same 12 that carry the full accented set in the Latin-script note above, plus Kalam, Mali, Tillana, Mynerve and Amatic SC if you want a handwritten look, any of which also works for a typed signature (Amatic SC draws capitals only, so a lowercase name comes out in small capitals). The three letters that set Turkish apart from plain accented Latin, Ğ, İ and Ş, are exactly what that general Latin-Ext sample does not check, so I verified them against the real font files rather than assuming coverage carried over.",
+          note: "Fill a Turkish form and sign your name in Turkish. 12 text fonts carry the complete 29-letter alphabet, the same 12 that carry the full accented set in the Latin-script note above, plus Kalam, Mali, Sriracha, Tillana, Mynerve and Amatic SC if you want a handwritten look, any of which also works for a typed signature (Amatic SC draws capitals only, so a lowercase name comes out in small capitals). The three letters that set Turkish apart from plain accented Latin, Ğ, İ and Ş, are exactly what that general Latin-Ext sample does not check, so I verified them against the real font files rather than assuming coverage carried over.",
         },
       ],
       notYetHeading: "Don't see your language? Ask, and it moves to the front of the queue.",
@@ -262,7 +262,7 @@ export const tools = [
       },
       {
         question: 'Can I type Russian, Ukrainian, or Thai text when signing a PDF?',
-        answer: 'Yes. Russian, Ukrainian, and other Cyrillic text uses PT Sans for upright text, or Amatic SC if you want a handwritten-feeling signature (it draws capitals only, so lowercase comes out as small capitals, and it does not carry the extra Kazakh letters). Thai has two choices: IBM Plex Sans Thai, an upright font for filling in forms, and Mali, a handwriting-style font you can also use for a typed signature. All are bundled with the tool and checked against their real glyph coverage, so what you see on screen is what gets embedded in the file you download.',
+        answer: 'Yes. Russian, Ukrainian, and other Cyrillic text uses PT Sans for upright text, or Neucha or Amatic SC if you want a handwritten-feeling signature (Amatic SC draws capitals only, so lowercase comes out as small capitals, and neither carries the extra Kazakh letters). Thai has three choices: IBM Plex Sans Thai, an upright font for filling in forms, and two handwriting-style fonts you can also use for a typed signature, Mali and Sriracha, loopless where Mali is looped. All are bundled with the tool and checked against their real glyph coverage, so what you see on screen is what gets embedded in the file you download.',
       },
       {
         question: 'Can I fill and sign a PDF in Hindi or Marathi (हिन्दी या मराठी में PDF पर हस्ताक्षर)?',
@@ -286,7 +286,7 @@ export const tools = [
       },
       {
         question: 'Can I type Vietnamese (chữ ký PDF bằng tiếng Việt) when signing a PDF?',
-        answer: 'Yes. Arimo, Tinos, Cousine, Mali, Mynerve and Amatic SC all carry the full set of Vietnamese tone-and-diacritic vowels, checked against the real font files rather than assumed from general Latin support. Mali, Mynerve and Amatic SC all double as typed-signature fonts, so you can add a Vietnamese signature without drawing it; Amatic SC draws capitals only, so a lowercase name comes out in small capitals. The other bundled fonts do not carry Vietnamese, so pick one of these five if you need it.',
+        answer: 'Yes. Arimo, Tinos, Cousine, Mali, Sriracha, Mynerve and Amatic SC all carry the full set of Vietnamese tone-and-diacritic vowels, checked against the real font files rather than assumed from general Latin support. Mali, Mynerve and Amatic SC all double as typed-signature fonts, so you can add a Vietnamese signature without drawing it; Amatic SC draws capitals only, so a lowercase name comes out in small capitals. The other bundled fonts do not carry Vietnamese, so pick one of these five if you need it.',
       },
       {
         question: 'Can I fill and sign a PDF in Japanese (PDFに日本語で署名)?',
@@ -306,7 +306,7 @@ export const tools = [
       },
       {
         question: 'Can I type Turkish (PDF üzerinde Türkçe imza) when signing a PDF?',
-        answer: "Yes. 12 text fonts (Arimo, Tinos, Cousine, Heebo, Alef, PT Sans and others) and five handwriting faces, Kalam, Mali, Tillana, Mynerve and Amatic SC, carry the complete 29-letter Turkish alphabet, checked letter by letter against the real font files rather than assumed from general Latin coverage. That check matters here specifically for Ğ, İ and Ş, the three letters that make Turkish its own alphabet and that a general accented-Latin font does not necessarily draw. All five handwriting faces also work for a typed signature; Amatic SC draws capitals only, so a lowercase name comes out in small capitals.",
+        answer: "Yes. 12 text fonts (Arimo, Tinos, Cousine, Heebo, Alef, PT Sans and others) and six handwriting faces, Kalam, Mali, Sriracha, Tillana, Mynerve and Amatic SC, carry the complete 29-letter Turkish alphabet, checked letter by letter against the real font files rather than assumed from general Latin coverage. That check matters here specifically for Ğ, İ and Ş, the three letters that make Turkish its own alphabet and that a general accented-Latin font does not necessarily draw. All five handwriting faces also work for a typed signature; Amatic SC draws capitals only, so a lowercase name comes out in small capitals.",
       },
     ],
   },

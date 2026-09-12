@@ -110,6 +110,12 @@ export const EXPORT_RENDER_CORPUS = [
   textCase('arabic-scheherazade-new', 'مرحبا', { fontFamily: 'Scheherazade New', left: RTL_ANCHOR }),
   textCase('devanagari-kalam', 'नमस्ते', { fontFamily: 'Kalam' }),
   textCase('thai-mali', 'สวัสดี', { fontFamily: 'Mali' }),
+  // FONT-08b, 2026-09-12: Sriracha, Thai's second handwriting face next to
+  // Mali. New export-render-baseline case, added without touching the
+  // existing thai-mali entry above - see thai-font-parity.spec.js and
+  // thai-sriracha-font-parity.spec.js for the advance-parity (Guard A)
+  // proof this ink-comparison guard does not attempt.
+  textCase('thai-sriracha', 'สวัสดี', { fontFamily: 'Sriracha' }),
   textCase('cyrillic-pt-sans', 'Привіт', { fontFamily: 'PT Sans' }),
 
   // --- Amatic SC (FONT-08): Cyrillic's first handwriting face, proven
