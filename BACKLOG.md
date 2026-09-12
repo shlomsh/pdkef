@@ -88,6 +88,9 @@ _None._
 | SEO-26 | P3 | [SEO-26](backlog/tasks/SEO-26.md) · Say what PDkef does not do, and why, on a page that already exists |
 | SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before |
 | SEO-32 | P3 | [SEO-32](backlog/tasks/SEO-32.md) · New tool: PDF to Markdown, English-only v1, Hebrew/RTL deferred pending anydoc-wasm's dependency bump |
+| SEO-33 | P1 | [SEO-33](backlog/tasks/SEO-33.md) · Compress ranks page one and never says reduce, shrink, resize or size reducer, the words with the volume |
+| SEO-34 | P1 | [SEO-34](backlog/tasks/SEO-34.md) · The home page has the site's best CTR and no query to rank for: target pdf tools |
+| SEO-35 | P2 | [SEO-35](backlog/tasks/SEO-35.md) · Merge is an authority fight, not a content fight: add the combine vocabulary, then stop |
 
 ### In progress
 
