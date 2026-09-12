@@ -17,8 +17,11 @@ export interface StripFile {
 export interface PageStripProps {
   entries: StripFile[];
   plan: PlanEntry[];
-  /** Commits a new plan, exactly once per gesture (drop, key press, tap). */
-  onPlanChange: (next: PlanEntry[]) => void;
+  /** Commits a plan update, exactly once per gesture (drop, key press, tap).
+   * An updater over the current plan, not a value, so two commits in one
+   * frame (R then Delete on a key repeat) compose instead of the second
+   * overwriting the first. */
+  onPlanChange: (update: (current: PlanEntry[]) => PlanEntry[]) => void;
   announce: (message: string) => void;
   messages: MergeMessages;
   /** "18 pages", already localized by the parent through the shell catalogue. */
@@ -190,9 +193,9 @@ export default function PageStrip({
       dragClass: styles['is-dragging'],
       onEnd(evt: Sortable.SortableEvent) {
         if (evt.oldIndex == null || evt.newIndex == null || evt.oldIndex === evt.newIndex) return;
-        const next = moveEntry(planRef.current, evt.oldIndex, evt.newIndex);
-        onPlanChange(next);
-        announce(formatMessage(t.pageMoved, { position: evt.newIndex + 1, total: next.length }));
+        const { oldIndex, newIndex } = evt;
+        onPlanChange((current) => moveEntry(current, oldIndex, newIndex));
+        announce(formatMessage(t.pageMoved, { position: newIndex + 1, total: planRef.current.length }));
       },
     });
     return () => sortable.destroy();
@@ -209,26 +212,27 @@ export default function PageStrip({
   }, [plan, stripRef]);
 
   const rotate = useCallback((key: string, position: number) => {
-    const next = rotateEntry(planRef.current, key, 90);
-    onPlanChange(next);
-    const entry = next.find((p) => p.key === key);
-    announce(formatMessage(t.pageRotated, { number: position, degrees: entry?.rotation ?? 0 }));
+    onPlanChange((current) => rotateEntry(current, key, 90));
+    const before = planRef.current.find((p) => p.key === key)?.rotation ?? 0;
+    announce(formatMessage(t.pageRotated, { number: position, degrees: (before + 90) % 360 }));
   }, [onPlanChange, announce, t.pageRotated]);
 
   const toggleSkip = useCallback((key: string, position: number) => {
-    const current = planRef.current.find((p) => p.key === key);
-    if (!current) return;
-    onPlanChange(updateEntry(planRef.current, key, { skipped: !current.skipped }));
-    announce(formatMessage(current.skipped ? t.pageIncluded : t.pageSkipped, { number: position }));
+    const entry = planRef.current.find((p) => p.key === key);
+    if (!entry) return;
+    onPlanChange((current) => {
+      const live = current.find((p) => p.key === key);
+      return live ? updateEntry(current, key, { skipped: !live.skipped }) : current;
+    });
+    announce(formatMessage(entry.skipped ? t.pageIncluded : t.pageSkipped, { number: position }));
   }, [onPlanChange, announce, t.pageIncluded, t.pageSkipped]);
 
   const move = useCallback((index: number, delta: number) => {
     const target = index + delta;
     if (target < 0 || target >= planRef.current.length) return;
     focusKey.current = planRef.current[index].key;
-    const next = moveEntry(planRef.current, index, target);
-    onPlanChange(next);
-    announce(formatMessage(t.pageMoved, { position: target + 1, total: next.length }));
+    onPlanChange((current) => moveEntry(current, index, target));
+    announce(formatMessage(t.pageMoved, { position: target + 1, total: planRef.current.length }));
   }, [onPlanChange, announce, t.pageMoved]);
 
   const openPreview = useCallback((index: number) => {

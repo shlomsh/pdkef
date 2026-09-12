@@ -116,11 +116,23 @@
      button share one row (the select grows to fill it, the button stays its
      own width), and the Options summary is its own row below. */
   .sort-select {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-width: 0;
+    padding-inline-end: 1.5rem;
   }
 
   .button {
     flex: 0 0 auto;
+  }
+
+  /* The visible "Sort" word is what pushed Reverse order onto a second line
+     at 375px; the select keeps its accessible name through aria-label. */
+  .sort-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 }
