@@ -198,9 +198,10 @@ body prose, not buried in an FAQ answer.
   date in this ticket. No coaching-site or resizer-tool number on the page.
 - The "this tool does not crop to pixel dimensions" caveat is stated in the body, not only in the FAQ.
 - `npm run test:seo` passes; FAQ mirrored into `<SeoSchema>`; single `<h1>`; trailing slashes correct.
-- Indexing requested for `/photo-and-signature-size-for-forms/`, dated here when Shlomi makes the
-  request. Per SEO-17's own note, request `/compress-image/`'s indexing the same day so the two URLs
-  run as one experiment against the same portal-limit intent.
+- Indexing requested for `/photo-and-signature-size-for-forms/` by Shlomi on 2026-09-12, the same
+  day he resubmitted `/compress-image/` (first requested 2026-09-11), so the two URLs run as one
+  experiment against the same portal-limit intent. Eight-week read due 2026-11-07. Dates also in
+  `docs/seo-last-crawled.json` under `indexingRequested`.
 - **Eight weeks after indexing**, read from the shared Search Console pull: impressions on
   photo/signature-size queries, and whether `/compress-image/` picks up any of them through this page's
   inbound link (the same question SEO-19's own log asks about `/compress-image/`'s standalone URL).

@@ -93,7 +93,6 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | SEO-03 | P2 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |
-| SEO-19 | P1 | [SEO-19](backlog/tasks/SEO-19.md) · New tool: compress an image to a target size, because people are already asking us to |
 | SEO-31 | P1 | [SEO-31](backlog/tasks/SEO-31.md) · One content page on photo and signature size limits, as inbound content for /compress-image/ |
 
 ### Blocked
@@ -122,6 +121,7 @@ _None._
 | SEO-13 | P2 | [SEO-13](backlog/tasks/SEO-13.md) · Positioning review: Compress, where the honest answer costs us the query |
 | SEO-14 | P2 | [SEO-14](backlog/tasks/SEO-14.md) · Positioning review: Blur and Redact, the cluster we are already winning |
 | SEO-15 | P2 | [SEO-15](backlog/tasks/SEO-15.md) · Positioning review: the three tools Google has never looked at |
+| SEO-19 | P1 | [SEO-19](backlog/tasks/SEO-19.md) · New tool: compress an image to a target size, because people are already asking us to |
 | SEO-29 | P3 | [SEO-29](backlog/tasks/SEO-29.md) · Every ranking how-to competitor shows a visible date or byline; our content pages show neither |
 
 ### Retired

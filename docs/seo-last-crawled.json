@@ -6,7 +6,8 @@
     "Leave a URL null if Google reports it has never been crawled.",
     "Then run: node scripts/seo-crawl-staleness.mjs",
     "A URL crawled BEFORE its content last changed is stale - what ranks is not what we serve.",
-    "Recapture at each monthly SEO-02 refresh and update \"captured\"."
+    "Recapture at each monthly SEO-02 refresh and update \"captured\".",
+    "indexingRequested: the date Shlomi first made a Search Console indexing request for a new URL, then any resubmission. Resubmitting does not move a URL up the crawl queue (Google's own dialog); the eight-week read in each ticket counts from the FIRST date."
   ],
   "captured": "2026-09-11",
   "lastCrawled": {
@@ -28,10 +29,24 @@
     "/pdf-to-image/": null,
     "/pdf-wont-compress-to-100kb/": null,
     "/permanently-delete-text-from-pdf/": null,
+    "/photo-and-signature-size-for-forms/": null,
     "/redact/": "2026-07-07",
     "/sign-pdf-no-signup/": null,
     "/sign/": "2026-08-21",
     "/split/": "2026-07-05",
     "/unlock/": "2026-08-21"
+  },
+  "indexingRequested": {
+    "/compress-image/": [
+      "2026-09-11",
+      "2026-09-12"
+    ],
+    "/pdf-wont-compress-to-100kb/": [
+      "2026-09-11",
+      "2026-09-12"
+    ],
+    "/photo-and-signature-size-for-forms/": [
+      "2026-09-12"
+    ]
   }
 }

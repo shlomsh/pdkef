@@ -1,7 +1,7 @@
 ---
 id: "SEO-19"
 title: "New tool: compress an image to a target size, because people are already asking us to"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "search-acquisition"
 phase: "near-term"
@@ -38,11 +38,12 @@ type and magic bytes, at or under 50 KB, named `photo-compressed.jpg`; a transpa
 the same flow and the output is asserted JPEG, under target, with the transparent region decoded back
 as white, which is the flatten-to-white claim the FAQ makes. `/compress-image/` and
 `/pdf-wont-compress-to-100kb/` are now in `docs/seo-last-crawled.json`, so the crawl-staleness report
-tracks them and the 2026-10-08 recapture has a row to fill. **Indexing request for `/compress-image/`:
-not yet made; Shlomi dates it here when it goes in.** (`/compress/` was already requested on
+tracks them and the 2026-10-08 recapture has a row to fill. **Indexing request for `/compress-image/`: made by Shlomi on 2026-09-11 and resubmitted on
+2026-09-12 (the resubmission does not move it up the queue; the clock runs from 2026-09-11, so the
+eight-week read is due 2026-11-06).** Also in `docs/seo-last-crawled.json` under `indexingRequested`. (`/compress/` was already requested on
 2026-09-11 and is not resubmitted; Google's dialog says a resubmission does not move it up the queue.)
 
-**The eight-week read, due eight weeks after that indexing date.** Pull GSC queries by page for
+**The eight-week read, due 2026-11-06.** Pull GSC queries by page for
 `/compress-image/`. If its impressions are only the format-agnostic family `/compress/` also gets
 (`file compressor to 100kb`, `reduce file size to 100kb`, `100 kb document size`), the second URL is
 splitting one intent across two pages: fold it into `/compress/` with a slash-terminated redirect pair
