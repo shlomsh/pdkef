@@ -99,9 +99,9 @@ export const LANGUAGE_ACCEPTANCE_MATRIX = [
   },
   {
     order: 14, status: 'shipped', id: 'tamil', languages: ['Tamil'], regions: ['India', 'Sri Lanka'],
-    coverageIds: ['tamil'], families: ['Noto Sans Tamil'], sample: 'வணக்கம் ௨௦௨௬', direction: 'ltr',
-    shaping: { status: 'guarded', guards: ['e2e/sign/tamil-shaping-guard.spec.js'] },
-    visual: { guards: ['e2e/sign/tamil-shaping-guard.spec.js'], cases: [] },
+    coverageIds: ['tamil'], families: ['Noto Sans Tamil', 'Tiro Tamil'], sample: 'வணக்கம் ௨௦௨௬', direction: 'ltr',
+    shaping: { status: 'guarded', guards: ['e2e/sign/tamil-shaping-guard.spec.js', 'e2e/sign/tamil-tiro-shaping-guard.spec.js'] },
+    visual: { guards: ['e2e/sign/tamil-shaping-guard.spec.js', 'e2e/sign/tamil-tiro-shaping-guard.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['tamil-tiro-tamil'] },
   },
   {
     order: 15, status: 'shipped', id: 'punjabi', languages: ['Punjabi (Gurmukhi)'], regions: ['India'],

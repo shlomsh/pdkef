@@ -197,6 +197,18 @@ export const FONT_MANIFEST = [
     faces: normal('Suranna-Regular.ttf'),
     license: { version: '1.0.5', url: 'https://fonts.google.com/specimen/Suranna', copyright: "Copyright (c) 2012 Andhrapradesh Society for Knowledge Networks (fonts.siliconandhra.org). Copyright (c) 2011, Cyreal (www.cyreal.org) with Reserved Font Name 'Prata'" },
   },
+  {
+    // FONT-08b: second choice for Tamil (upright, alongside the existing
+    // Noto Sans Tamil). No Bold upstream - faces is a plain object rather
+    // than normal()/full() since neither helper expresses "normal + italic,
+    // no bold"; hasRealFace()/requestedFontFile() key off individual face
+    // entries, so Bold is simply absent and the picker disables it honestly
+    // (docs/wysiwyg-text-architecture.md §3.4) rather than synthesizing one.
+    family: 'Tiro Tamil', kind: 'text', styleTag: 'serif',
+    metrics: { ascent: 0.755, descent: 0.245 },
+    faces: { normal: 'TiroTamil-Regular.ttf', italic: 'TiroTamil-Italic.ttf' },
+    license: { version: '1.52', url: 'https://fonts.google.com/specimen/Tiro+Tamil', copyright: 'Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo)' },
+  },
 ];
 
 export const FONT_FILES = FONT_MANIFEST.flatMap((font) => Object.values(font.faces));

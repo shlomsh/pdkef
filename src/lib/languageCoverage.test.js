@@ -395,10 +395,14 @@ describe('Punjabi, Telugu and Tamil', () => {
     expect(note.toLowerCase()).toContain('no handwriting-style gurmukhi face');
   });
 
-  it('Tamil: exactly Noto Sans Tamil, and the card names the countries beyond India', () => {
-    expect(LANGUAGE_COVERAGE.tamil.full.map((f) => f.family)).toEqual(['Noto Sans Tamil']);
+  it('Tamil: Noto Sans Tamil and Tiro Tamil, and the card names the countries beyond India', () => {
+    // FONT-08b: Tiro Tamil (serif) joined the previously Noto-Sans-Tamil-only
+    // row, closing Tamil's "no second choice" gap the same way Mukta closed
+    // Devanagari's.
+    expect(LANGUAGE_COVERAGE.tamil.full.map((f) => f.family)).toEqual(['Noto Sans Tamil', 'Tiro Tamil']);
     const note = supportedNote('Tamil');
     expect(note).toContain('Noto Sans Tamil');
+    expect(note).toContain('Tiro Tamil');
     // Tamil is official in three countries on the traffic list, which is why
     // it outranked larger scripts in TODO.md's ordering - the card says so.
     for (const country of ['Sri Lanka', 'Singapore', 'Malaysia']) {

@@ -383,3 +383,15 @@
   font-weight: 400;
   src: url('/fonts/Suranna-Regular.ttf') format('truetype');
 }
+@font-face {
+  font-family: 'Tiro Tamil';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/TiroTamil-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Tiro Tamil';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/TiroTamil-Italic.ttf') format('truetype');
+}

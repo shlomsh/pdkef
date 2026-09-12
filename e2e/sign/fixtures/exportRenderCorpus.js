@@ -183,7 +183,25 @@ export const EXPORT_RENDER_CORPUS = [
   // public/fonts/AnekMalayalam-Regular.ttf bytes (fontkit.create(readFileSync
   // (...)), not .openSync), the same verification method every other case in
   // this file used.
-  textCase('malayalam-anek-malayalam', 'നമസ്കാരം', { fontFamily: 'Anek Malayalam' }),
+  textCase('malayalam-anek-malayalam', 'നമസ്കாരം', { fontFamily: 'Anek Malayalam' }),
+
+  // Tamil, second face (FONT-08b): Tiro Tamil, a serif alongside the sans
+  // Noto Sans Tamil this guard has no case for either (Tamil's own shaping
+  // agreement is proven separately by tamil-shaping-guard.spec.js and
+  // tamil-tiro-shaping-guard.spec.js - 265/265 and 235/235 respectively -
+  // same division of labour as the Bengali/Malayalam cases above). This case
+  // exists purely to catch what those guards cannot see on the file a user
+  // actually receives - a corrupted `glyf` table or a subset missing
+  // composite components.
+  //
+  // இந்தியா ("Indhiyaa", "India") carries the ந்த ligature (ந + pulli + த,
+  // one of the handful of genuinely fused traditional ligatures modern Tamil
+  // print uses - see tamilCorpus.js's `specialLigatureCases`) plus a
+  // reordering vowel sign; fontkit shapes it to 6 glyphs from 7 codepoints
+  // with no throw. Every codepoint confirmed present via fontkit's
+  // glyphForCodePoint() against the real bundled
+  // public/fonts/TiroTamil-Regular.ttf bytes.
+  textCase('tamil-tiro-tamil', 'இந்தியா', { fontFamily: 'Tiro Tamil' }),
 
   // Malayalam, second face (FONT-08): Gayathri, added next to Anek Malayalam
   // as the script's first alternative upright choice. `malayalam-gayathri-

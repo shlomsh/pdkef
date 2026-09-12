@@ -19,7 +19,7 @@ A shipped row means its real alphabet coverage is checked against bundled font b
 | 11 | shipped | Vietnamese | Vietnam | Arimo, Tinos, Cousine, Mali | LTR | not-applicable | e2e/sign/latin-shaping-guard.spec.js |
 | 12 | shipped | Thai | Thailand | Mali, IBM Plex Sans Thai | LTR | e2e/sign/thai-font-parity.spec.js | e2e/sign/thai-font-parity.spec.js<br>e2e/sign/export-render-guard.spec.js |
 | 13 | shipped | Telugu | India | Anek Telugu, Suranna | LTR | e2e/sign/telugu-shaping-guard.spec.js<br>e2e/sign/telugu-suranna-shaping-guard.spec.js | e2e/sign/telugu-shaping-guard.spec.js<br>e2e/sign/telugu-suranna-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
-| 14 | shipped | Tamil | India; Sri Lanka | Noto Sans Tamil | LTR | e2e/sign/tamil-shaping-guard.spec.js | e2e/sign/tamil-shaping-guard.spec.js |
+| 14 | shipped | Tamil | India; Sri Lanka | Noto Sans Tamil, Tiro Tamil | LTR | e2e/sign/tamil-shaping-guard.spec.js<br>e2e/sign/tamil-tiro-shaping-guard.spec.js | e2e/sign/tamil-shaping-guard.spec.js<br>e2e/sign/tamil-tiro-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
 | 15 | shipped | Punjabi (Gurmukhi) | India | Mukta Mahee | LTR | e2e/sign/gurmukhi-shaping-guard.spec.js | e2e/sign/gurmukhi-shaping-guard.spec.js |
 | 16 | shipped | Malayalam | India | Anek Malayalam | LTR | e2e/sign/malayalam-shaping-guard.spec.js | e2e/sign/malayalam-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
 | 17 | shipped | Greek | Greece; Cyprus | Arimo, Tinos, Cousine | LTR | not-applicable | e2e/sign/export-render-guard.spec.js |
