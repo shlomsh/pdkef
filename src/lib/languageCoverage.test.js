@@ -117,12 +117,13 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(note).toContain('Kazakh');
   });
 
-  it('Greek: Arimo, Tinos and Cousine, matching LANGUAGE_COVERAGE.greek.full', () => {
-    expect(LANGUAGE_COVERAGE.greek.full.map((f) => f.family).sort()).toEqual(['Arimo', 'Cousine', 'Tinos']);
+  it('Greek: Mynerve (handwriting, FONT-08) plus Arimo, Tinos and Cousine, matching LANGUAGE_COVERAGE.greek.full', () => {
+    expect(LANGUAGE_COVERAGE.greek.full.map((f) => f.family).sort()).toEqual(['Arimo', 'Cousine', 'Mynerve', 'Tinos']);
     const note = supportedNote('Greek');
     expect(note).toContain('Arimo');
     expect(note).toContain('Tinos');
     expect(note).toContain('Cousine');
+    expect(note).toContain('Mynerve');
   });
 
   it('Every Latin-script language: every bundled family covers Latin, and the card names the real family counts', () => {
@@ -200,15 +201,15 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(note).toContain('ۍ');
   });
 
-  it('Vietnamese: exactly Arimo, Tinos, Cousine, Mali and Amatic SC, matching LANGUAGE_COVERAGE.vietnamese.full', () => {
+  it('Vietnamese: exactly Arimo, Tinos, Cousine, Mali, Amatic SC and Mynerve, matching LANGUAGE_COVERAGE.vietnamese.full', () => {
     // FONT-08: Amatic SC's full Latin Extended coverage (measured against
     // the real bytes) turned out to include every Vietnamese tone-and-
     // diacritic vowel too, even though the font is a capitals-only display
     // face - a codepoint either has a glyph or it doesn't, regardless of the
     // letterform it draws.
-    expect(LANGUAGE_COVERAGE.vietnamese.full.map((f) => f.family).sort()).toEqual(['Amatic SC', 'Arimo', 'Cousine', 'Mali', 'Tinos']);
+    expect(LANGUAGE_COVERAGE.vietnamese.full.map((f) => f.family).sort()).toEqual(['Amatic SC', 'Arimo', 'Cousine', 'Mali', 'Mynerve', 'Tinos']);
     const note = supportedNote('Vietnamese');
-    for (const family of ['Arimo', 'Tinos', 'Cousine', 'Mali', 'Amatic SC']) {
+    for (const family of ['Arimo', 'Tinos', 'Cousine', 'Mali', 'Amatic SC', 'Mynerve']) {
       expect(note).toContain(family);
     }
   });

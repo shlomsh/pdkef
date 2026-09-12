@@ -500,6 +500,18 @@ export const FONT_MANIFEST = Object.freeze([
       "normal": "HindSiliguri-Regular.ttf",
       "bold": "HindSiliguri-Bold.ttf"
     }
+  },
+  {
+    "family": "Mynerve",
+    "kind": "handwriting",
+    "styleTag": "handwriting",
+    "metrics": {
+      "ascent": 0.93,
+      "descent": 0.38
+    },
+    "faces": {
+      "normal": "Mynerve-Regular.ttf"
+    }
   }
 ]);
 

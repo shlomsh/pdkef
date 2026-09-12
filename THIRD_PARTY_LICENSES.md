@@ -1588,6 +1588,7 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Sacramento (<https://fonts.google.com/specimen/Sacramento>)
 - Amatic SC (<https://fonts.google.com/specimen/Amatic+SC>)
 - Tillana (<https://fonts.google.com/specimen/Tillana>)
+- Mynerve (<https://fonts.google.com/specimen/Mynerve>)
 <!-- END GENERATED HANDWRITING FONT LIST -->
 
 The homepage hero demo additionally bundles `CaveatDemo-Bold.ttf`, a Latin-range subset of

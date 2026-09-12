@@ -108,7 +108,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 25 text fonts and 11 handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: 12 of the 25 text fonts and four of the 11 handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 25 text fonts and 12 handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: 12 of the 25 text fonts and five of the 12 handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -168,7 +168,7 @@ export const tools = [
         {
           native: 'Tiếng Việt 🇻🇳',
           name: 'Vietnamese',
-          note: 'Fill a Vietnamese form and sign your name in Vietnamese, in Arimo, Tinos or Cousine, or sign in Mali or Amatic SC for a handwritten look. I checked these letter by letter against the real font files rather than assuming general Latin coverage carried over: every tone-and-diacritic vowel (ạ ả ấ ầ ẩ ẫ ậ ắ ằ ẳ ẵ ặ and the rest) is there, in all five. Amatic SC draws capitals only, so a lowercase Vietnamese name comes out in small capitals rather than a cursive script. The other bundled fonts do not carry Vietnamese, so they are left off its list.',
+          note: 'Fill a Vietnamese form and sign your name in Vietnamese, in Arimo, Tinos or Cousine, or sign in Mali, Mynerve or Amatic SC for a handwritten look. I checked these letter by letter against the real font files rather than assuming general Latin coverage carried over: every tone-and-diacritic vowel (ạ ả ấ ầ ẩ ẫ ậ ắ ằ ẳ ẵ ặ and the rest) is there, in all six. Amatic SC draws capitals only, so a lowercase Vietnamese name comes out in small capitals rather than a cursive script. The other bundled fonts do not carry Vietnamese, so they are left off its list.',
         },
         {
           native: '한국어 🇰🇷',
@@ -188,7 +188,7 @@ export const tools = [
         {
           native: 'Ελληνικά 🇬🇷🇨🇾',
           name: 'Greek',
-          note: "Fill a Greek form and sign your name in Greek, in Arimo, Tinos or Cousine. I checked all three against the real font file rather than taking the label's word for it.",
+          note: "Fill a Greek form in Arimo, Tinos or Cousine, or sign your name in Mynerve, a handwriting face that doubles as a typed signature. I checked all four against the real font files rather than taking the label's word for it, tonos and dialytika accents included.",
         },
         {
           native: 'עברית 🇮🇱',
@@ -286,7 +286,7 @@ export const tools = [
       },
       {
         question: 'Can I type Vietnamese (chữ ký PDF bằng tiếng Việt) when signing a PDF?',
-        answer: 'Yes. Arimo, Tinos, Cousine, Mali and Amatic SC all carry the full set of Vietnamese tone-and-diacritic vowels, checked against the real font files rather than assumed from general Latin support. Mali and Amatic SC both double as typed-signature fonts, so you can add a Vietnamese signature without drawing it; Amatic SC draws capitals only, so a lowercase name comes out in small capitals. The other bundled fonts do not carry Vietnamese, so pick one of these five if you need it.',
+        answer: 'Yes. Arimo, Tinos, Cousine, Mali, Mynerve and Amatic SC all carry the full set of Vietnamese tone-and-diacritic vowels, checked against the real font files rather than assumed from general Latin support. Mali and Amatic SC both double as typed-signature fonts, so you can add a Vietnamese signature without drawing it; Amatic SC draws capitals only, so a lowercase name comes out in small capitals. The other bundled fonts do not carry Vietnamese, so pick one of these five if you need it.',
       },
       {
         question: 'Can I fill and sign a PDF in Japanese (PDFに日本語で署名)?',

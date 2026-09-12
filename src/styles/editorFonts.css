@@ -117,6 +117,12 @@
   font-weight: 700;
   src: url('/fonts/Tillana-Bold.ttf') format('truetype');
 }
+@font-face {
+  font-family: 'Mynerve';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Mynerve-Regular.ttf') format('truetype');
+}
 
 /* --- Text fonts --- */
 @font-face {

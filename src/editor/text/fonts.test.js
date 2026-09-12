@@ -167,7 +167,9 @@ describe('resolveFontFamily across every script the catalogue covers', () => {
     expect(resolveFontFamily('Caveat', 'สวัสดี')).toBe('Mali');
     // Greek only needs rescuing from a font without it; Arimo has it, so it
     // must be left alone rather than swapped for no reason.
-    expect(resolveFontFamily('Pacifico', 'Ελλάδα')).toBe('Arimo');
+    // Mynerve (FONT-08) is the catalogue's first Greek-capable handwriting
+    // face, so a handwriting request now rescues to it rather than to Arimo.
+    expect(resolveFontFamily('Pacifico', 'Ελλάδα')).toBe('Mynerve');
     expect(resolveFontFamily('Arimo', 'Ελλάδα')).toBe('Arimo');
     // Cyrillic is the same shape as Devanagari/Thai above, since FONT-08
     // added Amatic SC as Cyrillic's first handwriting face: requesting from

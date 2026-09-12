@@ -253,6 +253,12 @@ export const FONT_MANIFEST = [
     faces: normal('HindSiliguri-Regular.ttf', 'HindSiliguri-Bold.ttf'),
     license: { version: '1.001', url: 'https://fonts.google.com/specimen/Hind+Siliguri', copyright: 'Copyright (c) 2015 Indian Type Foundry (info@indiantypefoundry.com)' },
   },
+  {
+    family: 'Mynerve', kind: 'handwriting', styleTag: 'handwriting',
+    metrics: { ascent: 0.930, descent: 0.380 },
+    faces: normal('Mynerve-Regular.ttf'),
+    license: { version: '1.000', url: 'https://fonts.google.com/specimen/Mynerve', copyright: 'Copyright 2022 The Mynerve Project Authors (https://github.com/carolinashort/MyNerve)' },
+  },
 ];
 
 export const FONT_FILES = FONT_MANIFEST.flatMap((font) => Object.values(font.faces));

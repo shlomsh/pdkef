@@ -227,6 +227,10 @@ a per-script spec; that is landing work, not research.
 | glyf | aligned | aligned |
 | © | `Copyright 2015 The Vazirmatn Project Authors (https://github.com/rastikerdar/vazirmatn)` | `Copyright 2009 The Cairo Project Authors (https://github.com/Gue3bara/Cairo)` |
 | Verdict | **screen further, top pick.** The `calt` is the risk to test; IBM Plex Sans Thai showed a `calt` face can pass | **discard.** No Pashto means the Pashto row would substitute the whole element back to Scheherazade New; variable-only and 585KB on top |
+Pulled from Google Fonts' own metadata, filtered to `category: Handwriting`.
+- **Cyrillic:** Marck Script (OFL, static 84KB) - own docs mention "intelligent OpenType features," **calt risk, flag**; **Neucha** (OFL, static 141KB, single weight, no `calt` mentioned) - simpler, lower-risk pick, **top choice**.
+- **Greek:** genuinely scarce (confirmed by an independent TypeDrawers thread on the same gap). Mansalva (OFL, static 356KB) and Mynerve (OFL, static 279KB, connected-script style, likely `calt`-dependent - flag) are the only two found. Playpen Sans also technically covers both scripts but is **discard by precedent** - this catalogue already dropped its Hebrew sibling for an 88% `calt`-driven shaping failure. **Screened 2026-09-12, see "Already screened" below: Mynerve passed on the first candidate tried and landed, closing this gap.** Mansalva was fetched and coverage/crash-screened as the fallback but never needed.
+- Worth checking in code before sourcing anything new: Caveat, Great Vibes and Pacifico (already bundled) show Cyrillic coverage in the same Google Fonts metadata - confirm whether the bundled TTF is the full multi-script cut first.
 
 ### Bengali (second choice next to Noto Sans Bengali)
 
@@ -368,3 +372,20 @@ LXGW WenKai / WenKai TC (SC/TC, kaiti handwriting style), Gowun Batang (KR, seri
 The screening scripts for this pass (`crash-screen.mjs`, byte probe, glyf check redirect) were session
 scratch and are not in the repo; the fixture corpora and `check-font-glyf-alignment.js` are, and
 reproducing the run is download plus two small scripts against them.
+Light touch only, per the brief's own cost note: no pre-subsetted alternative distribution stood out as an obvious win. The existing plan (build-time pre-subsetting of the current Noto files, tracked elsewhere on the board) is the right lever, not a second 5-20MB family. Not worth further candidate research until that infrastructure exists.
+
+## Already screened
+
+Candidates from this shortlist that have actually gone through the code-level verification (fontkit
+corpus, `glyf` alignment, coverage, and either the pixel-diff shaping guard or Guard A advance parity) -
+see each row's guard files for the measurement. A row here means the candidate was tried; it does not
+mean it landed - see the result column.
+
+| Candidate | Script/gap | Result | Evidence |
+| --- | --- | --- | --- |
+| Mynerve | Greek handwriting (FONT-08b) | **Landed** 2026-09-12, first candidate tried | `e2e/sign/greek-shaping-guard.spec.js` (0/4 substituting cases failing, floor 0.01%), `e2e/sign/greek-font-parity.spec.js` (10/10 Greek names/phrases, 0.000px), `backlog/tasks/FONT-08.md`'s 2026-09-12 entry |
+| Mansalva | Greek handwriting (FONT-08b) | Not needed - fetched and coverage/crash-screened (66/66 Greek, 62/62 Latin ASCII, 0/37 fontkit throws) as the fallback, never wired in or run through the shaping/parity guards since Mynerve passed first | `backlog/tasks/FONT-08.md`'s 2026-09-12 entry |
+| Sarabun | Thai upright (FONT-08a) | Rejected - failed Guard A (1.4-3.0% of string width) | `backlog/tasks/FONT-08.md` |
+| Kanit | Thai upright (FONT-08a) | Rejected - failed Guard A (0.3-1.0% of string width) | `backlog/tasks/FONT-08.md` |
+| IBM Plex Sans Thai | Thai upright (FONT-08a) | **Landed** 2026-08-29 | `e2e/sign/thai-font-parity.spec.js` |
+| Mukta | Devanagari upright (FONT-08a) | **Landed** 2026-08-29, first candidate tried | `e2e/sign/devanagari-mukta-shaping-guard.spec.js` |
