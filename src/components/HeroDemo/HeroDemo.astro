@@ -35,6 +35,14 @@ const rootSelector = `.${styles.root}`;
 const captionArrowClass = isRtl ? `${styles['caption-arrow']} ${styles['caption-arrow-rtl']}` : styles['caption-arrow'];
 const captionClass = isRtl ? `type-section ${styles.caption} ${styles['caption-hebrew']}` : `type-section ${styles.caption}`;
 const t = getHeroDemoMessages(locale);
+// File names keep their extension on the visual right in the Hebrew edition.
+// Plain bidi puts a Hebrew name's ".pdf" on the visual left (the standard
+// rendering, and what a Hebrew-UI phone shows), but Shlomi judged it on the
+// built page (2026-09-12) and wants the extension where an English reader
+// expects it, so every file name sits in an LTR-isolated <bdi>. English gets
+// a bare <bdi> (dir undefined renders no attribute), so its HTML only gains
+// the wrapper element, never a direction.
+const fileNameDir = isRtl ? 'ltr' : undefined;
 const signCaption = t.signCaption;
 const blurCaption = t.blurCaption;
 const scrollHint = t.scrollHint;
@@ -111,7 +119,7 @@ const scrollHint = t.scrollHint;
                     <text class={styles['pdf-tag-text']} x="10.5" y="21.2" text-anchor="middle">PDF</text>
                   </svg>
                   <span class={styles['file-meta']}>
-                    <span class={styles['file-name']}>{t.signFileName}</span>
+                    <span class={styles['file-name']}><bdi dir={fileNameDir}>{t.signFileName}</bdi></span>
                     <span class={styles['file-size']}>{t.signFileSize}</span>
                   </span>
                 </div>
@@ -123,7 +131,7 @@ const scrollHint = t.scrollHint;
                     <text class={styles['pdf-tag-text']} x="10.5" y="21.2" text-anchor="middle">PDF</text>
                   </svg>
                   <span class={styles['file-meta']}>
-                    <span class={styles['file-name']}>{t.signFileName}</span>
+                    <span class={styles['file-name']}><bdi dir={fileNameDir}>{t.signFileName}</bdi></span>
                     <span class={`${styles['file-status']} ${styles['anim-sent']}`} data-hero-sent>{t.signSentLabel}</span>
                   </span>
                 </div>
@@ -131,7 +139,7 @@ const scrollHint = t.scrollHint;
             </div>
 
             <div class={`${styles.layer} ${styles['form-layer']}`}>
-              <div class={styles['panel-head']}>{t.signFileName}</div>
+              <div class={styles['panel-head']}><bdi dir={fileNameDir}>{t.signFileName}</bdi></div>
               <div class={styles['tool-chips']} aria-hidden="true">
                 <span class={`${styles['tool-chip']} ${styles['tool-chip-text']}`}>{t.signToolChipText}</span>
                 <span class={`${styles['tool-chip']} ${styles['tool-chip-symbols']}`}>{t.signToolChipSymbols}</span>
@@ -221,7 +229,7 @@ const scrollHint = t.scrollHint;
                     <text class={styles['pdf-tag-text']} x="10.5" y="21.2" text-anchor="middle">PDF</text>
                   </svg>
                   <span class={styles['file-meta']}>
-                    <span class={styles['file-name']}>{t.signFileName}</span>
+                    <span class={styles['file-name']}><bdi dir={fileNameDir}>{t.signFileName}</bdi></span>
                     <span class={styles['file-size']}>{t.signFileSizeSigned}</span>
                   </span>
                 </div>
@@ -353,7 +361,7 @@ const scrollHint = t.scrollHint;
             </div>
 
             <div class={`${styles.layer} ${styles['bill-layer']}`}>
-              <div class={styles['panel-head']}>{t.blurBillFileName}</div>
+              <div class={styles['panel-head']}><bdi dir={fileNameDir}>{t.blurBillFileName}</bdi></div>
               <div class={styles['tool-chips']} aria-hidden="true">
                 <span class={`${styles['tool-chip']} ${styles['tool-chip-blur']}`}>{t.blurToolChipBlur}</span>
                 <span class={`${styles['tool-chip']} ${styles['tool-chip-blackout']}`}>{t.blurToolChipBlackout}</span>
@@ -401,7 +409,7 @@ const scrollHint = t.scrollHint;
                 <p class={styles['reply-text']}>{t.blurReplyText}</p>
                 <div class={styles['attach-chip']}>
                   <span class={styles['blur-dot']} aria-hidden="true"></span>
-                  <span class={styles['attach-name']}>{t.blurBillFileName}</span>
+                  <span class={styles['attach-name']}><bdi dir={fileNameDir}>{t.blurBillFileName}</bdi></span>
                   <span class={styles['attach-tag']}>{t.blurAttachTag}</span>
                 </div>
                 <div class={`${styles['send-btn']} ${styles['anim-send']} ${styles['send-press']}`}>{t.blurSendButton}</div>
