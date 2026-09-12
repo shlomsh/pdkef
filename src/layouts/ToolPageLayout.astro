@@ -170,20 +170,6 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
   <div class="flex min-h-[calc(100svh-3.5rem)] flex-col">
     <ToolHero icon={tool.icon} title={tool.h1} subhead={tool.subhead} slug={tool.slug} condensable={tool.condenseOnLoad !== false} />
 
-    {/* LOC-02: the Sign/Redact "editor stays English" pilot decision,
-        generalized to any localized tool page whose island has no reviewed
-        message catalogue yet (LOCALIZED_TOOL_ISLANDS in localizedTools.ts).
-        Stated once, near the top, rather than left for the visitor to
-        discover mid-task when a button turns out to still be English. */}
-    {toolControlsEnglish && (
-      <p
-        class="type-body mx-auto mb-4 max-w-[54rem] px-6 text-center text-[var(--color-muted)] min-[1024px]:mb-2"
-        data-tool-controls-english
-      >
-        {messages.toolControlsEnglishNotice}
-      </p>
-    )}
-
     {/* The airplane-mode invitation (DEMO-04): the one idea in that ticket
         that isn't already said elsewhere on this page - the app bar's
         "On-device" badge and the dropzone's own "Private. Files never leave
@@ -224,6 +210,19 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         that both moved to home's 1280px. */}
     <main class="!flex !min-h-0 !flex-1 !flex-col !max-w-[1280px] !px-4 !pb-4 min-[560px]:!px-6 min-[768px]:!pb-5">
       <section id="app" class="!my-0 !flex !min-h-0 !w-full !flex-1 !items-center !justify-center min-[1024px]:!items-start min-[1024px]:!justify-start" aria-label={tool.ariaLabel}>
+        {/* LOC-02: the Sign/Redact "editor stays English" pilot decision
+            (LOCALIZED_TOOL_ISLANDS in localizedTools.ts) still needs honest
+            disclosure, and data-tool-controls-english on this text is what
+            scripts/localizedSeoChecks.mjs keys off to exclude #app from the
+            page's Hebrew language-purity score - removing this marker
+            entirely mis-scores every Sign/Redact localized page as if its
+            English UI were an untranslated incumbent. Previously a large
+            visible paragraph above the dropzone; that took disproportionate
+            space for what it said, so it's sr-only now - still reaches a
+            screen reader, costs sighted visitors nothing. */}
+        {toolControlsEnglish && (
+          <p class="sr-only" data-tool-controls-english>{messages.toolControlsEnglishNotice}</p>
+        )}
         <slot />
       </section>
     </main>
