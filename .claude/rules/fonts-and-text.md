@@ -81,10 +81,14 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
   guard and the export disagree on a spaced string, first ask which browser path the guard measured.
 - **A guard proves agreement on the machine that ran it**, which for a release is the `ubuntu-latest`
   runner. Arabic, Pashto and Bengali give the same verdict on macOS and Linux since SIGN-19 removed the
-  measuring-browser artefacts. Two caveats: the exported-PDF render guard's baseline is runner-pinned
+  measuring-browser artefacts, and the runner's whole-pixel advances are read back per glyph rather
+  than modelled as `Math.round` (it rounds a half-pixel tie down; that pixel failed Amatic SC's
+  "12.09.2026" before §5d). Two caveats: the exported-PDF render guard's baseline is runner-pinned
   and **skips locally**, so only CI's green covers it; and there are no Linux users, so the runner is
   an instrument to correct, never a fidelity target
-  ([docs/shaping-guard-platform-calibration.md](../../docs/shaping-guard-platform-calibration.md)).
+  ([docs/shaping-guard-platform-calibration.md](../../docs/shaping-guard-platform-calibration.md),
+  §5a for the two artefacts, §5d for the measured advance model). A guard's log says how many glyphs
+  the model measured and how many it fell back to rounding on; read it before excluding a case.
 
 ## Screening a candidate: three independent checks
 
@@ -106,9 +110,9 @@ A candidate that clears one has not been screened.
    leaning on them.
 3. **Does fontkit report the same advances as Chromium?** **Nothing checks this yet (SIGN-20).** A
    pixel diff is nearly blind to it because the error lives in trailing space: Bengali হ্ন is 21px (28%)
-   short at a 6.16% diff and ক্ত 20px short at 7.27%, and both pass. Rounding bound from SIGN-19:
-   browser advance rounding moves a cluster by at most `glyphCount x 0.5px`; anything past that is the
-   font or the shaper. Handwriting faces add kerning: Caveat's `measureText` disagrees with fontkit by
+   short at a 6.16% diff and ক্ত 20px short at 7.27%, and both pass. Rounding bound from SIGN-19,
+   confirmed per glyph on the runner in §5d (max 0.50px across every guard): browser advance rounding
+   moves a cluster by at most `glyphCount x 0.5px`; anything past that is the font or the shaper. Handwriting faces add kerning: Caveat's `measureText` disagrees with fontkit by
    5.1px on "Sarah Levi", so screen handwriting candidates for **kerning parity** too. The Latin/Caveat
    guard is `test.skip`ped as red; the other Latin greens do not cover it.
 

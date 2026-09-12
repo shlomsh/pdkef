@@ -1,7 +1,7 @@
 ---
 id: "LOC-05"
 title: "Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "hebrew-edition"
 phase: "near-term"
@@ -64,3 +64,28 @@ so `reviewNotes` on each says exactly that. What shipped:
 **Left open:** Shlomi's live review, and one indexing request per URL, dated here (Search Console's
 daily quota was already hit on 2026-09-11 by the `/he/` tool pages and `/pdf-wont-compress-to-100kb/`
 attempt, so these wait for the next day).
+
+## 2026-09-12: CTA disclosure gap closed
+
+The gap noted above is fixed. `ContentPageLayout.astro`'s primary CTA now runs the same
+`published.has(href)` decision `ToolCrossLinks.astro`/`RelatedGuides.astro` already make per card
+(`src/i18n/localizedTools.ts`'s `getPublishedEditionPaths`), pulled into one small helper,
+`isPublishedEditionLink(href, locale, editionPaths)`, so the CTA asks the identical question instead of
+a second copy of the logic. Both content-page routes (`src/pages/[contentPage].astro` and
+`src/pages/[locale]/[contentPage].astro`) now pass `editionPaths` through to the layout; the layout
+renders the same "EN" mark, in the same Tailwind register (`ToolCrossLinks`' own span, adapted to
+`--color-surface` for legibility on the CTA's colored pill background rather than a card's white one),
+with the same `messages.inEnglish` label from `documentationMessages.ts`, plus `hreflang="en"` on the
+anchor to match the convention those two components already set.
+
+Verified in the build: `/he/open-source-pdf-editor/`'s CTA to `/edit-pdf/` now carries the "EN" mark
+(the only Hebrew guide whose CTA has no Hebrew edition to point at). Every other published Hebrew
+guide's CTA (`/he/sign/`) carries none, and no English page ever does - confirmed by grepping `dist/`
+after `npm run build`. Unit test: `src/i18n/localizedTools.test.ts`'s `isPublishedEditionLink` describe
+block (Hebrew + English-only target → flagged, Hebrew + `/he/sign/` target → not flagged, English page
+→ never flagged, whatever the href). `npm test` (2485 tests), `npm run typecheck`, and post-build
+`test:seo`, `test:css`, `test:weight`, `test:csp` all green with no ratchet regression.
+
+Only Shlomi's indexing requests (noted above) remain on this ticket.
+
+*2026-09-12, closed:* indexing requested for every published Hebrew guide the same day; the CTA disclosure gap closed at `6223372`. Outcome folds into LOC-03's 2026-11-06 read.

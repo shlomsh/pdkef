@@ -262,7 +262,16 @@ const distDir = path.join(__dirname, '..', 'dist');
 // distinct-byte cost (+1,777) already undercuts what it ships (+33,763), the
 // residue being paid by the eleven content pages that do not render this
 // figure.
-const MAX_DUPLICATION_FACTOR = 9.81;
+// Re-based (9.81x -> 9.97x) on 2026-09-12 (SEO-18) when the "Sign a PDF in
+// your own language" content page landed: page count 39 -> 40. Distinct bytes
+// did not move at all (165,744 before and after), worst-page dead bytes
+// (8,295) and single-page utilities (21) byte-identical, so this is the
+// thirteenth content page carrying the same inlined content-family sheet, not
+// new duplication: the page reuses only existing prose/table/checklist blocks
+// and existing icons. Measured on the same tree with LOC-05's CTA mark:
+// 9.80x (1,623,969 / 165,744) at 39 pages, 9.96x (1,651,513 / 165,744) at 40.
+// Limit at the smallest two-decimal value that clears the measured figure.
+const MAX_DUPLICATION_FACTOR = 9.97;
 // Lowered (29,000 -> 27,500) on 2026-08-29 to bank most of two fixes that took
 // /licenses/ from 29,021 (red) to 26,635, neither of which was a style change:
 //   - 905 distinct bytes of utilities were being compiled out of the impeccable
