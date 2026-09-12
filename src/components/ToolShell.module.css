@@ -24,6 +24,33 @@
   border-radius: var(--radius);
 }
 
+/* Crossfade in on mount, since this row replaces the dropzone the instant a
+   file is picked (Shlomi, 2026-09-12: "there is also a flicker when clicking
+   on the dropzone and choosing a file"). The dropzone and this row are two
+   different elements swapping via conditional render, not one element
+   resizing, so there is nothing to cross-animate a height between - the fade
+   is what stands in for a transition here, on desktop and below it alike.
+   `:not(.editor)` because Sign/Redact mount this shell themselves and it is
+   already on screen before a file loads (see the .editor section below). */
+.shell:not(.editor) {
+  animation: shell-fade-in 150ms var(--ease-out);
+}
+
+@keyframes shell-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell:not(.editor) {
+    animation: none;
+  }
+}
+
 /* Both halves start out full-width, so a phone stacks them; the media queries
    below hand them a shared line once there is room. */
 .identity,
@@ -269,15 +296,40 @@
    card (see the .editor section below) and stays exactly as it is - this is
    the plain single-line/list-tool shell only. Mobile is untouched below
    1024px. FilePreview.tsx's PDF_PREVIEW_WIDTH is raised to match the bigger
-   box so a page-1 render still holds up on retina. */
+   box so a page-1 render still holds up on retina.
+
+   `height: 168px` is new (Shlomi, 2026-09-12: picking a file re-flowed
+   everything below it, because this row and the empty dropzone it replaces
+   used to size themselves independently; then, once the two matched at
+   120px, "too dense visually... give it air"). 168px is Dropzone.module.css's
+   desktop height too (see the comment there), so the box a visitor is
+   looking at never changes size across the pick - only its content does.
+   `align-items: center` above centres the 96px icon and the two text lines
+   inside the fixed height regardless of how the vertical padding splits, so
+   the padding value here didn't need to change to hit the new number -
+   `padding-inline` moved to `var(--space-6)` to match the dropzone's own
+   inline padding, the "same padding" half of "same box". */
 @media (min-width: 1024px) {
   .shell:not(.editor) {
-    padding: 1rem 1.25rem;
+    height: 168px;
+    padding-block: 1rem;
+    padding-inline: var(--space-6);
   }
 
   .shell:not(.editor) .icon {
-    width: 72px;
-    height: 72px;
+    width: 96px;
+    height: 96px;
+  }
+
+  /* Scoped here rather than as a width/height attribute change on
+     FilePreview.tsx's own SVG, which is shared with the 34px mobile icon
+     (30px below 420px) and would have grown out of proportion there too -
+     this only reaches the glyph inside the bigger desktop box. The
+     thumbnail image (`.thumbnail` in FilePreview.module.css) already fills
+     `.icon`/`.icon-loaded` at 100% and needs no matching rule. */
+  .shell:not(.editor) .icon svg {
+    width: 24px;
+    height: 24px;
   }
 
   /* One step up the type scale (global.css's .type-* roles) from the name's

@@ -273,6 +273,26 @@
   flex-shrink: 0;
 }
 
+/* Optional second line (SEO-25, 2026-09-12: DownloadButton's `detail` prop,
+   so far only passed by Compress). The label was a bare text node in a
+   single-line flex row; wrapping it in a column keeps that row's own
+   centering (the row's `align-items: center` still centers this whole
+   column) while stacking the detail underneath at its own, smaller size.
+   Without `detail`, this renders as a column with one line, indistinguishable
+   from the old bare-text layout. */
+.download-button-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.3;
+}
+
+.download-button-detail {
+  font-size: 0.8rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
 .check-circle {
   fill: none;
   stroke: var(--color-surface);

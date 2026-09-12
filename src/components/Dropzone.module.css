@@ -47,25 +47,122 @@
   background: var(--color-primary-tint);
 }
 
-/* #app top-aligns instead of centering at this breakpoint (ToolPageLayout.astro);
-   trim the vertical padding so the empty dropzone doesn't read as an oversized
-   frame sitting at the top of the viewport. */
+/* #app top-aligns instead of centering at this breakpoint (ToolPageLayout.astro).
+   One box, one height (Shlomi, 2026-09-12: "there is also a flicker when
+   clicking on the dropzone and choosing a file, the height allocation and
+   distribution changes"; then, seeing the first pass on /he/compress/: "too
+   dense visually... give it air"). Below 1024px this box stays the tall,
+   stacked, thumb-sized touch target it always was (see the base rule above)
+   - this block only fires at desktop widths, where the row that replaces
+   this box once a file is picked (ToolShell.module.css's `.shell:not(.editor)`)
+   is a fixed 168px. Matching that height here is what makes the pick a
+   crossfade instead of a jump: everything below the box keeps its top
+   coordinate because the box itself never changes size.
+
+   CSS Grid, not flex, because the icon and the button each need to span
+   *two* text rows (the heading and, under it, the privacy line) while
+   staying vertically centred - a flex row can put four children side by
+   side but can't make two of them tall and two of them stacked without an
+   extra wrapper element, and DropzoneEmptyState.tsx's DOM is out of scope
+   for this change. Logical-property column keywords (`inline-start`/
+   `inline-end`, not `left`/`right`) so this holds up on `/he/`, which is
+   what a visitor actually looked at: the grid's column *order* already
+   flips for free under `dir="rtl"` (the browser reverses inline axis
+   placement), so the only thing that would break RTL here is a literal
+   physical-direction value, which nothing below uses. */
 @media (min-width: 1024px) {
   .dropzone {
-    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    /* Without this, the default `align-content: stretch` spreads the two
+       explicit rows across the whole fixed height, so `align-items: center`
+       (below) centres the heading inside the *top half* and the privacy
+       line inside the *bottom half* instead of the pair reading as one
+       two-line block in the middle - the ~60px gap Shlomi saw in
+       en-compress-strip.png. `align-content: center` packs the rows
+       together first; `align-items: center` then only has to centre that
+       packed pair (and the icon/button, each still spanning both rows)
+       inside the box. */
+    align-content: center;
+    align-items: center;
+    column-gap: var(--space-5);
+    row-gap: 0.2rem;
+    height: 168px;
+    min-height: 0;
+    padding-inline: var(--space-6);
+    padding-block: 0;
+    text-align: start;
   }
 
-  /* Opt-in only (BasePdfTool.tsx's `compact` prop) - never the bare
-     `.dropzone` rule above, which stays the shared floor for every other
-     tool and for home's FileDropzone (see this file's own header comment on
-     why `.dropzone` must not diverge between the two). Used by Compress,
-     whose children render a full options grid below the dropzone even
-     before a file is picked, so the empty box doesn't need to carry as much
-     height on its own. */
-  .dropzone[data-compact] {
-    min-height: 6.5rem;
-    padding: 0.75rem;
+  /* `.dropzone <child>`, not the bare class, on every rule below: the base,
+     unconditional (no media guard) rules for these same classes sit further
+     down this file (`.privacy-line`'s pill styling, in particular), and at
+     equal specificity source order alone would let those win over this
+     media query, `@media` block position notwithstanding. The extra
+     ancestor selector is always true here (these are always children of
+     `.dropzone`) and buys the specificity needed to actually win. */
+  .dropzone .dropzone-icon {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: center;
+    margin-bottom: 0;
+    width: 44px;
+    height: 44px;
   }
+
+  .dropzone .dropzone-text {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: var(--type-lead-size);
+  }
+
+  /* The pill becomes the plain second line of the text stack - "one fewer
+     bordered shape" on a box that already has a border of its own. Still an
+     inline-flex so its checkmark glyph and sentence stay on one baseline. */
+  .dropzone .privacy-line {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    margin: 0;
+    padding: 0;
+    background: none;
+    color: var(--color-muted);
+    border-radius: 0;
+    font-size: 0.85rem;
+    font-weight: 400;
+    letter-spacing: normal;
+  }
+
+  .dropzone .file-picker-button {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    align-self: center;
+    margin-top: 0;
+  }
+
+  /* MOBI-09's Files-app hint (Sign only, and only ever seen on iOS at this
+     width - an iPad in landscape) is a full sentence of body copy and can't
+     share either row. It gets a implicit third row of its own, spanning
+     every column, instead of fighting the heading/privacy stack for space;
+     `.dropzone`'s own `height: 168px` above does not grow to fit it - see 4.
+     in the design brief. Mobile keeps the stacked, unmeasured layout and is
+     unaffected. */
+  .dropzone .ios-files-hint {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
+
+  /* `compact` (BasePdfTool.tsx's opt-in - Compress and Compress Image) used
+     to shrink this box a different way: a lower floor and less padding on a
+     layout that was still a vertical stack, so the real content height
+     (icon + heading + button + privacy line) blew past the floor regardless
+     and the box still read as tall. The grid above already gives every tool
+     - compact or not - the same fixed 168px, so `[data-compact]` has nothing
+     left to override here. The prop and the attribute stay wired
+     (DropzoneEmptyState.tsx, BasePdfTool.tsx's checking-draft placeholder)
+     so neither tool's own file has to change; it is just a no-op at this
+     width now. */
 }
 
 .dropzone.is-dragover {

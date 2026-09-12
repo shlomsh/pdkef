@@ -186,7 +186,12 @@ async function compressToTarget(page, targetKB) {
 }
 
 async function readDownload(page) {
-  const link = page.getByRole('link', { name: 'Download Compressed Image', exact: true });
+  // Not `exact: true` any more (SEO-25 "button anchor", 2026-09-12): the
+  // Download link's accessible name now also carries DownloadButton's
+  // `detail` second line (e.g. "48.83 KB, 2% smaller"), so an exact match on
+  // just the label would never find it. A prefix regex still pins down which
+  // link this is.
+  const link = page.getByRole('link', { name: /^Download Compressed Image/ });
   await expect(link).toBeVisible();
 
   const href = await link.getAttribute('href');
