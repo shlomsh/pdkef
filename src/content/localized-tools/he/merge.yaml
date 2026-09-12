@@ -16,10 +16,10 @@ reviewNotes: >-
   2026-09-11: reviewed the rendered page (desktop and mobile, RTL), approved
   for publish. 2026-09-12: English title and h1 gained combine (SEO-35);
   Hebrew unchanged; re-approved by Shlomi on the deployed site. 2026-09-13:
-  MERGE-05/12 changed the English subhead and step 3 (no Merge button any
-  more); Hebrew subhead unchanged, Hebrew step 3 rewritten as an AI draft.
-  Pending Shlomi's review on the deployed site.
-sourceHash: 'fnv1a64:b51ae067ca00a013'
+  MERGE-05/09/12 rewrote the English subhead and steps 2-3 (every page shown,
+  pages reorder/rotate/skip, no Merge button); Hebrew subhead and step 2
+  unchanged, step 3 an AI draft. Pending Shlomi's review.
+sourceHash: 'fnv1a64:c45b136f39eb5f0c'
 seoTitle: 'מיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
   מזגו ואחדו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו
