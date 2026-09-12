@@ -176,16 +176,15 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         never renders for a crawler and flashes in after hydration for a
         visitor. This is the nearest server-rendered spot, directly above
         where the dropzone appears. Kept to Sign and Redact only, same as
-        the live status line below. */}
+        the live status line below. Hangs off the trailing edge of the tool
+        card below it (left in RTL, right in LTR), so it copies <main>'s own
+        max-width and padding rather than the hero's, and stays a bare <p>,
+        not a wrapped one: e2e/tool-layout.spec.js's `body > div > div`
+        locator must keep resolving to the app bar only. */}
     {(tool.slug === 'sign' || tool.slug === 'redact') && (
-      <div class="mx-auto w-full max-w-[1280px] px-4 min-[560px]:px-6">
-        {/* Hangs off the trailing edge of the tool card below (left in RTL,
-            right in LTR), so this wrapper copies <main>'s own max-width and
-            padding rather than the hero's. */}
-        <p class="type-body mb-4 w-full text-center text-[var(--color-muted)] min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
-          {messages.airplaneModeNotice}
-        </p>
-      </div>
+      <p class="type-body mx-auto mb-4 w-full max-w-[1280px] px-4 text-center text-[var(--color-muted)] min-[560px]:px-6 min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
+        {messages.airplaneModeNotice}
+      </p>
     )}
 
     {/* SEO-10: the no-limit fact, stated where a visitor scanning the SERP
