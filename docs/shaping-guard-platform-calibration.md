@@ -5,7 +5,8 @@
 The decision and the measurements behind it are in §5a and §5b; §1-§4 are the
 original brief, kept as written so the reasoning can be checked against what was
 believed at the time. **§3 and §5's "prefer the tighter floor" advice were both
-partly wrong, and §5a says exactly how.**
+partly wrong, and §5a says exactly how.** §5d (2026-09-12) replaces §5a's
+round-to-nearest advance model with the runner's measured advances.
 
 **One sentence:** the Chromium output guards give different verdicts on macOS and on the Linux CI
 runner, and until that is resolved a green local run is not evidence about the exported PDF and CI
@@ -289,6 +290,66 @@ it measures. The gap is in the method, not in the corpus, and closing it means a
 advance-parity assertion alongside the pixel one. Tracked as SIGN-20 (low
 priority) rather than folded in here, so that it is a deliberate piece of work
 with its own evidence.
+
+## 5d. The advance model measures the runner's advances instead of rounding (2026-09-12)
+
+**The round-to-nearest model in §5a was one pixel wrong on a tie, and the
+harness now reads the runner's hinted advances back instead of modelling
+them.** Opened from CI run
+[34705365402](https://github.com/shlomsh/pdkef/actions/runs/34705365402):
+the Cyrillic guard for Amatic SC failed `field-date` ("12.09.2026") at
+28.21% against a 27.06% tolerance (rasteriser floor 4.35%, quantisation
+floor 18.04%) while the same string measured 0.00% on macOS and carried no
+kern pair. The spec excluded the case on Linux with those numbers rather
+than widen anything, and named the instrument as the thing to fix.
+
+**What the runner actually does.** `measureDisplacementFloorPct` assumed a
+quantising browser rounds each of fontkit's advances with `Math.round`.
+Measured per glyph on the runner through `measureText` of each glyph's cmap
+character (`hintedAdvancePx`, run
+[34717406027](https://github.com/shlomsh/pdkef/actions/runs/34717406027)),
+the browser's advance is within **0.50px** of fontkit's for every glyph in
+every guard - so it is rounding, not stem-snapping beyond rounding, which
+rules out the "FreeType hinting moves thin digits further than rounding"
+reading the exclusion comment had offered. The difference is the tie:
+Amatic SC's "1" at 300px is 82.5px, `Math.round` says 83, FreeType's
+fixed-point scaling says 82. Over "12.09.2026" that is 845px on the runner
+against the 846px the model predicted (847.8px exact), and on strokes this
+thin one pixel of pen displacement is a tenth of the ink.
+
+**What changed.** The quantised placement model uses the browser's own
+hinted advance where a glyph can be measured (a glyph that is the plain
+cmap glyph of some character, that fontkit would not substitute in
+isolation, and whose measured advance is within 1.5px of hmtx - a bound
+that rejects a dotted circle, a fallback font, or a genuine metrics
+disagreement), plus fontkit's kerning rounded the way the browser rounds a
+run's advances; every other glyph keeps round-to-nearest. Only the
+rasteriser's advance for one glyph is ever read from the browser. Which
+glyph, which kern and which offset stay fontkit's, so a shaper disagreement
+is not absorbed: Noto Sans Bengali's known `হ্ন` advance gap (§5c) shows up
+in the new log as an **84.00px residual**, not as floor. Every run now logs
+how many glyphs were measured, how many modelled, and on how many corpus
+strings the model reproduces the native width exactly.
+
+**Re-measured on the runner, same commit family, all guards 0 failing:**
+
+| guard | quantisation floor before → after | tolerance before → after | native width reproduced |
+| --- | --- | --- | --- |
+| Cyrillic / Amatic SC | 18.04% → **28.26%** | 27.06% → 42.39% | 18/18 (case back in) |
+| Cyrillic / Neucha | 10.20% → 7.79% | 15.29% → 11.68% | 18/18 |
+| Arabic / Scheherazade New | 5.08% → 5.08% | 7.61% → 7.61% | 150/155 (1.00px worst, contextual forms modelled) |
+| Arabic / Vazirmatn | 5.97% → 5.66% | 8.95% → 8.49% | 155/155 |
+| Latin / Pacifico | 26.67% → 33.26% | 45.30% → 49.90% | 14/19 (2.00px worst, 20 glyphs `calt`-substituted in isolation, modelled) |
+| Latin / Great Vibes | 49.03% → 56.41% | 103.54% (raster floor 69.02% still governs) | 7/7 |
+| Telugu / Anek Telugu | 3.59% → 6.46% | 9.80% (raster floor 6.53% still governs) | 486/486 |
+| every other guard | within 0.3 points | unchanged | all cases, or all but a known divergence |
+
+Two tolerances moved up, Amatic SC and Pacifico, both by measurement: the
+runner's placement of those strings costs more than rounding predicted,
+and the guard now admits what it measured rather than what it assumed. The
+macOS numbers are untouched (the platform does not quantise, the
+measurement reads 0.00px deltas, the floor stays 0.00%). The Linux
+exclusion in `cyrillic-shaping-guard.spec.js` is removed.
 
 ## 6. Acceptance
 
