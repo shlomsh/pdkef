@@ -62,3 +62,16 @@ likely no Hebrew change is needed; that is his call.
 - **No indexing request** for `/merge/`: it stays SEO-28's control URL. Read at the 2026-10-08
   refresh together with SEO-10. The verdict this ticket expects is "small or none"; the point of the
   ticket is the decision recorded above, not the copy.
+
+## Update 2026-09-12
+
+Copy shipped in `src/data/tools.js`'s `merge` entry: `seoTitle` is now "Merge or Combine PDF Files
+Online Free - No Upload | PDkef" (58 chars) and `h1` is "Merge or Combine PDF Files Free: In Your
+Browser"; nothing else in the entry changed. `npm test` (2482 passed) and `npm run typecheck` (0
+errors) are green; build and the seo/css/weight suites were left to the lead running them once for
+the whole worktree.
+
+`src/content/localized-tools/he/merge.yaml`'s `sourceHash` was recomputed mechanically
+(`toolSourceHash`) to clear the freshness gate; the Hebrew wording itself was not touched (it already
+carries both senses), and `reviewNotes` records that pending Shlomi's review. No indexing request was
+made, per the acceptance section above.

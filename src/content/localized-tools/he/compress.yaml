@@ -14,8 +14,12 @@ reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-09-11'
 reviewNotes: >-
   Reviewed the rendered page (desktop and mobile, RTL) and approved the
-  wording, terminology and typography for publish.
-sourceHash: 'fnv1a64:1b244c796a387baa'
+  wording, terminology and typography for publish. 2026-09-12: the English
+  entry gained reduce, shrink and resize vocabulary in the subhead, plus two
+  new FAQ entries (the resize sense and the size reducer sense). The Hebrew
+  wording is unchanged, pending Shlomi's review; the sourceHash below was
+  refreshed mechanically to clear the freshness gate.
+sourceHash: 'fnv1a64:0fc2eb8105152ecb'
 seoTitle: 'כיווץ קובץ PDF ל-100KB בחינם - הקטנת גודל | PDkef'
 seoDescription: >-
   כווצו קובץ PDF ל-100KB בחינם, ישירות בדפדפן. גם דחיסת PDF וגם הקטנת קובץ

@@ -68,3 +68,16 @@ Hebrew phrasing decision (כיווץ vs דחיסה vs הקטנה) is LOC-03's an
   npm run test:weight` green.
 - One indexing request for `/compress/` after merge (date recorded here), then read positions on
   `pdf size reducer`, `shrink pdf size`, `resize pdf` at the 2026-10-08 refresh alongside SEO-05.
+
+## Update 2026-09-12
+
+Copy shipped in `src/data/tools.js`'s `compress` entry: `subhead` now says "shrink the file" and
+`aboutLead`'s first sentence keeps "Reduce the file size"; two FAQ entries added ("Does this tool
+resize a PDF?" and "Is this a PDF size reducer?"), each with an honest, single answer. Title and h1
+are unchanged. `npm test` (2482 passed) and `npm run typecheck` (0 errors) are green; build and the
+seo/css/weight suites were left to the lead running them once for the whole worktree.
+
+`src/content/localized-tools/he/compress.yaml`'s `sourceHash` was recomputed mechanically
+(`toolSourceHash`) to clear the freshness gate; the Hebrew wording itself was not touched, and
+`reviewNotes` records that pending Shlomi's review. Indexing request and position read stay open,
+per the acceptance section above.

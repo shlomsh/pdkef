@@ -60,3 +60,30 @@ Shlomi's review. Do not translate on his behalf.
   npm run test:weight` green.
 - One indexing request for `/` after merge (date recorded here). Read `pdf tools` / `free pdf tools`
   impressions and the home page's position at the 2026-10-08 refresh.
+
+## Update 2026-09-12
+
+Shipped in `src/data/homeContent.js` (title, description, subhead, plus one added FAQ entry):
+
+- `title`: `Free PDF Tools Online - Run on Your Device, No Upload | PDkef` (61 chars, "PDF Tools"
+  within the first three words, ends " | PDkef").
+- `description` now names merge, split, compress, sign, blur, and convert, plus "nothing is
+  uploaded".
+- `subhead` names "Ten PDF tools" and keeps the privacy line.
+- `h1` / `h1Accent` unchanged ("Free PDF tools that run on your device" / "on your device");
+  `h1Accent` is still an exact trailing substring of `h1`.
+- Added FAQ entry: "Is this a set of free PDF tools with no signup?" / "Yes. PDkef is a free set of
+  PDF tools, merge, split, compress, sign, blur, and convert, with no signup and no account. Every
+  tool runs on your device, so your files are never uploaded."
+
+`npm test` (131 files, 2482 tests) and `npm run typecheck` both pass. `npm run build` and the
+`test:seo`/`test:css`/`test:weight` gates were left to the session running the shared build, per
+instruction.
+
+Hebrew (`src/content/localized-home/he.yaml`): `sourceHash` recomputed mechanically
+(`fnv1a64:1a1073e0e90f80db` -> `fnv1a64:4fab6a78a1930af9`) so the entry keeps building; no Hebrew
+strings were translated or otherwise changed. A dated `reviewNotes` line records which English fields
+changed and that the Hebrew title/description/subhead/faq do not yet mirror them, pending Shlomi's
+review. Status stays `published`, reviewer/reviewedAt untouched.
+
+Indexing request and CTR/position read at the 2026-10-08 refresh are still open, per Acceptance.
