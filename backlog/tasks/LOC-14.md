@@ -130,7 +130,36 @@ on-device processing. No verdict here; that waits for the query table and Keywor
 ### GSC Indonesia, last 3 months
 
 Overview: 1 click, 151 impressions, 0.7% CTR, average position 17.6. Impressions rose from 0 to 2 a
-day in July to 10 to 14 a day in early September. Query table pending.
+day in July to 10 to 14 a day in early September.
+
+**Query table (Web, 3 months, country Indonesia, sorted by impressions, captured 2026-09-12):**
+
+| Query | Clicks | Impressions | CTR | Position |
+| --- | ---: | ---: | ---: | ---: |
+| blur pdf online | 1 | 52 | 1.9% | 7.7 |
+| blur pdf | 0 | 13 | 0.0% | 8.4 |
+| blur pdf free | 0 | 9 | 0.0% | 6.9 |
+| blur pdf online free | 0 | 8 | 0.0% | 6.9 |
+| blur text pdf | 0 | 7 | 0.0% | 7.4 |
+| pdf extract | 0 | 3 | 0.0% | 61.7 |
+| pdf blur | 0 | 2 | 0.0% | 8.5 |
+| combine pdf com online | 0 | 2 | 0.0% | 68.5 |
+| pdf blur text | 0 | 1 | 0.0% | 5.0 |
+| pdf blur online | 0 | 1 | 0.0% | 7.0 |
+| blur part of pdf online | 0 | 1 | 0.0% | 8.0 |
+| pdf blur tool | 0 | 1 | 0.0% | 8.0 |
+| blur pdf text | 0 | 1 | 0.0% | 9.0 |
+| blur information in pdf | 0 | 1 | 0.0% | 10.0 |
+| how to blur text in pdf free | 0 | 1 | 0.0% | 10.0 |
+| how to blur pdf | 0 | 1 | 0.0% | 11.0 |
+| how to sign on pdf file sent through whatsapp | 0 | 1 | 0.0% | 49.0 |
+| redacted effect | 0 | 1 | 0.0% | 55.0 |
+| gabung pdf free online | 0 | 1 | 0.0% | 70.0 |
+| pdf combine gratis | 0 | 1 | 0.0% | 89.0 |
+
+**Read:** every row is the English blur family, plus one extract query, one WhatsApp sign query, and
+the two Indonesian leaks LOC-01 already recorded (`gabung pdf free online`, `pdf combine gratis`, both
+merge, both past position 70). Not one target-size query, in either language.
 
 ### Keyword Planner
 
@@ -182,9 +211,18 @@ impressions a quarter (GSC, 3 months). Trends shows a steady line, about 4% of g
 and about half of bare `pdf 1 mb`, native beating English about 12x at that limit. The 100 to 300 KB
 PDF family is a subsection's worth (2,000 to 2,500 a month, below Trends' floor); the 200 KB volume
 that does clear is photo compression (`kompres foto / jpg 200 kb` at 5,000 each), the Compress Image
-half. One condition is still unread: in-language queries reaching the domain in GSC Indonesia, the
-query table is pending, not failed. One oddity is recorded and not acted on: Keyword Planner's -90%
-three-month change on the head term contradicts a flat Trends line and reads as a Planner artefact.
+half. One oddity is recorded and not acted on: Keyword Planner's -90% three-month change on the head
+term contradicts a flat Trends line and reads as a Planner artefact.
+
+The gate's clause "visible as in-language queries in GSC" is now read, and it fails: the query table
+(above) carries the English blur family, one extract query, one WhatsApp sign query and two Indonesian
+merge leaks past position 70, not one target-size query in either language. This is recorded as
+structurally unmeasurable today, not as evidence against demand. GSC only lists queries a domain
+already ranks for (SEO-27's lesson); the English pages rank for no target-size query in Indonesia, and
+`/pdf-wont-compress-to-100kb/` is not indexed at all, so there was never a page for this family to show
+up against. The demand half of the verdict stands on Trends and Keyword Planner, the field half on the
+SERPs; this GSC row does not move either. The first real GSC evidence for this family comes from
+LOC-15's own page, after it is indexed.
 
 Field passes as the gate is written, with a caveat. No Indonesian result claims on-device processing,
 and the dedicated target-size pages are the second tier this domain already beats in English (Pi7,
@@ -196,7 +234,7 @@ pages in every tool SERP measured here, so the expected start is page two and a 
 Verdict: build, one page, in LOC-13's shape, as [LOC-15](LOC-15.md). Indonesian is the first language
 whose niche cleared both halves of the gate; every other in-language target-size family measured sat
 below Trends' floor (Turkish, Spanish, Vietnamese). LOC-15 is the build ticket; the GSC Indonesia query
-table, when Shlomi pastes it, is appended here as the last evidence row.
+table is above, the last evidence row for this ticket.
 
 ## Acceptance
 
