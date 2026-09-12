@@ -5,6 +5,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfCompressTool from './PdfCompressTool.tsx';
 import * as compressLib from '../lib/compress.js';
 import * as compressImageLib from '../lib/compressImage.js';
+import * as thumbnailsLib from '../lib/thumbnails.js';
 import styles from './PdfCompressTool.module.css';
 import dropzoneStyles from './Dropzone.module.css';
 import toolShellStyles from './ToolShell.module.css';
@@ -86,6 +87,14 @@ describe('PdfCompressTool UI flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     compressImageLib.compressImageToTarget.mockImplementation(() => Promise.resolve(makeImageResult()));
+    // Restored explicitly, not left to vi.restoreAllMocks(): a test further
+    // down that overrides these with a deferred implementation (to hold a run
+    // in flight) would otherwise leave every later test's compress/preview
+    // calls returning undefined instead of a Blob/data URL.
+    compressLib.compressPdf.mockImplementation(() => Promise.resolve(new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' })));
+    thumbnailsLib.renderComparePreview.mockImplementation((fileOrBlob) =>
+      Promise.resolve(`data:image/png;base64,${fileOrBlob instanceof File ? 'before' : 'after'}`),
+    );
   });
 
   afterEach(() => {
@@ -301,6 +310,209 @@ describe('PdfCompressTool UI flow', () => {
     expect(panel).not.toBeNull();
     expect(panel.querySelector(`.${styles['compare-skeleton']}`)).toBeNull();
     expect(toggle.textContent).toContain('Hide comparison');
+
+    window.URL.createObjectURL = originalCreateObjectURL;
+  });
+
+  // Run-token guard (a workspace drop or a Replace pick lands mid-compress
+  // with no confirm, since BasePdfTool's costsSomething stays false until
+  // status is 'done' - see the comment on runTokenRef in
+  // PdfCompressTool.tsx).
+  it('does not land a stale compress result when the file is replaced mid-run', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const fileA = makePdfFile('run_a.pdf', 100000);
+    const fileB = makePdfFile('run_b.pdf', 40000);
+
+    await act(async () => {
+      setInputFiles(input, [fileA]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    // A deferred compressPdf so A's run is still in flight when B lands.
+    let resolveA;
+    compressLib.compressPdf.mockImplementation(
+      () => new Promise((resolve) => { resolveA = resolve; }),
+    );
+
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:stale-run');
+
+    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    // While A is 'processing', hasWork (status === 'done') is false, so
+    // costsSomething is false and B lands through the same no-confirm path a
+    // workspace drop or Replace pick takes mid-compress.
+    await act(async () => {
+      setInputFiles(input, [fileB]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+
+    let fileBar = container.querySelector(`.${toolShellStyles.identity}`);
+    expect(fileBar.textContent).toContain('run_b.pdf');
+
+    // A's compress now resolves - it must not land on B.
+    await act(async () => {
+      resolveA(new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+
+    expect(container.querySelector(`.${styles['compression-stats']}`)).toBeNull();
+    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+    fileBar = container.querySelector(`.${toolShellStyles.identity}`);
+    expect(fileBar.textContent).toContain('run_b.pdf');
+
+    window.URL.createObjectURL = originalCreateObjectURL;
+  });
+
+  it('does not land a stale PDF compare preview when the file is replaced while it is loading', async () => {
+    // Two independent deferred pairs, each resolving to a value keyed by call
+    // order, so file A's render (still pending when B lands) can be resolved
+    // after B's own render already completed and landed.
+    let callIndex = 0;
+    const beforeResolvers = [];
+    const afterResolvers = [];
+    thumbnailsLib.renderComparePreview.mockImplementation((fileOrBlob) => {
+      const isFile = fileOrBlob instanceof File;
+      const index = callIndex++;
+      return new Promise((resolve) => {
+        const resolver = () => resolve(`data:image/png;base64,${isFile ? 'before' : 'after'}-${index}`);
+        if (isFile) beforeResolvers.push(resolver);
+        else afterResolvers.push(resolver);
+      });
+    });
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const fileA = makePdfFile('preview_a.pdf', 200000);
+
+    await act(async () => {
+      setInputFiles(input, [fileA]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:preview-test');
+
+    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+
+    // A's compare preview opened automatically (SEO-25) and is still loading -
+    // both of its renderComparePreview calls (index 0 and 1) are pending.
+    expect(container.querySelector(`.${styles['compare-skeleton']}`)).not.toBeNull();
+    expect(beforeResolvers).toHaveLength(1);
+    expect(afterResolvers).toHaveLength(1);
+
+    // Replace with file B while A's preview is still loading, the same input
+    // path the other tests in this file use to swap a loaded file.
+    const fileB = makePdfFile('preview_b.pdf', 90000);
+    await act(async () => {
+      setInputFiles(input, [fileB]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
+    expect(fileBar.textContent).toContain('preview_b.pdf');
+
+    // Compress file B (compressPdf's default mock resolves immediately).
+    const buttonForB = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    await act(async () => {
+      buttonForB.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+
+    // B's own preview render is now pending too (index 2 and 3).
+    expect(beforeResolvers).toHaveLength(2);
+    expect(afterResolvers).toHaveLength(2);
+
+    await act(async () => {
+      beforeResolvers[1]();
+      afterResolvers[1]();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    let panel = container.querySelector(`.${styles['compare-panel']}`);
+    expect(panel).not.toBeNull();
+    let images = panel.querySelectorAll('img');
+    expect(images).toHaveLength(2);
+    expect(images[0].getAttribute('src')).toBe('data:image/png;base64,before-2');
+
+    // A's stale preview resolves last - it must not overwrite B's already
+    // rendered comparison, and must not render a slider for a passthrough
+    // combination of the two.
+    await act(async () => {
+      beforeResolvers[0]();
+      afterResolvers[0]();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    panel = container.querySelector(`.${styles['compare-panel']}`);
+    images = panel.querySelectorAll('img');
+    expect(images).toHaveLength(2);
+    expect(images[0].getAttribute('src')).toBe('data:image/png;base64,before-2');
+
+    window.URL.createObjectURL = originalCreateObjectURL;
+  });
+
+  it('shows a compareBeforeLabel override from messages in the rendered slider', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool messages={{ compareBeforeLabel: 'המקור' }} />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const file = makePdfFile('labeled.pdf', 60000);
+
+    await act(async () => {
+      setInputFiles(input, [file]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:label-test');
+
+    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const panel = container.querySelector(`.${styles['compare-panel']}`);
+    expect(panel).not.toBeNull();
+    expect(panel.textContent).toContain('המקור');
 
     window.URL.createObjectURL = originalCreateObjectURL;
   });

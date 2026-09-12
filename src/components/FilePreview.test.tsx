@@ -89,6 +89,34 @@ describe('FilePreview', () => {
     container = null; // already unmounted above
   });
 
+  it('renders an <img> for an image file with no MIME type, via the filename extension fallback', () => {
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:preview-photo-noext-type');
+
+    const file = makeImageFile('photo.png', '');
+    mount({ file });
+
+    const icon = container.querySelector(`.${toolShellStyles.icon}`);
+    expect(icon.classList.contains(toolShellStyles['icon-loaded'])).toBe(true);
+    const img = icon.querySelector(`img.${styles.thumbnail}`);
+    expect(img).not.toBeNull();
+    expect(img.getAttribute('src')).toBe('blob:preview-photo-noext-type');
+    expect(window.URL.createObjectURL).toHaveBeenCalledWith(file);
+
+    window.URL.createObjectURL = originalCreateObjectURL;
+  });
+
+  it('calls renderThumbnail for a PDF with no MIME type, via the filename extension fallback', () => {
+    const { promise } = deferred();
+    thumbnailsLib.renderThumbnail.mockReturnValue(promise);
+
+    const file = makePdfFile('contract.pdf');
+    Object.defineProperty(file, 'type', { value: '' });
+    mount({ file });
+
+    expect(thumbnailsLib.renderThumbnail).toHaveBeenCalledWith(file, { width: 192 });
+  });
+
   it('calls renderThumbnail for a PDF and swaps the glyph for the render once it resolves', async () => {
     const { promise, resolve } = deferred();
     thumbnailsLib.renderThumbnail.mockReturnValue(promise);

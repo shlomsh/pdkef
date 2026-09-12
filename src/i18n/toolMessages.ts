@@ -200,6 +200,12 @@ export interface CompressMessages {
   downloadDetailClosest: string;
   compareShow: string;
   compareHide: string;
+  compareRendering: string;
+  compareRenderFailed: string;
+  compareBeforeLabel: string;
+  compareAfterLabel: string;
+  compareCaptionImage: string;
+  compareCaptionPdf: string;
 }
 
 const englishCompressMessages: CompressMessages = {
@@ -274,6 +280,12 @@ const englishCompressMessages: CompressMessages = {
   downloadDetailClosest: 'closest achievable: {size}',
   compareShow: 'Compare with original',
   compareHide: 'Hide comparison',
+  compareRendering: 'Rendering page 1 for comparison…',
+  compareRenderFailed: "Couldn't render a preview for this file.",
+  compareBeforeLabel: 'Original',
+  compareAfterLabel: 'Compressed',
+  compareCaptionImage: 'Drag to compare the original and the compressed image.',
+  compareCaptionPdf: 'Drag to compare page 1. The rest of the document compresses the same way.',
 };
 
 /**
@@ -366,6 +378,12 @@ const hebrewCompressMessages: CompressMessages = {
   downloadDetailClosest: 'הגודל הקרוב ביותר: {size}',
   compareShow: 'השוואה למקור',
   compareHide: 'הסתרת ההשוואה',
+  compareRendering: 'מעבדים את עמוד 1 להשוואה…',
+  compareRenderFailed: 'לא הצלחנו להציג תצוגה מקדימה לקובץ הזה.',
+  compareBeforeLabel: 'מקור',
+  compareAfterLabel: 'מכווץ',
+  compareCaptionImage: 'גררו כדי להשוות בין התמונה המקורית לתמונה המכווצת.',
+  compareCaptionPdf: 'גררו כדי להשוות את עמוד 1. שאר המסמך מכווץ באותו אופן.',
 };
 
 const compressMessages: Partial<Record<DocumentationLocaleId, CompressMessages>> = {

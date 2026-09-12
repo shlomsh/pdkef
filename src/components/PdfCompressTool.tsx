@@ -1,6 +1,7 @@
 import { useRef, useState } from 'preact/hooks';
 import { compressPdf, compressPdfToTarget } from '../lib/compress.js';
 import { compressImageToTarget } from '../lib/compressImage.js';
+import { deriveFileKind } from '../lib/fileKind.js';
 import { useObjectUrls } from '../lib/useObjectUrls.js';
 import BasePdfTool from './BasePdfTool.tsx';
 import styles from './PdfCompressTool.module.css';
@@ -20,28 +21,6 @@ const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
 // the photo half of application portals, which commonly cap a photo at
 // 20-50KB, tighter than the document limits the PDF presets target.
 const IMAGE_TARGET_SIZE_PRESETS_KB = [20, 50, 100, 200, 500];
-
-function extensionOf(name: string) {
-  const match = /\.([^./\\]+)$/.exec(name);
-  return match ? match[1].toLowerCase() : '';
-}
-
-/** Derives which half of the tool a file belongs to from its MIME type,
- * falling back to the filename extension only when the type is empty (some
- * drag sources hand over a File with no `type` at all). Returns null for
- * anything else, which both the accept-filter and the dispatch logic below
- * treat as "reject this file". */
-function deriveKind(file: File | null): 'pdf' | 'image' | null {
-  if (!file) return null;
-  if (file.type === 'application/pdf') return 'pdf';
-  if (file.type === 'image/jpeg' || file.type === 'image/png') return 'image';
-  if (!file.type) {
-    const ext = extensionOf(file.name);
-    if (ext === 'pdf') return 'pdf';
-    if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') return 'image';
-  }
-  return null;
-}
 
 function formatBytes(bytes: number) {
   if (bytes === 0) return '0 Bytes';
@@ -110,7 +89,7 @@ export default function PdfCompressTool({
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
 
-  const kind = deriveKind(file);
+  const kind = deriveFileKind(file);
   // Target Size is the only mode for an image - there's no quality-level
   // grid to show. Before any file is picked, `initialMode` stands in for
   // that same choice, so /compress-image/ can open straight into the
@@ -150,7 +129,16 @@ export default function PdfCompressTool({
     setComparePreviews(null);
   };
 
+  // Bumped on every change that invalidates an in-flight run (new file,
+  // level change, target size change) - resetOutput is the one place all of
+  // those already go through. handleCompress and openCompare capture this
+  // before their first await and check it after, so a run that outlives its
+  // file (a drop or Replace mid-compress, since costsSomething is false
+  // until status is 'done') lands nothing.
+  const runTokenRef = useRef(0);
+
   const resetOutput = () => {
+    runTokenRef.current += 1;
     clearPrepared();
     setStatus('idle');
     setProgress(0);
@@ -203,24 +191,33 @@ export default function PdfCompressTool({
   const openCompare = async () => {
     if (comparePreviews || compareStatus === 'loading' || !file || !compressedBlobRef.current) return;
 
+    const activeFile = file;
+    const activeBlob = compressedBlobRef.current;
+
     if (kind === 'image') {
-      const before = URL.createObjectURL(file);
-      const after = URL.createObjectURL(compressedBlobRef.current);
+      const before = URL.createObjectURL(activeFile);
+      const after = URL.createObjectURL(activeBlob);
       compareImageUrlsRef.current = { before, after };
       setComparePreviews({ before, after });
       return;
     }
 
+    // Read before the await: if resetOutput runs while this is loading (a
+    // drop, a Replace pick, or a level/target change), the run below is for
+    // a file that's already gone - see runTokenRef's comment above.
+    const runToken = runTokenRef.current;
     setCompareStatus('loading');
     try {
       const { renderComparePreview } = await import('../lib/thumbnails.js');
       const [before, after] = await Promise.all([
-        renderComparePreview(file),
-        renderComparePreview(compressedBlobRef.current),
+        renderComparePreview(activeFile),
+        renderComparePreview(activeBlob),
       ]);
+      if (runToken !== runTokenRef.current) return;
       setComparePreviews({ before, after });
       setCompareStatus('idle');
     } catch (err) {
+      if (runToken !== runTokenRef.current) return;
       console.error(err);
       setCompareStatus('error');
     }
@@ -237,8 +234,8 @@ export default function PdfCompressTool({
 
   const handleFilesAdded = (files: FileList | File[]) => {
     const incoming = Array.from(files);
-    const accepted = incoming.filter((f) => deriveKind(f) !== null);
-    const rejected = incoming.filter((f) => deriveKind(f) === null);
+    const accepted = incoming.filter((f) => deriveFileKind(f) !== null);
+    const rejected = incoming.filter((f) => deriveFileKind(f) === null);
 
     setRejectedFiles(rejected.length > 0 ? rejected.map((f) => f.name) : []);
 
@@ -246,7 +243,7 @@ export default function PdfCompressTool({
       const next = accepted[0];
       setFile(next);
       resetOutput();
-      setAnnouncement(formatMessage(deriveKind(next) === 'image' ? t.imageLoaded : t.loaded, { name: next.name }));
+      setAnnouncement(formatMessage(deriveFileKind(next) === 'image' ? t.imageLoaded : t.loaded, { name: next.name }));
     }
   };
 
@@ -263,16 +260,24 @@ export default function PdfCompressTool({
 
   const handleCompress = async () => {
     if (!file) return;
+    // The file this run belongs to, and the token that marks it current -
+    // both read before the first await, since a workspace drop or a Replace
+    // pick can swap `file` out from under an in-flight compress (see
+    // runTokenRef's comment above: costsSomething is false until status is
+    // 'done', so neither is confirmed first).
+    const activeFile = file;
+    const runToken = runTokenRef.current;
     setStatus('processing');
     setProgress(0);
     setAnnouncement(kind === 'image' ? t.imageStarting : t.starting);
 
     try {
       if (kind === 'image') {
-        const result = await compressImageToTarget(file, {
+        const result = await compressImageToTarget(activeFile, {
           targetKB,
           onProgress: setProgress,
         });
+        if (runToken !== runTokenRef.current) return;
         const resultType = result.blob.type || 'image/jpeg';
 
         setCompressedSize(result.blob.size);
@@ -288,15 +293,15 @@ export default function PdfCompressTool({
         // itself as `blob` when it was already under target - reference
         // equality here is exactly that check, no size/byte comparison
         // needed. See the toggle's render check below for why that matters.
-        setImagePassthrough(result.blob === file);
+        setImagePassthrough(result.blob === activeFile);
         compressedBlobRef.current = result.blob;
         setDownloadBlob(result.blob);
-        prepareFiles([{ blob: result.blob, filename: deriveDownloadName(file.name, resultType), type: resultType }]);
+        prepareFiles([{ blob: result.blob, filename: deriveDownloadName(activeFile.name, resultType), type: resultType }]);
         setStatus('done');
         setAnnouncement(result.metTarget ? t.imageComplete : t.missedTarget);
         // Open by default (SEO-25, 2026-09-12) - except a passthrough result,
         // which never gets a toggle at all (see the render check below).
-        if (result.blob !== file) {
+        if (result.blob !== activeFile) {
           setCompareOpen(true);
           openCompare();
         }
@@ -307,18 +312,20 @@ export default function PdfCompressTool({
       let didMeetTarget = true;
 
       if (level === 'target') {
-        const result = await compressPdfToTarget(file, {
+        const result = await compressPdfToTarget(activeFile, {
           targetKB,
           onProgress: setProgress,
         });
         compressedBlob = result.blob;
         didMeetTarget = result.metTarget;
       } else {
-        compressedBlob = await compressPdf(file, {
+        compressedBlob = await compressPdf(activeFile, {
           level,
           onProgress: setProgress,
         });
       }
+
+      if (runToken !== runTokenRef.current) return;
 
       const resultType = compressedBlob.type || 'application/pdf';
 
@@ -327,7 +334,7 @@ export default function PdfCompressTool({
       setOutputType(resultType);
       compressedBlobRef.current = compressedBlob;
       setDownloadBlob(compressedBlob);
-      prepareFiles([{ blob: compressedBlob, filename: deriveDownloadName(file.name, resultType), type: resultType }]);
+      prepareFiles([{ blob: compressedBlob, filename: deriveDownloadName(activeFile.name, resultType), type: resultType }]);
       setStatus('done');
       setAnnouncement(t.complete);
       // Open by default (SEO-25, 2026-09-12): see openCompare's comment.
@@ -335,6 +342,7 @@ export default function PdfCompressTool({
       openCompare();
     } catch (err) {
       console.error(err);
+      if (runToken !== runTokenRef.current) return;
       setStatus('error');
       setAnnouncement(kind === 'image' ? t.imageFailed : t.failed);
     }
@@ -507,24 +515,22 @@ export default function PdfCompressTool({
                             placeholder in the slider's own shape says so
                             without a spinner competing for attention. */}
                         <div class={styles['compare-skeleton']} aria-hidden="true" />
-                        <p class={styles['compare-status']} aria-live="polite">Rendering page 1 for comparison…</p>
+                        <p class={styles['compare-status']} aria-live="polite">{t.compareRendering}</p>
                       </>
                     )}
                     {compareStatus === 'error' && (
-                      <p class={styles['compare-status']}>Couldn't render a preview for this file.</p>
+                      <p class={styles['compare-status']}>{t.compareRenderFailed}</p>
                     )}
                     {comparePreviews && (
                       <>
                         <CompareSlider
                           beforeSrc={comparePreviews.before}
                           afterSrc={comparePreviews.after}
-                          beforeLabel="Original"
-                          afterLabel="Compressed"
+                          beforeLabel={t.compareBeforeLabel}
+                          afterLabel={t.compareAfterLabel}
                         />
                         <p class={styles['compare-caption']}>
-                          {kind === 'image'
-                            ? 'Drag to compare the original and the compressed image.'
-                            : 'Drag to compare page 1. The rest of the document compresses the same way.'}
+                          {kind === 'image' ? t.compareCaptionImage : t.compareCaptionPdf}
                         </p>
                       </>
                     )}
