@@ -1,12 +1,12 @@
 ---
 id: "FONT-08"
 title: "Second-font / missing-style research across every single-font script"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "fonts-and-script-support"
 phase: "unspecified"
 depends_on: []
-legacy_state: "Open (FONT-08a's gap (a) fully closed 2026-08-29)"
+legacy_state: "Done 2026-09-12 (gap (a) closed 2026-08-29, gap (b) closed 2026-09-12)"
 ---
 
 # FONT-08 · Second-font / missing-style research across every single-font script
@@ -16,6 +16,42 @@ legacy_state: "Open (FONT-08a's gap (a) fully closed 2026-08-29)"
 **Second-font / missing-style research across every single-font script.** Two distinct gaps. **(a) is closed** (Devanagari and Thai each had only a handwriting face; Mukta and IBM Plex Sans Thai landed 2026-08-29 - record kept below for how the screening went). **(b) is what remains.**
 
 *(a), for the record:* Devanagari and Thai each had exactly one bundled face (Kalam, Mali) and both were handwriting, so an upright choice used to resolve the whole element to a handwritten look. **Devanagari:** Mukta (Ek Type, OFL) passed all three screening checks on the first candidate tried - see the Mukta writeup below. **Thai:** the top two ranked candidates, Sarabun and Kanit, both measurably failed the fontkit-vs-browser advance-parity check (Guard A) on ordinary Thai words (Sarabun 1.4-3.0% of string width, Kanit 0.3-1.0%) despite neither carrying `calt` - a real finding the three-check protocol exists to catch. **IBM Plex Sans Thai** landed instead: it does carry `calt` (flagged, and stress-tested specifically against the classic Thai tall-consonant/tone-mark collision case ปั๊กฝ้ายให้ฟังกิ๊บ) but passed Guard A cleanly (0.05px unhinted tolerance) on every sample including that stress case, so it shipped on the strength of the test rather than the flag - see `e2e/sign/thai-font-parity.spec.js`. **(b) single-font scripts with no second choice for variety** - Bengali, Punjabi/Gurmukhi, Telugu, Tamil, the Arabic family (Scheherazade New), Japanese, Chinese SC/TC, Korean, plus Cyrillic and Greek (both text-only today, no handwriting option either), and now also Thai's *handwriting* side (Mali is still the only Thai handwriting face). Named-but-unscreened candidates already on record: Sriracha (2nd Thai handwriting, same-day runner-up to Mali), a 2nd Cyrillic face, a 2nd Hebrew handwriting face, more Latin handwriting styles. **Research rules and the exact current catalogue to screen against: [docs/font-candidate-research-brief.md](./docs/font-candidate-research-brief.md)** - landed in the repo as of `c1d7f13`; an earlier pass of this ticket found it referenced but missing, since fixed.
+
+## Done 2026-09-12: every (b) gap has a second face or a recorded decision
+
+Eleven fonts landed in one day, each as its own nine-step unit in its own worktree, cherry-picked onto
+`main` and reconciled once (generated catalogue, coverage, CSS, license list, acceptance matrix, and
+the `/he/sign/` sourceHash, refreshed mechanically because none of the nine changed English FAQ
+answers is in the translated subset). The catalogue went from 19 text and 8 handwriting faces to 25
+and 13. Full Sign e2e on the merged tree: 156 passed, 3 skipped (Caveat's known-red Latin fixme,
+Sriracha's recorded Latin fixme, the CI-only export-render baseline).
+
+| Gap | Landed | Guard (pixel) | Advance parity |
+| --- | --- | --- | --- |
+| Arabic family, 2nd upright | Vazirmatn (`calt`, passed anyway) | 155/155 + 22/22 Pashto | 0.000px on 12 words incl. shadda+fatha |
+| Bengali, 2nd | Hind Siliguri | 262/262, 0 divergences | 0.000px |
+| Punjabi, 2nd | Tiro Gurmukhi (Regular + Italic) | 132/132 | 0.00004px |
+| Telugu, 2nd | Suranna (610KB, no Bold, said in copy) | 476/476 | 0.00005px |
+| Tamil, 2nd | Tiro Tamil (Regular + Italic) | 235/235 | 0.000px |
+| Malayalam, 2nd | Gayathri | 277/277 | 0.000px |
+| Thai handwriting, 2nd | Sriracha (repadded) | Guard A 16/16 Thai at 0.000px | Latin 1.024px recorded, see below |
+| Devanagari handwriting, 2nd | Tillana (repadded) | 185/185 | 0.0001px |
+| Cyrillic handwriting, first | Neucha; Amatic SC (caps-only) | 18/18; 16/16 | 0.000px both |
+| Greek handwriting, first | Mynerve (`calt`) | 0/4 substituting cases failing, 10/10 parity | Latin 3.648px recorded, see below |
+| Hebrew handwriting, 2nd | Amatic SC (H8 69/69) | via Hebrew guards | 0.000px |
+
+**Decision recorded (Shlomi, 2026-09-12): a handwriting face whose own script is exact but whose Latin
+kerning differs from the browser lands, with the delta recorded as a `test.fixme` next to Caveat's.**
+Sriracha (1.024px, 0.70% on "Sarah Levi") and Mynerve (3.648px, 2.55%) are that case; Caveat ships at
+5.1px on the same string. SIGN-20 is the ticket that retires all three together; nothing here widened
+a tolerance.
+
+**Discarded with evidence:** Tiro Bangla (fontkit hangs on ফ্র and শ্র, a new failure class), Cairo (no
+Pashto, variable-only), Patrick Hand (no Greek). **Not pursued by decision:** CJK second faces wait for
+build-time pre-subsetting, as the brief says. **Left open elsewhere:** the export-render baseline needs
+one CI run of `update-export-render-baseline` after the push (eleven new cases); Arimo and Tinos
+disagree with the browser by 1.77px on a Greek name, found by the Greek parity guard, pre-existing and
+now its own task.
 
 ## 2026-09-12: research pass, verified against bytes
 
