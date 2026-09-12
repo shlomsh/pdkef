@@ -54,6 +54,12 @@ export const FONT_MANIFEST = [
     license: { version: '1.000', url: 'https://fonts.google.com/specimen/Mali', copyright: 'Copyright 2018 The Mali Project Authors' },
   },
   {
+    family: 'Neucha', kind: 'handwriting', styleTag: 'handwriting',
+    metrics: { ascent: 0.769, descent: 0.285 },
+    faces: normal('Neucha-Regular.ttf'),
+    license: { version: '1.1', url: 'https://fonts.google.com/specimen/Neucha', copyright: 'Copyright (c) 2008-2010 by Jovanny Lemonad (http://www.jovanny.ru)' },
+  },
+  {
     family: 'Pacifico', kind: 'handwriting', styleTag: 'handwriting',
     metrics: { ascent: 1.303, descent: 0.453 },
     faces: normal('Pacifico-Regular.ttf'),

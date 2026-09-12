@@ -118,6 +118,10 @@ export const EXPORT_RENDER_CORPUS = [
   // subset missing a component on the file a user actually receives, the
   // same division of labour as every other script pair in this file.
   textCase('cyrillic-amatic-sc', 'Привіт', { fontFamily: 'Amatic SC' }),
+  // FONT-08b: Neucha, the first Cyrillic handwriting face - same sample as
+  // the PT Sans case above, so a divergence between the two is about the
+  // font, not the text.
+  textCase('cyrillic-neucha', 'Привіт', { fontFamily: 'Neucha' }),
   textCase('greek-tinos', 'Καλημέρα', { fontFamily: 'Tinos' }),
 
   // --- Japanese and Bengali: shipped, user-selectable scripts this guard has

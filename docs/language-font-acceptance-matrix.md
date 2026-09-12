@@ -14,17 +14,18 @@ A shipped row means its real alphabet coverage is checked against bundled font b
 | 6 | shipped | Dari, Farsi, Urdu, Pashto | Afghanistan; Iran; Pakistan; Urdu exports in Naskh, not conventional Nastaliq | Scheherazade New | RTL | e2e/sign/arabic-shaping-guard.spec.js | e2e/sign/arabic-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
 | 7 | shipped | Bengali (Bangla), Assamese | Bangladesh; India; Assamese includes ৰ and ৱ | Noto Sans Bengali | LTR | e2e/sign/bengali-shaping-guard.spec.js | e2e/sign/bengali-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
 | 8 | shipped | Russian, Ukrainian, Belarusian, Bulgarian, Serbian (Cyrillic), Macedonian, Kazakh (Cyrillic) | Eastern Europe; Central Asia | PT Sans | LTR | not-applicable | e2e/sign/export-render-guard.spec.js |
-| 9 | shipped | Japanese | Japan | Noto Sans JP | LTR | not-applicable | e2e/sign/cjk-advance-parity-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
-| 10 | shipped | Korean | South Korea | Noto Sans KR | LTR | not-applicable | e2e/sign/cjk-advance-parity-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
-| 11 | shipped | Vietnamese | Vietnam | Arimo, Tinos, Cousine, Mali | LTR | not-applicable | e2e/sign/latin-shaping-guard.spec.js |
-| 12 | shipped | Thai | Thailand | Mali, IBM Plex Sans Thai | LTR | e2e/sign/thai-font-parity.spec.js | e2e/sign/thai-font-parity.spec.js<br>e2e/sign/export-render-guard.spec.js |
-| 13 | shipped | Telugu | India | Anek Telugu, Suranna | LTR | e2e/sign/telugu-shaping-guard.spec.js<br>e2e/sign/telugu-suranna-shaping-guard.spec.js | e2e/sign/telugu-shaping-guard.spec.js<br>e2e/sign/telugu-suranna-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
-| 14 | shipped | Tamil | India; Sri Lanka | Noto Sans Tamil, Tiro Tamil | LTR | e2e/sign/tamil-shaping-guard.spec.js<br>e2e/sign/tamil-tiro-shaping-guard.spec.js | e2e/sign/tamil-shaping-guard.spec.js<br>e2e/sign/tamil-tiro-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
-| 15 | shipped | Punjabi (Gurmukhi) | India | Mukta Mahee | LTR | e2e/sign/gurmukhi-shaping-guard.spec.js | e2e/sign/gurmukhi-shaping-guard.spec.js |
-| 16 | shipped | Malayalam | India | Anek Malayalam | LTR | e2e/sign/malayalam-shaping-guard.spec.js | e2e/sign/malayalam-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
-| 17 | shipped | Greek | Greece; Cyprus | Arimo, Tinos, Cousine | LTR | not-applicable | e2e/sign/export-render-guard.spec.js |
-| 18 | shipped | Hebrew | Israel | Arimo, Tinos, Cousine, Assistant, Heebo, Alef, Gveret Levin | RTL | e2e/sign/hebrew-font-parity.spec.js<br>e2e/sign/hebrew-composition-guard.spec.js | e2e/sign/hebrew-font-parity.spec.js<br>e2e/sign/export-render-guard.spec.js |
-| 19 | planned | Gujarati, Kannada, Odia | India | — | LTR | pending | pending |
-| 20 | planned | Emoji | Global | — | LTR | pending | pending |
+| 9 | shipped | Russian, Ukrainian, Belarusian, Bulgarian, Serbian (Cyrillic), Macedonian | Eastern Europe | Neucha, Amatic SC | LTR | e2e/sign/cyrillic-shaping-guard.spec.js | e2e/sign/cyrillic-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
+| 10 | shipped | Japanese | Japan | Noto Sans JP | LTR | not-applicable | e2e/sign/cjk-advance-parity-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
+| 11 | shipped | Korean | South Korea | Noto Sans KR | LTR | not-applicable | e2e/sign/cjk-advance-parity-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
+| 12 | shipped | Vietnamese | Vietnam | Arimo, Tinos, Cousine, Mali | LTR | not-applicable | e2e/sign/latin-shaping-guard.spec.js |
+| 13 | shipped | Thai | Thailand | Mali, IBM Plex Sans Thai | LTR | e2e/sign/thai-font-parity.spec.js | e2e/sign/thai-font-parity.spec.js<br>e2e/sign/export-render-guard.spec.js |
+| 14 | shipped | Telugu | India | Anek Telugu, Suranna | LTR | e2e/sign/telugu-shaping-guard.spec.js<br>e2e/sign/telugu-suranna-shaping-guard.spec.js | e2e/sign/telugu-shaping-guard.spec.js<br>e2e/sign/telugu-suranna-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
+| 15 | shipped | Tamil | India; Sri Lanka | Noto Sans Tamil, Tiro Tamil | LTR | e2e/sign/tamil-shaping-guard.spec.js<br>e2e/sign/tamil-tiro-shaping-guard.spec.js | e2e/sign/tamil-shaping-guard.spec.js<br>e2e/sign/tamil-tiro-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
+| 16 | shipped | Punjabi (Gurmukhi) | India | Mukta Mahee | LTR | e2e/sign/gurmukhi-shaping-guard.spec.js | e2e/sign/gurmukhi-shaping-guard.spec.js |
+| 17 | shipped | Malayalam | India | Anek Malayalam | LTR | e2e/sign/malayalam-shaping-guard.spec.js | e2e/sign/malayalam-shaping-guard.spec.js<br>e2e/sign/export-render-guard.spec.js |
+| 18 | shipped | Greek | Greece; Cyprus | Arimo, Tinos, Cousine | LTR | not-applicable | e2e/sign/export-render-guard.spec.js |
+| 19 | shipped | Hebrew | Israel | Arimo, Tinos, Cousine, Assistant, Heebo, Alef, Gveret Levin | RTL | e2e/sign/hebrew-font-parity.spec.js<br>e2e/sign/hebrew-composition-guard.spec.js | e2e/sign/hebrew-font-parity.spec.js<br>e2e/sign/export-render-guard.spec.js |
+| 20 | planned | Gujarati, Kannada, Odia | India | — | LTR | pending | pending |
+| 21 | planned | Emoji | Global | — | LTR | pending | pending |
 
 Simplified and Traditional Chinese stay separate because shared Han code points do not identify the intended regional glyph shapes; the explicit font choice is the signal. Urdu's shipped face is Naskh, not conventional Nastaliq. Planned rows do not become supported until all evidence columns are populated.

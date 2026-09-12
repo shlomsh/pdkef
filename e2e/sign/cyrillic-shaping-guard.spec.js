@@ -3,77 +3,112 @@ import { CALIBRATION_SET, CYRILLIC_CORPUS } from './fixtures/cyrillicCorpus.js';
 import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
 
 /**
- * Cyrillic correctness guard for Amatic SC (FONT-08), the first handwriting
- * face Cyrillic has ever had in this catalogue - closing the gap
- * docs/font-candidate-research-brief.md's Cyrillic row named ("no handwriting
- * option at all"). Every other Cyrillic-capable family (Arimo, Tinos,
- * Cousine, PT Sans) is upright/sans and has never needed a guard of this
- * kind, so this is a new script row, not a new candidate on an existing one.
+ * Cyrillic correctness guard for Neucha (FONT-08b), the catalogue's first
+ * Cyrillic handwriting face - closing the gap
+ * docs/font-candidate-research-brief.md's "Cyrillic and Greek handwriting
+ * gap" section named and screened Neucha as the top pick for. Same shared
+ * machinery as every other guard in this directory
+ * (`./fixtures/shapingGuardHarness.js`): shape each string with fontkit,
+ * reconstruct it on a `<canvas>` at fontkit's reported glyph positions, and
+ * pixel-diff that against this browser's own native `fillText()` of the
+ * identical string in the identical font.
  *
- * **Why this is not `autoCalibrate`, unlike latin-shaping-guard.spec.js.**
- * That guard partitions its corpus by whether fontkit's `layout()` picks a
- * different glyph than a plain per-codepoint `cmap` lookup would - the
- * `calt`/`liga` contextual-substitution question. Measured against the real
- * bytes (see cyrillicCorpus.js's module doc): Amatic SC has no `calt` table
- * at all, and its `liga` feature never fires on any string in this corpus
- * (0 of 24 substitute). `autoCalibrate` would find zero substituting cases
- * and `shapingGuardHarness.js` fails on exactly that ("0 of N corpus strings
- * trigger any contextual substitution... not proof of agreement") rather
- * than passing vacuously - so this guard uses a hand-picked
- * `calibrationSet` instead, the same shape Devanagari's and Arabic's guards
- * use. That is also the honest description of what this guard actually
- * checks: not glyph *selection* (this font/script combination has none to
- * get wrong) but glyph *placement* - `kern` is a real, present OpenType
- * feature in this font, confirmed against the bytes, so fontkit's kerned
- * advances disagreeing with the browser's own rendering is a real thing this
- * guard can catch and a bare cmap-lookup reconstruction could not.
+ * **Why `calibrationSet`, not `autoCalibrate`, and why that is not a weaker
+ * guard.** Screened 2026-09-12 against the real font bytes: Neucha has
+ * **no GSUB table at all** (`!!font.GSUB === false`) and its only listed
+ * OpenType feature is `kern` (GPOS). `autoCalibrate` (used by every
+ * self-calibrating guard in this directory - Gurmukhi, Telugu, Tamil,
+ * Malayalam, the four Latin `calt` faces) partitions a corpus into strings
+ * fontkit substitutes a glyph on versus strings it doesn't, and judges only
+ * the former - with no GSUB, fontkit's `layout()` can never choose a
+ * different glyph than a plain per-codepoint cmap lookup would, so every
+ * corpus string would fall into the "no substitution" bucket and the
+ * harness would correctly refuse to run at zero cases under test. That is
+ * not a loophole this guard ducks by switching modes - it is the accurate
+ * reading of a font with no substitution mechanism, and it means this guard
+ * cannot fail the way Gurmukhi's or Malayalam's could (choosing the wrong
+ * conjunct). What it still can fail: a font-wide rendering disagreement (a
+ * corrupted outline, a `glyf`/`loca` misread) large enough to swamp the
+ * measured noise floor on the same corpus - see
+ * `./fixtures/cyrillicCorpus.js` for the corpus's own reasoning and its
+ * `calibrationSet` (every base letter of the six anchor alphabets Neucha
+ * covers, plus ten adjacent-letter pairs chosen to expose Neucha's one real
+ * non-cmap feature, GPOS kerning, as calibration ink rather than as an
+ * untested variable).
  *
- * **Sabotage control (the check that a guard which never fails proves
- * nothing).** Corrupting the corpus-side `shape()` call alone - not
- * `drawReconstruction` or anything calibration also calls, per
- * devanagari-shaping-guard.spec.js's own module-doc precedent for why that
- * distinction matters - by reversing each string's glyph draw order
- * reproduces a large, obvious failure (all 16 corpus cases fail, at
- * 60-90%+ diff each) against the unchanged calibration floor. Reverted
- * before landing; not left as a permanent test since none of the other
- * per-script guards in this directory keep theirs as one either - this is
- * the same one-time proof-of-life every guard here relies on.
+ * **Coverage boundary, not a shaping question.** Kazakh's eight extra
+ * letters (ә, ғ, қ, ң, ө, ұ, ү, һ) are absent from Neucha's cmap entirely
+ * (`src/lib/fontCoverageReport.js`'s `cyrillicKazakh` row: 0.805 partial,
+ * Neucha not in `.full`) and are correctly excluded from this guard's
+ * corpus - a missing glyph is what `fontCoverage.test.js` guards, not this
+ * file, and a guard cannot meaningfully test shaping on a character the font
+ * cannot draw at all.
  *
- * **Render size.** 320px, above Skia's ~256px bitmap-glyph cache limit (see
- * shapingGuardHarness.js's "Two artefacts" note) - the same correction
- * Devanagari, Arabic and Bengali needed once re-measured. Canvas geometry is
- * sized for the longest corpus string ('телефон +380 44 123 4567', 24
- * characters) at this size.
+ * Cyrillic is Bidi_Class L (left-to-right internally, like every other
+ * script guarded in this directory except Hebrew/Arabic), so this guard
+ * anchors at a fixed left pen position with no RTL handling.
  *
- * **Measured 2026-09-12:** 8 calibration strings (all zero-ambiguity, real
- * Cyrillic ink - short names and words, not bare letters, per the Latin
- * guard's own lesson about single-glyph calibration understating noise on a
- * hand-drawn face), 16 corpus cases. Numbers are printed by the harness at
- * run time (`console.log`) and reported in FONT-08's landing notes
- * (backlog/tasks/FONT-08.md) rather than hand-copied here, so this comment
- * never drifts from a number a future re-run could contradict.
+ * **Geometry: 300px, not the 400px other recent guards use.** Still well
+ * clear of Skia's ~256px bitmap-glyph cache limit - above that limit
+ * `fillText` and this guard's own `Path2D` reconstruction both rasterise
+ * through paths instead of disagreeing along antialiased bitmap edges (see
+ * the "Two artefacts" note in `shapingGuardHarness.js`) - but a full
+ * two-word name (this corpus's longest case, "Підписано: О. Ковальчук", 24
+ * characters) measures 2639px wide at 300px, already wider than any other
+ * guard's canvas in this directory; 400px would need a canvas wider still
+ * for no floor-quality benefit once the 256px threshold is already cleared.
+ *
+ * **Result at landing (2026-09-12, measured on macOS): 18/18 corpus cases
+ * passed** against a calibration floor measured from 86 calibration strings
+ * (76 bare letters + 10 kerning pairs) - rasteriser floor 0.00%,
+ * advance-quantisation floor 0.00% (this platform does not quantise
+ * advances), tolerance floored at the 4% minimum. Re-measure on the CI
+ * runner (`docs/shaping-guard-platform-calibration.md`'s two-artefact split
+ * applies to this guard exactly like every other one here) before trusting
+ * this number cross-platform.
  */
 
 const GEOMETRY = {
   direction: 'ltr',
-  size: 320,
-  canvasWidth: 3600,
-  canvasHeight: 900,
+  size: 300,
+  canvasWidth: 2800,
+  canvasHeight: 450,
   anchorX: 60,
-  baselineY: 620,
+  baselineY: 320,
 };
 
-// Same absolute floor every other per-script guard in this directory uses.
-const MIN_TOLERANCE_PCT = 3;
+createShapingGuardTest({
+  scriptName: 'Cyrillic',
+  candidateName: 'Neucha',
+  fontFileName: 'Neucha-Regular.ttf',
+  corpus: CYRILLIC_CORPUS,
+  calibrationSet: CALIBRATION_SET,
+  // No GSUB means there is no letterform-substitution mechanism to fail on;
+  // this floor only has to absorb ordinary rasteriser/kerning noise, the
+  // same class of floor Devanagari (4%) and Malayalam (4%) settled on.
+  minTolerancePct: 4,
+  ...GEOMETRY,
+  test,
+  expect,
+});
 
+// Amatic SC landed the same day as Cyrillic's other handwriting face (FONT-08,
+// caps-only, also Hebrew). It runs over the same corpus and calibration set
+// as Neucha above so the two are measured against one floor; its original
+// standalone guard (8-string calibration, 16 cases, 0 failing at a 3% floor)
+// was folded in here at merge time.
 createShapingGuardTest({
   scriptName: 'Cyrillic',
   candidateName: 'AmaticSC',
   fontFileName: 'AmaticSC-Regular.ttf',
   corpus: CYRILLIC_CORPUS,
   calibrationSet: CALIBRATION_SET,
-  minTolerancePct: MIN_TOLERANCE_PCT,
+  // No GSUB means there is no letterform-substitution mechanism to fail on;
+  // this floor only has to absorb ordinary rasteriser/kerning noise, the
+  // same class of floor Devanagari (4%) and Malayalam (4%) settled on.
+  minTolerancePct: 4,
   ...GEOMETRY,
+  bundleFilename: '__e2e-cyrillic-amaticsc-fontkit-bundle.js',
   test,
   expect,
 });

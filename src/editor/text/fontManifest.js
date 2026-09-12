@@ -87,6 +87,18 @@ export const FONT_MANIFEST = Object.freeze([
     }
   },
   {
+    "family": "Neucha",
+    "kind": "handwriting",
+    "styleTag": "handwriting",
+    "metrics": {
+      "ascent": 0.769,
+      "descent": 0.285
+    },
+    "faces": {
+      "normal": "Neucha-Regular.ttf"
+    }
+  },
+  {
     "family": "Pacifico",
     "kind": "handwriting",
     "styleTag": "handwriting",

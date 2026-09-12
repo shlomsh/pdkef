@@ -108,7 +108,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 23 text fonts and nine handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 23 text fonts and three of the nine handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 23 text fonts and ten handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 23 text fonts and three of the ten handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -148,7 +148,7 @@ export const tools = [
         {
           native: 'Русский, Українська 🇷🇺🇺🇦🇧🇬',
           name: 'Russian, Ukrainian, and other Cyrillic',
-          note: 'Fill a form and sign your name in Russian, Ukrainian, Bulgarian, Serbian and the other Cyrillic languages, in PT Sans, which carries the Ukrainian letters ї, є, і and ґ that some fonts quietly leave out. Amatic SC is here too if you want a handwritten-feeling signature, though it draws capitals only, so lowercase comes out as small capitals rather than a cursive script, and it does not carry the extra Kazakh letters (Ә, Ғ, Қ, Ң, Ө, Ұ, Ү, Һ).',
+          note: 'Fill a form and sign your name in Russian, Ukrainian, Bulgarian, Serbian and the other Cyrillic languages, in PT Sans, which carries the Ukrainian letters ї, є, і and ґ that some fonts quietly leave out. Two handwriting faces are here for a typed signature: Neucha, an upright marker-style hand with proper lowercase, and Amatic SC, which draws capitals only, so lowercase comes out as small capitals rather than a cursive script. Neither carries the eight extra letters Kazakh needs (ә, ғ, қ, ң, ө, ұ, ү, һ), so a Kazakh signature still comes out in PT Sans.',
         },
         {
           native: 'اردو 🇵🇰🇮🇳',

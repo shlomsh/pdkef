@@ -79,7 +79,9 @@ describe('language/font acceptance matrix', () => {
   it('keeps the generated documentation current', () => {
     const documented = join(process.cwd(), 'docs', 'language-font-acceptance-matrix.md');
     expect(existsSync(documented)).toBe(true);
-    expect(matrixMarkdown()).toContain('| 20 | planned | Emoji |');
+    // FONT-08b added a row (Neucha, order 9), shifting every row after it by
+    // one - Emoji moved from 20 to 21.
+    expect(matrixMarkdown()).toContain('| 21 | planned | Emoji |');
   });
 });
 

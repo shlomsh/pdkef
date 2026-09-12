@@ -204,3 +204,63 @@ manifest, no hand-edit needed), `src/lib/fontCoverageTable.js` and `fontCoverage
 handwriting request, the same shape as Mukta's Devanagari precedent). Full test suite (2380 tests),
 typecheck, build, CSP, CSS, page-weight and the font-touching Playwright specs all green - see the
 FONT-08 landing commit for the exact command output.
+## Landed 2026-09-12: Neucha (FONT-08b, Cyrillic handwriting gap)
+
+Cyrillic was text-only (Arimo/Tinos/Cousine/PT Sans, all upright) with no handwriting option at
+all - one of the two gaps `docs/font-candidate-research-brief.md`'s 2026-08-29 pass named. Neucha
+(Jovanny Lemonad, OFL 1.1, static Regular only, 138KB) was that brief's top pick, over Marck Script
+(discarded: its own docs flag "intelligent OpenType features," the same `calt`-risk shape that sank
+Playpen Sans Hebrew).
+
+- **License**: fetched the real `ofl/neucha/Neucha.ttf` + `OFL.txt` from the google/fonts mirror.
+  Name-table copyright `Copyright (c) 2005-2010 by Jovanny Lemonad. All rights reserved.` verified
+  against the font's own `name` table; `OFL.txt`'s line (`Copyright (c) 2008-2010 by Jovanny Lemonad
+  (http://www.jovanny.ru)`, different year range, same person) is what's recorded in the manifest, per
+  the standing rule to use the license file's own line.
+- **Screen 1 (crash)**: 0/18 crashes on a mixed Russian/Ukrainian/Latin corpus through `font.layout()`.
+- **Screen (GSUB/features)**: `!!font.GSUB === false` - Neucha has no GSUB table at all, so there is no
+  `calt`/`liga` mechanism through which fontkit and the browser could ever choose a different glyph for
+  the same input. `availableFeatures` is `['kern']` only (GPOS).
+- **glyf alignment**: passed as shipped, no repad needed (`npm run test:fonts`, 63 fonts checked).
+- **Coverage**: 74/74 Cyrillic probe letters (full Russian alphabet + Ukrainian ґ/і/ї/є + ё), 62/62
+  Latin ASCII+digits, all missing 0. Against the generated coverage report specifically: **full** on
+  Russian, Ukrainian, Belarusian, Bulgarian, Serbian and Macedonian; **0.805 partial on Kazakh**
+  (missing all 16 of ә/ғ/қ/ң/ө/ұ/ү/һ, upper+lower - Kazakh's eight extra letters are simply absent from
+  Neucha's cmap, confirmed against the real bytes, not a shaping question). This is why Neucha could not
+  join the existing `cyrillic` row in `scripts/language-acceptance.mjs` (every family in a row must be
+  full on every language the row declares) and instead landed as its own `cyrillic-handwriting` row
+  (six languages, no Kazakh).
+- **Metrics**: real hhea ascent/descent via fontkit, `font.ascent / font.unitsPerEm` = 0.7686 →
+  **0.769**, `Math.abs(font.descent) / font.unitsPerEm` = 0.2852 → **0.285**.
+- **Shaping guard** (`e2e/sign/cyrillic-shaping-guard.spec.js`, new - Cyrillic had no shaping guard
+  before this): `calibrationSet` mode (not `autoCalibrate` - a font with no GSUB never substitutes, so
+  every corpus string would land in the "no substitution" bucket and the harness would correctly refuse
+  to run). 18 corpus cases (Russian/Ukrainian names and form words incl. ё, ґ, ї, є, і, and mixed
+  Cyrillic+digits) against an 86-string calibration set (76 bare letters + 10 kerning pairs), rendered
+  at 300px. **Result (macOS): 18/18 passed, rasteriser floor 0.00%, advance-quantisation floor 0.00%,
+  tolerance floored at 4%.** Not yet re-measured on the CI (ubuntu-latest) runner.
+- **Kerning/advance parity spot check** (Guard A method, `shapedAdvancePx` vs. browser `measureText`,
+  the scale Caveat's 5.1px gap on "Sarah Levi" set): Latin "Sarah Levi" 121.250px both sides (delta
+  0.000px); Cyrillic "Александра Смирнова" 269.125px both sides (delta 0.000px); Cyrillic "Владимир
+  Петров" 217.125px both sides (delta 0.000px). Exact agreement on all three, unlike Caveat.
+- **Catalogue wiring**: `scripts/font-manifest.mjs` (`kind: 'handwriting'`), regenerated
+  `fontManifest.js`/`editorFonts.css`/`THIRD_PARTY_LICENSES.md`; `npm run generate:font-coverage` and
+  `generate:font-coverage-report`; `scripts/language-acceptance.mjs` gained the `cyrillic-handwriting`
+  row (order 9, renumbering every row after it) with `e2e/sign/cyrillic-shaping-guard.spec.js` as its
+  shaping/visual evidence; `e2e/sign/fixtures/exportRenderCorpus.js` gained a `cyrillic-neucha` case
+  (baseline recapture pending the `update-export-render-baseline` CI workflow - not touched here).
+- **Copy**: `src/data/tools.js`'s Cyrillic "supported" note now names Neucha and its Kazakh gap;
+  `languageCoverage.test.js` updated to match (the old "no handwriting-style Cyrillic face" assertion
+  is gone, replaced by a test pinning Neucha's six-of-seven coverage). The Cyrillic/Thai FAQ answer
+  (`src/data/tools.js`, "Can I type Russian, Ukrainian, or Thai...") was **deliberately left unchanged**:
+  it's one of the 12 fields `TOOL_SOURCE_FIELDS` hashes for the published `/he/sign/` translation's
+  freshness gate, editing it marks that translation stale and fails the build, and this task has no
+  Hebrew-review authority to clear that gate. Follow-up: fold a Neucha mention into that FAQ answer
+  together with the next reviewed Hebrew `/sign/` pass.
+- **One behavior change**: `resolveFontSubstitution('Caveat', 'Привіт')` now resolves to `Neucha`
+  instead of `Arimo` (a handwriting request for Cyrillic text now prefers the handwriting candidate,
+  same tagRank/classRank tiebreak Kalam and Mali already won for Devanagari/Thai) - `fonts.test.js`
+  updated to match.
+- **No Bold face** (Neucha ships Regular only, matching Google Fonts' own single-static-weight
+  distribution); `requestedFontFile('Neucha', 'bold', ...)` falls back to Regular like every other
+  Regular-only bundled face.
