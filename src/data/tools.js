@@ -108,7 +108,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 24 text fonts and ten handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: 11 of the 24 text fonts and three of the ten handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 24 text fonts and 11 handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: 11 of the 24 text fonts and four of the 11 handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -118,7 +118,7 @@ export const tools = [
         {
           native: 'हिन्दी, मराठी 🇮🇳🇳🇵',
           name: 'Hindi, Marathi, and Devanagari',
-          note: 'Fill a form and sign your name in Hindi or Marathi, in Kalam if you want a handwritten look or Mukta for plain upright text, either of which also works for a typed signature. Conjunct letters and vowel signs are reordered and reshaped for the download, which is the part most tools quietly get wrong. Both fonts carry ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi is not an afterthought here.',
+          note: 'Fill a form and sign your name in Hindi or Marathi, in Kalam or Tillana if you want a handwritten look or Mukta for plain upright text, any of which also works for a typed signature. Conjunct letters and vowel signs are reordered and reshaped for the download, which is the part most tools quietly get wrong. All three fonts carry ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi is not an afterthought here.',
         },
         {
           native: 'العربية 🇪🇬🇸🇦🇲🇦',
@@ -203,7 +203,7 @@ export const tools = [
         {
           native: 'Türkçe 🇹🇷',
           name: 'Turkish',
-          note: "Fill a Turkish form and sign your name in Turkish. Eleven text fonts carry the complete 29-letter alphabet, the same eleven that carry the full accented set in the Latin-script note above, plus Kalam and Mali if you want a handwritten look, either of which also works for a typed signature. The three letters that set Turkish apart from plain accented Latin, Ğ, İ and Ş, are exactly what that general Latin-Ext sample does not check, so I verified them against the real font files rather than assuming coverage carried over.",
+          note: "Fill a Turkish form and sign your name in Turkish. Eleven text fonts carry the complete 29-letter alphabet, the same eleven that carry the full accented set in the Latin-script note above, plus Kalam, Mali and Tillana if you want a handwritten look, any of which also works for a typed signature. The three letters that set Turkish apart from plain accented Latin, Ğ, İ and Ş, are exactly what that general Latin-Ext sample does not check, so I verified them against the real font files rather than assuming coverage carried over.",
         },
       ],
       notYetHeading: "Don't see your language? Ask, and it moves to the front of the queue.",
@@ -266,7 +266,7 @@ export const tools = [
       },
       {
         question: 'Can I fill and sign a PDF in Hindi or Marathi (हिन्दी या मराठी में PDF पर हस्ताक्षर)?',
-        answer: 'Yes, both. Type Devanagari text into a text box, in Kalam for a handwritten look or Mukta for plain upright text, and either one also works for a typed signature. Conjunct letters and vowel signs are shaped and positioned correctly, not just displayed on screen, so what you see is what gets embedded in the file you download. Both fonts also carry ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi works exactly the same way.',
+        answer: 'Yes, both. Type Devanagari text into a text box, in Kalam or Tillana for a handwritten look or Mukta for plain upright text, and any of the three also works for a typed signature. Conjunct letters and vowel signs are shaped and positioned correctly, not just displayed on screen, so what you see is what gets embedded in the file you download. All three fonts also carry ळ and ऱ, the two letters that set Marathi apart from Hindi, so Marathi works exactly the same way.',
       },
       {
         question: 'Can I fill and sign a PDF in Arabic (التوقيع على PDF بالعربية)?',
@@ -306,7 +306,7 @@ export const tools = [
       },
       {
         question: 'Can I type Turkish (PDF üzerinde Türkçe imza) when signing a PDF?',
-        answer: "Yes. Ten text fonts (Arimo, Tinos, Cousine, Heebo, Alef, PT Sans and others) and two handwriting faces, Kalam and Mali, carry the complete 29-letter Turkish alphabet, checked letter by letter against the real font files rather than assumed from general Latin coverage. That check matters here specifically for Ğ, İ and Ş, the three letters that make Turkish its own alphabet and that a general accented-Latin font does not necessarily draw. Kalam and Mali also work for a typed signature.",
+        answer: "Yes. Ten text fonts (Arimo, Tinos, Cousine, Heebo, Alef, PT Sans and others) and three handwriting faces, Kalam, Mali and Tillana, carry the complete 29-letter Turkish alphabet, checked letter by letter against the real font files rather than assumed from general Latin coverage. That check matters here specifically for Ğ, İ and Ş, the three letters that make Turkish its own alphabet and that a general accented-Latin font does not necessarily draw. Kalam, Mali and Tillana also work for a typed signature.",
       },
     ],
   },

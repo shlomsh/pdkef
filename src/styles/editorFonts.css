@@ -105,6 +105,18 @@
   font-weight: 700;
   src: url('/fonts/AmaticSC-Bold.ttf') format('truetype');
 }
+@font-face {
+  font-family: 'Tillana';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Tillana-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Tillana';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Tillana-Bold.ttf') format('truetype');
+}
 
 /* --- Text fonts --- */
 @font-face {
