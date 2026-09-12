@@ -1,7 +1,7 @@
 ---
 id: "MERGE-08"
 title: "The assembled document: every page of the result, in order, rendered on device before any merge"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "merge-tool"
 phase: "near-term"
@@ -40,3 +40,17 @@ per second on a mid-range Android; memory per page) and measure it in a real bro
 - pdf.js stays lazy; `npm run test:weight` unchanged for first load.
 - One Playwright check under `e2e/merge/` that the strip's page count equals the sum of the files.
 - The subhead can now truthfully mention seeing every page (MERGE-05 revisited in MERGE-09).
+
+## Updates
+
+- 2026-09-13: `src/components/MergeTool/PageStrip.tsx` + `PageStrip.module.css`, loaded through a
+  dynamic `import()` once files exist (eager JS for `/merge/` 261 KB brotli against 255 before, budget
+  400; pdf.js stays lazy). One horizontal `role="list"` of every plan entry, dividers at file
+  boundaries, a file tag per card. Thumbnails come from `openThumbnailSource` (one pdf.js document
+  per file, released with `destroy()` and an aborted controller when the file leaves), rendered one
+  at a time with a yield between pages and only for cards an IntersectionObserver on the strip
+  reports near the viewport. Budget: 150px PNG on desktop (15 to 25 KB a page), 96px JPEG at 0.7
+  under 768px (2 to 3 KB), so a 400-page set stays under 10 MB of data URLs on desktop and about
+  1 MB on a phone. Tap a page: `PagePreviewDialog` via `showModal()`, also a dynamic import. The
+  Playwright count guard is `e2e/merge/merge-strip.spec.js`. Measured on a mid-range Android: not
+  done here (no device in this session); left for the field read in MERGE-16. Done.

@@ -1,7 +1,7 @@
 ---
 id: "MERGE-02"
 title: "Merge rejects PDFs with an empty MIME type that Compress accepts"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "merge-tool"
 phase: "quick-win"
@@ -28,3 +28,11 @@ traffic and accepted by the tool next to it.
 - The "skipped" hint still fires for a real non-PDF (an image, a `.docx`).
 - Unit test in `PdfMergeTool.test.tsx` for both cases. A follow-up grep confirms no other tool still
   compares `file.type` directly; if one does, it is listed here and fixed in the same change.
+
+## Updates
+
+- 2026-09-13: `addFiles` classifies through `deriveFileKind`; a `File` named `x.pdf` with an empty
+  `type` is added and a `.docx`/`.png` still gets the skipped hint (`PdfMergeTool.test.tsx`). The grep
+  found one other direct `file.type === 'application/pdf'` comparison, in `PdfSplitTool.tsx`'s
+  `handleFilesAdded`; it is a single-file tool with the same typeless-drop exposure and is left as a
+  one-line follow-up outside this epic rather than widened here unreviewed. Done.

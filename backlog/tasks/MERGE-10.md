@@ -1,7 +1,7 @@
 ---
 id: "MERGE-10"
 title: "Add more documents while the assembled pages are on screen"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "merge-tool"
 phase: "near-term"
@@ -34,3 +34,16 @@ duplicate nudge from MERGE-07 applies on every route. The pre-merge of MERGE-12 
 - Each route is covered by a unit test on the receive path; the strip drop is one Playwright check.
 - Adding a file after rotating and skipping pages leaves those edits intact.
 - Nothing about this is visible on the SEO surface; `test:weight` unchanged.
+
+## Updates
+
+- 2026-09-13: Add files appends; a drop onto the strip inserts the new file's pages at that
+  position (at a file boundary the file slots in between; inside another file's pages the plan
+  interleaves and the list shows the rearranged note); a drop onto the list inserts between files.
+  Page edits already made are kept, a new file arrives unrotated, the duplicate nudge applies, and
+  the pre-merge restarts. Paste (`Cmd/Ctrl+V` with files on the clipboard) and folder drop land in
+  `BasePdfTool` for every tool through `src/lib/dropFiles.js`: a dropped folder is walked with the
+  entries API and its files sorted with the numeric collator; a plain drop keeps the synchronous
+  path so Merge can still read its insertion index. Unit tests: `dropFiles.test.js`,
+  `BasePdfTool.test.tsx` (paste, folder), `PdfMergeTool.test.tsx` (add after edits keeps them);
+  the strip drop is `e2e/merge/merge-strip.spec.js`. Done.

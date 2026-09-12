@@ -1,7 +1,7 @@
 ---
 id: "MERGE-04"
 title: "Name the file that failed to merge and offer to merge the rest"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "merge-tool"
 phase: "quick-win"
@@ -34,3 +34,12 @@ links to `/unlock/`, where the password can be removed on device first.
 - An encrypted file is reported as encrypted, not damaged, with the Unlock link.
 - Unit tests in `merge.test.js` for both reasons; the messages live in `toolMessages.ts` so `/he/merge/`
   can carry them.
+
+## Updates
+
+- 2026-09-13: `mergePdfs` loads each source in its own `try` and throws `MergeFileError {
+  fileIndex, reason: 'encrypted' | 'unreadable' }`; `inspectPdf` reports encryption before any
+  merge is attempted. The island marks the file's own row (`data-error`) and names it in the error
+  block with one action, "Remove it and merge the rest", which removes it and re-prepares the rest;
+  an encrypted file says so and links to `/unlock/`. Messages live in `toolMessages.ts` in both
+  languages. Tests: `merge.test.js` (both reasons), `PdfMergeTool.test.tsx` (both UI paths). Done.
