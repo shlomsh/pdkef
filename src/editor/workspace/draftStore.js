@@ -8,10 +8,21 @@ import { createDraftRetention, isDraftExpired } from './draftPolicy.js';
 // stays on the user's device — nothing is ever uploaded (see CLAUDE.md privacy
 // invariants).
 //
-// One draft per tool: the store is keyed by tool name ('sign' | 'redact'), so
-// picking a new file or starting over simply overwrites/deletes the single record.
+// One draft per tool: the store is keyed by tool name ('sign' | 'redact' | 'merge'),
+// so picking a new file or starting over simply overwrites/deletes the single record.
 // The same store also holds short-lived handoffs under a `handoff:<tool>` key -
 // see saveHandoff/takeHandoff below for why those must never share the draft key.
+//
+// A record comes in two shapes. Sign and Redact write a single-file record:
+// `{ fileName, fileType, fileBytes, elements, extra, preview, schemaVersion }`.
+// The Merge tool (MERGE-13) writes a multi-file record instead, keyed by an
+// ordered `files` array rather than one `fileBytes`:
+// `{ files: [{ fileName, fileType, fileBytes }, ...], plan, options, fileName,
+//    pageCount?, fileCount?, preview?, schemaVersion }`. `plan` and `options`
+// are opaque to this module - it never reads their shape, only stores and
+// returns them. saveDraft/loadDraft dispatch on `Array.isArray(record.files)`
+// to tell the two shapes apart; see sourceIdForFiles for how a multi-file
+// record gets its content address.
 
 // This is intentionally a fresh, fixed schema instead of a new version of
 // `pdf-toolkit-drafts`. Safari can leave an installed app's previous page
@@ -87,6 +98,43 @@ export async function sourceIdForBytes(fileBytes) {
   // realm (and in the test DOM), even though Web Crypto accepts it.
   if (Object.prototype.toString.call(fileBytes) !== '[object ArrayBuffer]' || !globalThis.crypto?.subtle) return null;
   const digest = await globalThis.crypto.subtle.digest('SHA-256', fileBytes);
+  return `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** Starting point for the Merge tool's draft size limit (MERGE-13). A merge draft
+ * holds every source file's bytes at once, unlike Sign/Redact's single file, so it
+ * can approach IndexedDB quota much sooner. 200 MB is a starting number, not a
+ * measured ceiling - iOS Safari's real-world quota for this origin needs
+ * measuring on-device before this is trusted as a safe default. */
+export const MERGE_DRAFT_MAX_BYTES = 200 * 1024 * 1024;
+
+/** Stable content address for an ordered set of source PDFs, for the Merge tool's
+ * multi-file draft. Built from the per-file `sourceIdForBytes` digests rather than
+ * hashing the concatenated bytes directly, so it stays cheap to compute for large
+ * files (each file is hashed once, not copied into one buffer first).
+ *
+ * Order-sensitive on purpose: the files are hashed in the order they appear in
+ * `files`, so the same set of files merged in a different order produces a
+ * different id. That is correct here, not an accident to fix - a merge's output
+ * depends on file order, so a draft for [A, B] must not be treated as resumable
+ * for a session that has since reordered to [B, A].
+ *
+ * Null (like sourceIdForBytes) means this browser cannot safely deduplicate;
+ * callers fail the write rather than risk a metadata collision.
+ *
+ * @param {{ fileBytes: ArrayBuffer }[]} files
+ * @returns {Promise<string|null>}
+ */
+export async function sourceIdForFiles(files) {
+  const digests = [];
+  for (const file of files) {
+    const id = await sourceIdForBytes(file?.fileBytes).catch(() => null);
+    if (!id) return null;
+    digests.push(id.slice('sha256:'.length));
+  }
+  if (!globalThis.crypto?.subtle) return null;
+  const encoded = new TextEncoder().encode(digests.join('\n'));
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', encoded);
   return `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
@@ -286,9 +334,16 @@ function setDraftHint(tool, meta) {
   // thumbnail.
   try {
     if (!meta) return;
+    // pageCount/fileCount are display metadata for the Merge tool's home-page
+    // card (MERGE-13/14); Sign and Redact never pass them, and JSON.stringify
+    // drops an undefined-valued key on its own, so this stays a no-op shape
+    // change for their records.
     localStorage.setItem(
       DRAFT_META_PREFIX + tool,
-      JSON.stringify({ fileName: meta.fileName, savedAt: meta.savedAt, preview: meta.preview }),
+      JSON.stringify({
+        fileName: meta.fileName, savedAt: meta.savedAt, preview: meta.preview,
+        pageCount: meta.pageCount, fileCount: meta.fileCount,
+      }),
     );
   } catch {
     // ditto
@@ -363,7 +418,7 @@ export function attachDraftPreview(tool, preview) {
  * letting the tool's own restore decide.
  *
  * @param {string} tool
- * @returns {{ fileName?: string, savedAt?: number, preview?: string }|null}
+ * @returns {{ fileName?: string, savedAt?: number, preview?: string, pageCount?: number, fileCount?: number }|null}
  */
 export function readDraftMeta(tool) {
   try {
@@ -453,17 +508,38 @@ function reqToPromise(request) {
   });
 }
 
+// Shared by saveDraft's single-file path and saveMultiFileDraft: given the
+// record currently committed for this tool (or undefined/null if there is
+// none yet), compute the next revision/updatedAt/writerId triple. Pulled out
+// as a pure function, not a behaviour change, so the two save paths cannot
+// drift on how a revision is assigned - the actual read-then-put still
+// happens inside each path's own single transaction.
+function nextDraftRevision(old, writerId) {
+  const oldMeta = old && Number.isInteger(old.revision)
+    ? { revision: old.revision, updatedAt: old.updatedAt || 0, writerId: old.writerId || 'legacy' }
+    : { revision: 0, updatedAt: 0, writerId: 'legacy' };
+  const now = Date.now();
+  return {
+    revision: old ? oldMeta.revision + 1 : 1,
+    updatedAt: Math.max(now, oldMeta.updatedAt + 1),
+    writerId,
+  };
+}
+
 /**
  * Persist (overwrite) the single draft for a tool.
  * Silently no-ops if IndexedDB is unavailable — persistence is best-effort and must
  * never break the tool itself.
  *
- * @param {string} tool - 'sign' | 'redact'
- * @param {object} record - draft fields (tool key is set/overridden here)
+ * @param {string} tool - 'sign' | 'redact' | 'merge'
+ * @param {object} record - draft fields (tool key is set/overridden here). A Merge
+ *   record (`Array.isArray(record.files)`) is dispatched to saveMultiFileDraft;
+ *   every other tool keeps the single-file `fileBytes` shape below.
  * @returns {Promise<boolean>} true if written
  */
 export async function saveDraft(tool, record) {
   if (!hasIndexedDB()) return false;
+  if (Array.isArray(record.files)) return saveMultiFileDraft(tool, record);
   // `preview` is display metadata for the home page, not part of the draft:
   // it lives in localStorage (see setDraftHint) because it has to be readable
   // synchronously. Keeping it out of the record avoids storing the same image
@@ -482,20 +558,68 @@ export async function saveDraft(tool, record) {
       const oldRequest = drafts.get(tool);
       oldRequest.onsuccess = () => {
         const old = oldRequest.result;
-        const oldMeta = old && Number.isInteger(old.revision)
-          ? { revision: old.revision, updatedAt: old.updatedAt || 0, writerId: old.writerId || 'legacy' }
-          : { revision: 0, updatedAt: 0, writerId: 'legacy' };
-        const now = Date.now();
-        const metadata = {
-          revision: old ? oldMeta.revision + 1 : 1,
-          updatedAt: Math.max(now, oldMeta.updatedAt + 1),
-          writerId,
-        };
+        const metadata = nextDraftRevision(old, writerId);
         drafts.put({ ...draft, tool, fileBytes, sourceId, savedAt, ...metadata });
       };
     });
     setDraftHint(tool, { fileName: draft.fileName, savedAt, preview });
     // Obtain the persisted record's metadata without leaking source identity.
+    const latest = await withStore('readonly', (store) => reqToPromise(store.get(tool)));
+    if (latest?.writerId === writerId) {
+      notifyDraftChange(tool, { kind: 'saved', revision: latest.revision, updatedAt: latest.updatedAt, writerId });
+    }
+    return true;
+  } catch (e) {
+    console.error('draftStore.saveDraft failed:', e);
+    return false;
+  }
+}
+
+/**
+ * Persist (overwrite) the Merge tool's multi-file draft (MERGE-13). Mirrors
+ * saveDraft's single-file path one-for-one - same revision bookkeeping via
+ * nextDraftRevision, same read-then-put transaction, same hint update - but
+ * keyed off an ordered `files` array instead of one `fileBytes`, and refuses
+ * the write outright (no partial record) in two cases a single PDF can never
+ * hit:
+ *
+ *  - an empty `files` array: there is nothing to merge, so nothing to resume.
+ *  - the files' combined byte size exceeds MERGE_DRAFT_MAX_BYTES: a merge
+ *    draft holds every source file at once, so it can approach IndexedDB
+ *    quota far sooner than a single-document draft ever could.
+ *
+ * Both refusals return false, which useDraftPersistence's hook contract
+ * already maps to its 'error' save state - callers do not need a separate
+ * signal for "too big to autosave" versus any other best-effort failure.
+ *
+ * `plan` and `options` pass through untouched; this module never reads their
+ * shape (see the header comment).
+ *
+ * @param {string} tool - 'merge'
+ * @param {object} record - see draftStore.js's header comment for the shape
+ * @returns {Promise<boolean>} true if written
+ */
+async function saveMultiFileDraft(tool, record) {
+  const { preview, files, ...draft } = record;
+  if (files.length === 0) return false;
+  const totalBytes = files.reduce((sum, file) => sum + (file?.fileBytes?.byteLength || 0), 0);
+  if (totalBytes > MERGE_DRAFT_MAX_BYTES) return false;
+  const sourceId = await sourceIdForFiles(files).catch(() => null);
+  if (!sourceId) return false;
+  const { savedAt } = createDraftRetention();
+  const writerId = getTabWriterId();
+  try {
+    await withStore('readwrite', (drafts) => {
+      const oldRequest = drafts.get(tool);
+      oldRequest.onsuccess = () => {
+        const old = oldRequest.result;
+        const metadata = nextDraftRevision(old, writerId);
+        drafts.put({ ...draft, files, tool, sourceId, savedAt, ...metadata });
+      };
+    });
+    setDraftHint(tool, {
+      fileName: draft.fileName, savedAt, preview, pageCount: draft.pageCount, fileCount: draft.fileCount,
+    });
     const latest = await withStore('readonly', (store) => reqToPromise(store.get(tool)));
     if (latest?.writerId === writerId) {
       notifyDraftChange(tool, { kind: 'saved', revision: latest.revision, updatedAt: latest.updatedAt, writerId });
@@ -534,6 +658,13 @@ export async function loadDraft(tool) {
       return null;
     }
     if (record.fileBytes) return record;
+    // Merge's multi-file shape: usable only if every file still carries its
+    // bytes. A `files: []` or a file missing `fileBytes` is corrupt in the
+    // same sense a single-file record with no `fileBytes` is - treat it as no
+    // draft rather than hand a tool a record it cannot restore from.
+    if (Array.isArray(record.files) && record.files.length > 0 && record.files.every((file) => file?.fileBytes)) {
+      return record;
+    }
     clearDraftHint(tool);
     return null;
   } catch (e) {
@@ -579,7 +710,14 @@ export async function deleteDraft(tool) {
  * Stores the bytes, not the File: a File handle does not survive a page load, and
  * the receiving side rebuilds one from these fields.
  *
- * @param {string} tool - 'sign' | 'redact'
+ * The Merge tool (MERGE-14) is a caller too, in the other direction from
+ * Sign/Redact's home-page drop: it hands one *output* file off to 'compress',
+ * 'sign' or 'split' after a merge, under that target tool's own key, so
+ * `{ fileName, fileType, fileBytes }` is the whole contract regardless of
+ * which tool wrote it or which tool is about to take it - a handoff carries
+ * one file, never Merge's multi-file draft shape.
+ *
+ * @param {string} tool - 'sign' | 'redact' | 'compress' | 'split' (the target tool's key)
  * @param {{ fileName: string, fileType?: string, fileBytes: ArrayBuffer }} record
  * @returns {Promise<boolean>} true if written
  */
@@ -603,7 +741,8 @@ export async function saveHandoff(tool, record) {
  * leaving it behind would re-open the same file on every later visit to the tool,
  * and would do it over whatever the user had since started.
  *
- * @param {string} tool
+ * @param {string} tool - the target tool's own key, e.g. 'sign' when Merge (MERGE-14)
+ *   hands its output there
  * @returns {Promise<object|null>}
  */
 export async function takeHandoff(tool) {

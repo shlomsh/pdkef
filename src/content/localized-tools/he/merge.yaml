@@ -13,12 +13,13 @@ status: 'published'
 reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-09-12'
 reviewNotes: >-
-  2026-09-11: reviewed the rendered page (desktop and mobile, RTL) and
-  approved wording, terminology and typography for publish. 2026-09-12:
-  English title and h1 gained combine alongside merge (SEO-35); Hebrew
-  wording unchanged; re-reviewed and approved by Shlomi on the deployed site
-  the same day.
-sourceHash: 'fnv1a64:b2b1453a9a62eb3d'
+  2026-09-11: reviewed the rendered page (desktop and mobile, RTL), approved
+  for publish. 2026-09-12: English title and h1 gained combine (SEO-35);
+  Hebrew unchanged; re-approved by Shlomi on the deployed site. 2026-09-13:
+  MERGE-05/12 changed the English subhead and step 3 (no Merge button any
+  more); Hebrew subhead unchanged, Hebrew step 3 rewritten as an AI draft.
+  Pending Shlomi's review on the deployed site.
+sourceHash: 'fnv1a64:b51ae067ca00a013'
 seoTitle: 'מיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
   מזגו ואחדו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו
@@ -43,10 +44,10 @@ steps:
     text: 'בחרו קבצים, או גררו ושחררו כאן את הקבצים שרוצים לאחד.'
   - title: 'סדרו אותם'
     text: 'מיינו לפי שם או תאריך, או גררו כל קובץ למקום הרצוי.'
-  - title: 'מזגו והורידו'
+  - title: 'הורידו'
     text: >-
-      סמנו "הוספת מספרי עמודים" אם רוצים מספור רציף, לחצו על מיזוג ושמרו את
-      הקובץ המאוחד.
+      פתחו את "אפשרויות" אם רוצים מספור עמודים רציף, ואז לחצו על הורדה. הקובץ
+      המאוחד נבנה על המכשיר שלכם תוך כדי, אז הוא מוכן כשאתם מוכנים.
 faq:
   - question: 'האם PDkef באמת חינמי?'
     answer: >-

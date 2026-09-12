@@ -359,6 +359,14 @@ export const tools = [
   {
     slug: 'merge',
     href: '/merge/',
+    // MERGE-06: on a phone the empty-state hero (H1 + subhead + no-limit note)
+    // pushed "Choose files" to ~700 CSS px on a 375-wide viewport, at the
+    // bottom edge of the first screen for the most searched tool in the
+    // suite. The existing condensable fold-away (data-hero-condensable, see
+    // ToolHero.astro) only engages once a file is loaded; this flag renders
+    // as `data-hero-phone-condensed` and folds the hero from first paint, on
+    // phones only, regardless of whether a file is loaded yet.
+    heroPhoneCondensed: true,
     icon: Merge,
     gridTitle: 'Merge PDF',
     gridDescription:
@@ -372,7 +380,7 @@ export const tools = [
     toolName: 'Merge PDF',
     h1: 'Merge or Combine PDF Files Free: In Your Browser',
     subhead:
-      'Combine multiple PDFs into a single document, reorder pages by drag-and-drop, and optionally add page numbers before you export.',
+      'Combine multiple PDFs into a single document, reorder files by drag-and-drop, and optionally add page numbers before you download.',
     ariaLabel: 'PDF merge tool',
     aboutHeading: 'How to merge PDF files online for free',
     aboutLead:
@@ -386,7 +394,7 @@ export const tools = [
     steps: [
       { title: 'Add your PDFs', text: 'Select or drag-and-drop the files you want to combine.' },
       { title: 'Reorder them', text: 'Sort by name or date, or drag files into the order you want.' },
-      { title: 'Merge and download', text: 'Check "Add page numbers" if you want sequential numbers, then click Merge PDFs and save your combined file.' },
+      { title: 'Download', text: 'Open Options if you want sequential page numbers, then tap Download. The merged file is built on your device as you go, so it is ready when you are.' },
     ],
     faq: [
       { question: 'Is PDkef really free?', answer: 'Yes. PDkef is completely free, with no limits, no signup, and no watermark on your merged PDF.' },

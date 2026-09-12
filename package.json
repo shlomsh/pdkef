@@ -59,6 +59,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@types/sortablejs": "^1.15.8",
     "esbuild": "^0.28.2",
+    "fake-indexeddb": "^6.2.5",
     "jsdom": "^30.0.1",
     "patch-package": "^8.0.1",
     "tailwindcss": "^4.3.2",
