@@ -223,6 +223,11 @@
       "source": "/he/sign-pdf-no-signup",
       "destination": "/he/sign-pdf-no-signup/",
       "permanent": true
+    },
+    {
+      "source": "/id/kompres-pdf-di-bawah-1-mb",
+      "destination": "/id/kompres-pdf-di-bawah-1-mb/",
+      "permanent": true
     }
   ]
 }

@@ -1,0 +1,219 @@
+standalone: true
+locale: 'id'
+status: 'published'
+reviewer: 'Claude (AI review, no native speaker)'
+reviewedAt: '2026-09-13'
+reviewNotes: 'AI review (Claude Opus 5 lead, Sonnet reviewer), not a native Indonesian speaker; Shlomi waived the native-reviewer gate for this pilot on 2026-09-13. Every portal number, quote and measured figure was checked against LOC-15.md and matched. Three must-fix items (a meta-language heading, two FAQ claims not in the body) and eight wording items were applied before publishing. A native pass is welcome at any time.'
+title: 'Kompres PDF di Bawah 1 MB, Foto di Bawah 200 KB | PDkef'
+description: >-
+  Portal seperti SSCASN minta foto di bawah 200 KB dan dokumen di bawah 1 MB. Kami uji berkas nyata di
+  kompresor PDkef, supaya Anda tahu berapa halaman yang muat dan apa yang dilakukan kalau tidak muat.
+breadcrumb: 'Ukuran PDF'
+icon: 'ScanText'
+kicker: 'Terukur, bukan janji'
+h1: 'Kompres PDF di Bawah 1 MB dan Foto di Bawah 200 KB'
+subhead: >-
+  Portal biasanya minta foto di bawah 200 KB dan dokumen di bawah 1 MB, kadang jauh lebih kecil. Kami
+  jalankan scan dan foto asli lewat kompresor PDkef pada ukuran itu, supaya Anda tahu apa yang muat,
+  apa yang mulai buram, dan apa yang bisa dilakukan kalau berkasnya tetap tidak muat.
+primaryCta:
+  href: '/compress/'
+  label: 'Buka kompresor PDF di perangkat Anda'
+sections:
+  - variant: 'highlight'
+    sketch: 'grid'
+    icon: 'FileText'
+    iconPos: 'tr'
+    kicker: 'Batas asli, bukan perkiraan'
+    heading: 'Ini batas yang benar-benar tertulis di portal'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Kompresor ini berbahasa Inggris, tapi seluruh prosesnya berjalan di perangkat Anda sendiri,
+          bahkan tanpa koneksi internet, setelah halaman ini dimuat sekali. Tidak ada satu berkas pun
+          yang dikirim ke server kami.
+      - kind: 'table'
+        caption: 'Dibaca langsung dari halaman FAQ dan panduan resmi tiap portal, diambil 12 September 2026.'
+        headers: ['Portal', 'Dokumen', 'Batas ukuran', 'Sumber']
+        rows:
+          - ['SSCASN / BKN', 'Pas foto, KTP, bukti bayar', 'maksimal 200 KB (JPG)', 'FAQ sscasn.bkn.go.id, "Unggah Dokumen"']
+          - ['SSCASN / BKN', 'Surat lamaran, transkrip', 'maksimal 400 KB (PDF)', 'FAQ sscasn.bkn.go.id, "Unggah Dokumen"']
+          - ['SSCASN / BKN', 'Rapor, surat keterangan', 'maksimal 500 KB (PDF)', 'FAQ sscasn.bkn.go.id, "Unggah Dokumen"']
+          - ['SSCASN / BKN', 'Ijazah', 'maksimal 700 KB (PDF)', 'FAQ sscasn.bkn.go.id, "Unggah Dokumen"']
+          - ['SSCASN / BKN', 'Dokumen lainnya', 'maksimal 1 MB (PDF)', 'FAQ sscasn.bkn.go.id, "Unggah Dokumen"']
+          - ['SNPMB, UTBK-SNBT 2026', 'Formulir bukti tunanetra', 'tidak lebih dari 300 KB (PDF)', 'Panduan Pendaftaran UTBK-SNBT 2026, hlm. 6']
+          - ['SNPMB, SNBP 2026', 'Bukti prestasi', 'maksimal 2 MB (PDF, PNG, JPG)', 'Panduan Pendaftaran SNBP 2026, hlm. 10']
+          - ['e-Meterai', 'Dokumen yang dibubuhi meterai', 'maksimal 4 MB (PDF)', 'e-meterai.co.id/faqs']
+      - kind: 'checklist'
+        items:
+          - >-
+            <strong>Batas SSCASN diatur per instansi dan formasi</strong> ("sesuai dengan ketentuan
+            yang diinput oleh Admin Instansi"). Tabel FAQ jadi acuan umum; contoh formasi 2026 di Buku
+            Panduan Pendaftaran SSCASN memakai 1000 KB untuk surat lamaran, ijazah, dan transkrip, serta
+            500 KB untuk pas foto. Periksa tab dokumen formasi Anda dulu, karena 700 KB dan 1000 KB
+            adalah dua target yang berbeda.
+          - >-
+            <strong>SSCASN juga punya batas minimum.</strong> Panduan resminya menyebut 80 KB per
+            berkas di teksnya, dan 100 KB di tangkapan layarnya. Berkas Anda bisa ditolak justru
+            karena terlalu kecil, jadi jangan mengompres scan satu halaman sampai 50 KB "biar aman".
+          - >-
+            <strong>Portal tidak pernah bilang apakah 200 KB itu 200.000 byte atau 204.800 byte.</strong>
+            Targetkan sekitar sepuluh persen di bawah batas, dan pertanyaan itu tidak akan pernah
+            muncul.
+  - sketch: 'waves'
+    icon: 'HardDriveDownload'
+    iconPos: 'br'
+    kicker: 'Lima berkas nyata, satu target'
+    heading: 'Begini hasilnya kalau scan dikompres di bawah 1 MB'
+    blocks:
+      - kind: 'steps'
+        items:
+          - 'Buka <a href="/compress/">kompresor PDF PDkef</a> dan pilih dokumen dari perangkat Anda; berkasnya tetap di situ.'
+          - >-
+            Pilih mode "Target Size" (ukuran target) dan masukkan angka yang diminta portal, misalnya
+            1 MB.
+          - >-
+            Tekan tombol "Compress" (kompres). Prosesnya berjalan di perangkat Anda dan biasanya
+            selesai dalam hitungan detik.
+          - 'Unduh hasilnya dan periksa dulu sebelum diunggah ke portal.'
+      - kind: 'table'
+        caption: 'Setiap baris dihasilkan dari berkas uji (halaman ketikan yang dibuat menyerupai scan HP) yang dijalankan lewat mode Target Size PDkef pada target 1 MB.'
+        headers: ['Jumlah halaman', 'Ukuran asli', 'Hasil pada target 1 MB', 'Kondisi']
+        rows:
+          - ['2 halaman', '1,07 MB', '238 KB', 'tajam']
+          - ['5 halaman', '2,82 MB', '632 KB', 'tajam']
+          - ['10 halaman', '5,59 MB', '959 KB', 'tajam']
+          - ['20 halaman', '11,18 MB', '1,01 MB', 'tajam']
+          - ['40 halaman', '22,34 MB', '1,03 MB (ukuran terdekat)', 'terbaca, agak pecah']
+      - kind: 'prose'
+        text: >-
+          Sampai sepuluh halaman scan biasanya muat di bawah 1 MB dan tetap tajam. Itu mencakup
+          sebagian besar surat lamaran, ijazah, transkrip, dan surat keterangan. Dua puluh halaman
+          biasanya juga muat, sementara empat puluh halaman sedikit melebihi target dan terlihat agak
+          pecah di beberapa bagian. PDF hasil ketikan yang sudah kecil dibiarkan apa adanya, byte demi
+          byte, karena alat ini hanya mengubah halaman menjadi gambar kalau targetnya benar-benar
+          memaksa. Setiap pengujian di atas selesai dalam waktu kurang dari tiga detik, langsung di
+          perangkat, tanpa satu berkas pun yang diunggah ke mana pun.
+      - kind: 'prose'
+        text: >-
+          Catatan jujur soal dua baris terakhir: halaman uji dua puluh dan empat puluh dibuat sintetis,
+          dengan teks hanya mengisi bagian atas halaman, jadi lebih ringan daripada scan ijazah atau
+          transkrip asli yang penuh tulisan dari atas sampai bawah. Anggap keduanya sebagai gambaran
+          yang agak optimistis; scan yang padat teks bisa menyentuh batas lebih cepat daripada di
+          tabel ini.
+  - sketch: 'rings'
+    icon: 'AlertTriangle'
+    iconPos: 'cl'
+    kicker: 'Bagian yang tidak enak'
+    heading: 'Kalau dokumen Anda tetap tidak muat'
+    blocks:
+      - kind: 'checklist'
+        items:
+          - >-
+            Scan yang panjang tidak bisa dipaksa masuk ke batas kecil sambil tetap terbaca. Kalau
+            portal menerima lebih dari satu unggahan, <a href="/split/">pisahkan berkasnya</a> dan
+            unggah hanya halaman yang diminta formasi Anda.
+          - >-
+            Kalau memungkinkan, scan ulang dengan resolusi yang lebih rendah, daripada mengompres
+            habis-habisan scan yang sudah terlanjur besar.
+          - >-
+            Tanyakan ke panitia apakah portal bisa menerima dokumen dalam dua bagian, kalau satu
+            berkas memang tidak akan pernah muat.
+      - kind: 'prose'
+        text: >-
+          Kalau kompresor menampilkan "ukuran terdekat" ("closest achievable size"), artinya berkas
+          Anda hanya sedikit melebihi target. Coba target sekitar sepuluh persen lebih rendah dulu,
+          sebelum menyimpulkan dokumennya memang terlalu panjang.
+      - kind: 'prose'
+        text: >-
+          Jangan pernah mengompres KTP atau ijazah sampai ke titik di mana angka dan capnya sudah
+          tidak terbaca. Berkas yang ditolak hanya menghabiskan satu hari untuk diunggah ulang;
+          dokumen yang tidak terbaca bisa menggagalkan seluruh lamaran.
+  - sketch: 'arcs'
+    icon: 'Smartphone'
+    iconPos: 'tr'
+    kicker: 'Kompres foto 200 KB'
+    heading: 'Foto pun harus muat di bawah 200 KB'
+    blocks:
+      - kind: 'table'
+        caption: 'Dua foto dijalankan lewat Compress Image PDkef pada target 200 KB: satu foto HP asli, satu pas foto buatan dengan latar polos.'
+        headers: ['Foto', 'Ukuran asli', 'Hasil pada 200 KB', 'Kondisi']
+        rows:
+          - ['Foto HP asli', '2,15 MB', '183 KB', 'masih bisa dikenali, ada gradasi warna yang kasar dan semburat magenta di langit']
+          - ['Pas foto buatan, latar polos', '211 KB', '203 KB', 'tajam, nyaris tidak berubah']
+      - kind: 'prose'
+        text: >-
+          Pas foto dengan latar polos hampir selalu bisa turun di bawah 200 KB tanpa kehilangan apa
+          pun yang berarti; itu kasus yang paling umum. Foto yang ramai detail, kalau dipaksa turun
+          jauh, tetap mempertahankan ukurannya dalam piksel tapi membayarnya lewat warna lebih dulu;
+          kalau hasilnya terlihat kurang pas, perkecil dulu ukuran fotonya sebelum dikompres.
+      - kind: 'prose'
+        text: >-
+          Tag lokasi dari HP juga ikut hilang dari foto yang sudah dikompres, karena alat ini
+          mengkodekan ulang gambarnya, bukan menyalin datanya apa adanya. Hasilnya selalu berupa JPG,
+          format yang diminta portal untuk pas foto dan KTP. Untuk foto, gunakan
+          <a href="/compress-image/">Compress Image</a>, saudara dari kompresor PDF yang sama-sama
+          berjalan di perangkat Anda.
+  - sketch: 'grid'
+    icon: 'ScanText'
+    iconPos: 'br'
+    kicker: 'Kalau syaratnya 200 KB'
+    heading: 'PDF sampai 200 KB, lebih ketat dari batas resmi mana pun'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Tidak ada satu pun portal yang bisa kami verifikasi meminta PDF sampai 200 KB; ini lebih
+          ketat daripada semua batas resmi di bagian pertama. Kalau atasan atau portal yang lebih
+          kecil memintanya, begini gambaran nyatanya.
+      - kind: 'table'
+        caption: 'Dua berkas uji yang sama dijalankan lewat mode Target Size PDkef pada target 200 KB.'
+        headers: ['Jumlah halaman', 'Ukuran asli', 'Hasil pada 200 KB', 'Kondisi']
+        rows:
+          - ['2 halaman', '1,07 MB', '203 KB', 'tajam']
+          - ['5 halaman', '2,82 MB', '206 KB (ukuran terdekat)', 'tajam']
+      - kind: 'prose'
+        text: >-
+          Dua sampai tiga halaman masih nyaman di target seketat ini. Lebih dari itu, pisahkan
+          berkasnya daripada memaksa kompresi sampai tulisannya tidak terbaca lagi.
+faq:
+  - question: 'Kenapa portal menolak berkas saya padahal sudah di bawah 1 MB?'
+    answer: >-
+      Batas per portal biasanya dihitung per jenis dokumen, bukan satu angka umum untuk semua berkas:
+      SSCASN misalnya membatasi ijazah 700 KB dan surat lamaran 400 KB, bukan 1 MB untuk semuanya. Ada
+      juga batas minimum: panduan resminya menyebut 80 KB di teks, tapi 100 KB di tangkapan layarnya,
+      jadi berkas yang terlalu kecil bisa ditolak juga. Karena
+      portal tidak menyebutkan apakah "KB" dihitung 1.000 atau 1.024 byte, targetkan sekitar sepuluh
+      persen di bawah batas.
+  - question: 'Berapa banyak halaman scan yang muat di bawah 1 MB?'
+    answer: >-
+      Dalam pengujian kami, sampai sepuluh halaman scan biasanya muat di bawah 1 MB dan tetap tajam.
+      Dua puluh halaman biasanya juga muat. Scan yang padat teks, seperti ijazah atau transkrip asli,
+      bisa menyentuh batas itu lebih cepat daripada halaman uji kami yang lebih ringan.
+  - question: 'Apakah mengompres sampai 1 MB membuat dokumen jadi tidak terbaca?'
+    answer: >-
+      Tidak, untuk sampai sekitar sepuluh halaman; hasil pengujian kami tetap tajam di ukuran itu.
+      Baru pada scan yang jauh lebih panjang, hasilnya mulai terlihat agak pecah.
+  - question: 'PDF saya jadi 1,1 MB setelah dikompres, sekarang bagaimana?'
+    answer: >-
+      Coba masukkan target sekitar sepuluh persen lebih rendah dulu sebelum menyimpulkan dokumennya
+      terlalu panjang; itu artinya berkas Anda hanya sedikit melebihi target ("ukuran terdekat"). Kalau
+      tetap tidak muat, pisahkan berkas menjadi beberapa bagian dan unggah hanya halaman yang diminta.
+  - question: 'Apakah pas foto masih diterima setelah dikompres?'
+    answer: >-
+      Ya. Pas foto dengan latar polos biasanya turun di bawah 200 KB tanpa kehilangan apa pun yang
+      berarti. Tag lokasi dari HP juga ikut hilang, karena fotonya dikodekan ulang, bukan disalin apa
+      adanya.
+  - question: 'Apakah dokumen saya diunggah ke suatu tempat saat saya mengompresnya?'
+    answer: >-
+      Tidak. Seluruh proses kompresi berjalan di perangkat Anda sendiri, bukan di server kami, dan
+      tetap berjalan bahkan tanpa koneksi internet, setelah halaman ini dimuat sekali.
+  - question: 'Format apa yang harus saya pakai, PDF atau JPG?'
+    answer: >-
+      Ikuti format yang diminta portal pada baris yang sesuai: foto seperti pas foto, KTP, dan bukti
+      bayar diminta dalam JPG, sementara ijazah, transkrip, dan dokumen lain diminta dalam PDF.
+      PDF yang dikompres tetap PDF, dan foto yang dikompres selalu keluar sebagai JPG.
+  - question: 'Kenapa alatnya berbahasa Inggris?'
+    answer: >-
+      Karena baru panduan ini yang sudah diterjemahkan ke Bahasa Indonesia untuk sekarang; tombolnya
+      sendiri masih berbahasa Inggris. Yang perlu Anda tahu: mode ukuran target bernama "Target Size",
+      dan tombol untuk memulai kompresi bernama "Compress".

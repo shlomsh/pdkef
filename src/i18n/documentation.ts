@@ -19,6 +19,8 @@ export type DocumentationVariant = {
   status: DocumentationStatus | 'english';
   preview: boolean;
   freshness: DocumentationFreshness;
+  /** LOC-15: native to its locale, no English twin, no alternates. */
+  standalone?: boolean;
   sourceHash?: DocumentationSourceHash;
   expectedSourceHash?: DocumentationSourceHash;
   entry?: unknown;
@@ -79,12 +81,43 @@ export function resolveDocumentationLink(
   return { href: documentationPath(pageId), effectiveLocale: 'en', fallback: locale !== 'en' };
 }
 
+/**
+ * The route segment of a localized page entry: the English pageId for a
+ * translated twin, the entry's own file name for a standalone page (LOC-15),
+ * so `documentationPath` and `documentationSourceFiles` work for both.
+ */
+export function localizedPageId(entry: { id: string; data: { standalone?: boolean; pageId?: string; locale: string } }): string {
+  if (!entry.data.standalone) return entry.data.pageId!;
+  const [directory, ...rest] = entry.id.split('/');
+  const slug = rest.join('/');
+  if (directory !== entry.data.locale || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    throw new Error(`Standalone documentation ${entry.id} must live at localized-pages/${entry.data.locale}/<slug>.yaml`);
+  }
+  return slug;
+}
+
 export async function getDocumentationVariants(): Promise<DocumentationVariant[]> {
   const [englishEntries, localizedEntries] = await collections();
   const previewBuild = isDocumentationPreview();
   const englishByPageId = new Map(englishEntries.map((entry) => [entry.id, entry]));
   const localizedVariants = localizedEntries
-    .map((entry) => {
+    .map((entry): DocumentationVariant => {
+      if (entry.data.standalone) {
+        const pageId = localizedPageId(entry as { id: string; data: { standalone?: boolean; pageId?: string; locale: string } });
+        if (englishByPageId.has(pageId)) {
+          throw new Error(`Standalone documentation ${entry.id} shadows the English page ${pageId}; use a slug of its own`);
+        }
+        return {
+          pageId,
+          locale: localeId(entry.data.locale),
+          path: documentationPath(pageId, localeId(entry.data.locale)),
+          status: entry.data.status as DocumentationStatus,
+          preview: entry.data.status === 'draft',
+          freshness: 'current',
+          standalone: true,
+          entry,
+        };
+      }
       const english = englishByPageId.get(entry.data.pageId);
       if (!english) {
         throw new Error(`Localized documentation ${entry.id} references unknown English page: ${entry.data.pageId}`);
@@ -128,10 +161,12 @@ export async function getDocumentationContext(pageId: string, requestedLocale: s
   const allVariants = await getDocumentationVariants();
   const variants = allVariants.filter((variant) => variant.pageId === pageId);
   const english = variants.find((variant) => variant.locale === 'en');
-  if (!english) throw new Error(`Unknown documentation page: ${pageId}`);
   const requested = variants.find((variant) => variant.locale === locale);
+  // LOC-15: a standalone page is its own only edition. It is reachable at
+  // its own locale only; there is no English page to fall back to.
+  if (!english && !(requested && requested.standalone)) throw new Error(`Unknown documentation page: ${pageId}`);
   const effective = requested ?? variants[0];
-  const publishedAlternates = variants.filter(
+  const publishedAlternates = effective.standalone ? [] : variants.filter(
     (variant) =>
       (variant.status === 'english' || variant.status === 'published') &&
       getDocumentationLocale(variant.locale)!.hreflang,
@@ -142,7 +177,7 @@ export async function getDocumentationContext(pageId: string, requestedLocale: s
           lang: getDocumentationLocale(variant.locale)!.hreflang!,
           href: variant.path,
         })),
-        { lang: 'x-default', href: english.path },
+        { lang: 'x-default', href: english!.path },
       ]
     : [];
 

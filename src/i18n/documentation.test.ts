@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { documentationPath, getDocumentationLocale } from './documentationLocales';
-import { resolveDocumentationLink } from './documentation';
+import { localizedPageId, resolveDocumentationLink } from './documentation';
 import {
   documentationSourceHash,
   normalizeDocumentationSource,
@@ -87,5 +87,27 @@ describe('resolveDocumentationLink', () => {
       href: '/he/how-to-sign-a-pdf-on-iphone/',
       fallback: false,
     });
+  });
+});
+
+// LOC-15: a standalone localized page (no English twin) is routed by its own
+// file name, and the file has to sit in its locale's directory so
+// documentationSourceFiles finds it for lastmod.
+describe('localized page ids', () => {
+  it('routes a translated twin by its English pageId', () => {
+    expect(localizedPageId({ id: 'he/install-pdf-app', data: { pageId: 'install-pdf-app', locale: 'he' } })).toBe('install-pdf-app');
+  });
+
+  it('routes a standalone page by its own file name', () => {
+    expect(localizedPageId({ id: 'id/kompres-pdf-di-bawah-1-mb', data: { standalone: true, locale: 'id' } })).toBe(
+      'kompres-pdf-di-bawah-1-mb',
+    );
+  });
+
+  it('refuses a standalone page filed under another locale or with a non-slug name', () => {
+    expect(() => localizedPageId({ id: 'he/kompres-pdf-di-bawah-1-mb', data: { standalone: true, locale: 'id' } })).toThrow(
+      'must live at localized-pages/id/<slug>.yaml',
+    );
+    expect(() => localizedPageId({ id: 'id/Kompres_PDF', data: { standalone: true, locale: 'id' } })).toThrow('must live at');
   });
 });
