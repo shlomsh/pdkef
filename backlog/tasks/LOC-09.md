@@ -1,12 +1,12 @@
 ---
 id: "LOC-09"
 title: "Localize the home page, so /he/ is a real edition and not a 404 beside three Hebrew tool pages"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "localized-search"
 phase: "later"
 depends_on: ["LOC-03", "LOC-05"]
-legacy_state: "Open"
+legacy_state: "Done 2026-09-12"
 ---
 
 # LOC-09 · Localize the home page, so /he/ is a real edition and not a 404 beside three Hebrew tool pages
@@ -231,24 +231,15 @@ file publishing to `main` pushes it to production without his separate sign-off.
 **What "done" means right now (2026-09-12):** `/he/` is live, indexable and RTL-correct, with a fully
 Hebrew dock (ten of ten tool cards, guarded by a unit test) and a measured whole-page purity of 0.906
 excluding the disclosed-English HeroDemo. The Sign editor's toolbar row is Hebrew too (stage 1 of 5),
-mirrored under RTL by Shlomi's own decision after seeing it built. Still open:
+mirrored under RTL by Shlomi's own decision after seeing it built.
 
-1. A product decision on HeroDemo's RTL/direction-of-motion treatment (§4.2) - it is still English
-   inside the Hebrew page, unresolved.
-2. A product decision on whether the tool dock's automatic RTL mirroring (§4.1) is the wanted behavior
-   for a UI element meant to read as a fixed "dock" position, or needs an explicit override - still to
-   be judged on the built page.
-3. `he.yaml`'s `reviewer`/`reviewedAt`/`reviewNotes` fields. Shlomi reviewed and edited Hebrew strings
-   live on the rendered page (`9eb5984`), but that pass has not been recorded as a formal sign-off in
-   the file itself.
-4. Sign island localization stages 2 to 5 - roughly 95 of the ~136 inventoried strings, across the
-   Shapes menu, the signature popover, the signature and undo dialogs, the page header, the
-   selected-element toolbar and the screen-reader announcements. Proposed as its own ticket rather than
-   folded into LOC-09.
-5. The two compress-hub guides, `pdf-wont-compress-to-100kb` and `photo-and-signature-size-for-forms`,
-   have no Hebrew edition, so `/he/compress/` is the only Hebrew tool page whose guide cards are all
-   English. Pending Shlomi's call and Israeli portal specifics.
-6. The Markdown twin gap, unchanged - see below.
+**Closed 2026-09-12.** Of the two product decisions this ticket was waiting on, Shlomi made both today:
+HeroDemo is to be translated, not left English indefinitely (open question #1, §4.2 - the
+direction-of-motion sub-question is still unresolved and moves on with the rest of the work); the tool
+dock's automatic RTL mirroring stays as is, no override (open question #2, §4.1). Everything else this
+ticket had left open, the `he.yaml` review sign-off, Sign island localization stages 2 to 5, the two
+missing compress-hub guides, and the home-page Markdown twin, moves to [LOC-16](LOC-16.md) rather than
+staying open here.
 
 **Known gap, still not fixed here** (see the "Known gap to fold in" note above): the home page's
 Markdown twin (`index.md.ts`) has no locale-aware equivalent, so `Accept: text/markdown` on `/he/` falls
