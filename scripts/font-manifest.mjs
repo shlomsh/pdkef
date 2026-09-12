@@ -209,6 +209,19 @@ export const FONT_MANIFEST = [
     faces: { normal: 'TiroTamil-Regular.ttf', italic: 'TiroTamil-Italic.ttf' },
     license: { version: '1.52', url: 'https://fonts.google.com/specimen/Tiro+Tamil', copyright: 'Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo)' },
   },
+  {
+    // FONT-08b second choice for Punjabi/Gurmukhi (Mukta Mahee is the
+    // first): a serif, not a second sans, and ships Regular + Italic only -
+    // there is no Bold. `hasRealFace`/`resolveTypography` (src/editor/text/fonts.js)
+    // already clamp Bold/Italic per exact file, so an italic-without-bold
+    // face needs no special casing - the same generic mechanism that
+    // disables Bold for every Regular-only handwriting face above disables
+    // it here too.
+    family: 'Tiro Gurmukhi', kind: 'text', styleTag: 'serif',
+    metrics: { ascent: 0.755, descent: 0.245 },
+    faces: { normal: 'TiroGurmukhi-Regular.ttf', italic: 'TiroGurmukhi-Italic.ttf' },
+    license: { version: '1.52', url: 'https://fonts.google.com/specimen/Tiro+Gurmukhi', copyright: 'Copyright 2020 The Indigo Project Authors (https://github.com/TiroTypeworks/Indigo)' },
+  },
 ];
 
 export const FONT_FILES = FONT_MANIFEST.flatMap((font) => Object.values(font.faces));

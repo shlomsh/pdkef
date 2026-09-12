@@ -238,6 +238,19 @@ export const EXPORT_RENDER_CORPUS = [
   // the real bundled public/fonts/Suranna-Regular.ttf bytes.
   textCase('telugu-suranna', 'ప్రియ', { fontFamily: 'Suranna' }),
 
+  // Gurmukhi (FONT-08b): shipped, user-selectable script that had a shaping
+  // guard (gurmukhi-shaping-guard.spec.js, gurmukhi-tiro-shaping-guard.spec.js)
+  // but, like Bengali/CJK/Malayalam above, no case on the file a user actually
+  // receives until now. ਸਿੰਘ ("Singh", a real surname, also the FAQ's own
+  // nasalization example) carries the tippi mark (ੰ, U+0A70) ordinary Punjabi
+  // needs constantly and is not a bare-alphabet string. Set in Tiro Gurmukhi,
+  // the newer of the catalogue's two Gurmukhi faces, so a regression specific
+  // to its subset (as opposed to Mukta Mahee's) has a case to fail. Every
+  // code point confirmed present via fontkit's hasGlyphForCodePoint() against
+  // the real bundled public/fonts/TiroGurmukhi-Regular.ttf bytes, the same
+  // verification method every other case in this file used.
+  textCase('gurmukhi-tiro-gurmukhi', 'ਸਿੰਘ', { fontFamily: 'Tiro Gurmukhi' }),
+
   // --- The comb path: positions by cell index, skips bidi, has its own
   // geometry. `width` is what makes an element a comb (see comb.js).
   textCase('comb-ltr', 'AB12', { fontFamily: 'Arimo', width: 40, combCells: 6 }),

@@ -1626,6 +1626,7 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Gayathri (<https://fonts.google.com/specimen/Gayathri>)
 - Suranna (<https://fonts.google.com/specimen/Suranna>)
 - Tiro Tamil (<https://fonts.google.com/specimen/Tiro+Tamil>)
+- Tiro Gurmukhi (<https://fonts.google.com/specimen/Tiro+Gurmukhi>)
 <!-- END GENERATED TEXT FONT LIST -->
 
 ```
