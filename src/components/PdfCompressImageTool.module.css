@@ -1,9 +1,0 @@
-/* Everything specific to this tool's own layout - the target-size panel,
-   stats grid and warning boxes are all PdfCompressTool.module.css classes,
-   reused as-is (see the header comment on PdfCompressImageTool.tsx). This
-   file only owns what differs: there is no compression-level card grid here,
-   so the target-size panel needs its own top spacing instead of inheriting
-   it from `.compress-options`. */
-.panel {
-  margin-top: 1.5rem;
-}

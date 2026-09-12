@@ -1,11 +1,15 @@
 ---
 import ToolPageLayout from '../layouts/ToolPageLayout.astro';
-import PdfCompressImageTool from '../components/PdfCompressImageTool.tsx';
+import PdfCompressTool from '../components/PdfCompressTool.tsx';
 import { toolsBySlug } from '../data/tools.js';
 
 const tool = toolsBySlug['compress-image'];
 ---
 
 <ToolPageLayout tool={tool}>
-  <PdfCompressImageTool client:load />
+  <PdfCompressTool
+    client:load
+    analyticsTool="compress-image"
+    initialMode="target"
+  />
 </ToolPageLayout>
