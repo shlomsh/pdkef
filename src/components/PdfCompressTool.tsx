@@ -118,15 +118,37 @@ export default function PdfCompressTool({
   const isImageMode = kind === 'image' || (kind === null && initialMode === 'target');
   const targetSizePresets = isImageMode ? IMAGE_TARGET_SIZE_PRESETS_KB : TARGET_SIZE_PRESETS_KB;
 
-  // Before/after preview (SEO-25), PDF only - see handleToggleCompare below.
-  // The compressed Blob itself never needs to be state - only its object URL
-  // (above) does, for the download link - but the slider needs the raw bytes
-  // to rasterize page 1, so it's kept in a ref rather than duplicating it
-  // into render-triggering state.
+  // Before/after preview (SEO-25, extended to images 2026-09-12) - see
+  // handleToggleCompare below. The compressed Blob itself never needs to be
+  // state - only its object URL (above) does, for the download link - but
+  // the slider needs the raw bytes (to rasterize page 1 for a PDF, or to
+  // build an object URL for an image), so it's kept in a ref rather than
+  // duplicating it into render-triggering state.
   const compressedBlobRef = useRef<Blob | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
   const [comparePreviews, setComparePreviews] = useState<{ before: string; after: string } | null>(null);
   const [compareStatus, setCompareStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  // True when compressImageToTarget's passthrough rule fired (the file was
+  // already under target, so the "compressed" blob is literally the input
+  // File) - see the toggle's render check below for why that hides it
+  // rather than rendering it.
+  const [imagePassthrough, setImagePassthrough] = useState(false);
+  // Object URLs created for the image-mode comparison (see handleToggleCompare)
+  // aren't run through `useObjectUrls` like `downloadUrl` is: that hook's own
+  // `url` lands a render after `setBlob` is called, but both sides need to
+  // land in `comparePreviews` together in the same tick so the render below
+  // stays one branch shared with the PDF path. Tracked here purely so they
+  // can be revoked the same way `useObjectUrls` revokes the download URL.
+  const compareImageUrlsRef = useRef<{ before: string; after: string } | null>(null);
+
+  const clearComparePreviews = () => {
+    if (compareImageUrlsRef.current) {
+      URL.revokeObjectURL(compareImageUrlsRef.current.before);
+      URL.revokeObjectURL(compareImageUrlsRef.current.after);
+      compareImageUrlsRef.current = null;
+    }
+    setComparePreviews(null);
+  };
 
   const resetOutput = () => {
     clearPrepared();
@@ -138,28 +160,35 @@ export default function PdfCompressTool({
     clearDownload();
     compressedBlobRef.current = null;
     setCompareOpen(false);
-    setComparePreviews(null);
+    clearComparePreviews();
     setCompareStatus('idle');
+    setImagePassthrough(false);
   };
 
-  // Renders page 1 of the original and page 1 of the compressed result to
-  // data URLs for the CompareSlider, on demand only. PDF only: a rasterized
-  // page comparison doesn't mean anything for a photo that was already an
-  // image, so the toggle button itself is never rendered in image mode.
+  // Builds the before/after pair for the CompareSlider, on demand only.
+  // PDF: renders page 1 of the original and of the compressed result to
+  // data URLs via a lazy-imported `renderComparePreview`. Image: no
+  // rasterization is involved - the "before" is the original `file` and the
+  // "after" is the output blob already sitting in `compressedBlobRef`, both
+  // already fully decoded bytes on this device, so two object URLs are all
+  // that's needed and there's nothing to await.
   //
   // Deliberately lazy for every visitor, not gated by a mobile/desktop
   // check: the panel never renders until this fires, so it already never
   // "runs by default" anywhere, which is the acceptance bar (SEO-25). A
-  // measured cost still matters, because "opt-in" only helps if the visitor
-  // who *does* tap it isn't left waiting or out of memory on a phone. Per
-  // the comment on `renderComparePreview` (src/lib/thumbnails.js), each
-  // preview costs about one page-render at roughly the same scale the
-  // compressor itself already used for every page in the document that was
-  // just processed on this device - so a device that could compress the
-  // whole document a moment ago can afford two more page renders now. An
-  // emulated-low-end-mobile Playwright run (e2e/compress/compare-preview.spec.js,
-  // 4x CPU throttling, 375x812 viewport) measured this panel opening in
-  // well under a second; see that spec for the recorded number.
+  // measured cost still matters for the PDF path, because "opt-in" only
+  // helps if the visitor who *does* tap it isn't left waiting or out of
+  // memory on a phone. Per the comment on `renderComparePreview`
+  // (src/lib/thumbnails.js), each preview costs about one page-render at
+  // roughly the same scale the compressor itself already used for every
+  // page in the document that was just processed on this device - so a
+  // device that could compress the whole document a moment ago can afford
+  // two more page renders now. An emulated-low-end-mobile Playwright run
+  // (e2e/compress/compare-preview.spec.js, 4x CPU throttling, 375x812
+  // viewport) measured this panel opening in well under a second; see that
+  // spec for the recorded number. The image path has no equivalent
+  // rasterization cost to measure - it's two `URL.createObjectURL` calls on
+  // bytes already decoded a moment earlier by the compressor itself.
   const handleToggleCompare = async () => {
     if (compareOpen) {
       setCompareOpen(false);
@@ -167,6 +196,14 @@ export default function PdfCompressTool({
     }
     setCompareOpen(true);
     if (comparePreviews || compareStatus === 'loading' || !file || !compressedBlobRef.current) return;
+
+    if (kind === 'image') {
+      const before = URL.createObjectURL(file);
+      const after = URL.createObjectURL(compressedBlobRef.current);
+      compareImageUrlsRef.current = { before, after };
+      setComparePreviews({ before, after });
+      return;
+    }
 
     setCompareStatus('loading');
     try {
@@ -232,6 +269,12 @@ export default function PdfCompressTool({
           originalWidth: result.originalWidth,
           originalHeight: result.originalHeight,
         });
+        // compressImageToTarget's passthrough rule returns the input File
+        // itself as `blob` when it was already under target - reference
+        // equality here is exactly that check, no size/byte comparison
+        // needed. See the toggle's render check below for why that matters.
+        setImagePassthrough(result.blob === file);
+        compressedBlobRef.current = result.blob;
         setDownloadBlob(result.blob);
         prepareFiles([{ blob: result.blob, filename: deriveDownloadName(file.name, resultType), type: resultType }]);
         setStatus('done');
@@ -359,20 +402,21 @@ export default function PdfCompressTool({
               </p>
             )}
 
-            {kind === 'image' ? (
-              <p class={styles['compress-warning']}>
-                {t.formatNotice}
-              </p>
-            ) : (
-              <>
-                <p class={styles['compress-warning']}>
-                  {t.rasterizeNotice}
-                </p>
+            <p class={styles['compress-warning']}>
+              {kind === 'image' ? t.formatNotice : t.rasterizeNotice}
+            </p>
 
-                {/* Opt-in and lazy on every device (see handleToggleCompare) -
-                    a visitor decides for themselves whether the notice above
-                    is a dealbreaker for their document instead of taking our
-                    word for it. */}
+            {/* Opt-in and lazy on every device (see handleToggleCompare) - a
+                visitor decides for themselves whether the notice above is a
+                dealbreaker for their file instead of taking our word for it.
+                Shared by both halves of the tool: a PDF rasterizes page 1 on
+                each side, an image just points at the original `file` and
+                the output blob it already has. Hidden for a passthrough
+                image - the output *is* the input when it was already under
+                target, so both sides of the slider would be the same bytes,
+                which is noise rather than a comparison. */}
+            {!(kind === 'image' && imagePassthrough) && (
+              <>
                 <button
                   type="button"
                   class={styles['compare-toggle-button']}
@@ -399,7 +443,9 @@ export default function PdfCompressTool({
                           afterLabel="Compressed"
                         />
                         <p class={styles['compare-caption']}>
-                          Drag to compare page 1. The rest of the document compresses the same way.
+                          {kind === 'image'
+                            ? 'Drag to compare the original and the compressed image.'
+                            : 'Drag to compare page 1. The rest of the document compresses the same way.'}
                         </p>
                       </>
                     )}

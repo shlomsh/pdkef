@@ -91,3 +91,47 @@ Shipped and indexing requested; nothing left to build. The remaining work is rea
 the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
 check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
 today; close it, or reopen it with a finding, from that refresh.
+
+## Image mode (2026-09-12)
+
+Extended the same toggle to the image half of the tool (SEO-19 merged Compress Image into this island;
+see `PdfCompressTool.tsx`'s `deriveKind` dispatch). "Compare with original" now renders in image mode
+too, sharing the one `comparePreviews`/`CompareSlider` render path with the PDF case rather than a
+second copy of it.
+
+**No rasterization, so the PDF section's mobile-cost measurement above does not apply here.** The PDF
+path lazily renders page 1 of each side with pdf.js; the image path has nothing to render at all - the
+"before" is the original `file` and the "after" is the output blob `compressImageToTarget` already
+produced (now also kept in `compressedBlobRef`, which the PDF path alone used to populate), both
+already fully decoded bytes on the device by the time a result is on screen. Opening the panel is two
+`URL.createObjectURL` calls, not a page-render, so the 4x-CPU-throttled measurement `compare-preview.spec.js`
+recorded for the PDF path (about 1.2s) has no image-mode equivalent to report and none was measured;
+there is no comparable cost to budget for.
+
+Those two object URLs aren't threaded through the `useObjectUrls` hook `downloadUrl` uses: that hook's
+`url` state lands one render after `setBlob` is called, but both sides need to be in `comparePreviews`
+together in the same tick so the render stays one shared branch. They're created directly and tracked
+in a ref (`compareImageUrlsRef`) purely so they can be revoked the same way `useObjectUrls` revokes the
+download URL - on reset (`clearComparePreviews`, called from `resetOutput`), not on every toggle-close
+(closing keeps the cached pair, matching the PDF path's own "don't re-render on re-open" behaviour).
+
+**Passthrough decision: hide the toggle, not render it with identical sides.** `compressImageToTarget`
+returns the input `File` itself as `blob` when the file was already under target (no re-encode). That
+reference equality (`result.blob === file`) is tracked in new state (`imagePassthrough`) and used to
+hide the toggle outright for that result - a slider whose "before" and "after" are the same bytes is
+noise, not a comparison, and there's nothing to drag toward. A PDF result never hits this path (the PDF
+passthrough rule returns a different Blob, not the input File), so this only ever applies to images.
+
+Updated the two "PDF only" comments in `PdfCompressTool.tsx` (`handleToggleCompare`'s doc comment and
+the ref/state comments around it) that no longer described what the code does.
+
+**Tests.** One new `PdfCompressTool.test.tsx` case covers: no panel/no `renderComparePreview` call
+before the toggle is tapped, two `blob:`-prefixed `<img src>` after tapping with no `renderComparePreview`
+call (proving no rasterization ran), and the toggle absent for a passthrough result on a second file.
+`e2e/compress/image-target-size.spec.js`'s existing JPEG-to-target test gained a few lines after its
+download assertions: open the compare panel, assert the slider is visible with two `blob:` image
+sources - a real-browser check that the toggle produces loadable images, not just component state.
+
+**The 2026-10-08 read (acceptance criterion 5, CTR effect on the compress-quality cluster) is
+unchanged by this**: it was already scheduled against the PDF-only ship and stays a single read across
+both halves of the tool rather than a second one for images.
