@@ -108,11 +108,11 @@ export interface MergeMessages {
   previewPrev: string;
   previewNext: string;
   previewLoading: string;
-  /* MERGE-14: three quiet verbs under Download; MERGE-17: one quiet line
-   * after the first result in this browser. */
+  /* MERGE-14: two quiet verbs under Download (Split was dropped on review:
+   * after page-level shuffle and skip it is not the next step); MERGE-17: one
+   * quiet line after the first result in this browser. */
   handoffCompress: string;
   handoffSign: string;
-  handoffSplit: string;
   handoffConfirmTitle: string;
   handoffConfirmBody: string;
   handoffConfirm: string;
@@ -200,7 +200,6 @@ const englishMergeMessages: MergeMessages = {
   previewLoading: 'Rendering the page…',
   handoffCompress: 'Compress it',
   handoffSign: 'Sign it',
-  handoffSplit: 'Split it',
   handoffConfirmTitle: 'Replace the saved draft?',
   handoffConfirmBody: 'That tool still has a draft saved on this device: {draft}. Opening the merged file there replaces it.',
   handoffConfirm: 'Replace and open',
@@ -294,7 +293,6 @@ const hebrewMergeMessages: MergeMessages = {
   previewLoading: 'מציירים את העמוד…',
   handoffCompress: 'לכווץ אותו',
   handoffSign: 'לחתום עליו',
-  handoffSplit: 'לפצל אותו',
   handoffConfirmTitle: 'להחליף את הטיוטה השמורה?',
   handoffConfirmBody: 'בכלי הזה עדיין שמורה טיוטה על המכשיר: {draft}. פתיחת הקובץ המאוחד שם תחליף אותה.',
   handoffConfirm: 'להחליף ולפתוח',
