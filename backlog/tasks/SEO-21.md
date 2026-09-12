@@ -1,6 +1,6 @@
 ---
 id: "SEO-21"
-title: "New tool: flatten a PDF, which also closes a defect in the Sign export"
+title: "Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is"
 status: "open"
 priority: "P2"
 epic: "search-acquisition"
@@ -9,44 +9,112 @@ depends_on: ["MOBI-02", "SEO-06"]
 legacy_state: "Open"
 ---
 
-# SEO-21 · New tool: flatten a PDF, which also closes a defect in the Sign export
+# SEO-21 · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is
 
-## Scope and acceptance
+## Why this ticket was rewritten (2026-09-12)
 
-**`flatten pdf online` is 20k-50k a month against weak competition, and we need the capability
-internally regardless of whether we ship the page.** MOBI-02 records the defect: `signPdf` never touches
-the AcroForm, so a source PDF with form fields exports with every widget annotation intact and empty,
-painted over the answers PDkef just drew. The sender sees their text because pdf.js renders widget
-appearance streams as page content; the recipient sees empty boxes.
+The first version framed this as "build the flattening logic once, ship it in two places". That framing
+is stale: MOBI-02 shipped the AcroForm flatten in `src/editor/adapters/pdf/sign.js` on 2026-09-11
+(`hasFillableAcroForm` guard, `FormFlattenError`, four tests), with only its two-viewer check still
+pending. What remains is narrower and different from what the old ticket described, and the question
+"isn't Compress already a flatten?" deserved an answer on the record. Both are below.
 
-So this is one piece of work with two outputs: the flattening logic, used by the Sign export path, and a
-tool page for people searching for it directly. Build it once.
+## Compress is a flatten, and it is the wrong one for this query
 
-**MOBI-02 owns the policy decision and this ticket depends on it** - flatten always, never, or only when
-PDkef drew something overlapping a widget rect. Do not re-litigate it here; if MOBI-02 has not chosen,
-this ticket waits, because the tool's behaviour has to be the same behaviour.
+PDkef already flattens in three places with three behaviours:
 
-**Two complications MOBI-02 already names, repeated because they are easy to skip.** `getForm()` in
-`@cantoo/pdf-lib` strips XFA data unless the document was loaded with `preserveXFA`, so merely asking
-whether a form exists can silently degrade a hybrid document. And `form.flatten()` regenerates
-appearances, needs a font, and throws on some documents - a document we cannot flatten must fail loudly
-rather than quietly returning the unflattened file, which would be a silent wrong answer of exactly the
-kind this tool exists to prevent.
+| Path | What it does | Keeps text? |
+| --- | --- | --- |
+| `src/editor/adapters/pdf/sign.js` (MOBI-02) | pdf-lib `form.flatten()`: bakes AcroForm widgets into page content | yes |
+| `src/editor/adapters/pdf/redact.js` | rasterises marked pages at 2.5x, JPEG 0.95 | no |
+| `src/lib/compress.js` | rasterises every page at 1.0-2.0x, JPEG 0.4-0.8 | no |
 
-**What "flatten" means to a searcher is broader than AcroForm fields**, and the page should be precise
-about which of these it does: form fields, annotations and comments, layers, and transparency. Claiming
-all four and doing one is how a tool gets a reputation. State the scope.
+What a `flatten pdf` searcher means, read off the pages that rank for it (Adobe, Smallpdf, Xodo,
+PDF4me, PDF4.dev): merge form fields, comments, stamps and signature appearances into the page so the
+file looks the same in every viewer and can no longer be edited, **with the text still vector text**.
+The classic trigger is exactly MOBI-02's defect: "I filled the form and the recipient sees empty boxes."
+Layers and transparency are a distant second meaning.
 
-**Acceptance.**
+Compress does flatten all four meanings at once, but by turning a typed form into a 110 DPI JPEG. That
+is the "print it to an image" workaround the searcher is trying to avoid, it often makes the file
+larger, and it is not even reliable as a flatten: Target Size mode returns a file untouched, fields
+intact, when it is already under the limit. Its title, h1 and FAQ are about size limits, so a flatten
+searcher who lands there bounces. **Decision: do not point `flatten pdf` at `/compress/`.** Cross-link
+both ways instead (section "Page" below).
 
-- One flattening implementation in `src/lib/` (or the appropriate `src/editor/adapters/pdf/` home), used
-  by both the Sign export path and the new tool. No second copy.
-- MOBI-02's acceptance is satisfied by the same change: a filled form exports with no live editable field
-  covering the drawn answers, verified in Chrome's viewer and macOS Preview, both named with what each
-  showed before and after.
-- A document with no form exports byte-comparably to today, proving the path is inert on the common case.
-- A document that cannot be flattened fails loudly.
-- The page states exactly which kinds of flattening it performs, and that flattening ends the document's
-  life as a fillable form.
-- Registered in `src/data/tools.js`; How it works and FAQ with matching `<SeoSchema>`; no `noindex`;
-  `npm run build && npm run preview` CSP pass.
+One more reason a page is needed: the site's own vocabulary is split. Redact's copy and
+`/blur-vs-blackout-vs-delete-pdf/` use "flatten" to mean "the page becomes one image" (three FAQ
+entries); Sign now uses it to mean "fields baked in, text kept". A page that names that difference is
+the thing that teaches something.
+
+## What pdf-lib's `flatten()` does not do (read from `node_modules/@cantoo/pdf-lib/cjs/api/form/PDFForm.js`)
+
+These are fine for Sign's narrow input and not fine for a general tool fed arbitrary PDFs:
+
+- **Widgets only.** `flatten()` walks `AcroForm.Fields` plus orphan `/Widget` annots. Comments, stamps,
+  ink, highlights, free text, and non-form signature appearances are untouched. There is no pdf-lib API
+  for those.
+- **Per-widget failures are swallowed.** The loop at `flatten()` catches each widget's error with
+  `console.error` and then calls `removeField` regardless, so a widget whose appearance could not be
+  drawn silently disappears from the output. That is the exact "silent wrong answer" this tool exists
+  to prevent. Sign's `FormFlattenError` only fires on errors outside that try block.
+- **Placement is simplified.** `flattenWidgetOntoPage` translates to the widget `/Rect` origin and draws
+  the appearance XObject as-is; it does not apply the appearance `/Matrix` or scale `/BBox` to `/Rect`
+  (PDF 32000-1 section 12.5.5). Rotated or unusually produced forms can draw off.
+
+So the shared flattener owns its own loop rather than calling `form.flatten()`: enumerate every page's
+`/Annots`, and for each annotation with an `/AP` `/N` entry (resolving `/AS` for state dictionaries),
+skipping `/Popup`, `/Link`, and any annot with the Hidden or NoView `/F` bit set, draw the appearance
+XObject with the section 12.5.5 BBox-to-Rect transform, then remove the annot and, for widgets, the
+field from `AcroForm.Fields`. Count what was drawn against what was found; any annotation that had an
+appearance and was not drawn is a loud failure, never a skip. Roughly fifty lines of pdf-lib low-level
+code; the appearance-stream handling mirrors `flattenWidgetOntoPage`, the transform is the new part.
+
+The two MOBI-02 complications still apply and are already handled by its code, reuse them: detect a
+form through `pdfDoc.catalog.getAcroForm()` (never `getForm()`, which strips XFA unless loaded with
+`preserveXFA`), and stay inert on a document with nothing to flatten.
+
+## Scope
+
+**Part A, code, can ship now, independent of the SEO gate.** It hardens Sign's export regardless of
+whether the page ever ships.
+
+- One `flattenPdf(bytes, { mode })` in `src/editor/adapters/pdf/flatten.js`, with the loop above.
+  `sign.js` calls it in place of its current `form.flatten()` step, same position (before the draw
+  loop, for the content-stream ordering reason MOBI-02 records). No second copy anywhere.
+- Mode `'keep-text'` (default): forms and annotations, text preserved. Mode `'image'`: every page
+  rasterised through one shared helper pulled out of `redact.js` at its 2.5x / JPEG 0.95 settings, so
+  Redact and Flatten cannot drift. Not Compress's settings; Compress keeps its own ladder because its
+  job is size.
+- MOBI-02's tests keep passing against the new implementation, plus: a fixture with a sticky-note
+  comment and a stamp exports with an empty `/Annots` and the stamp still visible (pdf.js render, pixel
+  check in the stamp rect); a fixture with a rotated page places the field appearance inside the
+  field's `/Rect` after flattening; a fixture with one appearance-less widget rejects with
+  `FormFlattenError` naming the count, not a partial file.
+
+**Part B, the page, waits on two things.** The `flatten pdf` / `flatten pdf form` volume is from the
+deep-research table in `docs/seo-competitive-findings.md` section 5, unmeasured; Shlomi has Keyword
+Planner (LOC-14), read it there first. And SEO-06's Week 4 gate: no new URL while the nine never-crawled
+pages have not moved.
+
+- `/flatten/`, registered in `src/data/tools.js`, non-slash redirect pair in `vercel.json`, How it works
+  and FAQ with matching `<SeoSchema>`, no `noindex`, `npm run build && npm run preview` CSP pass.
+- The page states exactly which kinds of flattening each mode performs: keep-text flattens form fields
+  and annotations and does **not** touch layers or transparency; image mode flattens everything and
+  loses selectable text. It states that either mode ends the document's life as a fillable form.
+- It gives the reader a test they can run on the output: open it, try to click a field, try to select
+  a word. That is the verifiable value the page has to carry; without it, it is a template swap.
+- Cross-links, not redirects: `/compress/` gets one sentence ("compressing also flattens, as an image;
+  to keep the text, use Flatten"), `/flatten/` points at Compress for size and at Redact for hiding
+  content. The Redact FAQ's "Do I need to flatten the PDF separately?" entry gets a clause naming which
+  kind of flatten it means.
+
+## Acceptance
+
+- Part A: `sign.js` no longer calls `form.flatten()`; one flattener, imported by Sign and (when built)
+  the tool. MOBI-02's four tests and the three new fixtures above pass. A document with no form and no
+  annotations exports byte-comparably to today. Nothing that had an appearance is dropped quietly.
+- MOBI-02's own pending check is done through this code: the filled-form fixture opened in Chrome's
+  viewer and macOS Preview, both named with what each showed.
+- Part B: the Keyword Planner reading and the SEO-06 gate outcome are recorded here before the page is
+  built; the scope statement, the reader's test, and the cross-links above are on the page.
