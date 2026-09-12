@@ -70,3 +70,42 @@ check for this ticket). Marked `blocked` rather than `open` so the board shows o
 today; close it, or reopen it with a finding, from that refresh.
 
 **2026-09-11, later:** Shlomi attempted the indexing request for `/pdf-wont-compress-to-100kb/` and Search Console answered *Quota Exceeded* (the day's quota went to the three `/he/` tool pages). Still unrequested; retry on the next day and record the date here.
+
+## Photo and signature caps added (2026-09-12, SEO-19 follow-up)
+
+Added one IBPS photograph/signature row to the portals table, one prose block, one FAQ entry, and a
+link to `/compress-image/`. Reason: the person on this page has a form with three separately capped
+uploads, photo, signature and document, and the page only answered the document one. LOC-11's
+autocomplete sweep found that the photo query is what people type first in every locale, so leaving it
+out was the bigger gap on the page, not a nice-to-have.
+
+**Primary sources, both fetched 2026-09-12 from `ibpsreg.ibps.in`**, the domain the page already cites
+for its 500 KB document cap:
+
+- "Guidelines for scanning and Upload of Documents", IBPS CRP PO June 2025 cycle:
+  `https://ibpsreg.ibps.in/crppoxvjun25/uploads/loadpdf.php?file=k7m5p+fQ15erzNvj0OHb1N7UnJp9sc%2FKYaao1bWrpok%3D&t=1LHArOLA2di0yczXwNDa083LmNWypw%3D%3D`
+  - photograph: "Size of file should be between 20kb–50 kb"
+  - signature: "Size of file should be between 10kb – 20kb"
+  - left thumb impression: 20 KB to 50 KB, listed as its own row (not put on the page; out of scope
+    for this ticket's document/photo/signature framing)
+- "GUIDELINES FOR SCANNING & UPLOADING THE PHOTOGRAPH & SIGNATURE", RBI January 2026 cycle, hosted on
+  the same IBPS portal:
+  `https://ibpsreg.ibps.in/rbijan26/uploads/loadpdf.php?file=k7m5p+fQ15e6vNTdwteXoJjWzox%2FFppyXow%3D%3D&t=1LHArOLA2di0yczXwNDa083LmNWypw%3D%3D`
+  - same photograph range; signature and thumb impression are phrased in one bullet: "10kb – 20kb for
+    signature and left thumb impression should be between 20kb – 50kb"
+
+Both cycles agree on the photograph and signature ranges, which is why the page states them as IBPS's
+figures rather than citing a single cycle. The page links to the portal root
+`https://ibpsreg.ibps.in`, not either PDF, because both PDF URLs are per-cycle tokenised links that
+rotate when a new recruitment cycle opens, exactly the reason the page already cites the root for the
+500 KB cap rather than a cycle-specific PDF.
+
+**SSC considered and dropped.** Looked for an SSC equivalent of the same figures; only coaching sites
+repeat them, and no primary `ssc.gov.in` document was fetchable. Not on the page.
+
+**Read note.** The page was not indexed when this edit landed, its 2026-09-11 indexing request hit the
+daily quota and was never remade (see above), so nothing indexed went stale from this change. The
+eight-week read still starts from the date Shlomi requests indexing, recorded here when he does, and
+it measures the page with this photo/signature addition already in it, not the pre-edit version.
+Suggest `/compress-image/` gets requested the same day, so the two URLs run as one experiment against
+the same portal-limit intent.

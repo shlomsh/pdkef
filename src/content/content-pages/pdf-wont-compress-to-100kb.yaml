@@ -96,6 +96,7 @@ sections:
         headers: ['Portal', 'What it caps', 'Documented limit']
         rows:
           - ['IBPS (bank recruitment exams)', 'ID proof, certificates, combined marksheet PDF', 'PDF only, 500 KB maximum']
+          - ['IBPS (bank recruitment exams)', 'Photograph and signature uploads', 'Photograph 20 KB to 50 KB, signature 10 KB to 20 KB, JPEG only']
           - ['NTA UGC-NET (and similar NTA exams)', 'Candidate photograph upload', '10 KB to 200 KB, JPEG only']
           - ['NTA UGC-NET (and similar NTA exams)', 'Candidate signature upload', '4 KB to 30 KB, JPEG only']
       - kind: 'prose'
@@ -111,6 +112,17 @@ sections:
           The National Testing Agency's UGC-NET information bulletin specifies a 10KB to 200KB
           photograph and a 4KB to 30KB signature, both JPEG, quoted directly from its
           <a href="https://ugcnet.nta.ac.in/images/information-bulletin-for-ugc-net-june-2025-16042025.pdf" target="_blank" rel="noopener noreferrer">published information bulletin</a>.
+      - kind: 'prose'
+        text: >-
+          The same candidate portal that sets IBPS's 500KB document cap also publishes separate,
+          much smaller limits for the photograph and signature themselves: a photograph between
+          20KB and 50KB, and a signature between 10KB and 20KB, both plain JPEG
+          (<a href="https://ibpsreg.ibps.in" target="_blank" rel="noopener noreferrer">ibps.in
+          candidate portal, photograph and signature guidelines</a>). A photograph is one image
+          rather than a page count, so a cap that small is usually reachable, unlike a multi-page
+          scan. The same target-size search that runs on a PDF here runs on a JPG or PNG in
+          <a href="/compress-image/">Compress Image</a>, with presets down to 20KB, and it shows
+          the closest size it found if your file still will not fit.
   - variant: 'highlight'
     sketch: 'waves'
     icon: 'WifiOff'
@@ -156,6 +168,13 @@ faq:
       larger share of the size budget. Check whether the portal actually requires exactly 100KB or
       merely defaults to showing that figure. If you are scanning from scratch, use grayscale and a
       lower resolution before compressing rather than starting from a large colour scan.
+  - question: 'Does the document size limit also apply to the photo and signature?'
+    answer: >-
+      No, portals check them separately, and much lower. IBPS's own guidelines cap a photograph at
+      20KB to 50KB and a signature at 10KB to 20KB, well under the 500KB document limit. A photo is
+      a single image rather than a page count, so a cap that small is normally reachable: Compress
+      Image runs the same target-size search on a JPG or PNG and shows the closest size it found if
+      yours still will not fit.
   - question: 'Is a typed PDF ever too big to hit 100KB?'
     answer: >-
       Rarely. A native, typed PDF stores text as text, not as an image, so a single page is
