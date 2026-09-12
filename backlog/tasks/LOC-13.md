@@ -23,11 +23,12 @@ domain loses to in English at position 36 ([LOC-07](LOC-07.md)).
 What the majors do not build is the target-size page. The `comprimir pdf` related-searches block
 carries `Comprimir PDF a 1mb`, `Comprimir PDF a 2MB`, `Comprimir PDF a 2MB gratis`, `Comprimir PDF al
 máximo`. In English, target-size compression is this domain's best-converting query (`file compressor
-to 100kb`, position 9.4, 4 clicks / 100 impressions in 28 days) and the page behind it,
-[SEO-17](SEO-17.md)'s `/pdf-wont-compress-to-100kb/`, is the model: it teaches which portals impose
-the number, cites each limit, and states the awkward fact that a ten-page scan cannot reach it. This
-ticket builds the Mexican counterpart. Spanish first because it is the easiest language to source a
-paid native reviewer for (criterion 3), and Mexico because it is the site's 16th country already.
+to 100kb`, position 9.4, 4 clicks / 95 impressions in 28 days), and it lands on `/compress/`, not on a
+content page. [SEO-17](SEO-17.md)'s `/pdf-wont-compress-to-100kb/` is the model for the page shape,
+honest target-size, portal limits cited, the miss stated, but that page is not indexed and has no
+ranking of its own yet. This ticket builds the Mexican counterpart. Spanish first because it is the
+easiest language to source a paid native reviewer for (criterion 3), and Mexico because it is the
+site's 16th country already.
 
 ## Rules that carry over unchanged
 
@@ -88,9 +89,12 @@ already small.
 | `reducir tamaño pdf a 1mb` | 11zon, Smallpdf 1 MB, Pi7, Zamzar, DocHub; SEP video again |
 | `comprimir pdf a 2mb` (`gl=ES`) | 11zon, Pi7, Wondershare `pdf.wondershare.es` 2MB (188,357 reviews), DocHub; related searches add `a 10 MB` |
 
-Same tier of competitor as the English 100kb SERP (11zon, Pi7, Zamzar, LightPDF), where this domain
-ranks at 9.4 after a year of authority on the query, plus Smallpdf and Adobe now building the pages in
-Spanish, plus a local-tools site with the portal-limit angle already written.
+Same tier of competitor as the English 100kb SERP (11zon, Pi7, Zamzar, LightPDF), where `/compress/`
+ranks at 9.4 on the English 100kb query, plus Smallpdf and Adobe now building the pages in Spanish,
+plus a local-tools site with the portal-limit angle already written. "A year of authority" overstates
+it, the domain launched around 2026-06, about ten weeks before this rank was measured (findings doc
+section 3.6); the point stands regardless, the English rank came from the existing tool page, not from
+a content page.
 
 **The one verifiable hook found:** Prepa en Línea-SEP, the federal online high school, publishes its
 own "files under 1 MB" video, so a 1 MB limit at a Mexican government portal is real and citable. If
