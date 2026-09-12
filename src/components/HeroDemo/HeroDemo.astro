@@ -29,6 +29,7 @@ const rootSelector = `.${styles.root}`;
 // call for the same reason: an isolated arrow flip with an unchanged
 // English caption reads like a rendering bug, not a design choice.
 const captionArrowClass = isRtl ? `${styles['caption-arrow']} ${styles['caption-arrow-rtl']}` : styles['caption-arrow'];
+const captionClass = isRtl ? `type-section ${styles.caption} ${styles['caption-hebrew']}` : `type-section ${styles.caption}`;
 const signCaption = isRtl
   ? { before: 'מילוי, ', marker: 'חתימה', after: ',', line2: 'ושליחה בחזרה.' }
   : { before: 'Fill, ', marker: 'sign', after: ',', line2: 'send it back.' };
@@ -71,7 +72,7 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
       and back in the chat, the signed form goes out and reads as sent.
     </p>
     <div class={styles.stage} data-hero-stage>
-      <h2 class={`type-section ${styles.caption}`}>
+      <h2 class={captionClass}>
         <svg class={captionArrowClass} viewBox="0 0 150 46" aria-hidden="true" focusable="false">
           <path d="M3 36C36 8 88 5 133 26"></path>
           <path d="M121 13L134 26L117 32"></path>
@@ -291,7 +292,7 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
       number is blacked out, one line is erased to blank paper, and an unrelated row is deleted, leaving blank space. The cleaned-up document is then attached to a reply and sent.
     </p>
     <div class={styles.stage} data-hero-stage>
-      <h2 class={`type-section ${styles.caption}`}>
+      <h2 class={captionClass}>
         <svg class={captionArrowClass} viewBox="0 0 150 46" aria-hidden="true" focusable="false">
           <path d="M3 36C36 8 88 5 133 26"></path>
           <path d="M121 13L134 26L117 32"></path>

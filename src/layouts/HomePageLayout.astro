@@ -141,16 +141,19 @@ const homeTools = homeToolsOrder.map((tool) => {
 <BaseLayout title={title} description={description} lang={lang} dir={dir} canonical={canonical} alternates={alternates} socialImageAlt={messages.socialImageAlt}>
   <Fragment slot="head">
     <SeoSchema name="PDkef" description={description} faq={faq} />
-    {/* The hero demo's handwritten caption ('Caveat Demo' in HeroDemo.module.css)
-        sits above the fold only on desktop - the mobile layout scrolls the
-        demo past the first screen - so this is scoped to the same width the
-        caption itself actually renders above the fold at, rather than making
-        every phone visit pay for a font it never needs early. */}
+    {/* The hero demo's handwritten caption ('Caveat Demo', or 'Gveret Levin
+        Demo' in Hebrew - see HeroDemo.module.css) sits above the fold only
+        on desktop - the mobile layout scrolls the demo past the first
+        screen - so this is scoped to the same width the caption itself
+        actually renders above the fold at, rather than making every phone
+        visit pay for a font it never needs early. Only the locale's own
+        caption font is preloaded; the other language's demo font is never
+        requested by this page at all. */}
     <link
       rel="preload"
       as="font"
       type="font/ttf"
-      href="/fonts/CaveatDemo-Bold.ttf"
+      href={dir === 'rtl' ? '/fonts/GveretLevinDemo-Regular.ttf' : '/fonts/CaveatDemo-Bold.ttf'}
       media="(min-width: 1024px)"
       crossorigin
     />
