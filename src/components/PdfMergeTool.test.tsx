@@ -45,10 +45,27 @@ vi.mock('../lib/merge.js', () => {
   };
 });
 
+// The island's own hand-off calls plus what the MERGE-13 draft component
+// (loaded through a dynamic import) needs to mount quietly with no draft.
 vi.mock('../editor/workspace/draftStore.js', () => ({
   saveHandoff: vi.fn(async () => true),
   loadDraft: vi.fn(async () => null),
   deleteDraft: vi.fn(async () => true),
+  saveDraft: vi.fn(async () => true),
+  hasDraftHint: vi.fn(() => false),
+  subscribeToDraftChanges: vi.fn(() => () => {}),
+  attachDraftPreview: vi.fn(() => false),
+  readDraftMeta: vi.fn(() => null),
+}));
+
+// The MERGE-13 draft component is exercised through its props here; the hook
+// itself has its own suite (useMergeDraft.test.tsx).
+const draftProbe = { props: null };
+vi.mock('./MergeTool/MergeDraftPersistence.tsx', () => ({
+  default: (props) => {
+    draftProbe.props = props;
+    return null;
+  },
 }));
 
 vi.mock('../lib/thumbnails.js', () => ({
@@ -67,13 +84,15 @@ describe('PdfMergeTool UI flow', () => {
   beforeEach(() => {
     pageCounts.clear();
     localStorage.clear();
+    draftProbe.props = null;
     // vi.mock factories keep their call history across tests; restoreAllMocks
     // only touches spies.
     mergeLib.mergePdfs.mockClear();
     mergeLib.inspectPdf.mockClear();
     draftStore.saveHandoff.mockClear();
     draftStore.deleteDraft.mockClear();
-    draftStore.loadDraft.mockClear();
+    draftStore.loadDraft.mockReset();
+    draftStore.loadDraft.mockImplementation(async () => null);
     originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
     window.URL.revokeObjectURL = vi.fn();
@@ -373,10 +392,12 @@ describe('PdfMergeTool UI flow', () => {
     await loadFiles(['a.pdf', 'b.pdf']);
     await settle();
 
-    const link = Array.from(container.querySelectorAll('a')).find((a) => a.textContent === 'Compress it');
-    expect(link.getAttribute('href')).toBe('/compress/');
+    // Buttons, not links, and no Split: the row is Compress and Sign only.
+    expect(container.querySelector('a[href="/compress/"]')).toBeNull();
+    expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent === 'Split it')).toBe(false);
+    const button = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Compress it');
     await act(async () => {
-      link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      button.click();
       await flush(10);
     });
     expect(draftStore.saveHandoff).toHaveBeenCalledTimes(1);
@@ -389,15 +410,16 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('asks before replacing a saved Sign draft on hand-off (MERGE-14)', async () => {
-    draftStore.loadDraft.mockResolvedValueOnce({ fileName: 'contract.pdf', fileBytes: new ArrayBuffer(4) });
+    // Keyed by tool: the draft component also asks the store about 'merge' on mount.
+    draftStore.loadDraft.mockImplementation(async (tool) => (tool === 'sign' ? { fileName: 'contract.pdf', fileBytes: new ArrayBuffer(4) } : null));
     const navigate = vi.fn();
     mount({ navigate });
     await loadFiles(['a.pdf', 'b.pdf']);
     await settle();
 
-    const link = Array.from(container.querySelectorAll('a')).find((a) => a.textContent === 'Sign it');
+    const button = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Sign it');
     await act(async () => {
-      link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      button.click();
       await flush(10);
     });
     expect(draftStore.saveHandoff).not.toHaveBeenCalled();
@@ -429,6 +451,52 @@ describe('PdfMergeTool UI flow', () => {
     await settle();
     expect(downloadLink()).not.toBeNull();
     expect(container.querySelector('[data-install-line]')).toBeNull();
+  });
+
+  it('restores a saved draft into the list, the plan and the options, and clears it on Start again (MERGE-13)', async () => {
+    const clearDraft = vi.fn(async () => true);
+    localStorage.setItem('pdf-toolkit:workspace:has-draft:merge', '1');
+    mount();
+    // The hint alone holds the empty state back before the module has loaded.
+    expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
+    await act(async () => { await flush(10); });
+    expect(draftProbe.props).not.toBeNull();
+    await act(async () => {
+      draftProbe.props.registerClear(clearDraft);
+      draftProbe.props.onStateChange({ isRestoring: false, draftSaveState: 'saved' });
+      draftProbe.props.onRestore({
+        files: [makePdfFile('x.pdf'), makePdfFile('y.pdf')],
+        plan: [
+          { key: '0:0', fileId: 0, pageIndex: 0, rotation: 90, skipped: false },
+          { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: true },
+          { key: '0:1', fileId: 0, pageIndex: 1, rotation: 0, skipped: false },
+          { key: '1:1', fileId: 1, pageIndex: 1, rotation: 0, skipped: false },
+        ],
+        options: { addPageNumbers: true },
+      });
+      await flush(10);
+    });
+    expect(fileNames()).toEqual(['x.pdf', 'y.pdf']);
+    expect(container.querySelector(`.${pdfToolStyles['page-numbers-toggle']} input`).checked).toBe(true);
+    expect(container.textContent).toContain('Draft saved');
+    await settle();
+    const [files, options] = mergeLib.mergePdfs.mock.calls.at(-1);
+    expect(files.map((f) => f.name)).toEqual(['x.pdf', 'y.pdf']);
+    expect(options.plan).toEqual([
+      { fileIndex: 0, pageIndex: 0, rotation: 90, skipped: false },
+      { fileIndex: 1, pageIndex: 0, rotation: 0, skipped: true },
+      { fileIndex: 0, pageIndex: 1, rotation: 0, skipped: false },
+      { fileIndex: 1, pageIndex: 1, rotation: 0, skipped: false },
+    ]);
+    expect(options.addPageNumbers).toBe(true);
+    // Pages were interleaved across files, so the list shows the rearranged note.
+    expect(container.textContent).toContain('Pages were rearranged');
+
+    await act(async () => downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })));
+    const startAgain = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Start again');
+    await act(async () => startAgain.click());
+    expect(clearDraft).toHaveBeenCalledTimes(1);
+    expect(fileNames()).toEqual([]);
   });
 
   it('attaches a Sortable instance to the file list once files are added', async () => {

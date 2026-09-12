@@ -36,8 +36,11 @@ exists, as the dock already does.
 
 ## Updates
 
-- 2026-09-13: under Download, three quiet links "Compress it", "Sign it", "Split it"; each saves the
-  merged blob through `saveHandoff` and navigates; the merge draft is kept. Compress and Split take
+- 2026-09-13: under Download, two quiet buttons, "Compress it" and "Sign it" (buttons, not links:
+  each parks the merged bytes for the other tool and then moves there, an action on the result rather
+  than a navigation). "Split it" was in the first cut and came out the same day on Shlomi's read:
+  after page-level reorder and skip in the strip, splitting the result is not the next step anyone
+  takes. Each saves the merged blob through `saveHandoff` and navigates; the merge draft is kept. Compress and Split take
   the hand-off on mount through the new `useHandoffIntake` (`src/lib/useHandoffIntake.ts`); Sign
   already did through its editor hook, and when Sign holds a draft the island asks first with the
   shared `ConfirmDialog`. Routes come from a `handoffHrefs` prop so a localized page can point inside

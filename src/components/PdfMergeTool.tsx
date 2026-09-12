@@ -30,6 +30,8 @@ import ErrorMessage from './ErrorMessage.tsx';
 import DownloadButton from './DownloadButton.tsx';
 import { usePreparedMerge } from './MergeTool/usePreparedMerge.ts';
 import type { PageStripProps } from './MergeTool/PageStrip.tsx';
+import type { MergeDraftPersistenceProps } from './MergeTool/MergeDraftPersistence.tsx';
+import type { MergeDraftRestore, MergeDraftSaveState } from './MergeTool/useMergeDraft.ts';
 import {
   englishMergeMessages,
   englishShellMessages,
@@ -137,7 +139,21 @@ function markFirstResultSeen() {
   }
 }
 
-type HandoffTool = 'compress' | 'sign' | 'split';
+/* MERGE-14: Compress and Sign only. Split was in the first cut and came out
+   on Shlomi's read: after page-level reorder and skip in the strip, splitting
+   the result is not the next step anyone takes. */
+type HandoffTool = 'compress' | 'sign';
+
+/* MERGE-13: the same synchronous hint ToolPageLayout.astro's pre-paint script
+   and useDraftPersistence read, so the empty state can be held back on the
+   first render, before the draft module (a dynamic import) has even loaded. */
+function hasMergeDraftHint(): boolean {
+  try {
+    return localStorage.getItem('pdf-toolkit:workspace:has-draft:merge') === '1';
+  } catch {
+    return false;
+  }
+}
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<unknown>;
@@ -162,7 +178,7 @@ interface PdfMergeToolProps {
   navigate?: (href: string) => void;
 }
 
-const DEFAULT_HANDOFF_HREFS: Record<HandoffTool, string> = { compress: '/compress/', sign: '/sign/', split: '/split/' };
+const DEFAULT_HANDOFF_HREFS: Record<HandoffTool, string> = { compress: '/compress/', sign: '/sign/' };
 
 export default function PdfMergeTool({
   messages: messagesProp,
@@ -204,6 +220,15 @@ export default function PdfMergeTool({
      measures for /merge/ does not grow with them. */
   const [PageStrip, setPageStrip] = useState<ComponentType<PageStripProps> | null>(null);
   const [editingPages, setEditingPages] = useState(false);
+  /* MERGE-13: crash-safe draft. The hook lives in MergeDraftPersistence,
+     loaded through a dynamic import() on mount; until it reports, the hint
+     alone decides whether the empty state is held back. */
+  const [DraftPersistence, setDraftPersistence] = useState<ComponentType<MergeDraftPersistenceProps> | null>(null);
+  const [draftState, setDraftState] = useState<{ isRestoring: boolean; draftSaveState: MergeDraftSaveState }>(
+    () => ({ isRestoring: hasMergeDraftHint(), draftSaveState: 'idle' }),
+  );
+  const clearDraftRef = useRef<(() => Promise<boolean>) | null>(null);
+  const draftOptions = useMemo(() => ({ addPageNumbers }), [addPageNumbers]);
   /* MERGE-14: hand the result to Compress, Sign or Split without re-picking. */
   const [handoffBusy, setHandoffBusy] = useState(false);
   const [handoffFailed, setHandoffFailed] = useState(false);
@@ -264,6 +289,26 @@ export default function PdfMergeTool({
     });
     return () => sortableRef.current?.destroy();
   }, [entries.length > 0]);
+
+  useEffect(() => {
+    let cancelled = false;
+    import('./MergeTool/MergeDraftPersistence.tsx')
+      .then((module) => { if (!cancelled) setDraftPersistence(() => module.default); })
+      .catch(() => { if (!cancelled) setDraftState((current) => ({ ...current, isRestoring: false })); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // A restored draft: fresh entries for the stored files (the index doubles as
+  // the id, which is what the stored plan's fileId already is), then the same
+  // inspection a fresh pick gets, for thumbnails and to re-check each file.
+  const onDraftRestore = useCallback((restored: MergeDraftRestore) => {
+    const restoredEntries = restored.files.map((file) => toEntry(file));
+    const idByIndex = restoredEntries.map((e) => e.id);
+    const plan = restored.plan.map((p) => ({ ...p, fileId: idByIndex[p.fileId], key: `${idByIndex[p.fileId]}:${p.pageIndex}` }));
+    setModel({ entries: restoredEntries, plan });
+    setAddPageNumbers(restored.options.addPageNumbers);
+    for (const entry of restoredEntries) inspectEntry(entry);
+  }, []);
 
   useEffect(() => {
     if (entries.length === 0 || PageStrip) return;
@@ -430,6 +475,7 @@ export default function PdfMergeTool({
     setSortMode('added');
     setEditingPages(false);
     pendingPlanIndexRef.current.clear();
+    void clearDraftRef.current?.();
     setAnnouncement(t.cleared);
   }, [clearPrepared, clearUndo, t.cleared]);
 
@@ -648,7 +694,7 @@ export default function PdfMergeTool({
       setHandoffFailed(true);
       setHandoffBusy(false);
     }
-  }, [prepared.blob, fileName, hrefs.compress, hrefs.sign, hrefs.split]);
+  }, [prepared.blob, fileName, hrefs.compress, hrefs.sign]);
 
   const requestHandoff = useCallback(async (tool: HandoffTool) => {
     if (handoffBusy || !prepared.blob) return;
@@ -716,7 +762,20 @@ export default function PdfMergeTool({
       onClearAll={reset}
       clearSummary={fileSummary}
       shellMessages={shellMessages}
+      checkingDraft={!hasFiles && draftState.isRestoring}
+      draftSaveState={hasFiles ? draftState.draftSaveState : 'idle'}
     >
+      {DraftPersistence && (
+        <DraftPersistence
+          entries={entries}
+          plan={plan}
+          options={draftOptions}
+          title={title}
+          onRestore={onDraftRestore}
+          onStateChange={setDraftState}
+          registerClear={(clear) => { clearDraftRef.current = clear; }}
+        />
+      )}
 
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
@@ -911,15 +970,19 @@ export default function PdfMergeTool({
           <div>
             {prepared.status === 'ready' && (
               <div class={pdfToolStyles['action-row-secondary']} aria-busy={handoffBusy || undefined}>
-                {(['compress', 'sign', 'split'] as HandoffTool[]).map((tool) => (
-                  <a
+                {/* Buttons, not links: each parks the merged bytes for the
+                    other tool and then moves there; it is an action on the
+                    result, not a plain navigation. */}
+                {(['compress', 'sign'] as HandoffTool[]).map((tool) => (
+                  <button
                     key={tool}
+                    type="button"
                     class={pdfToolStyles['quiet-link']}
-                    href={hrefs[tool]}
-                    onClick={(event) => { event.preventDefault(); void requestHandoff(tool); }}
+                    disabled={handoffBusy}
+                    onClick={() => { void requestHandoff(tool); }}
                   >
-                    {tool === 'compress' ? t.handoffCompress : tool === 'sign' ? t.handoffSign : t.handoffSplit}
-                  </a>
+                    {tool === 'compress' ? t.handoffCompress : t.handoffSign}
+                  </button>
                 ))}
                 {downloadedOnce && (
                   <button type="button" class={pdfToolStyles['quiet-link']} onClick={reset}>
