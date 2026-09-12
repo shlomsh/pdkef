@@ -1,7 +1,7 @@
 ---
 id: "MERGE-06"
 title: "Merge on a phone: the action within reach, one sort control, an options row, a pinned button"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "merge-tool"
 phase: "near-term"
@@ -39,3 +39,15 @@ must not cover the last list row; the list gets matching bottom padding.
 - Desktop layout unchanged except for the sort control and the options row.
 - One Playwright spec under `e2e/merge/` at the mobile viewport for the three facts above; `test:css`
   and `test:weight` green.
+
+## Updates
+
+- 2026-09-13: `heroPhoneCondensed: true` on the merge entry renders `data-hero-phone-condensed`, and
+  `ToolHero.astro` folds the hero from first paint under 768px with the subhead clamped to two lines
+  (never hidden, so mobile-first Googlebot still sees it). Measured in the preview at 375 x 812:
+  "Choose files" top at 527 CSS px (was ~700). Loaded: one native Sort select plus Reverse order on
+  one 57px row (the visible "Sort" word is screen-reader only at phone widths), Add page numbers in a
+  collapsed Options row. The primary control sits in a `position: sticky; bottom: 0` row inside the
+  card (in flow, so it never covers the last row): with six files at 375 wide its bottom edge sat at
+  800 of 812. Desktop unchanged apart from the sort control and the options row. Playwright:
+  `e2e/merge/merge-mobile.spec.js` on the webkit iPhone 15 project. Done.

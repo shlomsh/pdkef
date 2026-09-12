@@ -1,7 +1,7 @@
 ---
 id: "MERGE-03"
 title: "Download replaces Merge in place, named after the first file, with pages and size"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "merge-tool"
 phase: "quick-win"
@@ -37,3 +37,13 @@ Three things about the done state, all visible on the deployed page after any me
 - Output filename and PDF Title follow the first file; a second merge does not collide.
 - `e2e/merge/merge-layout.spec.js` asserts the single-button done state; unit tests cover the naming.
 - `npm run build && npm run preview` checked once for CSP, as with every button change.
+
+## Updates
+
+- 2026-09-13: Download is the only primary control and becomes the link in place, with the real
+  page count and size of the produced blob on its second line (`DownloadButton`'s `detail`); Share
+  stays beside it where `navigator.share` supports files. Output is `<first file base name> + N
+  more.pdf` from the `outputName` template in `toolMessages.ts`, and the PDF Title matches
+  (`mergedTitle`, `merged.setTitle`). The identity row reads `4 PDFs · 18 pages · 22 KB`. Naming is
+  unit-tested in `mergePlan.test.ts` and `merge.test.js`; the single-button done state is guarded in
+  `e2e/merge/merge-layout.spec.js`; build and preview checked for CSP. Done.

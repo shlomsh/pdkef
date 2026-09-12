@@ -178,6 +178,55 @@ describe('BasePdfTool', () => {
     expect(input.value).toBe('');
   });
 
+  it('accepts files pasted with Cmd/Ctrl+V and leaves text pastes and form fields alone (MERGE-10)', () => {
+    const onFilesAddedSpy = vi.fn();
+    mount({ hasFiles: true, onFilesAdded: onFilesAddedSpy, multiple: true });
+    const file = new File([''], 'pasted.pdf', { type: 'application/pdf' });
+
+    const paste = (target, files) => {
+      const event = new Event('paste', { bubbles: true, cancelable: true });
+      Object.defineProperty(event, 'clipboardData', { value: { files } });
+      target.dispatchEvent(event);
+      return event;
+    };
+
+    act(() => { paste(document.body, []); });
+    expect(onFilesAddedSpy).not.toHaveBeenCalled();
+
+    const textarea = document.createElement('textarea');
+    document.body.appendChild(textarea);
+    act(() => { paste(textarea, [file]); });
+    expect(onFilesAddedSpy).not.toHaveBeenCalled();
+    textarea.remove();
+
+    let event;
+    act(() => { event = paste(document.body, [file]); });
+    expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
+    expect(onFilesAddedSpy.mock.calls[0][0]).toEqual([file]);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('walks a dropped folder before handing its files on (MERGE-10)', async () => {
+    const onFilesAddedSpy = vi.fn();
+    mount({ hasFiles: true, onFilesAdded: onFilesAddedSpy, multiple: true });
+    const inside = ['b 2.pdf', 'a 10.pdf'].map((name) => new File([''], name, { type: 'application/pdf' }));
+    let served = false;
+    const folder = {
+      isFile: false,
+      isDirectory: true,
+      createReader: () => ({ readEntries: (resolve) => { if (served) return resolve([]); served = true; resolve(inside.map((f) => ({ isFile: true, isDirectory: false, file: (r) => r(f) }))); } }),
+    };
+    const card = container.querySelector(`.${pdfToolStyles['tool-card']}`);
+    const event = new Event('drop', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'dataTransfer', { value: { types: ['Files'], files: [], items: [{ webkitGetAsEntry: () => folder }] } });
+    await act(async () => {
+      card.dispatchEvent(event);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+    expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
+    expect(onFilesAddedSpy.mock.calls[0][0].map((f) => f.name)).toEqual(['a 10.pdf', 'b 2.pdf']);
+  });
+
   it('handles file selection via input in the loaded state', () => {
     const onFilesAddedSpy = vi.fn();
     mount({ hasFiles: true, onFilesAdded: onFilesAddedSpy, multiple: false, fileLabel: 'contract.pdf' });

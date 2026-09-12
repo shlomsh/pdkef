@@ -1,7 +1,7 @@
 ---
 id: "MERGE-14"
 title: "After Download, carry the result into Compress, Sign or Split without re-picking it"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "merge-tool"
 phase: "longer-term"
@@ -33,3 +33,13 @@ exists, as the dock already does.
   so Back returns to the same set.
 - Unit tests on the hand-off record; one Playwright check for the Compress route.
 - Nothing added to the static SEO surface; `test:weight` unchanged.
+
+## Updates
+
+- 2026-09-13: under Download, three quiet links "Compress it", "Sign it", "Split it"; each saves the
+  merged blob through `saveHandoff` and navigates; the merge draft is kept. Compress and Split take
+  the hand-off on mount through the new `useHandoffIntake` (`src/lib/useHandoffIntake.ts`); Sign
+  already did through its editor hook, and when Sign holds a draft the island asks first with the
+  shared `ConfirmDialog`. Routes come from a `handoffHrefs` prop so a localized page can point inside
+  its edition. Unit tests on the hand-off record and the confirmation in `PdfMergeTool.test.tsx`;
+  the Compress route in `e2e/merge/merge-handoff.spec.js`. Nothing added to the static surface. Done.

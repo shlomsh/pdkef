@@ -1,7 +1,7 @@
 ---
 id: "MERGE-11"
 title: "Easy defaults: the simple merge is pick files, then Download, with nothing else in the way"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "merge-tool"
 phase: "near-term"
@@ -44,3 +44,16 @@ ticket. The target is two taps after the picker closes, zero scroll.
   Download, assert a blob URL with the right page count. No other control needs touching.
 - Remembered options survive a reload and are absent for a first visit.
 - Every richer control still reachable within one tap from the default state.
+
+## Updates
+
+- 2026-09-13: files keep pick order; Options is collapsed by default and its Add page numbers value
+  is remembered under `pdf-toolkit:merge:options` (absent on a first visit); the strip's controls
+  appear on hover or focus on pointer devices and after Edit pages on touch; after Download the page
+  stays and "Start again" is one quiet link; `?action=open` still opens the picker. Measured in the
+  preview: after the picker closes it is one tap (Download), with no scroll at 375 x 812 because the
+  button is pinned (bottom edge 800 of 812 with six files); on a 1280 x 1000 desktop viewport the
+  button is on the first screen with up to three files and about half a screen down with four (the
+  strip is between the list and the button). Before: Merge, then scroll to the Download that
+  appeared under it, then Download. The two-action path is guarded at both viewports in
+  `e2e/merge/merge-layout.spec.js` and `merge-mobile.spec.js`. Done.

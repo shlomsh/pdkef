@@ -1,7 +1,7 @@
 ---
 id: "MERGE-09"
 title: "Page-level editing: rotate, skip and reorder pages across files, all free"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "merge-tool"
 phase: "near-term"
@@ -41,3 +41,14 @@ on, count output pages.
   live-region announcements, matching the file list's keyboard model.
 - The "reorder pages by drag-and-drop" subhead from MERGE-05 can return, and does, in this change.
 - The page map is the shape MERGE-12 persists.
+
+## Updates
+
+- 2026-09-13: rotate (additive, `pageOps.applyRotation`, previewed with a CSS transform), skip
+  (dimmed, struck number, one tap brings it back, nothing deleted from the source) and reorder across
+  files (SortableJS on the strip, committed once in `onEnd`; keyboard: arrows move, R rotates, Delete
+  skips, with live-region announcements; RTL flips the arrows). Once a page crosses a file boundary
+  the list shows "Pages were rearranged" with Reset order and file drag is disabled. Commits are
+  functional updaters over the current plan so consecutive commits compose. `mergePdfs` takes the
+  plan; page numbers count output pages; the round trip of all three operations is in
+  `merge.test.js` against real pdf.js. The subhead names page reordering again (MERGE-05). Done.

@@ -1,7 +1,7 @@
 ---
 id: "MERGE-12"
 title: "One tap: pre-merge on idle so Download is instant, with progress that tells the truth"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "merge-tool"
 phase: "near-term"
@@ -42,3 +42,16 @@ first month as a fallback, or remove it outright? The plan recommends removing i
   asserting the delivered blob matches the final order.
 - No disabled or dead button in any state; Share remains where supported.
 - `ANALYTICS.md` updated; `npm run build && npm run preview` checked for CSP.
+
+## Updates
+
+- 2026-09-13: `usePreparedMerge` waits 600 ms after the last change, builds the blob in the
+  background with an `AbortController`, and any change cancels and restarts it. The single primary
+  control reads "Download merged PDF · 18 pages · 2.1 MB" as soon as the blob exists; a tap while a
+  pre-merge is still running shows the ProgressRing inline and delivers when done; there is no
+  disabled or dead button in any state (one file: "Add 1 more to merge"). `mergePdfs` yields between
+  files. A non-file failure ends in the device-memory sentence. Analytics: `tool_operation_started` on
+  the Download tap, `tool_result_ready` when that download is delivered, `tool_operation_failed` on
+  each entry into error; pre-merges are not counted; the decision and its reason are in
+  `ANALYTICS.md`. The open question is answered by Shlomi: removed outright, no fallback setting.
+  Ready-time and cancellation are guarded in `e2e/merge/merge-ready-time.spec.js`. Done.

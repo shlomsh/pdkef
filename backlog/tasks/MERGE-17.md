@@ -1,7 +1,7 @@
 ---
 id: "MERGE-17"
 title: "One quiet line after the first merge: it works offline and can be installed"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "merge-tool"
 phase: "optional"
@@ -31,3 +31,12 @@ otherwise it explains the browser's own Add to Home Screen path in one clause, i
   by Shlomi before shipping.
 - Install link works where the prompt exists; the sentence is accurate where it does not.
 - Localized string present for `/he/merge/`.
+
+## Updates
+
+- 2026-09-13: one sentence under Download after the first result in this browser
+  (`pdf-toolkit:merge:first-result-seen`), never again: "This page is saved in your browser now, so
+  merging works even without a connection." followed by an install link when the browser fired
+  `beforeinstallprompt`, the Share / Add to Home Screen clause on iOS, or the browser-menu clause
+  elsewhere. Hebrew present. The copy is an AI draft and needs Shlomi's review before deploy. Done
+  pending that review.

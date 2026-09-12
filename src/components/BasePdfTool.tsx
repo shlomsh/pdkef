@@ -7,6 +7,7 @@ import ConfirmDialog from './ConfirmDialog.tsx';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 import ToolShell, { FileActions, ToolShellContext } from './ToolShell.tsx';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/productAnalytics.ts';
+import { dropHasDirectory, filesFromDataTransfer, filesFromPaste } from '../lib/dropFiles.js';
 import { englishShellMessages, formatMessage, type ShellMessages } from '../i18n/toolMessages';
 
 /* Splits a formatted sentence on the \u0000key\u0000 markers left in place of
@@ -239,8 +240,29 @@ export default function BasePdfTool({
     event.preventDefault();
     dragDepthRef.current = 0;
     setIsDraggingOverWorkspace(false);
+    // MERGE-10: a dropped folder arrives as one directory entry and no files;
+    // walking it is async, so only that case leaves the synchronous path.
+    if (dropHasDirectory(event.dataTransfer)) {
+      void filesFromDataTransfer(event.dataTransfer).then(receiveFiles);
+      return;
+    }
     receiveFiles(event.dataTransfer?.files);
   };
+
+  // MERGE-10: Cmd/Ctrl+V with files on the clipboard adds them, in every tool,
+  // through the same gate a drop goes through. Text pastes are left alone.
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      const files = filesFromPaste(event);
+      if (files.length === 0) return;
+      event.preventDefault();
+      receiveFiles(files);
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [receiveFiles]);
 
   const openPicker = () => fileInputRef.current?.click();
 

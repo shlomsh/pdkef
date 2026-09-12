@@ -1,7 +1,7 @@
 ---
 id: "MERGE-07"
 title: "Every row says pages: counts, sizes, true aspect, undo on remove, duplicates, insert where dropped"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "merge-tool"
 phase: "near-term"
@@ -39,3 +39,16 @@ touches the architecture:
 - Undo restores the file at its old position; duplicate nudge fires and can be overridden.
 - Unit tests for counts, undo and duplicates; the Merge e2e spec checks the insertion line on a real
   drop.
+
+## Updates
+
+- 2026-09-13: rows read `3 pages · 4.9 KB` from one `inspectPdf` load (the thumbnail is a separate
+  lazy render; counting from it would make the count wait on pdf.js), the identity line carries the
+  total, thumbnails are a fixed 44 x 58 `contain` box (`.thumb.is-page`, ImageToPdf keeps `cover`),
+  Remove shows "Removed X · Undo" for five seconds and Undo puts the file and its plan entries back at
+  their old positions, same-name-and-size files get "already in the list" with Add anyway, and a drop
+  onto the list paints an insertion line (a DOM attribute during the native drag, read once on drop)
+  and inserts there. The "peek" bullet is superseded by MERGE-08's strip, which shows every page of
+  every file below the list; a per-file inline expand would duplicate it. Unit tests for counts, undo
+  and duplicates in `PdfMergeTool.test.tsx`; the insertion line on a real drop in
+  `e2e/merge/merge-insert.spec.js`. Done.

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { dropHasDirectory, filesFromDataTransfer } from '../lib/dropFiles.js';
 import type { Ref } from 'preact';
 import styles from './Dropzone.module.css';
 import { englishShellMessages, type ShellMessages } from '../i18n/toolMessages';
@@ -58,7 +59,14 @@ export default function DropzoneEmptyState({
   const onDrop = (event: DragEvent) => {
     event.preventDefault();
     setIsDragOver(false);
-    if (event.dataTransfer) onFiles(event.dataTransfer.files);
+    if (!event.dataTransfer) return;
+    // MERGE-10: a dropped folder yields its files (walked, sorted by name);
+    // a plain drop keeps the synchronous path.
+    if (dropHasDirectory(event.dataTransfer)) {
+      void filesFromDataTransfer(event.dataTransfer).then(onFiles);
+      return;
+    }
+    onFiles(event.dataTransfer.files);
   };
 
   return (

@@ -1,7 +1,7 @@
 ---
 id: "MERGE-05"
 title: "The subhead promises page reordering the tool does not do yet"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "merge-tool"
 phase: "quick-win"
@@ -31,3 +31,14 @@ line is read today.
   deployed site, `reviewNotes` dated.
 - `npm run test:seo` green, single `<h1>`, no indexing request (`/merge/` stays the SEO-28 control).
 - When MERGE-09 ships, this line is revisited in that ticket's acceptance, not here.
+
+## Updates
+
+- 2026-09-13: the subhead said "files" for one commit (a32453d) and, with MERGE-09 landing in the
+  same PR (ce727af), now reads "Combine multiple PDFs into a single document, see every page before
+  you download, and reorder, rotate or skip pages by drag-and-drop. Page numbers are optional." Steps
+  2 and 3 describe the strip and the one Download (no Merge button). `/he/merge/`'s `sourceHash`
+  recomputed with `toolSourceHash` (now `fnv1a64:c45b136f39eb5f0c`); the Hebrew subhead already said
+  "drag to arrange" and is unchanged, Hebrew step 3 is an AI redraft, `reviewNotes` dated; pending
+  Shlomi's review on the deployed site. `npm run test:seo` green, one `<h1>`, no indexing request.
+  Done pending that review.
