@@ -38,13 +38,21 @@ export default function FileDropzone({
   // (docs/home-page-localization-plan.md, section 2 row 21). Defaults to the
   // English tool registry's own name, so every existing caller is unaffected.
   toolDisplayName,
+  // Where a hand-off lands, per tool slug. A localized home page passes the
+  // hrefs its dock already resolved (the locale's own edition where one is
+  // published, else the English page), so dropping a file on /he/ opens
+  // /he/sign/ like the dock card beside it does, not the English /sign/.
+  // The draft store and the recents cache stay keyed by the bare slug.
+  toolHrefs,
 }: {
   toolTarget: string;
   final?: boolean;
   messages?: FileDropzoneMessages;
   recentFilesMessages?: RecentFilesMessages;
   toolDisplayName?: string;
+  toolHrefs?: Record<string, string>;
 }) {
+  const toolHref = (tool: string) => toolHrefs?.[tool] ?? `/${tool}/`;
   const [pending, setPending] = useState<{ file: File; draftName?: string; tool: string } | null>(null);
   // `null` means "browser storage has not been read yet", and it is the state
   // both the server render and the client's first render start from, so the
@@ -68,7 +76,7 @@ export default function FileDropzone({
       });
       if (!saved) throw new Error('handoff');
       if (discardDraft && !(await deleteDraft(tool))) throw new Error('draft');
-      window.location.href = `/${tool}/`;
+      window.location.href = toolHref(tool);
     } catch {
       setError(messages.handoffFailed);
       setBusy(false);
@@ -96,7 +104,7 @@ export default function FileDropzone({
       const draft: any = await loadDraft(target);
       if (draft?.fileBytes) {
         if (draft.sourceId === recent.cacheId) {
-          window.location.href = `/${target}/`;
+          window.location.href = toolHref(target);
           return;
         }
         setPending({ file, draftName: draft.fileName, tool: target });

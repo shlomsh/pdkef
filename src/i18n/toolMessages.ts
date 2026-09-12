@@ -410,6 +410,10 @@ export interface ShellMessages {
   replaceDraftGoes: string;
   theCurrentPdf: string;
   workDefault: string;
+  /** Sign's own `workNoun` for the replace confirmation ("...and discards
+   * your annotations"). Lives here because Sign has no island catalogue of
+   * its own (its editor stays English, LOC-02) while its shell is localized. */
+  signWorkNoun: string;
   clearDialogTitle: string;
   clearConfirm: string;
   clearBody: string;
@@ -465,6 +469,7 @@ const englishShellMessages: ShellMessages = {
   replaceDraftGoes: 'Your saved draft goes with it.',
   theCurrentPdf: 'the current PDF',
   workDefault: 'the work you have done here',
+  signWorkNoun: 'your annotations',
   clearDialogTitle: 'Clear all files?',
   clearConfirm: 'Clear all',
   clearBody: 'This empties the list{of} and the order you put it in. Nothing is removed from your device.',
@@ -510,6 +515,7 @@ const hebrewShellMessages: ShellMessages = {
   replaceDraftGoes: 'הטיוטה השמורה תימחק איתו.',
   theCurrentPdf: 'ה-PDF הנוכחי',
   workDefault: 'העבודה שעשיתם כאן',
+  signWorkNoun: 'ההערות והחתימות שהוספתם',
   clearDialogTitle: 'לנקות את כל הקבצים?',
   clearConfirm: 'ניקוי הכול',
   clearBody: 'הרשימה{of} והסדר שקבעתם יתרוקנו. שום דבר לא נמחק מהמכשיר שלכם.',

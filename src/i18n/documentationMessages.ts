@@ -50,7 +50,10 @@ export interface DocumentationShellMessages {
   toolControlsEnglishNotice: string;
   /** ToolPageLayout's app-bar trust chips. */
   starOnGithub: string;
-  mitLicensed: string;
+  /** The chip says "open source", not the licence's name: it links to
+   * /licenses/ for whoever wants that detail, but the word itself reads as a
+   * legal condition to a non-technical visitor. */
+  openSource: string;
   worksOffline: string;
   /** Suffix on a cross-link card whose target has no edition in this locale. */
   inEnglish: string;
@@ -65,9 +68,15 @@ export interface DocumentationShellMessages {
    * the demo in English with this notice is the pragmatic stand-in, not a
    * translation of it). */
   heroDemoEnglishNotice: string;
+  /** The home page's own accessible names: the brand link when it is not a
+   * back link (`homeAriaLabel` is the tool-page wording), the tool dock's
+   * <nav> and the offline-install tab list. */
+  homepageAriaLabel: string;
+  toolDockAriaLabel: string;
+  installGuidesAriaLabel: string;
 }
 
-export type AppBarMessages = Pick<DocumentationShellMessages, 'homeAriaLabel' | 'onDevice'>;
+export type AppBarMessages = Pick<DocumentationShellMessages, 'homeAriaLabel' | 'homepageAriaLabel' | 'onDevice'>;
 export type FaqMessages = Pick<DocumentationShellMessages, 'faqTag' | 'faqHeading'>;
 export type OtherGuidesMessages = Pick<DocumentationShellMessages, 'otherDevices' | 'openSignTool'>;
 export type RelatedGuidesMessages = Pick<DocumentationShellMessages, 'relatedHeading'>;
@@ -108,7 +117,7 @@ const englishMessages = {
   privacy: 'Privacy',
   toolControlsEnglishNotice: "This tool's buttons and menus are still in English.",
   starOnGithub: 'Star us on GitHub',
-  mitLicensed: 'MIT licensed',
+  openSource: 'Open source',
   worksOffline: 'Works offline',
   inEnglish: 'in English',
   lastUpdated: 'Last updated',
@@ -116,6 +125,9 @@ const englishMessages = {
   // No "below": the demo sits beside the launcher on desktop and below it only
   // on mobile, and the same one string is rendered at both breakpoints.
   heroDemoEnglishNotice: 'The interactive demo is still shown in English.',
+  homepageAriaLabel: 'PDkef homepage',
+  toolDockAriaLabel: 'PDF tools',
+  installGuidesAriaLabel: 'Device installation guides',
 } satisfies DocumentationShellMessages;
 
 const hebrewMessages = {
@@ -148,12 +160,15 @@ const hebrewMessages = {
   privacy: 'פרטיות',
   toolControlsEnglishNotice: 'הכפתורים והתפריטים של הכלי עדיין באנגלית.',
   starOnGithub: 'תנו לנו כוכב',
-  mitLicensed: 'קוד פתוח',
+  openSource: 'קוד פתוח',
   worksOffline: 'עובד גם בלי אינטרנט',
   inEnglish: 'באנגלית',
   lastUpdated: 'עודכן לאחרונה',
   airplaneModeNotice: 'הפעילו מצב טיסה ונסו. זה עדיין עובד.',
   heroDemoEnglishNotice: 'ההדגמה האינטראקטיבית עדיין מוצגת באנגלית.',
+  homepageAriaLabel: 'דף הבית של PDkef',
+  toolDockAriaLabel: 'כלי PDF',
+  installGuidesAriaLabel: 'מדריכי התקנה לפי מכשיר',
 } satisfies DocumentationShellMessages;
 
 /**

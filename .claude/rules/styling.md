@@ -99,12 +99,12 @@ only, so they go blind if this flips. Full numbers in the comment on `inlineStyl
 - **Editor CSS ratchet** (`check-editor-global-css.js`): zero `sign-`/`sig-`/`redact-`/`editor-`/`el-`
   selectors in `global.css`.
 - **CSS duplication** (`check-css-duplication.js`): hard ratchets that only go down. Limits as of
-  2026-09-12 (37 pages): **9.45x** duplication (measured 9.25x), **10,000** worst-page dead bytes
-  (9,765 on `/split/`), **148** single-page utilities (32). The duplication factor is page-count-
+  2026-09-12 (38 pages): **9.78x** duplication (measured 9.77x, no headroom on purpose), **10,000**
+  worst-page dead bytes (9,802 on `/compress-image/`), **148** single-page utilities (32). The duplication factor is page-count-
   sensitive by construction; re-base it when pages are added and say so. **The fix is to narrow what a
   page carries, never to raise a limit.**
   **Read the numbers off the script, not off this line.** It said 7.00x/5.79x/7,567/144 until
-  2026-09-12, having missed three re-bases (7.75x, 9.00x, 9.45x) as LOC-02/03/05/09 published the
+  2026-09-12, having missed three re-bases (7.75x, 9.00x, 9.78x) as LOC-02/03/05/09 published the
   Hebrew edition - a stale figure in guidance is worse than no figure, because it reads as a budget
   someone has already blown. `node scripts/check-css-duplication.js` prints every limit beside its
   measured value, and the constants in that file carry the dated re-base history. Date any correction

@@ -70,7 +70,7 @@ test.describe('scrollable home hero', () => {
         const items = [
           document.querySelector('[data-home-bar] [aria-label="PDkef homepage"]'),
           document.querySelector('[data-on-device]'),
-          ...document.querySelectorAll('.home-trust .trust-chip'),
+          ...document.querySelectorAll('.trust-chips .trust-chip'),
         ];
         const boxes = items.map((item) => item.getBoundingClientRect());
         return {
