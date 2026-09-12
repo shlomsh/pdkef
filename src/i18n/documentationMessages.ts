@@ -160,6 +160,49 @@ const hebrewMessages = {
   installGuidesAriaLabel: 'מדריכי התקנה לפי מכשיר',
 } satisfies DocumentationShellMessages;
 
+// LOC-15: the Indonesian pilot's shell copy. There is no Indonesian tool
+// island yet, so `openSignTool`/`toolControlsEnglishNotice` still point at the
+// English editor the way the Hebrew pilot did before its own island shipped.
+const indonesianMessages = {
+  homeAriaLabel: 'Beranda PDkef, semua alat',
+  onDevice: 'Berjalan di perangkat',
+  language: 'Bahasa',
+  previewNotice: 'Terjemahan pratinjau untuk ditinjau oleh penutur asli. Halaman ini tidak diindeks.',
+  stalePreviewNotice: 'Terjemahan pratinjau perlu ditinjau ulang setelah sumber bahasa Inggrisnya berubah. Halaman ini tidak diindeks.',
+  faqTag: 'Ada pertanyaan?',
+  faqHeading: 'Pertanyaan yang sering diajukan',
+  otherDevices: 'Menandatangani di perangkat lain?',
+  openSignTool: 'Buka alat Tanda Tangan & Isi (berbahasa Inggris)',
+  relatedHeading: 'Dokumentasi',
+  crossLinksKicker: 'Dari rangkaian yang sama',
+  crossLinksHeading: 'Alat PDF lainnya',
+  crossLinksSubhead: 'Semuanya berjalan di perangkat Anda, gratis, tanpa ada yang diunggah.',
+  howItWorks: 'Cara kerjanya',
+  freeForEveryone: 'Gratis untuk semua orang',
+  openSourceNote:
+    'Kodenya open source dengan lisensi MIT, jadi siapa pun bisa membacanya, <a class="font-medium text-[var(--color-primary-text)]" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer">melakukan fork di GitHub</a>, atau membagikannya. Alat PDF sederhana seharusnya gratis untuk semua orang.',
+  socialImageAlt: 'PDkef - alat PDF gratis yang berjalan sepenuhnya di peramban Anda.',
+  builtWith: 'Dibuat dengan',
+  by: 'oleh',
+  github: 'GitHub',
+  reportBug: 'Laporkan bug',
+  feedbackAndIdeas: 'Masukan & ide',
+  licenses: 'Lisensi',
+  about: 'Tentang',
+  contact: 'Kontak',
+  privacy: 'Privasi',
+  toolControlsEnglishNotice: 'Tombol dan menu alat ini masih berbahasa Inggris.',
+  starOnGithub: 'Beri kami bintang di GitHub',
+  openSource: 'Open source',
+  worksOffline: 'Berfungsi tanpa internet',
+  inEnglish: 'dalam bahasa Inggris',
+  lastUpdated: 'Terakhir diperbarui',
+  airplaneModeNotice: 'Aktifkan mode pesawat dan coba sendiri. Tetap berfungsi.',
+  homepageAriaLabel: 'Beranda PDkef',
+  toolDockAriaLabel: 'Alat PDF',
+  installGuidesAriaLabel: 'Panduan instalasi per perangkat',
+} satisfies DocumentationShellMessages;
+
 /**
  * Adding a locale to `documentationLocales.ts` does not make its documentation
  * publishable. Its reviewed shell copy belongs here too.
@@ -167,6 +210,7 @@ const hebrewMessages = {
 export const documentationShellMessages: Partial<Record<DocumentationLocaleId, DocumentationShellMessages>> = {
   en: englishMessages,
   he: hebrewMessages,
+  id: indonesianMessages,
 };
 
 export function assertDocumentationShellMessages(

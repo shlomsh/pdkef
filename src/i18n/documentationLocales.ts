@@ -16,6 +16,8 @@ export const documentationLocales = [
   { id: 'prs-AF', nativeName: 'دری', dir: 'rtl', prefix: 'prs-af', hreflang: undefined },
   { id: 'ps-AF', nativeName: 'پښتو', dir: 'rtl', prefix: 'ps-af', hreflang: 'ps-AF' },
   { id: 'ta', nativeName: 'தமிழ்', dir: 'ltr', prefix: 'ta', hreflang: 'ta' },
+  // LOC-15: the Indonesian pilot, one standalone page, no tool edition.
+  { id: 'id', nativeName: 'Bahasa Indonesia', dir: 'ltr', prefix: 'id', hreflang: 'id' },
 ] as const;
 
 export type DocumentationLocale = (typeof documentationLocales)[number];

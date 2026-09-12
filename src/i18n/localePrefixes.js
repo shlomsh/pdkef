@@ -15,6 +15,7 @@ export const LOCALIZED_PATH_PREFIXES = Object.freeze([
   'prs-af',
   'ps-af',
   'ta',
+  'id',
 ]);
 
 /** True for a dist-relative path or a site path that sits under a locale prefix. */
@@ -32,4 +33,5 @@ export function isLocalizedPath(pathOrRelative) {
 // decided; a locale absent here gets no country breakdown.
 export const PILOT_COUNTRY_BY_PREFIX = Object.freeze({
   he: 'Israel',
+  id: 'Indonesia',
 });

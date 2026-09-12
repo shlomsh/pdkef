@@ -217,17 +217,36 @@ const localizedPages = defineCollection({
     faq: z.array(z.strictObject({ question: plain(10, 120), answer: plain(25, 600) })).min(4).max(12),
   })
     .extend({
-      pageId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+      // LOC-15: a standalone page is native to its locale and has no English
+      // twin (Indonesia's portal caps are not anyone else's), so it carries
+      // no pageId and no sourceHash, gets no hreflang alternates and no
+      // freshness gate, and is routed by its own file name
+      // (`<locale>/<slug>.yaml`). The review gate below is the same.
+      standalone: z.literal(true).optional(),
+      pageId: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
       locale: z.enum(DOCUMENTATION_LOCALE_IDS).refine((locale) => locale !== 'en', 'English stays in content-pages'),
       status: z.enum(['draft', 'published']),
       // A source hash is computed from normalized English content. Unlike the
       // former hand-entered sourceVersion, it can be compared at build time.
-      sourceHash: z.string().regex(/^fnv1a64:[a-f0-9]{16}$/, 'must be the normalized English source hash'),
+      sourceHash: z.string().regex(/^fnv1a64:[a-f0-9]{16}$/, 'must be the normalized English source hash').optional(),
       reviewer: plain(3, 120).optional(),
       reviewedAt: z.iso.date().optional(),
       reviewNotes: plain(20, 600).optional(),
     })
     .superRefine((entry, ctx) => {
+      if (entry.standalone) {
+        for (const field of ['pageId', 'sourceHash'] as const) {
+          if (entry[field] !== undefined) {
+            ctx.addIssue({ code: 'custom', path: [field], message: 'a standalone page has no English source' });
+          }
+        }
+      } else {
+        for (const field of ['pageId', 'sourceHash'] as const) {
+          if (!entry[field]) {
+            ctx.addIssue({ code: 'custom', path: [field], message: 'is required unless standalone: true' });
+          }
+        }
+      }
       if (entry.status !== 'published') return;
       for (const field of ['reviewer', 'reviewedAt', 'reviewNotes'] as const) {
         if (!entry[field]) {

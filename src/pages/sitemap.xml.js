@@ -17,6 +17,7 @@ import { getCollection } from 'astro:content';
 import { documentationPath, documentationHomePath, getDocumentationLocale } from '../i18n/documentationLocales';
 import { getLocalizedToolVariants } from '../i18n/localizedTools';
 import { getLocalizedHomeVariants } from '../i18n/localizedHome';
+import { localizedPageId } from '../i18n/documentation';
 import { lastModifiedFor as lastmodFor, documentationSourceFiles } from '../lib/gitLastModified.js';
 
 const FALLBACK_SITE = 'https://pdkef.com';
@@ -132,10 +133,10 @@ export async function GET({ site }) {
       lastmod: lastmodFor(documentationSourceFiles(contentPageSlug(page))),
     })),
     ...publishedLocalizedPages.map((entry) => ({
-      loc: `${base}${documentationPath(entry.data.pageId, entry.data.locale)}`,
+      loc: `${base}${documentationPath(localizedPageId(entry), entry.data.locale)}`,
       changefreq: 'monthly',
       priority: '0.5',
-      lastmod: lastmodFor(documentationSourceFiles(entry.data.pageId, entry.data.locale)),
+      lastmod: lastmodFor(documentationSourceFiles(localizedPageId(entry), entry.data.locale)),
     })),
   ];
 

@@ -249,3 +249,50 @@ against `python3 -m http.server 4331 --directory dist`; `results.json`, `legibil
   `vercel.json` redirect pair, and the CSS ratchet narrowed rather than bumped.
 - Reviewer: Shlomi sources and pays a native Indonesian reviewer; the brief in `docs/` is what they
   get. The reviewer inside Indonesia can also retry LPDP and DJP, which were unreachable from here.
+
+## Built, 2026-09-13
+
+**Reviewer gate waived.** Shlomi decided on 2026-09-13 that no paid native reviewer would be sourced
+and that an AI review stands in. Recorded as such rather than quietly reinterpreted: the front matter
+names `reviewer: 'Claude (AI review, no native speaker)'`, `reviewNotes` says so in plain words, and
+the languages page snapshot (`docs/i18n-status/data/i18n-status.json`, `id` row) carries the waiver.
+What an AI review can vouch for: every number and quote matches this ticket (checked line by line,
+all matched), the voice rules, FAQ-to-body consistency. What it cannot: whether the Indonesian reads
+like a person wrote it. The eight-week read judges the waiver as much as the page.
+
+**What shipped, branch `loc-15-indonesian-pilot`:**
+
+- `src/content/localized-pages/id/kompres-pdf-di-bawah-1-mb.yaml`, published. H1 "Kompres PDF di
+  Bawah 1 MB dan Foto di Bawah 200 KB", five sections as the brief, eight FAQ entries, no images.
+  Written by a Sonnet agent from the brief; a second Sonnet agent with fresh context reviewed it
+  (three must-fix items: a meta-language heading, two FAQ claims not in the body; eight wording
+  items), all applied, plus my own pass (the synthetic scans and pas foto are labelled as such on the
+  page, "unggah" replaced by "pilih" for choosing a file, the per-instansi 1000 KB example sourced).
+- The standalone `localizedPages` variant (`standalone: true`, no `pageId`/`sourceHash`, same review
+  gate, routed by file name, no hreflang, self canonical, in the sitemap): `src/content.config.ts`,
+  `src/i18n/documentation.ts` (`localizedPageId`, context lookup without an English twin),
+  `src/pages/sitemap.xml.js`, three unit tests.
+- `id` in `documentationLocales.ts` and `localePrefixes.js`, `PILOT_COUNTRY_BY_PREFIX.id = 'Indonesia'`,
+  the Indonesian shell-message catalogue in `documentationMessages.ts`, the redirect pair.
+- CSS ratchet **lowered** 9.97x to 9.92x while adding a page: `CompareFigure.astro`'s CSS is now a raw
+  string emitted as `<style is:inline>` with its CSP hash registered per page
+  (`src/lib/cspHash.js`), so the twelve content pages that never render the figure stopped carrying
+  it (9.94x to 9.76x at 40 pages; 9.92x at 41). A conditional import alone changed nothing, Astro
+  follows dynamic imports for CSS. `CompareTable.astro` has the same leak; next narrowing.
+- Full `ci.yml` chain run locally in the worktree: backlog, guidance, 2,523 unit tests, `astro check`
+  0 errors, the six guard scripts, build, `test:csp` (42 files), `test:seo` (42 pages),
+  `test:redirects` (39 routes), `test:css`, `test:weight`, Playwright `e2e/content`, `e2e/localized`,
+  `csp-smoke`: all green. The page and the figure page checked in a browser on the preview build.
+
+**Open after this lands:**
+
+- Push, then Shlomi requests indexing in Search Console and the date goes here and in
+  `docs/seo-last-crawled.json` under `indexingRequested`. Eight-week read counts from that date.
+- The page is reachable from the sitemap only; no English page links to it. Worth one link from
+  `/pdf-wont-compress-to-100kb/` or `/compress/` ("Bahasa Indonesia" in the related block) so it is
+  not an orphan for the crawler. Not done here: it touches an English page's copy.
+- The languages page artifact itself (the self-editing one) still says "source a paid native
+  reviewer"; the repo snapshot is updated, the artifact needs the same edit.
+- Tool follow-ups surfaced by the measured runs (not this ticket): the "closest achievable" notice
+  claims unreadability on a sub-1% overshoot; the target search prefers full resolution at floor
+  quality on photos (SEO-31's finding again, milder at 200 KB).
