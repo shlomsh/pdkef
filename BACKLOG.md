@@ -227,9 +227,7 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| MERGE-13 | P1 | [MERGE-13](backlog/tasks/MERGE-13.md) · A merge survives a crash: the file set and page edits saved on device, restored on return |
 | MERGE-15 | P3 | [MERGE-15](backlog/tasks/MERGE-15.md) · Spike: a bookmark per source file in the merged PDF |
-| MERGE-16 | P2 | [MERGE-16](backlog/tasks/MERGE-16.md) · Read the merge funnel before and after each phase, with the guardrails that keep it honest |
 | MERGE-18 | P2 | [MERGE-18](backlog/tasks/MERGE-18.md) · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant |
 | MERGE-19 | P2 | [MERGE-19](backlog/tasks/MERGE-19.md) · Hand-off row border is 1.09:1 on the rail tint: use the rail's one secondary border |
 | MERGE-20 | P1 | [MERGE-20](backlog/tasks/MERGE-20.md) · Measure the Direction A closing wave against its acceptance lists before the branch merges |
@@ -258,7 +256,9 @@ _None._
 | MERGE-10 | P1 | [MERGE-10](backlog/tasks/MERGE-10.md) · Add more documents while the assembled pages are on screen |
 | MERGE-11 | P1 | [MERGE-11](backlog/tasks/MERGE-11.md) · Easy defaults: the simple merge is pick files, then Download, with nothing else in the way |
 | MERGE-12 | P1 | [MERGE-12](backlog/tasks/MERGE-12.md) · One tap: pre-merge on idle so Download is instant, with progress that tells the truth |
+| MERGE-13 | P1 | [MERGE-13](backlog/tasks/MERGE-13.md) · A merge survives a crash: the file set and page edits saved on device, restored on return |
 | MERGE-14 | P2 | [MERGE-14](backlog/tasks/MERGE-14.md) · After Download, carry the result into Compress, Sign or Split without re-picking it |
+| MERGE-16 | P2 | [MERGE-16](backlog/tasks/MERGE-16.md) · Read the merge funnel before and after each phase, with the guardrails that keep it honest |
 | MERGE-17 | P3 | [MERGE-17](backlog/tasks/MERGE-17.md) · One quiet line after the first merge: it works offline and can be installed |
 
 ### Retired

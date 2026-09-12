@@ -1,7 +1,7 @@
 ---
 id: "MERGE-16"
 title: "Read the merge funnel before and after each phase, with the guardrails that keep it honest"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "merge-tool"
 phase: "near-term"
@@ -36,3 +36,16 @@ Download-ready time on the 20-file fixture (MERGE-12), crash restore (MERGE-13).
 - Baseline table in this ticket before MERGE-03 merges to `main`; one row per phase afterwards.
 - Each listed guard exists and is green in `ci.yml`'s Playwright step.
 - The Speed Insights view for `/merge/` shows no regression in INP after MERGE-08 and MERGE-12.
+
+## Updates
+
+- 2026-09-13: the guards exist and are green in the full Playwright run (248 passed, 3 pre-existing
+  font guards skipped): `merge-layout.spec.js` (single Download control, two-tap path),
+  `merge-mobile.spec.js` (phone hero, one-line sort row, pinned button, two-tap path at iPhone 15 on
+  the webkit project), `merge-strip.spec.js` (page count equals the sum of the files, rotate, skip,
+  keyboard move, strip drop), `merge-ready-time.spec.js` (ready time and cancellation on the
+  20-file fixture), `merge-restore.spec.js` (crash restore), `merge-handoff.spec.js`,
+  `merge-insert.spec.js`, `thumbnail-render.spec.js`. The baseline funnel read and the per-phase
+  rows need the Vercel dashboard and are Shlomi's, as is the Speed Insights INP read after deploy;
+  `ANALYTICS.md` records that Merge's `tool_operation_started` now fires on the Download tap so the
+  read compares like with like. Guards done; the readings stay open with Shlomi.

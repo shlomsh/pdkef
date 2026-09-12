@@ -1,7 +1,7 @@
 ---
 id: "MERGE-13"
 title: "A merge survives a crash: the file set and page edits saved on device, restored on return"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "merge-tool"
 phase: "near-term"
@@ -45,3 +45,21 @@ preview and the page count.
 - Oversized set degrades to the honest chip, tool unaffected.
 - Clear all deletes the draft and the hint; the home page card disappears.
 - Unit tests for the multi-file record round-trip and size cap; one Playwright restore check.
+
+## Updates
+
+- 2026-09-13: every change to the list, the pages or the options saves the multi-file record
+  through `draftStore.saveDraft('merge', ...)` (files with bytes read once per file and cached, the
+  plan with file indices, the options, the first file's thumbnail as the card preview, page and file
+  counts) from `useMergeDraft` (700 ms debounce, revision guard, pagehide flush, cross-tab conflict);
+  the island loads it as the renderless `MergeDraftPersistence` through a dynamic import and holds
+  the empty state back on the synchronous hint until the restore settles (`checkingDraft`). Restore
+  rebuilds the Files, the plan and the options and re-inspects each file; the "Draft saved" chip is
+  the shell's own. The 200 MB cap is a starting point (`MERGE_DRAFT_MAX_BYTES`); above it the store
+  refuses the write and the chip reads the shell's not-saved state, the tool keeps working. iOS
+  Safari quota was not measured in this session (no device); left as the one open measurement.
+  Clear all and Start again delete the draft and the hint; the home page's recent list puts a merge
+  draft first with the first file's preview and the page count. A FAQ entry on merge drafts is on
+  `/merge/` with its Hebrew twin. Tests: `draftStore.test.js` (round trip, order sensitivity, cap),
+  `useMergeDraft.test.tsx`, `PdfMergeTool.test.tsx` (restore into the island), `FileDropzone.test.tsx`;
+  Playwright `e2e/merge/merge-restore.spec.js` closes the tab and reopens `/merge/`. Done.

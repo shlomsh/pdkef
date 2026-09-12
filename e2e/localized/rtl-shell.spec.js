@@ -74,8 +74,10 @@ test('a loaded file lists its row mirrored: handle at the inline start, remove a
   const remove = await row.locator('button').last().boundingBox();
   expect(handle.x, 'drag handle should be right of the remove button in RTL').toBeGreaterThan(remove.x);
 
-  // The island is localized, not just the shell around it.
-  await expect(page.locator('[role="toolbar"] button').first()).toHaveText('א–ת');
+  // The island is localized, not just the shell around it (MERGE-06 turned
+  // the four sort buttons into one select plus Reverse order).
+  await expect(page.locator('[role="toolbar"] button').first()).toHaveText('היפוך הסדר');
+  await expect(page.locator('[role="toolbar"] select')).toHaveAttribute('aria-label', 'מיון');
   await expect(page.locator('button', { hasText: 'הוסיפו עוד קובץ אחד כדי למזג' })).toBeVisible();
 });
 
