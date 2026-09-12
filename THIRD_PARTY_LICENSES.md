@@ -1631,6 +1631,7 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Suranna (<https://fonts.google.com/specimen/Suranna>)
 - Tiro Tamil (<https://fonts.google.com/specimen/Tiro+Tamil>)
 - Tiro Gurmukhi (<https://fonts.google.com/specimen/Tiro+Gurmukhi>)
+- Hind Siliguri (<https://fonts.google.com/specimen/Hind+Siliguri>)
 <!-- END GENERATED TEXT FONT LIST -->
 
 ```

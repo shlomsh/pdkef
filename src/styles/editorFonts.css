@@ -449,3 +449,15 @@
   font-weight: 400;
   src: url('/fonts/TiroGurmukhi-Italic.ttf') format('truetype');
 }
+@font-face {
+  font-family: 'Hind Siliguri';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/HindSiliguri-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Hind Siliguri';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/HindSiliguri-Bold.ttf') format('truetype');
+}

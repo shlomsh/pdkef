@@ -157,6 +157,21 @@ export const EXPORT_RENDER_CORPUS = [
   // future run gets measured against, which a stored baseline must never do.
   textCase('bengali-noto-sans-bengali', 'প্রিয়া', { fontFamily: 'Noto Sans Bengali' }),
 
+  // Bengali, second face (FONT-08b). Hind Siliguri joined Noto Sans Bengali
+  // as the catalogue's second Bengali/Assamese font, screened clean: 262/262
+  // of bengaliCorpus.js's generated cases passed against it with ZERO named
+  // divergences (bengali-hind-siliguri-shaping-guard.spec.js), unlike Noto
+  // Sans Bengali's six. স্বাগতম ("shwagotom", "welcome", a common real word)
+  // carries স্ব, a conjunct (SA + virama + BA, drawn as one attached cluster,
+  // matching the corpus's own `conjunct:sva` case) - confirmed inside that
+  // guard's full passing set, not a divergent cluster. Every code point
+  // confirmed present via fontkit's hasGlyphForCodePoint() against the real
+  // bundled public/fonts/HindSiliguri-Regular.ttf bytes, the same
+  // verification method every other case in this file used. A different real
+  // word than the Noto Sans Bengali case above, so the two cases are not
+  // glyph-level duplicates of each other.
+  textCase('bengali-hind-siliguri', 'স্বাগতম', { fontFamily: 'Hind Siliguri' }),
+
   // --- Simplified Chinese, Traditional Chinese and Korean (FONT-05): shipped,
   // user-selectable scripts this guard has never had a case for. Like
   // Japanese above, `cjk-advance-parity-guard.spec.js` already proves the
