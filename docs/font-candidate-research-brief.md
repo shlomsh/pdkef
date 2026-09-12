@@ -58,7 +58,7 @@ in TODO.md's internationalization epic for the discipline this is extracted from
    plan; don't propose a similarly oversized file for a Brahmic or Arabic-family candidate without flagging
    the size explicitly.
 9. **Classify the candidate's style up front: handwriting/cursive vs. upright/text.** This decides
-   whether it would join `HANDWRITING_FONTS` or `TEXT_FONTS` in `src/lib/fonts.js`, and - for Devanagari
+   whether it would join `HANDWRITING_FONTS` or `TEXT_FONTS` in `src/editor/text/fonts.js`, and - for Devanagari
    and Thai specifically - whether it actually closes the "no upright option" gap (FONT-08a) or just adds
    a second handwriting choice. Say which, and why (serif/sans-serif, slant, connected strokes, etc.),
    don't just repeat the font's own marketing description.
@@ -79,18 +79,24 @@ they are to survive screening, not by name recognition.
 
 ## Current catalogue, for exclusion and gap reference
 
-`HANDWRITING_FONTS` (`src/lib/fonts.js`): Caveat, Dancing Script, Great Vibes, Gveret Levin, Kalam, Mali,
+`HANDWRITING_FONTS` (`src/editor/text/fonts.js`): Caveat, Dancing Script, Great Vibes, Gveret Levin, Kalam, Mali,
 Pacifico, Sacramento.
 
 `TEXT_FONTS`: Arimo, Tinos, Cousine, Assistant, Heebo, Alef, PT Sans, Scheherazade New, Noto Sans JP,
-Noto Sans SC, Noto Sans TC, Noto Sans KR, Noto Sans Bengali, Mukta Mahee, Anek Telugu, Noto Sans Tamil.
+Noto Sans SC, Noto Sans TC, Noto Sans KR, Noto Sans Bengali, Mukta Mahee, Anek Telugu, Noto Sans Tamil,
+Mukta, IBM Plex Sans Thai, Anek Malayalam. (Source of truth: `src/editor/text/fontManifest.js`, generated
+from `scripts/font-manifest.mjs`; this list was last synced 2026-09-12.)
 
-Single-font scripts and their gap type, per TODO.md's internationalization epic:
+Retired, mapped to a replacement in `RETIRED_FONTS`: Playpen Sans Hebrew (to Gveret Levin), Almarai (to
+Scheherazade New).
+
+Single-font scripts and their gap type, as of 2026-09-12:
 
 | Script | Sole font | Style | Gap |
 | --- | --- | --- | --- |
-| Devanagari | Kalam | handwriting | **no upright option at all** (FONT-08a) |
-| Thai | Mali | handwriting | **no upright option at all** (FONT-08a); Sriracha already named as an unscreened same-day runner-up, but that's a second handwriting face, not an upright one |
+| Devanagari | Kalam (handwriting), Mukta (upright) | both | upright gap **closed** 2026-08-29 (FONT-08a); Kalam is still the only handwriting face |
+| Thai | Mali (handwriting), IBM Plex Sans Thai (upright) | both | upright gap **closed** 2026-08-29 (FONT-08a); Mali is still the only handwriting face, Sriracha named as the unscreened same-day runner-up |
+| Malayalam | Anek Malayalam | upright | no second choice (landed via FONT-03 after Noto Sans Malayalam crashed fontkit) |
 | Arabic/Farsi/Dari/Urdu/Pashto | Scheherazade New | upright (traditional Naskh) | no second choice |
 | Bengali | Noto Sans Bengali | upright | no second choice |
 | Punjabi/Gurmukhi | Mukta Mahee | upright | no second choice |
@@ -100,10 +106,31 @@ Single-font scripts and their gap type, per TODO.md's internationalization epic:
 | Chinese (Simplified) | Noto Sans SC | upright | no second choice (CJK size cost applies) |
 | Chinese (Traditional) | Noto Sans TC | upright | no second choice (CJK size cost applies) |
 | Korean | Noto Sans KR | upright | no second choice (CJK size cost applies) |
-| Cyrillic | Arimo/Tinos/Cousine/PT Sans | upright only | **no handwriting option at all** - not previously flagged as a gap, worth a light-touch look |
-| Greek | Arimo/Tinos/Cousine | upright only | **no handwriting option at all** - same as Cyrillic, not previously flagged |
+| Cyrillic | Arimo/Tinos/Cousine/PT Sans | upright only | **no handwriting option at all** - confirmed against the bundled TTFs 2026-09-12: every bundled handwriting face is a Latin-only cut (0/15 Cyrillic letters probed) |
+| Greek | Arimo/Tinos/Cousine | upright only | **no handwriting option at all** - same probe, 0/16 Greek letters in every handwriting face (PT Sans and Heebo carry only a stray glyph or two) |
 
-Latin and Hebrew both already have both styles covered and are out of scope for this brief.
+Latin and Hebrew both already have both styles covered and are out of scope for this brief, except that
+a second Hebrew handwriting face (Gveret Levin is the only one) is a welcome appendix.
+
+## Already screened: do not re-propose
+
+Every entry here went through at least one of the three code-level checks, so a research pass that
+surfaces it again is wasting its budget. Evidence lives in the commit or spec named.
+
+| Font | Script | Verdict | Where |
+| --- | --- | --- | --- |
+| Mukta | Devanagari | **landed** as the upright face, clean on all three checks | `7239685` |
+| IBM Plex Sans Thai | Thai | **landed** as the upright face; carries `calt` but passed advance parity at 0.05px on every sample including the tall-consonant/tone-mark stress case | `e2e/sign/thai-font-parity.spec.js` |
+| Sarabun, Kanit | Thai | **failed** advance parity (1.4-3.0% and 0.3-1.0% of string width) on ordinary words, neither has `calt` | FONT-08 record |
+| Anek Malayalam | Malayalam | **landed**, 0/478 crashes, 245/245 on the pixel guard | FONT-03, `e2e/sign/malayalam-shaping-guard.spec.js` |
+| Noto Sans Malayalam | Malayalam | **crashes** fontkit on 33/35 reph cases | FONT-03 |
+| Noto Sans Gurmukhi, Noto Sans Telugu | Gurmukhi, Telugu | **crash** fontkit in `GPOSProcessor.getAnchor` | `.claude/rules/fonts-and-text.md` |
+| Scheherazade New | Arabic family | **landed**; passes the 151-case Arabic guard and the 22-case Pashto corpus | `8eead4f` |
+| Amiri | Arabic family | **passes the guard** but set aside as too calligraphic for a form; the documented fallback only | `8eead4f` |
+| Noto Naskh Arabic, Noto Sans Arabic | Arabic family | **fail** one guard case each, the same one: shadda and fatha stacked on a letter | `8eead4f` |
+| Almarai | Arabic | **retired**: lacks eleven Pashto letters; passed the Arabic guard, so an Arabic-only revival is a product decision, not a screening question | `8eead4f`, `6365486` |
+| Noto Nastaliq Urdu | Urdu | **crashes** fontkit; Nastaliq is out of scope | FONT-06 (retired) |
+| Playpen Sans (any script) | Hebrew, Cyrillic, Greek | **discard by precedent**: the Hebrew cut was removed for an 88% `calt`-driven disagreement | `RETIRED_FONTS` |
 
 ## Candidates found (2026-08-29 research pass)
 
@@ -112,7 +139,9 @@ run through the fontkit corpus, checked for `glyf` alignment, or verified byte-f
 This is a ranked shortlist to screen from, not a landed decision. Ranked within each script by likelihood
 of surviving screening.
 
-### FONT-08a - upright option for Devanagari (currently Kalam only, handwriting)
+### FONT-08a - upright option for Devanagari (resolved: Mukta landed 2026-08-29)
+
+Kept for the record of what was ranked and why; candidate 1 shipped.
 
 1. **Mukta** (Ek Type, OFL 1.1 - [license](https://github.com/EkType/Mukta/blob/master/LICENSE.txt)). Static Regular-ExtraBold, 7 weights, no italics. Upright humanist sans. Claims Devanagari + Gujarati + Gurmukhi + Tamil + Latin. No `calt` found. Same foundry as the already-bundled Mukta Mahee - best odds of a clean fontkit result.
 2. **Anek Devanagari** (Google Fonts, OFL). Variable-only, same family shape as the already-bundled (and already-repadded) Anek Telugu. Upright, contemporary/geometric sans.
@@ -121,7 +150,11 @@ of surviving screening.
 5. **Tiro Devanagari Sanskrit** (OFL). Static Regular + Italic only. The one **serif** option, for style variety.
 6. Noto Sans/Serif Devanagari - variable-only, listed last on purpose: the Noto family that crashed fontkit for Gurmukhi and Telugu elsewhere. Fallback only, expect elevated crash risk.
 
-### FONT-08a - upright option for Thai (currently Mali only, handwriting)
+### FONT-08a - upright option for Thai (resolved: IBM Plex Sans Thai landed 2026-08-29)
+
+Kept for the record. Candidates 1 and 2 both failed advance parity in code; candidate 3 shipped. The
+ranking below was wrong in the way the three-check protocol exists to catch: real-world adoption did
+not predict fontkit agreement.
 
 1. **Sarabun** (OFL). Static, 16 files. Thailand's de facto government/document font - top pick, broad real-world validation.
 2. **Kanit** (Cadson Demak, OFL). Static, 18 files. Loopless geometric sans, good stylistic contrast to Mali.
@@ -143,7 +176,7 @@ of surviving screening.
 
 ### FONT-08b - second choice, Arabic family (currently Scheherazade New only)
 
-- **Naskh alternatives:** Noto Naskh Arabic (OFL, variable-only, claims Arabic/Urdu/Pashto/Sindhi/Punjabi/Farsi) and **Amiri** (Khaled Hosny/Amiri Project, OFL, static Regular/Bold/Italic/BoldItalic ~410-431KB, well-regarded classical Naskh revival - **already on record in TODO.md as the documented fallback if Scheherazade New disappoints**). Amiri's own docs advertise many ligatures/contextual substitutions - **flag explicit calt-adjacent risk**, same shape of claim that sank Playpen Sans Hebrew.
+- **Naskh alternatives:** both screened since this pass, see the "Already screened" table. Noto Naskh Arabic fails one guard case; Amiri passes but reads as calligraphic and stays the documented fallback only. A second Naskh is therefore not the lever; the contrast worth having is a modern sans.
 - **Geometric/modern alternative: Vazirmatn** (rastikerdar, OFL - mirror ships variable-only but the [upstream repo](https://github.com/rastikerdar/vazirmatn/tree/master/fonts/ttf) has real static Regular/Bold ~123KB each). Built explicitly for Persian/Arabic/Urdu, geometric sans, visually the furthest from Scheherazade New. **Top pick for a modern-feel second choice.** Cairo (OFL, variable-only, 599KB) is a second geometric option but larger and less explicitly multi-language-targeted.
 
 ### FONT-08b - second choice, Punjabi/Gurmukhi and Telugu
@@ -156,7 +189,7 @@ of surviving screening.
 Pulled from Google Fonts' own metadata, filtered to `category: Handwriting`.
 - **Cyrillic:** Marck Script (OFL, static 84KB) - own docs mention "intelligent OpenType features," **calt risk, flag**; **Neucha** (OFL, static 141KB, single weight, no `calt` mentioned) - simpler, lower-risk pick, **top choice**.
 - **Greek:** genuinely scarce (confirmed by an independent TypeDrawers thread on the same gap). Mansalva (OFL, static 356KB) and Mynerve (OFL, static 279KB, connected-script style, likely `calt`-dependent - flag) are the only two found. Playpen Sans also technically covers both scripts but is **discard by precedent** - this catalogue already dropped its Hebrew sibling for an 88% `calt`-driven shaping failure.
-- Worth checking in code before sourcing anything new: Caveat, Great Vibes and Pacifico (already bundled) show Cyrillic coverage in the same Google Fonts metadata - confirm whether the bundled TTF is the full multi-script cut first.
+- Checked in code 2026-09-12: the bundled Caveat, Great Vibes and Pacifico TTFs are Latin-only cuts (0 Cyrillic, 0 Greek glyphs via `hasGlyphForCodePoint`), whatever the Google Fonts metadata says. Something new has to be sourced.
 
 ### FONT-08b - Sriracha (second Thai handwriting face, already named on the board)
 
