@@ -239,12 +239,14 @@ test.describe('compress tool - image target size', () => {
 
     console.log(`[SEO-19] JPEG fixture ${jpegBuffer.length} bytes -> output ${download.bytes.length} bytes at ${TARGET_KB}KB target`);
 
-    // SEO-25 (extended to images 2026-09-12): the before/after slider needs
-    // no rasterization for an image - just the original file and the output
-    // blob, each as an object URL - so a real browser is the right place to
-    // confirm the toggle actually produces two loadable `blob:` images, not
-    // just component state (jsdom's own coverage is in PdfCompressTool.test.tsx).
-    await page.getByRole('button', { name: 'Compare with original' }).click();
+    // SEO-25 (extended to images 2026-09-12, opened by default 2026-09-12):
+    // the before/after slider needs no rasterization for an image - just the
+    // original file and the output blob, each as an object URL - and it now
+    // opens on its own as soon as the result lands, no tap needed. A real
+    // browser is the right place to confirm it actually produces two
+    // loadable `blob:` images, not just component state (jsdom's own
+    // coverage is in PdfCompressTool.test.tsx), and that "Hide comparison"
+    // still dismisses it.
     const compareSlider = page.locator('[class*="compare-slider"]');
     await expect(compareSlider).toBeVisible();
     const compareImages = compareSlider.locator('img');
@@ -252,6 +254,9 @@ test.describe('compress tool - image target size', () => {
     for (const src of await compareImages.evaluateAll((imgs) => imgs.map((img) => img.getAttribute('src')))) {
       expect(src).toMatch(/^blob:/);
     }
+
+    await page.getByRole('button', { name: 'Hide comparison' }).click();
+    await expect(compareSlider).toHaveCount(0);
   });
 
   test('compresses a transparent PNG to a real JPEG, flattened to white, at or under the target size', async ({ page, browserName }) => {
