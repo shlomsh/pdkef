@@ -35,16 +35,6 @@
       "permanent": true
     },
     {
-      "source": "/offline-pdf-form-filler/",
-      "destination": "/install-pdf-app/",
-      "permanent": true
-    },
-    {
-      "source": "/offline-pdf-form-filler",
-      "destination": "/install-pdf-app/",
-      "permanent": true
-    },
-    {
       "source": "/about",
       "destination": "/about/",
       "permanent": true
@@ -142,6 +132,11 @@
     {
       "source": "/install-pdf-app",
       "destination": "/install-pdf-app/",
+      "permanent": true
+    },
+    {
+      "source": "/offline-pdf-form-filler",
+      "destination": "/offline-pdf-form-filler/",
       "permanent": true
     },
     {
