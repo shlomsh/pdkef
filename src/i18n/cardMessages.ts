@@ -112,6 +112,10 @@ const hebrewGuideCards: Record<string, CardCopy> = {
     title: 'Android',
     description: 'חתימה על PDF באנדרואיד בלי להתקין אפליקציה.',
   },
+  'sign-pdf-in-your-language': {
+    title: 'חתימה בשפה שלכם',
+    description: 'איזה גופן מצייר איזו שפה, לפי קובצי הגופן בפועל.',
+  },
 };
 
 const toolCards: Partial<Record<DocumentationLocaleId, Record<string, CardCopy>>> = { he: hebrewToolCards };
