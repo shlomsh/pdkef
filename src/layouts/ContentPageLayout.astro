@@ -13,6 +13,7 @@ import Footer from '../components/Footer.astro';
 import DocumentationLanguageSelector from '../components/DocumentationLanguageSelector.astro';
 import LocalePackRequest from '../components/LocalePackRequest.astro';
 import type { DocumentationShellMessages } from '../i18n/documentationMessages';
+import { isPublishedEditionLink } from '../i18n/localizedTools';
 import '../styles/contentPage.css';
 
 interface FaqItem {
@@ -47,6 +48,14 @@ interface Props {
   /** ISO timestamp from src/lib/gitLastModified.js - the same value the
    * sitemap reports as <lastmod> for this URL, never a hand-typed date. */
   lastModified: string;
+  /** LOC-05: this locale's own published site paths (src/i18n/localizedTools.ts
+   * getPublishedEditionPaths), the same list ToolCrossLinks/RelatedGuides use
+   * to decide whether a card's target has a localized edition. `primaryCta`
+   * is authored as a plain href (some guides point at an untranslated tool -
+   * see docs/sign-tool-product-decisions.md's disclosure rule), so this is
+   * what tells the CTA apart from a resolved-in-edition link without
+   * re-deciding the question its own way. */
+  editionPaths?: readonly string[];
 }
 
 const {
@@ -62,6 +71,7 @@ const {
   faq,
   lang = 'en', dir = 'ltr', canonical, alternates, noindex = false, locale = 'en', variants = [], preview = false, messages, previewNotice,
   lastModified,
+  editionPaths = [],
 } = Astro.props;
 
 // SEO-29: the date is formatted at build time in UTC so the same commit
@@ -69,6 +79,13 @@ const {
 // date only; the reader-facing text follows the page's own language.
 const lastModifiedDate = lastModified.slice(0, 10);
 const lastModifiedLabel = new Intl.DateTimeFormat(lang, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(lastModified));
+
+// LOC-05: the primaryCta's href is authored as a plain string (some guides
+// deliberately point at a tool with no edition in this locale yet - see
+// docs/sign-tool-product-decisions.md), so it needs the same "is this really
+// in the reader's edition" check ToolCrossLinks/RelatedGuides already run per
+// card, not a fresh guess at whether the URL looks localized.
+const ctaIsEnglishFallback = !isPublishedEditionLink(primaryCta.href, locale, editionPaths);
 ---
 
 <BaseLayout title={title} description={description} lang={lang} dir={dir} canonical={canonical} alternates={alternates} noindex={noindex} socialImageAlt={messages.socialImageAlt}>
@@ -109,9 +126,13 @@ const lastModifiedLabel = new Intl.DateTimeFormat(lang, { dateStyle: 'long', tim
   <section class="mx-auto mb-16 w-full max-w-[720px] px-6 text-center min-[768px]:mb-24">
     <a
       href={primaryCta.href}
+      hreflang={ctaIsEnglishFallback ? 'en' : undefined}
       class="inline-flex items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-primary)] px-7 py-3 text-[0.98rem] font-semibold text-[var(--color-surface)] no-underline shadow-sm transition-[transform,background-color,color] duration-200 ease-out hover:-translate-y-0.5 hover:bg-[var(--color-primary-hover)]"
     >
       {primaryCta.label}
+      {ctaIsEnglishFallback && messages.inEnglish && (
+        <span class="ms-2 inline-block align-middle text-[0.7rem] font-semibold uppercase text-[var(--color-surface)]" lang="en" title={messages.inEnglish}>EN</span>
+      )}
     </a>
   </section>
 
