@@ -167,7 +167,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         where the dropzone appears. Kept to Sign and Redact only, same as
         the live status line below. */}
     {(tool.slug === 'sign' || tool.slug === 'redact') && (
-      <p class="type-body mx-auto mb-4 max-w-[54rem] px-6 text-center text-[var(--color-muted)] min-[1024px]:mb-2">
+      <p class="type-body mx-auto mb-4 max-w-[54rem] px-6 text-center text-[var(--color-muted)] min-[1024px]:mb-2 min-[1024px]:mt-0">
         {messages.airplaneModeNotice}
       </p>
     )}
@@ -181,7 +181,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         fact in its language; an English sentence in a Hebrew hero is the
         exact incumbent weakness LOC-01 documents. */}
     {tool.slug === 'merge' && locale === 'en' && (
-      <p class="type-body mx-auto mb-4 max-w-[54rem] px-6 text-center text-[var(--color-muted)] min-[1024px]:mb-2">
+      <p class="type-body mx-auto mb-4 max-w-[54rem] px-6 text-center text-[var(--color-muted)] min-[1024px]:mb-2 min-[1024px]:mt-0">
         Combine as many files as you like. Nothing is uploaded, so there's nothing to meter, only your device's own memory.
       </p>
     )}
