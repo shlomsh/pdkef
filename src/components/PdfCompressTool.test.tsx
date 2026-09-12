@@ -207,8 +207,22 @@ describe('PdfCompressTool UI flow', () => {
     nativeShare.restore();
   });
 
-  it('does not render a comparison until the visitor asks for one, then lazily renders page-1 previews', async () => {
+  it('renders the comparison automatically once compression completes, showing a skeleton while the previews are still pending and never blocking the download row, then can be hidden and restored without re-rendering', async () => {
     const thumbnails = await import('../lib/thumbnails.js');
+
+    // A controllable promise per side, so the 'loading' state (and its
+    // skeleton) can be observed before it resolves, instead of the mock's
+    // usual immediate resolution.
+    let resolveBefore;
+    let resolveAfter;
+    thumbnails.renderComparePreview.mockImplementation(
+      (fileOrBlob) =>
+        new Promise((resolve) => {
+          if (fileOrBlob instanceof File) resolveBefore = () => resolve('data:image/png;base64,before');
+          else resolveAfter = () => resolve('data:image/png;base64,after');
+        }),
+    );
+
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
@@ -233,43 +247,53 @@ describe('PdfCompressTool UI flow', () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 20));
     });
 
-    // The comparison never runs on its own - SEO-25's "not by default on
-    // mobile" bar is met trivially here because it never runs by default
-    // on any device.
-    expect(container.querySelector(`.${styles['compare-panel']}`)).toBeNull();
-    expect(thumbnails.renderComparePreview).not.toHaveBeenCalled();
+    // Opens on its own as soon as the result lands (SEO-25, 2026-09-12) - no
+    // tap needed - but the previews haven't resolved yet: the skeleton is
+    // the visible "still working" notification, and it does not hold up the
+    // download row, which already rendered because compression itself is
+    // done.
+    expect(thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
+    expect(container.querySelector(`.${styles['compare-panel']}`)).not.toBeNull();
+    expect(container.querySelector(`.${styles['compare-skeleton']}`)).not.toBeNull();
+    expect(container.querySelectorAll(`.${styles['compare-panel']} img`)).toHaveLength(0);
+    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
 
-    const toggle = container.querySelector(`.${styles['compare-toggle-button']}`);
-    expect(toggle).not.toBeNull();
-    expect(toggle.textContent).toContain('Compare with original');
-
+    // Resolving both sides clears the skeleton and renders the slider.
     await act(async () => {
-      toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    await act(async () => {
+      resolveBefore();
+      resolveAfter();
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
-    expect(thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
-    expect(thumbnails.renderComparePreview).toHaveBeenCalledWith(file);
-    const panel = container.querySelector(`.${styles['compare-panel']}`);
+    expect(container.querySelector(`.${styles['compare-skeleton']}`)).toBeNull();
+    let panel = container.querySelector(`.${styles['compare-panel']}`);
     expect(panel).not.toBeNull();
     expect(panel.querySelectorAll('img')).toHaveLength(2);
+
+    const toggle = container.querySelector(`.${styles['compare-toggle-button']}`);
+    expect(toggle).not.toBeNull();
     expect(toggle.textContent).toContain('Hide comparison');
 
-    // Toggling closed hides the panel without re-rendering the previews.
+    // Hiding removes the panel without discarding the rendered previews.
     await act(async () => {
       toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     expect(container.querySelector(`.${styles['compare-panel']}`)).toBeNull();
+    expect(toggle.textContent).toContain('Compare with original');
 
+    // Restoring it reuses the cached previews rather than re-rendering (no
+    // skeleton either, since comparePreviews is already populated).
     await act(async () => {
       toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     expect(thumbnails.renderComparePreview).toHaveBeenCalledTimes(2);
+    panel = container.querySelector(`.${styles['compare-panel']}`);
+    expect(panel).not.toBeNull();
+    expect(panel.querySelector(`.${styles['compare-skeleton']}`)).toBeNull();
+    expect(toggle.textContent).toContain('Hide comparison');
 
     window.URL.createObjectURL = originalCreateObjectURL;
   });
@@ -440,7 +464,7 @@ describe('PdfCompressTool UI flow', () => {
     window.URL.createObjectURL = originalCreateObjectURL;
   });
 
-  it('does not render a comparison for an image until the visitor asks for one, builds it from two object URLs with no rasterization, then hides the toggle entirely for a passthrough result', async () => {
+  it('renders the comparison automatically for an image result with no rasterization, then hides the toggle entirely for a passthrough result', async () => {
     const thumbnails = await import('../lib/thumbnails.js');
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -467,30 +491,23 @@ describe('PdfCompressTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 20));
     });
 
-    // Same "never runs by default" bar as the PDF case.
-    expect(container.querySelector(`.${styles['compare-panel']}`)).toBeNull();
+    // Opens on its own, same as the PDF case - and with no rasterization,
+    // just two object URLs.
     expect(thumbnails.renderComparePreview).not.toHaveBeenCalled();
-
-    const toggle = container.querySelector(`.${styles['compare-toggle-button']}`);
-    expect(toggle).not.toBeNull();
-    expect(toggle.textContent).toContain('Compare with original');
-
-    await act(async () => {
-      toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    // Image mode never rasterizes - two object URLs, no thumbnails import.
-    expect(thumbnails.renderComparePreview).not.toHaveBeenCalled();
-
     const panel = container.querySelector(`.${styles['compare-panel']}`);
     expect(panel).not.toBeNull();
     const images = panel.querySelectorAll('img');
     expect(images).toHaveLength(2);
     images.forEach((img) => expect(img.getAttribute('src')).toMatch(/^blob:image-compare-/));
 
+    const toggle = container.querySelector(`.${styles['compare-toggle-button']}`);
+    expect(toggle).not.toBeNull();
+    expect(toggle.textContent).toContain('Hide comparison');
+
     // Passthrough: compressImageToTarget's early-return hands back the same
     // File as `blob`, so a second, already-under-target image gets no
-    // toggle at all - a slider comparing a file to itself is noise.
+    // toggle (and no auto-open) at all - a slider comparing a file to
+    // itself is noise.
     compressImageLib.compressImageToTarget.mockImplementation((passthroughFile) =>
       Promise.resolve(makeImageResult({ blob: passthroughFile })),
     );
@@ -507,6 +524,7 @@ describe('PdfCompressTool UI flow', () => {
     });
 
     expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
+    expect(container.querySelector(`.${styles['compare-panel']}`)).toBeNull();
 
     window.URL.createObjectURL = originalCreateObjectURL;
   });

@@ -135,3 +135,60 @@ sources - a real-browser check that the toggle produces loadable images, not jus
 **The 2026-10-08 read (acceptance criterion 5, CTR effect on the compress-quality cluster) is
 unchanged by this**: it was already scheduled against the PDF-only ship and stays a single read across
 both halves of the tool rather than a second one for images.
+
+## Open by default (2026-09-12)
+
+**Shlomi, after trying it:** "it turned out amazing, it is however very hidden, keep it open by default
+so it is visible before the user downloads." The panel had shipped opt-in (tap "Compare with original"
+to render it) on the theory that rendering costs should stay off the default path; once it existed,
+the problem turned out to be discovery, not cost - most visitors never found the toggle at all.
+
+**What changed.** In `PdfCompressTool.tsx`, the comparison now opens on its own as soon as a
+compression result lands (both PDF and image), instead of waiting for a tap. One shared `openCompare()`
+does what `handleToggleCompare` used to do inline - lazy `renderComparePreview` on both sides for a
+PDF, two `URL.createObjectURL` calls for an image - and is now called from two places: the toggle
+(unchanged) and the end of `handleCompress`, right after `compressedBlobRef` and the download blob are
+set for each of the PDF and image branches. A plain function call from the handler was enough; nothing
+here needed a `useEffect` on `status`, since the handler already has `file` and the fresh blob in scope
+at exactly the moment the result exists. The toggle now reads "Hide comparison" while the panel is open
+and "Compare with original" while it's closed (unchanged strings, already inline in the component, not
+in `toolMessages.ts` - no i18n change needed). A passthrough image result still gets neither the toggle
+nor the auto-open, unchanged. `resetOutput` still closes and clears the panel on any file/level/target
+change, unchanged.
+
+Checked the result card's existing JSX order before touching it: stats, the rasterize/format notice, the
+toggle, then the panel were already above the download button and the share button, all three inside the
+same `compression-stats` block - so no reordering was needed to put the comparison above the download
+button, only the auto-open logic and comments.
+
+**The mobile-cost measurement now applies to every PDF result, not just tapped ones.** The panel used to
+be lazy-and-opt-in, so the acceptance bar was "never renders until asked" and the 4x-CPU-throttled
+measurement in `e2e/compress/compare-preview.spec.js` only needed to prove a *tap* stayed affordable.
+Now every PDF compression on every device renders it, so that e2e now times from the "Successfully
+Compressed" message to the slider's auto-open instead of from a toggle click - same 4x throttling, same
+390x844 viewport, same 8s budget, same `[SEO-25]` console line. The measured number from the
+original opt-in ship still holds (the render work is identical, only the trigger moved), and the rerun
+under this change passed under the same budget. The acceptance bar in the "Scope and acceptance" section
+above ("The comparison does not run by default on mobile unless measurement shows it is affordable
+there") is superseded by this decision: it now *does* run by default everywhere, on the strength of that
+same measurement, at Shlomi's explicit instruction to prioritize discoverability over the opt-in
+default. `e2e/compress/image-target-size.spec.js`'s JPEG case was updated the same way: it now asserts
+the slider is already visible with two `blob:` images before ever touching the toggle, then clicks "Hide
+comparison" and asserts the slider is gone.
+
+**Acceptance bar moved.** From "never renders until asked" to "renders automatically after the result,
+dismissable via the toggle." Verified: `npx vitest run src/components/PdfCompressTool.test.tsx
+src/components/CompareSlider.test.tsx` (14 passed), `npm run typecheck` (0 errors), `npm run
+test:gesture-golden-rule` (passed - CompareSlider's drag logic is untouched by this change). Build,
+preview and the full Playwright suite are run by the team lead, not from this worktree.
+
+**Follow-up (2026-09-12): a visible loading indicator, not just async.** Shlomi asked the panel to show
+its work "async, in a non-blocking way, with a generating gif for user notification, and the
+download/share available in the meantime" - the non-blocking half was already true (the download row
+never waited on `openCompare`), so what shipped here is the missing visible half: a pulsing
+`--color-surface-sunken` skeleton (`compare-skeleton` in `PdfCompressTool.module.css`, sized by
+`aspect-ratio` rather than a fixed height so it holds a page's shape at any panel width and the
+download/share row never jumps once the real previews land) in place of the slider while
+`compareStatus === 'loading'`, with the pulse itself opted into `prefers-reduced-motion:
+no-preference` per CLAUDE.md's motion rule and the status text carrying `aria-live="polite"` so it's
+announced once rather than on every re-render.

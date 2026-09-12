@@ -341,6 +341,46 @@
   margin: 0;
 }
 
+/* Shown while compareStatus === 'loading' (SEO-25 follow-up, 2026-09-12):
+   the CompareSlider itself sizes to its "before" image (compare-image is
+   height: auto in CompareSlider.module.css), so before either preview has
+   loaded there's nothing to size against - a min-height guess would be
+   wrong for any panel narrower than the 32rem cap. `aspect-ratio` instead
+   holds the same portrait shape a typical page-1 render has (US Letter is
+   0.77, A4 0.707; 0.75 splits the difference) at whatever width the panel
+   actually is, so the download/share row below never jumps once the real
+   previews arrive - that's the point of showing this at all: async and
+   non-blocking, with a visible placeholder standing in for "still working"
+   instead of the download row shifting out from under the user's thumb. */
+.compare-skeleton {
+  width: 100%;
+  max-width: 32rem;
+  aspect-ratio: 0.75;
+  margin: 0 auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-sunken);
+}
+
+/* CLAUDE.md: no motion that could trigger vestibular issues - a slow
+   opacity pulse is the accepted form, and it's opt-in to
+   prefers-reduced-motion: no-preference so a reduced-motion visitor gets a
+   static placeholder instead. */
+@media (prefers-reduced-motion: no-preference) {
+  .compare-skeleton {
+    animation: compare-skeleton-pulse 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes compare-skeleton-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 .compare-caption {
   font-size: 0.75rem;
   color: var(--color-muted);

@@ -165,36 +165,42 @@ export default function PdfCompressTool({
     setImagePassthrough(false);
   };
 
-  // Builds the before/after pair for the CompareSlider, on demand only.
-  // PDF: renders page 1 of the original and of the compressed result to
-  // data URLs via a lazy-imported `renderComparePreview`. Image: no
-  // rasterization is involved - the "before" is the original `file` and the
-  // "after" is the output blob already sitting in `compressedBlobRef`, both
-  // already fully decoded bytes on this device, so two object URLs are all
-  // that's needed and there's nothing to await.
+  // Builds the before/after pair for the CompareSlider. PDF: renders page 1
+  // of the original and of the compressed result to data URLs via a
+  // lazy-imported `renderComparePreview`. Image: no rasterization is
+  // involved - the "before" is the original `file` and the "after" is the
+  // output blob already sitting in `compressedBlobRef`, both already fully
+  // decoded bytes on this device, so two object URLs are all that's needed
+  // and there's nothing to await.
   //
-  // Deliberately lazy for every visitor, not gated by a mobile/desktop
-  // check: the panel never renders until this fires, so it already never
-  // "runs by default" anywhere, which is the acceptance bar (SEO-25). A
-  // measured cost still matters for the PDF path, because "opt-in" only
-  // helps if the visitor who *does* tap it isn't left waiting or out of
-  // memory on a phone. Per the comment on `renderComparePreview`
-  // (src/lib/thumbnails.js), each preview costs about one page-render at
-  // roughly the same scale the compressor itself already used for every
-  // page in the document that was just processed on this device - so a
-  // device that could compress the whole document a moment ago can afford
-  // two more page renders now. An emulated-low-end-mobile Playwright run
-  // (e2e/compress/compare-preview.spec.js, 4x CPU throttling, 375x812
-  // viewport) measured this panel opening in well under a second; see that
-  // spec for the recorded number. The image path has no equivalent
-  // rasterization cost to measure - it's two `URL.createObjectURL` calls on
-  // bytes already decoded a moment earlier by the compressor itself.
-  const handleToggleCompare = async () => {
-    if (compareOpen) {
-      setCompareOpen(false);
-      return;
-    }
-    setCompareOpen(true);
+  // One shared path for both ways the panel opens: automatically once a
+  // result lands (see handleCompress) and via the "Hide comparison" /
+  // "Compare with original" toggle below, which only flips `compareOpen`
+  // and otherwise defers to this same function - see `handleToggleCompare`.
+  // Both call sites guard on `comparePreviews` already being set, so
+  // re-opening after a hide never re-renders.
+  //
+  // The panel now opens by default as soon as a result exists (Shlomi,
+  // 2026-09-12: "it turned out amazing, it is however very hidden, keep it
+  // open by default so it is visible before the user downloads" - see
+  // backlog/tasks/SEO-25.md's "Open by default" section), so the lazy-import
+  // here is what keeps it off the compress-result's critical path rather
+  // than gating whether it renders at all. A measured cost still matters for
+  // the PDF path, because a visitor who lands on this panel automatically
+  // must not be left waiting or out of memory on a phone. Per the comment on
+  // `renderComparePreview` (src/lib/thumbnails.js), each preview costs about
+  // one page-render at roughly the same scale the compressor itself already
+  // used for every page in the document that was just processed on this
+  // device - so a device that could compress the whole document a moment ago
+  // can afford two more page renders now. An emulated-low-end-mobile
+  // Playwright run (e2e/compress/compare-preview.spec.js, 4x CPU throttling,
+  // 390x844 viewport) measured this panel opening in well under a second;
+  // see that spec for the recorded number, now timed from the "Successfully
+  // Compressed" message to the slider's auto-open rather than from a tap.
+  // The image path has no equivalent rasterization cost to measure - it's
+  // two `URL.createObjectURL` calls on bytes already decoded a moment
+  // earlier by the compressor itself.
+  const openCompare = async () => {
     if (comparePreviews || compareStatus === 'loading' || !file || !compressedBlobRef.current) return;
 
     if (kind === 'image') {
@@ -218,6 +224,15 @@ export default function PdfCompressTool({
       console.error(err);
       setCompareStatus('error');
     }
+  };
+
+  const handleToggleCompare = () => {
+    if (compareOpen) {
+      setCompareOpen(false);
+      return;
+    }
+    setCompareOpen(true);
+    openCompare();
   };
 
   const handleFilesAdded = (files: FileList | File[]) => {
@@ -279,6 +294,12 @@ export default function PdfCompressTool({
         prepareFiles([{ blob: result.blob, filename: deriveDownloadName(file.name, resultType), type: resultType }]);
         setStatus('done');
         setAnnouncement(result.metTarget ? t.imageComplete : t.missedTarget);
+        // Open by default (SEO-25, 2026-09-12) - except a passthrough result,
+        // which never gets a toggle at all (see the render check below).
+        if (result.blob !== file) {
+          setCompareOpen(true);
+          openCompare();
+        }
         return;
       }
 
@@ -309,6 +330,9 @@ export default function PdfCompressTool({
       prepareFiles([{ blob: compressedBlob, filename: deriveDownloadName(file.name, resultType), type: resultType }]);
       setStatus('done');
       setAnnouncement(t.complete);
+      // Open by default (SEO-25, 2026-09-12): see openCompare's comment.
+      setCompareOpen(true);
+      openCompare();
     } catch (err) {
       console.error(err);
       setStatus('error');
@@ -406,12 +430,14 @@ export default function PdfCompressTool({
               {kind === 'image' ? t.formatNotice : t.rasterizeNotice}
             </p>
 
-            {/* Opt-in and lazy on every device (see handleToggleCompare) - a
-                visitor decides for themselves whether the notice above is a
-                dealbreaker for their file instead of taking our word for it.
-                Shared by both halves of the tool: a PDF rasterizes page 1 on
-                each side, an image just points at the original `file` and
-                the output blob it already has. Hidden for a passthrough
+            {/* Open by default as soon as a result exists (see openCompare
+                and handleCompress) - a visitor sees whether the notice above
+                is a dealbreaker for their file before they even reach the
+                download button, instead of having to go looking for it. The
+                toggle stays as a way to dismiss and re-open it. Shared by
+                both halves of the tool: a PDF rasterizes page 1 on each
+                side, an image just points at the original `file` and the
+                output blob it already has. Hidden entirely for a passthrough
                 image - the output *is* the input when it was already under
                 target, so both sides of the slider would be the same bytes,
                 which is noise rather than a comparison. */}
@@ -429,7 +455,16 @@ export default function PdfCompressTool({
                 {compareOpen && (
                   <div class={styles['compare-panel']}>
                     {compareStatus === 'loading' && (
-                      <p class={styles['compare-status']}>Rendering page 1 for comparison…</p>
+                      <>
+                        {/* The visible "still working" notification: async
+                            and non-blocking (openCompare never gates the
+                            download/share row above), but a visitor
+                            shouldn't have to take that on faith - a pulsing
+                            placeholder in the slider's own shape says so
+                            without a spinner competing for attention. */}
+                        <div class={styles['compare-skeleton']} aria-hidden="true" />
+                        <p class={styles['compare-status']} aria-live="polite">Rendering page 1 for comparison…</p>
+                      </>
                     )}
                     {compareStatus === 'error' && (
                       <p class={styles['compare-status']}>Couldn't render a preview for this file.</p>
