@@ -108,7 +108,7 @@ export const tools = [
         {
           native: 'English, Español, Français, Deutsch, Polski 🇺🇸🇪🇸🇫🇷',
           name: 'Every Latin-script language',
-          note: 'All 20 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 20 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
+          note: 'All 21 text fonts and eight handwriting faces are open to you for English, Spanish, French, German, Polish, Filipino, Bahasa Melayu, Gaeilge, or any other Latin-script language, whether you are filling a form or signing your name. Accented letters narrow the choice rather than remove it: ten of the 21 text fonts and two of the eight handwriting faces carry the full accented set, so a name with ł, š, ă or ż has fewer fonts to pick from than a name without. Vietnamese narrows it again and has its own line below. Whatever you type, the tool names any character it cannot draw while you are still typing, rather than letting it slip into the download.',
         },
         {
           native: '简体中文, 繁體中文 🇨🇳🇹🇼🇭🇰',
@@ -133,7 +133,7 @@ export const tools = [
         {
           native: 'తెలుగు 🇮🇳',
           name: 'Telugu',
-          note: "Fill a Telugu form and sign your name in Telugu, in Anek Telugu. The below-base consonant forms a virama produces, and vowel signs that move around the letter they attach to, are reordered and reshaped for the download rather than only on screen. Worth saying why this is not the Noto face the other scripts here use: Noto Sans Telugu miscrafts the ప్ర cluster badly enough to break the download, and that cluster is in ఆంధ్రప్రదేశ్ itself, so I picked a face that draws it correctly instead. There is no handwriting-style Telugu face yet, so a typed signature comes out upright rather than cursive.",
+          note: "Fill a Telugu form and sign your name in Telugu, in Anek Telugu for plain upright text or Suranna, a serif face with a more traditional, book-like feel. The below-base consonant forms a virama produces, and vowel signs that move around the letter they attach to, are reordered and reshaped for the download rather than only on screen. Worth saying why this is not the Noto face the other scripts here use: Noto Sans Telugu miscrafts the ప్ర cluster badly enough to break the download, and that cluster is in ఆంధ్రప్రదేశ్ itself, so I picked faces that draw it correctly instead. Suranna ships in one weight only, so its bold option renders as regular text. There is no handwriting-style Telugu face yet, so a typed signature comes out upright rather than cursive.",
         },
         {
           native: 'தமிழ் 🇮🇳🇱🇰🇸🇬',

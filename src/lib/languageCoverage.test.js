@@ -375,11 +375,15 @@ describe('Chinese, Simplified and Traditional', () => {
  * would expect, so these assert the card keeps explaining it.
  */
 describe('Punjabi, Telugu and Tamil', () => {
-  it('Telugu: exactly Anek Telugu, and the card explains why it is not the Noto face', () => {
-    expect(LANGUAGE_COVERAGE.telugu.full.map((f) => f.family)).toEqual(['Anek Telugu']);
+  it('Telugu: Anek Telugu and Suranna, and the card explains why neither is the Noto face', () => {
+    expect(LANGUAGE_COVERAGE.telugu.full.map((f) => f.family)).toEqual(['Anek Telugu', 'Suranna']);
     const note = supportedNote('Telugu');
     expect(note).toContain('Anek Telugu');
+    expect(note).toContain('Suranna');
     expect(note).toContain('Noto Sans Telugu');
+    // Suranna (FONT-08b) ships Regular only - the card says so plainly rather
+    // than letting a user discover it by finding the Bold button does nothing.
+    expect(note.toLowerCase()).toContain('one weight');
     expect(note.toLowerCase()).toContain('no handwriting-style telugu face');
   });
 

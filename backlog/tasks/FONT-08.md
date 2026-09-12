@@ -82,3 +82,18 @@ brief's catalogue table names for Malayalam. Static Regular/Bold, 163828/162884 
   e2e/sign/malayalam-gayathri-shaping-guard.spec.js e2e/sign/malayalam-shaping-guard.spec.js
   e2e/sign/language-acceptance.spec.js` - 3/3 passed, including the full acceptance matrix now at 117
   language/face combinations (up from 116).
+### Landed 2026-09-12: Suranna (2nd Telugu face, closes Telugu's (b) gap)
+
+Telugu had exactly one bundled face, Anek Telugu (upright/sans). Suranna (Silicon Andhra/Cyreal, OFL 1.1, static Regular only, 610KB, upright serif with a book-oriented feel) is docs/font-candidate-research-brief.md's FONT-08b top Telugu candidate, screened per the three-check protocol:
+
+1. **Fontkit crash:** 0/630 on teluguCorpus.js's full corpus (also the corpus's own module doc already named Suranna as one of six OFL faces that crash on none of the 630 cases, screened alongside picking Anek Telugu; re-confirmed here rather than taken on faith).
+2. **Pixel guard** (`e2e/sign/telugu-suranna-shaping-guard.spec.js`, self-calibrating, 400px/4x geometry - built at the corrected geometry from the start, unlike the sibling Anek Telugu guard which still runs at the old 100px size): **476/476 passed**. 154 of 630 corpus strings shape with no substitution (rasteriser floor 0.31%, no advance quantisation on the measuring machine), 476 substitute and are the cases under test, tolerance floored at the 4% minimum.
+3. **Advance parity spot check** (SIGN-20-style, run once, not a standing assertion): fontkit's summed shaped advances vs. this browser's `measureText` on all 630 corpus strings, max widthDiff 0.00005px - floating-point noise, nowhere near SIGN-19's `glyphCount x 0.5px` bound.
+
+**Sabotage control** (reversing fontkit's glyph draw order on every case the guard classifies as substituting, run once and reverted before committing): 55 of 476 substituting cases failed, calibration/floor unchanged - proof the guard can fail, not just pass.
+
+`glyf` alignment: already 2-byte aligned as shipped, no repad needed (unlike Kalam/Anek Telugu/Mukta). Real `hhea` metrics: ascent 1.412em, descent 0.778em. Coverage: full required Telugu set (77 codepoints - vowels, consonants, vowel signs, marks, digits) plus Latin ASCII and digits; the only Telugu-block gaps are the same historical/archaic letters `teluguCorpus.js` already excludes.
+
+**One real cost, disclosed in the Sign page's Telugu copy and the catalogue itself:** Suranna ships Regular only, no Bold - `src/data/tools.js`'s Telugu note says so plainly, and `languageCoverage.test.js` pins it.
+
+Wired into the catalogue (`scripts/font-manifest.mjs` and its generated artifacts, `src/lib/fontCoverageTable.js`/`fontCoverageReport.js`, `scripts/language-acceptance.mjs` and its generated matrix, `THIRD_PARTY_LICENSES.md`/`licenses.astro`) and `e2e/sign/fixtures/exportRenderCorpus.js` (new `telugu-suranna` case, ప్రియ in Suranna - baseline recapture is CI's `update-export-render-baseline` job, pending as of this commit since `exportRenderBaseline.json` is runner-pinned and never hand-edited). `LANGUAGE_COVERAGE.telugu.full` and the language-acceptance matrix's combination count (117 to 118) both updated to match.

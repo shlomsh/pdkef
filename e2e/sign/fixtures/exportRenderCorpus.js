@@ -202,6 +202,23 @@ export const EXPORT_RENDER_CORPUS = [
   // every other case in this file used, and the full string shapes to 3
   // glyphs from 5 code points (a real substitution, not a plain cmap walk).
   textCase('malayalam-gayathri', 'എന്റെ', { fontFamily: 'Gayathri' }),
+  // Telugu (FONT-08): shipped, user-selectable script with a second face now
+  // (Suranna, alongside the existing Anek Telugu). Like Bengali/Malayalam
+  // above, telugu-suranna-shaping-guard.spec.js already proves fontkit
+  // picks the same glyphs as Chromium for this face before a PDF exists, so
+  // this case exists purely to catch what that guard cannot see on the file
+  // a user actually receives - a corrupted `glyf` table or a subset missing
+  // composite components.
+  //
+  // ప్రియ ("Priya", a real name and the everyday word for "dear") carries
+  // the same shape of conjunct as the Bengali case above: ప్ర is ప (PA) + ్
+  // (virama) + ర (RA), drawn as one attached diagonal stroke rather than
+  // three separate letters, and it is the exact cluster Noto Sans Telugu
+  // miscrafts badly enough to rule that face out (see teluguCorpus.js's
+  // module doc) - ఆంధ్రప్రదేశ్, the state's own name, contains it. Every
+  // code point confirmed present via fontkit's hasGlyphForCodePoint() against
+  // the real bundled public/fonts/Suranna-Regular.ttf bytes.
+  textCase('telugu-suranna', 'ప్రియ', { fontFamily: 'Suranna' }),
 
   // --- The comb path: positions by cell index, skips bidi, has its own
   // geometry. `width` is what makes an element a comb (see comb.js).

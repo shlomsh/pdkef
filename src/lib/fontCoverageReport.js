@@ -46,7 +46,7 @@ export const LANGUAGE_COVERAGE = {
   "latin": {
     label: "Latin",
     requiredCodePointCount: 52,
-    full: [{ family: "Caveat", style: "handwriting" }, { family: "Dancing Script", style: "handwriting" }, { family: "Great Vibes", style: "handwriting" }, { family: "Gveret Levin", style: "handwriting" }, { family: "Kalam", style: "handwriting" }, { family: "Mali", style: "handwriting" }, { family: "Pacifico", style: "handwriting" }, { family: "Sacramento", style: "handwriting" }, { family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }, { family: "Assistant", style: "upright" }, { family: "Heebo", style: "upright" }, { family: "Alef", style: "upright" }, { family: "PT Sans", style: "upright" }, { family: "Scheherazade New", style: "upright" }, { family: "Noto Sans JP", style: "upright" }, { family: "Noto Sans SC", style: "upright" }, { family: "Noto Sans TC", style: "upright" }, { family: "Noto Sans KR", style: "upright" }, { family: "Noto Sans Bengali", style: "upright" }, { family: "Mukta Mahee", style: "upright" }, { family: "Anek Telugu", style: "upright" }, { family: "Noto Sans Tamil", style: "upright" }, { family: "Mukta", style: "upright" }, { family: "IBM Plex Sans Thai", style: "upright" }, { family: "Anek Malayalam", style: "upright" }, { family: "Gayathri", style: "upright" }],
+    full: [{ family: "Caveat", style: "handwriting" }, { family: "Dancing Script", style: "handwriting" }, { family: "Great Vibes", style: "handwriting" }, { family: "Gveret Levin", style: "handwriting" }, { family: "Kalam", style: "handwriting" }, { family: "Mali", style: "handwriting" }, { family: "Pacifico", style: "handwriting" }, { family: "Sacramento", style: "handwriting" }, { family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }, { family: "Assistant", style: "upright" }, { family: "Heebo", style: "upright" }, { family: "Alef", style: "upright" }, { family: "PT Sans", style: "upright" }, { family: "Scheherazade New", style: "upright" }, { family: "Noto Sans JP", style: "upright" }, { family: "Noto Sans SC", style: "upright" }, { family: "Noto Sans TC", style: "upright" }, { family: "Noto Sans KR", style: "upright" }, { family: "Noto Sans Bengali", style: "upright" }, { family: "Mukta Mahee", style: "upright" }, { family: "Anek Telugu", style: "upright" }, { family: "Noto Sans Tamil", style: "upright" }, { family: "Mukta", style: "upright" }, { family: "IBM Plex Sans Thai", style: "upright" }, { family: "Anek Malayalam", style: "upright" }, { family: "Gayathri", style: "upright" }, { family: "Suranna", style: "upright" }],
     partial: [],
   },
   "latinExt": {
@@ -137,13 +137,13 @@ export const LANGUAGE_COVERAGE = {
     label: "Devanagari (Hindi)",
     requiredCodePointCount: 71,
     full: [{ family: "Kalam", style: "handwriting" }, { family: "Mukta", style: "upright" }],
-    partial: [],
+    partial: [{ family: "Suranna", style: "upright", fraction: 0.014 }],
   },
   "marathi": {
     label: "Marathi (Devanagari + ळ, ऱ)",
     requiredCodePointCount: 71,
     full: [{ family: "Kalam", style: "handwriting" }, { family: "Mukta", style: "upright" }],
-    partial: [],
+    partial: [{ family: "Suranna", style: "upright", fraction: 0.014 }],
   },
   "thai": {
     label: "Thai",
@@ -179,7 +179,7 @@ export const LANGUAGE_COVERAGE = {
     label: "Turkish",
     requiredCodePointCount: 58,
     full: [{ family: "Kalam", style: "handwriting" }, { family: "Mali", style: "handwriting" }, { family: "Arimo", style: "upright" }, { family: "Tinos", style: "upright" }, { family: "Cousine", style: "upright" }, { family: "Heebo", style: "upright" }, { family: "Alef", style: "upright" }, { family: "PT Sans", style: "upright" }, { family: "Noto Sans Bengali", style: "upright" }, { family: "Mukta Mahee", style: "upright" }, { family: "Noto Sans Tamil", style: "upright" }, { family: "Mukta", style: "upright" }],
-    partial: [{ family: "Caveat", style: "handwriting", fraction: 0.914 }, { family: "Dancing Script", style: "handwriting", fraction: 0.914 }, { family: "Great Vibes", style: "handwriting", fraction: 0.914 }, { family: "Gveret Levin", style: "handwriting", fraction: 0.793 }, { family: "Pacifico", style: "handwriting", fraction: 0.914 }, { family: "Sacramento", style: "handwriting", fraction: 0.914 }, { family: "Assistant", style: "upright", fraction: 0.914 }, { family: "Scheherazade New", style: "upright", fraction: 0.914 }, { family: "Noto Sans JP", style: "upright", fraction: 0.793 }, { family: "Noto Sans SC", style: "upright", fraction: 0.793 }, { family: "Noto Sans TC", style: "upright", fraction: 0.793 }, { family: "Noto Sans KR", style: "upright", fraction: 0.793 }, { family: "Anek Telugu", style: "upright", fraction: 0.914 }, { family: "IBM Plex Sans Thai", style: "upright", fraction: 0.914 }, { family: "Anek Malayalam", style: "upright", fraction: 0.914 }, { family: "Gayathri", style: "upright", fraction: 0.948 }],
+    partial: [{ family: "Caveat", style: "handwriting", fraction: 0.914 }, { family: "Dancing Script", style: "handwriting", fraction: 0.914 }, { family: "Great Vibes", style: "handwriting", fraction: 0.914 }, { family: "Gveret Levin", style: "handwriting", fraction: 0.793 }, { family: "Pacifico", style: "handwriting", fraction: 0.914 }, { family: "Sacramento", style: "handwriting", fraction: 0.914 }, { family: "Assistant", style: "upright", fraction: 0.914 }, { family: "Scheherazade New", style: "upright", fraction: 0.914 }, { family: "Noto Sans JP", style: "upright", fraction: 0.793 }, { family: "Noto Sans SC", style: "upright", fraction: 0.793 }, { family: "Noto Sans TC", style: "upright", fraction: 0.793 }, { family: "Noto Sans KR", style: "upright", fraction: 0.793 }, { family: "Anek Telugu", style: "upright", fraction: 0.914 }, { family: "IBM Plex Sans Thai", style: "upright", fraction: 0.914 }, { family: "Anek Malayalam", style: "upright", fraction: 0.914 }, { family: "Gayathri", style: "upright", fraction: 0.948 }, { family: "Suranna", style: "upright", fraction: 0.793 }],
   },
   "korean": {
     label: "Korean (Hangul)",
@@ -196,7 +196,7 @@ export const LANGUAGE_COVERAGE = {
   "telugu": {
     label: "Telugu",
     requiredCodePointCount: 77,
-    full: [{ family: "Anek Telugu", style: "upright" }],
+    full: [{ family: "Anek Telugu", style: "upright" }, { family: "Suranna", style: "upright" }],
     partial: [],
   },
   "tamil": {
