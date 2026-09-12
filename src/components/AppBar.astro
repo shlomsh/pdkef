@@ -52,10 +52,10 @@ const brandClasses = 'group inline-flex items-center gap-[0.55rem] text-[var(--c
 
 <div data-home-bar={isHome || undefined} class="sticky top-0 z-20 border-b-[0.5px] border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_86%,transparent)] backdrop-blur-[10px] backdrop-saturate-[1.2]">
   <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-[0.85rem] px-6 max-[560px]:gap-[0.55rem] max-[560px]:px-4 min-[1024px]:px-8">
-    <a href={homeHref} class={brandClasses} aria-label={isHome ? 'PDkef homepage' : (labels.homeAriaLabel ?? 'PDkef home, all tools')}>
+    <a href={homeHref} class={brandClasses} aria-label={isHome ? (labels.homepageAriaLabel ?? 'PDkef homepage') : (labels.homeAriaLabel ?? 'PDkef home, all tools')}>
       {!isHome && (
         <span class="inline-flex w-0 items-center overflow-hidden text-[var(--color-muted-light)] opacity-0 transition-[width,opacity] duration-[180ms] ease-out group-hover:w-4 group-hover:opacity-100" aria-hidden="true">
-          <svg class={isRtl ? 'rtl-flip' : undefined} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class={isRtl ? '-scale-x-100' : undefined} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 12H5" /><path d="M12 19l-7-7 7-7" />
           </svg>
         </span>
@@ -66,111 +66,30 @@ const brandClasses = 'group inline-flex items-center gap-[0.55rem] text-[var(--c
 
     {toolName && (
       <span class="inline-flex min-w-0 items-center gap-[0.35rem] text-[0.85rem] font-semibold text-[var(--color-muted)]">
-        <svg class="shrink-0 text-[var(--color-muted-light)]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        {/* Same mirror as the back arrow: the separator points from the brand
+            toward the tool name, which is leftward on an RTL page. */}
+        <svg class={isRtl ? '-scale-x-100 shrink-0 text-[var(--color-muted-light)]' : 'shrink-0 text-[var(--color-muted-light)]'} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M9 18l6-6-6-6" />
         </svg>
         <span class="overflow-hidden text-ellipsis whitespace-nowrap">{toolName}</span>
       </span>
     )}
 
-    <span data-on-device class="ms-auto inline-flex shrink-0 items-center gap-[0.35rem] rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[0.7rem] py-[0.3rem] text-[0.75rem] font-semibold text-[var(--color-muted)] max-[560px]:gap-0 max-[560px]:p-[0.4rem] max-[560px]:text-[0]">
+    <span data-on-device class="ms-auto inline-flex shrink-0 items-center gap-[0.35rem] rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-success-soft)_38%,var(--color-primary-tint))] px-[0.7rem] py-[0.3rem] text-[0.75rem] font-semibold text-[var(--color-muted)] min-[561px]:max-[1023px]:gap-1 min-[561px]:max-[1023px]:text-[0.7rem] max-[560px]:gap-0 max-[560px]:p-[0.4rem] max-[560px]:text-[0px]">
       <svg class="max-[560px]:size-4" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" />
         <path d="M9 12.5l2 2 4-4.5" />
       </svg>
       {labels.onDevice ?? 'On-device'}
     </span>
-    {/* Same slot on every page, home or tool: one trust-chip pill style
-        (below), instead of home carrying its own chips inline in the bar and
-        every tool page repeating a second, plainer white-pill row inside
-        ToolHero. Tool pages pass their chips from ToolPageLayout.astro; home
-        passes its own from index.astro. Two different wrapper classes on
-        purpose: index.astro's own scoped CSS targets `.home-header
-        .home-trust` for home's sticky-pin layout and its own responsive
-        rules (icon-only chips, not a full hide, at small widths) - left
-        completely alone here. `.tool-trust` gets its own, simpler responsive
-        rules below, scoped so they can never reach home's markup. */}
-    <div class={isHome ? 'home-trust' : 'tool-trust'}><slot /></div>
+    {/* Same slot and the same chips on every page, home or tool: the slotted
+        content is TrustChips.astro either way (which also owns the chips'
+        wrapper and look), so the only page-to-page difference in this bar is
+        the breadcrumb. HomePageLayout.astro used to carry its own copy of the
+        chip rules that out-specified the shared ones on home only, which is
+        exactly how the two headers drifted apart. Nothing chip-related is
+        styled here on purpose: this file is @source'd by every family sheet,
+        so a utility added here ships to the guide and trust pages too. */}
+    <slot />
   </div>
 </div>
-
-<style>
-  /* Base trust-chip look, shared by every page that renders one: the sea-glass
-     tint home already used, now the one definition instead of a second, plainer
-     white-pill version living in ToolHero.astro. `:global` because chips are
-     slotted content, authored by the parent (index.astro / ToolPageLayout.astro),
-     not part of this component's own template - Astro's scoped CSS does not
-     reach into a `<slot/>`'s children otherwise. Home's own
-     `.home-header :global(.home-trust .trust-chip)` rule in index.astro is more
-     specific (ancestor-qualified) and keeps winning there unchanged; this is
-     what tool pages, which have no `.home-header` ancestor, actually get. */
-  :global(.trust-chip) {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    min-height: 1.8rem;
-    box-sizing: border-box;
-    border: 0.5px solid var(--color-border);
-    border-radius: var(--radius-pill);
-    background: var(--color-primary-tint);
-    padding: 0.3rem 0.7rem;
-    color: var(--color-text);
-    font-size: 0.78rem;
-    font-weight: 600;
-    white-space: nowrap;
-    text-decoration: none;
-    transition: color 150ms ease-out, border-color 150ms ease-out, background-color 150ms ease-out, box-shadow 150ms ease-out;
-  }
-
-  :global(a.trust-chip:hover) {
-    border-color: var(--color-border-strong);
-    background: var(--color-primary-soft);
-    color: var(--color-primary-text);
-  }
-
-  :global(a.trust-chip:focus-visible) {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: var(--shadow-focus);
-    color: var(--color-primary-text);
-  }
-
-  :global(.trust-chip-icon) {
-    flex: none;
-    width: 14px;
-    height: 14px;
-    display: block;
-  }
-
-  /* LOC-09: the hover-reveal back arrow is drawn as a left-pointing chevron
-     and stays correct for an LTR page as-is. On an RTL page "back" should
-     point right, so the locale-aware `isRtl` check above adds this class
-     rather than an inline style="transform:..." attribute - verify-csp.js
-     fails the build on any literal style= in dist/, and this is a static
-     class, not per-element runtime geometry (Part II section 5's inline-style
-     exemption is for continuous floats, not this). */
-  .rtl-flip {
-    transform: scaleX(-1);
-  }
-
-  /* Tool pages only (home keeps its own rules in index.astro, untouched).
-     Below 1024px the bar has a breadcrumb and three chips plus the on-device
-     badge competing for one fixed-height row - drop each chip's label and
-     keep the icon, same pattern `[data-on-device]` already uses under 560px. */
-  @media (max-width: 1023px) {
-    :global(.tool-trust) {
-      gap: 0.35rem;
-    }
-    :global(.tool-trust .trust-chip) {
-      gap: 0;
-      padding: 0.3rem;
-      font-size: 0;
-    }
-  }
-
-  @media (max-width: 560px) {
-    :global(.tool-trust) {
-      display: none;
-    }
-  }
-</style>

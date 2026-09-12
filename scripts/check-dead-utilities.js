@@ -37,7 +37,7 @@ const allowedClasses = new Set([
   'active', // toggled by the offline-guide tab script, matched via [&.active]: variants
   'faq-card', // <details> hook for the FAQ disclosure click interceptor
   'faq-item',
-  'offline-tab-btn', // querySelectorAll targets in index.astro's tab script
+  'offline-tab-btn', // querySelectorAll targets in HomePageLayout.astro's tab script
   'offline-tab-panel',
   'doc-line', // autosave card sketch; sized by sibling combinators
   'short',

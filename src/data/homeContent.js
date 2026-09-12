@@ -17,7 +17,7 @@
 // through this object yet - only the fields a localized edition needs to
 // override do (h1/subhead/faq plus the five story cards below). The trust
 // chips are deliberately excluded: they already have reviewed catalogue keys
-// (starOnGithub/mitLicensed/worksOffline in DocumentationShellMessages) and
+// (starOnGithub/openSource/worksOffline in DocumentationShellMessages) and
 // read through that instead - docs/home-page-localization-plan.md, section 5.3.
 //
 // h1 is split into a plain prefix and an `h1Accent` suffix rather than one

@@ -1,6 +1,8 @@
 ---
 paths:
   - "src/pages/index.astro"
+  - "src/pages/*/index.astro"
+  - "src/layouts/HomePageLayout.astro"
   - "src/components/HeroDemo/**"
   - "src/components/FileDropzone*"
   - "src/components/RecentFiles*"

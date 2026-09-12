@@ -98,6 +98,16 @@ function lastChangedFile(relPath) {
   return newestVisible(out, relPath);
 }
 
+// Newest visible change across several files, for a page whose copy is spread
+// over more than one (the home page: a thin route file, the shared layout, and
+// the content object it renders).
+function lastChangedAny(relPaths) {
+  return relPaths
+    .map((relPath) => lastChangedFile(relPath))
+    .filter(Boolean)
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))[0] ?? null;
+}
+
 // Last visible change to one line range, followed through history. This is the reason a
 // tool page's date is meaningful at all: every tool lives in one shared tools.js, so a
 // whole-file date would report the most recent edit to *any* tool and mark all ten
@@ -134,11 +144,15 @@ function objectRanges(relPath, keyName) {
 function inventory() {
   const rows = [];
 
+  // LOC-09 moved the home page's markup into HomePageLayout.astro and its copy
+  // into homeContent.js; the route file itself is a thin shell that rarely
+  // changes, so dating '/' by it alone would report the page as never updated.
+  const homeSources = ['src/pages/index.astro', 'src/layouts/HomePageLayout.astro', 'src/data/homeContent.js'];
   rows.push({
     url: '/',
     kind: 'home',
-    source: 'src/pages/index.astro',
-    changed: lastChangedFile('src/pages/index.astro'),
+    source: homeSources.join(' + '),
+    changed: lastChangedAny(homeSources),
   });
 
   for (const { key, start, end } of objectRanges('src/data/tools.js', 'href')) {

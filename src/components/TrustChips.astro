@@ -1,0 +1,133 @@
+---
+/**
+ * The three app-bar trust chips (GitHub star, open source, works offline)
+ * and their wrapper, rendered from one place so the home page and every
+ * tool page carry the exact same markup, icons and look.
+ *
+ * Their rules live in this component's own scoped style block rather than
+ * in AppBar.astro, and not as utilities either: AppBar renders on every page
+ * and is @source'd by every family sheet, so chip CSS there (a style block
+ * or utilities) ships to the eleven guide and trust pages that never render
+ * a chip, while Astro inlines this block only on the pages that import this
+ * component (the home and tool layouts). Plain rules are also a third the
+ * size of the equivalent utilities, whose per-breakpoint variants each wrap
+ * themselves in their own media query.
+ *
+ * The values are the home page's, measured before the two headers were
+ * unified (1440px: 1px border, 0.22rem/0.6rem padding, 0.35rem icon gap,
+ * 0.45rem between chips, 28.8px min-height). Home used to carry them as
+ * `.home-header .home-trust .trust-chip` overrides that out-specified an
+ * older, slightly different copy in AppBar.astro, which is exactly how the
+ * two headers drifted apart. Under 1024px the labels shrink; under 721px each
+ * chip is a 2rem icon square whose aria-label carries the name, and the
+ * wrapper goes fixed-width so the bar's breadcrumb is what gives way.
+ *
+ * `offlineHref` turns the offline chip into a link (home points it at its
+ * own install section, `#offline-app`, and homeWorkspace.ts scrolls there);
+ * a page with no such target renders the same chip as a plain badge.
+ */
+import { Code2, WifiOff } from 'lucide-preact';
+
+interface Props {
+  labels: { starOnGithub: string; openSource: string; worksOffline: string };
+  offlineHref?: string;
+}
+const { labels, offlineHref } = Astro.props;
+---
+
+<div class="trust-chips">
+  <a class="trust-chip" href="https://github.com/shlomsh/pdkef" target="_blank" rel="noopener noreferrer" aria-label={labels.starOnGithub}>
+    <svg class="trust-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z" /></svg>
+    <span>{labels.starOnGithub}</span>
+  </a>
+  {/* Code brackets, not the scales of justice the chip used to carry: this
+      chip is the open-source-and-free promise (the same icon the home page's
+      "Open source" pill uses), and a courtroom icon beside the word
+      "licence" read as a legal condition rather than a gift. */}
+  <a class="trust-chip" href="/licenses/" aria-label={labels.openSource}><Code2 class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>{labels.openSource}</span></a>
+  {offlineHref ? (
+    <a class="trust-chip" data-offline-link href={offlineHref} aria-label={labels.worksOffline}><WifiOff class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>{labels.worksOffline}</span></a>
+  ) : (
+    <span class="trust-chip" aria-label={labels.worksOffline}><WifiOff class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>{labels.worksOffline}</span></span>
+  )}
+</div>
+
+<style>
+  .trust-chips {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .trust-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 1.8rem;
+    box-sizing: border-box;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-primary-tint);
+    padding: 0.22rem 0.6rem;
+    color: var(--color-text);
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out), background-color 150ms var(--ease-out), box-shadow 150ms var(--ease-out);
+  }
+
+  a.trust-chip:hover {
+    border-color: var(--color-border-strong);
+    background: var(--color-primary-soft);
+    color: var(--color-primary-text);
+  }
+
+  a.trust-chip:focus-visible {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-focus);
+    color: var(--color-primary-text);
+  }
+
+  .trust-chip-icon {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    display: block;
+  }
+
+  @media (max-width: 1023px) {
+    .trust-chips {
+      justify-content: center;
+      gap: 0.3rem;
+      font-size: 0.7rem;
+    }
+    .trust-chip {
+      min-height: 1.65rem;
+      padding-inline: 0.45rem;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .trust-chips {
+      width: auto;
+      flex: none;
+      gap: 0.25rem;
+    }
+    .trust-chip {
+      width: 2rem;
+      min-height: 2rem;
+      justify-content: center;
+      gap: 0;
+      padding: 0.4rem;
+    }
+    /* The aria-labels keep each chip's accessible name while its visual text
+       yields to the icon at phone widths. */
+    .trust-chip span {
+      display: none;
+    }
+  }
+</style>

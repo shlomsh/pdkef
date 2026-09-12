@@ -27,7 +27,7 @@ export type LocalizedHomeStatus = 'draft' | 'published';
  * sourceHash is computed from, and they must describe the same fields or a
  * translation could drift without the freshness check noticing (the same
  * relationship TOOL_SOURCE_FIELDS has with content.config.ts's toolFields).
- * Deliberately excludes the trust-chip strings (starOnGithub/mitLicensed/
+ * Deliberately excludes the trust-chip strings (starOnGithub/openSource/
  * worksOffline) - those already have reviewed catalogue keys in
  * DocumentationShellMessages and are read through that instead.
  */
