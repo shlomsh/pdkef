@@ -112,14 +112,17 @@
  *    admitted into the floor - and it measures to zero on a platform that does
  *    not quantise, so it costs macOS nothing. The placement it measures the
  *    cost of is the browser's own: each glyph's hinted advance is read back
- *    through `measureText` (`hintedAdvancePx`), because a hinting rasteriser
- *    does not just round - on the runner Amatic SC's "12.09.2026" comes out
- *    at 845px where round-to-nearest predicts 846px and fontkit 847.8px, and
- *    the pixel of difference the rounding model could not see was enough to
- *    fail that case (28.21% against 27.06%). Only the rasteriser's advance for
- *    one glyph is measured; every shaping decision stays fontkit's, so this
- *    cannot absorb a shaper disagreement, and glyphs with no cmap entry keep
- *    the round-to-nearest model. The run's log says how many were which.
+ *    through `measureText` (`hintedAdvancePx`), because the runner does not
+ *    round the way `Math.round` does - its advances are within 0.50px of
+ *    fontkit's everywhere, but a half-pixel tie goes down, and on Amatic SC's
+ *    "12.09.2026" that is 845px against the 846px round-to-nearest predicted
+ *    (fontkit: 847.8px), enough to fail the case at 28.21% against 27.06%.
+ *    Only the rasteriser's advance for one glyph is measured; every shaping
+ *    decision stays fontkit's, so this cannot absorb a shaper disagreement,
+ *    and glyphs with no cmap entry keep the round-to-nearest model. The run's
+ *    log says how many were which, and how many native widths the model
+ *    reproduces exactly (run 34717406027: all of them on every guard but the
+ *    ones with a known advance divergence or a fallback-modelled glyph).
  *
  * The rule that follows, and the one to keep: **an artefact gets removed from
  * the instrument if it can be, and measured if it cannot. It never gets
@@ -326,16 +329,19 @@ export async function runShapingGuardInPage({
 
   // The browser's own advance for one glyph, measured rather than modelled.
   //
-  // A hinting rasteriser does not merely round an advance to the nearest
-  // pixel: FreeType snaps stems and may move an advance by more than the
-  // rounding alone would, and the direction is per glyph, so whole-pixel
-  // rounding of fontkit's advance - the first version of this model - can be
-  // a pixel off for a glyph and several pixels off over a string (Amatic SC
-  // "12.09.2026" on the CI runner: native 845px, round-to-nearest 846px,
-  // fontkit 847.8px, and the string failed its guard at 28.21% against a
-  // 27.06% tolerance whose floor assumed rounding). So the hinted advance is
-  // read from the browser per glyph, through `measureText` of the one
-  // character whose plain cmap glyph it is, and the model uses that.
+  // A hinting rasteriser does not round an advance the way `Math.round`
+  // does. Measured on the CI runner (run 34717406027) the browser's advance
+  // sits within 0.50px of fontkit's for every glyph in every guard, so it is
+  // rounding and nothing more - but FreeType's fixed-point scaling resolves
+  // an exact half-pixel tie downward where `Math.round` goes up (Amatic SC's
+  // "1" at 300px is 82.5px: the runner says 82, the first version of this
+  // model said 83), and one such glyph is the pixel between the runner's
+  // 845px for "12.09.2026" and the 846px the model predicted; that pixel
+  // failed the case at 28.21% against a 27.06% tolerance whose floor had
+  // assumed round-to-nearest. Guessing at the tie rule would be modelling
+  // again, so the hinted advance is read from the browser per glyph instead,
+  // through `measureText` of the one character whose plain cmap glyph it
+  // is, and the model uses that.
   //
   // What keeps this non-circular: the measurement is of the *rasteriser's*
   // treatment of one glyph's advance width, taken on that glyph alone. Every
