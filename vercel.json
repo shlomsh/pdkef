@@ -160,6 +160,11 @@
       "permanent": true
     },
     {
+      "source": "/photo-and-signature-size-for-forms",
+      "destination": "/photo-and-signature-size-for-forms/",
+      "permanent": true
+    },
+    {
       "source": "/sign-pdf-no-signup",
       "destination": "/sign-pdf-no-signup/",
       "permanent": true

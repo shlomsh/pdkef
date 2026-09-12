@@ -1,0 +1,233 @@
+title: 'Photo and Signature Size for Forms | PDkef'
+description: >-
+  A form often caps the photo at 20 to 50KB and the signature at 10 to 20KB, sometimes with an
+  exact pixel size too. What decides whether your photo fits, and what this tool does not do.
+breadcrumb: 'Photo and signature size'
+icon: 'FormInput'
+kicker: 'Pixels first, quality second'
+h1: 'Photo and Signature Size for Application Forms'
+subhead: >-
+  A job portal, exam form or government service often caps the photo at 20 to 50KB and the
+  signature at 10 to 20KB, sometimes with an exact pixel size on top of that, while a phone photo
+  starts out at 3 to 6MB. Here is what actually decides whether yours fits.
+primaryCta:
+  href: '/compress-image/'
+  label: 'Open the free image compressor'
+sections:
+  - variant: 'highlight'
+    sketch: 'grid'
+    icon: 'ScanText'
+    iconPos: 'tr'
+    kicker: 'The two things that decide it'
+    heading: 'Pixel dimensions first, JPEG quality second'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          A photo is one image, not a page count, so a small cap is usually reachable, unlike a
+          ten-page scan asked to fit the same number. What decides whether it actually reaches
+          that number is two things, in this order: the pixel dimensions of the image, then the
+          JPEG quality used to encode it. The measured rows further down this page show it holding
+          even at 10 to 20KB.
+      - kind: 'prose'
+        text: >-
+          A phone camera shoots at something like 4000 by 3000 pixels. At that size, no amount of
+          quality reduction gets you near 50KB, because a JPEG that large still carries a lot of
+          pixel data even at its roughest setting. The same photo resized down to about 600 pixels
+          wide fits a small target easily, because there is simply far less pixel data left to
+          encode. Size the image down first, then let quality do the rest.
+  - sketch: 'rings'
+    icon: 'AlertTriangle'
+    iconPos: 'cl'
+    kicker: 'What this tool does not do'
+    heading: 'Compress Image will not crop your photo to an exact pixel size'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          <a href="/compress-image/">Compress Image</a> hits a KB target by walking down a scale
+          ladder and searching JPEG quality at each step, trying each scale before giving up more
+          detail. It does not crop or resize to a specific width and height you name. Its job is
+          getting a file under a size limit, not matching a pixel grid.
+      - kind: 'prose'
+        text: >-
+          Many portals check both at once. IBPS asks for a photograph at 200 by 230 pixels and a
+          signature at 140 by 60 pixels, on top of the KB range. If your form states pixel
+          dimensions as well as a size limit, crop to those dimensions first, with your phone's
+          own crop tool or any image editor, and only then bring the cropped file under the KB cap
+          here. Cropping after compressing does not keep the size you just reached: the crop tool
+          saves the file again at its own quality setting, so you would have to compress a second
+          time anyway.
+          The signature and portrait rows measured further down this page, at a 10KB target, show
+          exactly what that costs in sharpness.
+  - sketch: 'waves'
+    icon: 'FileText'
+    iconPos: 'br'
+    kicker: 'What you actually get back'
+    heading: 'What compressing a photo changes, stated plainly'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          The output is always a JPEG, whatever format you started with. A transparent PNG is
+          flattened onto a white background first, since JPEG has no transparency of its own.
+          Re-encoding also drops EXIF metadata, including the location a phone camera often
+          records, along with the camera model and timestamp. A screenshot or a photo of a page of
+          text can show visible artefacts around the letters once the target gets small, more so
+          than an ordinary portrait photo. If your file is already under the target, it is
+          returned completely unchanged.
+  - sketch: 'grid'
+    icon: 'HardDriveDownload'
+    iconPos: 'tr'
+    kicker: 'Measured, not promised'
+    heading: 'Real phone photos, run through Compress Image'
+    blocks:
+      - kind: 'table'
+        caption: >-
+          Every row ran through PDkef's own Compress Image in a real browser on 2026-09-12, one
+          file per target.
+        headers: ['Document and target', 'Original size', 'Result', 'Still usable?']
+        rows:
+          - ['Portrait photo (phone selfie, JPEG), at 50 KB', '867 KB', '50.1 KB', 'Yes, crisp, indistinguishable from the original at phone size']
+          - ['Same portrait, at 20 KB', '867 KB', '19.5 KB, 1088x1932', 'Yes, fine, slight softening only when zoomed in']
+          - ['Same portrait, at 10 KB', '867 KB', '9.8 KB, 725x1288', 'Face recognisable but soft and blocky in hair and skin; usable as an ID photo, but far larger than the 200x230 px IBPS asks for']
+          - ['Signature on paper, photographed uncropped (JPEG), at 20 KB', '589 KB', '20.4 KB, 1088x1932', 'Yes, legible, strokes soft']
+          - ['Same signature, at 10 KB', '589 KB', '10.1 KB, 725x1288', 'Legible but soft, with a faint halo around the strokes; most of the 10KB went on blank paper, not the signature']
+          - ['One-page printed letter, photographed (JPEG), at 100 KB', '1.15 MB', '90.2 KB', 'Yes, crisp, body text fully sharp']
+          - ['Same letter, at 50 KB', '1.15 MB', '48.9 KB, 1088x1932', 'Yes, fully readable with mild softening']
+          - ['Screenshot of a text web page (PNG, re-encoded to JPEG), at 50 KB', '636 KB', '49.0 KB, 968x2097', 'Headings sharp; body text readable but visibly softened with faint ringing at letter edges; small grey text is borderline']
+      - kind: 'prose'
+        text: >-
+          All three photos here are as uploaded from a phone, 1450 by 2576 pixels, not raw camera
+          files; a shot straight off the sensor is bigger still, commonly 3000 by 4000 pixels or
+          more. The portrait and letter rows above are the same fact stated two ways: a photo is one
+          image, not a page count, so a face or a page of text can still reach 10 to 20KB, somewhere
+          a multi-page scan never gets close to. What moves is dimension, not just quality. Compress
+          Image searches JPEG quality at full size first, and only steps down its fixed scale ladder
+          (1, 0.75, 0.5, 0.3, 0.15 of the original pixels) once quality alone cannot clear the
+          target, which is why the 100KB letter row above keeps the full 1450 by 2576 frame and the
+          50KB row does not.
+      - kind: 'prose'
+        text: >-
+          The signature row is the clearest proof of the crop-first warning above it. At 10KB,
+          nearly all of that budget went on the blank paper around the strokes, because the
+          compressor has no idea the signature is the only part that matters, it only shrinks the
+          whole photo, it never crops. The same thing happens to the 10KB portrait: the result is
+          recognisable well past the 200 by 230 pixels IBPS actually asks for, and cropping to that
+          pixel size first would spend the same 10KB on a tenth of the pixels and come out sharp
+          instead of soft.
+  - sketch: 'rings'
+    icon: 'ListChecks'
+    iconPos: 'bl'
+    kicker: 'Why the limit exists at all'
+    heading: 'Real portals, and the size limits they actually publish'
+    blocks:
+      - kind: 'table'
+        caption: 'Pulled from each portal''s own published guidelines, not a third party''s estimate.'
+        headers: ['Portal', 'What it caps', 'Documented limit']
+        rows:
+          - ['IBPS (bank recruitment exams)', 'Photograph upload', '200 by 230 px, 20KB to 50KB, JPEG']
+          - ['IBPS (bank recruitment exams)', 'Signature upload', '140 by 60 px, 10KB to 20KB, JPEG']
+          - ['NTA UGC-NET (and similar NTA exams)', 'Candidate photograph upload', '10KB to 200KB, JPEG']
+          - ['NTA UGC-NET (and similar NTA exams)', 'Candidate signature upload', '4KB to 30KB, JPEG']
+          - ['UPSC (CAPF exam, and similar UPSC exams)', 'Photograph upload', '20KB to 200KB, JPG']
+          - ['UPSC (CAPF exam, and similar UPSC exams)', 'Signature upload', '20KB to 100KB, JPG']
+      - kind: 'prose'
+        text: >-
+          IBPS's own candidate portal states a photograph between 20KB and 50KB at 200 by 230
+          pixels, and a signature between 10KB and 20KB at 140 by 60 pixels, both JPEG
+          (<a href="https://ibpsreg.ibps.in" target="_blank" rel="noopener noreferrer">ibps.in
+          candidate portal, photograph and signature guidelines</a>). The same portal caps a
+          combined document PDF at 500KB, covered on <a href="/pdf-wont-compress-to-100kb/">why a
+          PDF won't compress to 100KB</a>.
+      - kind: 'prose'
+        text: >-
+          The National Testing Agency's UGC-NET information bulletin specifies a 10KB to 200KB
+          photograph and a 4KB to 30KB signature, both JPEG, quoted directly from its
+          <a href="https://ugcnet.nta.ac.in/images/information-bulletin-for-ugc-net-june-2025-16042025.pdf" target="_blank" rel="noopener noreferrer">published information bulletin</a>.
+      - kind: 'prose'
+        text: >-
+          UPSC's own CAPF exam notice states a photograph file that should not exceed 200KB and
+          must not be less than 20KB, and a signature file between 20KB and 100KB, both JPG,
+          quoted from its
+          <a href="https://www.upsc.gov.in/sites/default/files/ExamNotifi_CAPF_AC_Exam_2026_Eng_20022026.pdf" target="_blank" rel="noopener noreferrer">published exam notice</a>.
+          These figures were set years ago for slow connections and small server quotas, and most
+          have outlived the reason they exist, but the portals still enforce them.
+  - sketch: 'waves'
+    icon: 'CheckSquare'
+    iconPos: 'tl'
+    kicker: 'If it still will not fit'
+    heading: 'What to try before you give up'
+    blocks:
+      - kind: 'checklist'
+        items:
+          - >-
+            <strong>Crop tighter first.</strong> If the portal states pixel dimensions as well as
+            a KB range, crop to those dimensions before compressing, not after.
+          - >-
+            <strong>Check whether the cap really is that low.</strong> Portal instructions are
+            sometimes copied from an older cycle; look for the current one before assuming your
+            file has to hit the smallest number you found.
+          - >-
+            <strong>Use a plain background.</strong> A flat white or light background behind a
+            portrait or a signature gives JPEG far less detail to encode than a cluttered one, for
+            the same visual quality.
+          - >-
+            <strong>Take the photo in good, even light.</strong> A noisy low-light photo forces
+            JPEG to spend more of its budget on grain instead of the subject, which is the first
+            thing that gets lost at a small target.
+  - variant: 'highlight'
+    sketch: 'grid'
+    icon: 'WifiOff'
+    iconPos: 'br'
+    kicker: 'Free, private, no account'
+    heading: 'Try it on your own photo before you crop anything'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          <a href="/compress-image/">Open the free image compressor</a>, enter the target your
+          form actually asks for, and check the result. The photo never leaves your device, so
+          there is no upload wait to find out whether it fits, and no account to create first. If
+          the form also caps a scanned document, <a href="/pdf-wont-compress-to-100kb/">the same
+          question for PDFs</a> covers that half.
+faq:
+  - question: 'What actually decides whether a photo can be compressed to a small size?'
+    answer: >-
+      Two things, in this order: the pixel dimensions of the image, then the JPEG quality used to
+      encode it. A large phone photo has to be sized down before quality reduction alone can reach
+      a small target like 50KB.
+  - question: 'Does Compress Image resize my photo to the exact pixel dimensions a portal wants?'
+    answer: >-
+      No. It searches for the smallest scale and quality combination that fits your KB target, not
+      a specific width and height. If your form states pixel dimensions as well as a size limit,
+      crop to those dimensions yourself first, then compress the cropped file to the KB cap.
+  - question: 'Why is a photo easier to compress than a scanned PDF document?'
+    answer: >-
+      A photo is one image, so the whole size budget applies to it alone. A multi-page scanned PDF
+      splits that same budget across every page, which is why a ten-page document struggles to
+      reach a small target in a way a single photo usually does not.
+  - question: 'What file format does the compressed photo come out as?'
+    answer: >-
+      A JPEG, regardless of what you started with. A transparent PNG is filled in white first,
+      since JPEG cannot represent transparency. A file that is already under your target is left
+      completely unchanged, original format included.
+  - question: 'Does compressing my photo remove information from it?'
+    answer: >-
+      Yes. Re-encoding to JPEG drops EXIF metadata, including the location a phone camera often
+      records, plus the camera model and timestamp. That is a side effect of redrawing the pixels,
+      not a deliberate scrub, so do not rely on it if you specifically need that metadata kept.
+  - question: 'Will a scanned signature or document photo look blurry at a small target?'
+    answer: >-
+      It can. JPEG compression is built for photos, and a small target size can leave visible
+      artefacts around sharp edges like handwriting, text or fine lines, more so than on an
+      ordinary portrait photo. If the result looks too rough, try a larger target or a cleaner
+      original scan.
+  - question: 'What are the real photo and signature size limits for exams like IBPS, UPSC or NTA?'
+    answer: >-
+      IBPS asks for a 200 by 230 pixel photograph between 20KB and 50KB, and a 140 by 60 pixel
+      signature between 10KB and 20KB. UPSC's CAPF exam caps a photograph at 20KB to 200KB and a
+      signature at 20KB to 100KB. The National Testing Agency's UGC-NET bulletin caps a photograph
+      at 10KB to 200KB and a signature at 4KB to 30KB. All three are JPEG or JPG only.
+  - question: 'What should I do if my photo still will not fit the portal''s limit?'
+    answer: >-
+      Crop tighter to any stated pixel dimensions first, confirm the cap you found is from the
+      current application cycle, use a plain background, and take the photo in good, even light so
+      JPEG has less noise to encode. Those four usually close the gap on a photo that is only
+      slightly over.

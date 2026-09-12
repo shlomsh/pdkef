@@ -103,36 +103,76 @@ them is the primary source, so per the ticket's own rule none of those numbers a
 future ticket finds a working primary URL for Passport Seva or SSC, add it there rather than reopening
 this one.
 
-## Step 3: the measurement plan (not yet run)
+## Step 3: the measurement plan (run 2026-09-12)
 
-The page ships with a `table` block whose caption and every number/readability cell is the literal
+The page shipped with a `table` block whose caption and every number/readability cell was the literal
 placeholder `TBD` - see the acceptance note in `docs/seo-competitive-findings.md`'s referenced
-discipline (SEO-17's own model) for why this is deliberate rather than an oversight: the lead will not
-commit the page until every `TBD` is replaced with a number from a real run.
+discipline (SEO-17's own model) for why this was deliberate rather than an oversight: the lead would not
+commit the page until every `TBD` was replaced with a number from a real run. That run happened
+2026-09-12, below.
 
-**Ask for Shlomi:** three kinds of real phone photos -
+## Measurements (2026-09-12)
 
-1. A portrait/passport-style photo (a person, plain background, phone camera).
-2. A signature on plain white paper, photographed (not scanned) with a phone.
-3. A full document page, photographed with a phone (for the "screenshot vs. photo" comparison row).
-4. A screenshot of a page of dense text (for the same comparison, digital rather than photographed).
+**Method.** Production build (`npm run build`) served locally by `astro preview`. Each file driven
+through the shipped `/compress-image/` island in a real Chromium browser via Playwright, one file per
+run, using the island's own typed KB target (not a preset). The download triggered by the island was
+saved to disk and read back for its real byte count; output pixel dimensions were read from the
+island's own rendered result text, not measured independently. Every run hit its target on the first
+try (the tool never fell back to reporting a miss) and completed in under 0.4 seconds.
 
-**Targets to run each through, using the shipped `/compress-image/` in a real browser via the local
-preview** (per the worktree's "no preview server unless asked" rule, this step happens once Shlomi
-runs or asks for `npm run build && npm run preview`, not automatically in this ticket):
+**Inputs, described by kind, size and dimensions only:**
 
-| Row | File | Target |
-| --- | --- | --- |
-| 1 | Portrait photo | 50 KB |
-| 2 | Same portrait photo | 20 KB |
-| 3 | Signature photo | 20 KB |
-| 4 | Same signature photo | 10 KB |
-| 5 | Document page photo | 100 KB |
-| 6 | Text screenshot | 50 KB |
+1. Portrait photo (phone selfie, JPEG, 866,956 bytes, 1450x2576).
+2. Signature on white paper, photographed uncropped with the phone (JPEG, 588,539 bytes, 1450x2576;
+   the signature occupies a small part of the frame).
+3. One-page printed letter, photographed with the phone (JPEG, 1,145,617 bytes, 1450x2576).
+4. Phone-size screenshot of a text web page (PNG, 636,473 bytes, 1290x2796), fed through the tool,
+   which always re-encodes its output to JPEG.
 
-For each: original size, achieved size (and whether the target was actually met, per the tool's own
-`metTarget` flag in `compressImageToTarget`), and a real judgement of readability at 100% zoom - the
-same discipline SEO-17 used for its PDF page rows, not an estimate.
+**Caveat carried onto the page:** all three photos are as-uploaded phone photos at 1450x2576, not raw
+camera files - they had already been downscaled once (from a raw phone capture, typically 3000x4000 or
+larger) before they reached this measurement. The page states this explicitly so the numbers aren't
+read as the largest file a reader might start from.
+
+**Results:**
+
+| Input | Target | Output bytes | Output dimensions | Judgement |
+| --- | --- | --- | --- | --- |
+| Portrait photo | 50 KB | 50,053 | 1450x2576 (full size, quality only) | Crisp; indistinguishable from the original at phone size |
+| Portrait photo | 20 KB | 19,538 | 1088x1932 | Fine; slight softening you only notice zoomed in |
+| Portrait photo | 10 KB | 9,771 | 725x1288 | Face clearly recognisable, but visibly soft and blocky in hair and skin. Usable as an ID photo only because it is still far larger than the 200x230 px a portal asks for; cropping to that size first would spend the same 10 KB on a tenth of the pixels and look sharp |
+| Signature photo | 20 KB | 20,432 | 1088x1932 | Signature legible, strokes soft |
+| Signature photo | 10 KB | 10,101 | 725x1288 | Legible but soft with a faint halo around the strokes; nearly all the budget went on blank paper. This is the row that shows why cropping to the signature (140x60 px at IBPS) comes before compressing |
+| Letter photo | 200 KB | 202,936 | 1450x2576 | Crisp |
+| Letter photo | 100 KB | 90,244 | 1450x2576 | Crisp; body text fully sharp |
+| Letter photo | 50 KB | 48,852 | 1088x1932 | Fully readable with mild softening |
+| Text screenshot | 50 KB | 48,969 | 968x2097 | Headings sharp; body text readable but visibly softened with faint ringing at the letter edges; small grey text borderline. Screenshots and scans of text are where JPEG shows its limits at a small target |
+
+**What this changed in the copy.** The `table` block's caption and rows in
+`src/content/content-pages/photo-and-signature-size-for-forms.yaml` were rebuilt from the six planned
+rows into the eight shown on the page (nine were run; the results table above is the full record, see
+"Schema fit" below for why one row stayed off the page). The section header and kicker no longer say
+"numbers pending"; the caption now states the method, matching how `pdf-wont-compress-to-100kb.yaml`'s
+own measured table is worded. The body prose in the first ("Pixel dimensions first, JPEG quality second") and second
+("What this tool does not do") sections was tied to the measured rows rather than left as an unverified
+general claim, and two new prose blocks were added directly under the table: one carrying the
+as-uploaded-1450x2576 caveat, stating that a photo reaches even 10 to 20KB because it is one image, not
+a page count, and explaining why the 100KB letter row keeps full dimensions while the 50KB row and the
+signature/portrait rows do not (the scale ladder, not cropping); the other pointing at the signature
+row and the 10KB portrait row as the concrete proof that compressing without cropping first spends the
+budget on pixels that do not matter. No number in the plan changed; only the prose around the numbers
+did, and only where it needed to reference what the rows actually showed.
+
+**Schema fit, 2026-09-12.** `astro check` caught that the table block's schema
+(`src/content.config.ts` lines 100-101) caps a table at 4 columns, 8 rows, 220-character cells and a
+200-character caption; the first pass shipped 5 columns, 9 rows and an over-length caption. The page
+was reworked to fit without touching the schema: the Target column folded into the first column ("Same
+portrait, at 20 KB" and so on), the caption shortened to the method and date only (the as-uploaded
+caveat moved into the prose block right under the table, see above), and the two 10KB judgement cells
+tightened without changing the judgement itself. The least informative row, the 200KB letter result
+(crisp, full size, no surprise), was dropped to bring the row count to 8; the results table above keeps
+all nine measurements as the record, but **the live page shows eight rows, not nine** - the 200KB
+letter measurement stayed in this ticket and out of the page.
 
 ## The awkward fact (already in the page body, not only the FAQ)
 
@@ -151,9 +191,9 @@ body prose, not buried in an FAQ answer.
 - Page exists as one YAML entry (`src/content/content-pages/photo-and-signature-size-for-forms.yaml`)
   with a registry entry (`src/data/contentPages.js`, `hub: 'compress-image'`, `alsoHub: ['compress']`)
   and a redirect pair in `vercel.json`; the build's two-registry cross-check passes.
-- The measured table's six rows carry real numbers from real files run through the shipped tool in a
-  real browser, replacing every `TBD`, before this ticket is closed. **Not done yet** - this is the one
-  blocking item, tracked the same way SEO-17 tracked its own measurement pass.
+- The measured table's rows carry real numbers from real files run through the shipped tool in a
+  real browser, replacing every `TBD`, before this ticket is closed. **Done 2026-09-12** - see
+  "Measurements (2026-09-12)" above for method and results.
 - Every portal limit cited to a primary source (IBPS, NTA UGC-NET, UPSC), each with a URL and a capture
   date in this ticket. No coaching-site or resizer-tool number on the page.
 - The "this tool does not crop to pixel dimensions" caveat is stated in the body, not only in the FAQ.
