@@ -1,4 +1,5 @@
-import { PDFDocument, StandardFonts, rgb, degrees as pdfDegrees } from '@cantoo/pdf-lib';
+import { PDFDocument } from '@cantoo/pdf-lib';
+import { applyRotation, embedPageNumberFont, stampPageNumber } from './pageOps.js';
 
 /**
  * Edits pages in a PDF: reorders, removes, rotates, and/or adds page numbers.
@@ -40,7 +41,7 @@ export async function editPages(
 
   let font = null;
   if (addPageNumbers) {
-    font = await outDoc.embedFont(StandardFonts.Helvetica);
+    font = await embedPageNumberFont(outDoc);
   }
 
   for (let i = 0; i < copiedPages.length; i++) {
@@ -48,25 +49,11 @@ export async function editPages(
     const originalPageNum = orderedPageNums[i];
 
     // Apply rotation delta (additive on top of any existing page rotation).
-    const rotDelta = rotations[originalPageNum];
-    if (rotDelta) {
-      const currentAngle = page.getRotation().angle;
-      page.setRotation(pdfDegrees(currentAngle + rotDelta));
-    }
+    applyRotation(page, rotations[originalPageNum]);
 
     // Stamp page number at bottom-centre.
     if (addPageNumbers) {
-      const label = `${i + 1}`;
-      const textSize = 12;
-      const textWidth = font.widthOfTextAtSize(label, textSize);
-      const { width } = page.getSize();
-      page.drawText(label, {
-        x: width / 2 - textWidth / 2,
-        y: 22,
-        size: textSize,
-        font,
-        color: rgb(0.2, 0.2, 0.2),
-      });
+      stampPageNumber(page, `${i + 1}`, font);
     }
 
     opsDone++;

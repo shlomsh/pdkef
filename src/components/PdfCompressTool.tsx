@@ -3,6 +3,7 @@ import { compressPdf, compressPdfToTarget } from '../lib/compress.js';
 import { compressImageToTarget } from '../lib/compressImage.js';
 import { deriveFileKind } from '../lib/fileKind.js';
 import { useObjectUrls } from '../lib/useObjectUrls.js';
+import { useHandoffIntake } from '../lib/useHandoffIntake.ts';
 import BasePdfTool from './BasePdfTool.tsx';
 import styles from './PdfCompressTool.module.css';
 import pdfToolStyles from './PdfTool.module.css';
@@ -250,6 +251,13 @@ export default function PdfCompressTool({
       setAnnouncement(formatMessage(deriveFileKind(next) === 'image' ? t.imageLoaded : t.loaded, { name: next.name }));
     }
   };
+
+  // MERGE-14: a merged PDF handed off from /merge/ (saveHandoff + navigate)
+  // is collected here on mount and dropped straight into the same path a
+  // manual pick takes. This tool has no draft to race against, so mount is
+  // enough - see useHandoffIntake.ts's own comment for why Sign/Redact
+  // instead resolve their hand-off ahead of a draft restore.
+  useHandoffIntake('compress', (file) => handleFilesAdded([file]));
 
   const handleLevelChange = (nextLevel: string) => {
     if (nextLevel === level) return;

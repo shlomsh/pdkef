@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import BasePdfTool from './BasePdfTool.tsx';
 import { parsePageSelector, pageNumbersToRangeString, splitPdf } from '../lib/split.js';
+import { useHandoffIntake } from '../lib/useHandoffIntake.ts';
 import styles from './PdfSplitTool.module.css';
 import fileListStyles from './FileList.module.css';
 import pageGridStyles from './PageGrid.module.css';
@@ -147,6 +148,13 @@ export default function PdfSplitTool() {
       loadDocumentAndThumbnails(selected);
     }
   };
+
+  // MERGE-14: a merged PDF handed off from /merge/ (saveHandoff + navigate)
+  // is collected here on mount and dropped straight into the same path a
+  // manual pick takes. This tool has no draft to race against, so mount is
+  // enough - see useHandoffIntake.ts's own comment for why Sign/Redact
+  // instead resolve their hand-off ahead of a draft restore.
+  useHandoffIntake('split', (file) => handleFilesAdded([file]));
 
   const handlePageSelectorChange = (value: string) => {
     setPageSelector(value);

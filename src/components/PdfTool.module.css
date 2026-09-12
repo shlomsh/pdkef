@@ -464,3 +464,71 @@
   width: 100%;
   margin-top: var(--space-3);
 }
+
+/* MERGE-06: the primary action pinned to the bottom edge on a phone, the way
+   the editor toolbars already stretch full width on mobile
+   (project_fullwidth_mobile_toolbar). `.tool-card` (top of this file) has no
+   `overflow: hidden`, which this depends on: `position: sticky` stops
+   working the moment an ancestor clips overflow, and would silently fall
+   back to `position: static` with no visible error. `position: sticky`
+   rather than `fixed` on purpose - it stays in the card's own flow, so it
+   can never cover content the way a fixed bar would; it just refuses to
+   scroll past the bottom of the viewport while the card is still on screen,
+   the same way a `position: sticky` table header behaves. Because it never
+   leaves flow, it also never needs matching bottom padding added to the list
+   above it to keep the last row visible - there's nothing to compensate for. */
+.action-row {
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 719px) {
+  .action-row {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-inline: -1.5rem; /* bleed to the card's edges (card padding is 1.5rem below 1024px) */
+    padding: var(--space-3) 1.5rem calc(var(--space-3) + env(safe-area-inset-bottom));
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .action-row > * {
+    margin-top: 0; /* the DownloadButton/primary action inside carries its own top margin at desktop; the row's gap owns spacing here */
+  }
+}
+
+/* MERGE-14 hand-off row: "Compress it", "Sign it", "Split it" as quiet links
+   under Download. Three plain verbs, no icons competing with Download - see
+   backlog/tasks/MERGE-14.md's voice note. */
+.action-row-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-top: var(--space-3);
+  font-size: 0.88rem;
+}
+
+.quiet-link {
+  color: var(--color-primary-text);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* MERGE-17: one quiet sentence under Download after the first result in this
+   browser, in the OfflineProof register. Never a modal, never a counter. */
+.install-line {
+  margin: var(--space-3) 0 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+  text-align: center;
+}

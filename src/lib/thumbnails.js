@@ -1,4 +1,4 @@
-// Renders the first page of a PDF to a data-URL thumbnail using PDF.js.
+// Renders PDF pages to data-URL thumbnails using PDF.js.
 // Loaded lazily (dynamic import) so it never blocks the initial page paint.
 // The worker URL uses Vite's native `new URL(..., import.meta.url)` asset
 // pattern (pdfjs-dist's documented Vite integration): Vite bundles and
@@ -23,7 +23,89 @@ async function getPdfjs() {
 const TARGET_WIDTH = 150;
 
 /**
- * Render page 1 to a data URL.
+ * Renders one already-fetched pdf.js page to a data URL. Every per-page
+ * render below (the single-shot `renderThumbnailWithMeta` and the
+ * multi-page `openThumbnailSource`) goes through this one function, so the
+ * white-prefill rule and the abort contract are each written once.
+ *
+ * MERGE-01: a PDF page is paper - it assumes white behind it. Canvas starts
+ * transparent, and JPEG has no alpha, so without the prefill a transparent
+ * page flattens to black. This used to be `renderThumbnail`-only; the Edit
+ * Pages grid (`renderPdfThumbnails`) went through pdf.js with no prefill.
+ *
+ * What MERGE-01 actually was: the "blank page 1" report came from feeding
+ * the reproduction PDF to the deployed page as a hand-typed base64 string
+ * inside a browser script, which silently corrupted two bytes of page 1's
+ * content stream. pdf.js's evaluator swallows a per-content-stream decode
+ * error by default (`ignoreErrors`), so `page.render()` resolved against an
+ * empty operator list and painted nothing, twice, for the same corrupted
+ * bytes. The true file renders every page in Chromium, WebKit and Node
+ * (e2e/merge/thumbnail-render.spec.js sets the real bytes through the file
+ * input and counts non-white pixels on the deployed build and on this one).
+ * Nothing here can turn a silently dropped page into an error; what this
+ * function guarantees is that such a page is at worst blank-and-white,
+ * never black-and-transparent.
+ *
+ * @param {import('pdfjs-dist').PDFPageProxy} page
+ * @param {{ width?: number, type?: string, quality?: number, signal?: AbortSignal }} [opts]
+ * @returns {Promise<{ dataUrl: string, width: number, height: number }>}
+ */
+async function renderPageToDataUrl(page, opts = {}) {
+  const { width = TARGET_WIDTH, type = 'image/png', quality, signal } = opts;
+
+  if (signal?.aborted) {
+    throw new DOMException('Thumbnail render aborted', 'AbortError');
+  }
+
+  const nativeViewport = page.getViewport({ scale: 1 });
+  const scale = width / nativeViewport.width;
+  const viewport = page.getViewport({ scale });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const context = getPdfRenderContext(canvas);
+
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const renderTask = page.render({ canvasContext: context, viewport });
+
+  // A signal that fires mid-render cancels the in-flight pdf.js RenderTask
+  // (rather than just discarding our own promise) so pdf.js actually stops
+  // painting and releases the canvas; the listener is removed in `finally`
+  // whichever way the render settles, so it never fires again for a task
+  // that already finished on its own.
+  const onAbort = () => renderTask.cancel();
+  if (signal) signal.addEventListener('abort', onAbort);
+  try {
+    await renderTask.promise;
+  } catch (err) {
+    if (signal?.aborted) {
+      throw new DOMException('Thumbnail render aborted', 'AbortError');
+    }
+    throw err;
+  } finally {
+    if (signal) signal.removeEventListener('abort', onAbort);
+  }
+
+  // The signal can also fire in the gap between the render settling and this
+  // line running; a caller that aborted expects no result at all, not a
+  // dataUrl for a page it already gave up on.
+  if (signal?.aborted) {
+    throw new DOMException('Thumbnail render aborted', 'AbortError');
+  }
+
+  return { dataUrl: canvas.toDataURL(type, quality), width: canvas.width, height: canvas.height };
+}
+
+/**
+ * Render page 1 to a data URL, plus the metadata callers occasionally need
+ * alongside it (how many pages the file has, and the pixel size the canvas
+ * actually came out at, which is a rounded-down function of `width` and the
+ * page's own aspect ratio - see `thumbnails.test.js` for the exact figure at
+ * the default width). `renderThumbnail` below is a thin wrapper over this
+ * that keeps its old `Promise<string>` contract, so the two never drift.
  *
  * Always takes a `File` rather than bytes you already hold, and that is
  * deliberate: pdf.js may detach the ArrayBuffer it is handed, so passing a
@@ -32,45 +114,37 @@ const TARGET_WIDTH = 150;
  * each call, which is the only reason this is safe to call alongside draft
  * persistence.
  *
- * @param {File} file
- * @param {{ width?: number, type?: string, quality?: number }} [opts]
+ * @param {File | Blob} file
+ * @param {{ width?: number, type?: string, quality?: number, signal?: AbortSignal }} [opts]
  *   `width` in device px; `type`/`quality` go straight to `toDataURL`. The
  *   defaults are the merge tool's list thumbnails. Draft previews override all
  *   three, because they are bound for localStorage where size is the whole
  *   constraint - see draftStore's DRAFT_META_PREFIX.
- * @returns {Promise<string>} data URL
+ * @returns {Promise<{ dataUrl: string, pageCount: number, width: number, height: number }>}
  */
-export async function renderThumbnail(file, opts = {}) {
-  const { width = TARGET_WIDTH, type = 'image/png', quality } = opts;
+export async function renderThumbnailWithMeta(file, opts = {}) {
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();
   const loadingTask = lib.getDocument({ data: bytes });
   const pdf = await loadingTask.promise;
   try {
     const page = await pdf.getPage(1);
-
-    const nativeViewport = page.getViewport({ scale: 1 });
-    const scale = width / nativeViewport.width;
-    const viewport = page.getViewport({ scale });
-
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const context = getPdfRenderContext(canvas);
-
-    // A PDF page is paper: it assumes white behind it. Canvas starts
-    // transparent, and JPEG has no alpha, so without this the transparent
-    // pixels flatten to black and a text page encodes as a black rectangle.
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    await page.render({ canvasContext: context, viewport }).promise;
-
-    return canvas.toDataURL(type, quality);
+    const { dataUrl, width, height } = await renderPageToDataUrl(page, opts);
+    return { dataUrl, pageCount: pdf.numPages, width, height };
   } finally {
     // pdf.js v6 exposes teardown on the loading task, not the document proxy.
     await loadingTask.destroy();
   }
+}
+
+/**
+ * @param {File | Blob} file
+ * @param {{ width?: number, type?: string, quality?: number, signal?: AbortSignal }} [opts]
+ * @returns {Promise<string>} data URL
+ */
+export async function renderThumbnail(file, opts = {}) {
+  const { dataUrl } = await renderThumbnailWithMeta(file, opts);
+  return dataUrl;
 }
 
 /**
@@ -117,31 +191,90 @@ export function renderComparePreview(fileOrBlob) {
   return renderThumbnail(fileOrBlob, { width: COMPARE_PREVIEW_WIDTH, type: 'image/png' });
 }
 
-export async function renderPdfThumbnails(file, onPageRender) {
+/**
+ * One lazy pdf.js document handle per file, for callers that need more than
+ * one page out of the same file without re-parsing it per page (the Edit
+ * Pages grid, and any future island lane that wants on-demand rather than
+ * eager thumbnails - MERGE-07/08). The document is already open and
+ * `pageCount` already known by the time this resolves; `render()` is the
+ * only per-page cost paid lazily.
+ *
+ * @param {File | Blob} file
+ * @returns {Promise<{
+ *   pageCount: number,
+ *   render(pageIndex: number, opts?: { width?: number, type?: string, quality?: number, signal?: AbortSignal }): Promise<string>,
+ *   destroy(): Promise<void>,
+ * }>}
+ */
+export async function openThumbnailSource(file) {
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();
   const loadingTask = lib.getDocument({ data: bytes });
   const pdf = await loadingTask.promise;
-  const numPages = pdf.numPages;
+  let destroyed = false;
 
+  return {
+    pageCount: pdf.numPages,
+    async render(pageIndex, opts = {}) {
+      // A destroyed source's loading task is gone; rendering against it would
+      // hand pdf.js a torn-down document instead of failing loudly here.
+      if (destroyed) {
+        throw new Error('openThumbnailSource: render() called after destroy()');
+      }
+      const page = await pdf.getPage(pageIndex + 1);
+      const { dataUrl } = await renderPageToDataUrl(page, opts);
+      return dataUrl;
+    },
+    async destroy() {
+      destroyed = true;
+      await loadingTask.destroy();
+    },
+  };
+}
+
+/**
+ * Renders a file's pages (all of them by default) to data URLs, one at a
+ * time, calling `onPageRender(pageNumber, dataUrl)` in order as each
+ * resolves - the Edit Pages page grid's contract, unchanged since before
+ * this was reimplemented over `openThumbnailSource`. Every page now gets the
+ * same white prefill `renderThumbnail` always has (MERGE-01: this function
+ * used to have none, so a page pdf.js silently dropped would come back
+ * transparent rather than visibly white - see `renderPageToDataUrl`).
+ *
+ * @param {File | Blob} file
+ * @param {(pageNumber: number, dataUrl: string) => void} onPageRender
+ * @param {{
+ *   width?: number,
+ *   type?: string,
+ *   quality?: number,
+ *   signal?: AbortSignal,
+ *   pageIndices?: number[],
+ * }} [opts] `pageIndices` is 0-based and defaults to every page in order.
+ * @returns {Promise<number>} the file's total page count
+ */
+export async function renderPdfThumbnails(file, onPageRender, opts = {}) {
+  const { width, type, quality, signal, pageIndices } = opts;
+  const source = await openThumbnailSource(file);
   try {
-    for (let i = 1; i <= numPages; i++) {
-      const page = await pdf.getPage(i);
-      const nativeViewport = page.getViewport({ scale: 1 });
-      const scale = TARGET_WIDTH / nativeViewport.width;
-      const viewport = page.getViewport({ scale });
-
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const context = getPdfRenderContext(canvas);
-
-      await page.render({ canvasContext: context, viewport }).promise;
-      const dataUrl = canvas.toDataURL('image/png');
-      onPageRender(i, dataUrl);
+    if (signal?.aborted) {
+      throw new DOMException('Thumbnail render aborted', 'AbortError');
     }
-    return numPages;
+
+    const indices = pageIndices ?? Array.from({ length: source.pageCount }, (_, i) => i);
+    for (const pageIndex of indices) {
+      if (signal?.aborted) {
+        throw new DOMException('Thumbnail render aborted', 'AbortError');
+      }
+      const dataUrl = await source.render(pageIndex, { width, type, quality, signal });
+      onPageRender(pageIndex + 1, dataUrl);
+
+      // Yield to the event loop between pages so a 200-page file renders
+      // without freezing the tab for the whole sequence.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+
+    return source.pageCount;
   } finally {
-    await loadingTask.destroy();
+    await source.destroy();
   }
 }

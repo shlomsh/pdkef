@@ -30,7 +30,12 @@ export default defineConfig({
     },
     {
       name: 'webkit',
-      testMatch: ['**/recent-files.spec.js', '**/redact-mobile-export.spec.js'],
+      // thumbnail-render.spec.js added for MERGE-01: the fixture reproduced
+      // blank in the field but not under Playwright's chromium project (see
+      // that spec's header comment and the MERGE-01 ticket's Root cause
+      // section), so it runs here too as the one other engine this suite
+      // exercises.
+      testMatch: ['**/recent-files.spec.js', '**/redact-mobile-export.spec.js', '**/thumbnail-render.spec.js'],
       use: { ...devices['iPhone 15'] },
     },
   ],

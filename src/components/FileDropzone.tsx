@@ -90,7 +90,7 @@ export default function FileDropzone({
     if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { setError(messages.notAPdf); return; }
     setError('');
     const draft: any = await loadDraft(toolTarget);
-    if (draft?.fileBytes) setPending({ file, draftName: draft.fileName, tool: toolTarget });
+    if (draft?.fileBytes || draft?.files) setPending({ file, draftName: draft.fileName, tool: toolTarget });
     else await handOff(file);
   };
   const openRecent = async (recent: RecentFileItem) => {
@@ -102,7 +102,7 @@ export default function FileDropzone({
       const target = cached.tool || recent.tool;
       const file = new File([cached.fileBytes], cached.fileName, { type: cached.fileType || 'application/pdf' });
       const draft: any = await loadDraft(target);
-      if (draft?.fileBytes) {
+      if (draft?.fileBytes || draft?.files) {
         if (draft.sourceId === recent.cacheId) {
           window.location.href = toolHref(target);
           return;

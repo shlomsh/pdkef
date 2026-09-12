@@ -10,8 +10,13 @@ interface Props {
   subhead: string;
   slug: string;
   condensable: boolean;
+  /** MERGE-06: fold the hero from first paint, on phones only, regardless of
+   * whether a file is loaded yet - see the `data-hero-phone-condensed` style
+   * block below for why this is a separate gate from `condensable`. Defaults
+   * to false so every tool but merge renders exactly as before. */
+  phoneCondensed?: boolean;
 }
-const { icon: Icon, title, subhead, slug, condensable } = Astro.props;
+const { icon: Icon, title, subhead, slug, condensable, phoneCondensed = false } = Astro.props;
 
 // The three gradient/text-color pairs used to be three separate arbitrary-value
 // Tailwind class strings (`bg-[linear-gradient(...)]` plus a `text-[var(...)]`
@@ -38,7 +43,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
   lines and the eye compared the icon against the whole block, not just line
   one.
 -->
-<header class="tool-hero mx-auto w-full max-w-[1280px] px-6 pb-8 pt-14 min-[1024px]:grid min-[1024px]:grid-cols-[minmax(0,1fr)_auto] min-[1024px]:items-center min-[1024px]:gap-x-6 min-[1024px]:px-8 min-[1024px]:pb-1 min-[1024px]:pt-6 [--hero-icon:clamp(44px,8vw,52px)] [--hero-indent:calc(var(--hero-icon)_+_1rem)] [--hero-title:2rem] min-[1024px]:[--hero-icon:2.75rem] min-[1024px]:[--hero-title:2rem]" data-hero-condensable={condensable ? '' : undefined}>
+<header class="tool-hero mx-auto w-full max-w-[1280px] px-6 pb-8 pt-14 min-[1024px]:grid min-[1024px]:grid-cols-[minmax(0,1fr)_auto] min-[1024px]:items-center min-[1024px]:gap-x-6 min-[1024px]:px-8 min-[1024px]:pb-1 min-[1024px]:pt-6 [--hero-icon:clamp(44px,8vw,52px)] [--hero-indent:calc(var(--hero-icon)_+_1rem)] [--hero-title:2rem] min-[1024px]:[--hero-icon:2.75rem] min-[1024px]:[--hero-title:2rem]" data-hero-condensable={condensable ? '' : undefined} data-hero-phone-condensed={phoneCondensed ? '' : undefined}>
   <div class="mb-3 flex items-start justify-center gap-4 min-[1024px]:col-start-1 min-[1024px]:row-start-1 min-[1024px]:mb-0 min-[1024px]:justify-start">
     <div class="tool-hero-icon flex size-[var(--hero-icon)] shrink-0 items-center justify-center rounded-2xl border-0 shadow-[0_8px_18px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)]" data-tone={iconTone}>
       <Icon class="h-[55%] w-[55%]" size={28} strokeWidth={1.5} />
@@ -65,6 +70,43 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
   .tool-hero-icon[data-tone='redact'] {
     background-image: linear-gradient(150deg, var(--color-surface), var(--color-success-soft));
     color: var(--color-success);
+  }
+
+  /* MERGE-06: a phone-only fold-away, separate from the condensable gates
+     below, because those only ever engage once a file is open
+     ([data-tool-shell], the draft hint, the density preference) - all three
+     are about giving a loaded document its room back. This one is about the
+     empty state itself: on a 375-wide phone the un-collapsed hero (H1 +
+     three-line subhead + the no-limit note) measured "Choose files" landing
+     around 700 CSS px down, at the bottom edge of the first screen, for
+     merge, the most searched tool in the suite. The fix is to start
+     condensed on phones from first paint, before any file exists to trigger
+     the other gates.
+
+     The subhead is clamped to two lines, never `display: none` - the SEO
+     shell stays static HTML and mobile-first Googlebot must still see the
+     copy (CLAUDE.md's SEO invariant), and hiding it outright would be no
+     different from deleting it for the audience that matters most for
+     ranking. Two lines keeps the value prop readable while giving back most
+     of the vertical space the fourth line and its wrapped third line cost.
+
+     Only rendered when a tool opts in via `data-hero-phone-condensed`
+     (src/data/tools.js's `heroPhoneCondensed`, passed through by
+     ToolPageLayout.astro) - every other tool's empty state is unchanged. */
+  @media (max-width: 767px) {
+    .tool-hero[data-hero-phone-condensed] {
+      padding-top: 1.5rem;
+      padding-bottom: 0.75rem;
+      --hero-title: clamp(1.5rem, 6.5vw, 1.85rem);
+    }
+
+    .tool-hero[data-hero-phone-condensed] [data-hero-sub] {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      overflow: hidden;
+    }
   }
 
   /* Once a file is open, the hero keeps its title line and folds the rest away.

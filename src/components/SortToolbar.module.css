@@ -1,5 +1,126 @@
-.toolbar { display: flex; align-items: center; gap: var(--space-2); width: 100%; margin-top: var(--space-4); padding: .5rem .75rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow-xs); }
-.button { flex: 1 1 auto; padding: .6rem; font: inherit; font-size: .88rem; font-weight: 600; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; }
-.button:hover { background: var(--color-surface-sunken); border-color: var(--color-border-strong); }
-.toolbar > :last-child { margin-inline-start: auto; }
-@media (max-width: 560px) { .toolbar { gap: .35rem; padding: .35rem; } .button { padding: .45rem; } }
+/* MERGE-06: one Sort control (name or date, with a direction) plus a Reverse
+   order action, replacing the old four equal-width buttons (A-Z, Z-A, and Add
+   page numbers each wrapped their own label onto two or three lines at
+   375px). Add page numbers moved into the .options details block below,
+   collapsed until opened. The island that renders these classes is wired up
+   in a later wave (MERGE-06); this file only ships the classes it will use. */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: var(--space-4);
+  padding: 0.5rem 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+}
+
+.sort-label {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+/* `appearance: none` plus a hand-drawn chevron would need a `background-image`
+   data URI, and every color in one is a literal that CLAUDE.md's palette rule
+   forbids (colors only from `:root` tokens, never hex/rgba in a stylesheet) -
+   there is no `currentColor` inside a CSS `background-image` SVG data URI, so
+   a token-colored chevron cannot be drawn that way at all. Left at
+   `appearance: auto` instead: the platform's own select affordance (an
+   already-token-colored native arrow) rather than a re-drawn one. */
+.sort-select {
+  appearance: auto;
+  min-height: 44px; /* touch target */
+  padding: 0.55rem 2rem 0.55rem 0.75rem;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.button {
+  flex: 0 0 auto;
+  min-height: 44px; /* touch target */
+  padding: 0.6rem;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--color-surface-sunken);
+  border-color: var(--color-border-strong);
+}
+
+/* Add page numbers (plus MERGE-11's later defaults) live here, collapsed
+   until opened - a `<details>` rather than a controlled-state disclosure so
+   it needs no island wiring of its own to open/close. */
+.options {
+  margin-top: var(--space-3);
+}
+
+.options-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px; /* touch target */
+  padding: 0.5rem 0;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+}
+
+.options-summary::-webkit-details-marker {
+  display: none;
+}
+
+.options[open] .options-chevron {
+  transform: rotate(180deg);
+}
+
+.options-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0.25rem 0 0.5rem;
+}
+
+/* Quiet inline note - "pages rearranged" and similar asides, quieter than
+   .hint-message (PdfTool.module.css), which is for a real notice. */
+.note {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
+@media (max-width: 560px) {
+  .toolbar {
+    padding: 0.35rem 0.5rem;
+  }
+
+  /* No label may wrap onto two lines at 375px: the select and the Reverse
+     button share one row (the select grows to fill it, the button stays its
+     own width), and the Options summary is its own row below. */
+  .sort-select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .button {
+    flex: 0 0 auto;
+  }
+}
