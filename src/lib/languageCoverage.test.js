@@ -36,15 +36,20 @@ function supportedNote(name) {
 }
 
 describe('Sign Languages card: "supported" claims match the generated coverage report', () => {
-  it('Hebrew: six text fonts plus Gveret Levin, matching LANGUAGE_COVERAGE.hebrew.full', () => {
+  it('Hebrew: six text fonts plus Gveret Levin and Amatic SC, matching LANGUAGE_COVERAGE.hebrew.full', () => {
     const full = LANGUAGE_COVERAGE.hebrew.full;
     const upright = full.filter((f) => f.style === 'upright');
     const handwriting = full.filter((f) => f.style === 'handwriting');
     expect(upright).toHaveLength(6);
-    expect(handwriting.map((f) => f.family)).toEqual(['Gveret Levin']);
+    // FONT-08: Amatic SC joined Gveret Levin as Hebrew's second handwriting
+    // face, screened via H8 (src/editor/registry/hebrewMarkPlacement.test.js)
+    // before its acceptance.hebrewMarkPlacement flag was set - see
+    // scripts/font-manifest.mjs.
+    expect(handwriting.map((f) => f.family)).toEqual(['Gveret Levin', 'Amatic SC']);
     const note = supportedNote('Hebrew');
     expect(note).toContain('Six text fonts');
     expect(note).toContain('Gveret Levin');
+    expect(note).toContain('Amatic SC');
   });
 
   it('Hindi, Marathi, and Devanagari: Kalam and Mukta, matching LANGUAGE_COVERAGE.devanagari.full and .marathi.full', () => {
@@ -71,10 +76,26 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
 
   it('Russian/Ukrainian/other Cyrillic: PT Sans is one of the anchor families, and none of the anchor is handwriting', () => {
     expect(CYRILLIC_ANCHOR.familiesCoveringAllSeven.map((f) => f.family)).toContain('PT Sans');
+    // FONT-08: Amatic SC does not cover the eight extra Kazakh letters (Ә Ғ
+    // Қ Ң Ө Ұ Ү Һ), so it never joins the all-seven anchor - this stays
+    // upright-only even though Cyrillic now has a handwriting option for the
+    // six languages it does cover, see the next test.
     expect(CYRILLIC_ANCHOR.familiesCoveringAllSeven.every((f) => f.style === 'upright')).toBe(true);
     const note = supportedNote('Russian, Ukrainian, and other Cyrillic');
     expect(note).toContain('PT Sans');
-    expect(note).toContain('no handwriting-style Cyrillic face');
+  });
+
+  it('Russian/Ukrainian/other Cyrillic: Amatic SC is the six-language handwriting option, matching LANGUAGE_COVERAGE.cyrillicRussian.full', () => {
+    // FONT-08: Amatic SC is Cyrillic's first handwriting face (the gap
+    // docs/font-candidate-research-brief.md's "no handwriting option at all"
+    // row named), covering Russian/Ukrainian/Belarusian/Bulgarian/Serbian/
+    // Macedonian but not Kazakh - see the anchor test above.
+    expect(LANGUAGE_COVERAGE.cyrillicRussian.full.map((f) => f.family)).toContain('Amatic SC');
+    expect(LANGUAGE_COVERAGE.cyrillicKazakh.full.map((f) => f.family)).not.toContain('Amatic SC');
+    const note = supportedNote('Russian, Ukrainian, and other Cyrillic');
+    expect(note).toContain('Amatic SC');
+    expect(note).toContain('capitals only');
+    expect(note).toContain('Kazakh');
   });
 
   it('Greek: Arimo, Tinos and Cousine, matching LANGUAGE_COVERAGE.greek.full', () => {
@@ -149,10 +170,15 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(note).toContain('ۍ');
   });
 
-  it('Vietnamese: exactly Arimo, Tinos, Cousine and Mali, matching LANGUAGE_COVERAGE.vietnamese.full', () => {
-    expect(LANGUAGE_COVERAGE.vietnamese.full.map((f) => f.family).sort()).toEqual(['Arimo', 'Cousine', 'Mali', 'Tinos']);
+  it('Vietnamese: exactly Arimo, Tinos, Cousine, Mali and Amatic SC, matching LANGUAGE_COVERAGE.vietnamese.full', () => {
+    // FONT-08: Amatic SC's full Latin Extended coverage (measured against
+    // the real bytes) turned out to include every Vietnamese tone-and-
+    // diacritic vowel too, even though the font is a capitals-only display
+    // face - a codepoint either has a glyph or it doesn't, regardless of the
+    // letterform it draws.
+    expect(LANGUAGE_COVERAGE.vietnamese.full.map((f) => f.family).sort()).toEqual(['Amatic SC', 'Arimo', 'Cousine', 'Mali', 'Tinos']);
     const note = supportedNote('Vietnamese');
-    for (const family of ['Arimo', 'Tinos', 'Cousine', 'Mali']) {
+    for (const family of ['Arimo', 'Tinos', 'Cousine', 'Mali', 'Amatic SC']) {
       expect(note).toContain(family);
     }
   });

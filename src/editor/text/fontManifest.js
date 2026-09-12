@@ -111,6 +111,22 @@ export const FONT_MANIFEST = Object.freeze([
     }
   },
   {
+    "family": "Amatic SC",
+    "kind": "handwriting",
+    "styleTag": "handwriting",
+    "metrics": {
+      "ascent": 1.016,
+      "descent": 0.245
+    },
+    "faces": {
+      "normal": "AmaticSC-Regular.ttf",
+      "bold": "AmaticSC-Bold.ttf"
+    },
+    "acceptance": {
+      "hebrewMarkPlacement": true
+    }
+  },
+  {
     "family": "Arimo",
     "kind": "text",
     "styleTag": "sans",

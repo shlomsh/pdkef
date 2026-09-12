@@ -128,3 +128,79 @@ Second choice for Punjabi/Gurmukhi (Mukta Mahee is still the default), closing o
 - `exportRenderCorpus.js`: added `gurmukhi-tiro-gurmukhi` (ਸਿੰਘ, "Singh," carrying the tippi mark). Baseline NOT recaptured here (`exportRenderBaseline.json` is runner-pinned) - **pending the `update-export-render-baseline` CI workflow**; `export-render-guard.spec.js` skips locally on this platform regardless.
 - Attribution: `THIRD_PARTY_LICENSES.md` and `src/pages/licenses.astro` via `scripts/font-manifest.mjs` + `npm run generate:font-manifest` (`fontAttribution.test.js` green). Sign page copy (`src/data/tools.js`) keeps the existing Noto-crash explanation for Punjabi and adds Tiro Gurmukhi as the named second choice; `languageCoverage.test.js` updated to pin both families. The Latin-script card's font count (19 -> 20 text fonts) updated in the same file/test.
 - `npm run build && npm run test:weight`: page weight unaffected (fonts load on demand, not precached) - worst page `/sign/` 346396/400000 doc+JS budget, unchanged bracket.
+## Landed 2026-09-12: Amatic SC closes two (b) gaps - Cyrillic handwriting and Hebrew's second handwriting face
+
+Amatic SC (Google Fonts `ofl/amaticsc`, OFL 1.1, copyright line verified against the font's own
+`OFL.txt`: "Copyright 2015 The Amatic SC Project Authors"). Static Regular (151,624 bytes) and Bold
+(156,180 bytes), condensed hand-drawn capitals - Latin and Cyrillic lowercase render as small caps,
+Hebrew has no case. Screened against the real bytes, not the brief's proposed candidates (Marck
+Script/Neucha) - both were superseded once Amatic SC turned out to already cover Hebrew in full, which
+neither of those two was screened for.
+
+**Check 1, fontkit crash:** 0 crashes on the full Hebrew niqud corpus (102 order-variant cases from
+`hebrewCombiningCorpus.js`), 19 Cyrillic samples, 25 Latin corpus cases (`latinNameCorpus.js`) - both
+weights.
+
+**glyf alignment:** passed as shipped (`npm run test:fonts`, 64 fonts checked incl. both Amatic SC
+weights) - no repad needed.
+
+**hhea metrics (real bytes, both weights identical):** ascent 1016/1000 = 1.016, descent 245/1000 =
+0.245.
+
+**OpenType features (both weights):** `aalt, case, ccmp, dlig, frac, liga, ordn, sups, zero, kern,
+mark, mkmk`. No `calt`.
+
+**Coverage (fontkit `hasGlyphForCodePoint` against the real bytes, both weights identical):** Hebrew
+43/43 (22 base + 5 sofit + niqud); Latin 52/52; Latin Extended (accented) 80/80; Vietnamese
+130/130 (full tone-and-diacritic set, a genuine finding - see below); Greek 5/66 (not claimed); Cyrillic
+per language - Russian 66/66, Ukrainian 66/66, Belarusian 64/64, Bulgarian 60/60, Serbian 60/60,
+Macedonian 62/62, **Kazakh 66/82** (missing the eight extra letters Ә Ғ Қ Ң Ө Ұ Ү Һ, upper+lower) - so
+Amatic SC joins the Cyrillic anchor set for six of the seven TODO.md W7 languages, not Kazakh.
+
+**Check 4 (H8), Hebrew mark placement** (`src/editor/registry/hebrewMarkPlacement.test.js`, run scoped
+to Amatic SC): **69/69 passed** (calibration + Tier 1 order-insensitivity + Tier 2 mark containment over
+the full enumerated corpus). `acceptance.hebrewMarkPlacement: true` set on that basis -
+`HEBREW_CAPABLE_FONTS` now lists `['Gveret Levin', 'Amatic SC']`. Guard A
+(`hebrew-font-parity.spec.js`) and Tier 3 (`hebrew-composition-guard.spec.js`) both pick this up
+automatically and pass (32/32 combined, both files).
+
+**Check 2/3, Cyrillic shaping correctness + advance parity** (new guard,
+`e2e/sign/cyrillic-shaping-guard.spec.js`, corpus `e2e/sign/fixtures/cyrillicCorpus.js` - 8-string
+calibration set, 16-case corpus of Russian/Ukrainian names and form fields including ё, ґ, ї, є, і):
+Amatic SC has no `calt`, and `liga` never fires on this corpus (0/24 substituting, measured directly) -
+so `autoCalibrate` doesn't apply (nothing to partition) and the guard uses a hand-picked calibration set
+instead, the same shape Devanagari's and Arabic's guards use. Rendered at 320px (above Skia's ~256px
+bitmap-glyph limit). **Result: rasteriser floor 0.01%, advance-quantisation floor 0.00% (this platform
+does not quantise), tolerance 3.00% (floored), 0/16 failing.** Sabotage control run once by hand
+(reversing corpus-side glyph draw order only, calibration untouched): 16/16 failing at 70-90%+ diff,
+confirming the guard can actually fail; reverted before landing (no diff against the harness file in
+the final commit).
+
+**Kerning/advance parity spot-check** (Guard A's method - `shapedAdvancePx` vs. the browser's
+`measureText`, one name per script, 32px): Latin "Sarah Levi" delta 0.000px, Cyrillic "Владимир Путин"
+delta 0.000px, Hebrew "שרה לוי" delta 0.000px (10/14/7 glyphs respectively). For comparison, Caveat
+(the catalogue's other kerning handwriting face) disagrees by 5.1px on a comparable Latin name - Amatic
+SC's `kern` table agrees with Chromium to floating-point precision on all three scripts tested.
+
+**Vietnamese, an unplanned finding:** Amatic SC's full Latin Extended coverage turned out to include
+every Vietnamese tone-and-diacritic vowel too (130/130), even though it's a capitals-only display face
+- a codepoint either has a glyph or it doesn't, independent of the letterform. `languageCoverage.test.js`
+and the Sign page's Vietnamese note/FAQ were updated to list it honestly (capitals-only caveat
+included), since the existing tests pin the family list against the generated coverage report and would
+otherwise go stale.
+
+**Not done, and why:** no Cyrillic guard existed before this ticket for any font (Greek and Cyrillic
+were both "no guard, no handwriting option" per the research brief), so this is a new script row, not a
+port. `exportRenderCorpus.js` gained one Hebrew case (`hebrew-nikud-amatic-sc`) and one Cyrillic case
+(`cyrillic-amatic-sc`); `exportRenderBaseline.json` was deliberately left untouched (it is runner-pinned
+and only the `update-export-render-baseline` CI workflow can regenerate it) - `export-render-guard.spec.js`
+skips locally as expected and needs that workflow run before it covers the two new cases.
+
+Wired into the catalogue: `scripts/font-manifest.mjs` (source), regenerated `fontManifest.js` and
+`editorFonts.css`, `THIRD_PARTY_LICENSES.md` and `src/pages/licenses.astro` (both derive from the
+manifest, no hand-edit needed), `src/lib/fontCoverageTable.js` and `fontCoverageReport.js`
+(regenerated), the Sign page's Hebrew and Cyrillic copy and FAQ in `src/data/tools.js`, and
+`src/editor/text/fonts.test.js`'s substitution-ranking test (Cyrillic now rescues to Amatic SC from a
+handwriting request, the same shape as Mukta's Devanagari precedent). Full test suite (2380 tests),
+typecheck, build, CSP, CSS, page-weight and the font-touching Playwright specs all green - see the
+FONT-08 landing commit for the exact command output.

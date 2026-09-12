@@ -28,7 +28,12 @@ reviewedAt: '2026-09-11'
 reviewNotes: >-
   Reviewed the rendered page (desktop and mobile, RTL, editor-stays-English
   notice) and approved the wording, terminology and typography for publish.
-sourceHash: 'fnv1a64:b7ab6ec597083451'
+  FONT-08 (2026-09-12) bumped sourceHash without a new review: it only
+  changed two English FAQ answers (Cyrillic/Thai, Vietnamese) outside this
+  page's translated 12-item FAQ subset and the languages card, which is
+  English-edition-only per the note above - nothing this Hebrew page
+  actually renders changed.
+sourceHash: 'fnv1a64:4c8d741ea8431090'
 seoTitle: 'חתימה על PDF בחינם - מילוי טפסים, בלי הרשמה | PDkef'
 seoDescription: >-
   חתמו על PDF באייפון, אנדרואיד או במחשב בחינם. הוסיפו טקסט, סימוני וי
