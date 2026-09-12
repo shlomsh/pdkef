@@ -735,6 +735,12 @@ Two follow-ons worth recording, neither required:
 
 ## The browser shapes word by word, and we shape the whole line (found 2026-08-22)
 
+> **Superseded 2026-09-12.** The premise held only for canvas `measureText` with no `textRendering`
+> set, which is what this section measured with; the editor's textarea is DOM layout and shapes a run
+> whole, firing the very `Tel Aviv` pair below. The per-segment shaping this section introduced was
+> reverted. Current record: [docs/wysiwyg-text-architecture.md](./wysiwyg-text-architecture.md) §1.2
+> item 5. The rest of this section is left as written, as a dated reasoning trail.
+
 The one divergence found so far that lives **inside** layer 4, the layer we thought we had. It also
 turns out to be the cheapest fix in the whole document, and it is what finally settles which fonts we
 can honestly ship.

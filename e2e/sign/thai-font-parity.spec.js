@@ -33,11 +33,14 @@ function shapedRun(family, { text, direction }) {
   const font = fontkit.create(readFileSync(file));
   let glyphCount = 0;
   const total = resolveBidiRuns(text, direction)
-    .flatMap((run) => run.text.split(/( )/).filter((part) => part !== '').map((part) => ({ text: part, direction: run.direction })))
-    .reduce((sum, segment) => {
-      const { positions } = font.layout(segment.text, undefined, undefined, undefined, segment.direction);
+    // Each run shaped whole, spaces included - the export's segmentation since
+    // the per-space split was reverted (2026-09-12, textPdf.ts). Measuring
+    // per-word here would compare against something the export no longer
+    // produces, and would hide the space-spanning kern pairs the DOM applies.
+    .reduce((sum, run) => {
+      const { positions } = font.layout(run.text, undefined, undefined, undefined, run.direction);
       glyphCount += positions.length;
-      return sum + positions.reduce((segSum, p) => segSum + p.xAdvance, 0);
+      return sum + positions.reduce((runSum, p) => runSum + p.xAdvance, 0);
     }, 0);
   return { widthPx: (total / font.unitsPerEm) * SIZE, glyphCount };
 }

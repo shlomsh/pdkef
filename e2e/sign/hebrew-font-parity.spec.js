@@ -16,9 +16,10 @@ const SAMPLES = {
   // Hebrew abutting digits: exercises the layer-2 run splitting, which the
   // old version of this guard did not reach at all.
   mixed: { text: 'רחוב17', direction: 'rtl' },
-  // Two words with a space: exercises H9's per-segment shaping. This is the
-  // case that failed before H9, and it is the one that regresses first if
-  // anyone reverts to shaping a whole line in one call.
+  // Two words with a space, shaped as one run. No Hebrew-capable font carries
+  // a rule that spans a space (measured 2026-09-12: whole-run and per-word
+  // shaping agree to the unit on every Hebrew sample in all seven), so this
+  // sample proves the run boundary, not the space.
   spaced: { text: WYSIWYG_STRING_BY_ID.H1.text, direction: 'rtl' },
 };
 
@@ -35,12 +36,17 @@ const SAMPLES = {
  * guard was green. Mark placement is H8's job (order-insensitivity plus
  * containment); this one guards advances and run order only.
  *
- * **Samples include spaces, and that is the point since H9 landed.** Blink
- * shapes and caches text word by word, so a font feature whose context crosses
- * a space never fires in the browser while a whole-line fontkit call fires it
- * - measured, `Tel Aviv` in Arimo differed by 113 font units for exactly that
- * reason. `shapedAdvancePx` below mirrors the export's per-segment shaping, so
- * a regression that goes back to shaping whole lines fails here.
+ * **Samples include spaces, and each run is shaped whole.** H9 (2026-08-23)
+ * split every run at spaces on the finding that `Tel Aviv` in Arimo differed
+ * by 113 font units between fontkit and the browser, read as "Blink shapes
+ * word by word". That was true only of what H9 measured with: canvas
+ * `measureText` with no `textRendering` set, the one Chromium path that
+ * shapes word by word. The editor's textarea is DOM layout, which shapes a
+ * run whole and fires Arimo's `space + A` pair, so the split made the export
+ * 113 units wider than the screen on every such pair (reverted 2026-09-12;
+ * docs/wysiwyg-text-architecture.md, layer 4). `shapedRun` below mirrors the
+ * export's per-run shaping; the space-kern case itself is pinned by
+ * textShaping.test.js, since no Hebrew sample can reach it.
  *
  * **Tolerance depends on whether the platform hints, and that is detected from
  * the measurement rather than assumed.** Chromium quantizes every glyph advance
@@ -70,14 +76,14 @@ function shapedRun(family, { text, direction }) {
   const font = fontkit.create(readFileSync(file));
   let glyphCount = 0;
   const total = resolveBidiRuns(text, direction)
-    // Same split the export does (text.ts's toShapingSegments): the browser
-    // shapes word by word, so measuring a whole run here would compare
-    // against something the export no longer produces.
-    .flatMap((run) => run.text.split(/( )/).filter((part) => part !== '').map((part) => ({ text: part, direction: run.direction })))
-    .reduce((sum, segment) => {
-      const { positions } = font.layout(segment.text, undefined, undefined, undefined, segment.direction);
+    // Each run shaped whole, spaces included - the export's segmentation since
+    // the per-space split was reverted (2026-09-12, textPdf.ts). Measuring
+    // per-word here would compare against something the export no longer
+    // produces, and would hide the space-spanning kern pairs the DOM applies.
+    .reduce((sum, run) => {
+      const { positions } = font.layout(run.text, undefined, undefined, undefined, run.direction);
       glyphCount += positions.length;
-      return sum + positions.reduce((segSum, p) => segSum + p.xAdvance, 0);
+      return sum + positions.reduce((runSum, p) => runSum + p.xAdvance, 0);
     }, 0);
   return { widthPx: (total / font.unitsPerEm) * SIZE, glyphCount };
 }

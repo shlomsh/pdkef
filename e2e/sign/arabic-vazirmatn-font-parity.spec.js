@@ -20,10 +20,11 @@ const FAMILY = 'Vazirmatn';
  * pixel guard at 6.16% diff while being 28% short on width).
  *
  * Ten-plus ordinary words across all four scripts Vazirmatn is being screened
- * for (Arabic, Farsi/Dari, Urdu, Pashto), all with at least one space so this
- * exercises the same per-whitespace-segment shaping the export actually does
- * (toShapingSegments in text.ts - a font that only agrees on single words
- * would still drift on every real sentence), plus two cases named explicitly
+ * for (Arabic, Farsi/Dari, Urdu, Pashto), all with at least one space so a
+ * font that only agrees on single words cannot pass on words alone (spaces
+ * are shaped inside the run, as the export does; a font whose pairs or
+ * contextual rules span a space would drift on every real sentence), plus
+ * two cases named explicitly
  * because the task brief calls them out as the ones both Noto Arabic faces
  * failed during the original five-candidate Arabic screening (git show
  * 8eead4f): `shaddaFatha` (a doubled consonant plus a vowel, GPOS mark/mkmk
@@ -62,8 +63,8 @@ const SAMPLES = {
   pashtoName: { text: 'ستاسو نوم څه دی', direction: 'rtl' }, // "what is your name" - څ
   pashtoSpeak: { text: 'زه پښتو خبرې کوم', direction: 'rtl' }, // "I speak Pashto" - ښ, ړ
   // The doubled-consonant-plus-vowel stack from patterns like مُحَمَّد, inside
-  // a real two-word name with a space so this also exercises per-segment
-  // shaping rather than a single isolated cluster.
+  // a real two-word name with a space so this also exercises a run with a
+  // space in it rather than a single isolated cluster.
   shaddaFatha: { text: 'مُحَمَّد بن عبدالله', direction: 'rtl' }, // "Muhammad, son of Abdullah"
 };
 
@@ -78,11 +79,14 @@ function shapedRun(family, { text, direction = 'rtl' }) {
   const font = fontkit.create(readFileSync(file));
   let glyphCount = 0;
   const total = resolveBidiRuns(text, direction)
-    .flatMap((run) => run.text.split(/( )/).filter((part) => part !== '').map((part) => ({ text: part, direction: run.direction })))
-    .reduce((sum, segment) => {
-      const { positions } = font.layout(segment.text, undefined, undefined, undefined, segment.direction);
+    // Each run shaped whole, spaces included - the export's segmentation since
+    // the per-space split was reverted (2026-09-12, textPdf.ts). Measuring
+    // per-word here would compare against something the export no longer
+    // produces, and would hide the space-spanning kern pairs the DOM applies.
+    .reduce((sum, run) => {
+      const { positions } = font.layout(run.text, undefined, undefined, undefined, run.direction);
       glyphCount += positions.length;
-      return sum + positions.reduce((segSum, p) => segSum + p.xAdvance, 0);
+      return sum + positions.reduce((runSum, p) => runSum + p.xAdvance, 0);
     }, 0);
   return { widthPx: (total / font.unitsPerEm) * SIZE, glyphCount };
 }

@@ -69,9 +69,16 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
 - **Having all five stages is not agreement.** The export has normalization (`composeHebrewClusters`,
   NFC plus gated Hebrew presentation-form recomposition), bidi (`resolveBidiRuns`, UAX#9 via `bidi-js`,
   from the element's explicit direction, never auto-detected), itemization with refusal, shaping
-  (fontkit, per bidi run then per whitespace segment) and positioning (per-glyph `Tm`/`Tj`/`Ts`). These
+  (fontkit, per bidi run, spaces inside the run) and positioning (per-glyph `Tm`/`Tj`/`Ts`). These
   once presented as unrelated bugs; swapping fontkit for a bigger shaper would have fixed one. Shaping
   is still proven per font, per script, by a guard, and a green Hebrew run says nothing about Latin.
+- **A run is shaped whole; never split it at spaces.** The editor is DOM layout, which shapes a text
+  run in one call, so a kern pair spanning a space (Arimo's `space + A/Δ`, 113 units; PT Sans up to 8px
+  on a name) fires on screen and must fire in the export. H9 split runs at spaces to match canvas
+  `measureText` with no `textRendering`, the one Chromium path that shapes word by word; measured
+  across all 35 fonts it helped nowhere and cost nine fonts (reverted 2026-09-12,
+  [docs/wysiwyg-text-architecture.md](../../docs/wysiwyg-text-architecture.md) §1.2 item 5). When a
+  guard and the export disagree on a spaced string, first ask which browser path the guard measured.
 - **A guard proves agreement on the machine that ran it**, which for a release is the `ubuntu-latest`
   runner. Arabic, Pashto and Bengali give the same verdict on macOS and Linux since SIGN-19 removed the
   measuring-browser artefacts. Two caveats: the exported-PDF render guard's baseline is runner-pinned
