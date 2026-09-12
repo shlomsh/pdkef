@@ -18,31 +18,30 @@ const SIZE = 32;
  * axis - does fontkit's shaped advance match this same browser's own
  * `measureText` on realistic Greek text.
  *
- * **Scoped to the new candidate only, not every Greek-capable family.**
- * Unlike thai-font-parity.spec.js (which swept every THAI_CAPABLE_FONTS
- * entry because IBM Plex Sans Thai was screened alongside an existing
- * upright/handwriting pair that had already been through this method), this
- * file's job is screening FONT-08's new candidate - Arimo/Tinos/Cousine's
- * Greek advance behaviour had never been measured this way before this
- * ticket, and while building this guard, `'Νικόλαος Δημητρίου'` surfaced a
- * genuine ~1.77px (113 font-unit) disagreement between the browser and
- * fontkit's per-word-segmented shaping on **both** Arimo and Tinos - a
- * pre-existing gap in the three already-bundled upright faces, unrelated to
- * Mynerve (which shapes the identical string with 0.000px of disagreement -
- * see below). That is a real, first-time-observed finding worth its own
- * investigation, not something this ticket's guard should either silently
- * paper over by picking different sample text or block this candidate's
- * landing on. It is flagged separately (see FONT-08.md's 2026-09-12 entry)
- * rather than folded into `FAMILIES` below.
+ * **Mynerve, Arimo and Tinos.** This guard was first scoped to Mynerve
+ * alone: while it was being built, `'Νικόλαος Δημητρίου'` disagreed by 113
+ * font units (~1.77px) between the browser and fontkit on both Arimo and
+ * Tinos, with Mynerve at 0.000px, and that was flagged rather than folded
+ * in. The cause turned out to be the export, not the fonts: a GPOS `kern`
+ * pair on `space + Δ` (-113, the same value as `space + A/Α/Λ`) that the DOM
+ * applies because it shapes a run whole, and that the export's per-space
+ * split (H9) never reached. The split was reverted on 2026-09-12 (`6879e01`,
+ * docs/wysiwyg-text-architecture.md §1.2 item 5), `shapedRun` below shapes
+ * each run whole to mirror it, and with that the two upright faces agree
+ * with the browser on this string, so they join `FAMILIES`. Cousine has no
+ * kern table and was never affected; it stays out only because nothing here
+ * has measured it, not because it failed.
  *
- * Ten Greek names/words, mostly two-word - spaces matter here specifically,
- * per H9/hebrew-font-parity.spec.js's finding that Blink shapes text word by
- * word, so a `calt` rule whose context crosses a space boundary never fires
- * in the browser while a whole-line fontkit call could still fire it if the
- * export ever regressed to shaping a whole line at once.
+ * Ten Greek names/words, mostly two-word. Spaces are the point: the
+ * space-spanning kern pairs above only fire when the run is shaped whole,
+ * so a regression back to per-word shaping fails on Arimo and Tinos here,
+ * and a `calt` handwriting face whose context crosses a space (Mynerve)
+ * is measured the way the DOM lays it out.
  *
  * **Result: 10/10 passed for Mynerve, 0.000px disagreement on every case**
- * (measured 2026-09-12). A separate one-off spot-check (not wired as a
+ * (measured 2026-09-12, per-segment at the time). Re-measured per run with
+ * Arimo and Tinos added, 2026-09-12: **30/30 passed** on macOS at the
+ * 0.05px subpixel tolerance. A separate one-off spot-check (not wired as a
  * standing assertion here, matching the Mukta/Devanagari screening
  * precedent) measured Mynerve against a Latin name, `'Sarah Levi'` -
  * fontkit 146.464px vs. browser 142.816px, a 3.648px / 2.5%-of-string-width
@@ -59,7 +58,7 @@ const SIZE = 32;
  * hinting platform (integral `measureText`, seen on Linux CI) the bound is
  * half a pixel per glyph, the quantisation itself.
  */
-const FAMILIES = ['Mynerve'];
+const FAMILIES = ['Mynerve', 'Arimo', 'Tinos'];
 
 const SAMPLES = {
   'name-alexandros-papadopoulos': { text: 'Αλέξανδρος Παπαδόπουλος' },
@@ -82,11 +81,14 @@ function shapedRun(family, { text }) {
   const font = fontkit.create(readFileSync(file));
   let glyphCount = 0;
   const total = resolveBidiRuns(text, 'ltr')
-    .flatMap((run) => run.text.split(/( )/).filter((part) => part !== '').map((part) => ({ text: part, direction: run.direction })))
-    .reduce((sum, segment) => {
-      const { positions } = font.layout(segment.text, undefined, undefined, undefined, segment.direction);
+    // Each run shaped whole, spaces included - the export's segmentation since
+    // the per-space split was reverted (2026-09-12, textPdf.ts). Measuring
+    // per-word here would compare against something the export no longer
+    // produces, and would hide the space-spanning kern pairs the DOM applies.
+    .reduce((sum, run) => {
+      const { positions } = font.layout(run.text, undefined, undefined, undefined, run.direction);
       glyphCount += positions.length;
-      return sum + positions.reduce((segSum, p) => segSum + p.xAdvance, 0);
+      return sum + positions.reduce((runSum, p) => runSum + p.xAdvance, 0);
     }, 0);
   return { widthPx: (total / font.unitsPerEm) * SIZE, glyphCount };
 }
