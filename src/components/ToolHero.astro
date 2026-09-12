@@ -13,11 +13,16 @@ interface Props {
 }
 const { icon: Icon, title, subhead, slug, condensable } = Astro.props;
 
-const iconTone = slug === 'sign'
-  ? 'bg-[linear-gradient(150deg,var(--color-primary-hover),var(--color-primary))] text-[var(--color-surface)]'
-  : slug === 'redact'
-    ? 'bg-[linear-gradient(150deg,var(--color-surface),var(--color-success-soft))] text-[var(--color-success)]'
-    : 'bg-[linear-gradient(150deg,var(--color-muted-light),var(--color-border-strong))] text-[var(--color-surface)]';
+// The three gradient/text-color pairs used to be three separate arbitrary-value
+// Tailwind class strings (`bg-[linear-gradient(...)]` plus a `text-[var(...)]`
+// each), which is 500+ bytes of escaped-selector CSS the toolPage entry sheet
+// compiles once and every one of the 12 tool pages ships identically - CLAUDE.md's
+// CSS duplication ratchet in styling.md charges that in full regardless of which
+// single page's icon is actually redact-toned. `data-icon-tone` plus the three
+// small rules below (scoped, in this file's own <style>) say the same thing in
+// far fewer bytes. Sign/redact are the two tools with a tone of their own; every
+// other tool leaves the attribute unset and gets the plain default below.
+const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undefined;
 ---
 
 <!--
@@ -35,7 +40,7 @@ const iconTone = slug === 'sign'
 -->
 <header class="tool-hero mx-auto w-full max-w-[1280px] px-6 pb-8 pt-14 min-[1024px]:grid min-[1024px]:grid-cols-[minmax(0,1fr)_auto] min-[1024px]:items-center min-[1024px]:gap-x-6 min-[1024px]:px-8 min-[1024px]:pb-1 min-[1024px]:pt-6 [--hero-icon:clamp(44px,8vw,52px)] [--hero-indent:calc(var(--hero-icon)_+_1rem)] [--hero-title:2rem] min-[1024px]:[--hero-icon:2.75rem] min-[1024px]:[--hero-title:2rem]" data-hero-condensable={condensable ? '' : undefined}>
   <div class="mb-3 flex items-start justify-center gap-4 min-[1024px]:col-start-1 min-[1024px]:row-start-1 min-[1024px]:mb-0 min-[1024px]:justify-start">
-    <div class={`flex size-[var(--hero-icon)] shrink-0 items-center justify-center rounded-2xl border-0 shadow-[0_8px_18px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)] ${iconTone}`}>
+    <div class="tool-hero-icon flex size-[var(--hero-icon)] shrink-0 items-center justify-center rounded-2xl border-0 shadow-[0_8px_18px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)]" data-tone={iconTone}>
       <Icon class="h-[55%] w-[55%]" size={28} strokeWidth={1.5} />
     </div>
     <h1 class="mt-0 mb-0 text-start text-[length:var(--hero-title)] leading-[1.1]">{title}</h1>
@@ -44,6 +49,24 @@ const iconTone = slug === 'sign'
 </header>
 
 <style>
+  /* The icon tile's gradient and text color, keyed off `data-tone` (see the
+     frontmatter comment above): plain CSS instead of three arbitrary-value
+     Tailwind class strings, which the toolPage entry sheet used to compile in
+     full and ship to all 12 tool pages regardless of which one is actually
+     sign- or redact-toned. The unset-attribute case is every other tool's
+     default tone, so it needs no selector of its own. */
+  .tool-hero-icon {
+    background-image: linear-gradient(150deg, var(--color-muted-light), var(--color-border-strong));
+    color: var(--color-surface);
+  }
+  .tool-hero-icon[data-tone='sign'] {
+    background-image: linear-gradient(150deg, var(--color-primary-hover), var(--color-primary));
+  }
+  .tool-hero-icon[data-tone='redact'] {
+    background-image: linear-gradient(150deg, var(--color-surface), var(--color-success-soft));
+    color: var(--color-success);
+  }
+
   /* Once a file is open, the hero keeps its title line and folds the rest away.
      Reading the pitch is not what you are doing at that point - you are looking
      at your document, and on a 1512x870 laptop the pitch was costing about a
@@ -109,21 +132,18 @@ const iconTone = slug === 'sign'
     :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable],
     :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] {
       padding-bottom: 0.75rem;
+
+      /* Below the desktop breakpoint the hero opens with 56px (pt-14) of air
+         above the title. That is the opening-statement spacing; once a file is
+         open the title is orientation, and on a phone those 56px were a real
+         share of what pushed a tool's primary action (Compress's button, most
+         visibly) below the fold. */
+      padding-top: 1.5rem;
     }
 
     :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable] [data-hero-sub],
     :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] [data-hero-sub] {
       display: none;
-    }
-
-    /* Below the desktop breakpoint the hero opens with 56px (pt-14) of air
-       above the title. That is the opening-statement spacing; once a file is
-       open the title is orientation, and on a phone those 56px were a real
-       share of what pushed a tool's primary action (Compress's button, most
-       visibly) below the fold. */
-    :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable],
-    :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] {
-      padding-top: 1.5rem;
     }
   }
 
@@ -151,17 +171,13 @@ const iconTone = slug === 'sign'
     :global(html[data-view-density='condensed']:has([aria-label='View density'])) .tool-hero[data-hero-condensable],
     :global(html[data-draft-hint]:has([aria-label='View density'])) .tool-hero[data-hero-condensable] {
       padding-bottom: 0.75rem;
+      --hero-title: 1.75rem;
+      --hero-icon: 2.5rem;
     }
 
     :global(html[data-view-density='condensed']:has([aria-label='View density'])) .tool-hero[data-hero-condensable] [data-hero-sub],
     :global(html[data-draft-hint]:has([aria-label='View density'])) .tool-hero[data-hero-condensable] [data-hero-sub] {
       display: none;
-    }
-
-    :global(html[data-view-density='condensed']:has([aria-label='View density'])) .tool-hero[data-hero-condensable],
-    :global(html[data-draft-hint]:has([aria-label='View density'])) .tool-hero[data-hero-condensable] {
-      --hero-title: 1.75rem;
-      --hero-icon: 2.5rem;
     }
   }
 </style>

@@ -184,9 +184,12 @@ export function FileActions() {
     title: messages[`${key}Title`],
   });
 
+  /* Single-file tools have one control in this row, so Replace is the standout
+     and wears the highlight; multi-file rows keep Add plain and highlight Clear
+     (Shlomi, 2026-09-12: "change file in compress should be the theme highlight"). */
   return (
     <>
-      <ActionButton action={localized(multiple ? 'add' : 'replace')} onClick={requestReplace} />
+      <ActionButton action={localized(multiple ? 'add' : 'replace')} onClick={requestReplace} highlight={!multiple} />
       {multiple && <ActionButton action={localized('clear')} onClick={requestClear} highlight />}
     </>
   );
