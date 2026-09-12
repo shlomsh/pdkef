@@ -312,7 +312,7 @@ const hebrewCompressMessages: CompressMessages = {
   targetSizeLabel: 'גודל בהתאמה אישית',
   compress: 'כיווץ PDF',
   compressing: 'מכווצים…',
-  addPdfToCompress: 'הוסיפו PDF או תמונה למעלה כדי לכווץ',
+  addPdfToCompress: 'בחרו קובץ למעלה כדי להמשיך',
   dropHint: 'גררו לכאן PDF או תמונה',
   compressionFailedTitle: 'הכיווץ נכשל.',
   compressionFailedBody: 'ייתכן שהקובץ מוגן בסיסמה או פגום. נסו קובץ PDF אחר.',
