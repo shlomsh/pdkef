@@ -1,7 +1,7 @@
 ---
 id: "LOC-05"
 title: "Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "hebrew-edition"
 phase: "near-term"
@@ -87,3 +87,5 @@ block (Hebrew + English-only target → flagged, Hebrew + `/he/sign/` target →
 `test:seo`, `test:css`, `test:weight`, `test:csp` all green with no ratchet regression.
 
 Only Shlomi's indexing requests (noted above) remain on this ticket.
+
+*2026-09-12, closed:* indexing requested for every published Hebrew guide the same day; the CTA disclosure gap closed at `6223372`. Outcome folds into LOC-03's 2026-11-06 read.
