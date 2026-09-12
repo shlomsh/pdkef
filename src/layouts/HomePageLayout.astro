@@ -97,12 +97,6 @@ const h1Prefix = home.h1.slice(0, home.h1.length - home.h1Accent.length);
 const dropzoneMessages = getFileDropzoneMessages(locale as any);
 const recentFilesMessages = getRecentFilesMessages(locale as any);
 
-// The demo stays English regardless of locale (docs/home-page-localization-
-// plan.md, section 4.2's RTL/direction-of-motion question is unresolved and
-// explicitly out of scope for LOC-09) - shown with the same isolation-notice
-// convention ToolPageLayout.astro uses for an untranslated tool island.
-const heroDemoIsEnglishOnly = locale !== 'en';
-
 // The tool list (home grid + hero card) comes from the shared registry, so it
 // stays in sync with the tool pages and the sitemap. Ordered by SEO priority.
 // Keep the landing toolbar's priority distinct: Compress is intentionally the
@@ -174,9 +168,6 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
           <header class="hero-header">
             <h1 id="home-heading">{h1Prefix}<span>{home.h1Accent}</span></h1>
             <p>{home.subhead}</p>
-            {heroDemoIsEnglishOnly && (
-              <p class="type-body hero-demo-english-notice" data-hero-demo-english-notice>{messages.heroDemoEnglishNotice}</p>
-            )}
           </header>
         </div>
         {/* Source order is the mobile reading order: header, launcher, dock,
@@ -208,7 +199,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
         </nav>
         <div class="demo-track" data-demo-track="mobile">
           <div class="home-frame" data-demo-frame data-demo-pin="mobile" data-working-area>
-            <HeroDemo dir={dir} />
+            <HeroDemo dir={dir} locale={locale} />
           </div>
         </div>
       </section>
@@ -566,15 +557,6 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
   /* The trust chips and the on-device badge take their one look from
      AppBar.astro; nothing here restyles them any more (that is what let the
      home and tool headers drift apart). */
-  /* LOC-09: the demo-is-English notice. A single static line, present from
-     first paint on every locale it applies to (never toggled post-hydration),
-     so it costs no CLS - see HomePageLayout.astro's header comment on why
-     this sits here rather than inside the sticky-pinned demo frame. */
-  .hero-demo-english-notice {
-    margin: 6px 0 0;
-    color: var(--color-muted);
-    font-size: 0.82rem;
-  }
   @media (min-width: 1024px) {
     .home-header { padding-top: var(--home-nav-height); }
     .home-header :global([data-home-bar]) {

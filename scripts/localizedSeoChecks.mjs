@@ -50,25 +50,23 @@ const NON_VISIBLE = 'script, style, noscript, template';
  * the island - rather than penalizing a page for the one part of it that is
  * honestly labeled English.
  *
- * LOC-09 extends the same idea to the home page's scroll-driven demo: unlike
- * a tool island, HeroDemo.astro is static Astro markup, not a hydrated
- * Preact tree, so its English chat bubbles / simulated form fields / sr-only
- * narration are real server-rendered text - substantial enough on their own
- * to sink a page's purity score even when every other card is translated.
- * docs/home-page-localization-plan.md, section 4.2's RTL/direction-of-motion
- * question is unresolved, so the demo ships English with a disclosed
- * isolation notice (HomePageLayout.astro's `data-hero-demo-english-notice`)
- * rather than a translation attempt; that notice is this exclusion's marker,
- * the same way `data-tool-controls-english` is for a tool island, and
- * `[data-home-demo]` (HeroDemo.astro's own root, also its accessible-name
- * anchor) is what gets excluded.
+ * The home page's scroll-driven demo (HeroDemo.astro) used to get the same
+ * treatment under a `[data-home-demo]` exclusion, disclosed via a "the demo
+ * is still shown in English" notice - LOC-09 shipped it that way because the
+ * demo's own RTL/direction-of-motion question (docs/home-page-localization-
+ * plan.md, section 4.2) was still open. LOC-16 settled that question and
+ * translated the demo through src/i18n/heroDemoMessages.ts, so the notice
+ * and this exclusion are both gone: HeroDemo.astro is ordinary server-
+ * rendered Astro markup like the rest of the page, in whichever locale the
+ * page is in, and its text counts toward purity the same as everything else.
  *
- * A page with neither marker is scored on its full body, unchanged.
+ * A page with no `data-tool-controls-english` marker is scored on its full
+ * body, unchanged.
  */
 export function visibleText(document, { excludeIsland = false } = {}) {
   const clone = document.body.cloneNode(true);
   clone.querySelectorAll(NON_VISIBLE).forEach((node) => node.remove());
-  if (excludeIsland) clone.querySelectorAll('#app, [data-home-demo]').forEach((node) => node.remove());
+  if (excludeIsland) clone.querySelectorAll('#app').forEach((node) => node.remove());
   return clone.textContent ?? '';
 }
 
@@ -111,8 +109,7 @@ export function localizedPageProblems({ relPath, document, sitemapLocs, builtCan
   const pattern = TARGET_SCRIPTS[lang];
   const floor = MIN_SCRIPT_PURITY[lang];
   if (pattern && floor !== undefined) {
-    const excludeIsland = Boolean(document.querySelector('[data-tool-controls-english]'))
-      || Boolean(document.querySelector('[data-hero-demo-english-notice]'));
+    const excludeIsland = Boolean(document.querySelector('[data-tool-controls-english]'));
     const { purity, letters, scriptLetters } = scriptPurity(visibleText(document, { excludeIsland }), pattern);
     if (purity < floor) {
       problems.push(

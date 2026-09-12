@@ -7,39 +7,40 @@
  */
 import ScrollDriver from './ScrollDriver';
 import styles from './HeroDemo.module.css';
+import { getHeroDemoMessages } from '../../i18n/heroDemoMessages';
 
 interface Props {
   dir?: 'ltr' | 'rtl';
+  locale?: string;
 }
-const { dir = 'ltr' } = Astro.props;
+const { dir = 'ltr', locale = 'en' } = Astro.props;
 const isRtl = dir === 'rtl';
 
 const rootSelector = `.${styles.root}`;
 
-// LOC-09 leaves the demo itself (sr-only narration, simulated phone-screen
-// content, chat bubbles) English-only - docs/home-page-localization-plan.md
-// section 4.2's question of whether the whole story's animation grammar
-// should mirror under RTL is still open and out of scope here. The two
-// caption headlines and their arrows are a narrower, since-decided case: they
-// are short, sit outside the fixed-pixel phone-screen overlay, and the arrow
-// literally points at the phone, which *does* move sides under RTL (the
-// grid mirrors for free, see HomePageLayout.astro/home-page.md section 4.3),
-// so leaving the arrow pointing right on a page where the phone is now on the
-// left would be wrong regardless of language. Caption text follows the same
-// call for the same reason: an isolated arrow flip with an unchanged
-// English caption reads like a rendering bug, not a design choice.
+// LOC-16 translates the demo through src/i18n/heroDemoMessages.ts (every
+// sr-only narration, simulated phone-screen string, and chat bubble is a
+// catalogue lookup keyed by `locale`, not a hardcoded literal). The panel
+// motion itself stays a physical translateX() slide either way; LOC-16
+// settled the open "does it mirror under RTL" question as "mirror" -
+// HeroDemo.module.css's `--hero-dir` custom property flips the slide's sign
+// under `html[dir="rtl"]`, so the story still reads start-to-end for a
+// right-to-left reader instead of visually reversing. The two caption
+// headlines and their arrows were a narrower, already-decided case before
+// LOC-16: they are short, sit outside the fixed-pixel phone-screen overlay,
+// and the arrow literally points at the phone, which *does* move sides
+// under RTL (the grid mirrors for free, see HomePageLayout.astro/
+// home-page.md section 4.3), so leaving the arrow pointing right on a page
+// where the phone is now on the left would be wrong regardless of language.
 const captionArrowClass = isRtl ? `${styles['caption-arrow']} ${styles['caption-arrow-rtl']}` : styles['caption-arrow'];
 const captionClass = isRtl ? `type-section ${styles.caption} ${styles['caption-hebrew']}` : `type-section ${styles.caption}`;
-const signCaption = isRtl
-  ? { before: 'מילוי, ', marker: 'חתימה', after: ',', line2: 'ושליחה בחזרה.' }
-  : { before: 'Fill, ', marker: 'sign', after: ',', line2: 'send it back.' };
-const blurCaption = isRtl
-  ? { before: 'מה ש', marker: 'פרטי', after: ',', line2: 'נשאר פרטי.' }
-  : { before: 'Keep the ', marker: 'private', after: '', line2: 'bits private.' };
-const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : { line1: 'Scroll to', line2: 'explore' };
+const t = getHeroDemoMessages(locale);
+const signCaption = t.signCaption;
+const blurCaption = t.blurCaption;
+const scrollHint = t.scrollHint;
 ---
 
-<section class={styles.root} data-home-demo aria-label="How PDkef works, shown as two short stories">
+<section class={styles.root} data-home-demo aria-label={t.ariaLabel}>
   {/* HeroDemo.module.css's .stage now defaults every --p-* beat to the value
       ScrollDriver.tsx actually writes at scroll position 0 on mount, so a
       JS-enabled visitor (including reduced motion) sees no reset-to-start
@@ -62,15 +63,7 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
   </noscript>
   <ScrollDriver client:load rootSelector={rootSelector} />
   <div class={styles.track} data-hero-track="sign">
-    <p class="sr-only">
-      A field trip permission slip arrives as a file in a chat message. Tapping it opens the form
-      right there in the chat. The form's printed heading, its sentence naming the trip's destination,
-      date and times, and the checkbox labels are all there from the start, with blank spaces left for
-      the student's name, the parent's name, an emergency contact number, and any allergies or medical
-      notes. As the page scrolls, those four blanks fill in, both permission checkboxes get checked,
-      and a signature draws itself on the line. A share sheet then slides up carrying the signed file,
-      and back in the chat, the signed form goes out and reads as sent.
-    </p>
+    <p class="sr-only">{t.signSrOnly}</p>
     <div class={styles.stage} data-hero-stage>
       <h2 class={captionClass}>
         <svg class={captionArrowClass} viewBox="0 0 150 46" aria-hidden="true" focusable="false">
@@ -104,10 +97,10 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
           </div>
           <div class={styles.layers}>
             <div class={`${styles.layer} ${styles['chat-layer']} ${styles['layer-final']}`}>
-              <div class={styles['panel-head']}>Maya's class parents</div>
+              <div class={styles['panel-head']}>{t.signChatHead}</div>
               <div class={styles.chat}>
                 <div class={`${styles.bubble} ${styles['bubble-in']} ${styles['anim-msg']}`}>
-                  <p class={styles['bubble-text']}>Hi all, the field trip permission slip is attached 🙏</p>
+                  <p class={styles['bubble-text']}>{t.signChatMessage}</p>
                 </div>
                 <div class={`${styles.bubble} ${styles['bubble-in']} ${styles['bubble-file']} ${styles['anim-msg']}`}>
                   <span class={styles['tap-ring']} aria-hidden="true"></span>
@@ -118,8 +111,8 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
                     <text class={styles['pdf-tag-text']} x="10.5" y="21.2" text-anchor="middle">PDF</text>
                   </svg>
                   <span class={styles['file-meta']}>
-                    <span class={styles['file-name']}>field-trip-permission-slip.pdf</span>
-                    <span class={styles['file-size']}>248 KB</span>
+                    <span class={styles['file-name']}>{t.signFileName}</span>
+                    <span class={styles['file-size']}>{t.signFileSize}</span>
                   </span>
                 </div>
                 <div class={`${styles.bubble} ${styles['bubble-out']} ${styles['anim-send']}`}>
@@ -130,50 +123,50 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
                     <text class={styles['pdf-tag-text']} x="10.5" y="21.2" text-anchor="middle">PDF</text>
                   </svg>
                   <span class={styles['file-meta']}>
-                    <span class={styles['file-name']}>field-trip-permission-slip.pdf</span>
-                    <span class={`${styles['file-status']} ${styles['anim-sent']}`} data-hero-sent>Sent</span>
+                    <span class={styles['file-name']}>{t.signFileName}</span>
+                    <span class={`${styles['file-status']} ${styles['anim-sent']}`} data-hero-sent>{t.signSentLabel}</span>
                   </span>
                 </div>
               </div>
             </div>
 
             <div class={`${styles.layer} ${styles['form-layer']}`}>
-              <div class={styles['panel-head']}>field-trip-permission-slip.pdf</div>
+              <div class={styles['panel-head']}>{t.signFileName}</div>
               <div class={styles['tool-chips']} aria-hidden="true">
-                <span class={`${styles['tool-chip']} ${styles['tool-chip-text']}`}>Text</span>
-                <span class={`${styles['tool-chip']} ${styles['tool-chip-symbols']}`}>Symbols</span>
-                <span class={`${styles['tool-chip']} ${styles['tool-chip-sign']}`}>Sign</span>
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-text']}`}>{t.signToolChipText}</span>
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-symbols']}`}>{t.signToolChipSymbols}</span>
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-sign']}`}>{t.signToolChipSign}</span>
               </div>
               <div class={styles['doc-body']}>
-                <div class={styles['doc-heading']}>Field Trip Permission Slip</div>
+                <div class={styles['doc-heading']}>{t.signFormHeading}</div>
                 <p class={styles['trip-sentence']}>
-                  Room 12 is going to the Science Museum on Friday, May 14, from 8:00 AM to 3:30 PM.
+                  {t.signTripSentence}
                 </p>
                 <div class={styles['parent-fields']}>
                   <div class={styles['field-row']}>
-                    <span class={styles['field-label']}>Student's Name</span>
+                    <span class={styles['field-label']}>{t.signFieldStudentLabel}</span>
                     <span class={styles['blank-wrap']}
-                      ><span class={`${styles['blank-value']} ${styles['blank-value-name']}`}>Maya Chen</span></span
+                      ><span class={`${styles['blank-value']} ${styles['blank-value-name']}`}>{t.signFieldStudentValue}</span></span
                     >
                   </div>
                   <div class={styles['field-row']}>
-                    <span class={styles['field-label']}>Parent/Guardian</span>
+                    <span class={styles['field-label']}>{t.signFieldParentLabel}</span>
                     <span class={styles['blank-wrap']}
-                      ><span class={`${styles['blank-value']} ${styles['blank-value-guardian']}`}>Elena Chen</span
+                      ><span class={`${styles['blank-value']} ${styles['blank-value-guardian']}`}>{t.signFieldParentValue}</span
                       ></span
                     >
                   </div>
                   <div class={styles['field-row']}>
-                    <span class={styles['field-label']}>Emergency Contact</span>
+                    <span class={styles['field-label']}>{t.signFieldEmergencyLabel}</span>
                     <span class={styles['blank-wrap']}
-                      ><span class={`${styles['blank-value']} ${styles['blank-value-phone']}`}>(555) 214-0193</span
+                      ><span class={`${styles['blank-value']} ${styles['blank-value-phone']}`}>{t.signFieldEmergencyValue}</span
                       ></span
                     >
                   </div>
                   <div class={styles['field-row']}>
-                    <span class={styles['field-label']}>Allergies / Medical</span>
+                    <span class={styles['field-label']}>{t.signFieldAllergiesLabel}</span>
                     <span class={styles['blank-wrap']}
-                      ><span class={`${styles['blank-value']} ${styles['blank-value-allergies']}`}>Peanut allergy</span
+                      ><span class={`${styles['blank-value']} ${styles['blank-value-allergies']}`}>{t.signFieldAllergiesValue}</span
                       ></span
                     >
                   </div>
@@ -185,7 +178,7 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
                         ><path pathLength="1" d="M3 9 L7.5 13.5 L15 4.5"></path></svg
                       ></span
                     >
-                    <span class={styles['check-label']}>My child has permission to attend</span>
+                    <span class={styles['check-label']}>{t.signCheckAttendLabel}</span>
                   </div>
                   <div class={styles.check}>
                     <span class={styles['check-box-2']}
@@ -193,12 +186,12 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
                         ><path pathLength="1" d="M3 9 L7.5 13.5 L15 4.5"></path></svg
                       ></span
                     >
-                    <span class={styles['check-label']}>Photos may be taken during the trip</span>
+                    <span class={styles['check-label']}>{t.signCheckPhotoLabel}</span>
                   </div>
                 </div>
-                <p class={styles['confirm-line']}>Sign below to give permission.</p>
+                <p class={styles['confirm-line']}>{t.signConfirmLine}</p>
                 <div class={styles['sig-line']}>
-                  <span class={styles['sig-label']}>Parent or Guardian</span>
+                  <span class={styles['sig-label']}>{t.signSigLabel}</span>
                   <svg class={styles.sig} viewBox="0 0 220 70" preserveAspectRatio="none" focusable="false">
                     <path
                       pathLength="1"
@@ -207,8 +200,8 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
                   </svg>
                 </div>
                 <div class={styles['date-line']}>
-                  <span class={styles['date-line-label']}>Date</span>
-                  <span class={styles['date-line-value']}>05/14</span>
+                  <span class={styles['date-line-label']}>{t.signDateLabel}</span>
+                  <span class={styles['date-line-value']}>{t.signDateValue}</span>
                 </div>
               </div>
             </div>
@@ -218,7 +211,7 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
               <div class={styles['share-sheet']}>
                 <div class={styles['share-handle']} aria-hidden="true"></div>
                 <div class={styles['tool-chips']} aria-hidden="true">
-                  <span class={`${styles['tool-chip']} ${styles['tool-chip-share']}`}>Share</span>
+                  <span class={`${styles['tool-chip']} ${styles['tool-chip-share']}`}>{t.signToolChipShare}</span>
                 </div>
                 <div class={styles['share-file-row']}>
                   <svg class={styles['pdf-icon']} viewBox="0 0 24 28" focusable="false">
@@ -228,8 +221,8 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
                     <text class={styles['pdf-tag-text']} x="10.5" y="21.2" text-anchor="middle">PDF</text>
                   </svg>
                   <span class={styles['file-meta']}>
-                    <span class={styles['file-name']}>field-trip-permission-slip.pdf</span>
-                    <span class={styles['file-size']}>Signed - 248 KB</span>
+                    <span class={styles['file-name']}>{t.signFileName}</span>
+                    <span class={styles['file-size']}>{t.signFileSizeSigned}</span>
                   </span>
                 </div>
                 <div class={styles['share-targets']}>
@@ -246,7 +239,7 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
                         ></path>
                       </svg>
                     </span>
-                    <span>Messages</span>
+                    <span>{t.signShareMessages}</span>
                   </span>
                   <span class={styles['share-target']}>
                     <span class={styles['share-target-icon']} aria-hidden="true">
@@ -263,7 +256,7 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
                         ></path>
                       </svg>
                     </span>
-                    <span>Mail</span>
+                    <span>{t.signShareMail}</span>
                   </span>
                   <span class={styles['share-target']}>
                     <span class={styles['share-target-icon']} aria-hidden="true">
@@ -273,7 +266,7 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
                         <circle cx="18" cy="12" r="1.6" fill="currentColor"></circle>
                       </svg>
                     </span>
-                    <span>More</span>
+                    <span>{t.signShareMore}</span>
                   </span>
                 </div>
               </div>
@@ -286,11 +279,7 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
 
 
   <div class={styles.track} data-hero-track="blur">
-    <p class="sr-only">
-      An email asks for a copy of a utility bill. Opening it shows several lines of billing
-      details. As the page scrolls, the customer ID blurs until it can't be read, the account
-      number is blacked out, one line is erased to blank paper, and an unrelated row is deleted, leaving blank space. The cleaned-up document is then attached to a reply and sent.
-    </p>
+    <p class="sr-only">{t.blurSrOnly}</p>
     <div class={styles.stage} data-hero-stage>
       <h2 class={captionClass}>
         <svg class={captionArrowClass} viewBox="0 0 150 46" aria-hidden="true" focusable="false">
@@ -325,7 +314,7 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
           <div class={styles.layers}>
             <div class={`${styles.layer} ${styles['email-layer']}`}>
               <div class={styles['mail-head']}>
-                <span class={styles['mail-title']}>Inbox</span>
+                <span class={styles['mail-title']}>{t.blurMailHead}</span>
                 <span class={styles['mail-count']}>2</span>
               </div>
               {/* The new message occupies no height until it arrives, so the
@@ -338,84 +327,84 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
               <div class={styles['email-arriving']}>
                 <div class={`${styles['email-row']} ${styles['email-row-unread']}`}>
                   <span class={styles['unread-dot']} aria-hidden="true"></span>
-                  <span class={styles.avatar}>FD</span>
+                  <span class={styles.avatar}>{t.blurAvatarFrontDesk}</span>
                   <span class={styles['email-meta']}>
                     <span class={styles['email-line']}>
-                      <span class={styles['email-from']}>Front Desk</span>
-                      <span class={styles['email-time']}>9:41</span>
+                      <span class={styles['email-from']}>{t.blurEmailFromUnread}</span>
+                      <span class={styles['email-time']}>{t.blurEmailTimeUnread}</span>
                     </span>
-                    <span class={styles['email-subject']}>Quick favor, need that bill on file</span>
+                    <span class={styles['email-subject']}>{t.blurEmailSubjectUnread}</span>
                     <span class={styles['email-preview']}
-                      >Hi, could you send a copy of your utility bill for our records?</span
+                      >{t.blurEmailPreviewUnread}</span
                     >
                   </span>
                 </div>
               </div>
               <div class={styles['email-row-muted']}>
-                <span class={styles.avatar}>TM</span>
+                <span class={styles.avatar}>{t.blurAvatarTeam}</span>
                 <span class={styles['email-meta']}>
                   <span class={styles['email-line']}>
-                    <span class={styles['email-from']}>Team</span>
-                    <span class={styles['email-time']}>Tue</span>
+                    <span class={styles['email-from']}>{t.blurEmailFromMuted}</span>
+                    <span class={styles['email-time']}>{t.blurEmailTimeMuted}</span>
                   </span>
-                  <span class={styles['email-subject']}>Lunch on Friday?</span>
+                  <span class={styles['email-subject']}>{t.blurEmailSubjectMuted}</span>
                 </span>
               </div>
             </div>
 
             <div class={`${styles.layer} ${styles['bill-layer']}`}>
-              <div class={styles['panel-head']}>utility-bill.pdf</div>
+              <div class={styles['panel-head']}>{t.blurBillFileName}</div>
               <div class={styles['tool-chips']} aria-hidden="true">
-                <span class={`${styles['tool-chip']} ${styles['tool-chip-blur']}`}>Blur</span>
-                <span class={`${styles['tool-chip']} ${styles['tool-chip-blackout']}`}>Blackout</span>
-                <span class={`${styles['tool-chip']} ${styles['tool-chip-whiteout']}`}>Whiteout</span>
-                <span class={`${styles['tool-chip']} ${styles['tool-chip-delete']}`}>Delete</span>
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-blur']}`}>{t.blurToolChipBlur}</span>
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-blackout']}`}>{t.blurToolChipBlackout}</span>
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-whiteout']}`}>{t.blurToolChipWhiteout}</span>
+                <span class={`${styles['tool-chip']} ${styles['tool-chip-delete']}`}>{t.blurToolChipDelete}</span>
               </div>
               <div class={styles['doc-body']}>
-                <div class={styles['doc-line']}><span>Account Holder</span><span>J. Alvarez</span></div>
-                <div class={styles['doc-line']}><span>Service Address</span><span>14 Maple Court</span></div>
-                <div class={styles['doc-line']}><span>Billing Period</span><span>Jul 1 to Aug 1</span></div>
+                <div class={styles['doc-line']}><span>{t.blurBillAccountHolderLabel}</span><span>{t.blurBillAccountHolderValue}</span></div>
+                <div class={styles['doc-line']}><span>{t.blurBillServiceAddressLabel}</span><span>{t.blurBillServiceAddressValue}</span></div>
+                <div class={styles['doc-line']}><span>{t.blurBillPeriodLabel}</span><span>{t.blurBillPeriodValue}</span></div>
                 <div class={styles['doc-line']}>
-                  <span>Customer ID</span>
-                  <span class={styles['blur-value']}>302-45-6789</span>
+                  <span>{t.blurBillCustomerIdLabel}</span>
+                  <span class={styles['blur-value']}>{t.blurBillCustomerIdValue}</span>
                 </div>
                 <div class={styles['doc-line']}>
-                  <span>Account No</span>
+                  <span>{t.blurBillAccountNoLabel}</span>
                   <span class={styles['redact-wrap']}>
-                    <span class={styles['redact-value']}>0001 1488 25</span>
+                    <span class={styles['redact-value']}>{t.blurBillAccountNoValue}</span>
                     <span class={styles['blackout-bar']} aria-hidden="true"></span>
                   </span>
                 </div>
-                <div class={styles['doc-line']}><span>Rate Plan</span><span>Residential Standard</span></div>
+                <div class={styles['doc-line']}><span>{t.blurBillRatePlanLabel}</span><span>{t.blurBillRatePlanValue}</span></div>
                 <div class={styles['doc-line']}>
-                  <span>Meter Serial</span>
+                  <span>{t.blurBillMeterSerialLabel}</span>
                   <span class={styles['redact-wrap']}>
-                    <span class={styles['redact-value']}>MTR-88291</span>
+                    <span class={styles['redact-value']}>{t.blurBillMeterSerialValue}</span>
                     <span class={styles['whiteout-bar']} aria-hidden="true"></span>
                   </span>
                 </div>
-                <div class={styles['doc-line']}><span>Meter Reading, Prior</span><span>04821</span></div>
-                <div class={styles['doc-line']}><span>Meter Reading, Current</span><span>05114</span></div>
-                <div class={styles['doc-line']}><span>Usage</span><span>293 kWh</span></div>
+                <div class={styles['doc-line']}><span>{t.blurBillMeterPriorLabel}</span><span>{t.blurBillMeterPriorValue}</span></div>
+                <div class={styles['doc-line']}><span>{t.blurBillMeterCurrentLabel}</span><span>{t.blurBillMeterCurrentValue}</span></div>
+                <div class={styles['doc-line']}><span>{t.blurBillUsageLabel}</span><span>{t.blurBillUsageValue}</span></div>
                 <div class={styles['doc-line']}>
-                  <span class={styles['delete-row-text']}>Late Fee Note</span>
-                  <span class={styles['delete-row-text']}>Includes $12 reminder fee</span>
+                  <span class={styles['delete-row-text']}>{t.blurBillLateFeeLabel}</span>
+                  <span class={styles['delete-row-text']}>{t.blurBillLateFeeValue}</span>
                 </div>
-                <div class={styles['doc-line']}><span>Amount Due</span><span>$104.20</span></div>
-                <div class={styles['doc-line']}><span>Due Date</span><span>Sep 28</span></div>
+                <div class={styles['doc-line']}><span>{t.blurBillAmountDueLabel}</span><span>{t.blurBillAmountDueValue}</span></div>
+                <div class={styles['doc-line']}><span>{t.blurBillDueDateLabel}</span><span>{t.blurBillDueDateValue}</span></div>
               </div>
             </div>
 
             <div class={`${styles.layer} ${styles['reply-layer']} ${styles['layer-final']}`}>
-              <div class={styles['panel-head']}>Reply</div>
+              <div class={styles['panel-head']}>{t.blurReplyHead}</div>
               <div class={`${styles['reply-body']} ${styles['reply-outgoing']}`}>
-                <p class={styles['reply-text']}>Here you go.</p>
+                <p class={styles['reply-text']}>{t.blurReplyText}</p>
                 <div class={styles['attach-chip']}>
                   <span class={styles['blur-dot']} aria-hidden="true"></span>
-                  <span class={styles['attach-name']}>utility-bill.pdf</span>
-                  <span class={styles['attach-tag']}>cleaned</span>
+                  <span class={styles['attach-name']}>{t.blurBillFileName}</span>
+                  <span class={styles['attach-tag']}>{t.blurAttachTag}</span>
                 </div>
-                <div class={`${styles['send-btn']} ${styles['anim-send']} ${styles['send-press']}`}>Send</div>
+                <div class={`${styles['send-btn']} ${styles['anim-send']} ${styles['send-press']}`}>{t.blurSendButton}</div>
               </div>
               {/* The reply is sent rather than relabelled: the button presses,
                   the composed message flies up and out, and the confirmation
@@ -425,7 +414,7 @@ const scrollHint = isRtl ? { line1: 'גללו כדי', line2: 'לגלות' } : {
                 <svg class={styles['sent-check']} viewBox="0 0 16 16" aria-hidden="true">
                   <path d="M2.5 8.5l3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-                Sent
+                {t.blurSentLabel}
               </div>
             </div>
           </div>
