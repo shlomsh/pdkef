@@ -87,6 +87,7 @@ _None._
 | SEO-24 | P3 | [SEO-24](backlog/tasks/SEO-24.md) · New tool: make a PDF look scanned |
 | SEO-26 | P3 | [SEO-26](backlog/tasks/SEO-26.md) · Say what PDkef does not do, and why, on a page that already exists |
 | SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before |
+| SEO-32 | P3 | [SEO-32](backlog/tasks/SEO-32.md) · New tool: PDF to Markdown, English-only v1, Hebrew/RTL deferred pending anydoc-wasm's dependency bump |
 
 ### In progress
 
