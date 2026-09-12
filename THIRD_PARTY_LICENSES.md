@@ -1614,6 +1614,7 @@ The following fonts are distributed under the SIL Open Font License, Version 1.1
 - Alef (<https://fonts.google.com/specimen/Alef>)
 - PT Sans (<https://fonts.google.com/specimen/PT+Sans>)
 - Scheherazade New (<https://fonts.google.com/specimen/Scheherazade+New>)
+- Vazirmatn (<https://fonts.google.com/specimen/Vazirmatn>)
 - Noto Sans JP (<https://fonts.google.com/specimen/Noto+Sans+JP>)
 - Noto Sans SC (<https://fonts.google.com/specimen/Noto+Sans+SC>)
 - Noto Sans TC (<https://fonts.google.com/specimen/Noto+Sans+TC>)

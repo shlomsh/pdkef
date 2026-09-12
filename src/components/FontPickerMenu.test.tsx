@@ -171,7 +171,7 @@ describe('FontPickerMenu', () => {
 
     expect(arimo.disabled).toBe(false);
     expect(arimo.getAttribute('aria-disabled')).not.toBe('true');
-    expect(arimo.textContent).toBe('ArimoFallback: Scheherazade New');
+    expect(arimo.textContent).toBe('ArimoFallback: Vazirmatn');
     act(() => arimo.click());
     expect(onChange).toHaveBeenCalledWith('Arimo');
   });

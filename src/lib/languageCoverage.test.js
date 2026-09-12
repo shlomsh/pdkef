@@ -154,30 +154,41 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(note).not.toContain('accents work throughout');
   });
 
-  it('Arabic: exactly Scheherazade New, matching LANGUAGE_COVERAGE.arabic.full', () => {
-    expect(LANGUAGE_COVERAGE.arabic.full.map((f) => f.family)).toEqual(['Scheherazade New']);
-    expect(supportedNote('Arabic')).toContain('Scheherazade New');
+  it('Arabic: Scheherazade New and Vazirmatn, matching LANGUAGE_COVERAGE.arabic.full', () => {
+    // FONT-08b: Vazirmatn (upright geometric sans) joined the previously
+    // Scheherazade-New-only (traditional Naskh) Arabic-family row, giving it
+    // a second, stylistically distinct choice the way Devanagari/Thai got
+    // from FONT-08a.
+    expect(LANGUAGE_COVERAGE.arabic.full.map((f) => f.family).sort()).toEqual(['Scheherazade New', 'Vazirmatn']);
+    const note = supportedNote('Arabic');
+    expect(note).toContain('Scheherazade New');
+    expect(note).toContain('Vazirmatn');
   });
 
-  it('Dari and Farsi: exactly Scheherazade New, matching LANGUAGE_COVERAGE.farsi.full', () => {
-    expect(LANGUAGE_COVERAGE.farsi.full.map((f) => f.family)).toEqual(['Scheherazade New']);
-    expect(supportedNote('Dari and Farsi')).toContain('Scheherazade New');
+  it('Dari and Farsi: Scheherazade New and Vazirmatn, matching LANGUAGE_COVERAGE.farsi.full', () => {
+    expect(LANGUAGE_COVERAGE.farsi.full.map((f) => f.family).sort()).toEqual(['Scheherazade New', 'Vazirmatn']);
+    const note = supportedNote('Dari and Farsi');
+    expect(note).toContain('Scheherazade New');
+    expect(note).toContain('Vazirmatn');
   });
 
-  it('Urdu: exactly Scheherazade New, matching LANGUAGE_COVERAGE.urdu.full, and the note states the Nastaliq/Naskh caveat', () => {
-    expect(LANGUAGE_COVERAGE.urdu.full.map((f) => f.family)).toEqual(['Scheherazade New']);
+  it('Urdu: Scheherazade New and Vazirmatn, matching LANGUAGE_COVERAGE.urdu.full, and the note states the Nastaliq/Naskh caveat', () => {
+    expect(LANGUAGE_COVERAGE.urdu.full.map((f) => f.family).sort()).toEqual(['Scheherazade New', 'Vazirmatn']);
     const note = supportedNote('Urdu');
     expect(note).toContain('Scheherazade New');
+    expect(note).toContain('Vazirmatn');
     // The caveat is the point of this claim, not a footnote - never let the
-    // copy shrink to an unqualified "we support Urdu".
+    // copy shrink to an unqualified "we support Urdu". Both fonts here are
+    // upright, so the caveat applies to both, not just to Scheherazade New.
     expect(note).toContain('Nastaliq');
     expect(note).toContain('Naskh');
   });
 
-  it('Pashto: exactly Scheherazade New, matching LANGUAGE_COVERAGE.pashto.full', () => {
-    expect(LANGUAGE_COVERAGE.pashto.full.map((f) => f.family)).toEqual(['Scheherazade New']);
+  it('Pashto: Scheherazade New and Vazirmatn, matching LANGUAGE_COVERAGE.pashto.full', () => {
+    expect(LANGUAGE_COVERAGE.pashto.full.map((f) => f.family).sort()).toEqual(['Scheherazade New', 'Vazirmatn']);
     const note = supportedNote('Pashto');
     expect(note).toContain('Scheherazade New');
+    expect(note).toContain('Vazirmatn');
     // The eleven letters are the entire reason Pashto has its own line and
     // its own font swap - never let the copy shrink to an unqualified claim.
     expect(note).toContain('ټ');
@@ -218,7 +229,7 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     expect(turkish).toContain('Kalam');
     expect(turkish).toContain('Mali');
     const note = supportedNote('Turkish');
-    expect(note).toContain('Ten text fonts');
+    expect(note).toContain('Eleven text fonts');
     expect(note).toContain('Kalam');
     expect(note).toContain('Mali');
     expect(note).toContain('Ğ');

@@ -252,6 +252,18 @@
   src: url('/fonts/ScheherazadeNew-Bold.ttf') format('truetype');
 }
 @font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Vazirmatn-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Vazirmatn-Bold.ttf') format('truetype');
+}
+@font-face {
   font-family: 'Noto Sans JP';
   font-style: normal;
   font-weight: 400;

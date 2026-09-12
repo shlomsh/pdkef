@@ -193,6 +193,11 @@ Google Fonts distributes (`google/fonts` main, or the upstream repo where noted)
 
 **Checks 2 and 3 (pixel guard, advance parity) are not run for any of these.** They need a browser and
 a per-script spec; that is landing work, not research.
+### FONT-08b - second choice, Arabic family (Scheherazade New + Vazirmatn, landed 2026-09-12)
+
+- **Naskh alternatives:** Noto Naskh Arabic (OFL, variable-only, claims Arabic/Urdu/Pashto/Sindhi/Punjabi/Farsi) and **Amiri** (Khaled Hosny/Amiri Project, OFL, static Regular/Bold/Italic/BoldItalic ~410-431KB, well-regarded classical Naskh revival - **already on record in TODO.md as the documented fallback if Scheherazade New disappoints**). Amiri's own docs advertise many ligatures/contextual substitutions - **flag explicit calt-adjacent risk**, same shape of claim that sank Playpen Sans Hebrew.
+- **Geometric/modern alternative: Vazirmatn** (rastikerdar, OFL - mirror ships variable-only but the [upstream repo](https://github.com/rastikerdar/vazirmatn/tree/master/fonts/ttf) has real static Regular/Bold ~123KB each). Built explicitly for Persian/Arabic/Urdu, geometric sans, visually the furthest from Scheherazade New. **Top pick for a modern-feel second choice.** Cairo (OFL, variable-only, 599KB) is a second geometric option but larger and less explicitly multi-language-targeted.
+  **Landed 2026-09-12 (FONT-08, backlog/tasks/FONT-08.md's dated section has the full measurement record).** Carries `calt`/`ss01` - the documented risk class - but the shaping guard (`e2e/sign/arabic-vazirmatn-shaping-guard.spec.js`) and advance-parity guard (`e2e/sign/arabic-vazirmatn-font-parity.spec.js`) both passed cleanly (155/155 Arabic, 22/22 Pashto at 0.00% floor; 0.000px max advance delta on twelve realistic Arabic/Farsi/Urdu/Pashto words including a shadda+fatha stack and a lam-alef-heavy phrase), so the guard - not the feature list - decided, the same discipline IBM Plex Sans Thai's `calt` was judged by.
 
 ### The research agent's errors, so the next pass knows what a report cannot be trusted for
 

@@ -133,6 +133,12 @@ export const FONT_MANIFEST = [
     license: { version: '4.500', url: 'https://fonts.google.com/specimen/Scheherazade+New', copyright: 'Copyright (c) 1994-2026, SIL Global (https://www.sil.org/), with Reserved Font Names "Scheherazade" and "SIL"' },
   },
   {
+    family: 'Vazirmatn', kind: 'text', styleTag: 'sans',
+    metrics: { ascent: 1.025, descent: 0.537 },
+    faces: normal('Vazirmatn-Regular.ttf', 'Vazirmatn-Bold.ttf'),
+    license: { version: '33.003', url: 'https://fonts.google.com/specimen/Vazirmatn', copyright: 'Copyright 2015 The Vazirmatn Project Authors (https://github.com/rastikerdar/vazirmatn). Latin glyphs combined from Roboto: Copyright 2011 The Roboto Project Authors (https://github.com/googlefonts/roboto-classic), also OFL 1.1.' },
+  },
+  {
     family: 'Noto Sans JP', kind: 'text', styleTag: 'sans',
     metrics: { ascent: 1.160, descent: 0.288 },
     faces: normal('NotoSansJP-Regular.ttf', 'NotoSansJP-Bold.ttf'),

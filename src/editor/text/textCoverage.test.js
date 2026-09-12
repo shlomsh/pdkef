@@ -41,7 +41,7 @@ describe('editing-time font support', () => {
     expect(support.family).toBe('Assistant');
     expect(support.pieces).toEqual([
       { text: 'שלום Hello ', family: 'Assistant' },
-      { text: 'مرحبا', family: 'Scheherazade New' },
+      { text: 'مرحبا', family: 'Vazirmatn' },
     ]);
     expect(support.pieces.map((piece) => piece.text).join('')).toBe(element.text);
     const repaired = support.pieces.map((piece) => text({ text: piece.text, fontFamily: piece.family }));

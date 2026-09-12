@@ -290,7 +290,7 @@ describe('TextNode component', () => {
     expect(input.getAttribute('aria-invalid')).toBe('true');
     expect(notice.textContent).toContain('separate text boxes');
     expect(notice.textContent).toContain('Assistant');
-    expect(notice.textContent).toContain('Scheherazade New');
+    expect(notice.textContent).toContain('Vazirmatn');
     expect(document.activeElement).toBe(input);
     // The browser applies an edit before the parent's controlled render.
     input.value = 'שלום Hello';
@@ -304,7 +304,7 @@ describe('TextNode component', () => {
     expect(input.selectionStart).toBe(3);
 
     act(() => render(show({ text: 'Hello مرحبا' }), host));
-    expect(input.style.fontFamily).toContain('Scheherazade New');
+    expect(input.style.fontFamily).toContain('Vazirmatn');
     expect(requireElement<HTMLElement>(host, '[data-editor-font-notice]').textContent)
       .toBe('A fallback font is in use for this text. Choose another font in the font menu.');
     expect(input.hasAttribute('aria-invalid')).toBe(false);
