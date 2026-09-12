@@ -26,6 +26,7 @@
         "blur-vs-blackout-vs-delete-pdf",
         "permanently-delete-text-from-pdf",
         "pdf-wont-compress-to-100kb",
+        "photo-and-signature-size-for-forms",
         "how-to-sign-a-pdf-on-windows",
         "how-to-sign-a-pdf-on-mac",
         "how-to-sign-a-pdf-on-iphone",
@@ -80,7 +81,7 @@
       "decisionDate": "2026-09-11",
       "reCheck": "2026-11-06",
       "reasoning": "Chosen first because review costs nothing (in-house), Israel already converts best of any country from English queries, and the Hebrew incumbents are visibly weak: machine-flavoured, LTR-laid-out, none claiming on-device processing or real RTL support. LOC-01 called Hebrew's small Trends share \"informative, not decisive\" for exactly that reason. LOC-11 later confirmed Hebrew is one of the weakest demand cases measured; the decision stands because the marginal cost is zero.",
-      "next": "First read at the 2026-10-08 refresh (LOC-06's per-locale table); success criteria read at the eight-week mark, 2026-11-06: any Hebrew-query impression at all, or one of the three target phrasings in Israel's top 20. Home page still needs Shlomi's native read-through (LOC-09).",
+      "next": "First read at the 2026-10-08 refresh (LOC-06's per-locale table); success criteria read at the eight-week mark, 2026-11-06: any Hebrew-query impression at all, or one of the three target phrasings in Israel's top 20. As of 2026-09-12 the home page's dock and cards are fully Hebrew and the Sign editor's toolbar row is a Hebrew draft, with the rest of the editor still English (LOC-09).",
       "evidence": [
         {
           "metric": "Trends share vs English, 4 anchor tasks (IL)",
@@ -139,7 +140,7 @@
         "islands": {
           "merge": "published",
           "compress": "reviewed",
-          "sign": "decided-english"
+          "sign": "draft"
         },
         "editor": "decided-english"
       }
