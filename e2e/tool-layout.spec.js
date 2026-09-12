@@ -76,6 +76,61 @@ test('top-aligns each tool hero icon with the first line of its title', async ({
   }
 });
 
+// ToolPageLayout.astro once held the hero+card wrapper to a full viewport
+// `min-height` and centred #app inside it, which left up to 461px of blank
+// space between the card and "How it works" at 1280x900 (viewport-driven,
+// not content-driven). The page flows at its own height now; this guards
+// that the card's bottom edge stays close to the very next section.
+// `[class*="tool-card"]` matches the CSS-Modules-hashed class BasePdfTool
+// renders (PdfTool.module.css).
+test('keeps the tool card close to the section below it, not padded to the viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  for (const route of toolRoutes) {
+    await page.goto(route);
+
+    const card = page.locator('[class*="tool-card"]').first();
+    await expect(card, route).toBeVisible();
+
+    const gap = await page.evaluate(() => {
+      const cardEl = document.querySelector('[class*="tool-card"]');
+      const mainEl = document.querySelector('main');
+      // The first <section> that comes after <main> in document order -
+      // #app is a <section> too, but it's inside <main>, not after it.
+      const nextSection = [...document.querySelectorAll('section')].find(
+        (section) =>
+          section.id !== 'app' &&
+          !mainEl.contains(section) &&
+          mainEl.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+      if (!cardEl || !nextSection) return null;
+      return nextSection.getBoundingClientRect().top - cardEl.getBoundingClientRect().bottom;
+    });
+
+    expect(gap, route).not.toBeNull();
+    expect(gap, route).toBeLessThanOrEqual(140);
+  }
+});
+
+// The same wrapper's `items-center` (below 1024px) centred a short card
+// vertically on phones, so /compress-image/'s pre-result state jumped ~108px
+// the instant a result made the page tall enough to stop being centred
+// (backlog/tasks/SEO-25.md). The card sits directly under the hero now.
+test('does not vertically centre a short tool card below the hero on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/compress-image/');
+
+  const hero = page.locator('header');
+  const card = page.locator('[class*="tool-card"]').first();
+  await expect(card).toBeVisible();
+
+  const [heroBox, cardBox] = await Promise.all([hero.boundingBox(), card.boundingBox()]);
+  if (!heroBox || !cardBox) {
+    throw new Error('/compress-image/: hero or tool card layout box is unavailable');
+  }
+
+  expect(Math.abs(cardBox.y - (heroBox.y + heroBox.height))).toBeLessThanOrEqual(40);
+});
+
 test('redaction guide images load without page overflow on desktop and mobile', async ({ page }) => {
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 900 });

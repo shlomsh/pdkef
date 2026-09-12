@@ -280,3 +280,10 @@ sized/counted message in the file already uses. `downloadDetail` now calls `form
 button reads `t.compareShow`/`t.compareHide`. Re-ran `npx vitest run src/components/PdfCompressTool.test.tsx
 src/components/DownloadButton src/components/CompareSlider.test.tsx` and `npm run typecheck` after the
 change (see the report for results).
+
+**The mobile caveat above is closed (2026-09-12, layout).** `ToolPageLayout.astro` no longer holds the
+hero+card wrapper to a viewport-tall `min-height` or centres `#app` below 1024px, so the Target Size panel
+sits directly under the hero at 390x844 (measured: card top equals hero bottom) and nothing jumps when
+the result card lands. The same change removed the 310 to 610px of blank space under the tool card on
+desktop; the card-to-section gap is a constant 116px on every tool route now. `e2e/tool-layout.spec.js`
+guards both.
