@@ -178,9 +178,14 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         where the dropzone appears. Kept to Sign and Redact only, same as
         the live status line below. */}
     {(tool.slug === 'sign' || tool.slug === 'redact') && (
-      <p class="type-body mx-auto mb-4 max-w-[54rem] px-6 text-center text-[var(--color-muted)] min-[1024px]:mb-2 min-[1024px]:mt-0">
-        {messages.airplaneModeNotice}
-      </p>
+      <div class="mx-auto w-full max-w-[1280px] px-4 min-[560px]:px-6">
+        {/* Hangs off the trailing edge of the tool card below (left in RTL,
+            right in LTR), so this wrapper copies <main>'s own max-width and
+            padding rather than the hero's. */}
+        <p class="type-body mb-4 w-full text-center text-[var(--color-muted)] min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
+          {messages.airplaneModeNotice}
+        </p>
+      </div>
     )}
 
     {/* SEO-10: the no-limit fact, stated where a visitor scanning the SERP
