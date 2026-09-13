@@ -266,6 +266,12 @@ describe('mergePdfs library integration with real fixtures', () => {
     it('mergedFileName builds the "merged_<first>.pdf" download name', () => {
       expect(mergedFileName('Invoice 2024-03-01.pdf')).toBe('merged_Invoice 2024-03-01.pdf');
     });
+
+    it('never puts a "+" in the merged name, even when the source name carries one', () => {
+      expect(mergedFileName('a+b.pdf')).toBe('merged_ab.pdf');
+      expect(mergedFileName('Q1 + Q2 report.pdf')).toBe('merged_Q1 Q2 report.pdf');
+      expect(mergedFileName('+.pdf')).toBe('merged_merged.pdf');
+    });
   });
 
   describe('MERGE-15 bookmarks (one outline entry per source file)', () => {
