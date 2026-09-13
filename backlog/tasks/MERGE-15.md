@@ -32,7 +32,8 @@ build ticket is filed separately with the option on by default and off under Opt
 
 Landed on `claude/merge-tool-polish-m20`: `src/lib/outline.js` (`addFileOutline(pdfDoc, entries)`,
 low-level `/Outlines` chain, `PDFHexString.fromText` titles so Hebrew survives, `/XYZ null null null`
-destinations that keep the reader's zoom) and a `bookmarks` option on `mergePdfs`, on by default,
+destinations that keep the reader's zoom) and a `bookmarks` option on `mergePdfs`, off by default until Shlomi has opened the sample (the
+reviewer's point: an outline in every merged file is a product change, not a ticket default),
 one entry per source file at its first exported page in output order; a file with every page
 skipped gets none, and a single contributing file writes no outline at all (a one-entry outline
 just names the document). No new dependency. Tests: `outline.test.js` (5) and a `MERGE-15` block in
@@ -45,6 +46,6 @@ Preview and Acrobat are not scriptable from here: sample at `~/Downloads/merge15
 (expects "num-3", "דוח מס", "num-5" on pages 1, 2, 3) for Shlomi to open. `qpdf`/`mutool` are not
 installed on this machine.
 
-Decision still Shlomi's: whether the person gets a switch (the Options disclosure this ticket
+Decisions still Shlomi's: whether the flag goes on at all, and whether the person gets a switch (the Options disclosure this ticket
 mentioned no longer exists; the nearest home is a checkbox row next to "Add page numbers") or the
 outline is simply always there.

@@ -24,9 +24,11 @@ the real file input; the injector is described in `docs/merge-review-2026-09-13.
 **Rail (desktop 1280, phone 375).**
 
 - No element whose text is "Options" and no "Saves as" text anywhere in the island.
-- Row order from the top of the rail: file list; "Draft saved" alone on its row, end-aligned; note
-  plus Reset order on one line at a 320px rail; Add files and Clear all; Add page numbers checkbox
-  as the last control above Download; Download; Share, Compress it, Sign it.
+- Row order from the top of the rail: file list with its own footer, the Sort select or the
+  "rearranged" note plus Reset order on one line at a 320px rail (docs/ux-design-guidelines.md,
+  section 4); "Draft saved" alone on its row, end-aligned; Add files and Clear all; Add page
+  numbers checkbox as the last control above Download; Download; Share, Compress it, Sign it.
+  (Corrected 2026-09-13; the first wording had "Draft saved" before the footer.)
 - All three hand-off buttons contain an `<svg>`; their border is the subject of MERGE-19.
 - Phone "..." popover lists exactly Add files, Clear all, Sort, Reset order (only when rearranged),
   Add page numbers, in that order; popover is end-anchored and fully inside the viewport.
@@ -229,8 +231,8 @@ hand merge).
 
 ## Update 2026-09-13 (lead's reconciliation of the two misses)
 
-- Row order: not a miss. The check above was written from memory of the decision; the decision as
-  relayed from Shlomi puts the file list, then the Sort select or the "rearranged" note with Reset
+- Row order: not a miss; the reviewer confirmed the check's wording was wrong and it is corrected
+  above. The decision as relayed from Shlomi puts the file list, then the Sort select or the "rearranged" note with Reset
   order on one line, then "Draft saved" alone and end-aligned, then Add files and Clear all. The
   rail measured above (list 248, File order 432, Draft saved 480, Add files 513, Add page numbers
   561, Download 617, hand-offs 707) is that order. The check's wording is corrected here rather
@@ -240,9 +242,12 @@ hand merge).
   so `a+b.pdf` gives `merged_ab.pdf` and `Q1 + Q2 report.pdf` gives `merged_Q1 Q2 report.pdf`;
   a name that sanitises to nothing falls back to `merged_merged.pdf` instead of `merged_.pdf.pdf`.
   Unit test in `merge.test.js`.
-- Size cap: there is none in the merge path by design (the "too large" message is the generic
-  catch for an allocation failure), so "the size-cap error" has nothing to exercise; the review
-  doc's line was a guess. No ticket filed.
+- Size cap: the reviewer clarified it is the draft path, `MERGE_DRAFT_MAX_BYTES` (200 MB) in
+  `src/editor/workspace/draftStore.js`, not the merge path. The chain is covered end to end:
+  `draftStore.test.js` proves a set over the cap resolves false without writing, `useMergeDraft.test.tsx`
+  proves the hook turns that into `draftSaveState: 'error'`, and a new island test in
+  `PdfMergeTool.test.tsx` proves the rail's status row then reads "Draft not saved" (Hebrew
+  "הטיוטה לא נשמרה") in place of "Draft saved". Not silent. PASS.
 - One-file naming: the heading already reads `merged_<name>` with one file; the download itself
   needs two files, so the download attribute cannot be read there. PASS on the heading.
 - Preview dialog, same branch (Shlomi, 2026-09-13, "open the preview so it takes more of the

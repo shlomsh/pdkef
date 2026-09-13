@@ -331,7 +331,7 @@ describe('mergePdfs library integration with real fixtures', () => {
         { fileIndex: 0, pageIndex: 1, rotation: 0, skipped: false }, // '12' -> output page 2
       ];
 
-      const blob = await mergePdfs(files, { plan });
+      const blob = await mergePdfs(files, { plan, bookmarks: true });
       const { pageTexts } = await getPdfPageTexts(blob);
       expect(pageTexts).toEqual(['3', '2', '12']);
 
@@ -358,9 +358,9 @@ describe('mergePdfs library integration with real fixtures', () => {
       expect(outline.items[2].next).toBeUndefined();
     });
 
-    it('bookmarks default on with no explicit plan, one entry per file in file order', async () => {
+    it('bookmarks: true with no explicit plan writes one entry per file in file order', async () => {
       const files = [getFixtureFile('num-1.pdf'), getFixtureFile('num-2.pdf'), getFixtureFile('num-3.pdf')];
-      const blob = await mergePdfs(files);
+      const blob = await mergePdfs(files, { bookmarks: true });
 
       const bytes = new Uint8Array(await blob.arrayBuffer());
       const reloaded = await PDFDocument.load(bytes);
@@ -371,16 +371,16 @@ describe('mergePdfs library integration with real fixtures', () => {
     });
 
     it('writes no outline when only one file made it into the output (a one-entry outline names the whole document)', async () => {
-      const blob = await mergePdfs([getFixtureFile('num-2.pdf')]);
+      const blob = await mergePdfs([getFixtureFile('num-2.pdf')], { bookmarks: true });
 
       const bytes = new Uint8Array(await blob.arrayBuffer());
       const reloaded = await PDFDocument.load(bytes);
       expect(reloaded.catalog.get(PDFName.of('Outlines'))).toBeUndefined();
     });
 
-    it('writes no /Outlines at all when bookmarks: false is passed', async () => {
+    it('writes no /Outlines by default (the flag is off until Shlomi confirms the sample)', async () => {
       const files = [getFixtureFile('num-1.pdf'), getFixtureFile('num-2.pdf')];
-      const blob = await mergePdfs(files, { bookmarks: false });
+      const blob = await mergePdfs(files);
 
       const bytes = new Uint8Array(await blob.arrayBuffer());
       const reloaded = await PDFDocument.load(bytes);

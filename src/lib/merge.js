@@ -117,7 +117,10 @@ export async function mergePdfs(files, options = {}, onProgress, signal) {
     options = {};
   }
 
-  const { addPageNumbers = false, title, bookmarks = true } = options;
+  // MERGE-15: `bookmarks` is off until Shlomi has opened the spike's sample
+  // in Preview and Acrobat and said so - an outline in every merged file is
+  // a product change, not a ticket default (review, 2026-09-13).
+  const { addPageNumbers = false, title, bookmarks = false } = options;
   const hasExplicitPlan = Array.isArray(options.plan);
 
   checkAborted(signal);
