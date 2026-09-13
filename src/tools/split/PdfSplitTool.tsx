@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import BasePdfTool from '../shell/BasePdfTool.tsx';
-import { parsePageSelector, pageNumbersToRangeString, splitPdf } from '../lib/split.js';
-import { useHandoffIntake } from '../lib/useHandoffIntake.ts';
+import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import { parsePageSelector, pageNumbersToRangeString, splitPdf } from './split.js';
+import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import styles from './PdfSplitTool.module.css';
-import fileListStyles from '../shell/FileList.module.css';
-import pageGridStyles from '../shell/PageGrid.module.css';
-import pdfToolStyles from '../shell/PdfTool.module.css';
-import PdfShareButton from '../shell/PdfShareButton.tsx';
-import ProgressRing from '../shell/ProgressRing.tsx';
-import ErrorMessage from '../shell/ErrorMessage.tsx';
-import { usePdfShare } from '../lib/usePdfShare.js';
-import { describeFile } from '../lib/format.js';
-import { getPdfRenderContext } from '../editor/adapters/pdf/renderContext.js';
+import fileListStyles from '../../shell/FileList.module.css';
+import pageGridStyles from '../../shell/PageGrid.module.css';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import PdfShareButton from '../../shell/PdfShareButton.tsx';
+import ProgressRing from '../../shell/ProgressRing.tsx';
+import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import { usePdfShare } from '../../lib/usePdfShare.js';
+import { describeFile } from '../../lib/format.js';
+import { getPdfRenderContext } from '../../editor/adapters/pdf/renderContext.js';
 
 let pdfjsLib: any;
 async function getPdfjs() {
