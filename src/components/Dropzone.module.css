@@ -330,3 +330,14 @@
     opacity: 1;
   }
 }
+
+/* MERGE-06: inside a card that fills the first screen, the desktop dropzone
+   grows past its fixed 168px to whatever height the stage has left, with its
+   two-row grid still centred (align-content above). */
+@media (min-width: 1024px) {
+  [data-fill-viewport] > .dropzone {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 168px;
+  }
+}
