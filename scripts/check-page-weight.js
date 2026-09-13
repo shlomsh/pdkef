@@ -2,10 +2,29 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
+import { availableParallelism } from 'node:os';
+import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const distDir = path.join(__dirname, '..', 'dist');
+
+// This file is also its own worker: `runCompressionPool` below respawns it via
+// `new Worker(new URL(import.meta.url), ...)`, so importing it re-runs every
+// top-level declaration in the worker thread too. Everything above and below
+// this branch is side-effect-free (function/const declarations only) except
+// this branch itself and `main()`, which is why only `main()` needs the
+// `isMainThread` guard at the bottom of the file. A worker never reaches that
+// guard as true, does its assigned brotli calls, posts the results back, and
+// exits - it does not read dist/ or print anything.
+if (!isMainThread) {
+  const { jobs } = workerData;
+  const results = jobs.map((job) => [
+    job.id,
+    brotli(job.kind === 'file' ? fs.readFileSync(job.path) : Buffer.from(job.text, 'utf8')),
+  ]);
+  parentPort.postMessage(results);
+}
 
 /*
  * Budgets what a visitor downloads before the page is usable: the document
@@ -169,11 +188,6 @@ const MAX_FIRST_LOAD_BROTLI = 400_000;
 // this was written after would have blown it by more than 10x.
 const MAX_EAGER_IMAGE_BYTES = 15_000;
 
-if (!fs.existsSync(distDir)) {
-  console.error(`dist directory not found: ${distDir}. Run npm run build first.`);
-  process.exit(1);
-}
-
 function getHtmlFiles(dir, fileList = []) {
   for (const entry of fs.readdirSync(dir)) {
     const filePath = path.join(dir, entry);
@@ -187,21 +201,81 @@ function getHtmlFiles(dir, fileList = []) {
   return fileList;
 }
 
-const brotliCache = new Map();
-function brotliOf(absPath) {
-  const cached = brotliCache.get(absPath);
-  if (cached !== undefined) return cached;
-  const bytes = zlib.brotliCompressSync(fs.readFileSync(absPath), {
+// The one brotli call, at the fixed quality the budgets above are calibrated
+// on. Brotli at a fixed quality is a pure function of its input bytes, so it
+// is safe to run these across worker threads: which thread does a given call,
+// or in what order, cannot change a single reported byte count.
+function brotli(buffer) {
+  return zlib.brotliCompressSync(buffer, {
     params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 },
   }).length;
-  brotliCache.set(absPath, bytes);
+}
+
+// Every brotli result this run produces, keyed by a job id: an absolute JS
+// chunk path for a JS job, or `${htmlFile}::doc` / `${htmlFile}::css`
+// for a page's document/CSS jobs. Populated up front by runCompressionPool
+// (see below); getBytes falls back to compressing inline only if a caller
+// asks for an id that pool somehow did not cover, so the result is always
+// correct even if that pre-population is ever incomplete.
+const resultCache = new Map();
+function getBytes(id, computeBuffer) {
+  const cached = resultCache.get(id);
+  if (cached !== undefined) return cached;
+  const bytes = brotli(computeBuffer());
+  resultCache.set(id, bytes);
   return bytes;
 }
 
-const brotli = (buffer) =>
-  zlib.brotliCompressSync(buffer, {
-    params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 },
-  }).length;
+// absPath is itself a valid job id (see above), so a JS chunk's bytes are
+// just getBytes keyed by its own path - this is the same per-file cache the
+// script always had, now warmed by the parallel pool instead of computed the
+// first time a page's graph walk reaches the file.
+function brotliOf(absPath) {
+  return getBytes(absPath, () => fs.readFileSync(absPath));
+}
+
+// Profiled 2026-09-13 on this repo's 41-page dist/: brotli quality 11 is
+// ~6.7s of single-threaded CPU time, almost the whole of the script's ~6.9s
+// wall time (parsing/regex/IO is noise by comparison) - split roughly
+// 1.3s across 42 unique JS chunks, 3.8s across 41 document bodies, 1.6s
+// across 41 CSS-only re-compressions (see the comment on the `css` field
+// below for why that third figure exists at all). All three are CPU-bound
+// and independent per file, so they run across a small worker pool sized to
+// the machine, instead of one at a time on the main thread.
+function runWorker(jobs) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL(import.meta.url), { workerData: { jobs } });
+    worker.once('message', resolve);
+    worker.once('error', reject);
+    worker.once('exit', (code) => {
+      if (code !== 0) reject(new Error(`brotli worker exited with code ${code}`));
+    });
+  });
+}
+
+// Runs every compression job across up to 8 workers (or fewer, capped to the
+// machine's core count and to the job count itself) and fills resultCache.
+// Jobs are dealt out largest-first (longest-processing-time-first
+// scheduling): a handful of documents and JS chunks are far bigger than the
+// rest, and round-robin by count alone would let one worker draw all of the
+// small pages while another drew every large one.
+async function runCompressionPool(jobs) {
+  if (jobs.length === 0) return;
+  const poolSize = Math.max(1, Math.min(availableParallelism(), 8, jobs.length));
+  if (poolSize === 1) {
+    for (const job of jobs) {
+      resultCache.set(job.id, brotli(job.kind === 'file' ? fs.readFileSync(job.path) : Buffer.from(job.text, 'utf8')));
+    }
+    return;
+  }
+  const buckets = Array.from({ length: poolSize }, () => []);
+  [...jobs].sort((a, b) => b.size - a.size).forEach((job, i) => buckets[i % poolSize].push(job));
+
+  const bucketResults = await Promise.all(buckets.filter((b) => b.length > 0).map(runWorker));
+  for (const bucketResult of bucketResults) {
+    for (const [id, bytes] of bucketResult) resultCache.set(id, bytes);
+  }
+}
 
 // Static import/export edges only. Besides `import ... from` / `export ...
 // from`, Rollup emits bare side-effect imports (`import "./chunk.js"`) for
@@ -214,16 +288,23 @@ const STATIC_IMPORT_RE = /\b(?:import|export)\s*(?:[^'";]*?\s*from\s*)?["']([^"'
 // Every chunk reachable from `entryFiles` by a static import/export edge,
 // recursively - the actual set of JS the browser fetches before an eagerly-
 // hydrated island runs, as opposed to only the chunk(s) named in the HTML.
-// Returns a Map of absolute path -> brotli bytes, deduped by file so a chunk
-// shared between multiple entries (or multiple pages, via the shared
-// brotliOf cache) is measured once.
-function eagerImportGraph(entryFiles) {
-  const visited = new Map();
+// Returns a Set of absolute paths, deduped by file so a chunk shared between
+// multiple entries (or multiple pages) is counted once.
+//
+// This is discovery only - it does not compress anything. It used to (via
+// brotliOf) but that meant a shared chunk's bytes were computed exactly once
+// only because this walk happened to hit it first for some earlier page,
+// which serialized all compression behind the graph walk order. Compression
+// now runs separately, as a batch of jobs across a worker pool (see
+// runCompressionPool); this function's only job is figuring out which files
+// exist to compress and which page(s) need which totals.
+function discoverEagerFiles(entryFiles) {
+  const visited = new Set();
   const stack = [...entryFiles];
   while (stack.length) {
     const file = stack.pop();
     if (visited.has(file) || !fs.existsSync(file)) continue;
-    visited.set(file, brotliOf(file));
+    visited.add(file);
     const source = fs.readFileSync(file, 'utf8');
     for (const match of source.matchAll(STATIC_IMPORT_RE)) {
       const spec = match[1];
@@ -294,91 +375,130 @@ function eagerImages(html) {
   return found;
 }
 
-const htmlFiles = getHtmlFiles(distDir).sort();
-if (htmlFiles.length === 0) {
-  console.error('No HTML files found in the build output.');
-  process.exit(1);
-}
+async function main() {
+  if (!fs.existsSync(distDir)) {
+    console.error(`dist directory not found: ${distDir}. Run npm run build first.`);
+    process.exit(1);
+  }
 
-const rows = [];
-for (const file of htmlFiles) {
-  const buffer = fs.readFileSync(file);
-  const html = buffer.toString('utf8');
+  const htmlFiles = getHtmlFiles(distDir).sort();
+  if (htmlFiles.length === 0) {
+    console.error('No HTML files found in the build output.');
+    process.exit(1);
+  }
 
-  const scriptRefs = [...new Set([...html.matchAll(/\/_astro\/[A-Za-z0-9._-]+\.js/g)].map((m) => m[0]))];
-  const entryFiles = scriptRefs.map((ref) => path.join(distDir, ref));
-  const eagerGraph = eagerImportGraph(entryFiles);
-  let jsBytes = 0;
-  for (const bytes of eagerGraph.values()) jsBytes += bytes;
+  // Phase 1: read every page and work out what it needs compressed - the
+  // document, its inlined CSS, and (via the static-import graph walk) the set
+  // of JS chunks it eagerly loads. This is cheap (fs + regex, no brotli) so it
+  // stays sequential; only the actual compression is batched below.
+  const pages = [];
+  const jsFileSizes = new Map(); // absolute path -> size, deduped across every page's graph
+  for (const file of htmlFiles) {
+    const buffer = fs.readFileSync(file);
+    const html = buffer.toString('utf8');
 
-  // Reported for context only - the budget is on the document as a whole, since
-  // the CSS is inlined into it and a visitor cannot pay for one without the other.
-  let css = '';
-  let match;
-  const styleTagRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
-  while ((match = styleTagRegex.exec(html)) !== null) css += match[1];
+    const scriptRefs = [...new Set([...html.matchAll(/\/_astro\/[A-Za-z0-9._-]+\.js/g)].map((m) => m[0]))];
+    const entryFiles = scriptRefs.map((ref) => path.join(distDir, ref));
+    const jsFiles = discoverEagerFiles(entryFiles);
+    for (const f of jsFiles) {
+      if (!jsFileSizes.has(f)) jsFileSizes.set(f, fs.statSync(f).size);
+    }
 
-  // Raw, not brotli: images are already compressed and served as-is.
-  const images = eagerImages(html);
-  let imgBytes = 0;
-  for (const bytes of images.values()) imgBytes += bytes;
+    // Reported for context only - the budget is on the document as a whole, since
+    // the CSS is inlined into it and a visitor cannot pay for one without the other.
+    let css = '';
+    let match;
+    const styleTagRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+    while ((match = styleTagRegex.exec(html)) !== null) css += match[1];
 
-  const docBytes = brotli(buffer);
-  rows.push({
-    label: `/${path.relative(distDir, file).replace(/(^|\/)index\.html$/, '/').replace(/^\/+/, '')}`,
-    doc: docBytes,
-    js: jsBytes,
-    css: css ? brotli(Buffer.from(css, 'utf8')) : 0,
-    img: imgBytes,
-    imgCount: images.size,
-    total: docBytes + jsBytes,
-    modules: eagerGraph.size,
-  });
-}
+    // Raw, not brotli: images are already compressed and served as-is.
+    const images = eagerImages(html);
+    let imgBytes = 0;
+    for (const bytes of images.values()) imgBytes += bytes;
 
-rows.sort((a, b) => b.total + b.img - (a.total + a.img));
-const worst = rows.reduce((a, b) => (b.total > a.total ? b : a));
-const worstImage = rows.reduce((a, b) => (b.img > a.img ? b : a));
+    pages.push({ file, buffer, jsFiles, css, images, imgBytes });
+  }
 
-console.log(
-  `First-load weight, ${rows.length} pages. Document and JS are brotli; images are raw ` +
-    '(already compressed, served as-is):',
-);
-for (const row of rows) {
+  // Phase 2: every brotli call this run needs, as an independent job - one
+  // per unique JS chunk (shared chunks are one job total, not one per page
+  // that reaches them), one per page's document, one per page's CSS. Handed
+  // to runCompressionPool, which spreads them across a worker pool and fills
+  // resultCache; everything below reads from that cache instead of
+  // compressing directly.
+  const jobs = [];
+  for (const [file, size] of jsFileSizes) jobs.push({ id: file, kind: 'file', path: file, size });
+  for (const p of pages) {
+    jobs.push({ id: `${p.file}::doc`, kind: 'file', path: p.file, size: p.buffer.length });
+    if (p.css) jobs.push({ id: `${p.file}::css`, kind: 'text', text: p.css, size: Buffer.byteLength(p.css, 'utf8') });
+  }
+  await runCompressionPool(jobs);
+
+  // Phase 3: assemble rows exactly as before - the only difference is that
+  // every brotli byte count below is now a cache read, not a fresh call.
+  const rows = [];
+  for (const p of pages) {
+    let jsBytes = 0;
+    for (const f of p.jsFiles) jsBytes += brotliOf(f);
+    const docBytes = getBytes(`${p.file}::doc`, () => p.buffer);
+    const cssBytes = p.css ? getBytes(`${p.file}::css`, () => Buffer.from(p.css, 'utf8')) : 0;
+    rows.push({
+      label: `/${path.relative(distDir, p.file).replace(/(^|\/)index\.html$/, '/').replace(/^\/+/, '')}`,
+      doc: docBytes,
+      js: jsBytes,
+      css: cssBytes,
+      img: p.imgBytes,
+      imgCount: p.images.size,
+      total: docBytes + jsBytes,
+      modules: p.jsFiles.size,
+    });
+  }
+
+  rows.sort((a, b) => b.total + b.img - (a.total + a.img));
+  const worst = rows.reduce((a, b) => (b.total > a.total ? b : a));
+  const worstImage = rows.reduce((a, b) => (b.img > a.img ? b : a));
+
   console.log(
-    `  ${row.label.padEnd(16)} ${String(row.doc).padStart(6)} doc + ${String(row.js).padStart(6)} js` +
-      ` + ${String(row.img).padStart(5)} img` +
-      `   (css ${row.css} of doc, ${row.modules} module${row.modules === 1 ? '' : 's'},` +
-      ` ${row.imgCount} image${row.imgCount === 1 ? '' : 's'})`,
+    `First-load weight, ${rows.length} pages. Document and JS are brotli; images are raw ` +
+      '(already compressed, served as-is):',
+  );
+  for (const row of rows) {
+    console.log(
+      `  ${row.label.padEnd(16)} ${String(row.doc).padStart(6)} doc + ${String(row.js).padStart(6)} js` +
+        ` + ${String(row.img).padStart(5)} img` +
+        `   (css ${row.css} of doc, ${row.modules} module${row.modules === 1 ? '' : 's'},` +
+        ` ${row.imgCount} image${row.imgCount === 1 ? '' : 's'})`,
+    );
+  }
+
+  let failed = false;
+
+  if (worst.total > MAX_FIRST_LOAD_BROTLI) {
+    console.error(
+      `\nPage weight budget exceeded: ${worst.label} is ${worst.total} bytes brotli on first load ` +
+        `(${worst.doc} document + ${worst.js} eager JS), over the ${MAX_FIRST_LOAD_BROTLI} byte limit. ` +
+        'If a chunk that used to load behind a user action is now referenced by the HTML, that is the regression; ' +
+        'otherwise raise the limit deliberately and say what shipped.',
+    );
+    failed = true;
+  }
+
+  if (worstImage.img > MAX_EAGER_IMAGE_BYTES) {
+    console.error(
+      `\nEager image budget exceeded: ${worstImage.label} fetches ${worstImage.img} raw bytes of images ` +
+        `before first paint, over the ${MAX_EAGER_IMAGE_BYTES} byte limit. ` +
+        'The usual cause is a full-size asset referenced at display size instead of going through ' +
+        'astro:assets, or an image that should carry loading="lazy" and does not; ' +
+        'otherwise raise the limit deliberately and say what shipped.',
+    );
+    failed = true;
+  }
+
+  if (failed) process.exit(1);
+
+  console.log(
+    `\nPage weight check passed. Worst document+JS ${worst.label}: ${worst.total} / ${MAX_FIRST_LOAD_BROTLI} brotli. ` +
+      `Worst eager images ${worstImage.label}: ${worstImage.img} / ${MAX_EAGER_IMAGE_BYTES} raw.`,
   );
 }
 
-let failed = false;
-
-if (worst.total > MAX_FIRST_LOAD_BROTLI) {
-  console.error(
-    `\nPage weight budget exceeded: ${worst.label} is ${worst.total} bytes brotli on first load ` +
-      `(${worst.doc} document + ${worst.js} eager JS), over the ${MAX_FIRST_LOAD_BROTLI} byte limit. ` +
-      'If a chunk that used to load behind a user action is now referenced by the HTML, that is the regression; ' +
-      'otherwise raise the limit deliberately and say what shipped.',
-  );
-  failed = true;
-}
-
-if (worstImage.img > MAX_EAGER_IMAGE_BYTES) {
-  console.error(
-    `\nEager image budget exceeded: ${worstImage.label} fetches ${worstImage.img} raw bytes of images ` +
-      `before first paint, over the ${MAX_EAGER_IMAGE_BYTES} byte limit. ` +
-      'The usual cause is a full-size asset referenced at display size instead of going through ' +
-      'astro:assets, or an image that should carry loading="lazy" and does not; ' +
-      'otherwise raise the limit deliberately and say what shipped.',
-  );
-  failed = true;
-}
-
-if (failed) process.exit(1);
-
-console.log(
-  `\nPage weight check passed. Worst document+JS ${worst.label}: ${worst.total} / ${MAX_FIRST_LOAD_BROTLI} brotli. ` +
-    `Worst eager images ${worstImage.label}: ${worstImage.img} / ${MAX_EAGER_IMAGE_BYTES} raw.`,
-);
+if (isMainThread) await main();

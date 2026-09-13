@@ -15,7 +15,11 @@ import { webcrypto } from 'node:crypto';
 // timers would also freeze, and every save/load/delete in this file goes
 // through it - a fake clock would need advancing after every single
 // IndexedDB call, not just the 700ms debounce. A short real wait is simpler
-// and exactly what the MERGE-13 lane brief allows.
+// and exactly what the MERGE-13 lane brief allows. Most tests below shorten
+// the debounce itself through the hook's `autosaveDebounceMs` option (the
+// same precedent as usePreparedMerge.ts's `debounceMs`) rather than the
+// clock, so the real wait after it can stay short too; exactly one test
+// keeps the production 700ms default, to still assert that number.
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import {
@@ -56,11 +60,14 @@ function baseOptions(overrides = {}) {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// The debounced autosave is a 700ms setTimeout followed by an async
-// buildRecord (reads File bytes) / persist (writes through IndexedDB) chain;
-// 850ms real time comfortably clears both.
-async function flushDebounce() {
-  await act(async () => { await wait(850); });
+// The debounced autosave is a setTimeout (700ms by default, shortened via
+// `autosaveDebounceMs` in most tests below) followed by an async buildRecord
+// (reads File bytes) / persist (writes through IndexedDB) chain; the default
+// 850ms real wait comfortably clears both at the production 700ms debounce.
+// Tests that shorten the debounce to 40ms pass a matching short `ms` here
+// (150ms - comfortably past 40ms plus fake-indexeddb's async round trip).
+async function flushDebounce(ms = 850) {
+  await act(async () => { await wait(ms); });
 }
 
 // A mount's restore effect kicks off an async IIFE that reads through real
@@ -217,9 +224,11 @@ describe('useMergeDraft', () => {
     const entries = [baseEntry(10, 'invoice.pdf', 1)];
     const plan = planForFile(10, 1);
     const apiRef = { current: null };
-    await mount(apiRef, baseOptions({ entries, plan, title: 'My renamed file', outputName: 'My renamed file' }));
+    await mount(apiRef, baseOptions({
+      entries, plan, title: 'My renamed file', outputName: 'My renamed file', autosaveDebounceMs: 40,
+    }));
 
-    await flushDebounce();
+    await flushDebounce(150);
 
     const record = await loadDraft('merge');
     expect(record.outputName).toBe('My renamed file');
@@ -241,9 +250,9 @@ describe('useMergeDraft', () => {
     // draftStore.test.js's own "over MERGE_DRAFT_MAX_BYTES" case.
     vi.spyOn(entry.file, 'arrayBuffer').mockResolvedValue({ byteLength: MERGE_DRAFT_MAX_BYTES + 1 });
     const apiRef = { current: null };
-    await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1) }));
+    await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
 
-    await flushDebounce();
+    await flushDebounce(150);
 
     expect(apiRef.current.draftSaveState).toBe('error');
     expect(await loadDraft('merge')).toBeNull();
@@ -257,22 +266,22 @@ describe('useMergeDraft', () => {
     );
     const apiRef = { current: null };
 
-    await mount(apiRef, baseOptions({ entries: [entryA], plan: planForFile(1, 1) }));
-    await act(async () => { await wait(850); });
+    await mount(apiRef, baseOptions({ entries: [entryA], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
+    await act(async () => { await wait(150); });
     // entryA's buildRecord is now stuck awaiting arrayBuffer(); nothing has
     // reached saveDraft yet for this revision.
     expect(apiRef.current.draftSaveState).toBe('pending');
 
     const entryB = baseEntry(2, 'b.pdf', 1);
     await act(async () => {
-      render(<Harness apiRef={apiRef} options={baseOptions({ entries: [entryB], plan: planForFile(2, 1) })} />, container);
+      render(<Harness apiRef={apiRef} options={baseOptions({ entries: [entryB], plan: planForFile(2, 1), autosaveDebounceMs: 40 })} />, container);
     });
     // A distinct snapshot bumps the revision; the derived state must read
     // "pending" for the new revision immediately, not the old one's state
     // (which was also "pending", but for a write that will never resolve).
     expect(apiRef.current.draftSaveState).toBe('pending');
 
-    await flushDebounce();
+    await flushDebounce(150);
     expect(apiRef.current.draftSaveState).toBe('saved');
 
     // The stale write now finishes. Its completion is for a revision that is
@@ -287,8 +296,8 @@ describe('useMergeDraft', () => {
   it('clearDraft deletes the record and the hint', async () => {
     const entry = baseEntry(1, 'a.pdf', 1);
     const apiRef = { current: null };
-    await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1) }));
-    await flushDebounce();
+    await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
+    await flushDebounce(150);
     expect(await loadDraft('merge')).not.toBeNull();
 
     await act(async () => {
@@ -305,15 +314,17 @@ describe('useMergeDraft', () => {
     const entryB = baseEntry(2, 'b.pdf', 1);
     const apiRef = { current: null };
 
-    await mount(apiRef, baseOptions({ entries: [entryA], plan: planForFile(1, 1) }));
-    await flushDebounce();
+    await mount(apiRef, baseOptions({ entries: [entryA], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
+    await flushDebounce(150);
     expect(spy).toHaveBeenCalledTimes(1);
 
     // Only the remembered option changes; entryA's bytes must not be re-read.
     await act(async () => {
-      render(<Harness apiRef={apiRef} options={baseOptions({ entries: [entryA], plan: planForFile(1, 1), options: { addPageNumbers: true } })} />, container);
+      render(<Harness apiRef={apiRef} options={baseOptions({
+        entries: [entryA], plan: planForFile(1, 1), options: { addPageNumbers: true }, autosaveDebounceMs: 40,
+      })} />, container);
     });
-    await flushDebounce();
+    await flushDebounce(150);
     expect(spy).toHaveBeenCalledTimes(1);
 
     // A second file arrives: only its own bytes are newly read.
@@ -322,9 +333,10 @@ describe('useMergeDraft', () => {
         entries: [entryA, entryB],
         plan: [...planForFile(1, 1), ...planForFile(2, 1)],
         options: { addPageNumbers: true },
+        autosaveDebounceMs: 40,
       })} />, container);
     });
-    await flushDebounce();
+    await flushDebounce(150);
     expect(spy).toHaveBeenCalledTimes(2);
 
     spy.mockRestore();

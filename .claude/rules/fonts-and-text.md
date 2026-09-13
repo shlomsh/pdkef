@@ -47,13 +47,13 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
 - **The font guards are the `fonts` Playwright project and run only when their inputs change.** The 27
   specs matched by `FONT_GUARDS` in `playwright.config.js` (per-script shaping guards, font parity, the
   export render guard, Hebrew composition, language acceptance) were 55% of the whole e2e suite while
-  guarding code that changes in roughly one commit in three. `ci.yml`'s `font-guard-inputs` job diffs
-  the push or PR against its base and runs the `font-guards` job only for changes under `public/fonts`,
-  `src/editor`, `src/lib`, `src/components/SignTool`, `src/test/fixtures`, `e2e/sign`, the font and
-  language scripts, the dependency files or the Playwright config; a nightly schedule and every manual
-  dispatch run them regardless. A new guard needs a name the globs match, and a new input the guard
-  reads from outside that list needs adding to the `pattern` in `ci.yml` in the same change.
-  Locally: `npm run test:e2e:fonts` after a build.
+  guarding code that changes in roughly one commit in three. `scripts/font-guard-inputs.mjs` is the one
+  list of what counts as an input (`public/fonts`, `src/editor`, `src/lib`, `src/components/SignTool`,
+  `src/test/fixtures`, `e2e/sign`, the font and language scripts, the dependency files, the Playwright
+  config); `ci.yml`'s `font-guard-inputs` job and the local `test:e2e` script both ask it, and a
+  nightly schedule and every manual dispatch run the guards regardless. A new guard needs a name the
+  globs match, and a new input a guard reads from outside that list goes into `FONT_GUARD_INPUTS` in
+  the same change. `npm run test:e2e:fonts` runs them unconditionally after a build.
 - **Resolve every family through `src/editor/text/fonts.js`** (`resolveFontFamily(family, text)`),
   from `TextNode`, `SignatureDialog` and `src/editor/registry/text.ts` alike. The browser substitutes a
   system font per missing glyph; a PDF embeds one font per run and draws an empty rectangle. Latin-only
