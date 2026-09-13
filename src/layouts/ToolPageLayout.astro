@@ -196,7 +196,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         fact in its language; an English sentence in a Hebrew hero is the
         exact incumbent weakness LOC-01 documents. */}
     {tool.slug === 'merge' && locale === 'en' && (
-      <p class="mx-auto mb-4 w-full max-w-[1280px] px-4 text-center text-[0.88rem] leading-[1.5] text-[var(--color-muted)] min-[560px]:px-6 min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
+      <p data-merge-note class="mx-auto mb-4 w-full max-w-[1280px] px-4 text-center text-[0.88rem] leading-[1.5] text-[var(--color-muted)] min-[560px]:px-6 min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
         Combine as many files as you like. Nothing is uploaded, so there's nothing to meter, only your device's own memory.
       </p>
     )}
@@ -250,6 +250,23 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         flex-direction: column;
         min-height: 0;
       }
+    }
+
+    /* Direction A reduction (Shlomi, wave 2): once files are loaded, above the
+       first thumbnail there is no UI text except the heading and page count -
+       the SEO-10 no-limit note above is exactly that kind of text, so it folds
+       away the same moment the hero's pitch does. Same mechanism as
+       ToolHero's own fold (state-driven CSS, visible by default, never hidden
+       from a crawler: Googlebot never opens a file, so `:has()` never matches
+       and the sentence renders in full). `[data-tool-shell]` still covers
+       every other tool that might one day render a note here; Merge no
+       longer mounts ToolShell at all (BasePdfTool's `hideIdentity`), so its
+       island's own wrapper renders `[data-tool-loaded]` instead the moment it
+       has files - the same "has a file" signal, in the one shape Merge still
+       produces. */
+    .tool-stage:has([data-tool-shell]) [data-merge-note],
+    .tool-stage:has([data-tool-loaded]) [data-merge-note] {
+      display: none;
     }
   </style>
 

@@ -112,6 +112,17 @@
   --color-highlight-soft: #ebffd8;
   --color-surface-soft: rgba(0, 0, 0, 0.02);
 
+  /* MERGE-18: per-file tag colour, cycled across up to six files at once
+     (Merge's caption rows and rail rows). Three theme colours, then the same
+     three at reduced opacity, rather than inventing unrelated hues - a
+     seventh file just repeats --color-tag-1. */
+  --color-tag-1: var(--color-primary);
+  --color-tag-2: var(--color-success);
+  --color-tag-3: var(--color-danger);
+  --color-tag-4: color-mix(in srgb, var(--color-primary) 55%, transparent);
+  --color-tag-5: color-mix(in srgb, var(--color-success) 55%, transparent);
+  --color-tag-6: color-mix(in srgb, var(--color-danger) 55%, transparent);
+
   --radius-sm: 10px;
   --radius: 16px;
   --radius-lg: 22px;

@@ -70,6 +70,11 @@ interface BasePdfToolProps {
    * (ToolPageLayout.astro's `.tool-stage` rule). A tool passes it only while
    * it has nothing loaded, so a loaded card flows at its own height. */
   fillViewport?: boolean;
+  /** Direction A (Merge): a tool whose loaded state replaces the identity
+   * row and file actions with its own add bar (AddBar.tsx) sets this so
+   * BasePdfTool never mounts <ToolShell><FileActions/></ToolShell> on top
+   * of it. Every other tool leaves this false and is unaffected. */
+  hideIdentity?: boolean;
 }
 
 /**
@@ -132,6 +137,7 @@ export default function BasePdfTool({
   shellMessages,
   showIosFilesHint = false,
   fillViewport = false,
+  hideIdentity = false,
 }: BasePdfToolProps) {
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
   const work = workNoun ?? sm.workDefault;
@@ -318,6 +324,17 @@ export default function BasePdfTool({
       class={pdfToolStyles['tool-card']}
       data-compact={compact || undefined}
       data-fill-viewport={(fillViewport && !hasFiles) || undefined}
+      /* Direction A reduction: the "has a file" signal for a tool that hides
+         ToolShell (`hideIdentity`), so a page-level `:has()` gate (see the
+         merge-note fold in ToolPageLayout.astro) still has something to key
+         off. Every other tool already has this in `[data-tool-shell]`; this
+         is additive and harmless on them too. */
+      data-tool-loaded={hasFiles || undefined}
+      // Direction A wave 3: a Merge-only phone padding rule (PdfTool.module.css)
+      // needs to key off something only Merge sets - `hideIdentity` is that
+      // signal today (only Merge hides ToolShell), so it is reflected onto
+      // the card rather than adding a tool-name attribute nothing else reads.
+      data-hide-identity={hideIdentity || undefined}
       onDragEnter={onWorkspaceDragEnter}
       onDragOver={onWorkspaceDragOver}
       onDragLeave={onWorkspaceDragLeave}
@@ -360,7 +377,7 @@ export default function BasePdfTool({
         />
       )}
 
-      {hasFiles && !ownsShell && (
+      {hasFiles && !ownsShell && !hideIdentity && (
         <ToolShell>
           <FileActions />
         </ToolShell>

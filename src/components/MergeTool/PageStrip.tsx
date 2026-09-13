@@ -24,14 +24,31 @@ export interface PageStripProps {
   onPlanChange: (update: (current: PlanEntry[]) => PlanEntry[]) => void;
   announce: (message: string) => void;
   messages: MergeMessages;
-  /** "18 pages", already localized by the parent through the shell catalogue. */
-  countLabel: string;
-  /** Touch only: per-page controls show after Edit pages is tapped (MERGE-11). */
+  /** Whether every file's pages still sit in one contiguous run
+   * (mergePlan.isGrouped) - captions render only while this holds; once a
+   * page crosses a file boundary the per-page tag dot takes over. */
+  grouped: boolean;
+  /** Touch only: per-page controls show after Edit pages is tapped (MERGE-11).
+   * The toggle control itself is rendered by the parent now (wave 3), in the
+   * document heading row; this only drives the grid's `data-editing`. */
   editing: boolean;
-  onToggleEditing: () => void;
   /** The parent's drag-over listener paints the MERGE-10 insertion line on
    * this element, so it owns the ref. */
   stripRef: RefObject<HTMLUListElement>;
+  /** Direction A: how many thumbnails have rendered, for the document
+   * heading ("18 pages, 16 rendered") and the Download element's preparing
+   * detail. Fired whenever the count changes, not on every render. */
+  onRenderedCountChange?: (count: number) => void;
+  /** A page action (skip, rotate, move) registers one undo with the parent's
+   * single Undo-chip slot, snapshotting the plan from just before the
+   * change. */
+  onRegisterUndo?: (message: string, perform: () => void) => void;
+  /** Direction A wave 2 (Shlomi): fired the first time a page cell receives
+   * keyboard focus (Tab, not a pointer click), so the parent can show the
+   * shortcuts line once, briefly, instead of it sitting in the header
+   * permanently. May fire more than once across the mount; the parent is
+   * the one that only acts on the first call. */
+  onFirstKeyboardFocus?: () => void;
 }
 
 interface ThumbnailSource {
@@ -43,13 +60,27 @@ interface ThumbnailSource {
 /* MERGE-08's budget: 150 px PNG on desktop (15 to 25 KB a page), 96 px JPEG
    at 0.7 under 768 px (2 to 3 KB), so a 400-page set stays under 10 MB of
    data URLs on desktop and around 1 MB on a phone. Only pages near the
-   viewport render (an IntersectionObserver over the strip's own items:
-   nothing here is hidden first, so the home-page rule does not apply), one
-   at a time, yielding between pages. */
-function thumbnailOptions() {
-  const phone = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+   viewport render (an IntersectionObserver over the document's own scroll,
+   since the grid no longer scrolls itself - root: null), one at a time,
+   yielding between pages. */
+function isPhoneViewport(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
     && window.matchMedia('(max-width: 767px)').matches;
+}
+
+function thumbnailOptions() {
+  const phone = isPhoneViewport();
   return phone ? { width: 96, type: 'image/jpeg', quality: 0.7 } : { width: 150, type: 'image/png' };
+}
+
+/* Direction A wave 2 (Shlomi): 96 to 110px cells on desktop and phone alike
+   (a 104px portrait cell, its real-aspect landscape swap at the same area);
+   the phone board asks for "as many columns as fit at 96px minimum" - a
+   fixed 96px base on narrow viewports gets close to that without a second
+   layout engine (CSS grid `auto-fill`) for what is otherwise a flex row
+   mixing page cells and inline captions. */
+function baseCellSize(): { w: number; h: number } {
+  return isPhoneViewport() ? { w: 96, h: 127 } : { w: 104, h: 138 };
 }
 
 export default function PageStrip({
@@ -58,13 +89,33 @@ export default function PageStrip({
   onPlanChange,
   announce,
   messages: t,
-  countLabel,
+  grouped,
   editing,
-  onToggleEditing,
   stripRef,
+  onRenderedCountChange,
+  onRegisterUndo,
+  onFirstKeyboardFocus,
 }: PageStripProps) {
+  // A plain keyboard/pointer heuristic (not :focus-visible, which some jsdom
+  // versions don't implement): a keydown anywhere sets "keyboard modality"
+  // until the next pointer interaction clears it, mirroring how most
+  // focus-visible polyfills work.
+  const keyboardActiveRef = useRef(false);
+  useEffect(() => {
+    const setKeyboard = () => { keyboardActiveRef.current = true; };
+    const clearKeyboard = () => { keyboardActiveRef.current = false; };
+    window.addEventListener('keydown', setKeyboard, true);
+    window.addEventListener('mousedown', clearKeyboard, true);
+    window.addEventListener('pointerdown', clearKeyboard, true);
+    return () => {
+      window.removeEventListener('keydown', setKeyboard, true);
+      window.removeEventListener('mousedown', clearKeyboard, true);
+      window.removeEventListener('pointerdown', clearKeyboard, true);
+    };
+  }, []);
   const [, bump] = useState(0);
   const thumbnails = useRef(new Map<string, string>());
+  const aspects = useRef(new Map<string, number>());
   const sources = useRef(new Map<number, { source: Promise<ThumbnailSource>; controller: AbortController }>());
   const queue = useRef<string[]>([]);
   const queued = useRef(new Set<string>());
@@ -96,6 +147,16 @@ export default function PageStrip({
     for (const key of Array.from(queued.current)) if (key.startsWith(`${fileId}:`)) queued.current.delete(key);
   }, []);
 
+  // Reports the rendered count up to the parent whenever it actually moves -
+  // the document heading and the Download element's "N of M rendered" both
+  // read it, without either owning the thumbnail cache itself.
+  const reportRenderedCount = useCallback(() => {
+    if (!onRenderedCountChange) return;
+    let count = 0;
+    for (const entry of planRef.current) if (thumbnails.current.has(entry.key)) count += 1;
+    onRenderedCountChange(count);
+  }, [onRenderedCountChange]);
+
   const processQueue = useCallback(async () => {
     if (rendering.current) return;
     rendering.current = true;
@@ -122,17 +183,18 @@ export default function PageStrip({
           if (held.controller.signal.aborted) continue;
           thumbnails.current.set(key, dataUrl);
           bump((n) => n + 1);
+          reportRenderedCount();
         } catch {
           // A page that will not render stays a placeholder; the merge itself
           // reports a broken file through inspectPdf, not through here.
         }
-        // Yield so a long strip never freezes scrolling.
+        // Yield so a long grid never freezes scrolling.
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
     } finally {
       rendering.current = false;
     }
-  }, []);
+  }, [reportRenderedCount]);
 
   const enqueue = useCallback((key: string) => {
     if (thumbnails.current.has(key) || queued.current.has(key)) return;
@@ -148,17 +210,20 @@ export default function PageStrip({
     for (const key of Array.from(thumbnails.current.keys())) {
       if (!present.has(Number(key.split(':')[0]))) thumbnails.current.delete(key);
     }
-  }, [entries, releaseFile]);
+    reportRenderedCount();
+  }, [entries, releaseFile, reportRenderedCount]);
 
   useEffect(() => () => {
     for (const fileId of Array.from(sources.current.keys())) releaseFile(fileId);
     observer.current?.disconnect();
   }, [releaseFile]);
 
-  // Observe every card; render as it nears the viewport.
+  // Observe every card; render as it nears the viewport. The grid no longer
+  // scrolls itself (it wraps in the page's own flow), so the observer root
+  // is the viewport, not the grid element.
   useEffect(() => {
-    const strip = stripRef.current;
-    if (!strip) return undefined;
+    const grid = stripRef.current;
+    if (!grid) return undefined;
     observer.current?.disconnect();
     if (typeof IntersectionObserver === 'undefined') return undefined;
     const io = new IntersectionObserver((records) => {
@@ -167,24 +232,24 @@ export default function PageStrip({
         const key = (record.target as HTMLElement).dataset.key;
         if (key) enqueue(key);
       }
-    }, { root: strip, rootMargin: '0px 240px 0px 240px' });
+    }, { root: null, rootMargin: '400px 0px 400px 0px' });
     observer.current = io;
-    for (const card of Array.from(strip.querySelectorAll('[data-key]'))) io.observe(card);
+    for (const card of Array.from(grid.querySelectorAll('[data-key]'))) io.observe(card);
     return () => io.disconnect();
   }, [plan, enqueue, stripRef]);
 
   // SortableJS owns the DOM during a drag; the plan is committed once in onEnd.
   useEffect(() => {
-    const strip = stripRef.current;
-    if (!strip) return undefined;
-    const sortable = Sortable.create(strip, {
+    const grid = stripRef.current;
+    if (!grid) return undefined;
+    const sortable = Sortable.create(grid, {
       animation: 220,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
       draggable: `.${styles.page}`,
-      filter: `.${styles.divider}, .${styles.action}, .${styles['open-preview']}`,
+      filter: `.${styles.caption}, .${styles.action}, .${styles['row-break']}`,
       preventOnFilter: false,
-      // A swipe pans the strip; a press-and-hold picks a page up. Without the
-      // delay every horizontal scroll on a phone would start a drag instead.
+      // A swipe pans the page; a press-and-hold picks a page up. Without the
+      // delay every vertical scroll on a phone would start a drag instead.
       delay: 150,
       delayOnTouchOnly: true,
       touchStartThreshold: 5,
@@ -194,8 +259,10 @@ export default function PageStrip({
       onEnd(evt: Sortable.SortableEvent) {
         if (evt.oldIndex == null || evt.newIndex == null || evt.oldIndex === evt.newIndex) return;
         const { oldIndex, newIndex } = evt;
+        const snapshot = planRef.current;
         onPlanChange((current) => moveEntry(current, oldIndex, newIndex));
         announce(formatMessage(t.pageMoved, { position: newIndex + 1, total: planRef.current.length }));
+        onRegisterUndo?.(formatMessage(t.pageMovedUndo, { number: newIndex + 1 }), () => onPlanChange(() => snapshot));
       },
     });
     return () => sortable.destroy();
@@ -212,28 +279,36 @@ export default function PageStrip({
   }, [plan, stripRef]);
 
   const rotate = useCallback((key: string, position: number) => {
+    const snapshot = planRef.current;
     onPlanChange((current) => rotateEntry(current, key, 90));
     const before = planRef.current.find((p) => p.key === key)?.rotation ?? 0;
     announce(formatMessage(t.pageRotated, { number: position, degrees: (before + 90) % 360 }));
-  }, [onPlanChange, announce, t.pageRotated]);
+    onRegisterUndo?.(formatMessage(t.pageRotatedUndo, { number: position }), () => onPlanChange(() => snapshot));
+  }, [onPlanChange, announce, t.pageRotated, t.pageRotatedUndo, onRegisterUndo]);
 
   const toggleSkip = useCallback((key: string, position: number) => {
     const entry = planRef.current.find((p) => p.key === key);
     if (!entry) return;
+    const snapshot = planRef.current;
     onPlanChange((current) => {
       const live = current.find((p) => p.key === key);
       return live ? updateEntry(current, key, { skipped: !live.skipped }) : current;
     });
     announce(formatMessage(entry.skipped ? t.pageIncluded : t.pageSkipped, { number: position }));
-  }, [onPlanChange, announce, t.pageIncluded, t.pageSkipped]);
+    if (!entry.skipped) {
+      onRegisterUndo?.(formatMessage(t.pageSkippedUndo, { number: position }), () => onPlanChange(() => snapshot));
+    }
+  }, [onPlanChange, announce, t.pageIncluded, t.pageSkipped, t.pageSkippedUndo, onRegisterUndo]);
 
   const move = useCallback((index: number, delta: number) => {
     const target = index + delta;
     if (target < 0 || target >= planRef.current.length) return;
+    const snapshot = planRef.current;
     focusKey.current = planRef.current[index].key;
     onPlanChange((current) => moveEntry(current, index, target));
     announce(formatMessage(t.pageMoved, { position: target + 1, total: planRef.current.length }));
-  }, [onPlanChange, announce, t.pageMoved]);
+    onRegisterUndo?.(formatMessage(t.pageMovedUndo, { number: target + 1 }), () => onPlanChange(() => snapshot));
+  }, [onPlanChange, announce, t.pageMoved, t.pageMovedUndo, onRegisterUndo]);
 
   const openPreview = useCallback((index: number) => {
     setPreviewIndex(index);
@@ -285,10 +360,74 @@ export default function PageStrip({
     if (!file) return;
     if (!entry.skipped) outputCounter += 1;
     const position = entry.skipped ? outputCounter + 1 : outputCounter;
-    if (index > 0 && plan[index - 1].fileId !== entry.fileId) {
-      items.push(<li key={`divider-${entry.key}`} class={styles.divider} role="presentation" aria-hidden="true" />);
+
+    // A file's run starts a caption LABEL while the plan is still grouped -
+    // colour tag, name (bidi plaintext), page range, nothing else (Shlomi's
+    // reduction: no size, no rule, no actions - remove lives in the rail row,
+    // rotate all is gone). Once pages are interleaved across files the
+    // caption disappears for the whole grid (the parent's rail shows the
+    // note instead) and the per-page tag dot (always in the DOM, see below)
+    // becomes visible. A run of two pages or fewer sits inline beside its
+    // own cells (one flex row) instead of claiming a full-width row above
+    // them - `data-inline` switches the CSS between the two.
+    if (grouped && (index === 0 || plan[index - 1].fileId !== entry.fileId)) {
+      const runStart = position;
+      // Walk the file's own contiguous slice to find its last output
+      // position and how many pages the run has.
+      let end = runStart;
+      let counter = outputCounter - 1;
+      let runLength = 0;
+      for (let i = index; i < plan.length && plan[i].fileId === entry.fileId; i += 1) {
+        runLength += 1;
+        if (!plan[i].skipped) counter += 1;
+        end = plan[i].skipped ? end : counter;
+      }
+      const tagIndex = ((filePosition.get(entry.fileId) ?? 1) - 1) % 6;
+      const tagStyle = { '--tag-color': `var(--color-tag-${tagIndex + 1})` } as any;
+      const inline = runLength <= 2;
+      // An inline label sits beside its own 1-2 cells on one flex line, but
+      // flex-wrap has no notion of "keep this item and the next two
+      // together" - without help the label can land mid-row after the
+      // previous run, pushing its own cells to split across the wrap. A
+      // zero-height, full-width, presentational item forces a fresh row
+      // right before the label; excluded from SortableJS (`filter`, same as
+      // `.caption`) and from the insertion-line painter (no `data-key`).
+      if (inline) {
+        items.push(
+          <li key={`break-${entry.fileId}`} class={styles['row-break']} aria-hidden="true" />,
+        );
+      }
+      items.push(
+        <li
+          key={`caption-${entry.fileId}`}
+          class={styles.caption}
+          data-caption-for={entry.fileId}
+          data-inline={inline || undefined}
+        >
+          <span class={styles['tag-square']} style={tagStyle} aria-hidden="true" />
+          <span class={styles['caption-name']} dir="auto">{file.file.name}</span>
+          <span class={styles['caption-meta']}>
+            {formatMessage(t.captionPages, { from: runStart, to: end })}
+          </span>
+        </li>,
+      );
     }
+
     const thumbnail = thumbnails.current.get(entry.key);
+    const aspect = aspects.current.get(entry.key);
+    const rotated90 = entry.rotation === 90 || entry.rotation === 270;
+    const sourceLandscape = aspect != null && aspect >= 1;
+    const finalLandscape = rotated90 ? !sourceLandscape : sourceLandscape;
+    const base = baseCellSize();
+    const cellStyle = {
+      '--cell-w': `${finalLandscape ? base.h : base.w}px`,
+      '--cell-h': `${finalLandscape ? base.w : base.h}px`,
+    } as any;
+    const thumbStyle = rotated90
+      ? { width: 'var(--cell-h)', height: 'var(--cell-w)', transform: `rotate(${entry.rotation}deg)` }
+      : entry.rotation === 180 ? { transform: 'rotate(180deg)' } : undefined;
+    const tagIndex = ((filePosition.get(entry.fileId) ?? 1) - 1) % 6;
+    const dotStyle = { '--tag-color': `var(--color-tag-${tagIndex + 1})` } as any;
     const label = formatMessage(t.pageItemLabel, {
       number: position,
       total: outputTotal,
@@ -302,23 +441,38 @@ export default function PageStrip({
         data-key={entry.key}
         data-rotation={entry.rotation || undefined}
         data-skipped={entry.skipped || undefined}
+        style={cellStyle}
         tabIndex={0}
         aria-label={label}
         onKeyDown={(event) => onCardKeyDown(event, index, entry.key)}
-        onFocus={() => { focusKey.current = entry.key; }}
+        onFocus={() => {
+          focusKey.current = entry.key;
+          if (keyboardActiveRef.current) onFirstKeyboardFocus?.();
+        }}
       >
-        <span class={styles.tag} aria-hidden="true">{formatMessage(t.fileTag, { number: filePosition.get(entry.fileId) ?? 0 })}</span>
-        {entry.skipped && <span class={styles['skipped-badge']} aria-hidden="true">{t.skippedBadge}</span>}
+        <span class={styles['tag-dot']} style={dotStyle} aria-hidden="true" />
         <span class={styles['thumb-box']}>
-          {thumbnail ? <img class={styles.thumb} src={thumbnail} alt="" loading="lazy" /> : null}
-          <button
-            type="button"
-            class={styles['open-preview']}
-            aria-label={formatMessage(t.openPreview, { number: position })}
-            onClick={() => openPreview(index)}
-          />
+          {thumbnail ? (
+            <img
+              class={styles.thumb}
+              src={thumbnail}
+              alt=""
+              loading="lazy"
+              style={thumbStyle}
+              onLoad={(event) => {
+                const img = event.currentTarget as HTMLImageElement;
+                if (img.naturalWidth && img.naturalHeight) {
+                  aspects.current.set(entry.key, img.naturalWidth / img.naturalHeight);
+                  bump((n) => n + 1);
+                }
+              }}
+            />
+          ) : file.error ? (
+            <span class={styles['lock-glyph']} aria-hidden="true">L</span>
+          ) : null}
         </span>
         <span class={styles.number}>{position}</span>
+        {entry.skipped && <span class={styles['skipped-word']}>{t.skippedBadge.toLowerCase()}</span>}
         <span class={styles.actions}>
           <button
             type="button"
@@ -342,30 +496,36 @@ export default function PageStrip({
               {entry.skipped ? <path d="M3 8.5l3 3 7-7" /> : <path d="M2 2l12 12M4 4.5h8M4 8h8M4 11.5h8" />}
             </svg>
           </button>
+          <button
+            type="button"
+            class={styles.action}
+            aria-label={formatMessage(t.openPreview, { number: position })}
+            onClick={() => openPreview(index)}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="7" cy="7" r="4.5" />
+              <path d="M10.3 10.3L14 14" />
+            </svg>
+          </button>
         </span>
       </li>,
     );
   });
-  const skippedCount = plan.length - outputPageCount(plan);
 
   return (
     <section class={styles.section} aria-labelledby="merge-pages-heading">
-      <div class={styles.header}>
-        <h2 class={styles.heading} id="merge-pages-heading">{t.pagesHeading}</h2>
-        <span class={styles.count}>
-          {countLabel}
-          {skippedCount > 0 ? ` · ${skippedCount} ${t.skippedBadge.toLowerCase()}` : ''}
-        </span>
-        <button type="button" class={styles['edit-toggle']} aria-pressed={editing} onClick={onToggleEditing}>
-          {editing ? t.doneEditing : t.editPages}
-        </button>
-      </div>
+      {/* Direction A wave 3: the Edit pages toggle now lives in the document
+          heading row (PdfMergeTool.tsx), beside the heading itself, so the
+          two share one line on a phone instead of the toggle dropping to a
+          line of its own. This section keeps `editing`/`onToggleEditing`
+          only to drive the grid's own `data-editing` attribute. */}
       <p class="sr-only" id="merge-strip-hint">{t.stripHint}</p>
       <ul
-        class={styles.strip}
+        class={styles.grid}
         ref={stripRef}
         aria-describedby="merge-strip-hint"
         data-editing={editing || undefined}
+        data-grouped={grouped || undefined}
       >
         {items}
       </ul>
