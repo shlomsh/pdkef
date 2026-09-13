@@ -299,7 +299,6 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| ARCH-16 | P1 | [ARCH-16](backlog/tasks/ARCH-16.md) · Move the shared shell and the editor UI out of src/components into src/shell and src/editor-ui |
 | ARCH-17 | P1 | [ARCH-17](backlog/tasks/ARCH-17.md) · One folder per tool: Compress, Split, Edit pages, PDF to image, Image to PDF, Unlock/Protect and Redact into src/tools/ |
 | ARCH-20 | P2 | [ARCH-20](backlog/tasks/ARCH-20.md) · Adopt Nx on the drawn boundaries: one project per module, tags that enforce the rules, affected-only tests in CI and locally |
 | QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
@@ -319,6 +318,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | ARCH-15 | P1 | [ARCH-15](backlog/tasks/ARCH-15.md) · Module boundaries: the target layout, the dependency rules, and a checker that ratchets today's violations down |
+| ARCH-16 | P1 | [ARCH-16](backlog/tasks/ARCH-16.md) · Move the shared shell and the editor UI out of src/components into src/shell and src/editor-ui |
 | ARCH-19 | P2 | [ARCH-19](backlog/tasks/ARCH-19.md) · The editor core stops importing Preact components: fix the four src/editor to src/components leaks |
 
 ### Retired
