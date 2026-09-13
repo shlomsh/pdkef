@@ -2,11 +2,15 @@ import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { readFile } from 'node:fs/promises';
 
-/* MERGE-08/09/10: the page strip. Its per-page controls (rotate, skip) are
-   CSS `visibility: hidden` until the card is hovered or focused (or, on
-   touch, until "Edit pages" is tapped) - see PageStrip.module.css's
-   `.page:hover .actions, .page:focus-within .actions`. On a pointer-driven
-   project we hover the card before clicking a button inside it. */
+/* Direction A (2026-09-13, renamed from merge-strip.spec.js): the document's
+   page grid. It wraps (no horizontal strip) and is a `<ul class*="grid">`
+   (PageStrip.module.css) of `<li class="page" data-key data-rotation
+   data-skipped>` cells plus `<li class="caption" data-caption-for>` label
+   rows. Its per-page controls (rotate, skip) are CSS `visibility: hidden`
+   until the cell is hovered or focused (or, on touch, until "Edit pages" is
+   tapped) - see PageStrip.module.css's `.page:hover .actions,
+   .page:focus-within .actions`. On a pointer-driven project we hover the
+   cell before clicking a button inside it. */
 
 // A distinct page width per file lets pdf-lib tell the merged output's pages
 // apart afterwards, without relying on drawn text.
@@ -17,15 +21,15 @@ async function makePdfBuffer(label, pageCount, width) {
   return Buffer.from(await document.save());
 }
 
-function strip(page) {
-  return page.locator('ul[class*="strip"]');
+function grid(page) {
+  return page.locator('ul[class*="grid"]');
 }
 
 function cards(page) {
-  return strip(page).locator('> li[data-key]');
+  return grid(page).locator('> li[data-key]');
 }
 
-test('the assembled strip: every page, rotate, skip and keyboard reorder land in the export (MERGE-08/09)', async ({ page }) => {
+test('the assembled grid: every page, rotate, skip and keyboard reorder land in the export (MERGE-08/09)', async ({ page }) => {
   await page.goto('/merge/');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
 
@@ -44,10 +48,10 @@ test('the assembled strip: every page, rotate, skip and keyboard reorder land in
   await page.locator('input[type="file"]').setInputFiles(files);
 
   await expect(cards(page)).toHaveCount(10);
-  await expect(page.locator('[class*="count"]', { hasText: '10 pages' })).toBeVisible();
+  await expect(page.locator('[class*="doc-heading-count"]', { hasText: '10 pages' })).toBeVisible();
 
   // Thumbnails render progressively; wait for the first three near the start
-  // of the strip.
+  // of the grid.
   for (let i = 0; i < 3; i += 1) {
     await expect(cards(page).nth(i).locator('img')).toHaveAttribute('src', /^data:/, { timeout: 10_000 });
   }
@@ -63,8 +67,10 @@ test('the assembled strip: every page, rotate, skip and keyboard reorder land in
   await card3.hover();
   await card3.getByRole('button', { name: 'Skip page 3', exact: true }).click({ force: true });
   await expect(card3).toHaveAttribute('data-skipped', 'true');
-  await expect(page.locator('[class*="count"]', { hasText: '9 pages' })).toBeVisible();
-  await expect(page.locator('[class*="count"]', { hasText: '1 skipped' })).toBeVisible();
+  await expect(page.locator('[class*="doc-heading-count"]', { hasText: '9 pages' })).toBeVisible();
+  // "1 page skipped" - the count uses the same singular/plural pageCountOne
+  // string as everywhere else, not a bare number.
+  await expect(page.locator('[class*="doc-heading-count"]', { hasText: '1 page skipped' })).toBeVisible();
 
   // Keyboard: focus card 1 (file0's only page) and move it forward one slot.
   const card1Key = await cards(page).nth(0).getAttribute('data-key');
@@ -93,7 +99,7 @@ test('the assembled strip: every page, rotate, skip and keyboard reorder land in
   expect(firstOutputPage.getRotation().angle).toBe(90);
 });
 
-test('dropping a file onto the strip inserts its pages there and flags the rearrangement (MERGE-10)', async ({ page }) => {
+test('dropping a file onto the grid inserts its pages there and flags the rearrangement (MERGE-10)', async ({ page }) => {
   await page.goto('/merge/');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
 
@@ -149,6 +155,6 @@ test('dropping a file onto the strip inserts its pages there and flags the rearr
   await expect(cards(page)).toHaveCount(6);
 
   // Landing inside a file's run (not at its boundary) rearranges the file
-  // list, which surfaces the note in place of the sort toolbar.
+  // list, which surfaces the note in place of the sort control.
   await expect(page.getByText('Pages were rearranged', { exact: false })).toBeVisible();
 });

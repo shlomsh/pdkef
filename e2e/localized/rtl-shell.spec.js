@@ -68,17 +68,26 @@ test('a loaded file lists its row mirrored: handle at the inline start, remove a
     mimeType: 'application/pdf',
     buffer: Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>'),
   });
-  const row = page.locator('li[data-id]').first();
+  // Direction A (2026-09-13): the file rows live in the rail
+  // (MergeRail.module.css's .file-row); the phone chip row carries the same
+  // data-id but is display:none at this width, so the rail row is named.
+  const row = page.locator('li[class*="file-row"][data-id]').first();
   await expect(row).toBeVisible();
   const handle = await row.locator('[role="button"]').boundingBox();
   const remove = await row.locator('button').last().boundingBox();
   expect(handle.x, 'drag handle should be right of the remove button in RTL').toBeGreaterThan(remove.x);
 
-  // The island is localized, not just the shell around it (MERGE-06 turned
-  // the four sort buttons into one select plus Reverse order).
-  await expect(page.locator('[role="toolbar"] button').first()).toHaveText('היפוך הסדר');
-  await expect(page.locator('[role="toolbar"] select')).toHaveAttribute('aria-label', 'מיון');
-  await expect(page.locator('button', { hasText: 'הוסיפו עוד קובץ אחד כדי למזג' })).toBeVisible();
+  // The island is localized, not just the shell around it: with one file the
+  // Download element asks for one more in Hebrew; Sort only renders once
+  // there are two files, as one select with Reversed folded in.
+  await expect(page.locator('[data-state="one-file"]')).toContainText('הוסיפו עוד PDF אחד כדי למזג');
+  await page.setInputFiles('input[type=file]', {
+    name: 'second.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>'),
+  });
+  await expect(page.locator('li[class*="file-row"][data-id]')).toHaveCount(2);
+  await expect(page.locator('[class*="rail"] select').first()).toHaveAttribute('aria-label', 'מיון');
 });
 
 test('a localized page raises no CSP violation', async ({ page }) => {
