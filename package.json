@@ -13,7 +13,7 @@
     "typecheck": "astro check",
     "test": "vitest run",
     "test:changed": "vitest run --changed origin/main",
-    "test:e2e": "npm run build && npm run test:e2e:product && node scripts/font-guard-inputs.mjs --run npm run test:e2e:fonts",
+    "test:e2e": "npm run build && npm run test:e2e:product && node scripts/change-scope.mjs --run npm run test:e2e:fonts",
     "test:e2e:product": "playwright test --project=chromium --project=webkit && playwright test --project=perf --workers=1",
     "test:e2e:fonts": "playwright test --project=fonts",
     "test:csp": "node scripts/verify-csp.js",
