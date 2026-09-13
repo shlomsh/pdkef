@@ -1,7 +1,7 @@
 ---
 id: "ARCH-17"
 title: "One folder per tool: Compress, Split, Edit pages, PDF to image, Image to PDF, Unlock/Protect and Redact into src/tools/"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "module-boundaries"
 phase: "near-term"
@@ -42,3 +42,25 @@ Merge and Sign are ARCH-18: Merge has an epic in flight on its own branch and Si
 - `src/tools/<tool>/` is self-contained: its imports go to `shell`, `editor-ui`, `editor`, `lib`,
   `i18n` and `data` only. A grep for `from '../../tools/` outside `src/tools` and `src/pages` is empty.
 - The Playwright test count is unchanged (276 as of 2026-09-13) after each move.
+
+## Notes
+
+- Done 2026-09-13, eleven commits from `337fac6` (plumbing) to `cef13e4`, one per tool in the
+  order compress, split, edit-pages, to-image, image-to-pdf, security, redact, three agents in
+  parallel after the plumbing. Playwright discovers `src/tools/*/e2e/**` beside `e2e/`; the count
+  stayed 276 after every move; unit 2765 to 2787 because `noCamelCaseSvgAttrs.test.js` now lives in
+  `src/test/` and walks all of `src/` (it used to scan only its own folder, so moves shrank it
+  silently).
+- Redact proved the `editor-ui` boundary, with one correction: `Workspace.module.css`,
+  `EditorElement.module.css` and `SignToolbar.module.css` were Sign-and-Redact chrome living under
+  `SignTool/`; they moved to `src/editor-ui/` first (`7e9bca1`), which retired ten allowlist entries
+  (25 to 15) instead of turning three into tool-to-tool edges. `src/tools/redact/` imports nothing
+  from `SignTool/`.
+- Things a `from` grep misses and every move had to catch by hand: `vi.mock('...')` strings,
+  `import('...')` in type positions, `path.resolve(__dirname, './__fixtures__')` depths (the
+  fixtures stay in `src/lib/__fixtures__/`), and a module moving into the same folder as its only
+  consumer (`./x`, not `../../lib/x`).
+- Left flat in `src/components/` on purpose: `PdfMergeTool`, `PdfSignTool`, `MergeTool/`,
+  `SignTool/` (ARCH-18), `HeroDemo/` and the `.astro` files (site), and the three cross-tool tests
+  `draftCheckingPlaceholder`, `draftRestoreRace`, `overlayElements` (see the record's "Needs a
+  decision"; the first two belong next to `draftStore.js`).
