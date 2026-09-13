@@ -4,6 +4,7 @@ import {
   fileOrder,
   insertPages,
   isGrouped,
+  isInListOrder,
   mergedFileName,
   mergedTitle,
   moveEntry,
@@ -66,6 +67,31 @@ describe('isGrouped', () => {
     const b2 = { key: 'b:1', fileId: 2, pageIndex: 1, rotation: 0, skipped: false };
     const a2 = { key: 'a:1', fileId: 1, pageIndex: 1, rotation: 0, skipped: false };
     expect(isGrouped([a1, b1, b2, a2])).toBe(false);
+  });
+});
+
+describe('isInListOrder', () => {
+  it('is true when grouped and the plan order matches the list order', () => {
+    const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
+    expect(isInListOrder(plan, [1, 2])).toBe(true);
+  });
+
+  it('is false when grouped but a file block moved relative to the list', () => {
+    const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
+    expect(isInListOrder(plan, [2, 1])).toBe(false);
+  });
+
+  it('is false when the plan is interleaved', () => {
+    const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
+    const interleaved = moveEntry(plan, 2, 1);
+    expect(isInListOrder(interleaved, [1, 2])).toBe(false);
+  });
+
+  it('ignores a file with no plan entries yet, still true', () => {
+    const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
+    // File 3 has been added to the list but its page count isn't known yet,
+    // so it has no entries in the plan - it should not count against order.
+    expect(isInListOrder(plan, [1, 3, 2])).toBe(true);
   });
 });
 

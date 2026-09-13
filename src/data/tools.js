@@ -380,7 +380,7 @@ export const tools = [
     toolName: 'Merge PDF',
     h1: 'Merge or Combine PDF Files Free: In Your Browser',
     subhead:
-      'Combine multiple PDFs into a single document, see every page before you download, and reorder, rotate or skip pages by drag-and-drop. Page numbers are optional.',
+      'Combine PDFs into one file and see every page before you download. Reorder, rotate or skip pages by drag-and-drop; page numbers are optional.',
     ariaLabel: 'PDF merge tool',
     aboutHeading: 'How to merge PDF files online for free',
     aboutLead:
