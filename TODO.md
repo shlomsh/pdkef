@@ -196,6 +196,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | --- | --- | --- |
 | LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
 | LOC-16 | P2 | [LOC-16](backlog/tasks/LOC-16.md) · Finish the Hebrew edition: HeroDemo, the rest of the Sign editor, the compress-hub guides, and the home page sign-off |
+| LOC-18 | P2 | [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through |
 
 
 ## Merge: the tool people return to and recommend (2026-09-13 review)

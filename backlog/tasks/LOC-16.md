@@ -1,7 +1,7 @@
 ---
 id: "LOC-16"
 title: "Finish the Hebrew edition: HeroDemo, the rest of the Sign editor, the compress-hub guides, and the home page sign-off"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "hebrew-edition"
 phase: "near-term"
@@ -158,7 +158,7 @@ unchanged count from before this change), `npm run test:redirects`, `npm run tes
 logic was touched, only strings, labels, announcements and prop-threading. Hebrew values are an AI
 draft, same caveat as every other catalogue here - pending Shlomi's read-through.
 
-### 3. Hebrew editions of the two compress-hub guides
+### 3. Hebrew editions of the two compress-hub guides (split to LOC-18)
 
 **What exists.** Eight of ten Hebrew guides are live in `src/content/localized-pages/he/`
 (`how-to-sign-a-pdf-on-{android,iphone,mac,windows}`, `install-pdf-app`, `offline-pdf-form-filler`,
@@ -176,7 +176,7 @@ the page's actual content.
 **Done means** both guides published in `src/content/localized-pages/he/`, cited to their Israeli
 portals the way the English originals cite theirs, through the same gate the other eight used.
 
-### 4. Home page sign-off
+### 4. Home page sign-off (split to LOC-18)
 
 **What exists.** `src/content/localized-home/he.yaml` still carries `reviewer: 'Claude Sonnet 5'` and a
 `reviewNotes` that says plainly this is an AI draft pending Shlomi's own read-through, not a native
@@ -219,6 +219,14 @@ against a built `/he/` now serves `/he.md` (verified locally against `dist/he.md
 `npm run build`; the deployed-only `curl` check in `routing-and-pages.md` still applies for the live
 negotiation path). `npm run build`, `npm run typecheck`, `npm test`, `npm run test:seo` and
 `npm run test:redirects` all pass with this change.
+
+## Closed 2026-09-13
+
+Items 1, 2 and 5 shipped and are recorded above. Items 3 and 4 are not buildable right now - both wait
+on something only Shlomi can supply (real Israeli portal limits; his own read-through of the rendered
+`/he/` page), not on engineering scoping - so they are split out to [LOC-18](LOC-18.md) rather than
+leaving this ticket open with nothing left to do on it, the same reasoning LOC-15 used to split off
+LOC-17.
 
 ## Decided, not to reopen
 

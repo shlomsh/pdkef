@@ -200,9 +200,7 @@ _None._
 
 ### Open
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| LOC-16 | P2 | [LOC-16](backlog/tasks/LOC-16.md) · Finish the Hebrew edition: HeroDemo, the rest of the Sign editor, the compress-hub guides, and the home page sign-off |
+_None._
 
 ### In progress
 
@@ -210,13 +208,16 @@ _None._
 
 ### Blocked
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| LOC-18 | P2 | [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through |
 
 ### Done
 
 | ID | Priority | Task |
 | --- | --- | --- |
 | LOC-05 | P3 | [LOC-05](backlog/tasks/LOC-05.md) · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links |
+| LOC-16 | P2 | [LOC-16](backlog/tasks/LOC-16.md) · Finish the Hebrew edition: HeroDemo, the rest of the Sign editor, the compress-hub guides, and the home page sign-off |
 
 ### Retired
 
