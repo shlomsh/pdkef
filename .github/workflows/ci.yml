@@ -134,27 +134,13 @@ jobs:
     - name: Check first-load page weight
       run: npm run test:weight
 
-    - name: Resolve Playwright version
-      id: playwright
-      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-
-    # The browser binaries only change with the Playwright version, so they
-    # are cached on it; the apt libraries they need are not cacheable and are
-    # installed either way.
-    - name: Cache Playwright browsers
-      id: playwright-cache
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-webkit
-
+    # Not cached here, on purpose. Measured: a cache hit is 5s to restore plus
+    # 46s of `install-deps` for webkit's apt libraries, against 38s for this
+    # one command. The cache only ever saved the download; the apt half is the
+    # cost, and it is not cacheable. The chromium-only fonts job below does
+    # cache, because there the apt half is 12s.
     - name: Install Playwright browsers
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
       run: npx playwright install --with-deps chromium webkit
-
-    - name: Install Playwright system dependencies
-      if: steps.playwright-cache.outputs.cache-hit == 'true'
-      run: npx playwright install-deps chromium webkit
 
     - name: Run Playwright e2e tests (product)
       # CI has already built the exact dist checked by CSP, SEO, CSS and weight
