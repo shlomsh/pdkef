@@ -127,8 +127,18 @@ function collectSourceFiles(dir, out = []) {
 
 // Matches `import ... from '...'`, `export ... from '...'`, a bare
 // `import '...'` side-effect import, and `import('...')`. Deliberately static
-// (no template-literal specifiers), same limitation as the editor guard.
-const IMPORT_PATTERN = /(?:^|\n)\s*(?:import(?!\s*\()|export)\s+[^;\n]*?\sfrom\s+['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)|(?:^|\n)\s*import\s*['"]([^'"]+)['"]/g;
+// (no template-literal specifiers), same limitation as the editor guard. The
+// import clause is matched by shape (`* as ns`, a `{ ... }` list, a default,
+// or default plus one of those) rather than "anything up to `from`", so a
+// `{` list spanning several lines counts: the first version stopped at the
+// line break and missed every multi-line import (ARCH-20 prep found one).
+const IMPORT_CLAUSE = String.raw`(?:type\s+)?(?:\*(?:\s+as\s+[\w$]+)?|\{[^}]*\}|[\w$]+(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+[\w$]+))?)`;
+const IMPORT_PATTERN = new RegExp(
+  String.raw`(?:^|\n)\s*(?:import|export)\s+${IMPORT_CLAUSE}\s*from\s+['"]([^'"]+)['"]`
+  + String.raw`|import\s*\(\s*['"]([^'"]+)['"]\s*\)`
+  + String.raw`|(?:^|\n)\s*import\s*['"]([^'"]+)['"]`,
+  'g',
+);
 
 function importSpecifiers(source) {
   const specifiers = [];
