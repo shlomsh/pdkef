@@ -54,3 +54,4 @@ per second on a mid-range Android; memory per page) and measure it in a real bro
   1 MB on a phone. Tap a page: `PagePreviewDialog` via `showModal()`, also a dynamic import. The
   Playwright count guard is `e2e/merge/merge-strip.spec.js`. Measured on a mid-range Android: not
   done here (no device in this session); left for the field read in MERGE-16. Done.
+- Direction A (2026-09-13): the horizontal strip became a wrapping page grid that fills the workspace, with a label per file (tag, name, page range) instead of the per-page tag the critique found painted under the thumbnail; 104px cells on desktop, 96px on a phone, 12px gaps, landscape shown landscape at full cell width. The heading carries "14 rendered" while thumbnails arrive.

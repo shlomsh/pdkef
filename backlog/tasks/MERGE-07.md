@@ -52,3 +52,4 @@ touches the architecture:
   every file below the list; a per-file inline expand would duplicate it. Unit tests for counts, undo
   and duplicates in `PdfMergeTool.test.tsx`; the insertion line on a real drop in
   `e2e/merge/merge-insert.spec.js`. Done.
+- Direction A (2026-09-13): rows moved into the 320px sticky rail at 44px each (grip and remove X at --color-muted, 6.2:1, was 1.72:1); names use unicode-bidi: plaintext so Hebrew keeps its form number and .pdf. Undo is one chip in the document header shared with page actions.

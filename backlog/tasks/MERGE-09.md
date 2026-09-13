@@ -52,3 +52,4 @@ on, count output pages.
   functional updaters over the current plan so consecutive commits compose. `mergePdfs` takes the
   plan; page numbers count output pages; the round trip of all three operations is in
   `merge.test.js` against real pdf.js. The subhead names page reordering again (MERGE-05). Done.
+- Direction A (2026-09-13): rotate, skip and page moves have the same 5 s Undo chip as file removal; hover, focus or Edit pages reveals rotate, skip and open with a 44px hit area; shortcuts are shown once on the first keyboard focus of a page. When a page crosses a file boundary the labels give way to 10px tag dots and the rail's grips are aria-disabled with tabIndex -1; isInListOrder (mergePlan.ts) joins isGrouped so list order and output order never silently disagree.

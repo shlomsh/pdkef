@@ -57,3 +57,4 @@ ticket. The target is two taps after the picker closes, zero scroll.
   strip is between the list and the button). Before: Merge, then scroll to the Download that
   appeared under it, then Download. The two-action path is guarded at both viewports in
   `e2e/merge/merge-layout.spec.js` and `merge-mobile.spec.js`. Done.
+- Direction A (2026-09-13): Sort and Reversed are one select in the rail (Sort, Reverse and Jump to file do not render with one file); Options is a disclosure pinned at the rail's bottom with an 18px checkbox in a 44px row. Nothing but the heading and page count sits above the first thumbnail.

@@ -241,7 +241,8 @@
    beside Add files / Clear all - 13px minimum, muted, never competing with
    the two real actions either side of it. */
 .draft-chip {
-  font-size: 0.8125rem;
+  /* 13px, not a rem: the card scales its root a little and 0.8125rem measured 12.48px. */
+  font-size: 13px;
   color: var(--color-muted);
 }
 
