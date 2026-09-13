@@ -5,8 +5,6 @@ paths:
   - "src/components/SignTool/**"
   - "src/components/Pdf*Tool.tsx"
   - "src/components/Pdf*Tool.test.tsx"
-  - "src/components/Pdf*Tool.module.css"
-  - "src/components/*Toolbar*"
   - "src/editor-ui/Element*"
   - "src/editor-ui/Editor*"
   - "src/editor-ui/Workspace.module.css"
