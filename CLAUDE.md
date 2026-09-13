@@ -42,7 +42,8 @@ npm run test:e2e:fonts    # the 27 font screening guards; CI runs them only when
 
 - E2E tests are sparse guardrails, roughly 1 e2e per 10 unit tests, only for what jsdom cannot prove
   (rendered rects, drag-time behaviour, page-edge behaviour, hydration/CSP flows). Playwright runs on
-  4 workers (2 in CI); a spec must not depend on the CPU being idle. [fonts-and-text] for the guards.
+  4 workers (2 in CI); a spec that asserts a wall-clock budget goes in `PERF_BUDGETS` in
+  `playwright.config.js`, which always runs alone. [fonts-and-text] for the font guards.
 - **One preview, on 4173, per worktree.** `astro preview` is a one-instance daemon and Playwright reuses
   whatever owns the port, so a second preview or a per-agent port silently tests another build.
 - A fresh `git worktree` needs its own `npm install`; a missing or partial `node_modules` there breaks

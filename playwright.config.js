@@ -17,6 +17,19 @@ const FONT_GUARDS = [
   '**/sign/language-acceptance.spec.js',
 ];
 
+// The specs that assert a wall-clock budget (Download ready under 1.6s,
+// thumbnails within 2.5s, the compress preview under 8s at 4x CPU throttle).
+// A budget measured while another worker is burning the same CPUs is noise:
+// merge-ready-time read 1838ms on CI's 4 vCPUs with two workers against a
+// 1600ms budget it clears alone. They run as the `perf` project, always with
+// `--workers=1` (see test:e2e:product and ci.yml), so the number they read
+// is the app's, not the runner's.
+const PERF_BUDGETS = [
+  '**/merge/merge-ready-time.spec.js',
+  '**/merge/merge-thumbnail-throughput.spec.js',
+  '**/compress/compare-preview.spec.js',
+];
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 45_000,
@@ -46,7 +59,12 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: FONT_GUARDS,
+      testIgnore: [...FONT_GUARDS, ...PERF_BUDGETS],
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'perf',
+      testMatch: PERF_BUDGETS,
       use: { ...devices['Desktop Chrome'] },
     },
     {

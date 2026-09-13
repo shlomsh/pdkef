@@ -162,6 +162,11 @@ jobs:
       # time (`test:e2e` builds, for a useful local one-command release check).
       run: npx playwright test --project=chromium --project=webkit
 
+    # The wall-clock budget specs, on one worker so nothing else on the
+    # runner is in the measurement (see PERF_BUDGETS in playwright.config.js).
+    - name: Run Playwright e2e tests (performance budgets, one worker)
+      run: npx playwright test --project=perf --workers=1
+
     - name: Upload Playwright artifacts
       if: failure()
       uses: actions/upload-artifact@v5
