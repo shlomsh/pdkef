@@ -4,19 +4,19 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfImageToPdfTool from './PdfImageToPdfTool.tsx';
-import * as imageToPdfLib from '../lib/imageToPdf.js';
-import styles from '../shell/FileList.module.css';
-import dropzoneStyles from '../shell/Dropzone.module.css';
-import pdfToolStyles from '../shell/PdfTool.module.css';
-import toolShellStyles from '../shell/ToolShell.module.css';
-import { mockNativeFileShare } from '../test/mockFileShare.js';
-import { setInputFiles } from '../test/setInputFiles.js';
+import * as imageToPdfLib from './imageToPdf.js';
+import styles from '../../shell/FileList.module.css';
+import dropzoneStyles from '../../shell/Dropzone.module.css';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import toolShellStyles from '../../shell/ToolShell.module.css';
+import { mockNativeFileShare } from '../../test/mockFileShare.js';
+import { setInputFiles } from '../../test/setInputFiles.js';
 
 function makeImageFile(name, type = 'image/png') {
   return new File(['fake-image-bytes'], name, { type });
 }
 
-vi.mock('../lib/imageToPdf.js', () => ({
+vi.mock('./imageToPdf.js', () => ({
   imagesToPdf: vi.fn(() => Promise.resolve(new Blob(['%PDF-1.4'], { type: 'application/pdf' }))),
   UnsupportedImageError: class UnsupportedImageError extends Error {},
 }));
