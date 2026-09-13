@@ -14,7 +14,7 @@ and is not part of this history - its `project.json` files name folders that no 
 
 ## What landed
 
-Seventeen `project.json` files, no workspace conversion, no per-project `package.json`, `nx.json` at
+Eighteen `project.json` files, no workspace conversion, no per-project `package.json`, `nx.json` at
 the repo root, `.nx/` gitignored:
 
 | Project | Root | Tags | `test` | `e2e` |
@@ -36,6 +36,7 @@ the repo root, `.nx/` gitignored:
 | `font-assets` | `public/fonts` | `scope:font-assets` | ✓ (`test:fonts`) | - |
 | `fonts` | `e2e/sign` (nested inside `site-e2e`'s own root) | `scope:fonts` | - | ✓ |
 | `site-e2e` | `e2e` | `scope:site` | - | ✓ |
+| `cross-tool-tests` | `src/test/cross-tool` (nested inside `site`'s root) | `scope:tests` | ✓ | - |
 
 `fonts`' `implicitDependencies`: `font-assets`, `editor`, `lib`, `tool-sign` - the export pipeline the
 27 font screening guards actually exercise. `site-e2e`'s `implicitDependencies`: `site`, `shell`, and
@@ -70,47 +71,58 @@ assuming it: CI runs `npx vitest run ${unit_paths}` (one process, narrowed by di
 `arch-20-prep` found that a project rooted at the repo root itself (`sourceRoot: "."`) gets outgoing
 edges from `@nx/js`'s import inference but zero incoming ones - `site` must live at `src/project.json`
 (`sourceRoot: "src"`), not at the repo root, or nothing can ever depend on it in Nx's own graph. This
-branch does not use `@nx/js` at all (see below), so the specific inference bug does not reproduce here,
-but the underlying placement still matters: `site`'s `project.json` lives at `src/project.json`, not
+branch keeps `@nx/js` for its import inference (see below), so the placement matters here too: `site`'s `project.json` lives at `src/project.json`, not
 the repo root, so root-level files with no other home (`scripts/`, `docs/`, `backlog/`, `middleware.ts`,
 config files) are claimed by no project - which is exactly what `scripts/affected-scope.mjs`'s "unowned
 file -> everything" rule is built to handle, not a gap to close.
 
-## `@nx/js` is not just unnecessary here - it actively defeats narrowing, and must not even be installed
+## `@nx/js` stays, for import inference; the cross-tool tests move to `src/test/cross-tool/`
 
-The working brief asked whether `@nx/js` is needed for import inference in this Nx version, since core
-Nx ships its own bundled `js` plugin (`node_modules/nx/dist/src/plugins/js`, visible in
-`nx run <project>:test --verbose`'s plugin-worker log) - and to leave it out if the graph is identical
-without it. It is not merely identical without it; the two configurations behave very differently, and
-the difference is a real problem, not a wash:
+The working brief asked whether `@nx/js` is needed for import inference in this Nx version. It is:
+core Nx ships the analyzer (`node_modules/nx/src/plugins/js`), but it only runs when `@nx/js` is
+installed, and it runs whether or not `nx.json` lists a plugin (`plugins` is empty here; there is
+nothing to configure). Without it, `nx graph` shows only the 15 `implicitDependencies` edges the
+`project.json` files declare, and "affected" is directory ownership plus a hand-kept list, which is not
+what this ticket is for. With it, the graph carries every real relative import: tool -> `shell`,
+`editor`, `editor-ui`, `lib`, `site` (i18n and data); `lib` -> `site`; `editor` -> `lib`, and so on.
 
-- **Without `@nx/js` installed**: `nx graph` shows exactly the edges this repo's `project.json` files
-  declare via `implicitDependencies` (15 edges total) - nothing inferred. `nx show projects --affected
-  --files=src/tools/sign/PdfSignTool.tsx` resolves to `["tool-sign","fonts","site-e2e"]`, precisely the
-  narrow result the ticket wants.
-- **With `@nx/js` installed** (tested by `npm install --save-dev --save-exact @nx/js@23.2.1`, matching
-  `arch-20-prep`'s pin): the same query resolves to **all 17 projects**. `@nx/js`'s AST-based inference
-  finds two real cross-tool test-file imports `check-module-boundaries.mjs` cannot see (it excludes
-  `.test.*` files by design; `arch-20-prep`'s own record flagged this same class of gap):
-  `src/editor/workspace/draftCheckingPlaceholder.test.tsx` and `draftRestoreRace.test.tsx` (both render
-  `PdfSignTool` and `PdfRedactTool` together, to test the shared `draftStore.js` restore path) and
-  `src/editor/text/textCoverage.test.js`. Those give `@nx/js` a real `editor -> tool-sign` and
-  `editor -> tool-redact` edge. Since `editor` is itself depended on by every other project, that one
-  edge makes changing a single Sign file mark `editor` as a "dependent" too, which then marks `shell`,
-  `editor-ui`, and all nine tools as dependents of `editor` - collapsing a Sign-only change to the
-  entire graph. Verified directly: `nx show projects --affected --files=src/tools/sign/PdfSignTool.tsx`
-  went from 3 projects to all 17 the moment `@nx/js` was added, with no other change.
-- **Merely having `@nx/js` installed reproduces this, even with `"plugins"` removed from `nx.json`.**
-  Nx auto-detects an installed core plugin package regardless of whether `nx.json` lists it; only
-  `npm uninstall @nx/js` (not just editing `nx.json`) actually returns the graph to the 15-edge,
-  narrow-friendly state. This is the opposite of the usual "config flag decides behavior" assumption
-  and is worth flagging for anyone tempted to add `@nx/js` later for a different reason.
+The first attempt on this branch had inference on and found that a single Sign file change widened to
+all 17 projects. The cause was real, and it was a test-placement problem, not an inference problem:
+three test files inside `src/editor/` (`workspace/draftCheckingPlaceholder.test.tsx`,
+`workspace/draftRestoreRace.test.tsx`, which render `PdfSignTool` and `PdfRedactTool` together to test
+the shared draft-restore path, and `text/textCoverage.test.js`, which imports Sign's
+`components/textMessages.ts`) gave `editor` a genuine edge to `tool-sign` and `tool-redact`.
+`check-module-boundaries.mjs` never sees it (it excludes test files by design), but Nx is right that it
+exists: those tests exercise Sign, and a Sign-only commit that did not run them would be skipping
+coverage it has. Turning inference off would have hidden that, not fixed it.
 
-**Conclusion: this repo installs no import-inference plugin at all.** Project ownership is purely
-directory-based (`project.json` roots) plus the explicit `implicitDependencies` above -
-`scripts/affected-scope.mjs`'s own rules (core-project-affected -> everything; unowned file ->
-everything) were written to need nothing else, so nothing is lost by leaving it out, and something real
-(narrowing on Sign/Redact, two of the largest tools) is gained.
+The fix is a leaf project for tests that deliberately span modules: `src/test/cross-tool/`
+(`cross-tool-tests`), holding those three plus `src/lib/languageAcceptance.test.js`, which imports
+`e2e/sign/fixtures/exportRenderCorpus.js` and so gave `lib` an edge to `fonts` (whose
+`implicitDependencies` include `tool-sign`: a second cycle that also widened Sign to everything). Two
+placements were tried and rejected on the graph itself: `src/test/` as the project (every tool imports
+its helpers `setup.js`/`setInputFiles.js`/`fixtures/`, so the cycle came straight back), and leaving the
+files where they were. Nothing imports from `src/test/cross-tool/`, so it can depend on tools without
+any project depending on it. `scripts/affected-scope.mjs` already puts `src/test/` in every narrowed
+`unit_paths`, so these tests run on every narrowed run regardless of which project Nx names.
+
+Measured after the move (`nx show projects --affected --files=<file> --json`, cold graph):
+
+```
+src/tools/compress/PdfCompressTool.tsx   -> ["tool-compress","site-e2e"]
+src/tools/merge/useMergeDraft.ts         -> ["tool-merge","site-e2e"]
+src/tools/redact/PdfRedactTool.tsx       -> ["tool-redact","cross-tool-tests","site-e2e"]
+src/tools/sign/PdfSignTool.tsx           -> ["tool-sign","cross-tool-tests","fonts","site-e2e"]
+e2e/sign/fixtures/latinNameCorpus.js     -> ["fonts","cross-tool-tests"]
+public/fonts/Kalam-Regular.ttf           -> ["font-assets","fonts","cross-tool-tests"]
+src/test/cross-tool/textCoverage.test.js -> ["cross-tool-tests"]
+src/test/setInputFiles.js                -> site, and so everything (every project imports it)
+```
+
+The rule for the future follows from this: **a test that imports more than one tool, or a tool from
+inside a core folder, goes in `src/test/cross-tool/`.** Anywhere else it either widens every commit of
+that tool to everything (inference sees the edge) or is skipped on that tool's commits (it would not
+be, only because inference sees it).
 
 ## The two Vitest/Playwright gotchas `arch-20-prep` found, reconfirmed on the real layout
 
@@ -154,11 +166,10 @@ custom rule for "a tool's own island is the only legal entry point." Nx's tags (
 not for enforcement - `check-module-boundaries.mjs` is unchanged by ARCH-20 and remains green (249
 files scanned, 815 edges, 0 allowlisted violations, matching ARCH-18/19's empty allowlist).
 
-Cross-checked once: with no import-inference plugin installed, `nx graph --file` shows only the 15
-edges this repo's own `implicitDependencies` declare - none of them cross a rule
-`check-module-boundaries.mjs` enforces (they connect `site-e2e`/`fonts`, which are test-runner
-projects outside the five dependency rules entirely, to the modules their tests exercise). There is
-no edge to reconcile because there is no inferred edge at all.
+Cross-checked once: every inferred edge in `nx graph --file` runs in a direction the five rules allow
+(tool -> core, core -> core, `cross-tool-tests` -> tools, `site-e2e`/`fonts` -> what their specs
+exercise). No `editor -> editor-ui`/`shell`, no core -> tool, no tool -> tool edge exists in the
+graph, which is the same answer the checker gives with an empty allowlist.
 
 ## The project table vs. the histogram
 
@@ -188,16 +199,17 @@ The acceptance bar the ticket actually cares about - does a real, present-day si
 - is demonstrated directly against files that exist in the current tree, not against historical hashes:
 
 ```
-src/tools/compress/PdfCompressTool.tsx  -> ["tool-compress","site-e2e"]           fonts=false
-src/tools/sign/PdfSignTool.tsx          -> ["tool-sign","fonts","site-e2e"]       fonts=true
-src/lib/format.js                       -> ["lib","fonts"]                       everything=true (core)
-src/editor/model/editorModel.ts         -> ["editor","fonts"]                    everything=true (core)
-src/pages/index.astro                   -> ["site","site-e2e"]                   everything=true (core)
-playwright.config.js                    -> all 17 (nx.json sharedGlobal)         everything=true
-scripts/change-scope.mjs                -> []                                    everything=true (unowned)
-public/fonts/Kalam-Regular.ttf          -> ["font-assets","fonts"]               fonts=true, narrow
-e2e/home/handoff.spec.js                -> ["site-e2e"]                          narrow, fonts=false
-e2e/sign/fixtures/latinNameCorpus.js    -> ["fonts"]                             narrow, fonts=true
+src/tools/compress/PdfCompressTool.tsx  -> ["tool-compress","site-e2e"]                        fonts=false
+src/tools/sign/PdfSignTool.tsx          -> ["tool-sign","cross-tool-tests","fonts","site-e2e"]  fonts=true
+src/tools/redact/PdfRedactTool.tsx      -> ["tool-redact","cross-tool-tests","site-e2e"]        fonts=false
+src/lib/format.js                       -> lib and its 16 dependents                          everything=true (core)
+src/editor/model/editorModel.ts         -> editor and its dependents                          everything=true (core)
+src/pages/index.astro                   -> site and its dependents                            everything=true (core)
+playwright.config.js                    -> all 18 (nx.json sharedGlobal)                      everything=true
+scripts/change-scope.mjs                -> []                                                 everything=true (unowned)
+public/fonts/Kalam-Regular.ttf          -> ["font-assets","fonts","cross-tool-tests"]         fonts=true, narrow
+e2e/home/handoff.spec.js                -> ["site-e2e"]                                       narrow, fonts=false
+e2e/sign/fixtures/latinNameCorpus.js    -> ["fonts","cross-tool-tests"]                       narrow, fonts=true
 ```
 
 Every acceptance example from the working brief holds on the current tree with one honest exception:
@@ -216,10 +228,6 @@ plugin here infers, and `site` is one of the five core projects every tool depen
   narrowed `e2e_paths` would leave shard 2 with nothing (`--pass-with-no-tests` makes that fast, not
   free - it still pays checkout/npm ci/browser install). Worth an `if:` gate once real-world runs show
   how often a narrow scope is small enough for one shard to cover it entirely.
-- **`check-module-boundaries.mjs`'s multi-line-import miss** (flagged on `arch-20-prep`, not fixed
-  there or here): its `IMPORT_PATTERN` regex requires `import` and `from` on the same line, so a
-  multi-line import statement crossing a rule boundary is invisible to the ratchet. Out of ARCH-20's
-  scope; a real, fixable bug in the checker itself.
 - **A week of real CI runs** to replace this measurement with production numbers, per the ticket's own
   acceptance bar - this record's numbers are all from a single local checkout, not `ci.yml` in
   production. Left to whoever owns the ticket's Notes section next.

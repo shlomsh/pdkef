@@ -223,8 +223,10 @@ a deliberate call instead of discovering the problem mid-move:
   itself a tool-to-tool edge. The checker excludes `.test.`/`.contract.`/`.spec.` files from
   scanning entirely, so these two are invisible to `check-module-boundaries.mjs` as written.
   That means the checker will not block this move, but the *organizational* problem is
-  real: the natural home is next to what they actually test, `src/editor/workspace/draftStore.js`
-  (or a new `src/editor/workspace/__tests__/`), not inside either tool's folder.
+  real. ARCH-20 settled it: they live in `src/test/cross-tool/`, with `textCoverage.test.js` (which imports
+  Sign's `textMessages.ts`), because `src/test/` is the cross-cutting bucket that runs on every
+  narrowed CI run, and a test importing a tool from inside `src/editor/` would otherwise give Nx a
+  real `editor -> tool` edge that widens every Sign or Redact commit to everything.
 - **`overlayElements.test.tsx`** only touches `SignTool/` (`ShapeNode`, `LineNode`, `DraggableWrapper`,
   `WhiteoutNode`) despite the generic name; it moves with `tools/sign/` cleanly, no decision needed,
   listed here only so it is not confused with the two draft tests above.
