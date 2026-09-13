@@ -4,14 +4,14 @@ import { describe, expect, it, vi, afterEach, type Mock } from 'vitest';
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import PdfRedactTool from './PdfRedactTool.tsx';
-import { redactPdf } from '../editor/adapters/pdf/redact.js';
-import { pxToPercent, pxDeltaToPercent } from '../editor/geometry/coords.js';
-import dropzoneStyles from '../shell/Dropzone.module.css';
-import workspaceStyles from '../editor-ui/Workspace.module.css';
-import toolbarStyles from '../editor-ui/SignToolbar.module.css';
+import { redactPdf } from '../../editor/adapters/pdf/redact.js';
+import { pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
+import dropzoneStyles from '../../shell/Dropzone.module.css';
+import workspaceStyles from '../../editor-ui/Workspace.module.css';
+import toolbarStyles from '../../editor-ui/SignToolbar.module.css';
 import redactStyles from './PdfRedactTool.module.css';
-import { setInputFiles } from '../test/setInputFiles.js';
-import type { GestureControllerOptions } from '../editor/gestures/controller.ts';
+import { setInputFiles } from '../../test/setInputFiles.js';
+import type { GestureControllerOptions } from '../../editor/gestures/controller.ts';
 
 declare const __dirname: string;
 
@@ -33,8 +33,8 @@ const { gestureCommitSpies } = vi.hoisted(() => ({ gestureCommitSpies: [] as Moc
 // Exercise the real controller while wrapping each commit callback. This proves
 // the Redact integration, rather than only controller.ts in isolation, commits
 // one final state patch regardless of how many pointer moves a gesture has.
-vi.mock('../editor/gestures/controller.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../editor/gestures/controller.ts')>();
+vi.mock('../../editor/gestures/controller.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../editor/gestures/controller.ts')>();
   return {
     ...actual,
     startGesture: <Patch,>(options: GestureControllerOptions<Patch>) => {
@@ -67,7 +67,7 @@ vi.mock('pdfjs-dist', () => {
   };
 });
 
-vi.mock('../editor/adapters/pdf/redact.js', () => ({
+vi.mock('../../editor/adapters/pdf/redact.js', () => ({
   redactPdf: vi.fn(async () => new Blob(['redacted'], { type: 'application/pdf' }))
 }));
 
@@ -237,7 +237,7 @@ describe('PdfRedactTool UI flow', () => {
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: vi.fn(() => true) });
 
     try {
-      const fixturePath = `${__dirname}/../lib/__fixtures__/num-1.pdf`;
+      const fixturePath = `${__dirname}/../../lib/__fixtures__/num-1.pdf`;
       const fixtureBytes = fs.readFileSync(fixturePath);
       mockedRedactPdf.mockResolvedValueOnce(new Blob([fixtureBytes], { type: 'application/pdf' }));
 
@@ -287,7 +287,7 @@ describe('PdfRedactTool UI flow', () => {
     // num-1.pdf is a real, minimal PDF with one text run - the same fixture
     // the share test above already uses for the same reason.
     async function loadRealPdfAndSwitchToDelete() {
-      const fixturePath = `${__dirname}/../lib/__fixtures__/num-1.pdf`;
+      const fixturePath = `${__dirname}/../../lib/__fixtures__/num-1.pdf`;
       const fixtureBytes = fs.readFileSync(fixturePath);
       const drawArea = await loadFileAndGetDrawArea(
         new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
@@ -426,11 +426,11 @@ describe('PdfRedactTool UI flow', () => {
         expect(capturedBlob).toBeDefined();
         const exportedBlob = required(capturedBlob, 'exported PDF blob');
 
-        const fixturePath = `${__dirname}/../lib/__fixtures__/num-1.pdf`;
+        const fixturePath = `${__dirname}/../../lib/__fixtures__/num-1.pdf`;
         const originalSize = fs.statSync(fixturePath).size;
         expect(exportedBlob.size).toBeLessThan(originalSize * 3);
 
-        const { extractPageObjects } = await import('../editor/adapters/pdf/pdfObjects.js');
+        const { extractPageObjects } = await import('../../editor/adapters/pdf/pdfObjects.js');
         const { PDFDocument } = await import('@cantoo/pdf-lib');
         const outBytes = new Uint8Array(await exportedBlob.arrayBuffer());
         const doc = await PDFDocument.load(outBytes);
@@ -1063,7 +1063,7 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     it('stays auto while Delete is armed, since Delete places by tap and never owns the drag gesture', async () => {
-      const fixturePath = `${__dirname}/../lib/__fixtures__/num-1.pdf`;
+      const fixturePath = `${__dirname}/../../lib/__fixtures__/num-1.pdf`;
       const fixtureBytes = fs.readFileSync(fixturePath);
       const drawArea = await loadFileAndGetDrawArea(
         new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })

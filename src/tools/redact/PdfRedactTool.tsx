@@ -1,26 +1,26 @@
 import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import BasePdfTool from '../shell/BasePdfTool.tsx';
-import PdfPageCanvas from '../editor-ui/PdfPageCanvas.tsx';
-import { uniqueId, seedUniqueId } from '../editor/model/ids.ts';
-import { applyPageEdits } from '../editor/adapters/pdf/applyPageEdits.js';
-import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
-import { cacheRecentFile } from '../editor/workspace/draftStore.js';
-import { startGesture } from '../editor/gestures/controller.ts';
-import usePdfCoordinates from '../lib/usePdfCoordinates.js';
-import { redactionDrawingPreviewStyle } from '../editor/registry/redactionSurface.ts';
-import { useEditorDraftPersistence, type EditorDraftInitialState } from '../editor/workspace/useEditorDraftPersistence.ts';
-import { isDraftElement } from '../editor/registry/draftValidation.ts';
-import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../editor/workspace/preferenceStore.ts';
-import useDeletableObjects from '../lib/useDeletableObjects.js';
+import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
+import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
+import { applyPageEdits } from '../../editor/adapters/pdf/applyPageEdits.js';
+import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
+import { cacheRecentFile } from '../../editor/workspace/draftStore.js';
+import { startGesture } from '../../editor/gestures/controller.ts';
+import usePdfCoordinates from '../../lib/usePdfCoordinates.js';
+import { redactionDrawingPreviewStyle } from '../../editor/registry/redactionSurface.ts';
+import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
+import { isDraftElement } from '../../editor/registry/draftValidation.ts';
+import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../../editor/workspace/preferenceStore.ts';
+import useDeletableObjects from './useDeletableObjects.js';
 import RedactToolbar from './RedactToolbar.tsx';
-import EditorExportActions from '../editor-ui/EditorExportActions.tsx';
+import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
 import DeleteMark from './DeleteMark.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
-import EditorPageHeader from '../editor-ui/EditorPageHeader.tsx';
-import UndoHistoryModal from '../editor-ui/UndoHistoryModal.tsx';
+import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
+import UndoHistoryModal from '../../editor-ui/UndoHistoryModal.tsx';
 import {
   captureAddedElement,
   captureElementSnapshots,
@@ -28,16 +28,16 @@ import {
   revertHistoryEntries,
   type ActionHistoryEntry,
   type HistoryLogger,
-} from '../editor/model/actionHistory.ts';
-import { useUndoShortcut } from '../lib/useUndoShortcut.js';
-import { usePdfShare } from '../lib/usePdfShare.js';
-import ErrorMessage from '../shell/ErrorMessage.tsx';
-import pdfToolStyles from '../shell/PdfTool.module.css';
-import workspaceStyles from '../editor-ui/Workspace.module.css';
+} from '../../editor/model/actionHistory.ts';
+import { useUndoShortcut } from '../../lib/useUndoShortcut.js';
+import { usePdfShare } from '../../lib/usePdfShare.js';
+import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import styles from './PdfRedactTool.module.css';
-import { describeFile } from '../lib/format.js';
-import useCurrentPage from '../lib/useCurrentPage.js';
-import type { RedactToolType } from '../editor/model/editorModel.ts';
+import { describeFile } from '../../lib/format.js';
+import useCurrentPage from '../../lib/useCurrentPage.js';
+import type { RedactToolType } from '../../editor/model/editorModel.ts';
 
 type RedactHistoryElement = {
   id: string;
@@ -207,7 +207,7 @@ export default function PdfRedactTool() {
   const pageWrapperRefs = useRef<(HTMLDivElement | null)[]>([]);
   const fileBytesRef = useRef<ArrayBuffer | null>(null);
   const loadIdRef = useRef(0);
-  const loadControllerRef = useRef<import('../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
+  const loadControllerRef = useRef<import('../../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
   // Whichever of {manual file pick, draft restore} happens first (in call order) wins
   // outright; the other is skipped entirely. This closes the gap the loadId guard alone
   // doesn't cover: a slow draft restore that resolves *after* a fast manual pick has

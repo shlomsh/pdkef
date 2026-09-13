@@ -3,8 +3,8 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from './PdfSignTool.tsx';
-import PdfRedactTool from './PdfRedactTool.tsx';
-import redactStyles from './PdfRedactTool.module.css';
+import PdfRedactTool from '../tools/redact/PdfRedactTool.tsx';
+import redactStyles from '../tools/redact/PdfRedactTool.module.css';
 import { takeHandoff } from '../editor/workspace/draftStore.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 
