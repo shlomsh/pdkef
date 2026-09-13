@@ -7,7 +7,7 @@
  * Deliberately has no Preact import and no pdf-lib import: everything here
  * is array bookkeeping over plain objects, so the reorder/regroup/rotate
  * logic the UI depends on can be unit-tested (and reasoned about) without a
- * DOM, a PDF, or SortableJS. src/lib/merge.js imports the two name-building
+ * DOM, a PDF, or SortableJS. src/tools/merge/merge.js imports the two name-building
  * helpers from here so the "what do we call the merged file" rule lives in
  * one place next to the plan it is named after; it does not import anything
  * else exported here.
