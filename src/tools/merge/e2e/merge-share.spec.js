@@ -10,7 +10,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
    line even at phone width - can be asserted at all.
 
    Run against the production build with `npx playwright test
-   e2e/merge/merge-share.spec.js` once a build exists; a scratch script
+   src/tools/merge/e2e/merge-share.spec.js` once a build exists; a scratch script
    verified this same guard against the 4399 dev server (see the epic's
    report for the measured numbers) since the preview on 4173 serves
    whatever was last built, which does not yet include this change. */

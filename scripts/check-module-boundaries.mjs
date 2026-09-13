@@ -25,10 +25,10 @@
 //      may never import the transitional `components` module.
 //   3. `editor` may never import `editor-ui` or `shell` (it is headless).
 //   4. The transitional `components` module (today's flat src/components/ files,
-//      minus MergeTool/ and SignTool/, which are already tool:merge/tool:sign)
-//      may never import a tool. A tool MAY import `components` during the
-//      transition, since that is where the shared shell and editor UI still
-//      live until ARCH-16 moves them out; that direction is not a violation.
+//      minus SignTool/, which is already tool:sign) may never import a tool.
+//      A tool MAY import `components` during the transition, since that is
+//      where the shared shell and editor UI still live until ARCH-16 moves
+//      them out; that direction is not a violation.
 //   5. `site` (pages, layouts, content, data, i18n, styles, and the .astro files
 //      still under src/components/) may reach a tool only through that tool's
 //      island entry point, a `Pdf*Tool.tsx` directly under `src/tools/<name>/`
@@ -50,15 +50,14 @@ const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.astro'];
 const TEST_FILE = /\.(?:test|contract|spec)\.[cm]?[jt]sx?$/;
 
 // --- classification: one row per folder the target layout names --------------
-// Order matters: more specific prefixes (MergeTool/SignTool, src/tools/<name>)
-// are checked before the generic src/components/ and site buckets they sit
+// Order matters: more specific prefixes (SignTool, src/tools/<name>) are
+// checked before the generic src/components/ and site buckets they sit
 // inside of today.
 const MODULE_PREFIXES = [
   ['src/shell/', () => 'shell'],
   ['src/editor-ui/', () => 'editor-ui'],
   ['src/editor/', () => 'editor'],
   ['src/lib/', () => 'lib'],
-  ['src/components/MergeTool/', () => 'tool:merge'],
   ['src/components/SignTool/', () => 'tool:sign'],
   ['src/i18n/', () => 'site-i18n'],
   ['src/data/', () => 'site-data'],

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import type { ComponentChildren, ComponentType } from 'preact';
 import Sortable from 'sortablejs';
 import { Shrink, FileSignature } from 'lucide-preact';
-import { inspectPdf, MergeFileError } from '../lib/merge.js';
+import { inspectPdf, MergeFileError } from './merge.js';
 import {
   insertPages,
   isGrouped,
@@ -14,34 +14,34 @@ import {
   removeFile,
   sanitizeOutputName,
   type PlanEntry,
-} from '../lib/mergePlan.ts';
-import { deriveFileKind } from '../lib/fileKind.js';
-import { sortByDate, sortByName } from '../lib/sort.js';
-import { renderThumbnail } from '../lib/thumbnails.js';
-import { formatFileSize } from '../lib/format.js';
-import { usePdfShare } from '../lib/usePdfShare.js';
-import { isIOSDevice } from '../lib/platform.ts';
-import BasePdfTool from '../shell/BasePdfTool.tsx';
-import ConfirmDialog from '../shell/ConfirmDialog.tsx';
-import { useToolShell } from '../shell/ToolShell.tsx';
-import pdfToolStyles from '../shell/PdfTool.module.css';
-import docStyles from './MergeTool/MergeDocument.module.css';
-import railStyles from './MergeTool/MergeRail.module.css';
-import PdfShareButton from '../shell/PdfShareButton.tsx';
-import ErrorMessage from '../shell/ErrorMessage.tsx';
-import DownloadElement, { type DownloadElementState } from './MergeTool/DownloadElement.tsx';
-import FileName from './MergeTool/FileName.tsx';
-import { usePreparedMerge } from './MergeTool/usePreparedMerge.ts';
-import type { PageStripProps } from './MergeTool/PageStrip.tsx';
-import type { MergeDraftPersistenceProps } from './MergeTool/MergeDraftPersistence.tsx';
-import type { MergeDraftRestore, MergeDraftSaveState } from './MergeTool/useMergeDraft.ts';
+} from './mergePlan.ts';
+import { deriveFileKind } from '../../lib/fileKind.js';
+import { sortByDate, sortByName } from '../../lib/sort.js';
+import { renderThumbnail } from '../../lib/thumbnails.js';
+import { formatFileSize } from '../../lib/format.js';
+import { usePdfShare } from '../../lib/usePdfShare.js';
+import { isIOSDevice } from '../../lib/platform.ts';
+import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
+import { useToolShell } from '../../shell/ToolShell.tsx';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import docStyles from './components/MergeDocument.module.css';
+import railStyles from './components/MergeRail.module.css';
+import PdfShareButton from '../../shell/PdfShareButton.tsx';
+import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import DownloadElement, { type DownloadElementState } from './components/DownloadElement.tsx';
+import FileName from './components/FileName.tsx';
+import { usePreparedMerge } from './components/usePreparedMerge.ts';
+import type { PageStripProps } from './components/PageStrip.tsx';
+import type { MergeDraftPersistenceProps } from './components/MergeDraftPersistence.tsx';
+import type { MergeDraftRestore, MergeDraftSaveState } from './components/useMergeDraft.ts';
 import {
   englishMergeMessages,
   englishShellMessages,
   formatMessage,
   type MergeMessages,
   type ShellMessages,
-} from '../i18n/toolMessages';
+} from '../../i18n/toolMessages';
 
 // MERGE-11 (2026-09-13, Shlomi's rejection of the bordered-input look): the
 // output name is a WYSIWYG span, not a button-plus-input pair. Firefox does
@@ -519,7 +519,7 @@ export default function PdfMergeTool({
 
   useEffect(() => {
     let cancelled = false;
-    import('./MergeTool/MergeDraftPersistence.tsx')
+    import('./components/MergeDraftPersistence.tsx')
       .then((module) => { if (!cancelled) setDraftPersistence(() => module.default); })
       .catch(() => { if (!cancelled) setDraftState((current) => ({ ...current, isRestoring: false })); });
     return () => { cancelled = true; };
@@ -544,7 +544,7 @@ export default function PdfMergeTool({
   useEffect(() => {
     if (entries.length === 0 || PageStrip) return;
     let cancelled = false;
-    import('./MergeTool/PageStrip.tsx')
+    import('./components/PageStrip.tsx')
       .then((module) => { if (!cancelled) setPageStrip(() => module.default); })
       .catch(() => {});
     return () => { cancelled = true; };
@@ -1037,7 +1037,7 @@ export default function PdfMergeTool({
     try {
       // The store is only needed once a result is being handed off, so it
       // stays out of the eager graph like the grid and the draft hook.
-      const { saveHandoff, deleteDraft } = await import('../editor/workspace/draftStore.js');
+      const { saveHandoff, deleteDraft } = await import('../../editor/workspace/draftStore.js');
       const saved = await saveHandoff(tool, {
         fileName,
         fileType: 'application/pdf',
@@ -1055,7 +1055,7 @@ export default function PdfMergeTool({
   const requestHandoff = useCallback(async (tool: HandoffTool) => {
     if (handoffBusy || !prepared.blob) return;
     if (tool === 'sign') {
-      const { loadDraft } = await import('../editor/workspace/draftStore.js');
+      const { loadDraft } = await import('../../editor/workspace/draftStore.js');
       const draft = (await loadDraft('sign')) as { fileName?: string } | null;
       if (draft) {
         setHandoffConfirm({ tool, draftName: draft.fileName || '' });

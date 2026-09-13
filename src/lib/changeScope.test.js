@@ -36,7 +36,7 @@ describe('docs-only changes', () => {
 
   it('is docs-only only when every file is docs, and never for an empty change', () => {
     expect(classify(['backlog/tasks/A.md', 'TODO.md']).docs_only).toBe(true);
-    expect(classify(['backlog/tasks/A.md', 'src/lib/merge.js']).docs_only).toBe(false);
+    expect(classify(['backlog/tasks/A.md', 'src/tools/merge/merge.js']).docs_only).toBe(false);
     expect(classify([]).docs_only).toBe(false);
   });
 });
@@ -47,7 +47,7 @@ describe('font-guard inputs', () => {
     'src/editor/text/fonts.js',
     'src/editor/adapters/pdf/sign.js',
     'src/lib/fontCoverageTable.js',
-    'src/lib/merge.js',
+    'src/lib/pageOps.js',
     'src/test/fixtures/wysiwygStrings.js',
     'e2e/sign/fixtures/shapingGuardHarness.js',
     'e2e/sign/tamil-shaping-guard.spec.js',
@@ -69,11 +69,11 @@ describe('font-guard inputs', () => {
     'src/pages/index.astro',
     'src/content/content-pages/pdf-wont-compress-to-100kb.yaml',
     'src/data/tools.js',
-    'src/components/MergeTool/PageStrip.tsx',
+    'src/tools/merge/components/PageStrip.tsx',
     'src/components/PdfSignTool.tsx',
     'src/components/SignTool/textMessages.ts',
     'src/styles/toolPage.css',
-    'e2e/merge/merge-layout.spec.js',
+    'src/tools/merge/e2e/merge-layout.spec.js',
     'e2e/home/handoff.spec.js',
     'scripts/check-page-weight.js',
     'backlog/tasks/MERGE-19.md',

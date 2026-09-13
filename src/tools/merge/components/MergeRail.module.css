@@ -429,8 +429,8 @@
    default 0.85rem/600, more than the button has room for once the icon,
    gap, padding and border are added. The two-button row (no Share) already
    fits at full size, so this only tightens the three-button case, the same
-   `:has(> :nth-child(N))` pattern SignToolbar uses to size itself off its
-   own control count - reusing the exact font-size/padding the 393px phone
+   `:has(> :nth-child(N))` pattern the editor toolbars use to size themselves
+   off their own control count - reusing the exact font-size/padding the 393px phone
    row below already proved fits "Compress it" in a tighter 79px button. */
 @media (min-width: 1024px) {
   .handoff-row:has(> :nth-child(3)) {

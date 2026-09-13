@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
-import { mergePdfs, MergeFileError } from '../../lib/merge.js';
-import { outputPageCount, toMergeMap, type PlanEntry } from '../../lib/mergePlan.ts';
-import { useObjectUrls } from '../../lib/useObjectUrls.js';
+import { mergePdfs, MergeFileError } from '../merge.js';
+import { outputPageCount, toMergeMap, type PlanEntry } from '../mergePlan.ts';
+import { useObjectUrls } from '../../../lib/useObjectUrls.js';
 
 /* MERGE-12: pre-merge on idle so Download is one tap.
 

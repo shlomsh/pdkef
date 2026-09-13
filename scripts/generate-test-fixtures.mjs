@@ -73,7 +73,7 @@ async function generateFivePagePdf() {
 // object streams on) but as a fresh, reproducible file the generator owns.
 // The report turned out to be an artifact of how the file reached the page
 // (a hand-typed base64 string corrupted two bytes); this second fixture
-// keeps the real-browser guard in e2e/merge/thumbnail-render.spec.js honest
+// keeps the real-browser guard in src/tools/merge/e2e/thumbnail-render.spec.js honest
 // against a file nobody ever retyped.
 async function generateThreePageHeaderPdf() {
   const doc = await PDFDocument.create();

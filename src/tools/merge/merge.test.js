@@ -12,7 +12,7 @@ import { MergeFileError, inspectPdf, mergePdfs, mergedFileName, resolvePdfCreati
 // checkable from the merged output without a canvas/pdf.js round trip.
 describe('mergePdfs library integration with real fixtures', () => {
   function getFixtureFile(name) {
-    const filePath = path.resolve(__dirname, './__fixtures__', name);
+    const filePath = path.resolve(__dirname, '../../lib/__fixtures__', name);
     const buffer = fs.readFileSync(filePath);
     return new File([buffer], name, { type: 'application/pdf' });
   }
@@ -312,7 +312,7 @@ describe('mergePdfs library integration with real fixtures', () => {
       const files = [
         getFixtureFile('num-5.pdf'),
         (() => {
-          const buffer = fs.readFileSync(path.resolve(__dirname, './__fixtures__/num-2.pdf'));
+          const buffer = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-2.pdf'));
           return new File([buffer], 'דוח מס.pdf', { type: 'application/pdf' });
         })(),
         getFixtureFile('num-3.pdf'),

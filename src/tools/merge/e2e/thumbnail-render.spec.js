@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const FIXTURES_DIR = path.resolve(__dirname, '../../src/lib/__fixtures__');
+const FIXTURES_DIR = path.resolve(__dirname, '../../../../src/lib/__fixtures__');
 
 // Counts non-white pixels of the loaded thumbnail <img> by drawing it into an
 // off-screen canvas inside the page - this is real Chromium/WebKit canvas

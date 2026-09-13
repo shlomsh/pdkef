@@ -25,8 +25,13 @@ const FONT_GUARDS = [
 // `--workers=1` (see test:e2e:product and ci.yml), so the number they read
 // is the app's, not the runner's.
 const PERF_BUDGETS = [
-  '**/merge/merge-ready-time.spec.js',
-  '**/merge/merge-thumbnail-throughput.spec.js',
+  // '**/merge/**/merge-ready-time.spec.js', not '**/merge/merge-ready-time.spec.js':
+  // the extra '**/' matches zero segments too, so this glob covers both
+  // e2e/merge/merge-ready-time.spec.js (pre-ARCH-18) and
+  // src/tools/merge/e2e/merge-ready-time.spec.js (post-move), with nothing to
+  // rewrite when that move lands - same trick the compress line below uses.
+  '**/merge/**/merge-ready-time.spec.js',
+  '**/merge/**/merge-thumbnail-throughput.spec.js',
   // '**/compress/**/compare-preview.spec.js', not '**/compress/compare-preview.spec.js':
   // the extra '**/' matches zero segments too, so this glob covers both
   // e2e/compress/compare-preview.spec.js (today) and
