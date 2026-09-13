@@ -114,6 +114,9 @@
 .page {
   position: relative;
   flex: 0 0 auto;
+  /* Bottom-aligned so a landscape cell's number lines up with its portrait
+     neighbours' (the sketch's landscape row); labels keep their own alignment. */
+  align-self: flex-end;
   width: var(--cell-w, 104px);
   display: flex;
   flex-direction: column;
@@ -231,8 +234,12 @@
 /* Rotate, skip and open: a three-button cluster revealed above the cell on
    hover or focus (pointer devices), or while "Edit pages" is on (touch). */
 .actions {
+  /* Inside the cell's top edge, over the thumbnail, not above the cell:
+     above the cell it covered the file label of the first row (the very
+     thing Direction A put there), on every hover and for the whole of a
+     phone's Edit pages mode. */
   position: absolute;
-  top: -2.4rem;
+  top: 0.55rem;
   left: 50%;
   transform: translateX(-50%);
   display: flex;

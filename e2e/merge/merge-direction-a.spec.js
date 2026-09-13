@@ -13,7 +13,7 @@ async function makePdfBuffer(label, pageCount = 1) {
   return Buffer.from(await document.save());
 }
 
-test('the Download element keeps the same DOM node across preparing and ready (MERGE-18)', async ({ page }, testInfo) => {
+test('the Download element keeps the same DOM node across preparing and ready (MERGE-16)', async ({ page }, testInfo) => {
   await page.goto('/merge/');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
 
@@ -46,13 +46,27 @@ test('the Download element keeps the same DOM node across preparing and ready (M
   const firstCard = grid.locator('> li[data-key]').first();
   if (testInfo.project.name === 'webkit') {
     await page.getByRole('button', { name: 'Edit pages', exact: true }).click();
+    // The phone's sticky bottom sheet covers the lower third of a 659px
+    // iPhone viewport and the sticky app bar the top; a tap under either
+    // lands on it. Centre the cell first, as a thumb would by scrolling.
+    await firstCard.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await page.waitForTimeout(300);
   } else {
     await firstCard.hover();
   }
+  // The preparing window for two one-page files is the 600 ms idle wait
+  // plus a merge of a few milliseconds, which a polling expect can miss on
+  // a fast engine (it did on webkit). A MutationObserver installed before
+  // the click records every data-state the node passes through instead.
+  await handle.evaluate((el) => {
+    el.__states = [el.dataset.state];
+    new MutationObserver(() => el.__states.push(el.dataset.state))
+      .observe(el, { attributes: true, attributeFilter: ['data-state'] });
+  });
   await firstCard.getByRole('button', { name: /^Rotate page/ }).click({ force: true });
 
-  await expect(downloadLocator).toHaveAttribute('data-state', 'preparing', { timeout: 5_000 });
   await expect(downloadLocator).toHaveAttribute('data-state', 'ready', { timeout: 10_000 });
+  await expect.poll(() => handle.evaluate((el) => el.__states.join('>'))).toMatch(/ready>preparing>ready$/);
 
   const stillSameNode = await page.evaluate(
     (el) => el.isConnected && el.__guard === 1 && el === document.querySelector('[data-state]'),

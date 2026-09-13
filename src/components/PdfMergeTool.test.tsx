@@ -194,7 +194,9 @@ describe('PdfMergeTool UI flow', () => {
     // The document heading carries the total page count once every file is read.
     expect(container.querySelector(`.${docStyles['doc-heading']}`).textContent).toContain('4 pages');
 
-    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
+    // Direction A: Share sits in the rail's hand-off row with the row's own
+    // button class, so it is found by its accessible name, not the dialog look.
+    const shareButton = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Share');
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share).toHaveBeenCalledOnce();
@@ -430,6 +432,26 @@ describe('PdfMergeTool UI flow', () => {
     expect(container.querySelector(`.${railStyles['page-numbers-row']} input`).checked).toBe(true);
     // The options row itself stays collapsed until opened.
     expect(container.querySelector(`details.${railStyles.options}`).open).toBe(false);
+  });
+
+  it('the phone hand-off row\'s Options button opens the same options panel the desktop summary does (wave 4)', async () => {
+    mount();
+    await loadFiles(['a.pdf', 'b.pdf']);
+    const details = container.querySelector(`details.${railStyles.options}`);
+    const phoneToggle = container.querySelector(`.${railStyles['options-toggle']}`);
+    expect(details.open).toBe(false);
+    expect(phoneToggle.getAttribute('aria-expanded')).toBe('false');
+
+    await act(async () => phoneToggle.click());
+    expect(details.open).toBe(true);
+    expect(phoneToggle.getAttribute('aria-expanded')).toBe('true');
+    // One options-body for both breakpoints: the checkbox row is now open,
+    // reachable through either trigger.
+    expect(container.querySelector(`.${railStyles['page-numbers-row']}`)).not.toBeNull();
+
+    await act(async () => phoneToggle.click());
+    expect(details.open).toBe(false);
+    expect(phoneToggle.getAttribute('aria-expanded')).toBe('false');
   });
 
   it('names an encrypted file, links to Unlock, and merges the rest on the one offered action (MERGE-04)', async () => {
