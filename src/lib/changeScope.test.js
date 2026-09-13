@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { classify, isDocsOnly, isFontGuardInput } from '../../scripts/change-scope.mjs';
+import { classify, isDocsOnly } from '../../scripts/change-scope.mjs';
 
-/* scripts/change-scope.mjs decides, for CI and for `npm run test:e2e`, what a
-   change can affect: whether it is docs-only (no build, no browser) and whether
-   the 27 font screening guards must run. A miss on the "runs" side is silent
-   (things just do not run), so both boundaries are pinned here from both sides. */
+/* scripts/change-scope.mjs decides, for CI and for `npm run test:e2e`, whether
+   a change is docs-only (no build, no browser). Whether the font screening
+   guards must run is scripts/affected-scope.mjs's question now (a real Nx
+   project over public/fonts/, src/editor/, src/lib/ and tool-sign, not a
+   second hand-kept list here) - see src/lib/affectedScope.test.js. */
 
 describe('docs-only changes', () => {
   it.each([
@@ -38,54 +39,5 @@ describe('docs-only changes', () => {
     expect(classify(['backlog/tasks/A.md', 'TODO.md']).docs_only).toBe(true);
     expect(classify(['backlog/tasks/A.md', 'src/tools/merge/merge.js']).docs_only).toBe(false);
     expect(classify([]).docs_only).toBe(false);
-  });
-});
-
-describe('font-guard inputs', () => {
-  it.each([
-    'public/fonts/Kalam-Regular.ttf',
-    'src/editor/text/fonts.js',
-    'src/editor/adapters/pdf/sign.js',
-    'src/lib/fontCoverageTable.js',
-    'src/lib/pageOps.js',
-    'src/test/fixtures/wysiwygStrings.js',
-    'e2e/sign/fixtures/shapingGuardHarness.js',
-    'e2e/sign/tamil-shaping-guard.spec.js',
-    'scripts/font-manifest.mjs',
-    'scripts/generate-font-manifest.mjs',
-    'scripts/language-acceptance.mjs',
-    'scripts/change-scope.mjs',
-    'package.json',
-    'package-lock.json',
-    'patches/pdfjs-dist+6.3.289.patch',
-    'playwright.config.js',
-    'astro.config.mjs',
-    '.github/workflows/ci.yml',
-  ])('runs the guards for %s', (file) => {
-    expect(isFontGuardInput(file)).toBe(true);
-  });
-
-  it.each([
-    'src/pages/index.astro',
-    'src/content/content-pages/pdf-wont-compress-to-100kb.yaml',
-    'src/data/tools.js',
-    'src/tools/merge/components/PageStrip.tsx',
-    'src/tools/sign/PdfSignTool.tsx',
-    'src/tools/sign/components/textMessages.ts',
-    'src/styles/toolPage.css',
-    'src/tools/merge/e2e/merge-layout.spec.js',
-    'e2e/home/handoff.spec.js',
-    'scripts/check-page-weight.js',
-    'backlog/tasks/MERGE-19.md',
-    'docs/seo-competitive-findings.md',
-    'CLAUDE.md',
-    'vitest.config.js',
-    'vercel.json',
-  ])('skips the guards for %s', (file) => {
-    expect(isFontGuardInput(file)).toBe(false);
-  });
-
-  it('a docs-only change never runs the guards', () => {
-    expect(classify(['backlog/tasks/A.md', 'CLAUDE.md'])).toEqual({ docs_only: true, fonts: false });
   });
 });
