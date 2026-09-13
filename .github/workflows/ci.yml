@@ -85,6 +85,12 @@ jobs:
     - name: Verify editor dependency directions
       run: npm run test:editor-dependency-directions
 
+    # docs/module-boundaries.md (ARCH-15) draws the target layout; this reads
+    # the real import graph and fails on any edge that crosses it, against an
+    # explicit, shrink-only allowlist of today's violations.
+    - name: Verify module boundaries
+      run: npm run test:module-boundaries
+
     - name: Verify shared box-resize owner
       run: test "$(git grep -l "maxWidthFromRightGrowth\|maxHeightFromBottomGrowth" -- 'src/**' | wc -l | tr -d ' ')" = 1
 

@@ -128,8 +128,8 @@ there first, then in its LOC ticket. [content-and-copy]
 ## CI guardrails (invariants are checks, not prose)
 
 `ci.yml` runs, in order: `check:backlog`, `check:guidance`, `test`, `typecheck`,
-`test:editor-dependency-directions`, the single-owner box-resize grep, `test:gesture-golden-rule`,
-`check-class-resolution`,
+`test:editor-dependency-directions`, `test:module-boundaries`, the single-owner box-resize grep,
+`test:gesture-golden-rule`, `check-class-resolution`,
 `test:fonts`, `test:licenses`, `test:dependency-governance`, then `build`, `test:csp`, `test:seo`,
 `test:redirects`, `test:css`, `test:weight`, and Playwright. Ratchets (CSS duplication, dead bytes,
 editor selectors in `global.css`) only ever go down: **the fix is to narrow what a page carries, never

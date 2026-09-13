@@ -1,0 +1,167 @@
+[
+  {
+    "from": "src/components/ArmHint.tsx",
+    "to": "src/components/SignTool/SignToolbar.module.css",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/EditorExportActions.tsx",
+    "to": "src/components/SignTool/SignToolbar.module.css",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/EditorExportActions.tsx",
+    "to": "src/components/SignTool/Workspace.module.css",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/EditorToolStatus.tsx",
+    "to": "src/components/SignTool/SignToolbar.module.css",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/ElementResizers.tsx",
+    "to": "src/components/SignTool/nodeProps.ts",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/ElementResizers.tsx",
+    "to": "src/components/SignTool/EditorElement.module.css",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/FullscreenButton.tsx",
+    "to": "src/components/SignTool/SignToolbar.module.css",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/MergeTool/useMergeDraft.ts",
+    "to": "src/components/SignTool/useDraftPersistence.js",
+    "reason": "a tool may not import another tool"
+  },
+  {
+    "from": "src/components/PdfMergeTool.tsx",
+    "to": "src/components/MergeTool/MergeDocument.module.css",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfMergeTool.tsx",
+    "to": "src/components/MergeTool/MergeRail.module.css",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfMergeTool.tsx",
+    "to": "src/components/MergeTool/DownloadElement.tsx",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfMergeTool.tsx",
+    "to": "src/components/MergeTool/FileName.tsx",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfMergeTool.tsx",
+    "to": "src/components/MergeTool/usePreparedMerge.ts",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfMergeTool.tsx",
+    "to": "src/components/MergeTool/PageStrip.tsx",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfMergeTool.tsx",
+    "to": "src/components/MergeTool/MergeDraftPersistence.tsx",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfMergeTool.tsx",
+    "to": "src/components/MergeTool/useMergeDraft.ts",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfPageCanvas.tsx",
+    "to": "src/components/SignTool/Workspace.module.css",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfRedactTool.tsx",
+    "to": "src/components/SignTool/Workspace.module.css",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfSignTool.tsx",
+    "to": "src/components/SignTool/SignToolContext.tsx",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfSignTool.tsx",
+    "to": "src/components/SignTool/SignDefaultsContext.tsx",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfSignTool.tsx",
+    "to": "src/components/SignTool/SavedSignaturesContext.tsx",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfSignTool.tsx",
+    "to": "src/components/SignTool/PdfWorkspace.tsx",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/PdfSignTool.tsx",
+    "to": "src/components/SignTool/textMessages.ts",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/RedactBox.tsx",
+    "to": "src/components/SignTool/EditorElement.module.css",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/components/RedactToolbar.tsx",
+    "to": "src/components/SignTool/SignToolbar.module.css",
+    "reason": "the transitional components module may not import a tool"
+  },
+  {
+    "from": "src/editor/registry/renderers.ts",
+    "to": "src/components/SignTool/nodes/TextNode.tsx",
+    "reason": "editor may not import a tool"
+  },
+  {
+    "from": "src/editor/registry/renderers.ts",
+    "to": "src/components/SignTool/nodes/ShapeNode.tsx",
+    "reason": "editor may not import a tool"
+  },
+  {
+    "from": "src/editor/registry/renderers.ts",
+    "to": "src/components/SignTool/nodes/LineNode.tsx",
+    "reason": "editor may not import a tool"
+  },
+  {
+    "from": "src/editor/registry/renderers.ts",
+    "to": "src/components/SignTool/nodes/SignatureNode.tsx",
+    "reason": "editor may not import a tool"
+  },
+  {
+    "from": "src/editor/registry/renderers.ts",
+    "to": "src/components/SignTool/nodes/SymbolNode.tsx",
+    "reason": "editor may not import a tool"
+  },
+  {
+    "from": "src/editor/registry/renderers.ts",
+    "to": "src/components/SignTool/nodes/WhiteoutNode.tsx",
+    "reason": "editor may not import a tool"
+  },
+  {
+    "from": "src/editor/registry/text.ts",
+    "to": "src/components/SignTool/EditorElement.module.css",
+    "reason": "editor may not import a tool"
+  },
+  {
+    "from": "src/editor/workspace/useEditorDraftPersistence.ts",
+    "to": "src/components/SignTool/useDraftPersistence.js",
+    "reason": "editor may not import a tool"
+  }
+]
