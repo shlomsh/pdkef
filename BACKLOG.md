@@ -72,6 +72,34 @@ _None._
 
 _None._
 
+## Site quality
+
+### Open
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |
+
+### In progress
+
+_None._
+
+### Blocked
+
+_None._
+
+### Done
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| QUAL-01 | P2 | [QUAL-01](backlog/tasks/QUAL-01.md) · --color-primary fails WCAG AA as link text |
+| QUAL-02 | P2 | [QUAL-02](backlog/tasks/QUAL-02.md) · Two competing header padding rules, where specificity beats the media query |
+| QUAL-03 | P3 | [QUAL-03](backlog/tasks/QUAL-03.md) · flatten.svg has the palette baked in as 31 hex literals |
+
+### Retired
+
+_None._
+
 ## Awaiting a read
 
 ### Open
@@ -217,6 +245,8 @@ _None._
 | MERGE-16 | P2 | [MERGE-16](backlog/tasks/MERGE-16.md) · Read the merge funnel before and after each phase, with the guardrails that keep it honest |
 | MERGE-17 | P3 | [MERGE-17](backlog/tasks/MERGE-17.md) · One quiet line after the first merge: it works offline and can be installed |
 | MERGE-18 | P2 | [MERGE-18](backlog/tasks/MERGE-18.md) · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant |
+| MERGE-19 | P2 | [MERGE-19](backlog/tasks/MERGE-19.md) · Hand-off row border is 1.09:1 on the rail tint: use the rail's one secondary border |
+| MERGE-20 | P1 | [MERGE-20](backlog/tasks/MERGE-20.md) · Measure the Direction A closing wave against its acceptance lists before the branch merges |
 
 ### In progress
 
@@ -338,20 +368,6 @@ _None._
 | DEMO-05 | P2 | [DEMO-05](backlog/tasks/DEMO-05.md) · Full-height story panels that read as slides without hijacking the scroll |
 | DEMO-06 | P3 | [DEMO-06](backlog/tasks/DEMO-06.md) · Decide the visual register: keep Sea Glass or move to warm paper |
 | DEMO-07 | P1 | [DEMO-07](backlog/tasks/DEMO-07.md) · Lead with blur where the traffic actually lands |
-
-### Retired
-
-_None._
-
-## Site quality
-
-### Done
-
-| ID | Priority | Task |
-| --- | --- | --- |
-| QUAL-01 | P2 | [QUAL-01](backlog/tasks/QUAL-01.md) · --color-primary fails WCAG AA as link text |
-| QUAL-02 | P2 | [QUAL-02](backlog/tasks/QUAL-02.md) · Two competing header padding rules, where specificity beats the media query |
-| QUAL-03 | P3 | [QUAL-03](backlog/tasks/QUAL-03.md) · flatten.svg has the palette baked in as 31 hex literals |
 
 ### Retired
 

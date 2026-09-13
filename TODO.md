@@ -109,6 +109,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | QUAL-01 | P2 | [QUAL-01](backlog/tasks/QUAL-01.md) · --color-primary fails WCAG AA as link text |
 | QUAL-02 | P2 | [QUAL-02](backlog/tasks/QUAL-02.md) · Two competing header padding rules, where specificity beats the media query |
 | QUAL-03 | P3 | [QUAL-03](backlog/tasks/QUAL-03.md) · flatten.svg has the palette baked in as 31 hex literals |
+| QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |
 
 
 ## Search acquisition: competitive keyword gaps
@@ -218,6 +219,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MERGE-16 | P2 | [MERGE-16](backlog/tasks/MERGE-16.md) · Read the merge funnel before and after each phase, with the guardrails that keep it honest |
 | MERGE-17 | P3 | [MERGE-17](backlog/tasks/MERGE-17.md) · One quiet line after the first merge: it works offline and can be installed |
 | MERGE-18 | P2 | [MERGE-18](backlog/tasks/MERGE-18.md) · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant |
+| MERGE-19 | P2 | [MERGE-19](backlog/tasks/MERGE-19.md) · Hand-off row border is 1.09:1 on the rail tint: use the rail's one secondary border |
+| MERGE-20 | P1 | [MERGE-20](backlog/tasks/MERGE-20.md) · Measure the Direction A closing wave against its acceptance lists before the branch merges |
 
 
 ## Localization pilots: one target-size page per language, no generic tool pages
