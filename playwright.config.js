@@ -41,13 +41,17 @@ const PERF_BUDGETS = [
 ];
 
 export default defineConfig({
-  // A single testDir with per-tool e2e folders under src/tools/ (ARCH-17):
-  // rooted at the repo root so testMatch/testIgnore below can name both
-  // e2e/ (cross-tool specs) and src/tools/*/e2e/ (a tool's own specs, as
-  // its folder moves there) as one discovery set. Every FONT_GUARDS/
-  // PERF_BUDGETS/webkit glob already matches with a leading '**/', so
-  // moving the root doesn't require touching those the entries the mover
-  // does not itself move.
+  // A single testDir at the repo root so testMatch/testIgnore below can
+  // discover both e2e/ (cross-tool specs) and src/tools/*/e2e/ (a tool's own
+  // specs, as ARCH-17 moves each tool's folder there) in one pass. The first
+  // testMatch entry alone would already find both: a Playwright string glob
+  // with no leading '**/' also gets matched with one prepended, so
+  // 'e2e/**/*.spec.js' matches any path with an 'e2e/' segment anywhere,
+  // src/tools/*/e2e/ included (verified: dropping the second entry below
+  // still lists the same 276 tests). It is kept anyway, spelled out
+  // explicitly rather than relying on that implicit behavior. Every
+  // FONT_GUARDS/PERF_BUDGETS/webkit glob already carries its own leading
+  // '**/', so none of them need touching as tools move.
   testDir: '.',
   testMatch: ['e2e/**/*.spec.js', 'src/tools/*/e2e/**/*.spec.js'],
   testIgnore: ['**/node_modules/**', '**/dist/**'],
