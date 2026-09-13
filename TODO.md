@@ -152,6 +152,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | --- | --- | --- |
 | LOC-03 | P2 | [LOC-03](backlog/tasks/LOC-03.md) · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house |
 | LOC-12 | P3 | [LOC-12](backlog/tasks/LOC-12.md) · Read 2026-11-12 · Two-month country and language re-check, due 2026-11-12 |
+| LOC-17 | P1 | [LOC-17](backlog/tasks/LOC-17.md) · Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family |
 | SEO-04 | P1 | [SEO-04](backlog/tasks/SEO-04.md) · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks |
 | SEO-05 | P1 | [SEO-05](backlog/tasks/SEO-05.md) · Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue |
 | SEO-06 | P1 | [SEO-06](backlog/tasks/SEO-06.md) · Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools |
