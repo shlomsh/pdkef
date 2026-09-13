@@ -5,12 +5,12 @@ paths:
   - "src/editor/adapters/pdf/**"
   - "src/lib/*ont*"
   - "src/lib/languageCoverage*"
-  - "src/lib/signExportReadiness*"
+  - "src/tools/sign/signExportReadiness*"
   - "src/editor-ui/FontPickerMenu*"
   - "src/editor-ui/SignatureDialog*"
-  - "src/components/SignTool/FontSupportNotice*"
-  - "src/components/SignTool/ExportReadinessNotice*"
-  - "src/components/SignTool/nodes/**"
+  - "src/tools/sign/components/FontSupportNotice*"
+  - "src/tools/sign/components/ExportReadinessNotice*"
+  - "src/tools/sign/components/nodes/**"
   - "src/styles/editorFonts.css"
   - "public/fonts/**"
   - "scripts/font-*"
@@ -48,9 +48,10 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
   specs matched by `FONT_GUARDS` in `playwright.config.js` (per-script shaping guards, font parity, the
   export render guard, Hebrew composition, language acceptance) were 55% of the whole e2e suite while
   guarding code that changes in roughly one commit in three. `scripts/change-scope.mjs` is the one
-  list of what counts as an input (`public/fonts`, `src/editor`, `src/lib`, `src/components/SignTool`,
-  `src/test/fixtures`, `e2e/sign`, the font and language scripts, the dependency files, the Playwright
-  config); `ci.yml`'s `scope` job and the local `test:e2e` script both ask it, and a
+  list of what counts as an input (`public/fonts`, `src/editor`, `src/lib`, `src/test/fixtures`,
+  `e2e/sign`, the font and language scripts, the dependency files, the Playwright config; nothing
+  under `src/tools/sign/` is an input - ARCH-18's esbuild metafile check confirmed the export graph
+  still does not reach it); `ci.yml`'s `scope` job and the local `test:e2e` script both ask it, and a
   nightly schedule and every manual dispatch run the guards regardless. A new guard needs a name the
   globs match, and a new input a guard reads from outside that list goes into `FONT_GUARD_INPUTS` in
   the same change. `npm run test:e2e:fonts` runs them unconditionally after a build.
@@ -69,7 +70,7 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
   agree: `src/editor/text/textCoverage.js` (export side, walks the document against real font bytes,
   owns the message strings, is what `signPdf` refuses with) and `src/editor/text/textFontSupport.js`
   (editing side, synchronous, from the generated glyph data; rendered by `FontPickerMenu.tsx` and by
-  `TextNode.tsx` via `SignTool/FontSupportNotice.tsx`). Both resolve through `fonts.js`, both truncate
+  `TextNode.tsx` via `FontSupportNotice.tsx`). Both resolve through `fonts.js`, both truncate
   comb fields via `textForCoverage` in `comb.js`, both run the same missing-glyph transforms.
   `textCoverage.test.js` compares their answers against real TTFs; never add a rule to one side only,
   and never reintroduce a third path (the old `useFontCoverageNotice.js`).

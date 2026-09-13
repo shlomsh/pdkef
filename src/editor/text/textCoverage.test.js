@@ -18,7 +18,7 @@ import {
   describeFontSubstitution,
   describeTextFontSupport,
   describeUnrepresentableText,
-} from '../../components/SignTool/textMessages.ts';
+} from '../../tools/sign/components/textMessages.ts';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 const cache = new Map();

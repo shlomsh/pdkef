@@ -25,10 +25,9 @@
 //      may never import the transitional `components` module.
 //   3. `editor` may never import `editor-ui` or `shell` (it is headless).
 //   4. The transitional `components` module (today's flat src/components/ files,
-//      minus SignTool/, which is already tool:sign) may never import a tool.
-//      A tool MAY import `components` during the transition, since that is
-//      where the shared shell and editor UI still live until ARCH-16 moves
-//      them out; that direction is not a violation.
+//      which since ARCH-18 holds only the .astro site components and HeroDemo/)
+//      may never import a tool. A tool MAY import `components`; that direction
+//      is not a violation.
 //   5. `site` (pages, layouts, content, data, i18n, styles, and the .astro files
 //      still under src/components/) may reach a tool only through that tool's
 //      island entry point, a `Pdf*Tool.tsx` directly under `src/tools/<name>/`
@@ -50,15 +49,14 @@ const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.astro'];
 const TEST_FILE = /\.(?:test|contract|spec)\.[cm]?[jt]sx?$/;
 
 // --- classification: one row per folder the target layout names --------------
-// Order matters: more specific prefixes (SignTool, src/tools/<name>) are
-// checked before the generic src/components/ and site buckets they sit
-// inside of today.
+// Order matters: a more specific prefix is checked before the generic
+// src/components/ and site buckets. Tools need no row: classify() below
+// recognizes src/tools/<name>/ directly (ARCH-17/18 moved every tool there).
 const MODULE_PREFIXES = [
   ['src/shell/', () => 'shell'],
   ['src/editor-ui/', () => 'editor-ui'],
   ['src/editor/', () => 'editor'],
   ['src/lib/', () => 'lib'],
-  ['src/components/SignTool/', () => 'tool:sign'],
   ['src/i18n/', () => 'site-i18n'],
   ['src/data/', () => 'site-data'],
   ['src/pages/', () => 'site'],
