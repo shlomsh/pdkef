@@ -136,6 +136,28 @@ test('a clicked cell lets go of its action buttons when the pointer moves on', a
   await expect(cluster(3)).toHaveCSS('visibility', 'visible');
 });
 
+test('a phone-width window with a mouse still gets the Edit pages toggle', async ({ page }) => {
+  // Shlomi (2026-09-13): the toggle was hidden by pointer type alone, and
+  // below 768px the cluster is display:none until data-editing, so a mouse
+  // at phone width (a narrowed window, device mode without touch) had no
+  // way to rotate or open a page. The shared `page` fixture is mouse-only
+  // on chromium; webkit's iPhone project is touch and passes by the older
+  // route.
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/merge/');
+  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await page.locator('input[type="file"]').setInputFiles([
+    { name: 'three.pdf', mimeType: 'application/pdf', buffer: await makePdfBuffer('three', 3) },
+  ]);
+  await page.locator('[data-state="one-file"]').waitFor({ timeout: 10_000 });
+
+  const toggle = page.getByRole('button', { name: 'Edit pages', exact: true });
+  await expect(toggle).toBeVisible();
+  await toggle.click();
+  const first = page.locator('ul[class*="grid"] > li[data-key]').first();
+  await expect(first.getByRole('button', { name: /^Rotate page/ })).toBeVisible();
+});
+
 test('the phone subhead has no clipped last line at 375x812', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/merge/');
