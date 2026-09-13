@@ -3,13 +3,13 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
-import { editPages } from '../lib/editPages.js';
-import dropzoneStyles from '../shell/Dropzone.module.css';
-import toolShellStyles from '../shell/ToolShell.module.css';
-import pageGridStyles from '../shell/PageGrid.module.css';
-import pdfToolStyles from '../shell/PdfTool.module.css';
-import { mockNativeFileShare } from '../test/mockFileShare.js';
-import { setInputFiles } from '../test/setInputFiles.js';
+import { editPages } from './editPages.js';
+import dropzoneStyles from '../../shell/Dropzone.module.css';
+import toolShellStyles from '../../shell/ToolShell.module.css';
+import pageGridStyles from '../../shell/PageGrid.module.css';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import { mockNativeFileShare } from '../../test/mockFileShare.js';
+import { setInputFiles } from '../../test/setInputFiles.js';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -29,7 +29,7 @@ vi.mock('@cantoo/pdf-lib', () => {
 });
 
 // Mock thumbnails loader
-vi.mock('../lib/thumbnails.js', () => {
+vi.mock('../../lib/thumbnails.js', () => {
   return {
     renderPdfThumbnails: vi.fn((file, onPageRender) => {
       for (let i = 1; i <= mockState.numPages; i++) {
@@ -41,7 +41,7 @@ vi.mock('../lib/thumbnails.js', () => {
 });
 
 // Mock core page editing logic
-vi.mock('../lib/editPages.js', () => {
+vi.mock('./editPages.js', () => {
   return {
     editPages: vi.fn(() => Promise.resolve(new Blob(['modified-pdf-bytes'], { type: 'application/pdf' }))),
   };
