@@ -3,14 +3,14 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfSplitTool from './PdfSplitTool.tsx';
-import { parsePageSelector, pageNumbersToRangeString } from '../lib/split.js';
-import dropzoneStyles from '../shell/Dropzone.module.css';
-import toolShellStyles from '../shell/ToolShell.module.css';
-import pageGridStyles from '../shell/PageGrid.module.css';
+import { parsePageSelector, pageNumbersToRangeString } from './split.js';
+import dropzoneStyles from '../../shell/Dropzone.module.css';
+import toolShellStyles from '../../shell/ToolShell.module.css';
+import pageGridStyles from '../../shell/PageGrid.module.css';
 import styles from './PdfSplitTool.module.css';
-import pdfToolStyles from '../shell/PdfTool.module.css';
-import { mockNativeFileShare } from '../test/mockFileShare.js';
-import { setInputFiles } from '../test/setInputFiles.js';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import { mockNativeFileShare } from '../../test/mockFileShare.js';
+import { setInputFiles } from '../../test/setInputFiles.js';
 
 // Test split.js library
 describe('split.js library helpers', () => {
@@ -139,7 +139,7 @@ describe('PdfSplitTool UI flow', () => {
     document.body.appendChild(container);
     act(() => render(<PdfSplitTool />, container));
 
-    const fixturePath = path.resolve(__dirname, '../lib/__fixtures__/num-5.pdf');
+    const fixturePath = path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf');
     const file = new File([fs.readFileSync(fixturePath)], 'num-5.pdf', { type: 'application/pdf' });
     const input = container.querySelector('input[type="file"]');
     await act(async () => {
@@ -179,7 +179,7 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 describe('splitPdf library integration with real fixtures', () => {
   function getFixtureFile(name) {
-    const filePath = path.resolve(__dirname, '../lib/__fixtures__', name);
+    const filePath = path.resolve(__dirname, '../../lib/__fixtures__', name);
     const buffer = fs.readFileSync(filePath);
     return new File([buffer], name, { type: 'application/pdf' });
   }
@@ -204,7 +204,7 @@ describe('splitPdf library integration with real fixtures', () => {
   }
 
   it('splits page range 2-4 from num-5.pdf to yield pages "12", "13", "14"', async () => {
-    const { splitPdf } = await vi.importActual('../lib/split.js');
+    const { splitPdf } = await vi.importActual('./split.js');
     const file = getFixtureFile('num-5.pdf');
     const results = await splitPdf(file, { pageNumbers: [2, 3, 4], mode: 'combined' });
 
@@ -216,7 +216,7 @@ describe('splitPdf library integration with real fixtures', () => {
   });
 
   it('extracts single page 1 from num-5.pdf to yield page "11"', async () => {
-    const { splitPdf } = await vi.importActual('../lib/split.js');
+    const { splitPdf } = await vi.importActual('./split.js');
     const file = getFixtureFile('num-5.pdf');
     const results = await splitPdf(file, { pageNumbers: [1], mode: 'combined' });
 
@@ -228,7 +228,7 @@ describe('splitPdf library integration with real fixtures', () => {
   });
 
   it('extracts pages separately', async () => {
-    const { splitPdf } = await vi.importActual('../lib/split.js');
+    const { splitPdf } = await vi.importActual('./split.js');
     const file = getFixtureFile('num-5.pdf');
     const results = await splitPdf(file, { pageNumbers: [2, 4], mode: 'separate' });
 
