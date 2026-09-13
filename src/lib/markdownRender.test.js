@@ -166,8 +166,20 @@ describe('homeToMarkdown', () => {
       tools: [{ toolName: 'Sign', href: '/sign/', gridDescription: 'Sign it.' }],
     });
     expect(md).toContain('# Free PDF tools');
+    expect(md).toContain('URL: https://pdkef.com/');
     expect(md).toContain('- [Sign](https://pdkef.com/sign/): Sign it.');
     expect(md).toContain('### Q?');
+  });
+
+  it('uses a locale edition\'s own root when path is given', () => {
+    const md = homeToMarkdown({
+      h1: 'כלי PDF חינמיים',
+      description: 'תיאור.',
+      tools: [{ toolName: 'חתימה', href: '/he/sign/', gridDescription: 'חתמו עליו.' }],
+      path: '/he/',
+    });
+    expect(md).toContain('URL: https://pdkef.com/he/');
+    expect(md).toContain('- [חתימה](https://pdkef.com/he/sign/): חתמו עליו.');
   });
 });
 
