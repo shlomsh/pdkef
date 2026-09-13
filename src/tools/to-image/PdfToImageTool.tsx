@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { convertPdfToImages } from '../lib/toImage.js';
-import BasePdfTool from '../shell/BasePdfTool.tsx';
+import { convertPdfToImages } from './toImage.js';
+import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import styles from './PdfToImageTool.module.css';
-import fileListStyles from '../shell/FileList.module.css';
-import pdfToolStyles from '../shell/PdfTool.module.css';
-import PdfShareButton from '../shell/PdfShareButton.tsx';
-import ProgressRing from '../shell/ProgressRing.tsx';
-import ErrorMessage from '../shell/ErrorMessage.tsx';
-import { usePdfShare } from '../lib/usePdfShare.js';
-import { describeFile } from '../lib/format.js';
+import fileListStyles from '../../shell/FileList.module.css';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import PdfShareButton from '../../shell/PdfShareButton.tsx';
+import ProgressRing from '../../shell/ProgressRing.tsx';
+import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import { usePdfShare } from '../../lib/usePdfShare.js';
+import { describeFile } from '../../lib/format.js';
 
 const SCALE_OPTIONS = [
   { value: 1, label: 'Standard', hint: '~72 DPI - smallest file size, fine for screen viewing.' },
