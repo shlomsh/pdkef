@@ -20,7 +20,7 @@ import { renderRedactionSurface } from './redactionSurface.ts';
 // any module that imports a Node component.
 //
 // ARCH-19: the registry used to import the Preact node components directly
-// from `src/components/SignTool/nodes/*`, an editor -> tool edge the module
+// from Sign's own node-component folder, an editor -> tool edge the module
 // boundary rules forbid. Inverted here: the core exposes `registerRenderer`,
 // and each tool's entry point registers its own node components before the
 // first render (Sign's `PdfWorkspace.tsx` does this for all seven types it
