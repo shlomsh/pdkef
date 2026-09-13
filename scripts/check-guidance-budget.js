@@ -10,14 +10,24 @@
 //   3. Every glob in `paths:` matches at least one file - a typo'd glob is a rule
 //      that silently never loads, which is worse than no rule.
 // Source-only; CI runs it right after check:backlog, before anything that builds.
-import { readFileSync, readdirSync, globSync } from 'node:fs';
+//
+// A fourth check, beyond the three above: every file under the five core
+// folders (src/shell/, src/editor-ui/, src/editor/, src/tools/, src/lib/)
+// must be matched by at least one rule's paths: glob, not just editor.md's.
+// A glob matching *something* (check 3) does not mean it matches *everything*
+// that needs the guidance - a per-file glob list rots the moment a file is
+// added or renamed and nobody remembers to update it, and that gap is
+// invisible to a "does this glob match anything" check.
+import { readFileSync, readdirSync, globSync, statSync } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CLAUDE_MD_MAX_LINES = 200;
 const RULE_MAX_LINES = 400;
+const CORE_PREFIXES = ['src/shell/', 'src/editor-ui/', 'src/editor/', 'src/tools/', 'src/lib/'];
 const failures = [];
+const allGlobs = [];
 
 const claudeLines = readFileSync(join(root, 'CLAUDE.md'), 'utf8').split('\n').length;
 if (claudeLines > CLAUDE_MD_MAX_LINES) {
@@ -39,7 +49,22 @@ for (const name of readdirSync(rulesDir).filter((f) => f.endsWith('.md')).sort()
   for (const pattern of globs) {
     if (globSync(pattern, { cwd: root }).length === 0) failures.push(`${label}: paths glob "${pattern}" matches no file, so that trigger never fires.`);
   }
+  allGlobs.push(...globs);
+}
+
+const coveredFiles = new Set();
+for (const pattern of allGlobs) {
+  for (const match of globSync(pattern, { cwd: root })) coveredFiles.add(match);
+}
+
+for (const prefix of CORE_PREFIXES) {
+  for (const entry of globSync(`${prefix}**`, { cwd: root })) {
+    let isFile;
+    try { isFile = statSync(join(root, entry)).isFile(); } catch { continue; }
+    if (!isFile || coveredFiles.has(entry)) continue;
+    failures.push(`${entry} is under a core folder (${prefix}) but matches no rule's paths: glob - it would get no guidance loaded when an agent reads it.`);
+  }
 }
 
 if (failures.length) { console.error('Guidance budget check failed:\n' + failures.map((f) => `  - ${f}`).join('\n')); process.exit(1); }
-console.log(`Guidance budget OK: CLAUDE.md ${claudeLines}/${CLAUDE_MD_MAX_LINES} lines; every rule is path-scoped and every glob matches.`);
+console.log(`Guidance budget OK: CLAUDE.md ${claudeLines}/${CLAUDE_MD_MAX_LINES} lines; every rule is path-scoped, every glob matches, and every core-folder file is covered.`);
