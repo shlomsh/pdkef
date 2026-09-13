@@ -219,6 +219,12 @@ export default function PdfMergeTool({
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const [addPageNumbers, setAddPageNumbers] = useState(() => readRememberedOptions().addPageNumbers);
+  /* Direction A wave 4 (Shlomi, phone bottom-sheet measurement): one Options
+   * disclosure, one open/closed state. Desktop still opens it by clicking
+   * its own <summary>; the phone sheet's hand-off row gets a fourth
+   * `flex:1` button (CSS-hidden at 768px and up) that flips the same state,
+   * so there is exactly one options-body in the DOM for both. */
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('added');
   const [renderedCount, setRenderedCount] = useState(0);
   /* Direction A wave 2 (Shlomi): the restored-draft sentence shows once, for
@@ -1165,7 +1171,19 @@ export default function PdfMergeTool({
               </div>
 
               <div class={railStyles['rail-pinned']}>
-                <details class={railStyles.options}>
+                {/* One <details>, one options-body, for both breakpoints
+                    (wave 4). Desktop opens it from its own <summary>; on
+                    a phone the summary is hidden (the hand-off row's
+                    Options button below is the control there instead) and
+                    the whole element collapses to nothing while closed, so
+                    it costs the sheet no height until opened. Controlled by
+                    `optionsOpen` either way, so the two triggers can never
+                    disagree about the state. */}
+                <details
+                  class={railStyles.options}
+                  open={optionsOpen}
+                  onToggle={(event) => setOptionsOpen((event.currentTarget as HTMLDetailsElement).open)}
+                >
                   <summary class={railStyles['options-summary']}>
                     {t.optionsSummary}
                     <svg class={railStyles['options-chevron']} width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -1198,7 +1216,7 @@ export default function PdfMergeTool({
                 />
 
                 <div class={railStyles['handoff-row']}>
-                  {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} />}
+                  {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} className={railStyles['handoff-button']} />}
                   {(['compress', 'sign'] as HandoffTool[]).map((tool) => (
                     <button
                       key={tool}
@@ -1210,6 +1228,20 @@ export default function PdfMergeTool({
                       {tool === 'compress' ? t.handoffCompress : t.handoffSign}
                     </button>
                   ))}
+                  {/* Phone only (CSS-hidden at 768px and up, where the
+                      details' own <summary> above is the control instead):
+                      Options as the row's fourth equal button, per Shlomi's
+                      sheet-height measurement. Toggles the same state the
+                      <summary> does, so there is still exactly one
+                      options-body in the DOM. */}
+                  <button
+                    type="button"
+                    class={`${railStyles['handoff-button']} ${railStyles['options-toggle']}`}
+                    aria-expanded={optionsOpen}
+                    onClick={() => setOptionsOpen((current) => !current)}
+                  >
+                    {t.optionsSummary}
+                  </button>
                 </div>
 
                 {downloadedOnce && (

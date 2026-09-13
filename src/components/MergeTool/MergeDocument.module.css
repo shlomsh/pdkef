@@ -310,3 +310,20 @@
     padding-bottom: 12px;
   }
 }
+
+/* On a phone the Undo chip (and the shortcuts hint) take a row of their own
+   under the heading; sharing the heading's row with the Edit pages toggle
+   squeezed "Your merged PDF · 18 pages" into a one-word-per-line column. */
+@media (max-width: 767px) {
+  .heading-row {
+    flex-basis: 100%;
+  }
+
+  .doc-header-right {
+    flex-basis: 100%;
+  }
+
+  .doc-header-right:empty {
+    display: none;
+  }
+}

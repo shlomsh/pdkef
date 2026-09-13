@@ -109,6 +109,9 @@ export interface MergeMessages {
    * after page-level shuffle and skip it is not the next step); MERGE-17: one
    * quiet line after the first result in this browser. */
   handoffCompress: string;
+  /** Direction A: the Share button in the rail's hand-off row; short, since
+   * it shares one row with Compress it, Sign it and Options on a phone. */
+  shareLabel: string;
   handoffSign: string;
   handoffConfirmTitle: string;
   handoffConfirmBody: string;
@@ -210,6 +213,7 @@ const englishMergeMessages: MergeMessages = {
   previewNext: 'Next page',
   previewLoading: 'Rendering the page…',
   handoffCompress: 'Compress it',
+  shareLabel: 'Share',
   handoffSign: 'Sign it',
   handoffConfirmTitle: 'Replace the saved draft?',
   handoffConfirmBody: 'That tool still has a draft saved on this device: {draft}. Opening the merged file there replaces it.',
@@ -313,6 +317,7 @@ const hebrewMergeMessages: MergeMessages = {
   previewNext: 'העמוד הבא',
   previewLoading: 'מציירים את העמוד…',
   handoffCompress: 'לכווץ אותו',
+  shareLabel: 'שיתוף',
   handoffSign: 'לחתום עליו',
   handoffConfirmTitle: 'להחליף את הטיוטה השמורה?',
   handoffConfirmBody: 'בכלי הזה עדיין שמורה טיוטה על המכשיר: {draft}. פתיחת הקובץ המאוחד שם תחליף אותה.',

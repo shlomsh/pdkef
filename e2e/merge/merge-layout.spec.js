@@ -73,19 +73,15 @@ test('keeps the Merge card full width and spaces the native-share icon', async (
   await expect(page.locator('[data-state]')).toHaveCount(1);
   await expect(downloadLink).toHaveAttribute('data-state', 'ready');
 
-  // Share sits in the rail's hand-off row alongside Compress it / Sign it.
-  const shareButton = page.locator('[class*="pdf-share-button"]');
+  // Share sits in the rail's hand-off row alongside Compress it / Sign it,
+  // with the row's own button class (PdfShareButton's `className`), so it is
+  // found by name. E2.6's contract holds through that class: a real flex
+  // row with a visible, tokenized gap between the icon and the label.
+  const shareButton = page.getByRole('button', { name: 'Share', exact: true });
   await expect(shareButton).toBeVisible();
-
-  // E2.6: the icon and label must be a real flex row with a visible, tokenized
-  // gap instead of relying on adjacent inline SVG/text layout.
-  // PdfTool.module.css declares `display: inline-flex`, but Direction A's
-  // rail puts Share inside `.handoff-row` (`display: flex`), making it a
-  // flex item - CSS blockification then reports the computed value as
-  // "flex", not "inline-flex", which is correct per spec, not a regression.
-  await expect(shareButton).toHaveCSS('display', 'flex');
+  await expect(shareButton).toHaveCSS('display', 'flex'); // blockified: a flex item of .handoff-row
   await expect(shareButton).toHaveCSS('align-items', 'center');
-  await expect(shareButton).toHaveCSS('gap', '8px');
+  await expect(shareButton).toHaveCSS('gap', '4.8px');
 });
 
 test('MERGE-11: two taps from an empty page to a saved file, nothing else touched', async ({ page }) => {

@@ -50,12 +50,38 @@
     z-index: 2;
     /* Bleed to the card's edges: Merge's loaded phone card is 12px
        (PdfTool.module.css's `[data-hide-identity][data-tool-loaded]` rule,
-       wave 3), not the other tools' 1.5rem. */
+       wave 3), not the other tools' 1.5rem. Vertical padding is 0.5rem
+       (wave 4, Shlomi's sheet-height measurement): the closed sheet is now
+       padding-top 8px + padding-bottom 8px (+ safe-area) + the hand-off row
+       (44px, Options folded into it) + the Download element - the options
+       disclosure itself costs nothing while closed (see `.options` below). */
     margin: 0 -12px;
-    padding: 0.75rem 12px calc(0.75rem + env(safe-area-inset-bottom));
+    padding: 0.5rem 12px calc(0.5rem + env(safe-area-inset-bottom));
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
     border-radius: 0;
+  }
+
+  /* The hand-off row carries Options as its fourth button here instead
+     (spec: "one row of Share, Compress it, Sign it, Options"); the
+     disclosure's own <summary> is redundant on a phone and hidden, and the
+     whole <details> collapses to zero height while closed so it adds no
+     space above the row - only the open panel (rendered above Download)
+     ever takes room. */
+  .options-summary {
+    display: none;
+  }
+
+  .options:not([open]) {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  /* Desktop keeps its own <summary> as the one control; the row never
+     shows a fourth button. */
+  .options-toggle {
+    display: none;
   }
 }
 
@@ -325,7 +351,35 @@
   gap: 0.5rem;
 }
 
+/* Every child of the row is an equal button, the Share button included
+   (it keeps PdfShareButton's own classes, so the rule is on the row). On a
+   phone the four of them (Share, Compress it, Sign it, Options) stay on one
+   line at 393px: no wrapping, no label wrapping, a smaller face. */
+.handoff-row > * {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .handoff-row {
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+  }
+
+  /* Four 79px buttons at 393px: "Compress it" bold measures about 70px at
+     this size, so the padding is the minimum that still reads as a button. */
+  .handoff-row > * {
+    padding-inline: 0.15rem;
+    font-size: 0.76rem;
+  }
+}
+
 .handoff-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
   flex: 1;
   min-height: 44px;
   padding: 0.5rem 0.6rem;
