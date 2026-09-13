@@ -11,12 +11,16 @@ const PDF_PACKAGES = new Set(['@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist
 
 // These are seams, not broad layer permissions. Keeping them explicit makes a
 // new renderer or framework hook a deliberate architectural decision.
+//
+// ARCH-19 removed the `renderers.ts -> src/components/SignTool/` targetPrefix
+// exception below: the registry used to import the Preact node components
+// directly, an editor -> tool edge. It is inverted now (registerRenderer in
+// registry/renderers.ts; Sign's PdfWorkspace.tsx registers its node
+// components at module load, before any render), so nothing under
+// src/editor/registry/renderers.ts imports from src/components/ any more -
+// only the `preact` exception below remains, for the registry still creating
+// Preact vnodes from whatever component was registered.
 const EXCEPTIONS = [
-  {
-    from: 'src/editor/registry/renderers.ts',
-    targetPrefix: 'src/components/SignTool/',
-    reason: 'registry view adapter renders the Preact node variants',
-  },
   {
     from: 'src/editor/registry/renderers.ts',
     package: 'preact',

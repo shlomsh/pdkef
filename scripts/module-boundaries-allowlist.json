@@ -125,36 +125,6 @@
     "reason": "the transitional components module may not import a tool"
   },
   {
-    "from": "src/editor/registry/renderers.ts",
-    "to": "src/components/SignTool/nodes/TextNode.tsx",
-    "reason": "editor may not import a tool"
-  },
-  {
-    "from": "src/editor/registry/renderers.ts",
-    "to": "src/components/SignTool/nodes/ShapeNode.tsx",
-    "reason": "editor may not import a tool"
-  },
-  {
-    "from": "src/editor/registry/renderers.ts",
-    "to": "src/components/SignTool/nodes/LineNode.tsx",
-    "reason": "editor may not import a tool"
-  },
-  {
-    "from": "src/editor/registry/renderers.ts",
-    "to": "src/components/SignTool/nodes/SignatureNode.tsx",
-    "reason": "editor may not import a tool"
-  },
-  {
-    "from": "src/editor/registry/renderers.ts",
-    "to": "src/components/SignTool/nodes/SymbolNode.tsx",
-    "reason": "editor may not import a tool"
-  },
-  {
-    "from": "src/editor/registry/renderers.ts",
-    "to": "src/components/SignTool/nodes/WhiteoutNode.tsx",
-    "reason": "editor may not import a tool"
-  },
-  {
     "from": "src/editor/registry/text.ts",
     "to": "src/components/SignTool/EditorElement.module.css",
     "reason": "editor may not import a tool"
