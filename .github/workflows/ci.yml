@@ -29,14 +29,13 @@ on:
 # 10s) and skip when the change is docs-only; when scope produces no verdict
 # they run, so a broken classifier costs time, never coverage.
 #
-# `build` produces dist/ once and runs every guard that reads it (csp, seo,
-# redirects, css, weight); `e2e` is a two-shard matrix that downloads that
-# dist/, needs both `scope` and `build`, and runs the product e2e split with
-# `--shard`. Splitting it from `build` was QUAL-05 (2026-09-13): the product
-# e2e was the long pole in `build` at 1:45-2:10 on two workers, and halving it
-# needs no knowledge of the code, unlike the per-tool gating ARCH-20 plans.
-# Each shard pays the fixed cost (npm ci, browser install) again, which is
-# the trade the ticket accepts.
+# `build` runs every guard that reads dist/ (csp, seo, redirects, css, weight);
+# `e2e` is a two-shard matrix beside it, each shard building for itself and
+# running its half of the product e2e. Splitting it from `build` was QUAL-05
+# (2026-09-13): the product e2e was the long pole in `build` at 1:45-2:10 on
+# two workers, and halving it needs no knowledge of the code, unlike the
+# per-tool gating ARCH-20 plans. Each shard pays the fixed cost (npm ci,
+# build, browser install) again, which is the trade the ticket accepts.
 jobs:
   # Everything that needs no build: source guards, the unit suite, typecheck.
   checks:

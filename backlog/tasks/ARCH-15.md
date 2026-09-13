@@ -1,7 +1,7 @@
 ---
 id: "ARCH-15"
 title: "Module boundaries: the target layout, the dependency rules, and a checker that ratchets today's violations down"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "module-boundaries"
 phase: "near-term"
@@ -92,3 +92,8 @@ Rules: a tool depends on `shell`, `editor-ui`, `editor` and `lib`, never on anot
   `PERF_BUDGETS` globs, and the Architecture section of `CLAUDE.md`.
 - Sessions work in parallel on `main`; each move lands as its own small commit, green, so the
   conflict surface for in-flight branches stays one folder at a time.
+- Closed 2026-09-13 in `2993746`: `docs/module-boundaries.md`, `scripts/check-module-boundaries.mjs`
+  with a 33-edge allowlist (24 components-to-tool, 8 editor-to-tool, 1 tool-to-tool), in `check:fast`
+  and the `checks` job. The record corrects two claims above: `editorModel.ts` only mentions
+  `components` in a comment (three leaking files, not four), and there is one tool-to-tool edge the
+  ticket missed, `MergeTool/useMergeDraft.ts` importing `SignTool/useDraftPersistence.js`.
