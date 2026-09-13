@@ -290,6 +290,17 @@ export default function PdfMergeTool({
     return () => sortableRef.current?.destroy();
   }, [entries.length > 0]);
 
+  // ToolPageLayout's pre-paint script sets `html[data-draft-hint]` when a
+  // draft exists, and Dropzone.module.css hides the empty-state dropzone under
+  // it until hydration commits its real state. Sign never shows an empty state
+  // after a restore (Replace loads another file), so its hook only clears the
+  // attribute when nothing was restored; Merge does show one again, after
+  // Clear all or Start again, so the attribute goes as soon as the check has
+  // settled either way. Without this the card came back blank after Clear all.
+  useEffect(() => {
+    if (!draftState.isRestoring) document.documentElement.removeAttribute('data-draft-hint');
+  }, [draftState.isRestoring]);
+
   useEffect(() => {
     let cancelled = false;
     import('./MergeTool/MergeDraftPersistence.tsx')
