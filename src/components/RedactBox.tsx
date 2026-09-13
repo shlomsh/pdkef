@@ -1,8 +1,8 @@
 import { useRef } from 'preact/hooks';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 import { TOOLBAR_FLOATING_OFFSET } from '../constants/signGeometry.js';
-import ElementToolbar from './ElementToolbar.tsx';
-import ElementResizers from './ElementResizers.tsx';
+import ElementToolbar from '../editor-ui/ElementToolbar.tsx';
+import ElementResizers from '../editor-ui/ElementResizers.tsx';
 import { getElementRenderer } from '../editor/registry/renderers.ts';
 import useDraggableElement from '../lib/useDraggableElement.js';
 import useElementResize from '../lib/useElementResize.js';

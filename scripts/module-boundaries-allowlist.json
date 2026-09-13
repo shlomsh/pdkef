@@ -1,38 +1,38 @@
 [
   {
-    "from": "src/components/ArmHint.tsx",
+    "from": "src/editor-ui/ArmHint.tsx",
     "to": "src/components/SignTool/SignToolbar.module.css",
-    "reason": "the transitional components module may not import a tool"
+    "reason": "editor-ui may not import a tool"
   },
   {
-    "from": "src/components/EditorExportActions.tsx",
+    "from": "src/editor-ui/EditorExportActions.tsx",
     "to": "src/components/SignTool/SignToolbar.module.css",
-    "reason": "the transitional components module may not import a tool"
+    "reason": "editor-ui may not import a tool"
   },
   {
-    "from": "src/components/EditorExportActions.tsx",
+    "from": "src/editor-ui/EditorExportActions.tsx",
     "to": "src/components/SignTool/Workspace.module.css",
-    "reason": "the transitional components module may not import a tool"
+    "reason": "editor-ui may not import a tool"
   },
   {
-    "from": "src/components/EditorToolStatus.tsx",
+    "from": "src/editor-ui/EditorToolStatus.tsx",
     "to": "src/components/SignTool/SignToolbar.module.css",
-    "reason": "the transitional components module may not import a tool"
+    "reason": "editor-ui may not import a tool"
   },
   {
-    "from": "src/components/ElementResizers.tsx",
+    "from": "src/editor-ui/ElementResizers.tsx",
     "to": "src/components/SignTool/nodeProps.ts",
-    "reason": "the transitional components module may not import a tool"
+    "reason": "editor-ui may not import a tool"
   },
   {
-    "from": "src/components/ElementResizers.tsx",
+    "from": "src/editor-ui/ElementResizers.tsx",
     "to": "src/components/SignTool/EditorElement.module.css",
-    "reason": "the transitional components module may not import a tool"
+    "reason": "editor-ui may not import a tool"
   },
   {
-    "from": "src/components/FullscreenButton.tsx",
+    "from": "src/editor-ui/FullscreenButton.tsx",
     "to": "src/components/SignTool/SignToolbar.module.css",
-    "reason": "the transitional components module may not import a tool"
+    "reason": "editor-ui may not import a tool"
   },
   {
     "from": "src/components/MergeTool/useMergeDraft.ts",
@@ -80,9 +80,9 @@
     "reason": "the transitional components module may not import a tool"
   },
   {
-    "from": "src/components/PdfPageCanvas.tsx",
+    "from": "src/editor-ui/PdfPageCanvas.tsx",
     "to": "src/components/SignTool/Workspace.module.css",
-    "reason": "the transitional components module may not import a tool"
+    "reason": "editor-ui may not import a tool"
   },
   {
     "from": "src/components/PdfRedactTool.tsx",

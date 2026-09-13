@@ -1,4 +1,4 @@
-import ElementResizers from '../../ElementResizers.tsx';
+import ElementResizers from '../../../editor-ui/ElementResizers.tsx';
 import {
   DEFAULT_STROKE_WIDTH,
   LINE_HIT_TARGET_STOKE_WIDTH

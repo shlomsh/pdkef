@@ -14,7 +14,7 @@ import { SignToolProvider, useSignTool } from './SignTool/SignToolContext.tsx';
 import { SignDefaultsContext } from './SignTool/SignDefaultsContext.tsx';
 import { SavedSignaturesContext } from './SignTool/SavedSignaturesContext.tsx';
 import PdfWorkspace from './SignTool/PdfWorkspace.tsx';
-import SignatureDialog from './SignatureDialog.tsx';
+import SignatureDialog from '../editor-ui/SignatureDialog.tsx';
 import { uniqueId, seedUniqueId } from '../editor/model/ids.ts';
 import { describeUnrepresentableText } from './SignTool/textMessages.ts';
 import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../editor/geometry/coords.js';
@@ -50,7 +50,7 @@ import {
   signExportSucceeded,
   vercelMaintenanceTransport,
 } from '../lib/maintenanceTelemetry.ts';
-import UndoHistoryModal from './UndoHistoryModal.tsx';
+import UndoHistoryModal from '../editor-ui/UndoHistoryModal.tsx';
 import ConfirmDialog from '../shell/ConfirmDialog.tsx';
 import { describeFile } from '../lib/format.js';
 import useCurrentPage from '../lib/useCurrentPage.js';

@@ -1,4 +1,4 @@
-import ElementResizers from '../../ElementResizers.tsx';
+import ElementResizers from '../../../editor-ui/ElementResizers.tsx';
 import { DEFAULT_WHITEOUT_COLOR } from '../../../constants/signGeometry.js';
 import type { WhiteoutElement } from '../../../editor/model/editorModel.ts';
 import type { ElementNodeProps } from '../nodeProps.ts';

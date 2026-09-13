@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import BasePdfTool from '../shell/BasePdfTool.tsx';
-import PdfPageCanvas from './PdfPageCanvas.tsx';
+import PdfPageCanvas from '../editor-ui/PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../editor/model/ids.ts';
 import { applyPageEdits } from '../editor/adapters/pdf/applyPageEdits.js';
 import { loadPdf as loadEditorPdf } from '../editor/workspace/loadPdf.ts';
@@ -14,13 +14,13 @@ import { isDraftElement } from '../editor/registry/draftValidation.ts';
 import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../editor/workspace/preferenceStore.ts';
 import useDeletableObjects from '../lib/useDeletableObjects.js';
 import RedactToolbar from './RedactToolbar.tsx';
-import EditorExportActions from './EditorExportActions.tsx';
+import EditorExportActions from '../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
 import DeleteMark from './DeleteMark.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
-import EditorPageHeader from './EditorPageHeader.tsx';
-import UndoHistoryModal from './UndoHistoryModal.tsx';
+import EditorPageHeader from '../editor-ui/EditorPageHeader.tsx';
+import UndoHistoryModal from '../editor-ui/UndoHistoryModal.tsx';
 import {
   captureAddedElement,
   captureElementSnapshots,

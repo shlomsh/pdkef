@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'preact/hooks';
 import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist';
 import type { PageGeometry } from '../editor/geometry/coords.ts';
 import { getPdfRenderContext } from '../editor/adapters/pdf/renderContext.js';
-import workspaceStyles from './SignTool/Workspace.module.css';
+import workspaceStyles from '../components/SignTool/Workspace.module.css';
 
 // Dedicated canvas rendering component for clean lifecycles and race-free layout paints
 export default function PdfPageCanvas({

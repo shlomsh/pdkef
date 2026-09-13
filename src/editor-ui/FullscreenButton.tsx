@@ -1,4 +1,4 @@
-import styles from './SignTool/SignToolbar.module.css';
+import styles from '../components/SignTool/SignToolbar.module.css';
 
 export default function FullscreenButton({
   isFullscreen,

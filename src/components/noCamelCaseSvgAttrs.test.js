@@ -24,7 +24,11 @@ const componentsDir = path.dirname(fileURLToPath(import.meta.url));
 // own directory because every island and its shared chrome lived flat in
 // src/components/. Scan every folder that chrome has moved into, or a file
 // that changes owner silently drops out of coverage instead of failing loud.
-const SCAN_DIRS = [componentsDir, path.join(componentsDir, '..', 'shell')];
+const SCAN_DIRS = [
+  componentsDir,
+  path.join(componentsDir, '..', 'shell'),
+  path.join(componentsDir, '..', 'editor-ui'),
+];
 
 function jsxFiles(dir) {
   return fs.readdirSync(dir)

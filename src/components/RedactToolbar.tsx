@@ -1,7 +1,7 @@
-import ViewControl from './ViewControl.tsx';
-import EditorToolStatus from './EditorToolStatus.tsx';
-import ArmHint from './ArmHint.tsx';
-import EditorExportActions from './EditorExportActions.tsx';
+import ViewControl from '../editor-ui/ViewControl.tsx';
+import EditorToolStatus from '../editor-ui/EditorToolStatus.tsx';
+import ArmHint from '../editor-ui/ArmHint.tsx';
+import EditorExportActions from '../editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../shell/ToolShell.tsx';
 import { makeArmTool, useAutoArmHint } from '../lib/toolArming.js';
 import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';

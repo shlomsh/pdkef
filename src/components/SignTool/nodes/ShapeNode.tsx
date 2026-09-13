@@ -1,4 +1,4 @@
-import ElementResizers from '../../ElementResizers.tsx';
+import ElementResizers from '../../../editor-ui/ElementResizers.tsx';
 import { DEFAULT_STROKE_WIDTH } from '../../../constants/signGeometry.js';
 import type { EllipseElement, RectangleElement } from '../../../editor/model/editorModel.ts';
 import type { ElementNodeProps } from '../nodeProps.ts';

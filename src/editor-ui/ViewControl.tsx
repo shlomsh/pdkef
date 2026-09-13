@@ -1,5 +1,5 @@
 import { useRef } from 'preact/hooks';
-import useViewDensity from '../lib/useViewDensity.js';
+import useViewDensity from './useViewDensity.js';
 import FullscreenButton from './FullscreenButton.tsx';
 import styles from './ViewControl.module.css';
 
