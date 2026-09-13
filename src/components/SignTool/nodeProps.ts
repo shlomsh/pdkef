@@ -1,13 +1,10 @@
 import type { EditorElement, EditorElementPatch } from '../../editor/model/editorModel.ts';
-import type { ResizeHandle } from '../../editor/registry/types.ts';
 // Type-only import, same non-cycle reasoning as registry/types.ts's own.
 import type { SignMessages } from '../../i18n/toolMessages';
-
-/** Native events shared by the Preact mouse and touch resize handlers. */
-export type EditorPointerEvent = MouseEvent | TouchEvent;
-
-/** Begins a resize gesture at an optional registry-defined handle. */
-export type NodeResizeStart = (event: EditorPointerEvent, handle?: ResizeHandle) => void;
+// ElementResizers (editor-ui, shared with Redact) owns this contract now;
+// re-exported here so Sign's node components keep one import surface.
+export type { EditorPointerEvent, NodeResizeStart } from '../../editor-ui/nodeResizeTypes.ts';
+import type { NodeResizeStart } from '../../editor-ui/nodeResizeTypes.ts';
 
 /** Shared shell props for a node rendered inside DraggableWrapper. */
 export interface ElementNodeProps<T extends EditorElement> {

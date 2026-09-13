@@ -1,6 +1,6 @@
 import { getElementDefinition } from '../editor/registry/index.ts';
 import type { EditorElement } from '../editor/model/editorModel.ts';
-import type { NodeResizeStart } from '../components/SignTool/nodeProps.ts';
+import type { NodeResizeStart } from './nodeResizeTypes.ts';
 import { englishSignMessages, type SignMessages } from '../i18n/toolMessages';
 import styles from './EditorElement.module.css';
 
