@@ -18,6 +18,7 @@ const ROOTS = new Map([
   ['tool-sign', 'src/tools/sign'],
   ['tool-compress', 'src/tools/compress'],
   ['tool-split', 'src/tools/split'],
+  ['tool-edit-pages', 'src/tools/edit-pages'],
   ['site-e2e', 'e2e'],
   ['fonts', 'e2e/sign'],
   ['font-assets', 'public/fonts'],
@@ -42,12 +43,66 @@ describe('ownerOf', () => {
     expect(ownerOf('docs/module-boundaries.md', ROOTS)).toBeNull();
     expect(ownerOf('middleware.ts', ROOTS)).toBeNull();
   });
+
+  it('matches a file whose path equals the root exactly, not just a prefix', () => {
+    expect(ownerOf('public/fonts', ROOTS)).toBe('font-assets');
+  });
+
+  it('does not treat a sibling directory with the same prefix as a match', () => {
+    // "src/editor-ui" must not be caught by "src/editor"'s root - the check
+    // requires a path separator right after the root, not a bare prefix.
+    expect(ownerOf('src/editor-ui/ArmHint.tsx', ROOTS)).toBe('editor-ui');
+    expect(ownerOf('src/editor/model/editorModel.ts', ROOTS)).toBe('editor');
+  });
+
+  it('returns null against an empty root map', () => {
+    expect(ownerOf('src/lib/format.js', new Map())).toBeNull();
+  });
+
+  // Mirrors the real project.json layout (see nx.json's projects), so this
+  // pins the same "which project owns this path" question the deleted
+  // FONT_GUARD_INPUTS example tests used to pin for the font guards alone -
+  // now for every project, derived from directory ownership instead of a
+  // hand-kept regex list.
+  it.each([
+    ['src/shell/FileDropzone.tsx', 'shell'],
+    ['src/editor/workspace/draftStore.js', 'editor'],
+    ['src/editor-ui/ElementToolbar.tsx', 'editor-ui'],
+    ['src/lib/format.js', 'lib'],
+    ['src/tools/sign/PdfSignTool.tsx', 'tool-sign'],
+    ['src/tools/sign/e2e/sign-editor.spec.js', 'tool-sign'],
+    ['src/tools/edit-pages/PdfEditPagesTool.tsx', 'tool-edit-pages'],
+    ['src/pages/index.astro', 'site'],
+    ['src/data/tools.js', 'site'],
+    ['src/i18n/toolMessages.ts', 'site'],
+    ['public/fonts/Kalam-Regular.ttf', 'font-assets'],
+    ['e2e/sign/hebrew-composition-guard.spec.js', 'fonts'],
+    ['e2e/sign/fixtures/exportRenderBaseline.json', 'fonts'],
+    ['e2e/home/handoff.spec.js', 'site-e2e'],
+    ['e2e/csp-smoke.spec.js', 'site-e2e'],
+  ])('%s is owned by %s', (file, project) => {
+    expect(ownerOf(file, ROOTS)).toBe(project);
+  });
+
+  it.each([
+    'scripts/nx-affected-histogram.mjs',
+    'backlog/tasks/ARCH-20.md',
+    '.github/workflows/ci.yml',
+    'vitest.config.js',
+    'middleware.ts',
+  ])('%s has no project owner', (file) => {
+    expect(ownerOf(file, ROOTS)).toBeNull();
+  });
 });
 
 describe('toolNameOf', () => {
   it('strips the tool- prefix', () => {
     expect(toolNameOf('tool-merge')).toBe('merge');
     expect(toolNameOf('tool-edit-pages')).toBe('edit-pages');
+  });
+
+  it('returns an empty string for the bare "tool-" name', () => {
+    expect(toolNameOf('tool-')).toBe('');
   });
 });
 
@@ -156,6 +211,48 @@ describe('deriveScope', () => {
     expect(scope.unit_paths).toBe('src/tools/compress/ src/tools/merge/ src/test/');
     expect(scope.e2e_paths).toBe('src/tools/compress/e2e/ src/tools/merge/e2e/ e2e/');
   });
+
+  it('sorts tool projects alphabetically regardless of the order nx reports them', () => {
+    const scope = deriveScope({
+      files: ['src/tools/split/PdfSplitTool.tsx', 'src/tools/compress/PdfCompressTool.tsx'],
+      affected: ['tool-split', 'tool-compress'],
+      roots: ROOTS,
+    });
+    expect(scope.unit_paths).toBe('src/tools/compress/ src/tools/split/ src/test/');
+  });
+
+  it('an unowned file wins over a core-project match (rule order: unowned before core)', () => {
+    const scope = deriveScope({
+      files: ['patches/pdfjs-dist+6.3.289.patch', 'src/lib/format.js'],
+      affected: ['lib'],
+      roots: ROOTS,
+    });
+    expect(scope.everything).toBe(true);
+    expect(scope.reason).toMatch(/unowned/);
+  });
+
+  it('a tool with no e2e/ folder and no site-e2e affected narrows to an empty e2e_paths', () => {
+    const scope = deriveScope({
+      files: ['src/tools/split/PdfSplitTool.tsx'],
+      affected: ['tool-split'],
+      roots: ROOTS,
+      toolE2eExists: () => false,
+    });
+    expect(scope.everything).toBe(false);
+    expect(scope.e2e_paths).toBe('');
+  });
+
+  it('fonts=true and a narrowed tool can both be true at once', () => {
+    const scope = deriveScope({
+      files: ['src/tools/sign/PdfSignTool.tsx'],
+      affected: ['tool-sign', 'fonts'],
+      roots: ROOTS,
+      toolE2eExists: () => true,
+    });
+    expect(scope.everything).toBe(false);
+    expect(scope.fonts).toBe(true);
+    expect(scope.unit_paths).toBe('src/tools/sign/ src/test/');
+  });
 });
 
 describe('wide', () => {
@@ -166,5 +263,12 @@ describe('wide', () => {
     expect(scope.unit_paths).toBe('');
     expect(scope.e2e_paths).toBe('');
     expect(scope.reason).toBe('test reason');
+  });
+
+  it('accepts an empty affected list, e.g. for a fail-open reason with nothing yet known', () => {
+    const scope = wide([], 'no usable base');
+    expect(scope.affected).toEqual([]);
+    expect(scope.everything).toBe(true);
+    expect(scope.fonts).toBe(true);
   });
 });
