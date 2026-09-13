@@ -21,7 +21,10 @@ export function splitFileName(name: string, options: { extension?: boolean } = {
   const hasExtension = dot > 0 && name.length - dot <= 6;
   const base = hasExtension ? name.slice(0, dot) : name;
   const extension = hasExtension && keepExtension ? name.slice(dot) : '';
-  if (base.length <= TAIL_BEFORE_EXTENSION + 2) return { head: base + extension, tail: '' };
+  // Without the extension there is nothing at the end worth keeping whole,
+  // and a middle cut in a narrow tag ("In…March") reads worse than an end
+  // cut ("Invoice M…"): the tag and the chip take the plain name.
+  if (!keepExtension || base.length <= TAIL_BEFORE_EXTENSION + 2) return { head: base + extension, tail: '' };
   return { head: base.slice(0, -TAIL_BEFORE_EXTENSION), tail: base.slice(-TAIL_BEFORE_EXTENSION) + extension };
 }
 

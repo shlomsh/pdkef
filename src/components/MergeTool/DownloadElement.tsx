@@ -21,6 +21,11 @@ export interface DownloadElementProps {
   progress?: number;
   errorMessage?: string;
   messages: MergeMessages;
+  /** BasePdfTool's shared "Choose files" picker label (ShellMessages'
+   * `chooseFilesMany`, the same word every tool's own Add/Choose files
+   * control uses) - the one-file state's real nested button, never the
+   * MergeMessages catalogue, which has no shell-level string of its own. */
+  chooseFilesLabel?: string;
   onChooseFiles?: () => void;
   onPreparingTap?: () => void;
   onDownloadClick?: (event: MouseEvent) => void;
@@ -48,6 +53,7 @@ export default function DownloadElement({
   progress = 0,
   errorMessage,
   messages: t,
+  chooseFilesLabel,
   onChooseFiles,
   onPreparingTap,
   onDownloadClick,
@@ -69,11 +75,15 @@ export default function DownloadElement({
   }, [state]);
 
   const isLink = (state === 'ready' || state === 'saved') && !!href;
+  // One-file: the box itself is a plain surface, never a button in its own
+  // right (no role, no tabIndex, never aria-disabled) - the nested "Choose
+  // files" button below is the only control, so a click on the box outside
+  // that button does nothing.
+  const isPlainSurface = state === 'one-file';
 
   const onClick = (event: MouseEvent) => {
-    if (state === 'one-file') {
-      event.preventDefault();
-      onChooseFiles?.();
+    if (isPlainSurface) {
+      return;
     } else if (state === 'preparing') {
       event.preventDefault();
       onPreparingTap?.();
@@ -101,14 +111,23 @@ export default function DownloadElement({
       data-state={state}
       href={isLink ? href ?? undefined : undefined}
       download={isLink ? fileName : undefined}
-      role={isLink ? undefined : 'button'}
-      tabIndex={isLink ? undefined : 0}
+      role={isLink || isPlainSurface ? undefined : 'button'}
+      tabIndex={isLink || isPlainSurface ? undefined : 0}
       aria-busy={state === 'preparing' || undefined}
       onClick={onClick}
       onKeyDown={onKeyDown}
     >
       {state === 'one-file' && (
-        <span class={styles.label}>{t.addOneMore}</span>
+        <>
+          <span class={styles.label}>{t.addOneMore}</span>
+          <button
+            type="button"
+            class={styles['choose-button']}
+            onClick={(event) => { event.stopPropagation(); onChooseFiles?.(); }}
+          >
+            {chooseFilesLabel}
+          </button>
+        </>
       )}
 
       {state === 'preparing' && (

@@ -112,14 +112,17 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     await work.getByRole('button', { name: 'Edit pages', exact: true }).click();
 
     await expect(rotateButton).toBeVisible();
-    // The 32px visual button (PageStrip.module.css) carries a 44px hit area
-    // through a `::before` pseudo-element (inset -7px), which Playwright
-    // cannot measure by bounding box - so this proves the hit area the way a
-    // finger would: a tap 5px outside the visible button (inside the 7px
-    // pseudo inset, outside the 32px box) still rotates the page.
+    // Review (2026-09-13): on a coarse pointer the button's own border box
+    // IS the 44x44 hit area, with the 32px visual chrome on an inner glyph
+    // span (PageStrip.module.css `@media (pointer: coarse)`), so a plain
+    // rect measurement proves it - no pseudo-element to tap around. A tap
+    // 5px inside the button's top edge (outside the 32px glyph) still
+    // rotates the page.
     const box = await rotateButton.boundingBox();
     if (!box) throw new Error('Rotate button has no bounding box');
-    await work.mouse.click(box.x + box.width / 2, box.y - 5);
+    expect(Math.round(box.width)).toBe(44);
+    expect(Math.round(box.height)).toBe(44);
+    await work.mouse.click(box.x + box.width / 2, box.y + 5);
     await expect(firstCard).toHaveAttribute('data-rotation', '90');
 
     if (touchContext) await touchContext.close();

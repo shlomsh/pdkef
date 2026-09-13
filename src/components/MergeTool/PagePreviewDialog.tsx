@@ -8,9 +8,20 @@ export interface PreviewTarget {
   file: File;
   pageIndex: number;
   rotation: number;
-  /** 1-based position in the output, and the output page count, for the title. */
+  /** 1-based position in the OUTPUT (skipped pages excluded, same counter
+   * the document heading and each cell's aria-label use), and the output
+   * page count, for the title - never the raw plan index/length, which
+   * disagreed with the heading whenever a page was skipped (review P2). */
   position: number;
   total: number;
+  /** Shows the "skipped" word beside the title; a skipped page's `position`
+   * is the number it would take if brought back. */
+  skipped: boolean;
+  /** Previous/Next disable at the ends of the raw plan, not at `position`,
+   * since a skipped page's would-be position can equal or pass `total`
+   * without it being the last page to step through. */
+  atStart: boolean;
+  atEnd: boolean;
 }
 
 interface PagePreviewDialogProps {
@@ -29,6 +40,12 @@ export const PREVIEW_WIDTH = 900;
 export default function PagePreviewDialog({ target, onClose, onStep, messages: t }: PagePreviewDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
+  // Shlomi (2026-09-13): stepping used to blank the image, so the body fell
+  // to its minimum height and grew back when the next page arrived - a
+  // visible resize on every step. The last page now stays up (dimmed, via
+  // `stale`) until its replacement has rendered, and the stage itself has a
+  // fixed height (PageStrip.module.css `.preview-stage`), so nothing moves.
+  const [stale, setStale] = useState(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -43,13 +60,21 @@ export default function PagePreviewDialog({ target, onClose, onStep, messages: t
   }, [!!target]);
 
   useEffect(() => {
-    setDataUrl(null);
-    if (!target) return undefined;
+    if (!target) {
+      setDataUrl(null);
+      setStale(false);
+      return undefined;
+    }
+    setStale(true);
     const controller = new AbortController();
     const width = Math.min(PREVIEW_WIDTH, Math.round((typeof window !== 'undefined' ? window.innerWidth : PREVIEW_WIDTH) * 1.5));
     renderPdfThumbnails(
       target.file,
-      (_pageNumber: number, url: string) => { if (!controller.signal.aborted) setDataUrl(url); },
+      (_pageNumber: number, url: string) => {
+        if (controller.signal.aborted) return;
+        setDataUrl(url);
+        setStale(false);
+      },
       { pageIndices: [target.pageIndex], width, type: 'image/jpeg', quality: 0.85, signal: controller.signal },
     ).catch(() => {});
     return () => controller.abort();
@@ -75,7 +100,10 @@ export default function PagePreviewDialog({ target, onClose, onStep, messages: t
     >
       <div class={dialogStyles.header}>
         <h3 id="merge-preview-title">
-          {target ? formatMessage(t.previewTitle, { number: target.position, total: target.total }) : ''}
+          {target
+            ? formatMessage(t.previewTitle, { number: target.position, total: target.total })
+              + (target.skipped ? ` · ${t.skippedBadge.toLowerCase()}` : '')
+            : ''}
         </h3>
         <button type="button" class={dialogStyles.close} onClick={onClose} aria-label={t.previewClose}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -83,19 +111,52 @@ export default function PagePreviewDialog({ target, onClose, onStep, messages: t
           </svg>
         </button>
       </div>
-      <div class={styles['preview-body']} data-rotation={target?.rotation || undefined}>
+      {/* Shlomi (2026-09-13): a gallery, not a form. Previous and Next are
+          chevrons on the stage's two sides, and the stage itself is split
+          into thirds: the left third steps back, the right third steps
+          forward, the middle third is inert. Visual left is always
+          "previous" (the way ArrowLeft already behaves), in Hebrew too. The
+          zones are pointer-only affordances; keyboard users have the arrow
+          keys and the two labelled buttons. */}
+      <div class={styles['preview-stage']} data-rotation={target?.rotation || undefined} data-stale={stale || undefined}>
         {dataUrl ? (
           <img class={styles['preview-image']} src={dataUrl} alt="" />
         ) : (
           <p class={styles['preview-loading']}>{t.previewLoading}</p>
         )}
-      </div>
-      <div class={dialogStyles.footer}>
-        <button type="button" class={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={() => onStep(-1)} disabled={!target || target.position <= 1}>
-          {t.previewPrev}
+        <div
+          class={`${styles['preview-zone']} ${styles['preview-zone-prev']}`}
+          aria-hidden="true"
+          onClick={() => { if (target && !target.atStart) onStep(-1); }}
+        />
+        <div
+          class={`${styles['preview-zone']} ${styles['preview-zone-next']}`}
+          aria-hidden="true"
+          onClick={() => { if (target && !target.atEnd) onStep(1); }}
+        />
+        <button
+          type="button"
+          class={`${styles['preview-chevron']} ${styles['preview-chevron-prev']}`}
+          onClick={() => onStep(-1)}
+          disabled={!target || target.atStart}
+          aria-label={t.previewPrev}
+          title={t.previewPrev}
+        >
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10 3L5 8l5 5" />
+          </svg>
         </button>
-        <button type="button" class={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={() => onStep(1)} disabled={!target || target.position >= target.total}>
-          {t.previewNext}
+        <button
+          type="button"
+          class={`${styles['preview-chevron']} ${styles['preview-chevron-next']}`}
+          onClick={() => onStep(1)}
+          disabled={!target || target.atEnd}
+          aria-label={t.previewNext}
+          title={t.previewNext}
+        >
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 3l5 5-5 5" />
+          </svg>
         </button>
       </div>
     </dialog>

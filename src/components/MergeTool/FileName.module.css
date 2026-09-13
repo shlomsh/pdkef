@@ -5,7 +5,10 @@
   display: inline-flex;
   min-width: 0;
   max-width: 100%;
-  white-space: nowrap;
+  /* `pre`, not `nowrap`: the head often ends in a space ("Invoice " +
+     "March.pdf") and a flex item drops a trailing collapsible space, which
+     printed "InvoiceMarch.pdf". */
+  white-space: pre;
 }
 
 .head {

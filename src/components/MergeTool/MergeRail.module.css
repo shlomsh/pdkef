@@ -134,6 +134,20 @@
   cursor: pointer;
 }
 
+/* MERGE-04: a file that cannot take part (password-protected, unreadable)
+   is marked in its rail row, so the error under the heading and the rail
+   agree on which file it is. The verifier's pass (2026-09-13) found the
+   attribute written with no rule reading it here: the rule had stayed in
+   FileList.module.css, which this rail no longer uses. */
+.file-row[data-error] {
+  background: var(--color-danger-soft);
+  box-shadow: inset 3px 0 0 var(--color-danger);
+}
+
+.file-row[data-error] .file-pages {
+  color: var(--color-danger);
+}
+
 .file-row:last-child {
   border-bottom: 0;
 }
@@ -251,19 +265,6 @@
   color: var(--color-muted);
 }
 
-.reset-order {
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--color-primary-text);
-  background: none;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
-}
-
 .quiet-row {
   display: flex;
   align-items: center;
@@ -282,26 +283,52 @@
 }
 
 .quiet-button {
+  /* Shlomi (2026-09-13): Add files, Clear all, Reset order and Start fresh
+     are buttons and look like buttons: one quiet secondary style, no fill,
+     a 1px strong border, 36px tall with a 44px hit area (the ::before), text
+     colour. Underline is for links that navigate. Share, Compress it and
+     Sign it keep their own row style; "Draft saved" stays plain text. */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0.35rem 0.7rem;
   font: inherit;
   font-size: 0.85rem;
-  color: var(--color-primary-text);
+  font-weight: 600;
+  color: var(--color-text);
   background: none;
-  border: 0;
-  padding: 0.3rem 0;
-  min-height: 44px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
+  text-decoration: none;
 }
 
-/* 44px is the touch target; with a pointer the same box read as a row with
-   twice the air of its neighbours (the text is 21px tall), which broke the
-   rail's rhythm. Touch keeps the full height. */
-@media (hover: hover) and (pointer: fine) {
-  .quiet-button {
-    min-height: 32px;
-  }
+.quiet-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 44px;
+  transform: translateY(-50%);
 }
+
+.quiet-button:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.quiet-button:focus-visible {
+  outline-offset: 0;
+  border-color: var(--color-primary);
+}
+
+.reset-order {
+  composes: quiet-button;
+}
+
 
 .options {
   background: var(--color-surface);
@@ -393,6 +420,11 @@
   }
 }
 
+/* Review P3: Compress it / Sign it (and Share, Options on the phone) read
+   as peers of Download - same solid surface, same weight. Quieter now: a
+   transparent fill and a primary-text label say "secondary", the way a
+   filled Download and a bordered-only hand-off row read as one primary
+   action with lesser next-steps beside it. */
 .handoff-button {
   display: inline-flex;
   align-items: center;
@@ -404,8 +436,8 @@
   font: inherit;
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--color-text);
-  background: var(--color-surface);
+  color: var(--color-primary-text);
+  background: transparent;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -413,7 +445,7 @@
 }
 
 .handoff-button:hover {
-  background: var(--color-surface-sunken);
+  background: var(--color-primary-soft);
 }
 
 .start-again {
@@ -434,4 +466,16 @@
   font-size: 0.8rem;
   line-height: 1.5;
   color: var(--color-muted);
+}
+
+/* Shlomi's screenshot (2026-09-13): the Sort select's focus ring read as
+   two rings, the site-wide 2px outline sitting 2px outside the control's
+   own light border, with the rail's tint showing between. For the rail's
+   bordered controls the ring hugs the box and the border takes the same
+   colour, so keyboard focus is one ring, not a target. */
+.sort-select:focus-visible,
+.handoff-button:focus-visible,
+.options-summary:focus-visible {
+  outline-offset: 0;
+  border-color: var(--color-primary);
 }
