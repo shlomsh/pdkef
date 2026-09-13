@@ -19,26 +19,30 @@ const CAMEL_SVG_ATTRS = [
   'strokeOpacity', 'fillOpacity', 'fillRule', 'clipRule',
 ];
 
-const componentsDir = path.dirname(fileURLToPath(import.meta.url));
-// This guard predates the shell/editor-ui split (ARCH-16): it used to scan its
-// own directory because every island and its shared chrome lived flat in
-// src/components/. Scan every folder that chrome has moved into, or a file
-// that changes owner silently drops out of coverage instead of failing loud.
-const SCAN_DIRS = [
-  componentsDir,
-  path.join(componentsDir, '..', 'shell'),
-  path.join(componentsDir, '..', 'editor-ui'),
-];
+// This guard predates the shell/editor-ui split (ARCH-16) and the src/tools/
+// split (ARCH-17): it used to scan only its own directory because every
+// island and its shared chrome lived flat in src/components/. A folder list
+// is exactly the thing a future move silently falls out of, so it now walks
+// all of src/ instead of naming folders one by one - a file that changes
+// owner (components -> shell/editor-ui -> tools/<name>) stays covered
+// automatically instead of dropping out until someone remembers to add its
+// new home here too.
+const SRC_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-function jsxFiles(dir) {
-  return fs.readdirSync(dir)
-    .filter((f) => f.endsWith('.tsx') && !f.endsWith('.test.tsx'))
-    .map((f) => path.join(dir, f));
+function collectTsxFiles(dir, out = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === 'node_modules') continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) collectTsxFiles(full, out);
+    else if (entry.name.endsWith('.tsx') && !entry.name.endsWith('.test.tsx')) out.push(full);
+  }
+  return out;
 }
 
 describe('raw-SVG attributes use kebab-case (raw Preact does not convert camelCase)', () => {
-  for (const file of SCAN_DIRS.flatMap(jsxFiles)) {
-    it(`${path.basename(file)} has no camelCase SVG attributes on raw elements`, () => {
+  for (const file of collectTsxFiles(SRC_ROOT)) {
+    const label = path.relative(SRC_ROOT, file).split(path.sep).join('/');
+    it(`${label} has no camelCase SVG attributes on raw elements`, () => {
       const src = fs.readFileSync(file, 'utf8');
       const offenders = [];
       for (const attr of CAMEL_SVG_ATTRS) {
@@ -55,7 +59,7 @@ describe('raw-SVG attributes use kebab-case (raw Preact does not convert camelCa
           const onComponent = nextChar >= 'A' && nextChar <= 'Z';
           if (!onComponent) {
             const line = before.split('\n').length;
-            offenders.push(`${attr}= at ${path.basename(file)}:${line}`);
+            offenders.push(`${attr}= at ${label}:${line}`);
           }
         }
       }

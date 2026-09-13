@@ -27,11 +27,25 @@ const FONT_GUARDS = [
 const PERF_BUDGETS = [
   '**/merge/merge-ready-time.spec.js',
   '**/merge/merge-thumbnail-throughput.spec.js',
-  '**/compress/compare-preview.spec.js',
+  // '**/compress/**/compare-preview.spec.js', not '**/compress/compare-preview.spec.js':
+  // the extra '**/' matches zero segments too, so this glob covers both
+  // e2e/compress/compare-preview.spec.js (today) and
+  // src/tools/compress/e2e/compare-preview.spec.js (once ARCH-17 moves it),
+  // with nothing to rewrite when that move lands.
+  '**/compress/**/compare-preview.spec.js',
 ];
 
 export default defineConfig({
-  testDir: './e2e',
+  // A single testDir with per-tool e2e folders under src/tools/ (ARCH-17):
+  // rooted at the repo root so testMatch/testIgnore below can name both
+  // e2e/ (cross-tool specs) and src/tools/*/e2e/ (a tool's own specs, as
+  // its folder moves there) as one discovery set. Every FONT_GUARDS/
+  // PERF_BUDGETS/webkit glob already matches with a leading '**/', so
+  // moving the root doesn't require touching those the entries the mover
+  // does not itself move.
+  testDir: '.',
+  testMatch: ['e2e/**/*.spec.js', 'src/tools/*/e2e/**/*.spec.js'],
+  testIgnore: ['**/node_modules/**', '**/dist/**'],
   timeout: 45_000,
   expect: {
     timeout: 10_000,

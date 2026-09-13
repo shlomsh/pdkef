@@ -15,7 +15,14 @@ const DOM_TESTS = [
   'src/components/**/*.{test,spec}.{js,jsx,ts,tsx}',
   'src/**/*.{test,spec}.{jsx,tsx}',
   'src/lib/use*.{test,spec}.*',
+  // Literal path list, not a wildcard-folder glob, because compress/compressImage
+  // and toImage are single-tool (ARCH-17 moves them to src/tools/<tool>/) while
+  // thumbnails.js has more than one tool consumer (docs/module-boundaries.md's
+  // lib consumer table) and stays in src/lib/. Both the pre-move (src/lib/) and
+  // post-move (src/tools/<tool>/) locations are listed so this line does not
+  // need editing again the moment a tool moves.
   'src/lib/{compress,compressImage,thumbnails,toImage}.test.js',
+  'src/tools/*/{compress,compressImage,toImage}.test.js',
   'src/editor/workspace/**/*.{test,spec}.{js,jsx,ts,tsx}',
   'src/editor/gestures/**/*.{test,spec}.{js,jsx,ts,tsx}',
   'src/editor/adapters/pdf/redact.test.js',
