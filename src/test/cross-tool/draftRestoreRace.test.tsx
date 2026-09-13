@@ -5,8 +5,8 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import PdfSignTool from '../../tools/sign/PdfSignTool.tsx';
 import PdfRedactTool from '../../tools/redact/PdfRedactTool.tsx';
 import redactStyles from '../../tools/redact/PdfRedactTool.module.css';
-import { takeHandoff } from './draftStore.js';
-import { setInputFiles } from '../../test/setInputFiles.js';
+import { takeHandoff } from '../../editor/workspace/draftStore.js';
+import { setInputFiles } from '../setInputFiles.js';
 
 const REDACT_BOX = redactStyles['redact-box'];
 
@@ -50,7 +50,7 @@ function staleDraftRecord(fileName, elements) {
 
 let loadDraftDeferred;
 
-vi.mock('./draftStore.js', () => ({
+vi.mock('../../editor/workspace/draftStore.js', () => ({
   saveDraft: vi.fn(() => Promise.resolve(true)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   loadDraft: vi.fn(() => loadDraftDeferred.promise),

@@ -61,12 +61,13 @@ site-only commits skip the other tools' unit and e2e work; about half of the pro
   exercising the CLI end to end - see `docs/nx-affected-ci.md`). Full detail, the project table, the
   `run-many` vs. `npm test` measurement and the histogram are in `docs/nx-affected-ci.md`; this note
   is the summary.
-- **`@nx/js` is not installed, and should not be** - not merely "unnecessary." With it installed,
-  two cross-tool test files (`draftCheckingPlaceholder.test.tsx`/`draftRestoreRace.test.tsx`, plus
-  `textCoverage.test.js`) give Nx a real `editor -> tool-sign`/`tool-redact` edge, which collapses a
-  single Sign-file change from 3 affected projects to all 17 - verified directly. Project ownership
-  here is purely directory-based (`project.json` roots) plus explicit `implicitDependencies`; nothing
-  needs an import-inference plugin.
+- `@nx/js` is installed for its import inference (core Nx's analyzer runs only when it is present).
+  The first attempt found a Sign-only change widening to all projects; the cause was three test files
+  inside `src/editor/` that import Sign and Redact, plus `src/lib/languageAcceptance.test.js`
+  importing a font-guard fixture: real edges, and real coverage a narrowed Sign run would otherwise
+  skip. They now live in `src/test/cross-tool/` (`cross-tool-tests`, a leaf project nothing imports),
+  which every narrowed run includes. Sign narrows to `tool-sign`, `cross-tool-tests`, `fonts`,
+  `site-e2e`; Redact to `tool-redact`, `cross-tool-tests`, `site-e2e`.
 - Enforcement stays `scripts/check-module-boundaries.mjs` (unchanged, still 0 of 815 edges violating a
   rule); Nx's tags exist only so `nx show projects --affected` can answer "which tool is this."
 - **The histogram's 137/200 "everything" bucket is a fork-timing artifact, not a verdict that

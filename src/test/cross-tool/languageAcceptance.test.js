@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../scripts/language-acceptance.mjs';
-import { FONT_MANIFEST } from '../../scripts/font-manifest.mjs';
-import { matrixMarkdown } from '../../scripts/generate-language-acceptance.mjs';
-import { LANGUAGE_COVERAGE } from './fontCoverageReport.js';
-import { EXPORT_RENDER_CORPUS } from '../../e2e/sign/fixtures/exportRenderCorpus.js';
-import { covers } from '../editor/text/fonts.js';
+import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../../scripts/language-acceptance.mjs';
+import { FONT_MANIFEST } from '../../../scripts/font-manifest.mjs';
+import { matrixMarkdown } from '../../../scripts/generate-language-acceptance.mjs';
+import { LANGUAGE_COVERAGE } from '../../lib/fontCoverageReport.js';
+import { EXPORT_RENDER_CORPUS } from '../../../e2e/sign/fixtures/exportRenderCorpus.js';
+import { covers } from '../../editor/text/fonts.js';
 
 const fontByFamily = new Map(FONT_MANIFEST.map((font) => [font.family, font]));
 const exportCases = new Set(EXPORT_RENDER_CORPUS.map((entry) => entry.id));
