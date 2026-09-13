@@ -174,14 +174,14 @@ graph, which is the same answer the checker gives with an empty allowlist.
 ## The project table vs. the histogram
 
 `scripts/nx-affected-histogram.mjs` classifies each of the last 200 commits on `HEAD`
-(`8027a2b..27c637f`) with the real `affected-scope.mjs` logic - no pre-move regex table, unlike its
+(`1120dd1..6c87309`, re-run after the cross-tool move) with the real `affected-scope.mjs` logic - no pre-move regex table, unlike its
 `arch-20-prep` predecessor, which needed one because the folders did not exist yet on that branch:
 
 ```
 Buckets (of 200 commits classified, 0 script errors):
-  docs_only:   53
+  docs_only:   47
   narrow:      10
-  everything: 137
+  everything: 143
 ```
 
 **Read this against when the folders actually landed, not as a verdict that narrowing does not work.**
