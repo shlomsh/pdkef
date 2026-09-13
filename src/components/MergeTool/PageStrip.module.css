@@ -262,8 +262,13 @@
   z-index: 2;
 }
 
+/* Keyboard focus reveals the cluster through :focus-visible, not
+   :focus-within: a mouse click on Rotate (or the Open button focus returns
+   to when the preview closes) left that cell's buttons pinned open while
+   the pointer moved on to hover another page (Shlomi, 2026-09-13). */
 .page:hover .actions,
-.page:focus-within .actions,
+.page:focus-visible .actions,
+.page:has(:focus-visible) .actions,
 .grid[data-editing] .actions {
   visibility: visible;
 }

@@ -106,6 +106,36 @@ test('a caption is visible, not painted under the thumbnail (critique P0)', asyn
   expect(hitsCaption).toBe(true);
 });
 
+test('a clicked cell lets go of its action buttons when the pointer moves on', async ({ page }) => {
+  // Shlomi (2026-09-13): after a click on Rotate, that cell kept its
+  // buttons open (`:focus-within` held by the clicked button) while the
+  // pointer hovered another page - two clusters at once. The reveal now
+  // follows hover and :focus-visible only; a keyboard-focused cell still
+  // shows its cluster.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/merge/');
+  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await page.locator('input[type="file"]').setInputFiles([
+    { name: 'six.pdf', mimeType: 'application/pdf', buffer: await makePdfBuffer('six', 6) },
+  ]);
+  await page.locator('[data-state="one-file"]').waitFor({ timeout: 10_000 });
+
+  const cells = page.locator('ul[class*="grid"] > li[data-key]');
+  const cluster = (index) => cells.nth(index).locator('[class*="actions"]');
+  await cells.nth(2).hover();
+  await cells.nth(2).getByRole('button', { name: /^Rotate page/ }).click();
+  await expect(cells.nth(2)).toHaveAttribute('data-rotation', '90');
+
+  await cells.nth(4).hover();
+  await expect(cluster(4)).toHaveCSS('visibility', 'visible');
+  await expect(cluster(2)).toHaveCSS('visibility', 'hidden');
+
+  // Keyboard: Tab moves focus to the next cell, whose cluster shows.
+  await page.keyboard.press('Tab');
+  await expect(cells.nth(3)).toBeFocused();
+  await expect(cluster(3)).toHaveCSS('visibility', 'visible');
+});
+
 test('the phone subhead has no clipped last line at 375x812', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/merge/');
