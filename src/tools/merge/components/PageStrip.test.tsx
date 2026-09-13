@@ -6,13 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
 import PageStrip from './PageStrip.tsx';
 import styles from './PageStrip.module.css';
-import { isGrouped, planForFile } from '../../lib/mergePlan.ts';
-import { englishMergeMessages } from '../../i18n/toolMessages';
-import * as thumbnailsLib from '../../lib/thumbnails.js';
+import { isGrouped, planForFile } from '../mergePlan.ts';
+import { englishMergeMessages } from '../../../i18n/toolMessages';
+import * as thumbnailsLib from '../../../lib/thumbnails.js';
 
 const sources = [];
 
-vi.mock('../../lib/thumbnails.js', () => ({
+vi.mock('../../../lib/thumbnails.js', () => ({
   openThumbnailSource: vi.fn(async (file) => {
     const source = {
       file,

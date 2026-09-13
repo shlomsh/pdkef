@@ -27,8 +27,8 @@ import {
 } from './useMergeDraft.ts';
 import {
   loadDraft, saveDraft, MERGE_DRAFT_MAX_BYTES,
-} from '../../editor/workspace/draftStore.js';
-import { planForFile } from '../../lib/mergePlan.ts';
+} from '../../../editor/workspace/draftStore.js';
+import { planForFile } from '../mergePlan.ts';
 
 function Harness({ apiRef, options }) {
   apiRef.current = useMergeDraft(options);

@@ -27,7 +27,6 @@ paths:
   - "e2e/sign/sign-editor.spec.js"
   - "e2e/sign/toolbar-touch-targets.spec.js"
   - "e2e/sign/form-grid-fill.spec.js"
-  - "e2e/merge/**"
   - "e2e/tool-*.spec.js"
   - "scripts/check-gesture-golden-rule.js"
   - "scripts/check-editor-dependency-directions.mjs"
@@ -54,7 +53,7 @@ is the centre, one primary element with states, rail row order, undo over confir
 review method) and the questions to ask of the next tool. The target folder layout for `src/`, the
 dependency rules between tools, shell, editor-ui, editor and lib, and the evidence behind both are in
 [docs/module-boundaries.md](../../docs/module-boundaries.md) (ARCH-15); read it before moving a file
-into or out of `src/editor/`, `src/components/SignTool/` or `src/components/MergeTool/`.
+into or out of `src/editor/`, `src/components/SignTool/` or `src/tools/merge/`.
 
 ## Shape of the editor (landed, do not re-migrate)
 

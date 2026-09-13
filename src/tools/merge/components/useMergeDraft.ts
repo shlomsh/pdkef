@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import {
   deleteDraft, hasDraftHint, loadDraft, saveDraft, subscribeToDraftChanges,
-} from '../../editor/workspace/draftStore.js';
-import { clearDraftHintAttribute, RESTORE_TIMEOUT_MS } from '../SignTool/useDraftPersistence.js';
-import { outputPageCount, type PlanEntry } from '../../lib/mergePlan.ts';
+} from '../../../editor/workspace/draftStore.js';
+import { clearDraftHintAttribute, RESTORE_TIMEOUT_MS } from '../../../editor/workspace/useDraftPersistence.js';
+import { outputPageCount, type PlanEntry } from '../mergePlan.ts';
 
 // MERGE-13: draft persistence for the Merge tool, on the same shared store
 // Sign and Redact already use (draftStore.js's 'merge' record shape - see its

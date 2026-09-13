@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import styles from './DownloadElement.module.css';
-import { formatMessage, type MergeMessages } from '../../i18n/toolMessages';
+import { formatMessage, type MergeMessages } from '../../../i18n/toolMessages';
 
 export type DownloadElementState = 'one-file' | 'preparing' | 'ready' | 'saved' | 'error';
 

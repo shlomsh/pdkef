@@ -4,16 +4,16 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfMergeTool from './PdfMergeTool.tsx';
-import * as mergeLib from '../lib/merge.js';
-import * as thumbnailsLib from '../lib/thumbnails.js';
-import * as draftStore from '../editor/workspace/draftStore.js';
-import dropzoneStyles from '../shell/Dropzone.module.css';
-import pdfToolStyles from '../shell/PdfTool.module.css';
-import railStyles from './MergeTool/MergeRail.module.css';
-import docStyles from './MergeTool/MergeDocument.module.css';
-import downloadStyles from './MergeTool/DownloadElement.module.css';
-import { mockNativeFileShare } from '../test/mockFileShare.js';
-import { setInputFiles } from '../test/setInputFiles.js';
+import * as mergeLib from './merge.js';
+import * as thumbnailsLib from '../../lib/thumbnails.js';
+import * as draftStore from '../../editor/workspace/draftStore.js';
+import dropzoneStyles from '../../shell/Dropzone.module.css';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import railStyles from './components/MergeRail.module.css';
+import docStyles from './components/MergeDocument.module.css';
+import downloadStyles from './components/DownloadElement.module.css';
+import { mockNativeFileShare } from '../../test/mockFileShare.js';
+import { setInputFiles } from '../../test/setInputFiles.js';
 
 function makePdfFile(name, { type = 'application/pdf', size = 8 } = {}) {
   return new File(['%PDF-1.4'.padEnd(size, ' ')], name, { type });
@@ -23,7 +23,7 @@ function makePdfFile(name, { type = 'application/pdf', size = 8 } = {}) {
 // and the identity line have real counts to show.
 const pageCounts = new Map();
 
-vi.mock('../lib/merge.js', () => {
+vi.mock('./merge.js', () => {
   class MergeFileError extends Error {
     constructor(message, { fileIndex, reason, cause } = {}) {
       super(message);
@@ -47,7 +47,7 @@ vi.mock('../lib/merge.js', () => {
 
 // The island's own hand-off calls plus what the MERGE-13 draft component
 // (loaded through a dynamic import) needs to mount quietly with no draft.
-vi.mock('../editor/workspace/draftStore.js', () => ({
+vi.mock('../../editor/workspace/draftStore.js', () => ({
   saveHandoff: vi.fn(async () => true),
   loadDraft: vi.fn(async () => null),
   deleteDraft: vi.fn(async () => true),
@@ -61,14 +61,14 @@ vi.mock('../editor/workspace/draftStore.js', () => ({
 // The MERGE-13 draft component is exercised through its props here; the hook
 // itself has its own suite (useMergeDraft.test.tsx).
 const draftProbe = { props: null };
-vi.mock('./MergeTool/MergeDraftPersistence.tsx', () => ({
+vi.mock('./components/MergeDraftPersistence.tsx', () => ({
   default: (props) => {
     draftProbe.props = props;
     return null;
   },
 }));
 
-vi.mock('../lib/thumbnails.js', () => ({
+vi.mock('../../lib/thumbnails.js', () => ({
   renderThumbnail: vi.fn(() => Promise.resolve('data:image/png;base64,mock')),
   renderThumbnailWithMeta: vi.fn(() => Promise.resolve({ dataUrl: 'data:image/png;base64,mock', pageCount: 2, width: 150, height: 194 })),
   renderPdfThumbnails: vi.fn(() => Promise.resolve(0)),
@@ -993,7 +993,7 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 describe('merge.js library integration with real fixtures', () => {
   function getFixtureFile(name) {
-    const filePath = path.resolve(__dirname, '../lib/__fixtures__', name);
+    const filePath = path.resolve(__dirname, '../../lib/__fixtures__', name);
     const buffer = fs.readFileSync(filePath);
     return new File([buffer], name, { type: 'application/pdf' });
   }
@@ -1018,7 +1018,7 @@ describe('merge.js library integration with real fixtures', () => {
   }
 
   it('merges num-1, num-2, num-3, num-4 in order', async () => {
-    const { mergePdfs } = await vi.importActual('../lib/merge.js');
+    const { mergePdfs } = await vi.importActual('./merge.js');
     const files = [
       getFixtureFile('num-1.pdf'),
       getFixtureFile('num-2.pdf'),
@@ -1035,7 +1035,7 @@ describe('merge.js library integration with real fixtures', () => {
   });
 
   it('merges in a reordered input to preserve input order, not sorted order', async () => {
-    const { mergePdfs } = await vi.importActual('../lib/merge.js');
+    const { mergePdfs } = await vi.importActual('./merge.js');
     const files = [
       getFixtureFile('num-3.pdf'),
       getFixtureFile('num-1.pdf'),

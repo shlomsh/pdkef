@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DownloadElement from './DownloadElement.tsx';
 import styles from './DownloadElement.module.css';
-import { englishMergeMessages } from '../../i18n/toolMessages';
+import { englishMergeMessages } from '../../../i18n/toolMessages';
 
 describe('DownloadElement', () => {
   let container;

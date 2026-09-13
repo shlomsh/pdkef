@@ -1,5 +1,5 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { applyRotation, embedPageNumberFont, stampPageNumber } from './pageOps.js';
+import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../lib/pageOps.js';
 import { mergedFileName, mergedTitle } from './mergePlan.ts';
 import { addFileOutline } from './outline.js';
 

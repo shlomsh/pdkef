@@ -2,7 +2,7 @@
 // correctly (which pages were requested, in what order, with a white prefill
 // before each render, and the abort/destroy contract) rather than what
 // actually painted - that pixel-level proof is
-// e2e/merge/thumbnail-render.spec.js, a real-browser guard, per MERGE-01.
+// src/tools/merge/e2e/thumbnail-render.spec.js, a real-browser guard, per MERGE-01.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const PAGE_WIDTH = 612;

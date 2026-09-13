@@ -77,7 +77,7 @@ const TARGET_WIDTH = 150;
  * error by default (`ignoreErrors`), so `page.render()` resolved against an
  * empty operator list and painted nothing, twice, for the same corrupted
  * bytes. The true file renders every page in Chromium, WebKit and Node
- * (e2e/merge/thumbnail-render.spec.js sets the real bytes through the file
+ * (src/tools/merge/e2e/thumbnail-render.spec.js sets the real bytes through the file
  * input and counts non-white pixels on the deployed build and on this one).
  * Nothing here can turn a silently dropped page into an error; what this
  * function guarantees is that such a page is at worst blank-and-white,
