@@ -40,6 +40,7 @@ paths:
   - "docs/editor-module-boundaries-plan.md"
   - "docs/view-density-control-spec.md"
   - "docs/sign-redact-draft-validation-plan.md"
+  - "docs/ux-design-guidelines.md"
 ---
 
 # Editor and tool islands (Sign, Redact, and the other tools)
@@ -49,6 +50,10 @@ two constraints on everything here are in CLAUDE.md: no file bytes leave the dev
 mutate the DOM live and commit state once on release. This file holds the rules that fixed shipped
 bugs, each with its tell and its guard. Fonts and text export: `fonts-and-text.md`. Styling
 boundary: `styling.md`. Design record for the core: [docs/E4-headless-editor-core-plan.md](../../docs/E4-headless-editor-core-plan.md).
+Before designing or reviewing any tool's loaded state, read
+[docs/ux-design-guidelines.md](../../docs/ux-design-guidelines.md): the choices settled on Merge (output
+is the centre, one primary element with states, rail row order, undo over confirm, touch, bidi, the
+review method) and the questions to ask of the next tool.
 
 ## Shape of the editor (landed, do not re-migrate)
 
