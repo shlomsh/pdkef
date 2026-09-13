@@ -116,7 +116,10 @@ function ruleViolation(fromModule, toModule, toRelPath) {
 }
 
 // --- import graph: relative-only, mirrors check-editor-dependency-directions.mjs ---
-function collectSourceFiles(dir, out = []) {
+// Exported (with importSpecifiers and IMPORT_PATTERN) so
+// src/test/moduleBoundariesImportScan.test.js can diff this scan against a real
+// TypeScript AST parse of the same files; main() only runs from the CLI.
+export function collectSourceFiles(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) collectSourceFiles(full, out);
@@ -133,14 +136,14 @@ function collectSourceFiles(dir, out = []) {
 // `{` list spanning several lines counts: the first version stopped at the
 // line break and missed every multi-line import (ARCH-20 prep found one).
 const IMPORT_CLAUSE = String.raw`(?:type\s+)?(?:\*(?:\s+as\s+[\w$]+)?|\{[^}]*\}|[\w$]+(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+[\w$]+))?)`;
-const IMPORT_PATTERN = new RegExp(
+export const IMPORT_PATTERN = new RegExp(
   String.raw`(?:^|\n)\s*(?:import|export)\s+${IMPORT_CLAUSE}\s*from\s+['"]([^'"]+)['"]`
   + String.raw`|import\s*\(\s*['"]([^'"]+)['"]\s*\)`
   + String.raw`|(?:^|\n)\s*import\s*['"]([^'"]+)['"]`,
   'g',
 );
 
-function importSpecifiers(source) {
+export function importSpecifiers(source) {
   const specifiers = [];
   let match;
   IMPORT_PATTERN.lastIndex = 0;
@@ -245,4 +248,4 @@ function main() {
   );
 }
 
-main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
