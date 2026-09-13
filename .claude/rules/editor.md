@@ -69,10 +69,11 @@ into or out of `src/editor/`, `src/components/SignTool/` or `src/components/Merg
   schema per module; `blackout`, `blur` and `whiteout` are each a module). Preact only renders from
   state and binds events to the core. Sign and Redact both sit on it. This is a checked invariant, not
   just prose: `npm run test:module-boundaries` fails on any new `src/editor/` import of a tool or of
-  `src/components`. It is not fully clean yet: three files leak today (the registry's Preact node
-  renderers, its text-resize CSS Module import, and the workspace draft-persistence bridge), each
-  named in `scripts/module-boundaries-allowlist.json` until ARCH-19 fixes them; the allowlist only
-  ever shrinks, so a fourth leak or a wider one fails the build.
+  `src/components`, with no editor entry left on the allowlist since ARCH-19. The core never
+  imports a tool's Preact components: a tool registers what the core renders
+  (`registry/renderers.ts`'s `registerRenderer`, `text/elementClassNames.ts`'s
+  `registerTextElementClassNames`) from its own entry point, and `getElementRenderer` throws if a
+  type is rendered before its tool registered it.
 - Anchor-preserving box resize has exactly one owner, `registry/boxResize.ts`; CI greps that the
   `maxWidthFromRightGrowth`/`maxHeightFromBottomGrowth` names exist in one file.
 - Editor `.sign-*`/`.sig-*` styles live in CSS Modules; `check-editor-global-css.js` holds
