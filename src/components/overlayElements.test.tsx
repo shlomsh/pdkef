@@ -6,7 +6,7 @@ import ShapeNode from './SignTool/nodes/ShapeNode.tsx';
 import LineNode from './SignTool/nodes/LineNode.tsx';
 import DraggableWrapper from './SignTool/DraggableWrapper.tsx';
 import WhiteoutNode from './SignTool/nodes/WhiteoutNode.tsx';
-import workspaceStyles from './SignTool/Workspace.module.css';
+import workspaceStyles from '../editor-ui/Workspace.module.css';
 
 function mount(vnode) {
   const host = document.createElement('div');

@@ -6,8 +6,8 @@ import { getElementDefinition } from '../../editor/registry/index.ts';
 import { getEffectiveTextDirection } from '../../lib/signHelpers.js';
 import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX } from '../../constants/signGeometry.js';
 import ElementToolbar from '../../editor-ui/ElementToolbar.tsx';
-import workspaceStyles from './Workspace.module.css';
-import elementStyles from './EditorElement.module.css';
+import workspaceStyles from '../../editor-ui/Workspace.module.css';
+import elementStyles from '../../editor-ui/EditorElement.module.css';
 
 import { cloneElement, toChildArray } from 'preact';
 import type { ComponentChildren, VNode } from 'preact';

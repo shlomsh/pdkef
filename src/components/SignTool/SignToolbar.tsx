@@ -14,7 +14,7 @@ import { englishShellMessages, englishSignMessages, formatMessage, type SignMess
 import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import type { SignToolType } from '../../editor/model/editorModel.ts';
-import styles from './SignToolbar.module.css';
+import styles from '../../editor-ui/SignToolbar.module.css';
 import controlStyles from '../../editor-ui/EditorControls.module.css';
 
 // The tools that live behind the Shapes button, so its pressed/locked state and

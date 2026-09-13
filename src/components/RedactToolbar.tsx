@@ -6,7 +6,7 @@ import ToolShell, { FILE_ACTIONS, useToolShell } from '../shell/ToolShell.tsx';
 import { makeArmTool, useAutoArmHint } from '../lib/toolArming.js';
 import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
 import type { RedactToolType } from '../editor/model/editorModel.ts';
-import styles from './SignTool/SignToolbar.module.css';
+import styles from '../editor-ui/SignToolbar.module.css';
 
 // What each tool is called in front of a user and what it is waiting for -
 // the same contract SignToolbar's TOOL_COPY holds, for the same reason: every

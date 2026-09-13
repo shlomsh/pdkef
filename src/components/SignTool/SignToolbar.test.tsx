@@ -9,7 +9,7 @@ import { SignToolProvider, useSignTool, type SignToolAction, type SignToolState 
 import type { SignToolType } from '../../editor/model/editorModel.ts';
 import { SavedSignaturesContext } from './SavedSignaturesContext.tsx';
 import { hebrewSignMessages } from '../../i18n/toolMessages';
-import styles from './SignToolbar.module.css';
+import styles from '../../editor-ui/SignToolbar.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 
 declare const __dirname: string;
@@ -1015,7 +1015,7 @@ describe('SignToolbar Component', () => {
     // every breakpoint (no separate narrow-screen override shrinks it back to
     // a centered pill — see CLAUDE.md's "full-width mobile
     // toolbar" note), and every direct child is told to grow equally.
-    const css = readFileSync(`${__dirname}/SignToolbar.module.css`, 'utf8');
+    const css = readFileSync(`${__dirname}/../../editor-ui/SignToolbar.module.css`, 'utf8');
     const toolbarRuleMatch = required(/\.toolbar\s*\{([^}]*)\}/.exec(css), '.toolbar CSS rule');
     expect(toolbarRuleMatch).not.toBeNull();
     expect(toolbarRuleMatch[1]).toMatch(/width:\s*100%/);
