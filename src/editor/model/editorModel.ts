@@ -7,7 +7,8 @@
 // Field shapes are read from reality, not invented:
 //   - creation:  src/lib/useWorkspaceGestures.ts (text/symbol/line/shape/whiteout
 //                factories) and PdfSignTool.tsx `placeSignatureAt` (signature).
-//   - rendering: src/components/SignTool/nodes/*.tsx.
+//   - rendering: Sign's node components (registered with registry/renderers.ts's
+//                registerRenderer; see its own header comment).
 //   - export:    src/editor/adapters/pdf/sign.js `signPdf` (the bake-out reads these fields).
 //   - geometry:  DraggableWrapper.tsx drag/resize (left/top/width/height percents,
 //                x1..y2 line endpoints, aspectRatio, fontSize).
