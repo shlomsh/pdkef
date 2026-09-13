@@ -19,23 +19,30 @@
 // for the layout, the evidence and the full rule list this file enforces; keep
 // the two in sync by hand, since one is prose and the other is code.
 //
-// The rule set (must match docs/module-boundaries.md's "Dependency rules" section):
-//   1. A tool (`tool:<name>`) may never import another tool.
+// The rule set (must match docs/module-boundaries.md's "Dependency rules" section;
+// the numbering below follows the doc, which is the record):
+//   1. A tool (`tool:<name>`) may import `shell`, `editor-ui`, `editor`, `lib`,
+//      and site's `i18n`/`data`. It may never import another tool, the site
+//      surface (`pages`/`layouts`/`content`/`styles`/`.astro` components), or
+//      the flat `components` module (HeroDemo/, `compareFigure.css`).
 //   2. `shell`, `editor-ui`, `editor` and `lib` may never import a tool, and
-//      may never import the transitional `components` module.
+//      may never import the `components` module.
 //   3. `editor` may never import `editor-ui` or `shell` (it is headless).
-//   4. The transitional `components` module (today's flat src/components/ files,
-//      which since ARCH-18 holds only the .astro site components and HeroDemo/)
-//      may never import a tool. A tool MAY import `components`; that direction
-//      is not a violation.
-//   5. `site` (pages, layouts, content, data, i18n, styles, and the .astro files
-//      still under src/components/) may reach a tool only through that tool's
-//      island entry point, a `Pdf*Tool.tsx` directly under `src/tools/<name>/`
-//      (or, pre-move, the flat `src/components/Pdf*Tool.tsx`, which classifies
-//      as `components`, not a tool, so rule 4/5 do not apply to it yet).
+//   4. `site` (pages, layouts, content, data, i18n, styles, and the .astro
+//      files still under `src/components/`) may reach a tool only through
+//      that tool's island entry point, a `Pdf*Tool.tsx` directly under
+//      `src/tools/<name>/`.
+//   5. `components` (today's flat `src/components/`: since ARCH-18 landed,
+//      only `.astro` site components - which classify as `site`, not
+//      `components` - and `HeroDemo/` remain) must never import a tool.
+//      There is no longer a transitional allowance the other way: rule 1
+//      already covers a tool importing `components`, which is not permitted.
 //
-// Anything not covered by these five rules is not checked here; this file is
-// deliberately narrower than a full dependency-cruiser config.
+// Anything not covered by these five rules is not checked here (test
+// infrastructure under src/test/ gets one narrower rule of its own, below,
+// because it is not part of the target layout docs/module-boundaries.md
+// describes); this file is deliberately narrower than a full
+// dependency-cruiser config.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,15 +64,23 @@ const MODULE_PREFIXES = [
   ['src/editor-ui/', () => 'editor-ui'],
   ['src/editor/', () => 'editor'],
   ['src/lib/', () => 'lib'],
+  ['src/constants/', () => 'lib'],
   ['src/i18n/', () => 'site-i18n'],
   ['src/data/', () => 'site-data'],
   ['src/pages/', () => 'site'],
   ['src/layouts/', () => 'site'],
   ['src/content/', () => 'site'],
   ['src/styles/', () => 'site'],
+  // Cross-cutting test infrastructure (setup.js, astroContentStub.js,
+  // mockFileShare.js, setInputFiles.js, fixtures/): may import any core module
+  // to build its harness, but never a tool - a helper reaching into one
+  // tool's internals is the same laundering hazard a `null`/unclassified
+  // module used to hide. src/test/**/*.test.js (the repo-wide guards) are
+  // test files themselves, already excluded from the scan by TEST_FILE.
+  ['src/test/', () => 'test-support'],
 ];
 
-function classify(relPath) {
+export function classify(relPath) {
   const toolFolder = relPath.match(/^src\/tools\/([^/]+)\//);
   if (toolFolder) return `tool:${toolFolder[1]}`;
   for (const [prefix, moduleOf] of MODULE_PREFIXES) {
@@ -74,40 +89,54 @@ function classify(relPath) {
   if (relPath.startsWith('src/components/')) {
     return relPath.endsWith('.astro') ? 'site' : 'components';
   }
-  return null; // src/assets, src/constants, src/test, src/content.config.ts, ...: outside the module graph
+  return null; // src/assets, src/content.config.ts, ...: outside the module graph
 }
 
 const isTool = (m) => typeof m === 'string' && m.startsWith('tool:');
 const isSite = (m) => m === 'site' || m === 'site-i18n' || m === 'site-data';
 const CORE_MODULES = new Set(['shell', 'editor-ui', 'editor', 'lib']);
 
-// A tool's own island entry point: src/tools/<name>/Pdf*Tool.tsx (post-move).
-// Pre-move the flat src/components/Pdf*Tool.tsx classifies as `components`,
-// not a tool, so rule 5 does not fire on it yet - see the header comment.
+// A tool's own island entry point: src/tools/<name>/Pdf*Tool.tsx. Every tool
+// moved out of the flat src/components/ under ARCH-17/18, so this is the only
+// shape rule 4 recognizes now.
 function isToolEntryPoint(relPath) {
   return /^src\/tools\/[^/]+\/Pdf[A-Za-z0-9]*Tool\.tsx$/.test(relPath);
 }
 
-function ruleViolation(fromModule, toModule, toRelPath) {
+export function ruleViolation(fromModule, toModule, toRelPath) {
   if (!fromModule || !toModule || fromModule === toModule) return null;
 
+  // Rule 1: a tool may not import another tool, the site surface, or `components`.
   if (isTool(fromModule) && isTool(toModule)) {
     return 'a tool may not import another tool';
   }
+  if (isTool(fromModule) && (toModule === 'site' || toModule === 'components')) {
+    return 'a tool may import site-i18n and site-data but not site (pages/layouts/content/styles) or the flat components module';
+  }
+  // Rule 2: shell/editor-ui/editor/lib may not import a tool or `components`.
   if (CORE_MODULES.has(fromModule) && isTool(toModule)) {
     return `${fromModule} may not import a tool`;
   }
   if (CORE_MODULES.has(fromModule) && toModule === 'components') {
-    return `${fromModule} may not import the transitional components module`;
+    return `${fromModule} may not import the components module`;
   }
+  // Rule 3: editor is headless.
   if (fromModule === 'editor' && (toModule === 'editor-ui' || toModule === 'shell')) {
     return 'editor is headless: it may not import editor-ui or shell';
   }
-  if (fromModule === 'components' && isTool(toModule)) {
-    return 'the transitional components module may not import a tool';
-  }
+  // Rule 4: site may reach a tool only through its island entry point.
   if (isSite(fromModule) && isTool(toModule) && !isToolEntryPoint(toRelPath)) {
     return 'site may reach a tool only through its Pdf*Tool.tsx island entry point';
+  }
+  // Rule 5: `components` (HeroDemo/, compareFigure.css) may not import a tool.
+  if (fromModule === 'components' && isTool(toModule)) {
+    return 'the components module may not import a tool';
+  }
+  // Test infrastructure under src/test/: not part of the target layout, but
+  // the same laundering hazard applies - it may build its harness out of any
+  // core module, but never reach into one tool's internals.
+  if (fromModule === 'test-support' && isTool(toModule)) {
+    return 'test infrastructure under src/test/ may not import a tool';
   }
   return null;
 }
