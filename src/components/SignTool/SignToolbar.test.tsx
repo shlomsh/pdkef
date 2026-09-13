@@ -10,7 +10,7 @@ import type { SignToolType } from '../../editor/model/editorModel.ts';
 import { SavedSignaturesContext } from './SavedSignaturesContext.tsx';
 import { hebrewSignMessages } from '../../i18n/toolMessages';
 import styles from './SignToolbar.module.css';
-import toolShellStyles from '../ToolShell.module.css';
+import toolShellStyles from '../../shell/ToolShell.module.css';
 
 declare const __dirname: string;
 

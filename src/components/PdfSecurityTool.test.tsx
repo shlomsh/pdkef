@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfSecurityTool from './PdfSecurityTool.tsx';
 import * as securityLib from '../lib/security.js';
-import pdfToolStyles from './PdfTool.module.css';
+import pdfToolStyles from '../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 

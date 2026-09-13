@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import BasePdfTool from './BasePdfTool.tsx';
+import BasePdfTool from '../shell/BasePdfTool.tsx';
 import PdfPageCanvas from './PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../editor/model/ids.ts';
 import { applyPageEdits } from '../editor/adapters/pdf/applyPageEdits.js';
@@ -31,8 +31,8 @@ import {
 } from '../editor/model/actionHistory.ts';
 import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
-import ErrorMessage from './ErrorMessage.tsx';
-import pdfToolStyles from './PdfTool.module.css';
+import ErrorMessage from '../shell/ErrorMessage.tsx';
+import pdfToolStyles from '../shell/PdfTool.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
 import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../lib/format.js';

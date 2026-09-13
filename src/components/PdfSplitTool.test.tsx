@@ -4,11 +4,11 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfSplitTool from './PdfSplitTool.tsx';
 import { parsePageSelector, pageNumbersToRangeString } from '../lib/split.js';
-import dropzoneStyles from './Dropzone.module.css';
-import toolShellStyles from './ToolShell.module.css';
-import pageGridStyles from './PageGrid.module.css';
+import dropzoneStyles from '../shell/Dropzone.module.css';
+import toolShellStyles from '../shell/ToolShell.module.css';
+import pageGridStyles from '../shell/PageGrid.module.css';
 import styles from './PdfSplitTool.module.css';
-import pdfToolStyles from './PdfTool.module.css';
+import pdfToolStyles from '../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 

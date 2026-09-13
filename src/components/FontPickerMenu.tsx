@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import Popover from './Popover.tsx';
+import Popover from '../shell/Popover.tsx';
 import styles from './EditorControls.module.css';
 import { FONT_STYLE_TAGS, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
 import { getFontSupport } from '../editor/text/textFontSupport.js';

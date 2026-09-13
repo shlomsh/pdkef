@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import dialogStyles from '../Dialog.module.css';
+import dialogStyles from '../../shell/Dialog.module.css';
 import styles from './PageStrip.module.css';
 import { renderPdfThumbnails } from '../../lib/thumbnails.js';
 import { formatMessage, type MergeMessages } from '../../i18n/toolMessages';

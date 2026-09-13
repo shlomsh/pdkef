@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import ColorPicker from './ColorPicker.tsx';
 import styles from './EditorControls.module.css';
-import Popover from './Popover.tsx';
+import Popover from '../shell/Popover.tsx';
 
 // Compact trigger + popover wrapper around ColorPicker, reusing the same
 // dropdown-container/backdrop/menu pattern as the saved-signatures dropdown

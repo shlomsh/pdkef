@@ -48,7 +48,7 @@ import {
   type HistoryLogger,
 } from '../../editor/model/actionHistory.ts';
 import { englishSignMessages, formatMessage, signElementTypeLabel, type SignMessages } from '../../i18n/toolMessages';
-import pdfToolStyles from '../PdfTool.module.css';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
 import workspaceStyles from './Workspace.module.css';
 
 const DEFAULT_PAGE_GEOMETRY = createPageGeometry({

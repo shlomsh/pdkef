@@ -2,7 +2,7 @@ import ViewControl from './ViewControl.tsx';
 import EditorToolStatus from './EditorToolStatus.tsx';
 import ArmHint from './ArmHint.tsx';
 import EditorExportActions from './EditorExportActions.tsx';
-import ToolShell, { FILE_ACTIONS, useToolShell } from './ToolShell.tsx';
+import ToolShell, { FILE_ACTIONS, useToolShell } from '../shell/ToolShell.tsx';
 import { makeArmTool, useAutoArmHint } from '../lib/toolArming.js';
 import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
 import type { RedactToolType } from '../editor/model/editorModel.ts';

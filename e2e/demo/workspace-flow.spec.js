@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 import { scrollStory, stageLocator } from './heroDemoHelpers.js';
-import { SAMPLE_FILE_NAME } from '../../src/components/sampleDocument.ts';
+import { SAMPLE_FILE_NAME } from '../../src/shell/sampleDocument.ts';
 test.use({serviceWorkers:'block'});
 
 async function draftSnapshot(page) {

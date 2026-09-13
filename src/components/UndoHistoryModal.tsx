@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'preact/hooks';
 import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
 import { englishSignMessages, formatMessage, type SignMessages } from '../i18n/toolMessages';
-import dialogStyles from './Dialog.module.css';
+import dialogStyles from '../shell/Dialog.module.css';
 import styles from './UndoHistoryModal.module.css';
 
 // Shared "Undo changes" dialog for the Sign and Redact tools — lists logged

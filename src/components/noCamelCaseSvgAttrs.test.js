@@ -20,6 +20,11 @@ const CAMEL_SVG_ATTRS = [
 ];
 
 const componentsDir = path.dirname(fileURLToPath(import.meta.url));
+// This guard predates the shell/editor-ui split (ARCH-16): it used to scan its
+// own directory because every island and its shared chrome lived flat in
+// src/components/. Scan every folder that chrome has moved into, or a file
+// that changes owner silently drops out of coverage instead of failing loud.
+const SCAN_DIRS = [componentsDir, path.join(componentsDir, '..', 'shell')];
 
 function jsxFiles(dir) {
   return fs.readdirSync(dir)
@@ -28,7 +33,7 @@ function jsxFiles(dir) {
 }
 
 describe('raw-SVG attributes use kebab-case (raw Preact does not convert camelCase)', () => {
-  for (const file of jsxFiles(componentsDir)) {
+  for (const file of SCAN_DIRS.flatMap(jsxFiles)) {
     it(`${path.basename(file)} has no camelCase SVG attributes on raw elements`, () => {
       const src = fs.readFileSync(file, 'utf8');
       const offenders = [];

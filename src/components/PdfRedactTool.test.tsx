@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { redactPdf } from '../editor/adapters/pdf/redact.js';
 import { pxToPercent, pxDeltaToPercent } from '../editor/geometry/coords.js';
-import dropzoneStyles from './Dropzone.module.css';
+import dropzoneStyles from '../shell/Dropzone.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
 import redactStyles from './PdfRedactTool.module.css';

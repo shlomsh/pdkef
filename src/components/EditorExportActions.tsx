@@ -1,6 +1,6 @@
 import styles from './SignTool/SignToolbar.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
-import pdfToolStyles from './PdfTool.module.css';
+import pdfToolStyles from '../shell/PdfTool.module.css';
 
 // The two export surfaces every editor tool has - the sticky toolbar's own
 // Download/Share pair, and the always-present pair below the document - drawn

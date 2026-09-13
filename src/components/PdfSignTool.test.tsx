@@ -9,8 +9,8 @@ import * as maintenanceTelemetry from '../lib/maintenanceTelemetry.ts';
 import toolbarStyles from './SignTool/SignToolbar.module.css';
 import workspaceStyles from './SignTool/Workspace.module.css';
 import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../editor/geometry/coords.js';
-import dropzoneStyles from './Dropzone.module.css';
-import toolShellStyles from './ToolShell.module.css';
+import dropzoneStyles from '../shell/Dropzone.module.css';
+import toolShellStyles from '../shell/ToolShell.module.css';
 import { setInputFiles } from '../test/setInputFiles.js';
 
 declare const __dirname: string;
