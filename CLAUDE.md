@@ -34,12 +34,15 @@ npm install
 npm run dev       # local dev server (astro dev)
 npm run build     # production build to dist/
 npm run preview   # preview the production build (serves dist/ from disk)
-npm test          # unit/component tests (Vitest + jsdom)
-npm run test:e2e  # browser guardrails (Playwright; keep under e2e/<module>/)
+npm test          # unit/component tests (Vitest; jsdom only where vitest.config.js's DOM_TESTS says)
+npm run test:e2e  # build + every browser guardrail (Playwright; keep under e2e/<module>/)
+npm run test:e2e:product  # the product specs against the current dist/ (~75s on 4 workers)
+npm run test:e2e:fonts    # the 27 font screening guards; CI runs them only when their inputs change
 ```
 
 - E2E tests are sparse guardrails, roughly 1 e2e per 10 unit tests, only for what jsdom cannot prove
-  (rendered rects, drag-time behaviour, page-edge behaviour, hydration/CSP flows).
+  (rendered rects, drag-time behaviour, page-edge behaviour, hydration/CSP flows). Playwright runs on
+  4 workers (2 in CI); a spec must not depend on the CPU being idle. [fonts-and-text] for the guards.
 - **One preview, on 4173, per worktree.** `astro preview` is a one-instance daemon and Playwright reuses
   whatever owns the port, so a second preview or a per-agent port silently tests another build.
 - A fresh `git worktree` needs its own `npm install`; a missing or partial `node_modules` there breaks

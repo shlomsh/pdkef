@@ -3,6 +3,20 @@ import { defineConfig, devices } from '@playwright/test';
 const PORT = Number(process.env.PLAYWRIGHT_PORT || 4173);
 const baseURL = `http://127.0.0.1:${PORT}`;
 
+// The font screening guards: per-script shaping guards, font parity suites,
+// the export render guard, the Hebrew composition guard and language
+// acceptance. Each esbuilds fontkit in its beforeAll and pixel-diffs a whole
+// corpus, and together they were 55% of the suite's time while guarding
+// fonts and shaping code that change in about one commit in ten. They live
+// in their own `fonts` project so CI can run them only when those inputs
+// change (see ci.yml's paths step) and `npm run test:e2e:fonts` runs them on
+// demand; `npm run test:e2e` still runs everything.
+const FONT_GUARDS = [
+  '**/sign/*-guard.spec.js',
+  '**/sign/*-parity.spec.js',
+  '**/sign/language-acceptance.spec.js',
+];
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 45_000,
@@ -10,7 +24,13 @@ export default defineConfig({
     timeout: 10_000,
   },
   fullyParallel: false,
-  workers: 1,
+  // The suite ran on one worker from its first commit, bundled with the
+  // "one preview daemon per checkout" rule in CLAUDE.md, but that daemon is a
+  // static file server and serves any number of contexts; the shaping harness
+  // already names each guard's bundle uniquely for the same reason. Measured
+  // on an M2 Pro: 221s serialized, 84s on 3 workers, 69s on 5. The one spec
+  // that failed under load (home/handoff) had a real setup race, fixed there.
+  workers: process.env.CI ? 2 : 4,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL,
@@ -26,6 +46,12 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: FONT_GUARDS,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'fonts',
+      testMatch: FONT_GUARDS,
       use: { ...devices['Desktop Chrome'] },
     },
     {

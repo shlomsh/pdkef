@@ -13,6 +13,8 @@
     "typecheck": "astro check",
     "test": "vitest run",
     "test:e2e": "npm run build && playwright test",
+    "test:e2e:product": "playwright test --project=chromium --project=webkit",
+    "test:e2e:fonts": "playwright test --project=fonts",
     "test:csp": "node scripts/verify-csp.js",
     "test:gesture-golden-rule": "node scripts/check-gesture-golden-rule.js",
     "test:editor-dependency-directions": "node scripts/check-editor-dependency-directions.mjs",
