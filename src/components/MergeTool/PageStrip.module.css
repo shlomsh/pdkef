@@ -1,9 +1,10 @@
-/* MERGE-08 / MERGE-09 / Direction A (2026-09-13): the assembled document. A
-   wrapping grid of every page of every file in output order (no horizontal
-   strip, no overflow-x), grouped by file behind a caption row while the plan
-   stays grouped. Own container rules; the card internals are written once
-   here rather than copied from PageGrid.module.css (the CSS duplication
-   ratchet forbids copying rule text), and PageGrid is left as is. */
+/* MERGE-08 / MERGE-09 / Direction A (2026-09-13): the assembled document. One
+   continuous CSS grid of every page of every file in output order, across
+   file boundaries - no row break at a file boundary, no inline-caption
+   variant (Shlomi's follow-up, 2026-09-13, item 1). Own container rules; the
+   card internals are written once here rather than copied from
+   PageGrid.module.css (the CSS duplication ratchet forbids copying rule
+   text), and PageGrid is left as is. */
 
 .section {
   display: flex;
@@ -21,16 +22,23 @@
 /* The document is white; only the rail is tinted (Shlomi's reduction, wave
    2) - the grid carries no fill of its own, so it reads as part of the
    white document surface. Page cells keep their own border and shadow, so
-   they still read as distinct objects on that white ground. Also
-   `min-width: 0` so a caption's long name can ellipsis instead of forcing
-   the whole grid wider than its card (the phone overflow bug). */
+   they still read as distinct objects on that white ground.
+
+   One continuous grid (item 1): `repeat(auto-fill, <cell>px)` gives every
+   page, across every file, the same column width - `--grid-cell`/
+   `--grid-gap` are set once, per render, by PageStrip.tsx (104px/12px on
+   desktop, 72px/8px on a phone; the same values `gridMetrics()` and
+   `baseCellSize()` compute the per-item cell box from). A caption row
+   (`.caption`, 4+ page runs only - see PageStrip.tsx) spans every column and
+   so forces a fresh row on its own; every other cell just flows left to
+   right, wrapping in the grid's own auto-fill, with no row-break hack
+   needed. SortableJS still works on a grid's children unmodified. */
 .grid {
   position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  align-content: flex-start;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--grid-cell, 104px));
+  gap: var(--grid-gap, 12px);
+  align-content: start;
   min-width: 0;
   margin: 0;
   padding: 1rem;
@@ -42,12 +50,13 @@
 }
 
 /* --- Caption: a label, not a control (Shlomi's reduction, wave 2) - colour
-   tag, name, page range, nothing else. A run of two pages or fewer sits
-   inline beside its own cells instead of claiming a full-width row
-   (`data-inline`); the plain (own-row) form is also the phone's sticky
-   per-file label (see the phone media query below). */
+   tag, name, page range, nothing else. Only a run of FOUR pages or more gets
+   one (item 1); it spans the whole row width and so starts its run on a
+   fresh grid row, same as the phone's sticky per-file label below. A run of
+   1 to 3 pages gets no caption at all - its first cell carries a small tag
+   in its own reserved strip instead (`.cell-tag` below). */
 .caption {
-  flex: 1 1 100%;
+  grid-column: 1 / -1;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -65,27 +74,6 @@
   border-top: 1px solid var(--color-border);
 }
 
-.caption[data-inline] {
-  flex: 0 0 auto;
-  align-self: center;
-  margin-top: 0;
-  padding-top: 0.2rem;
-  border-top: 0;
-}
-
-/* A zero-height, full-width flex item forces the wrap onto a fresh line
-   right before an inline caption, so the label and its 1-2 cells always
-   land together instead of the label trailing the previous run and its
-   own cells splitting across the wrap. Presentational only: excluded from
-   SortableJS (filter) and invisible to the insertion-line painter (no
-   data-key). */
-.row-break {
-  flex: 1 1 100%;
-  height: 0;
-  margin: 0;
-  padding: 0;
-}
-
 .tag-square {
   flex-shrink: 0;
   width: 10px;
@@ -95,11 +83,7 @@
 }
 
 .caption-name {
-  unicode-bidi: plaintext;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   max-width: 28ch;
 }
 
@@ -108,23 +92,51 @@
   white-space: nowrap;
 }
 
-/* --- Page cell: fixed 64x84 (landscape/rotated: 84x64), from JS via
-   --cell-w/--cell-h so a rotated or naturally-landscape page is shown at
-   full cell width, never scaled down inside a portrait box. --- */
+/* --- Page cell: a grid item, one column wide (portrait) or two (a
+   landscape/rotated page - PageStrip.tsx sets `grid-column: span 2` so it
+   keeps a real, un-scaled footprint rather than being squeezed into one
+   column). --- */
 .page {
   position: relative;
-  flex: 0 0 auto;
   /* Bottom-aligned so a landscape cell's number lines up with its portrait
-     neighbours' (the sketch's landscape row); labels keep their own alignment. */
-  align-self: flex-end;
-  width: var(--cell-w, 104px);
+     neighbours' (the sketch's landscape row); the reserved tag strip below
+     keeps its own top-aligned position regardless. */
+  align-self: end;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.3rem;
-  padding-top: 0.3rem;
   cursor: grab;
   user-select: none;
+}
+
+/* The reserved strip (item 1): every cell carries this, at the same fixed
+   height, whether or not it is a run's first cell - that is what keeps
+   every thumbnail, across the whole row, aligned to one line regardless of
+   which cells happen to carry a tag. Ellipsis on the logical end (bidi
+   plaintext handles the direction - item 2). */
+.cell-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  height: 16px;
+  padding: 0 2px;
+}
+
+.cell-tag-square {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--tag-color, var(--color-primary));
+}
+
+.cell-tag-name {
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted);
 }
 
 .page:focus-visible {
@@ -234,12 +246,13 @@
 /* Rotate, skip and open: a three-button cluster revealed above the cell on
    hover or focus (pointer devices), or while "Edit pages" is on (touch). */
 .actions {
-  /* Inside the cell's top edge, over the thumbnail, not above the cell:
-     above the cell it covered the file label of the first row (the very
-     thing Direction A put there), on every hover and for the whole of a
-     phone's Edit pages mode. */
+  /* Inside the THUMBNAIL's top edge, not the cell's: the cell's own top edge
+     is the reserved tag strip (`.cell-tag`, item 1), and sitting there would
+     cover the file name on a run's first cell. Offset past the strip's own
+     16px plus the `.page` flex gap (0.3rem) before the thumbnail-relative
+     0.55rem the original design called for. */
   position: absolute;
-  top: 0.55rem;
+  top: calc(16px + 0.3rem + 0.55rem);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -300,6 +313,34 @@
   outline-offset: 2px;
 }
 
+/* Item 6 (Shlomi's follow-up): a `title` attribute alone is not a visible
+   tooltip. Each action button always carries this word in the DOM
+   (`aria-hidden`, the button's own `aria-label` stays the accessible name),
+   shown only on hover/keyboard focus - `.action` is already
+   `position: relative`, so this positions against the button itself. */
+.tip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-top: 4px;
+  padding: 2px 6px;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-surface);
+  background: var(--color-text);
+  border-radius: var(--radius-sm);
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.action:hover .tip,
+.action:focus-visible .tip {
+  visibility: visible;
+}
+
 /* Thin insertion line while dragging (MERGE-10): a DOM attribute written
    during the native drag, lifted with z-index. */
 .page[data-insert-before] {
@@ -328,10 +369,10 @@
 
 @media (max-width: 767px) {
   /* The card already pads 12px on a phone (PdfTool.module.css); no padding
-     of the grid's own, so three 96px cells and two 12px gaps (312px) fit the
-     295px-wide grid a 375px phone would otherwise leave. */
+     of the grid's own, so four 72px cells and three 8px gaps (312px, the
+     --grid-gap PageStrip.tsx sets on a phone) fit the 317px the card leaves
+     at 375px: five one-page files land as a row of four and one. */
   .grid {
-    gap: 12px;
     padding: 0;
   }
 
@@ -339,13 +380,12 @@
     display: none;
   }
 
-  /* A caption on its own row (a run of 3+ pages) sticks to the top of the
-     document while its pages scroll under it, so you always know whose
-     pages you're looking at; a short run's inline label has no row of its
-     own to stick. An opaque background is needed since the grid itself is
-     transparent (item 7) - it would otherwise show cells scrolling through
-     the "sticky" label. */
-  .caption:not([data-inline]) {
+  /* A caption (always a run of 4+ pages now - item 1) sticks to the top of
+     the document while its pages scroll under it, so you always know whose
+     pages you're looking at. An opaque background is needed since the grid
+     itself is transparent (item 7) - it would otherwise show cells
+     scrolling through the "sticky" label. */
+  .caption {
     position: sticky;
     top: 0;
     z-index: 1;

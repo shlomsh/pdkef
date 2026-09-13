@@ -165,6 +165,89 @@
      width now. */
 }
 
+/* Shlomi's follow-up (2026-09-13), item 5: Merge's own empty-state band.
+   Below 1024px this is entirely inert - `.band-ghosts`/`.band-copy` stay
+   hidden and the default icon/heading/privacy-line render exactly as for
+   every other tool. At 1024px and up, `[data-variant="band"]` reuses the
+   same grid engine as the rule above (column 1 the graphic, column 2 the
+   two-line copy stack, column 3 the button) rather than inventing a second
+   layout mechanism, just shorter (260px, not 168) and swapped in. */
+.band-ghosts,
+.band-copy {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .dropzone[data-variant='band'] {
+    height: 260px;
+  }
+
+  .dropzone[data-variant='band'] .dropzone-icon,
+  .dropzone[data-variant='band'] .dropzone-text,
+  .dropzone[data-variant='band'] .privacy-line {
+    display: none;
+  }
+
+  .dropzone[data-variant='band'] .band-ghosts {
+    position: relative;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    display: block;
+    width: 68px;
+    height: 58px;
+  }
+
+  .dropzone[data-variant='band'] .band-ghost {
+    position: absolute;
+    top: 0;
+    width: 44px;
+    height: 58px;
+    border: 1.5px dashed var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-sunken);
+  }
+
+  .dropzone[data-variant='band'] .band-ghost:nth-child(1) {
+    inset-inline-start: 0;
+    z-index: 1;
+  }
+
+  .dropzone[data-variant='band'] .band-ghost:nth-child(2) {
+    inset-inline-start: 12px;
+    z-index: 2;
+  }
+
+  .dropzone[data-variant='band'] .band-ghost:nth-child(3) {
+    inset-inline-start: 24px;
+    z-index: 3;
+    background: var(--color-surface);
+  }
+
+  .dropzone[data-variant='band'] .band-copy {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    justify-self: start;
+  }
+
+  .dropzone[data-variant='band'] .band-heading {
+    margin: 0;
+    font-size: var(--type-lead-size);
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .dropzone[data-variant='band'] .band-body {
+    margin: 0;
+    max-width: 34rem;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--color-muted);
+  }
+}
+
 .dropzone.is-dragover {
   border-color: var(--color-success);
   border-style: solid;

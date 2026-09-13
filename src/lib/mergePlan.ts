@@ -32,10 +32,13 @@ export interface MergeMapEntry {
   skipped: boolean;
 }
 
-// The same naming shape as the other tools (signed_<name>, redacted_<name>):
-// a tool prefix on the first file's name. `{count}` stays available to a
-// locale template that wants to mention the other files.
-export const DEFAULT_OUTPUT_NAME_TEMPLATE = 'merged_{name}';
+// MERGE-03 (2026-09-13, owner decision - there is no Merge button):
+// `<first file base name> + N more.pdf`, not a `merged_` prefix like
+// Sign/Redact's `signed_`/`redacted_` - a merge's identity is the files it
+// folded in, not a tool name stamped on the front. `{count}` is the number of
+// *other* files; a single file keeps its own name untouched (see
+// mergedTitle below).
+export const DEFAULT_OUTPUT_NAME_TEMPLATE = '{name} + {count} more';
 
 function planKey(fileId: number, pageIndex: number): string {
   return `${fileId}:${pageIndex}`;
@@ -242,11 +245,11 @@ function baseName(fileName: string): string {
   return fileName.slice(0, lastDot);
 }
 
-// Builds the merged file's display title (no '.pdf' suffix): the tool prefix
-// on the first file's own name. `template` lets a locale phrase this
-// differently and may also use `{count}`, how many other files were folded
-// in; a single file keeps its own name untouched. This function does not
-// validate the template - it just substitutes.
+// Builds the merged file's display title (no '.pdf' suffix): the first
+// file's own name, plus how many others folded in. `template` lets a locale
+// phrase this differently and may also use `{count}`; a single file keeps
+// its own name untouched. This function does not validate the template - it
+// just substitutes.
 export function mergedTitle(
   firstFileName: string,
   otherCount: number,

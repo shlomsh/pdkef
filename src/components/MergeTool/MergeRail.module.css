@@ -190,10 +190,6 @@
 .file-name {
   flex: 1;
   min-width: 0;
-  unicode-bidi: plaintext;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .file-pages {

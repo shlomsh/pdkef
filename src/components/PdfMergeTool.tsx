@@ -29,6 +29,7 @@ import railStyles from './MergeTool/MergeRail.module.css';
 import PdfShareButton from './PdfShareButton.tsx';
 import ErrorMessage from './ErrorMessage.tsx';
 import DownloadElement, { type DownloadElementState } from './MergeTool/DownloadElement.tsx';
+import FileName from './MergeTool/FileName.tsx';
 import { usePreparedMerge } from './MergeTool/usePreparedMerge.ts';
 import type { PageStripProps } from './MergeTool/PageStrip.tsx';
 import type { MergeDraftPersistenceProps } from './MergeTool/MergeDraftPersistence.tsx';
@@ -876,6 +877,19 @@ export default function PdfMergeTool({
   const otherError = !failedEntry && prepared.status === 'error';
 
   const hasFiles = entries.length > 0;
+  // A reload with files loaded (the draft brings them back) would put the
+  // page back at its old offset, measured against a layout the restore then
+  // grows by a whole document; the browser keeps retrying that offset as the
+  // page grows. Measured at 375px it landed below the grid, where nothing was
+  // near enough to render, and the merge looked like it had no thumbnails.
+  // The mode travels with the history entry, so it is set while files are on
+  // the page, ahead of any reload, not on the reloaded page (too late there
+  // for the first reload; verified on Chromium).
+  useEffect(() => {
+    if (typeof history === 'undefined' || !('scrollRestoration' in history)) return;
+    history.scrollRestoration = hasFiles ? 'manual' : 'auto';
+  }, [hasFiles]);
+
   const pagesLabel = (count: number) => (count === 1 ? sm.pageCountOne : formatMessage(sm.pageCountOther, { count }));
   const rearranged = hasFiles && (!grouped || !listOrdered);
   const showSortControls = entries.length >= 2 && !rearranged;
@@ -923,7 +937,9 @@ export default function PdfMergeTool({
       // drag-over overlay says so - a Merge-only override of the shared
       // shell copy, not a change to what Split/ImageToPdf/ToImage show.
       shellMessages={{ ...shellMessages, dropToAddMore: t.dropAnywhereNote }}
-      fillViewport
+      emptyVariant="band"
+      emptyBandHeading={t.emptyHeading}
+      emptyBandBody={t.emptyBody}
       checkingDraft={!hasFiles && draftState.isRestoring}
       hideIdentity
     >
@@ -976,7 +992,7 @@ export default function PdfMergeTool({
               >
                 <span class={docStyles['chip-pill']}>
                   <span class={docStyles['chip-tag']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
-                  <span class={docStyles['chip-name']} dir="auto">{entry.file.name.replace(/\.pdf$/i, '')}</span>
+                  <FileName name={entry.file.name} className={docStyles['chip-name']} extension={false} />
                   <span class={docStyles['chip-pages']}>{entry.pageCount ?? '…'}</span>
                 </span>
               </li>
@@ -1118,7 +1134,7 @@ export default function PdfMergeTool({
                         </svg>
                       </span>
                       <span class={railStyles['tag-square']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
-                      <span class={railStyles['file-name']} dir="auto">{entry.file.name}</span>
+                      <FileName name={entry.file.name} className={railStyles['file-name']} />
                       <span class={railStyles['file-pages']}>{entry.pageCount ?? '…'}</span>
                       <button
                         type="button"

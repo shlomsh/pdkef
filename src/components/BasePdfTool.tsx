@@ -70,6 +70,16 @@ interface BasePdfToolProps {
    * (ToolPageLayout.astro's `.tool-stage` rule). A tool passes it only while
    * it has nothing loaded, so a loaded card flows at its own height. */
   fillViewport?: boolean;
+  /** Shlomi's follow-up (2026-09-13): a Merge-only empty-state shape - a
+   * fixed 260px dashed band at 1024px and up (ghost pages, a heading and
+   * body, "Choose files") instead of the shared viewport-filling dropzone.
+   * Below 1024px the default empty state is unaffected either way.
+   * `emptyBandHeading`/`emptyBandBody` are the band's own two lines of copy
+   * (only rendered - and only ever visible - when this is `'band'`); every
+   * other tool leaves all three unset. */
+  emptyVariant?: 'default' | 'band';
+  emptyBandHeading?: string;
+  emptyBandBody?: string;
   /** Direction A (Merge): a tool whose loaded state replaces the identity
    * row and file actions with its own add bar (AddBar.tsx) sets this so
    * BasePdfTool never mounts <ToolShell><FileActions/></ToolShell> on top
@@ -137,6 +147,9 @@ export default function BasePdfTool({
   shellMessages,
   showIosFilesHint = false,
   fillViewport = false,
+  emptyVariant = 'default',
+  emptyBandHeading,
+  emptyBandBody,
   hideIdentity = false,
 }: BasePdfToolProps) {
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
@@ -358,6 +371,9 @@ export default function BasePdfTool({
             compact={compact}
             messages={sm}
             showIosFilesHint={showIosFilesHint}
+            variant={emptyVariant}
+            bandHeading={emptyBandHeading}
+            bandBody={emptyBandBody}
           />
         )
       )}

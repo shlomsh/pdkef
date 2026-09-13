@@ -54,10 +54,11 @@ export interface MergeMessages {
   sortDateAsc: string;
   sortDateDesc: string;
   optionsSummary: string;
-  /** MERGE-03: the output file name is one template ("merged_{name}", the
-   * same prefix shape as signed_/redacted_) so a locale can phrase it its own
-   * way; `{count}` (the other files) is available to it. The PDF Title is the
-   * same string. */
+  /** MERGE-03 (owner decision, 2026-09-13: there is no Merge button): the
+   * output file name is one template ("{name} + {count} more") so a locale
+   * can phrase it its own way; `{count}` (the other files) is available to
+   * it, and a single file drops the template entirely (mergedTitle). The
+   * PDF Title is the same string. */
   outputName: string;
   savesAs: string;
   /* MERGE-12: Download is the only primary control. `preparing` labels the
@@ -142,6 +143,17 @@ export interface MergeMessages {
    * overlay once the add bar is gone, and the phone chip row's "more" menu. */
   dropAnywhereNote: string;
   moreOptions: string;
+  /** Shlomi's follow-up (2026-09-13): the desktop-only empty-state band
+   * (BasePdfTool's `emptyVariant="band"`, DropzoneEmptyState's band copy). */
+  emptyHeading: string;
+  emptyBody: string;
+  /** Same follow-up, item 6: a small always-in-the-DOM tooltip word inside
+   * each page action button (rotate/skip/open), shown on hover/focus - the
+   * button's `aria-label` stays the real accessible name. */
+  tipRotate: string;
+  tipSkip: string;
+  tipBringBack: string;
+  tipOpen: string;
 }
 
 const englishMergeMessages: MergeMessages = {
@@ -172,7 +184,7 @@ const englishMergeMessages: MergeMessages = {
   sortDateAsc: 'Oldest first',
   sortDateDesc: 'Newest first',
   optionsSummary: 'Options',
-  outputName: 'merged_{name}',
+  outputName: '{name} + {count} more',
   savesAs: 'Saves as {name}',
   downloadLabel: 'Download merged PDF',
   preparing: 'Preparing…',
@@ -240,6 +252,12 @@ const englishMergeMessages: MergeMessages = {
   pageMovedUndo: 'Moved page {number}',
   dropAnywhereNote: 'Drop anywhere, or paste',
   moreOptions: 'More options',
+  emptyHeading: 'Drop PDFs here, or paste',
+  emptyBody: 'Your pages appear here, in order, before you download. Files never leave your device.',
+  tipRotate: 'Rotate',
+  tipSkip: 'Skip',
+  tipBringBack: 'Bring back',
+  tipOpen: 'Open',
 };
 
 // LOC-02's own throwaway draft fixture (proves the route end to end for
@@ -276,7 +294,7 @@ const hebrewMergeMessages: MergeMessages = {
   sortDateAsc: 'הישן ביותר קודם',
   sortDateDesc: 'החדש ביותר קודם',
   optionsSummary: 'אפשרויות',
-  outputName: 'merged_{name}',
+  outputName: '{name} + {count} נוספים',
   savesAs: 'יישמר בשם {name}',
   downloadLabel: 'הורדת ה-PDF המאוחד',
   preparing: 'מכינים…',
@@ -346,6 +364,12 @@ const hebrewMergeMessages: MergeMessages = {
   pageMovedUndo: 'הוזז עמוד {number}',
   dropAnywhereNote: 'שחררו בכל מקום, או הדביקו',
   moreOptions: 'עוד אפשרויות',
+  emptyHeading: 'שחררו כאן קבצי PDF, או הדביקו',
+  emptyBody: 'העמודים שלכם יופיעו כאן, לפי הסדר, לפני ההורדה. הקבצים לא עוזבים את המכשיר שלכם.',
+  tipRotate: 'סיבוב',
+  tipSkip: 'דילוג',
+  tipBringBack: 'החזרה',
+  tipOpen: 'פתיחה',
 };
 
 export interface CompressMessages {

@@ -1,0 +1,22 @@
+/* See FileName.tsx. The container is a flex row whose direction comes from
+   dir="auto"; the head shrinks with an ellipsis at its logical end, which is
+   the side the tail sits on, so the cut always reads as a middle ellipsis. */
+.name {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.head {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  unicode-bidi: plaintext;
+}
+
+.tail {
+  flex: none;
+  unicode-bidi: plaintext;
+}

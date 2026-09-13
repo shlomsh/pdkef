@@ -226,10 +226,6 @@
 
 .chip-name {
   max-width: 14ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  unicode-bidi: plaintext;
 }
 
 .chip-pages {
