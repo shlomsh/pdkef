@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveScope, ownerOf, toolNameOf, CORE_PROJECTS, wide } from '../../scripts/affected-scope.mjs';
+import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, wide } from '../../scripts/affected-scope.mjs';
 
 /* scripts/affected-scope.mjs's deriveScope() is the pure mapping this project
    set relies on: given changed files, the projects `nx` says are affected,
@@ -106,6 +106,51 @@ describe('toolNameOf', () => {
   });
 });
 
+describe('siteE2eOwnPaths', () => {
+  const E2E_CHILDREN = [
+    { name: 'card-reveal.spec.js', isDirectory: false },
+    { name: 'content', isDirectory: true },
+    { name: 'csp-smoke.spec.js', isDirectory: false },
+    { name: 'demo', isDirectory: true },
+    { name: 'home', isDirectory: true },
+    { name: 'localized', isDirectory: true },
+    { name: 'offline', isDirectory: true },
+    { name: 'project.json', isDirectory: false },
+    { name: 'sign', isDirectory: true },
+    { name: 'tool-layout.spec.js', isDirectory: false },
+    { name: 'tool-output-paths.spec.js', isDirectory: false },
+  ];
+
+  it('excludes project.json and any child carved out into its own project (fonts at e2e/sign)', () => {
+    const paths = siteE2eOwnPaths(E2E_CHILDREN, ROOTS);
+    expect(paths).not.toContain('e2e/project.json');
+    expect(paths).not.toContain('e2e/sign/');
+    expect(paths).toEqual([
+      'e2e/card-reveal.spec.js',
+      'e2e/content/',
+      'e2e/csp-smoke.spec.js',
+      'e2e/demo/',
+      'e2e/home/',
+      'e2e/localized/',
+      'e2e/offline/',
+      'e2e/tool-layout.spec.js',
+      'e2e/tool-output-paths.spec.js',
+    ]);
+  });
+
+  it('keeps a directory trailing slash but not a file\'s', () => {
+    const paths = siteE2eOwnPaths([{ name: 'demo', isDirectory: true }, { name: 'csp-smoke.spec.js', isDirectory: false }], ROOTS);
+    expect(paths).toContain('e2e/demo/');
+    expect(paths).toContain('e2e/csp-smoke.spec.js');
+  });
+
+  it('excludes nothing extra when no project is carved out of e2e/', () => {
+    const rootsWithoutFonts = new Map([...ROOTS].filter(([name]) => name !== 'fonts'));
+    const paths = siteE2eOwnPaths(E2E_CHILDREN, rootsWithoutFonts);
+    expect(paths).toContain('e2e/sign/');
+  });
+});
+
 describe('CORE_PROJECTS', () => {
   it('is exactly the five modules every tool depends on', () => {
     expect([...CORE_PROJECTS].sort()).toEqual(['editor', 'editor-ui', 'lib', 'shell', 'site']);
@@ -118,20 +163,36 @@ describe('deriveScope', () => {
       files: ['src/tools/compress/PdfCompressTool.tsx'],
       affected: ['tool-compress', 'site-e2e'],
       roots: ROOTS,
+      siteE2ePaths: ['e2e/home/'],
     });
     expect(scope.everything).toBe(false);
     expect(scope.fonts).toBe(false);
     expect(scope.unit_paths).toBe('src/tools/compress/ src/test/');
-    expect(scope.e2e_paths).toBe('src/tools/compress/e2e/ e2e/');
+    expect(scope.e2e_paths).toBe('src/tools/compress/e2e/ e2e/home/');
+  });
+
+  it('never adds the bare "e2e/" string - it would substring-match every tool\'s own e2e specs too', () => {
+    const scope = deriveScope({
+      files: ['e2e/home/handoff.spec.js'],
+      affected: ['site-e2e'],
+      roots: ROOTS,
+      siteE2ePaths: ['e2e/home/'],
+    });
+    expect(scope.e2e_paths).toBe('e2e/home/');
   });
 
   it('adds a tool\'s own e2e/ dir only when toolE2eExists says it has one', () => {
+    // toolE2eExists is called with the PROJECT NAME ("tool-merge"), not the
+    // path it maps to - a regression test for a bug where the filter ran
+    // after the map and so always received "src/tools/merge/e2e/" instead.
+    const receivedArgs = [];
     const scope = deriveScope({
       files: ['src/tools/merge/PdfMergeTool.tsx'],
       affected: ['tool-merge'],
       roots: ROOTS,
-      toolE2eExists: () => true,
+      toolE2eExists: (project) => { receivedArgs.push(project); return true; },
     });
+    expect(receivedArgs).toEqual(['tool-merge']);
     expect(scope.e2e_paths).toBe('src/tools/merge/e2e/');
 
     const noE2e = deriveScope({
@@ -200,16 +261,17 @@ describe('deriveScope', () => {
     expect(scope.e2e_paths).toBe('');
   });
 
-  it('narrows across two tools at once, no fonts, e2e/ only if site-e2e is affected', () => {
+  it('narrows across two tools at once, no fonts, site-e2e paths only if site-e2e is affected', () => {
     const scope = deriveScope({
       files: ['src/tools/merge/PdfMergeTool.tsx', 'src/tools/compress/PdfCompressTool.tsx'],
       affected: ['tool-merge', 'tool-compress', 'site-e2e'],
       roots: ROOTS,
       toolE2eExists: () => true,
+      siteE2ePaths: ['e2e/demo/', 'e2e/home/'],
     });
     expect(scope.everything).toBe(false);
     expect(scope.unit_paths).toBe('src/tools/compress/ src/tools/merge/ src/test/');
-    expect(scope.e2e_paths).toBe('src/tools/compress/e2e/ src/tools/merge/e2e/ e2e/');
+    expect(scope.e2e_paths).toBe('src/tools/compress/e2e/ src/tools/merge/e2e/ e2e/demo/ e2e/home/');
   });
 
   it('sorts tool projects alphabetically regardless of the order nx reports them', () => {
