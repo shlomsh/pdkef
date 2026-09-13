@@ -50,7 +50,9 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     </div>
     <h1 class="mt-0 mb-0 text-start text-[length:var(--hero-title)] leading-[1.1]">{title}</h1>
   </div>
-  <p data-hero-sub class="type-lead mx-auto max-w-[54rem] min-[1024px]:col-span-2 min-[1024px]:row-start-2 min-[1024px]:mx-0 min-[1024px]:ms-[var(--hero-indent)] min-[1024px]:mt-2 min-[1024px]:text-start">{subhead}</p>
+  <p data-hero-sub class="type-lead mx-auto max-w-[44rem] min-[1024px]:col-span-2 min-[1024px]:row-start-2 min-[1024px]:mx-0 min-[1024px]:ms-[var(--hero-indent)] min-[1024px]:mt-2 min-[1024px]:text-start">
+    {subhead.split(/(?<=\. )/).map((sentence) => <span data-hero-sentence>{sentence}</span>)}
+  </p>
 </header>
 
 <style>
@@ -100,12 +102,15 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
       --hero-title: clamp(1.5rem, 6.5vw, 1.85rem);
     }
 
-    .tool-hero[data-hero-phone-condensed] [data-hero-sub] {
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-      line-clamp: 2;
-      overflow: hidden;
+    /* MERGE-06 follow-up: a line-clamp cut mid-sentence ("...and…") - the
+       last visible words were never a whole thought. The subhead is now
+       split into one <span data-hero-sentence> per sentence (see the
+       frontmatter above), so instead of clamping lines we hide every
+       sentence after the first outright, leaving exactly one complete
+       sentence on a phone. Content authors keep this working by writing a
+       phone-length first sentence (see src/data/tools.js). */
+    .tool-hero[data-hero-phone-condensed] [data-hero-sub] [data-hero-sentence]:not(:first-child) {
+      display: none;
     }
   }
 

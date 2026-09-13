@@ -93,6 +93,23 @@ export function isGrouped(plan: PlanEntry[]): boolean {
   return true;
 }
 
+// True when the plan is grouped AND its file blocks appear in exactly the
+// order fileIds lists them (restricted to the files that actually have plan
+// entries - a file whose page count is still unknown has no entries yet and
+// is ignored, not treated as a mismatch). Exists so the rail's "Files, in
+// order" list and the grid's output order can never silently disagree: the
+// rail is drawn from fileIds while the grid is drawn from the plan, and
+// without this check a drag that reordered one but not the other would look
+// fine in both places while producing a merged PDF nobody asked for.
+export function isInListOrder(plan: PlanEntry[], fileIds: number[]): boolean {
+  if (!isGrouped(plan)) return false;
+  const planOrder = fileOrder(plan);
+  const planIds = new Set(planOrder);
+  const restricted = fileIds.filter((fileId) => planIds.has(fileId));
+  if (restricted.length !== planOrder.length) return false;
+  return restricted.every((fileId, index) => fileId === planOrder[index]);
+}
+
 // Rebuilds the plan grouped by file, in the given file order, keeping each
 // file's own entries in their existing relative order (only the blocks
 // move, never the pages within a block). Any file present in the plan but
