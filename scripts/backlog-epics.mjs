@@ -29,6 +29,12 @@ export const epics = [
   // closed under SEO-35.
   { key: 'merge-tool', label: 'Merge tool', heading: 'Merge: the tool people return to and recommend (2026-09-13 review)' },
   { key: 'localization-pilots', label: 'Localization pilots', heading: 'Localization pilots: one target-size page per language, no generic tool pages' },
+  // Opened 2026-09-13 out of the CI-speed review: the Nx spike (branch
+  // spike/nx) could not find the tools as modules because src/components is a
+  // flat bag with import cycles, and the headless editor imports Preact
+  // components. The boundaries are worth drawing on their own; scoped CI is
+  // what falls out of them.
+  { key: 'module-boundaries', label: 'Module boundaries', heading: 'Module boundaries: one folder per tool, an enforced dependency graph, Nx on top (2026-09-13)' },
 ];
 
 export const statuses = [
