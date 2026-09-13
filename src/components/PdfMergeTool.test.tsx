@@ -456,7 +456,9 @@ describe('PdfMergeTool UI flow', () => {
   it('restores a saved draft into the list, the plan and the options, and clears it on Start again (MERGE-13)', async () => {
     const clearDraft = vi.fn(async () => true);
     localStorage.setItem('pdf-toolkit:workspace:has-draft:merge', '1');
+    document.documentElement.setAttribute('data-draft-hint', '1');
     mount();
+    expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(true);
     // The hint alone holds the empty state back before the module has loaded.
     expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
     await act(async () => { await flush(10); });
@@ -477,6 +479,9 @@ describe('PdfMergeTool UI flow', () => {
       await flush(10);
     });
     expect(fileNames()).toEqual(['x.pdf', 'y.pdf']);
+    // The pre-paint hint attribute is gone once the check settled, so a later
+    // Clear all shows the dropzone instead of a blank card.
+    expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
     expect(container.querySelector(`.${pdfToolStyles['page-numbers-toggle']} input`).checked).toBe(true);
     expect(container.textContent).toContain('Draft saved');
     await settle();
