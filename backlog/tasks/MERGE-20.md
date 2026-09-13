@@ -1,12 +1,12 @@
 ---
 id: "MERGE-20"
 title: "Measure the Direction A closing wave against its acceptance lists before the branch merges"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "merge-tool"
 phase: "near-term"
 depends_on: ["MERGE-03", "MERGE-09", "MERGE-11", "MERGE-13", "MERGE-14"]
-legacy_state: "Open"
+legacy_state: "Done 2026-09-13"
 ---
 
 # MERGE-20 · Measure the Direction A closing wave against its acceptance lists before the branch merges
@@ -256,3 +256,8 @@ hand merge).
   1325x763, portrait page 517x731 rendered at 2400x3396; stepping keeps the dialog rect; closed
   dialog computes to display none and the grid takes the click underneath. Phone 375: dialog
   345x747, chevrons at x 43 and 332.
+
+## Closed 2026-09-13
+
+Every check has a measured line above, the two misses are fixed (`e190866`) and the branch merged
+into main as `1f84841` with the full chain green (2707 unit tests, 273 Playwright).
