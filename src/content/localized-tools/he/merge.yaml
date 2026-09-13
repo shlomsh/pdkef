@@ -19,8 +19,10 @@ reviewNotes: >-
   MERGE-05/09/12 rewrote the English subhead and steps 2-3; Hebrew subhead
   and step 2 unchanged, step 3 an AI draft. MERGE-13 added an FAQ entry on
   merge drafts, Hebrew answer an AI draft. Direction A shortened the English
-  subhead again; Hebrew unchanged. All pending Shlomi's review.
-sourceHash: 'fnv1a64:276da10319d6ed14'
+  subhead again; Hebrew unchanged. Later: step 3's Options mention is gone
+  (a checkbox sits above Download); re-translated, AI draft. Pending
+  Shlomi's review.
+sourceHash: 'fnv1a64:0201a3330d66a29c'
 seoTitle: 'מיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
   מזגו ואחדו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו
@@ -47,8 +49,8 @@ steps:
     text: 'מיינו לפי שם או תאריך, או גררו כל קובץ למקום הרצוי.'
   - title: 'הורידו'
     text: >-
-      פתחו את "אפשרויות" אם רוצים מספור עמודים רציף, ואז לחצו על הורדה. הקובץ
-      המאוחד נבנה על המכשיר שלכם תוך כדי, אז הוא מוכן כשאתם מוכנים.
+      סמנו "הוספת מספרי עמודים" אם רוצים בכך, ואז לחצו על הורדה. הקובץ המאוחד
+      נבנה על המכשיר שלכם תוך כדי, אז הוא מוכן כשאתם מוכנים.
 faq:
   - question: 'האם PDkef באמת חינמי?'
     answer: >-

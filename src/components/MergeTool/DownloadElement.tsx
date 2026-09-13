@@ -174,8 +174,11 @@ export default function DownloadElement({
       {state === 'saved' && (
         <span class={styles.column}>
           <span class={styles.label}>{t.savedLabel}</span>
+          {/* MERGE-11 (2026-09-13, Shlomi): the output name has one home now,
+              the document heading - this element states only "N pages · size",
+              same as the 'ready' state, never the file name a second time. */}
           <span class={styles.detail}>
-            {fileName} · <span class={styles['inline-link']}>{t.downloadAgain}</span>
+            {detail} · <span class={styles['inline-link']}>{t.downloadAgain}</span>
           </span>
         </span>
       )}

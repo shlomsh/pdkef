@@ -48,6 +48,7 @@ function baseOptions(overrides = {}) {
     plan: [],
     options: { addPageNumbers: false },
     title: 'merged',
+    outputName: null,
     onRestore: vi.fn(),
     ...overrides,
   };
@@ -121,7 +122,7 @@ describe('useMergeDraft', () => {
         { key: '1:0', fileId: 1, pageIndex: 0, rotation: 90, skipped: true },
       ],
       options: { addPageNumbers: true },
-      fileName: 'invoice + 1 more',
+      fileName: 'merged_invoice',
       pageCount: 1,
       fileCount: 2,
       schemaVersion: MERGE_DRAFT_SCHEMA_VERSION,
@@ -142,6 +143,23 @@ describe('useMergeDraft', () => {
     ]);
     expect(restored.options).toEqual({ addPageNumbers: true });
     expect(apiRef.current.isRestoring).toBe(false);
+  });
+
+  it('restores a renamed output name, and null when the record never had one', async () => {
+    await saveDraft('merge', {
+      files: [{ fileName: 'invoice.pdf', fileType: 'application/pdf', fileBytes: new TextEncoder().encode('A').buffer }],
+      plan: [{ key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false }],
+      options: {},
+      fileName: 'Custom name',
+      outputName: 'Custom name',
+      schemaVersion: MERGE_DRAFT_SCHEMA_VERSION,
+    });
+
+    const onRestore = vi.fn();
+    const apiRef = { current: null };
+    await mount(apiRef, baseOptions({ onRestore }));
+
+    expect(onRestore.mock.calls[0][0].outputName).toBe('Custom name');
   });
 
   it('treats a stored record with an out-of-range plan fileId as no draft: nothing restored, the record deleted, the hint attribute cleared', async () => {
@@ -175,7 +193,7 @@ describe('useMergeDraft', () => {
       { key: '20:0', fileId: 20, pageIndex: 0, rotation: 90, skipped: false },
     ];
     const apiRef = { current: null };
-    await mount(apiRef, baseOptions({ entries, plan, title: 'invoice + 1 more' }));
+    await mount(apiRef, baseOptions({ entries, plan, title: 'merged_invoice' }));
     expect(apiRef.current.draftSaveState).toBe('pending');
 
     await flushDebounce();
@@ -189,9 +207,31 @@ describe('useMergeDraft', () => {
       { key: '10:1', fileId: 0, pageIndex: 1, rotation: 0, skipped: true },
       { key: '20:0', fileId: 1, pageIndex: 0, rotation: 90, skipped: false },
     ]);
-    expect(record.fileName).toBe('invoice + 1 more');
+    expect(record.fileName).toBe('merged_invoice');
+    expect(record.outputName).toBeNull();
     expect(record.pageCount).toBe(2); // two of the three plan entries are not skipped
     expect(record.fileCount).toBe(2);
+  });
+
+  it('autosaves the renamed output name once one is set, and it comes back on restore', async () => {
+    const entries = [baseEntry(10, 'invoice.pdf', 1)];
+    const plan = planForFile(10, 1);
+    const apiRef = { current: null };
+    await mount(apiRef, baseOptions({ entries, plan, title: 'My renamed file', outputName: 'My renamed file' }));
+
+    await flushDebounce();
+
+    const record = await loadDraft('merge');
+    expect(record.outputName).toBe('My renamed file');
+
+    // A fresh mount, not a re-render of the same Harness instance (which
+    // would reuse its already-settled restoreAttempted ref and never call
+    // onRestore again) - unmount first, the same way afterEach does.
+    act(() => render(null, container));
+    const onRestore = vi.fn();
+    const restoredRef = { current: null };
+    await mount(restoredRef, baseOptions({ onRestore }));
+    expect(onRestore.mock.calls[0][0].outputName).toBe('My renamed file');
   });
 
   it('reports "error" when saveDraft cannot persist (an oversized set, MERGE-13\'s honest limit)', async () => {

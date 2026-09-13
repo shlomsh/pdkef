@@ -20,6 +20,43 @@ async function getPdfjs() {
   return pdfjsLib;
 }
 
+/* Thumbnail throughput (P1, UX review): one pdf.js worker for every document
+ * this module ever opens, not one per document. Profiled against the Merge
+ * grid's own repro (five 1-page PDFs + one 12-page report, 17 pages,
+ * astro dev on Chromium): each file's FIRST page cost 200-400ms - almost
+ * entirely `getDocument()` spinning up a brand-new dedicated Web Worker
+ * (fetch + parse + boot pdf.worker.min.mjs, then a handshake) - while every
+ * later page of a document already open cost ~15-20ms. No long task ever
+ * showed up on the main thread during that gap (PerformanceObserver
+ * 'longtask'), which is what rules out contention with the debounced
+ * pre-merge or draft-persist: the wait is real async worker-boot latency,
+ * not the main thread being busy elsewhere.
+ *
+ * `getDocument({ worker })` only has `PDFDocumentLoadingTask.destroy()` tear
+ * down a worker it created for itself: pdf.js's own `getDocument` sets
+ * `task._worker = worker` solely in the branch where IT called
+ * `PDFWorker.create(...)`, never when the caller supplies `worker` (see
+ * `pdfjs-dist/build/pdf.mjs`'s `getDocument`). So the one shared worker
+ * below survives every per-file `destroy()` in `openThumbnailSource` and
+ * `renderThumbnailWithMeta` unchanged - each still tears down its own
+ * document's transport exactly as before, just never the worker underneath
+ * it - and many files can render through it at once (pdf.js multiplexes by
+ * `docId` over the one Worker; this is the same mechanism a multi-tab pdf.js
+ * viewer relies on, not something specific to this module).
+ */
+let sharedWorker;
+
+function getSharedWorker(lib) {
+  if (typeof lib.PDFWorker !== 'function') return undefined; // e.g. the unit-test mock, or a build without it
+  if (!sharedWorker || sharedWorker.destroyed) sharedWorker = new lib.PDFWorker();
+  return sharedWorker;
+}
+
+function openDocument(lib, bytes) {
+  const worker = getSharedWorker(lib);
+  return lib.getDocument(worker ? { data: bytes, worker } : { data: bytes });
+}
+
 const TARGET_WIDTH = 150;
 
 /**
@@ -125,7 +162,7 @@ async function renderPageToDataUrl(page, opts = {}) {
 export async function renderThumbnailWithMeta(file, opts = {}) {
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();
-  const loadingTask = lib.getDocument({ data: bytes });
+  const loadingTask = openDocument(lib, bytes);
   const pdf = await loadingTask.promise;
   try {
     const page = await pdf.getPage(1);
@@ -209,7 +246,7 @@ export function renderComparePreview(fileOrBlob) {
 export async function openThumbnailSource(file) {
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();
-  const loadingTask = lib.getDocument({ data: bytes });
+  const loadingTask = openDocument(lib, bytes);
   const pdf = await loadingTask.promise;
   let destroyed = false;
 

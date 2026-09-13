@@ -40,17 +40,17 @@ test('the Download element keeps the same DOM node across preparing and ready (M
   // the element goes preparing -> ready again. The page cell's actions
   // cluster only reveals on hover on a mouse-driven project; the webkit
   // project is a real touch device (iPhone 15), where hover never fires, so
-  // it goes through the "Edit pages" toggle instead (PageStrip.module.css /
-  // MergeDocument.module.css's touch-only pattern).
+  // it taps the cell instead (there is no Edit pages mode any more -
+  // PageStrip.module.css's `[data-selected]` pattern).
   const grid = page.locator('ul[class*="grid"]');
   const firstCard = grid.locator('> li[data-key]').first();
   if (testInfo.project.name === 'webkit') {
-    await page.getByRole('button', { name: 'Edit pages', exact: true }).click();
     // The phone's sticky bottom sheet covers the lower third of a 659px
     // iPhone viewport and the sticky app bar the top; a tap under either
     // lands on it. Centre the cell first, as a thumb would by scrolling.
     await firstCard.evaluate((el) => el.scrollIntoView({ block: 'center' }));
     await page.waitForTimeout(300);
+    await firstCard.tap();
   } else {
     await firstCard.hover();
   }
@@ -136,13 +136,15 @@ test('a clicked cell lets go of its action buttons when the pointer moves on', a
   await expect(cluster(3)).toHaveCSS('visibility', 'visible');
 });
 
-test('a phone-width window with a mouse still gets the Edit pages toggle', async ({ page }) => {
-  // Shlomi (2026-09-13): the toggle was hidden by pointer type alone, and
-  // below 768px the cluster is display:none until data-editing, so a mouse
-  // at phone width (a narrowed window, device mode without touch) had no
-  // way to rotate or open a page. The shared `page` fixture is mouse-only
-  // on chromium; webkit's iPhone project is touch and passes by the older
-  // route.
+test('a phone-width window with a mouse: a click on a page reveals its controls', async ({ page }) => {
+  // Shlomi (2026-09-13): there is no Edit pages toggle any more. Below
+  // 768px the cluster is display:none until `[data-selected]`
+  // (PageStrip.module.css), and the selection is set by a plain click
+  // handler with no pointer-type gate, so a mouse at phone width (a
+  // narrowed window, device mode without touch) reveals a page's controls
+  // exactly the same way a tap does. The shared `page` fixture is
+  // mouse-only on chromium; webkit's iPhone project is touch and passes by
+  // the same click path.
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/merge/');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
@@ -151,11 +153,11 @@ test('a phone-width window with a mouse still gets the Edit pages toggle', async
   ]);
   await page.locator('[data-state="one-file"]').waitFor({ timeout: 10_000 });
 
-  const toggle = page.getByRole('button', { name: 'Edit pages', exact: true });
-  await expect(toggle).toBeVisible();
-  await toggle.click();
   const first = page.locator('ul[class*="grid"] > li[data-key]').first();
-  await expect(first.getByRole('button', { name: /^Rotate page/ })).toBeVisible();
+  const rotateButton = first.getByRole('button', { name: /^Rotate page/ });
+  await expect(rotateButton).toBeHidden();
+  await first.click({ position: { x: 5, y: 5 } });
+  await expect(rotateButton).toBeVisible();
 });
 
 test('the phone subhead has no clipped last line at 375x812', async ({ page }) => {
@@ -212,7 +214,9 @@ test.describe('thumbnails after a reload', () => {
     })));
     await page.locator('input[type="file"]').setInputFiles(files);
     await expect(page.locator('[data-state="ready"]')).toBeVisible({ timeout: 15_000 });
-    await expect(page.locator('[class*="draft-chip"], [class*="chip-draft"]').filter({ hasText: 'Draft saved' }).first()).toBeAttached({ timeout: 10_000 });
+    // The rail's status line (`.draft-status-row` since the rail reorder; a
+    // `.draft-chip` before that).
+    await expect(page.locator('[class*="draft-status-row"]').filter({ hasText: 'Draft saved' }).first()).toBeAttached({ timeout: 10_000 });
 
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     await page.waitForTimeout(400);

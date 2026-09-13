@@ -20,6 +20,12 @@ const { mockState } = vi.hoisted(() => ({
     // to fire an abort signal *during* a render replace the entry for that
     // page number before calling into thumbnails.js.
     renderTasks: {},
+    // How many `getDocument()` calls carried a `worker` option, and every
+    // distinct worker instance seen - the throughput fix's whole point is
+    // that opening several documents shares one `PDFWorker`, so a test can
+    // tell "reused" from "one per document" by checking this set's size.
+    getDocumentCalls: [],
+    workerInstances: 0,
   },
 }));
 
@@ -27,24 +33,44 @@ function defaultRenderTask() {
   return { promise: Promise.resolve(), cancel: vi.fn() };
 }
 
+// A minimal stand-in for pdf.js's real `PDFWorker`: immediately "ready"
+// (`promise` resolves), spy-able `destroy`, and countable construction so
+// `thumbnails.js`'s shared-worker cache can be told apart from "a fresh
+// worker per document" in `getSharedWorker`'s own test below. Real pdf.js
+// only lets `loadingTask.destroy()` terminate a worker IT created (see the
+// comment on `getSharedWorker` in thumbnails.js) - this mock does not need
+// to reproduce that split, since no test here calls a real `destroy()` on it.
+class MockPDFWorker {
+  constructor() {
+    mockState.workerInstances += 1;
+    this.promise = Promise.resolve();
+    this.destroyed = false;
+    this.destroy = vi.fn();
+  }
+}
+
 vi.mock('pdfjs-dist', () => ({
   GlobalWorkerOptions: {},
-  getDocument: vi.fn(() => ({
-    promise: Promise.resolve({
-      numPages: mockState.numPages,
-      getPage: vi.fn((pageNumber) => {
-        mockState.getPageCalls.push(pageNumber);
-        return Promise.resolve({
-          getViewport: ({ scale }) => ({ width: PAGE_WIDTH * scale, height: PAGE_HEIGHT * scale }),
-          render: vi.fn(() => (mockState.renderTasks[pageNumber] ?? defaultRenderTask)()),
-        });
+  PDFWorker: MockPDFWorker,
+  getDocument: vi.fn((options) => {
+    mockState.getDocumentCalls.push(options);
+    return {
+      promise: Promise.resolve({
+        numPages: mockState.numPages,
+        getPage: vi.fn((pageNumber) => {
+          mockState.getPageCalls.push(pageNumber);
+          return Promise.resolve({
+            getViewport: ({ scale }) => ({ width: PAGE_WIDTH * scale, height: PAGE_HEIGHT * scale }),
+            render: vi.fn(() => (mockState.renderTasks[pageNumber] ?? defaultRenderTask)()),
+          });
+        }),
       }),
-    }),
-    destroy: vi.fn(() => {
-      mockState.destroyCalls += 1;
-      return Promise.resolve();
-    }),
-  })),
+      destroy: vi.fn(() => {
+        mockState.destroyCalls += 1;
+        return Promise.resolve();
+      }),
+    };
+  }),
 }));
 
 // Recording 2D context: real assertions live in `contexts` (fillStyle at the
@@ -67,6 +93,7 @@ beforeEach(() => {
   mockState.destroyCalls = 0;
   mockState.getPageCalls = [];
   mockState.renderTasks = {};
+  mockState.getDocumentCalls = [];
   contexts.length = 0;
 
   originalGetContext = HTMLCanvasElement.prototype.getContext;
@@ -174,6 +201,30 @@ describe('thumbnails.js', () => {
   });
 
   describe('openThumbnailSource', () => {
+    it('shares one pdf.js worker across multiple documents instead of one per file (thumbnail throughput)', async () => {
+      const { openThumbnailSource } = await import('./thumbnails.js');
+      // thumbnails.js caches its shared worker at module scope (like it
+      // already does for `pdfjsLib` itself), so it may already exist from an
+      // earlier test in this file; what matters here is that opening two
+      // MORE documents constructs no additional one.
+      const before = mockState.workerInstances;
+
+      const first = await openThumbnailSource(new File([], 'a.pdf'));
+      const second = await openThumbnailSource(new File([], 'b.pdf'));
+
+      expect(mockState.workerInstances).toBe(Math.max(before, 1));
+      expect(mockState.getDocumentCalls).toHaveLength(2);
+      const [firstOpts, secondOpts] = mockState.getDocumentCalls;
+      expect(firstOpts.worker).toBeInstanceOf(MockPDFWorker);
+      expect(secondOpts.worker).toBe(firstOpts.worker);
+
+      // Destroying one document's source must not disturb the other: the
+      // shared worker is never the thing a per-document destroy() tears
+      // down (see the comment on getSharedWorker in thumbnails.js).
+      await first.destroy();
+      expect(await second.render(0)).toBe('data:image/png;base64,x');
+    });
+
     it('rejects a render() call made after destroy()', async () => {
       const { openThumbnailSource } = await import('./thumbnails.js');
       const file = new File([], 'test.pdf');

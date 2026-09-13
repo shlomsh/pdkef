@@ -44,7 +44,8 @@ test('Compress it hands the merged file to Compress with the identity row naming
   await page.waitForURL(/\/compress\/?(?:\?.*)?$/);
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
 
-  // "first.pdf" first -> the hand-off's fileName "first + 2 more.pdf" (the owner's naming, wave 5), and Compress's identity
-  // row (ToolShell) reads it back verbatim as fileLabel.
-  await expect(page.locator('[data-tool-shell]')).toContainText('first + 2 more.pdf', { timeout: 10_000 });
+  // "first.pdf" first -> the hand-off's fileName "merged_first.pdf" (MERGE-03's
+  // reversal back to the signed_/redacted_-style prefix), and Compress's
+  // identity row (ToolShell) reads it back verbatim as fileLabel.
+  await expect(page.locator('[data-tool-shell]')).toContainText('merged_first.pdf', { timeout: 10_000 });
 });

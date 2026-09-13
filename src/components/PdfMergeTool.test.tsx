@@ -192,18 +192,21 @@ describe('PdfMergeTool UI flow', () => {
     clickSpy.mockRestore();
   });
 
-  it('brings back the hand-off row and Options once a second file arrives', async () => {
+  it('brings back the hand-off row and the page-numbers row once a second file arrives', async () => {
     mount();
     await loadFiles(['one.pdf']);
     expect(container.querySelector(`.${railStyles['handoff-row']}`)).toBeNull();
-    expect(container.querySelector(`details.${railStyles.options}`)).toBeNull();
+    expect(container.querySelector(`.${railStyles['page-numbers-row']}`)).toBeNull();
 
     await loadFiles(['two.pdf']);
     expect(container.querySelector(`.${railStyles['handoff-row']}`)).not.toBeNull();
-    expect(container.querySelector(`details.${railStyles.options}`)).not.toBeNull();
+    // Shlomi (2026-09-13): the Options disclosure is gone - a plain checkbox
+    // row directly above Download, no summary to open.
+    expect(container.querySelector(`.${railStyles['page-numbers-row']}`)).not.toBeNull();
     const buttons = Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
     expect(buttons).toContain('Compress it');
     expect(buttons).toContain('Sign it');
+    expect(buttons).not.toContain('Options');
   });
 
   // Item 2 (Shlomi's follow-up, 2026-09-13): jsdom cannot measure where an
@@ -238,7 +241,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
     const [files, options] = mergeLib.mergePdfs.mock.calls[0];
     expect(files.map((f) => f.name)).toEqual(['Invoice 2024-03-01.pdf', 'doc2.pdf']);
-    expect(options.title).toBe('Invoice 2024-03-01 + 1 more');
+    expect(options.title).toBe('merged_Invoice 2024-03-01');
     expect(options.plan).toHaveLength(4);
     expect(options.plan[2]).toEqual({ fileIndex: 1, pageIndex: 0, rotation: 0, skipped: false });
 
@@ -246,7 +249,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(link).not.toBeNull();
     expect(link.getAttribute('data-state')).toBe('ready');
     expect(link.getAttribute('href')).toBe('blob:testurl');
-    expect(link.getAttribute('download')).toBe('Invoice 2024-03-01 + 1 more.pdf');
+    expect(link.getAttribute('download')).toBe('merged_Invoice 2024-03-01.pdf');
     expect(link.textContent).toContain('4 pages');
     // Exactly one Download element, same node throughout: no separate
     // "Merge" control ever appears.
@@ -261,7 +264,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share).toHaveBeenCalledOnce();
-    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('Invoice 2024-03-01 + 1 more.pdf');
+    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('merged_Invoice 2024-03-01.pdf');
     nativeShare.restore();
   });
 
@@ -355,7 +358,7 @@ describe('PdfMergeTool UI flow', () => {
     await settle();
     expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(2);
     expect(mergeLib.mergePdfs.mock.calls[1][0].map((f) => f.name)).toEqual(['a.pdf', 'b.pdf', 'c.pdf']);
-    expect(downloadLink().getAttribute('download')).toBe('a + 2 more.pdf');
+    expect(downloadLink().getAttribute('download')).toBe('merged_a.pdf');
   });
 
   it('a thumbnail that arrives after the pre-merge started does not restart it', async () => {
@@ -491,28 +494,62 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['c.pdf', 'd.pdf']);
     expect(container.querySelector(`.${railStyles['page-numbers-row']} input`).checked).toBe(true);
-    // The options row itself stays collapsed until opened.
-    expect(container.querySelector(`details.${railStyles.options}`).open).toBe(false);
   });
 
-  it('the phone hand-off row\'s Options button opens the same options panel the desktop summary does (wave 4)', async () => {
+  it('shows the Add page numbers checkbox row directly, above Download, with no disclosure to open (Options removed, 2026-09-13)', async () => {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
-    const details = container.querySelector(`details.${railStyles.options}`);
-    const phoneToggle = container.querySelector(`.${railStyles['options-toggle']}`);
-    expect(details.open).toBe(false);
-    expect(phoneToggle.getAttribute('aria-expanded')).toBe('false');
+    // The only <details> left anywhere is the phone "⋯" popover itself -
+    // Options had one of its own, opened from a <summary> reading "Options".
+    const detailsList = Array.from(container.querySelectorAll('details'));
+    expect(detailsList).toHaveLength(1);
+    expect(detailsList[0].className).toContain(docStyles['chip-menu']);
+    const buttons = Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
+    expect(buttons).not.toContain('Options');
+    // The checkbox row is always in the DOM once there are two files - two
+    // copies (the rail's own, and the phone "⋯" popover's), CSS-toggled by
+    // breakpoint rather than a JS open/closed state.
+    const rows = container.querySelectorAll(`.${railStyles['page-numbers-row']}`);
+    expect(rows.length).toBe(2);
+  });
 
-    await act(async () => phoneToggle.click());
-    expect(details.open).toBe(true);
-    expect(phoneToggle.getAttribute('aria-expanded')).toBe('true');
-    // One options-body for both breakpoints: the checkbox row is now open,
-    // reachable through either trigger.
-    expect(container.querySelector(`.${railStyles['page-numbers-row']}`)).not.toBeNull();
+  // Team-lead follow-up (2026-09-13): the phone "…" popover's entries, top
+  // to bottom - Add files, Clear all, Sort (or Reset order once rearranged,
+  // never both), Add page numbers - nothing else.
+  it('phone popover order: Add files, Clear all, Sort, Reset order (rearranged adds it, never replaces Sort), Add page numbers', async () => {
+    mount();
+    await loadFiles(['b.pdf', 'a.pdf']);
+    await settle();
+    const popoverBody = () => container.querySelector(`.${docStyles['chip-menu-body']}`);
+    const describe = (el) => {
+      if (el.matches(`.${railStyles['sort-select-wrap']}`)) return 'sort';
+      if (el.matches(`.${railStyles['rearranged-note']}`)) return 'reset-order';
+      if (el.matches(`.${railStyles['page-numbers-row']}`)) return 'page-numbers';
+      if (el.tagName === 'BUTTON') return el.textContent.trim();
+      return el.textContent.trim();
+    };
+    expect(Array.from(popoverBody().children).map(describe)).toEqual(['Add files', 'Clear all', 'sort', 'page-numbers']);
 
-    await act(async () => phoneToggle.click());
-    expect(details.open).toBe(false);
-    expect(phoneToggle.getAttribute('aria-expanded')).toBe('false');
+    // Force the rearranged state (a plan interleaved across files) the same
+    // way the draft-restore test above does, rather than fighting a real
+    // drag in jsdom.
+    await act(async () => {
+      draftProbe.props.onRestore({
+        files: [makePdfFile('x.pdf'), makePdfFile('y.pdf')],
+        plan: [
+          { key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false },
+          { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
+          { key: '0:1', fileId: 0, pageIndex: 1, rotation: 0, skipped: false },
+        ],
+        options: { addPageNumbers: false },
+        outputName: null,
+      });
+      await flush(10);
+    });
+    // Unlike the desktop rail, Sort stays in the popover even once
+    // rearranged - it regroups the plan and would itself resolve the
+    // rearrangement, same as Reset order (team lead, second follow-up).
+    expect(Array.from(popoverBody().children).map(describe)).toEqual(['Add files', 'Clear all', 'sort', 'reset-order', 'page-numbers']);
   });
 
   it('names an encrypted file, links to Unlock, and merges the rest on the one offered action (MERGE-04)', async () => {
@@ -566,7 +603,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(draftStore.saveHandoff).toHaveBeenCalledTimes(1);
     const [tool, record] = draftStore.saveHandoff.mock.calls[0];
     expect(tool).toBe('compress');
-    expect(record.fileName).toBe('a + 1 more.pdf');
+    expect(record.fileName).toBe('merged_a.pdf');
     expect(record.fileBytes).toBeInstanceOf(ArrayBuffer);
     expect(draftStore.deleteDraft).not.toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith('/compress/');
@@ -741,6 +778,171 @@ describe('PdfMergeTool UI flow', () => {
     expect(createSpy).toHaveBeenCalledTimes(2);
     expect(createSpy).toHaveBeenCalledWith(list, expect.any(Object));
     expect(createSpy).toHaveBeenCalledWith(chipRow, expect.any(Object));
+  });
+
+  // MERGE-11 (2026-09-13, Shlomi's WYSIWYG rebuild): the document heading's
+  // name IS the editable output file name now - one contenteditable span,
+  // never a button swapped for an input. `type()` stands in for real typing:
+  // jsdom does not synthesize keyboard input into a contenteditable region,
+  // so tests set `textContent` directly (as a person's keystrokes would
+  // leave it) rather than dispatching an `input` event nothing here listens
+  // for.
+  describe('renaming the output file name', () => {
+    const nameEl = () => container.querySelector(`.${docStyles.name}`);
+    const beginEdit = async () => {
+      await act(async () => {
+        nameEl().dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      });
+    };
+    const type = async (text) => {
+      await act(async () => { nameEl().textContent = text; });
+    };
+    const pressEnter = async () => {
+      await act(async () => {
+        nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+      });
+    };
+    const pressEscape = async () => {
+      await act(async () => {
+        nameEl().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      });
+    };
+
+    it('click to rename; Enter commits, and the download attribute and PDF Title follow it, with zero layout chrome added', async () => {
+      mount();
+      await loadFiles(['Invoice 2024-03-01.pdf', 'doc2.pdf']);
+      await settle();
+
+      expect(nameEl().textContent).toBe('merged_Invoice 2024-03-01');
+      expect(nameEl().getAttribute('contenteditable')).toBe('false');
+
+      await beginEdit();
+      expect(nameEl().getAttribute('contenteditable')).not.toBe('false');
+      expect(nameEl().getAttribute('role')).toBe('textbox');
+      // No border/background/input chrome ever appears - the name is one
+      // element throughout, so there is nothing to swap in or out.
+      expect(container.querySelector(`.${docStyles['name-input']}`)).toBeNull();
+      expect(container.querySelector(`.${docStyles['name-button']}`)).toBeNull();
+
+      await type('March invoices');
+      await pressEnter();
+      await settle();
+
+      expect(nameEl().textContent).toBe('March invoices');
+      expect(nameEl().getAttribute('contenteditable')).toBe('false');
+      expect(container.querySelector(`.${docStyles['doc-heading-ext']}`).textContent).toBe('.pdf');
+      const link = downloadLink();
+      expect(link.getAttribute('download')).toBe('March invoices.pdf');
+      const [, options] = mergeLib.mergePdfs.mock.calls.at(-1);
+      expect(options.title).toBe('March invoices');
+    });
+
+    it('Escape cancels the rename, restoring the previous text and leaving edit mode', async () => {
+      mount();
+      await loadFiles(['a.pdf', 'b.pdf']);
+      await settle();
+      const original = nameEl().textContent;
+
+      await beginEdit();
+      await type('Something else entirely');
+      await pressEscape();
+
+      expect(nameEl().getAttribute('contenteditable')).toBe('false');
+      expect(nameEl().textContent).toBe(original);
+    });
+
+    it('an empty (or all-sanitised-away) name reverts to the automatic one', async () => {
+      mount();
+      await loadFiles(['a.pdf', 'b.pdf']);
+      await settle();
+      const original = nameEl().textContent;
+
+      await beginEdit();
+      await type('   ');
+      await act(async () => { nameEl().dispatchEvent(new Event('blur')); });
+
+      expect(nameEl().textContent).toBe(original);
+    });
+
+    it('sanitises on commit: strips path separators and control characters, trims, and caps at 120 characters', async () => {
+      mount();
+      await loadFiles(['a.pdf', 'b.pdf']);
+      await settle();
+
+      await beginEdit();
+      await type('  ../evil\\name  ' + 'x'.repeat(200));
+      await act(async () => { nameEl().dispatchEvent(new Event('blur')); });
+
+      const committed = nameEl().textContent;
+      expect(committed).not.toContain('/');
+      expect(committed).not.toContain('\\');
+      expect(committed.startsWith('..evilname')).toBe(true);
+      expect(Array.from(committed)).toHaveLength(120);
+    });
+
+    it('once edited, the name survives adding, removing and reordering files, and Clear all resets it', async () => {
+      mount();
+      await loadFiles(['a.pdf', 'b.pdf']);
+      await settle();
+
+      await beginEdit();
+      await type('My renamed merge');
+      // blur in its own act(): dispatching it in the same tick as the text
+      // change would read the pre-update DOM from onBlur's stale closure,
+      // which no real typing-then-tabbing-away sequence can actually produce.
+      await act(async () => { nameEl().dispatchEvent(new Event('blur')); });
+      expect(nameEl().textContent).toBe('My renamed merge');
+
+      // Adding a file would normally change the automatic "merged_<first>"
+      // name; the edited one does not move.
+      await loadFiles(['c.pdf']);
+      expect(nameEl().textContent).toBe('My renamed merge');
+
+      // Nor does removing one.
+      const removeButtons = Array.from(container.querySelectorAll(`.${railStyles['file-remove']}`));
+      await act(async () => removeButtons[0].click());
+      expect(nameEl().textContent).toBe('My renamed merge');
+
+      // Clear all resets it - the next set of files gets the automatic name.
+      // The trigger opens a confirm dialog first (BasePdfTool's requestClear);
+      // both it and the dialog's own confirm button read "Clear all", so the
+      // second match once the dialog is open is the one to click.
+      const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all');
+      await act(async () => clearTrigger.click());
+      const clearButtons = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Clear all');
+      await act(async () => clearButtons.at(-1).click());
+      await loadFiles(['fresh.pdf', 'other.pdf']);
+      await settle();
+      expect(nameEl().textContent).toBe('merged_fresh');
+    });
+
+    it('passes the edited name down for draft persistence, and restores it as the customised name', async () => {
+      mount();
+      await loadFiles(['a.pdf', 'b.pdf']);
+      await settle();
+      expect(draftProbe.props.outputName).toBeNull();
+
+      await beginEdit();
+      await type('Persisted name');
+      await act(async () => { nameEl().dispatchEvent(new Event('blur')); });
+      expect(draftProbe.props.outputName).toBe('Persisted name');
+
+      // A restore that carries an outputName brings the renamed heading back,
+      // and it is still "theirs" (a later file add does not regenerate it).
+      await act(async () => {
+        draftProbe.props.onRestore({
+          files: [makePdfFile('x.pdf'), makePdfFile('y.pdf')],
+          plan: [
+            { key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false },
+            { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
+          ],
+          options: { addPageNumbers: false },
+          outputName: 'Restored name',
+        });
+        await flush(10);
+      });
+      expect(nameEl().textContent).toBe('Restored name');
+    });
   });
 });
 

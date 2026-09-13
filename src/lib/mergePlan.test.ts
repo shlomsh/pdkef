@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DEFAULT_OUTPUT_NAME_TEMPLATE,
   fileOrder,
   insertPages,
   isGrouped,
@@ -14,6 +13,7 @@ import {
   regroupPlan,
   removeFile,
   rotateEntry,
+  sanitizeOutputName,
   toMergeMap,
   updateEntry,
   type PlanEntry,
@@ -279,47 +279,67 @@ describe('toMergeMap', () => {
 });
 
 describe('mergedTitle / mergedFileName', () => {
-  it('is just the base name when there are no other files', () => {
-    expect(mergedTitle('Invoice 2024-03-01.pdf', 0)).toBe('Invoice 2024-03-01');
-  });
-
-  it('applies the default template with other files', () => {
-    expect(mergedTitle('Invoice 2024-03-01.pdf', 3)).toBe('Invoice 2024-03-01 + 3 more');
+  it('prefixes the base name with merged_, regardless of how many other files there are', () => {
+    expect(mergedTitle('Invoice 2024-03-01.pdf')).toBe('merged_Invoice 2024-03-01');
   });
 
   it('strips only the final extension', () => {
-    expect(mergedTitle('archive.tar.gz', 0)).toBe('archive.tar');
+    expect(mergedTitle('archive.tar.gz')).toBe('merged_archive.tar');
   });
 
   it('keeps a dotfile-style leading dot with no other extension', () => {
-    expect(mergedTitle('.hidden.pdf', 0)).toBe('.hidden');
+    expect(mergedTitle('.hidden.pdf')).toBe('merged_.hidden');
   });
 
   it('falls back to the raw name when there is no extension to strip', () => {
-    expect(mergedTitle('README', 2)).toBe('README + 2 more');
+    expect(mergedTitle('README')).toBe('merged_README');
   });
 
-  it('never returns an empty string, falling back to "merged"', () => {
-    expect(mergedTitle('', 0)).toBe('merged');
+  it('never returns an empty string, falling back to "merged_merged"', () => {
+    expect(mergedTitle('')).toBe('merged_merged');
   });
 
   it('treats a name with only a leading dot as a dotfile, not an extension to strip', () => {
     // Same rule as '.hidden.pdf': the leading dot is not treated as marking
     // an extension, so '.pdf' alone has nothing to strip.
-    expect(mergedTitle('.pdf', 0)).toBe('.pdf');
+    expect(mergedTitle('.pdf')).toBe('merged_.pdf');
   });
 
-  it('supports a template with the placeholders reordered, e.g. a Hebrew-style phrasing', () => {
-    const template = '{count} more + {name}';
-    expect(mergedTitle('Invoice.pdf', 3, template)).toBe('3 more + Invoice');
+  it('chains rather than collapsing when the first file already carries another prefix', () => {
+    expect(mergedTitle('signed_form.pdf')).toBe('merged_signed_form');
   });
 
-  it('mergedFileName appends .pdf to the title', () => {
-    expect(mergedFileName('Invoice 2024-03-01.pdf', 3)).toBe('Invoice 2024-03-01 + 3 more.pdf');
-    expect(mergedFileName('Invoice 2024-03-01.pdf', 0)).toBe('Invoice 2024-03-01.pdf');
+  it('mergedFileName appends .pdf to the title, one file or several', () => {
+    expect(mergedFileName('Invoice 2024-03-01.pdf')).toBe('merged_Invoice 2024-03-01.pdf');
+  });
+});
+
+describe('sanitizeOutputName', () => {
+  it('trims surrounding whitespace', () => {
+    expect(sanitizeOutputName('  Invoice March  ')).toBe('Invoice March');
   });
 
-  it('exposes the default template string', () => {
-    expect(DEFAULT_OUTPUT_NAME_TEMPLATE).toBe('{name} + {count} more');
+  it('strips path separators, forward and back', () => {
+    expect(sanitizeOutputName('../etc/passwd\\evil')).toBe('..etcpasswdevil');
+  });
+
+  it('strips control characters but keeps everything else', () => {
+    expect(sanitizeOutputName('Invoice' + String.fromCharCode(0) + ' ' + String.fromCharCode(31) + 'March')).toBe('Invoice March');
+  });
+
+  it('keeps Unicode text untouched, Hebrew included', () => {
+    expect(sanitizeOutputName('חשבונית מרץ')).toBe('חשבונית מרץ');
+  });
+
+  it('caps at 120 code points without splitting a surrogate pair', () => {
+    const emoji = '😀'; // a surrogate pair, 2 UTF-16 code units, 1 code point
+    const raw = emoji.repeat(130);
+    const result = sanitizeOutputName(raw);
+    expect(Array.from(result)).toHaveLength(120);
+    expect(result).toBe(emoji.repeat(120));
+  });
+
+  it('returns an empty string for a name that is only path separators and control characters', () => {
+    expect(sanitizeOutputName('//\\\\ ')).toBe('');
   });
 });

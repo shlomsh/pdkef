@@ -29,10 +29,6 @@ export interface PageStripProps {
    * (mergePlan.isGrouped) - captions render only while this holds; once a
    * page crosses a file boundary the per-page tag dot takes over. */
   grouped: boolean;
-  /** Touch only: per-page controls show after Edit pages is tapped (MERGE-11).
-   * The toggle control itself is rendered by the parent now (wave 3), in the
-   * document heading row; this only drives the grid's `data-editing`. */
-  editing: boolean;
   /** The parent's drag-over listener paints the MERGE-10 insertion line on
    * this element, so it owns the ref. */
   stripRef: RefObject<HTMLUListElement>;
@@ -104,7 +100,6 @@ export default function PageStrip({
   announce,
   messages: t,
   grouped,
-  editing,
   stripRef,
   onRenderedCountChange,
   onRegisterUndo,
@@ -140,6 +135,23 @@ export default function PageStrip({
   const entriesRef = useRef(entries);
   entriesRef.current = entries;
   const focusKey = useRef<string | null>(null);
+  // Phone (Shlomi, 2026-09-13): a tap on a page reveals that page's own
+  // rotate / skip / open cluster, and only that page's - three 44px buttons
+  // cannot share a row of 72px cells, so "Edit pages" (every cluster at
+  // once) put each cell's Open under its neighbour's Rotate. Tap the same
+  // page again, another page, or anywhere outside the grid to let go.
+  // Desktop CSS ignores the attribute (hover and :focus-visible reveal
+  // there), so the state is harmless on a pointer device.
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!selectedKey) return undefined;
+    const grid = stripRef.current;
+    const onPointerDown = (event: PointerEvent) => {
+      if (grid && !grid.contains(event.target as Node)) setSelectedKey(null);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [selectedKey, stripRef]);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [PreviewDialog, setPreviewDialog] = useState<ComponentType<{
     target: PreviewTarget | null; onClose: () => void; onStep: (delta: 1 | -1) => void; messages: MergeMessages;
@@ -508,9 +520,16 @@ export default function PageStrip({
         data-key={entry.key}
         data-rotation={entry.rotation || undefined}
         data-skipped={entry.skipped || undefined}
+        data-selected={selectedKey === entry.key || undefined}
         style={cellStyle}
         tabIndex={0}
         aria-label={label}
+        onClick={(event) => {
+          // A click on one of the cluster's own buttons is that button's,
+          // not a tap on the page.
+          if ((event.target as HTMLElement).closest('button')) return;
+          setSelectedKey((current) => (current === entry.key ? null : entry.key));
+        }}
         onKeyDown={(event) => onCardKeyDown(event, index, entry.key)}
         onFocus={() => {
           focusKey.current = entry.key;
@@ -559,7 +578,7 @@ export default function PageStrip({
             onClick={() => rotate(entry.key, position)}
           >
             {/* The visual chrome (border, background, shadow) lives on this
-                inner span, not the button: on touch (Edit pages, coarse
+                inner span, not the button: on touch (a selected cell, coarse
                 pointer) the button's own box grows to a real 44x44 - a rect
                 measurement, not only elementFromPoint, must read 44 - while
                 this glyph stays visually 32, centred inside it by padding.
@@ -613,17 +632,11 @@ export default function PageStrip({
 
   return (
     <section class={styles.section} aria-labelledby="merge-pages-heading">
-      {/* Direction A wave 3: the Edit pages toggle now lives in the document
-          heading row (PdfMergeTool.tsx), beside the heading itself, so the
-          two share one line on a phone instead of the toggle dropping to a
-          line of its own. This section keeps `editing`/`onToggleEditing`
-          only to drive the grid's own `data-editing` attribute. */}
       <p class="sr-only" id="merge-strip-hint">{t.stripHint}</p>
       <ul
         class={styles.grid}
         ref={stripRef}
         aria-describedby="merge-strip-hint"
-        data-editing={editing || undefined}
         data-grouped={grouped || undefined}
         style={{ '--grid-cell': `${gridCell}px`, '--grid-gap': `${gridGap}px` } as any}
       >

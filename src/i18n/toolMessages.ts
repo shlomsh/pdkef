@@ -53,14 +53,12 @@ export interface MergeMessages {
   sortNameDesc: string;
   sortDateAsc: string;
   sortDateDesc: string;
-  optionsSummary: string;
-  /** MERGE-03 (owner decision, 2026-09-13: there is no Merge button): the
-   * output file name is one template ("{name} + {count} more") so a locale
-   * can phrase it its own way; `{count}` (the other files) is available to
-   * it, and a single file drops the template entirely (mergedTitle). The
-   * PDF Title is the same string. */
-  outputName: string;
-  savesAs: string;
+  /** MERGE-11 (2026-09-13, Shlomi): the output name is editable in place in
+   * the document heading - a WYSIWYG name span, not a bordered input, so
+   * there is no separate "rename" button label to carry `{name}`. One label
+   * covers the name at rest and while editing: it is a textbox (role
+   * changes, the label does not) either way. */
+  fileNameEditableLabel: string;
   /* MERGE-12: Download is the only primary control. `preparing` labels the
    * progress ring shown when the tap arrives before the pre-merge finished. */
   downloadLabel: string;
@@ -86,8 +84,6 @@ export interface MergeMessages {
   resetOrder: string;
   /* MERGE-08 / MERGE-09: the page strip and its per-page controls. */
   pagesHeading: string;
-  editPages: string;
-  doneEditing: string;
   stripHint: string;
   fileTag: string;
   pageItemLabel: string;
@@ -183,9 +179,7 @@ const englishMergeMessages: MergeMessages = {
   sortNameDesc: 'Name Z to A',
   sortDateAsc: 'Oldest first',
   sortDateDesc: 'Newest first',
-  optionsSummary: 'Options',
-  outputName: '{name} + {count} more',
-  savesAs: 'Saves as {name}',
+  fileNameEditableLabel: 'File name, editable',
   downloadLabel: 'Download merged PDF',
   preparing: 'Preparing…',
   startAgain: 'Start again',
@@ -204,8 +198,6 @@ const englishMergeMessages: MergeMessages = {
   pagesRearranged: 'Pages were rearranged across files, so the files no longer move as a whole.',
   resetOrder: 'Reset order',
   pagesHeading: 'Pages',
-  editPages: 'Edit pages',
-  doneEditing: 'Done',
   stripHint: 'Drag a page to reorder, or focus a page and press the left or right arrow keys to move it, R to rotate it, Delete to skip it.',
   fileTag: 'File {number}',
   pageItemLabel: 'Page {number} of {total}, from {file}{state}',
@@ -293,9 +285,7 @@ const hebrewMergeMessages: MergeMessages = {
   sortNameDesc: 'שם, ת עד א',
   sortDateAsc: 'הישן ביותר קודם',
   sortDateDesc: 'החדש ביותר קודם',
-  optionsSummary: 'אפשרויות',
-  outputName: '{name} + {count} נוספים',
-  savesAs: 'יישמר בשם {name}',
+  fileNameEditableLabel: 'שם הקובץ, ניתן לעריכה',
   downloadLabel: 'הורדת ה-PDF המאוחד',
   preparing: 'מכינים…',
   startAgain: 'להתחיל מחדש',
@@ -314,8 +304,6 @@ const hebrewMergeMessages: MergeMessages = {
   pagesRearranged: 'העמודים סודרו מחדש בין הקבצים, אז הקבצים כבר לא זזים כיחידה אחת.',
   resetOrder: 'איפוס הסדר',
   pagesHeading: 'עמודים',
-  editPages: 'עריכת עמודים',
-  doneEditing: 'סיום',
   stripHint: 'גררו עמוד כדי לסדר מחדש, או התמקדו בעמוד ולחצו על חץ שמאלה או ימינה כדי להזיז אותו, R כדי לסובב, Delete כדי לדלג עליו.',
   fileTag: 'קובץ {number}',
   pageItemLabel: 'עמוד {number} מתוך {total}, מתוך {file}{state}',

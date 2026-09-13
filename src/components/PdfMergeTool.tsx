@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren, ComponentType } from 'preact';
 import Sortable from 'sortablejs';
+import { Shrink, FileSignature } from 'lucide-preact';
 import { inspectPdf, MergeFileError } from '../lib/merge.js';
 import {
   insertPages,
   isGrouped,
   isInListOrder,
-  mergedFileName,
   mergedTitle,
   outputPageCount,
   planForFile,
   regroupPlan,
   removeFile,
+  sanitizeOutputName,
   type PlanEntry,
 } from '../lib/mergePlan.ts';
 import { deriveFileKind } from '../lib/fileKind.js';
@@ -41,6 +42,91 @@ import {
   type MergeMessages,
   type ShellMessages,
 } from '../i18n/toolMessages';
+
+// MERGE-11 (2026-09-13, Shlomi's rejection of the bordered-input look): the
+// output name is a WYSIWYG span, not a button-plus-input pair. Firefox does
+// not implement `contentEditable="plaintext-only"` (only Chromium and
+// WebKit do, as of this writing), so it needs the exact feature-detect
+// Shlomi specified rather than a browser sniff: create a throwaway element,
+// try to set the value, and read it back. Computed once per module
+// evaluation (a fresh one per script context - the server-rendered build and
+// the browser's own hydration bundle each get their own), not per render.
+function detectPlaintextOnlyContentEditable(): boolean {
+  if (typeof document === 'undefined') return false;
+  try {
+    const probe = document.createElement('span');
+    probe.contentEditable = 'plaintext-only';
+    return probe.contentEditable === 'plaintext-only';
+  } catch {
+    return false;
+  }
+}
+
+const PLAINTEXT_ONLY_SUPPORTED = detectPlaintextOnlyContentEditable();
+
+// Firefox's fallback is plain `contentEditable="true"`, which (unlike
+// `plaintext-only`) accepts rich text on paste/drop; these two handlers
+// insert only the plain-text payload, in place of the current selection, the
+// same result `plaintext-only` gives for free elsewhere.
+function insertPlainTextAtSelection(text: string) {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+  const range = selection.getRangeAt(0);
+  range.deleteContents();
+  const node = document.createTextNode(text);
+  range.insertNode(node);
+  range.setStartAfter(node);
+  range.setEndAfter(node);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function setNameContentEditable(el: HTMLElement, editing: boolean) {
+  const value = editing ? (PLAINTEXT_ONLY_SUPPORTED ? 'plaintext-only' : 'true') : 'false';
+  // Both the IDL property (what the browser's editing behaviour actually
+  // reads) and the reflected attribute (belt and braces - some
+  // environments, jsdom included, do not reliably reflect one to the other
+  // for `contenteditable`'s enumerated string values the way they do for
+  // plain booleans).
+  el.contentEditable = value;
+  el.setAttribute('contenteditable', value);
+}
+
+// A real click on a not-yet-editable element does not get the browser's own
+// click-to-place-caret behaviour "for free": that behaviour only engages
+// for an element that was already editable when the browser decided how to
+// handle the mousedown, and this span only becomes editable inside our own
+// mousedown handler, one tick too late. So a click needs its OWN caret
+// placement, from the same clientX/clientY the browser would have used -
+// `caretRangeFromPoint` (Chromium/WebKit) or `caretPositionFromPoint`
+// (Firefox) turn a point back into a Range. Falls back to the end of the
+// text (never the start, which reads as if nothing happened) if neither is
+// available or the point misses the element entirely.
+function placeCaretAtPoint(el: HTMLElement, x: number, y: number) {
+  const doc = el.ownerDocument as Document & {
+    caretRangeFromPoint?: (x: number, y: number) => Range | null;
+    caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+  };
+  let range: Range | null = null;
+  if (typeof doc.caretRangeFromPoint === 'function') {
+    range = doc.caretRangeFromPoint(x, y);
+  } else if (typeof doc.caretPositionFromPoint === 'function') {
+    const position = doc.caretPositionFromPoint(x, y);
+    if (position) {
+      range = document.createRange();
+      range.setStart(position.offsetNode, position.offset);
+      range.collapse(true);
+    }
+  }
+  if (!range || !el.contains(range.startContainer)) {
+    range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+  }
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
 
 let nextId = 0;
 
@@ -220,13 +306,32 @@ export default function PdfMergeTool({
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const [addPageNumbers, setAddPageNumbers] = useState(() => readRememberedOptions().addPageNumbers);
-  /* Direction A wave 4 (Shlomi, phone bottom-sheet measurement): one Options
-   * disclosure, one open/closed state. Desktop still opens it by clicking
-   * its own <summary>; the phone sheet's hand-off row gets a fourth
-   * `flex:1` button (CSS-hidden at 768px and up) that flips the same state,
-   * so there is exactly one options-body in the DOM for both. */
-  const [optionsOpen, setOptionsOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('added');
+  /* MERGE-11 (2026-09-13, Shlomi): the output name, once a person edits it in
+   * the document heading, is theirs - null means "still the automatic name",
+   * a string means "renamed", and it survives every later add/remove/reorder
+   * until Clear all. The name is WYSIWYG - one `contenteditable` span, never
+   * a button swapped for an input - so there is no separate draft string:
+   * `nameRef` reads the DOM node's own text directly to commit it.
+   * `isRenamingOutputName` is only the toggle for `contenteditable`/`role`/
+   * the affordance styling; `skipNextNameBlurCommit` lets Escape blur the
+   * span without its own `onBlur` re-committing the text it was just told to
+   * discard. `nameRemountKey` is bumped on every commit and cancel (never on
+   * entering edit, which would drop the caret/focus just placed): typing
+   * into a contenteditable node can replace its Text child with a new DOM
+   * object (browsers do this on some edits, and any Escape/paste fallback
+   * that writes `textContent` always does), which leaves Preact's own
+   * `_dom` reference for that child pointing at a detached node - silently
+   * "fixing" nothing on the next reactive render since Preact patches a node
+   * nobody sees any more. Changing `key` forces Preact to discard that node
+   * and mount a fresh one from the current (correct) `title`, which is the
+   * standard remedy for a contenteditable region a framework also renders
+   * into. */
+  const [customOutputName, setCustomOutputName] = useState<string | null>(null);
+  const [isRenamingOutputName, setIsRenamingOutputName] = useState(false);
+  const skipNextNameBlurCommit = useRef(false);
+  const nameRemountKeyRef = useRef(0);
+  const nameRef = useRef<HTMLSpanElement | null>(null);
   const [renderedCount, setRenderedCount] = useState(0);
   /* Direction A wave 2 (Shlomi): the restored-draft sentence shows once, for
    * five seconds, then gives way for good to the small "Draft saved" chip
@@ -267,7 +372,6 @@ export default function PdfMergeTool({
      arrive through dynamic import(), so the eager graph check-page-weight.js
      measures for /merge/ does not grow with them. */
   const [PageStrip, setPageStrip] = useState<ComponentType<PageStripProps> | null>(null);
-  const [editingPages, setEditingPages] = useState(false);
   /* MERGE-13: crash-safe draft. The hook lives in MergeDraftPersistence,
      loaded through a dynamic import() on mount; until it reports, the hint
      alone decides whether the empty state is held back. */
@@ -298,8 +402,15 @@ export default function PdfMergeTool({
     if (entries.some((e) => e.pageCount == null || e.error)) return null;
     return entries.map((e) => e.file);
   }, [mergeSignature]);
-  const title = entries.length > 0 ? mergedTitle(entries[0].file.name, entries.length - 1, t.outputName) : '';
-  const fileName = entries.length > 0 ? mergedFileName(entries[0].file.name, entries.length - 1, t.outputName) : 'merged.pdf';
+  // MERGE-11: the automatic name, always kept up to date with the file list,
+  // and the effective one - the person's own edit once there is one, which
+  // then stops tracking the file list entirely (reset() clears it). Both the
+  // download attribute and the PDF Title (usePreparedMerge's own `title`
+  // input, passed straight through to mergePdfs's setTitle call) come from
+  // the same `title` below, so a rename touches both without extra plumbing.
+  const autoOutputTitle = entries.length > 0 ? mergedTitle(entries[0].file.name) : '';
+  const title = customOutputName ?? autoOutputTitle;
+  const fileName = title ? `${title}.pdf` : 'merged.pdf';
 
   const prepared = usePreparedMerge({
     files: readyFiles,
@@ -423,6 +534,7 @@ export default function PdfMergeTool({
     const plan = restored.plan.map((p) => ({ ...p, fileId: idByIndex[p.fileId], key: `${idByIndex[p.fileId]}:${p.pageIndex}` }));
     setModel({ entries: restoredEntries, plan });
     setAddPageNumbers(restored.options.addPageNumbers);
+    setCustomOutputName(restored.outputName);
     setShowPickedUpSentence(true);
     if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
     pickedUpTimerRef.current = setTimeout(() => setShowPickedUpSentence(false), 5000);
@@ -591,7 +703,6 @@ export default function PdfMergeTool({
     setPendingDownload(false);
     setDownloadedOnce(false);
     setSortMode('added');
-    setEditingPages(false);
     setRenderedCount(0);
     setShowPickedUpSentence(false);
     if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
@@ -599,6 +710,10 @@ export default function PdfMergeTool({
     shortcutsShownRef.current = false;
     if (shortcutsTimerRef.current) clearTimeout(shortcutsTimerRef.current);
     pendingPlanIndexRef.current.clear();
+    // MERGE-11: Clear all resets the renamed output name - the next set of
+    // files gets the automatic name again, not the previous set's.
+    setCustomOutputName(null);
+    setIsRenamingOutputName(false);
     void clearDraftRef.current?.();
     setAnnouncement(t.cleared);
   }, [clearPrepared, clearUndo, t.cleared]);
@@ -666,6 +781,113 @@ export default function PdfMergeTool({
     const next = (event.target as HTMLInputElement).checked;
     setAddPageNumbers(next);
     rememberOptions({ addPageNumbers: next });
+  }, []);
+
+  // MERGE-11 (Shlomi's WYSIWYG rebuild, 2026-09-13): the name span becomes
+  // `contenteditable` in place - no button, no swapped-in input, so the box
+  // never changes shape on entering edit. While editing, Preact is never
+  // told to re-render this span's children (the JSX always passes the same
+  // `title` string down, which does not change mid-edit), so its diff sees
+  // no change and leaves the live DOM text - the person's in-progress typing
+  // - alone; `commitOutputNameRename` reads it straight off `textContent`.
+  // `point`, when given, is the click's own clientX/clientY: a real click on
+  // an element that was NOT editable at the moment the browser decided how
+  // to handle the mousedown never gets the browser's own click-to-place-
+  // caret behaviour "for free" (this span only becomes editable inside this
+  // handler, one tick too late for that), so a pointer-initiated edit places
+  // the caret itself, from that same point, via `placeCaretAtPoint`
+  // (Shlomi: never select-all, never move the caret, on a click - landing on
+  // whatever the point resolves to IS "where the person clicked").
+  const beginEditingOutputName = useCallback((selectAll: boolean, point?: { x: number; y: number }) => {
+    const el = nameRef.current;
+    if (!el || isRenamingOutputName) return;
+    setNameContentEditable(el, true);
+    setIsRenamingOutputName(true);
+    el.focus();
+    if (selectAll) {
+      // Keyboard-activated (Enter/Space with no click point to seed a caret
+      // from): select the whole name so typing replaces it, the same
+      // behaviour the old input gave for free on focus.
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    } else if (point) {
+      placeCaretAtPoint(el, point.x, point.y);
+    }
+  }, [isRenamingOutputName]);
+
+  // Typing into a contenteditable node can replace its Text child with a
+  // brand new DOM object instead of mutating the existing one in place
+  // (browsers do this in some cases, and Escape's own fallback below always
+  // does); either way Preact's `_dom` reference for that child then points
+  // at a node nobody sees any more, so a later reactive render "updates"
+  // text nobody sees. Bumping `nameRemountKeyRef` on the way out of edit
+  // mode (never on the way in, which would drop the caret/focus just
+  // placed) makes Preact throw the whole span away and mount a fresh one
+  // from the current `title` - the standard remedy for a contenteditable
+  // region a framework also renders into.
+  const commitOutputNameRename = useCallback(() => {
+    const el = nameRef.current;
+    const sanitized = sanitizeOutputName(el?.textContent ?? '');
+    // An empty result (cleared, or nothing but path separators/control
+    // characters) reverts to the automatic name rather than saving an empty
+    // one - the spec's "empty reverts to the automatic name".
+    setCustomOutputName(sanitized.length > 0 ? sanitized : null);
+    setIsRenamingOutputName(false);
+    nameRemountKeyRef.current += 1;
+  }, []);
+
+  const cancelOutputNameRename = useCallback(() => {
+    skipNextNameBlurCommit.current = true;
+    setIsRenamingOutputName(false);
+    nameRemountKeyRef.current += 1;
+  }, []);
+
+  const onNameBlur = useCallback(() => {
+    if (skipNextNameBlurCommit.current) {
+      skipNextNameBlurCommit.current = false;
+      return;
+    }
+    commitOutputNameRename();
+  }, [commitOutputNameRename]);
+
+  const onNameMouseDown = useCallback((event: MouseEvent) => {
+    beginEditingOutputName(false, { x: event.clientX, y: event.clientY });
+  }, [beginEditingOutputName]);
+
+  const onNameKeyDown = useCallback((event: KeyboardEvent) => {
+    if (!isRenamingOutputName) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        beginEditingOutputName(true);
+      }
+      return;
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      (event.currentTarget as HTMLElement).blur();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      cancelOutputNameRename();
+    }
+  }, [isRenamingOutputName, beginEditingOutputName, cancelOutputNameRename]);
+
+  // Firefox has no `contenteditable="plaintext-only"`, so its fallback
+  // (plain `contenteditable="true"`) would otherwise accept rich HTML on
+  // paste or drop; force both down to plain text instead. A no-op wherever
+  // `plaintext-only` is supported, since the browser already restricts it.
+  const onNamePaste = useCallback((event: ClipboardEvent) => {
+    if (PLAINTEXT_ONLY_SUPPORTED) return;
+    event.preventDefault();
+    insertPlainTextAtSelection(event.clipboardData?.getData('text/plain') ?? '');
+  }, []);
+
+  const onNameDrop = useCallback((event: DragEvent) => {
+    if (PLAINTEXT_ONLY_SUPPORTED) return;
+    event.preventDefault();
+    insertPlainTextAtSelection(event.dataTransfer?.getData('text/plain') ?? '');
   }, []);
 
   const scrollToCaption = useCallback((fileId: number) => {
@@ -951,6 +1173,7 @@ export default function PdfMergeTool({
           plan={plan}
           options={draftOptions}
           title={title}
+          outputName={customOutputName}
           onRestore={onDraftRestore}
           onStateChange={setDraftState}
           registerClear={(clear) => { clearDraftRef.current = clear; }}
@@ -1009,19 +1232,46 @@ export default function PdfMergeTool({
               <div class={docStyles.chip} data-more>
                 <details class={docStyles['chip-menu']}>
                   <summary class={docStyles['chip-menu-summary']} aria-label={t.moreOptions}>⋯</summary>
+                  {/* Team lead follow-up (2026-09-13): Add files, Clear all,
+                      Sort, Reset order (only while rearranged, with its own
+                      note), Add page numbers - in that order, nothing else
+                      in the popover. Team lead (2026-09-13, second
+                      follow-up): unlike the desktop rail, Sort and the
+                      rearranged note are NOT mutually exclusive here - Sort
+                      stays available (it regroups the plan and would itself
+                      resolve the rearrangement, same as Reset order), so
+                      this popover's Sort renders whenever there are two or
+                      more files, never gated on `!rearranged` the way the
+                      desktop rail's `showSortControls` is. */}
                   <div class={docStyles['chip-menu-body']}>
-                    {showSortControls && (
-                      <select class={railStyles['sort-select']} aria-label={t.sortLabel} value={sortMode} onChange={onSortChange}>
-                        <option value="added">{t.sortAsAdded}</option>
-                        <option value="reversed">{t.sortReversed}</option>
-                        <option value="nameAsc">{t.sortNameAsc}</option>
-                        <option value="nameDesc">{t.sortNameDesc}</option>
-                        <option value="dateAsc">{t.sortDateAsc}</option>
-                        <option value="dateDesc">{t.sortDateDesc}</option>
-                      </select>
-                    )}
                     <button type="button" class={railStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
                     <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
+                    {entries.length >= 2 && (
+                      <label class={railStyles['sort-select-wrap']}>
+                        <select class={railStyles['sort-select']} aria-label={t.sortLabel} value={sortMode} onChange={onSortChange}>
+                          <option value="added">{t.sortAsAdded}</option>
+                          <option value="reversed">{t.sortReversed}</option>
+                          <option value="nameAsc">{t.sortNameAsc}</option>
+                          <option value="nameDesc">{t.sortNameDesc}</option>
+                          <option value="dateAsc">{t.sortDateAsc}</option>
+                          <option value="dateDesc">{t.sortDateDesc}</option>
+                        </select>
+                      </label>
+                    )}
+                    {entries.length >= 2 && rearranged && (
+                      <div class={railStyles['rearranged-note']} role="status">
+                        <span>{t.pagesRearranged}</span>
+                        <button type="button" class={railStyles['reset-order']} onClick={resetPageOrder}>
+                          {t.resetOrder}
+                        </button>
+                      </div>
+                    )}
+                    {entries.length >= 2 && (
+                      <label class={railStyles['page-numbers-row']}>
+                        <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
+                        <span>{t.addPageNumbers}</span>
+                      </label>
+                    )}
                   </div>
                 </details>
               </div>
@@ -1038,7 +1288,31 @@ export default function PdfMergeTool({
               <div class={docStyles['doc-header']}>
                 <div class={docStyles['heading-row']}>
                   <h2 class={docStyles['doc-heading']} id="merge-pages-heading">
-                    {t.documentHeading}
+                    {/* MERGE-11 (Shlomi's WYSIWYG rebuild, 2026-09-13): the
+                        visible name IS the editable output file name - one
+                        span, at rest identical to the old plain heading text,
+                        that becomes contenteditable in place on click. This
+                        sr-only lead-in keeps the region announcing what it is
+                        for anyone not reading the name itself. */}
+                    <span class="sr-only">{t.documentHeading}</span>
+                    <span
+                      key={nameRemountKeyRef.current}
+                      ref={nameRef}
+                      class={docStyles.name}
+                      dir="auto"
+                      tabIndex={0}
+                      role={isRenamingOutputName ? 'textbox' : undefined}
+                      aria-label={t.fileNameEditableLabel}
+                      contentEditable={isRenamingOutputName ? (PLAINTEXT_ONLY_SUPPORTED ? 'plaintext-only' : 'true') : 'false'}
+                      onMouseDown={onNameMouseDown}
+                      onKeyDown={onNameKeyDown}
+                      onBlur={onNameBlur}
+                      onPaste={onNamePaste}
+                      onDrop={onNameDrop}
+                    >
+                      {title}
+                    </span>
+                    <span class={docStyles['doc-heading-ext']}>.pdf</span>
                     <span class={docStyles['doc-heading-count']}>
                       {' · '}{pagesLabel(outputCount)}
                       {skippedCount > 0 ? ` · ${pagesLabel(skippedCount)} ${t.skippedBadge.toLowerCase()}` : ''}
@@ -1048,19 +1322,13 @@ export default function PdfMergeTool({
                         {' · '}{formatMessage(t.renderedCount, { count: renderedCount })}
                       </span>
                     )}
+                    {/* Coarse pointer only (CSS-gated): there is no hover to
+                        reveal the affordance there, so a small muted pencil
+                        sits after the meta instead - never inside the name. */}
+                    <svg class={docStyles['name-affordance-icon']} width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M11.3 2.3a1.3 1.3 0 0 1 1.9 1.9l-7.2 7.2-2.6.7.7-2.6 7.2-7.2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" />
+                    </svg>
                   </h2>
-                  {/* Touch only (CSS-hidden for hover+fine-pointer devices),
-                      same row as the heading on a phone rather than a line
-                      of its own (wave 3). Drives PageStrip's own
-                      `data-editing` through the same `editingPages` state. */}
-                  <button
-                    type="button"
-                    class={docStyles['edit-toggle']}
-                    aria-pressed={editingPages}
-                    onClick={() => setEditingPages((current) => !current)}
-                  >
-                    {editingPages ? t.doneEditing : t.editPages}
-                  </button>
                 </div>
                 <div class={docStyles['doc-header-right']}>
                   {undoAction ? (
@@ -1113,7 +1381,6 @@ export default function PdfMergeTool({
                   announce={setAnnouncement}
                   messages={t}
                   grouped={grouped}
-                  editing={editingPages}
                   stripRef={stripRef}
                   onRenderedCountChange={setRenderedCount}
                   onRegisterUndo={registerUndo}
@@ -1133,24 +1400,29 @@ export default function PdfMergeTool({
                       data-error={entry.error || undefined}
                       onClick={() => scrollToCaption(entry.id)}
                     >
-                      <span
-                        class={railStyles.grip}
-                        aria-disabled={!grouped || undefined}
-                        tabIndex={grouped ? 0 : -1}
-                        role="button"
-                        aria-label={formatMessage(t.dragHandleLabel, { name: entry.file.name, position: index + 1, total: entries.length })}
-                        onKeyDown={(e) => { e.stopPropagation(); onRowKeyDown(e, entry.id); }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                          <circle cx="5" cy="3" r="1.4" fill="currentColor" />
-                          <circle cx="11" cy="3" r="1.4" fill="currentColor" />
-                          <circle cx="5" cy="8" r="1.4" fill="currentColor" />
-                          <circle cx="11" cy="8" r="1.4" fill="currentColor" />
-                          <circle cx="5" cy="13" r="1.4" fill="currentColor" />
-                          <circle cx="11" cy="13" r="1.4" fill="currentColor" />
-                        </svg>
-                      </span>
+                      {/* Shlomi (2026-09-13): the handle hides outright once
+                          file drag is disabled (pages have crossed files),
+                          rather than rendering muted with aria-disabled -
+                          there is nothing it can do at that point. */}
+                      {grouped && (
+                        <span
+                          class={railStyles.grip}
+                          tabIndex={0}
+                          role="button"
+                          aria-label={formatMessage(t.dragHandleLabel, { name: entry.file.name, position: index + 1, total: entries.length })}
+                          onKeyDown={(e) => { e.stopPropagation(); onRowKeyDown(e, entry.id); }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                            <circle cx="5" cy="3" r="1.4" fill="currentColor" />
+                            <circle cx="11" cy="3" r="1.4" fill="currentColor" />
+                            <circle cx="5" cy="8" r="1.4" fill="currentColor" />
+                            <circle cx="11" cy="8" r="1.4" fill="currentColor" />
+                            <circle cx="5" cy="13" r="1.4" fill="currentColor" />
+                            <circle cx="11" cy="13" r="1.4" fill="currentColor" />
+                          </svg>
+                        </span>
+                      )}
                       <span class={railStyles['tag-square']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
                       <FileName name={entry.file.name} className={railStyles['file-name']} />
                       <span class={railStyles['file-pages']}>{entry.pageCount ?? '…'}</span>
@@ -1177,14 +1449,31 @@ export default function PdfMergeTool({
                   </div>
                 ) : showSortControls && (
                   <div class={railStyles['list-controls']}>
-                    <select class={railStyles['sort-select']} aria-label={t.sortLabel} value={sortMode} onChange={onSortChange}>
-                      <option value="added">{t.sortAsAdded}</option>
-                      <option value="reversed">{t.sortReversed}</option>
-                      <option value="nameAsc">{t.sortNameAsc}</option>
-                      <option value="nameDesc">{t.sortNameDesc}</option>
-                      <option value="dateAsc">{t.sortDateAsc}</option>
-                      <option value="dateDesc">{t.sortDateDesc}</option>
-                    </select>
+                    <label class={railStyles['sort-select-wrap']}>
+                      <select class={railStyles['sort-select']} aria-label={t.sortLabel} value={sortMode} onChange={onSortChange}>
+                        <option value="added">{t.sortAsAdded}</option>
+                        <option value="reversed">{t.sortReversed}</option>
+                        <option value="nameAsc">{t.sortNameAsc}</option>
+                        <option value="nameDesc">{t.sortNameDesc}</option>
+                        <option value="dateAsc">{t.sortDateAsc}</option>
+                        <option value="dateDesc">{t.sortDateDesc}</option>
+                      </select>
+                    </label>
+                  </div>
+                )}
+
+                {/* Shlomi (2026-09-13): "Draft saved" (or the restore
+                    sentence) on its own line, end-aligned, so its width never
+                    moves Add files / Clear all below it and the Hebrew
+                    edition mirrors it for free (text-align: end is a logical
+                    property). */}
+                {(showPickedUpSentence || draftStatusLabel) && (
+                  <div class={railStyles['draft-status-row']}>
+                    {showPickedUpSentence ? (
+                      <>
+                        {t.pickedUp} <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{t.startFresh}</button>
+                      </>
+                    ) : draftStatusLabel}
                   </div>
                 )}
 
@@ -1194,52 +1483,25 @@ export default function PdfMergeTool({
                       text links is gone; the row's gap does the separating. */}
                   <button type="button" class={railStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
                   <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
-                  {(showPickedUpSentence || draftStatusLabel) && (
-                    <span class={railStyles['draft-chip']}>
-                      {showPickedUpSentence ? (
-                        <>
-                          {t.pickedUp} <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{t.startFresh}</button>
-                        </>
-                      ) : draftStatusLabel}
-                    </span>
-                  )}
                 </div>
               </div>
 
               <div class={railStyles['rail-pinned']}>
-                {/* Direction A follow-up (review P1): Options and the
-                    hand-off row only make sense once a merge is possible -
+                {/* Direction A follow-up (review P1): the page-numbers row and
+                    the hand-off row only make sense once a merge is possible -
                     with one file the Download element's own text-plus-
                     button state is the whole story, so both are held back
-                    until there are two files. */}
+                    until there are two files. Shlomi (2026-09-13): the Options
+                    disclosure is gone entirely - a plain checkbox row directly
+                    above Download, no summary, no chevron, nothing to open.
+                    Hidden below 768px, where the same row lives in the "⋯"
+                    popover instead (there is no room for it in the sticky
+                    sheet at that width). */}
                 {entries.length >= 2 && (
-                  /* One <details>, one options-body, for both breakpoints
-                      (wave 4). Desktop opens it from its own <summary>; on
-                      a phone the summary is hidden (the hand-off row's
-                      Options button below is the control there instead) and
-                      the whole element collapses to nothing while closed, so
-                      it costs the sheet no height until opened. Controlled by
-                      `optionsOpen` either way, so the two triggers can never
-                      disagree about the state. */
-                  <details
-                    class={railStyles.options}
-                    open={optionsOpen}
-                    onToggle={(event) => setOptionsOpen((event.currentTarget as HTMLDetailsElement).open)}
-                  >
-                    <summary class={railStyles['options-summary']}>
-                      {t.optionsSummary}
-                      <svg class={railStyles['options-chevron']} width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                        <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </summary>
-                    <div class={railStyles['options-body']}>
-                      <label class={railStyles['page-numbers-row']}>
-                        <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
-                        <span>{t.addPageNumbers}</span>
-                      </label>
-                      <p class={railStyles['saves-as']}>{formatMessage(t.savesAs, { name: fileName })}</p>
-                    </div>
-                  </details>
+                  <label class={`${railStyles['page-numbers-row']} ${railStyles['page-numbers-pinned']}`}>
+                    <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
+                    <span>{t.addPageNumbers}</span>
+                  </label>
                 )}
 
                 <DownloadElement
@@ -1262,31 +1524,21 @@ export default function PdfMergeTool({
                 {entries.length >= 2 && (
                   <div class={railStyles['handoff-row']}>
                     {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} className={railStyles['handoff-button']} />}
-                    {(['compress', 'sign'] as HandoffTool[]).map((tool) => (
-                      <button
-                        key={tool}
-                        type="button"
-                        class={railStyles['handoff-button']}
-                        disabled={handoffBusy || prepared.status !== 'ready'}
-                        onClick={() => { void requestHandoff(tool); }}
-                      >
-                        {tool === 'compress' ? t.handoffCompress : t.handoffSign}
-                      </button>
-                    ))}
-                    {/* Phone only (CSS-hidden at 768px and up, where the
-                        details' own <summary> above is the control instead):
-                        Options as the row's fourth equal button, per Shlomi's
-                        sheet-height measurement. Toggles the same state the
-                        <summary> does, so there is still exactly one
-                        options-body in the DOM. */}
-                    <button
-                      type="button"
-                      class={`${railStyles['handoff-button']} ${railStyles['options-toggle']}`}
-                      aria-expanded={optionsOpen}
-                      onClick={() => setOptionsOpen((current) => !current)}
-                    >
-                      {t.optionsSummary}
-                    </button>
+                    {(['compress', 'sign'] as HandoffTool[]).map((tool) => {
+                      const Icon = tool === 'compress' ? Shrink : FileSignature;
+                      return (
+                        <button
+                          key={tool}
+                          type="button"
+                          class={railStyles['handoff-button']}
+                          disabled={handoffBusy || prepared.status !== 'ready'}
+                          onClick={() => { void requestHandoff(tool); }}
+                        >
+                          <Icon size={16} aria-hidden="true" />
+                          {tool === 'compress' ? t.handoffCompress : t.handoffSign}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
 
