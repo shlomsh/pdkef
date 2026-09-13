@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { editPages } from '../lib/editPages.js';
-import { renderPdfThumbnails } from '../lib/thumbnails.js';
-import { useObjectUrls } from '../lib/useObjectUrls.js';
-import BasePdfTool from '../shell/BasePdfTool.tsx';
-import styles from '../shell/PageGrid.module.css';
-import pdfToolStyles from '../shell/PdfTool.module.css';
-import PdfShareButton from '../shell/PdfShareButton.tsx';
-import ProgressRing from '../shell/ProgressRing.tsx';
-import ErrorMessage from '../shell/ErrorMessage.tsx';
-import DownloadButton from '../shell/DownloadButton.tsx';
-import { usePdfShare } from '../lib/usePdfShare.js';
-import { describeFile } from '../lib/format.js';
+import { editPages } from './editPages.js';
+import { renderPdfThumbnails } from '../../lib/thumbnails.js';
+import { useObjectUrls } from '../../lib/useObjectUrls.js';
+import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import styles from '../../shell/PageGrid.module.css';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import PdfShareButton from '../../shell/PdfShareButton.tsx';
+import ProgressRing from '../../shell/ProgressRing.tsx';
+import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import DownloadButton from '../../shell/DownloadButton.tsx';
+import { usePdfShare } from '../../lib/usePdfShare.js';
+import { describeFile } from '../../lib/format.js';
 
 interface EditPage {
   pageNumber: number;

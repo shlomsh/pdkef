@@ -1,5 +1,5 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { applyRotation, embedPageNumberFont, stampPageNumber } from './pageOps.js';
+import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../lib/pageOps.js';
 
 /**
  * Edits pages in a PDF: reorders, removes, rotates, and/or adds page numbers.
