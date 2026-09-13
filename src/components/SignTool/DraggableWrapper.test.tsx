@@ -2,9 +2,9 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import DraggableWrapper from './DraggableWrapper.tsx';
-import elementStyles from './EditorElement.module.css';
+import elementStyles from '../../editor-ui/EditorElement.module.css';
 import TextNode from './nodes/TextNode.tsx';
-import workspaceStyles from './Workspace.module.css';
+import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import type { EditorElementPatch, TextElement } from '../../editor/model/editorModel.ts';
 
 type TextChange = (changes: EditorElementPatch<TextElement>) => void;

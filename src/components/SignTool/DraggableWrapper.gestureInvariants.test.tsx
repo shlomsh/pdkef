@@ -4,7 +4,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it } from 'vitest';
 import { vi } from 'vitest';
 import DraggableWrapper from './DraggableWrapper.tsx';
-import workspaceStyles from './Workspace.module.css';
+import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import ShapeNode from './nodes/ShapeNode.tsx';
 import LineNode from './nodes/LineNode.tsx';
 import TextNode from './nodes/TextNode.tsx';

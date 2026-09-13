@@ -9,6 +9,8 @@ paths:
   - "src/components/*Toolbar*"
   - "src/editor-ui/Element*"
   - "src/editor-ui/Editor*"
+  - "src/editor-ui/Workspace.module.css"
+  - "src/editor-ui/SignToolbar.module.css"
   - "src/components/Redact*"
   - "src/components/Deletable*"
   - "src/components/DeleteMark*"

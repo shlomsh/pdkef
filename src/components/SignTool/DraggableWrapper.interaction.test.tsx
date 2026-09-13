@@ -133,8 +133,8 @@ vi.mock('@floating-ui/react', async () => {
 // Vitest hoists vi.mock calls above imports, so this plain top-level import
 // already resolves to the mocked module.
 import DraggableWrapper from './DraggableWrapper.tsx';
-import workspaceStyles from './Workspace.module.css';
-import elementStyles from './EditorElement.module.css';
+import workspaceStyles from '../../editor-ui/Workspace.module.css';
+import elementStyles from '../../editor-ui/EditorElement.module.css';
 
 describe('DraggableWrapper interaction/visual states (E1.4)', () => {
   let container: HTMLDivElement;

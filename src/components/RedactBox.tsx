@@ -6,7 +6,7 @@ import ElementResizers from '../editor-ui/ElementResizers.tsx';
 import { getElementRenderer } from '../editor/registry/renderers.ts';
 import useDraggableElement from '../lib/useDraggableElement.js';
 import useElementResize from '../lib/useElementResize.js';
-import elementStyles from './SignTool/EditorElement.module.css';
+import elementStyles from '../editor-ui/EditorElement.module.css';
 import styles from './PdfRedactTool.module.css';
 
 // Renders one redaction box (blackout/whiteout/blur). Extracted out of PdfRedactTool's

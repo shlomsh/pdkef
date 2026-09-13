@@ -33,7 +33,7 @@ import { useUndoShortcut } from '../lib/useUndoShortcut.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import ErrorMessage from '../shell/ErrorMessage.tsx';
 import pdfToolStyles from '../shell/PdfTool.module.css';
-import workspaceStyles from './SignTool/Workspace.module.css';
+import workspaceStyles from '../editor-ui/Workspace.module.css';
 import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../lib/format.js';
 import useCurrentPage from '../lib/useCurrentPage.js';

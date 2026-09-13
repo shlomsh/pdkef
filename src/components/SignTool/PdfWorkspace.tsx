@@ -49,7 +49,7 @@ import {
 } from '../../editor/model/actionHistory.ts';
 import { englishSignMessages, formatMessage, signElementTypeLabel, type SignMessages } from '../../i18n/toolMessages';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
-import workspaceStyles from './Workspace.module.css';
+import workspaceStyles from '../../editor-ui/Workspace.module.css';
 
 const DEFAULT_PAGE_GEOMETRY = createPageGeometry({
   cropBox: { x: 0, y: 0, width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS },

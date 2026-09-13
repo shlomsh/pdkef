@@ -1,5 +1,5 @@
-import styles from '../components/SignTool/SignToolbar.module.css';
-import workspaceStyles from '../components/SignTool/Workspace.module.css';
+import styles from './SignToolbar.module.css';
+import workspaceStyles from './Workspace.module.css';
 import pdfToolStyles from '../shell/PdfTool.module.css';
 
 // The two export surfaces every editor tool has - the sticky toolbar's own

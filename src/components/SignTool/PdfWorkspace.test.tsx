@@ -3,7 +3,7 @@ import type { ComponentChildren, ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import PdfWorkspace from './PdfWorkspace.tsx';
-import workspaceStyles from './Workspace.module.css';
+import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import pageHeaderStyles from '../../editor-ui/EditorPageHeader.module.css';
 import { createPageGeometry } from '../../editor/geometry/coords.js';
 import type { RectangleElement, SymbolElement, TextElement } from '../../editor/model/editorModel.ts';
