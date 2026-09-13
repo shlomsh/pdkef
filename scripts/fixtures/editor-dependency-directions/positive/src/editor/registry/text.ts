@@ -1,3 +1,3 @@
-import styles from '../../components/SignTool/EditorElement.module.css';
+import { getTextElementClassNames } from '../text/elementClassNames.js';
 
-export const textClass = styles.text;
+export const textClass = getTextElementClassNames().text;

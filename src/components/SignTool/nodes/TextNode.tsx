@@ -10,8 +10,24 @@ import { combLayout, isComb } from '../../../editor/text/comb.js';
 import { englishSignMessages, type SignMessages } from '../../../i18n/toolMessages';
 import workspaceStyles from '../Workspace.module.css';
 import elementStyles from '../EditorElement.module.css';
+import { registerTextElementClassNames } from '../../../editor/text/elementClassNames.ts';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
 import type { ElementNodeChange, NodeResizeStart } from '../nodeProps.ts';
+
+// Hands the editor core the resolved (possibly hashed) CSS Module class names
+// its gesture-time resize code (registry/text.ts's `writeDOM`) needs to find
+// and toggle DOM nodes by class - a module-level side effect, run once this
+// module is first imported, well before any resize gesture can start. See
+// editor/text/elementClassNames.ts's header comment for the ordering contract.
+registerTextElementClassNames({
+  textDisplay: elementStyles['text-display'],
+  textInput: elementStyles['text-input'],
+  textMeasure: elementStyles['text-measure'],
+  textComb: elementStyles['text-comb'],
+  textCombCell: elementStyles['text-comb-cell'],
+  textCombGuide: elementStyles['text-comb-guide'],
+  textDisplayComb: elementStyles['text-display-comb'],
+});
 
 
 export default function TextNode({ element, isActive, isEditing, onChange, onSelect, onBeginEdit, onResizeStart, pageWidthPoints, isSpanResizing = false, messages }: {
