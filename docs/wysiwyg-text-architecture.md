@@ -36,9 +36,9 @@ Every claim in this section was read from the code or measured on 2026-08-27, no
 
 | # | stage | editor (Chrome) | exporter | one implementation? |
 |---|---|---|---|---|
-| 1 | Normalization | Chrome + its HarfBuzz | `composeHebrewClusters` ([hebrewComposition.js:105](../src/lib/hebrewComposition.js#L105)): `NFC` then Hebrew presentation-form recomposition, gated on `hasGlyph` | **no** - two implementations, agreement measured for Hebrew only |
-| 2 | Bidi (UAX#9) | Chrome (ICU), paragraph direction pinned by `dir` ([TextNode.tsx:110,173](../src/components/SignTool/nodes/TextNode.tsx#L110)) | `resolveBidiRuns` ([bidiRuns.js:73](../src/lib/bidiRuns.js#L73)) via `bidi-js`, same paragraph direction from `getEffectiveTextDirection` | **no**, but both implement one published spec against the same explicit paragraph level |
-| 3 | Itemization | Chrome, **per character**, into *system* fonts we cannot embed | element-level only: `resolveFontFamily` ([text.ts:383](../src/editor/registry/text.ts#L383)), then refuse ([sign.js:112](../src/lib/sign.js#L112)) | **yes, by refusal** - the two can only agree or stop |
+| 1 | Normalization | Chrome + its HarfBuzz | `composeHebrewClusters` ([hebrewComposition.js:105](../src/editor/text/hebrewComposition.js#L105)): `NFC` then Hebrew presentation-form recomposition, gated on `hasGlyph` | **no** - two implementations, agreement measured for Hebrew only |
+| 2 | Bidi (UAX#9) | Chrome (ICU), paragraph direction pinned by `dir` ([TextNode.tsx:176,239](../src/tools/sign/components/nodes/TextNode.tsx#L176)) | `resolveBidiRuns` ([bidiRuns.js:73](../src/editor/text/bidiRuns.js#L73)) via `bidi-js`, same paragraph direction from `getEffectiveTextDirection` | **no**, but both implement one published spec against the same explicit paragraph level |
+| 3 | Itemization | Chrome, **per character**, into *system* fonts we cannot embed | element-level only: `resolveFontFamily` ([text.ts:383](../src/editor/registry/text.ts#L383)), then refuse ([sign.js:112](../src/editor/adapters/pdf/sign.js#L112)) | **yes, by refusal** - the two can only agree or stop |
 | 4 | Shaping | Chrome's HarfBuzz, one call per DOM text run (LayoutNG); spaces are inside the run, so a kern pair or contextual rule that spans one fires | fontkit `layout()` per bidi run, spaces inside the run ([textPdf.ts:140](../src/editor/registry/textPdf.ts#L140); the per-whitespace split H9 added was reverted 2026-09-12, see §1.2 item 5) | **no** - two independent shapers, and this is the open problem |
 | 5 | Positioning | Chrome | `drawShapedRun`, one `Tm`+`Tj` per glyph, `Ts` for vertical offset ([text.ts:263](../src/editor/registry/text.ts#L263)) | ours alone; nothing to disagree with |
 
@@ -52,7 +52,7 @@ Two things sit outside the table and matter:
 
 There is also **no line-breaking stage on either side**, and that is a real simplification rather than a
 gap: `.text-input, .text-measure` carry `white-space: pre`
-([EditorElement.module.css:25](../src/components/SignTool/EditorElement.module.css#L25)), so a text
+([EditorElement.module.css:31](../src/editor-ui/EditorElement.module.css#L31)), so a text
 element never soft-wraps. Lines exist only where the user pressed Enter. UAX#14 is not in the divergence
 surface and does not need to be.
 
@@ -76,7 +76,7 @@ brief that commissioned this work.
 3. **`docs/hebrew-text-shaping-export.md` headers still say layers 1, 2 and 3 are open** (lines 330, 475,
    601) and its opening table marks 1 and 2 "no". All three shipped. Its line 235 also says
    `HEBREW_CAPABLE_FONTS` is "six since 2026-08-23"; it is seven - Alef was added
-   ([fonts.js:84](../src/lib/fonts.js#L84)). **Left as written on purpose**, the way that document
+   ([fonts.js:84](../src/editor/text/fonts.js#L84)). **Left as written on purpose**, the way that document
    already keeps its three superseded "why not" sections: it is a reasoning trail dated to when it was
    taken, and this document is the current-state record. `TODO.md`'s design-record index says so, so a
    reader arrives forewarned rather than misled.
@@ -85,7 +85,7 @@ brief that commissioned this work.
    ([textShaping.test.js:113](../src/editor/registry/textShaping.test.js#L113)), which embeds a real
    subset font and asserts the throw. And "no existing test measures exported PDF bytes" is not quite
    right either: `sign.test.js` parses the produced blob with pdf.js and reads its text items
-   ([sign.test.js:39-51](../src/lib/sign.test.js#L39)). (`assertNotSubsetEmbedded` was later replaced by
+   ([sign.test.js:39-51](../src/editor/adapters/pdf/sign.test.js#L39)). (`assertNotSubsetEmbedded` was later replaced by
    `remapGlyphForSubset` when subsetting shipped - see §4.2's correction and item 7 of §9; the test moved
    with it.) What was genuinely true when this was written was
    **nothing renders the produced PDF and looks at the ink** - closed 2026-08-27 (W1) by
@@ -164,15 +164,15 @@ Both are font *selection*, above stage 1, and no existing guard can see either.
 ### Synthetic bold and italic
 
 `ElementToolbar.tsx` offers Bold and Italic unconditionally on every family
-([lines 63-77](../src/components/ElementToolbar.tsx#L63)). Eight handwriting families ship Regular only
+([lines 116-137](../src/editor-ui/ElementToolbar.tsx#L116)). Eight handwriting families ship Regular only
 (Caveat, Dancing Script, Great Vibes, Gveret Levin, Kalam, Mali, Pacifico, Sacramento), and Assistant,
 Heebo, Alef and Almarai have no Italic. With only a 400/normal `@font-face` declared, the browser
 **synthesises** the missing style (`font-synthesis` defaults to `auto`). The export does the opposite:
 `loadCustomFont` requests `Caveat-Bold.ttf`, gets a 404, and falls back to `Caveat-Regular.ttf`
-([sign.js:99-101](../src/lib/sign.js#L99)).
+([sign.js:99-101](../src/editor/adapters/pdf/sign.js#L99)).
 
 So **bold Caveat is bold on screen and upright in the download.** This is tested - as a fallback that
-should not throw ([sign.test.js:132](../src/lib/sign.test.js#L132)) - but the divergence it creates is
+should not throw ([sign.test.js:132](../src/editor/adapters/pdf/sign.test.js#L132)) - but the divergence it creates is
 not acknowledged anywhere. It is the same failure shape as everything in the design record: correct on
 screen, wrong in the file, invisible until after the document is signed.
 
@@ -196,7 +196,7 @@ outcome there is to disable the control rather than to go looking for a face tha
 `unrepresentableCharacters` checks coverage **after** `stripInvisibleFormatting` and **before**
 `composeHebrewClusters` ([text.ts:128-139](../src/editor/registry/text.ts#L128)). But
 `composeHebrewClusters` opens with `text.normalize('NFC')`
-([hebrewComposition.js:106](../src/lib/hebrewComposition.js#L106)), which is **not** Hebrew-specific -
+([hebrewComposition.js:106](../src/editor/text/hebrewComposition.js#L106)), which is **not** Hebrew-specific -
 it composes every canonical sequence in the string. So NFC can produce a codepoint the font lacks,
 *after* the check has already passed.
 
@@ -236,7 +236,7 @@ the false-refusal case - `String.fromCodePoint(0xfb1d)` is required.
 ## 1.5 The app already ships the opposite answer, on purpose
 
 A typed signature is not text. `SignatureDialog.tsx` renders the typed name to a canvas with
-`ctx.fillText` and stores a PNG ([line 308](../src/components/SignatureDialog.tsx#L308)); the signature
+`ctx.fillText` and stores a PNG ([line 349](../src/editor-ui/SignatureDialog.tsx#L349)); the signature
 element embeds that image ([signature.ts](../src/editor/registry/signature.ts)).
 
 That is the rasterisation option, taken deliberately, in the one place where losing selectability,
@@ -258,7 +258,7 @@ ligature formation, mark positioning, bidi and ToUnicode all beat it. Their pipe
 
 **The two products fail in opposite directions, and the difference is the product.** pdkef **fails
 safe**: 14 of 17 strings export correctly and the other 3 are refused whole, never partially written
-([sign.js:112-113](../src/lib/sign.js#L112) runs before the loop touches `pdfDoc` at all). Sejda **fails
+([sign.js:112-113](../src/editor/adapters/pdf/sign.js#L112) runs before the loop touches `pdfDoc` at all). Sejda **fails
 silent**: it draws the mixed-script line pdkef refuses, and it draws `שלום עולם` as `עולם שלום` without
 telling anyone. For a document someone signs, those are not two points on one scale. A refusal costs a
 user five minutes. A silent reordering changes what the document says.
@@ -270,7 +270,7 @@ have to be refused.** That is the whole design problem, stated once.
 
 # 3. The selection rule
 
-Replaces `resolveFontSubstitution` ([fonts.js:263](../src/lib/fonts.js#L263)). The product constraints
+Replaces `resolveFontSubstitution` ([fonts.js:263](../src/editor/text/fonts.js#L263)). The product constraints
 are fixed: one font face per element, coverage-based selection, error as early as possible.
 
 ## 3.1 What "covers" means, precisely
@@ -351,7 +351,7 @@ correctness trap if skipped.
 
 A coverage-first rule can silently move someone from a signature face to a text face, and the catalogue
 already knows the difference: `HANDWRITING_FONTS` and `TEXT_FONTS`
-([fonts.js:18-19](../src/lib/fonts.js#L18)). That two-bucket split is what `SCRIPT_FALLBACKS`' per-row
+([fonts.js:18-19](../src/editor/text/fonts.js#L18)). That two-bucket split is what `SCRIPT_FALLBACKS`' per-row
 `handwriting`/`text` pair encodes today, once per script, by hand.
 
 The rule above generalises it with **one new field per catalogue entry: a style tag.** Today that is
@@ -401,7 +401,7 @@ The two-layer guarantee (live notice while typing via `useFontCoverageNotice`, r
 ## 3.6 What the rule changes, case by case
 
 Measured against the real coverage matrix (§4.1). The row-order accident in
-[fonts.js:266](../src/lib/fonts.js#L266) - `SCRIPT_FALLBACKS.find`, first match wins - is what changes.
+[fonts.js:266](../src/editor/text/fonts.js#L266) - `SCRIPT_FALLBACKS.find`, first match wins - is what changes.
 
 | typed | requested | today | under the rule |
 |---|---|---|---|
@@ -561,7 +561,7 @@ silent lie in a signed document.
 reconstruction, in the browser, and pixel-diffs it against native `fillText`. And `TextNode` already
 ships the layering pattern: comb mode stacks a per-cell display layer over the textarea, sets
 `color: 'transparent'` and keeps `caretColor`
-([TextNode.tsx:193-194](../src/components/SignTool/nodes/TextNode.tsx#L193)).
+([TextNode.tsx:261-262](../src/tools/sign/components/nodes/TextNode.tsx#L261)).
 
 **What it costs, plainly:**
 
@@ -574,7 +574,7 @@ ships the layering pattern: comb mode stacks a per-cell display layer over the t
   back to browser-rendered text for the duration of the composition and repaint on `compositionend`.
   Relevant to Devanagari and Thai; not to Hebrew, Arabic or Latin.
 - **Intrinsic sizing moves.** `.text-measure` currently sizes the box from browser-shaped HTML
-  ([TextNode.tsx:105-125](../src/components/SignTool/nodes/TextNode.tsx#L105)); it would have to size
+  ([TextNode.tsx:173-176](../src/tools/sign/components/nodes/TextNode.tsx#L173)); it would have to size
   from `shapedWidth`. That is the change with the most knock-on surface: RTL anchoring, the comb width
   floor, resize. Contained, but not small.
 - **Accessibility: unchanged.** The textarea still holds the text and is what a screen reader reads. The
@@ -635,7 +635,7 @@ Shipping HarfBuzz for the export does not give one shaper on both sides. It give
   segmentation, drawing the editor;
 - our HarfBuzz, at our version, under **our** normalization, bidi and segmentation, drawing the export;
 - **and fontkit as well**, because it cannot be removed: `@cantoo/pdf-lib`'s `CustomFontEmbedder` is
-  built on a fontkit instance ([sign.js:74](../src/lib/sign.js#L74) registers it), and every metric,
+  built on a fontkit instance ([sign.js:74](../src/editor/adapters/pdf/sign.js#L74) registers it), and every metric,
   cmap lookup and glyph outline in the embedding path comes from it.
 
 So the cost is **additive**, not a swap. For scale, fontkit is 214,606 brotli bytes in the editor's lazy

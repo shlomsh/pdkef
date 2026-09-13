@@ -144,7 +144,7 @@ Every expensive failure here was an omission.
    `padding = 4` in fontTools and verify outlines, metrics and cmap byte-identical per glyph (about half
    the Brahmic faces needed it).
 3. **Register** in `src/editor/text/fonts.js` (`HANDWRITING_FONTS` or `TEXT_FONTS`), add `@font-face`
-   in `src/styles/editorFonts.css`, and a label in `src/components/FontPickerMenu.tsx` if needed.
+   in `src/styles/editorFonts.css`, and a label in `src/editor-ui/FontPickerMenu.tsx` if needed.
 4. **New script: add a `SCRIPT_FALLBACKS` row.**
 5. **Update `scripts/font-languages.mjs`** for a new language or character set, then regenerate and
    commit both GENERATED files: `npm run generate:font-coverage` (`src/lib/fontCoverageTable.js`) and

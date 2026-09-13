@@ -759,8 +759,8 @@ describe('PdfCompressTool UI flow', () => {
   });
 
   it('renders passthroughNotice, not rasterizeNotice, and no compare toggle for a PDF target-mode passthrough result', async () => {
-    // compressPdfToTarget's own passthrough rule (src/lib/compress.js,
-    // "Already under target" near line 147) returns the input File itself as
+    // compressPdfToTarget's own passthrough rule (src/tools/compress/compress.js,
+    // "Already under target" near line 146) returns the input File itself as
     // `blob` when the file is already under the target size - the PDF-side
     // mirror of compressImageToTarget's rule exercised above.
     compressLib.compressPdfToTarget.mockImplementation((passthroughFile) =>

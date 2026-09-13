@@ -22,11 +22,12 @@ src/shell/       BasePdfTool, ToolShell, FileDropzone, DownloadButton, PdfShareB
 src/editor/      the headless core, leaks fixed (ARCH-19)
 src/editor-ui/   ElementToolbar, ElementResizers, FontPickerMenu, ColorPicker*, ThicknessPickerMenu,
                  ArmHint, EditorToolStatus, EditorExportActions, EditorPageHeader, FullscreenButton,
-                 ViewControl, UndoHistoryModal, PdfPageCanvas, DeletableObjectOverlay, DeleteMark,
+                 ViewControl, UndoHistoryModal, PdfPageCanvas,
                  SignatureDialog                                       (shared by Sign and Redact)
 src/tools/<t>/   the island, its components, its lib modules, its unit tests, its e2e specs;
                  one folder per tool: merge, sign, redact, compress, split, edit-pages, to-image,
-                 image-to-pdf, security
+                 image-to-pdf, security (redact owns DeletableObjectOverlay/DeleteMark - see ARCH-17
+                 below, not shared with Sign)
 src/lib/         the genuinely shared modules only (about eight today)
 site             src/pages, src/content, src/data, src/i18n, src/layouts, src/styles and the
                  .astro components, as today
@@ -39,20 +40,19 @@ This is ARCH-15's own text, unchanged; everything below is the working-out.
 1. A tool may import `shell`, `editor-ui`, `editor`, `lib`, and site's `i18n`/`data`. A tool may
    never import another tool.
 2. `shell`, `editor-ui`, `editor` and `lib` may never import a tool, and may never import the
-   transitional `components` module (see below).
+   `components` module (see below).
 3. `editor` may never import `editor-ui` or `shell`. It is headless; Preact only renders from its
    state and binds events to it.
 4. The site (pages, layouts, content, data, i18n, styles, and the `.astro` files still under
    `src/components/`) may reach a tool only through that tool's island entry point, `Pdf*Tool.tsx`
    directly under `src/tools/<name>/`.
-5. **Transitional only, until ARCH-18 lands:** today's flat `src/components/` (everything that is
-   not `MergeTool/`, `SignTool/`, or a `.astro` file) is its own module, `components`, because it is
-   where the future `shell` and `editor-ui` still live. A tool MAY import `components` during the
-   transition - that is not a new rule, it is the old shell/editor-ui import made through a folder
-   that has not been renamed yet. `components` MUST NOT import a tool; a flat file reaching into
-   `MergeTool/` or `SignTool/` is exactly the cycle ARCH-16/ARCH-18 exist to break. Once ARCH-16
-   through ARCH-18 land, `components` stops existing as a module (only `.astro` files and `HeroDemo/`
-   are left in `src/components/`) and this rule retires with it.
+5. **`components` is what is left of the flat `src/components/` now that ARCH-16 through ARCH-18
+   have landed:** only `.astro` site components (which classify as `site`, not `components`) and
+   `HeroDemo/` remain there. `components` MUST NOT import a tool. The reverse allowance this rule
+   used to carry - "a tool MAY import `components` during the transition, because that folder is
+   where the future `shell` and `editor-ui` still live" - retired the moment ARCH-16 gave `shell`
+   and `editor-ui` their own folders; rule 1's list is exhaustive and does not include `components`,
+   so a tool importing it is now a violation like any other not on that list.
 
 `scripts/check-module-boundaries.mjs` enforces exactly these five rules; its header comment is the
 canonical copy; keep this section and that comment in sync by hand; the classification table in the
@@ -170,13 +170,18 @@ error.
 
 ### `src/editor-ui/` (shared by Sign and Redact)
 
-`ArmHint.tsx`, `ColorPicker.tsx`, `ColorPickerMenu.{tsx,test.tsx}`, `DeletableObjectOverlay.tsx`,
-`DeleteMark.tsx`, `EditorControls.module.css`, `EditorExportActions.{tsx,test.tsx}`,
+`ArmHint.tsx`, `ColorPicker.tsx`, `ColorPickerMenu.{tsx,test.tsx}`,
+`EditorControls.module.css`, `EditorExportActions.{tsx,test.tsx}`,
 `EditorPageHeader.{tsx,module.css}`, `EditorToolStatus.tsx`, `ElementResizers.tsx`,
 `ElementToolbar.{tsx,test.tsx}`, `FontPickerMenu.{tsx,test.tsx}`, `FullscreenButton.tsx`,
 `PdfPageCanvas.tsx`, `SignatureDialog.{tsx,test.tsx,module.css}`, `ThicknessPickerMenu.tsx`,
-`UndoHistoryModal.{tsx,module.css}`, `ViewControl.{tsx,test.tsx,module.css}` - the ticket's list
-verbatim, one addition:
+`UndoHistoryModal.{tsx,module.css}`, `ViewControl.{tsx,test.tsx,module.css}` - the ticket's list,
+minus two files it landed differently, plus one addition:
+
+- `DeletableObjectOverlay.tsx` and `DeleteMark.tsx` were on the ticket's original list here, but
+  ARCH-17 (`de31529`) put them in `src/tools/redact/` instead - they render Redact's own delete
+  affordance, not a surface Sign shares, so `editor-ui` was the wrong call. Recorded here so a
+  future reader does not go looking for them in the wrong folder.
 
 - `src/lib/useViewDensity.js` is consumed only by `ViewControl.tsx`. It is not itself a component, so
   it was never going to appear in a "components that move" list, but its only consumer is moving to
@@ -207,16 +212,16 @@ Every `.astro` file (`AppBar`, `CardDecor`, `CompareFigure`, `CompareTable`, `Co
 `ToolLanguagesCard`, `TrustChips`) plus `compareFigure.css` (its companion) and `HeroDemo/` (whole
 folder) - the SEO/site surface this epic does not touch, per CLAUDE.md's own architecture section.
 
-### Needs a decision this ticket does not make
+### Needed a decision this ticket did not make (resolved since)
 
-Four files do not fit any single destination above cleanly. Flagging them here so ARCH-16/17/18 make
-a deliberate call instead of discovering the problem mid-move:
+Four files did not fit any single destination above cleanly when this record was written, flagged
+here so ARCH-16/17/18 would make a deliberate call instead of discovering the problem mid-move. All
+four are now resolved:
 
 - **`noCamelCaseSvgAttrs.test.js`** is a repository-wide guard (scans every source file for
   camelCase SVG attributes), not a test of any one component. It does not belong to `shell`,
-  `editor-ui`, or a tool. `src/test/` already exists and already holds cross-cutting test
-  infrastructure (`setup.js`, `astroContentStub.js`); that is the natural home, but nothing in ARCH-16
-  through ARCH-20 currently plans to move it there.
+  `editor-ui`, or a tool; it moved to `src/test/`, the cross-cutting test infrastructure home this
+  record proposed for it.
 - **`draftCheckingPlaceholder.test.tsx`** and **`draftRestoreRace.test.tsx`** both render `PdfSignTool`
   and (the second) `PdfRedactTool` together, to test the shared `draftStore.js` restore path across
   both tools at once. Once Sign and Redact are separate `tool:` modules, a test that imports both is
@@ -228,8 +233,8 @@ a deliberate call instead of discovering the problem mid-move:
   narrowed CI run, and a test importing a tool from inside `src/editor/` would otherwise give Nx a
   real `editor -> tool` edge that widens every Sign or Redact commit to everything.
 - **`overlayElements.test.tsx`** only touches `SignTool/` (`ShapeNode`, `LineNode`, `DraggableWrapper`,
-  `WhiteoutNode`) despite the generic name; it moves with `tools/sign/` cleanly, no decision needed,
-  listed here only so it is not confused with the two draft tests above.
+  `WhiteoutNode`) despite the generic name; it moved with `tools/sign/` cleanly, no decision needed -
+  listed here only so it was not confused with the two draft tests above.
 
 ## `src/lib/` consumer table
 
@@ -361,17 +366,19 @@ ARCH-18                ARCH-19
 QUAL-05 (e2e sharding) runs independently, alongside any of the above - no file-move dependency.
 ```
 
-ARCH-16 first because nothing else can move until the shared shell and editor UI have a folder that
-is not the one every tool is also leaving (the ticket's own framing: "tools cannot move into folders
-of their own until the things they share have a home"). ARCH-17 next: the six simple tools plus
-Redact prove the pattern (island + owned components + owned lib modules + owned e2e, one commit
-each) on tools with no epic-in-flight complication. ARCH-18 and ARCH-19 both depend only on ARCH-16
-(not on ARCH-17) and can run in parallel: ARCH-18 is blocked externally on the merge-tool epic
-branch landing on `main`, which has nothing to do with the editor core, so a second session can pick
-up ARCH-19 while ARCH-18 waits. ARCH-20 depends on all three folder-moving tickets because Nx's tags
-need the folders to exist to enforce anything precise. QUAL-05 has no `depends_on` in the backlog and
-touches only `ci.yml`'s job matrix, so it can land whenever a session has a spare 20 minutes, before,
-during, or after the rest.
+**Status as of this revision: ARCH-16 through ARCH-19 and QUAL-05 have landed on `main`; ARCH-20 is
+in progress on a separate branch.** ARCH-16 landed first because nothing else could move until the
+shared shell and editor UI had a folder that was not the one every tool was also leaving (the
+ticket's own framing: "tools cannot move into folders of their own until the things they share have
+a home"). ARCH-17 landed next: the six simple tools plus Redact proved the pattern (island + owned
+components + owned lib modules + owned e2e, one commit each) on tools with no epic-in-flight
+complication. ARCH-18 and ARCH-19 both depended only on ARCH-16 (not on ARCH-17) and ran in
+parallel: ARCH-18 was blocked externally on the merge-tool epic branch landing on `main`, which had
+nothing to do with the editor core, so a second session picked up ARCH-19 while ARCH-18 waited; both
+have since landed. ARCH-20 depends on all three folder-moving tickets because Nx's tags need the
+folders to exist to enforce anything precise, and is the one still in flight. QUAL-05 had no
+`depends_on` in the backlog and touched only `ci.yml`'s job matrix, so it landed independently of the
+rest.
 
 ## Ratchet proof (this ticket, not a future one)
 

@@ -2,9 +2,10 @@
 // `resizeBehavior.writeDOM`) need to find and toggle specific DOM nodes by
 // class name mid-gesture (see the gesture golden rule in .claude/rules/editor.md:
 // direct DOM writes during pointermove, one committed patch on release). Those
-// class names come from a CSS Module owned by the tool (Sign's
-// `EditorElement.module.css`), which the editor core may not import directly
-// (ARCH-19: `editor` may not import a tool). Sign's entry point registers the
+// class names come from a CSS Module owned by the shared editor UI (Sign and
+// Redact's `src/editor-ui/EditorElement.module.css`), which the editor core
+// may not import directly (rule 3: `editor` is headless, it may not import
+// `editor-ui`). Sign's entry point registers the
 // resolved (possibly hashed) class name strings once, before any resize can
 // run; `getTextElementClassNames` throws if nothing has registered yet, the
 // same ordering contract `registry/renderers.ts`'s `registerRenderer` uses.

@@ -143,7 +143,7 @@ Create is a gesture too (click-place or drag-draw), not an exception.
 - Every control is a 44x44 CSS px touch target (`--btn-min-size`; WCAG 2.5.5 AAA and Apple HIG).
   Below 920px the row is icon-only with one explicit `flex-basis` of `--btn-min-size` per control; at
   560px and below `flex-grow: 0` and each wrapped line is centred. Guard:
-  `e2e/sign/toolbar-touch-targets.spec.js` (jsdom has no layout).
+  `src/tools/sign/e2e/toolbar-touch-targets.spec.js` (jsdom has no layout).
 - Size from `.toolbar > *`, never `.toolbar .dropdown`: the row mixes `<button>`s and
   `<div class="dropdown">` wrappers, and a `.dropdown` rule outranks the child selector (dropdowns once
   rendered ~13px beside ~31px buttons under `flex-basis: 0`).
@@ -190,7 +190,7 @@ sign, redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`
   Preact state, which stays the single source of truth.
 - **FAQ disclosure** on tool pages is a details/summary whose summary holds the hero text; a click
   interceptor makes only the styled `.faq-toggle` link toggle it.
-- `src/lib/merge.js` (`@cantoo/pdf-lib`): `mergePdfs(files, onProgress) -> Blob`, plus `resolvePdfCreationDate(file)`
+- `src/tools/merge/merge.js` (`@cantoo/pdf-lib`): `mergePdfs(files, onProgress) -> Blob`, plus `resolvePdfCreationDate(file)`
   reading `/CreationDate`. `src/lib/sort.js`: `sortByName` (locale-numeric) and `sortByDate`, a
   cascade of filename date → PDF creation date → `File.lastModified`. The File API cannot read OS
   birth time and `lastModified` changes on copy/download, so it is deliberately last.
@@ -199,14 +199,19 @@ sign, redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`
 
 ## Test environments and E2E scope
 
-Unit tests run under `node` (no jsdom) unless they match `DOM_TESTS` in `vitest.config.js`: anything
-under `src/components`, any `.test.tsx`/`.jsx`, the `use*` hook tests, `src/editor/workspace` and
-`gestures`, and the lib tests that decode images or drive pdf.js. Booting jsdom cost more than the
-tests it hosted, so a pure-logic test in `src/lib` or `src/editor` pays nothing for a DOM it never
-touches; one that does need it goes in that list or starts with `// @vitest-environment jsdom`.
+Unit tests run under `node` (no jsdom) unless they match `DOM_TESTS` in `vitest.config.js`: any
+`.test.tsx`/`.jsx` file anywhere (every tool under `src/tools/` included), what is left of the flat
+`src/components/` (HeroDemo), `src/lib/use*` hook tests, `src/editor/workspace` and `gestures`, and a
+short named list of `.test.js` files that decode images or drive pdf.js (compress/compressImage/
+thumbnails/toImage in both their `src/lib/` and `src/tools/<tool>/` locations,
+`src/tools/sign/useWorkspaceGestures.test.js`, `src/editor/adapters/pdf/redact.test.js`). Booting
+jsdom cost more than the tests it hosted, so a pure-logic test in `src/lib`, `src/tools/<tool>/` or
+`src/editor` pays nothing for a DOM it never touches; one that does need it goes in that list or
+starts with `// @vitest-environment jsdom`.
 
 Playwright is for what jsdom cannot prove; keep roughly one e2e per ten unit tests under
-`e2e/<module>/`. `export-render-guard.spec.js` runs the real `signPdf` in-browser and rasterises the
+`src/tools/<tool>/e2e/`. `e2e/` itself now holds only the cross-tool specs and the font screening
+guards under `e2e/sign/`. `export-render-guard.spec.js` runs the real `signPdf` in-browser and rasterises the
 PDF with pdf.js against per-case baselines: one rasteriser only (poppler vs Chromium noise measured at
 80-88%), and never "is there ink" as a pass condition, since `.notdef` often draws more ink than the
 glyph it replaced.
