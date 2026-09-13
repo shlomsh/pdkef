@@ -3,12 +3,12 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfToImageTool from './PdfToImageTool.tsx';
-import styles from '../shell/FileList.module.css';
-import dropzoneStyles from '../shell/Dropzone.module.css';
-import pdfToolStyles from '../shell/PdfTool.module.css';
+import styles from '../../shell/FileList.module.css';
+import dropzoneStyles from '../../shell/Dropzone.module.css';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
 import toolStyles from './PdfToImageTool.module.css';
-import { mockNativeFileShare } from '../test/mockFileShare.js';
-import { setInputFiles } from '../test/setInputFiles.js';
+import { mockNativeFileShare } from '../../test/mockFileShare.js';
+import { setInputFiles } from '../../test/setInputFiles.js';
 
 function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
