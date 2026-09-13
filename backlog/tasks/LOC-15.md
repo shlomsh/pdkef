@@ -288,13 +288,13 @@ like a person wrote it. The eight-week read judges the waiver as much as the pag
 `docs/seo-last-crawled.json` under `indexingRequested`. The eight-week read counts from this date, due
 2026-11-08.
 
+**Inbound link added 2026-09-13:** `/pdf-wont-compress-to-100kb/` now links to the Indonesian page
+from a new paragraph in its "Real portals" section, citing SSCASN's own 1MB PDF / 200KB photo caps
+(the same sourced numbers as above). No longer sitemap-only. Verified: build, `test:seo`,
+`test:redirects`, `test:css`, `test:csp` all green; anchor confirmed in the built HTML.
+
 **Open after this lands:**
 
-- The page is reachable from the sitemap only; no English page links to it. Worth one link from
-  `/pdf-wont-compress-to-100kb/` or `/compress/` ("Bahasa Indonesia" in the related block) so it is
-  not an orphan for the crawler. Not done here: it touches an English page's copy.
-- The languages page artifact itself (the self-editing one) still says "source a paid native
-  reviewer"; the repo snapshot is updated, the artifact needs the same edit.
 - Tool follow-ups surfaced by the measured runs (not this ticket): the "closest achievable" notice
   claims unreadability on a sub-1% overshoot; the target search prefers full resolution at floor
   quality on photos (SEO-31's finding again, milder at 200 KB).
