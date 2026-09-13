@@ -123,6 +123,12 @@ sections:
           scan. The same target-size search that runs on a PDF here runs on a JPG or PNG in
           <a href="/compress-image/">Compress Image</a>, with presets down to 20KB, and it shows
           the closest size it found if your file still will not fit.
+      - kind: 'prose'
+        text: >-
+          Indonesia's own civil-service portal, SSCASN, runs the same idea at a looser limit: most
+          PDF documents up to 1MB, with a photograph, KTP and payment proof each capped at 200KB.
+          <a href="/id/kompres-pdf-di-bawah-1-mb/">PDkef's Indonesian-language guide</a> covers
+          those numbers in Bahasa Indonesia, tested against the same compressor as this page.
   - variant: 'highlight'
     sketch: 'waves'
     icon: 'WifiOff'
