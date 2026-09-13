@@ -67,10 +67,13 @@
   color: var(--color-text);
 }
 
-/* Touch only (MERGE-11's pattern): pointer devices reveal the per-page
-   rotate/skip/open cluster on hover, so this toggle - the touch equivalent -
-   is unreachable-but-present for them, per the same media query PageStrip's
-   own hover-revealed actions use. */
+/* Touch, and any phone-width window (MERGE-11's pattern): a fine pointer at
+   desktop width reveals the per-page rotate/skip/open cluster on hover, so
+   the toggle is hidden there. Below 768px PageStrip hides the cluster
+   outright until `data-editing` (there is no room for it on a 72px cell),
+   so a mouse at that width - a narrowed desktop window, a device-mode
+   preview without touch - needs this toggle too; hiding it on pointer type
+   alone left no way at all to reach rotate and open (Shlomi, 2026-09-13). */
 .edit-toggle {
   flex: none;
   min-height: 44px;
@@ -85,7 +88,7 @@
   cursor: pointer;
 }
 
-@media (hover: hover) and (pointer: fine) {
+@media (hover: hover) and (pointer: fine) and (min-width: 768px) {
   .edit-toggle {
     display: none;
   }
