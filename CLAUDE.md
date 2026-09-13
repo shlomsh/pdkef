@@ -59,10 +59,12 @@ npm run test:e2e:fonts    # the 27 font screening guards, unconditionally; CI ga
 
 - The SEO surface (H1, how-it-works, FAQ, JSON-LD) is `.astro` / `src/data/*.js` /
   `src/content/content-pages/*.yaml`, rendered at build time with zero JS shipped.
-- The tools are Preact islands (`src/components/Pdf*Tool.tsx`, `client:load`) over `BasePdfTool.tsx`.
-  Sign and Redact share the framework-free `src/editor/` core (model, geometry, gesture controller,
-  per-type registry) and on-device IndexedDB draft persistence (`src/editor/workspace/draftStore.js`).
-- Tool logic lives in `src/lib/` (`merge.js`, `split.js`, `compress.js`, `toImage.js`, ...) and
+- The tools are Preact islands (`Pdf*Tool.tsx`, `client:load`) over `src/shell/BasePdfTool.tsx`, one
+  folder per tool under `src/tools/<tool>/` (a tool not yet moved by the module-boundaries epic is
+  still flat in `src/components/`). Sign and Redact share the framework-free `src/editor/` core (model,
+  geometry, gesture controller, per-type registry) and on-device IndexedDB draft persistence
+  (`src/editor/workspace/draftStore.js`).
+- Tool logic lives beside its island in `src/tools/<tool>/`, or still in `src/lib/` pre-move, and in
   `src/editor/`. `pdfjs-dist`'s worker is bundled as a same-origin asset, never fetched from a CDN.
 - One request-time exception to "no server": `middleware.ts` negotiates `Accept: text/markdown` for the
   marketing pages. It never sees a PDF byte.

@@ -1,5 +1,5 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { getPdfRenderContext } from '../editor/adapters/pdf/renderContext.js';
+import { getPdfRenderContext } from '../../editor/adapters/pdf/renderContext.js';
 import { searchTargetSize } from './targetSizeSearch.js';
 
 let pdfjsLib;

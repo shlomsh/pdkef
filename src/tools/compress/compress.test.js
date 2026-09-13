@@ -62,7 +62,7 @@ describe('compressPdf library integration with real fixtures', () => {
   });
 
   function getFixtureFile(name) {
-    const filePath = path.resolve(__dirname, './__fixtures__', name);
+    const filePath = path.resolve(__dirname, '../../lib/__fixtures__', name);
     const buffer = fs.readFileSync(filePath);
     return new File([buffer], name, { type: 'application/pdf' });
   }
