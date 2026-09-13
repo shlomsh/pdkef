@@ -80,7 +80,9 @@
 @media (min-width: 768px) {
   /* Desktop keeps its own <summary> as the one control; the row never
      shows a fourth button. */
-  .options-toggle {
+  /* Compound selector on purpose: `.handoff-button` sets display later in
+     this file and would otherwise win at equal specificity. */
+  .handoff-button.options-toggle {
     display: none;
   }
 }
