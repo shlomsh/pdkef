@@ -76,16 +76,18 @@ navigate.
 
 ## 5. Name the output, and let people rename it in place
 
-The heading of the loaded state is the file name the person will get, "<first file> + N more", with
-".pdf" shown muted and fixed. Click or tap the name to rename it inline, Enter or blur commits, Escape
-cancels, empty reverts to the automatic name. Once edited, the name is theirs and stops following the
+The heading of the loaded state is the file name the person will get, "merged_<first file>", with
+".pdf" shown muted and fixed. At rest it is a heading and nothing else: no box, no border, no pencil
+in the text. Click or tap the name and it becomes editable where it is, same font, same size, caret
+where the person clicked, zero layout shift. Enter or blur commits, Escape cancels, empty reverts
+to the automatic name. Once edited, the name is theirs and stops following the
 first file; Clear all resets it; the download attribute and the PDF Title follow it. The name has one
 home: no "Saves as" line elsewhere.
 
-The default pattern is decided: `<first file base name> + N more.pdf`, N counting the other files,
-with one localized template per edition. Open question, recorded in MERGE-11: a name whose first
-strong character is right-to-left may want the Hebrew connector regardless of edition, because the OS
-renders the same string.
+The default pattern is decided (revised 2026-09-13): `merged_<first file base name>.pdf`, the same
+shape as `signed_x.pdf` and `compressed_x.pdf`, chaining when the first file already carries a
+prefix. No count, no connector, never a "+" in a file name. A prefix in the tool's language followed
+by the name in its own direction needs no bidi isolation and no per-edition template.
 
 ## 6. Undo over confirm
 
