@@ -284,10 +284,12 @@ like a person wrote it. The eight-week read judges the waiver as much as the pag
   `test:redirects` (39 routes), `test:css`, `test:weight`, Playwright `e2e/content`, `e2e/localized`,
   `csp-smoke`: all green. The page and the figure page checked in a browser on the preview build.
 
+**Indexing requested 2026-09-13** (Search Console, `/id/kompres-pdf-di-bawah-1-mb/`), recorded in
+`docs/seo-last-crawled.json` under `indexingRequested`. The eight-week read counts from this date, due
+2026-11-08.
+
 **Open after this lands:**
 
-- Push, then Shlomi requests indexing in Search Console and the date goes here and in
-  `docs/seo-last-crawled.json` under `indexingRequested`. Eight-week read counts from that date.
 - The page is reachable from the sitemap only; no English page links to it. Worth one link from
   `/pdf-wont-compress-to-100kb/` or `/compress/` ("Bahasa Indonesia" in the related block) so it is
   not an orphan for the crawler. Not done here: it touches an English page's copy.
