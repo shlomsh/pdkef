@@ -2,8 +2,8 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import EditorExportActions, { type EditorExportActionsProps } from './EditorExportActions.tsx';
-import styles from './SignTool/SignToolbar.module.css';
-import workspaceStyles from './SignTool/Workspace.module.css';
+import styles from '../components/SignTool/SignToolbar.module.css';
+import workspaceStyles from '../components/SignTool/Workspace.module.css';
 
 function required<T>(value: T | null | undefined, description: string): T {
   if (value == null) throw new Error(`Expected ${description}`);

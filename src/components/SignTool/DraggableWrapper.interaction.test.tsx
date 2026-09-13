@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import TextNode from './nodes/TextNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
-import { FONT_PREVIEW_DELAY_MS } from '../FontPickerMenu.tsx';
+import { FONT_PREVIEW_DELAY_MS } from '../../editor-ui/FontPickerMenu.tsx';
 import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../../constants/signGeometry.js';
 import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '../../editor/model/editorModel.ts';
 

@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from 'preact/hooks';
 import { useSignTool } from './SignToolContext.tsx';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignFeedbackButton from './SignFeedbackButton.tsx';
-import ViewControl from '../ViewControl.tsx';
+import ViewControl from '../../editor-ui/ViewControl.tsx';
 import Popover from '../../shell/Popover.tsx';
-import EditorToolStatus from '../EditorToolStatus.tsx';
-import ArmHint from '../ArmHint.tsx';
+import EditorToolStatus from '../../editor-ui/EditorToolStatus.tsx';
+import ArmHint from '../../editor-ui/ArmHint.tsx';
 import ExportReadinessNotice from './ExportReadinessNotice.tsx';
-import EditorExportActions from '../EditorExportActions.tsx';
+import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../../shell/ToolShell.tsx';
 import { makeArmTool, useAutoArmHint } from '../../lib/toolArming.js';
 import { englishShellMessages, englishSignMessages, formatMessage, type SignMessages } from '../../i18n/toolMessages';
@@ -15,7 +15,7 @@ import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import type { SignToolType } from '../../editor/model/editorModel.ts';
 import styles from './SignToolbar.module.css';
-import controlStyles from '../EditorControls.module.css';
+import controlStyles from '../../editor-ui/EditorControls.module.css';
 
 // The tools that live behind the Shapes button, so its pressed/locked state and
 // its lock target read from one list instead of three copies of the same array.

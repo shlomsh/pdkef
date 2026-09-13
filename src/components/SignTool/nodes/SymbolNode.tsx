@@ -1,4 +1,4 @@
-import ElementResizers from '../../ElementResizers.tsx';
+import ElementResizers from '../../../editor-ui/ElementResizers.tsx';
 import { DEFAULT_COLOR_BLUE } from '../../../constants/signGeometry.js';
 import { DESIGN_BOX, markGeometry, markPathData } from '../../../editor/registry/symbolMarks.ts';
 import type { SymbolElement, SymbolMark } from '../../../editor/model/editorModel.ts';

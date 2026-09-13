@@ -1,8 +1,8 @@
 import { getElementDefinition } from '../editor/registry/index.ts';
 import type { EditorElement } from '../editor/model/editorModel.ts';
-import type { NodeResizeStart } from './SignTool/nodeProps.ts';
+import type { NodeResizeStart } from '../components/SignTool/nodeProps.ts';
 import { englishSignMessages, type SignMessages } from '../i18n/toolMessages';
-import styles from './SignTool/EditorElement.module.css';
+import styles from '../components/SignTool/EditorElement.module.css';
 
 export default function ElementResizers({ element, isActive, onResizeStart, messages }: {
   element: EditorElement;
