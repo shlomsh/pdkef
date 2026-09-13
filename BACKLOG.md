@@ -308,9 +308,7 @@ _None._
 
 ### Blocked
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| ARCH-18 | P1 | [ARCH-18](backlog/tasks/ARCH-18.md) · Merge and Sign into src/tools/, once the merge-tool epic's branch has landed |
+_None._
 
 ### Done
 
@@ -319,6 +317,7 @@ _None._
 | ARCH-15 | P1 | [ARCH-15](backlog/tasks/ARCH-15.md) · Module boundaries: the target layout, the dependency rules, and a checker that ratchets today's violations down |
 | ARCH-16 | P1 | [ARCH-16](backlog/tasks/ARCH-16.md) · Move the shared shell and the editor UI out of src/components into src/shell and src/editor-ui |
 | ARCH-17 | P1 | [ARCH-17](backlog/tasks/ARCH-17.md) · One folder per tool: Compress, Split, Edit pages, PDF to image, Image to PDF, Unlock/Protect and Redact into src/tools/ |
+| ARCH-18 | P1 | [ARCH-18](backlog/tasks/ARCH-18.md) · Merge and Sign into src/tools/, once the merge-tool epic's branch has landed |
 | ARCH-19 | P2 | [ARCH-19](backlog/tasks/ARCH-19.md) · The editor core stops importing Preact components: fix the four src/editor to src/components leaks |
 
 ### Retired
