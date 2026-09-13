@@ -1247,7 +1247,12 @@ export default function PdfMergeTool({
                     <button type="button" class={railStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
                     <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
                     {entries.length >= 2 && (
-                      <label class={railStyles['sort-select-wrap']}>
+                      <label class={`${railStyles['sort-select-wrap']} ${docStyles['popover-sort']}`}>
+                        {/* Shlomi (2026-09-13): alone in this popover, "As
+                            added" did not say what it was the order OF; the
+                            rail's file list makes that obvious, this list
+                            of buttons does not. */}
+                        <span class={docStyles['popover-sort-label']}>{t.sortFilesLabel}</span>
                         <select class={railStyles['sort-select']} aria-label={t.sortLabel} value={sortMode} onChange={onSortChange}>
                           <option value="added">{t.sortAsAdded}</option>
                           <option value="reversed">{t.sortReversed}</option>

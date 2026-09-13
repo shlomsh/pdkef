@@ -481,3 +481,14 @@
     display: none;
   }
 }
+
+/* The popover's Sort row: a visible lead-in before the select, since the
+   select alone ("As added") does not say it orders the files. */
+.popover-sort {
+  gap: var(--space-2);
+}
+
+.popover-sort-label {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}

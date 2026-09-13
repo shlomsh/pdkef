@@ -47,6 +47,10 @@ export interface MergeMessages {
    * native select), Reverse folded into it as its own option, and an Options
    * disclosure collapsed by default. */
   sortLabel: string;
+  /** Visible lead-in for the Sort select where it stands alone in the
+   * phone popover, so "As added" reads as an order of files rather than as
+   * a setting of its own (Shlomi, 2026-09-13). */
+  sortFilesLabel: string;
   sortAsAdded: string;
   sortReversed: string;
   sortNameAsc: string;
@@ -173,6 +177,7 @@ const englishMergeMessages: MergeMessages = {
   fileSummaryOne: '1 PDF',
   fileSummaryMany: '{count} PDFs',
   sortLabel: 'Sort',
+  sortFilesLabel: 'File order',
   sortAsAdded: 'As added',
   sortReversed: 'Reversed',
   sortNameAsc: 'Name A to Z',
@@ -279,6 +284,7 @@ const hebrewMergeMessages: MergeMessages = {
   // MERGE-02..12 (2026-09-13): AI draft, not reviewed copy, same caveat as
   // the rest of this catalogue. Flagged for Shlomi's review in the epic report.
   sortLabel: 'מיון',
+  sortFilesLabel: 'סדר הקבצים',
   sortAsAdded: 'לפי סדר ההוספה',
   sortReversed: 'הפוך',
   sortNameAsc: 'שם, א עד ת',
