@@ -4,8 +4,30 @@ import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS } from '../../constants
 import PdfPageCanvas from '../PdfPageCanvas.tsx';
 import EditorPageHeader from '../EditorPageHeader.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
-import { getElementRenderer } from '../../editor/registry/renderers.ts';
+import { getElementRenderer, registerRenderer } from '../../editor/registry/renderers.ts';
+import TextNode from './nodes/TextNode.tsx';
+import ShapeNode from './nodes/ShapeNode.tsx';
+import LineNode from './nodes/LineNode.tsx';
+import SignatureNode from './nodes/SignatureNode.tsx';
+import SymbolNode from './nodes/SymbolNode.tsx';
+import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import type { EditorElement, EditorElementPatch } from '../../editor/model/editorModel.ts';
+
+// Registers Sign's node components with the editor core's renderer registry.
+// A module-level side effect, not a hook: it must run once, before the first
+// `getElementRenderer(...)` call below, and importing this module already
+// guarantees that (ES modules run their top-level code before anything that
+// imports them can call back into it). Redact never needs to do this - its
+// elements always render through the `renderTarget: 'redact'` branch in
+// renderers.ts, which is core-only and never calls into a registered
+// component. See registry/renderers.test.ts for the ordering/error contract.
+registerRenderer('text', TextNode);
+registerRenderer('rectangle', ShapeNode);
+registerRenderer('ellipse', ShapeNode);
+registerRenderer('line', LineNode);
+registerRenderer('symbol', SymbolNode);
+registerRenderer('signature', SignatureNode);
+registerRenderer('whiteout', WhiteoutNode);
 import { useSignTool } from './SignToolContext.tsx';
 import { useSignDefaults } from './SignDefaultsContext.tsx';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
