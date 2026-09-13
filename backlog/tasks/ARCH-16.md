@@ -1,7 +1,7 @@
 ---
 id: "ARCH-16"
 title: "Move the shared shell and the editor UI out of src/components into src/shell and src/editor-ui"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "module-boundaries"
 phase: "near-term"
@@ -34,3 +34,20 @@ home that is not the same flat folder they are leaving. Today `BasePdfTool.tsx` 
 - `src/components/` contains only the nine `Pdf*Tool.tsx` islands, `MergeTool/`, `SignTool/`,
   `RedactBox`/`RedactToolbar`, `HeroDemo/` and the `.astro` files.
 - One commit per folder (`shell`, then `editor-ui`), each green on its own.
+
+## Notes
+
+- Done 2026-09-13 in `bbfaedd` (32 files to `src/shell/`, incl. the record's four additions
+  `Dialog`/`PdfTool`/`FileList`/`PageGrid.module.css` and `CompareSlider`) and `6d7dc51` (28 files to
+  `src/editor-ui/`, plus `src/lib/useViewDensity.js`). Unit count unchanged; every check and all
+  four Playwright projects green after each commit. Allowlist stayed at 25 (the editor-ui entries
+  were relabelled, none resolved: their targets are in `SignTool/`, ARCH-18).
+- `DeletableObjectOverlay.tsx` and `DeleteMark.tsx` stayed flat: they are Redact-only (their one
+  dependency is `PdfRedactTool.module.css`), so `editor-ui` would have been a new violation. They
+  move with Redact in ARCH-17.
+- `src/components/noCamelCaseSvgAttrs.test.js` only scanned its own directory, so the moves would
+  have silently dropped 28 cases; it now scans the new folders too. ARCH-17 should move it to
+  `src/test/` and have it walk all of `src/`.
+- `src/styles/` `@source` lists, `DOM_TESTS`, `check-editor-dependency-directions.mjs` and
+  `playwright.config.js` needed no change; `.claude/rules/{editor,home-page,fonts-and-text}.md`
+  `paths:` did.
