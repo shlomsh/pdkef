@@ -36,6 +36,21 @@ on:
 # two workers, and halving it needs no knowledge of the code, unlike the
 # per-tool gating ARCH-20 plans. Each shard pays the fixed cost (npm ci,
 # build, browser install) again, which is the trade the ticket accepts.
+#
+# ARCH-20 (2026-09-14): `checks`, each `e2e` shard and `font-guards` narrow
+# their own unit/e2e work to what a real Nx project graph (one project per
+# src/shell, src/editor, src/editor-ui, src/lib, src/tools/<tool>/, the site,
+# public/fonts and the e2e trees - see nx.json and the project.json files)
+# says the push affects. `scripts/affected-scope.mjs` is the oracle - it asks
+# `nx show projects --affected`, then each job runs ONE `vitest run <paths>`
+# or `playwright test <paths>` itself; Nx never executes a test directly (see
+# docs/nx-affected-ci.md for why 17 separate `nx run <project>:test` calls
+# would cost more than they save whenever most projects are affected). The
+# affected computation happens INSIDE each consuming job, right after its own
+# `npm ci`, not in `scope`: `scope` has no node_modules and stays ~6s so every
+# other job isn't waiting on an `npm ci` most runs don't need to narrow
+# anything from. `scope` only adds a `base` output (the resolved base sha)
+# for the consuming jobs to reuse, so all of them agree on the same diff.
 jobs:
   # Everything that needs no build: source guards, the unit suite, typecheck.
   checks:
@@ -55,6 +70,20 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    # scripts/affected-scope.mjs asks Nx which projects the push affects and
+    # prints what to narrow the unit run to. Right after npm ci (needs
+    # node_modules for `nx`), not in `scope` (see the header comment above).
+    # Fails open (everything=true) with no usable base, an nx error, or an
+    # unowned changed file - see the script's own header for the full rules.
+    - name: Resolve affected scope
+      id: affected
+      env:
+        BASE: ${{ needs.scope.outputs.base }}
+      run: |
+        if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
+        node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
+        node scripts/affected-scope.mjs --base "$BASE" --summary >> "$GITHUB_STEP_SUMMARY"
+
     # poppler-utils gives the W6 extraction guard (src/lib/sign.test.js) its
     # `pdftotext` half. Without it that half self-skips with a warning, which
     # would leave the one assertion that actually proves /ActualText works
@@ -64,7 +93,10 @@ jobs:
 
     # backlog/tasks/*.md is the canonical board; BACKLOG.md and TODO.md are
     # generated from it. Fails on malformed task metadata, a dependency that
-    # does not resolve, or a stale generated view (ARCH-12).
+    # does not resolve, or a stale generated view (ARCH-12). Source guards
+    # stay unconditional - nothing in scripts/, backlog/ or docs/ is claimed
+    # by any Nx project on purpose (see docs/nx-affected-ci.md's root-project
+    # trap), so `nx affected` was never going to narrow these anyway.
     - name: Validate backlog and generated indexes
       run: npm run check:backlog
 
@@ -75,8 +107,10 @@ jobs:
     - name: Validate agent guidance budget
       run: npm run check:guidance
 
+    # Empty unit_paths means affected-scope.mjs saw everything=true; `vitest
+    # run` with no path arguments is the unnarrowed, full-suite form.
     - name: Run tests
-      run: npm run test
+      run: npx vitest run ${{ steps.affected.outputs.unit_paths }}
 
     - name: Typecheck
       run: npm run typecheck
@@ -184,6 +218,21 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    # Right after npm ci (needs node_modules for `nx`), so both shards agree
+    # on the same affected paths - see the workflow header comment and
+    # docs/nx-affected-ci.md. Empty e2e_paths means either everything=true
+    # (run the full suite) or nothing e2e-relevant is affected; either way,
+    # `--pass-with-no-tests` below makes a narrowed, zero-match project exit
+    # 0 instead of Playwright's default failure for that case.
+    - name: Resolve affected scope
+      id: affected
+      env:
+        BASE: ${{ needs.scope.outputs.base }}
+      run: |
+        if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
+        node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
+        node scripts/affected-scope.mjs --base "$BASE" --summary >> "$GITHUB_STEP_SUMMARY"
+
     - name: Build
       run: npm run build
 
@@ -198,18 +247,23 @@ jobs:
     # One command per project, each sharded, rather than one sharded command
     # over both: Playwright shards by test count in project order, which put
     # all 21 webkit tests (3s each, against 1.3s for chromium) in shard 2 and
-    # made it 153s of test time against shard 1's 90s.
+    # made it 153s of test time against shard 1's 90s. $E2E_PATHS is empty
+    # (no filter, the full suite) when affected-scope.mjs saw everything=true.
     - name: Run Playwright e2e tests (product, shard ${{ matrix.shard }}/2)
+      env:
+        E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
       run: |
-        npx playwright test --project=chromium --shard=${{ matrix.shard }}/2
-        npx playwright test --project=webkit --shard=${{ matrix.shard }}/2
+        npx playwright test --project=chromium --shard=${{ matrix.shard }}/2 --pass-with-no-tests $E2E_PATHS
+        npx playwright test --project=webkit --shard=${{ matrix.shard }}/2 --pass-with-no-tests $E2E_PATHS
 
     # The wall-clock budget specs, on one worker so nothing else on the
     # runner is in the measurement (see PERF_BUDGETS in playwright.config.js).
     # They run once, in shard 1 only.
     - name: Run Playwright e2e tests (performance budgets, one worker)
       if: matrix.shard == 1
-      run: npx playwright test --project=perf --workers=1
+      env:
+        E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
+      run: npx playwright test --project=perf --workers=1 --pass-with-no-tests $E2E_PATHS
 
     - name: Upload Playwright artifacts
       if: failure()
@@ -222,20 +276,25 @@ jobs:
         if-no-files-found: ignore
 
   # Classifies the change, so the jobs above run only when it can reach them.
-  # What the classes are lives in scripts/change-scope.mjs, which the local
-  # `test:e2e` script asks too, so the two cannot drift. Two verdicts:
   # `docs_only` (backlog, docs, guidance, root markdown: a third of the commits
   # on main, which used to build the site and open browsers to validate a
-  # task file) and `fonts` (something the font guards load changed). A
-  # docs-only change is checked right here, by the two guards that read those
-  # files. Fails open: without a resolvable base, nothing is docs-only and the
-  # guards run.
+  # task file) lives in scripts/change-scope.mjs, unchanged by ARCH-20 - it
+  # answers "did anything buildable change at all," not a per-project
+  # question. A docs-only change is checked right here, by the two guards
+  # that read those files. Fails open: without a resolvable base, nothing is
+  # docs-only and every other job runs.
+  #
+  # This job stays dependency-free (no `npm ci`) on purpose - see the
+  # workflow header comment. It resolves BASE once and outputs it as `base`
+  # so `checks`, each `e2e` shard and `font-guards` can each run their own
+  # `scripts/affected-scope.mjs` (which needs `node_modules` for `nx`, hence
+  # cannot live here) against the same diff.
   scope:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     outputs:
       docs_only: ${{ steps.classify.outputs.docs_only }}
-      fonts: ${{ steps.classify.outputs.fonts }}
+      base: ${{ steps.classify.outputs.base }}
 
     steps:
     - uses: actions/checkout@v5
@@ -252,6 +311,7 @@ jobs:
       run: |
         if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
         node scripts/change-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
+        echo "base=$BASE" >> "$GITHUB_OUTPUT"
 
     # Dependency-free node scripts, so no `npm ci` here.
     - name: Validate backlog and generated indexes (docs-only change)
@@ -264,17 +324,20 @@ jobs:
 
   # The 27 font screening guards (the `fonts` Playwright project): shaping
   # guards per script, font parity, the export render guard, Hebrew
-  # composition, language acceptance. Runs when their inputs changed, on the
-  # nightly schedule, and on every manual dispatch (the baseline recapture
-  # needs it). Fails open: if the scope job did not produce a verdict, run.
+  # composition, language acceptance. This job now starts on every non-docs
+  # run (same fail-open `if:` as `checks`/`build`/`e2e`) and computes its own
+  # `fonts` boolean right after `npm ci`, via scripts/affected-scope.mjs's
+  # `fonts` Nx project (public/fonts, src/editor, src/lib, tool-sign) -
+  # ARCH-20 retired the hand-kept `FONT_GUARD_INPUTS` list this used to read
+  # from the `scope` job. Every step after that reads costs one runner ~20s
+  # in parallel with `checks`/`e2e` and no wall time when fonts is not
+  # affected; on the nightly schedule and a manual dispatch (no `scope` job,
+  # no base - the baseline recapture needs this) affected-scope.mjs's own
+  # fail-open rule makes fonts=true, so those still run.
   font-guards:
     runs-on: ubuntu-latest
     needs: scope
-    if: >-
-      always() && (
-        needs.scope.result != 'success' ||
-        needs.scope.outputs.fonts == 'true'
-      )
+    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
 
     steps:
     - uses: actions/checkout@v5
@@ -288,29 +351,42 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Resolve affected scope
+      id: affected
+      env:
+        BASE: ${{ needs.scope.outputs.base }}
+      run: |
+        if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
+        node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
+        node scripts/affected-scope.mjs --base "$BASE" --summary >> "$GITHUB_STEP_SUMMARY"
+
     - name: Build
+      if: steps.affected.outputs.fonts == 'true'
       run: npm run build
 
     - name: Resolve Playwright version
       id: playwright
+      if: steps.affected.outputs.fonts == 'true'
       run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
     - name: Cache Playwright browsers
       id: playwright-cache
+      if: steps.affected.outputs.fonts == 'true'
       uses: actions/cache@v4
       with:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
 
     - name: Install Playwright browsers
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
+      if: steps.affected.outputs.fonts == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
       run: npx playwright install --with-deps chromium
 
     - name: Install Playwright system dependencies
-      if: steps.playwright-cache.outputs.cache-hit == 'true'
+      if: steps.affected.outputs.fonts == 'true' && steps.playwright-cache.outputs.cache-hit == 'true'
       run: npx playwright install-deps chromium
 
     - name: Run Playwright e2e tests (font guards)
+      if: steps.affected.outputs.fonts == 'true'
       run: npx playwright test --project=fonts
 
     # Prints the recaptured baseline rather than committing it. Review the
