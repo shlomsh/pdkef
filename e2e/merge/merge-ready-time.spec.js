@@ -7,7 +7,11 @@ import { readFile } from 'node:fs/promises';
    PREPARE_DEBOUNCE_MS), so under 1100ms total from the files landing to the
    Download link carrying a usable href. A distinct page width per file lets
    pdf-lib identify which file's page ended up first in the output, without
-   drawing any text (kept small and fast to build). */
+   drawing any text (kept small and fast to build).
+
+   Direction A (2026-09-13): the file rows this spec waits on are the rail's
+   (MergeRail.module.css's `.file-row`), a 320px glance-at column beside the
+   document grid, not a full-width list. */
 const FILE_COUNT = 20;
 const PAGES_PER_FILE = 10;
 
@@ -36,13 +40,15 @@ test('Download is ready well under a second for a 20-file, 200-page set', async 
 
   await page.evaluate(() => { window.__mergeReadyStart = performance.now(); });
   await page.locator('input[type="file"]').setInputFiles(files);
-  const rows = page.locator('ul[class*="file-list"] > li');
+  const rows = page.locator('ul[class*="file-list"] > li[class*="file-row"]');
   await expect(rows).toHaveCount(FILE_COUNT);
   // "The last change" in the ticket's sense is the moment the set is known:
   // every row has its page count, which is when the idle wait starts. What
   // comes before it (inspecting twenty files, rendering twenty thumbnails) is
-  // work per file added, not part of the pre-merge this guards.
-  await expect(rows.last().locator('[class*="file-meta"]')).toContainText('pages');
+  // work per file added, not part of the pre-merge this guards. The rail row
+  // (MergeRail.module.css's `.file-pages`) shows the raw count, not a
+  // localized "N pages" string - "…" until inspectPdf resolves it.
+  await expect(rows.last().locator('[class*="file-pages"]')).not.toHaveText('…');
   const knownAtMs = await page.evaluate(() => performance.now() - window.__mergeReadyStart);
 
   const downloadLink = page.getByRole('link', { name: /Download merged PDF/ });
@@ -78,12 +84,15 @@ test('a mid-prepare reorder cancels the running merge and delivers the new order
 
   const files = await buildFixtureFiles();
   await page.locator('input[type="file"]').setInputFiles(files);
-  await expect(page.locator('ul[class*="file-list"] > li')).toHaveCount(FILE_COUNT);
+  await expect(page.locator('ul[class*="file-list"] > li[class*="file-row"]')).toHaveCount(FILE_COUNT);
 
-  // Fired as soon as the sort toolbar exists, well inside the 600ms idle
-  // window a fresh pre-merge is waiting out - this cancels it and restarts
-  // against the reversed order.
-  await page.getByRole('button', { name: 'Reverse order', exact: true }).click();
+  // Direction A folded Reverse into the rail's Sort select as its own
+  // option, rather than a separate "Reverse order" button. Fired as soon as
+  // the select exists, well inside the 600ms idle window a fresh pre-merge
+  // is waiting out - this cancels it and restarts against the reversed
+  // order. Scoped to the rail: the phone chip row's "⋯" menu carries the
+  // same select, CSS-hidden at this (desktop) viewport but still in the DOM.
+  await page.locator('[class*="rail"] select[aria-label="Sort"]').selectOption('reversed');
 
   const downloadLink = page.getByRole('link', { name: /Download merged PDF/ });
   await expect(downloadLink).toHaveAttribute('href', /^blob:/, { timeout: 5_000 });

@@ -8,9 +8,11 @@ import { PDFDocument } from '@cantoo/pdf-lib';
    PdfCompressTool.tsx's useHandoffIntake('compress', ...) call already
    exist), so this is the real guard rather than a test.skip placeholder.
 
-   The lead changed the row mid-wave: "Compress it" and "Sign it" are now
-   BUTTONS (role button, class quiet-link), not links - they still navigate
-   via `navigate()` (window.location.href) after saving the hand-off, just
+   Direction A (2026-09-13): the row lives in the rail's pinned footer
+   (MergeRail.module.css's `.handoff-row`, `.handoff-button`), under the
+   Download element, alongside Share (when available) - "Compress it" and
+   "Sign it" are BUTTONS (role button), not links; they navigate via
+   `navigate()` (window.location.href) after saving the hand-off, just
    without an <a href> to assert against - and "Split it" was dropped
    entirely on Shlomi's decision, so it is not covered here. */
 

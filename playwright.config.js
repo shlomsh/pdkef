@@ -35,7 +35,7 @@ export default defineConfig({
       // that spec's header comment and the MERGE-01 ticket's Root cause
       // section), so it runs here too as the one other engine this suite
       // exercises.
-      testMatch: ['**/recent-files.spec.js', '**/redact-mobile-export.spec.js', '**/thumbnail-render.spec.js', '**/merge-mobile.spec.js'],
+      testMatch: ['**/recent-files.spec.js', '**/redact-mobile-export.spec.js', '**/thumbnail-render.spec.js', '**/merge-mobile.spec.js', '**/merge-direction-a.spec.js'],
       use: { ...devices['iPhone 15'] },
     },
   ],

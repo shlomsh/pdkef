@@ -10,6 +10,13 @@
 // repro file kept byte-identical in src/lib/__fixtures__; `three-page-header.pdf`
 // is a second, independently generated file of the same shape; `num-1.pdf` is
 // the known-good control.
+//
+// Direction A (2026-09-13): the rail's file rows (MergeRail.module.css's
+// `.file-row`) no longer carry a per-file thumbnail - a colour tag dot
+// stands in for it (see PdfMergeTool.tsx's `.tag-square`), and the rendered
+// page-1 thumbnail lives only in the document grid's first page cell
+// (PageStrip.tsx's `<img class="thumb">`, inside `li[data-key]`). The guard
+// moves there; the fixture set and the pixel assertion are unchanged.
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -43,10 +50,12 @@ async function uploadAndCountNonWhitePixels(page, fixtureName) {
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
   await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES_DIR, fixtureName));
 
-  // The list only renders an <img> once `entry.thumbnail` resolves; before
-  // that it's a `.thumb-placeholder` <span>, so waiting for this locator to
-  // attach already proves the render finished, not just that the file loaded.
-  const thumb = page.locator('li img[class*="is-loaded"]').first();
+  // The grid only renders an <img> once the page's own thumbnail resolves
+  // (PageStrip.tsx); before that the cell's `.thumb-box` is empty, so waiting
+  // for this locator to attach already proves the render finished, not just
+  // that the file loaded. Page 1 of the uploaded file is always the grid's
+  // first cell.
+  const thumb = page.locator('ul[class*="grid"] > li[data-key] img[class*="thumb"]').first();
   await expect(thumb).toHaveAttribute('src', /^data:/, { timeout: 10_000 });
 
   return countNonWhitePixels(thumb);

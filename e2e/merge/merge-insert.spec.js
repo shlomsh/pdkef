@@ -1,11 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
 
-/* MERGE-07: dropping a file onto the list shows an insertion line between
-   rows and inserts there, instead of always appending. The app paints
-   `data-insert-before` on the row a native file drag is currently hovering
-   over (a window-level `dragover` listener in PdfMergeTool.tsx), then reads
-   the recorded index back on `drop`. Synthesized here with an in-page
+/* Direction A (2026-09-13): MERGE-07's insertion line still paints, on the
+   rail's file rows, at 1024px and up. The rail's file list is now a plain
+   `<ul>` (MergeRail.module.css's `.file-list`) of `<li class="file-row"
+   data-id>` rows, not the old `ul[class*="file-list"]` from before the
+   rail existed as its own surface - same class name, new context (a 320px
+   sticky rail beside the document, not a full-width card). The window-level
+   `dragover`/`drop` handling in PdfMergeTool.tsx that paints
+   `data-insert-before` is unchanged. Synthesized here with an in-page
    DataTransfer per docs/troubleshooting.md's drag-and-drop guidance. */
 
 async function makePdfBuffer(label) {
@@ -16,10 +19,10 @@ async function makePdfBuffer(label) {
 }
 
 function rows(page) {
-  return page.locator('ul[class*="file-list"] > li');
+  return page.locator('ul[class*="file-list"] > li[class*="file-row"]');
 }
 
-test('a file dropped between two rows inserts there, with an insertion line first', async ({ page }) => {
+test('a file dropped between two rail rows inserts there, with an insertion line first', async ({ page }) => {
   await page.goto('/merge/');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
 

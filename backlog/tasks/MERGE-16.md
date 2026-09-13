@@ -49,3 +49,4 @@ Download-ready time on the 20-file fixture (MERGE-12), crash restore (MERGE-13).
   rows need the Vercel dashboard and are Shlomi's, as is the Speed Insights INP read after deploy;
   `ANALYTICS.md` records that Merge's `tool_operation_started` now fires on the Download tap so the
   read compares like with like. Guards done; the readings stay open with Shlomi.
+- Direction A (2026-09-13): the guards follow the new structure (rail rows, the wrapping grid, the chip row and bottom sheet at iPhone 15 on both engines, the grid cell thumbnail for the pixel guard) and three joined in merge-direction-a.spec.js: the Download element keeps its DOM node across preparing and ready, a caption's centre resolves to the caption under elementFromPoint, and the phone subhead shows one whole sentence with no clipped line. 29 passed on chromium and webkit against the 4173 preview.

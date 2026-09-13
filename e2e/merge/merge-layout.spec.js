@@ -2,6 +2,16 @@ import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { readFile } from 'node:fs/promises';
 
+/* Direction A (2026-09-13): the document is the centre. Merge's card
+   (`.tool-card`, unchanged) still fills the width before any file is
+   loaded, which is what the empty-state boxes below prove; once files land
+   the old identity card / sort toolbar / Merge button are gone, replaced by
+   the white "document" (the page grid, heading `#merge-pages-heading`) and
+   a 320px rail. There is no Merge button - the pre-merge runs in the
+   background and the Download element (one <a data-state>) reports on the
+   result directly, so this spec checks that it arrives ready with an href,
+   a download name and "2 pages", never a second, stacked "done" state. */
+
 async function makePdfBuffer(label, pageCount = 1) {
   const document = await PDFDocument.create();
   for (let i = 0; i < pageCount; i += 1) document.addPage([612, 792]);
@@ -48,10 +58,9 @@ test('keeps the Merge card full width and spaces the native-share icon', async (
   })));
   await page.locator('input[type="file"]').setInputFiles(files);
 
-  // MERGE-03: Merge is gone. The pre-merge runs in the background and the
-  // Download link replaces it in place once ready - there is never a second,
-  // stacked "done" button.
-  await expect(page.getByRole('button', { name: /Merge/i })).toHaveCount(0);
+  // Direction A: there is no Merge button at all, loaded or otherwise - the
+  // Download element is the only report on the result.
+  await expect(page.getByRole('button', { name: /^Merge/i })).toHaveCount(0);
 
   const downloadLink = page.getByRole('link', { name: /Download merged PDF/ });
   await expect(downloadLink).toBeVisible({ timeout: 10_000 });
@@ -59,16 +68,22 @@ test('keeps the Merge card full width and spaces the native-share icon', async (
   await expect(downloadLink).toHaveAttribute('download', 'merged_first.pdf');
   await expect(downloadLink).toContainText('2 pages');
 
-  // Exactly one primary control: the in-progress `.tool-primary-action` button
-  // is gone the moment the anchor takes over, never both at once.
-  await expect(page.locator('[class*="tool-primary-action"]')).toHaveCount(0);
+  // Exactly one Download element node, in the "ready" state - never a
+  // second, stacked done indicator alongside it.
+  await expect(page.locator('[data-state]')).toHaveCount(1);
+  await expect(downloadLink).toHaveAttribute('data-state', 'ready');
 
+  // Share sits in the rail's hand-off row alongside Compress it / Sign it.
   const shareButton = page.locator('[class*="pdf-share-button"]');
   await expect(shareButton).toBeVisible();
 
   // E2.6: the icon and label must be a real flex row with a visible, tokenized
   // gap instead of relying on adjacent inline SVG/text layout.
-  await expect(shareButton).toHaveCSS('display', 'inline-flex');
+  // PdfTool.module.css declares `display: inline-flex`, but Direction A's
+  // rail puts Share inside `.handoff-row` (`display: flex`), making it a
+  // flex item - CSS blockification then reports the computed value as
+  // "flex", not "inline-flex", which is correct per spec, not a regression.
+  await expect(shareButton).toHaveCSS('display', 'flex');
   await expect(shareButton).toHaveCSS('align-items', 'center');
   await expect(shareButton).toHaveCSS('gap', '8px');
 });
