@@ -143,6 +143,6 @@ test.describe('Merge on a phone (MERGE-06)', () => {
       page.waitForEvent('download'),
       downloadLink.click(),
     ]);
-    expect(download.suggestedFilename()).toBe('merged_a.pdf');
+    expect(download.suggestedFilename()).toBe('a + 1 more.pdf');
   });
 });

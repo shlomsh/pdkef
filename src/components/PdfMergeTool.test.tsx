@@ -144,6 +144,20 @@ describe('PdfMergeTool UI flow', () => {
     expect(dropzone.textContent).toContain('Drop PDFs here');
   });
 
+  // Item 5 (Shlomi's follow-up, 2026-09-13): Merge always opts into the
+  // desktop-only empty-state band (BasePdfTool's `emptyVariant="band"`); the
+  // band's own two lines and the Choose files button are in the markup
+  // regardless of viewport (Dropzone.module.css's `[data-variant="band"]`
+  // media query is what actually shows them only at 1024px and up).
+  it('opts the empty state into the band variant, with its own heading, body and Choose files', () => {
+    mount();
+    const dropzone = container.querySelector(`.${dropzoneStyles.dropzone}`);
+    expect(dropzone.getAttribute('data-variant')).toBe('band');
+    expect(dropzone.textContent).toContain('Drop PDFs here, or paste');
+    expect(dropzone.textContent).toContain('Your pages appear here, in order, before you download. Files never leave your device.');
+    expect(dropzone.textContent).toContain('Choose files');
+  });
+
   it('lists one file with its page count and asks for one more PDF instead of offering Download', async () => {
     mount();
     pageCounts.set('one.pdf', { pageCount: 3, encrypted: false });
@@ -158,6 +172,21 @@ describe('PdfMergeTool UI flow', () => {
     expect(box.textContent).toContain('Add one more PDF to merge');
     expect(downloadLink()).toBeNull();
     expect(mergeLib.mergePdfs).not.toHaveBeenCalled();
+  });
+
+  // Item 2 (Shlomi's follow-up, 2026-09-13): jsdom cannot measure where an
+  // ellipsis actually lands or prove a mixed-direction name renders right to
+  // left correctly - this only asserts the two things that make that
+  // possible: `dir="auto"` (so the browser picks the name's own direction,
+  // not the page's) and the module class carrying `unicode-bidi: plaintext`
+  // (so a Hebrew name's own trailing ".pdf" stays at its logical end under
+  // ellipsis, rather than the Latin suffix flipping to the visual start).
+  it('the rail row\'s file name is bidi plaintext with dir="auto"', async () => {
+    mount();
+    await loadFiles(['one.pdf']);
+    const name = container.querySelector(`.${railStyles['file-row']} .${railStyles['file-name']}`);
+    expect(name.getAttribute('dir')).toBe('auto');
+    expect(name.className).toContain(railStyles['file-name']);
   });
 
   it('pre-merges two files on idle and turns Download into the only primary control, named after the first file', async () => {
@@ -177,7 +206,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
     const [files, options] = mergeLib.mergePdfs.mock.calls[0];
     expect(files.map((f) => f.name)).toEqual(['Invoice 2024-03-01.pdf', 'doc2.pdf']);
-    expect(options.title).toBe('merged_Invoice 2024-03-01');
+    expect(options.title).toBe('Invoice 2024-03-01 + 1 more');
     expect(options.plan).toHaveLength(4);
     expect(options.plan[2]).toEqual({ fileIndex: 1, pageIndex: 0, rotation: 0, skipped: false });
 
@@ -185,7 +214,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(link).not.toBeNull();
     expect(link.getAttribute('data-state')).toBe('ready');
     expect(link.getAttribute('href')).toBe('blob:testurl');
-    expect(link.getAttribute('download')).toBe('merged_Invoice 2024-03-01.pdf');
+    expect(link.getAttribute('download')).toBe('Invoice 2024-03-01 + 1 more.pdf');
     expect(link.textContent).toContain('4 pages');
     // Exactly one Download element, same node throughout: no separate
     // "Merge" control ever appears.
@@ -200,7 +229,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share).toHaveBeenCalledOnce();
-    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('merged_Invoice 2024-03-01.pdf');
+    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('Invoice 2024-03-01 + 1 more.pdf');
     nativeShare.restore();
   });
 
@@ -294,7 +323,7 @@ describe('PdfMergeTool UI flow', () => {
     await settle();
     expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(2);
     expect(mergeLib.mergePdfs.mock.calls[1][0].map((f) => f.name)).toEqual(['a.pdf', 'b.pdf', 'c.pdf']);
-    expect(downloadLink().getAttribute('download')).toBe('merged_a.pdf');
+    expect(downloadLink().getAttribute('download')).toBe('a + 2 more.pdf');
   });
 
   it('a thumbnail that arrives after the pre-merge started does not restart it', async () => {
@@ -505,7 +534,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(draftStore.saveHandoff).toHaveBeenCalledTimes(1);
     const [tool, record] = draftStore.saveHandoff.mock.calls[0];
     expect(tool).toBe('compress');
-    expect(record.fileName).toBe('merged_a.pdf');
+    expect(record.fileName).toBe('a + 1 more.pdf');
     expect(record.fileBytes).toBeInstanceOf(ArrayBuffer);
     expect(draftStore.deleteDraft).not.toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith('/compress/');

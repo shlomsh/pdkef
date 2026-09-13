@@ -79,18 +79,16 @@ test('a caption is visible, not painted under the thumbnail (critique P0)', asyn
   await page.goto('/merge/');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
 
-  // Six files of three pages each (18 pages - the design doc's own example
-  // figure): enough that the document's height clears one phone screen.
-  // A too-small fixture (2 files, 1 page each) hits an unrelated, real
-  // overlap on the webkit/mobile project - the rail's sticky bottom sheet
-  // sits over part of a document that is shorter than the viewport, which
-  // is a separate bug (reported alongside this spec, not asserted here: this
-  // guard is about caption-vs-thumbnail paint order specifically).
+  // Wave 5 (2026-09-13): a full-width caption row exists only for a run of
+  // four pages or more (shorter runs carry a small tag in their first cell),
+  // so the fixture is three files of six pages: 18 pages, the design doc's
+  // own figure, and the document clears one phone screen, which keeps the
+  // rail's sticky bottom sheet off the part being measured.
   const files = await Promise.all(
-    ['one.pdf', 'two.pdf', 'three.pdf', 'four.pdf', 'five.pdf', 'six.pdf'].map(async (name) => ({
+    ['one.pdf', 'two.pdf', 'three.pdf'].map(async (name) => ({
       name,
       mimeType: 'application/pdf',
-      buffer: await makePdfBuffer(name, 3),
+      buffer: await makePdfBuffer(name, 6),
     })),
   );
   await page.locator('input[type="file"]').setInputFiles(files);
@@ -131,4 +129,57 @@ test('the phone subhead has no clipped last line at 375x812', async ({ page }) =
   // No overflow clipping: the visible sentence's own box is not cut short by
   // a fixed-height ancestor.
   expect(scrollHeight).toBe(clientHeight);
+});
+
+/* Reported by Shlomi (2026-09-13): at 375px, after a reload, no thumbnails.
+   Two causes, both fixed in this build. The browser restores the scroll
+   offset the page had before the reload, measured against a layout the
+   draft restore then grows by a whole document, so the page opened below
+   the grid where nothing was near enough to render; the island now sets
+   history.scrollRestoration to manual while files are loaded, so a reload
+   opens at the top. And the IntersectionObserver only reports on a rendering
+   frame, so a hidden document never rendered a thing; the grid now scans
+   the cells near the viewport itself when it mounts and when the document
+   becomes visible. This guard covers the first: reload from the bottom of
+   the page, and the first page cell in view must render. Runs on the
+   webkit (iPhone 15) project too, where the report came from. Restores a
+   draft across the reload, so service workers are blocked
+   (docs/troubleshooting.md). */
+test.describe('thumbnails after a reload', () => {
+  test.use({ serviceWorkers: 'block' });
+
+  test('a reload from the bottom of the page opens on the grid and renders the first visible page', async ({ page }, testInfo) => {
+    if (testInfo.project.name === 'chromium') await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/merge/');
+    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+
+    const files = await Promise.all(['one.pdf', 'two.pdf', 'three.pdf'].map(async (name) => ({
+      name,
+      mimeType: 'application/pdf',
+      buffer: await makePdfBuffer(name, 3),
+    })));
+    await page.locator('input[type="file"]').setInputFiles(files);
+    await expect(page.locator('[data-state="ready"]')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('[class*="draft-chip"], [class*="chip-draft"]').filter({ hasText: 'Draft saved' }).first()).toBeAttached({ timeout: 10_000 });
+
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(400);
+    await page.reload();
+    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+    const cells = page.locator('li[class*="page"][data-key]');
+    await expect(cells).toHaveCount(9, { timeout: 10_000 });
+
+    // A page cell is within the viewport without any scrolling by the person...
+    await expect.poll(() => page.evaluate(() => {
+      const cell = [...document.querySelectorAll('li[class*="page"][data-key]')]
+        .find((c) => { const r = c.getBoundingClientRect(); return r.bottom > 0 && r.top < window.innerHeight; });
+      return cell ? cell.getAttribute('data-key') : null;
+    }), { timeout: 10_000 }).not.toBeNull();
+    // ...and it has its thumbnail.
+    await expect.poll(() => page.evaluate(() => {
+      const cell = [...document.querySelectorAll('li[class*="page"][data-key]')]
+        .find((c) => { const r = c.getBoundingClientRect(); return r.bottom > 0 && r.top < window.innerHeight; });
+      return !!cell?.querySelector('img[src^="data:"]');
+    }), { timeout: 15_000 }).toBe(true);
+  });
 });

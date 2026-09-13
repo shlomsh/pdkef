@@ -18,6 +18,14 @@ interface DropzoneEmptyStateProps {
    * still depends on the mount-effect iOS check below - this only says
    * "this tool is allowed to show it at all". */
   showIosFilesHint?: boolean;
+  /** Shlomi's follow-up (2026-09-13, Merge only): 'band' renders the
+   * ghost-pages graphic and the two band-copy lines below, alongside the
+   * default markup - `[data-variant="band"]` in Dropzone.module.css is what
+   * actually swaps them in, and only at 1024px and up, so this component
+   * itself does not need to know the viewport. */
+  variant?: 'default' | 'band';
+  bandHeading?: string;
+  bandBody?: string;
 }
 
 /** Empty-state file picker shared by the PDF tool pages. */
@@ -30,6 +38,9 @@ export default function DropzoneEmptyState({
   compact = false,
   messages = englishShellMessages,
   showIosFilesHint = false,
+  variant = 'default',
+  bandHeading,
+  bandBody,
 }: DropzoneEmptyStateProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   // `false` on the server and on this component's first client render, same
@@ -78,6 +89,7 @@ export default function DropzoneEmptyState({
       // the `html[data-draft-hint]` rule in Dropzone.module.css.
       data-empty-state
       data-compact={compact || undefined}
+      data-variant={variant !== 'default' ? variant : undefined}
       onDragOver={(e) => {
         e.preventDefault();
         setIsDragOver(true);
@@ -99,9 +111,30 @@ export default function DropzoneEmptyState({
         <path d="M23 30v8M27 34h-8" class={styles['dz-plus']} />
       </svg>
 
+      {/* Band variant only (Merge, 1024px and up - Dropzone.module.css's
+          `[data-variant="band"]` swaps this in for the icon above): three
+          overlapping dashed page outlines, purely decorative. Always
+          rendered when the variant is band, same as the band copy below, so
+          nothing here depends on JS knowing the viewport - only visible via
+          the CSS media query. */}
+      {variant === 'band' && (
+        <div class={styles['band-ghosts']} aria-hidden="true">
+          <span class={styles['band-ghost']} />
+          <span class={styles['band-ghost']} />
+          <span class={styles['band-ghost']} />
+        </div>
+      )}
+
       <p class={styles['dropzone-text']}>
         <strong>{message || (multiple ? messages.dropHereMany : messages.dropHereOne)}</strong>
       </p>
+
+      {variant === 'band' && (bandHeading || bandBody) && (
+        <div class={styles['band-copy']}>
+          {bandHeading && <p class={styles['band-heading']}>{bandHeading}</p>}
+          {bandBody && <p class={styles['band-body']}>{bandBody}</p>}
+        </div>
+      )}
 
       <label class={styles['file-picker-button']}>
         {multiple ? messages.chooseFilesMany : messages.chooseFileOne}
