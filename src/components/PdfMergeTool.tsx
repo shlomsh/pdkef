@@ -762,6 +762,7 @@ export default function PdfMergeTool({
       onClearAll={reset}
       clearSummary={fileSummary}
       shellMessages={shellMessages}
+      fillViewport
       checkingDraft={!hasFiles && draftState.isRestoring}
       draftSaveState={hasFiles ? draftState.draftSaveState : 'idle'}
     >

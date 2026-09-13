@@ -65,6 +65,11 @@ interface BasePdfToolProps {
    * actual notice on a mount-effect iOS check; this only says the tool is
    * allowed to show it. */
   showIosFilesHint?: boolean;
+  /** MERGE-06: while true the card renders `data-fill-viewport` and, at
+   * desktop widths, the empty-state dropzone grows to fill the first screen
+   * (ToolPageLayout.astro's `.tool-stage` rule). A tool passes it only while
+   * it has nothing loaded, so a loaded card flows at its own height. */
+  fillViewport?: boolean;
 }
 
 /**
@@ -126,6 +131,7 @@ export default function BasePdfTool({
   compact = false,
   shellMessages,
   showIosFilesHint = false,
+  fillViewport = false,
 }: BasePdfToolProps) {
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
   const work = workNoun ?? sm.workDefault;
@@ -311,6 +317,7 @@ export default function BasePdfTool({
     <div
       class={pdfToolStyles['tool-card']}
       data-compact={compact || undefined}
+      data-fill-viewport={(fillViewport && !hasFiles) || undefined}
       onDragEnter={onWorkspaceDragEnter}
       onDragOver={onWorkspaceDragOver}
       onDragLeave={onWorkspaceDragLeave}

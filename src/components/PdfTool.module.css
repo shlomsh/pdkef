@@ -532,3 +532,14 @@
   color: var(--color-muted);
   text-align: center;
 }
+
+/* MERGE-06: the card stretches with the stage while it carries
+   `data-fill-viewport` (see ToolPageLayout.astro's `.tool-stage` rule); the
+   empty-state dropzone inside it takes the height (Dropzone.module.css). */
+@media (min-width: 1024px) {
+  .tool-card[data-fill-viewport] {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+  }
+}

@@ -161,7 +161,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
       backlog/tasks/SEO-25.md). Nothing else leaned on that height: ToolHero's
       condensing keys off its own data attributes and OfflineProof renders
       after this wrapper closes. e2e/tool-layout.spec.js guards both. */}
-  <div class="flex flex-col">
+  <div class="tool-stage flex flex-col">
     <ToolHero icon={tool.icon} title={tool.h1} subhead={tool.subhead} slug={tool.slug} condensable={tool.condenseOnLoad !== false} phoneCondensed={tool.heroPhoneCondensed === true} />
 
     {/* The airplane-mode invitation (DEMO-04): the one idea in that ticket
@@ -196,7 +196,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         fact in its language; an English sentence in a Hebrew hero is the
         exact incumbent weakness LOC-01 documents. */}
     {tool.slug === 'merge' && locale === 'en' && (
-      <p class="type-body mx-auto mb-4 max-w-[54rem] px-6 text-center text-[var(--color-muted)] min-[1024px]:mb-2 min-[1024px]:mt-0">
+      <p class="mx-auto mb-4 w-full max-w-[1280px] px-4 text-center text-[0.88rem] leading-[1.5] text-[var(--color-muted)] min-[560px]:px-6 min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
         Combine as many files as you like. Nothing is uploaded, so there's nothing to meter, only your device's own memory.
       </p>
     )}
@@ -225,6 +225,33 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
       </section>
     </main>
   </div>
+
+  <style>
+    /* MERGE-06 (2026-09-13, Shlomi): on a desktop the hero and the empty
+       dropzone fill the first screen, so "How it works" starts below the
+       fold the way it does on the other tools' pages. Keyed off the card's
+       own `data-fill-viewport` (BasePdfTool's `fillViewport` prop, which
+       Merge sets only while it has no files), not off a page-level
+       min-height: SEO-25 removed a viewport-tall wrapper because it left up
+       to 460px of blank space under a short card, and e2e/tool-layout.spec.js
+       still guards that gap. Here the dropzone itself grows, so there is no
+       blank space to leave, and the moment a file lands the attribute goes
+       and the card flows at its own height again. */
+    @media (min-width: 1024px) {
+      .tool-stage:has([data-fill-viewport]) {
+        min-height: calc(100svh - 3.5rem);
+      }
+
+      .tool-stage:has([data-fill-viewport]) main,
+      .tool-stage:has([data-fill-viewport]) #app,
+      .tool-stage:has([data-fill-viewport]) #app > astro-island {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+      }
+    }
+  </style>
 
   {/* OfflineProof (DEMO-04): only Sign and Redact, the live status line
       only - see the component's own header comment for why the claim
