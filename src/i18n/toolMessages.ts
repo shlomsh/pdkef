@@ -23,6 +23,29 @@ export function formatMessage(template: string, params: Record<string, string | 
   return template.replace(/\{(\w+)\}/g, (match, key) => (key in params ? String(params[key]) : match));
 }
 
+/**
+ * LOC-16: the one place a Sign element/tool id resolves to its displayed
+ * name, reused everywhere a description or announcement would otherwise
+ * interpolate a raw id (`.claude/rules/editor.md`'s "never interpolate a raw
+ * tool id into copy" - the bug this ticket's useWorkspaceGestures.ts fix and
+ * PdfSignTool.tsx/PdfWorkspace.tsx's history descriptions all share). Takes
+ * the already-merged `SignMessages` so callers outside SignToolbar.tsx (which
+ * builds its own richer TOOL_COPY for arm-hints) get the same button/shape
+ * labels without a second catalogue of tool names.
+ */
+export function signElementTypeLabel(t: SignMessages, type: string): string {
+  switch (type) {
+    case 'text': return t.textButton;
+    case 'symbol': return t.symbolsButton;
+    case 'signature': return t.signButton;
+    case 'whiteout': return t.whiteoutButton;
+    case 'ellipse': return t.ellipseLabel;
+    case 'rectangle': return t.rectangleLabel;
+    case 'line': return t.lineLabel;
+    default: return type;
+  }
+}
+
 export interface MergeMessages {
   skippedOne: string;
   skippedMany: string;
@@ -707,6 +730,167 @@ export interface SignMessages {
   viewFullscreen: string;
   viewExitFullscreen: string;
   viewDensityLabel: string;
+  /** LOC-16 stage 2-5: the shapes menu's plain labels (SignToolbar.tsx) - not
+   * to be confused with `ellipseAction` etc above, which describe the arm
+   * hint ("Click and drag..."). Also reused by ElementToolbar.tsx's shape
+   * switcher and by useWorkspaceGestures.ts/PdfWorkspace.tsx/PdfSignTool.tsx
+   * wherever a history description or announcement needs a tool/element
+   * type's display name (see `signElementTypeLabel` above) instead of its
+   * raw id. */
+  ellipseLabel: string;
+  rectangleLabel: string;
+  lineLabel: string;
+  /** SignToolbar.tsx's saved-signatures popover. */
+  savedSignatureAlt: string;
+  deleteSignatureLabel: string;
+  /** SignatureDialog.tsx, full string audit (LOC-16). */
+  createSignatureTitle: string;
+  closeDialogLabel: string;
+  tabDraw: string;
+  tabType: string;
+  tabUpload: string;
+  penColorTitle: string;
+  thicknessLabel: string;
+  clearDrawingLabel: string;
+  typedNamePlaceholder: string;
+  signaturePreviewPlaceholder: string;
+  uploadDropHint: string;
+  uploadFormatsHint: string;
+  uploadSizeHint: string;
+  uploadedPreviewAlt: string;
+  processingSignature: string;
+  removeWhiteBackgroundLabel: string;
+  changeImageLabel: string;
+  dialogCancelLabel: string;
+  saveSignatureLabel: string;
+  /** UndoHistoryModal.tsx. */
+  undoHistoryTitle: string;
+  revertSelectedLabel: string;
+  /** Shared between EditorPageHeader.tsx, UndoHistoryModal.tsx's per-action
+   * page line, and PdfWorkspace.tsx's clearPage announcement/title. */
+  pageLabel: string;
+  clearPageLabel: string;
+  clearPageTitle: string;
+  /** PdfSignTool.tsx's "Delete signature?" ConfirmDialog. */
+  deleteSignatureConfirmTitle: string;
+  deleteSignatureConfirmBody: string;
+  /** ElementToolbar.tsx, full string audit (LOC-16). */
+  decreaseFontSizeTitle: string;
+  increaseFontSizeTitle: string;
+  boldLabel: string;
+  boldUnavailableTemplate: string;
+  italicLabel: string;
+  italicUnavailableTemplate: string;
+  rtlTextTitle: string;
+  ltrTextTitle: string;
+  directionRtlAria: string;
+  directionLtrAria: string;
+  oneBoxFewerTitle: string;
+  boxesFixedTitle: string;
+  boxesFollowingTitle: string;
+  oneBoxMoreTitle: string;
+  textColorTitle: string;
+  checkMarkTitle: string;
+  xMarkTitle: string;
+  dotMarkTitle: string;
+  checkboxColorTitle: string;
+  lineThicknessTitle: string;
+  shapeColorTitle: string;
+  signatureColorTitle: string;
+  whiteoutColorTitle: string;
+  duplicateElementTitle: string;
+  deleteElementTitle: string;
+  /** FontPickerMenu.tsx. */
+  searchFontsPlaceholder: string;
+  fontsListAriaLabel: string;
+  noFontsFound: string;
+  fontTriggerTitleTemplate: string;
+  fallbackFontNoteTemplate: string;
+  doesntSupportText: string;
+  /** ElementResizers.tsx. */
+  dragToResizeTitle: string;
+  dragToResizeFontSizeTitle: string;
+  dragToSpanBoxesTitle: string;
+  /** SignTool/nodes/TextNode.tsx's two placeholders. */
+  typeYourTextPlaceholder: string;
+  doubleClickToEditPlaceholder: string;
+  /** SignTool/ExportReadinessNotice.tsx. */
+  exportReadinessBoldOne: string;
+  exportReadinessBoldOther: string;
+  exportReadinessSuffix: string;
+  reviewFieldsLabel: string;
+  /** SignTool/FontSupportNotice.tsx. */
+  textNeedsAttentionAria: string;
+  textNeedsAttentionTitle: string;
+  /** SignTool/textMessages.ts's text-policy sentences. */
+  fontSubstitutionTemplate: string;
+  unrepresentableSavingTemplate: string;
+  unrepresentableTypingTemplate: string;
+  wherePageOneTemplate: string;
+  wherePagesManyTemplate: string;
+  pageListAndWord: string;
+  fallbackFontNotice: string;
+  noFontForCharactersTemplate: string;
+  noSingleFontTemplate: string;
+  noSingleFontMoreClause: string;
+  pieceInFontTemplate: string;
+  /** PdfSignTool.tsx's setAnnouncement() calls and history descriptions. */
+  fontNotReadyTemplate: string;
+  defaultFontUnavailable: string;
+  exportGenericFailure: string;
+  editsChangedWhilePreparing: string;
+  revertedSelectedActions: string;
+  undidActionTemplate: string;
+  invalidPdfFile: string;
+  placedSignatureOnPage: string;
+  signaturePlacedNotSaved: string;
+  removedElement: string;
+  finishedEditingHint: string;
+  copiedElement: string;
+  pastedElement: string;
+  writingSignaturesIntoPdf: string;
+  signingStoppedLabel: string;
+  signedPdfReadyToShare: string;
+  pdfSignedDownloadStarted: string;
+  downloadStarted: string;
+  pdfSignedSuccessfully: string;
+  sharingCanceledStillReady: string;
+  shareOpenFailed: string;
+  signatureDeleted: string;
+  signatureDeletedNotSaved: string;
+  addedSignatureDescription: string;
+  deletedElementDescriptionTemplate: string;
+  duplicatedElementDescriptionTemplate: string;
+  /** PdfWorkspace.tsx's own strings. */
+  savingDocumentLayers: string;
+  pdfMayBeProtectedOrEncrypted: string;
+  reviewingFirstIssueAnnouncement: string;
+  clearedPageAnnouncementTemplate: string;
+  clearedPageDescriptionOne: string;
+  clearedPageDescriptionOther: string;
+  /** src/lib/useWorkspaceGestures.ts's announcements and history descriptions -
+   * `addedShapeDescriptionTemplate`/`addedShapeAnnouncementTemplate` fix the
+   * raw-tool-id interpolation bug this ticket calls out, via
+   * `signElementTypeLabel` above. */
+  removedSymbolFromBoxAnnouncement: string;
+  removedSymbolFromBoxDescription: string;
+  addedTextBoxDescription: string;
+  addedTextBoxCombAnnouncementTemplate: string;
+  addedTextBoxAnnouncement: string;
+  addedSymbolDescription: string;
+  addedSymbolInBoxAnnouncement: string;
+  addedSymbolAnnouncement: string;
+  addedWhiteoutDescription: string;
+  addedWhiteoutAnnouncement: string;
+  addedShapeDescriptionTemplate: string;
+  addedShapeAnnouncementTemplate: string;
+  /** src/editor/workspace/loadPdf.ts is shared with Redact, so it takes its
+   * own small locally-typed message param rather than this whole catalogue -
+   * these four keys are only where Sign sources that param's overrides from. */
+  pdfLoadTimeout: string;
+  pdfLoadFailedGeneric: string;
+  pdfRestoredTemplate: string;
+  pdfLoadedTemplate: string;
   lang: string;
   dir: 'ltr' | 'rtl';
 }
@@ -756,6 +940,138 @@ const englishSignMessages: SignMessages = {
   viewFullscreen: 'Full screen',
   viewExitFullscreen: 'Exit full screen',
   viewDensityLabel: 'View density',
+  ellipseLabel: 'Ellipse',
+  rectangleLabel: 'Rectangle',
+  lineLabel: 'Line',
+  savedSignatureAlt: 'Saved signature',
+  deleteSignatureLabel: 'Delete signature',
+  createSignatureTitle: 'Create Signature',
+  closeDialogLabel: 'Close dialog',
+  tabDraw: 'Draw',
+  tabType: 'Type',
+  tabUpload: 'Upload',
+  penColorTitle: 'Pen color',
+  thicknessLabel: 'Thickness',
+  clearDrawingLabel: 'Clear',
+  typedNamePlaceholder: 'Type your name...',
+  signaturePreviewPlaceholder: 'Signature Preview',
+  uploadDropHint: 'Drag & drop signature image here or click to choose',
+  uploadFormatsHint: 'Supports PNG, JPG, SVG. Auto background transparency.',
+  uploadSizeHint: 'Large images are downsampled to at most 1 megapixel and 750 KB before saving.',
+  uploadedPreviewAlt: 'Uploaded signature preview',
+  processingSignature: 'Processing signature...',
+  removeWhiteBackgroundLabel: 'Remove white background',
+  changeImageLabel: 'Change Image',
+  dialogCancelLabel: 'Cancel',
+  saveSignatureLabel: 'Save Signature',
+  undoHistoryTitle: 'Undo changes',
+  revertSelectedLabel: 'Revert selected',
+  pageLabel: 'Page {number}',
+  clearPageLabel: 'Clear page',
+  clearPageTitle: 'Clear all annotations on this page',
+  deleteSignatureConfirmTitle: 'Delete signature?',
+  deleteSignatureConfirmBody: 'Are you sure you want to delete this saved signature? This action cannot be undone.',
+  decreaseFontSizeTitle: 'Decrease font size',
+  increaseFontSizeTitle: 'Increase font size',
+  boldLabel: 'Bold',
+  boldUnavailableTemplate: '{family} has no bold version',
+  italicLabel: 'Italic',
+  italicUnavailableTemplate: '{family} has no italic version',
+  rtlTextTitle: 'Right-to-left text (Hebrew/Arabic)',
+  ltrTextTitle: 'Left-to-right text',
+  directionRtlAria: 'Text direction: right to left',
+  directionLtrAria: 'Text direction: left to right',
+  oneBoxFewerTitle: 'One box fewer',
+  boxesFixedTitle: 'Boxes, fixed. Click to follow the text again',
+  boxesFollowingTitle: 'Boxes, following the text',
+  oneBoxMoreTitle: 'One box more',
+  textColorTitle: 'Text color',
+  checkMarkTitle: 'Check mark',
+  xMarkTitle: 'X mark',
+  dotMarkTitle: 'Dot mark',
+  checkboxColorTitle: 'Checkbox color',
+  lineThicknessTitle: 'Line thickness',
+  shapeColorTitle: 'Shape color',
+  signatureColorTitle: 'Signature color',
+  whiteoutColorTitle: 'Whiteout color',
+  duplicateElementTitle: 'Duplicate element',
+  deleteElementTitle: 'Delete element',
+  searchFontsPlaceholder: 'Search fonts',
+  fontsListAriaLabel: 'Fonts',
+  noFontsFound: 'No fonts found.',
+  fontTriggerTitleTemplate: 'Font: {name}',
+  fallbackFontNoteTemplate: 'Fallback: {family}',
+  doesntSupportText: 'Doesn’t support this text',
+  dragToResizeTitle: 'Drag to resize',
+  dragToResizeFontSizeTitle: 'Drag to resize font size',
+  dragToSpanBoxesTitle: 'Drag to span the form’s boxes',
+  typeYourTextPlaceholder: 'Type your text',
+  doubleClickToEditPlaceholder: 'Double-click to edit',
+  exportReadinessBoldOne: '{count} text field needs attention',
+  exportReadinessBoldOther: '{count} text fields need attention',
+  exportReadinessSuffix: 'before download or sharing.',
+  reviewFieldsLabel: 'Review fields',
+  textNeedsAttentionAria: 'Text needs attention. Select for font suggestions.',
+  textNeedsAttentionTitle: 'Text needs attention',
+  fontSubstitutionTemplate: '{requested} has no match for: {missing}, so this text box is using {family} instead. {family} is what will be embedded in your download.',
+  unrepresentableSavingTemplate: 'Some text{where} needs attention: {list}. Select its text box for font suggestions. You may need separate text boxes for different fonts, or to replace these characters, then save again.',
+  unrepresentableTypingTemplate: 'Some characters{where} need a different font: {list}. Select the marked text box for help choosing fonts or separating the text into boxes.',
+  wherePageOneTemplate: ' on page {number}',
+  wherePagesManyTemplate: ' on pages {list}',
+  pageListAndWord: ' and ',
+  fallbackFontNotice: 'A fallback font is in use for this text. Choose another font in the font menu.',
+  noFontForCharactersTemplate: 'No available font includes {text}. Please replace or remove those characters; you can keep the rest of your text.',
+  noSingleFontTemplate: 'No single available font includes all this text. Keep the text by placing the parts in separate text boxes: {examples}{more}.',
+  noSingleFontMoreClause: '; continue with the remaining parts',
+  pieceInFontTemplate: '{text} in {family}',
+  fontNotReadyTemplate: '{family} is not ready on this device yet. Connect to the internet so it can finish downloading, then try again.',
+  defaultFontUnavailable: 'The app’s default font is not available on this device. Connect to the internet, reload the app, and try again.',
+  exportGenericFailure: 'Could not export the PDF. Your edits are still here. Try again.',
+  editsChangedWhilePreparing: 'Your edits changed while the PDF was being prepared. Download again to create an up-to-date file.',
+  revertedSelectedActions: 'Reverted selected actions.',
+  undidActionTemplate: 'Undid: {description}',
+  invalidPdfFile: 'Please select a valid PDF file.',
+  placedSignatureOnPage: 'Placed signature on page.',
+  signaturePlacedNotSaved: 'Signature placed, but the browser could not save it for your next visit.',
+  removedElement: 'Removed element.',
+  finishedEditingHint: 'Finished editing. Press Backspace to delete this box.',
+  copiedElement: 'Copied annotation element.',
+  pastedElement: 'Pasted cloned element.',
+  writingSignaturesIntoPdf: 'Writing signatures and text layers into PDF...',
+  signingStoppedLabel: 'Signing stopped.',
+  signedPdfReadyToShare: 'Your signed PDF is ready to share.',
+  pdfSignedDownloadStarted: 'PDF signed successfully. Download started.',
+  downloadStarted: 'Download started.',
+  pdfSignedSuccessfully: 'PDF signed successfully.',
+  sharingCanceledStillReady: 'Sharing canceled. Your signed PDF is still ready to share.',
+  shareOpenFailed: 'Could not open the share sheet. Please try again.',
+  signatureDeleted: 'Signature deleted.',
+  signatureDeletedNotSaved: 'Signature deleted for this session, but the browser could not save that change.',
+  addedSignatureDescription: 'Added signature',
+  deletedElementDescriptionTemplate: 'Deleted {label}',
+  duplicatedElementDescriptionTemplate: 'Duplicated {label}',
+  savingDocumentLayers: 'Saving document layers…',
+  pdfMayBeProtectedOrEncrypted: 'The PDF may be password-protected or encrypted.',
+  reviewingFirstIssueAnnouncement: 'Showing the first text field that needs attention.',
+  clearedPageAnnouncementTemplate: 'Cleared page {page}.',
+  clearedPageDescriptionOne: 'Cleared {count} annotation on page {page}',
+  clearedPageDescriptionOther: 'Cleared {count} annotations on page {page}',
+  removedSymbolFromBoxAnnouncement: 'Removed symbol from the printed box.',
+  removedSymbolFromBoxDescription: 'Removed symbol from printed box',
+  addedTextBoxDescription: 'Added text box',
+  addedTextBoxCombAnnouncementTemplate: 'Added text box across {cells} printed boxes. Type your text.',
+  addedTextBoxAnnouncement: 'Added text box. Type your text.',
+  addedSymbolDescription: 'Added symbol',
+  addedSymbolInBoxAnnouncement: 'Added symbol in the printed box.',
+  addedSymbolAnnouncement: 'Added symbol.',
+  addedWhiteoutDescription: 'Added whiteout box',
+  addedWhiteoutAnnouncement: 'Added whiteout box.',
+  addedShapeDescriptionTemplate: 'Added {label}',
+  addedShapeAnnouncementTemplate: 'Added {label}.',
+  pdfLoadTimeout: 'This PDF is taking too long to load - it may be corrupted. Please try a different file.',
+  pdfLoadFailedGeneric: 'Failed to load PDF file.',
+  pdfRestoredTemplate: 'Restored your last draft of "{name}".',
+  pdfLoadedTemplate: 'Loaded PDF "{name}" with {pages} pages.',
   lang: 'en',
   dir: 'ltr',
 };
@@ -808,6 +1124,142 @@ const hebrewSignMessages: SignMessages = {
   viewFullscreen: 'מסך מלא',
   viewExitFullscreen: 'יציאה ממסך מלא',
   viewDensityLabel: 'צפיפות התצוגה',
+  // LOC-16 stage 2-5 (2026-09-13): AI draft, not yet reviewed by a native
+  // speaker - same caveat as the rest of this catalogue, extending coverage
+  // from the toolbar row to popovers, dialogs, element controls and
+  // screen-reader announcements across the whole Sign editor.
+  ellipseLabel: 'אליפסה',
+  rectangleLabel: 'מלבן',
+  lineLabel: 'קו',
+  savedSignatureAlt: 'חתימה שמורה',
+  deleteSignatureLabel: 'מחיקת חתימה',
+  createSignatureTitle: 'יצירת חתימה',
+  closeDialogLabel: 'סגירת החלון',
+  tabDraw: 'ציור',
+  tabType: 'הקלדה',
+  tabUpload: 'העלאה',
+  penColorTitle: 'צבע העט',
+  thicknessLabel: 'עובי',
+  clearDrawingLabel: 'ניקוי',
+  typedNamePlaceholder: 'הקלידו את שמכם...',
+  signaturePreviewPlaceholder: 'תצוגה מקדימה של החתימה',
+  uploadDropHint: 'גררו לכאן תמונת חתימה או לחצו לבחירה',
+  uploadFormatsHint: 'תומך ב-PNG, JPG, SVG. הסרת רקע אוטומטית.',
+  uploadSizeHint: 'תמונות גדולות מוקטנות למגה-פיקסל אחד ו-750KB לכל היותר לפני השמירה.',
+  uploadedPreviewAlt: 'תצוגה מקדימה של החתימה שהועלתה',
+  processingSignature: 'מעבדים את החתימה...',
+  removeWhiteBackgroundLabel: 'הסרת רקע לבן',
+  changeImageLabel: 'החלפת תמונה',
+  dialogCancelLabel: 'ביטול',
+  saveSignatureLabel: 'שמירת חתימה',
+  undoHistoryTitle: 'ביטול שינויים',
+  revertSelectedLabel: 'שחזור הנבחרים',
+  pageLabel: 'עמוד {number}',
+  clearPageLabel: 'ניקוי העמוד',
+  clearPageTitle: 'ניקוי כל ההערות בעמוד הזה',
+  deleteSignatureConfirmTitle: 'למחוק את החתימה?',
+  deleteSignatureConfirmBody: 'למחוק את החתימה השמורה הזו? אי אפשר לבטל את הפעולה הזו.',
+  decreaseFontSizeTitle: 'הקטנת גודל הגופן',
+  increaseFontSizeTitle: 'הגדלת גודל הגופן',
+  boldLabel: 'מודגש',
+  boldUnavailableTemplate: 'ל-{family} אין גרסה מודגשת',
+  italicLabel: 'נטוי',
+  italicUnavailableTemplate: 'ל-{family} אין גרסה נטויה',
+  rtlTextTitle: 'טקסט מימין לשמאל (עברית/ערבית)',
+  ltrTextTitle: 'טקסט משמאל לימין',
+  directionRtlAria: 'כיוון טקסט: מימין לשמאל',
+  directionLtrAria: 'כיוון טקסט: משמאל לימין',
+  oneBoxFewerTitle: 'תיבה אחת פחות',
+  boxesFixedTitle: 'מספר התיבות קבוע. לחצו כדי לחזור למעקב אחרי הטקסט',
+  boxesFollowingTitle: 'מספר התיבות עוקב אחרי הטקסט',
+  oneBoxMoreTitle: 'תיבה אחת נוספת',
+  textColorTitle: 'צבע הטקסט',
+  checkMarkTitle: 'סימן וי',
+  xMarkTitle: 'סימן איקס',
+  dotMarkTitle: 'סימן נקודה',
+  checkboxColorTitle: 'צבע תיבת הסימון',
+  lineThicknessTitle: 'עובי הקו',
+  shapeColorTitle: 'צבע הצורה',
+  signatureColorTitle: 'צבע החתימה',
+  whiteoutColorTitle: 'צבע הטיפקס',
+  duplicateElementTitle: 'שכפול הרכיב',
+  deleteElementTitle: 'מחיקת הרכיב',
+  searchFontsPlaceholder: 'חיפוש גופנים',
+  fontsListAriaLabel: 'גופנים',
+  noFontsFound: 'לא נמצאו גופנים.',
+  fontTriggerTitleTemplate: 'גופן: {name}',
+  fallbackFontNoteTemplate: 'גופן חלופי: {family}',
+  doesntSupportText: 'לא תומך בטקסט הזה',
+  dragToResizeTitle: 'גררו לשינוי גודל',
+  dragToResizeFontSizeTitle: 'גררו לשינוי גודל הגופן',
+  dragToSpanBoxesTitle: 'גררו כדי לפרוש על תיבות הטופס',
+  typeYourTextPlaceholder: 'הקלידו את הטקסט שלכם',
+  doubleClickToEditPlaceholder: 'לחיצה כפולה לעריכה',
+  exportReadinessBoldOne: '{count} שדה טקסט דורש התייחסות',
+  exportReadinessBoldOther: '{count} שדות טקסט דורשים התייחסות',
+  exportReadinessSuffix: 'לפני הורדה או שיתוף.',
+  reviewFieldsLabel: 'בדיקת השדות',
+  textNeedsAttentionAria: 'הטקסט דורש התייחסות. בחרו כדי לקבל הצעות גופן.',
+  textNeedsAttentionTitle: 'הטקסט דורש התייחסות',
+  fontSubstitutionTemplate: 'לגופן {requested} אין התאמה עבור: {missing}, ולכן תיבת הטקסט הזו משתמשת ב-{family} במקום. {family} הוא הגופן שיוטמע בקובץ שתורידו.',
+  unrepresentableSavingTemplate: 'חלק מהטקסט{where} דורש התייחסות: {list}. בחרו את תיבת הטקסט כדי לקבל הצעות גופן. ייתכן שתצטרכו תיבות טקסט נפרדות לגופנים שונים, או להחליף את התווים האלה, ואז לשמור שוב.',
+  unrepresentableTypingTemplate: 'חלק מהתווים{where} דורשים גופן אחר: {list}. בחרו את תיבת הטקסט המסומנת כדי לקבל עזרה בבחירת גופן או בפיצול הטקסט לתיבות.',
+  wherePageOneTemplate: ' בעמוד {number}',
+  wherePagesManyTemplate: ' בעמודים {list}',
+  pageListAndWord: ' ו-',
+  fallbackFontNotice: 'גופן חלופי נמצא בשימוש עבור הטקסט הזה. בחרו גופן אחר מתפריט הגופנים.',
+  noFontForCharactersTemplate: 'אין גופן זמין שכולל את {text}. החליפו או הסירו את התווים האלה; אפשר להשאיר את שאר הטקסט.',
+  noSingleFontTemplate: 'אין גופן זמין יחיד שכולל את כל הטקסט הזה. אפשר לשמור על הטקסט על ידי פיצולו לתיבות טקסט נפרדות: {examples}{more}.',
+  noSingleFontMoreClause: '; המשיכו עם שאר החלקים',
+  pieceInFontTemplate: '{text} ב-{family}',
+  fontNotReadyTemplate: '{family} עדיין לא מוכן במכשיר הזה. התחברו לאינטרנט כדי לאפשר להורדה להסתיים, ואז נסו שוב.',
+  defaultFontUnavailable: 'גופן ברירת המחדל של האפליקציה לא זמין במכשיר הזה. התחברו לאינטרנט, טענו מחדש את האפליקציה, ונסו שוב.',
+  exportGenericFailure: 'לא הצלחנו לייצא את ה-PDF. השינויים שלכם עדיין כאן. נסו שוב.',
+  editsChangedWhilePreparing: 'השינויים שלכם השתנו בזמן שה-PDF הוכן. הורידו שוב כדי ליצור קובץ מעודכן.',
+  revertedSelectedActions: 'הפעולות שנבחרו שוחזרו.',
+  undidActionTemplate: 'בוטל: {description}',
+  invalidPdfFile: 'בחרו קובץ PDF תקין.',
+  placedSignatureOnPage: 'החתימה מוקמה בעמוד.',
+  signaturePlacedNotSaved: 'החתימה מוקמה, אבל הדפדפן לא הצליח לשמור אותה לביקור הבא שלכם.',
+  removedElement: 'הרכיב הוסר.',
+  finishedEditingHint: 'סיימתם לערוך. לחצו Backspace כדי למחוק את התיבה הזו.',
+  copiedElement: 'רכיב ההערה הועתק.',
+  pastedElement: 'הרכיב המשוכפל הודבק.',
+  writingSignaturesIntoPdf: 'כותבים את החתימות ושכבות הטקסט לתוך ה-PDF...',
+  signingStoppedLabel: 'החתימה נעצרה.',
+  signedPdfReadyToShare: 'ה-PDF החתום שלכם מוכן לשיתוף.',
+  pdfSignedDownloadStarted: 'ה-PDF נחתם בהצלחה. ההורדה החלה.',
+  downloadStarted: 'ההורדה החלה.',
+  pdfSignedSuccessfully: 'ה-PDF נחתם בהצלחה.',
+  sharingCanceledStillReady: 'השיתוף בוטל. ה-PDF החתום שלכם עדיין מוכן לשיתוף.',
+  shareOpenFailed: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
+  signatureDeleted: 'החתימה נמחקה.',
+  signatureDeletedNotSaved: 'החתימה נמחקה עבור השימוש הנוכחי, אבל הדפדפן לא הצליח לשמור את השינוי הזה.',
+  addedSignatureDescription: 'נוספה חתימה',
+  deletedElementDescriptionTemplate: 'נמחק {label}',
+  duplicatedElementDescriptionTemplate: 'שוכפל {label}',
+  savingDocumentLayers: 'שומרים את שכבות המסמך…',
+  pdfMayBeProtectedOrEncrypted: 'ה-PDF עשוי להיות מוגן בסיסמה או מוצפן.',
+  reviewingFirstIssueAnnouncement: 'מציגים את שדה הטקסט הראשון שדורש התייחסות.',
+  clearedPageAnnouncementTemplate: 'עמוד {page} נוקה.',
+  clearedPageDescriptionOne: 'נוקתה הערה אחת בעמוד {page}',
+  clearedPageDescriptionOther: 'נוקו {count} הערות בעמוד {page}',
+  removedSymbolFromBoxAnnouncement: 'הסימן הוסר מהתיבה המודפסת.',
+  removedSymbolFromBoxDescription: 'הוסר סימן מתיבה מודפסת',
+  addedTextBoxDescription: 'נוספה תיבת טקסט',
+  addedTextBoxCombAnnouncementTemplate: 'נוספה תיבת טקסט הפרוסה על {cells} תיבות מודפסות. הקלידו את הטקסט שלכם.',
+  addedTextBoxAnnouncement: 'נוספה תיבת טקסט. הקלידו את הטקסט שלכם.',
+  addedSymbolDescription: 'נוסף סימן',
+  addedSymbolInBoxAnnouncement: 'נוסף סימן בתיבה המודפסת.',
+  addedSymbolAnnouncement: 'נוסף סימן.',
+  addedWhiteoutDescription: 'נוספה תיבת טיפקס',
+  addedWhiteoutAnnouncement: 'נוספה תיבת טיפקס.',
+  addedShapeDescriptionTemplate: 'נוספה צורה: {label}',
+  addedShapeAnnouncementTemplate: 'נוספה צורה: {label}.',
+  pdfLoadTimeout: 'טעינת ה-PDF הזה נמשכת זמן רב מדי, ייתכן שהוא פגום. נסו קובץ אחר.',
+  pdfLoadFailedGeneric: 'טעינת קובץ ה-PDF נכשלה.',
+  pdfRestoredTemplate: 'שחזרנו את הטיוטה האחרונה שלכם של "{name}".',
+  pdfLoadedTemplate: 'קובץ ה-PDF "{name}" נטען עם {pages} עמודים.',
   lang: 'he',
   dir: 'rtl',
 };

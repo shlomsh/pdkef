@@ -1,5 +1,6 @@
 import { useLayoutEffect } from 'preact/hooks';
 import { useFloating, offset, shift, autoUpdate } from '@floating-ui/react';
+import { englishSignMessages, type SignMessages } from '../../i18n/toolMessages';
 import styles from './FontSupportNotice.module.css';
 
 /**
@@ -34,9 +35,13 @@ export type FontSupportNoticeProps = {
   isActive: boolean;
   onEdit: () => void;
   direction: string;
+  /** LOC-16 stage 2-5: optional and English-default, same shape as
+   * SignToolbar.tsx's `messages` prop. */
+  messages?: Partial<SignMessages>;
 };
 
-export default function FontSupportNotice({ reference, message, needsAttention, isActive, onEdit, direction }: FontSupportNoticeProps) {
+export default function FontSupportNotice({ reference, message, needsAttention, isActive, onEdit, direction, messages }: FontSupportNoticeProps) {
+  const t: SignMessages = { ...englishSignMessages, ...messages };
   const position = getFontNoticePosition(direction, isActive);
   const { refs, floatingStyles } = useFloating({
     // The compact marker sits at the logical end of the bottom edge: right
@@ -69,8 +74,8 @@ export default function FontSupportNotice({ reference, message, needsAttention, 
           <button
             type="button"
             className={styles['marker-button']}
-            aria-label="Text needs attention. Select for font suggestions."
-            title="Text needs attention"
+            aria-label={t.textNeedsAttentionAria}
+            title={t.textNeedsAttentionTitle}
             onClick={onEdit}
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">

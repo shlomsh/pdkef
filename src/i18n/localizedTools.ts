@@ -193,15 +193,21 @@ export async function getLocalizedToolContext(toolSlug: string, requestedLocale:
 
 /**
  * Tool slugs whose island component accepts a localized `messages` prop.
- * Every other tool's editor stays English (the Sign/Redact pilot decision
- * from docs/app-documentation-localization-plan.md), so a localizedTools
- * entry for a slug not in this set renders its island in English behind the
- * shell's "controls are in English" notice rather than claiming a
- * translation that does not exist. Add a slug here only once that tool's
- * component actually has a reviewed message catalogue (src/i18n/toolMessages.ts)
- * and the .astro route below wires it up.
+ * Every other tool's editor stays English until it gets the same treatment,
+ * so a localizedTools entry for a slug not in this set renders its island in
+ * English behind the shell's "controls are in English" notice rather than
+ * claiming a translation that does not exist. Add a slug here only once that
+ * tool's component actually has a reviewed message catalogue
+ * (src/i18n/toolMessages.ts) and the .astro route below wires it up.
+ *
+ * `sign` joined LOC-16 (2026-09-13): LOC-09 shipped only the toolbar row
+ * translated (stage 1) as a deliberately narrow pilot; LOC-16 stages 2-5
+ * translated the rest of the editor (popovers, dialogs, element controls,
+ * screen-reader announcements), so `/he/sign/` no longer needs the
+ * `data-tool-controls-english` disclosure. Redact is the one tool still
+ * behind that notice, since none of its editor strings have a catalogue yet.
  */
-export const LOCALIZED_TOOL_ISLANDS = new Set(['merge', 'compress']);
+export const LOCALIZED_TOOL_ISLANDS = new Set(['merge', 'compress', 'sign']);
 
 /**
  * Every published page of one edition - the locale's home page, its tool

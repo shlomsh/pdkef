@@ -7,13 +7,14 @@ import { getTextFontSupport } from '../../../editor/text/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';
 import FontSupportNotice from '../FontSupportNotice.tsx';
 import { combLayout, isComb } from '../../../editor/text/comb.js';
+import { englishSignMessages, type SignMessages } from '../../../i18n/toolMessages';
 import workspaceStyles from '../Workspace.module.css';
 import elementStyles from '../EditorElement.module.css';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
 import type { ElementNodeChange, NodeResizeStart } from '../nodeProps.ts';
 
 
-export default function TextNode({ element, isActive, isEditing, onChange, onSelect, onBeginEdit, onResizeStart, pageWidthPoints, isSpanResizing = false }: {
+export default function TextNode({ element, isActive, isEditing, onChange, onSelect, onBeginEdit, onResizeStart, pageWidthPoints, isSpanResizing = false, messages }: {
   element: TextElement;
   isActive: boolean;
   isEditing: boolean;
@@ -23,7 +24,11 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   onResizeStart: NodeResizeStart;
   pageWidthPoints: number;
   isSpanResizing?: boolean;
+  /** LOC-16 stage 2-5: optional and English-default, same shape as
+   * SignToolbar.tsx's `messages` prop. */
+  messages?: Partial<SignMessages>;
 }) {
+  const t: SignMessages = { ...englishSignMessages, ...messages };
   const [scaleFactor, setScaleFactor] = useState(1);
   const { getScaleFactor } = usePdfCoordinates();
   const textRef = useRef<HTMLDivElement | null>(null);
@@ -84,7 +89,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   // same inputs) - read from the shared descriptor so there is one source for
   // what actually renders, not two calls that merely happen to agree today.
   const renderedFontFamily = typography.family;
-  const fontMessage = describeTextFontSupport(support);
+  const fontMessage = describeTextFontSupport(support, t);
   const fontDescriptionId = useId();
   const needsAttention = support.status === 'incompatible';
   // Some bundled faces (script/handwriting fonts, and Heebo among the plain
@@ -96,7 +101,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   const textPaddingEm = typography.paddingEm;
   // Shown in the empty box, and measured to size it. One string for both, so the
   // box can never be sized against copy it isn't showing.
-  const placeholder = isEditing ? 'Type your text' : 'Double-click to edit';
+  const placeholder = isEditing ? t.typeYourTextPlaceholder : t.doubleClickToEditPlaceholder;
   // Comb: the span is explicit and the characters are placed by cell, so the box
   // no longer measures itself from the text. Only its height still does, and it
   // is always exactly one line - a comb is a single row of boxes.
@@ -254,6 +259,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
         isActive={isActive}
         onEdit={onBeginEdit}
         direction={textDirection}
+        messages={messages}
       />}
       <ElementResizers
         // Older text fixtures predate the flat `type` discriminant. The node
@@ -262,6 +268,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
         element={{ ...element, type: 'text' }}
         isActive={isActive}
         onResizeStart={onResizeStart}
+        messages={messages}
       />
     </>
   );

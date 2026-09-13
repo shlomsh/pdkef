@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'preact/hooks';
 import ElementResizers from '../../ElementResizers.tsx';
 import { tintImageDataUrl } from '../../../lib/signHelpers.js';
+import { englishSignMessages } from '../../../i18n/toolMessages';
 import styles from '../EditorElement.module.css';
 import type { SignatureElement } from '../../../editor/model/editorModel.ts';
 import type { ElementNodeProps } from '../nodeProps.ts';
 
-export default function SignatureNode({ element, isActive, onResizeStart }: ElementNodeProps<SignatureElement>) {
+export default function SignatureNode({ element, isActive, onResizeStart, messages }: ElementNodeProps<SignatureElement>) {
   const [tintedSigUrl, setTintedSigUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,14 +26,15 @@ export default function SignatureNode({ element, isActive, onResizeStart }: Elem
     <>
       <img
         src={tintedSigUrl || element.dataUrl}
-        alt="Signature"
+        alt={messages?.savedSignatureAlt ?? englishSignMessages.savedSignatureAlt}
         className={styles['signature-image']}
         draggable={false}
       />
-      <ElementResizers 
+      <ElementResizers
         element={element}
         isActive={isActive}
         onResizeStart={onResizeStart}
+        messages={messages}
       />
     </>
   );

@@ -35,9 +35,9 @@ engineering work, not a decision, and it lands here so LOC-09 does not carry an 
 1. **Done 2026-09-13.** `/he/` HeroDemo reads in Hebrew; the direction-of-motion question is answered
    (mirror) and implemented; the `heroDemoEnglishNotice` shell message and the `[data-home-demo]` purity
    exemption are both removed; whole-page purity re-measured with no exemption in play: 0.930.
-2. `sign` joins `LOCALIZED_TOOL_ISLANDS` (`src/i18n/localizedTools.ts`); the sr-only
-   `data-tool-controls-english` disclosure disappears from `/he/sign/`; `/he/sign/` still passes the
-   purity guard without a tool-island exemption; `/sign/` and its existing tests are untouched.
+2. **Done 2026-09-13.** `sign` joins `LOCALIZED_TOOL_ISLANDS` (`src/i18n/localizedTools.ts`); the
+   sr-only `data-tool-controls-english` disclosure disappears from `/he/sign/`; `/he/sign/` still passes
+   the purity guard without a tool-island exemption; `/sign/` and its existing tests are untouched.
 3. Both compress-hub guides (`pdf-wont-compress-to-100kb`, `photo-and-signature-size-for-forms`) have a
    Hebrew edition in `src/content/localized-pages/he/`, cited to real Israeli portal limits, through the
    same draft/preview/review gate the other eight Hebrew guides used.
@@ -131,6 +131,32 @@ unchanged from LOC-09).
 (`ToolPageLayout.astro`) disappears from `/he/sign/`; `/he/sign/` still passes the purity guard without
 that exemption. The English catalogue (`englishSignMessages` and every hardcoded default above) stays
 verbatim, so `/sign/` and every existing test are untouched.
+
+**Shipped.** Every surface listed above (shapes menu, signature popover, `SignatureDialog.tsx`,
+`UndoHistoryModal.tsx`, the "Delete signature?" `ConfirmDialog`, `EditorPageHeader.tsx`,
+`ElementToolbar.tsx`, `FontPickerMenu.tsx`, `ElementResizers.tsx`, `TextNode.tsx`'s placeholders,
+`ExportReadinessNotice.tsx`/`FontSupportNotice.tsx`/`textMessages.ts`, and every `setAnnouncement()` call
+and history-log description in `PdfSignTool.tsx`, `PdfWorkspace.tsx`, `loadPdf.ts` and
+`useWorkspaceGestures.ts`) now reads through `SignMessages` (~100 new keys in `src/i18n/toolMessages.ts`),
+English-default via the same optional-`messages`-prop pattern stage 1 established
+(`{ ...englishSignMessages, ...messages }`), so `/sign/` is unaffected and every existing test still
+passes with no `messages` prop given. The four announcement templates stage 1 defined but never wired
+(`toolActive`/`signToolActive`/`toolLocked`/`toolUnlocked`) are now called from `SignToolbar.tsx`. Fixed
+the raw-tool-id-in-copy bug `useWorkspaceGestures.ts` and `PdfWorkspace.tsx`'s history descriptions both
+had, via one new `signElementTypeLabel(t, type)` resolver in `toolMessages.ts` (the one place a Sign
+element/tool id resolves to its display name, per `.claude/rules/editor.md`'s "`TOOL_COPY` owns every
+tool-facing string... never interpolate a raw tool id into copy"). `[locale]/[tool].astro`'s temporary
+`signMessages` special-case is gone; sign now takes the same guarded `toolMessages` path merge/compress
+already use. `loadPdf.ts` (shared with Redact) keeps its own small locally-typed message param rather
+than pulling in all of `SignMessages`, English-default, unchanged for Redact.
+
+**Measured:** `npm run build && npm run test:seo` passes for all 42 pages with `/he/sign/`'s `#app`
+scored on its full body (no `data-tool-controls-english` marker present to exclude it); Hebrew purity
+measured independently at 0.953 (4,779 of 5,013 letters). `npm run typecheck`, `npm test` (2,669 tests,
+unchanged count from before this change), `npm run test:redirects`, `npm run test:css`,
+`npm run test:fonts` and `node scripts/check-gesture-golden-rule.js` all pass; no gesture/pointer-event
+logic was touched, only strings, labels, announcements and prop-threading. Hebrew values are an AI
+draft, same caveat as every other catalogue here - pending Shlomi's read-through.
 
 ### 3. Hebrew editions of the two compress-hub guides
 

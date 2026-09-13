@@ -3,6 +3,7 @@ import Popover from './Popover.tsx';
 import styles from './EditorControls.module.css';
 import { FONT_STYLE_TAGS, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
 import { getFontSupport } from '../editor/text/textFontSupport.js';
+import { englishSignMessages, formatMessage, type SignMessages } from '../i18n/toolMessages';
 
 export const FONT_PREVIEW_DELAY_MS = 120;
 
@@ -35,6 +36,7 @@ export default function FontPickerMenu({
   onChange,
   onPreview,
   onPreviewEnd,
+  messages,
 }: {
   value?: string;
   text?: string;
@@ -44,7 +46,11 @@ export default function FontPickerMenu({
   onChange: (font: string) => void;
   onPreview?: (font: string) => void;
   onPreviewEnd?: () => void;
+  /** LOC-16 stage 2-5: optional and English-default, same shape as
+   * SignToolbar.tsx's `messages` prop. */
+  messages?: Partial<SignMessages>;
 }) {
+  const t: SignMessages = { ...englishSignMessages, ...messages };
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const previewTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -120,7 +126,7 @@ export default function FontPickerMenu({
       >
         {font.label}
         {drawnText && incomplete && <span className={styles['font-menu-item-note']}>
-          {status === 'fallback' ? `Fallback: ${family}` : 'Doesn’t support this text'}
+          {status === 'fallback' ? formatMessage(t.fallbackFontNoteTemplate, { family }) : t.doesntSupportText}
         </span>}
       </button>
     );
@@ -140,7 +146,7 @@ export default function FontPickerMenu({
         <button
           type="button"
           className={`${styles['element-button']} ${styles['font-trigger']}`}
-          title={`Font: ${current.label}`}
+          title={formatMessage(t.fontTriggerTitleTemplate, { name: current.label })}
           aria-haspopup="dialog"
           aria-expanded={open}
         >
@@ -161,17 +167,17 @@ export default function FontPickerMenu({
             type="search"
             value={query}
             className={styles['font-menu-search']}
-            placeholder="Search fonts"
-            aria-label="Search fonts"
+            placeholder={t.searchFontsPlaceholder}
+            aria-label={t.searchFontsPlaceholder}
             onInput={(event) => {
               clearPreviewTimer();
               onPreviewEnd?.();
               setQuery(event.currentTarget.value);
             }}
           />
-          <div className={styles['font-menu-options']} role="listbox" aria-label="Fonts">
+          <div className={styles['font-menu-options']} role="listbox" aria-label={t.fontsListAriaLabel}>
             {visibleOptions.map(renderOption)}
-            {visibleOptions.length === 0 && <p className={styles['font-menu-empty']}>No fonts found.</p>}
+            {visibleOptions.length === 0 && <p className={styles['font-menu-empty']}>{t.noFontsFound}</p>}
           </div>
         </div>
       }

@@ -25,7 +25,7 @@ import {
   captureElementSnapshots,
   type HistoryLogger,
 } from '../../editor/model/actionHistory.ts';
-import { englishSignMessages, type SignMessages } from '../../i18n/toolMessages';
+import { englishSignMessages, formatMessage, signElementTypeLabel, type SignMessages } from '../../i18n/toolMessages';
 import pdfToolStyles from '../PdfTool.module.css';
 import workspaceStyles from './Workspace.module.css';
 
@@ -140,6 +140,7 @@ export default function PdfWorkspace({
     pageSizes,
     nextElementIndex: elements.length,
     gestureCancelRef: placementGestureRef,
+    messages,
   });
 
   // --- Stable element mutation callbacks (hoisted out of the map loop) ---
@@ -156,9 +157,9 @@ export default function PdfWorkspace({
     const snapshots = captureElementSnapshots(elements, (element) => element.id === id);
     dispatch({ type: 'DELETE_ELEMENT', payload: id });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
-    if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, `Deleted ${el.type}`, snapshots);
-    setAnnouncement('Removed element.');
-  }, [dispatch, setAnnouncement, elements, logAction]);
+    if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, formatMessage(t.deletedElementDescriptionTemplate, { label: signElementTypeLabel(t, el.type) }), snapshots);
+    setAnnouncement(t.removedElement);
+  }, [dispatch, setAnnouncement, elements, logAction, t]);
 
   // Factory: returns a stable onChange handler for DraggableWrapper / TextNode.
   // Defined with useCallback so the factory reference is stable; the returned
@@ -213,8 +214,8 @@ export default function PdfWorkspace({
   const cloneElement = useCallback((cloneInfo: EditorElement) => {
     dispatch({ type: 'ADD_ELEMENT', payload: cloneInfo });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: cloneInfo.id });
-    logAction('add', 'DUPLICATE_ELEMENT', cloneInfo.pageIndex, `Duplicated ${cloneInfo.type}`, [captureAddedElement(cloneInfo, elements.length)]);
-  }, [dispatch, elements.length, logAction]);
+    logAction('add', 'DUPLICATE_ELEMENT', cloneInfo.pageIndex, formatMessage(t.duplicatedElementDescriptionTemplate, { label: signElementTypeLabel(t, cloneInfo.type) }), [captureAddedElement(cloneInfo, elements.length)]);
+  }, [dispatch, elements.length, logAction, t]);
 
   const deactivateAll = useCallback(() => {
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
@@ -227,7 +228,7 @@ export default function PdfWorkspace({
     // The in-place notice then expands from its existing marker and exposes the
     // font suggestions, rather than sending the user to a selected-but-silent box.
     dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: firstIssueId });
-    setAnnouncement('Showing the first text field that needs attention.');
+    setAnnouncement(t.reviewingFirstIssueAnnouncement);
     const target = Array.from(document.querySelectorAll('[data-editor-element-id]'))
       .find((node) => node.getAttribute('data-editor-element-id') === firstIssueId) as HTMLElement | undefined;
     if (typeof target?.scrollIntoView === 'function') {
@@ -248,11 +249,11 @@ export default function PdfWorkspace({
       'delete',
       'CLEAR_PAGE',
       pageIndex,
-      `Cleared ${removed.length} annotation${removed.length === 1 ? '' : 's'} on page ${pageIndex + 1}`,
+      formatMessage(removed.length === 1 ? t.clearedPageDescriptionOne : t.clearedPageDescriptionOther, { count: removed.length, page: pageIndex + 1 }),
       snapshots
     );
-    setAnnouncement(`Cleared page ${pageIndex + 1}.`);
-  }, [elements, dispatch, logAction, setAnnouncement]);
+    setAnnouncement(formatMessage(t.clearedPageAnnouncementTemplate, { page: pageIndex + 1 }));
+  }, [elements, dispatch, logAction, setAnnouncement, t]);
 
   return (
     <div
@@ -294,7 +295,9 @@ export default function PdfWorkspace({
                   <EditorPageHeader
                     pageNumber={pageIdx + 1}
                     onClear={pageElements.length > 0 ? () => clearPage(pageIdx) : null}
-                    clearTitle="Clear all annotations on this page"
+                    clearTitle={t.clearPageTitle}
+                    pageLabel={formatMessage(t.pageLabel, { number: pageIdx + 1 })}
+                    clearLabel={t.clearPageLabel}
                     lang={t.lang}
                     dir={t.dir}
                   />
@@ -338,12 +341,14 @@ export default function PdfWorkspace({
                           onClone={cloneElement}
                           pageWidthPoints={size.width}
                           pageGeometry={size}
+                          messages={messages}
                         >
                           {getElementRenderer(el.type)({
                             element: el,
                             onChange: makeOnChange(el.id),
                             onSelect: makeOnSelect(el.id),
                             pageWidthPoints: size.width,
+                            messages,
                           })}
                         </DraggableWrapper>
                       ))}
@@ -375,7 +380,7 @@ export default function PdfWorkspace({
             <svg className={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40">
               <circle className={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" stroke="var(--color-border-strong)" />
             </svg>
-            Saving document layers…
+            {t.savingDocumentLayers}
           </span>
         </div>
       )}
@@ -389,7 +394,7 @@ export default function PdfWorkspace({
             <circle cx="12" cy="16" r="1" fill="currentColor" />
           </svg>
           <span>
-            <strong>Signing stopped.</strong> {errorDetail || 'The PDF may be password-protected or encrypted.'}
+            <strong>{t.signingStoppedLabel}</strong> {errorDetail || t.pdfMayBeProtectedOrEncrypted}
           </span>
         </div>
       )}

@@ -14,6 +14,8 @@ import type { ComponentChildren, VNode } from 'preact';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import type { EditorElement, EditorElementPatch } from '../../editor/model/editorModel.ts';
 import type { NodeResizeStart } from './nodeProps.ts';
+// Type-only, same non-cycle reasoning as nodeProps.ts's own.
+import type { SignMessages } from '../../i18n/toolMessages';
 
 type DraggableChildProps = {
   element?: EditorElement;
@@ -38,7 +40,8 @@ export default function DraggableWrapper<T extends EditorElement>({
   onClone,
   pageWidthPoints,
   pageGeometry,
-  children
+  children,
+  messages,
 }: {
   element: T;
   isActive: boolean;
@@ -51,6 +54,10 @@ export default function DraggableWrapper<T extends EditorElement>({
   pageWidthPoints: number;
   pageGeometry?: PageGeometry;
   children?: ComponentChildren;
+  /** LOC-16 stage 2-5: threaded to ElementToolbar. Optional and
+   * English-default; Redact (which renders its own boxes, not this wrapper)
+   * never supplies it. */
+  messages?: Partial<SignMessages>;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   // Font browsing is intentionally local and temporary. Hovering a picker row
@@ -223,6 +230,7 @@ export default function DraggableWrapper<T extends EditorElement>({
           onPreviewFontEnd={() => setPreviewFontFamily(null)}
           onClone={onClone}
           onDelete={onDelete}
+          messages={messages}
         />
       </div>
 
