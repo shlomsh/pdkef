@@ -137,9 +137,26 @@ test.describe('home page hands a dropped PDF to the Sign tool', () => {
     // then the directive changed and this whole file started timing out in the
     // hook. The picker only exists once the island has rendered client-side, so
     // waiting for it proves the same thing and survives the next directive
-    // change. It also proves the drop listener is attached: it is registered in
-    // an effect on the same component.
+    // change.
     await picker(page).waitFor();
+    // The picker proves the island rendered; the drop listener is registered in
+    // an effect on the same component, which Preact runs a paint later. With
+    // parallel workers loading the CPU, that gap outlasted the seed and the
+    // drop below, and the drop landed on nothing. So probe for the listener
+    // itself: it marks the area with data-drag-over on a Files dragover.
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const area = document.querySelector('[data-working-area]');
+          const transfer = new DataTransfer();
+          transfer.items.add(new File([''], 'probe.pdf', { type: 'application/pdf' }));
+          area.dispatchEvent(new DragEvent('dragover', { dataTransfer: transfer, bubbles: true, cancelable: true }));
+          const attached = 'dragOver' in area.dataset;
+          delete area.dataset.dragOver;
+          return attached;
+        }),
+      )
+      .toBe(true);
   });
 
   test('a dropped file survives the navigation and opens in the editor', async ({ page }) => {

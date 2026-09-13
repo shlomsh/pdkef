@@ -5,6 +5,10 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  # The font guards are path-gated below; the nightly run is the backstop that
+  # catches a runner image or browser change none of our own commits made.
+  schedule:
+    - cron: "17 3 * * *"
   # The exported-PDF render guard's baseline is platform-bound and must be
   # captured on this runner, never on a developer's machine - see
   # BASELINE_PLATFORM in e2e/sign/fixtures/exportRenderHarness.js. Running the
@@ -18,8 +22,13 @@ on:
         type: boolean
         default: false
 
+# Three jobs in parallel instead of one sequential job, so the wall time is
+# the longest of them, not the sum. Measured before the split (n=8 runs):
+# 8.2 min median, two thirds of it Playwright on a single worker, with the
+# font guards more than half of that.
 jobs:
-  test:
+  # Everything that needs no build: source guards, the unit suite, typecheck.
+  checks:
     runs-on: ubuntu-latest
 
     steps:
@@ -43,15 +52,14 @@ jobs:
 
     # backlog/tasks/*.md is the canonical board; BACKLOG.md and TODO.md are
     # generated from it. Fails on malformed task metadata, a dependency that
-    # does not resolve, or a stale generated view (ARCH-12). Source-only, so it
-    # runs before anything that costs a build.
+    # does not resolve, or a stale generated view (ARCH-12).
     - name: Validate backlog and generated indexes
       run: npm run check:backlog
 
     # CLAUDE.md loads into every agent session; the topic detail lives in
     # .claude/rules/*.md, loaded only for matching files. Fails if CLAUDE.md
     # exceeds its line budget, a rule lacks paths: frontmatter, or a glob
-    # matches nothing. Source-only, so it runs before anything that builds.
+    # matches nothing.
     - name: Validate agent guidance budget
       run: npm run check:guidance
 
@@ -70,8 +78,8 @@ jobs:
     - name: Verify gesture golden-rule (static)
       run: npm run test:gesture-golden-rule
 
-    # Source-side, so it needs no build and fails before one is spent. It also
-    # runs again inside test:css below, for anyone running that locally.
+    # Source-side, so it needs no build. It also runs again inside test:css in
+    # the build job, for anyone running that locally.
     - name: Verify every class string resolves to CSS
       run: node scripts/check-class-resolution.js
 
@@ -91,6 +99,23 @@ jobs:
     - name: Verify dependency governance wiring
       run: npm run test:dependency-governance
 
+  # The build, the guards that read dist/, and the product e2e suite: every
+  # spec except the font guards, which have their own job below.
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
     - name: Build
       run: npm run build
 
@@ -109,14 +134,130 @@ jobs:
     - name: Check first-load page weight
       run: npm run test:weight
 
+    - name: Resolve Playwright version
+      id: playwright
+      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+    # The browser binaries only change with the Playwright version, so they
+    # are cached on it; the apt libraries they need are not cacheable and are
+    # installed either way.
+    - name: Cache Playwright browsers
+      id: playwright-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-webkit
+
     - name: Install Playwright browsers
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
       run: npx playwright install --with-deps chromium webkit
 
-    - name: Run Playwright e2e tests
-      # `test:e2e` builds for a useful local one-command release check. CI has
-      # already built the exact dist checked by CSP, SEO, CSS and weight gates,
-      # so invoke Playwright directly rather than building it a second time.
-      run: npx playwright test
+    - name: Install Playwright system dependencies
+      if: steps.playwright-cache.outputs.cache-hit == 'true'
+      run: npx playwright install-deps chromium webkit
+
+    - name: Run Playwright e2e tests (product)
+      # CI has already built the exact dist checked by CSP, SEO, CSS and weight
+      # gates, so invoke Playwright directly rather than building it a second
+      # time (`test:e2e` builds, for a useful local one-command release check).
+      run: npx playwright test --project=chromium --project=webkit
+
+    - name: Upload Playwright artifacts
+      if: failure()
+      uses: actions/upload-artifact@v5
+      with:
+        name: playwright-artifacts-product
+        path: |
+          playwright-report/
+          test-results/
+        if-no-files-found: ignore
+
+  # Decides whether this run touched anything a font guard's outcome depends
+  # on. The guards pixel-diff the shaped output of the fonts in public/fonts
+  # through the export core in src/editor (which reaches into src/lib and one
+  # SignTool messages module), so a change anywhere in that graph, the guards
+  # themselves, or the dependency set runs them; a copy, page, backlog or
+  # other-tool change does not. Fails open: when the base commit cannot be
+  # fetched (first push of a branch, a force-push), the guards run.
+  font-guard-inputs:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Diff against the base for font-guard inputs
+      id: diff
+      env:
+        BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+      run: |
+        if [ -z "$BASE" ] || ! git fetch --no-tags --depth=1 origin "$BASE"; then
+          echo "No usable base ($BASE); running the font guards."
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        files=$(git diff --name-only "$BASE" HEAD)
+        pattern='^(public/fonts/|src/editor/|src/lib/|src/components/SignTool/|src/test/fixtures/|e2e/sign/|scripts/[^/]*(font|language)|package\.json$|package-lock\.json$|patches/|playwright\.config\.js$|astro\.config\.mjs$|\.github/workflows/ci\.yml$)'
+        if printf '%s\n' "$files" | grep -qE "$pattern"; then
+          echo "Font-guard inputs changed:"; printf '%s\n' "$files" | grep -E "$pattern"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "No font-guard input changed in $(printf '%s\n' "$files" | grep -c .) files; skipping the font guards."
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        fi
+
+  # The 27 font screening guards (the `fonts` Playwright project): shaping
+  # guards per script, font parity, the export render guard, Hebrew
+  # composition, language acceptance. Runs when their inputs changed, on the
+  # nightly schedule, and on every manual dispatch (the baseline recapture
+  # needs it). Fails open: if the inputs job did not produce a verdict, run.
+  font-guards:
+    runs-on: ubuntu-latest
+    needs: font-guard-inputs
+    if: >-
+      always() && (
+        needs.font-guard-inputs.result != 'success' ||
+        needs.font-guard-inputs.outputs.changed == 'true'
+      )
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build
+      run: npm run build
+
+    - name: Resolve Playwright version
+      id: playwright
+      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Playwright browsers
+      id: playwright-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+
+    - name: Install Playwright browsers
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
+      run: npx playwright install --with-deps chromium
+
+    - name: Install Playwright system dependencies
+      if: steps.playwright-cache.outputs.cache-hit == 'true'
+      run: npx playwright install-deps chromium
+
+    - name: Run Playwright e2e tests (font guards)
+      run: npx playwright test --project=fonts
 
     # Prints the recaptured baseline rather than committing it. Review the
     # decoded file before it lands: a baseline change is a change to what users
@@ -138,7 +279,7 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@v5
       with:
-        name: playwright-artifacts
+        name: playwright-artifacts-fonts
         path: |
           playwright-report/
           test-results/

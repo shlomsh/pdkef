@@ -198,7 +198,13 @@ sign, redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`
 - `src/lib/thumbnails.js`: lazy `pdfjs-dist` page-1 render. The worker is
   `new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url)`, bundled same-origin, never a CDN.
 
-## E2E scope
+## Test environments and E2E scope
+
+Unit tests run under `node` (no jsdom) unless they match `DOM_TESTS` in `vitest.config.js`: anything
+under `src/components`, any `.test.tsx`/`.jsx`, the `use*` hook tests, `src/editor/workspace` and
+`gestures`, and the lib tests that decode images or drive pdf.js. Booting jsdom cost more than the
+tests it hosted, so a pure-logic test in `src/lib` or `src/editor` pays nothing for a DOM it never
+touches; one that does need it goes in that list or starts with `// @vitest-environment jsdom`.
 
 Playwright is for what jsdom cannot prove; keep roughly one e2e per ten unit tests under
 `e2e/<module>/`. `export-render-guard.spec.js` runs the real `signPdf` in-browser and rasterises the
