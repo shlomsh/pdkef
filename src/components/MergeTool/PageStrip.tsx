@@ -154,7 +154,8 @@ export default function PageStrip({
   }, [selectedKey, stripRef]);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [PreviewDialog, setPreviewDialog] = useState<ComponentType<{
-    target: PreviewTarget | null; onClose: () => void; onStep: (delta: 1 | -1) => void; messages: MergeMessages;
+    target: PreviewTarget | null; onClose: () => void; onStep: (delta: 1 | -1) => void;
+    onToggleSkip: () => void; messages: MergeMessages;
   }> | null>(null);
 
   const fileById = (id: number) => entriesRef.current.find((e) => e.id === id);
@@ -647,6 +648,11 @@ export default function PageStrip({
           target={previewTarget}
           onClose={() => setPreviewIndex(null)}
           onStep={(delta) => setPreviewIndex((current) => (current == null ? null : Math.max(0, Math.min(plan.length - 1, current + delta))))}
+          onToggleSkip={() => {
+            if (previewIndex == null) return;
+            const entry = plan[previewIndex];
+            if (entry) toggleSkip(entry.key, outputPositionAt(previewIndex));
+          }}
           messages={t}
         />
       )}

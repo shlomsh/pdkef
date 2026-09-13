@@ -129,6 +129,9 @@ export interface MergeMessages {
   previewPrev: string;
   previewNext: string;
   previewLoading: string;
+  previewSkippedBanner: string;
+  previewSkippedNote: string;
+  previewIncludeAgain: string;
   /* MERGE-14: two quiet verbs under Download (Split was dropped on review:
    * after page-level shuffle and skip it is not the next step); MERGE-17: one
    * quiet line after the first result in this browser. */
@@ -244,6 +247,9 @@ const englishMergeMessages: MergeMessages = {
   previewPrev: 'Previous page',
   previewNext: 'Next page',
   previewLoading: 'Rendering the page…',
+  previewSkippedBanner: 'Excluded from the merged file',
+  previewSkippedNote: 'Left out of the download.',
+  previewIncludeAgain: 'Include it again',
   handoffCompress: 'Compress it',
   shareLabel: 'Share',
   handoffSign: 'Sign it',
@@ -351,6 +357,9 @@ const hebrewMergeMessages: MergeMessages = {
   previewPrev: 'העמוד הקודם',
   previewNext: 'העמוד הבא',
   previewLoading: 'מציירים את העמוד…',
+  previewSkippedBanner: 'לא ייכלל בקובץ המאוחד',
+  previewSkippedNote: 'לא ייכלל בהורדה.',
+  previewIncludeAgain: 'להחזיר אותו',
   handoffCompress: 'לכווץ אותו',
   shareLabel: 'שיתוף',
   handoffSign: 'לחתום עליו',

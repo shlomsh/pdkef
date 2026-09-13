@@ -564,8 +564,56 @@
   transition: opacity 0.12s var(--ease-out);
 }
 
-.preview-stage[data-stale] .preview-image {
+.preview-stage[data-stale] .preview-image,
+.preview-stage[data-skipped] .preview-image {
   opacity: 0.55;
+}
+
+/* Shlomi's follow-up (2026-09-13): the preview used to say "skipped" only in
+   five quiet words of the title, easy to miss while looking at the enlarged
+   page instead. The banner states it where the eye already is; the dimmed
+   image above shows it; the footline below lets it be undone without closing
+   the dialog - the same skipped/included toggle the page strip's own button
+   exposes. */
+.preview-skip-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 20px;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.preview-skip-banner svg {
+  flex: none;
+}
+
+.preview-skip-footline {
+  flex: none;
+  padding: 0.6rem 20px 0.85rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--color-danger);
+}
+
+.preview-skip-restore {
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.preview-skip-restore:hover,
+.preview-skip-restore:focus-visible {
+  color: var(--color-primary-active);
 }
 
 .preview-stage[data-rotation='90'] .preview-image {

@@ -321,21 +321,23 @@ describe('PageStrip', () => {
   // Review P2: the dialog used to count the raw plan (previewIndex + 1 of
   // plan.length), disagreeing with the heading's "N pages · 1 skipped" and
   // every cell's own aria-label, both of which count OUTPUT pages. The
-  // title now uses the same counter, and marks a skipped page's preview
-  // with the word the heading and the cell already use.
+  // title now uses the same counter. A skipped page's preview no longer
+  // marks itself in the title (five quiet words in the header were easy to
+  // miss); it gets a banner above the dimmed page and a restore link below
+  // instead - see the dedicated banner test.
   it('the preview dialog title counts output pages like the heading, and marks a skipped page', async () => {
     const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
     plan[2] = { ...plan[2], skipped: true };
     mount({ plan });
 
     // The skipped page (index 2) previews as the position it would take
-    // (3 of 3 output pages), with the skipped word - same numbers its own
-    // cell already shows (the prior test: struck "3").
+    // (3 of 3 output pages), with the exclusion banner - same numbers its
+    // own cell already shows (the prior test: struck "3").
     await act(async () => { cards()[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
     await waitFor(() => container.querySelector('dialog') !== null);
     let dialog = container.querySelector('dialog');
     expect(dialog.textContent).toContain('Page 3 of 3');
-    expect(dialog.textContent.toLowerCase()).toContain('skipped');
+    expect(dialog.textContent.toLowerCase()).toContain('excluded from the merged file');
     const prevButton = () => Array.from(dialog.querySelectorAll('button')).find((b) => b.getAttribute('aria-label') === 'Previous page');
     const nextButton = () => Array.from(dialog.querySelectorAll('button')).find((b) => b.getAttribute('aria-label') === 'Next page');
     // Not the first or last entry in the raw plan, so neither nav button
@@ -344,11 +346,11 @@ describe('PageStrip', () => {
     expect(nextButton().disabled).toBe(false);
 
     // The real page right behind it (index 3, the plan's last entry) also
-    // reads "3 of 3", with no skipped word, and Next is disabled there.
+    // reads "3 of 3", with no exclusion banner, and Next is disabled there.
     await act(async () => { nextButton().click(); });
     dialog = container.querySelector('dialog');
     expect(dialog.textContent).toContain('Page 3 of 3');
-    expect(dialog.textContent.toLowerCase()).not.toContain('skipped');
+    expect(dialog.textContent.toLowerCase()).not.toContain('excluded from the merged file');
     expect(nextButton().disabled).toBe(true);
     expect(prevButton().disabled).toBe(false);
 
@@ -359,6 +361,23 @@ describe('PageStrip', () => {
     dialog = container.querySelector('dialog');
     expect(dialog.textContent).toContain('Page 1 of 3');
     expect(prevButton().disabled).toBe(true);
+  });
+
+  it('the preview dialog\'s restore link brings a skipped page back, same as the strip button', async () => {
+    const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
+    plan[2] = { ...plan[2], skipped: true };
+    const { onPlanChange, announce } = mount({ plan });
+
+    await act(async () => { cards()[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    await waitFor(() => container.querySelector('dialog') !== null);
+    const dialog = container.querySelector('dialog');
+    const restoreButton = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Include it again');
+    expect(restoreButton).toBeTruthy();
+
+    await act(async () => restoreButton.click());
+    expect(onPlanChange).toHaveBeenCalledTimes(1);
+    expect(onPlanChange.mock.results[0].value[2]).toMatchObject({ key: '2:0', skipped: false });
+    expect(announce).toHaveBeenLastCalledWith(expect.stringContaining('Page 3 included again'));
   });
 
   it('commits the drop once through SortableJS onEnd and registers one undo', () => {
