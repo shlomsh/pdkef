@@ -1,7 +1,7 @@
 ---
 id: "LOC-15"
 title: "Indonesian pilot: one page for getting a PDF under 1 MB and a photo under 200 KB, on the size-limit family that cleared the gate"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "localization-pilots"
 phase: "near-term"
@@ -293,8 +293,12 @@ from a new paragraph in its "Real portals" section, citing SSCASN's own 1MB PDF 
 (the same sourced numbers as above). No longer sitemap-only. Verified: build, `test:seo`,
 `test:redirects`, `test:css`, `test:csp` all green; anchor confirmed in the built HTML.
 
-**Open after this lands:**
+**Closed 2026-09-13.** Everything buildable has shipped; the only thing left is the eight-week GSC
+read, split out to [LOC-17](LOC-17.md) so this ticket does not sit open with nothing to do until
+2026-11-08. Two things intentionally not carried forward as tickets:
 
-- Tool follow-ups surfaced by the measured runs (not this ticket): the "closest achievable" notice
-  claims unreadability on a sub-1% overshoot; the target search prefers full resolution at floor
-  quality on photos (SEO-31's finding again, milder at 200 KB).
+- Tool follow-ups surfaced by the measured runs (not this ticket, not filed): the "closest
+  achievable" notice claims unreadability on a sub-1% overshoot; the target search prefers full
+  resolution at floor quality on photos (SEO-31's finding again, milder at 200 KB).
+- The languages-page artifact's per-language reviewer note: Shlomi confirmed the live artifact
+  does not say "source a paid native reviewer" for Indonesian, so no edit was needed there.
