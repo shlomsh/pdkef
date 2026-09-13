@@ -43,13 +43,16 @@ export interface MergeMessages {
   shareError: string;
   fileSummaryOne: string;
   fileSummaryMany: string;
-  /* MERGE-06 / MERGE-11: one Sort control (a native select) plus Reverse
-   * order, and an Options disclosure collapsed by default. */
+  /* MERGE-06 / MERGE-11 / Direction A wave 2 (Shlomi): one Sort control (a
+   * native select), Reverse folded into it as its own option, and an Options
+   * disclosure collapsed by default. */
   sortLabel: string;
   sortAsAdded: string;
-  sortByName: string;
-  sortByDate: string;
-  reverseOrder: string;
+  sortReversed: string;
+  sortNameAsc: string;
+  sortNameDesc: string;
+  sortDateAsc: string;
+  sortDateDesc: string;
   optionsSummary: string;
   /** MERGE-03: the output file name is one template ("merged_{name}", the
    * same prefix shape as signed_/redacted_) so a locale can phrase it its own
@@ -116,6 +119,26 @@ export interface MergeMessages {
   installLink: string;
   installIos: string;
   installOther: string;
+  /* Direction A (2026-09-13): the document-centred layout. Document header,
+   * rail, per-file captions and the Download element's own states. */
+  pickedUp: string;
+  startFresh: string;
+  documentHeading: string;
+  renderedCount: string;
+  shortcutsLine: string;
+  captionPages: string;
+  preparingPages: string;
+  renderProgress: string;
+  savedLabel: string;
+  downloadAgain: string;
+  fixFileToMerge: string;
+  pageSkippedUndo: string;
+  pageRotatedUndo: string;
+  pageMovedUndo: string;
+  /* Direction A wave 2 (Shlomi's reduction, 2026-09-13): the drag-anywhere
+   * overlay once the add bar is gone, and the phone chip row's "more" menu. */
+  dropAnywhereNote: string;
+  moreOptions: string;
 }
 
 const englishMergeMessages: MergeMessages = {
@@ -125,7 +148,7 @@ const englishMergeMessages: MergeMessages = {
   reorderHint: 'Drag a file by its handle to reorder, or focus a file and press the arrow up or down keys to move it.',
   dragHandleLabel: '{name}, position {position} of {total}. Drag, or press arrow up or down to move.',
   removeLabel: 'Remove {name}',
-  addOneMore: 'Add 1 more to merge',
+  addOneMore: 'Add one more PDF to merge',
   mergedReady: 'Your merged PDF is ready.',
   filesAddedOne: '1 file added.',
   filesAddedMany: '{count} files added.',
@@ -140,9 +163,11 @@ const englishMergeMessages: MergeMessages = {
   fileSummaryMany: '{count} PDFs',
   sortLabel: 'Sort',
   sortAsAdded: 'As added',
-  sortByName: 'Name',
-  sortByDate: 'Date',
-  reverseOrder: 'Reverse order',
+  sortReversed: 'Reversed',
+  sortNameAsc: 'Name A to Z',
+  sortNameDesc: 'Name Z to A',
+  sortDateAsc: 'Oldest first',
+  sortDateDesc: 'Newest first',
   optionsSummary: 'Options',
   outputName: 'merged_{name}',
   savesAs: 'Saves as {name}',
@@ -195,6 +220,22 @@ const englishMergeMessages: MergeMessages = {
   installLink: 'install',
   installIos: 'To keep it on your home screen, tap Share, then Add to Home Screen.',
   installOther: 'To keep it on your home screen, look for Install or Add to Home Screen in your browser menu.',
+  pickedUp: 'Picked up where you left off',
+  startFresh: 'Start fresh',
+  documentHeading: 'Your merged PDF',
+  renderedCount: '{count} rendered',
+  shortcutsLine: '← → move · R rotate · Del skip',
+  captionPages: 'pages {from} to {to}',
+  preparingPages: 'Preparing {count} pages…',
+  renderProgress: '{done} of {total} rendered',
+  savedLabel: 'Saved',
+  downloadAgain: 'download again',
+  fixFileToMerge: 'Fix the file above to merge',
+  pageSkippedUndo: 'Skipped page {number}',
+  pageRotatedUndo: 'Rotated page {number}',
+  pageMovedUndo: 'Moved page {number}',
+  dropAnywhereNote: 'Drop anywhere, or paste',
+  moreOptions: 'More options',
 };
 
 // LOC-02's own throwaway draft fixture (proves the route end to end for
@@ -208,7 +249,7 @@ const hebrewMergeMessages: MergeMessages = {
   reorderHint: 'גררו קובץ מהידית שלו כדי לסדר מחדש, או התמקדו בקובץ ולחצו על חץ למעלה או למטה כדי להזיז אותו.',
   dragHandleLabel: '{name}, מקום {position} מתוך {total}. גררו, או לחצו על חץ למעלה או למטה כדי להזיז.',
   removeLabel: 'הסרת {name}',
-  addOneMore: 'הוסיפו עוד קובץ אחד כדי למזג',
+  addOneMore: 'הוסיפו עוד PDF אחד כדי למזג',
   mergedReady: 'ה-PDF המאוחד מוכן.',
   filesAddedOne: 'נוסף קובץ אחד.',
   filesAddedMany: 'נוספו {count} קבצים.',
@@ -225,9 +266,11 @@ const hebrewMergeMessages: MergeMessages = {
   // the rest of this catalogue. Flagged for Shlomi's review in the epic report.
   sortLabel: 'מיון',
   sortAsAdded: 'לפי סדר ההוספה',
-  sortByName: 'לפי שם',
-  sortByDate: 'לפי תאריך',
-  reverseOrder: 'היפוך הסדר',
+  sortReversed: 'הפוך',
+  sortNameAsc: 'שם, א עד ת',
+  sortNameDesc: 'שם, ת עד א',
+  sortDateAsc: 'הישן ביותר קודם',
+  sortDateDesc: 'החדש ביותר קודם',
   optionsSummary: 'אפשרויות',
   outputName: 'merged_{name}',
   savesAs: 'יישמר בשם {name}',
@@ -280,6 +323,24 @@ const hebrewMergeMessages: MergeMessages = {
   installLink: 'להתקין',
   installIos: 'כדי לשמור אותו במסך הבית, לחצו על שיתוף ואז על הוספה למסך הבית.',
   installOther: 'כדי לשמור אותו במסך הבית, חפשו "התקנה" או "הוספה למסך הבית" בתפריט הדפדפן.',
+  // Direction A (2026-09-13): AI draft, not reviewed copy, same caveat as the
+  // rest of this catalogue.
+  pickedUp: 'המשכנו מהמקום שבו הפסקתם',
+  startFresh: 'להתחיל מחדש',
+  documentHeading: 'ה-PDF המאוחד שלכם',
+  renderedCount: '{count} עומדים לרינדור',
+  shortcutsLine: '← → הזזה · R סיבוב · Del דילוג',
+  captionPages: 'עמודים {from} עד {to}',
+  preparingPages: 'מכינים {count} עמודים…',
+  renderProgress: '{done} מתוך {total} עומדו',
+  savedLabel: 'נשמר',
+  downloadAgain: 'הורדה שוב',
+  fixFileToMerge: 'תקנו את הקובץ למעלה כדי למזג',
+  pageSkippedUndo: 'דולג עמוד {number}',
+  pageRotatedUndo: 'סובב עמוד {number}',
+  pageMovedUndo: 'הוזז עמוד {number}',
+  dropAnywhereNote: 'שחררו בכל מקום, או הדביקו',
+  moreOptions: 'עוד אפשרויות',
 };
 
 export interface CompressMessages {
@@ -824,7 +885,7 @@ const englishShellMessages: ShellMessages = {
   draftSaved: 'Draft saved',
   draftSaving: 'Saving draft…',
   draftNotSaved: 'Draft not saved',
-  draftConflict: 'Newer draft in another tab — saving here will replace it',
+  draftConflict: 'Newer draft in another tab - saving here will replace it',
   addLabel: 'Add files',
   addShort: 'Add',
   addTitle: 'Add more files',
@@ -841,7 +902,7 @@ const englishShellMessages: ShellMessages = {
   replaceConfirmChoose: 'Choose a file',
   replaceOpening: 'Opening {file} closes {current} and discards {work}.',
   replaceChoosing: 'Choosing another file closes {current} and discards {work}.',
-  replaceTail: 'That can’t be undone.',
+  replaceTail: "That can't be undone.",
   replaceDraftGoes: 'Your saved draft goes with it.',
   theCurrentPdf: 'the current PDF',
   workDefault: 'the work you have done here',
@@ -955,7 +1016,7 @@ const englishFileDropzoneMessages: FileDropzoneMessages = {
   practiceDocumentCaption: 'Practice document · opens in {tool}',
   confirmHandoffTitle: 'Open this instead?',
   confirmHandoffConfirm: 'Open it',
-  confirmHandoffBody: 'Opening {file} replaces your saved work in {draft}. That can’t be undone.',
+  confirmHandoffBody: "Opening {file} replaces your saved work in {draft}. That can't be undone.",
   cancelLabel: 'Cancel',
   closeLabel: 'Close dialog',
 };

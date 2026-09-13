@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import type { ComponentType } from 'preact';
+import type { ComponentChildren, ComponentType } from 'preact';
 import Sortable from 'sortablejs';
 import { inspectPdf, MergeFileError } from '../lib/merge.js';
 import {
   insertPages,
   isGrouped,
+  isInListOrder,
   mergedFileName,
   mergedTitle,
   outputPageCount,
@@ -16,18 +17,18 @@ import {
 import { deriveFileKind } from '../lib/fileKind.js';
 import { sortByDate, sortByName } from '../lib/sort.js';
 import { renderThumbnail } from '../lib/thumbnails.js';
-import { describeFile, formatFileSize } from '../lib/format.js';
+import { formatFileSize } from '../lib/format.js';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { isIOSDevice } from '../lib/platform.ts';
 import BasePdfTool from './BasePdfTool.tsx';
 import ConfirmDialog from './ConfirmDialog.tsx';
-import styles from './FileList.module.css';
+import { useToolShell } from './ToolShell.tsx';
 import pdfToolStyles from './PdfTool.module.css';
-import sortToolbarStyles from './SortToolbar.module.css';
+import docStyles from './MergeTool/MergeDocument.module.css';
+import railStyles from './MergeTool/MergeRail.module.css';
 import PdfShareButton from './PdfShareButton.tsx';
-import ProgressRing from './ProgressRing.tsx';
 import ErrorMessage from './ErrorMessage.tsx';
-import DownloadButton from './DownloadButton.tsx';
+import DownloadElement, { type DownloadElementState } from './MergeTool/DownloadElement.tsx';
 import { usePreparedMerge } from './MergeTool/usePreparedMerge.ts';
 import type { PageStripProps } from './MergeTool/PageStrip.tsx';
 import type { MergeDraftPersistenceProps } from './MergeTool/MergeDraftPersistence.tsx';
@@ -59,11 +60,13 @@ interface Model {
   entries: FileEntry[];
   /** MERGE-09: the single source of output order. Every page of every file,
    * as PlanEntry { key, fileId, pageIndex, rotation, skipped }. Grouped by
-   * file until a page crosses a file boundary in the strip. */
+   * file until a page crosses a file boundary in the grid. */
   plan: PlanEntry[];
 }
 
-type SortMode = 'added' | 'name' | 'date';
+/* Direction A wave 2 (Shlomi): Reverse folded into the Sort select as its
+ * own option, rather than a separate button beside it. */
+type SortMode = 'added' | 'reversed' | 'nameAsc' | 'nameDesc' | 'dateAsc' | 'dateDesc';
 
 function toEntry(file: File): FileEntry {
   return { id: nextId++, file, pageCount: null, pdfCreationDate: null, thumbnail: null, error: null };
@@ -104,15 +107,14 @@ function planInsertionIndex(plan: PlanEntry[], entries: FileEntry[], fileId: num
   return index === -1 ? plan.length : index;
 }
 
-/* The five seconds "Removed X · Undo" stays on screen (MERGE-07). Long
-   enough to read and act on, short enough that the row is not haunted by a
-   status line for a file the person clearly meant to drop. */
+/* Direction A: one Undo chip, one slot - file removal and page actions
+   (skip, rotate, move) all register through the same `registerUndo`, so a
+   second action's undo silently replaces the first's rather than stacking. */
 const UNDO_WINDOW_MS = 5000;
 
-interface RemovedFile {
-  entry: FileEntry;
-  index: number;
-  planEntries: { entry: PlanEntry; index: number }[];
+interface UndoAction {
+  message: string;
+  perform: () => void;
 }
 
 function hasFilePayload(event: DragEvent) {
@@ -140,7 +142,7 @@ function markFirstResultSeen() {
 }
 
 /* MERGE-14: Compress and Sign only. Split was in the first cut and came out
-   on Shlomi's read: after page-level reorder and skip in the strip, splitting
+   on Shlomi's read: after page-level reorder and skip in the grid, splitting
    the result is not the next step anyone takes. */
 type HandoffTool = 'compress' | 'sign';
 
@@ -153,6 +155,11 @@ function hasMergeDraftHint(): boolean {
   } catch {
     return false;
   }
+}
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 interface BeforeInstallPromptEvent extends Event {
@@ -180,6 +187,20 @@ interface PdfMergeToolProps {
 
 const DEFAULT_HANDOFF_HREFS: Record<HandoffTool, string> = { compress: '/compress/', sign: '/sign/' };
 
+/** BasePdfTool's file input, replace confirmation and clear confirmation are
+ * all reached through ToolShellContext, which only reaches components
+ * actually rendered inside <BasePdfTool>'s children - not PdfMergeTool's own
+ * function body, which is BasePdfTool's parent. This tiny bridge is that one
+ * descendant, so "Choose files" (add bar, Download's one-file state, the
+ * rail's "Add files") and "Start fresh" / "Clear all" (the rail) all go
+ * through the exact same picker and confirmation every other tool uses. */
+function ToolShellBridge({ children }: {
+  children: (shell: { requestReplace: () => void; requestClear: () => void }) => ComponentChildren;
+}) {
+  const { requestReplace, requestClear } = useToolShell();
+  return <>{children({ requestReplace, requestClear })}</>;
+}
+
 export default function PdfMergeTool({
   messages: messagesProp,
   shellMessages,
@@ -195,10 +216,23 @@ export default function PdfMergeTool({
   const { entries, plan } = model;
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [duplicates, setDuplicates] = useState<File[]>([]);
-  const [removed, setRemoved] = useState<RemovedFile | null>(null);
+  const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const [addPageNumbers, setAddPageNumbers] = useState(() => readRememberedOptions().addPageNumbers);
   const [sortMode, setSortMode] = useState<SortMode>('added');
+  const [renderedCount, setRenderedCount] = useState(0);
+  /* Direction A wave 2 (Shlomi): the restored-draft sentence shows once, for
+   * five seconds, then gives way for good to the small "Draft saved" chip
+   * that lives beside Add files / Clear all for the rest of the session. */
+  const [showPickedUpSentence, setShowPickedUpSentence] = useState(false);
+  const pickedUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /* The shortcuts line shows once, for about six seconds, on the first
+   * keyboard (not pointer) focus of a page cell, then never again this
+   * mount; the undo chip takes the same header slot and wins if both are
+   * pending at once. */
+  const [showShortcutsHint, setShowShortcutsHint] = useState(false);
+  const shortcutsShownRef = useRef(false);
+  const shortcutsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /* MERGE-12 analytics: the person's intent is the Download tap, which is
      what Merge used to mean; pre-merges are not counted. See ANALYTICS.md. */
   const [tap, setTap] = useState<'idle' | 'merging' | 'done'>('idle');
@@ -206,16 +240,23 @@ export default function PdfMergeTool({
   const [downloadedOnce, setDownloadedOnce] = useState(false);
   const { shareReady, prepare, clearPrepared, sharePrepared, download } = usePdfShare();
   const listRef = useRef<HTMLUListElement | null>(null);
+  /* Phone chip row (Shlomi's reduction, wave 2): a second, independent
+   * SortableJS list over the same `entries`, since the desktop rail's list
+   * and the chip row are two different DOM lists shown one at a time via
+   * CSS, not one list re-skinned. */
+  const chipListRef = useRef<HTMLUListElement | null>(null);
+  const chipSortableRef = useRef<Sortable | null>(null);
   const stripRef = useRef<HTMLUListElement | null>(null);
+  const documentRef = useRef<HTMLDivElement | null>(null);
   const sortableRef = useRef<Sortable | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insertIndexRef = useRef(-1);
-  /* MERGE-10: a file dropped onto the strip lands at that page position. The
+  /* MERGE-10: a file dropped onto the grid lands at that page position. The
      plan index is recorded per new entry and consumed when its page count
      arrives, because the pages cannot be placed before the count is known. */
   const stripInsertIndexRef = useRef(-1);
   const pendingPlanIndexRef = useRef(new Map<number, number>());
-  /* MERGE-08: the strip, the preview dialog and (MERGE-13) the draft hook all
+  /* MERGE-08: the grid, the preview dialog and (MERGE-13) the draft hook all
      arrive through dynamic import(), so the eager graph check-page-weight.js
      measures for /merge/ does not grow with them. */
   const [PageStrip, setPageStrip] = useState<ComponentType<PageStripProps> | null>(null);
@@ -229,7 +270,7 @@ export default function PdfMergeTool({
   );
   const clearDraftRef = useRef<(() => Promise<boolean>) | null>(null);
   const draftOptions = useMemo(() => ({ addPageNumbers }), [addPageNumbers]);
-  /* MERGE-14: hand the result to Compress, Sign or Split without re-picking. */
+  /* MERGE-14: hand the result to Compress or Sign without re-picking. */
   const [handoffBusy, setHandoffBusy] = useState(false);
   const [handoffFailed, setHandoffFailed] = useState(false);
   const [handoffConfirm, setHandoffConfirm] = useState<{ tool: HandoffTool; draftName: string } | null>(null);
@@ -244,6 +285,7 @@ export default function PdfMergeTool({
   // restart a pre-merge that is already running.
   const mergeSignature = entries.map((e) => `${e.id}:${e.pageCount}:${e.error ?? ''}`).join('|');
   const fileIds = useMemo(() => entries.map((e) => e.id), [mergeSignature]);
+  const listOrdered = useMemo(() => isInListOrder(plan, fileIds), [plan, fileIds]);
   const readyFiles = useMemo(() => {
     if (entries.length < 2) return null;
     if (entries.some((e) => e.pageCount == null || e.error)) return null;
@@ -261,34 +303,90 @@ export default function PdfMergeTool({
     debounceMs: prepareDelayMs,
   });
 
-  // Drag-to-reorder: SortableJS owns the DOM order during a drag; on drop
-  // we read its final order back into Preact state, which becomes the
-  // source of truth again for every subsequent render. Reordering a file
+  // Once the plan is ready, any subsequent edit takes the Download element
+  // back through preparing -> ready, without replaying its first-ready
+  // animation (DownloadElement tracks that itself in a ref); this only has
+  // to stop pretending a stale "saved" still applies to the new blob.
+  useEffect(() => {
+    if (prepared.status !== 'ready') setDownloadedOnce(false);
+  }, [prepared.status]);
+
+  const registerUndo = useCallback((message: string, perform: () => void) => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoAction({ message, perform });
+    undoTimerRef.current = setTimeout(() => setUndoAction(null), UNDO_WINDOW_MS);
+  }, []);
+
+  const clearUndo = useCallback(() => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoTimerRef.current = null;
+    setUndoAction(null);
+  }, []);
+
+  const runUndo = useCallback(() => {
+    const action = undoAction;
+    if (!action) return;
+    clearUndo();
+    action.perform();
+  }, [undoAction, clearUndo]);
+
+  // Drag-to-reorder in the rail: SortableJS owns the DOM order during a drag;
+  // on drop we read its final order back into Preact state, which becomes
+  // the source of truth again for every subsequent render. Reordering a file
   // regroups the plan around the new file order (MERGE-09).
+  const applyFileReorder = useCallback((oldIndex: number, newIndex: number) => {
+    if (oldIndex === newIndex) return;
+    setModel((current) => {
+      const next = [...current.entries];
+      const [moved] = next.splice(oldIndex, 1);
+      next.splice(newIndex, 0, moved);
+      return { entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)) };
+    });
+    setSortMode('added');
+  }, []);
+
   useEffect(() => {
     if (!listRef.current) return undefined;
     sortableRef.current?.destroy();
     sortableRef.current = Sortable.create(listRef.current, {
       animation: 220,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-      handle: `.${styles['drag-handle']}`,
-      ghostClass: styles['is-ghost'],
-      chosenClass: styles['is-chosen'],
-      dragClass: styles['is-dragging'],
+      handle: `.${railStyles.grip}`,
+      ghostClass: railStyles['is-ghost'],
+      chosenClass: railStyles['is-chosen'],
+      dragClass: railStyles['is-dragging'],
       forceFallback: false,
       onEnd(evt: Sortable.SortableEvent) {
-        if (evt.oldIndex === evt.newIndex || evt.oldIndex == null || evt.newIndex == null) return;
-        setModel((current) => {
-          const next = [...current.entries];
-          const [moved] = next.splice(evt.oldIndex as number, 1);
-          next.splice(evt.newIndex as number, 0, moved);
-          return { entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)) };
-        });
-        setSortMode('added');
+        if (evt.oldIndex == null || evt.newIndex == null) return;
+        applyFileReorder(evt.oldIndex, evt.newIndex);
       },
     });
     return () => sortableRef.current?.destroy();
-  }, [entries.length > 0]);
+  }, [entries.length > 0, applyFileReorder]);
+
+  // The phone chip row: the same whole-file reorder, but a press-and-hold
+  // (delay, touch only) instead of a drag handle, since a chip has no grip
+  // of its own - the whole chip (bar the "more" and draft chips, filtered
+  // out below) is the handle.
+  useEffect(() => {
+    if (!chipListRef.current) return undefined;
+    chipSortableRef.current?.destroy();
+    chipSortableRef.current = Sortable.create(chipListRef.current, {
+      animation: 220,
+      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      draggable: `.${docStyles.chip}`,
+      filter: `.${docStyles['chip-menu']}, [data-more], .${docStyles['chip-draft']}`,
+      preventOnFilter: false,
+      delay: 150,
+      delayOnTouchOnly: true,
+      touchStartThreshold: 5,
+      onEnd(evt: Sortable.SortableEvent) {
+        if (evt.oldIndex == null || evt.newIndex == null) return;
+        applyFileReorder(evt.oldIndex, evt.newIndex);
+      },
+    });
+    return () => chipSortableRef.current?.destroy();
+  }, [entries.length > 0, applyFileReorder]);
 
   // ToolPageLayout's pre-paint script sets `html[data-draft-hint]` when a
   // draft exists, and Dropzone.module.css hides the empty-state dropzone under
@@ -318,6 +416,9 @@ export default function PdfMergeTool({
     const plan = restored.plan.map((p) => ({ ...p, fileId: idByIndex[p.fileId], key: `${idByIndex[p.fileId]}:${p.pageIndex}` }));
     setModel({ entries: restoredEntries, plan });
     setAddPageNumbers(restored.options.addPageNumbers);
+    setShowPickedUpSentence(true);
+    if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
+    pickedUpTimerRef.current = setTimeout(() => setShowPickedUpSentence(false), 5000);
     for (const entry of restoredEntries) inspectEntry(entry);
   }, []);
 
@@ -330,11 +431,12 @@ export default function PdfMergeTool({
     return () => { cancelled = true; };
   }, [entries.length > 0, PageStrip]);
 
-  // Once pages have been rearranged across files the list can no longer be
-  // dragged as whole files; SortableJS is told so rather than the handles
-  // being hidden, so the rows keep their shape.
+  // Once pages have been rearranged across files the rail list can no longer
+  // be dragged as whole files; SortableJS is told so rather than the handles
+  // being hidden, so the rows keep their shape (aria-disabled instead).
   useEffect(() => {
     sortableRef.current?.option('disabled', !grouped);
+    chipSortableRef.current?.option('disabled', !grouped);
   }, [grouped, entries.length > 0]);
 
   const inspectEntry = useCallback((entry: FileEntry) => {
@@ -415,7 +517,7 @@ export default function PdfMergeTool({
     // (see the dragover listener below); every other route appends.
     let atIndex = insertIndexRef.current;
     insertIndexRef.current = -1;
-    // MERGE-10: dropped onto the strip, the pages go at that position. At a
+    // MERGE-10: dropped onto the grid, the pages go at that position. At a
     // file boundary the file itself slots in between; inside another file's
     // pages the list appends it and the plan interleaves (pages rearranged).
     const planIndex = stripInsertIndexRef.current;
@@ -432,12 +534,6 @@ export default function PdfMergeTool({
     );
   }, [entries, plan, insertEntries, t.filesAddedOne, t.filesAddedMany]);
 
-  const clearUndo = useCallback(() => {
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    undoTimerRef.current = null;
-    setRemoved(null);
-  }, []);
-
   const removeEntry = useCallback((id: number) => {
     setModel((current) => {
       const index = current.entries.findIndex((e) => e.id === id);
@@ -446,33 +542,37 @@ export default function PdfMergeTool({
       const planEntries = current.plan
         .map((p, i) => ({ entry: p, index: i }))
         .filter(({ entry: p }) => p.fileId === id);
-      setRemoved({ entry, index, planEntries });
+      // Undo puts the file and its pages back where they were (MERGE-07). The
+      // plan entries return to their old indices, so a page order that has
+      // been rearranged across files survives a remove-and-undo.
+      registerUndo(formatMessage(t.removedUndo, { name: entry.file.name }), () => {
+        setModel((cur) => {
+          const nextEntries = [...cur.entries];
+          nextEntries.splice(Math.min(index, nextEntries.length), 0, entry);
+          const nextPlan = [...cur.plan];
+          for (const { entry: p, index: i } of planEntries) nextPlan.splice(Math.min(i, nextPlan.length), 0, p);
+          return { entries: nextEntries, plan: nextPlan };
+        });
+        if (entry.pageCount == null) inspectEntry(entry);
+        setAnnouncement(formatMessage(t.filesAddedOne, {}));
+      });
       setAnnouncement(formatMessage(t.fileRemoved, { name: entry.file.name }));
       return { entries: current.entries.filter((e) => e.id !== id), plan: removeFile(current.plan, id) };
     });
+  }, [t.fileRemoved, t.removedUndo, t.filesAddedOne, registerUndo, inspectEntry]);
+
+  useEffect(() => () => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    undoTimerRef.current = setTimeout(() => setRemoved(null), UNDO_WINDOW_MS);
-  }, [t.fileRemoved]);
+    if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
+    if (shortcutsTimerRef.current) clearTimeout(shortcutsTimerRef.current);
+  }, []);
 
-  // Undo puts the file and its pages back where they were (MERGE-07). The
-  // plan entries return to their old indices, so a page order that has been
-  // rearranged across files survives a remove-and-undo.
-  const undoRemove = useCallback(() => {
-    if (!removed) return;
-    const { entry, index, planEntries } = removed;
-    clearUndo();
-    setModel((current) => {
-      const nextEntries = [...current.entries];
-      nextEntries.splice(Math.min(index, nextEntries.length), 0, entry);
-      const nextPlan = [...current.plan];
-      for (const { entry: p, index: i } of planEntries) nextPlan.splice(Math.min(i, nextPlan.length), 0, p);
-      return { entries: nextEntries, plan: nextPlan };
-    });
-    if (entry.pageCount == null) inspectEntry(entry);
-    setAnnouncement(formatMessage(t.filesAddedOne, {}));
-  }, [removed, clearUndo, inspectEntry, t.filesAddedOne]);
-
-  useEffect(() => () => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); }, []);
+  const onFirstKeyboardFocus = useCallback(() => {
+    if (shortcutsShownRef.current) return;
+    shortcutsShownRef.current = true;
+    setShowShortcutsHint(true);
+    shortcutsTimerRef.current = setTimeout(() => setShowShortcutsHint(false), 6000);
+  }, []);
 
   const reset = useCallback(() => {
     setModel({ entries: [], plan: [] });
@@ -485,6 +585,12 @@ export default function PdfMergeTool({
     setDownloadedOnce(false);
     setSortMode('added');
     setEditingPages(false);
+    setRenderedCount(0);
+    setShowPickedUpSentence(false);
+    if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
+    setShowShortcutsHint(false);
+    shortcutsShownRef.current = false;
+    if (shortcutsTimerRef.current) clearTimeout(shortcutsTimerRef.current);
     pendingPlanIndexRef.current.clear();
     void clearDraftRef.current?.();
     setAnnouncement(t.cleared);
@@ -495,7 +601,7 @@ export default function PdfMergeTool({
     setAnnouncement(message);
   }, []);
 
-  const moveEntry = useCallback((id: number, delta: number) => {
+  const moveFileEntry = useCallback((id: number, delta: number) => {
     setModel((current) => {
       const index = current.entries.findIndex((e) => e.id === id);
       const newIndex = index + delta;
@@ -509,33 +615,35 @@ export default function PdfMergeTool({
     setSortMode('added');
   }, [t.fileMovedTo]);
 
-  const onItemKeyDown = useCallback(
+  const onRowKeyDown = useCallback(
     (event: KeyboardEvent, id: number) => {
       if (!grouped) return;
       if (event.key === 'ArrowUp') {
         event.preventDefault();
-        moveEntry(id, -1);
+        moveFileEntry(id, -1);
       } else if (event.key === 'ArrowDown') {
         event.preventDefault();
-        moveEntry(id, 1);
+        moveFileEntry(id, 1);
       }
     },
-    [moveEntry, grouped],
+    [moveFileEntry, grouped],
   );
 
   const onSortChange = useCallback((event: Event) => {
     const mode = (event.currentTarget as HTMLSelectElement).value as SortMode;
     setSortMode(mode);
-    const sorted = mode === 'name'
+    const sorted = mode === 'nameAsc'
       ? sortByName(entries, 'asc')
-      : mode === 'date'
-        ? sortByDate(entries, 'asc')
-        : [...entries].sort((a, b) => a.id - b.id);
+      : mode === 'nameDesc'
+        ? sortByName(entries, 'desc')
+        : mode === 'dateAsc'
+          ? sortByDate(entries, 'asc')
+          : mode === 'dateDesc'
+            ? sortByDate(entries, 'desc')
+            : mode === 'reversed'
+              ? [...entries].reverse()
+              : [...entries].sort((a, b) => a.id - b.id);
     reorderEntries(sorted, t.filesReordered);
-  }, [entries, reorderEntries, t.filesReordered]);
-
-  const reverseOrder = useCallback(() => {
-    reorderEntries([...entries].reverse(), t.filesReordered);
   }, [entries, reorderEntries, t.filesReordered]);
 
   const resetPageOrder = useCallback(() => {
@@ -553,12 +661,20 @@ export default function PdfMergeTool({
     rememberOptions({ addPageNumbers: next });
   }, []);
 
+  const scrollToCaption = useCallback((fileId: number) => {
+    const container = documentRef.current;
+    const target = container?.querySelector<HTMLElement>(`[data-caption-for="${fileId}"]`)
+      ?? container?.querySelector<HTMLElement>(`[data-key^="${fileId}:"]`);
+    target?.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+  }, []);
+
+
   /* MERGE-07 and MERGE-10: insert where dropped. BasePdfTool's card catches
      the drop and calls addFiles; this listener only works out, during the
-     native drag, which row of the list or which page of the strip the pointer
-     is over, paints the insertion line straight onto the DOM (a gesture-time
-     DOM write, not state), and leaves the index in a ref for addFiles to
-     read once, on drop. */
+     native drag, which row of the rail list or which cell of the grid the
+     pointer is over, paints the insertion line straight onto the DOM (a
+     gesture-time DOM write, not state), and leaves the index in a ref for
+     addFiles to read once, on drop. */
   useEffect(() => {
     if (entries.length === 0) return undefined;
     const paint = (container: HTMLElement | null, index: number) => {
@@ -691,7 +807,7 @@ export default function PdfMergeTool({
     setHandoffFailed(false);
     try {
       // The store is only needed once a result is being handed off, so it
-      // stays out of the eager graph like the strip and the draft hook.
+      // stays out of the eager graph like the grid and the draft hook.
       const { saveHandoff, deleteDraft } = await import('../editor/workspace/draftStore.js');
       const saved = await saveHandoff(tool, {
         fileName,
@@ -720,12 +836,6 @@ export default function PdfMergeTool({
     await performHandoff(tool, false);
   }, [handoffBusy, prepared.blob, performHandoff]);
 
-  // A tap on a ready Download: 'merging' renders once so BasePdfTool reports
-  // tool_operation_started, then 'done' reports tool_result_ready.
-  useEffect(() => {
-    if (tap === 'merging' && !pendingDownload && prepared.status === 'ready') setTap('done');
-  }, [tap, pendingDownload, prepared.status]);
-
   const onDownloadTap = useCallback(() => {
     setTap('merging');
     setDownloadedOnce(true);
@@ -736,6 +846,12 @@ export default function PdfMergeTool({
     setTap('merging');
     setPendingDownload(true);
   }, []);
+
+  // A tap on a ready Download: 'merging' renders once so BasePdfTool reports
+  // tool_operation_started, then 'done' reports tool_result_ready.
+  useEffect(() => {
+    if (tap === 'merging' && !pendingDownload && prepared.status === 'ready') setTap('done');
+  }, [tap, pendingDownload, prepared.status]);
 
   const handleShare = async () => {
     const result = await sharePrepared();
@@ -754,13 +870,39 @@ export default function PdfMergeTool({
   const otherError = !failedEntry && prepared.status === 'error';
 
   const hasFiles = entries.length > 0;
-  const totalPages = entries.every((e) => e.pageCount != null) ? entries.reduce((sum, e) => sum + (e.pageCount ?? 0), 0) : null;
   const pagesLabel = (count: number) => (count === 1 ? sm.pageCountOne : formatMessage(sm.pageCountOther, { count }));
-  const totalSize = formatFileSize(entries.reduce((total, entry) => total + entry.file.size, 0));
-  const fileSummary = entries.length === 1 ? t.fileSummaryOne : formatMessage(t.fileSummaryMany, { count: entries.length });
-  const fileMeta = totalPages != null && entries.length > 0 ? `${pagesLabel(totalPages)} · ${totalSize}` : totalSize;
+  const rearranged = hasFiles && (!grouped || !listOrdered);
+  const showSortControls = entries.length >= 2 && !rearranged;
+
+  const downloadState: DownloadElementState = entries.length < 2
+    ? 'one-file'
+    : (failedEntry || otherError)
+      ? 'error'
+      : prepared.status === 'ready'
+        ? (downloadedOnce ? 'saved' : 'ready')
+        : 'preparing';
   const downloadDetail = prepared.status === 'ready' ? `${pagesLabel(prepared.pageCount)} · ${formatFileSize(prepared.size)}` : undefined;
   const analyticsStatus = failedEntry || otherError ? 'error' : tap;
+
+  const draftStatusLabel = draftState.draftSaveState === 'saved' ? sm.draftSaved
+    : draftState.draftSaveState === 'pending' ? sm.draftSaving
+      : draftState.draftSaveState === 'error' ? sm.draftNotSaved
+        : draftState.draftSaveState === 'conflict' ? sm.draftConflict
+          : null;
+
+  // Heading and Download-element counts: the merge OUTPUT (skipped pages
+  // excluded), never the raw plan length - a skipped page still gets a
+  // "1 skipped" addendum, never inflates the page count itself (PART 2:
+  // this fixed "Preparing 27 pages…" counting a skipped page). Rendering
+  // progress ("7 of 9 rendered") is a separate figure: it tracks every cell
+  // that needs a thumbnail, skipped ones included, and disappears once done.
+  const outputCount = outputPageCount(plan);
+  const skippedCount = plan.length - outputCount;
+  const renderTotal = plan.length;
+  const stillRendering = renderTotal > 0 && renderedCount < renderTotal;
+  // Only one thing lives in the header's right-hand slot at a time: the
+  // undo chip wins over the once-only shortcuts hint.
+  const shortcutsHintVisible = !undoAction && showShortcutsHint;
 
   return (
     <BasePdfTool
@@ -768,14 +910,16 @@ export default function PdfMergeTool({
       analyticsTool="merge"
       analyticsStatus={analyticsStatus}
       onFilesAdded={addFiles}
-      fileLabel={fileSummary}
-      fileMeta={fileMeta}
       onClearAll={reset}
-      clearSummary={fileSummary}
-      shellMessages={shellMessages}
+      clearSummary={entries.length === 1 ? t.fileSummaryOne : formatMessage(t.fileSummaryMany, { count: entries.length })}
+      // Direction A wave 2 (Shlomi): with the add bar gone, dropping
+      // anywhere on the page is the only invitation left, so the
+      // drag-over overlay says so - a Merge-only override of the shared
+      // shell copy, not a change to what Split/ImageToPdf/ToImage show.
+      shellMessages={{ ...shellMessages, dropToAddMore: t.dropAnywhereNote }}
       fillViewport
       checkingDraft={!hasFiles && draftState.isRestoring}
-      draftSaveState={hasFiles ? draftState.draftSaveState : 'idle'}
+      hideIdentity
     >
       {DraftPersistence && (
         <DraftPersistence
@@ -799,229 +943,301 @@ export default function PdfMergeTool({
 
       {duplicates.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">
-          <span class={styles['status-row']}>
-            <span>{duplicates.map((f) => formatMessage(t.alreadyAdded, { name: f.name })).join(' ')}</span>
-            <button type="button" class={styles['status-action']} onClick={() => addFiles(duplicates, { force: true })}>
-              {t.addAnyway}
-            </button>
-          </span>
-        </p>
-      )}
-
-      {removed && (
-        <p class={pdfToolStyles['hint-message']} role="status">
-          <span class={styles['status-row']}>
-            <span>{formatMessage(t.removedUndo, { name: removed.entry.file.name })}</span>
-            <button type="button" class={styles['status-action']} onClick={undoRemove}>
-              {t.undo}
-            </button>
-          </span>
+          <span>{duplicates.map((f) => formatMessage(t.alreadyAdded, { name: f.name })).join(' ')}</span>{' '}
+          <button type="button" class={pdfToolStyles['quiet-link']} onClick={() => addFiles(duplicates, { force: true })}>
+            {t.addAnyway}
+          </button>
         </p>
       )}
 
       {hasFiles && (
-        <>
-          {grouped ? (
-            <div class={sortToolbarStyles.toolbar} role="toolbar" aria-label={t.sortLabel}>
-              <label class={sortToolbarStyles['sort-label']} for="merge-sort">{t.sortLabel}</label>
-              <select id="merge-sort" class={sortToolbarStyles['sort-select']} aria-label={t.sortLabel} value={sortMode} onChange={onSortChange}>
-                <option value="added">{t.sortAsAdded}</option>
-                <option value="name">{t.sortByName}</option>
-                <option value="date">{t.sortByDate}</option>
-              </select>
-              <button type="button" class={sortToolbarStyles.button} onClick={reverseOrder}>
-                {t.reverseOrder}
-              </button>
-            </div>
-          ) : (
-            <div class={sortToolbarStyles.toolbar} role="status">
-              <span class={sortToolbarStyles.note}>{t.pagesRearranged}</span>
-              <button type="button" class={sortToolbarStyles.button} onClick={resetPageOrder}>
-                {t.resetOrder}
-              </button>
-            </div>
-          )}
+        <ToolShellBridge>
+          {({ requestReplace, requestClear }) => (
+            <div class={docStyles.layout}>
+          <p class="sr-only" id="reorder-hint">{t.reorderHint}</p>
 
-          <p class="sr-only" id="reorder-hint">
-            {t.reorderHint}
-          </p>
-
-          <ul class={styles['file-list']} ref={listRef} aria-describedby="reorder-hint">
+          {/* Phone chip row (Shlomi's reduction, wave 2): replaces the add
+              bar and stands in for the rail's file list, Sort/Clear all/Add
+              files below 768px (CSS-hidden at 1024px and up alongside the
+              rail's own chip-row twin visibility rule). */}
+          <ul class={docStyles['chip-row']} ref={chipListRef}>
             {entries.map((entry, index) => (
-              <li key={entry.id} class={styles['file-item']} data-id={entry.id} data-error={entry.error || undefined}>
-                <span
-                  class={styles['drag-handle']}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={formatMessage(t.dragHandleLabel, { name: entry.file.name, position: index + 1, total: entries.length })}
-                  onKeyDown={(e) => onItemKeyDown(e, entry.id)}
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <circle cx="5" cy="3" r="1.4" fill="currentColor" />
-                    <circle cx="11" cy="3" r="1.4" fill="currentColor" />
-                    <circle cx="5" cy="8" r="1.4" fill="currentColor" />
-                    <circle cx="11" cy="8" r="1.4" fill="currentColor" />
-                    <circle cx="5" cy="13" r="1.4" fill="currentColor" />
-                    <circle cx="11" cy="13" r="1.4" fill="currentColor" />
-                  </svg>
+              <li
+                key={entry.id}
+                class={docStyles.chip}
+                data-id={entry.id}
+                onClick={() => scrollToCaption(entry.id)}
+              >
+                <span class={docStyles['chip-pill']}>
+                  <span class={docStyles['chip-tag']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
+                  <span class={docStyles['chip-name']} dir="auto">{entry.file.name.replace(/\.pdf$/i, '')}</span>
+                  <span class={docStyles['chip-pages']}>{entry.pageCount ?? '…'}</span>
                 </span>
-
-                {entry.thumbnail ? (
-                  <img class={`${styles.thumb} ${styles['is-page']} ${styles['is-loaded']}`} src={entry.thumbnail} alt="" width="44" height="58" />
-                ) : (
-                  <span class={`${styles.thumb} ${styles['is-page']} ${pdfToolStyles['thumb-placeholder']}`} aria-hidden="true" />
-                )}
-
-                <span class={styles['file-text']}>
-                  <span class={styles['file-name']}>{entry.file.name}</span>
-                  <span class={styles['file-meta']}>
-                    {entry.error === 'encrypted'
-                      ? t.rowEncrypted
-                      : entry.error === 'unreadable'
-                        ? t.rowUnreadable
-                        : entry.pageCount == null
-                          ? `${t.pageCountUnknown} · ${formatFileSize(entry.file.size)}`
-                          : describeFile(entry.file, entry.pageCount, undefined, sm)}
-                  </span>
-                </span>
-
-                <button
-                  type="button"
-                  class={styles['remove-button']}
-                  aria-label={formatMessage(t.removeLabel, { name: entry.file.name })}
-                  onClick={() => removeEntry(entry.id)}
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-                  </svg>
-                </button>
               </li>
             ))}
+            <li class={docStyles.chip} data-more>
+              <details class={docStyles['chip-menu']}>
+                <summary class={docStyles['chip-menu-summary']} aria-label={t.moreOptions}>⋯</summary>
+                <div class={docStyles['chip-menu-body']}>
+                  {showSortControls && (
+                    <select class={railStyles['sort-select']} aria-label={t.sortLabel} value={sortMode} onChange={onSortChange}>
+                      <option value="added">{t.sortAsAdded}</option>
+                      <option value="reversed">{t.sortReversed}</option>
+                      <option value="nameAsc">{t.sortNameAsc}</option>
+                      <option value="nameDesc">{t.sortNameDesc}</option>
+                      <option value="dateAsc">{t.sortDateAsc}</option>
+                      <option value="dateDesc">{t.sortDateDesc}</option>
+                    </select>
+                  )}
+                  <button type="button" class={railStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
+                  <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
+                </div>
+              </details>
+            </li>
+            {(showPickedUpSentence || draftStatusLabel) && (
+              <li class={docStyles['chip-draft']}>
+                {showPickedUpSentence ? (
+                  <>
+                    <span>{t.pickedUp}</span>
+                    <button type="button" class={docStyles['start-fresh']} onClick={requestClear}>{t.startFresh}</button>
+                  </>
+                ) : <span>{draftStatusLabel}</span>}
+              </li>
+            )}
           </ul>
 
-          {PageStrip && plan.length > 0 && (
-            <PageStrip
-              entries={entries}
-              plan={plan}
-              onPlanChange={onPlanChange}
-              announce={setAnnouncement}
-              messages={t}
-              countLabel={pagesLabel(outputPageCount(plan))}
-              editing={editingPages}
-              onToggleEditing={() => setEditingPages((current) => !current)}
-              stripRef={stripRef}
-            />
-          )}
-
-          <details class={sortToolbarStyles.options}>
-            <summary class={sortToolbarStyles['options-summary']}>
-              <svg class={sortToolbarStyles['options-chevron']} width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-              {t.optionsSummary}
-            </summary>
-            <div class={sortToolbarStyles['options-body']}>
-              <label class={pdfToolStyles['page-numbers-toggle']}>
-                <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
-                <span>{t.addPageNumbers}</span>
-              </label>
-              <p class={sortToolbarStyles.note}>{formatMessage(t.savesAs, { name: fileName })}</p>
-            </div>
-          </details>
-
-          {failedEntry && failedReason && (
-            <ErrorMessage>
-              {formatMessage(failedReason === 'encrypted' ? t.errorEncrypted : t.errorUnreadable, { name: failedEntry.file.name })}
-              {' '}
-              {failedReason === 'encrypted' && (
-                <>
-                  <a href={unlockHref}>{t.unlockLink}</a>
-                  {' '}
-                </>
-              )}
-              <button type="button" class={pdfToolStyles['quiet-link']} onClick={() => removeEntry(failedEntry.id)}>
-                {t.removeAndMergeRest}
-              </button>
-            </ErrorMessage>
-          )}
-
-          {otherError && (
-            <ErrorMessage>{t.errorTooLarge}</ErrorMessage>
-          )}
-
-          <div class={pdfToolStyles['action-row']}>
-            {entries.length < 2 ? (
-              <button type="button" class={pdfToolStyles['tool-primary-action']} disabled>
-                {t.addOneMore}
-              </button>
-            ) : failedEntry || otherError ? null : prepared.status === 'ready' && prepared.url ? (
-              <DownloadButton
-                href={prepared.url}
-                download={fileName}
-                label={t.downloadLabel}
-                detail={downloadDetail}
-                onClick={onDownloadTap}
-              />
-            ) : (
-              <button
-                type="button"
-                class={`${pdfToolStyles['tool-primary-action']}${pendingDownload ? ` ${pdfToolStyles['is-processing']}` : ''}`}
-                aria-busy={pendingDownload || undefined}
-                onClick={onPreparingTap}
-              >
-                {pendingDownload ? <ProgressRing progress={prepared.progress} label={t.preparing} /> : t.downloadLabel}
-              </button>
-            )}
-
-            {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} />}
-          </div>
-
-          {/* Under the pinned row on phones, in flow: the quiet hand-off verbs
-              (MERGE-14), Start again, and the one-time install line (MERGE-17).
-              Only the primary control sticks to the bottom edge. */}
-          <div>
-            {prepared.status === 'ready' && (
-              <div class={pdfToolStyles['action-row-secondary']} aria-busy={handoffBusy || undefined}>
-                {/* Buttons, not links: each parks the merged bytes for the
-                    other tool and then moves there; it is an action on the
-                    result, not a plain navigation. */}
-                {(['compress', 'sign'] as HandoffTool[]).map((tool) => (
+          <div class={docStyles.main}>
+            <div class={docStyles.document} ref={documentRef}>
+              <div class={docStyles['doc-header']}>
+                <div class={docStyles['heading-row']}>
+                  <h2 class={docStyles['doc-heading']} id="merge-pages-heading">
+                    {t.documentHeading}
+                    <span class={docStyles['doc-heading-count']}>
+                      {' · '}{pagesLabel(outputCount)}
+                      {skippedCount > 0 ? ` · ${pagesLabel(skippedCount)} ${t.skippedBadge.toLowerCase()}` : ''}
+                    </span>
+                    {stillRendering && (
+                      <span class={docStyles['doc-heading-progress']}>
+                        {' · '}{formatMessage(t.renderedCount, { count: renderedCount })}
+                      </span>
+                    )}
+                  </h2>
+                  {/* Touch only (CSS-hidden for hover+fine-pointer devices),
+                      same row as the heading on a phone rather than a line
+                      of its own (wave 3). Drives PageStrip's own
+                      `data-editing` through the same `editingPages` state. */}
                   <button
-                    key={tool}
                     type="button"
-                    class={pdfToolStyles['quiet-link']}
-                    disabled={handoffBusy}
-                    onClick={() => { void requestHandoff(tool); }}
+                    class={docStyles['edit-toggle']}
+                    aria-pressed={editingPages}
+                    onClick={() => setEditingPages((current) => !current)}
                   >
-                    {tool === 'compress' ? t.handoffCompress : t.handoffSign}
+                    {editingPages ? t.doneEditing : t.editPages}
                   </button>
-                ))}
+                </div>
+                <div class={docStyles['doc-header-right']}>
+                  {undoAction ? (
+                    <span class={docStyles['undo-chip']} role="status">
+                      {undoAction.message}
+                      <button type="button" onClick={runUndo}>{t.undo}</button>
+                    </span>
+                  ) : shortcutsHintVisible ? (
+                    <span class={docStyles['shortcuts-hint']} role="status">{t.shortcutsLine}</span>
+                  ) : null}
+                </div>
+              </div>
+
+              {failedEntry && failedReason && (
+                <ErrorMessage>
+                  {formatMessage(failedReason === 'encrypted' ? t.errorEncrypted : t.errorUnreadable, { name: failedEntry.file.name })}
+                  {' '}
+                  {failedReason === 'encrypted' && (
+                    <>
+                      <a href={unlockHref}>{t.unlockLink}</a>
+                      {' '}
+                    </>
+                  )}
+                  <button type="button" class={pdfToolStyles['quiet-link']} onClick={() => removeEntry(failedEntry.id)}>
+                    {t.removeAndMergeRest}
+                  </button>
+                </ErrorMessage>
+              )}
+
+              {otherError && <ErrorMessage>{t.errorTooLarge}</ErrorMessage>}
+
+              {PageStrip && plan.length > 0 && (
+                <PageStrip
+                  entries={entries}
+                  plan={plan}
+                  onPlanChange={onPlanChange}
+                  announce={setAnnouncement}
+                  messages={t}
+                  grouped={grouped}
+                  editing={editingPages}
+                  stripRef={stripRef}
+                  onRenderedCountChange={setRenderedCount}
+                  onRegisterUndo={registerUndo}
+                  onFirstKeyboardFocus={onFirstKeyboardFocus}
+                />
+              )}
+            </div>
+
+            <div class={railStyles.rail}>
+              <div class={railStyles['rail-scroll']}>
+                <ul class={railStyles['file-list']} ref={listRef} aria-describedby="reorder-hint">
+                  {entries.map((entry, index) => (
+                    <li
+                      key={entry.id}
+                      class={railStyles['file-row']}
+                      data-id={entry.id}
+                      data-error={entry.error || undefined}
+                      onClick={() => scrollToCaption(entry.id)}
+                    >
+                      <span
+                        class={railStyles.grip}
+                        aria-disabled={!grouped || undefined}
+                        tabIndex={grouped ? 0 : -1}
+                        role="button"
+                        aria-label={formatMessage(t.dragHandleLabel, { name: entry.file.name, position: index + 1, total: entries.length })}
+                        onKeyDown={(e) => { e.stopPropagation(); onRowKeyDown(e, entry.id); }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <circle cx="5" cy="3" r="1.4" fill="currentColor" />
+                          <circle cx="11" cy="3" r="1.4" fill="currentColor" />
+                          <circle cx="5" cy="8" r="1.4" fill="currentColor" />
+                          <circle cx="11" cy="8" r="1.4" fill="currentColor" />
+                          <circle cx="5" cy="13" r="1.4" fill="currentColor" />
+                          <circle cx="11" cy="13" r="1.4" fill="currentColor" />
+                        </svg>
+                      </span>
+                      <span class={railStyles['tag-square']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
+                      <span class={railStyles['file-name']} dir="auto">{entry.file.name}</span>
+                      <span class={railStyles['file-pages']}>{entry.pageCount ?? '…'}</span>
+                      <button
+                        type="button"
+                        class={railStyles['file-remove']}
+                        aria-label={formatMessage(t.removeLabel, { name: entry.file.name })}
+                        onClick={(e) => { e.stopPropagation(); removeEntry(entry.id); }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                        </svg>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+
+                {rearranged ? (
+                  <div class={railStyles['rearranged-note']} role="status">
+                    <span>{t.pagesRearranged}</span>
+                    <button type="button" class={railStyles['reset-order']} onClick={resetPageOrder}>
+                      {t.resetOrder}
+                    </button>
+                  </div>
+                ) : showSortControls && (
+                  <div class={railStyles['list-controls']}>
+                    <select class={railStyles['sort-select']} aria-label={t.sortLabel} value={sortMode} onChange={onSortChange}>
+                      <option value="added">{t.sortAsAdded}</option>
+                      <option value="reversed">{t.sortReversed}</option>
+                      <option value="nameAsc">{t.sortNameAsc}</option>
+                      <option value="nameDesc">{t.sortNameDesc}</option>
+                      <option value="dateAsc">{t.sortDateAsc}</option>
+                      <option value="dateDesc">{t.sortDateDesc}</option>
+                    </select>
+                  </div>
+                )}
+
+                <div class={railStyles['quiet-row']}>
+                  <button type="button" class={railStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
+                  <span>·</span>
+                  <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
+                  {(showPickedUpSentence || draftStatusLabel) && (
+                    <span class={railStyles['draft-chip']}>
+                      {showPickedUpSentence ? (
+                        <>
+                          {t.pickedUp} · <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{t.startFresh}</button>
+                        </>
+                      ) : draftStatusLabel}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div class={railStyles['rail-pinned']}>
+                <details class={railStyles.options}>
+                  <summary class={railStyles['options-summary']}>
+                    {t.optionsSummary}
+                    <svg class={railStyles['options-chevron']} width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </summary>
+                  <div class={railStyles['options-body']}>
+                    <label class={railStyles['page-numbers-row']}>
+                      <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
+                      <span>{t.addPageNumbers}</span>
+                    </label>
+                    <p class={railStyles['saves-as']}>{formatMessage(t.savesAs, { name: fileName })}</p>
+                  </div>
+                </details>
+
+                <DownloadElement
+                  state={downloadState}
+                  href={prepared.status === 'ready' ? prepared.url : null}
+                  fileName={fileName}
+                  detail={downloadDetail}
+                  renderedCount={renderedCount}
+                  totalCount={renderTotal}
+                  pagesToMerge={outputCount}
+                  progress={prepared.progress}
+                  errorMessage={failedEntry ? undefined : t.fixFileToMerge}
+                  messages={t}
+                  onChooseFiles={requestReplace}
+                  onPreparingTap={onPreparingTap}
+                  onDownloadClick={onDownloadTap}
+                />
+
+                <div class={railStyles['handoff-row']}>
+                  {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} />}
+                  {(['compress', 'sign'] as HandoffTool[]).map((tool) => (
+                    <button
+                      key={tool}
+                      type="button"
+                      class={railStyles['handoff-button']}
+                      disabled={handoffBusy || prepared.status !== 'ready'}
+                      onClick={() => { void requestHandoff(tool); }}
+                    >
+                      {tool === 'compress' ? t.handoffCompress : t.handoffSign}
+                    </button>
+                  ))}
+                </div>
+
                 {downloadedOnce && (
-                  <button type="button" class={pdfToolStyles['quiet-link']} onClick={reset}>
+                  <button type="button" class={railStyles['start-again']} onClick={reset}>
                     {t.startAgain}
                   </button>
                 )}
+
+                {handoffFailed && (
+                  <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
+                )}
+
+                {downloadState === 'saved' && showInstallLine && (
+                  <p class={railStyles['install-line']} data-install-line>
+                    {t.installLine}{' '}
+                    {installPrompt ? (
+                      t.installWithPrompt.split('{install}').map((part, index) =>
+                        index === 0 ? part : (
+                          <>
+                            <button type="button" class={pdfToolStyles['quiet-link']} onClick={requestInstall}>{t.installLink}</button>
+                            {part}
+                          </>
+                        ))
+                    ) : onIos ? t.installIos : t.installOther}
+                  </p>
+                )}
               </div>
-            )}
-
-            {handoffFailed && (
-              <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">{t.handoffFailed}</p>
-            )}
-
-            {showInstallLine && (
-              <p class={pdfToolStyles['install-line']} data-install-line>
-                {t.installLine}{' '}
-                {installPrompt ? (
-                  t.installWithPrompt.split('{install}').map((part, index) =>
-                    index === 0 ? part : (
-                      <>
-                        <button type="button" class={pdfToolStyles['quiet-link']} onClick={requestInstall}>{t.installLink}</button>
-                        {part}
-                      </>
-                    ))
-                ) : onIos ? t.installIos : t.installOther}
-              </p>
-            )}
+            </div>
           </div>
 
           <ConfirmDialog
@@ -1040,7 +1256,9 @@ export default function PdfMergeTool({
           >
             {formatMessage(t.handoffConfirmBody, { draft: handoffConfirm?.draftName ?? '' })}
           </ConfirmDialog>
-        </>
+            </div>
+          )}
+        </ToolShellBridge>
       )}
 
       <p class="sr-only" role="status" aria-live="polite">

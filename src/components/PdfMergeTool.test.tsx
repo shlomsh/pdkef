@@ -7,11 +7,11 @@ import PdfMergeTool from './PdfMergeTool.tsx';
 import * as mergeLib from '../lib/merge.js';
 import * as thumbnailsLib from '../lib/thumbnails.js';
 import * as draftStore from '../editor/workspace/draftStore.js';
-import styles from './FileList.module.css';
 import dropzoneStyles from './Dropzone.module.css';
 import pdfToolStyles from './PdfTool.module.css';
-import toolShellStyles from './ToolShell.module.css';
-import sortToolbarStyles from './SortToolbar.module.css';
+import railStyles from './MergeTool/MergeRail.module.css';
+import docStyles from './MergeTool/MergeDocument.module.css';
+import downloadStyles from './MergeTool/DownloadElement.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 
@@ -131,9 +131,11 @@ describe('PdfMergeTool UI flow', () => {
     });
   }
 
-  const fileNames = () => Array.from(container.querySelectorAll(`.${styles['file-name']}`)).map((el) => el.textContent);
-  const downloadLink = () => container.querySelector(`.${pdfToolStyles['download-button']}`);
-  const primaryButton = () => container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+  const fileNames = () => Array.from(container.querySelectorAll(`.${railStyles['file-name']}`)).map((el) => el.textContent);
+  const downloadBox = () => container.querySelector(`.${downloadStyles.box}`);
+  // A real download only exists once the Download element carries an href
+  // (state 'ready' or 'saved'); every other state is a plain trigger.
+  const downloadLink = () => container.querySelector(`.${downloadStyles.box}[href]`);
 
   it('renders the initial file dropper zone', () => {
     mount();
@@ -142,19 +144,18 @@ describe('PdfMergeTool UI flow', () => {
     expect(dropzone.textContent).toContain('Drop PDFs here');
   });
 
-  it('lists one file with its page count and asks for one more instead of offering Download', async () => {
+  it('lists one file with its page count and asks for one more PDF instead of offering Download', async () => {
     mount();
     pageCounts.set('one.pdf', { pageCount: 3, encrypted: false });
     await loadFiles(['one.pdf']);
 
-    const identity = container.querySelector(`.${toolShellStyles.name}`);
-    expect(identity.textContent).toContain('1 PDF');
     expect(fileNames()).toEqual(['one.pdf']);
-    expect(container.querySelector(`.${styles['file-meta']}`).textContent).toContain('3 pages');
+    expect(container.querySelector(`.${railStyles['file-pages']}`).textContent).toBe('3');
 
-    const button = primaryButton();
-    expect(button.disabled).toBe(true);
-    expect(button.textContent).toContain('Add 1 more to merge');
+    const box = downloadBox();
+    expect(box.getAttribute('data-state')).toBe('one-file');
+    expect(box.hasAttribute('disabled')).toBe(false);
+    expect(box.textContent).toContain('Add one more PDF to merge');
     expect(downloadLink()).toBeNull();
     expect(mergeLib.mergePdfs).not.toHaveBeenCalled();
   });
@@ -164,12 +165,11 @@ describe('PdfMergeTool UI flow', () => {
     mount();
     await loadFiles(['Invoice 2024-03-01.pdf', 'doc2.pdf']);
 
-    // Before the idle wait ends the primary control still reads Download,
-    // never Merge: there is no separate merge step to offer.
-    const button = primaryButton();
-    expect(button).not.toBeNull();
-    expect(button.disabled).toBe(false);
-    expect(button.textContent).toContain('Download merged PDF');
+    // Before the idle wait ends the Download element still reads preparing,
+    // never a separate Merge step.
+    const box = downloadBox();
+    expect(box).not.toBeNull();
+    expect(box.getAttribute('data-state')).toBe('preparing');
     expect(container.textContent).not.toContain('Merge 2 PDFs');
 
     await settle();
@@ -183,14 +183,16 @@ describe('PdfMergeTool UI flow', () => {
 
     const link = downloadLink();
     expect(link).not.toBeNull();
+    expect(link.getAttribute('data-state')).toBe('ready');
     expect(link.getAttribute('href')).toBe('blob:testurl');
     expect(link.getAttribute('download')).toBe('merged_Invoice 2024-03-01.pdf');
     expect(link.textContent).toContain('4 pages');
-    // Exactly one primary control: the old Merge button is gone, not greyed.
-    expect(primaryButton()).toBeNull();
+    // Exactly one Download element, same node throughout: no separate
+    // "Merge" control ever appears.
+    expect(container.querySelectorAll(`.${downloadStyles.box}`)).toHaveLength(1);
 
-    // The identity line carries the total page count once every file is read.
-    expect(container.querySelector(`.${toolShellStyles.name}`).parentElement.textContent).toContain('4 pages');
+    // The document heading carries the total page count once every file is read.
+    expect(container.querySelector(`.${docStyles['doc-heading']}`).textContent).toContain('4 pages');
 
     const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
     expect(shareButton).not.toBeNull();
@@ -198,6 +200,51 @@ describe('PdfMergeTool UI flow', () => {
     expect(nativeShare.share).toHaveBeenCalledOnce();
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('merged_Invoice 2024-03-01.pdf');
     nativeShare.restore();
+  });
+
+  it('the heading shows "N rendered" only while rendering, and drops it once every cell has a thumbnail', async () => {
+    // A controllable IntersectionObserver: setup.js's global stub never
+    // fires, which is right for tests that don't care, but this one has to
+    // drive PageStrip's render queue to completion to prove the quieter
+    // "rendered" span goes away once it does.
+    const originalIO = globalThis.IntersectionObserver;
+    const instances = [];
+    globalThis.IntersectionObserver = class {
+      constructor(callback) {
+        this.callback = callback;
+        this.targets = new Set();
+        instances.push(this);
+      }
+      observe(target) { this.targets.add(target); }
+      unobserve(target) { this.targets.delete(target); }
+      disconnect() { this.targets.clear(); }
+    };
+    thumbnailsLib.openThumbnailSource.mockImplementation(async () => ({
+      render: async () => 'data:image/png;base64,x',
+      destroy: async () => {},
+    }));
+
+    mount();
+    await loadFiles(['a.pdf', 'b.pdf']);
+    // The grid (PageStrip) itself arrives through a dynamic import(); give
+    // it a beat to mount and start observing before the IntersectionObserver
+    // instance it creates is read below.
+    await act(async () => { await flush(20); });
+    // Four pages total (two files, two pages each); rendering has not
+    // started yet, so the heading names the total and says none are done.
+    const heading = () => container.querySelector(`.${docStyles['doc-heading']}`);
+    expect(heading().textContent).toContain('4 pages');
+    expect(heading().textContent).toContain('0 rendered');
+
+    // Drive every observed cell "into view" and let the queue drain.
+    const io = instances.at(-1);
+    await act(async () => {
+      io.callback(Array.from(io.targets).map((target) => ({ target, isIntersecting: true })));
+      await flush(50);
+    });
+    expect(heading().textContent).not.toContain('rendered');
+
+    globalThis.IntersectionObserver = originalIO;
   });
 
   it('a tap while the pre-merge is still running shows progress and delivers the file when it lands (MERGE-12)', async () => {
@@ -208,12 +255,18 @@ describe('PdfMergeTool UI flow', () => {
     await act(async () => { await flush(8); });
     expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
 
+    // The Download element is itself an <a> in every state now (MERGE-18),
+    // so the click spy below (which stands in for the browser's own download
+    // navigation once the app calls .click() on the ready link) must not
+    // intercept this test's own tap on the still-preparing element - dispatch
+    // a plain click event instead of calling the (about to be mocked) native
+    // .click() method.
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     await act(async () => {
-      primaryButton().click();
+      downloadBox().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     });
-    expect(primaryButton().getAttribute('aria-busy')).toBe('true');
-    expect(primaryButton().textContent).toContain('Preparing');
+    expect(downloadBox().getAttribute('aria-busy')).toBe('true');
+    expect(downloadBox().textContent).toContain('Preparing');
 
     await act(async () => {
       resolveMerge(new Blob(['%PDF'], { type: 'application/pdf' }));
@@ -251,7 +304,8 @@ describe('PdfMergeTool UI flow', () => {
     await settle();
     expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
     await act(async () => { await flush(30); });
-    expect(container.querySelector(`.${styles.thumb}[src="data:image/png;base64,late"]`)).not.toBeNull();
+    // The late thumbnail resolves (renderThumbnail is used for the rail's
+    // internal entry state) without ever restarting the pre-merge.
     expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
     expect(downloadLink()).not.toBeNull();
   });
@@ -270,23 +324,50 @@ describe('PdfMergeTool UI flow', () => {
     await loadFiles(['one.pdf', 'two.pdf', 'three.pdf']);
     await settle();
 
-    const removeBtns = container.querySelectorAll(`.${styles['remove-button']}`);
+    const removeBtns = container.querySelectorAll(`.${railStyles['file-remove']}`);
     await act(async () => {
       removeBtns[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     expect(fileNames()).toEqual(['one.pdf', 'three.pdf']);
-    const status = container.querySelector(`.${styles['status-row']}`);
+    const status = container.querySelector(`.${docStyles['undo-chip']}`);
     expect(status.textContent).toContain('Removed two.pdf');
 
-    const undo = status.querySelector(`.${styles['status-action']}`);
+    const undo = status.querySelector('button');
     await act(async () => undo.click());
     expect(fileNames()).toEqual(['one.pdf', 'two.pdf', 'three.pdf']);
-    expect(container.querySelector(`.${styles['status-row']}`)).toBeNull();
+    expect(container.querySelector(`.${docStyles['undo-chip']}`)).toBeNull();
     await settle();
     const lastCall = mergeLib.mergePdfs.mock.calls.at(-1);
     expect(lastCall[0].map((f) => f.name)).toEqual(['one.pdf', 'two.pdf', 'three.pdf']);
     expect(lastCall[1].plan.map((p) => p.fileIndex)).toEqual([0, 0, 1, 1, 2, 2]);
   });
+
+  it('a second undoable action 3s later restarts the 5s window, keeping the chip visible at 6s (wave 3)', async () => {
+    mount();
+    await loadFiles(['one.pdf', 'two.pdf', 'three.pdf']);
+    await settle();
+
+    const removeBtns = () => container.querySelectorAll(`.${railStyles['file-remove']}`);
+    const chip = () => container.querySelector(`.${docStyles['undo-chip']}`);
+
+    await act(async () => removeBtns()[1].dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(chip().textContent).toContain('Removed two.pdf');
+
+    await act(async () => { await flush(3000); });
+    expect(chip()).not.toBeNull();
+
+    // A second action 3s after the first restarts the window rather than
+    // stacking - the chip now names the second removal.
+    await act(async () => removeBtns()[0].dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(chip().textContent).toContain('Removed one.pdf');
+
+    await act(async () => { await flush(3000); });
+    // 6s since the first action, only 3s since the second: were the timer
+    // not restarted, the first action's 5s window would already have closed
+    // the chip by now.
+    expect(chip()).not.toBeNull();
+    expect(chip().textContent).toContain('Removed one.pdf');
+  }, 15000);
 
   it('nudges on a duplicate (same name and size) and lets it be added anyway (MERGE-07)', async () => {
     mount();
@@ -294,32 +375,31 @@ describe('PdfMergeTool UI flow', () => {
     await loadFiles(['dup.pdf']);
 
     expect(fileNames()).toEqual(['dup.pdf', 'other.pdf']);
-    const status = container.querySelector(`.${styles['status-row']}`);
+    const status = container.querySelector(`.${pdfToolStyles['hint-message']}`);
     expect(status.textContent).toContain('"dup.pdf" is already in the list');
 
     await act(async () => {
-      status.querySelector(`.${styles['status-action']}`).click();
+      status.querySelector('button').click();
       await flush(10);
     });
     expect(fileNames()).toEqual(['dup.pdf', 'other.pdf', 'dup.pdf']);
-    expect(container.querySelector(`.${styles['status-row']}`)).toBeNull();
   });
 
-  it('sorts with one select, reverses, and regroups the plan to match', async () => {
+  it('sorts with one select, Reverse folded in as its own option, and regroups the plan to match', async () => {
     mount();
     await loadFiles(['b.pdf', 'a.pdf', 'c.pdf']);
-    const select = container.querySelector(`select.${sortToolbarStyles['sort-select']}`);
+    const select = container.querySelector(`select.${railStyles['sort-select']}`);
     expect(select).not.toBeNull();
-    expect(container.querySelectorAll(`.${sortToolbarStyles.button}`)).toHaveLength(1);
 
     await act(async () => {
-      select.value = 'name';
+      select.value = 'nameAsc';
       select.dispatchEvent(new Event('change', { bubbles: true }));
     });
     expect(fileNames()).toEqual(['a.pdf', 'b.pdf', 'c.pdf']);
 
     await act(async () => {
-      container.querySelector(`.${sortToolbarStyles.button}`).click();
+      select.value = 'reversed';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
     });
     expect(fileNames()).toEqual(['c.pdf', 'b.pdf', 'a.pdf']);
 
@@ -332,7 +412,7 @@ describe('PdfMergeTool UI flow', () => {
   it('remembers Add page numbers on device and applies it on a fresh mount (MERGE-11)', async () => {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
-    const checkbox = container.querySelector(`.${pdfToolStyles['page-numbers-toggle']} input`);
+    const checkbox = container.querySelector(`.${railStyles['page-numbers-row']} input`);
     expect(checkbox.checked).toBe(false);
     expect(localStorage.getItem('pdf-toolkit:merge:options')).toBeNull();
 
@@ -347,9 +427,9 @@ describe('PdfMergeTool UI flow', () => {
     act(() => render(null, container));
     mount();
     await loadFiles(['c.pdf', 'd.pdf']);
-    expect(container.querySelector(`.${pdfToolStyles['page-numbers-toggle']} input`).checked).toBe(true);
+    expect(container.querySelector(`.${railStyles['page-numbers-row']} input`).checked).toBe(true);
     // The options row itself stays collapsed until opened.
-    expect(container.querySelector(`details.${sortToolbarStyles.options}`).open).toBe(false);
+    expect(container.querySelector(`details.${railStyles.options}`).open).toBe(false);
   });
 
   it('names an encrypted file, links to Unlock, and merges the rest on the one offered action (MERGE-04)', async () => {
@@ -362,8 +442,8 @@ describe('PdfMergeTool UI flow', () => {
     const alert = container.querySelector('[role="alert"]');
     expect(alert.textContent).toContain('"locked.pdf" is password-protected');
     expect(alert.querySelector('a').getAttribute('href')).toBe('/unlock/');
-    expect(container.querySelector(`.${styles['file-item']}[data-error="encrypted"] .${styles['file-name']}`).textContent).toBe('locked.pdf');
-    expect(primaryButton()).toBeNull();
+    expect(container.querySelector(`.${railStyles['file-row']}[data-error="encrypted"] .${railStyles['file-name']}`).textContent).toBe('locked.pdf');
+    expect(downloadBox().getAttribute('data-state')).toBe('error');
 
     await act(async () => {
       alert.querySelector('button').click();
@@ -435,11 +515,15 @@ describe('PdfMergeTool UI flow', () => {
     expect(navigate).toHaveBeenCalledWith('/sign/');
   });
 
-  it('shows the install line once per browser, after the first result (MERGE-17)', async () => {
+  it('shows the install line once per browser, after the first result, under the saved state (MERGE-17)', async () => {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
     expect(container.querySelector('[data-install-line]')).toBeNull();
     await settle();
+    // The install line appears only once the Download element has actually
+    // been used (its "saved" state), not merely once it is ready.
+    expect(container.querySelector('[data-install-line]')).toBeNull();
+    await act(async () => downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })));
     const line = container.querySelector('[data-install-line]');
     expect(line).not.toBeNull();
     expect(line.textContent).toContain('works even without a connection');
@@ -454,6 +538,7 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('restores a saved draft into the list, the plan and the options, and clears it on Start again (MERGE-13)', async () => {
+    // The picked-up-sentence-to-chip flip below waits out a real 5s timer.
     const clearDraft = vi.fn(async () => true);
     localStorage.setItem('pdf-toolkit:workspace:has-draft:merge', '1');
     document.documentElement.setAttribute('data-draft-hint', '1');
@@ -482,8 +567,10 @@ describe('PdfMergeTool UI flow', () => {
     // The pre-paint hint attribute is gone once the check settled, so a later
     // Clear all shows the dropzone instead of a blank card.
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
-    expect(container.querySelector(`.${pdfToolStyles['page-numbers-toggle']} input`).checked).toBe(true);
-    expect(container.textContent).toContain('Draft saved');
+    expect(container.querySelector(`.${railStyles['page-numbers-row']} input`).checked).toBe(true);
+    // The restored-draft sentence shows first, for its five seconds; only
+    // after that does the small "Draft saved" chip take its place.
+    expect(container.textContent).toContain('Picked up where you left off');
     await settle();
     const [files, options] = mergeLib.mergePdfs.mock.calls.at(-1);
     expect(files.map((f) => f.name)).toEqual(['x.pdf', 'y.pdf']);
@@ -497,14 +584,20 @@ describe('PdfMergeTool UI flow', () => {
     // Pages were interleaved across files, so the list shows the rearranged note.
     expect(container.textContent).toContain('Pages were rearranged');
 
+    // After its five seconds the sentence gives way to the small chip for
+    // the rest of the session.
+    await act(async () => { await flush(5000); });
+    expect(container.textContent).not.toContain('Picked up where you left off');
+    expect(container.textContent).toContain('Draft saved');
+
     await act(async () => downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })));
     const startAgain = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Start again');
     await act(async () => startAgain.click());
     expect(clearDraft).toHaveBeenCalledTimes(1);
     expect(fileNames()).toEqual([]);
-  });
+  }, 10000);
 
-  it('attaches a Sortable instance to the file list once files are added', async () => {
+  it('attaches a Sortable instance to the rail file list and the phone chip row once files are added', async () => {
     const createSpy = vi.spyOn(Sortable, 'create');
     mount();
 
@@ -512,10 +605,13 @@ describe('PdfMergeTool UI flow', () => {
 
     await loadFiles(['a.pdf', 'b.pdf']);
 
-    const list = container.querySelector(`ul.${styles['file-list']}`);
+    const list = container.querySelector(`ul.${railStyles['file-list']}`);
+    const chipRow = container.querySelector(`ul.${docStyles['chip-row']}`);
     expect(list).not.toBeNull();
-    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(chipRow).not.toBeNull();
+    expect(createSpy).toHaveBeenCalledTimes(2);
     expect(createSpy).toHaveBeenCalledWith(list, expect.any(Object));
+    expect(createSpy).toHaveBeenCalledWith(chipRow, expect.any(Object));
   });
 });
 

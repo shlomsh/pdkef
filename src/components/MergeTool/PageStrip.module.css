@@ -1,111 +1,146 @@
-/* MERGE-08 / MERGE-09: the assembled document. One horizontal strip of every
-   page of every file in output order, grouped by file with a divider, rendered
-   on device before any merge. Own container rules; the card internals are
-   written once here rather than copied from PageGrid.module.css (the CSS
-   duplication ratchet forbids copying rule text), and PageGrid is left as is. */
+/* MERGE-08 / MERGE-09 / Direction A (2026-09-13): the assembled document. A
+   wrapping grid of every page of every file in output order (no horizontal
+   strip, no overflow-x), grouped by file behind a caption row while the plan
+   stays grouped. Own container rules; the card internals are written once
+   here rather than copied from PageGrid.module.css (the CSS duplication
+   ratchet forbids copying rule text), and PageGrid is left as is. */
 
 .section {
-  margin-top: var(--space-4);
-}
-
-.header {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-3);
-  margin-bottom: var(--space-2);
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-height: 0;
 }
 
-.heading {
-  margin: 0;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
+/* The Edit pages toggle itself now renders in PdfMergeTool's document
+   heading row (wave 3, MergeDocument.module.css's `.edit-toggle`), beside
+   the heading on a phone instead of on a line of its own; this file only
+   drives the grid's own `[data-editing]` from the same state. */
 
-.count {
-  font-size: 0.82rem;
-  color: var(--color-muted);
-}
-
-/* The one touch-only control (MERGE-11): on a phone the per-page buttons
-   appear only after Edit pages is tapped, so a simple merge never sees them.
-   Pointer devices reveal them on hover and focus instead, and hide the toggle. */
-.edit-toggle {
-  margin-inline-start: auto;
-  min-height: 44px;
-  padding: 0.5rem 0.9rem;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .edit-toggle {
-    display: none;
-  }
-}
-
-.strip {
+/* The document is white; only the rail is tinted (Shlomi's reduction, wave
+   2) - the grid carries no fill of its own, so it reads as part of the
+   white document surface. Page cells keep their own border and shadow, so
+   they still read as distinct objects on that white ground. Also
+   `min-width: 0` so a caption's long name can ellipsis instead of forcing
+   the whole grid wider than its card (the phone overflow bug). */
+.grid {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
-  gap: 0.6rem;
+  align-content: flex-start;
+  gap: 12px;
+  min-width: 0;
   margin: 0;
-  padding: 0.75rem;
+  padding: 1rem;
   list-style: none;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x proximity;
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border);
+  background: transparent;
   border-radius: var(--radius);
-  /* Inertial horizontal panning on touch; the page cards themselves opt out
-     while a drag handle is held (SortableJS sets its own). */
-  touch-action: pan-x;
+  flex: 1;
+  min-height: 260px;
 }
 
+/* --- Caption: a label, not a control (Shlomi's reduction, wave 2) - colour
+   tag, name, page range, nothing else. A run of two pages or fewer sits
+   inline beside its own cells instead of claiming a full-width row
+   (`data-inline`); the plain (own-row) form is also the phone's sticky
+   per-file label (see the phone media query below). */
+.caption {
+  flex: 1 1 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 32px;
+  padding: 0.2rem 0;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  cursor: default;
+}
+
+.caption:not(:first-child) {
+  margin-top: 0.4rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.caption[data-inline] {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-top: 0;
+  padding-top: 0.2rem;
+  border-top: 0;
+}
+
+/* A zero-height, full-width flex item forces the wrap onto a fresh line
+   right before an inline caption, so the label and its 1-2 cells always
+   land together instead of the label trailing the previous run and its
+   own cells splitting across the wrap. Presentational only: excluded from
+   SortableJS (filter) and invisible to the insertion-line painter (no
+   data-key). */
+.row-break {
+  flex: 1 1 100%;
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.tag-square {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--tag-color, var(--color-primary));
+}
+
+.caption-name {
+  unicode-bidi: plaintext;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 28ch;
+}
+
+.caption-meta {
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+/* --- Page cell: fixed 64x84 (landscape/rotated: 84x64), from JS via
+   --cell-w/--cell-h so a rotated or naturally-landscape page is shown at
+   full cell width, never scaled down inside a portrait box. --- */
 .page {
   position: relative;
   flex: 0 0 auto;
-  width: var(--strip-card, 120px);
+  width: var(--cell-w, 104px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.5rem 0.4rem 0.4rem;
-  scroll-snap-align: start;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  gap: 0.3rem;
+  padding-top: 0.3rem;
   cursor: grab;
   user-select: none;
-  transition: box-shadow 0.18s var(--ease-out), border-color 0.18s var(--ease-out), opacity 0.18s var(--ease-out);
-}
-
-.page:hover {
-  border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-sm);
 }
 
 .page:focus-visible {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-focus);
 }
 
-.page.is-chosen {
-  border-color: var(--color-primary);
+.page:focus-visible .thumb-box {
+  box-shadow: 0 0 0 2px var(--color-surface-sunken), 0 0 0 4px var(--color-primary);
+}
+
+.page.is-chosen .thumb-box {
   box-shadow: var(--shadow-lg);
 }
 
 .page.is-ghost {
   opacity: 0.35;
+}
+
+.page.is-ghost .thumb-box {
   background: var(--color-primary-soft);
   border: 1px dashed var(--color-primary);
 }
@@ -114,11 +149,15 @@
   cursor: grabbing;
 }
 
-/* A skipped page stays visible, dimmed, with its number struck through, so
-   what was left out is still on screen and one tap brings it back. Nothing is
-   deleted from the source. */
+/* A skipped page stays visible, dimmed, dashed, its number struck, with the
+   word "skipped" under it (never an overlay hidden by the thumbnail), so one
+   tap brings it back. Nothing is deleted from the source. */
 .page[data-skipped] {
   opacity: 0.55;
+}
+
+.page[data-skipped] .thumb-box {
+  border-style: dashed;
 }
 
 .page[data-skipped] .number {
@@ -127,47 +166,36 @@
 
 .thumb-box {
   position: relative;
-  width: 100%;
-  aspect-ratio: 3 / 4;
+  width: var(--cell-w, 104px);
+  height: var(--cell-h, 138px);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: var(--color-surface-sunken);
-  border-radius: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
   box-shadow: var(--shadow-xs);
+  transition: box-shadow 0.18s var(--ease-out), border-color 0.18s var(--ease-out);
+}
+
+/* Unrendered cells: a dashed placeholder that keeps its number, so the count
+   is stable while thumbnails arrive near the viewport. */
+.thumb-box:empty {
+  border-style: dashed;
+  background: var(--color-bg);
 }
 
 .thumb {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: transform 0.2s var(--ease-out);
 }
 
-/* Rotation is additive on the page's own rotation and previewed in place;
-   the export applies the same delta through pageOps.applyRotation. A quarter
-   turn inside a portrait box is shown scaled to fit rather than reflowing the
-   strip, so neighbours never jump. */
-.page[data-rotation='90'] .thumb {
-  transform: rotate(90deg) scale(0.75);
-}
-
-.page[data-rotation='180'] .thumb {
-  transform: rotate(180deg);
-}
-
-.page[data-rotation='270'] .thumb {
-  transform: rotate(270deg) scale(0.75);
-}
-
-.open-preview {
-  position: absolute;
-  inset: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: zoom-in;
+.lock-glyph {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-danger);
 }
 
 .number {
@@ -176,44 +204,47 @@
   color: var(--color-text);
 }
 
-.tag {
-  position: absolute;
-  top: 0.25rem;
-  inset-inline-start: 0.25rem;
-  padding: 0.05rem 0.35rem;
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--color-primary-text);
-  background: var(--color-primary-soft);
-  border-radius: 999px;
-  pointer-events: none;
-}
-
-.skipped-badge {
-  position: absolute;
-  top: 0.25rem;
-  inset-inline-end: 0.25rem;
-  padding: 0.05rem 0.35rem;
-  font-size: 0.68rem;
-  font-weight: 600;
+.skipped-word {
+  margin-top: -0.25rem;
+  font-size: 0.7rem;
   color: var(--color-danger);
-  background: var(--color-danger-soft);
-  border-radius: 999px;
-  pointer-events: none;
 }
 
-/* Per-page controls: rotate and skip. Hidden until hover or focus on pointer
-   devices, and until Edit pages on touch (`[data-editing]` on the strip). */
+/* The per-page tag dot: always in the DOM (a sibling of the number, never
+   painted under the thumbnail), visible only once captions are hidden
+   (the plan is no longer grouped). */
+.tag-dot {
+  display: none;
+  position: absolute;
+  top: -0.4rem;
+  inset-inline-start: calc(50% - 5px);
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--tag-color, var(--color-primary));
+}
+
+.grid:not([data-grouped]) .tag-dot {
+  display: block;
+}
+
+/* Rotate, skip and open: a three-button cluster revealed above the cell on
+   hover or focus (pointer devices), or while "Edit pages" is on (touch). */
 .actions {
+  position: absolute;
+  top: -2.4rem;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  gap: 0.25rem;
-  min-height: 34px;
+  gap: 0.2rem;
+  padding: 2px;
   visibility: hidden;
+  z-index: 2;
 }
 
 .page:hover .actions,
 .page:focus-within .actions,
-.strip[data-editing] .actions {
+.grid[data-editing] .actions {
   visibility: visible;
 }
 
@@ -221,15 +252,29 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
+  position: relative;
   padding: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-muted);
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
   transition: color 0.15s var(--ease-out), background-color 0.15s var(--ease-out);
+}
+
+/* 44px hit area via a transparent pseudo-element, without inflating the
+   32px visual the spec calls for. `inset` on an absolutely positioned
+   pseudo-element resolves against its containing block's PADDING box, which
+   for a 32px border-box button with a 1px border is 30px, not 32 - -6px
+   measured 42px in a real browser, not 44 (Shlomi, browser check); -7px off
+   the 30px padding box gives the full 44. */
+.action::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
 }
 
 .action:hover {
@@ -241,62 +286,59 @@
 .action:focus-visible {
   outline: none;
   box-shadow: var(--shadow-focus);
+  outline-offset: 2px;
 }
 
-/* Thin divider between files; SortableJS ignores it (`filter`). */
-.divider {
-  flex: 0 0 auto;
-  align-self: stretch;
-  width: 2px;
-  margin: 0.25rem 0.1rem;
-  border-radius: 1px;
-  background: var(--color-border-strong);
-}
-
-/* MERGE-10: dropping a file onto the strip inserts its pages there. Same
-   pattern as the file list's insertion line: a DOM attribute written during
-   the native drag, lifted above the card's drop overlay with z-index. */
+/* Thin insertion line while dragging (MERGE-10): a DOM attribute written
+   during the native drag, lifted with z-index. */
 .page[data-insert-before] {
   z-index: 3;
 }
 
 .page[data-insert-before]::before,
-.strip[data-insert-end]::after {
+.grid[data-insert-end]::after {
   content: '';
   position: absolute;
-  top: 0.25rem;
-  bottom: 0.25rem;
-  width: 3px;
-  border-radius: 2px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 1px;
   background: var(--color-primary);
 }
 
 .page[data-insert-before]::before {
-  inset-inline-start: -0.4rem;
+  inset-inline-start: -0.45rem;
 }
 
-.strip[data-insert-end]::after {
+.grid[data-insert-end]::after {
   inset-inline-end: 0.25rem;
   z-index: 3;
 }
 
 @media (max-width: 767px) {
-  .strip {
-    --strip-card: 96px;
-    gap: 0.45rem;
-    padding: 0.5rem;
+  /* The card already pads 12px on a phone (PdfTool.module.css); no padding
+     of the grid's own, so three 96px cells and two 12px gaps (312px) fit the
+     295px-wide grid a 375px phone would otherwise leave. */
+  .grid {
+    gap: 12px;
+    padding: 0;
   }
 
-  .page {
-    padding: 0.4rem 0.3rem 0.3rem;
-  }
-
-  .actions {
-    min-height: 0;
-  }
-
-  .strip:not([data-editing]) .actions {
+  .grid:not([data-editing]) .actions {
     display: none;
+  }
+
+  /* A caption on its own row (a run of 3+ pages) sticks to the top of the
+     document while its pages scroll under it, so you always know whose
+     pages you're looking at; a short run's inline label has no row of its
+     own to stick. An opaque background is needed since the grid itself is
+     transparent (item 7) - it would otherwise show cells scrolling through
+     the "sticky" label. */
+  .caption:not([data-inline]) {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--color-surface);
   }
 }
 

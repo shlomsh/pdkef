@@ -1,0 +1,298 @@
+/* Direction A (2026-09-13), reduced wave 2 (Shlomi): the document header and
+   the phone chip row that replaces the add bar and the rail's file list
+   below 768px. Grid (page-cell) rules live in PageStrip.module.css; the
+   rail's own rules live in MergeRail.module.css. Two surfaces, no card
+   inside a card - and above the first thumbnail there is no UI text except
+   the heading and its page count. */
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
+  min-height: 0;
+}
+
+@media (min-width: 1024px) {
+  .main {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.document {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+}
+
+.doc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+/* The heading and the Edit pages toggle share one row (wave 3): the
+   heading takes the flexible width and ellipsises rather than pushing the
+   toggle onto a line of its own on a narrow phone. */
+.heading-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.doc-heading {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* Touch only (MERGE-11's pattern): pointer devices reveal the per-page
+   rotate/skip/open cluster on hover, so this toggle - the touch equivalent -
+   is unreachable-but-present for them, per the same media query PageStrip's
+   own hover-revealed actions use. */
+.edit-toggle {
+  flex: none;
+  min-height: 44px;
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .edit-toggle {
+    display: none;
+  }
+}
+
+.doc-heading-count {
+  font-weight: 400;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+/* The render-progress figure is quieter still than the page count beside
+   it, and only exists while rendering < total - once every cell has a
+   thumbnail this span is not rendered at all. */
+.doc-heading-progress {
+  font-weight: 400;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.doc-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  min-height: 1.5rem;
+}
+
+.undo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  background: var(--color-success-soft);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-pill);
+}
+
+.undo-chip button {
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+/* The shortcuts line: shown once, briefly, on the first keyboard focus of a
+   page cell (see PdfMergeTool's onFirstKeyboardFocus) - the header's right
+   slot, same as the undo chip, which wins when both are pending. */
+.shortcuts-hint {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.caption-target {
+  scroll-margin-top: var(--space-3);
+}
+
+/* Reused wherever a restored-draft sentence needs its "Start fresh" action
+   (the phone chip row's draft chip, the desktop rail's draft chip beside
+   Add files / Clear all). */
+.start-fresh {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+/* --- Phone chip row: files as a horizontally scrolling row, replacing the
+   add bar and standing in for the rail's file list / Sort / Add files /
+   Clear all below 768px. Hidden at 768px and up, where the rail (a plain
+   stacked block from 768 to 1023, sticky and tinted at 1024 and up) owns
+   all of this instead. --- */
+.chip-row {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.25rem 0.1rem;
+  list-style: none;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* It scrolls by touch; a visible scrollbar is just noise here. */
+  scrollbar-width: none;
+}
+
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .chip-row {
+    display: none;
+  }
+}
+
+/* The 44px hit area lives on the <li> itself (via min-height, centring its
+   content), never inflating the pill's own 36px visual (Shlomi, browser
+   check: the pill measured 49px before this split). */
+.chip {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.chip-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 36px;
+  padding: 0 0.65rem;
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-pill);
+}
+
+.chip-tag {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--tag-color, var(--color-primary));
+}
+
+.chip-name {
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  unicode-bidi: plaintext;
+}
+
+.chip-pages {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.chip-menu {
+  width: 100%;
+}
+
+.chip-menu-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  list-style: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.chip-menu-summary::-webkit-details-marker {
+  display: none;
+}
+
+.chip-menu-body {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  padding: 0.6rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.chip-draft {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+/* On a phone the heading shares its row with the Edit pages toggle, so
+   "Your merged PDF · 18 pages" only just fits at 375px; while thumbnails
+   arrive the " · 14 rendered" figure pushed it into an ellipsis ("18 pa…").
+   The dashed placeholders already show what is still rendering there, so
+   the figure is desktop-only, and the heading wraps instead of clipping. */
+@media (max-width: 767px) {
+  .doc-heading {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .doc-heading-progress {
+    display: none;
+  }
+}

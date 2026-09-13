@@ -1,0 +1,364 @@
+/* Direction A (2026-09-13): the rail. A glance-at column of the input
+   files, never the thing you scroll through - the document (PageStrip) is
+   the workspace. Sticky for the page's height at desktop widths; a plain
+   stacked block below 1024px (wave 2 owns the phone chip-row treatment). */
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius);
+  padding: 0.9rem;
+}
+
+@media (min-width: 1024px) {
+  .rail {
+    width: 320px;
+    flex: 0 0 320px;
+    position: sticky;
+    top: var(--space-3);
+    max-height: calc(100vh - var(--space-6));
+    overflow: hidden;
+  }
+
+  .rail-scroll {
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .rail-pinned {
+    flex-shrink: 0;
+  }
+}
+
+/* Below 1024px the phone chip row (MergeDocument.module.css) carries the
+   file list, Sort, Add files and Clear all instead, so `.rail-scroll` (the
+   part that held them) drops out entirely; what remains of `.rail` -
+   `.rail-pinned` alone - becomes the sticky bottom sheet: the Download
+   element and one row of Share / Compress it / Sign it / Options, nothing
+   else competing, pinned to the bottom edge the way the editor toolbars
+   already stretch full width on mobile. */
+@media (max-width: 767px) {
+  .rail-scroll {
+    display: none;
+  }
+
+  .rail {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    /* Bleed to the card's edges: Merge's loaded phone card is 12px
+       (PdfTool.module.css's `[data-hide-identity][data-tool-loaded]` rule,
+       wave 3), not the other tools' 1.5rem. */
+    margin: 0 -12px;
+    padding: 0.75rem 12px calc(0.75rem + env(safe-area-inset-bottom));
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    border-radius: 0;
+  }
+}
+
+.caption {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+  background: none;
+  border-inline: 0;
+  border-top: 0;
+  width: 100%;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  text-align: start;
+  cursor: pointer;
+}
+
+.file-row:last-child {
+  border-bottom: 0;
+}
+
+.file-row:hover {
+  background: var(--color-primary-soft);
+}
+
+.file-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+}
+
+/* SortableJS state classes for the file rows (whole-file reorder). */
+.is-ghost {
+  opacity: 0.35;
+  background: var(--color-primary-soft);
+}
+
+.is-chosen {
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+}
+
+.is-dragging {
+  cursor: grabbing;
+}
+
+.grip {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 44px;
+  margin-inline: -0.3rem;
+  color: var(--color-muted);
+  cursor: grab;
+  touch-action: none;
+}
+
+.grip[aria-disabled='true'] {
+  color: var(--color-border-strong);
+  cursor: default;
+}
+
+.tag-square {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--tag-color, var(--color-primary));
+}
+
+.file-name {
+  flex: 1;
+  min-width: 0;
+  unicode-bidi: plaintext;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-pages {
+  flex-shrink: 0;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+.file-remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-inline-end: -0.6rem;
+  color: var(--color-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.file-remove:hover {
+  color: var(--color-danger);
+}
+
+.list-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.sort-select {
+  min-height: 36px;
+  padding: 0.4rem 0.6rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+@media (pointer: coarse) {
+  .sort-select {
+    min-height: 44px;
+  }
+}
+
+.rearranged-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
+.reset-order {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.quiet-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+}
+
+/* The "Draft saved" (or "Picked up..." for its first five seconds) chip
+   beside Add files / Clear all - 13px minimum, muted, never competing with
+   the two real actions either side of it. */
+.draft-chip {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+.quiet-button {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--color-primary-text);
+  background: none;
+  border: 0;
+  padding: 0.3rem 0;
+  min-height: 44px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.options {
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.6rem;
+}
+
+.options-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+}
+
+.options-summary::-webkit-details-marker {
+  display: none;
+}
+
+.options-chevron {
+  margin-inline-start: auto;
+  transition: transform 0.15s var(--ease-out);
+}
+
+.options[open] .options-chevron {
+  transform: rotate(180deg);
+}
+
+.options-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0.25rem 0 0.6rem;
+}
+
+.page-numbers-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.page-numbers-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.saves-as {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.handoff-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.handoff-button {
+  flex: 1;
+  min-height: 44px;
+  padding: 0.5rem 0.6rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: center;
+}
+
+.handoff-button:hover {
+  background: var(--color-surface-sunken);
+}
+
+.start-again {
+  align-self: center;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  background: none;
+  border: 0;
+  padding: 0.3rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.install-line {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}

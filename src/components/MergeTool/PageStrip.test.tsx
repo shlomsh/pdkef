@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Sortable from 'sortablejs';
 import PageStrip from './PageStrip.tsx';
 import styles from './PageStrip.module.css';
-import { planForFile } from '../../lib/mergePlan.ts';
+import { isGrouped, planForFile } from '../../lib/mergePlan.ts';
 import { englishMergeMessages } from '../../i18n/toolMessages';
 import * as thumbnailsLib from '../../lib/thumbnails.js';
 
@@ -97,6 +97,9 @@ describe('PageStrip', () => {
     // mounted with so the tests can read the resulting plan.
     const onPlanChange = vi.fn((update) => update(plan));
     const announce = vi.fn();
+    const onRegisterUndo = vi.fn();
+    const onRenderedCountChange = vi.fn();
+    const onRemoveFile = vi.fn();
     const stripRef = createRef();
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -106,26 +109,75 @@ describe('PageStrip', () => {
       onPlanChange,
       announce,
       messages: englishMergeMessages,
-      countLabel: '4 pages',
+      grouped: overrides.grouped ?? isGrouped(plan),
       editing: false,
-      onToggleEditing: vi.fn(),
       stripRef,
+      onRegisterUndo,
+      onRenderedCountChange,
+      onRemoveFile,
       ...overrides.props,
     };
     act(() => {
       render(<PageStrip {...props} />, container);
     });
     const rerender = (next) => act(() => { render(<PageStrip {...props} {...next} />, container); });
-    return { entries, plan, onPlanChange, announce, stripRef, rerender };
+    return { entries, plan, onPlanChange, announce, onRegisterUndo, onRemoveFile, stripRef, rerender };
   }
 
   const cards = () => Array.from(container.querySelectorAll(`.${styles.page}`));
+  const captions = () => Array.from(container.querySelectorAll(`.${styles.caption}`));
 
-  it('renders one card per plan entry in order, with a divider at each file boundary', () => {
+  it('renders one card per plan entry in order, with a caption row per file', () => {
     mount();
     expect(cards().map((card) => card.dataset.key)).toEqual(['1:0', '1:1', '2:0', '2:1']);
-    expect(container.querySelectorAll(`.${styles.divider}`)).toHaveLength(1);
-    expect(container.querySelector(`.${styles.count}`).textContent).toContain('4 pages');
+    expect(captions()).toHaveLength(2);
+    expect(captions()[0].textContent).toContain('a.pdf');
+    expect(captions()[0].textContent).toContain('pages 1 to 2');
+    expect(captions()[1].textContent).toContain('pages 3 to 4');
+  });
+
+  it('sits inline beside its own cells for a run of two pages or fewer, and on its own row for three or more', () => {
+    const entries = [
+      { id: 1, file: makeFile('short.pdf'), pageCount: 2, error: null },
+      { id: 2, file: makeFile('long.pdf'), pageCount: 3, error: null },
+    ];
+    const plan = [...planForFile(1, 2), ...planForFile(2, 3)];
+    mount({ entries, plan });
+    const [shortCaption, longCaption] = captions();
+    expect(shortCaption.hasAttribute('data-inline')).toBe(true);
+    expect(longCaption.hasAttribute('data-inline')).toBe(false);
+  });
+
+  it('puts a row-break item immediately before an inline caption, and none before a full-row one', () => {
+    const entries = [
+      { id: 1, file: makeFile('short.pdf'), pageCount: 2, error: null },
+      { id: 2, file: makeFile('long.pdf'), pageCount: 3, error: null },
+    ];
+    const plan = [...planForFile(1, 2), ...planForFile(2, 3)];
+    mount({ entries, plan });
+    const grid = container.querySelector(`.${styles.grid}`);
+    const children = Array.from(grid.children);
+    const shortCaptionIndex = children.findIndex((el) => el.matches(`.${styles.caption}[data-caption-for="1"]`));
+    const longCaptionIndex = children.findIndex((el) => el.matches(`.${styles.caption}[data-caption-for="2"]`));
+    expect(children[shortCaptionIndex - 1].className).toContain(styles['row-break']);
+    expect(children[longCaptionIndex - 1].className).not.toContain(styles['row-break']);
+    expect(container.querySelectorAll(`.${styles['row-break']}`)).toHaveLength(1);
+  });
+
+  it('hides captions once the plan is no longer grouped, showing the per-page tag dot instead', () => {
+    const plan = [planForFile(1, 2)[0], planForFile(2, 2)[0], planForFile(1, 2)[1], planForFile(2, 2)[1]];
+    mount({ plan, grouped: false });
+    expect(captions()).toHaveLength(0);
+    const grid = container.querySelector(`.${styles.grid}`);
+    expect(grid.hasAttribute('data-grouped')).toBe(false);
+  });
+
+  // Shlomi's reduction (wave 2): captions are labels now, no actions -
+  // "rotate all" is gone and "remove" lives only in the rail row, so the
+  // caption itself carries no buttons at all.
+  it('a caption carries no interactive controls, only the label', () => {
+    mount();
+    expect(container.querySelectorAll(`.${styles.caption} button`)).toHaveLength(0);
   });
 
   it('renders thumbnails only for cards near the viewport, one pdf.js document per file, and releases a removed file', async () => {
@@ -146,28 +198,41 @@ describe('PageStrip', () => {
     expect(cards().map((card) => card.dataset.key)).toEqual(['2:0', '2:1']);
   });
 
-  it('rotate and skip commit a new plan once per tap and announce it (MERGE-09)', async () => {
-    const { onPlanChange, announce } = mount();
+  it('rotate and skip commit a new plan once per tap, announce it, and register one undo (MERGE-09)', async () => {
+    const { onPlanChange, announce, onRegisterUndo } = mount();
     const first = cards()[0];
     await act(async () => first.querySelectorAll(`.${styles.action}`)[0].click());
     expect(onPlanChange).toHaveBeenCalledTimes(1);
     expect(onPlanChange.mock.results[0].value[0]).toMatchObject({ key: '1:0', rotation: 90 });
     expect(announce).toHaveBeenCalledWith('Page 1 rotated to 90 degrees.');
+    expect(onRegisterUndo).toHaveBeenCalledWith('Rotated page 1', expect.any(Function));
 
     await act(async () => first.querySelectorAll(`.${styles.action}`)[1].click());
     expect(onPlanChange).toHaveBeenCalledTimes(2);
     expect(onPlanChange.mock.results[1].value[0]).toMatchObject({ key: '1:0', skipped: true });
     expect(announce).toHaveBeenLastCalledWith(expect.stringContaining('Page 1 skipped'));
+    expect(onRegisterUndo).toHaveBeenLastCalledWith('Skipped page 1', expect.any(Function));
   });
 
-  it('shows a skipped page dimmed with its number struck, and one tap brings it back', async () => {
+  it('a page-action undo restores the plan from before the change', async () => {
+    const { onPlanChange, onRegisterUndo } = mount();
+    const first = cards()[0];
+    await act(async () => first.querySelectorAll(`.${styles.action}`)[0].click());
+    const [, perform] = onRegisterUndo.mock.calls[0];
+    await act(async () => perform());
+    // The second onPlanChange call (the undo) restores the original,
+    // unrotated plan.
+    expect(onPlanChange).toHaveBeenCalledTimes(2);
+    expect(onPlanChange.mock.results[1].value[0]).toMatchObject({ key: '1:0', rotation: 0 });
+  });
+
+  it('shows a skipped page dimmed with its number struck and the word "skipped", and one tap brings it back', async () => {
     const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
     plan[2] = { ...plan[2], skipped: true };
     const { onPlanChange } = mount({ plan });
     const card = cards()[2];
     expect(card.hasAttribute('data-skipped')).toBe(true);
-    expect(card.textContent).toContain('Skipped');
-    expect(container.querySelector(`.${styles.count}`).textContent).toContain('1 skipped');
+    expect(card.textContent).toContain('skipped');
     // Numbers are output positions: the skipped page shows the number it
     // would take, and the page after it takes that number for real.
     expect(cards().map((c) => c.querySelector(`.${styles.number}`).textContent)).toEqual(['1', '2', '3', '3']);
@@ -198,25 +263,43 @@ describe('PageStrip', () => {
     expect(dialog.textContent).toContain('Page 2 of 4');
   });
 
-  it('commits the drop once through SortableJS onEnd', () => {
+  it('commits the drop once through SortableJS onEnd and registers one undo', () => {
     const createSpy = vi.spyOn(Sortable, 'create');
-    const { onPlanChange, stripRef } = mount();
+    const { onPlanChange, onRegisterUndo, stripRef } = mount();
     expect(createSpy).toHaveBeenCalledTimes(1);
     expect(createSpy.mock.calls[0][0]).toBe(stripRef.current);
     const options = createSpy.mock.calls[0][1];
     options.onEnd({ oldIndex: 0, newIndex: 3 });
     expect(onPlanChange).toHaveBeenCalledTimes(1);
     expect(onPlanChange.mock.results[0].value.map((p) => p.key)).toEqual(['1:1', '2:0', '2:1', '1:0']);
+    expect(onRegisterUndo).toHaveBeenCalledTimes(1);
     options.onEnd({ oldIndex: 2, newIndex: 2 });
     expect(onPlanChange).toHaveBeenCalledTimes(1);
   });
 
-  it('exposes the per-page controls on touch only after Edit pages', () => {
+  it('reports the first keyboard (not pointer) focus of a page cell, once', () => {
+    const onFirstKeyboardFocus = vi.fn();
+    mount({ props: { onFirstKeyboardFocus } });
+    const [first, second] = cards();
+
+    // A pointer-driven focus (mousedown then focus, as a real click does)
+    // must not count.
+    document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    first.focus();
+    expect(onFirstKeyboardFocus).not.toHaveBeenCalled();
+
+    // A keyboard-driven focus (Tab: a keydown, then focus lands) counts,
+    // and only the first one fires anything the parent need act on.
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    second.focus();
+    expect(onFirstKeyboardFocus).toHaveBeenCalledTimes(1);
+  });
+
+  it('exposes the per-page controls on touch only after Edit pages (the toggle itself lives in the parent, wave 3)', () => {
     const { rerender } = mount();
-    const strip = container.querySelector(`.${styles.strip}`);
-    expect(strip.hasAttribute('data-editing')).toBe(false);
+    const grid = container.querySelector(`.${styles.grid}`);
+    expect(grid.hasAttribute('data-editing')).toBe(false);
     rerender({ editing: true });
-    expect(strip.hasAttribute('data-editing')).toBe(true);
-    expect(container.querySelector(`.${styles['edit-toggle']}`).textContent).toBe('Done');
+    expect(grid.hasAttribute('data-editing')).toBe(true);
   });
 });
