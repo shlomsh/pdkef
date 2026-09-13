@@ -34,7 +34,8 @@ sharding is available now and needs no knowledge of the code.
 ## Acceptance
 
 - Five green runs with the shard matrix, median wall time recorded against the five before it.
-- The same 276 Playwright tests run across the shards (sum the "passed" counts).
+- The same 134 product tests (chromium 113, webkit 21) run across the shards (sum the "passed"
+  counts); the 276 total also counts the 137 font guards and 5 perf budgets, which are not sharded.
 
 ## Notes
 
@@ -47,8 +48,8 @@ imports in the font parity/shaping specs come from the checkout, not the artifac
 runs `npx playwright test --project=perf --workers=1`. Chose the download-dist shape over
 rebuilding per shard: `playwright.config.js`'s `webServer` runs `astro preview` against `dist/`
 on disk with no other runtime input, so a downloaded `dist/` (51 MB locally) is sufficient and
-avoids paying the ~9s build cost twice. Dist guards (test:csp/seo/redirects/css/weight,
-test:licenses) still run exactly once, unchanged from before this ticket.
+avoids paying the ~9s build cost twice. Dist guards (test:csp/seo/redirects/css/weight)
+still run exactly once, unchanged from before this ticket.
 
 Local `--list` proof (no server needed, current chromium+webkit suite, `perf`/`fonts` excluded
 by their own projects):
@@ -56,9 +57,8 @@ by their own projects):
 - `--project=chromium --project=webkit --list`: 134 tests in 36 files
 - `--shard=1/2 --list`: 67 tests in 25 files
 - `--shard=2/2 --list`: 67 tests in 14 files
-- 67 + 67 = 134, matches the unsharded total (the ticket's "276" figure appears to predate a
-  later suite trim or included the `fonts`/`perf` projects; whichever the true baseline, the two
-  shards partition the current chromium+webkit set exactly).
+- 67 + 67 = 134, matches the unsharded total; the two shards partition the chromium+webkit set
+  exactly.
 
 Guard scripts all pass on this branch: `npm run test:dependency-governance` ("Dependency
 governance dry-run passed"), `npm run check:guidance` ("Guidance budget OK: CLAUDE.md 154/200
