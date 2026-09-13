@@ -1,4 +1,4 @@
 import { useMemo } from 'preact/hooks';
-import { useDraftPersistence } from '../../components/SignTool/useDraftPersistence.js';
+import { useDraftPersistence } from './useDraftPersistence.js';
 
 export const useWorkspaceDraft = () => useMemo(useDraftPersistence, []);
