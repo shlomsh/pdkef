@@ -48,4 +48,11 @@ describe('editor dependency-direction guard', () => {
     expect(result.stderr).toContain('src/editor/workspace/illegal.ts -> preact/hooks');
     expect(result.stderr).toContain('workspace may only reach Preact');
   });
+
+  it('rejects a PDF adapter import from the shared editor-ui shell', () => {
+    const result = runFixture('negative-pdf-adapter-editor-ui');
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('src/editor/adapters/pdf/illegal.ts -> src/editor-ui/ColorPicker.tsx');
+    expect(result.stderr).toContain('PDF adapters are one-way');
+  });
 });
