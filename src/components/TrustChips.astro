@@ -48,7 +48,7 @@ const { labels, offlineHref } = Astro.props;
   {offlineHref ? (
     <a class="trust-chip" data-offline-link href={offlineHref} aria-label={labels.worksOffline}><WifiOff class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>{labels.worksOffline}</span></a>
   ) : (
-    <span class="trust-chip" aria-label={labels.worksOffline}><WifiOff class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>{labels.worksOffline}</span></span>
+    <span class="trust-chip" role="img" aria-label={labels.worksOffline}><WifiOff class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>{labels.worksOffline}</span></span>
   )}
 </div>
 
