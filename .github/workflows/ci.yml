@@ -44,7 +44,7 @@ on:
 # says the push affects. `scripts/affected-scope.mjs` is the oracle - it asks
 # `nx show projects --affected`, then each job runs ONE `vitest run <paths>`
 # or `playwright test <paths>` itself; Nx never executes a test directly (see
-# docs/nx-affected-ci.md for why 17 separate `nx run <project>:test` calls
+# docs/nx-affected-ci.md for why 18 separate `nx run <project>:test` calls
 # would cost more than they save whenever most projects are affected). The
 # affected computation happens INSIDE each consuming job, right after its own
 # `npm ci`, not in `scope`: `scope` has no node_modules and stays ~6s so every
@@ -75,6 +75,7 @@ jobs:
     # node_modules for `nx`), not in `scope` (see the header comment above).
     # Fails open (everything=true) with no usable base, an nx error, or an
     # unowned changed file - see the script's own header for the full rules.
+    # The same call appends its verdict to the run's step summary.
     - name: Resolve affected scope
       id: affected
       env:
@@ -82,7 +83,6 @@ jobs:
       run: |
         if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
         node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
-        node scripts/affected-scope.mjs --base "$BASE" --summary >> "$GITHUB_STEP_SUMMARY"
 
     # poppler-utils gives the W6 extraction guard (src/lib/sign.test.js) its
     # `pdftotext` half. Without it that half self-skips with a warning, which
@@ -231,7 +231,6 @@ jobs:
       run: |
         if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
         node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
-        node scripts/affected-scope.mjs --base "$BASE" --summary >> "$GITHUB_STEP_SUMMARY"
 
     - name: Build
       run: npm run build
@@ -327,7 +326,8 @@ jobs:
   # composition, language acceptance. This job now starts on every non-docs
   # run (same fail-open `if:` as `checks`/`build`/`e2e`) and computes its own
   # `fonts` boolean right after `npm ci`, via scripts/affected-scope.mjs's
-  # `fonts` Nx project (public/fonts, src/editor, src/lib, tool-sign) -
+  # `fonts` Nx project (public/fonts, src/editor, src/lib, tool-sign; the
+  # steps gate on `!= 'false'` so a missing output runs them, fail-open) -
   # ARCH-20 retired the hand-kept `FONT_GUARD_INPUTS` list this used to read
   # from the `scope` job. Every step after that reads costs one runner ~20s
   # in parallel with `checks`/`e2e` and no wall time when fonts is not
@@ -358,35 +358,34 @@ jobs:
       run: |
         if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
         node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
-        node scripts/affected-scope.mjs --base "$BASE" --summary >> "$GITHUB_STEP_SUMMARY"
 
     - name: Build
-      if: steps.affected.outputs.fonts == 'true'
+      if: steps.affected.outputs.fonts != 'false'
       run: npm run build
 
     - name: Resolve Playwright version
       id: playwright
-      if: steps.affected.outputs.fonts == 'true'
+      if: steps.affected.outputs.fonts != 'false'
       run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
     - name: Cache Playwright browsers
       id: playwright-cache
-      if: steps.affected.outputs.fonts == 'true'
+      if: steps.affected.outputs.fonts != 'false'
       uses: actions/cache@v4
       with:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
 
     - name: Install Playwright browsers
-      if: steps.affected.outputs.fonts == 'true' && steps.playwright-cache.outputs.cache-hit != 'true'
+      if: steps.affected.outputs.fonts != 'false' && steps.playwright-cache.outputs.cache-hit != 'true'
       run: npx playwright install --with-deps chromium
 
     - name: Install Playwright system dependencies
-      if: steps.affected.outputs.fonts == 'true' && steps.playwright-cache.outputs.cache-hit == 'true'
+      if: steps.affected.outputs.fonts != 'false' && steps.playwright-cache.outputs.cache-hit == 'true'
       run: npx playwright install-deps chromium
 
     - name: Run Playwright e2e tests (font guards)
-      if: steps.affected.outputs.fonts == 'true'
+      if: steps.affected.outputs.fonts != 'false'
       run: npx playwright test --project=fonts
 
     # Prints the recaptured baseline rather than committing it. Review the
