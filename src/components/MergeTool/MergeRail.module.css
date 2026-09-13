@@ -437,7 +437,10 @@
   font-weight: 600;
   color: var(--color-primary-text);
   background: transparent;
-  border: 1px solid var(--color-border);
+  /* MERGE-19: `--color-border` measured 1.09:1 against the rail's tint, so
+     the row's outline all but vanished there; the strong token is the one
+     every other secondary control on this rail (`.quiet-button`) draws. */
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   cursor: pointer;
   text-align: center;

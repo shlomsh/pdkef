@@ -72,3 +72,4 @@ binary fixture to a page by retyping it; use `setInputFiles` (Playwright) or a s
   `renderThumbnail` is a wrapper over it) and `renderPdfThumbnails(file, cb, { width, type, quality,
   signal, pageIndices })` over the same source, with the white prefill. Unit tests in
   `src/lib/thumbnails.test.js`. Done.
+- 2026-09-13, evening (UX review P1, "one page per ~500 ms"): the cost was per file, not per page - `getDocument()` booted a fresh pdf.js Web Worker for every file. `src/lib/thumbnails.js` now shares one `PDFWorker` across every document it opens; 17 generated pages render in ~550 ms (first at 254 ms, then one every ~17 ms). Guard: e2e/merge/merge-thumbnail-throughput.spec.js. Landed on main in 204c9be.

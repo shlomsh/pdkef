@@ -47,3 +47,4 @@ exists, as the dock already does.
   its edition. Unit tests on the hand-off record and the confirmation in `PdfMergeTool.test.tsx`;
   the Compress route in `e2e/merge/merge-handoff.spec.js`. Nothing added to the static surface. Done.
 - Direction A (2026-09-13): Compress it and Sign it (and Share when available) are three equal secondary buttons under the Download element in the rail and in the phone bottom sheet, not underlined footnote links.
+- 2026-09-13, evening: the hand-off row is Share, Compress it, Sign it with 16px launcher icons; Share appears only where `navigator.share` exists, guarded on chromium and webkit (iPhone 15) by e2e/merge/merge-share.spec.js with the API stubbed. Landed on main in 204c9be.
