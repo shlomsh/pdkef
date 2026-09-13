@@ -1,0 +1,29 @@
+{
+  "name": "site-e2e",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "e2e",
+  "tags": ["scope:site"],
+  "implicitDependencies": [
+    "site",
+    "shell",
+    "tool-merge",
+    "tool-sign",
+    "tool-redact",
+    "tool-compress",
+    "tool-split",
+    "tool-edit-pages",
+    "tool-to-image",
+    "tool-image-to-pdf",
+    "tool-security"
+  ],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx playwright test --project=chromium --project=webkit e2e/",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}

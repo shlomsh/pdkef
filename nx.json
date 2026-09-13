@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "affected": {
+    "defaultBase": "origin/main"
+  },
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "sharedGlobals": [
+      "{workspaceRoot}/astro.config.mjs",
+      "{workspaceRoot}/vercel.json",
+      "{workspaceRoot}/middleware.ts",
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/package-lock.json",
+      "{workspaceRoot}/tsconfig.json",
+      "{workspaceRoot}/vitest.config.js",
+      "{workspaceRoot}/playwright.config.js"
+    ]
+  },
+  "targetDefaults": {
+    "test": {
+      "inputs": ["default"],
+      "cache": true
+    },
+    "e2e": {
+      "inputs": ["default", "^default"],
+      "cache": true
+    }
+  }
+}

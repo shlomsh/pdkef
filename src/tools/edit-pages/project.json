@@ -1,0 +1,16 @@
+{
+  "name": "tool-edit-pages",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "src/tools/edit-pages",
+  "tags": ["scope:tool", "tool:edit-pages"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vitest run src/tools/edit-pages/",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}

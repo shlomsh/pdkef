@@ -1,0 +1,16 @@
+{
+  "name": "tool-split",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "src/tools/split",
+  "tags": ["scope:tool", "tool:split"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vitest run src/tools/split/",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}
