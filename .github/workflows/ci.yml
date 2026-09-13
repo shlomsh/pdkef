@@ -178,12 +178,10 @@ jobs:
         if-no-files-found: ignore
 
   # Decides whether this run touched anything a font guard's outcome depends
-  # on. The guards pixel-diff the shaped output of the fonts in public/fonts
-  # through the export core in src/editor (which reaches into src/lib and one
-  # SignTool messages module), so a change anywhere in that graph, the guards
-  # themselves, or the dependency set runs them; a copy, page, backlog or
-  # other-tool change does not. Fails open: when the base commit cannot be
-  # fetched (first push of a branch, a force-push), the guards run.
+  # on. What counts as an input lives in scripts/font-guard-inputs.mjs, which
+  # the local `test:e2e` script asks too, so the two cannot drift. Fails open:
+  # when the base commit cannot be fetched (first push of a branch, a
+  # force-push), the guards run.
   font-guard-inputs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'pull_request'
@@ -193,25 +191,18 @@ jobs:
     steps:
     - uses: actions/checkout@v5
 
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+
     - name: Diff against the base for font-guard inputs
       id: diff
       env:
         BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       run: |
-        if [ -z "$BASE" ] || ! git fetch --no-tags --depth=1 origin "$BASE"; then
-          echo "No usable base ($BASE); running the font guards."
-          echo "changed=true" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        files=$(git diff --name-only "$BASE" HEAD)
-        pattern='^(public/fonts/|src/editor/|src/lib/|src/components/SignTool/|src/test/fixtures/|e2e/sign/|scripts/[^/]*(font|language)|package\.json$|package-lock\.json$|patches/|playwright\.config\.js$|astro\.config\.mjs$|\.github/workflows/ci\.yml$)'
-        if printf '%s\n' "$files" | grep -qE "$pattern"; then
-          echo "Font-guard inputs changed:"; printf '%s\n' "$files" | grep -E "$pattern"
-          echo "changed=true" >> "$GITHUB_OUTPUT"
-        else
-          echo "No font-guard input changed in $(printf '%s\n' "$files" | grep -c .) files; skipping the font guards."
-          echo "changed=false" >> "$GITHUB_OUTPUT"
-        fi
+        if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
+        node scripts/font-guard-inputs.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
 
   # The 27 font screening guards (the `fonts` Playwright project): shaping
   # guards per script, font parity, the export render guard, Hebrew

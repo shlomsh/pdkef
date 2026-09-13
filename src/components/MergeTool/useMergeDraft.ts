@@ -20,6 +20,10 @@ import { outputPageCount, type PlanEntry } from '../../lib/mergePlan.ts';
 // copied.
 export const MERGE_DRAFT_SCHEMA_VERSION = 1;
 
+// Tests shorten the wait; the tool never passes it - same precedent as
+// usePreparedMerge.ts's PREPARE_DEBOUNCE_MS/debounceMs.
+export const AUTOSAVE_DEBOUNCE_MS = 700;
+
 export interface MergeDraftEntry {
   id: number;
   file: File;
@@ -60,6 +64,8 @@ export interface UseMergeDraftOptions {
    * happens to equal the automatic name". */
   outputName: string | null;
   onRestore: (restored: MergeDraftRestore) => void;
+  /** Tests shorten the wait; the tool never passes it. */
+  autosaveDebounceMs?: number;
 }
 
 export type MergeDraftSaveState = 'idle' | 'pending' | 'saved' | 'error' | 'conflict';
@@ -125,6 +131,7 @@ export function useMergeDraft({
   title,
   outputName,
   onRestore,
+  autosaveDebounceMs = AUTOSAVE_DEBOUNCE_MS,
 }: UseMergeDraftOptions): UseMergeDraftResult {
   // Keep the latest values addressable from event listeners and the async
   // restore effect without re-binding them - same pattern as
@@ -293,10 +300,10 @@ export function useMergeDraft({
     const timer = setTimeout(() => {
       const { entries, plan, options, title, outputName } = latest.current;
       buildRecord(entries, plan, options, title, outputName).then((record) => persist(revision, record));
-    }, 700);
+    }, autosaveDebounceMs);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, currentRevision]);
+  }, [enabled, currentRevision, autosaveDebounceMs]);
 
   // Best-effort immediate flush when the tab is hidden or being unloaded.
   // Continuous debounced autosave is what actually survives a crash (a

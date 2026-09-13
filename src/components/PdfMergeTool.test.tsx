@@ -106,6 +106,9 @@ describe('PdfMergeTool UI flow', () => {
     }
     window.URL.createObjectURL = originalCreateObjectURL;
     vi.restoreAllMocks();
+    // Safety net: if a fake-timers test above threw before reaching its own
+    // vi.useRealTimers(), don't leak the fake clock into the next test.
+    vi.useRealTimers();
   });
 
   function mount(props = {}) {
@@ -416,10 +419,18 @@ describe('PdfMergeTool UI flow', () => {
     const removeBtns = () => container.querySelectorAll(`.${railStyles['file-remove']}`);
     const chip = () => container.querySelector(`.${docStyles['undo-chip']}`);
 
+    // The undo window is UNDO_WINDOW_MS (5s) of real product time. Fake
+    // timers (enabled only from here, after the setup above has settled on
+    // real timers) let the two 3s waits below advance virtual time instead
+    // of actually sleeping; the component's own undo-dismiss setTimeout is
+    // created by the dispatches below, so it is scheduled under the fake
+    // clock and genuinely exercises the restart logic.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
     await act(async () => removeBtns()[1].dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(chip().textContent).toContain('Removed two.pdf');
 
-    await act(async () => { await flush(3000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
     expect(chip()).not.toBeNull();
 
     // A second action 3s after the first restarts the window rather than
@@ -427,13 +438,15 @@ describe('PdfMergeTool UI flow', () => {
     await act(async () => removeBtns()[0].dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(chip().textContent).toContain('Removed one.pdf');
 
-    await act(async () => { await flush(3000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
     // 6s since the first action, only 3s since the second: were the timer
     // not restarted, the first action's 5s window would already have closed
     // the chip by now.
     expect(chip()).not.toBeNull();
     expect(chip().textContent).toContain('Removed one.pdf');
-  }, 15000);
+
+    vi.useRealTimers();
+  });
 
   it('nudges on a duplicate (same name and size) and lets it be added anyway (MERGE-07)', async () => {
     mount();
@@ -676,7 +689,8 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   it('restores a saved draft into the list, the plan and the options, and clears it on Start again (MERGE-13)', async () => {
-    // The picked-up-sentence-to-chip flip below waits out a real 5s timer.
+    // The picked-up-sentence-to-chip flip below advances virtual time via
+    // fake timers instead of waiting out a real 5s timer.
     const clearDraft = vi.fn(async () => true);
     localStorage.setItem('pdf-toolkit:workspace:has-draft:merge', '1');
     document.documentElement.setAttribute('data-draft-hint', '1');
@@ -686,6 +700,13 @@ describe('PdfMergeTool UI flow', () => {
     expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
     await act(async () => { await flush(10); });
     expect(draftProbe.props).not.toBeNull();
+
+    // Fake timers from here on: the onRestore call below is what starts the
+    // component's own 5s "picked up" -> chip setTimeout, so it must already
+    // be running under the fake clock for the advance further down to move
+    // it. The pre-merge debounce that fires during this window is also
+    // driven by advancing virtual time (in place of settle()'s real flush).
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     await act(async () => {
       draftProbe.props.registerClear(clearDraft);
       draftProbe.props.onStateChange({ isRestoring: false, draftSaveState: 'saved' });
@@ -699,7 +720,7 @@ describe('PdfMergeTool UI flow', () => {
         ],
         options: { addPageNumbers: true },
       });
-      await flush(10);
+      await vi.advanceTimersByTimeAsync(10);
     });
     expect(fileNames()).toEqual(['x.pdf', 'y.pdf']);
     // The pre-paint hint attribute is gone once the check settled, so a later
@@ -709,7 +730,8 @@ describe('PdfMergeTool UI flow', () => {
     // The restored-draft sentence shows first, for its five seconds; only
     // after that does the small "Draft saved" chip take its place.
     expect(container.textContent).toContain('Picked up where you left off');
-    await settle();
+    // Equivalent to settle() (pre-merge debounce + merge), advanced virtually.
+    await act(async () => { await vi.advanceTimersByTimeAsync(30); });
     const [files, options] = mergeLib.mergePdfs.mock.calls.at(-1);
     expect(files.map((f) => f.name)).toEqual(['x.pdf', 'y.pdf']);
     expect(options.plan).toEqual([
@@ -724,7 +746,8 @@ describe('PdfMergeTool UI flow', () => {
 
     // After its five seconds the sentence gives way to the small chip for
     // the rest of the session.
-    await act(async () => { await flush(5000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    vi.useRealTimers();
     expect(container.textContent).not.toContain('Picked up where you left off');
     expect(container.textContent).toContain('Draft saved');
 
@@ -733,7 +756,7 @@ describe('PdfMergeTool UI flow', () => {
     await act(async () => startAgain.click());
     expect(clearDraft).toHaveBeenCalledTimes(1);
     expect(fileNames()).toEqual([]);
-  }, 10000);
+  });
 
   // Review P2, item 2: the "⋯" menu and the draft chip used to be the last
   // two items of the same scrolling `<ul>` as the file chips, so a long

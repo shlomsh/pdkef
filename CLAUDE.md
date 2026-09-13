@@ -34,12 +34,15 @@ npm install
 npm run dev       # local dev server (astro dev)
 npm run build     # production build to dist/
 npm run preview   # preview the production build (serves dist/ from disk)
-npm test          # unit/component tests (Vitest; jsdom only where vitest.config.js's DOM_TESTS says)
-npm run test:e2e  # build + every browser guardrail (Playwright; keep under e2e/<module>/)
-npm run test:e2e:product  # the product specs against the current dist/ (~75s on 4 workers)
-npm run test:e2e:fonts    # the 27 font screening guards; CI runs them only when their inputs change
+npm run check:fast        # the iteration loop: source guards, unit tests for what changed, typecheck (~20s)
+npm test                  # whole unit suite (Vitest; jsdom only where vitest.config.js's DOM_TESTS says)
+npm run test:e2e          # build + product e2e + font guards if scripts/font-guard-inputs.mjs says (~1.5 min)
+npm run test:e2e:product  # the product specs against the current dist/ (~45s on 4 workers)
+npm run test:e2e:fonts    # the 27 font screening guards, unconditionally; CI gates them the same way
 ```
 
+- **Iterate with `check:fast`; run the whole `ci.yml` chain once before a push**, not after every edit
+  and not once per subagent. A subagent's brief names `check:fast` (or one spec) as its check.
 - E2E tests are sparse guardrails, roughly 1 e2e per 10 unit tests, only for what jsdom cannot prove
   (rendered rects, drag-time behaviour, page-edge behaviour, hydration/CSP flows). Playwright runs on
   4 workers (2 in CI); a spec that asserts a wall-clock budget goes in `PERF_BUDGETS` in
