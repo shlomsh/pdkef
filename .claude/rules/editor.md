@@ -32,7 +32,6 @@ paths:
   - "e2e/sign/form-grid-fill.spec.js"
   - "e2e/redact/**"
   - "e2e/merge/**"
-  - "e2e/unlock/**"
   - "e2e/tool-*.spec.js"
   - "scripts/check-gesture-golden-rule.js"
   - "scripts/check-editor-dependency-directions.mjs"
