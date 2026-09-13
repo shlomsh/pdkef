@@ -1,11 +1,11 @@
 ---
 id: "ARCH-18"
 title: "Merge and Sign into src/tools/, once the merge-tool epic's branch has landed"
-status: "blocked"
+status: "done"
 priority: "P1"
 epic: "module-boundaries"
 phase: "near-term"
-depends_on: ["ARCH-17", "MERGE-15", "MERGE-18"]
+depends_on: ["ARCH-17"]
 ---
 
 # ARCH-18 · Merge and Sign, the two tools with folders already, complete the move
@@ -43,3 +43,21 @@ branch is on `main`.
   the editor leaks ARCH-19 owns.
 - `docs/ux-design-guidelines.md`, `.claude/rules/editor.md`, `home-page.md` and the memory of the
   Merge epic point at the new paths.
+
+## Notes
+
+- Done 2026-09-14, unblocked early: the merge epic's branch was gone and 18 of 20 MERGE tickets
+  done, the two open ones a flagged spike and a product decision. Merge in `a80920d`
+  (`MergeTool/` to `src/tools/merge/components/`, `merge.js`/`mergePlan.ts`/`outline.js` with it,
+  `sort.js` stays shared with image-to-pdf, `e2e/merge` to `src/tools/merge/e2e`, `PERF_BUDGETS`
+  globs widened); Sign in `22ef4f6` + `370ace3` (`nodeProps`'s resize types split into
+  `src/editor-ui/nodeResizeTypes.ts` so `ElementResizers` stops importing Sign; `SignTool/` to
+  `src/tools/sign/components/`, four lib modules plus `fontOfflinePacks.js`, the three product specs
+  to `src/tools/sign/e2e/`; the 27 font guards, `language-acceptance`, `export-render-guard` and
+  their fixtures stay in `e2e/sign/` as font screening).
+- The allowlist is empty: `scripts/module-boundaries-allowlist.json` is `[]`, 0 of 815 edges
+  violate a rule. `src/components/` holds only the `.astro` site components, `HeroDemo/` and
+  `compareFigure.css`. `draftCheckingPlaceholder.test.tsx` and `draftRestoreRace.test.tsx` moved
+  next to `draftStore.js` in `src/editor/workspace/`; `overlayElements.test.tsx` went with Sign.
+- An esbuild metafile of `src/editor/adapters/pdf/sign.js` has 30 inputs, none under
+  `src/tools/sign/`: the export core the font guards load is independent of Sign's UI.
