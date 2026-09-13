@@ -1,8 +1,17 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { applyRotation, embedPageNumberFont, stampPageNumber } from './pageOps.js';
 import { mergedFileName, mergedTitle } from './mergePlan.ts';
+import { addFileOutline } from './outline.js';
 
 export { mergedFileName, mergedTitle };
+
+// MERGE-15: the title for a source file's outline entry - its own file name
+// with a trailing ".pdf" dropped, since the extension is implied by "this is
+// a bookmark in a PDF" and every other tool's own naming (mergedFileName
+// etc.) already treats ".pdf" as noise rather than part of the name.
+function fileOutlineTitle(fileName) {
+  return /\.pdf$/i.test(fileName) ? fileName.slice(0, -4) : fileName;
+}
 
 // Thrown by inspectPdf()/mergePdfs() for a source file that can't take part
 // in the merge, instead of a bare Error - the island needs fileIndex to
@@ -108,7 +117,7 @@ export async function mergePdfs(files, options = {}, onProgress, signal) {
     options = {};
   }
 
-  const { addPageNumbers = false, title } = options;
+  const { addPageNumbers = false, title, bookmarks = true } = options;
   const hasExplicitPlan = Array.isArray(options.plan);
 
   checkAborted(signal);
@@ -154,6 +163,16 @@ export async function mergePdfs(files, options = {}, onProgress, signal) {
   // file's bucket in keptEntriesByFileIndex (so the addPage phase's cursor
   // can walk both in lockstep).
   const copiedPagesByFileIndex = new Map();
+
+  // MERGE-15: fileIndex -> index (in the merged doc) of that file's first
+  // surviving page, recorded the moment its first non-skipped page is
+  // actually addPage()'d - so a file that contributes nothing (dropped by
+  // the plan, or every one of its entries skipped) never gets a key, and a
+  // file whose pages land non-contiguously (cross-file reordering) still
+  // only ever records its *first* output position. Populated regardless of
+  // the `bookmarks` option (the bookkeeping is cheap); only read below if
+  // `bookmarks` is on.
+  const firstOutputPageIndexByFile = new Map();
 
   // Always walk every position in `files`, in order, so
   // onProgress((filesDone)/(files.length)) fires once per file exactly as
@@ -208,6 +227,9 @@ export async function mergePdfs(files, options = {}, onProgress, signal) {
       // so pages can be added directly here without a second pass.
       const pageIndices = source.getPageIndices();
       const copiedPages = pageIndices.length > 0 ? await merged.copyPages(source, pageIndices) : [];
+      if (copiedPages.length > 0) {
+        firstOutputPageIndexByFile.set(fileIndex, merged.getPageCount());
+      }
       for (const copiedPage of copiedPages) {
         const addedPage = merged.addPage(copiedPage);
         if (addPageNumbers) {
@@ -233,6 +255,10 @@ export async function mergePdfs(files, options = {}, onProgress, signal) {
       const copiedPage = copiedPages[cursor];
       cursorByFileIndex.set(entry.fileIndex, cursor + 1);
 
+      if (!firstOutputPageIndexByFile.has(entry.fileIndex)) {
+        firstOutputPageIndexByFile.set(entry.fileIndex, merged.getPageCount());
+      }
+
       const addedPage = merged.addPage(copiedPage);
       applyRotation(addedPage, entry.rotation);
 
@@ -244,6 +270,21 @@ export async function mergePdfs(files, options = {}, onProgress, signal) {
   }
 
   checkAborted(signal);
+
+  // A one-entry outline is noise (the bookmark names the whole document), so
+  // the outline only exists once two or more files made it into the output.
+  if (bookmarks && firstOutputPageIndexByFile.size >= 2) {
+    // Order entries by their output page, not by file order: with MERGE-09
+    // reordering, file order and output order can disagree, and a bookmark
+    // list should walk forward through the document like any other outline.
+    const outlineEntries = [...firstOutputPageIndexByFile.entries()]
+      .sort(([, a], [, b]) => a - b)
+      .map(([fileIndex, pageIndex]) => ({
+        title: fileOutlineTitle(files[fileIndex].name),
+        pageIndex,
+      }));
+    addFileOutline(merged, outlineEntries);
+  }
 
   if (typeof title === 'string' && title.length > 0) {
     merged.setTitle(title);

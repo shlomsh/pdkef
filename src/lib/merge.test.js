@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { MergeFileError, inspectPdf, mergePdfs, mergedFileName, resolvePdfCreationDate } from './merge.js';
 
@@ -265,6 +265,120 @@ describe('mergePdfs library integration with real fixtures', () => {
 
     it('mergedFileName builds the "merged_<first>.pdf" download name', () => {
       expect(mergedFileName('Invoice 2024-03-01.pdf')).toBe('merged_Invoice 2024-03-01.pdf');
+    });
+  });
+
+  describe('MERGE-15 bookmarks (one outline entry per source file)', () => {
+    // Walks the /Outlines chain the same way a viewer's bookmark panel does:
+    // from /First, following /Next, reading each item's decoded title and its
+    // /Dest's target page ref.
+    function readOutlineChain(pdfDoc) {
+      const outlinesRef = pdfDoc.catalog.get(PDFName.of('Outlines'));
+      if (!outlinesRef) return null;
+      const outlines = pdfDoc.context.lookup(outlinesRef);
+      const items = [];
+      let currentRef = outlines.get(PDFName.of('First'));
+      while (currentRef) {
+        const item = pdfDoc.context.lookup(currentRef);
+        const dest = item.get(PDFName.of('Dest'));
+        items.push({
+          ref: currentRef,
+          title: item.get(PDFName.of('Title')).decodeText(),
+          destPageRef: dest.get(0),
+          prev: item.get(PDFName.of('Prev')),
+          next: item.get(PDFName.of('Next')),
+        });
+        currentRef = item.get(PDFName.of('Next'));
+      }
+      return { count: outlines.get(PDFName.of('Count'))?.asNumber(), items };
+    }
+
+    it('writes one bookmark per surviving source file, titled and ordered by first output page, with a skipped page, a fully-skipped file, and a Hebrew name accounted for', async () => {
+      // Four source files:
+      //  - num-5.pdf (5 pages, '11'..'15'): only its page 1 ('12') survives -
+      //    page 0 is explicitly skipped, so its bookmark must target '12',
+      //    not '11'.
+      //  - a Hebrew-named copy of num-2.pdf's one page ('2'): proves the
+      //    title round-trips a non-Latin script.
+      //  - num-3.pdf (1 page, '3').
+      //  - num-4.pdf (1 page, '4'): every one of its plan entries is
+      //    skipped, so it must get no bookmark at all.
+      const files = [
+        getFixtureFile('num-5.pdf'),
+        (() => {
+          const buffer = fs.readFileSync(path.resolve(__dirname, './__fixtures__/num-2.pdf'));
+          return new File([buffer], 'דוח מס.pdf', { type: 'application/pdf' });
+        })(),
+        getFixtureFile('num-3.pdf'),
+        getFixtureFile('num-4.pdf'),
+      ];
+
+      // Plan order deliberately interleaves files and puts num-3.pdf first in
+      // OUTPUT order despite being third in the files array, and skips
+      // num-5.pdf's first page so its kept pages land non-contiguously
+      // relative to file order.
+      const plan = [
+        { fileIndex: 2, pageIndex: 0, rotation: 0, skipped: false }, // '3' -> output page 0
+        { fileIndex: 0, pageIndex: 0, rotation: 0, skipped: true }, // '11', skipped
+        { fileIndex: 1, pageIndex: 0, rotation: 0, skipped: false }, // '2' -> output page 1
+        { fileIndex: 3, pageIndex: 0, rotation: 0, skipped: true }, // '4', skipped - only entry for file 3
+        { fileIndex: 0, pageIndex: 1, rotation: 0, skipped: false }, // '12' -> output page 2
+      ];
+
+      const blob = await mergePdfs(files, { plan });
+      const { pageTexts } = await getPdfPageTexts(blob);
+      expect(pageTexts).toEqual(['3', '2', '12']);
+
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const reloaded = await PDFDocument.load(bytes);
+      const outline = readOutlineChain(reloaded);
+
+      expect(outline.count).toBe(3);
+      expect(outline.items).toHaveLength(3);
+      expect(outline.items.map((item) => item.title)).toEqual(['num-3', 'דוח מס', 'num-5']);
+      // num-4.pdf (fully skipped) never appears.
+      expect(outline.items.some((item) => item.title === 'num-4')).toBe(false);
+
+      const expectedPageRefs = [0, 1, 2].map((i) => reloaded.getPage(i).ref.toString());
+      expect(outline.items.map((item) => item.destPageRef.toString())).toEqual(expectedPageRefs);
+
+      // Prev/Next chain: first has no Prev, last has no Next, middle links
+      // both ways.
+      expect(outline.items[0].prev).toBeUndefined();
+      expect(outline.items[0].next.toString()).toBe(outline.items[1].ref.toString());
+      expect(outline.items[1].prev.toString()).toBe(outline.items[0].ref.toString());
+      expect(outline.items[1].next.toString()).toBe(outline.items[2].ref.toString());
+      expect(outline.items[2].prev.toString()).toBe(outline.items[1].ref.toString());
+      expect(outline.items[2].next).toBeUndefined();
+    });
+
+    it('bookmarks default on with no explicit plan, one entry per file in file order', async () => {
+      const files = [getFixtureFile('num-1.pdf'), getFixtureFile('num-2.pdf'), getFixtureFile('num-3.pdf')];
+      const blob = await mergePdfs(files);
+
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const reloaded = await PDFDocument.load(bytes);
+      const outline = readOutlineChain(reloaded);
+
+      expect(outline.count).toBe(3);
+      expect(outline.items.map((item) => item.title)).toEqual(['num-1', 'num-2', 'num-3']);
+    });
+
+    it('writes no outline when only one file made it into the output (a one-entry outline names the whole document)', async () => {
+      const blob = await mergePdfs([getFixtureFile('num-2.pdf')]);
+
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const reloaded = await PDFDocument.load(bytes);
+      expect(reloaded.catalog.get(PDFName.of('Outlines'))).toBeUndefined();
+    });
+
+    it('writes no /Outlines at all when bookmarks: false is passed', async () => {
+      const files = [getFixtureFile('num-1.pdf'), getFixtureFile('num-2.pdf')];
+      const blob = await mergePdfs(files, { bookmarks: false });
+
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const reloaded = await PDFDocument.load(bytes);
+      expect(reloaded.catalog.get(PDFName.of('Outlines'))).toBeUndefined();
     });
   });
 });
