@@ -45,8 +45,8 @@ engineering work, not a decision, and it lands here so LOC-09 does not carry an 
    read-through, not an AI draft; the same for the Hebrew `FileDropzoneMessages`/`RecentFilesMessages`
    and `SignMessages` Hebrew objects in `src/i18n/toolMessages.ts`; the languages page's home cell moves
    from `published` to `reviewed`.
-5. `Accept: text/markdown` on `/he/` returns a Hebrew markdown twin instead of falling through to
-   `/404.md`.
+5. **Done 2026-09-13.** `Accept: text/markdown` on `/he/` returns a Hebrew markdown twin instead of
+   falling through to `/404.md`.
 
 ### 1. HeroDemo in Hebrew (done 2026-09-13)
 
@@ -193,7 +193,7 @@ to `reviewed` (edit the artifact, then sync `docs/i18n-status/data/i18n-status.j
 `RecentFilesMessages` objects in `src/i18n/toolMessages.ts`, and to the Hebrew `SignMessages` object
 from item 2 above, all three still carrying their own "AI draft, not yet reviewed" comments.
 
-### 5. Markdown twin for `/he/`
+### 5. Markdown twin for `/he/` (done 2026-09-13)
 
 `src/pages/index.md.ts` renders the home page's markdown twin from `src/data/homeContent.js` directly,
 with no locale parameter; it is not the `[locale]/index.astro` route's twin, it is the English `/`'s
@@ -204,6 +204,21 @@ gap either: it is deliberately single-segment only (its own header comment), so 
 like `/he/sign/` is already outside it, which is the broader version of this same gap. Recommending this
 item stay in this ticket rather than spin off its own: it is the smallest piece of work here, one new
 locale-aware markdown endpoint for the home route alone, not the general locale-prefixed twin problem.
+
+**Shipped.** `/he/` is a single path segment (`he`), so its markdown twin fits `[slug].md.ts`'s existing
+scope (single-segment routes) rather than needing a new route file - a second top-level `[locale].md.ts`
+would collide with `[slug].md.ts`'s own route pattern anyway. `getStaticPaths` there now also enumerates
+one entry per published `localizedHome` variant (`he` today), building the twin from the same
+`mergeLocalizedHome`-merged `h1`/`description`/`faq` the rendered page uses, with the tool list's
+title/description through `getToolCardCopy(locale, slug)` and each href through the same
+published-edition-or-English-fallback logic `HomePageLayout.astro`'s dock already uses - so the twin
+cannot name a page the rendered dock doesn't actually link to. `homeToMarkdown()` gained an optional
+`path` parameter (default `/`) so it states its own edition's root (`https://pdkef.com/he/`) instead of
+always the English one; `index.md.ts`'s existing call is unaffected. `curl -H "Accept: text/markdown"`
+against a built `/he/` now serves `/he.md` (verified locally against `dist/he.md` after
+`npm run build`; the deployed-only `curl` check in `routing-and-pages.md` still applies for the live
+negotiation path). `npm run build`, `npm run typecheck`, `npm test`, `npm run test:seo` and
+`npm run test:redirects` all pass with this change.
 
 ## Decided, not to reopen
 

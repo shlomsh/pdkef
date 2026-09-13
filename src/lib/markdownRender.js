@@ -134,14 +134,18 @@ export function staticPageToMarkdown(page) {
   return `${parts.join('\n').trimEnd()}\n`;
 }
 
-/** The home page (src/pages/index.astro's own h1/description/faq) -> Markdown. */
-export function homeToMarkdown({ h1, description, faq, tools }) {
+/** The home page (src/pages/index.astro's own h1/description/faq) -> Markdown.
+ * `path` is the edition's own root ('/' for English, e.g. '/he/' for a
+ * localized home - src/pages/[slug].md.ts passes each locale's own
+ * `documentationHomePath()` result here, same as every other *ToMarkdown
+ * function takes its page's own URL instead of assuming the English one. */
+export function homeToMarkdown({ h1, description, faq, tools, path = '/' }) {
   const parts = [
     `# ${h1}`,
     '',
     description,
     '',
-    `URL: ${SITE}/`,
+    `URL: ${SITE}${path}`,
     '',
     '## Tools',
     '',
