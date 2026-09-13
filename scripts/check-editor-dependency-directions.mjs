@@ -24,7 +24,14 @@ const PDF_PACKAGES = new Set(['@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist
 // resize paint now reads resolved class names through
 // editor/text/elementClassNames.ts's getTextElementClassNames(), which Sign's
 // TextNode.tsx registers at module load, so text.ts no longer imports the
-// tool's CSS Module directly either.
+// tool's CSS Module directly either. It also removed the
+// `useEditorDraftPersistence.ts -> SignTool/useDraftPersistence.js` exception:
+// that hook had no Sign-specific logic (only draftStore.js/draftValidation.ts,
+// both already core) and simply moved to
+// src/editor/workspace/useDraftPersistence.js, re-exported from its old
+// SignTool path for callers outside the editor. The new
+// `useDraftPersistence.js -> preact/hooks` exception below replaces the one
+// `useEditorDraftPersistence.ts` used to need for the same reason.
 const EXCEPTIONS = [
   {
     from: 'src/editor/registry/renderers.ts',
@@ -42,9 +49,9 @@ const EXCEPTIONS = [
     reason: 'workspace lifecycle bridge owns draft restore and autosave wiring',
   },
   {
-    from: 'src/editor/workspace/useEditorDraftPersistence.ts',
-    target: 'src/components/SignTool/useDraftPersistence.js',
-    reason: 'temporary draft-effect bridge until the implementation moves into workspace',
+    from: 'src/editor/workspace/useDraftPersistence.js',
+    package: 'preact/hooks',
+    reason: 'the draft-persistence hook implementation itself (moved from SignTool/ under ARCH-19) owns draft restore and autosave wiring',
   },
   {
     from: 'src/editor/text/textCoverage.js',

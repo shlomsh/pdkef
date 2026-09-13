@@ -123,10 +123,5 @@
     "from": "src/components/RedactToolbar.tsx",
     "to": "src/components/SignTool/SignToolbar.module.css",
     "reason": "the transitional components module may not import a tool"
-  },
-  {
-    "from": "src/editor/workspace/useEditorDraftPersistence.ts",
-    "to": "src/components/SignTool/useDraftPersistence.js",
-    "reason": "editor may not import a tool"
   }
 ]

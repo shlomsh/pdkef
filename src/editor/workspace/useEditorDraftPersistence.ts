@@ -1,5 +1,5 @@
 import { useMemo } from 'preact/hooks';
-import { clearDraftHintAttribute, useDraftPersistence } from '../../components/SignTool/useDraftPersistence.js';
+import { clearDraftHintAttribute, useDraftPersistence } from './useDraftPersistence.js';
 import { migrateDraftRecord, validateDraftRecord } from '../registry/draftValidation.ts';
 import type { ActionHistoryEntry, HistoryElement } from '../model/actionHistory.ts';
 import { takeHandoff } from './draftStore.js';
