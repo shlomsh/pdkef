@@ -117,6 +117,13 @@ function layerFor(relativePath) {
   // src/tools/<name>/ one tool at a time; each one is still the product-UI
   // layer this guard calls 'component-shell', just at a new path.
   if (/^src\/tools\/[^/]+\//.test(relativePath)) return 'component-shell';
+  // ARCH-16 split the flat src/components/ into src/shell/ (generic tool
+  // chrome) and src/editor-ui/ (Sign/Redact's shared toolbar surface). Both
+  // are product UI from this guard's point of view, same as component-shell:
+  // the editor layers below may reach them only through the documented
+  // renderer/CSS seams, never a direct import.
+  if (relativePath.startsWith('src/shell/')) return 'component-shell';
+  if (relativePath.startsWith('src/editor-ui/')) return 'component-shell';
   return 'other';
 }
 
