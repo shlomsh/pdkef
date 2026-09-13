@@ -56,7 +56,7 @@ test('keeps the Merge card full width and spaces the native-share icon', async (
   const downloadLink = page.getByRole('link', { name: /Download merged PDF/ });
   await expect(downloadLink).toBeVisible({ timeout: 10_000 });
   await expect(downloadLink).toHaveAttribute('href', /^blob:/);
-  await expect(downloadLink).toHaveAttribute('download', 'first + 1 more.pdf');
+  await expect(downloadLink).toHaveAttribute('download', 'merged_first.pdf');
   await expect(downloadLink).toContainText('2 pages');
 
   // Exactly one primary control: the in-progress `.tool-primary-action` button
@@ -94,7 +94,7 @@ test('MERGE-11: two taps from an empty page to a saved file, nothing else touche
     downloadLink.click(),
   ]);
 
-  expect(download.suggestedFilename()).toBe('alpha + 1 more.pdf');
+  expect(download.suggestedFilename()).toBe('merged_alpha.pdf');
   const savedPath = await download.path();
   if (!savedPath) throw new Error('Playwright did not retain the downloaded PDF');
   const bytes = await readFile(savedPath);

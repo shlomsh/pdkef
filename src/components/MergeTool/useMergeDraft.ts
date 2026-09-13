@@ -45,7 +45,7 @@ export interface UseMergeDraftOptions {
   entries: MergeDraftEntry[];
   plan: PlanEntry[];
   options: { addPageNumbers: boolean };
-  /** Display name for the hint/resume card, e.g. 'Invoice + 2 more'. */
+  /** Display name for the hint/resume card, e.g. 'merged_Invoice'. */
   title: string;
   onRestore: (restored: MergeDraftRestore) => void;
 }

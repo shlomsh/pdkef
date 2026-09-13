@@ -177,14 +177,14 @@ describe('PdfMergeTool UI flow', () => {
     expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(1);
     const [files, options] = mergeLib.mergePdfs.mock.calls[0];
     expect(files.map((f) => f.name)).toEqual(['Invoice 2024-03-01.pdf', 'doc2.pdf']);
-    expect(options.title).toBe('Invoice 2024-03-01 + 1 more');
+    expect(options.title).toBe('merged_Invoice 2024-03-01');
     expect(options.plan).toHaveLength(4);
     expect(options.plan[2]).toEqual({ fileIndex: 1, pageIndex: 0, rotation: 0, skipped: false });
 
     const link = downloadLink();
     expect(link).not.toBeNull();
     expect(link.getAttribute('href')).toBe('blob:testurl');
-    expect(link.getAttribute('download')).toBe('Invoice 2024-03-01 + 1 more.pdf');
+    expect(link.getAttribute('download')).toBe('merged_Invoice 2024-03-01.pdf');
     expect(link.textContent).toContain('4 pages');
     // Exactly one primary control: the old Merge button is gone, not greyed.
     expect(primaryButton()).toBeNull();
@@ -196,7 +196,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     expect(nativeShare.share).toHaveBeenCalledOnce();
-    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('Invoice 2024-03-01 + 1 more.pdf');
+    expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('merged_Invoice 2024-03-01.pdf');
     nativeShare.restore();
   });
 
@@ -239,7 +239,7 @@ describe('PdfMergeTool UI flow', () => {
     await settle();
     expect(mergeLib.mergePdfs).toHaveBeenCalledTimes(2);
     expect(mergeLib.mergePdfs.mock.calls[1][0].map((f) => f.name)).toEqual(['a.pdf', 'b.pdf', 'c.pdf']);
-    expect(downloadLink().getAttribute('download')).toBe('a + 2 more.pdf');
+    expect(downloadLink().getAttribute('download')).toBe('merged_a.pdf');
   });
 
   it('a thumbnail that arrives after the pre-merge started does not restart it', async () => {
@@ -403,7 +403,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(draftStore.saveHandoff).toHaveBeenCalledTimes(1);
     const [tool, record] = draftStore.saveHandoff.mock.calls[0];
     expect(tool).toBe('compress');
-    expect(record.fileName).toBe('a + 1 more.pdf');
+    expect(record.fileName).toBe('merged_a.pdf');
     expect(record.fileBytes).toBeInstanceOf(ArrayBuffer);
     expect(draftStore.deleteDraft).not.toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith('/compress/');
