@@ -16,10 +16,16 @@
 //   fonts      Something the font screening guards (the `fonts` Playwright
 //              project) load changed. The guards pixel-diff the shaped output
 //              of the fonts in public/fonts through the export core in
-//              src/editor, which reaches into src/lib and the SignTool
-//              messages; the harnesses under e2e/sign read fixtures from
-//              src/test/fixtures and the manifest scripts. Fonts rarely change,
-//              so when anything in that graph does, all 27 guards run.
+//              src/editor, which reaches into src/lib; the harnesses under
+//              e2e/sign read fixtures from src/test/fixtures and the manifest
+//              scripts. Fonts rarely change, so when anything in that graph
+//              does, all 27 guards run. `src/components/SignTool/` dropped
+//              from this list under ARCH-19: an esbuild metafile of
+//              src/editor/adapters/pdf/sign.js's export graph confirmed it no
+//              longer reaches anything under src/components/ (registry/text.ts
+//              and registry/renderers.ts, the two paths that used to pull
+//              Sign's UI in, now read through registered core-owned modules
+//              instead of importing the tool directly).
 //
 // Fails open: when the base cannot be resolved (first push of a branch, a
 // force-push, no origin/main locally), nothing is docs-only and the guards run.
@@ -48,7 +54,6 @@ export const FONT_GUARD_INPUTS = [
   /^public\/fonts\//,
   /^src\/editor\//,
   /^src\/lib\//,
-  /^src\/components\/SignTool\//,
   /^src\/test\/fixtures\//,
   /^e2e\/sign\//,
   /^scripts\/[^/]*(font|language)/,
