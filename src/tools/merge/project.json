@@ -1,0 +1,23 @@
+{
+  "name": "tool-merge",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "src/tools/merge",
+  "tags": ["scope:tool", "tool:merge"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vitest run src/tools/merge/",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx playwright test --project=chromium --project=webkit src/tools/merge/e2e/",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}

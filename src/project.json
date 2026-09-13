@@ -1,0 +1,23 @@
+{
+  "name": "site",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "src",
+  "tags": ["scope:site"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vitest run src/pages/ src/layouts/ src/content/ src/data/ src/i18n/ src/styles/",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npm run build",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}

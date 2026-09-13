@@ -1,0 +1,17 @@
+{
+  "name": "fonts",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "e2e/sign",
+  "tags": ["scope:fonts"],
+  "implicitDependencies": ["font-assets", "editor", "lib", "tool-sign"],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx playwright test --project=fonts e2e/sign/",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}

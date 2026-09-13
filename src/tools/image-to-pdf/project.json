@@ -1,0 +1,16 @@
+{
+  "name": "tool-image-to-pdf",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "src/tools/image-to-pdf",
+  "tags": ["scope:tool", "tool:image-to-pdf"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vitest run src/tools/image-to-pdf/",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "tool-compress",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "src/tools/compress",
+  "tags": ["scope:tool", "tool:compress"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vitest run src/tools/compress/",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx playwright test --project=chromium --project=webkit src/tools/compress/e2e/",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}
