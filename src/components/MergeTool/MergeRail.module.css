@@ -37,6 +37,15 @@
   .rail-scroll {
     overflow-y: auto;
     min-height: 0;
+    /* Shlomi (2026-09-13): the focused Sort select lost its left ring. The
+       global 2px focus outline is painted outside the border box, and this
+       scroll container (overflow-y: auto makes overflow-x auto too) clipped
+       it wherever a control sits flush with its edge - Sort, Add files and
+       the list rows all start at x = 0. Two pixels of padding, taken back
+       with the same negative margin so nothing else moves, give every ring
+       room on all four sides. */
+    padding: 2px;
+    margin: -2px;
   }
 
   .rail-pinned {
@@ -240,7 +249,16 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  gap: var(--space-2);
   cursor: pointer;
+}
+
+/* Shlomi (2026-09-13): a visible lead-in before the select, on desktop and
+   in the phone popover alike - "As added" alone does not say it orders the
+   files. */
+.sort-label {
+  font-size: 0.85rem;
+  color: var(--color-muted);
 }
 
 /* Shlomi (2026-09-13): one line always - the note and its Reset order button
