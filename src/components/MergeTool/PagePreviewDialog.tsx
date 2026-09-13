@@ -28,6 +28,7 @@ interface PagePreviewDialogProps {
   target: PreviewTarget | null;
   onClose: () => void;
   onStep: (delta: 1 | -1) => void;
+  onToggleSkip: () => void;
   messages: MergeMessages;
 }
 
@@ -44,7 +45,7 @@ interface PagePreviewDialogProps {
 // oversized render never balloons decode time or memory.
 export const PREVIEW_WIDTH = 2400;
 
-export default function PagePreviewDialog({ target, onClose, onStep, messages: t }: PagePreviewDialogProps) {
+export default function PagePreviewDialog({ target, onClose, onStep, onToggleSkip, messages: t }: PagePreviewDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
@@ -113,10 +114,7 @@ export default function PagePreviewDialog({ target, onClose, onStep, messages: t
     >
       <div class={dialogStyles.header}>
         <h3 id="merge-preview-title">
-          {target
-            ? formatMessage(t.previewTitle, { number: target.position, total: target.total })
-              + (target.skipped ? ` · ${t.skippedBadge.toLowerCase()}` : '')
-            : ''}
+          {target ? formatMessage(t.previewTitle, { number: target.position, total: target.total }) : ''}
         </h3>
         <button type="button" class={dialogStyles.close} onClick={onClose} aria-label={t.previewClose}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -124,6 +122,20 @@ export default function PagePreviewDialog({ target, onClose, onStep, messages: t
           </svg>
         </button>
       </div>
+      {/* MERGE preview follow-up: a skipped page used to differ only by five
+          quiet words in the title. The banner states the fact where the eye
+          already is, the dimmed page shows it, and the footline lets someone
+          undo it without leaving the dialog - the same toggle the page strip
+          exposes as a button. */}
+      {target?.skipped && (
+        <div class={styles['preview-skip-banner']}>
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M2 4h12M2 8h12M2 12h8" />
+            <path d="M11 11l3 3M14 11l-3 3" stroke-width="2" />
+          </svg>
+          {t.previewSkippedBanner}
+        </div>
+      )}
       {/* Shlomi (2026-09-13): a gallery, not a form. Previous and Next are
           chevrons on the stage's two sides, and the stage itself is split
           into thirds: the left third steps back, the right third steps
@@ -131,7 +143,7 @@ export default function PagePreviewDialog({ target, onClose, onStep, messages: t
           "previous" (the way ArrowLeft already behaves), in Hebrew too. The
           zones are pointer-only affordances; keyboard users have the arrow
           keys and the two labelled buttons. */}
-      <div ref={stageRef} class={styles['preview-stage']} data-rotation={target?.rotation || undefined} data-stale={stale || undefined}>
+      <div ref={stageRef} class={styles['preview-stage']} data-rotation={target?.rotation || undefined} data-stale={stale || undefined} data-skipped={target?.skipped || undefined}>
         {dataUrl ? (
           <img class={styles['preview-image']} src={dataUrl} alt="" />
         ) : (
@@ -172,6 +184,19 @@ export default function PagePreviewDialog({ target, onClose, onStep, messages: t
           </svg>
         </button>
       </div>
+      {target?.skipped && (
+        <div class={styles['preview-skip-footline']}>
+          {t.previewSkippedNote}{' '}
+          <button
+            type="button"
+            class={styles['preview-skip-restore']}
+            onClick={onToggleSkip}
+            aria-label={formatMessage(t.includePage, { number: target.position })}
+          >
+            {t.previewIncludeAgain}
+          </button>
+        </div>
+      )}
     </dialog>
   );
 }
