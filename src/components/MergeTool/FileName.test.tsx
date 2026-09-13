@@ -12,7 +12,7 @@ describe('FileName (Direction A, wave 5)', () => {
   it('leaves a short name whole and drops the extension when asked', () => {
     expect(splitFileName('Note.pdf')).toEqual({ head: 'Note.pdf', tail: '' });
     expect(splitFileName('Note.pdf', { extension: false })).toEqual({ head: 'Note', tail: '' });
-    expect(splitFileName('Contract draft (signed).pdf', { extension: false })).toEqual({ head: 'Contract draft (si', tail: 'gned)' });
+    expect(splitFileName('Contract draft (signed).pdf', { extension: false })).toEqual({ head: 'Contract draft (signed)', tail: '' });
   });
 
   it('renders dir="auto" on the container, the full name as its title, and both halves', () => {

@@ -31,14 +31,23 @@ describe('DownloadElement', () => {
 
   const box = () => container.querySelector(`.${styles.box}`);
 
-  it('one-file: text and a real action, never disabled', () => {
+  it('one-file: a sentence, plain surface (not a button), and a real "Choose files" button', () => {
     const onChooseFiles = vi.fn();
-    mount({ state: 'one-file', onChooseFiles });
+    mount({ state: 'one-file', onChooseFiles, chooseFilesLabel: 'Choose files' });
     const el = box();
     expect(el.textContent).toContain('Add one more PDF to merge');
     expect(el.hasAttribute('disabled')).toBe(false);
     expect(el.getAttribute('href')).toBeNull();
-    el.click();
+    // The box itself is never a control in this state: no role, no tab
+    // stop, never aria-disabled (the review's "dead grey button").
+    expect(el.getAttribute('role')).toBeNull();
+    expect(el.hasAttribute('tabindex')).toBe(false);
+    expect(el.getAttribute('aria-disabled')).toBeNull();
+
+    const chooseButton = el.querySelector('button');
+    expect(chooseButton).not.toBeNull();
+    expect(chooseButton.textContent).toBe('Choose files');
+    chooseButton.click();
     expect(onChooseFiles).toHaveBeenCalledTimes(1);
   });
 

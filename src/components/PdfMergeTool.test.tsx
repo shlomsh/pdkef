@@ -172,6 +172,38 @@ describe('PdfMergeTool UI flow', () => {
     expect(box.textContent).toContain('Add one more PDF to merge');
     expect(downloadLink()).toBeNull();
     expect(mergeLib.mergePdfs).not.toHaveBeenCalled();
+
+    // Review P1: no dead hand-off row or Options disclosure before there is
+    // a merge to hand off - only the Download element's own text-plus-button
+    // state, and its "Choose files" button (not a disabled-looking box) is
+    // the one way to add a second file from here.
+    const buttons = Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
+    expect(buttons).not.toContain('Compress it');
+    expect(buttons).not.toContain('Sign it');
+    expect(buttons).not.toContain('Options');
+    expect(container.querySelector(`details.${railStyles.options}`)).toBeNull();
+    expect(container.querySelector(`.${railStyles['handoff-row']}`)).toBeNull();
+
+    const chooseButton = Array.from(box.querySelectorAll('button')).find((b) => b.textContent === 'Choose files');
+    expect(chooseButton).not.toBeUndefined();
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
+    await act(async () => chooseButton.click());
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    clickSpy.mockRestore();
+  });
+
+  it('brings back the hand-off row and Options once a second file arrives', async () => {
+    mount();
+    await loadFiles(['one.pdf']);
+    expect(container.querySelector(`.${railStyles['handoff-row']}`)).toBeNull();
+    expect(container.querySelector(`details.${railStyles.options}`)).toBeNull();
+
+    await loadFiles(['two.pdf']);
+    expect(container.querySelector(`.${railStyles['handoff-row']}`)).not.toBeNull();
+    expect(container.querySelector(`details.${railStyles.options}`)).not.toBeNull();
+    const buttons = Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
+    expect(buttons).toContain('Compress it');
+    expect(buttons).toContain('Sign it');
   });
 
   // Item 2 (Shlomi's follow-up, 2026-09-13): jsdom cannot measure where an
@@ -647,6 +679,52 @@ describe('PdfMergeTool UI flow', () => {
     expect(clearDraft).toHaveBeenCalledTimes(1);
     expect(fileNames()).toEqual([]);
   }, 10000);
+
+  // Review P2, item 2: the "⋯" menu and the draft chip used to be the last
+  // two items of the same scrolling `<ul>` as the file chips, so a long
+  // enough file list could scroll them out of reach. They now live outside
+  // the scrolling list entirely, pinned at the row's end.
+  it('pins the "⋯" menu outside the scrolling chip list', async () => {
+    mount();
+    await loadFiles(['a.pdf', 'b.pdf']);
+    const chipRow = container.querySelector(`ul.${docStyles['chip-row']}`);
+    const pinned = container.querySelector(`.${docStyles['chip-pinned']}`);
+    expect(chipRow).not.toBeNull();
+    expect(pinned).not.toBeNull();
+    expect(chipRow.contains(pinned)).toBe(false);
+    expect(chipRow.querySelector('[data-more]')).toBeNull();
+    expect(pinned.querySelector('[data-more]')).not.toBeNull();
+  });
+
+  // Review P2, item 3: "Picked up where you left off · Start fresh" lived
+  // only in the rail, which is CSS-hidden below 768px, so it never reached a
+  // phone. The document header's right slot (where the Undo chip also
+  // lives) now carries the same sentence for that placement.
+  it('shows the restored-draft sentence in the document header, for phones (MERGE-13)', async () => {
+    const clearDraft = vi.fn(async () => true);
+    mount();
+    await act(async () => { await flush(10); });
+    expect(draftProbe.props).not.toBeNull();
+    await act(async () => {
+      draftProbe.props.registerClear(clearDraft);
+      draftProbe.props.onStateChange({ isRestoring: false, draftSaveState: 'saved' });
+      draftProbe.props.onRestore({
+        files: [makePdfFile('x.pdf'), makePdfFile('y.pdf')],
+        plan: [
+          { key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false },
+          { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
+        ],
+        options: { addPageNumbers: false },
+      });
+      await flush(10);
+    });
+
+    const headerChip = container.querySelector(`.${docStyles['doc-header-right']} .${docStyles['header-draft-chip']}`);
+    expect(headerChip).not.toBeNull();
+    expect(headerChip.textContent).toContain('Picked up where you left off');
+    const startFresh = Array.from(headerChip.querySelectorAll('button')).find((b) => b.textContent === 'Start fresh');
+    expect(startFresh).not.toBeUndefined();
+  });
 
   it('attaches a Sortable instance to the rail file list and the phone chip row once files are added', async () => {
     const createSpy = vi.spyOn(Sortable, 'create');

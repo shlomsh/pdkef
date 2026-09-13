@@ -112,12 +112,14 @@ export function useMergeDraft({
   const latest = useRef({ enabled, entries, plan, options, title, onRestore });
   latest.current = { enabled, entries, plan, options, title, onRestore };
 
-  // file.arrayBuffer() is only ever called once per entry id, for the life of
-  // that entry: an autosave firing every 700ms while typing must not re-read
-  // a 50MB source file on every tick. Ids no longer present in `entries` are
-  // evicted so a removed-then-re-added file (same id would never recur, but a
-  // long session removing many files) cannot leak memory.
-  const bufferCacheRef = useRef(new Map<number, Promise<ArrayBuffer>>());
+  // file.arrayBuffer() is only ever called once per File object, for the life
+  // of that object: an autosave firing every 700ms while typing must not
+  // re-read a 50MB source file on every tick. Keyed by the File itself (a
+  // WeakMap, so a removed file's bytes go with it) rather than the entry id:
+  // ids come from a module-level counter in PdfMergeTool.tsx, and the dev
+  // server's HMR resets that counter while this hook's cache lives on, which
+  // once saved another file's bytes under a new file's name (2026-09-13).
+  const bufferCacheRef = useRef(new WeakMap<File, Promise<ArrayBuffer>>());
 
   const revisionRef = useRef(0);
   const snapshotRef = useRef<string | null>(null);
@@ -145,21 +147,16 @@ export function useMergeDraft({
     });
   }, [enabled]);
 
-  // Reads (and caches) one entry's source bytes exactly once, evicting any id
-  // no longer present in the live entries list first. Called from buildRecord
-  // just before a write, not eagerly on every entries change - most snapshot
-  // changes only touch the plan or options, so there is no reason to read
-  // bytes again for files nothing happened to.
+  // Reads (and caches) one entry's source bytes exactly once. Called from
+  // buildRecord just before a write, not eagerly on every entries change -
+  // most snapshot changes only touch the plan or options, so there is no
+  // reason to read bytes again for files nothing happened to.
   const getFileBytes = (entry: MergeDraftEntry): Promise<ArrayBuffer> => {
     const cache = bufferCacheRef.current;
-    const liveIds = new Set(latest.current.entries.map((e) => e.id));
-    for (const id of cache.keys()) {
-      if (!liveIds.has(id)) cache.delete(id);
-    }
-    let cached = cache.get(entry.id);
+    let cached = cache.get(entry.file);
     if (!cached) {
       cached = entry.file.arrayBuffer();
-      cache.set(entry.id, cached);
+      cache.set(entry.file, cached);
     }
     return cached;
   };

@@ -285,20 +285,35 @@
   transition: color 0.15s var(--ease-out), background-color 0.15s var(--ease-out);
 }
 
+/* The glyph's own box: on pointer devices this carries no chrome of its own
+   (the button above already draws the 32px visual) - it exists only so the
+   touch override below has something to hold the visual while the button
+   itself grows to a real 44x44. */
+.action-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* 44px hit area via a transparent pseudo-element, without inflating the
    32px visual the spec calls for. `inset` on an absolutely positioned
    pseudo-element resolves against its containing block's PADDING box, which
    for a 32px border-box button with a 1px border is 30px, not 32 - -6px
    measured 42px in a real browser, not 44 (Shlomi, browser check); -7px off
-   the 30px padding box gives the full 44. */
-.action::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 44px;
-  height: 44px;
-  transform: translate(-50%, -50%);
+   the 30px padding box gives the full 44. Pointer devices only (mouse/
+   trackpad): the touch override below gives the button itself a real 44x44
+   box instead, since a rect measurement of the button - not only
+   elementFromPoint - must read 44 there. */
+@media (hover: hover) and (pointer: fine) {
+  .action::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
 }
 
 .action:hover {
@@ -311,6 +326,44 @@
   outline: none;
   box-shadow: var(--shadow-focus);
   outline-offset: 2px;
+}
+
+/* Touch (Edit pages mode, coarse pointer): the button's own border box is
+   now the 44x44 hit area a real rect measurement reads, and the visual
+   chrome (border, background, shadow) moves to the inner 32px glyph so the
+   button itself stays invisible padding around it - the spec's "32px visual
+   glyph, 44px hit area" is real geometry here, not just an overlaid pseudo. */
+@media (pointer: coarse) {
+  .action {
+    width: 44px;
+    height: 44px;
+    border: none;
+    background: none;
+    box-shadow: none;
+  }
+
+  .action:hover {
+    background: none;
+    border-color: transparent;
+  }
+
+  .action:focus-visible {
+    box-shadow: none;
+  }
+
+  .action-glyph {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+    color: inherit;
+  }
+
+  .action:focus-visible .action-glyph {
+    box-shadow: var(--shadow-focus);
+  }
 }
 
 /* Item 6 (Shlomi's follow-up): a `title` attribute alone is not a visible
@@ -398,35 +451,109 @@
   max-width: min(92vw, 720px);
 }
 
-.preview-body {
+/* Shlomi (2026-09-13): the stage is a fixed-height gallery. It used to be
+   min 40vh / max 70vh with the image blanked on every step, so the dialog
+   shrank and grew back on each page - the "flicker". Now the height never
+   depends on the image; the image fits inside it (`max-height: 100%`), and
+   the previous page stays up, dimmed, until the next one has rendered. */
+.preview-stage {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 40vh;
-  max-height: 70vh;
-  padding: 1rem;
-  overflow: auto;
+  box-sizing: border-box;
+  height: 70vh;
+  padding: 1rem 56px;
+  overflow: hidden;
   background: var(--color-surface-sunken);
+  /* Wave 2 of the same day: the dialog is direction-neutral on purpose -
+     visual left is always "previous", matching ArrowLeft - so the zones and
+     chevrons below use physical left/right, not logical inline sides. */
+  direction: ltr;
 }
 
 .preview-image {
   max-width: 100%;
-  max-height: 66vh;
+  max-height: 100%;
   object-fit: contain;
   box-shadow: var(--shadow-md);
   background: var(--color-surface);
+  transition: opacity 0.12s var(--ease-out);
 }
 
-.preview-body[data-rotation='90'] .preview-image {
+.preview-stage[data-stale] .preview-image {
+  opacity: 0.55;
+}
+
+.preview-stage[data-rotation='90'] .preview-image {
   transform: rotate(90deg) scale(0.8);
 }
 
-.preview-body[data-rotation='180'] .preview-image {
+.preview-stage[data-rotation='180'] .preview-image {
   transform: rotate(180deg);
 }
 
-.preview-body[data-rotation='270'] .preview-image {
+.preview-stage[data-rotation='270'] .preview-image {
   transform: rotate(270deg) scale(0.8);
+}
+
+/* The two outer thirds of the stage step the gallery on a plain click; the
+   middle third is inert. Pointer-only (aria-hidden): the chevrons and the
+   arrow keys are the accessible route. */
+.preview-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 33.333%;
+  cursor: pointer;
+}
+
+.preview-zone-prev {
+  left: 0;
+}
+
+.preview-zone-next {
+  right: 0;
+}
+
+.preview-chevron {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  transform: translateY(-50%);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+}
+
+.preview-chevron:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.preview-chevron:focus-visible {
+  outline-offset: 0;
+  border-color: var(--color-primary);
+}
+
+.preview-chevron:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.preview-chevron-prev {
+  left: 6px;
+}
+
+.preview-chevron-next {
+  right: 6px;
 }
 
 .preview-loading {

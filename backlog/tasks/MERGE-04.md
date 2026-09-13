@@ -43,3 +43,4 @@ links to `/unlock/`, where the password can be removed on device first.
   block with one action, "Remove it and merge the rest", which removes it and re-prepares the rest;
   an encrypted file says so and links to `/unlock/`. Messages live in `toolMessages.ts` in both
   languages. Tests: `merge.test.js` (both reasons), `PdfMergeTool.test.tsx` (both UI paths). Done.
+- Review pass (2026-09-13): the rail row of a file that cannot take part is marked too (danger tint, 3px inset bar, page count in the danger colour), so the error under the heading and the rail name the same file. The rule had stayed in FileList.module.css, which the rail no longer uses.

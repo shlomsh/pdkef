@@ -210,6 +210,31 @@ describe('PageStrip', () => {
     expect(cards().map((card) => card.dataset.key)).toEqual(['2:0', '2:1']);
   });
 
+  // Review P1/D2: a landscape cell used to swap the portrait box's own
+  // width and height wholesale, which shrank the cell into the portrait
+  // box's (shorter) width and broke row alignment with its neighbours. Every
+  // cell now keeps the SAME fixed height, and a landscape page takes a
+  // landscape WIDTH for that height instead.
+  it('gives a landscape page a fixed cell height and a width scaled to its aspect', async () => {
+    mount();
+    await act(async () => { observers.at(-1).intersect(['1:0']); });
+    await waitFor(() => container.querySelectorAll(`.${styles.thumb}`).length === 1);
+    const img = container.querySelector(`.${styles.thumb}`);
+    // A landscape source image, 1.5:1.
+    Object.defineProperty(img, 'naturalWidth', { value: 300, configurable: true });
+    Object.defineProperty(img, 'naturalHeight', { value: 200, configurable: true });
+    await act(async () => { img.dispatchEvent(new Event('load')); });
+
+    const page = cards()[0];
+    // jsdom's window.matchMedia stub (src/test/setup.js) always matches, so
+    // baseCellSize() takes the phone branch here: a fixed 96px height, and a
+    // landscape width of height * aspect (96 * 1.5 = 144) - never the old
+    // swapped box, which would have reported a 72px height.
+    expect(page.style.getPropertyValue('--cell-h')).toBe('96px');
+    expect(page.style.getPropertyValue('--cell-w')).toBe('144px');
+    expect(page.style.gridColumn).toBe('span 2');
+  });
+
   // Item 6 (Shlomi's follow-up, 2026-09-13): a `title` attribute alone is
   // not a visible tooltip - each action button carries its own short word in
   // the DOM (CSS shows it on hover/focus; jsdom cannot prove the CSS, only
@@ -292,6 +317,49 @@ describe('PageStrip', () => {
     const dialog = container.querySelector('dialog');
     expect(dialog).not.toBeNull();
     expect(dialog.textContent).toContain('Page 2 of 4');
+  });
+
+  // Review P2: the dialog used to count the raw plan (previewIndex + 1 of
+  // plan.length), disagreeing with the heading's "N pages · 1 skipped" and
+  // every cell's own aria-label, both of which count OUTPUT pages. The
+  // title now uses the same counter, and marks a skipped page's preview
+  // with the word the heading and the cell already use.
+  it('the preview dialog title counts output pages like the heading, and marks a skipped page', async () => {
+    const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
+    plan[2] = { ...plan[2], skipped: true };
+    mount({ plan });
+
+    // The skipped page (index 2) previews as the position it would take
+    // (3 of 3 output pages), with the skipped word - same numbers its own
+    // cell already shows (the prior test: struck "3").
+    await act(async () => { cards()[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    await waitFor(() => container.querySelector('dialog') !== null);
+    let dialog = container.querySelector('dialog');
+    expect(dialog.textContent).toContain('Page 3 of 3');
+    expect(dialog.textContent.toLowerCase()).toContain('skipped');
+    const prevButton = () => Array.from(dialog.querySelectorAll('button')).find((b) => b.getAttribute('aria-label') === 'Previous page');
+    const nextButton = () => Array.from(dialog.querySelectorAll('button')).find((b) => b.getAttribute('aria-label') === 'Next page');
+    // Not the first or last entry in the raw plan, so neither nav button
+    // disables even though its shown position (3) equals the output total.
+    expect(prevButton().disabled).toBe(false);
+    expect(nextButton().disabled).toBe(false);
+
+    // The real page right behind it (index 3, the plan's last entry) also
+    // reads "3 of 3", with no skipped word, and Next is disabled there.
+    await act(async () => { nextButton().click(); });
+    dialog = container.querySelector('dialog');
+    expect(dialog.textContent).toContain('Page 3 of 3');
+    expect(dialog.textContent.toLowerCase()).not.toContain('skipped');
+    expect(nextButton().disabled).toBe(true);
+    expect(prevButton().disabled).toBe(false);
+
+    // Stepping back to the very first entry disables Previous.
+    await act(async () => { prevButton().click(); });
+    await act(async () => { prevButton().click(); });
+    await act(async () => { prevButton().click(); });
+    dialog = container.querySelector('dialog');
+    expect(dialog.textContent).toContain('Page 1 of 3');
+    expect(prevButton().disabled).toBe(true);
   });
 
   it('commits the drop once through SortableJS onEnd and registers one undo', () => {

@@ -373,8 +373,10 @@ export default function PdfMergeTool({
 
   // The phone chip row: the same whole-file reorder, but a press-and-hold
   // (delay, touch only) instead of a drag handle, since a chip has no grip
-  // of its own - the whole chip (bar the "more" and draft chips, filtered
-  // out below) is the handle.
+  // of its own - the whole chip is the handle. Review P2, item 2: the
+  // "more" menu and the draft chip now live outside this list entirely (in
+  // `.chip-pinned`, a sibling of this `<ul>`), so there is nothing left to
+  // filter out.
   useEffect(() => {
     if (!chipListRef.current) return undefined;
     chipSortableRef.current?.destroy();
@@ -382,8 +384,6 @@ export default function PdfMergeTool({
       animation: 220,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
       draggable: `.${docStyles.chip}`,
-      filter: `.${docStyles['chip-menu']}, [data-more], .${docStyles['chip-draft']}`,
-      preventOnFilter: false,
       delay: 150,
       delayOnTouchOnly: true,
       touchStartThreshold: 5,
@@ -921,8 +921,10 @@ export default function PdfMergeTool({
   const renderTotal = plan.length;
   const stillRendering = renderTotal > 0 && renderedCount < renderTotal;
   // Only one thing lives in the header's right-hand slot at a time: the
-  // undo chip wins over the once-only shortcuts hint.
-  const shortcutsHintVisible = !undoAction && showShortcutsHint;
+  // undo chip wins over the restore sentence (its phone placement - review
+  // P2, item 3), which in turn wins over the once-only shortcuts hint.
+  const pickedUpHintVisible = !undoAction && showPickedUpSentence;
+  const shortcutsHintVisible = !undoAction && !pickedUpHintVisible && showShortcutsHint;
 
   return (
     <BasePdfTool
@@ -981,52 +983,55 @@ export default function PdfMergeTool({
           {/* Phone chip row (Shlomi's reduction, wave 2): replaces the add
               bar and stands in for the rail's file list, Sort/Clear all/Add
               files below 768px (CSS-hidden at 1024px and up alongside the
-              rail's own chip-row twin visibility rule). */}
-          <ul class={docStyles['chip-row']} ref={chipListRef}>
-            {entries.map((entry, index) => (
-              <li
-                key={entry.id}
-                class={docStyles.chip}
-                data-id={entry.id}
-                onClick={() => scrollToCaption(entry.id)}
-              >
-                <span class={docStyles['chip-pill']}>
-                  <span class={docStyles['chip-tag']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
-                  <FileName name={entry.file.name} className={docStyles['chip-name']} extension={false} />
-                  <span class={docStyles['chip-pages']}>{entry.pageCount ?? '…'}</span>
-                </span>
-              </li>
-            ))}
-            <li class={docStyles.chip} data-more>
-              <details class={docStyles['chip-menu']}>
-                <summary class={docStyles['chip-menu-summary']} aria-label={t.moreOptions}>⋯</summary>
-                <div class={docStyles['chip-menu-body']}>
-                  {showSortControls && (
-                    <select class={railStyles['sort-select']} aria-label={t.sortLabel} value={sortMode} onChange={onSortChange}>
-                      <option value="added">{t.sortAsAdded}</option>
-                      <option value="reversed">{t.sortReversed}</option>
-                      <option value="nameAsc">{t.sortNameAsc}</option>
-                      <option value="nameDesc">{t.sortNameDesc}</option>
-                      <option value="dateAsc">{t.sortDateAsc}</option>
-                      <option value="dateDesc">{t.sortDateDesc}</option>
-                    </select>
-                  )}
-                  <button type="button" class={railStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
-                  <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
-                </div>
-              </details>
-            </li>
-            {(showPickedUpSentence || draftStatusLabel) && (
-              <li class={docStyles['chip-draft']}>
-                {showPickedUpSentence ? (
-                  <>
-                    <span>{t.pickedUp}</span>
-                    <button type="button" class={docStyles['start-fresh']} onClick={requestClear}>{t.startFresh}</button>
-                  </>
-                ) : <span>{draftStatusLabel}</span>}
-              </li>
-            )}
-          </ul>
+              rail's own chip-row twin visibility rule). Review P2, item 2:
+              the "⋯" menu (and the draft chip beside it) are pinned OUTSIDE
+              the scrolling list, at the row's end, so they are always
+              reachable - only the file chips themselves scroll, under a
+              right-edge fade that says so. */}
+          <div class={docStyles['chip-bar']}>
+            <ul class={docStyles['chip-row']} ref={chipListRef}>
+              {entries.map((entry, index) => (
+                <li
+                  key={entry.id}
+                  class={docStyles.chip}
+                  data-id={entry.id}
+                  onClick={() => scrollToCaption(entry.id)}
+                >
+                  <span class={docStyles['chip-pill']}>
+                    <span class={docStyles['chip-tag']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
+                    <FileName name={entry.file.name} className={docStyles['chip-name']} extension={false} />
+                    <span class={docStyles['chip-pages']}>{entry.pageCount ?? '…'}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div class={docStyles['chip-pinned']}>
+              <div class={docStyles.chip} data-more>
+                <details class={docStyles['chip-menu']}>
+                  <summary class={docStyles['chip-menu-summary']} aria-label={t.moreOptions}>⋯</summary>
+                  <div class={docStyles['chip-menu-body']}>
+                    {showSortControls && (
+                      <select class={railStyles['sort-select']} aria-label={t.sortLabel} value={sortMode} onChange={onSortChange}>
+                        <option value="added">{t.sortAsAdded}</option>
+                        <option value="reversed">{t.sortReversed}</option>
+                        <option value="nameAsc">{t.sortNameAsc}</option>
+                        <option value="nameDesc">{t.sortNameDesc}</option>
+                        <option value="dateAsc">{t.sortDateAsc}</option>
+                        <option value="dateDesc">{t.sortDateDesc}</option>
+                      </select>
+                    )}
+                    <button type="button" class={railStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
+                    <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
+                  </div>
+                </details>
+              </div>
+              {/* No draft chip here (2026-09-13): a phone's restore sentence
+                  is the header's `.header-draft-chip` below, and "Draft
+                  saved" stays a desktop-rail affordance. Measured with both:
+                  the pinned block grew to 301px of 317 and the file chips
+                  were left 6px wide. */}
+            </div>
+          </div>
 
           <div class={docStyles.main}>
             <div class={docStyles.document} ref={documentRef}>
@@ -1062,6 +1067,19 @@ export default function PdfMergeTool({
                     <span class={docStyles['undo-chip']} role="status">
                       {undoAction.message}
                       <button type="button" onClick={runUndo}>{t.undo}</button>
+                    </span>
+                  ) : pickedUpHintVisible ? (
+                    /* Review P2, item 3: the rail's own "Picked up..." sentence
+                       lives in `.rail-scroll`, which is CSS-hidden on phones,
+                       so it never showed there. This is the phone placement -
+                       same sentence, its own 5-second window, then nothing
+                       (never the persistent "Draft saved" chip, which stays a
+                       desktop-rail-only affordance) - CSS-hidden at 768px and
+                       up so the two placements never show at once. */
+                    <span class={docStyles['header-draft-chip']} role="status">
+                      {t.pickedUp}
+                      {' '}
+                      <button type="button" class={docStyles['start-fresh']} onClick={requestClear}>{t.startFresh}</button>
                     </span>
                   ) : shortcutsHintVisible ? (
                     <span class={docStyles['shortcuts-hint']} role="status">{t.shortcutsLine}</span>
@@ -1171,14 +1189,16 @@ export default function PdfMergeTool({
                 )}
 
                 <div class={railStyles['quiet-row']}>
+                  {/* Shlomi (2026-09-13): the two actions are bordered
+                      buttons now, so the "·" that used to separate them as
+                      text links is gone; the row's gap does the separating. */}
                   <button type="button" class={railStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
-                  <span>·</span>
                   <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
                   {(showPickedUpSentence || draftStatusLabel) && (
                     <span class={railStyles['draft-chip']}>
                       {showPickedUpSentence ? (
                         <>
-                          {t.pickedUp} · <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{t.startFresh}</button>
+                          {t.pickedUp} <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{t.startFresh}</button>
                         </>
                       ) : draftStatusLabel}
                     </span>
@@ -1187,33 +1207,40 @@ export default function PdfMergeTool({
               </div>
 
               <div class={railStyles['rail-pinned']}>
-                {/* One <details>, one options-body, for both breakpoints
-                    (wave 4). Desktop opens it from its own <summary>; on
-                    a phone the summary is hidden (the hand-off row's
-                    Options button below is the control there instead) and
-                    the whole element collapses to nothing while closed, so
-                    it costs the sheet no height until opened. Controlled by
-                    `optionsOpen` either way, so the two triggers can never
-                    disagree about the state. */}
-                <details
-                  class={railStyles.options}
-                  open={optionsOpen}
-                  onToggle={(event) => setOptionsOpen((event.currentTarget as HTMLDetailsElement).open)}
-                >
-                  <summary class={railStyles['options-summary']}>
-                    {t.optionsSummary}
-                    <svg class={railStyles['options-chevron']} width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                    </svg>
-                  </summary>
-                  <div class={railStyles['options-body']}>
-                    <label class={railStyles['page-numbers-row']}>
-                      <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
-                      <span>{t.addPageNumbers}</span>
-                    </label>
-                    <p class={railStyles['saves-as']}>{formatMessage(t.savesAs, { name: fileName })}</p>
-                  </div>
-                </details>
+                {/* Direction A follow-up (review P1): Options and the
+                    hand-off row only make sense once a merge is possible -
+                    with one file the Download element's own text-plus-
+                    button state is the whole story, so both are held back
+                    until there are two files. */}
+                {entries.length >= 2 && (
+                  /* One <details>, one options-body, for both breakpoints
+                      (wave 4). Desktop opens it from its own <summary>; on
+                      a phone the summary is hidden (the hand-off row's
+                      Options button below is the control there instead) and
+                      the whole element collapses to nothing while closed, so
+                      it costs the sheet no height until opened. Controlled by
+                      `optionsOpen` either way, so the two triggers can never
+                      disagree about the state. */
+                  <details
+                    class={railStyles.options}
+                    open={optionsOpen}
+                    onToggle={(event) => setOptionsOpen((event.currentTarget as HTMLDetailsElement).open)}
+                  >
+                    <summary class={railStyles['options-summary']}>
+                      {t.optionsSummary}
+                      <svg class={railStyles['options-chevron']} width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </summary>
+                    <div class={railStyles['options-body']}>
+                      <label class={railStyles['page-numbers-row']}>
+                        <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
+                        <span>{t.addPageNumbers}</span>
+                      </label>
+                      <p class={railStyles['saves-as']}>{formatMessage(t.savesAs, { name: fileName })}</p>
+                    </div>
+                  </details>
+                )}
 
                 <DownloadElement
                   state={downloadState}
@@ -1226,39 +1253,42 @@ export default function PdfMergeTool({
                   progress={prepared.progress}
                   errorMessage={failedEntry ? undefined : t.fixFileToMerge}
                   messages={t}
+                  chooseFilesLabel={sm.chooseFilesMany}
                   onChooseFiles={requestReplace}
                   onPreparingTap={onPreparingTap}
                   onDownloadClick={onDownloadTap}
                 />
 
-                <div class={railStyles['handoff-row']}>
-                  {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} className={railStyles['handoff-button']} />}
-                  {(['compress', 'sign'] as HandoffTool[]).map((tool) => (
+                {entries.length >= 2 && (
+                  <div class={railStyles['handoff-row']}>
+                    {prepared.status === 'ready' && <PdfShareButton visible={shareReady} onShare={handleShare} label={t.shareLabel} className={railStyles['handoff-button']} />}
+                    {(['compress', 'sign'] as HandoffTool[]).map((tool) => (
+                      <button
+                        key={tool}
+                        type="button"
+                        class={railStyles['handoff-button']}
+                        disabled={handoffBusy || prepared.status !== 'ready'}
+                        onClick={() => { void requestHandoff(tool); }}
+                      >
+                        {tool === 'compress' ? t.handoffCompress : t.handoffSign}
+                      </button>
+                    ))}
+                    {/* Phone only (CSS-hidden at 768px and up, where the
+                        details' own <summary> above is the control instead):
+                        Options as the row's fourth equal button, per Shlomi's
+                        sheet-height measurement. Toggles the same state the
+                        <summary> does, so there is still exactly one
+                        options-body in the DOM. */}
                     <button
-                      key={tool}
                       type="button"
-                      class={railStyles['handoff-button']}
-                      disabled={handoffBusy || prepared.status !== 'ready'}
-                      onClick={() => { void requestHandoff(tool); }}
+                      class={`${railStyles['handoff-button']} ${railStyles['options-toggle']}`}
+                      aria-expanded={optionsOpen}
+                      onClick={() => setOptionsOpen((current) => !current)}
                     >
-                      {tool === 'compress' ? t.handoffCompress : t.handoffSign}
+                      {t.optionsSummary}
                     </button>
-                  ))}
-                  {/* Phone only (CSS-hidden at 768px and up, where the
-                      details' own <summary> above is the control instead):
-                      Options as the row's fourth equal button, per Shlomi's
-                      sheet-height measurement. Toggles the same state the
-                      <summary> does, so there is still exactly one
-                      options-body in the DOM. */}
-                  <button
-                    type="button"
-                    class={`${railStyles['handoff-button']} ${railStyles['options-toggle']}`}
-                    aria-expanded={optionsOpen}
-                    onClick={() => setOptionsOpen((current) => !current)}
-                  >
-                    {t.optionsSummary}
-                  </button>
-                </div>
+                  </div>
+                )}
 
                 {downloadedOnce && (
                   <button type="button" class={railStyles['start-again']} onClick={reset}>

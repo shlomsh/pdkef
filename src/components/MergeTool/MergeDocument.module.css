@@ -146,51 +146,134 @@
   color: var(--color-muted);
 }
 
+/* Review P2, item 3: the restored-draft sentence's PHONE placement. The
+   rail's own copy of this sentence (MergeRail.module.css's `.draft-chip`)
+   lives inside `.rail-scroll`, which is CSS-hidden below 768px, so it never
+   reached a phone at all; this is the header's right slot instead, same
+   5-second window, then nothing (never the persistent "Draft saved" chip,
+   which stays the rail's own affordance). Hidden at 768px and up so the two
+   placements never both show on the same screen. */
+.header-draft-chip {
+  display: none;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+@media (max-width: 767px) {
+  .header-draft-chip {
+    display: inline-flex;
+  }
+}
+
 .caption-target {
   scroll-margin-top: var(--space-3);
 }
 
-/* Reused wherever a restored-draft sentence needs its "Start fresh" action
-   (the phone chip row's draft chip, the desktop rail's draft chip beside
-   Add files / Clear all). */
+/* The "Start fresh" action of the phone header's restore sentence
+   (`.header-draft-chip`); the desktop rail's copy uses the rail's own
+   quiet-button. */
+/* Shlomi (2026-09-13): a button, so it looks like one - the rail's quiet
+   secondary style at a size that sits inside a sentence (28px face, the
+   ::before keeps the 44px hit area). Underline is reserved for links that
+   navigate. */
 .start-fresh {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0.1rem 0.5rem;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--color-primary-text);
+  color: var(--color-text);
   background: none;
-  border: 0;
-  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
+  text-decoration: none;
+}
+
+.start-fresh::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 44px;
+  transform: translateY(-50%);
+}
+
+.start-fresh:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.start-fresh:focus-visible {
+  outline-offset: 0;
+  border-color: var(--color-primary);
 }
 
 /* --- Phone chip row: files as a horizontally scrolling row, replacing the
    add bar and standing in for the rail's file list / Sort / Add files /
    Clear all below 768px. Hidden at 768px and up, where the rail (a plain
    stacked block from 768 to 1023, sticky and tinted at 1024 and up) owns
-   all of this instead. --- */
+   all of this instead.
+
+   Review P2, item 2: the "⋯" menu and the draft chip are pinned OUTSIDE the
+   scrolling list (`.chip-pinned`, a flex sibling of `.chip-row`) so they are
+   always reachable, however many files scroll past; only the file chips
+   themselves scroll, under a right-edge fade that says there is more. --- */
+.chip-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.1rem;
+}
+
+@media (min-width: 768px) {
+  .chip-bar {
+    display: none;
+  }
+}
+
 .chip-row {
+  flex: 1;
+  min-width: 0;
   display: flex;
   gap: 0.5rem;
   margin: 0;
-  padding: 0.25rem 0.1rem;
+  padding: 0;
   list-style: none;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   /* It scrolls by touch; a visible scrollbar is just noise here. */
   scrollbar-width: none;
+  /* The last chip cutting off at the card's edge, with nothing to say the
+     row scrolls, read as the end of the list (review P2, item 2). Fading it
+     out over the last 24px says otherwise; a mask needs no color token, so
+     this reads correctly against the document's white and the tinted rail
+     alike. */
+  mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
+}
+
+/* Hebrew edition: the row's logical end is its LEFT edge under RTL. */
+.chip-row:dir(rtl) {
+  mask-image: linear-gradient(to left, black calc(100% - 24px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to left, black calc(100% - 24px), transparent 100%);
 }
 
 .chip-row::-webkit-scrollbar {
   display: none;
 }
 
-@media (min-width: 768px) {
-  .chip-row {
-    display: none;
-  }
+.chip-pinned {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 /* The 44px hit area lives on the <li> itself (via min-height, centring its
@@ -264,16 +347,6 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);
-}
-
-.chip-draft {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 13px;
-  color: var(--color-muted);
-  white-space: nowrap;
 }
 
 /* On a phone the heading shares its row with the Edit pages toggle, so

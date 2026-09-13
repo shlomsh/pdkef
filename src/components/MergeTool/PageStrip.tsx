@@ -375,20 +375,45 @@ export default function PageStrip({
     }
   };
 
-  const previewTarget: PreviewTarget | null = (() => {
-    if (previewIndex == null) return null;
-    const entry = plan[previewIndex];
-    const file = entry ? fileById(entry.fileId) : undefined;
-    if (!entry || !file) return null;
-    return { file: file.file, pageIndex: entry.pageIndex, rotation: entry.rotation, position: previewIndex + 1, total: plan.length };
-  })();
-
-  const filePosition = new Map(entries.map((e, i) => [e.id, i + 1]));
   // Numbers are output positions: what the page will be in the merged file
   // (and what "Add page numbers" would stamp). A skipped page shows the
   // number it would take, struck, so the pages behind it keep the numbers
   // they will really get.
   const outputTotal = outputPageCount(plan);
+
+  // Review P2: the preview dialog's title used to count the raw plan
+  // (previewIndex + 1 of plan.length), which disagreed with the heading and
+  // every cell's own aria-label - both of which count OUTPUT pages, showing
+  // a skipped page as the position it would take. This mirrors that same
+  // counter up to `index`, so a skipped page previewed still says "would be
+  // page N" and the total always matches the heading's "N pages" figure.
+  // Previous/Next stay keyed to the raw plan index (atStart/atEnd) rather
+  // than to this position, since a skipped page's position can equal or
+  // exceed the output total without it being the last page in the plan.
+  const outputPositionAt = (index: number): number => {
+    let counter = 0;
+    for (let i = 0; i <= index; i += 1) if (!plan[i].skipped) counter += 1;
+    return plan[index].skipped ? counter + 1 : counter;
+  };
+
+  const previewTarget: PreviewTarget | null = (() => {
+    if (previewIndex == null) return null;
+    const entry = plan[previewIndex];
+    const file = entry ? fileById(entry.fileId) : undefined;
+    if (!entry || !file) return null;
+    return {
+      file: file.file,
+      pageIndex: entry.pageIndex,
+      rotation: entry.rotation,
+      position: outputPositionAt(previewIndex),
+      total: outputTotal,
+      skipped: entry.skipped,
+      atStart: previewIndex <= 0,
+      atEnd: previewIndex >= plan.length - 1,
+    };
+  })();
+
+  const filePosition = new Map(entries.map((e, i) => [e.id, i + 1]));
   const gridBase = baseCellSize();
   const { cell: gridCell, gap: gridGap } = gridMetrics();
   let outputCounter = 0;
@@ -444,9 +469,22 @@ export default function PageStrip({
     const rotated90 = entry.rotation === 90 || entry.rotation === 270;
     const sourceLandscape = aspect != null && aspect >= 1;
     const finalLandscape = rotated90 ? !sourceLandscape : sourceLandscape;
+    // Review P1/D2: every cell keeps the SAME fixed height (the portrait
+    // box's height) so rows stay level; a landscape or rotated-to-landscape
+    // page takes a landscape WIDTH for that height instead of being squeezed
+    // into (or, the old bug, shrinking the whole box into) a portrait
+    // footprint. `aspect` is the un-rotated source image's own width/height
+    // (measured from the rendered thumbnail, before any user rotation); a
+    // 90/270 rotation swaps what the DISPLAYED aspect is, so invert it there.
+    // Before a thumbnail has rendered (aspect unknown) a landscape page still
+    // needs a size: fall back to the previous implicit ratio (portrait
+    // height / portrait width), the same footprint this cell had before.
+    const displayedAspect = aspect != null
+      ? (rotated90 ? 1 / aspect : aspect)
+      : gridBase.h / gridBase.w;
     const cellStyle = {
-      '--cell-w': `${finalLandscape ? gridBase.h : gridBase.w}px`,
-      '--cell-h': `${finalLandscape ? gridBase.w : gridBase.h}px`,
+      '--cell-w': `${finalLandscape ? Math.round(gridBase.h * displayedAspect) : gridBase.w}px`,
+      '--cell-h': `${gridBase.h}px`,
       // A landscape cell is roughly two portrait columns wide; span two grid
       // tracks so it keeps a real (never 75%-scaled) footprint instead of
       // being squeezed into one column's width.
@@ -520,10 +558,19 @@ export default function PageStrip({
             aria-label={formatMessage(t.rotatePage, { number: position })}
             onClick={() => rotate(entry.key, position)}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M13 8a5 5 0 1 1-1.5-3.6" />
-              <path d="M13 2v3h-3" />
-            </svg>
+            {/* The visual chrome (border, background, shadow) lives on this
+                inner span, not the button: on touch (Edit pages, coarse
+                pointer) the button's own box grows to a real 44x44 - a rect
+                measurement, not only elementFromPoint, must read 44 - while
+                this glyph stays visually 32, centred inside it by padding.
+                Pointer devices are unchanged: the button stays 32x32 and the
+                44x44 hit area is the `::before` below, as before. */}
+            <span class={styles['action-glyph']} aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M13 8a5 5 0 1 1-1.5-3.6" />
+                <path d="M13 2v3h-3" />
+              </svg>
+            </span>
             {/* Item 6 (Shlomi's follow-up): a `title` attribute is not a
                 visible tooltip. This span carries the short word, hidden
                 until the button is hovered or keyboard-focused; the
@@ -538,9 +585,11 @@ export default function PageStrip({
             aria-label={formatMessage(entry.skipped ? t.includePage : t.skipPage, { number: position })}
             onClick={() => toggleSkip(entry.key, position)}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
-              {entry.skipped ? <path d="M3 8.5l3 3 7-7" /> : <path d="M2 2l12 12M4 4.5h8M4 8h8M4 11.5h8" />}
-            </svg>
+            <span class={styles['action-glyph']} aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+                {entry.skipped ? <path d="M3 8.5l3 3 7-7" /> : <path d="M2 2l12 12M4 4.5h8M4 8h8M4 11.5h8" />}
+              </svg>
+            </span>
             <span class={styles.tip} aria-hidden="true">{entry.skipped ? t.tipBringBack : t.tipSkip}</span>
           </button>
           <button
@@ -549,10 +598,12 @@ export default function PageStrip({
             aria-label={formatMessage(t.openPreview, { number: position })}
             onClick={() => openPreview(index)}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="7" cy="7" r="4.5" />
-              <path d="M10.3 10.3L14 14" />
-            </svg>
+            <span class={styles['action-glyph']} aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="7" cy="7" r="4.5" />
+                <path d="M10.3 10.3L14 14" />
+              </svg>
+            </span>
             <span class={styles.tip} aria-hidden="true">{t.tipOpen}</span>
           </button>
         </span>
