@@ -2,7 +2,10 @@ import { defineConfig } from 'vitest/config';
 import preact from '@preact/preset-vite';
 
 const TESTS = 'src/**/*.{test,spec}.{js,jsx,ts,tsx}';
-const NEVER = ['node_modules/**', '**/node_modules/**', 'dist/**', 'e2e/**', '.claude/**'];
+// src/tools/<tool>/e2e/ (ARCH-17) holds Playwright specs, not Vitest ones; TESTS'
+// src/**/*.spec.js would otherwise pick them up the way e2e/**'s own top-level
+// exclusion used to make unnecessary.
+const NEVER = ['node_modules/**', '**/node_modules/**', 'dist/**', 'e2e/**', 'src/tools/*/e2e/**', '.claude/**'];
 
 // Booting jsdom cost more than running the tests (Vitest's own breakdown:
 // environment 97s of CPU against tests 39s), and 85 of 143 files never touch

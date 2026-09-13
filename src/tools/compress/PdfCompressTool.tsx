@@ -1,21 +1,21 @@
 import { useRef, useState } from 'preact/hooks';
-import { compressPdf, compressPdfToTarget } from '../lib/compress.js';
-import { compressImageToTarget } from '../lib/compressImage.js';
-import { deriveFileKind } from '../lib/fileKind.js';
-import { useObjectUrls } from '../lib/useObjectUrls.js';
-import { useHandoffIntake } from '../lib/useHandoffIntake.ts';
-import BasePdfTool from '../shell/BasePdfTool.tsx';
+import { compressPdf, compressPdfToTarget } from './compress.js';
+import { compressImageToTarget } from './compressImage.js';
+import { deriveFileKind } from '../../lib/fileKind.js';
+import { useObjectUrls } from '../../lib/useObjectUrls.js';
+import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
+import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import styles from './PdfCompressTool.module.css';
-import pdfToolStyles from '../shell/PdfTool.module.css';
-import PdfShareButton from '../shell/PdfShareButton.tsx';
-import ProgressRing from '../shell/ProgressRing.tsx';
-import ErrorMessage from '../shell/ErrorMessage.tsx';
-import DownloadButton from '../shell/DownloadButton.tsx';
-import CompareSlider from '../shell/CompareSlider.tsx';
-import { usePdfShare } from '../lib/usePdfShare.js';
-import { describeFile } from '../lib/format.js';
-import type { AnalyticsTool } from '../lib/productAnalytics.ts';
-import { englishCompressMessages, formatMessage, type CompressMessages, type ShellMessages } from '../i18n/toolMessages';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import PdfShareButton from '../../shell/PdfShareButton.tsx';
+import ProgressRing from '../../shell/ProgressRing.tsx';
+import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import DownloadButton from '../../shell/DownloadButton.tsx';
+import CompareSlider from '../../shell/CompareSlider.tsx';
+import { usePdfShare } from '../../lib/usePdfShare.js';
+import { describeFile } from '../../lib/format.js';
+import type { AnalyticsTool } from '../../lib/productAnalytics.ts';
+import { englishCompressMessages, formatMessage, type CompressMessages, type ShellMessages } from '../../i18n/toolMessages';
 
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
 // Lower than the PDF presets above: the image half of this tool's demand is
@@ -213,7 +213,7 @@ export default function PdfCompressTool({
     const runToken = runTokenRef.current;
     setCompareStatus('loading');
     try {
-      const { renderComparePreview } = await import('../lib/thumbnails.js');
+      const { renderComparePreview } = await import('../../lib/thumbnails.js');
       const [before, after] = await Promise.all([
         renderComparePreview(activeFile),
         renderComparePreview(activeBlob),

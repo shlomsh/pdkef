@@ -1,6 +1,7 @@
 ---
 paths:
   - "src/editor/**"
+  - "src/tools/**"
   - "src/components/SignTool/**"
   - "src/components/Pdf*Tool.tsx"
   - "src/components/Pdf*Tool.test.tsx"
@@ -31,7 +32,6 @@ paths:
   - "e2e/sign/form-grid-fill.spec.js"
   - "e2e/redact/**"
   - "e2e/merge/**"
-  - "e2e/compress/**"
   - "e2e/unlock/**"
   - "e2e/tool-*.spec.js"
   - "scripts/check-gesture-golden-rule.js"

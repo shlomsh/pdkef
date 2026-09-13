@@ -3,15 +3,15 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import PdfCompressTool from './PdfCompressTool.tsx';
-import * as compressLib from '../lib/compress.js';
-import * as compressImageLib from '../lib/compressImage.js';
-import * as thumbnailsLib from '../lib/thumbnails.js';
+import * as compressLib from './compress.js';
+import * as compressImageLib from './compressImage.js';
+import * as thumbnailsLib from '../../lib/thumbnails.js';
 import styles from './PdfCompressTool.module.css';
-import dropzoneStyles from '../shell/Dropzone.module.css';
-import toolShellStyles from '../shell/ToolShell.module.css';
-import pdfToolStyles from '../shell/PdfTool.module.css';
-import { mockNativeFileShare } from '../test/mockFileShare.js';
-import { setInputFiles } from '../test/setInputFiles.js';
+import dropzoneStyles from '../../shell/Dropzone.module.css';
+import toolShellStyles from '../../shell/ToolShell.module.css';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import { mockNativeFileShare } from '../../test/mockFileShare.js';
+import { setInputFiles } from '../../test/setInputFiles.js';
 
 function makePdfFile(name, size = 1000) {
   const file = new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -54,7 +54,7 @@ vi.mock('pdfjs-dist', () => {
   };
 });
 
-vi.mock('../lib/compress.js', () => {
+vi.mock('./compress.js', () => {
   return {
     compressPdf: vi.fn(() => Promise.resolve(new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }))),
     compressPdfToTarget: vi.fn(() =>
@@ -69,11 +69,11 @@ vi.mock('../lib/compress.js', () => {
 // The interface this tool is built against (see compressImage.js's own
 // tests): mocked here so this suite never depends on its implementation,
 // only the shape it promises to return.
-vi.mock('../lib/compressImage.js', () => ({
+vi.mock('./compressImage.js', () => ({
   compressImageToTarget: vi.fn(() => Promise.resolve(makeImageResult())),
 }));
 
-vi.mock('../lib/thumbnails.js', () => {
+vi.mock('../../lib/thumbnails.js', () => {
   return {
     renderComparePreview: vi.fn((fileOrBlob) =>
       Promise.resolve(`data:image/png;base64,${fileOrBlob instanceof File ? 'before' : 'after'}`),
@@ -224,7 +224,7 @@ describe('PdfCompressTool UI flow', () => {
   });
 
   it('renders the comparison automatically once compression completes, showing a skeleton while the previews are still pending and never blocking the download row, then can be hidden and restored without re-rendering', async () => {
-    const thumbnails = await import('../lib/thumbnails.js');
+    const thumbnails = await import('../../lib/thumbnails.js');
 
     // A controllable promise per side, so the 'loading' state (and its
     // skeleton) can be observed before it resolves, instead of the mock's
@@ -684,7 +684,7 @@ describe('PdfCompressTool UI flow', () => {
   });
 
   it('renders the comparison automatically for an image result with no rasterization, then hides the toggle entirely for a passthrough result', async () => {
-    const thumbnails = await import('../lib/thumbnails.js');
+    const thumbnails = await import('../../lib/thumbnails.js');
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
