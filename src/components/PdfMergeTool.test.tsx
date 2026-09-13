@@ -657,6 +657,24 @@ describe('PdfMergeTool UI flow', () => {
     expect(container.querySelector('[data-install-line]')).toBeNull();
   });
 
+  it('says "Draft not saved" when the draft could not be written, for instance a set over MERGE_DRAFT_MAX_BYTES (MERGE-20)', async () => {
+    // draftStore refuses a multi-file draft over its byte cap by resolving
+    // false (draftStore.test.js) and the hook turns that into 'error'
+    // (useMergeDraft.test.tsx); this is the last link, the island showing a
+    // state for it instead of silently not saving.
+    mount();
+    await loadFiles(['a.pdf', 'b.pdf']);
+    await settle();
+    await act(async () => {
+      draftProbe.props.onStateChange({ isRestoring: false, draftSaveState: 'error' });
+      await flush(10);
+    });
+    const statusRow = container.querySelector(`.${railStyles['draft-status-row']}`);
+    expect(statusRow).not.toBeNull();
+    expect(statusRow.textContent).toBe('Draft not saved');
+    expect(container.textContent).not.toContain('Draft saved');
+  });
+
   it('restores a saved draft into the list, the plan and the options, and clears it on Start again (MERGE-13)', async () => {
     // The picked-up-sentence-to-chip flip below waits out a real 5s timer.
     const clearDraft = vi.fn(async () => true);
