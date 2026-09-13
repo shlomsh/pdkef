@@ -9,7 +9,18 @@
   gap: var(--space-3);
   background: var(--color-primary-tint);
   border-radius: var(--radius);
-  padding: 0.9rem;
+  padding: var(--space-3);
+}
+
+/* One vertical rhythm for the whole rail: --space-3 between every block
+   (file list, Sort, the quiet row, Options, Download, the hand-off row) and
+   the same as the rail's own padding. Measured before this: 0px between the
+   list and Sort, 0px between Download and the hand-off row, 12px elsewhere. */
+.rail-scroll,
+.rail-pinned {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 @media (min-width: 1024px) {
@@ -285,6 +296,15 @@
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 0.15em;
+}
+
+/* 44px is the touch target; with a pointer the same box read as a row with
+   twice the air of its neighbours (the text is 21px tall), which broke the
+   rail's rhythm. Touch keeps the full height. */
+@media (hover: hover) and (pointer: fine) {
+  .quiet-button {
+    min-height: 32px;
+  }
 }
 
 .options {
