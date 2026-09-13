@@ -258,7 +258,7 @@ describe('mergedTitle / mergedFileName', () => {
   });
 
   it('applies the default template with other files', () => {
-    expect(mergedTitle('Invoice 2024-03-01.pdf', 3)).toBe('Invoice 2024-03-01 + 3 more');
+    expect(mergedTitle('Invoice 2024-03-01.pdf', 3)).toBe('merged_Invoice 2024-03-01');
   });
 
   it('strips only the final extension', () => {
@@ -270,7 +270,7 @@ describe('mergedTitle / mergedFileName', () => {
   });
 
   it('falls back to the raw name when there is no extension to strip', () => {
-    expect(mergedTitle('README', 2)).toBe('README + 2 more');
+    expect(mergedTitle('README', 2)).toBe('merged_README');
   });
 
   it('never returns an empty string, falling back to "merged"', () => {
@@ -289,11 +289,11 @@ describe('mergedTitle / mergedFileName', () => {
   });
 
   it('mergedFileName appends .pdf to the title', () => {
-    expect(mergedFileName('Invoice 2024-03-01.pdf', 3)).toBe('Invoice 2024-03-01 + 3 more.pdf');
+    expect(mergedFileName('Invoice 2024-03-01.pdf', 3)).toBe('merged_Invoice 2024-03-01.pdf');
     expect(mergedFileName('Invoice 2024-03-01.pdf', 0)).toBe('Invoice 2024-03-01.pdf');
   });
 
   it('exposes the default template string', () => {
-    expect(DEFAULT_OUTPUT_NAME_TEMPLATE).toBe('{name} + {count} more');
+    expect(DEFAULT_OUTPUT_NAME_TEMPLATE).toBe('merged_{name}');
   });
 });

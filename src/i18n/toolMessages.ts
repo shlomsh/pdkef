@@ -51,8 +51,10 @@ export interface MergeMessages {
   sortByDate: string;
   reverseOrder: string;
   optionsSummary: string;
-  /** MERGE-03: the output file name is one template so a locale can phrase
-   * "{name} + {count} more" its own way; the PDF Title is the same string. */
+  /** MERGE-03: the output file name is one template ("merged_{name}", the
+   * same prefix shape as signed_/redacted_) so a locale can phrase it its own
+   * way; `{count}` (the other files) is available to it. The PDF Title is the
+   * same string. */
   outputName: string;
   savesAs: string;
   /* MERGE-12: Download is the only primary control. `preparing` labels the
@@ -142,7 +144,7 @@ const englishMergeMessages: MergeMessages = {
   sortByDate: 'Date',
   reverseOrder: 'Reverse order',
   optionsSummary: 'Options',
-  outputName: '{name} + {count} more',
+  outputName: 'merged_{name}',
   savesAs: 'Saves as {name}',
   downloadLabel: 'Download merged PDF',
   preparing: 'Preparing…',
@@ -227,7 +229,7 @@ const hebrewMergeMessages: MergeMessages = {
   sortByDate: 'לפי תאריך',
   reverseOrder: 'היפוך הסדר',
   optionsSummary: 'אפשרויות',
-  outputName: '{name} + עוד {count}',
+  outputName: 'merged_{name}',
   savesAs: 'יישמר בשם {name}',
   downloadLabel: 'הורדת ה-PDF המאוחד',
   preparing: 'מכינים…',

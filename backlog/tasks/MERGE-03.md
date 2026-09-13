@@ -47,3 +47,8 @@ Three things about the done state, all visible on the deployed page after any me
   (`mergedTitle`, `merged.setTitle`). The identity row reads `4 PDFs · 18 pages · 22 KB`. Naming is
   unit-tested in `mergePlan.test.ts` and `merge.test.js`; the single-button done state is guarded in
   `e2e/merge/merge-layout.spec.js`; build and preview checked for CSP. Done.
+- 2026-09-13, later: the output is `merged_<first file name>.pdf` (Title `merged_<first base
+  name>`), on Shlomi's review of the dev build: every other tool marks its output with the tool's
+  name on the source file's name (`signed_`, `redacted_`, `-compressed`), and `<first> + N more`
+  broke that shape. The `outputName` template stays localized, with `{count}` available to a locale
+  that wants it; the Hebrew edition keeps the Latin `merged_` as Sign keeps `signed_`.

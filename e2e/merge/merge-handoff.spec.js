@@ -42,7 +42,7 @@ test('Compress it hands the merged file to Compress with the identity row naming
   await page.waitForURL(/\/compress\/?(?:\?.*)?$/);
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
 
-  // "first.pdf" + 2 more -> the hand-off's fileName, and Compress's identity
+  // "first.pdf" first -> the hand-off's fileName merged_first.pdf, and Compress's identity
   // row (ToolShell) reads it back verbatim as fileLabel.
-  await expect(page.locator('[data-tool-shell]')).toContainText('first + 2 more.pdf', { timeout: 10_000 });
+  await expect(page.locator('[data-tool-shell]')).toContainText('merged_first.pdf', { timeout: 10_000 });
 });
