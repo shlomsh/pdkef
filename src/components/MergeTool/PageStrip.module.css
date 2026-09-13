@@ -501,22 +501,51 @@
 }
 
 /* --- The preview dialog (PagePreviewDialog.tsx) --- */
-.preview-dialog {
-  max-width: min(92vw, 720px);
+/* Shlomi's follow-up (2026-09-13): the dialog used to cap at
+   `min(92vw, 720px)` with a fixed 70vh stage, so a portrait A4 page rendered
+   about 530px wide on a 2000px-wide screen and its text was hard to read. It
+   now grows with the viewport instead, up to about 92vw by 92vh. A
+   `<dialog>`'s own UA stylesheet caps it at `max-height: calc(100% - 6px -
+   2em)` regardless of what we set here, so `max-height` is overridden
+   explicitly rather than assumed. `height` (not only `max-height`) is what
+   gives `.preview-stage`'s `flex: 1 1 auto` below a real amount of space to
+   fill - a fit-content dialog (the `<dialog>` UA default, and what
+   `Dialog.module.css`'s shared `.dialog` leaves it at) has nothing to
+   distribute.
+
+   The `[open]` qualifier is load-bearing, not decoration: an author
+   stylesheet's `display` beats the UA stylesheet's `dialog:not([open]) {
+   display: none }` regardless of specificity (author always outranks UA),
+   so an unqualified `display: flex` here left a *closed* dialog laid out
+   and hit-testable - invisible in a screenshot but still eating clicks
+   underneath it. Scoping every box-model rule to `[open]` means the rule
+   simply doesn't match once the `open` attribute is gone, and the UA
+   default hides it again. */
+.preview-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  max-width: 92vw;
+  height: 92vh;
+  max-height: 92vh;
 }
 
-/* Shlomi (2026-09-13): the stage is a fixed-height gallery. It used to be
-   min 40vh / max 70vh with the image blanked on every step, so the dialog
-   shrank and grew back on each page - the "flicker". Now the height never
-   depends on the image; the image fits inside it (`max-height: 100%`), and
-   the previous page stays up, dimmed, until the next one has rendered. */
+/* Shlomi (2026-09-13): the stage is a fixed-height gallery, so a portrait and
+   a landscape page settle into the same dialog rect. It used to be min 40vh
+   / max 70vh with the image blanked on every step, so the dialog shrank and
+   grew back on each page - the "flicker". The height still never depends on
+   the image: it now comes from `.preview-dialog`'s own explicit height above
+   via `flex: 1 1 auto; min-height: 0` rather than a literal vh figure, so it
+   still doesn't move between a wide and a tall page. The image fits inside
+   it (`max-height: 100%`), and the previous page stays up, dimmed, until the
+   next one has rendered. */
 .preview-stage {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  height: 70vh;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 1rem 56px;
   overflow: hidden;
   background: var(--color-surface-sunken);

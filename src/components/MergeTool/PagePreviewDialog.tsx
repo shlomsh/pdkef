@@ -35,10 +35,18 @@ interface PagePreviewDialogProps {
    dialog in the top layer (project_fullscreen_dialog_top_layer: a plain
    `<dialog open>` is invisible under real fullscreen). Loaded through a
    dynamic import() from the strip, so the eager graph does not carry it. */
-export const PREVIEW_WIDTH = 900;
+// Shlomi's follow-up (2026-09-13): the dialog now grows with the viewport
+// (up to about 92vw by 92vh - PageStrip.module.css `.preview-dialog`), so a
+// flat 900px raster upscaled visibly on a wide screen. PREVIEW_WIDTH is a
+// ceiling, not the request itself: the real request below is the STAGE's
+// own measured width times devicePixelRatio, so a small viewport still asks
+// for a small render. Capped well above any real stage width so one
+// oversized render never balloons decode time or memory.
+export const PREVIEW_WIDTH = 2400;
 
 export default function PagePreviewDialog({ target, onClose, onStep, messages: t }: PagePreviewDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   // Shlomi (2026-09-13): stepping used to blank the image, so the body fell
   // to its minimum height and grew back when the next page arrived - a
@@ -67,7 +75,12 @@ export default function PagePreviewDialog({ target, onClose, onStep, messages: t
     }
     setStale(true);
     const controller = new AbortController();
-    const width = Math.min(PREVIEW_WIDTH, Math.round((typeof window !== 'undefined' ? window.innerWidth : PREVIEW_WIDTH) * 1.5));
+    const stageEl = stageRef.current;
+    const stageWidth = stageEl && stageEl.clientWidth > 0
+      ? stageEl.clientWidth
+      : (typeof window !== 'undefined' ? window.innerWidth : PREVIEW_WIDTH);
+    const dpr = typeof window !== 'undefined' && window.devicePixelRatio ? window.devicePixelRatio : 1;
+    const width = Math.min(PREVIEW_WIDTH, Math.round(stageWidth * dpr));
     renderPdfThumbnails(
       target.file,
       (_pageNumber: number, url: string) => {
@@ -118,7 +131,7 @@ export default function PagePreviewDialog({ target, onClose, onStep, messages: t
           "previous" (the way ArrowLeft already behaves), in Hebrew too. The
           zones are pointer-only affordances; keyboard users have the arrow
           keys and the two labelled buttons. */}
-      <div class={styles['preview-stage']} data-rotation={target?.rotation || undefined} data-stale={stale || undefined}>
+      <div ref={stageRef} class={styles['preview-stage']} data-rotation={target?.rotation || undefined} data-stale={stale || undefined}>
         {dataUrl ? (
           <img class={styles['preview-image']} src={dataUrl} alt="" />
         ) : (
