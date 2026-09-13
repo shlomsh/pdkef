@@ -1,13 +1,19 @@
 import { getElementDefinition } from '../editor/registry/index.ts';
 import type { EditorElement } from '../editor/model/editorModel.ts';
 import type { NodeResizeStart } from './SignTool/nodeProps.ts';
+import { englishSignMessages, type SignMessages } from '../i18n/toolMessages';
 import styles from './SignTool/EditorElement.module.css';
 
-export default function ElementResizers({ element, isActive, onResizeStart }: {
+export default function ElementResizers({ element, isActive, onResizeStart, messages }: {
   element: EditorElement;
   isActive: boolean;
   onResizeStart: NodeResizeStart;
+  /** LOC-16 stage 2-5: optional and English-default, same shape as
+   * SignToolbar.tsx's `messages` prop. Shared with Redact (RedactBox.tsx),
+   * which never passes it, so its English rendering is unaffected. */
+  messages?: Partial<SignMessages>;
 }) {
+  const t: SignMessages = { ...englishSignMessages, ...messages };
   const { handles } = getElementDefinition(element.type).resizeBehavior;
 
   // Line endpoints remain available without selection so the SVG's hit target
@@ -34,11 +40,11 @@ export default function ElementResizers({ element, isActive, onResizeStart }: {
             onMouseDown={(event) => onResizeStart(event, handle)}
             onTouchStart={(event) => onResizeStart(event, handle)}
             title={isLineHandle ? undefined
-              : element.type !== 'text' ? 'Drag to resize'
+              : element.type !== 'text' ? t.dragToResizeTitle
               // On a comb the two grips do different jobs, and saying so is the
               // only hint that font size and cell pitch are independent here.
-              : isCorner ? 'Drag to resize font size'
-              : 'Drag to span the form’s boxes'}
+              : isCorner ? t.dragToResizeFontSizeTitle
+              : t.dragToSpanBoxesTitle}
           />
         );
       })}

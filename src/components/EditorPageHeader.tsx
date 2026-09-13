@@ -15,17 +15,26 @@ export default function EditorPageHeader({
   pageNumber,
   onClear,
   clearTitle,
-  // LOC-09 stage 1: "Page N" and "Clear page" stay English this stage (not in
-  // src/i18n/toolMessages.ts's SignMessages yet), but the bidi-isolation
-  // wrapper (5a1af03) can already follow the page's own catalogue once one
-  // exists - PdfWorkspace.tsx (Sign) passes lang/dir from SignMessages;
-  // PdfRedactTool.tsx passes neither, so it keeps this exact default.
+  // LOC-16: "Page N" and "Clear page" are now sourced from SignMessages on
+  // /he/sign/ (see PdfWorkspace.tsx) - the props below default to the exact
+  // English strings this component always rendered, so PdfRedactTool.tsx
+  // (which passes neither) is unaffected.
+  pageLabel,
+  clearLabel = 'Clear page',
   lang = 'en',
   dir = 'ltr',
-}: { pageNumber: number; onClear: (() => void) | null; clearTitle?: string; lang?: string; dir?: 'ltr' | 'rtl' }) {
+}: {
+  pageNumber: number;
+  onClear: (() => void) | null;
+  clearTitle?: string;
+  pageLabel?: string;
+  clearLabel?: string;
+  lang?: string;
+  dir?: 'ltr' | 'rtl';
+}) {
   return (
     <div className={styles['page-header']} data-editor-page-header dir={dir} lang={lang}>
-      <span className={styles['page-number']} data-editor-page-number>Page {pageNumber}</span>
+      <span className={styles['page-number']} data-editor-page-number>{pageLabel ?? `Page ${pageNumber}`}</span>
       {onClear && (
         <button
           type="button"
@@ -37,7 +46,7 @@ export default function EditorPageHeader({
             <polyline points="3 6 5 6 21 6" />
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
           </svg>
-          Clear page
+          {clearLabel}
         </button>
       )}
     </div>

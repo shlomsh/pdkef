@@ -5,18 +5,25 @@ import { HANDWRITING_FONTS, resolveFontFamily, textBoxPaddingEm } from '../edito
 import { DEFAULT_LINE_HEIGHT_EM } from '../constants/signGeometry.js';
 import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../editor/workspace/preferenceStore.ts';
 import { encodeSignatureCanvas } from '../editor/workspace/signatureImagePolicy.ts';
+import { englishSignMessages, type SignMessages } from '../i18n/toolMessages';
 import styles from './SignatureDialog.module.css';
 import dialogStyles from './Dialog.module.css';
 
 export default function SignatureDialog({
   isOpen,
   onClose,
-  onSaveSignature
+  onSaveSignature,
+  messages,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onSaveSignature: (dataUrl: string, aspectRatio: number) => void;
+  /** LOC-16 stage 2-5: optional and English-default, same shape as
+   * SignToolbar.tsx's `messages` prop, so every existing (English) caller of
+   * this dialog is unaffected. */
+  messages?: Partial<SignMessages>;
 }) {
+  const t: SignMessages = { ...englishSignMessages, ...messages };
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const canvasPadRef = useRef<HTMLCanvasElement | null>(null);
   const signaturePadRef = useRef<SignaturePad | null>(null);
@@ -363,8 +370,8 @@ export default function SignatureDialog({
   return (
     <dialog ref={dialogRef} className={dialogStyles.dialog} closedby="any" aria-labelledby="dialog-title">
       <div className={dialogStyles.header}>
-        <h3 id="dialog-title">Create Signature</h3>
-        <button type="button" className={dialogStyles.close} data-editor-dialog-close onClick={onClose} aria-label="Close dialog">
+        <h3 id="dialog-title">{t.createSignatureTitle}</h3>
+        <button type="button" className={dialogStyles.close} data-editor-dialog-close onClick={onClose} aria-label={t.closeDialogLabel}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M4 4l8 8M12 4l-8 8" />
           </svg>
@@ -381,7 +388,7 @@ export default function SignatureDialog({
             data-editor-dialog-tab="draw"
             onClick={() => setSignatureMode('draw')}
           >
-            Draw
+            {t.tabDraw}
           </button>
           <button
             type="button"
@@ -391,7 +398,7 @@ export default function SignatureDialog({
             data-editor-dialog-tab="type"
             onClick={() => setSignatureMode('type')}
           >
-            Type
+            {t.tabType}
           </button>
           <button
             type="button"
@@ -401,16 +408,16 @@ export default function SignatureDialog({
             data-editor-dialog-tab="upload"
             onClick={() => setSignatureMode('upload')}
           >
-            Upload
+            {t.tabUpload}
           </button>
         </div>
 
         {signatureMode === 'draw' && (
           <>
             <div className={styles['pen-controls']}>
-              <ColorPicker value={penColor} onChange={rememberPenColor} title="Pen color" defaultColor="#000000" />
+              <ColorPicker value={penColor} onChange={rememberPenColor} title={t.penColorTitle} defaultColor="#000000" />
               <div className={styles['thickness-control']}>
-                <label htmlFor="sig-pen-thickness">Thickness</label>
+                <label htmlFor="sig-pen-thickness">{t.thicknessLabel}</label>
                 <input
                   id="sig-pen-thickness"
                   type="range"
@@ -425,7 +432,7 @@ export default function SignatureDialog({
             <div className={styles.pad}>
               <canvas ref={canvasPadRef} className={styles.canvas} />
               <button type="button" className={styles.clear} onClick={clearDrawing}>
-                Clear
+                {t.clearDrawingLabel}
               </button>
             </div>
           </>
@@ -437,7 +444,7 @@ export default function SignatureDialog({
               type="text"
               className={styles['type-input']}
               data-editor-signature-input
-              placeholder="Type your name..."
+              placeholder={t.typedNamePlaceholder}
               value={typedName}
               onInput={(e) => setTypedName(e.currentTarget.value)}
               autoFocus
@@ -458,7 +465,7 @@ export default function SignatureDialog({
               ))}
             </div>
             <div className={styles['type-preview']} style={{ fontFamily: `'${resolveFontFamily(typeFont, typedName)}', cursive` }}>
-              {typedName || 'Signature Preview'}
+              {typedName || t.signaturePreviewPlaceholder}
             </div>
           </div>
         )}
@@ -472,9 +479,9 @@ export default function SignatureDialog({
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
-                <p>Drag & drop signature image here or click to choose</p>
-                <span>Supports PNG, JPG, SVG. Auto background transparency.</span>
-                <span>Large images are downsampled to at most 1 megapixel and 750 KB before saving.</span>
+                <p>{t.uploadDropHint}</p>
+                <span>{t.uploadFormatsHint}</span>
+                <span>{t.uploadSizeHint}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -486,9 +493,9 @@ export default function SignatureDialog({
               <div className={styles['upload-result']}>
                 <div className={styles['upload-preview']}>
                   {processedUploadImage ? (
-                    <img src={processedUploadImage} alt="Uploaded signature preview" />
+                    <img src={processedUploadImage} alt={t.uploadedPreviewAlt} />
                   ) : (
-                    <p className={styles['upload-processing']}>Processing signature...</p>
+                    <p className={styles['upload-processing']}>{t.processingSignature}</p>
                   )}
                 </div>
                 <div className={styles['upload-actions-row']}>
@@ -499,11 +506,11 @@ export default function SignatureDialog({
                         checked={removeBg}
                         onChange={(e) => setRemoveBg((e.target as HTMLInputElement).checked)}
                       />
-                      Remove white background
+                      {t.removeWhiteBackgroundLabel}
                     </label>
                   </div>
                   <button type="button" className={`${styles.clear} ${styles['clear-inline']}`} onClick={clearUpload}>
-                    Change Image
+                    {t.changeImageLabel}
                   </button>
                 </div>
               </div>
@@ -514,7 +521,7 @@ export default function SignatureDialog({
 
       <div className={dialogStyles.footer}>
         <button type="button" className={`${dialogStyles.button} ${dialogStyles.secondary}`} onClick={onClose}>
-          Cancel
+          {t.dialogCancelLabel}
         </button>
         <button
           type="button"
@@ -527,7 +534,7 @@ export default function SignatureDialog({
             !processedUploadImage
           }
         >
-          Save Signature
+          {t.saveSignatureLabel}
         </button>
       </div>
     </dialog>

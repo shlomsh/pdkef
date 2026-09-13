@@ -25,15 +25,15 @@ import { renderRedactionSurface } from './redactionSurface.ts';
 // need for getElementDefinition().resizeBehavior no longer reaches back into
 // any module that imports a Node component.
 const renderers: { [K in ElementType]: (context: NodeRenderContext<ElementForType<K>>) => ComponentChildren } = {
-  text: ({ element, onChange, onSelect, pageWidthPoints }) => h(TextNode, { element, onChange, onSelect, pageWidthPoints, isActive: false, isEditing: false, onBeginEdit: () => {}, onResizeStart: () => {} }),
-  rectangle: ({ element }) => h(ShapeNode, { element, isActive: false, onResizeStart: () => {} }),
-  ellipse: ({ element }) => h(ShapeNode, { element, isActive: false, onResizeStart: () => {} }),
-  line: ({ element }) => h(LineNode, { element, isActive: false, onResizeStart: () => {}, handlePointerDown: () => {} }),
-  symbol: ({ element }) => h(SymbolNode, { element, isActive: false, onResizeStart: () => {} }),
-  signature: ({ element }) => h(SignatureNode, { element, isActive: false, onResizeStart: () => {} }),
-  whiteout: ({ element, renderTarget }) => renderTarget === 'redact'
+  text: ({ element, onChange, onSelect, pageWidthPoints, messages }) => h(TextNode, { element, onChange, onSelect, pageWidthPoints, messages, isActive: false, isEditing: false, onBeginEdit: () => {}, onResizeStart: () => {} }),
+  rectangle: ({ element, messages }) => h(ShapeNode, { element, messages, isActive: false, onResizeStart: () => {} }),
+  ellipse: ({ element, messages }) => h(ShapeNode, { element, messages, isActive: false, onResizeStart: () => {} }),
+  line: ({ element, messages }) => h(LineNode, { element, messages, isActive: false, onResizeStart: () => {}, handlePointerDown: () => {} }),
+  symbol: ({ element, messages }) => h(SymbolNode, { element, messages, isActive: false, onResizeStart: () => {} }),
+  signature: ({ element, messages }) => h(SignatureNode, { element, messages, isActive: false, onResizeStart: () => {} }),
+  whiteout: ({ element, renderTarget, messages }) => renderTarget === 'redact'
     ? renderRedactionSurface('whiteout', element.color)
-    : h(WhiteoutNode, { element, isActive: false, onResizeStart: () => {} }),
+    : h(WhiteoutNode, { element, messages, isActive: false, onResizeStart: () => {} }),
   blackout: ({ element }) => renderRedactionSurface('blackout', element.color),
   blur: () => renderRedactionSurface('blur'),
 };

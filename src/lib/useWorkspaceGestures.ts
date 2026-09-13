@@ -27,6 +27,7 @@ import {
 import { placeSymbolOnRegion } from '../editor/registry/symbol.ts';
 import { DESIGN_BOX, markInkExtent } from '../editor/registry/symbolMarks.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
+import { englishSignMessages, formatMessage, signElementTypeLabel, type SignMessages } from '../i18n/toolMessages';
 import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,
@@ -96,6 +97,9 @@ export interface WorkspaceGestureOptions {
   formRegions?: FormFieldRegions;
   nextElementIndex?: number;
   gestureCancelRef?: { current: (() => void) | null };
+  /** LOC-16 stage 2-5: optional and English-default, same shape as
+   * SignToolbar.tsx's `messages` prop. */
+  messages?: Partial<SignMessages>;
 }
 
 export type PageClickEvent = MouseEvent & { currentTarget: HTMLElement };
@@ -166,7 +170,9 @@ export default function useWorkspaceGestures({
   // PdfWorkspace supplies a ref it owns for component teardown. Keeping this
   // handler factory hook-free also preserves its direct unit-test contract.
   gestureCancelRef = { current: null },
+  messages,
 }: WorkspaceGestureOptions) {
+  const t: SignMessages = { ...englishSignMessages, ...messages };
   const {
     getPointerCoords,
     getPointerPercent,
@@ -253,10 +259,10 @@ export default function useWorkspaceGestures({
         'delete',
         'DELETE_ELEMENT',
         existingCheckboxMark.pageIndex,
-        'Removed symbol from printed box',
+        t.removedSymbolFromBoxDescription,
         snapshots,
       );
-      setAnnouncement('Removed symbol from the printed box.');
+      setAnnouncement(t.removedSymbolFromBoxAnnouncement);
       return;
     }
 
@@ -291,13 +297,13 @@ export default function useWorkspaceGestures({
       // and editing are the same intent. This replaces the old per-element
       // `autoFocus` flag, so the caret has exactly one owner.
       dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: id });
-      logAction('add', 'ADD_TEXT', pageIndex, 'Added text box', [captureAddedElement(placed, nextElementIndex)]);
+      logAction('add', 'ADD_TEXT', pageIndex, t.addedTextBoxDescription, [captureAddedElement(placed, nextElementIndex)]);
       setAnnouncement(combRegion
-        ? `Added text box across ${combRegion.cells} printed boxes. Type your text.`
-        : 'Added text box. Type your text.');
+        ? formatMessage(t.addedTextBoxCombAnnouncementTemplate, { cells: combRegion.cells })
+        : t.addedTextBoxAnnouncement);
     } else {
-      logAction('add', 'ADD_SYMBOL', pageIndex, 'Added symbol', [captureAddedElement(placed, nextElementIndex)]);
-      setAnnouncement(checkboxRegion ? 'Added symbol in the printed box.' : 'Added symbol.');
+      logAction('add', 'ADD_SYMBOL', pageIndex, t.addedSymbolDescription, [captureAddedElement(placed, nextElementIndex)]);
+      setAnnouncement(checkboxRegion ? t.addedSymbolInBoxAnnouncement : t.addedSymbolAnnouncement);
     }
   };
 
@@ -410,11 +416,16 @@ export default function useWorkspaceGestures({
       dispatch({ type: 'DISARM_TOOL' });
 
       if (tool === 'whiteout') {
-        logAction('add', 'ADD_WHITEOUT', pageIndex, 'Added whiteout box', [captureAddedElement(finalElement, nextElementIndex)]);
-        setAnnouncement('Added whiteout box.');
+        logAction('add', 'ADD_WHITEOUT', pageIndex, t.addedWhiteoutDescription, [captureAddedElement(finalElement, nextElementIndex)]);
+        setAnnouncement(t.addedWhiteoutAnnouncement);
       } else {
-        logAction('add', 'ADD_SHAPE', pageIndex, `Added ${tool}`, [captureAddedElement(finalElement, nextElementIndex)]);
-        setAnnouncement(`Added ${tool}.`);
+        // LOC-16: the raw shape tool id used to be interpolated directly into
+        // this copy (`.claude/rules/editor.md`'s "never interpolate a raw
+        // tool id into copy") - signElementTypeLabel resolves it to the same
+        // display label the Shapes menu and ElementToolbar use.
+        const label = signElementTypeLabel(t, tool);
+        logAction('add', 'ADD_SHAPE', pageIndex, formatMessage(t.addedShapeDescriptionTemplate, { label }), [captureAddedElement(finalElement, nextElementIndex)]);
+        setAnnouncement(formatMessage(t.addedShapeAnnouncementTemplate, { label }));
       }
       },
       cancel: () => {

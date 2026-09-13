@@ -149,7 +149,7 @@ export default function SignToolbar({
     setActiveSignature(sig);
     dispatch({ type: 'SET_TOOL', payload: 'signature' });
     setShowSigDropdown(false);
-    setAnnouncement(`Sign tool active. ${TOOL_COPY.signature.action}`);
+    setAnnouncement(formatMessage(t.signToolActive, { action: TOOL_COPY.signature.action }));
     noteArmed('signature');
   };
 
@@ -174,7 +174,7 @@ export default function SignToolbar({
       if (next !== null && !isSignToolType(next)) return;
       setSelectedTool(next);
       if (next) {
-        setAnnouncement(`${TOOL_COPY[next].button} tool active. ${TOOL_COPY[next].action}`);
+        setAnnouncement(formatMessage(t.toolActive, { button: TOOL_COPY[next].button, action: TOOL_COPY[next].action }));
         noteArmed(next);
       }
     },
@@ -185,7 +185,7 @@ export default function SignToolbar({
 
   const lockTool = (tool: SignToolType) => {
     dispatch({ type: 'SET_TOOL', payload: { tool, locked: true } });
-    setAnnouncement(`${TOOL_COPY[tool].button} stays on after each one. Switch it off, or press Escape, when you are done.`);
+    setAnnouncement(formatMessage(t.toolLocked, { button: TOOL_COPY[tool].button }));
   };
 
   // The switch's other half, and deliberately not "disarm": a bare SET_TOOL
@@ -194,14 +194,14 @@ export default function SignToolbar({
   // made the old chip a one-way door - see EditorToolStatus.tsx.
   const unlockTool = (tool: SignToolType) => {
     dispatch({ type: 'SET_TOOL', payload: tool });
-    setAnnouncement(`${TOOL_COPY[tool].button} is back to one at a time.`);
+    setAnnouncement(formatMessage(t.toolUnlocked, { button: TOOL_COPY[tool].button }));
   };
 
   const chooseShape = (tool: ShapeTool) => {
     setSelectedTool(tool);
     setLastShape(tool);
     setShowShapesDropdown(false);
-    setAnnouncement(`${TOOL_COPY[tool].button} tool active. ${TOOL_COPY[tool].action}`);
+    setAnnouncement(formatMessage(t.toolActive, { button: TOOL_COPY[tool].button, action: TOOL_COPY[tool].action }));
     // Shapes is one button standing for three tools, so the hint that follows
     // has to key off the button ("shapes"), not whichever shape happens to be
     // chosen - see the Shapes button's ArmHint below.
@@ -365,7 +365,7 @@ export default function SignToolbar({
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <ellipse cx="12" cy="12" rx="10" ry="7" />
                       </svg>
-                      Ellipse
+                      {t.ellipseLabel}
                     </button>
                     <button
                       type="button"
@@ -375,7 +375,7 @@ export default function SignToolbar({
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <rect x="3" y="6" width="18" height="12" rx="2" />
                       </svg>
-                      Rectangle
+                      {t.rectangleLabel}
                     </button>
                     <button
                       type="button"
@@ -385,7 +385,7 @@ export default function SignToolbar({
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                         <line x1="4" y1="20" x2="20" y2="4" />
                       </svg>
-                      Line
+                      {t.lineLabel}
                     </button>
                   </div>
                 </div>
@@ -472,7 +472,7 @@ export default function SignToolbar({
                         role="menuitem"
                         onClick={() => handleSelectSavedSignature(sig)}
                       >
-                        <img src={sig.dataUrl} alt="Saved signature" />
+                        <img src={sig.dataUrl} alt={t.savedSignatureAlt} />
                         <button
                           type="button"
                           className={controlStyles['dropdown-item-delete']}
@@ -481,8 +481,8 @@ export default function SignToolbar({
                             e.stopPropagation();
                             onDeleteSavedSignature(sig.id, e);
                           }}
-                          title="Delete signature"
-                          aria-label="Delete signature"
+                          title={t.deleteSignatureLabel}
+                          aria-label={t.deleteSignatureLabel}
                         >
                           <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                             <path d="M4 4l8 8M12 4l-8 8" />
@@ -587,7 +587,7 @@ export default function SignToolbar({
             describedBy={exportBlocked ? 'sign-export-readiness' : undefined}
           />
         </div>
-        {exportBlocked && <ExportReadinessNotice fieldCount={exportIssueCount} onReview={onReviewExportIssues} />}
+        {exportBlocked && <ExportReadinessNotice fieldCount={exportIssueCount} onReview={onReviewExportIssues} messages={messages} />}
       </ToolShell>
     </>
   );

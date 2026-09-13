@@ -1,6 +1,10 @@
 import type { EditorElement, ElementType } from '../model/editorModel.ts';
 import type { PDFDocument, PDFFont, PDFPage } from '@cantoo/pdf-lib';
 import type { PageGeometry } from '../geometry/coords.ts';
+// Type-only: SignMessages is a plain interface, so this import never reaches
+// runtime and cannot reopen the cycle renderers.ts's own header comment
+// describes.
+import type { SignMessages } from '../../i18n/toolMessages';
 
 /** The specific union member for a given `ElementType` literal, e.g. `ElementForType<'text'>` is `TextElement`. */
 export type ElementForType<K extends ElementType> = Extract<EditorElement, { type: K }>;
@@ -11,6 +15,10 @@ export interface NodeRenderContext<T extends EditorElement = EditorElement> {
   onSelect: (event: Event) => void;
   pageWidthPoints: number;
   renderTarget?: 'sign' | 'redact';
+  /** LOC-16 stage 2-5: threaded to TextNode (placeholders) and, via every
+   * Sign node, to ElementResizers (resize-handle titles). Optional and
+   * English-default; Redact never supplies it. */
+  messages?: Partial<SignMessages>;
 }
 
 export interface SerializeContext {

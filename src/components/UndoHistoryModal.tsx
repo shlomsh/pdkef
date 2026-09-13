@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'preact/hooks';
 import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
+import { englishSignMessages, formatMessage, type SignMessages } from '../i18n/toolMessages';
 import dialogStyles from './Dialog.module.css';
 import styles from './UndoHistoryModal.module.css';
 
@@ -19,7 +20,8 @@ export default function UndoHistoryModal({
   actionHistory,
   undoSelection,
   setUndoSelection,
-  onRevertSelected
+  onRevertSelected,
+  messages,
 }: {
   open: boolean;
   onClose: () => void;
@@ -27,7 +29,12 @@ export default function UndoHistoryModal({
   undoSelection: Set<string>;
   setUndoSelection: (s: Set<string>) => void;
   onRevertSelected: () => void;
+  /** LOC-16 stage 2-5: optional and English-default, same shape as
+   * SignToolbar.tsx's `messages` prop, so every existing (English) caller of
+   * this dialog (Redact included) is unaffected. */
+  messages?: Partial<SignMessages>;
 }) {
+  const t: SignMessages = { ...englishSignMessages, ...messages };
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   useEffect(() => {
@@ -46,8 +53,8 @@ export default function UndoHistoryModal({
       aria-labelledby="undo-dialog-title"
     >
       <div className={dialogStyles.header}>
-        <h3 id="undo-dialog-title">Undo changes</h3>
-        <button type="button" className={dialogStyles.close} onClick={onClose} aria-label="Close dialog">
+        <h3 id="undo-dialog-title">{t.undoHistoryTitle}</h3>
+        <button type="button" className={dialogStyles.close} onClick={onClose} aria-label={t.closeDialogLabel}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M4 4l8 8M12 4l-8 8" />
           </svg>
@@ -74,7 +81,7 @@ export default function UndoHistoryModal({
                 <div className={styles['undo-history-details']}>
                   <span className={styles['undo-history-desc']}>{action.description}</span>
                   <span className={styles['undo-history-time']}>{time}</span>
-                  <span className={styles['undo-history-page']}>Page {action.pageIndex + 1}</span>
+                  <span className={styles['undo-history-page']}>{formatMessage(t.pageLabel, { number: action.pageIndex + 1 })}</span>
                 </div>
               </label>
             );
@@ -89,7 +96,7 @@ export default function UndoHistoryModal({
           onClick={onRevertSelected}
           disabled={undoSelection.size === 0}
         >
-          Revert selected
+          {t.revertSelectedLabel}
         </button>
       </div>
     </dialog>

@@ -4,7 +4,7 @@ import { DESIGN_BOX, markGeometry, markPathData } from '../../../editor/registry
 import type { SymbolElement, SymbolMark } from '../../../editor/model/editorModel.ts';
 import type { ElementNodeProps } from '../nodeProps.ts';
 
-export default function SymbolNode({ element, isActive, onResizeStart }: ElementNodeProps<SymbolElement>) {
+export default function SymbolNode({ element, isActive, onResizeStart, messages }: ElementNodeProps<SymbolElement>) {
   // Geometry comes from symbolMarks.ts, which the exporter draws from too. The
   // two used to carry their own copies and had drifted: this cross was a third
   // smaller on screen than the one in the downloaded file.
@@ -36,10 +36,11 @@ export default function SymbolNode({ element, isActive, onResizeStart }: Element
           {renderSymbol()}
         </svg>
       </div>
-      <ElementResizers 
+      <ElementResizers
         element={element}
         isActive={isActive}
         onResizeStart={onResizeStart}
+        messages={messages}
       />
     </>
   );

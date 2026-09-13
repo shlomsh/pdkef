@@ -6,7 +6,7 @@ import {
 import type { LineElement } from '../../../editor/model/editorModel.ts';
 import type { ElementNodeProps, NodeResizeStart } from '../nodeProps.ts';
 
-export default function LineNode({ element, isActive, onResizeStart, handlePointerDown }: ElementNodeProps<LineElement> & {
+export default function LineNode({ element, isActive, onResizeStart, handlePointerDown, messages }: ElementNodeProps<LineElement> & {
   handlePointerDown: (event: MouseEvent | TouchEvent) => void;
   onResizeStart: NodeResizeStart;
 }) {
@@ -36,10 +36,11 @@ export default function LineNode({ element, isActive, onResizeStart, handlePoint
           onTouchStart={handlePointerDown}
         />
       </svg>
-      <ElementResizers 
+      <ElementResizers
         element={element}
         isActive={isActive}
         onResizeStart={onResizeStart}
+        messages={messages}
       />
     </>
   );

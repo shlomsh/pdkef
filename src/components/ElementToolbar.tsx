@@ -7,6 +7,7 @@ import { getEffectiveTextDirection } from '../lib/signHelpers.js';
 import { resolveTypography } from '../editor/text/fonts.js';
 import { combCellCount, isComb, textForCoverage } from '../editor/text/comb.js';
 import { MAX_COMB_CELLS } from '../constants/signGeometry.js';
+import { englishSignMessages, formatMessage, type SignMessages } from '../i18n/toolMessages';
 import styles from './EditorControls.module.css';
 
 export default function ElementToolbar({
@@ -15,7 +16,8 @@ export default function ElementToolbar({
   onPreviewFont,
   onPreviewFontEnd,
   onClone,
-  onDelete
+  onDelete,
+  messages,
 }: {
   element: any;
   onChange: (changes: any) => void;
@@ -23,7 +25,12 @@ export default function ElementToolbar({
   onPreviewFontEnd?: () => void;
   onClone: (...args: any[]) => void;
   onDelete: (...args: any[]) => void;
+  /** LOC-16 stage 2-5: optional and English-default, same shape as
+   * SignToolbar.tsx's `messages` prop. Shared with Redact (RedactBox.tsx),
+   * which never passes it, so its English rendering is unaffected. */
+  messages?: Partial<SignMessages>;
 }) {
+  const t: SignMessages = { ...englishSignMessages, ...messages };
   // A font-size change is the "done aligning, back to normal typing" signal
   // that turns comb off (see useElementResize.js for the drag-gesture side of
   // the same rule) - width is what makes a text element a comb at all (see
@@ -93,7 +100,7 @@ export default function ElementToolbar({
             type="button"
             className={buttonClass()}
             onClick={() => setFontSize(Math.max(6, (element.fontSize || 12) - 1))}
-            title="Decrease font size"
+            title={t.decreaseFontSizeTitle}
           >
             A-
           </button>
@@ -101,7 +108,7 @@ export default function ElementToolbar({
             type="button"
             className={buttonClass()}
             onClick={() => setFontSize(Math.min(72, (element.fontSize || 12) + 1))}
-            title="Increase font size"
+            title={t.increaseFontSizeTitle}
           >
             A+
           </button>
@@ -111,22 +118,22 @@ export default function ElementToolbar({
             className={buttonClass(boldActive)}
             disabled={!canBold}
             onClick={() => onChange({ fontWeight: currentWeight === 'bold' ? 'normal' : 'bold' })}
-            title={canBold ? 'Bold' : `${effectiveFamily} has no bold version`}
+            title={canBold ? t.boldLabel : formatMessage(t.boldUnavailableTemplate, { family: effectiveFamily ?? '' })}
             aria-describedby={canBold ? undefined : boldReasonId}
           >
             <b>B</b>
-            {!canBold && <span id={boldReasonId} className="sr-only">{effectiveFamily} has no bold version</span>}
+            {!canBold && <span id={boldReasonId} className="sr-only">{formatMessage(t.boldUnavailableTemplate, { family: effectiveFamily ?? '' })}</span>}
           </button>
           <button
             type="button"
             className={buttonClass(italicActive)}
             disabled={!canItalic}
             onClick={() => onChange({ fontStyle: currentStyle === 'italic' ? 'normal' : 'italic' })}
-            title={canItalic ? 'Italic' : `${effectiveFamily} has no italic version`}
+            title={canItalic ? t.italicLabel : formatMessage(t.italicUnavailableTemplate, { family: effectiveFamily ?? '' })}
             aria-describedby={canItalic ? undefined : italicReasonId}
           >
             <i>I</i>
-            {!canItalic && <span id={italicReasonId} className="sr-only">{effectiveFamily} has no italic version</span>}
+            {!canItalic && <span id={italicReasonId} className="sr-only">{formatMessage(t.italicUnavailableTemplate, { family: effectiveFamily ?? '' })}</span>}
           </button>
           <div className={styles.divider} />
           <button
@@ -137,8 +144,8 @@ export default function ElementToolbar({
             // users.
             className={buttonClass()}
             onClick={() => onChange({ textDirection: textDirection === 'rtl' ? 'ltr' : 'rtl' })}
-            title={textDirection === 'rtl' ? 'Right-to-left text (Hebrew/Arabic)' : 'Left-to-right text'}
-            aria-label={textDirection === 'rtl' ? 'Text direction: right to left' : 'Text direction: left to right'}
+            title={textDirection === 'rtl' ? t.rtlTextTitle : t.ltrTextTitle}
+            aria-label={textDirection === 'rtl' ? t.directionRtlAria : t.directionLtrAria}
           >
             {textDirection === 'rtl' ? (
               <PilcrowLeft size={14} strokeWidth={2.5} />
@@ -153,7 +160,7 @@ export default function ElementToolbar({
                 type="button"
                 className={buttonClass()}
                 onClick={() => onChange({ combCells: Math.max(1, combCellCount(element) - 1) })}
-                title="One box fewer"
+                title={t.oneBoxFewerTitle}
               >
                 −
               </button>
@@ -164,7 +171,7 @@ export default function ElementToolbar({
                 // right whenever the field has one box per character. Clicking
                 // the readout gives that back after a manual override.
                 onClick={() => onChange({ combCells: 0 })}
-                title={element.combCells ? 'Boxes, fixed. Click to follow the text again' : 'Boxes, following the text'}
+                title={element.combCells ? t.boxesFixedTitle : t.boxesFollowingTitle}
               >
                 {combCellCount(element)}
               </button>
@@ -172,7 +179,7 @@ export default function ElementToolbar({
                 type="button"
                 className={buttonClass()}
                 onClick={() => onChange({ combCells: Math.min(MAX_COMB_CELLS, combCellCount(element) + 1) })}
-                title="One box more"
+                title={t.oneBoxMoreTitle}
               >
                 +
               </button>
@@ -182,7 +189,7 @@ export default function ElementToolbar({
           <ColorPickerMenu
             value={element.color}
             onChange={(color: string) => onChange({ color })}
-            title="Text color"
+            title={t.textColorTitle}
             defaultColor="#000000"
           />
           <div className={styles.divider} />
@@ -194,7 +201,7 @@ export default function ElementToolbar({
             type="button"
             className={buttonClass((element.mark || 'check') === 'check')}
             onClick={() => onChange({ mark: 'check' })}
-            title="Check mark"
+            title={t.checkMarkTitle}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12" />
@@ -204,7 +211,7 @@ export default function ElementToolbar({
             type="button"
             className={buttonClass(element.mark === 'x')}
             onClick={() => onChange({ mark: 'x' })}
-            title="X mark"
+            title={t.xMarkTitle}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
               <line x1="5" y1="5" x2="19" y2="19" />
@@ -215,7 +222,7 @@ export default function ElementToolbar({
             type="button"
             className={buttonClass(element.mark === 'dot')}
             onClick={() => onChange({ mark: 'dot' })}
-            title="Dot mark"
+            title={t.dotMarkTitle}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
               <circle cx="12" cy="12" r="7" />
@@ -225,7 +232,7 @@ export default function ElementToolbar({
           <ColorPickerMenu
             value={element.color}
             onChange={(color: string) => onChange({ color })}
-            title="Checkbox color"
+            title={t.checkboxColorTitle}
             defaultColor="#1463ff"
           />
           <div className={styles.divider} />
@@ -243,7 +250,7 @@ export default function ElementToolbar({
                 onChange({ type: 'ellipse' });
               }
             }}
-            title="Ellipse"
+            title={t.ellipseLabel}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <ellipse cx="12" cy="12" rx="10" ry="7" />
@@ -259,7 +266,7 @@ export default function ElementToolbar({
                 onChange({ type: 'rectangle' });
               }
             }}
-            title="Rectangle"
+            title={t.rectangleLabel}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <rect x="3" y="6" width="18" height="12" rx="2" />
@@ -273,7 +280,7 @@ export default function ElementToolbar({
                 onChange({ type: 'line', x1: element.left, y1: element.top + (element.height || 6)/2, x2: element.left + (element.width || 12), y2: element.top + (element.height || 6)/2 });
               }
             }}
-            title="Line"
+            title={t.lineLabel}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <line x1="4" y1="20" x2="20" y2="4" />
@@ -283,12 +290,12 @@ export default function ElementToolbar({
           <ThicknessPickerMenu
             value={element.strokeWidth}
             onChange={(strokeWidth: number) => onChange({ strokeWidth })}
-            title="Line thickness"
+            title={t.lineThicknessTitle}
           />
           <ColorPickerMenu
             value={element.color}
             onChange={(color: string) => onChange({ color })}
-            title="Shape color"
+            title={t.shapeColorTitle}
             defaultColor="#1463ff"
           />
           <div className={styles.divider} />
@@ -299,7 +306,7 @@ export default function ElementToolbar({
           <ColorPickerMenu
             value={element.color}
             onChange={(color: string) => onChange({ color })}
-            title="Signature color"
+            title={t.signatureColorTitle}
             defaultColor="#000000"
           />
           <div className={styles.divider} />
@@ -310,7 +317,7 @@ export default function ElementToolbar({
           <ColorPickerMenu
             value={element.color}
             onChange={(color: string) => onChange({ color })}
-            title="Whiteout color"
+            title={t.whiteoutColorTitle}
             defaultColor="#ffffff"
           />
           <div className={styles.divider} />
@@ -328,7 +335,7 @@ export default function ElementToolbar({
             top: Math.min(90, element.top + 4)
           });
         }}
-        title="Duplicate element"
+        title={t.duplicateElementTitle}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
@@ -339,7 +346,7 @@ export default function ElementToolbar({
         type="button"
         className={buttonClass(false, true)}
         onClick={onDelete}
-        title="Delete element"
+        title={t.deleteElementTitle}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <polyline points="3 6 5 6 21 6" />

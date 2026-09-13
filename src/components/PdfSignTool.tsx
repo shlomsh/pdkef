@@ -9,7 +9,7 @@ import type {
 } from '../editor/model/editorModel.ts';
 import type { SavedSignature } from '../editor/model/savedSignature.ts';
 import BasePdfTool from './BasePdfTool.tsx';
-import { englishShellMessages, englishSignMessages, type ShellMessages, type SignMessages } from '../i18n/toolMessages';
+import { englishShellMessages, englishSignMessages, formatMessage, signElementTypeLabel, type ShellMessages, type SignMessages } from '../i18n/toolMessages';
 import { SignToolProvider, useSignTool } from './SignTool/SignToolContext.tsx';
 import { SignDefaultsContext } from './SignTool/SignDefaultsContext.tsx';
 import { SavedSignaturesContext } from './SignTool/SavedSignaturesContext.tsx';
@@ -59,22 +59,22 @@ import type { PendingSignaturePlacement } from '../lib/useWorkspaceGestures.ts';
 // Recoverable export failures keep the editor open. Name unsupported text
 // precisely; other failures explain that the user can retry without losing
 // their edits. Document-load errors use the workspace's separate default copy.
-function describeSignFailure(err: unknown): string {
+function describeSignFailure(err: unknown, t: SignMessages): string {
   if (err instanceof Error && err.name === 'UnrepresentableTextError') {
     // Worded by SignTool/textMessages.ts, the same UI message module the
     // while-typing warning
     // reads from, so the heads-up and the refusal can never name different
     // characters or point at different pages.
     const coverageError = err as Error & { characters: string[]; pageNumbers?: number[] };
-    return describeUnrepresentableText(coverageError.characters, coverageError.pageNumbers ?? [], { saving: true });
+    return describeUnrepresentableText(coverageError.characters, coverageError.pageNumbers ?? [], { saving: true }, t);
   }
   if (err instanceof Error && err.name === 'FontUnavailableError') {
     const family = (err as Error & { family?: string }).family;
     return family && family !== 'Arimo'
-      ? `${family} is not ready on this device yet. Connect to the internet so it can finish downloading, then try again.`
-      : 'The app’s default font is not available on this device. Connect to the internet, reload the app, and try again.';
+      ? formatMessage(t.fontNotReadyTemplate, { family })
+      : t.defaultFontUnavailable;
   }
-  return 'Could not export the PDF. Your edits are still here. Try again.';
+  return t.exportGenericFailure;
 }
 
 function isTextDirection(value: string): value is TextDirection {
@@ -243,7 +243,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     activeExportRequestRef.current = null;
     setStatus('editing');
     setProgress(0);
-    setAnnouncement('Your edits changed while the PDF was being prepared. Download again to create an up-to-date file.');
+    setAnnouncement(t.editsChangedWhilePreparing);
   }, [file, documentRevision, clearPrepared]);
 
   // Escape precedence while the undo history is open in full screen: close the
@@ -303,7 +303,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     });
     setUndoSelection(new Set());
     setUndoModalOpen(false);
-    setAnnouncement('Reverted selected actions.');
+    setAnnouncement(t.revertedSelectedActions);
   };
 
   // Cmd/Ctrl+Z: undo the single most recently logged action (see actionHistory.ts).
@@ -317,7 +317,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       newSet.delete(lastAction.id);
       return newSet;
     });
-    setAnnouncement(`Undid: ${lastAction.description}`);
+    setAnnouncement(formatMessage(t.undidActionTemplate, { description: lastAction.description }));
   };
   useUndoShortcut(undoLast);
 
@@ -493,8 +493,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     }
     setSignatureToDelete(null);
     setAnnouncement(persisted
-      ? 'Signature deleted.'
-      : 'Signature deleted for this session, but the browser could not save that change.');
+      ? t.signatureDeleted
+      : t.signatureDeletedNotSaved);
   };
 
   // Core loader shared by fresh file picks and draft restore. `bytes` is the source
@@ -508,6 +508,12 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     const presetElements = preset.elements;
     await loadEditorPdf({
       file: selected, bytes, restored, loadIdRef, loadControllerRef, clearDraft, setStatus, setAnnouncement,
+      messages: {
+        timeout: t.pdfLoadTimeout,
+        loadFailed: t.pdfLoadFailedGeneric,
+        restoredTemplate: t.pdfRestoredTemplate,
+        loadedTemplate: t.pdfLoadedTemplate,
+      },
       initialize: () => {
         setFile(selected);
         setPdfDocument(null);
@@ -552,7 +558,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     const pdfs = incoming.filter((f) => f.type === 'application/pdf');
 
     if (pdfs.length === 0) {
-      setAnnouncement('Please select a valid PDF file.');
+      setAnnouncement(t.invalidPdfFile);
       return;
     }
 
@@ -646,8 +652,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     
     dispatch({ type: 'ADD_ELEMENT', payload: newEl });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
-    logAction('add', 'ADD_SIGNATURE', pageIdx, 'Added signature', [captureAddedElement(newEl, elements.length)]);
-    setAnnouncement('Placed signature on page.');
+    logAction('add', 'ADD_SIGNATURE', pageIdx, t.addedSignatureDescription, [captureAddedElement(newEl, elements.length)]);
+    setAnnouncement(t.placedSignatureOnPage);
   };
 
   // Add signature element from modal
@@ -664,7 +670,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     setDialogOpen(false);
     setTempPlacement(null);
     if (!persisted) {
-      setAnnouncement('Signature placed, but the browser could not save it for your next visit.');
+      setAnnouncement(t.signaturePlacedNotSaved);
     }
   };
 
@@ -674,8 +680,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     const snapshots = captureElementSnapshots(elements, (element) => element.id === id);
     dispatch({ type: 'DELETE_ELEMENT', payload: id });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
-    if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, `Deleted ${el.type}`, snapshots);
-    setAnnouncement('Removed element.');
+    if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, formatMessage(t.deletedElementDescriptionTemplate, { label: signElementTypeLabel(t, el.type) }), snapshots);
+    setAnnouncement(t.removedElement);
   };
 
   // Global keyboard shortcuts (Escape, Undo, Delete)
@@ -689,7 +695,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         if (editingElementId) {
           dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: null });
           (document.activeElement as HTMLElement | null)?.blur();
-          setAnnouncement('Finished editing. Press Backspace to delete this box.');
+          setAnnouncement(t.finishedEditingHint);
           return;
         }
         dispatch({ type: 'SET_TOOL', payload: null });
@@ -747,7 +753,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
           e.clipboardData.setData('text/plain', textRepresentation);
         }
         e.preventDefault();
-        setAnnouncement('Copied annotation element.');
+        setAnnouncement(t.copiedElement);
       }
     };
 
@@ -780,8 +786,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
 
       dispatch({ type: 'ADD_ELEMENT', payload: clone });
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
-      logAction('add', 'DUPLICATE_ELEMENT', original.pageIndex, `Duplicated ${original.type}`, [captureAddedElement(clone, elements.length)]);
-      setAnnouncement('Pasted cloned element.');
+      logAction('add', 'DUPLICATE_ELEMENT', original.pageIndex, formatMessage(t.duplicatedElementDescriptionTemplate, { label: signElementTypeLabel(t, original.type) }), [captureAddedElement(clone, elements.length)]);
+      setAnnouncement(t.pastedElement);
     };
 
     window.addEventListener('copy', handleCopy);
@@ -816,7 +822,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       setErrorDetail(null);
       setStatus('signing');
       setProgress(0);
-      setAnnouncement('Writing signatures and text layers into PDF...');
+      setAnnouncement(t.writingSignaturesIntoPdf);
       reportToolLifecycleEvent('tool_operation_started', 'sign');
     }
     const exportStartedAt = performance.now();
@@ -849,9 +855,9 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       reportToolLifecycleEvent('tool_operation_failed', 'sign');
       console.error(err);
       setStatus('editing');
-      const detail = describeSignFailure(err);
+      const detail = describeSignFailure(err, t);
       setErrorDetail(detail);
-      setAnnouncement(`Signing stopped. ${detail}`);
+      setAnnouncement(`${t.signingStoppedLabel} ${detail}`);
     }
   };
 
@@ -862,38 +868,38 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       // asynchronous, so retain the File and let the next tap open the
       // native share sheet instead of risking a browser-blocked request.
       setStatus('editing');
-      setAnnouncement('Your signed PDF is ready to share.');
+      setAnnouncement(t.signedPdfReadyToShare);
       return;
     }
 
     download(signedBlob, filename);
     setStatus('editing');
-    setAnnouncement('PDF signed successfully. Download started.');
+    setAnnouncement(t.pdfSignedDownloadStarted);
   });
 
   const handleDownloadPdf = () => {
     setErrorDetail(null);
     if (downloadPrepared()) {
-      setAnnouncement('Download started.');
+      setAnnouncement(t.downloadStarted);
       return;
     }
 
     runExport((signedBlob, filename) => {
       download(signedBlob, filename);
       setStatus('editing');
-      setAnnouncement('PDF signed successfully. Download started.');
+      setAnnouncement(t.pdfSignedDownloadStarted);
     });
   };
 
   const handleSharePdf = async () => {
     const result = await sharePrepared();
     if (result.status === 'shared') {
-      setAnnouncement('PDF signed successfully.');
+      setAnnouncement(t.pdfSignedSuccessfully);
     } else if (result.status === 'canceled') {
-      setAnnouncement('Sharing canceled. Your signed PDF is still ready to share.');
+      setAnnouncement(t.sharingCanceledStillReady);
     } else if (result.status === 'error') {
       console.error(result.error);
-      setAnnouncement('Could not open the share sheet. Please try again.');
+      setAnnouncement(t.shareOpenFailed);
     }
   };
 
@@ -999,6 +1005,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
           setTempPlacement(null);
         }}
         onSaveSignature={handleAddSignatureElement}
+        messages={messages}
       />
 
       <UndoHistoryModal
@@ -1008,23 +1015,23 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         undoSelection={undoSelection}
         setUndoSelection={setUndoSelection}
         onRevertSelected={handleRevertSelected}
+        messages={messages}
       />
 
       <ConfirmDialog
         open={!!signatureToDelete}
         titleId="confirm-delete-title"
-        title="Delete signature?"
-        confirmLabel="Delete signature"
-        // LOC-09 stage 1, one-line fix: title/body/confirm stay English for a
-        // later stage, but Cancel/Close already have a reviewed translation on
-        // the shared shell catalogue (ShellMessages) - no reason to render the
-        // English default underneath a Hebrew page.
+        title={t.deleteSignatureConfirmTitle}
+        confirmLabel={t.deleteSignatureLabel}
+        // LOC-16: Cancel/Close read from the shared shell catalogue
+        // (ShellMessages), same as before - title/confirm/body now read from
+        // SignMessages instead of staying hardcoded English.
         cancelLabel={shellMessages?.cancel}
         closeLabel={shellMessages?.closeDialog}
         onCancel={() => setSignatureToDelete(null)}
         onConfirm={proceedDeleteSignature}
       >
-        Are you sure you want to delete this saved signature? This action cannot be undone.
+        {t.deleteSignatureConfirmBody}
       </ConfirmDialog>
 
       <p className="sr-only" role="status" aria-live="polite">

@@ -3,7 +3,7 @@ import { DEFAULT_STROKE_WIDTH } from '../../../constants/signGeometry.js';
 import type { EllipseElement, RectangleElement } from '../../../editor/model/editorModel.ts';
 import type { ElementNodeProps } from '../nodeProps.ts';
 
-export default function ShapeNode({ element, isActive, onResizeStart }: ElementNodeProps<RectangleElement | EllipseElement>) {
+export default function ShapeNode({ element, isActive, onResizeStart, messages }: ElementNodeProps<RectangleElement | EllipseElement>) {
   const actualType = element.type;
   return (
     <>
@@ -30,10 +30,11 @@ export default function ShapeNode({ element, isActive, onResizeStart }: ElementN
           />
         )}
       </svg>
-      <ElementResizers 
+      <ElementResizers
         element={element}
         isActive={isActive}
         onResizeStart={onResizeStart}
+        messages={messages}
       />
     </>
   );

@@ -1,28 +1,47 @@
 /**
- * English copy for text-policy facts. Keeping this at the component boundary
- * means editor/text can stay locale-neutral and this module can become an
- * i18n catalog adapter without changing policy or export behavior.
+ * English-default copy for text-policy facts, LOC-16 stage 2-5: every
+ * function below now takes an optional trailing `t` (a merged
+ * `SignMessages`, same shape every other Sign component takes as `messages`)
+ * and defaults to `englishSignMessages` when omitted, so every existing
+ * caller (including the tests that call these positionally with no locale)
+ * keeps producing byte-identical English output. TextNode.tsx and
+ * PdfSignTool.tsx pass their own resolved `t` through so a Hebrew page gets
+ * Hebrew text-policy sentences too.
  */
+import { englishSignMessages, formatMessage, type SignMessages } from '../../i18n/toolMessages';
 
-/** Bounded, direction-isolated text excerpts for English UI sentences. */
+/** Bounded, direction-isolated text excerpts for UI sentences - script-agnostic, so this needs no locale parameter. */
 export function quoteText(text: string) {
   const chars = [...text.trim()];
-  return `“\u2068${chars.slice(0, 36).join('')}${chars.length > 36 ? '…' : ''}\u2069”`;
+  return `“⁨${chars.slice(0, 36).join('')}${chars.length > 36 ? '…' : ''}⁩”`;
 }
 
-export function describeFontSubstitution({ requested, family, missing }: { requested: string; family: string; missing: string[] }) {
+export function describeFontSubstitution(
+  { requested, family, missing }: { requested: string; family: string; missing: string[] },
+  t: SignMessages = englishSignMessages,
+) {
   if (family === requested) return '';
-  return `${requested} has no match for: ${missing.join(', ')}, so this text box is using ${family} instead. ${family} is what will be embedded in your download.`;
+  return formatMessage(t.fontSubstitutionTemplate, { requested, family, missing: missing.join(', ') });
 }
 
-export function describeUnrepresentableText(characters: string[], pageNumbers: number[] = [], { saving = false }: { saving?: boolean } = {}) {
-  const where = pageNumbers.length === 0 ? ''
-    : pageNumbers.length === 1 ? ` on page ${pageNumbers[0]}`
-      : ` on pages ${pageNumbers.slice(0, -1).join(', ')} and ${pageNumbers[pageNumbers.length - 1]}`;
+function wherePagesClause(pageNumbers: number[], t: SignMessages) {
+  if (pageNumbers.length === 0) return '';
+  if (pageNumbers.length === 1) return formatMessage(t.wherePageOneTemplate, { number: pageNumbers[0] });
+  const list = `${pageNumbers.slice(0, -1).join(', ')}${t.pageListAndWord}${pageNumbers[pageNumbers.length - 1]}`;
+  return formatMessage(t.wherePagesManyTemplate, { list });
+}
+
+export function describeUnrepresentableText(
+  characters: string[],
+  pageNumbers: number[] = [],
+  { saving = false }: { saving?: boolean } = {},
+  t: SignMessages = englishSignMessages,
+) {
+  const where = wherePagesClause(pageNumbers, t);
   const list = characters.join(', ');
   return saving
-    ? `Some text${where} needs attention: ${list}. Select its text box for font suggestions. You may need separate text boxes for different fonts, or to replace these characters, then save again.`
-    : `Some characters${where} need a different font: ${list}. Select the marked text box for help choosing fonts or separating the text into boxes.`;
+    ? formatMessage(t.unrepresentableSavingTemplate, { where, list })
+    : formatMessage(t.unrepresentableTypingTemplate, { where, list });
 }
 
 export interface TextFontSupportMessageInput {
@@ -33,16 +52,19 @@ export interface TextFontSupportMessageInput {
   pieces: Array<{ text: string; family: string | null }>;
 }
 
-export function describeTextFontSupport(support: TextFontSupportMessageInput) {
+export function describeTextFontSupport(support: TextFontSupportMessageInput, t: SignMessages = englishSignMessages) {
   if (support.status === 'supported') return '';
   if (support.status === 'fallback') {
-    return 'A fallback font is in use for this text. Choose another font in the font menu.';
+    return t.fallbackFontNotice;
   }
   const unavailable = support.pieces.filter((piece) => !piece.family);
   if (unavailable.length) {
-    return `No available font includes ${quoteText(unavailable.map((piece) => piece.text).join(''))}. Please replace or remove those characters; you can keep the rest of your text.`;
+    return formatMessage(t.noFontForCharactersTemplate, { text: quoteText(unavailable.map((piece) => piece.text).join('')) });
   }
   const examples = support.pieces.slice(0, 3)
-    .map((piece) => `${quoteText(piece.text)} in ${piece.family}`).join('; ');
-  return `No single available font includes all this text. Keep the text by placing the parts in separate text boxes: ${examples}${support.pieces.length > 3 ? '; continue with the remaining parts' : ''}.`;
+    .map((piece) => formatMessage(t.pieceInFontTemplate, { text: quoteText(piece.text), family: piece.family ?? '' })).join('; ');
+  return formatMessage(t.noSingleFontTemplate, {
+    examples,
+    more: support.pieces.length > 3 ? t.noSingleFontMoreClause : '',
+  });
 }
