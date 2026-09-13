@@ -3,12 +3,12 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfSecurityTool from './PdfSecurityTool.tsx';
-import * as securityLib from '../lib/security.js';
-import pdfToolStyles from '../shell/PdfTool.module.css';
-import { mockNativeFileShare } from '../test/mockFileShare.js';
-import { setInputFiles } from '../test/setInputFiles.js';
+import * as securityLib from './security.js';
+import pdfToolStyles from '../../shell/PdfTool.module.css';
+import { mockNativeFileShare } from '../../test/mockFileShare.js';
+import { setInputFiles } from '../../test/setInputFiles.js';
 
-vi.mock('../lib/security.js', () => ({
+vi.mock('./security.js', () => ({
   isPdfEncrypted: vi.fn(),
   unlockPdf: vi.fn(),
   protectPdf: vi.fn(),
