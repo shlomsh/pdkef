@@ -29,7 +29,7 @@ import '../styles/homePage.css';
 
 import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, HelpCircle, ShieldCheck, InfinityIcon, Lock, Code2, Type, PenLine, Trash2 } from 'lucide-preact';
 import { tools } from '../data/tools.js';
-import FileDropzone from '../components/FileDropzone.tsx';
+import FileDropzone from '../shell/FileDropzone.tsx';
 import { documentationShellMessages, type DocumentationShellMessages } from '../i18n/documentationMessages';
 import { getFileDropzoneMessages, getRecentFilesMessages } from '../i18n/toolMessages';
 import { getLocalizedHomeContext } from '../i18n/localizedHome';
@@ -461,7 +461,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
   </div>
     </div>
   </main>
-  <script src="../components/homeWorkspace.ts"></script>
+  <script src="../shell/homeWorkspace.ts"></script>
   {locale !== 'en' && <LocalePackRequest locale={locale as any} />}
 </BaseLayout>
 

@@ -7,7 +7,7 @@ import { getEditorPreference, setEditorPreference, subscribeToEditorPreference }
 import { encodeSignatureCanvas } from '../editor/workspace/signatureImagePolicy.ts';
 import { englishSignMessages, type SignMessages } from '../i18n/toolMessages';
 import styles from './SignatureDialog.module.css';
-import dialogStyles from './Dialog.module.css';
+import dialogStyles from '../shell/Dialog.module.css';
 
 export default function SignatureDialog({
   isOpen,

@@ -7,9 +7,9 @@ import * as compressLib from '../lib/compress.js';
 import * as compressImageLib from '../lib/compressImage.js';
 import * as thumbnailsLib from '../lib/thumbnails.js';
 import styles from './PdfCompressTool.module.css';
-import dropzoneStyles from './Dropzone.module.css';
-import toolShellStyles from './ToolShell.module.css';
-import pdfToolStyles from './PdfTool.module.css';
+import dropzoneStyles from '../shell/Dropzone.module.css';
+import toolShellStyles from '../shell/ToolShell.module.css';
+import pdfToolStyles from '../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 

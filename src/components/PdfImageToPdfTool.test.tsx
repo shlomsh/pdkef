@@ -5,10 +5,10 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import Sortable from 'sortablejs';
 import PdfImageToPdfTool from './PdfImageToPdfTool.tsx';
 import * as imageToPdfLib from '../lib/imageToPdf.js';
-import styles from './FileList.module.css';
-import dropzoneStyles from './Dropzone.module.css';
-import pdfToolStyles from './PdfTool.module.css';
-import toolShellStyles from './ToolShell.module.css';
+import styles from '../shell/FileList.module.css';
+import dropzoneStyles from '../shell/Dropzone.module.css';
+import pdfToolStyles from '../shell/PdfTool.module.css';
+import toolShellStyles from '../shell/ToolShell.module.css';
 import { mockNativeFileShare } from '../test/mockFileShare.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 

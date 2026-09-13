@@ -1,12 +1,12 @@
 import { useRef, useState } from 'preact/hooks';
 import { isPdfEncrypted, protectPdf, unlockPdf, WrongPasswordError } from '../lib/security.js';
 import { useObjectUrls } from '../lib/useObjectUrls.js';
-import BasePdfTool from './BasePdfTool.tsx';
+import BasePdfTool from '../shell/BasePdfTool.tsx';
 import styles from './PdfSecurityTool.module.css';
-import pdfToolStyles from './PdfTool.module.css';
-import PdfShareButton from './PdfShareButton.tsx';
-import ErrorMessage from './ErrorMessage.tsx';
-import DownloadButton from './DownloadButton.tsx';
+import pdfToolStyles from '../shell/PdfTool.module.css';
+import PdfShareButton from '../shell/PdfShareButton.tsx';
+import ErrorMessage from '../shell/ErrorMessage.tsx';
+import DownloadButton from '../shell/DownloadButton.tsx';
 import { usePdfShare } from '../lib/usePdfShare.js';
 import { describeFile } from '../lib/format.js';
 

@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import Popover from './Popover.tsx';
+import Popover from '../shell/Popover.tsx';
 import styles from './EditorControls.module.css';
 
 const THICKNESS_OPTIONS = [1, 2, 3, 5, 8, 12, 16];

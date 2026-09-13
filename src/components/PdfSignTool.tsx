@@ -8,7 +8,7 @@ import type {
   TextDirection,
 } from '../editor/model/editorModel.ts';
 import type { SavedSignature } from '../editor/model/savedSignature.ts';
-import BasePdfTool from './BasePdfTool.tsx';
+import BasePdfTool from '../shell/BasePdfTool.tsx';
 import { englishShellMessages, englishSignMessages, formatMessage, signElementTypeLabel, type ShellMessages, type SignMessages } from '../i18n/toolMessages';
 import { SignToolProvider, useSignTool } from './SignTool/SignToolContext.tsx';
 import { SignDefaultsContext } from './SignTool/SignDefaultsContext.tsx';
@@ -51,7 +51,7 @@ import {
   vercelMaintenanceTransport,
 } from '../lib/maintenanceTelemetry.ts';
 import UndoHistoryModal from './UndoHistoryModal.tsx';
-import ConfirmDialog from './ConfirmDialog.tsx';
+import ConfirmDialog from '../shell/ConfirmDialog.tsx';
 import { describeFile } from '../lib/format.js';
 import useCurrentPage from '../lib/useCurrentPage.js';
 import type { PendingSignaturePlacement } from '../lib/useWorkspaceGestures.ts';
