@@ -4,7 +4,7 @@
 // `vitest run <dirs>`, `playwright test <dirs>`, and whether the 27 font
 // screening guards apply. Nx itself stays the oracle, never the executor (see
 // docs/nx-affected-ci.md): one `vitest run` and one `playwright test` per
-// shard, filtered by the paths this script prints, not 17 separate
+// shard, filtered by the paths this script prints, not 18 separate
 // `nx run <project>:test` invocations.
 //
 // Reuses scripts/change-scope.mjs's base resolution and changed-file list
@@ -21,8 +21,9 @@
 //     acceptance checks in ARCH-20's own verification).
 //
 //   node scripts/affected-scope.mjs --summary
-//     Same resolution, printed as a short Markdown block for
-//     $GITHUB_STEP_SUMMARY instead of KEY=value lines.
+//     Same resolution, printed as a short Markdown block instead of KEY=value
+//     lines. In CI the KEY=value form also appends that block to the file
+//     $GITHUB_STEP_SUMMARY names, so one call per job feeds both.
 //
 //   node scripts/affected-scope.mjs --run unit|e2e-product|e2e-perf|fonts
 //     Resolves the same way, then actually runs the corresponding command,
@@ -55,7 +56,7 @@
 //      silently defeat the narrowing) when site-e2e is affected; fonts is
 //      whether the `fonts` project is affected.
 
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -225,14 +226,17 @@ function printOutputs(scope) {
   console.log(`fonts=${scope.fonts}`);
 }
 
-function printSummary(scope) {
-  console.log('### Affected scope (ARCH-20)');
-  console.log('');
-  console.log(`- **everything**: ${scope.everything} (${scope.reason})`);
-  console.log(`- **affected projects**: ${scope.affected.length ? scope.affected.join(', ') : '(none)'}`);
-  console.log(`- **unit_paths**: ${scope.unit_paths || '(full suite)'}`);
-  console.log(`- **e2e_paths**: ${scope.e2e_paths || (scope.everything ? '(full suite)' : '(none)')}`);
-  console.log(`- **fonts**: ${scope.fonts}`);
+function summaryMarkdown(scope) {
+  return [
+    '### Affected scope (ARCH-20)',
+    '',
+    `- **everything**: ${scope.everything} (${scope.reason})`,
+    `- **affected projects**: ${scope.affected.length ? scope.affected.join(', ') : '(none)'}`,
+    `- **unit_paths**: ${scope.unit_paths || '(full suite)'}`,
+    `- **e2e_paths**: ${scope.e2e_paths || (scope.everything ? '(full suite)' : '(none)')}`,
+    `- **fonts**: ${scope.fonts}`,
+    '',
+  ].join('\n');
 }
 
 function runUnit(scope) {
@@ -291,8 +295,12 @@ function main(argv) {
     return 1;
   }
 
-  if (summary) printSummary(scope);
-  else printOutputs(scope);
+  if (summary) {
+    process.stdout.write(summaryMarkdown(scope));
+    return 0;
+  }
+  printOutputs(scope);
+  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryMarkdown(scope));
   return 0;
 }
 
