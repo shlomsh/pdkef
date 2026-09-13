@@ -46,3 +46,4 @@ exists, as the dock already does.
   shared `ConfirmDialog`. Routes come from a `handoffHrefs` prop so a localized page can point inside
   its edition. Unit tests on the hand-off record and the confirmation in `PdfMergeTool.test.tsx`;
   the Compress route in `e2e/merge/merge-handoff.spec.js`. Nothing added to the static surface. Done.
+- Direction A (2026-09-13): Compress it and Sign it (and Share when available) are three equal secondary buttons under the Download element in the rail and in the phone bottom sheet, not underlined footnote links.

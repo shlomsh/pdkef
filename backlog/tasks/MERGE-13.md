@@ -63,3 +63,4 @@ preview and the page count.
   `/merge/` with its Hebrew twin. Tests: `draftStore.test.js` (round trip, order sensitivity, cap),
   `useMergeDraft.test.tsx`, `PdfMergeTool.test.tsx` (restore into the island), `FileDropzone.test.tsx`;
   Playwright `e2e/merge/merge-restore.spec.js` closes the tab and reopens `/merge/`. Done.
+- Direction A (2026-09-13): after a restore the rail shows "Picked up where you left off · Start fresh" for five seconds, then a 13px "Draft saved" chip beside Add files and Clear all (on a phone, at the end of the chip row).

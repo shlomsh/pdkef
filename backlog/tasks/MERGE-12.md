@@ -59,3 +59,4 @@ first month as a fallback, or remove it outright? The plan recommends removing i
   (the 600 ms idle wait plus 400 to 450 ms of merge) on a MacBook, i.e. under the 500 ms target; the
   guard asserts under 1600 ms so a CI runner at half that speed does not flake, and prints the
   measured number. Done.
+- Direction A (2026-09-13): the preparing state is honest on the control itself ("Preparing 18 pages…", aria-busy, render progress) instead of a button labelled Download that could not download yet; a re-prepare after an edit swaps the label without remounting or replaying the check.

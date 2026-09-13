@@ -47,3 +47,4 @@ duplicate nudge from MERGE-07 applies on every route. The pre-merge of MERGE-12 
   path so Merge can still read its insertion index. Unit tests: `dropFiles.test.js`,
   `BasePdfTool.test.tsx` (paste, folder), `PdfMergeTool.test.tsx` (add after edits keeps them);
   the strip drop is `e2e/merge/merge-strip.spec.js`. Done.
+- Direction A (2026-09-13): the add bar is gone; adding is the drag-over overlay anywhere on the page, paste, or the rail's quiet Add files. Dropping onto the grid still inserts at that page position.

@@ -40,3 +40,4 @@ otherwise it explains the browser's own Add to Home Screen path in one clause, i
   `beforeinstallprompt`, the Share / Add to Home Screen clause on iOS, or the browser-menu clause
   elsewhere. Hebrew present. The copy is an AI draft and needs Shlomi's review before deploy. Done
   pending that review.
+- Direction A (2026-09-13): the install line appears once, in the Download element's saved state, not as fine print under a ready button.

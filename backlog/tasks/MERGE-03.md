@@ -52,3 +52,4 @@ Three things about the done state, all visible on the deployed page after any me
   name on the source file's name (`signed_`, `redacted_`, `-compressed`), and `<first> + N more`
   broke that shape. The `outputName` template stays localized, with `{count}` available to a locale
   that wants it; the Hebrew edition keeps the Latin `merged_` as Sign keeps `signed_`.
+- Direction A (2026-09-13): Download is one element in four states at the same size and place: one file ("Add one more PDF to merge" with a real Choose files, never a disabled button), preparing ("Preparing 18 pages…" with render progress and aria-busy; a tap queues the download), ready (full-white "18 pages · 8.8 KB", the check drawn once on the first ready, never replayed), saved (success tint, "download again", the install line once). The same DOM node across states; a Playwright guard asserts it.
