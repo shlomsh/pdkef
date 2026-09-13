@@ -112,9 +112,9 @@ jobs:
     - name: Verify dependency governance wiring
       run: npm run test:dependency-governance
 
-  # The build and every guard that reads dist/. The product e2e suite runs in
-  # the `e2e` job below, against this job's uploaded dist/ artifact; the font
-  # guards have their own job further down.
+  # The build and every guard that reads dist/. The product e2e suite is the
+  # `e2e` job below, which builds again rather than waiting for this job; the
+  # font guards have their own job further down.
   build:
     runs-on: ubuntu-latest
     needs: scope
@@ -150,31 +150,18 @@ jobs:
     - name: Check first-load page weight
       run: npm run test:weight
 
-    # Consumed by the `e2e` job's shards below, so the product e2e runs
-    # against the exact dist checked by CSP, SEO, CSS and weight above rather
-    # than a second, possibly-different build.
-    - name: Upload dist
-      uses: actions/upload-artifact@v5
-      with:
-        name: dist
-        path: dist/
-        retention-days: 1
-
   # The product e2e suite, split into two shards so each pays roughly half
   # the Playwright wall time (QUAL-05). Every spec except the font guards,
-  # which have their own job below. Downloads `build`'s dist/ rather than
-  # rebuilding: `playwright.config.js`'s webServer runs `astro preview`
-  # against dist/ on disk, and every spec that imports from `src/` (the font
-  # parity/shaping guards' corpora, fixtures) reads it from this job's own
-  # checkout, not from the artifact.
+  # which have their own job below. Each shard builds for itself (10s) instead
+  # of waiting for `build` and downloading its dist/: measured on the first
+  # sharded run, that put 60s of `build` in front of a 65s fixed cost per
+  # shard (checkout, npm ci, browser install) and gave back the whole 43s the
+  # split had saved. The build is deterministic for a commit, so the guards in
+  # `build` still vouch for what these specs load.
   e2e:
     runs-on: ubuntu-latest
-    needs: [scope, build]
-    if: >-
-      always() && needs.build.result == 'success' && (
-        needs.scope.result != 'success' ||
-        needs.scope.outputs.docs_only != 'true'
-      )
+    needs: scope
+    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     strategy:
       fail-fast: false
       matrix:
@@ -192,11 +179,8 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Download dist
-      uses: actions/download-artifact@v5
-      with:
-        name: dist
-        path: dist
+    - name: Build
+      run: npm run build
 
     # Not cached here, on purpose. Measured: a cache hit is 5s to restore plus
     # 46s of `install-deps` for webkit's apt libraries, against 38s for this
@@ -206,8 +190,14 @@ jobs:
     - name: Install Playwright browsers
       run: npx playwright install --with-deps chromium webkit
 
+    # One command per project, each sharded, rather than one sharded command
+    # over both: Playwright shards by test count in project order, which put
+    # all 21 webkit tests (3s each, against 1.3s for chromium) in shard 2 and
+    # made it 153s of test time against shard 1's 90s.
     - name: Run Playwright e2e tests (product, shard ${{ matrix.shard }}/2)
-      run: npx playwright test --project=chromium --project=webkit --shard=${{ matrix.shard }}/2
+      run: |
+        npx playwright test --project=chromium --shard=${{ matrix.shard }}/2
+        npx playwright test --project=webkit --shard=${{ matrix.shard }}/2
 
     # The wall-clock budget specs, on one worker so nothing else on the
     # runner is in the measurement (see PERF_BUDGETS in playwright.config.js).
