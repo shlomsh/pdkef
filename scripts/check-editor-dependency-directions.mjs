@@ -205,7 +205,7 @@ function checkProject(projectRoot) {
       });
     }
     if (sourceLayer === 'component-shell'
-      && /\bsrc\/components\/PdfSignTool\.tsx$|\bsrc\/tools\/redact\/PdfRedactTool\.tsx$|\bsrc\/components\/SignTool\//.test(from)
+      && /\bsrc\/tools\/redact\/PdfRedactTool\.tsx$|\bsrc\/tools\/sign\//.test(from)
       && usesBrowserStorage(source)) {
       violations.push({
         from,

@@ -141,7 +141,7 @@ to raise a limit.** Page-weight budgets are budgets, not ratchets.
 
 | Rule file (`.claude/rules/`) | Loads when you read | Headline |
 | --- | --- | --- |
-| `editor.md` | `src/editor/**`, `src/components/SignTool/**`, tool islands, `src/lib/**` | design standard, arming/selection model, toolbar layout, editor hazards |
+| `editor.md` | `src/editor/**`, `src/tools/**`, tool islands, `src/lib/**` | design standard, arming/selection model, toolbar layout, editor hazards |
 | `fonts-and-text.md` | `src/editor/text/**`, `src/lib/*ont*`, `public/fonts/**`, shaping guards | screening protocol, per-script guards, subsetting, the five text stages |
 | `styling.md` | `src/styles/**`, any `.css`, CSS guard scripts | palette, per-family utility sheets, CSS Modules boundary, ratchets |
 | `csp-scripts-pwa.md` | `astro.config.mjs`, `vercel.json`, layouts, `public/sw.js`, `package.json` | CSP layers and incidents, service worker invariants, version pinning |
