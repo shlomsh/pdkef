@@ -47,10 +47,15 @@
 //   4. Otherwise narrow: unit_paths is each affected tool-<name> project's
 //      src/tools/<name>/ plus src/test/ (its two tests walk all of src and
 //      must run on any source change); e2e_paths is each such tool's
-//      src/tools/<name>/e2e/ (only the tools that have one) plus e2e/ when
-//      site-e2e is affected; fonts is whether the `fonts` project is affected.
+//      src/tools/<name>/e2e/ (only the tools that have one) plus site-e2e's
+//      own direct children (e2e/home/, e2e/demo/, ... - never the bare
+//      "e2e/" string: Playwright's CLI path arguments are substring filters
+//      against the whole discovered test list, and "e2e/" is a substring of
+//      every tool's own src/tools/<t>/e2e/*.spec.js path too, which would
+//      silently defeat the narrowing) when site-e2e is affected; fonts is
+//      whether the `fonts` project is affected.
 
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -115,6 +120,30 @@ export function toolNameOf(project) {
   return project.slice('tool-'.length);
 }
 
+// site-e2e's OWN specs: the direct children of e2e/ that are not themselves
+// carved out into another project (today, just e2e/sign/, the `fonts`
+// project). Playwright's CLI path arguments are substring filters against
+// the whole discovered test list, not directory-restriction filters - a bare
+// "e2e/" argument matches "src/tools/sign/e2e/sign-editor.spec.js" too (it
+// contains "e2e/" as a substring), which would silently pull every tool's
+// own e2e/ specs back into a "narrow to site-e2e only" run. Enumerating
+// site-e2e's real direct children sidesteps that entirely. `children` is
+// injectable (an array of {name, isDirectory}) so this needs no real
+// filesystem access to unit-test; `roots` is the same name -> root map
+// ownerOf() uses, so a project newly carved out of e2e/ (like `fonts` was)
+// is excluded automatically, with no second hand-written list to update.
+export function siteE2eOwnPaths(children, roots) {
+  const nestedRoots = [...roots.values()].filter((r) => r.startsWith('e2e/'));
+  const paths = [];
+  for (const entry of children) {
+    if (entry.name === 'project.json') continue;
+    const rel = `e2e/${entry.name}`;
+    if (nestedRoots.some((r) => rel === r || r.startsWith(`${r}/`))) continue;
+    paths.push(entry.isDirectory ? `${rel}/` : rel);
+  }
+  return paths.sort();
+}
+
 // "everything" always means "run the font guards too" - a shared-core or
 // fail-open commit is exactly the kind that should not skip them.
 export function wide(affected, reason) {
@@ -126,7 +155,7 @@ export function wide(affected, reason) {
 // run. No `nx`/`git` call in here - src/lib/affectedScope.test.js exercises
 // this directly with synthetic inputs, the way changeScope.test.js pins
 // scripts/change-scope.mjs's classify() without shelling out to git.
-export function deriveScope({ files, affected, roots, toolE2eExists = () => true }) {
+export function deriveScope({ files, affected, roots, toolE2eExists = () => true, siteE2ePaths = [] }) {
   const unowned = files.filter((f) => !isDocsOnly(f) && !ownerOf(f, roots));
   if (unowned.length > 0) {
     return wide(affected, `unowned files: ${unowned.join(', ')}`);
@@ -141,9 +170,9 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
   const toolProjects = [...affectedSet].filter((p) => p.startsWith('tool-')).sort();
   const unitPaths = [...toolProjects.map((p) => `src/tools/${toolNameOf(p)}/`), 'src/test/'];
   const e2ePaths = toolProjects
-    .map((p) => `src/tools/${toolNameOf(p)}/e2e/`)
-    .filter((p) => toolE2eExists(p));
-  if (affectedSet.has('site-e2e')) e2ePaths.push('e2e/');
+    .filter((p) => toolE2eExists(p))
+    .map((p) => `src/tools/${toolNameOf(p)}/e2e/`);
+  if (affectedSet.has('site-e2e')) e2ePaths.push(...siteE2ePaths);
 
   return {
     everything: false,
@@ -176,11 +205,15 @@ function resolveScope({ explicitBase, explicitHead }) {
     return wide([], `nx error: ${err.message}`);
   }
 
+  const e2eChildren = readdirSync(join(ROOT, 'e2e'), { withFileTypes: true })
+    .map((entry) => ({ name: entry.name, isDirectory: entry.isDirectory() }));
+
   return deriveScope({
     files,
     affected,
     roots,
     toolE2eExists: (project) => existsSync(join(ROOT, `src/tools/${toolNameOf(project)}/e2e/`)),
+    siteE2ePaths: siteE2eOwnPaths(e2eChildren, roots),
   });
 }
 
