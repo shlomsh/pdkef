@@ -260,7 +260,9 @@ function baseName(fileName: string): string {
 // count, no connector, no template, so there is nothing for a locale to
 // phrase differently (see the MERGE_FILE_NAME_PREFIX comment above).
 export function mergedTitle(firstFileName: string): string {
-  const name = baseName(firstFileName) || firstFileName || 'merged';
+  // The derived name goes through the same sanitiser as a typed one, so a
+  // source called "a+b.pdf" never puts a "+" in the merged name either.
+  const name = sanitizeOutputName(baseName(firstFileName)) || 'merged';
   return `${MERGED_FILE_NAME_PREFIX}${name}`;
 }
 
@@ -274,14 +276,20 @@ export function mergedFileName(firstFileName: string): string {
 // rejected outright. Path separators are stripped (they would otherwise let
 // a typed name read like a directory) and control characters (there is no
 // legitimate reason for one in a file name), then the result is trimmed and
-// capped at 120 characters. Deliberately not a filesystem-reserved-character
+// capped at 120 characters. "+" goes too (Shlomi, 2026-09-13): the retired
+// "<first> + N more" template is the one thing the merged name must never
+// read like again, whichever way a "+" got in, so it is dropped and the
+// spaces around it collapse. Deliberately not a filesystem-reserved-character
 // denylist beyond that - ":", "?", "*" and similar survive, since the
 // browser's own download mechanism, not this function, is what turns the
 // string into a real file on disk. Unicode is kept as typed (a Hebrew or
 // Arabic name included); the cap counts code points via Array.from, not
 // UTF-16 length, so it can never split a surrogate pair.
 export function sanitizeOutputName(raw: string): string {
-  const stripped = raw.replace(/[\\/]/g, '').replace(/\p{Cc}/gu, '');
+  const stripped = raw
+    .replace(/[\\/+]/g, '')
+    .replace(/\p{Cc}/gu, '')
+    .replace(/ {2,}/g, ' ');
   const trimmed = stripped.trim();
   const codepoints = Array.from(trimmed);
   return codepoints.length > 120 ? codepoints.slice(0, 120).join('') : trimmed;
