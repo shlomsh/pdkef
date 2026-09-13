@@ -36,8 +36,11 @@ paths:
   - "e2e/tool-*.spec.js"
   - "scripts/check-gesture-golden-rule.js"
   - "scripts/check-editor-dependency-directions.mjs"
+  - "scripts/check-module-boundaries.mjs"
+  - "scripts/module-boundaries-allowlist.json"
   - "docs/E4-headless-editor-core-plan.md"
   - "docs/editor-module-boundaries-plan.md"
+  - "docs/module-boundaries.md"
   - "docs/view-density-control-spec.md"
   - "docs/sign-redact-draft-validation-plan.md"
   - "docs/ux-design-guidelines.md"
@@ -53,15 +56,23 @@ boundary: `styling.md`. Design record for the core: [docs/E4-headless-editor-cor
 Before designing or reviewing any tool's loaded state, read
 [docs/ux-design-guidelines.md](../../docs/ux-design-guidelines.md): the choices settled on Merge (output
 is the centre, one primary element with states, rail row order, undo over confirm, touch, bidi, the
-review method) and the questions to ask of the next tool.
+review method) and the questions to ask of the next tool. The target folder layout for `src/`, the
+dependency rules between tools, shell, editor-ui, editor and lib, and the evidence behind both are in
+[docs/module-boundaries.md](../../docs/module-boundaries.md) (ARCH-15); read it before moving a file
+into or out of `src/editor/`, `src/components/SignTool/` or `src/components/MergeTool/`.
 
 ## Shape of the editor (landed, do not re-migrate)
 
-- `src/editor/` is plain TS with no Preact: the document model (`model/editorModel.ts`, one typed
-  union keyed on the flat `type` discriminant), geometry, the gesture controller
+- `src/editor/` is meant to be plain TS with no Preact: the document model (`model/editorModel.ts`,
+  one typed union keyed on the flat `type` discriminant), geometry, the gesture controller
   (`gestures/controller.ts`), and a per-type registry (`registry/`: render, resize, serialize,
   schema per module; `blackout`, `blur` and `whiteout` are each a module). Preact only renders from
-  state and binds events to the core. Sign and Redact both sit on it.
+  state and binds events to the core. Sign and Redact both sit on it. This is a checked invariant, not
+  just prose: `npm run test:module-boundaries` fails on any new `src/editor/` import of a tool or of
+  `src/components`. It is not fully clean yet: three files leak today (the registry's Preact node
+  renderers, its text-resize CSS Module import, and the workspace draft-persistence bridge), each
+  named in `scripts/module-boundaries-allowlist.json` until ARCH-19 fixes them; the allowlist only
+  ever shrinks, so a fourth leak or a wider one fails the build.
 - Anchor-preserving box resize has exactly one owner, `registry/boxResize.ts`; CI greps that the
   `maxWidthFromRightGrowth`/`maxHeightFromBottomGrowth` names exist in one file.
 - Editor `.sign-*`/`.sig-*` styles live in CSS Modules; `check-editor-global-css.js` holds
