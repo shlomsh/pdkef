@@ -7,9 +7,10 @@ import { readFile } from 'node:fs/promises';
    (PageStrip.module.css) of `<li class="page" data-key data-rotation
    data-skipped>` cells plus `<li class="caption" data-caption-for>` label
    rows. Its per-page controls (rotate, skip) are CSS `visibility: hidden`
-   until the cell is hovered or focused (or, on touch, until "Edit pages" is
-   tapped) - see PageStrip.module.css's `.page:hover .actions,
-   .page:focus-within .actions`. On a pointer-driven project we hover the
+   until the cell is hovered or focused (or, on touch, until that cell is
+   tapped - there is no Edit pages mode) - see PageStrip.module.css's
+   `.page:hover .actions, .page:focus-visible .actions,
+   .page[data-selected] .actions`. On a pointer-driven project we hover the
    cell before clicking a button inside it. */
 
 // A distinct page width per file lets pdf-lib tell the merged output's pages
@@ -155,6 +156,8 @@ test('dropping a file onto the grid inserts its pages there and flags the rearra
   await expect(cards(page)).toHaveCount(6);
 
   // Landing inside a file's run (not at its boundary) rearranges the file
-  // list, which surfaces the note in place of the sort control.
-  await expect(page.getByText('Pages were rearranged', { exact: false })).toBeVisible();
+  // list, which surfaces the note in place of the sort control. The note
+  // exists twice in the DOM (the desktop rail and the phone popover, one of
+  // them CSS-hidden), so this asks for the visible one.
+  await expect(page.getByText('Pages were rearranged', { exact: false }).locator('visible=true')).toBeVisible();
 });

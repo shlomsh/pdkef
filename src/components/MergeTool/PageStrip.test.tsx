@@ -110,7 +110,6 @@ describe('PageStrip', () => {
       announce,
       messages: englishMergeMessages,
       grouped: overrides.grouped ?? isGrouped(plan),
-      editing: false,
       stripRef,
       onRegisterUndo,
       onRenderedCountChange,
@@ -394,11 +393,53 @@ describe('PageStrip', () => {
     expect(onFirstKeyboardFocus).toHaveBeenCalledTimes(1);
   });
 
-  it('exposes the per-page controls on touch only after Edit pages (the toggle itself lives in the parent, wave 3)', () => {
-    const { rerender } = mount();
-    const grid = container.querySelector(`.${styles.grid}`);
-    expect(grid.hasAttribute('data-editing')).toBe(false);
-    rerender({ editing: true });
-    expect(grid.hasAttribute('data-editing')).toBe(true);
+  // Phone (Shlomi, 2026-09-13): there is no Edit pages mode any more - a tap
+  // on a page reveals that page's own cluster, and only that page's.
+  it('a click selects a page (data-selected), a second click on it clears the selection', async () => {
+    mount();
+    const [first] = cards();
+    expect(first.hasAttribute('data-selected')).toBe(false);
+
+    await act(async () => first.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(first.hasAttribute('data-selected')).toBe(true);
+
+    await act(async () => first.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(first.hasAttribute('data-selected')).toBe(false);
+  });
+
+  it('clicking another page moves the selection to it', async () => {
+    mount();
+    const [first, second] = cards();
+
+    await act(async () => first.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(first.hasAttribute('data-selected')).toBe(true);
+
+    await act(async () => second.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(first.hasAttribute('data-selected')).toBe(false);
+    expect(second.hasAttribute('data-selected')).toBe(true);
+  });
+
+  it("a click on one of the cluster's own buttons does not change the selection", async () => {
+    const { onPlanChange } = mount();
+    const [first] = cards();
+
+    await act(async () => first.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(first.hasAttribute('data-selected')).toBe(true);
+
+    // Rotate: bubbles up through the li, whose own click handler must not
+    // treat a click that started on a button as a tap on the page.
+    await act(async () => first.querySelectorAll(`.${styles.action}`)[0].click());
+    expect(onPlanChange).toHaveBeenCalledTimes(1);
+    expect(first.hasAttribute('data-selected')).toBe(true);
+  });
+
+  it('a pointerdown outside the grid clears the selection', async () => {
+    mount();
+    const [first] = cards();
+    await act(async () => first.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(first.hasAttribute('data-selected')).toBe(true);
+
+    await act(async () => document.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true })));
+    expect(first.hasAttribute('data-selected')).toBe(false);
   });
 });

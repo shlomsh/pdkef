@@ -394,7 +394,7 @@ export const tools = [
     steps: [
       { title: 'Add your PDFs', text: 'Select or drag-and-drop the files you want to combine.' },
       { title: 'Arrange them', text: 'Sort by name or date, drag files into the order you want, or work on the pages themselves: every page of the result is shown below the list, and you can drag one anywhere, rotate it or skip it.' },
-      { title: 'Download', text: 'Open Options if you want sequential page numbers, then tap Download. The merged file is built on your device as you go, so it is ready when you are.' },
+      { title: 'Download', text: 'Check Add page numbers if you want them, then tap Download. The merged file is built on your device as you go, so it is ready when you are.' },
     ],
     faq: [
       { question: 'Is PDkef really free?', answer: 'Yes. PDkef is completely free, with no limits, no signup, and no watermark on your merged PDF.' },

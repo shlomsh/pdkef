@@ -37,6 +37,11 @@ export interface MergeDraftRestore {
    * the array index as that id, since the two line up one-to-one on restore. */
   plan: PlanEntry[];
   options: { addPageNumbers: boolean };
+  /** MERGE-11: null when the output name is still the automatic one (derived
+   * from the file list); a string once a person has renamed it. Restored as
+   * given, with no re-sanitising - the value saved was already sanitised on
+   * commit. */
+  outputName: string | null;
 }
 
 export interface UseMergeDraftOptions {
@@ -45,8 +50,15 @@ export interface UseMergeDraftOptions {
   entries: MergeDraftEntry[];
   plan: PlanEntry[];
   options: { addPageNumbers: boolean };
-  /** Display name for the hint/resume card, e.g. 'Invoice + 2 more'. */
+  /** Display name for the hint/resume card, e.g. 'merged_Invoice' - the
+   * automatic name OR the person's own edited one, whichever is current. */
   title: string;
+  /** MERGE-11: null while the title above is still the automatic one; the
+   * sanitised, person-typed name once they have renamed the output. Tracked
+   * separately from `title` so a restore can tell "never renamed" (regenerate
+   * from the restored file list) apart from "renamed to something that
+   * happens to equal the automatic name". */
+  outputName: string | null;
   onRestore: (restored: MergeDraftRestore) => void;
 }
 
@@ -82,7 +94,8 @@ function parseRestorableRecord(record: any): MergeDraftRestore | null {
   if (!Array.isArray(record.plan) || !record.plan.every((entry: unknown) => isValidPlanEntry(entry, record.files.length))) return null;
   const files = record.files.map((file: any) => new File([file.fileBytes], file.fileName, { type: file.fileType || 'application/pdf' }));
   const options = { addPageNumbers: record.options?.addPageNumbers === true };
-  return { files, plan: record.plan, options };
+  const outputName = typeof record.outputName === 'string' ? record.outputName : null;
+  return { files, plan: record.plan, options, outputName };
 }
 
 // One signature string per distinct snapshot of entries/plan/options/title.
@@ -92,10 +105,16 @@ function parseRestorableRecord(record: any): MergeDraftRestore | null {
 // whether anything actually changed; comparing those by identity would bump
 // the revision, and therefore reschedule the autosave debounce, on every
 // render instead of only on a real edit.
-function snapshotKey(entries: MergeDraftEntry[], plan: PlanEntry[], options: { addPageNumbers: boolean }, title: string): string {
+function snapshotKey(
+  entries: MergeDraftEntry[],
+  plan: PlanEntry[],
+  options: { addPageNumbers: boolean },
+  title: string,
+  outputName: string | null,
+): string {
   const entriesPart = entries.map((e) => `${e.id}:${e.pageCount ?? ''}:${e.error ?? ''}:${e.thumbnail ? 1 : 0}`).join(',');
   const planPart = plan.map((p) => `${p.key}:${p.fileId}:${p.pageIndex}:${p.rotation}:${p.skipped ? 1 : 0}`).join(',');
-  return `${entriesPart}|${planPart}|${options.addPageNumbers ? 1 : 0}|${title}`;
+  return `${entriesPart}|${planPart}|${options.addPageNumbers ? 1 : 0}|${title}|${outputName ?? ''}`;
 }
 
 export function useMergeDraft({
@@ -104,13 +123,14 @@ export function useMergeDraft({
   plan,
   options,
   title,
+  outputName,
   onRestore,
 }: UseMergeDraftOptions): UseMergeDraftResult {
   // Keep the latest values addressable from event listeners and the async
   // restore effect without re-binding them - same pattern as
   // useDraftPersistence.js's `latest` ref.
-  const latest = useRef({ enabled, entries, plan, options, title, onRestore });
-  latest.current = { enabled, entries, plan, options, title, onRestore };
+  const latest = useRef({ enabled, entries, plan, options, title, outputName, onRestore });
+  latest.current = { enabled, entries, plan, options, title, outputName, onRestore };
 
   // file.arrayBuffer() is only ever called once per File object, for the life
   // of that object: an autosave firing every 700ms while typing must not
@@ -123,7 +143,7 @@ export function useMergeDraft({
 
   const revisionRef = useRef(0);
   const snapshotRef = useRef<string | null>(null);
-  const key = snapshotKey(entries, plan, options, title);
+  const key = snapshotKey(entries, plan, options, title, outputName);
   if (snapshotRef.current !== key) {
     snapshotRef.current = key;
     revisionRef.current += 1;
@@ -171,6 +191,7 @@ export function useMergeDraft({
     plan: PlanEntry[],
     options: { addPageNumbers: boolean },
     title: string,
+    outputName: string | null,
   ) => {
     const files = await Promise.all(entries.map(async (entry) => ({
       fileName: entry.file.name,
@@ -189,6 +210,7 @@ export function useMergeDraft({
       plan: outPlan,
       options,
       fileName: title,
+      outputName,
       pageCount: outputPageCount(plan),
       fileCount: entries.length,
       preview: entries[0]?.thumbnail || undefined,
@@ -269,8 +291,8 @@ export function useMergeDraft({
     const revision = currentRevision;
     setSaveState({ state: 'pending', revision });
     const timer = setTimeout(() => {
-      const { entries, plan, options, title } = latest.current;
-      buildRecord(entries, plan, options, title).then((record) => persist(revision, record));
+      const { entries, plan, options, title, outputName } = latest.current;
+      buildRecord(entries, plan, options, title, outputName).then((record) => persist(revision, record));
     }, 700);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -283,11 +305,11 @@ export function useMergeDraft({
   useEffect(() => {
     if (!enabled) return undefined;
     const flush = () => {
-      const { entries, plan, options, title } = latest.current;
+      const { entries, plan, options, title, outputName } = latest.current;
       if (entries.length === 0) return;
       const revision = revisionRef.current;
       setSaveState({ state: 'pending', revision });
-      buildRecord(entries, plan, options, title).then((record) => persist(revision, record));
+      buildRecord(entries, plan, options, title, outputName).then((record) => persist(revision, record));
     };
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') flush();

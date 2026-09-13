@@ -32,13 +32,22 @@ export interface MergeMapEntry {
   skipped: boolean;
 }
 
-// MERGE-03 (2026-09-13, owner decision - there is no Merge button):
-// `<first file base name> + N more.pdf`, not a `merged_` prefix like
-// Sign/Redact's `signed_`/`redacted_` - a merge's identity is the files it
-// folded in, not a tool name stamped on the front. `{count}` is the number of
-// *other* files; a single file keeps its own name untouched (see
-// mergedTitle below).
-export const DEFAULT_OUTPUT_NAME_TEMPLATE = '{name} + {count} more';
+// MERGE-03 (2026-09-13, Shlomi - reversal, see backlog/tasks/MERGE-03.md's
+// history): back to a `merged_` prefix after all, the same shape as Sign's
+// `signed_` and Redact's `redacted_` - every other tool marks its output
+// with the tool's name on the source file's own name, and `<first> + N more`
+// broke that shape for no real gain. One file gets the same treatment
+// (`merged_<name>.pdf`); there is no more single-file special case. A first
+// file that already carries another tool's prefix chains rather than
+// collapsing (`signed_form.pdf` -> `merged_signed_form.pdf`). The prefix is
+// deliberately the same, un-translated, on the Hebrew edition - Sign does
+// the same with `signed_` - so files produced by either edition sort
+// together in a folder. With an LTR prefix and no composed sentence around
+// it, there is nothing left to bidi-isolate: `merged_`, then the name in its
+// own direction, then `.pdf`, renders correctly in Finder, in Files, and in
+// the document heading, for a Hebrew or Arabic first file same as a Latin
+// one.
+export const MERGED_FILE_NAME_PREFIX = 'merged_';
 
 function planKey(fileId: number, pageIndex: number): string {
   return `${fileId}:${pageIndex}`;
@@ -245,27 +254,35 @@ function baseName(fileName: string): string {
   return fileName.slice(0, lastDot);
 }
 
-// Builds the merged file's display title (no '.pdf' suffix): the first
-// file's own name, plus how many others folded in. `template` lets a locale
-// phrase this differently and may also use `{count}`; a single file keeps
-// its own name untouched. This function does not validate the template - it
-// just substitutes.
-export function mergedTitle(
-  firstFileName: string,
-  otherCount: number,
-  template: string = DEFAULT_OUTPUT_NAME_TEMPLATE,
-): string {
+// Builds the merged file's display title (no '.pdf' suffix): `merged_`
+// ahead of the first file's own base name, exactly the way `signed_`/
+// `redacted_` are built beside the source name in Sign and Redact - no
+// count, no connector, no template, so there is nothing for a locale to
+// phrase differently (see the MERGE_FILE_NAME_PREFIX comment above).
+export function mergedTitle(firstFileName: string): string {
   const name = baseName(firstFileName) || firstFileName || 'merged';
-  if (otherCount <= 0) return name || 'merged';
-  const title = template.replace('{name}', name).replace('{count}', String(otherCount));
-  return title || 'merged';
+  return `${MERGED_FILE_NAME_PREFIX}${name}`;
 }
 
 // Same as mergedTitle, with the '.pdf' extension the download actually needs.
-export function mergedFileName(
-  firstFileName: string,
-  otherCount: number,
-  template: string = DEFAULT_OUTPUT_NAME_TEMPLATE,
-): string {
-  return `${mergedTitle(firstFileName, otherCount, template)}.pdf`;
+export function mergedFileName(firstFileName: string): string {
+  return `${mergedTitle(firstFileName)}.pdf`;
+}
+
+// MERGE-11 (2026-09-13, Shlomi): once a person renames the merged file, it is
+// theirs - sanitised on commit the way a filesystem name would be, never
+// rejected outright. Path separators are stripped (they would otherwise let
+// a typed name read like a directory) and control characters (there is no
+// legitimate reason for one in a file name), then the result is trimmed and
+// capped at 120 characters. Deliberately not a filesystem-reserved-character
+// denylist beyond that - ":", "?", "*" and similar survive, since the
+// browser's own download mechanism, not this function, is what turns the
+// string into a real file on disk. Unicode is kept as typed (a Hebrew or
+// Arabic name included); the cap counts code points via Array.from, not
+// UTF-16 length, so it can never split a surrogate pair.
+export function sanitizeOutputName(raw: string): string {
+  const stripped = raw.replace(/[\\/]/g, '').replace(/\p{Cc}/gu, '');
+  const trimmed = stripped.trim();
+  const codepoints = Array.from(trimmed);
+  return codepoints.length > 120 ? codepoints.slice(0, 120).join('') : trimmed;
 }

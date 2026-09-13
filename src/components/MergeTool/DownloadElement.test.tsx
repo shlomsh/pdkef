@@ -98,12 +98,16 @@ describe('DownloadElement', () => {
     expect(box().querySelector(`.${styles['check-mark-static']}`)).not.toBeNull();
   });
 
-  it('saved: success tint, the file name, and "download again" as the live link', () => {
-    mount({ state: 'saved', href: 'blob:x', fileName: 'merged.pdf' });
+  it('saved: success tint, the page/size detail (never the file name a second time), and "download again" as the live link', () => {
+    // MERGE-11: the output name has one home, the document heading - this
+    // element's own 'saved' detail line matches 'ready' (page count and
+    // size), not the file name.
+    mount({ state: 'saved', href: 'blob:x', fileName: 'merged.pdf', detail: '18 pages · 9.6 MB' });
     const el = container.querySelector('a[href="blob:x"]');
     expect(el).not.toBeNull();
     expect(el.textContent).toContain('Saved');
-    expect(el.textContent).toContain('merged.pdf');
+    expect(el.textContent).toContain('18 pages · 9.6 MB');
+    expect(el.textContent).not.toContain('merged.pdf');
     expect(el.textContent).toContain('download again');
   });
 

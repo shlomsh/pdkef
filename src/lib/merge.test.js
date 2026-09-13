@@ -263,8 +263,8 @@ describe('mergePdfs library integration with real fixtures', () => {
       });
     });
 
-    it('mergedFileName builds the "<first> + N more.pdf" download name', () => {
-      expect(mergedFileName('Invoice 2024-03-01.pdf', 3)).toBe('Invoice 2024-03-01 + 3 more.pdf');
+    it('mergedFileName builds the "merged_<first>.pdf" download name', () => {
+      expect(mergedFileName('Invoice 2024-03-01.pdf')).toBe('merged_Invoice 2024-03-01.pdf');
     });
   });
 });

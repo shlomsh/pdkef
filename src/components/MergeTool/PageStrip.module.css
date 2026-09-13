@@ -14,10 +14,9 @@
   min-height: 0;
 }
 
-/* The Edit pages toggle itself now renders in PdfMergeTool's document
-   heading row (wave 3, MergeDocument.module.css's `.edit-toggle`), beside
-   the heading on a phone instead of on a line of its own; this file only
-   drives the grid's own `[data-editing]` from the same state. */
+/* On a phone a tap on a page reveals that page's own cluster
+   (`[data-selected]`, set by PageStrip.tsx); there is no Edit pages mode
+   any more (Shlomi, 2026-09-13). */
 
 /* The document is white; only the rail is tinted (Shlomi's reduction, wave
    2) - the grid carries no fill of its own, so it reads as part of the
@@ -66,6 +65,22 @@
   font-size: 0.85rem;
   color: var(--color-text);
   cursor: default;
+  /* Shlomi's follow-up (2026-09-13), item 4: measured, a caption's own text
+     to the first thumbnail below it read as roughly 6 to 7 times the gap
+     between a per-cell tag and its own thumbnail (32.8px vs 4.8px at
+     1280px; 28.8px vs 4.8px at 375px) - the caption sits in its own grid
+     row, so that space stacks the grid's row gap, the reserved tag strip
+     every cell carries (`.cell-tag`, empty here - the caption already named
+     the file) and the strip-to-thumbnail gap every cell has, on top of each
+     other. A negative bottom margin pulls the row underneath back up
+     without touching `--grid-gap` itself (every OTHER row-to-row transition
+     is unaffected) or the reserved strip (still needed so a row that mixes
+     a captioned run's tail with a short run's own tagged cell keeps every
+     thumbnail in that row level). `--grid-gap` is 12px at 1280px and 8px at
+     375px (PageStrip.tsx `gridMetrics`); this cancels it plus the 16px
+     strip down to three times the 0.3rem intra-cell gap, landing the same
+     ~14.8px at both widths - one rhythm, not a per-breakpoint override. */
+  margin-bottom: calc(0.6rem - 16px - var(--grid-gap, 12px));
 }
 
 .caption:not(:first-child) {
@@ -132,8 +147,20 @@
   background: var(--tag-color, var(--color-primary));
 }
 
+/* A floor, not a cap: whatever the reserved strip's own width shrinks the
+   name to, at least six characters plus the ellipsis stay legible - never
+   the bare colour square with no name at all. Investigated against
+   Shlomi's report (desktop Safari, /merge/, Hebrew file names) with a wide
+   battery of names (long and unbroken, digit-leading, Arabic/Hebrew,
+   single-character) at 1280x900 on the Playwright webkit project; none
+   reproduced a zero-width name (the shortest observed, single-character
+   names, still measured 6-7px, and every longer name filled its full
+   available width with a real ellipsis) - most likely a real-Safari-only
+   subpixel or bidi/flex quirk this harness cannot trigger. The floor is
+   worth keeping regardless, since nothing above it depends on that
+   diagnosis being complete. */
 .cell-tag-name {
-  min-width: 0;
+  min-width: 6ch;
   font-size: 11px;
   font-weight: 600;
   color: var(--color-muted);
@@ -244,7 +271,7 @@
 }
 
 /* Rotate, skip and open: a three-button cluster revealed above the cell on
-   hover or focus (pointer devices), or while "Edit pages" is on (touch). */
+   hover or focus (pointer devices), or on the one tapped page (a phone). */
 .actions {
   /* Inside the THUMBNAIL's top edge, not the cell's: the cell's own top edge
      is the reserved tag strip (`.cell-tag`, item 1), and sitting there would
@@ -265,11 +292,15 @@
 /* Keyboard focus reveals the cluster through :focus-visible, not
    :focus-within: a mouse click on Rotate (or the Open button focus returns
    to when the preview closes) left that cell's buttons pinned open while
-   the pointer moved on to hover another page (Shlomi, 2026-09-13). */
+   the pointer moved on to hover another page (Shlomi, 2026-09-13).
+   `[data-selected]` is deliberately not listed here: it only reveals inside
+   the phone media query below, so a click at desktop width (where the
+   attribute is still set - PageStrip.tsx does not gate it by viewport)
+   never pins a cluster open there; hover and :focus-visible are the only
+   desktop reveal. */
 .page:hover .actions,
 .page:focus-visible .actions,
-.page:has(:focus-visible) .actions,
-.grid[data-editing] .actions {
+.page:has(:focus-visible) .actions {
   visibility: visible;
 }
 
@@ -333,7 +364,7 @@
   outline-offset: 2px;
 }
 
-/* Touch (Edit pages mode, coarse pointer): the button's own border box is
+/* Touch (a tapped page, coarse pointer): the button's own border box is
    now the 44x44 hit area a real rect measurement reads, and the visual
    chrome (border, background, shadow) moves to the inner 32px glyph so the
    button itself stays invisible padding around it - the spec's "32px visual
@@ -434,8 +465,26 @@
     padding: 0;
   }
 
-  .grid:not([data-editing]) .actions {
+  /* Only the tapped page shows its cluster (PageStrip.tsx `selectedKey`):
+     three 44px buttons are 142px wide over a 72px cell, so two neighbours
+     showing theirs at once put one's Open under the other's Rotate
+     (Shlomi's phone screenshot, 2026-09-13). The one cluster may overhang
+     its neighbours; the selected cell rises above them so it is the one
+     that takes the tap, and a primary ring says which page it belongs to. */
+  .page:not([data-selected]) .actions {
     display: none;
+  }
+
+  .page[data-selected] {
+    z-index: 3;
+  }
+
+  .page[data-selected] .actions {
+    visibility: visible;
+  }
+
+  .page[data-selected] .thumb {
+    box-shadow: 0 0 0 2px var(--color-primary);
   }
 
   /* A caption (always a run of 4+ pages now - item 1) sticks to the top of

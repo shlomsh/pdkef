@@ -13,9 +13,10 @@
 }
 
 /* One vertical rhythm for the whole rail: --space-3 between every block
-   (file list, Sort, the quiet row, Options, Download, the hand-off row) and
-   the same as the rail's own padding. Measured before this: 0px between the
-   list and Sort, 0px between Download and the hand-off row, 12px elsewhere. */
+   (file list, the draft status line, the quiet row, the page-numbers row,
+   Download, the hand-off row) and the same as the rail's own padding.
+   Measured before this: 0px between the list and Sort, 0px between Download
+   and the hand-off row, 12px elsewhere. */
 .rail-scroll,
 .rail-pinned {
   display: flex;
@@ -47,9 +48,9 @@
    file list, Sort, Add files and Clear all instead, so `.rail-scroll` (the
    part that held them) drops out entirely; what remains of `.rail` -
    `.rail-pinned` alone - becomes the sticky bottom sheet: the Download
-   element and one row of Share / Compress it / Sign it / Options, nothing
-   else competing, pinned to the bottom edge the way the editor toolbars
-   already stretch full width on mobile. */
+   element and one row of Share / Compress it / Sign it, nothing else
+   competing, pinned to the bottom edge the way the editor toolbars already
+   stretch full width on mobile. */
 @media (max-width: 767px) {
   .rail-scroll {
     display: none;
@@ -62,39 +63,16 @@
     /* Bleed to the card's edges: Merge's loaded phone card is 12px
        (PdfTool.module.css's `[data-hide-identity][data-tool-loaded]` rule,
        wave 3), not the other tools' 1.5rem. Vertical padding is 0.5rem
-       (wave 4, Shlomi's sheet-height measurement): the closed sheet is now
+       (wave 4, Shlomi's sheet-height measurement): the closed sheet is
        padding-top 8px + padding-bottom 8px (+ safe-area) + the hand-off row
-       (44px, Options folded into it) + the Download element - the options
-       disclosure itself costs nothing while closed (see `.options` below). */
+       (44px) + the Download element - the Options disclosure this once made
+       room for is gone entirely (2026-09-13, see `.page-numbers-row` above),
+       replaced in the sheet by the "⋯" popover's own copy of the checkbox. */
     margin: 0 -12px;
     padding: 0.5rem 12px calc(0.5rem + env(safe-area-inset-bottom));
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
     border-radius: 0;
-  }
-
-  /* The hand-off row carries Options as its fourth button here instead
-     (spec: "one row of Share, Compress it, Sign it, Options"); the
-     disclosure's own <summary> is redundant on a phone and hidden, and the
-     whole <details> collapses to zero height while closed so it adds no
-     space above the row - only the open panel (rendered above Download)
-     ever takes room. */
-  .options-summary {
-    display: none;
-  }
-
-  .options:not([open]) {
-    display: none;
-  }
-}
-
-@media (min-width: 768px) {
-  /* Desktop keeps its own <summary> as the one control; the row never
-     shows a fourth button. */
-  /* Compound selector on purpose: `.handoff-button` sets display later in
-     this file and would otherwise win at equal specificity. */
-  .handoff-button.options-toggle {
-    display: none;
   }
 }
 
@@ -250,19 +228,68 @@
   cursor: pointer;
 }
 
-@media (pointer: coarse) {
-  .sort-select {
-    min-height: 44px;
-  }
+/* Shlomi (2026-09-13): the select's own coarse-pointer 44px override is gone
+   - one 36px height for every bordered secondary control. `.sort-select-wrap`
+   (the label that wraps it below) is only a layout wrapper: it carries NO
+   ::before hit-area overlay. Shlomi (2026-09-13, phone): with the overlay,
+   a tap on "As added" in the popover did nothing - the label's generated
+   box sat on top of the <select>, and while a label forwards activation to
+   its control, no browser opens a native select's picker from that; it only
+   focuses it. So the select takes taps directly, at its 36px face. */
+.sort-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
 }
 
+/* Shlomi (2026-09-13): one line always - the note and its Reset order button
+   never wrap to a line each other, even at the rail's narrowest (320px);
+   the text truncates first. */
 .rearranged-note {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   font-size: 0.82rem;
   color: var(--color-muted);
+}
+
+.rearranged-note span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rearranged-note .reset-order {
+  flex-shrink: 0;
+}
+
+/* Team lead (2026-09-13, second follow-up): the one-line-always rule above
+   is a desktop-rail measurement (320px, truncating the sentence rather than
+   wrapping it); the only copy of this note left below 768px is the phone
+   "…" popover's (the desktop rail's own copy sits in `.rail-scroll`, which
+   is hidden at this width, same as `.chip-bar` is hidden above it - the two
+   never show at once). A popover capped at 22rem cannot hold this sentence
+   and a button on one line without truncating it into unreadable ellipsis,
+   or - the bug Shlomi's screenshot caught - forcing the whole popover wider
+   than the viewport to fit it. Let it wrap here instead: the sentence gets
+   its own line(s), Reset order sits full width under it. */
+@media (max-width: 767px) {
+  .rearranged-note {
+    flex-wrap: wrap;
+  }
+
+  .rearranged-note span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .rearranged-note .reset-order {
+    flex: 1 1 100%;
+  }
 }
 
 .quiet-row {
@@ -273,13 +300,16 @@
   font-size: 0.85rem;
 }
 
-/* The "Draft saved" (or "Picked up..." for its first five seconds) chip
-   beside Add files / Clear all - 13px minimum, muted, never competing with
-   the two real actions either side of it. */
-.draft-chip {
+/* Shlomi (2026-09-13): "Draft saved" (or "Picked up..." for its first five
+   seconds) is its own line now, end-aligned - so its own width, which
+   changes as the message changes, never moves Add files / Clear all below
+   it. `text-align: end` is a logical property, so the Hebrew edition mirrors
+   it for free. */
+.draft-status-row {
   /* 13px, not a rem: the card scales its root a little and 0.8125rem measured 12.48px. */
   font-size: 13px;
   color: var(--color-muted);
+  text-align: end;
 }
 
 .quiet-button {
@@ -329,45 +359,11 @@
   composes: quiet-button;
 }
 
-
-.options {
-  background: var(--color-surface);
-  border-radius: var(--radius-sm);
-  padding: 0.25rem 0.6rem;
-}
-
-.options-summary {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 44px;
-  color: var(--color-muted);
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  list-style: none;
-}
-
-.options-summary::-webkit-details-marker {
-  display: none;
-}
-
-.options-chevron {
-  margin-inline-start: auto;
-  transition: transform 0.15s var(--ease-out);
-}
-
-.options[open] .options-chevron {
-  transform: rotate(180deg);
-}
-
-.options-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: 0.25rem 0 0.6rem;
-}
-
+/* Shlomi (2026-09-13): the Options disclosure is gone entirely - a plain
+   checkbox row, no summary, no chevron, nothing to open. Kept as its own
+   class since the same row also renders inside the phone "⋯" popover
+   (MergeDocument.module.css's `.chip-menu-body`), where `.page-numbers-pinned`
+   does not apply. */
 .page-numbers-row {
   display: flex;
   align-items: center;
@@ -385,10 +381,13 @@
   cursor: pointer;
 }
 
-.saves-as {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--color-muted);
+/* The rail-pinned copy only: below 768px the same row lives in the phone
+   popover instead (there is no room for it in the sticky sheet at that
+   width), so this copy steps out of the way rather than doubling it. */
+@media (max-width: 767px) {
+  .page-numbers-pinned {
+    display: none;
+  }
 }
 
 .handoff-row {
@@ -448,6 +447,22 @@
   background: var(--color-primary-soft);
 }
 
+/* Shlomi's iPhone 15 screenshot: the Compress icon rendered as a tiny dot
+   beside its label. Every icon here (Share's own inline svg, Compress's and
+   Sign's lucide-preact `Icon` components) already carries width="16"
+   height="16" as HTML attributes, which is enough in Chromium but not
+   guaranteed in every WebKit build once the icon sits in a flex row next to
+   text: a replaced element with only attribute-based sizing and no explicit
+   CSS size can be squeezed by `flex-shrink`'s default (1) instead of being
+   treated as content that must not shrink below its intrinsic size. Setting
+   the size and `flex-shrink: 0` in CSS removes the ambiguity for every
+   engine, not just the ones that already got it right. */
+.handoff-button svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
 .start-again {
   align-self: center;
   font: inherit;
@@ -474,8 +489,7 @@
    bordered controls the ring hugs the box and the border takes the same
    colour, so keyboard focus is one ring, not a target. */
 .sort-select:focus-visible,
-.handoff-button:focus-visible,
-.options-summary:focus-visible {
+.handoff-button:focus-visible {
   outline-offset: 0;
   border-color: var(--color-primary);
 }

@@ -45,9 +45,9 @@
   gap: var(--space-2) var(--space-3);
 }
 
-/* The heading and the Edit pages toggle share one row (wave 3): the
-   heading takes the flexible width and ellipsises rather than pushing the
-   toggle onto a line of its own on a narrow phone. */
+/* Shlomi (2026-09-13): the Edit pages toggle is gone - the heading row now
+   holds only the heading itself. Kept as its own wrapper since PageStrip's
+   arming/selection controls live elsewhere. */
 .heading-row {
   display: flex;
   align-items: center;
@@ -56,45 +56,102 @@
   min-width: 0;
 }
 
+/* MERGE-11 (2026-09-13): the heading is now "<name>.pdf · N pages", the name
+   itself editable in place. `display: flex` so the name (a shrinkable flex
+   child) can ellipsis on its own while ".pdf" and the page count never do -
+   `.name` carries `flex: 1 1 auto; min-width: 0`, the `.doc-heading-*`
+   siblings carry `flex: none`. */
 .doc-heading {
   margin: 0;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
   font-size: 1rem;
   font-weight: 700;
   color: var(--color-text);
 }
 
-/* Touch, and any phone-width window (MERGE-11's pattern): a fine pointer at
-   desktop width reveals the per-page rotate/skip/open cluster on hover, so
-   the toggle is hidden there. Below 768px PageStrip hides the cluster
-   outright until `data-editing` (there is no room for it on a 72px cell),
-   so a mouse at that width - a narrowed desktop window, a device-mode
-   preview without touch - needs this toggle too; hiding it on pointer type
-   alone left no way at all to reach rotate and open (Shlomi, 2026-09-13). */
-.edit-toggle {
-  flex: none;
-  min-height: 44px;
-  padding: 0.5rem 0.9rem;
+/* MERGE-11 (2026-09-13, Shlomi's rejection of the bordered/input look): the
+   name is WYSIWYG, one element at rest and while editing - never a button
+   wrapping a span, never an input swapped in. At rest it is visually
+   identical to the old plain "Your merged PDF" heading text: same font,
+   same weight, no border, no background, no chrome. Clicking it (see
+   PdfMergeTool.tsx's onNameMouseDown) flips its own `contenteditable`
+   attribute straight to `plaintext-only` (or `true` on Firefox, which lacks
+   it) and nothing else changes - no border appears, no padding shifts in,
+   so the element's rect never moves except for the text's own width
+   (measured: same rect before and after in a real browser). The only
+   editing affordance is the caret itself plus whatever the browser's own
+   selection highlight does. */
+.name {
+  display: inline-block;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 60ch;
   font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
+  font-weight: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Isolates the name from the ".pdf" and "· N pages" that follow it, so a
+     Hebrew (or other RTL) name and that trailing Latin meta do not scramble
+     into one bidi run. */
+  unicode-bidi: plaintext;
 }
 
-@media (hover: hover) and (pointer: fine) and (min-width: 768px) {
-  .edit-toggle {
-    display: none;
+.name:focus-visible {
+  /* box-shadow (not border/outline-with-width) never changes the box's own
+     geometry, which is what "zero layout shift on entering edit" depends on. */
+  box-shadow: var(--shadow-focus);
+  border-radius: 4px;
+}
+
+/* Affordance at rest, fine pointer only: cursor says "click to rename",
+   a faint tint says the same without adding a border or moving anything. */
+@media (hover: hover) and (pointer: fine) {
+  .name {
+    cursor: text;
+  }
+
+  .name:hover {
+    background: var(--color-primary-soft);
+    border-radius: 3px;
   }
 }
 
+/* Coarse pointer: no hover to reveal the affordance, so a small muted
+   pencil sits after the page-count meta instead (never inside the name
+   itself) - always in the DOM, shown only here. */
+.name-affordance-icon {
+  display: none;
+  flex-shrink: 0;
+  align-self: center;
+  color: var(--color-muted);
+}
+
+@media (hover: none) {
+  .name-affordance-icon {
+    display: inline-flex;
+  }
+}
+
+/* ".pdf" is muted and never editable - a sibling of the name, not part of
+   its text. */
+.doc-heading-ext {
+  flex: none;
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
 .doc-heading-count {
+  flex: none;
   font-weight: 400;
   color: var(--color-muted);
   font-size: 0.85rem;
@@ -104,6 +161,7 @@
    it, and only exists while rendering < total - once every cell has a
    thumbnail this span is not rendered at all. */
 .doc-heading-progress {
+  flex: none;
   font-weight: 400;
   color: var(--color-muted);
   font-size: 0.8rem;
@@ -150,7 +208,7 @@
 }
 
 /* Review P2, item 3: the restored-draft sentence's PHONE placement. The
-   rail's own copy of this sentence (MergeRail.module.css's `.draft-chip`)
+   rail's own copy of this sentence (MergeRail.module.css's `.draft-status-row`)
    lives inside `.rail-scroll`, which is CSS-hidden below 768px, so it never
    reached a phone at all; this is the header's right slot instead, same
    5-second window, then nothing (never the persistent "Draft saved" chip,
@@ -229,6 +287,7 @@
    always reachable, however many files scroll past; only the file chips
    themselves scroll, under a right-edge fade that says there is more. --- */
 .chip-bar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -319,6 +378,9 @@
   font-size: 12px;
 }
 
+/* Deliberately not positioned: `.chip-menu-body` anchors to `.chip-bar`
+   (see there), so the popover spans the card's content width rather than
+   hanging off this 36px chip. */
 .chip-menu {
   width: 100%;
 }
@@ -340,6 +402,19 @@
 
 .chip-menu-body {
   position: absolute;
+  /* Anchored to `.chip-bar` (the card's full content width), not to the
+     "⋯" chip: end edge on LTR, start edge on the Hebrew edition (a logical
+     property), and never wider than the bar itself. Two earlier anchors
+     each ran off one side of a 375px screen (Shlomi's screenshots,
+     2026-09-13): flush with the chip and sized by its content it cropped on
+     the right; flush with the chip and sized `100vw - 2rem` it cropped on
+     the left, because the chip sits inside the card's padding, so the
+     viewport is not the space actually to its start side. `min-width` is
+     deliberately absent: it beats `max-width` when they conflict, which is
+     how the one-line rearranged note used to force the overflow. */
+  inset-inline-end: 0;
+  width: min(100%, 22rem);
+  box-sizing: border-box;
   z-index: 4;
   display: flex;
   flex-direction: column;
@@ -352,16 +427,23 @@
   box-shadow: var(--shadow-md);
 }
 
-/* On a phone the heading shares its row with the Edit pages toggle, so
-   "Your merged PDF · 18 pages" only just fits at 375px; while thumbnails
-   arrive the " · 14 rendered" figure pushed it into an ellipsis ("18 pa…").
-   The dashed placeholders already show what is still rendering there, so
-   the figure is desktop-only, and the heading wraps instead of clipping. */
+/* On a phone "<name>.pdf · 18 pages" only just fits at 375px; while
+   thumbnails arrive the " · 14 rendered" figure pushed it into an ellipsis.
+   The dashed placeholders already show what is still rendering there, so the
+   figure is desktop-only. MERGE-11: the name itself wraps to two lines here
+   rather than truncate - `.doc-heading` wraps onto a second line and `.name`
+   stops ellipsising and clipping to one line. */
 @media (max-width: 767px) {
   .doc-heading {
-    white-space: normal;
+    flex-wrap: wrap;
+  }
+
+  .name {
     overflow: visible;
+    white-space: normal;
     text-overflow: clip;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .doc-heading-progress {
