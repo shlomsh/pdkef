@@ -1,26 +1,48 @@
 #!/usr/bin/env node
-// Decides whether the font screening guards (the `fonts` Playwright project)
-// can be skipped for a change, and is the one place that says what their
-// inputs are. ci.yml's font-guard-inputs job and the local `test:e2e` script
-// both ask here, so the answer cannot drift between them.
+// Classifies a change so CI and the local pre-push chain run what the change
+// can affect, and is the one place that says what the classes are. ci.yml's
+// `scope` job and the local `test:e2e` script both ask here, so the answer
+// cannot drift between them.
 //
-// The guards pixel-diff the shaped output of the fonts in public/fonts through
-// the export core in src/editor, which reaches into src/lib and the SignTool
-// messages; the harnesses under e2e/sign read fixtures from src/test/fixtures
-// and the manifest scripts. A change anywhere in that graph, to the guards
-// themselves, or to the dependency set runs them. A copy, page, backlog or
-// other-tool change does not.
+// Two verdicts today:
+//
+//   docs_only  Every changed file is a backlog task, a design record, the
+//              agent guidance, or a root markdown file. A third of the commits
+//              on main are board updates; they need check:backlog and
+//              check:guidance and nothing that builds or opens a browser.
+//              THIRD_PARTY_LICENSES.md is not in this class: a unit test reads
+//              it against the licenses page.
+//
+//   fonts      Something the font screening guards (the `fonts` Playwright
+//              project) load changed. The guards pixel-diff the shaped output
+//              of the fonts in public/fonts through the export core in
+//              src/editor, which reaches into src/lib and the SignTool
+//              messages; the harnesses under e2e/sign read fixtures from
+//              src/test/fixtures and the manifest scripts. Fonts rarely change,
+//              so when anything in that graph does, all 27 guards run.
 //
 // Fails open: when the base cannot be resolved (first push of a branch, a
-// force-push, no origin/main locally), the guards run.
+// force-push, no origin/main locally), nothing is docs-only and the guards run.
 //
-//   node scripts/font-guard-inputs.mjs --base <ref>            prints changed=true|false
-//   node scripts/font-guard-inputs.mjs --base <ref> --run <cmd> runs <cmd> only if changed
+//   node scripts/change-scope.mjs --base <ref>             prints docs_only=… and fonts=…
+//   node scripts/change-scope.mjs --base <ref> --run <cmd> runs <cmd> only if fonts changed
 //
 // Without --base it compares the working tree against the merge base with
 // origin/main, which is what a developer about to push wants.
 
 import { execFileSync, spawnSync } from 'node:child_process';
+
+export const DOCS_ONLY = [
+  /^backlog\//,
+  /^docs\//,
+  /^BACKLOG\.md$/,
+  /^TODO\.md$/,
+  /^README\.md$/,
+  /^CLAUDE\.md$/,
+  /^LICENSE$/,
+  /^\.claude\//,
+  /^\.impeccable\//,
+];
 
 export const FONT_GUARD_INPUTS = [
   /^public\/fonts\//,
@@ -30,7 +52,7 @@ export const FONT_GUARD_INPUTS = [
   /^src\/test\/fixtures\//,
   /^e2e\/sign\//,
   /^scripts\/[^/]*(font|language)/,
-  /^scripts\/font-guard-inputs\.mjs$/,
+  /^scripts\/change-scope\.mjs$/,
   /^package\.json$/,
   /^package-lock\.json$/,
   /^patches\//,
@@ -39,8 +61,19 @@ export const FONT_GUARD_INPUTS = [
   /^\.github\/workflows\/ci\.yml$/,
 ];
 
+export function isDocsOnly(file) {
+  return DOCS_ONLY.some((pattern) => pattern.test(file));
+}
+
 export function isFontGuardInput(file) {
   return FONT_GUARD_INPUTS.some((pattern) => pattern.test(file));
+}
+
+export function classify(files) {
+  return {
+    docs_only: files.length > 0 && files.every(isDocsOnly),
+    fonts: files.some(isFontGuardInput),
+  };
 }
 
 function git(args) {
@@ -76,26 +109,29 @@ function main(argv) {
   const command = runIndex >= 0 ? argv.slice(runIndex + 1) : null;
 
   const base = resolveBase(explicitBase);
-  let changed = true;
+  let scope = { docs_only: false, fonts: true };
   if (!base) {
-    console.error(`font-guard-inputs: no usable base (${explicitBase ?? 'origin/main'}); the font guards run.`);
+    console.error(`change-scope: no usable base (${explicitBase ?? 'origin/main'}); treating the change as touching everything.`);
   } else {
     const files = changedFiles(base);
+    scope = classify(files);
     const hits = files.filter(isFontGuardInput);
-    changed = hits.length > 0;
-    if (changed) {
-      console.error(`font-guard-inputs: ${hits.length} of ${files.length} changed files are font-guard inputs:`);
+    if (scope.docs_only) {
+      console.error(`change-scope: all ${files.length} changed files since ${base.slice(0, 7)} are docs or backlog; only the backlog and guidance checks apply.`);
+    } else if (scope.fonts) {
+      console.error(`change-scope: ${hits.length} of ${files.length} changed files are font-guard inputs:`);
       for (const file of hits) console.error(`  ${file}`);
     } else {
-      console.error(`font-guard-inputs: none of ${files.length} changed files since ${base.slice(0, 7)} is a font-guard input; the font guards can be skipped.`);
+      console.error(`change-scope: none of ${files.length} changed files since ${base.slice(0, 7)} is a font-guard input; the font guards can be skipped.`);
     }
   }
 
   if (!command) {
-    console.log(`changed=${changed}`);
+    console.log(`docs_only=${scope.docs_only}`);
+    console.log(`fonts=${scope.fonts}`);
     return 0;
   }
-  if (!changed) return 0;
+  if (!scope.fonts) return 0;
   const result = spawnSync(command[0], command.slice(1), { stdio: 'inherit' });
   return result.status ?? 1;
 }

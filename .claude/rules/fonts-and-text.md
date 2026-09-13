@@ -47,10 +47,10 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
 - **The font guards are the `fonts` Playwright project and run only when their inputs change.** The 27
   specs matched by `FONT_GUARDS` in `playwright.config.js` (per-script shaping guards, font parity, the
   export render guard, Hebrew composition, language acceptance) were 55% of the whole e2e suite while
-  guarding code that changes in roughly one commit in three. `scripts/font-guard-inputs.mjs` is the one
+  guarding code that changes in roughly one commit in three. `scripts/change-scope.mjs` is the one
   list of what counts as an input (`public/fonts`, `src/editor`, `src/lib`, `src/components/SignTool`,
   `src/test/fixtures`, `e2e/sign`, the font and language scripts, the dependency files, the Playwright
-  config); `ci.yml`'s `font-guard-inputs` job and the local `test:e2e` script both ask it, and a
+  config); `ci.yml`'s `scope` job and the local `test:e2e` script both ask it, and a
   nightly schedule and every manual dispatch run the guards regardless. A new guard needs a name the
   globs match, and a new input a guard reads from outside that list goes into `FONT_GUARD_INPUTS` in
   the same change. `npm run test:e2e:fonts` runs them unconditionally after a build.

@@ -25,11 +25,15 @@ on:
 # Three jobs in parallel instead of one sequential job, so the wall time is
 # the longest of them, not the sum. Measured before the split (n=8 runs):
 # 8.2 min median, two thirds of it Playwright on a single worker, with the
-# font guards more than half of that.
+# font guards more than half of that. All three wait on the `scope` job
+# (about 10s) and skip when the change is docs-only; when scope produces no
+# verdict they run, so a broken classifier costs time, never coverage.
 jobs:
   # Everything that needs no build: source guards, the unit suite, typecheck.
   checks:
     runs-on: ubuntu-latest
+    needs: scope
+    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
 
     steps:
     - uses: actions/checkout@v5
@@ -103,6 +107,8 @@ jobs:
   # spec except the font guards, which have their own job below.
   build:
     runs-on: ubuntu-latest
+    needs: scope
+    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
 
     steps:
     - uses: actions/checkout@v5
@@ -163,16 +169,21 @@ jobs:
           test-results/
         if-no-files-found: ignore
 
-  # Decides whether this run touched anything a font guard's outcome depends
-  # on. What counts as an input lives in scripts/font-guard-inputs.mjs, which
-  # the local `test:e2e` script asks too, so the two cannot drift. Fails open:
-  # when the base commit cannot be fetched (first push of a branch, a
-  # force-push), the guards run.
-  font-guard-inputs:
+  # Classifies the change, so the jobs above run only when it can reach them.
+  # What the classes are lives in scripts/change-scope.mjs, which the local
+  # `test:e2e` script asks too, so the two cannot drift. Two verdicts:
+  # `docs_only` (backlog, docs, guidance, root markdown: a third of the commits
+  # on main, which used to build the site and open browsers to validate a
+  # task file) and `fonts` (something the font guards load changed). A
+  # docs-only change is checked right here, by the two guards that read those
+  # files. Fails open: without a resolvable base, nothing is docs-only and the
+  # guards run.
+  scope:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     outputs:
-      changed: ${{ steps.diff.outputs.changed }}
+      docs_only: ${{ steps.classify.outputs.docs_only }}
+      fonts: ${{ steps.classify.outputs.fonts }}
 
     steps:
     - uses: actions/checkout@v5
@@ -182,26 +193,35 @@ jobs:
       with:
         node-version: '22.x'
 
-    - name: Diff against the base for font-guard inputs
-      id: diff
+    - name: Classify the change against its base
+      id: classify
       env:
         BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       run: |
         if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
-        node scripts/font-guard-inputs.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
+        node scripts/change-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
+
+    # Dependency-free node scripts, so no `npm ci` here.
+    - name: Validate backlog and generated indexes (docs-only change)
+      if: steps.classify.outputs.docs_only == 'true'
+      run: npm run check:backlog
+
+    - name: Validate agent guidance budget (docs-only change)
+      if: steps.classify.outputs.docs_only == 'true'
+      run: npm run check:guidance
 
   # The 27 font screening guards (the `fonts` Playwright project): shaping
   # guards per script, font parity, the export render guard, Hebrew
   # composition, language acceptance. Runs when their inputs changed, on the
   # nightly schedule, and on every manual dispatch (the baseline recapture
-  # needs it). Fails open: if the inputs job did not produce a verdict, run.
+  # needs it). Fails open: if the scope job did not produce a verdict, run.
   font-guards:
     runs-on: ubuntu-latest
-    needs: font-guard-inputs
+    needs: scope
     if: >-
       always() && (
-        needs.font-guard-inputs.result != 'success' ||
-        needs.font-guard-inputs.outputs.changed == 'true'
+        needs.scope.result != 'success' ||
+        needs.scope.outputs.fonts == 'true'
       )
 
     steps:
