@@ -113,6 +113,10 @@ function layerFor(relativePath) {
   if (relativePath.startsWith('src/editor/adapters/pdf/')) return 'pdf-adapter';
   if (relativePath.startsWith('src/editor/workspace/')) return 'workspace';
   if (relativePath.startsWith('src/components/')) return 'component-shell';
+  // ARCH-17 moves tool islands out of the flat src/components/ into
+  // src/tools/<name>/ one tool at a time; each one is still the product-UI
+  // layer this guard calls 'component-shell', just at a new path.
+  if (/^src\/tools\/[^/]+\//.test(relativePath)) return 'component-shell';
   return 'other';
 }
 
@@ -201,7 +205,7 @@ function checkProject(projectRoot) {
       });
     }
     if (sourceLayer === 'component-shell'
-      && /\bsrc\/components\/(?:PdfSignTool|PdfRedactTool)\.tsx$|\bsrc\/components\/SignTool\//.test(from)
+      && /\bsrc\/components\/PdfSignTool\.tsx$|\bsrc\/tools\/redact\/PdfRedactTool\.tsx$|\bsrc\/components\/SignTool\//.test(from)
       && usesBrowserStorage(source)) {
       violations.push({
         from,

@@ -13,7 +13,7 @@ import { test, expect } from '@playwright/test';
 //
 // Uses page.addInitScript so the listener is attached before any script on
 // the page runs, including the astro-island hydration bootstrap - matching
-// the pattern in e2e/sign/sign-editor.spec.js and e2e/redact/redact-editor.spec.js.
+// the pattern in e2e/sign/sign-editor.spec.js and src/tools/redact/e2e/redact-editor.spec.js.
 
 const routes = [
   '/',
