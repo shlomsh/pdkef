@@ -1,12 +1,12 @@
 ---
 id: "MERGE-19"
 title: "Hand-off row border is 1.09:1 on the rail tint: use the rail's one secondary border"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "merge-tool"
 phase: "quick-win"
 depends_on: ["MERGE-14"]
-legacy_state: "Open"
+legacy_state: "Done 2026-09-13"
 ---
 
 # MERGE-19 · Hand-off row border is 1.09:1 on the rail tint: use the rail's one secondary border
@@ -35,3 +35,10 @@ control's boundary (WCAG 1.4.11); that is app-wide and is QUAL-04, not this tick
   Add files, measured on dev 4399 at 1280 and 375 with two files loaded.
 - Hover and focus-visible states unchanged (`--color-primary-soft` fill, `--color-primary` border).
 - Screenshot of the rail at both widths in the update line.
+
+## Updates
+
+- 2026-09-13: fixed in 55f3a7c on main. `.handoff-button` draws `var(--color-border-strong)`, the
+  same token as `.quiet-button`, so the rail has one secondary border; 1.09:1 became 1.80:1 on the
+  tint. The builder re-ran build, csp, css and the 47 merge guards green after the change. The
+  token's own shortfall against 3:1 stays QUAL-04.
