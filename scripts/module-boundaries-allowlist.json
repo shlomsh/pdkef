@@ -1,10 +1,5 @@
 [
   {
-    "from": "src/editor-ui/ElementResizers.tsx",
-    "to": "src/components/SignTool/nodeProps.ts",
-    "reason": "editor-ui may not import a tool"
-  },
-  {
     "from": "src/components/PdfSignTool.tsx",
     "to": "src/components/SignTool/SignToolContext.tsx",
     "reason": "the transitional components module may not import a tool"
