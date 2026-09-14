@@ -171,7 +171,7 @@ export function wide(affected, reason) {
 
 // The pure mapping: given the changed files, the projects Nx says are
 // affected, and a name -> root map, decide narrow vs. everything and what to
-// run. No `nx`/`git` call in here - src/lib/affectedScope.test.js exercises
+// run. No `nx`/`git` call in here - scripts/affected-scope.test.mjs exercises
 // this directly with synthetic inputs, the way changeScope.test.js pins
 // scripts/change-scope.mjs's classify() without shelling out to git.
 export function deriveScope({ files, affected, roots, toolE2eExists = () => true, siteE2ePaths = [] }) {
@@ -203,7 +203,7 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
 
   // Sorted together, alphabetically; src/test/ is pinned last regardless of
   // where it would otherwise fall (either order is equally arbitrary here -
-  // this is just the one src/lib/affectedScope.test.js pins).
+  // this is just the one scripts/affected-scope.test.mjs pins).
   const unitPaths = [...toolPaths, ...extraPaths].sort();
   unitPaths.push('src/test/');
   const e2ePaths = toolProjects

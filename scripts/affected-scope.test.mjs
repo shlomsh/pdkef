@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, wide } from '../../scripts/affected-scope.mjs';
+import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, wide } from './affected-scope.mjs';
 
 /* scripts/affected-scope.mjs's deriveScope() is the pure mapping this project
    set relies on: given changed files, the projects `nx` says are affected,

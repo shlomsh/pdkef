@@ -2,8 +2,8 @@
 // deliberately malformed, so these tests do not move when tickets are added;
 // the one assertion against the real backlog/tasks/ is the same check CI runs.
 import { describe, expect, it } from 'vitest';
-import { parseTask, validateTasks, readTasks } from '../../scripts/backlog-data.mjs';
-import { epics, isEpicActive } from '../../scripts/backlog-epics.mjs';
+import { parseTask, validateTasks, readTasks } from './backlog-data.mjs';
+import { epics, isEpicActive } from './backlog-epics.mjs';
 
 const registry = [{ key: 'alpha', label: 'Alpha', heading: 'Alpha' }, { key: 'beta', label: 'Beta', heading: 'Beta' }];
 

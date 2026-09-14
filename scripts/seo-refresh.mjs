@@ -11,7 +11,7 @@
 // CLUSTER_PATTERNS below, and a country breakdown for each locale's pilot
 // country (src/i18n/localePrefixes.js's pilotCountry map). The pure logic
 // for all of that lives in scripts/seoRefreshLib.mjs, unit-tested from
-// src/lib/seoRefresh.test.js.
+// scripts/seoRefreshLib.test.mjs.
 //
 // Usage:
 //   node scripts/seo-refresh.mjs <path to the "Performance on Search" export folder>

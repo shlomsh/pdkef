@@ -14,7 +14,7 @@ import {
   scriptPurity,
   sitemapLocations,
   visibleText,
-} from '../../scripts/localizedSeoChecks.mjs';
+} from './localizedSeoChecks.mjs';
 
 const SITE = 'https://pdkef.com';
 const HEBREW = 'מזגו ואחדו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו מספרי עמודים והורידו. הקובץ נשאר אצלכם במכשיר.';

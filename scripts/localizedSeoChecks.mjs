@@ -1,5 +1,5 @@
 // LOC-02 guards 3, 4 and the pack half of 5, as pure functions so
-// verify-seo.js can run them over dist/ and src/lib/localizedSeoChecks.test.js
+// verify-seo.js can run them over dist/ and scripts/localizedSeoChecks.test.mjs
 // can run them over sabotage fixtures without a build. Guards 1 and 2
 // (reciprocal hreflang with x-default, lang/dir from the registry) were
 // already generic in verify-seo.js and cover tool pages unchanged.

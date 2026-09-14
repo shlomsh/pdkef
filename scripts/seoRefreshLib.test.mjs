@@ -2,7 +2,7 @@
 // scripts/seo-refresh.mjs. There is no real Search Console export in the
 // repo (and never should be - see the ticket); these are small inline CSV
 // fixtures with Hebrew, English and one other script, the same
-// "test a scripts/ module from src/lib/" pattern src/lib/backlog.test.js
+// "test a scripts/ module from src/lib/" pattern scripts/backlog-data.test.mjs
 // uses for scripts/backlog-data.mjs.
 import { describe, expect, it } from 'vitest';
 import {
@@ -13,7 +13,7 @@ import {
   normalizePagePath,
   groupPagesByLocale,
   countryRowForLocale,
-} from '../../scripts/seoRefreshLib.mjs';
+} from './seoRefreshLib.mjs';
 
 const QUERIES_CSV = [
   'Top queries,Clicks,Impressions,CTR,Position',
