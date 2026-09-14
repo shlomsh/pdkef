@@ -1,7 +1,7 @@
 ---
 id: "DEBT-12"
 title: "Ratchets that ratchet: a page-count-invariant duplication factor, stale-exception detection, one import scanner"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "architecture-debt"
 phase: "near-term"
@@ -41,3 +41,23 @@ carry two scanners with different regexes; only the boundaries one is AST-tested
   by under 0.5% (measure before and after, note it in the constant's comment).
 - Both guards red on a stale exception or allowlist entry; `check:fast` covers the single-owner grep.
 - `src/test/moduleBoundariesImportScan.test.js` is the only scanner test, and both guards go through it.
+
+## Landed (2026-09-15)
+
+- `check-css-duplication.js`: `MAX_DUPLICATION_FACTOR` (total shipped / distinct, grew with page count)
+  is now `MAX_FAMILY_DUPLICATION`: the heaviest page family's mean shipped bytes per page over the
+  site's distinct CSS, families detected by hashing each page's largest inlined `<style>` block (15 on
+  the 41-page tree; every tool page is its own family because its island's CSS Modules differ).
+  Measured 0.6412x (`/he/compress/`), limit 0.65. A mean-per-page metric was tried first and moved
+  0.96% on a throwaway content page (and would have moved +4.4% on a localized tool edition); a sum over
+  families was tried next and would have gained a term on every new tool page. The max moves by 0 when a
+  page joins a family, and only when a family's sheet changes, which is what a ratchet should do.
+- `check-editor-dependency-directions.mjs` reads the import graph through
+  `check-module-boundaries.mjs`'s `collectSourceFiles`/`importSpecifiers` (edge set 630 -> 835, nothing
+  lost; the wider scanner found two JSDoc `../` path bugs in `src/editor-ui/hooks/` and an unhandled
+  `?raw` import). `EXCEPTIONS` entries that no import matches fail the run
+  (`src/test/editorDependencyDirectionsExceptions.test.js`); the `textCoverage.js -> registry/text.ts`
+  bridge is gone, `textCoverage.js` and `liveFontCoverage.js` import `unrepresentableCharacters` from
+  `text/textMetrics.ts`, where it always lived. The box-resize single-owner rule is a rule in that guard
+  (test and non-test files, comment mentions count as the grep did), and the `ci.yml` step is gone, so
+  `check:fast` covers it.

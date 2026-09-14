@@ -342,9 +342,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| DEBT-12 | P3 | [DEBT-12](backlog/tasks/DEBT-12.md) · Ratchets that ratchet: a page-count-invariant duplication factor, stale-exception detection, one import scanner |
+_None._
 
 ### Blocked
 
@@ -364,6 +362,7 @@ _None._
 | DEBT-09 | P2 | [DEBT-09](backlog/tasks/DEBT-09.md) · The renderer registry becomes a factory the tool calls, and Redact's restore admits only Redact's element types |
 | DEBT-10 | P2 | [DEBT-10](backlog/tasks/DEBT-10.md) · Close the checker's core-to-site gap and fix the guidance that contradicts ARCH-20 |
 | DEBT-11 | P2 | [DEBT-11](backlog/tasks/DEBT-11.md) · Split editor.md so a Merge or shell edit loads tool rules, not the Sign editor's, and src/test/ loads something |
+| DEBT-12 | P3 | [DEBT-12](backlog/tasks/DEBT-12.md) · Ratchets that ratchet: a page-count-invariant duplication factor, stale-exception detection, one import scanner |
 
 ### Retired
 
