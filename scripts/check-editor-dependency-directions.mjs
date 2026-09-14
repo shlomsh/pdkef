@@ -1,12 +1,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { collectSourceFiles, importSpecifiers } from './check-module-boundaries.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEFAULT_ROOT = path.resolve(__dirname, '..');
-const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs'];
-const TEST_FILE = /\.(?:test|contract)\.[cm]?[jt]sx?$/;
+// The file walk and import-specifier regex are check-module-boundaries.mjs's
+// (AST-diffed against every source file by src/test/moduleBoundariesImportScan.test.js;
+// this guard has no scanner test of its own). Only that scanner sees .astro
+// frontmatter and dynamic/type-only `import(...)` the old copy here deliberately
+// skipped, so DEBT-12 diffed this guard's resolved edges before and after the
+// switch: the set only grew, by edges either outside src/editor/ entirely or
+// already permitted by the rules below (a dynamic `import('./textPdf.ts')`, a
+// JSDoc `@param {import(...)}` type reference). Two JSDoc paths that undercounted
+// their `../` and one `.astro`-only `?raw` asset import were the only fallout;
+// the JSDoc paths were fixed at the source and resolveRelativeImport strips a
+// trailing `?query` the same way check-module-boundaries.mjs's own resolver
+// does. layerFor, resolution and the rule matrix below stay this file's own.
 const PDF_PACKAGES = new Set(['@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist']);
 
 // These are seams, not broad layer permissions. Keeping them explicit makes a
@@ -70,32 +81,12 @@ function parseRoot(argv) {
   return path.resolve(argv[index + 1]);
 }
 
-function collectSourceFiles(directory, files = []) {
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const fullPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      collectSourceFiles(fullPath, files);
-    } else if (SOURCE_EXTENSIONS.includes(path.extname(entry.name)) && !TEST_FILE.test(entry.name)) {
-      files.push(fullPath);
-    }
-  }
-  return files;
-}
+// Extension-swap candidates only; file collection and import parsing come
+// from check-module-boundaries.mjs (imported above).
+const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs'];
 
-function staticImportSpecifiers(source) {
-  // Imports in this codebase are semicolon-terminated. Limiting the scan to a
-  // statement prevents an unrelated later `from` from being associated with a
-  // side-effect import, while deliberately excluding dynamic import().
-  const pattern = /^\s*(?:import(?!\s*\()|export)\s+[^;]*?\sfrom\s+['"]([^'"]+)['"]\s*;?|^\s*import\s*['"]([^'"]+)['"]\s*;?/gm;
-  const specifiers = [];
-  let match;
-  while ((match = pattern.exec(source)) !== null) {
-    specifiers.push(match[1] || match[2]);
-  }
-  return specifiers;
-}
-
-function resolveRelativeImport(fromFile, specifier) {
+function resolveRelativeImport(fromFile, specifierRaw) {
+  const specifier = specifierRaw.split('?')[0]; // strip a Vite `?raw`/`?url` query, as .astro imports can carry one
   if (!specifier.startsWith('.') && !specifier.startsWith('/')) return null;
   const requested = specifier.startsWith('/')
     ? path.resolve(specifier)
@@ -223,7 +214,7 @@ function checkProject(projectRoot) {
         reason: 'editor components must use editor/workspace persistence instead of direct browser storage',
       });
     }
-    for (const specifier of staticImportSpecifiers(source)) {
+    for (const specifier of importSpecifiers(source)) {
       const resolved = resolveRelativeImport(file, specifier);
       if ((specifier.startsWith('.') || specifier.startsWith('/')) && !resolved) {
         violations.push({ from, specifier, reason: 'relative static import does not resolve to a source file' });

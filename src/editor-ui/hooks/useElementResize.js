@@ -24,7 +24,7 @@ import {
  * @param {object}   params.elementRef     - ref to the element's DOM node (owned by caller)
  * @param {function} params.getPageWrapper - () => closest page-wrapper node | null
  * @param {number}   params.pageWidthPoints - page width in PDF points (0 if the caller has no notion of it - only text/centered resize read it)
- * @param {import('../editor/geometry/coords.js').PageGeometry} [params.pageGeometry] - rotated/cropped page frame
+ * @param {import('../../editor/geometry/coords.js').PageGeometry} [params.pageGeometry] - rotated/cropped page frame
  * @param {function} params.onChange       - called on pointer up to commit the resized geometry
  */
 export default function useElementResize({

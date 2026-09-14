@@ -27,7 +27,7 @@ import {
  * @param {object}   params.element        - the element data object from state
  * @param {object}   params.elementRef     - ref to the element's DOM node (owned by caller)
  * @param {function} params.getPageWrapper - () => closest .sign-page-wrapper node | null
- * @param {import('../editor/geometry/coords.js').PageGeometry} [params.pageGeometry] - rotated/cropped page frame
+ * @param {import('../../editor/geometry/coords.js').PageGeometry} [params.pageGeometry] - rotated/cropped page frame
  * @param {function} params.onSelect       - called on pointer down to activate the element
  * @param {function} params.onChange       - called on pointer up to commit the new position
  */
