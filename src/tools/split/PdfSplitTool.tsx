@@ -421,9 +421,6 @@ export default function PdfSplitTool({
   const hasFiles = !!file;
   const totalBytes = outputs.reduce((sum, f) => sum + f.blob.size, 0);
   const perCellCaptions = mode === 'separate' && numPages <= PER_CELL_CAPTION_LIMIT;
-  // A per-cell caption has room for about 16 characters; the page number is
-  // the part that differs, so a long base name is the part that gives way.
-  const shortBase = baseName.length > 10 ? `${baseName.slice(0, 8)}…` : baseName;
 
   const primaryState = selectedCount === 0
     ? 'empty'
@@ -444,9 +441,7 @@ export default function PdfSplitTool({
       </>
     )
     : `${fileWord(selectedCount)}, one page each`;
-  const canvasCount = mode === 'combined'
-    ? `${selectedCount} of ${pageWord(numPages)}`
-    : `from ${pageWord(numPages)}`;
+  const canvasCount = `${selectedCount} of ${pageWord(numPages)}`;
 
   const renderCell = (p: SplitPage) => (
     <div
@@ -482,14 +477,16 @@ export default function PdfSplitTool({
         aria-label={`Rotate page ${p.pageNumber}`}
         onClick={(e) => { e.stopPropagation(); rotatePage(p.pageNumber); }}
       >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M13 8a5 5 0 1 1-1.5-3.6" />
-          <path d="M13 2v3h-3" />
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 2.5h5l3 3V13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z" />
+          <path d="M9 2.5v3h3" />
+          <path d="M13.5 8.5a3 3 0 1 1-1-2.2" />
+          <path d="M13.5 5.5v2.5h-2.5" />
         </svg>
       </button>
       {perCellCaptions && p.selected ? (
         <span class={styles['cell-caption']} title={`${baseName}-page-${p.pageNumber}.pdf`}>
-          <bdi>{shortBase}</bdi>-page-{p.pageNumber}<span class={styles['output-ext']}>.pdf</span>
+          {'…-page-'}{p.pageNumber}<span class={styles['output-ext']}>.pdf</span>
         </span>
       ) : (
         <span class={styles['cell-number']}>Page {p.pageNumber}</span>
@@ -504,6 +501,7 @@ export default function PdfSplitTool({
       analyticsStatus={status === 'preparing' ? 'processing' : saved ? 'done' : status}
       onFilesAdded={handleFilesAdded}
       multiple={false}
+      file={file}
       fileLabel={file?.name}
       fileMeta={describeFile(file, numPages)}
       hasWork={saved || pageSelector.trim() !== ''}
@@ -549,7 +547,7 @@ export default function PdfSplitTool({
                         {selectedCount === 0 ? 'Pick at least one page' : `${pageWord(selectedCount)}, in this order`}
                       </span>
                     </div>
-                    <div class={styles.grid}>{pages.map(renderCell)}</div>
+                    <div class={styles.grid} data-scale={numPages <= 8 ? 'large' : undefined}>{pages.map(renderCell)}</div>
                   </div>
                 ) : (
                   <div class={styles['doc-frames']}>
@@ -558,12 +556,10 @@ export default function PdfSplitTool({
                       <span class={styles['frame-caption-note']}>
                         {selectedCount === 0
                           ? 'Pick at least one page'
-                          : perCellCaptions
-                            ? `${fileWord(selectedCount)}`
-                            : <>each saves as <bdi>{baseName}</bdi>-page-N.pdf</>}
+                          : <>each saves as <bdi>{baseName}</bdi>-page-N.pdf</>}
                       </span>
                     </div>
-                    <div class={styles.grid}>{pages.map(renderCell)}</div>
+                    <div class={styles.grid} data-scale={numPages <= 8 ? 'large' : undefined}>{pages.map(renderCell)}</div>
                   </div>
                 )}
 
@@ -579,7 +575,11 @@ export default function PdfSplitTool({
               <aside class={styles.rail} aria-label="Split options">
                 <div class={styles.commands}>
                   <div class={pdfToolStyles['page-selector-field']}>
-                    <label for="page-selector-input" class={pdfToolStyles['page-selector-label']}>Pages</label>
+                    <div class={styles['command-row']}>
+                      <label for="page-selector-input" class={pdfToolStyles['page-selector-label']}>Pages</label>
+                      <button type="button" class={styles.command} onClick={selectAll}>Select all</button>
+                      <button type="button" class={styles.command} onClick={selectNone}>Clear</button>
+                    </div>
                     <input
                       id="page-selector-input"
                       type="text"
@@ -587,19 +587,13 @@ export default function PdfSplitTool({
                       value={pageSelector}
                       onInput={(e) => handlePageSelectorChange((e.target as HTMLInputElement).value)}
                       placeholder="e.g. 1-3, 5, 8-"
-                      aria-describedby="page-selector-hint"
+                      aria-describedby={pageSelectorError ? 'page-selector-hint' : undefined}
                       aria-invalid={!!pageSelectorError}
                     />
                   </div>
-                  {pageSelectorError ? (
+                  {pageSelectorError && (
                     <p id="page-selector-hint" class={pdfToolStyles['page-selector-error']} role="alert">{pageSelectorError}</p>
-                  ) : (
-                    <p id="page-selector-hint" class={pdfToolStyles['field-hint']}>Numbers or ranges, separated by commas.</p>
                   )}
-                  <div class={styles['command-row']}>
-                    <button type="button" class={styles.command} onClick={selectAll}>Select all</button>
-                    <button type="button" class={styles.command} onClick={selectNone}>Clear</button>
-                  </div>
                 </div>
 
                 <div class={styles.sheet}>
