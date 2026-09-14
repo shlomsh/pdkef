@@ -373,8 +373,8 @@ export default function PdfRedactTool() {
     if (!activeStyle || activeStyle === 'delete') return;
 
     const target = e.target as Element | null;
-    if (target?.closest(`.${styles['redact-element-btn']}`) || target?.closest(`.${styles['redact-box']}`)) {
-      return; // Ignore clicks on existing boxes or buttons
+    if (target?.closest(`.${styles['redact-box']}`)) {
+      return; // Ignore clicks on an existing box or its floating toolbar
     }
 
     setActiveBoxId(null); // clicking blank page area deselects/hides any box's controls
@@ -562,11 +562,15 @@ export default function PdfRedactTool() {
     rememberColor(color);
   };
 
-  const cloneWhiteoutElement = (cloned: RedactHistoryElement) => {
+  // Shared by all three redaction types' toolbar duplicate button (E7.5's
+  // toolbar-parity fix generalized this from whiteout-only): ElementToolbar's
+  // onClone already hands back a full clone (new id, offset left/top, same
+  // type), so this only has to append it and make it the new selection.
+  const cloneElement = (cloned: RedactHistoryElement) => {
     setElements(prev => [...prev, cloned]);
     setSelectedBoxId(cloned.id);
     setActiveBoxId(cloned.id);
-    logAction('add', 'DUPLICATE_ELEMENT', cloned.pageIndex, 'Duplicated whiteout box', [captureAddedElement(cloned, elements.length)]);
+    logAction('add', 'DUPLICATE_ELEMENT', cloned.pageIndex, `Duplicated ${cloned.type} box`, [captureAddedElement(cloned, elements.length)]);
   };
 
   const clearPage = (pageIndex: number) => {
@@ -783,7 +787,7 @@ export default function PdfRedactTool() {
                       onHoverLeave={() => setActiveBoxId((prev) => (prev === el.id ? null : prev))}
                       onDelete={deleteElement}
                       onChangeColor={changeElementColor}
-                      onClone={cloneWhiteoutElement}
+                      onClone={cloneElement}
                     />
                   ))}
 

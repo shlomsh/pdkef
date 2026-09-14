@@ -323,6 +323,12 @@ export default function ElementToolbar({
           <div className={styles.divider} />
         </>
       )}
+      {/* Redact's blackout and blur elements (element.type === 'blackout' | 'blur')
+          intentionally match no branch above: they have no per-element colour
+          (only whiteout does), so they fall straight through to the shared
+          duplicate + delete pair below with no divider in front of it - the
+          minimum shared chrome every redaction type now uses on selection,
+          instead of RedactBox's old separate inline red delete button. */}
       <button
         type="button"
         className={buttonClass()}
