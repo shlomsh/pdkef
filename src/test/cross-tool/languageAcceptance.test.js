@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../../scripts/language-acceptance.mjs';
 import { FONT_MANIFEST } from '../../../scripts/font-manifest.mjs';
 import { matrixMarkdown } from '../../../scripts/generate-language-acceptance.mjs';
-import { LANGUAGE_COVERAGE } from '../../lib/fontCoverageReport.js';
+import { LANGUAGE_COVERAGE } from '../../editor/text/fontCoverageReport.js';
 import { EXPORT_RENDER_CORPUS } from '../../../e2e/sign/fixtures/exportRenderCorpus.js';
 import { covers } from '../../editor/text/fonts.js';
 

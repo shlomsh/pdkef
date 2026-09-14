@@ -6,7 +6,7 @@
  * catalogue, its generated `@font-face` CSS, and the export path; none of
  * that applies to a font a document can never actually use.
  *
- * `src/lib/fontAttribution.test.js`'s "every TTF on disk has a catalogue
+ * `src/editor/text/fontAttribution.test.js`'s "every TTF on disk has a catalogue
  * entry" check only knows about `FONT_MANIFEST` by default, so without this
  * file a display-only font would be silently invisible to it - exactly the
  * failure mode that test exists to prevent (see its own comment: "a font

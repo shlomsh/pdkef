@@ -3,9 +3,7 @@ paths:
   - "src/editor/text/**"
   - "src/editor/registry/text*"
   - "src/editor/adapters/pdf/**"
-  - "src/lib/*ont*"
   - "src/editor/text/fontCoverageTable*"
-  - "src/lib/languageCoverage*"
   - "src/tools/sign/signExportReadiness*"
   - "src/editor-ui/FontPickerMenu*"
   - "src/editor-ui/SignatureDialog*"
@@ -152,7 +150,7 @@ Every expensive failure here was an omission.
 4. **New script: add a `SCRIPT_FALLBACKS` row.**
 5. **Update `scripts/font-languages.mjs`** for a new language or character set, then regenerate and
    commit both GENERATED files: `npm run generate:font-coverage` (`src/editor/text/fontCoverageTable.js`) and
-   `npm run generate:font-coverage-report` (`src/lib/fontCoverageReport.js`). Their tests regenerate in
+   `npm run generate:font-coverage-report` (`src/editor/text/fontCoverageReport.js`). Their tests regenerate in
    memory and fail on disagreement.
 6. **Add a per-script shaping guard** (corpus + spec on `shapingGuardHarness.js`) rendered above
    ~256px, recording its floor, tolerance and sabotage-control result in the spec's module doc. A guard

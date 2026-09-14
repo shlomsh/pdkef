@@ -38,7 +38,7 @@ import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
  *
  * **Coverage boundary, not a shaping question.** Kazakh's eight extra
  * letters (ә, ғ, қ, ң, ө, ұ, ү, һ) are absent from Neucha's cmap entirely
- * (`src/lib/fontCoverageReport.js`'s `cyrillicKazakh` row: 0.805 partial,
+ * (`src/editor/text/fontCoverageReport.js`'s `cyrillicKazakh` row: 0.805 partial,
  * Neucha not in `.full`) and are correctly excluded from this guard's
  * corpus - a missing glyph is what `fontCoverage.test.js` guards, not this
  * file, and a guard cannot meaningfully test shaping on a character the font

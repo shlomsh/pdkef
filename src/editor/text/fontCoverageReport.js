@@ -7,7 +7,7 @@
  * scripts/font-languages.mjs. Rerun that script
  * (npm run generate:font-coverage-report) and commit the result whenever a
  * font file or a language definition changes.
- * src/lib/fontCoverageReport.test.js regenerates this in memory and fails if
+ * src/editor/text/fontCoverageReport.test.js regenerates this in memory and fails if
  * it disagrees with what is committed here.
  *
  * "full" means the family's -Regular.ttf has a glyph for every codepoint the
@@ -28,7 +28,7 @@
  * Not imported by any browser bundle - see the header of
  * generate-font-coverage-report.mjs for why the Sign page's Languages card
  * is instead cross-checked against this at test time
- * (src/lib/languageCoverage.test.js), not fed from it at runtime.
+ * (src/editor/text/languageCoverage.test.js), not fed from it at runtime.
  */
 
 /** @typedef {{ family: string, style: 'handwriting' | 'upright' }} CoveringFamily */

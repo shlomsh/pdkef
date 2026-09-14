@@ -39,7 +39,7 @@
  * **Coverage note the corpus leans on:** screened at landing, Neucha draws
  * every letter of the Russian, Ukrainian, Belarusian, Bulgarian, Serbian and
  * Macedonian alphabets (all six anchor languages but Kazakh - see
- * scripts/font-manifest.mjs and src/lib/fontCoverageReport.js's
+ * scripts/font-manifest.mjs and src/editor/text/fontCoverageReport.js's
  * cyrillicKazakh row), including the letters that most narrowly distinguish
  * one from another: Ukrainian's ґ/і/ї/є and Russian/Belarusian's ё. Kazakh's
  * eight extra letters (ә, ғ, қ, ң, ө, ұ, ү, һ) are NOT covered and are

@@ -582,7 +582,7 @@ ships the layering pattern: comb mode stacks a per-cell display layer over the t
 - **Selection highlight:** the textarea's `::selection` paints behind transparent text, so a highlight
   rectangle still appears, in roughly the right place, off by the same drift.
 - **Bundle:** zero. fontkit is already loaded in the editor
-  ([liveFontCoverage.js:51](../src/lib/liveFontCoverage.js#L51)) and already 214,606 brotli bytes in a
+  ([liveFontCoverage.js:51](../src/editor/text/liveFontCoverage.js#L51)) and already 214,606 brotli bytes in a
   lazy chunk.
 - **Per-keystroke shaping:** fontkit `layout()` on a short string is microseconds and the gesture golden
   rule does not apply (typing is not a pointer gesture). Must not reshape during drag.

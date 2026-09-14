@@ -1,5 +1,5 @@
 /**
- * Drift guard + non-vacuity check for src/lib/fontCoverageReport.js, the
+ * Drift guard + non-vacuity check for src/editor/text/fontCoverageReport.js, the
  * generated catalogue coverage report (W7,
  * docs/wysiwyg-text-architecture.md §8 stage 7).
  *
@@ -21,9 +21,9 @@
  * every "is X listed" assertion; these are the ones that would catch it.
  */
 import { describe, it, expect } from 'vitest';
-import { fontFileHasGlyph } from '../editor/text/fontCoverageTable.js';
-import { HANDWRITING_FONTS, TEXT_FONTS, requestedFontFile } from '../editor/text/fonts.js';
-import { LANGUAGES, CYRILLIC_ANCHOR_LANGUAGES, NAMED_COMBINATIONS } from '../../scripts/font-languages.mjs';
+import { fontFileHasGlyph } from './fontCoverageTable.js';
+import { HANDWRITING_FONTS, TEXT_FONTS, requestedFontFile } from './fonts.js';
+import { LANGUAGES, CYRILLIC_ANCHOR_LANGUAGES, NAMED_COMBINATIONS } from '../../../scripts/font-languages.mjs';
 import { LANGUAGE_COVERAGE, COMBINATION_COVERAGE, CYRILLIC_ANCHOR } from './fontCoverageReport.js';
 
 const FAMILIES = [...HANDWRITING_FONTS, ...TEXT_FONTS];

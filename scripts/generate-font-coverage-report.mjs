@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generates src/lib/fontCoverageReport.js: the catalogue coverage report
+ * Generates src/editor/text/fontCoverageReport.js: the catalogue coverage report
  * (W7, docs/wysiwyg-text-architecture.md §8 stage 7 and TODO.md's W7 entry).
  *
  * Answers, from the real font bytes and nothing else: for each language, and
@@ -16,14 +16,14 @@
  * (fontFileHasGlyph), the same way src/lib/fonts.js's covers() does. The
  * character sets each language is judged against live in
  * scripts/font-languages.mjs, imported here and by
- * src/lib/fontCoverageReport.test.js so both sides of the drift check use
+ * src/editor/text/fontCoverageReport.test.js so both sides of the drift check use
  * the exact same definitions.
  *
  * This report is a Node/build-time artifact only - it is never imported by
  * tools.js or any Preact island, so it costs zero browser page weight
  * (checked by npm run test:weight). What the Sign page's Languages card
  * actually shows stays curated prose in src/data/tools.js; a test
- * (src/lib/languageCoverage.test.js) keeps that prose honest against this
+ * (src/editor/text/languageCoverage.test.js) keeps that prose honest against this
  * report instead of a runtime import doing it.
  *
  * Run with: npm run generate:font-coverage-report
@@ -37,7 +37,7 @@ import { LANGUAGES, CYRILLIC_ANCHOR_LANGUAGES, NAMED_COMBINATIONS } from './font
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
-const OUT_FILE = join(REPO_ROOT, 'src', 'lib', 'fontCoverageReport.js');
+const OUT_FILE = join(REPO_ROOT, 'src', 'editor', 'text', 'fontCoverageReport.js');
 
 /** Every catalogue family, each judged by its -Regular.ttf file - matching
  * how docs/wysiwyg-text-architecture.md §4.1 probed "every bundled
@@ -144,7 +144,7 @@ function generateSource(languageCoverage, combinationCoverage, cyrillicAnchor) {
  * scripts/font-languages.mjs. Rerun that script
  * (npm run generate:font-coverage-report) and commit the result whenever a
  * font file or a language definition changes.
- * src/lib/fontCoverageReport.test.js regenerates this in memory and fails if
+ * src/editor/text/fontCoverageReport.test.js regenerates this in memory and fails if
  * it disagrees with what is committed here.
  *
  * "full" means the family's -Regular.ttf has a glyph for every codepoint the
@@ -165,7 +165,7 @@ function generateSource(languageCoverage, combinationCoverage, cyrillicAnchor) {
  * Not imported by any browser bundle - see the header of
  * generate-font-coverage-report.mjs for why the Sign page's Languages card
  * is instead cross-checked against this at test time
- * (src/lib/languageCoverage.test.js), not fed from it at runtime.
+ * (src/editor/text/languageCoverage.test.js), not fed from it at runtime.
  */
 
 /** @typedef {{ family: string, style: 'handwriting' | 'upright' }} CoveringFamily */
