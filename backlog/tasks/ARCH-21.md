@@ -17,7 +17,7 @@ page-only commits are frequent enough to matter.
 
 `site` is one Nx project rooted at `src/` (pages, layouts, content, data, i18n, styles, test
 helpers, the `.astro` components). Every tool imports `src/i18n/` and `src/data/`, and
-`src/lib/useWorkspaceGestures.ts` imports `src/i18n/toolMessages.ts` at runtime, so `site` is a
+`src/tools/sign/useWorkspaceGestures.ts` imports `src/i18n/toolMessages.ts` at runtime, so `site` is a
 dependency of everything; `scripts/affected-scope.mjs` therefore treats it as a core project and any
 change under `src/pages/` or `src/content/` runs the full unit and e2e suites. ARCH-15 measured
 page/content-only commits at 34 of 200. Nx also cannot see `.astro` imports, so a page's edge to the
@@ -36,7 +36,7 @@ island it hosts is invisible and would have to be declared by hand.
   e2e, which is most of what we run today anyway) or a small map in `affected-scope.mjs` from
   `src/pages/<tool>.astro` to `tool-<tool>` (precise, one more hand-kept list). Measure both on
   QUAL-08's window before choosing.
-- `src/lib/useWorkspaceGestures.ts -> src/i18n/toolMessages.ts` stays; it is a `site-shared` edge
+- `src/tools/sign/useWorkspaceGestures.ts -> src/i18n/toolMessages.ts` stays; it is a `site-shared` edge
   and does not widen page-only commits once the split exists.
 - Update `docs/nx-affected-ci.md`'s project table and the `CORE_PROJECTS` set, with the unit tests
   in `src/lib/affectedScope.test.js` extended for the new project names.
