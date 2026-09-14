@@ -79,12 +79,20 @@ export function resolveBase(explicit) {
 // or untracked files - used when affected-scope.mjs is asked to classify a
 // specific historical commit). Without it, this is "what would I push right
 // now" - the working tree against `base`, plus untracked files.
-export function changedFiles(base, head) {
+//
+// Both `git diff` calls pass `--no-renames`: with git's default rename
+// detection the old path of a moved file is absent from `--name-only`
+// output, so a file moved from one tool's folder to another's affects only
+// the destination and the source's tests are skipped (DEBT-03). Measured on
+// this repo, `git diff --name-only 370ace3~1 370ace3 | grep -c
+// src/components/SignTool` is 0, and 37 with `--no-renames`. A rename must
+// affect both its source and its destination owners.
+export function changedFiles(base, head, run = git) {
   if (head) {
-    return git(['diff', '--name-only', base, head]).split('\n').filter(Boolean);
+    return run(['diff', '--no-renames', '--name-only', base, head]).split('\n').filter(Boolean);
   }
-  const tracked = git(['diff', '--name-only', base]).split('\n').filter(Boolean);
-  const untracked = git(['ls-files', '--others', '--exclude-standard']).split('\n').filter(Boolean);
+  const tracked = run(['diff', '--no-renames', '--name-only', base]).split('\n').filter(Boolean);
+  const untracked = run(['ls-files', '--others', '--exclude-standard']).split('\n').filter(Boolean);
   return [...new Set([...tracked, ...untracked])];
 }
 
