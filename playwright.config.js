@@ -10,29 +10,22 @@ const baseURL = `http://127.0.0.1:${PORT}`;
 // worktree's own copy of the repo.
 const CONFIG_DIR = dirname(fileURLToPath(import.meta.url));
 
-// Agent worktrees live at .claude/worktrees/<name>/ inside the repo, so
-// scanning from the main checkout with testDir: '.' plus the globs below
-// also discovers each worktree's own copy of every spec, and a second
-// `playwright` package loads from there (found 2026-09-14 while landing
-// DEBT-01 with parallel worktree agents). A plain '**/.claude/**' string
-// looks like the fix, but Playwright matches testIgnore against each file's
-// full absolute path, and every worktree's own checkout already lives
-// inside a real `.claude` directory (`<repo>/.claude/worktrees/<name>/`) -
-// so that pattern also matches every one of a worktree's OWN specs when
-// Playwright is run from inside it, not just a nested copy under someone
-// else's scan. Since project-level `testIgnore` (chromium) replaces this
-// list instead of merging with it, only the projects that inherit it
-// (fonts, perf, webkit) go quiet - each silently reports 0 tests instead of
-// erroring, which is how this was caught (measured in this worktree: `**/.
-// claude/**` dropped `Total: 276 tests in 50 files` to `113 tests in 36
-// files`, all of it the chromium project). Anchoring the pattern to this
-// config's own directory instead of matching `.claude` anywhere avoids the
-// self-match: it excludes a `.claude` folder nested INSIDE whatever
-// checkout is scanning (a real worktree-of-a-worktree, or the main
-// checkout's own `.claude/worktrees/*`), never the checkout's own ancestry.
+// Agent worktrees live at .claude/worktrees/<name>/ inside the repo, so a
+// scan from the main checkout (testDir '.') also discovers each worktree's
+// copy of every spec and loads a second `playwright` package from there
+// (found 2026-09-14, landing DEBT-01 with parallel worktree agents). Not the
+// plain '**/.claude/**' glob: testIgnore matches the absolute path, and a
+// worktree's own checkout already sits under `<repo>/.claude/`, so that glob
+// silently drops the worktree's own specs (measured: 276 -> 113, only the
+// projects without their own testIgnore). Anchoring to this config's
+// directory excludes only a `.claude/` nested inside the scanning checkout.
 const IGNORE_NESTED_CLAUDE_WORKTREES = new RegExp(
   `^${CONFIG_DIR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/\\.claude/`
 );
+
+// A project's own testIgnore replaces this list rather than merging with
+// it, so every project that sets one spreads BASE_IGNORE first.
+const BASE_IGNORE = ['**/node_modules/**', '**/dist/**', IGNORE_NESTED_CLAUDE_WORKTREES];
 
 // The font screening guards: per-script shaping guards, font parity suites,
 // the export render guard, the Hebrew composition guard and language
@@ -85,9 +78,7 @@ export default defineConfig({
   // '**/', so none of them need touching as tools move.
   testDir: '.',
   testMatch: ['e2e/**/*.spec.js', 'src/tools/*/e2e/**/*.spec.js'],
-  // See IGNORE_NESTED_CLAUDE_WORKTREES above for why this isn't the plain
-  // '**/.claude/**' string it looks like it should be.
-  testIgnore: ['**/node_modules/**', '**/dist/**', IGNORE_NESTED_CLAUDE_WORKTREES],
+  testIgnore: BASE_IGNORE,
   timeout: 45_000,
   expect: {
     timeout: 10_000,
@@ -115,12 +106,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      // A project's own testIgnore replaces the top-level one above instead
-      // of merging with it, so IGNORE_NESTED_CLAUDE_WORKTREES has to be
-      // repeated here too, or this project (most of the suite) would keep
-      // double-discovering nested worktree copies regardless of what the
-      // top-level list says.
-      testIgnore: [...FONT_GUARDS, ...PERF_BUDGETS, IGNORE_NESTED_CLAUDE_WORKTREES],
+      testIgnore: [...BASE_IGNORE, ...FONT_GUARDS, ...PERF_BUDGETS],
       use: { ...devices['Desktop Chrome'] },
     },
     {
