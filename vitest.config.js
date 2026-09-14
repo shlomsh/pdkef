@@ -77,7 +77,9 @@ export default defineConfig({
         test: {
           name: 'node',
           environment: 'node',
-          include: [TESTS],
+          // DEBT-05: scripts/*.test.mjs test scripts/*.mjs beside their subject,
+          // not under src/lib/.
+          include: [TESTS, 'scripts/**/*.test.mjs'],
           exclude: [...NEVER, ...DOM_TESTS],
         },
       },

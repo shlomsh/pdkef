@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
-import { PRECACHED_FONTS, shouldPrecache } from '../../scripts/precacheFilter.mjs';
+import { PRECACHED_FONTS, shouldPrecache } from './precacheFilter.mjs';
 
 const workerSource = fs.readFileSync(path.join(process.cwd(), 'public/sw.js'), 'utf8');
 

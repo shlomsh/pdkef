@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { changedFiles, classify, isDocsOnly } from '../../scripts/change-scope.mjs';
+import { changedFiles, classify, isDocsOnly } from './change-scope.mjs';
 
 /* scripts/change-scope.mjs decides, for CI and for `npm run test:e2e`, whether
    a change is docs-only (no build, no browser). Whether the font screening
    guards must run is scripts/affected-scope.mjs's question now (a real Nx
    project over public/fonts/, src/editor/, src/lib/ and tool-sign, not a
-   second hand-kept list here) - see src/lib/affectedScope.test.js. */
+   second hand-kept list here) - see scripts/affected-scope.test.mjs. */
 
 describe('docs-only changes', () => {
   it.each([

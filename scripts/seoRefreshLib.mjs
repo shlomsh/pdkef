@@ -1,7 +1,7 @@
 // LOC-06: the pure logic behind scripts/seo-refresh.mjs's per-locale section,
-// factored out so src/lib/seoRefresh.test.js can exercise it under vitest
+// factored out so scripts/seoRefreshLib.test.mjs can exercise it under vitest
 // against small inline fixtures - the same "test a scripts/ module from
-// src/lib/" pattern src/lib/backlog.test.js uses for scripts/backlog-data.mjs.
+// src/lib/" pattern scripts/backlog-data.test.mjs uses for scripts/backlog-data.mjs.
 // seo-refresh.mjs imports everything here rather than redefining it; this
 // file has no CLI entry point of its own and does nothing when imported.
 import { LOCALIZED_PATH_PREFIXES, PILOT_COUNTRY_BY_PREFIX } from '../src/i18n/localePrefixes.js';

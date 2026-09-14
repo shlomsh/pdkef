@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeBuildId } from '../../scripts/buildId.mjs';
+import { computeBuildId } from './buildId.mjs';
 
 const FONT_PATH = 'fonts/Arimo-Regular.ttf';
 

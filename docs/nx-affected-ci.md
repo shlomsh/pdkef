@@ -143,7 +143,7 @@ that recreates the ARCH-20 problem goes red instead of silently widening every n
    `fonts` project) via the same `roots` map `ownerOf()` already uses - so a future carve-out needs no
    second list to update. Caught only by exercising the CLI end to end; the unit tests for
    `deriveScope()` had passed a stub `siteE2ePaths` that ignored its own inputs, which is why they did
-   not catch it - `src/lib/affectedScope.test.js` now has a dedicated regression test for the bare-`e2e/`
+   not catch it - `scripts/affected-scope.test.mjs` now has a dedicated regression test for the bare-`e2e/`
    substring hazard and for `siteE2eOwnPaths()` itself. A second, unrelated bug found the same way:
    `toolE2eExists(project)` was being called on the already-mapped path string, not the project name,
    because the `.filter()` ran after the `.map()` - every tool's own e2e/ was silently dropping out of
