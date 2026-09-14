@@ -161,3 +161,48 @@ test('dropping a file onto the grid inserts its pages there and flags the rearra
   // them CSS-hidden), so this asks for the visible one.
   await expect(page.getByText('Pages were rearranged', { exact: false }).locator('visible=true')).toBeVisible();
 });
+
+// A landscape-oriented source page (width > height) rotated 90deg is a final
+// PORTRAIT page: PageStrip.tsx sets the <img>'s inline width/height to
+// `var(--cell-h)`/`var(--cell-w)` (swapped ahead of the CSS rotate()), which
+// on this axis is LARGER than its own `.thumb-box` container's un-rotated
+// width. `.thumb` (PageStrip.module.css) is a flex item with `max-width:
+// 100%` and no flex-shrink override, so both the flex-shrink algorithm and
+// the percentage max-width clamped that swapped width down to the
+// container's own (smaller) width before the rotate ever ran - the image
+// rendered as a small, near-square clamped box instead of filling its
+// portrait cell. Fixed by suppressing both on the rotated axis
+// (`.page[data-rotation='90'] .thumb` / `'270'`). This asserts the fix by
+// measuring, not by reading computed style values, since a passing max-width
+// with a shrunk flex-basis would look identical in computed style alone.
+test('a rotated landscape source thumbnail fills its portrait cell, not clamped by max-width (MERGE thumbnail geometry)', async ({ page }) => {
+  await page.goto('/merge/');
+  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+
+  const document_ = await PDFDocument.create();
+  document_.addPage([792, 612]); // landscape source page
+  document_.setTitle('landscape-source');
+  const buffer = Buffer.from(await document_.save());
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'landscape-source.pdf',
+    mimeType: 'application/pdf',
+    buffer,
+  });
+
+  const card = cards(page).first();
+  const thumb = card.locator('img[class*="thumb"]');
+  await expect(thumb).toHaveAttribute('src', /^data:/, { timeout: 10_000 });
+
+  await card.hover();
+  await card.getByRole('button', { name: /^Rotate page/ }).click({ force: true });
+  await expect(card).toHaveAttribute('data-rotation', '90');
+
+  const [boxRect, imgRect] = await Promise.all([
+    card.locator('[class*="thumb-box"]').evaluate((el) => el.getBoundingClientRect().toJSON()),
+    thumb.evaluate((el) => el.getBoundingClientRect().toJSON()),
+  ]);
+  // The rotated image's own rect must match its container's, within
+  // sub-pixel rounding - not clamped to a smaller square inside it.
+  expect(Math.abs(imgRect.width - boxRect.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(imgRect.height - boxRect.height)).toBeLessThanOrEqual(1);
+});
