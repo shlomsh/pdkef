@@ -1,10 +1,9 @@
 import type { EditorElement, ElementType } from '../model/editorModel.ts';
 import type { PDFDocument, PDFFont, PDFPage } from '@cantoo/pdf-lib';
 import type { PageGeometry } from '../geometry/coords.ts';
-// Type-only: SignMessages is a plain interface, so this import never reaches
-// runtime and cannot reopen the cycle renderers.ts's own header comment
-// describes.
-import type { SignMessages } from '../../i18n/toolMessages';
+// DEBT-04: SignMessages is defined in this same folder now (messages.ts), so
+// this is an editor-internal import, not a dependency on the site's i18n.
+import type { SignMessages } from './messages';
 
 /** The specific union member for a given `ElementType` literal, e.g. `ElementForType<'text'>` is `TextElement`. */
 export type ElementForType<K extends ElementType> = Extract<EditorElement, { type: K }>;

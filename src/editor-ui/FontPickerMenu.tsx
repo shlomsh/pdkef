@@ -3,7 +3,8 @@ import Popover from '../shell/Popover.tsx';
 import styles from './EditorControls.module.css';
 import { FONT_STYLE_TAGS, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
 import { getFontSupport } from '../editor/text/textFontSupport.js';
-import { englishSignMessages, formatMessage, type SignMessages } from '../i18n/toolMessages';
+import { englishSignMessages, formatMessage } from '../i18n/toolMessages';
+import type { SignMessages } from '../editor/registry/messages';
 
 export const FONT_PREVIEW_DELAY_MS = 120;
 

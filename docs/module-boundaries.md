@@ -78,6 +78,12 @@ never "teach the script a new rule." Rule 7 is a separate pass (`toolSpecRouteVi
 `specRouteViolation()`) rather than an edge in the same import graph, since it scans spec text for
 route mentions instead of import specifiers.
 
+**DEBT-04:** `src/editor/registry/types.ts` used to import the `SignMessages` type from
+`src/i18n/toolMessages.ts` - an `editor -> site-i18n` edge none of the seven rules above actually
+covers, so `check-module-boundaries.mjs` never flagged it even though it made the headless core
+depend on the site's message shape. The interface now lives in `src/editor/registry/messages.ts`;
+`i18n` imports and re-exports it, so the editor imports nothing from `i18n`.
+
 ## Evidence
 
 Measured on this checkout (`arch-15`, forked from `main` at `d9a689a`, four commits after the
