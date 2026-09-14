@@ -153,3 +153,31 @@ export function localizedPageProblems({ relPath, document, sitemapLocs, builtCan
 export function sitemapLocations(xml) {
   return new Set([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1].trim()));
 }
+
+/**
+ * Whether a page's rendered DOM carries the git-derived "Last updated" <time>
+ * element (SEO-29). 2026-09-14: on a shallow clone, git dates every file with
+ * the shallow boundary commit instead of its real history; gitLastModified.js
+ * now refuses that date (returns null) rather than fake one, so
+ * ContentPageLayout.astro omits the whole "Last updated" line instead of
+ * rendering an undated one. If this is ever false for a real, indexable
+ * content page, the build that produced it read a shallow clone.
+ */
+export function hasLastUpdatedDate(document) {
+  const time = document.querySelector('time[datetime]');
+  return Boolean(time && /^\d{4}-\d{2}-\d{2}$/.test(time.getAttribute('datetime') ?? ''));
+}
+
+/**
+ * <loc> URLs in a sitemap document whose <url> block has no <lastmod> entry.
+ * 2026-09-14: the same shallow-clone incident above means a page's date can
+ * legitimately be unknowable, but every sitemap entry must carry that choice
+ * explicitly (src/pages/sitemap.xml.js omits <lastmod> rather than fake it),
+ * so this fails loudly naming which URLs went undated instead of shipping a
+ * lastmod-optional sitemap nobody would notice regressing.
+ */
+export function sitemapUrlsMissingLastmod(xml) {
+  return [...xml.matchAll(/<url>([\s\S]*?)<\/url>/g)]
+    .filter(([, block]) => !/<lastmod>/.test(block))
+    .map(([, block]) => (block.match(/<loc>([^<]+)<\/loc>/)?.[1] ?? '').trim());
+}

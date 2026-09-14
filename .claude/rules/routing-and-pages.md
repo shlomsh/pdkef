@@ -126,3 +126,9 @@ Middleware, which is unrelated to Astro's own (SSR-only, inactive here) middlewa
 `verify-seo.js` (`npm run test:seo`): exactly one `<h1>` per page; title, meta description, canonical,
 OG/Twitter present; JSON-LD validates; FAQ schema matches on-page content; Organization schema and its
 ContactPoint present on every page.
+
+- **Sitemap and content-page dates come from git history** (`src/site-lib/gitLastModified.js`). The
+  Vercel project has `VERCEL_DEEP_CLONE=true` and `ci.yml`'s `build` and `checks` jobs check out with
+  `fetch-depth: 0`, because a shallow clone dates every file with its shallow boundary commit (the
+  2026-09-14 incident: every guide showed that day). When a date is unknowable the page and the
+  sitemap both omit it rather than fake one, and `test:seo` fails.

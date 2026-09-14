@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { JSDOM } from 'jsdom';
-import { localizedPageProblems, sitemapLocations } from './localizedSeoChecks.mjs';
+import { hasLastUpdatedDate, localizedPageProblems, sitemapLocations, sitemapUrlsMissingLastmod } from './localizedSeoChecks.mjs';
 
 const distDir = path.join(process.cwd(), 'dist');
 
@@ -28,7 +28,19 @@ const alternateLinks = [];
 // run in a second pass below.
 const localizedPages = [];
 const sitemapPath = path.join(distDir, 'sitemap.xml');
-const sitemapLocs = fs.existsSync(sitemapPath) ? sitemapLocations(fs.readFileSync(sitemapPath, 'utf8')) : new Set();
+const sitemapXml = fs.existsSync(sitemapPath) ? fs.readFileSync(sitemapPath, 'utf8') : null;
+const sitemapLocs = sitemapXml ? sitemapLocations(sitemapXml) : new Set();
+
+// 2026-09-14 shallow-clone incident: the English content pages, one YAML per
+// slug in src/content/content-pages/. getStaticPaths in [contentPage].astro
+// already fails the build if this set and dist/ disagree, so every slug here
+// is guaranteed to have a dist/<slug>/index.html once the build succeeds.
+const contentPageSlugs = new Set(
+  fs
+    .readdirSync(path.join(process.cwd(), 'src/content/content-pages'))
+    .filter((file) => file.endsWith('.yaml'))
+    .map((file) => file.replace(/\.yaml$/, '')),
+);
 
 for (const file of htmlFiles) {
   const relPath = path.relative(process.cwd(), file);
@@ -153,11 +165,34 @@ for (const file of htmlFiles) {
       error(`Page has FAQ elements but no FAQPage JSON-LD`);
     }
   }
+
+  // 7. 2026-09-14 shallow-clone incident: an English content page (one of the
+  // src/content/content-pages/*.yaml slugs) must carry the git-derived "Last
+  // updated" <time> element - see hasLastUpdatedDate's own comment and
+  // src/site-lib/gitLastModified.js's header. Localized editions are checked
+  // in the second pass below, where their published/preview state is known.
+  const contentSlugMatch = /^dist\/([a-z0-9-]+)\/index\.html$/.exec(relPath);
+  if (contentSlugMatch && contentPageSlugs.has(contentSlugMatch[1]) && !hasLastUpdatedDate(document)) {
+    error('Missing "Last updated" <time datetime> - a shallow git clone cannot date this page (src/site-lib/gitLastModified.js)');
+  }
 }
 
 // LOC-02 guards 3-5 over every localized page, now that every page's
 // canonical and noindex state is known. See scripts/localizedSeoChecks.mjs.
 for (const page of localizedPages) {
+  // 2026-09-14 shallow-clone incident: a published (indexed) localized
+  // content page must carry the same "Last updated" <time> element as its
+  // English counterpart. A draft/preview page (noindex), a tool page (has
+  // #app, not rendered by ContentPageLayout) and a locale's home page
+  // (HomePageLayout never shows this line - dist/<locale>/index.html, no
+  // slug segment) are excluded, so only guard 7's counterpart is checked here.
+  const isNoindex = Boolean(page.document.querySelector('meta[name="robots"][content*="noindex"]'));
+  const isToolPage = Boolean(page.document.querySelector('#app'));
+  const isLocaleHome = /^dist\/[a-z]{2,3}(?:-[a-z0-9]+)?\/index\.html$/.test(page.relPath);
+  if (!isToolPage && !isLocaleHome && !isNoindex && !hasLastUpdatedDate(page.document)) {
+    page.error('Missing "Last updated" <time datetime> - a shallow git clone cannot date this page (src/site-lib/gitLastModified.js)');
+  }
+
   const canonical = page.document.querySelector('link[rel="canonical"]')?.getAttribute('href') ?? '';
   const siteBase = canonical ? new URL(canonical).origin : '';
   for (const problem of localizedPageProblems({
@@ -191,6 +226,17 @@ for (const alternate of alternateLinks) {
   const targetLanguage = target.document.documentElement.getAttribute('lang');
   if (targetLanguage && targetLanguage !== alternate.hreflang) {
     console.error(`[ERROR] ${alternate.relPath}: hreflang ${alternate.hreflang} does not match target html lang ${targetLanguage}`);
+    hasError = true;
+  }
+}
+
+// 2026-09-14 shallow-clone incident: sitemap.xml.js omits <lastmod> for a URL
+// whose date is unknowable rather than fake one (see gitLastModified.js's
+// header comment), so a shallow build produces a sitemap that is silently
+// missing dates instead of failing loudly. Every <url> must carry one.
+if (sitemapXml) {
+  for (const loc of sitemapUrlsMissingLastmod(sitemapXml)) {
+    console.error(`[ERROR] sitemap.xml: missing <lastmod> for ${loc}`);
     hasError = true;
   }
 }

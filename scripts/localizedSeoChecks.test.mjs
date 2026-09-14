@@ -9,10 +9,12 @@ import { describe, expect, it } from 'vitest';
 import {
   MIN_SCRIPT_PURITY,
   TARGET_SCRIPTS,
+  hasLastUpdatedDate,
   localeForRelPath,
   localizedPageProblems,
   scriptPurity,
   sitemapLocations,
+  sitemapUrlsMissingLastmod,
   visibleText,
 } from './localizedSeoChecks.mjs';
 
@@ -194,5 +196,42 @@ describe('offline locale pack names only this edition\'s published pages (guard 
     const document = page({ path: '/he/merge/', body: HEBREW, pack: { prefix: 'ar', urls: ['/ar/merge/'] } });
     const problems = check(document, '/he/merge/', { sitemap: ['/he/merge/'] });
     expect(problems[0]).toContain('does not match the page\'s locale "he"');
+  });
+});
+
+// 2026-09-14 shallow-clone incident: a shallow build dates every content page
+// with its boundary commit (or, before this incident, a build timestamp)
+// instead of refusing to date it - see src/site-lib/gitLastModified.js's
+// header comment. These two guards fail a build that shipped an undated page
+// or sitemap entry, which a shallow clone produces silently otherwise.
+describe('"Last updated" is present (guard for the 2026-09-14 shallow-clone incident)', () => {
+  it('passes a page with a valid dated <time> element', () => {
+    const document = new JSDOM('<!doctype html><html><body><p>Last updated <time datetime="2026-08-29">August 29, 2026</time></p></body></html>').window.document;
+    expect(hasLastUpdatedDate(document)).toBe(true);
+  });
+
+  it('SABOTAGE: fails a page with no <time> element at all - a shallow clone omits the whole line', () => {
+    const document = new JSDOM('<!doctype html><html><body><p>No date here.</p></body></html>').window.document;
+    expect(hasLastUpdatedDate(document)).toBe(false);
+  });
+
+  it('SABOTAGE: fails a <time> element with no usable datetime', () => {
+    const document = new JSDOM('<!doctype html><html><body><time>recently</time></body></html>').window.document;
+    expect(hasLastUpdatedDate(document)).toBe(false);
+  });
+});
+
+describe('every sitemap <url> carries a <lastmod> (guard for the 2026-09-14 shallow-clone incident)', () => {
+  it('passes when every <url> has a <lastmod>', () => {
+    const xml = `<urlset><url><loc>https://pdkef.com/merge/</loc><lastmod>2026-08-29T00:00:00.000Z</lastmod></url></urlset>`;
+    expect(sitemapUrlsMissingLastmod(xml)).toEqual([]);
+  });
+
+  it('SABOTAGE: reports a <url> with no <lastmod> - what a shallow build silently ships', () => {
+    const xml = `<urlset>
+      <url><loc>https://pdkef.com/merge/</loc><lastmod>2026-08-29T00:00:00.000Z</lastmod></url>
+      <url><loc>https://pdkef.com/sign/</loc></url>
+    </urlset>`;
+    expect(sitemapUrlsMissingLastmod(xml)).toEqual(['https://pdkef.com/sign/']);
   });
 });

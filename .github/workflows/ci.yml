@@ -60,6 +60,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
+      with:
+        # Full history: src/site-lib/gitLastModified.test.js dates a real
+        # guide from git and refuses a shallow boundary commit, so on the
+        # default depth-1 checkout it would see null and fail. Same reason
+        # and cost as `build` below (30 MB against 24 MB, 2026-09-14).
+        fetch-depth: 0
 
     - name: Use Node.js
       uses: actions/setup-node@v5
@@ -161,6 +167,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v5
+      with:
+        # Full history, not the default depth 1: `build` runs test:seo, which
+        # now fails when a content page has no "Last updated" date, and
+        # src/site-lib/gitLastModified.js can only date a file from history the
+        # clone holds (a shallow boundary commit is refused as unknowable). The
+        # full pack is 30 MB against 24 MB shallow, measured 2026-09-14.
+        fetch-depth: 0
 
     - name: Use Node.js
       uses: actions/setup-node@v5

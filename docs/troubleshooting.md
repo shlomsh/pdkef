@@ -59,4 +59,11 @@ cannot see them - so an interception that works for the first asset silently 404
 while screening candidate Arabic fonts against the preview build, and it costs an hour to diagnose
 because the first fetch succeeding makes the interception look correct.
 
+## Every content page's "Last updated" is today, or `test:seo` says a page has no date
+
+The build ran on a shallow clone: `git log -1 -- <file>` for a file not touched inside the shallow
+window returns the shallow boundary commit, dating every such file the same wrong way (2026-09-14
+incident). Check with `git rev-parse --is-shallow-repository`. Fix: `git fetch --unshallow` locally,
+`fetch-depth: 0` in `ci.yml`'s `build` and `checks` jobs, `VERCEL_DEEP_CLONE=true` on the Vercel project.
+
 
