@@ -3,7 +3,7 @@
 // [slug].md.ts for the equivalent on every tool/content/static page.
 import { tools } from '../data/tools.js';
 import { homeContent } from '../data/homeContent.js';
-import { homeToMarkdown } from '../lib/markdownRender.js';
+import { homeToMarkdown } from '../site-lib/markdownRender.js';
 
 const body = homeToMarkdown({ ...homeContent, tools });
 

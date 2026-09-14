@@ -2,12 +2,12 @@
 // cautious visitor checks to decide whether PDkef is a real, legitimate
 // thing before recommending or using it. One registry feeds both the .astro
 // page (src/pages/<slug>.astro) and its Markdown twin
-// (src/pages/[slug].md.ts, via src/lib/markdownRender.js's
+// (src/pages/[slug].md.ts, via src/site-lib/markdownRender.js's
 // staticPageToMarkdown), the same "one source, two renderers" pattern
 // src/data/tools.js already uses for its own pages and JSON-LD.
 //
 // `paragraphs` may use the same two-tag inline dialect content-pages allow
-// (see src/lib/contentMarkup.ts) - `<strong>` and `<a href="...">` only.
+// (see src/site-lib/contentMarkup.ts) - `<strong>` and `<a href="...">` only.
 export const staticPages = [
   {
     slug: 'about',

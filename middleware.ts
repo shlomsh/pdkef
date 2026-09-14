@@ -23,7 +23,7 @@
 // `text/html,...,*/*;q=0.8` still gets HTML even though */* technically
 // matches text/markdown too.
 import { next } from '@vercel/functions';
-import { negotiateRepresentation, markdownRoute } from './src/lib/acceptNegotiation.js';
+import { negotiateRepresentation, markdownRoute } from './src/site-lib/acceptNegotiation.js';
 import vercelConfig from './vercel.json';
 
 export const config = {

@@ -29,6 +29,9 @@ src/tools/<t>/   the island, its components, its lib modules, its unit tests, it
                  image-to-pdf, security (redact owns DeletableObjectOverlay/DeleteMark - see ARCH-17
                  below, not shared with Sign)
 src/lib/         the genuinely shared modules only (about eight today)
+src/site-lib/    site-only/build-only helpers with no tool, shell, editor or lib consumer
+                 (DEBT-05): contentMarkup, markdownRender, gitLastModified, cspHash,
+                 localeOfflinePacks, acceptNegotiation                (classified `site`)
 site             src/pages, src/content, src/data, src/i18n, src/layouts, src/styles and the
                  .astro components, as today
 ```
@@ -302,19 +305,16 @@ rest of the Sign/Redact shared chrome rather than in `lib`. Consumers unchanged 
 | `usePdfCoordinates.ts` | `PdfRedactTool`, `SignTool/nodes/TextNode`, plus `useDraggableElement.js`/`useElementResize.js`/`useWorkspaceGestures.ts` internally |
 | `useUndoShortcut.js` | `PdfRedactTool`, `PdfSignTool` |
 
-### Site-only or build-only - no island/editor consumer, stays in `src/lib/` (not tool-ownable, but also arguably not "shared tool logic"; not decided here)
+### Site-only or build-only (DEBT-05: moved to `src/site-lib/`)
 
-| Module | Consumers |
-| --- | --- |
-| `contentMarkup.ts` | `.astro`/layout/page files only |
-| `gitLastModified.js` | `src/pages/**` only |
-| `markdownRender.js` | `src/pages/**` only |
-| `cspHash.js` | `CompareFigure.astro` only |
-| `localeOfflinePacks.js` | `LocalePackRequest.astro` only |
-| `maintenanceTelemetry.ts` | `BaseLayout.astro` only |
-| `acceptNegotiation.js` | none in `src/` (consumed by `scripts/`) |
-| `fontCoverageReport.js` | none in `src/` (consumed by `scripts/`) |
-| `liveFontCoverage.js` | none in `src/` (consumed by `scripts/`) |
+`contentMarkup.ts`, `markdownRender.js`, `gitLastModified.js`, `cspHash.js`, `localeOfflinePacks.js`
+and `acceptNegotiation.js` had no tool, shell, editor or lib consumer - only `.astro`/layout/page files
+(or, for `acceptNegotiation.js`, `middleware.ts`) - so they live in `src/site-lib/` now, classified
+`site` in `check-module-boundaries.mjs`'s `MODULE_PREFIXES`. `maintenanceTelemetry.ts` stayed in
+`src/lib/` because tools and shell import it (`BaseLayout.astro` is not its only consumer). The two
+font-coverage modules that used to sit in this same bucket, `fontCoverageReport.js` and
+`liveFontCoverage.js`, went to `src/editor/text/` instead (DEBT-05 commit 2) - they are the editor's
+own text layer, not a site-only helper, even though neither is imported by a browser bundle.
 
 ### Single-tool consumer - candidates to move with that tool (ARCH-17/18)
 

@@ -6,8 +6,8 @@ paths:
   - "src/data/**"
   - "src/i18n/**"
   - "src/layouts/**"
-  - "src/lib/markdownRender*"
-  - "src/lib/acceptNegotiation*"
+  - "src/site-lib/markdownRender*"
+  - "src/site-lib/acceptNegotiation*"
   - "public/robots.txt"
   - "src/lib/*elemetry*"
   - "docs/maintenance-telemetry.md"
@@ -79,7 +79,7 @@ build, `grep -rho 'href="/[a-z0-9-]\+"' dist/ --include='*.html'` must return no
 Real, indexed static pages that agents and cautious humans check before trusting a site.
 `src/data/staticPages.js` is their single source (title, description, h1, prose in the same
 `<strong>`/`<a href>` dialect content pages use, rendered by `renderInline()` from
-`src/lib/contentMarkup.ts`), consumed by the three `.astro` pages and their Markdown twins; they share
+`src/site-lib/contentMarkup.ts`), consumed by the three `.astro` pages and their Markdown twins; they share
 `src/styles/staticPage.css` and are linked from `Footer.astro` and each other.
 
 - `/contact/` points at GitHub Issues and Discussions; there is no support inbox and inventing one
@@ -99,14 +99,14 @@ negotiated response, and a real `406` when nothing is acceptable; a static site 
 `output: 'server'` for the whole marketing surface was rejected in favour of Vercel's Routing
 Middleware, which is unrelated to Astro's own (SSR-only, inactive here) middleware.
 
-- `src/lib/markdownRender.js` renders Markdown from the same structured data every other renderer
+- `src/site-lib/markdownRender.js` renders Markdown from the same structured data every other renderer
   reads (`tools.js`, the `contentPages` collection, `staticPages.js`, `homeContent.js`), never from
   `dist/*.html`, so it cannot disagree with the HTML or the FAQ JSON-LD.
 - `src/pages/[slug].md.ts`, `index.md.ts`, `404.md.ts` are prerendered endpoints producing `/sign.md`,
   `/about.md`, `/index.md`, `/404.md` and so on, one per tool page, content-pages entry and trust page,
   with no registry to sync. `/licenses/` has no twin and gets the Markdown `404` fallback.
 - `middleware.ts` (project root, Edge runtime) decides with the unit-tested `acceptQuality()` and
-  `negotiateRepresentation()` in `src/lib/acceptNegotiation.js` (RFC 9110 precedence: exact type >
+  `negotiateRepresentation()` in `src/site-lib/acceptNegotiation.js` (RFC 9110 precedence: exact type >
   `type/*` > `*/*`; Markdown only on a *strict* preference, because curl's `*/*` once got Markdown).
   On a canonical URL it fetches the `.md` sibling and re-wraps it; a missing twin or a nonexistent path
   gets `/404.md` with a `404`. Everything else passes through `next()` with `Vary: Accept,

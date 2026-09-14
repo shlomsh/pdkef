@@ -23,7 +23,7 @@
 // EDITING COPY: everything a page says lives in its own YAML file. Nothing in
 // this file needs touching to reword a page - only to add a new KIND of thing
 // to say. Prose fields take two tags, `<strong>` and `<a href="...">`; see
-// src/lib/contentMarkup.ts for exactly what is allowed and why.
+// src/site-lib/contentMarkup.ts for exactly what is allowed and why.
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 // Not `astro:content`'s re-export of `z`: that one is deprecated and slated for
@@ -31,7 +31,7 @@ import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 import { CONTENT_ICON_NAMES } from './data/contentIcons';
 import { DOCUMENTATION_LOCALE_IDS } from './i18n/documentationLocales';
-import { inlineHtmlProblems, plainTextProblems } from './lib/contentMarkup';
+import { inlineHtmlProblems, plainTextProblems } from './site-lib/contentMarkup';
 
 /** Text rendered through an expression: escaped, so no markup. */
 const plain = (min: number, max: number) =>
