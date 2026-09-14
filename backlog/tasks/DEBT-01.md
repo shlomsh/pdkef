@@ -1,7 +1,7 @@
 ---
 id: "DEBT-01"
 title: "Move the two cross-tool Playwright specs out of tool folders and guard the route a tool spec may visit"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "architecture-debt"
 phase: "quick-win"
@@ -37,3 +37,13 @@ Redact-only or Compress-only commit skips both. Nothing catches the next one.
   the moves; `npx playwright test --list` still counts 139 product tests.
 - `node scripts/affected-scope.mjs --base <sha>` on a Redact-only diff lists `e2e/tool-toolbars/` in
   `e2e_paths`.
+
+## Landed (2026-09-14, `13ace69`)
+
+Both specs moved (`e2e/tool-toolbars/`, `e2e/handoff/`); rule 7 in `check-module-boundaries.mjs`
+derives the tool -> route map from `src/pages/<slug>.astro` island imports rather than
+`src/data/tools.js` (the slug is not the folder: `/unlock/` is `security`, `/pdf-to-image/` is
+`to-image`, `/edit-pdf/` is `edit-pages`), and matches regex literals too, which is what
+`merge-handoff.spec.js`'s `waitForURL(/\/compress\//)` needed. Verified red on both specs at their
+old paths, green after; `playwright test --list` 276 before and after; a Redact-only diff now lists
+`e2e/tool-toolbars/` and `e2e/handoff/` in `e2e_paths`.

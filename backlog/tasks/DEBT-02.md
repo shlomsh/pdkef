@@ -1,7 +1,7 @@
 ---
 id: "DEBT-02"
 title: "The boundary checker scans test files: a test outside src/test/cross-tool/ may not import a tool it does not belong to"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "architecture-debt"
 phase: "quick-win"
@@ -34,3 +34,10 @@ silently undoes the narrowing, and nothing goes red.
 - Red with a throwaway `import PdfSignTool` in `src/editor/workspace/x.test.tsx`, green on `main`.
 - `nx show projects --affected --files=src/tools/sign/PdfSignTool.tsx` still lists exactly
   `tool-sign, cross-tool-tests, fonts, site-e2e`.
+
+## Landed (2026-09-14, `445bb54`)
+
+Rule 6 as `testImportViolation()` plus a second `collectSourceFiles(SRC, [], { testFiles: true })`
+pass; no allowlist. 167 test files scanned, 0 violations on `main`; red on the throwaway
+`src/editor/workspace/x.test.tsx`; `nx show projects --affected --files=src/tools/sign/PdfSignTool.tsx`
+still `tool-sign, cross-tool-tests, fonts, site-e2e`.

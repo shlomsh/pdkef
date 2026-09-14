@@ -268,6 +268,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | DEBT-11 | P2 | [DEBT-11](backlog/tasks/DEBT-11.md) · Split editor.md so a Merge or shell edit loads tool rules, not the Sign editor's, and src/test/ loads something |
 | DEBT-12 | P3 | [DEBT-12](backlog/tasks/DEBT-12.md) · Ratchets that ratchet: a page-count-invariant duplication factor, stale-exception detection, one import scanner |
 | DEBT-13 | P3 | [DEBT-13](backlog/tasks/DEBT-13.md) · Trim the e2e specs that re-prove what a unit test already proves under jsdom |
+| DEBT-14 | P3 | [DEBT-14](backlog/tasks/DEBT-14.md) · Editor-time boundary feedback: ESLint with @nx/enforce-module-boundaries on the existing project tags, or retire the idea with Nx |
 
 
 ## Migrated context and history
