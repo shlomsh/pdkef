@@ -23,6 +23,14 @@ build broke.** Two things about the preview server cause this, and both look lik
   ..." and exits 0, which reads like a mysterious early exit when Playwright launches it. Use
   `npx astro preview stop` and restart on the port you want, rather than adding a second one. A running
   preview serves `dist/` from disk, so a rebuild is picked up with no restart.
+- **Under a coding agent, `astro preview` daemonises even with no instance running.** Astro 7 asks
+  `am-i-vibing` whether an agent is driving the shell (`CLAUDECODE` and friends) and, if so, spawns a
+  detached child and exits, so Playwright's `webServer` reports "Process from config.webServer exited
+  early" on the first run, leaves an orphan on 4173, and the rerun quietly reuses it. Measured
+  2026-09-14: three "flakes" in one day, every one this. `playwright.config.js` sets
+  `ASTRO_PREVIEW_BACKGROUND=1` on the `webServer` command, the variable Astro gives its own background
+  child, which keeps the server in the foreground. Keep that line when touching `webServer`; `npx astro
+  preview status` shows whether an orphan is still around.
 
 The practical rule for parallel agents: **one preview, on 4173, for the whole worktree**, and let
 everything share it. Handing each agent its own port does not work and quietly produces the first
