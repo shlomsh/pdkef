@@ -7,7 +7,6 @@ import { COMB_MIN_CELL_EM, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_P
 import { combCellCenterFraction, combCellCount } from '../text/comb.js';
 import { normalizeTabsForBidi, stripInvisibleFormatting, findMissingGlyphs } from '../text/textTransforms.js';
 import { fontkitFont, shapedWidth, unrepresentableCharacters } from '../text/textMetrics.ts';
-import { getTextElementClassNames } from '../text/elementClassNames.ts';
 
 // Keep the coverage and shaping imports stable for callers that do not need
 // PDF drawing. drawShapedRun intentionally lives in textPdf.ts.
@@ -75,11 +74,10 @@ export const textDefinition: ElementDefinition<TextElement> = {
     applyWidthResize: applyCombWidth,
     widthFloor: combWidthFloor,
     writeDOM: ({ node, patch, handle, isRtl, startLeft, startTop, scaleFactor, pageWrapper, textStartSizePercent, getElementPercentSize, element }) => {
-      const classNames = getTextElementClassNames();
       if (patch.width !== undefined) {
-        const textDisplay = node.querySelector(`.${classNames.textDisplay}`) as HTMLElement | null;
-        const textInput = node.querySelector(`.${classNames.textInput}`) as HTMLElement | null;
-        const combNode = node.querySelector(`.${classNames.textComb}`) as HTMLElement | null;
+        const textDisplay = node.querySelector('[data-text-part="display"]') as HTMLElement | null;
+        const textInput = node.querySelector('[data-text-part="input"]') as HTMLElement | null;
+        const combNode = node.querySelector('[data-text-part="comb"]') as HTMLElement | null;
         if (patch.collapsed) {
           // Back to intrinsic sizing, so the span is no longer fixed and RTL
           // anchoring applies again from the element's original edge.
@@ -90,7 +88,7 @@ export const textDefinition: ElementDefinition<TextElement> = {
           else node.style.left = `${startLeft}%`;
           if (combNode) combNode.style.display = 'none';
           if (textInput) textInput.style.color = (element as TextElement).color || '#000000';
-          textDisplay?.classList.remove(classNames.textDisplayComb);
+          textDisplay?.removeAttribute('data-comb');
           return;
         }
         // A comb is left-anchored in both directions: `patch.left` is its left
@@ -100,21 +98,21 @@ export const textDefinition: ElementDefinition<TextElement> = {
         node.style.left = `${patch.left}%`;
         if (!combNode) return;
         combNode.style.display = '';
-        textDisplay?.classList.add(classNames.textDisplayComb);
+        textDisplay?.setAttribute('data-comb', 'on');
         if (textInput) textInput.style.color = 'transparent';
         const widthPx = node.getBoundingClientRect().width;
-        const cells = combNode.querySelectorAll(`.${classNames.textCombCell}`);
+        const cells = combNode.querySelectorAll('[data-text-part="comb-cell"]');
         cells.forEach((cell, index) => {
           (cell as HTMLElement).style.left = `${combCellCenterFraction(index, cells.length, isRtl) * widthPx}px`;
         });
-        combNode.querySelectorAll(`.${classNames.textCombGuide}`).forEach((guide, index) => {
+        combNode.querySelectorAll('[data-text-part="comb-guide"]').forEach((guide, index) => {
           const boundary = (index + 1) / cells.length;
           (guide as HTMLElement).style.left = `${(isRtl ? 1 - boundary : boundary) * widthPx}px`;
         });
         return;
       }
 
-      node.querySelectorAll(`.${classNames.textDisplay}, .${classNames.textInput}, .${classNames.textMeasure}`)
+      node.querySelectorAll('[data-text-part="display"], [data-text-part="input"], [data-text-part="measure"]')
         .forEach((el) => { (el as HTMLElement).style.fontSize = `${(patch.fontSize as number) * scaleFactor}px`; });
       if (!textStartSizePercent) return;
       const newSize = getElementPercentSize(node, pageWrapper);

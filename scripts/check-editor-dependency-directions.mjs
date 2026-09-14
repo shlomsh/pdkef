@@ -21,10 +21,9 @@ const PDF_PACKAGES = new Set(['@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist
 // only the `preact` exception below remains, for the registry still creating
 // Preact vnodes from whatever component was registered. The same ticket
 // removed the `text.ts -> EditorElement.module.css` exception below: text.ts's
-// resize paint now reads resolved class names through
-// editor/text/elementClassNames.ts's getTextElementClassNames(), which Sign's
-// TextNode.tsx registers at module load, so text.ts no longer imports the
-// tool's CSS Module directly either. It also removed the
+// resize paint now finds its DOM parts with `data-text-part` attributes
+// (`registry/text.ts`'s `writeDOM`), so it needs no class names, resolved or
+// otherwise, and no longer imports the tool's CSS Module at all. It also removed the
 // `useEditorDraftPersistence.ts -> SignTool/useDraftPersistence.js` exception:
 // that hook had no Sign-specific logic (only draftStore.js/draftValidation.ts,
 // both already core) and simply moved to

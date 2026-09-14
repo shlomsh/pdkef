@@ -42,7 +42,7 @@
 .text-input-inert { pointer-events: none; user-select: none; }
 /* Comb layout. The span is explicit, so the grid column is pinned to it and the
    measure (kept only for the one-line height) can no longer widen the box. */
-.text-display-comb { grid-template-columns: 100%; overflow: hidden; }
+.text-display[data-comb="on"] { grid-template-columns: 100%; overflow: hidden; }
 .text-comb { grid-area: 1 / 1; position: relative; width: 100%; height: 100%; pointer-events: none; font-size: inherit; line-height: inherit; padding: var(--text-pad-em, .12em) 0; }
 /* Centred on the cell centre, which is the whole point: the printed pitch
    decides where the glyph goes, never the font's advance width. */
