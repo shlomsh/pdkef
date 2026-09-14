@@ -16,12 +16,14 @@ const ROOTS = new Map([
   ['lib', 'src/lib'],
   ['tool-merge', 'src/tools/merge'],
   ['tool-sign', 'src/tools/sign'],
+  ['tool-redact', 'src/tools/redact'],
   ['tool-compress', 'src/tools/compress'],
   ['tool-split', 'src/tools/split'],
   ['tool-edit-pages', 'src/tools/edit-pages'],
   ['site-e2e', 'e2e'],
   ['fonts', 'e2e/sign'],
   ['font-assets', 'public/fonts'],
+  ['cross-tool-tests', 'src/test/cross-tool'],
 ]);
 
 describe('ownerOf', () => {
@@ -152,8 +154,8 @@ describe('siteE2eOwnPaths', () => {
 });
 
 describe('CORE_PROJECTS', () => {
-  it('is exactly the five modules every tool depends on', () => {
-    expect([...CORE_PROJECTS].sort()).toEqual(['editor', 'editor-ui', 'lib', 'shell', 'site']);
+  it('is exactly the four modules every tool depends on (editor-ui left in DEBT-06)', () => {
+    expect([...CORE_PROJECTS].sort()).toEqual(['editor', 'lib', 'shell', 'site']);
   });
 });
 
@@ -314,6 +316,45 @@ describe('deriveScope', () => {
     expect(scope.everything).toBe(false);
     expect(scope.fonts).toBe(true);
     expect(scope.unit_paths).toBe('src/tools/sign/ src/test/');
+  });
+
+  // DEBT-06: editor-ui left CORE_PROJECTS, so an editor-ui-only change now
+  // narrows instead of widening - the affected set nx actually reports for
+  // src/editor-ui/ElementToolbar.tsx (measured, see the ticket and the
+  // header comment's rule 3).
+  it('narrows an editor-ui-only change to Sign, Redact, editor-ui\'s own root, and src/test/, fonts=true', () => {
+    const scope = deriveScope({
+      files: ['src/editor-ui/ElementToolbar.tsx'],
+      affected: ['editor-ui', 'tool-sign', 'tool-redact', 'fonts', 'cross-tool-tests', 'site-e2e'],
+      roots: ROOTS,
+      toolE2eExists: () => true,
+      siteE2ePaths: ['e2e/home/'],
+    });
+    expect(scope.everything).toBe(false);
+    expect(scope.unit_paths).toBe('src/editor-ui/ src/tools/redact/ src/tools/sign/ src/test/');
+    expect(scope.fonts).toBe(true);
+    expect(scope.e2e_paths).toContain('src/tools/sign/e2e/');
+    expect(scope.e2e_paths).toContain('src/tools/redact/e2e/');
+  });
+
+  it('still widens to everything on a shell change', () => {
+    const scope = deriveScope({
+      files: ['src/shell/FileDropzone.tsx'],
+      affected: ['shell', 'tool-merge'],
+      roots: ROOTS,
+    });
+    expect(scope.everything).toBe(true);
+    expect(scope.reason).toMatch(/shell/);
+  });
+
+  it.each(['editor', 'lib', 'site'])('still widens to everything on a %s change (unlike editor-ui)', (core) => {
+    const scope = deriveScope({
+      files: ['src/lib/format.js'],
+      affected: [core, 'tool-merge'],
+      roots: ROOTS,
+    });
+    expect(scope.everything).toBe(true);
+    expect(scope.reason).toMatch(new RegExp(core));
   });
 });
 

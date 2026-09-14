@@ -155,11 +155,19 @@ that recreates the ARCH-20 problem goes red instead of silently widening every n
 `arch-20-prep` found `src/lib/useWorkspaceGestures.ts` has a genuine runtime import from
 `src/i18n/toolMessages.ts` (`englishSignMessages`, `formatMessage`, `signElementTypeLabel`), which
 widens any i18n-only change to all of `lib`'s dependents. Since `lib` is one of `affected-scope.mjs`'s
-five CORE_PROJECTS (any change there is `everything` regardless of dependents), this coupling changes
+four CORE_PROJECTS (any change there is `everything` regardless of dependents), this coupling changes
 nothing about what `affected-scope.mjs` outputs today - a `src/i18n/` change is owned by `site` (also a
 core project) anyway, so it is `everything` either way. It remains real, pre-existing coupling worth
 knowing about if `lib`'s own dependents ever need to be enumerated precisely (e.g. if a future change
 narrows `site` itself - see Follow-ups), and does not block anything here.
+
+`editor-ui` left CORE_PROJECTS in DEBT-06 (2026-09-14): every consumer of `src/editor-ui/*` is Sign or
+Redact (measured: `nx show projects --affected --files=src/editor-ui/ElementToolbar.tsx` answers
+exactly `editor-ui, tool-sign, tool-redact, fonts, cross-tool-tests, site-e2e`), and the tool pages'
+Tailwind `@source` lists name no island files, so there is no CSS side channel to a third tool. An
+editor-ui-only change now narrows to Sign, Redact, `src/editor-ui/`'s own unit tests, and `src/test/`,
+the same as any other narrowed change. `editor` stays in CORE_PROJECTS for now - DEBT-07 decides its
+fate, after DEBT-04.
 
 ## Enforcement: `scripts/check-module-boundaries.mjs` stays the only checker
 
@@ -230,7 +238,7 @@ Every acceptance example from the working brief holds on the current tree with o
 the specific historical hashes it named (`55f3a7c`, `204c9be`) predate the ARCH-18 move within this
 fork's own history and do not resolve narrowly - see above. A `src/pages/*.astro` change resolving to
 `everything` is expected and named as a known gap, not a bug: `.astro` files have no import edges any
-plugin here infers, and `site` is one of the five core projects every tool depends on regardless.
+plugin here infers, and `site` is one of the four core projects every tool depends on regardless.
 
 ## Follow-ups (not done here)
 
