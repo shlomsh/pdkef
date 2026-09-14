@@ -9,7 +9,7 @@ import ContentTable from './ContentTable.astro';
 import OtherGuides from './OtherGuides.astro';
 import { CONTENT_ICONS } from '../data/contentIcons';
 import { guides } from '../data/contentPages.js';
-import { renderInline } from '../lib/contentMarkup';
+import { renderInline } from '../site-lib/contentMarkup';
 import type { DocumentationShellMessages } from '../i18n/documentationMessages';
 
 interface Props { entry: any; pageId?: string; locale?: string; labels: DocumentationShellMessages; resolveLink?: (pageId: string, locale: string) => { href: string; effectiveLocale?: string; fallback?: boolean }; }

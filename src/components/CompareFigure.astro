@@ -10,8 +10,8 @@
 // only :root tokens from global.css, never its literals - that file's
 // rgba()/hex values are fine for a runtime-driven island but would be a
 // literal-color regression here.
-import { cspSha256 } from '../lib/cspHash.js';
-import { renderInline } from '../lib/contentMarkup';
+import { cspSha256 } from '../site-lib/cspHash.js';
+import { renderInline } from '../site-lib/contentMarkup';
 // The figure's CSS as a raw string, not a stylesheet in the module graph
 // (see compareFigure.css): emitted below as <style is:inline>, so only a
 // page that renders the figure carries it, and hashed here so the page's

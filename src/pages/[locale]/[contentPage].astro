@@ -6,7 +6,7 @@ import { documentationLocales, getDocumentationLocaleByPrefix } from '../../i18n
 import { getDocumentationContext, getDocumentationVariants } from '../../i18n/documentation';
 import { getDocumentationShellMessages } from '../../i18n/documentationMessages';
 import { getPublishedEditionPaths } from '../../i18n/localizedTools';
-import { documentationSourceFiles, lastModifiedFor } from '../../lib/gitLastModified.js';
+import { documentationSourceFiles, lastModifiedFor } from '../../site-lib/gitLastModified.js';
 
 export async function getStaticPaths() {
   const variants = await getDocumentationVariants();

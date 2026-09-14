@@ -6,8 +6,8 @@ paths:
   - "src/i18n/**"
   - "src/pages/**"
   - "src/components/*.astro"
-  - "src/lib/contentMarkup*"
-  - "src/lib/gitLastModified*"
+  - "src/site-lib/contentMarkup*"
+  - "src/site-lib/gitLastModified*"
   - "public/robots.txt"
   - "README.md"
   - "docs/seo-*"
@@ -46,7 +46,7 @@ Things to know before touching them:
   the other - a content file with no registry entry is an orphan page, a registry entry with no content
   file is a 404 in the sitemap. Both used to be possible.
 - **Body copy is a two-tag dialect, and content files never carry a class.** `<strong>` and
-  `<a href="...">`, nothing else; `src/lib/contentMarkup.ts` validates it (unsupported tag, unbalanced
+  `<a href="...">`, nothing else; `src/site-lib/contentMarkup.ts` validates it (unsupported tag, unbalanced
   tag, bare `&`, internal link without its trailing slash, external link without
   `rel="noopener noreferrer"`) and puts the design system's classes back on at render. Everything else -
   card spacing rhythm, step numbering, the class strings themselves - is derived by the route template,
@@ -54,7 +54,7 @@ Things to know before touching them:
 - **Adding a *kind* of content means editing the schema and the route.** Adding a page, or rewording
   one, means editing one YAML file and nothing else.
 - **The "Last updated" date in the header is git-derived, never authored (SEO-29).**
-  `src/lib/gitLastModified.js` dates a page by the commit history of its YAML plus the route template
+  `src/site-lib/gitLastModified.js` dates a page by the commit history of its YAML plus the route template
   (a localized edition by its own translation file), and the sitemap's `<lastmod>`, the header line and
   the page's Markdown twin all read that one function, so they cannot disagree. Do not add a date field
   to the YAML. A commit to `[contentPage].astro` re-dates every English page at once, which is honest

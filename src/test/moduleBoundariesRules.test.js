@@ -16,6 +16,7 @@ describe('module boundaries: classify()', () => {
     expect(classify('src/editor-ui/ColorPicker.tsx')).toBe('editor-ui');
     expect(classify('src/editor/model/element.ts')).toBe('editor');
     expect(classify('src/lib/format.js')).toBe('lib');
+    expect(classify('src/site-lib/markdownRender.js')).toBe('site');
     expect(classify('src/constants/signGeometry.js')).toBe('lib');
     expect(classify('src/i18n/translate.js')).toBe('site-i18n');
     expect(classify('src/data/tools.js')).toBe('site-data');

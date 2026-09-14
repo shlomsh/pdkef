@@ -18,14 +18,14 @@ import { documentationPath, documentationHomePath, getDocumentationLocale } from
 import { getLocalizedToolVariants } from '../i18n/localizedTools';
 import { getLocalizedHomeVariants } from '../i18n/localizedHome';
 import { localizedPageId } from '../i18n/documentation';
-import { lastModifiedFor as lastmodFor, documentationSourceFiles } from '../lib/gitLastModified.js';
+import { lastModifiedFor as lastmodFor, documentationSourceFiles } from '../site-lib/gitLastModified.js';
 
 const FALLBACK_SITE = 'https://pdkef.com';
 
 // lastmod (SEO-01): Google has said for years it largely ignores
 // changefreq/priority and does use lastmod when it's accurate - so an
 // inaccurate one is worse than none. It's derived from the git commit date
-// of the file(s) that back a URL's content (src/lib/gitLastModified.js, which
+// of the file(s) that back a URL's content (src/site-lib/gitLastModified.js, which
 // the content pages' visible "Last updated" line also reads - SEO-29), never
 // hand-maintained, so it cannot drift out of sync with what actually changed.
 // Tool pages map to their own `src/pages/<slug>.astro` plus the shared

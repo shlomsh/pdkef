@@ -5,7 +5,7 @@
 
    src/content/content-pages/*.yaml is not sourced: a content file carries copy,
    never a class (CLAUDE.md, "The SEO landing pages are a content collection"),
-   and src/lib/contentMarkup.ts is what puts the design system's classes back
+   and src/site-lib/contentMarkup.ts is what puts the design system's classes back
    on at render, so that is the file the classes are read from. */
 @import "./global.css";
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
@@ -27,5 +27,5 @@
 @source "../data/contentIcons.ts";
 @source "../data/contentPages.js";
 @source "../data/tools.js";
-@source "../lib/contentMarkup.ts";
+@source "../site-lib/contentMarkup.ts";
 @source "../pages/[contentPage].astro";

@@ -12,4 +12,4 @@
 @source "../pages/about.astro";
 @source "../pages/contact.astro";
 @source "../pages/privacy.astro";
-@source "../lib/contentMarkup.ts";
+@source "../site-lib/contentMarkup.ts";

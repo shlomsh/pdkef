@@ -17,7 +17,7 @@ const SITE = 'https://pdkef.com';
 
 /**
  * Converts this codebase's inline-HTML dialects to Markdown. Handles both
- * the strict two-tag dialect content-pages validates (src/lib/contentMarkup.ts:
+ * the strict two-tag dialect content-pages validates (src/site-lib/contentMarkup.ts:
  * bare `<strong>`/`<a href="...">`) and tools.js's freeform class-bearing
  * markup (e.g. `<a class="..." href="...">`), then strips anything left over
  * defensively so a future tag never leaks into the Markdown as literal HTML.

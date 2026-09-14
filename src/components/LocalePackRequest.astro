@@ -18,7 +18,7 @@ const urls = prefix ? await getPublishedEditionPaths(locale) : [];
 {urls.length > 0 && <div hidden data-locale-pack={prefix} data-locale-pack-urls={urls.join(',')}></div>}
 
 <script>
-  import { provisionLocalePack } from '../lib/localeOfflinePacks.js';
+  import { provisionLocalePack } from '../site-lib/localeOfflinePacks.js';
   if (import.meta.env.PROD) {
     const block = document.querySelector<HTMLElement>('[data-locale-pack]');
     const prefix = block?.dataset.localePack;
