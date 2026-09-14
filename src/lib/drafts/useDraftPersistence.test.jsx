@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { useDraftPersistence } from './useDraftPersistence.js';
-import { DRAFT_SCHEMA_VERSION } from '../registry/draftValidation.ts';
+import { DRAFT_SCHEMA_VERSION } from '../../editor/registry/draftValidation.ts';
 
 // A storage write can fail (quota, private browsing, a closed IndexedDB
 // connection) without throwing - draftStore.saveDraft resolves `false` rather
@@ -21,11 +21,11 @@ vi.mock('./draftStore.js', () => ({
 }));
 
 // Not what this test is about - avoid a real pdf.js decode of fake PDF bytes.
-vi.mock('../../lib/thumbnails.js', () => ({
+vi.mock('../thumbnails.js', () => ({
   renderDraftPreview: vi.fn(() => Promise.resolve(null))
 }));
 
-import { renderDraftPreview } from '../../lib/thumbnails.js';
+import { renderDraftPreview } from '../thumbnails.js';
 import { saveDraft, attachDraftPreview } from './draftStore.js';
 
 function Harness({ apiRef, props }) {

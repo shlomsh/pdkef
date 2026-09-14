@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { loadDraft, deleteDraft, saveHandoff, readRecentFiles, loadRecentFile, readDraftMeta } from '../editor/workspace/draftStore.js';
+import { loadDraft, deleteDraft, saveHandoff, readRecentFiles, loadRecentFile, readDraftMeta } from '../lib/drafts/draftStore.js';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import dialogStyles from './Dialog.module.css';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';

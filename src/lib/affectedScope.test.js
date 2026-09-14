@@ -68,7 +68,7 @@ describe('ownerOf', () => {
   // hand-kept regex list.
   it.each([
     ['src/shell/FileDropzone.tsx', 'shell'],
-    ['src/editor/workspace/draftStore.js', 'editor'],
+    ['src/editor/workspace/useEditorDraftPersistence.ts', 'editor'],
     ['src/editor-ui/ElementToolbar.tsx', 'editor-ui'],
     ['src/lib/format.js', 'lib'],
     ['src/tools/sign/PdfSignTool.tsx', 'tool-sign'],

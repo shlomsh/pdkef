@@ -6,7 +6,7 @@ import { useHandoffIntake } from './useHandoffIntake.ts';
 
 const { takeHandoffMock } = vi.hoisted(() => ({ takeHandoffMock: vi.fn() }));
 
-vi.mock('../editor/workspace/draftStore.js', () => ({
+vi.mock('./drafts/draftStore.js', () => ({
   takeHandoff: takeHandoffMock,
 }));
 

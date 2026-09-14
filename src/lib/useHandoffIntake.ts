@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { takeHandoff } from '../editor/workspace/draftStore.js';
+import { takeHandoff } from './drafts/draftStore.js';
 
 /**
  * MERGE-14: collect a pending hand-off for `tool` on mount and hand the

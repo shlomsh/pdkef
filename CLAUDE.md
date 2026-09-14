@@ -63,7 +63,7 @@ npm run test:e2e:fonts    # the 27 font screening guards, unconditionally; CI na
   folder per tool under `src/tools/<tool>/` (island, components, single-consumer lib modules, unit
   tests, `e2e/`); `src/components/` holds only the `.astro` site components and `HeroDemo/`. Sign and
   Redact share the framework-free `src/editor/` core (model, geometry, gesture controller, per-type
-  registry) and on-device IndexedDB draft persistence (`src/editor/workspace/draftStore.js`).
+  registry) and on-device IndexedDB draft persistence (`src/lib/drafts/draftStore.js`).
 - Shared tool logic lives in `src/lib/` and `src/editor/`, shared chrome in `src/shell/` and
   `src/editor-ui/`; the rules between them are `docs/module-boundaries.md`, enforced by
   `test:module-boundaries`. `pdfjs-dist`'s worker is bundled as a same-origin asset, never from a CDN.

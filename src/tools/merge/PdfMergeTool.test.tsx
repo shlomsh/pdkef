@@ -6,7 +6,7 @@ import Sortable from 'sortablejs';
 import PdfMergeTool from './PdfMergeTool.tsx';
 import * as mergeLib from './merge.js';
 import * as thumbnailsLib from '../../lib/thumbnails.js';
-import * as draftStore from '../../editor/workspace/draftStore.js';
+import * as draftStore from '../../lib/drafts/draftStore.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import railStyles from './components/MergeRail.module.css';
@@ -47,7 +47,7 @@ vi.mock('./merge.js', () => {
 
 // The island's own hand-off calls plus what the MERGE-13 draft component
 // (loaded through a dynamic import) needs to mount quietly with no draft.
-vi.mock('../../editor/workspace/draftStore.js', () => ({
+vi.mock('../../lib/drafts/draftStore.js', () => ({
   saveHandoff: vi.fn(async () => true),
   loadDraft: vi.fn(async () => null),
   deleteDraft: vi.fn(async () => true),

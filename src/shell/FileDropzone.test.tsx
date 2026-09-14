@@ -3,10 +3,10 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone from './FileDropzone.tsx';
-import { loadDraft, deleteDraft, saveDraft, saveHandoff, readRecentFiles, loadRecentFile, readDraftMeta } from '../editor/workspace/draftStore.js';
+import { loadDraft, deleteDraft, saveDraft, saveHandoff, readRecentFiles, loadRecentFile, readDraftMeta } from '../lib/drafts/draftStore.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 
-vi.mock('../editor/workspace/draftStore.js', () => ({
+vi.mock('../lib/drafts/draftStore.js', () => ({
   loadDraft: vi.fn(() => Promise.resolve(null)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   saveDraft: vi.fn(() => Promise.resolve(true)),

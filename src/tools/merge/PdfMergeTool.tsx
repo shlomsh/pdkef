@@ -1037,7 +1037,7 @@ export default function PdfMergeTool({
     try {
       // The store is only needed once a result is being handed off, so it
       // stays out of the eager graph like the grid and the draft hook.
-      const { saveHandoff, deleteDraft } = await import('../../editor/workspace/draftStore.js');
+      const { saveHandoff, deleteDraft } = await import('../../lib/drafts/draftStore.js');
       const saved = await saveHandoff(tool, {
         fileName,
         fileType: 'application/pdf',
@@ -1055,7 +1055,7 @@ export default function PdfMergeTool({
   const requestHandoff = useCallback(async (tool: HandoffTool) => {
     if (handoffBusy || !prepared.blob) return;
     if (tool === 'sign') {
-      const { loadDraft } = await import('../../editor/workspace/draftStore.js');
+      const { loadDraft } = await import('../../lib/drafts/draftStore.js');
       const draft = (await loadDraft('sign')) as { fileName?: string } | null;
       if (draft) {
         setHandoffConfirm({ tool, draftName: draft.fileName || '' });

@@ -1,8 +1,8 @@
 import { useMemo } from 'preact/hooks';
-import { clearDraftHintAttribute, useDraftPersistence } from './useDraftPersistence.js';
+import { clearDraftHintAttribute, useDraftPersistence } from '../../lib/drafts/useDraftPersistence.js';
 import { migrateDraftRecord, validateDraftRecord } from '../registry/draftValidation.ts';
 import type { ActionHistoryEntry, HistoryElement } from '../model/actionHistory.ts';
-import { takeHandoff } from './draftStore.js';
+import { takeHandoff } from '../../lib/drafts/draftStore.js';
 
 interface DraftRecord {
   fileName: string;

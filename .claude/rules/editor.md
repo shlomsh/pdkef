@@ -160,7 +160,7 @@ editions to paint the same bitmap.
 
 ## Draft persistence (flagship, on-device)
 
-`src/editor/workspace/draftStore.js` is a dependency-free IndexedDB wrapper (DB `pdf-toolkit-drafts`,
+`src/lib/drafts/draftStore.js` is a dependency-free IndexedDB wrapper (DB `pdf-toolkit-drafts`,
 store `drafts`, keyed by tool name: one draft per tool) holding the full source PDF bytes plus edit
 state, 14-day expiry, no-op when IndexedDB is unavailable. `useDraftPersistence.js` debounce-saves
 while `status === 'editing'`, flushes on `visibilitychange`/`pagehide`, restores silently on mount
