@@ -7,7 +7,7 @@ import ConfirmDialog from './ConfirmDialog.tsx';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 import ToolShell, { FileActions, ToolShellContext } from './ToolShell.tsx';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/productAnalytics.ts';
-import { dropHasDirectory, filesFromDataTransfer, filesFromPaste } from '../lib/dropFiles.js';
+import { dropHasDirectory, filesFromDataTransfer, filesFromPaste } from './dropFiles.js';
 import { englishShellMessages, formatMessage, type ShellMessages } from '../i18n/toolMessages';
 
 /* Splits a formatted sentence on the \u0000key\u0000 markers left in place of

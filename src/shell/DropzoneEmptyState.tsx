@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { dropHasDirectory, filesFromDataTransfer } from '../lib/dropFiles.js';
+import { dropHasDirectory, filesFromDataTransfer } from './dropFiles.js';
 import type { Ref } from 'preact';
 import styles from './Dropzone.module.css';
 import { englishShellMessages, type ShellMessages } from '../i18n/toolMessages';
