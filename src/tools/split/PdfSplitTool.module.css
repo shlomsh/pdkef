@@ -178,11 +178,22 @@
    here; split.js applies the same value at export via pageOps.js's
    applyRotation. 90/270 swap the image's own box before rotating so the
    post-rotate footprint still fills the (portrait) container exactly - the
-   percentages are the container's own aspect ratio (3:4) inverted. */
+   percentages are the container's own aspect ratio (3:4) inverted.
+
+   object-fit switches to contain here (base is cover, tuned for the
+   unrotated portrait crop): on the swapped box, `cover` with a "top"
+   anchor scales the source to fill a box far wider than tall, which
+   crops down to a thin sliver near the source's top edge - on a real ID
+   scan that sliver sat above the photo, hiding it entirely (Shlomi,
+   manual QA). Letterboxing the full page is the correct trade: nothing
+   in the source is ever cropped away by a rotation the person didn't
+   ask to also re-crop. */
 .cell-thumb[data-rotation='90'] .cell-thumb-img,
 .cell-thumb[data-rotation='270'] .cell-thumb-img {
   width: 133.333%;
   height: 75%;
+  object-fit: contain;
+  object-position: center;
 }
 
 .cell-thumb[data-rotation='90'] .cell-thumb-img {
@@ -513,23 +524,6 @@
   flex-shrink: 0;
 }
 
-.other-mode {
-  margin: 0;
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--color-muted);
-}
-
-.other-mode-link {
-  font: inherit;
-  color: var(--color-primary-text);
-  background: none;
-  border: none;
-  padding: 0;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
 /* ---------- the two-column stage ---------- */
 
 @media (min-width: 1024px) {
@@ -572,18 +566,13 @@
   }
 }
 
-/* Below desktop the "or save each page…" line goes: the segment is one thumb
-   away in the sheet, and the sheet stays two rows. */
-@media (max-width: 1023px) {
-  .other-mode {
-    display: none;
-  }
-}
-
-/* Tablet: the setting and the primary control share one row in the sheet. */
+/* Tablet: the setting and the primary control share one row in the sheet;
+   next steps (Share, Compress it) wrap onto their own full-width row below
+   rather than squeezing into it as a third column. */
 @media (min-width: 768px) and (max-width: 1023px) {
   .sheet {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: flex-start;
   }
 
@@ -591,6 +580,10 @@
   .primary {
     flex: 1 1 0;
     min-width: 0;
+  }
+
+  .next-steps {
+    flex: 1 1 100%;
   }
 }
 
