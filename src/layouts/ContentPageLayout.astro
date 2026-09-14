@@ -46,8 +46,10 @@ interface Props {
   messages: DocumentationShellMessages;
   previewNotice?: string;
   /** ISO timestamp from src/site-lib/gitLastModified.js - the same value the
-   * sitemap reports as <lastmod> for this URL, never a hand-typed date. */
-  lastModified: string;
+   * sitemap reports as <lastmod> for this URL, never a hand-typed date. Null
+   * when a shallow clone makes the date unknowable (see that file's header
+   * comment); the "Last updated" line is then omitted rather than faked. */
+  lastModified: string | null;
   /** LOC-05: this locale's own published site paths (src/i18n/localizedTools.ts
    * getPublishedEditionPaths), the same list ToolCrossLinks/RelatedGuides use
    * to decide whether a card's target has a localized edition. `primaryCta`
@@ -76,9 +78,13 @@ const {
 
 // SEO-29: the date is formatted at build time in UTC so the same commit
 // renders the same string on every machine. `datetime` carries the calendar
-// date only; the reader-facing text follows the page's own language.
-const lastModifiedDate = lastModified.slice(0, 10);
-const lastModifiedLabel = new Intl.DateTimeFormat(lang, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(lastModified));
+// date only; the reader-facing text follows the page's own language. Both
+// are null when lastModified is null (shallow clone), and the line below is
+// skipped entirely rather than rendered empty.
+const lastModifiedDate = lastModified ? lastModified.slice(0, 10) : null;
+const lastModifiedLabel = lastModified
+  ? new Intl.DateTimeFormat(lang, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(lastModified))
+  : null;
 
 // LOC-05: the primaryCta's href is authored as a plain string (some guides
 // deliberately point at a tool with no edition in this locale yet - see
@@ -112,9 +118,11 @@ const ctaIsEnglishFallback = !isPublishedEditionLink(primaryCta.href, locale, ed
     <span class="mb-2 block text-[0.72rem] font-bold uppercase text-[var(--color-primary-text)]">{kicker}</span>
     <h1 class="type-hero space-heading-content mt-0 text-[var(--color-text)]">{h1}</h1>
     <p class="type-lead mx-auto mb-0 mt-0 max-w-[56ch] text-[var(--color-muted)]">{subhead}</p>
-    <p class="mb-0 mt-5 text-[0.85rem] text-[var(--color-muted)]">
-      {messages.lastUpdated} <time datetime={lastModifiedDate}>{lastModifiedLabel}</time>
-    </p>
+    {lastModifiedDate && (
+      <p class="mb-0 mt-5 text-[0.85rem] text-[var(--color-muted)]">
+        {messages.lastUpdated} <time datetime={lastModifiedDate}>{lastModifiedLabel}</time>
+      </p>
+    )}
   </header>
 
   <DocumentationLanguageSelector variants={variants} currentLocale={locale} label={messages.language} />

@@ -28,6 +28,8 @@ const FALLBACK_SITE = 'https://pdkef.com';
 // of the file(s) that back a URL's content (src/site-lib/gitLastModified.js, which
 // the content pages' visible "Last updated" line also reads - SEO-29), never
 // hand-maintained, so it cannot drift out of sync with what actually changed.
+// A URL whose date is unknowable (a shallow clone - see gitLastModified.js's
+// header comment) carries no <lastmod> element at all, rather than a faked one.
 // Tool pages map to their own `src/pages/<slug>.astro` plus the shared
 // `src/data/tools.js` registry every tool's copy (title, FAQ, steps) actually
 // lives in - so editing any tool's entry bumps every tool page's lastmod,
@@ -146,8 +148,7 @@ export async function GET({ site }) {
 ${urls
   .map(
     (u) => `  <url>
-    <loc>${u.loc}</loc>
-    <lastmod>${u.lastmod}</lastmod>
+    <loc>${u.loc}</loc>${u.lastmod ? `\n    <lastmod>${u.lastmod}</lastmod>` : ''}
     <changefreq>${u.changefreq}</changefreq>
     <priority>${u.priority}</priority>${(u.alternates ?? [])
       .map((alternate) => `\n    <xhtml:link rel="alternate" hreflang="${alternate.hreflang}" href="${alternate.href}" />`)

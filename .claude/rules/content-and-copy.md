@@ -60,7 +60,8 @@ Things to know before touching them:
   YAML. The route template does not count: until 2026-09-14 it did, and a one-line import refactor of
   `[contentPage].astro` (DEBT-05) re-dated all ten guides to that day with no sentence changed. A
   template change that really alters every page's copy is a deliberate act; touch the YAML files in
-  that commit if the date should move.
+  that commit if the date should move. A shallow clone cannot date a file outside its window either
+  (same day, a separate incident); the line is omitted rather than faked in that case too.
 - **One accepted cost:** all eight pages share one route, so they share one CSS bundle, and
   `CompareTable.astro`'s scoped styles now inline on all eight rather than the four that render a
   table (+~320 brotli bytes on those four; duplication factor 9.73x → 9.79x against the 9.85x ratchet).
