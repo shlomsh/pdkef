@@ -71,10 +71,10 @@ npm run test:e2e:fonts    # the 27 font screening guards, unconditionally; CI na
   (`backlog/tasks/`, see `backlog/README.md`). Don't let a ticket sit half-done and half-blocked —
   split the remaining work into a new ticket so the original can close.
 - **Worktrees are the default, and they get cleaned up.** Do non-trivial work in its own `git worktree`
-  on its own branch. Land it on `main` by opening a PR (`gh pr create`) and merging it there, not a
-  direct push — that's how every commit on `main` gets there. After the PR merges, ask the user before
-  deleting anything, then delete the local worktree (`git worktree remove`) and the branch, local and
-  remote.
+  on its own branch. Land it on `main` with a direct push, no PR — confirm with the user first, and
+  check `origin/main`'s tip right before pushing since it moves between sessions. After it's pushed,
+  ask the user before deleting anything, then delete the local worktree (`git worktree remove`) and the
+  branch, local and remote.
 
 ## Architecture
 
