@@ -1,7 +1,7 @@
 ---
 id: "DEBT-04"
 title: "Move draft persistence, the pdf.js render context and the Sign/Redact-only hooks to the folders that own them"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "architecture-debt"
 phase: "near-term"
@@ -46,3 +46,33 @@ One commit per bullet, `check:fast` green after each:
   `tool-merge`, `tool-compress`, `tool-split` or `tool-to-image`.
 - No non-test file under `src/lib/` has Sign and Redact as its only consumers (re-run the review's
   consumer script or `grep -rl` each moved module).
+
+## Landed (2026-09-14, `8ef3dad`..`cd0bdf8`)
+
+Six commits, one per move, plus one fix: `renderContext.js` -> `src/lib/pdfRender.js`; the six hooks
+-> `src/editor-ui/hooks/`; `fontCoverageTable.js` -> `src/editor/text/` (generator and
+`fonts-and-text.md` glob follow); `dropFiles.js` -> `src/shell/`; draft persistence ->
+`src/lib/drafts/` (`draftStore.test.js` needs jsdom, one `DOM_TESTS` line; the editor guard's
+`useDraftPersistence` exception and its positive fixture follow); `SignMessages` ->
+`src/editor/registry/messages.ts` with `i18n` re-exporting it. The move left
+`useDraftPersistence.js` importing `DRAFT_SCHEMA_VERSION` from the editor; the constant now lives in
+`draftPolicy.js` and `draftValidation.ts` re-exports it (`cd0bdf8`).
+
+Acceptance: guards and the CI chain green; no non-test `src/lib/` module has Sign and Redact as its
+only consumers (three have no `src/` consumer at all: `acceptNegotiation`, `fontCoverageReport`,
+`liveFontCoverage`, DEBT-05's). **Not met:** `nx show projects --affected
+--files=src/editor/model/editorModel.ts` still lists every tool, because Nx counts edges the
+boundary rules allow and the moves did not touch:
+
+- `lib -> editor`: `liveFontCoverage.js` (scripts-only) and five `src/lib/*.test.*` files that test
+  editor modules (`fontCoverage.test.js`, `fontAttribution.test.js`, `languageCoverage.test.js`,
+  `fontCoverageReport.test.js`, `drafts/useDraftPersistence.test.jsx`). DEBT-05 moves the first
+  four; the drafts test imports `draftValidation` fixtures and needs a look.
+- `shell -> editor`: `CompareSlider.tsx` -> `editor/gestures/controller.ts` (real, the only one).
+- `editor -> site` and `lib -> site`: `src/editor/text/{bidiRuns,fonts}.test.js` and
+  `src/lib/signHelpers.test.js` import `src/test/fixtures/`, which no Nx project owns, so `site`
+  (root `src`) claims it. An Nx project at `src/test/` (test-support, beside `cross-tool-tests`)
+  removes both edges.
+
+So `editor` leaving `CORE_PROJECTS` (DEBT-07) needs DEBT-05 plus the two items above; DEBT-07 now
+depends on DEBT-05 and lists them.
