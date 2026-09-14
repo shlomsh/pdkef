@@ -4,7 +4,7 @@
 // scan `npm run test:module-boundaries` runs. classify()/ruleViolation() are the
 // checker's own exported helpers - this file is not a reimplementation of them.
 import { describe, expect, it } from 'vitest';
-import { classify, ruleViolation } from '../../scripts/check-module-boundaries.mjs';
+import { classify, ruleViolation, testImportViolation } from '../../scripts/check-module-boundaries.mjs';
 
 function check(from, to) {
   return ruleViolation(classify(from), classify(to), to);
@@ -147,5 +147,33 @@ describe('module boundaries: ruleViolation() - test infrastructure (src/test/)',
 
   it('may import a core module to build its harness', () => {
     expect(check('src/test/setup.js', 'src/lib/format.js')).toBeNull();
+  });
+});
+
+describe('module boundaries: testImportViolation() - rule 6, test files scanned for cross-tool imports', () => {
+  it('forbids a core test importing a tool', () => {
+    expect(testImportViolation('src/editor/workspace/x.test.tsx', 'src/tools/sign/PdfSignTool.tsx'))
+      .toBe('a test under editor may not import a tool');
+  });
+
+  it('forbids a tool:a test importing tool:b', () => {
+    expect(testImportViolation('src/tools/merge/PdfMergeTool.test.tsx', 'src/tools/sign/PdfSignTool.tsx'))
+      .toBe('a tool:merge test may not import another tool');
+  });
+
+  it('allows a tool:a test importing its own tool', () => {
+    expect(testImportViolation('src/tools/merge/PdfMergeTool.test.tsx', 'src/tools/merge/mergePlan.ts')).toBeNull();
+  });
+
+  it('allows a core test importing another core module', () => {
+    expect(testImportViolation('src/editor/workspace/x.test.tsx', 'src/lib/format.js')).toBeNull();
+  });
+
+  it('allows a src/test/cross-tool/ test importing a tool', () => {
+    expect(testImportViolation('src/test/cross-tool/x.test.tsx', 'src/tools/sign/PdfSignTool.tsx')).toBeNull();
+  });
+
+  it('allows a test directly under src/test/ importing a tool', () => {
+    expect(testImportViolation('src/test/foo.test.js', 'src/tools/sign/PdfSignTool.tsx')).toBeNull();
   });
 });

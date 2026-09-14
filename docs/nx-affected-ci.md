@@ -124,6 +124,10 @@ inside a core folder, goes in `src/test/cross-tool/`.** Anywhere else it either 
 that tool to everything (inference sees the edge) or is skipped on that tool's commits (it would not
 be, only because inference sees it).
 
+Rule 6 of `test:module-boundaries` (DEBT-02) now enforces this placement directly: a test file outside
+`src/test/cross-tool/` that imports a tool it does not belong to fails the checker, so a future test
+that recreates the ARCH-20 problem goes red instead of silently widening every narrowed run again.
+
 ## The two Vitest/Playwright gotchas `arch-20-prep` found, reconfirmed on the real layout
 
 1. **Trailing slash in every `vitest run <dir>` target.** `vitest run src/editor` would also match
