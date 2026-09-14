@@ -337,7 +337,6 @@ _None._
 | --- | --- | --- |
 | DEBT-05 | P2 | [DEBT-05](backlog/tasks/DEBT-05.md) · Tests for scripts/ leave src/lib/, and site-only helpers get a home that is not the shared lib |
 | DEBT-07 | P2 | [DEBT-07](backlog/tasks/DEBT-07.md) · editor leaves CORE_PROJECTS after the ownership moves, or Nx leaves the repo: decide on QUAL-08's numbers |
-| DEBT-09 | P2 | [DEBT-09](backlog/tasks/DEBT-09.md) · The renderer registry becomes a factory the tool calls, and Redact's restore admits only Redact's element types |
 | DEBT-12 | P3 | [DEBT-12](backlog/tasks/DEBT-12.md) · Ratchets that ratchet: a page-count-invariant duplication factor, stale-exception detection, one import scanner |
 | DEBT-13 | P3 | [DEBT-13](backlog/tasks/DEBT-13.md) · Trim the e2e specs that re-prove what a unit test already proves under jsdom |
 | DEBT-14 | P3 | [DEBT-14](backlog/tasks/DEBT-14.md) · Editor-time boundary feedback: ESLint with @nx/enforce-module-boundaries on the existing project tags, or retire the idea with Nx |
@@ -360,6 +359,7 @@ _None._
 | DEBT-04 | P1 | [DEBT-04](backlog/tasks/DEBT-04.md) · Move draft persistence, the pdf.js render context and the Sign/Redact-only hooks to the folders that own them |
 | DEBT-06 | P1 | [DEBT-06](backlog/tasks/DEBT-06.md) · editor-ui leaves CORE_PROJECTS: the first change whose affected set the Nx graph decides |
 | DEBT-08 | P2 | [DEBT-08](backlog/tasks/DEBT-08.md) · Data attributes replace the text-element class-name registry |
+| DEBT-09 | P2 | [DEBT-09](backlog/tasks/DEBT-09.md) · The renderer registry becomes a factory the tool calls, and Redact's restore admits only Redact's element types |
 | DEBT-10 | P2 | [DEBT-10](backlog/tasks/DEBT-10.md) · Close the checker's core-to-site gap and fix the guidance that contradicts ARCH-20 |
 | DEBT-11 | P2 | [DEBT-11](backlog/tasks/DEBT-11.md) · Split editor.md so a Merge or shell edit loads tool rules, not the Sign editor's, and src/test/ loads something |
 

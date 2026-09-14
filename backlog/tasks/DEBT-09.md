@@ -1,7 +1,7 @@
 ---
 id: "DEBT-09"
 title: "The renderer registry becomes a factory the tool calls, and Redact's restore admits only Redact's element types"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "architecture-debt"
 phase: "near-term"
@@ -41,3 +41,23 @@ where it used to draw Sign's node.
   `test:module-boundaries` green with no new exception.
 - Sign and Redact e2e green; a hand-written `redact` draft record containing a `text` element restores
   with the element dropped (unit test).
+
+## Landed (2026-09-14)
+
+- `renderers.ts` now exports `createElementRenderers(nodeComponents)`, returning `ElementRenderers`
+  (`Record<ElementType, ElementRenderer>`), so a call site can index it by an element's own `type`
+  field without the per-type mapped shape reducing the call to `never`. `PdfWorkspace.tsx` builds a
+  module-level `ELEMENT_RENDERERS` from its seven components after all its imports; `RedactBox.tsx`
+  builds one from `{}`. `registerRenderer`/`getElementRenderer` are gone; `renderers.test.ts` and
+  `schema.test.ts` test the factory directly, keeping the "missing component throws with the type
+  name" case.
+- `PdfRedactTool.tsx`'s `RedactHistoryElement.type` is now `RedactToolType`
+  (`'whiteout' | 'blackout' | 'blur' | 'delete'`), and its draft `isElement` is
+  `isRedactHistoryElement` (`isDraftElement(value) && REDACT_ELEMENT_TYPES.has(value.type)`) instead
+  of the unnarrowed `isDraftElement`. `validateDraftElements` already drops any element failing
+  `isElement` rather than rejecting the whole record, so this alone fixes the restore: a foreign
+  `text` element under the `redact` key is now dropped, the rest of the record still restores. Added
+  a case to `useEditorDraftPersistence.test.tsx` proving it.
+- The `registerRenderer` mention in `src/editor/text/elementClassNames.ts`'s comment was left for
+  DEBT-08, which deleted that file in the same push; on `main`,
+  `grep -rn "registerRenderer\|getElementRenderer" src scripts .claude` is empty.
