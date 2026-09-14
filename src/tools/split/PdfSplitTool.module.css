@@ -419,12 +419,17 @@
 }
 
 /* The two-way segmented control: both options side by side, 44px. */
+/* A track with an inset pill: the segments have their own radius inside a
+   3px gutter, so the active ring never meets the track's rounded corner
+   (Shlomi, 2026-09-14: an inset ring on a square segment inside the rounded
+   track drew a doubled, mismatched corner). */
 .segmented {
   display: flex;
+  gap: 3px;
   height: 44px;
+  padding: 3px;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  overflow: hidden;
   background: var(--color-surface);
 }
 
@@ -440,10 +445,7 @@
   cursor: pointer;
   padding: 0 0.35rem;
   white-space: nowrap;
-}
-
-.segment + .segment {
-  border-inline-start: 1px solid var(--color-border-strong);
+  border-radius: calc(var(--radius-sm) - 3px);
 }
 
 .segment:focus-visible {
