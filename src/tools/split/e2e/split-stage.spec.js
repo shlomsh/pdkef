@@ -93,7 +93,7 @@ test.describe('Split: the stage keeps the mode in view', () => {
       buffer: await makePdfBuffer(3),
     });
 
-    const heading = page.getByRole('region', { name: 'Your split PDF' }).getByRole('heading', { level: 3 });
+    const heading = page.locator('#split-canvas-title');
     await expect(heading).toHaveText('extracted_three.pdf');
     await expect(page.getByRole('link', { name: /^Download 1 PDF/ })).toBeVisible({ timeout: 10_000 });
 
