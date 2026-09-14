@@ -395,7 +395,39 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     expect(floatingHit.width, `visual was ${floatingVisual.width}px`).toBeGreaterThanOrEqual(44);
     expect(floatingHit.height, `visual was ${floatingVisual.height}px`).toBeGreaterThanOrEqual(44);
 
-    const blackout = await drawRedaction(page, 'Blackout', { x: 0.18, y: 0.3 }, { x: 0.4, y: 0.4 });
+    // Deselect before drawing the next box. The whiteout's floating toolbar
+    // (`[data-editor-actions]`) is a DOM descendant of `.redact-box`, so
+    // `handlePointerDown`'s own-box/button guard treats a press anywhere on
+    // it as "clicking an existing box", not a new draw - a still-open
+    // toolbar left near the next box's start point ate that mousedown itself
+    // (its own Delete button, landed on by coincidence) instead of ever
+    // reaching the page, silently deleting the whiteout box underneath this
+    // test the first time it was written. Escape unselects (Sign/Redact's
+    // Escape-disarms-and-deselects contract - editor.md), and since the
+    // floating toolbar is conditionally rendered only while selected
+    // (`isSelected && isWhiteout`, not just CSS-hidden), a real element count
+    // is what actually proves it is gone, not merely `toBeHidden()` (which
+    // passes on zero matches too, so it cannot tell "removed" from "never
+    // found").
+    await page.keyboard.press('Escape');
+    await expect(whiteout.locator('[data-editor-actions]')).toHaveCount(0);
+    const boxesBeforeBlackout = await page.locator('[class*="redact-box"]').count();
+    expect(boxesBeforeBlackout, 'the whiteout box itself must still be here, only deselected').toBe(1);
+
+    // Well clear of the whiteout box (y 0.16-0.22) and of any floating
+    // toolbar that could still render near it (offset only
+    // TOOLBAR_FLOATING_OFFSET=8px away) - belt and suspenders on top of the
+    // Escape above, not a substitute for it. Large enough (40% width, 20%
+    // height) that its centre - selectRedaction's click point - stays clear
+    // of the delete button's own enlarged 44px hit area in the top-right
+    // corner: this finding's own fix widens that corner's *clickable* region
+    // well past its visible 24x24, so a small enough box would have its
+    // geometric centre land inside that hit area instead of the open middle
+    // of the box, selecting nothing and deleting it instead - reproduced
+    // while writing this guardrail (the box just above, at only ~22% width,
+    // did exactly that).
+    const blackout = await drawRedaction(page, 'Blackout', { x: 0.15, y: 0.5 }, { x: 0.55, y: 0.7 });
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(2);
     await selectRedaction(blackout);
     const redDelete = blackout.locator('[class*="redact-element-btn"]');
     await expect(redDelete).toBeVisible();
