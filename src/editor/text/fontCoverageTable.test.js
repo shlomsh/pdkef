@@ -1,5 +1,5 @@
 /**
- * Drift guard for src/lib/fontCoverageTable.js, the generated per-file glyph
+ * Drift guard for src/editor/text/fontCoverageTable.js, the generated per-file glyph
  * coverage table that W3's coverage-based font resolver will read from
  * (docs/wysiwyg-text-architecture.md §3.1/§3.2/§3.4).
  *
@@ -41,7 +41,7 @@ import {
   FONT_COVERAGE_FILES,
   fontFileHasGlyph,
 } from './fontCoverageTable.js';
-import { DISPLAY_ONLY_FONTS } from '../../scripts/display-only-fonts.mjs';
+import { DISPLAY_ONLY_FONTS } from '../../../scripts/display-only-fonts.mjs';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
 // Display-only fonts (scripts/display-only-fonts.mjs) are real files on disk

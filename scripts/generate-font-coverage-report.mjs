@@ -10,7 +10,7 @@
  * matrix rather than trusting it, and this is the first place with an answer
  * for Hebrew + Arabic at all.
  *
- * Deliberately does NOT re-parse any .ttf file. src/lib/fontCoverageTable.js
+ * Deliberately does NOT re-parse any .ttf file. src/editor/text/fontCoverageTable.js
  * (scripts/generate-font-coverage.mjs) already range-encodes every bundled
  * font file's real glyph coverage; this script only asks it questions
  * (fontFileHasGlyph), the same way src/lib/fonts.js's covers() does. The
@@ -31,7 +31,7 @@
 import { writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { FONT_COVERAGE_FILES, fontFileHasGlyph } from '../src/lib/fontCoverageTable.js';
+import { FONT_COVERAGE_FILES, fontFileHasGlyph } from '../src/editor/text/fontCoverageTable.js';
 import { HANDWRITING_FONTS, TEXT_FONTS, requestedFontFile } from '../src/editor/text/fonts.js';
 import { LANGUAGES, CYRILLIC_ANCHOR_LANGUAGES, NAMED_COMBINATIONS } from './font-languages.mjs';
 
@@ -139,7 +139,7 @@ function generateSource(languageCoverage, combinationCoverage, cyrillicAnchor) {
  * GENERATED FILE - do not hand-edit.
  *
  * Produced by scripts/generate-font-coverage-report.mjs from
- * src/lib/fontCoverageTable.js (itself generated from the real font bytes in
+ * src/editor/text/fontCoverageTable.js (itself generated from the real font bytes in
  * public/fonts/) and the character-set definitions in
  * scripts/font-languages.mjs. Rerun that script
  * (npm run generate:font-coverage-report) and commit the result whenever a

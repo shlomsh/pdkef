@@ -3,9 +3,9 @@
  * generated catalogue coverage report (W7,
  * docs/wysiwyg-text-architecture.md §8 stage 7).
  *
- * Follows the same shape as src/lib/fontCoverageTable.test.js: regenerate
+ * Follows the same shape as src/editor/text/fontCoverageTable.test.js: regenerate
  * the report in memory from the same inputs the generator uses
- * (src/lib/fontCoverageTable.js's real-byte-derived glyph data and
+ * (src/editor/text/fontCoverageTable.js's real-byte-derived glyph data and
  * scripts/font-languages.mjs's character-set definitions) and fail, naming
  * the regenerate command, if the committed file disagrees. A report that
  * only checked itself would be worthless - the whole point of this task is
@@ -21,7 +21,7 @@
  * every "is X listed" assertion; these are the ones that would catch it.
  */
 import { describe, it, expect } from 'vitest';
-import { fontFileHasGlyph } from './fontCoverageTable.js';
+import { fontFileHasGlyph } from '../editor/text/fontCoverageTable.js';
 import { HANDWRITING_FONTS, TEXT_FONTS, requestedFontFile } from '../editor/text/fonts.js';
 import { LANGUAGES, CYRILLIC_ANCHOR_LANGUAGES, NAMED_COMBINATIONS } from '../../scripts/font-languages.mjs';
 import { LANGUAGE_COVERAGE, COMBINATION_COVERAGE, CYRILLIC_ANCHOR } from './fontCoverageReport.js';
