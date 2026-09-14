@@ -276,11 +276,14 @@
   border-color: var(--color-primary);
 }
 
-/* --- Phone chip row: files as a horizontally scrolling row, replacing the
-   add bar and standing in for the rail's file list / Sort / Add files /
-   Clear all below 768px. Hidden at 768px and up, where the rail (a plain
-   stacked block from 768 to 1023, sticky and tinted at 1024 and up) owns
-   all of this instead.
+/* --- Phone (and, since 2026-09-14, tablet) chip row: files as a
+   horizontally scrolling row, replacing the add bar and standing in for the
+   rail's file list / Sort / Add files / Clear all below 1024px, where the
+   rail collapses to the sticky bottom sheet (MergeRail.module.css). Hidden
+   at 1024px and up, where the sticky, tinted desktop rail owns all of this
+   instead. Review finding (2026-09-14, tablet): this used to hide at 768px,
+   leaving 768-1023 with neither the chip row nor a sheet - the bare, static
+   rail from MergeRail.module.css's un-mediaed `.rail` rule.
 
    Review P2, item 2: the "⋯" menu and the draft chip are pinned OUTSIDE the
    scrolling list (`.chip-pinned`, a flex sibling of `.chip-row`) so they are
@@ -294,7 +297,7 @@
   padding: 0.25rem 0.1rem;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .chip-bar {
     display: none;
   }
@@ -386,6 +389,7 @@
 }
 
 .chip-menu-summary {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -394,6 +398,22 @@
   list-style: none;
   cursor: pointer;
   font-weight: 700;
+}
+
+/* Review finding (2026-09-14): under coarse-pointer emulation the summary
+   measured exactly 36x36 - its `li.chip[data-more]` parent carries a 44px
+   min-height, but that is not part of the summary's own hit box. Same
+   invisible-overlay mechanism as `.action` (PageStrip.module.css) and
+   `.quiet-button`/`.start-fresh` (MergeRail.module.css / above): a centred
+   44x44 pseudo-element, the 36px visual untouched. */
+.chip-menu-summary::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
 }
 
 .chip-menu-summary::-webkit-details-marker {
@@ -451,14 +471,17 @@
   }
 }
 
-/* The phone bottom sheet (MergeRail.module.css) is sticky to the viewport's
-   bottom edge, and a sticky element may be pulled up over the siblings
-   before it. With two one-page files the document ends 30px above where
-   the sheet parks, so its last label was painted under Options. Reserve
-   the room: the document column is never shorter than the first screen
-   minus the app bar and the sheet, so a short merge leaves empty space
-   for the sheet to cover, never its own pages. */
-@media (max-width: 767px) {
+/* The bottom sheet (MergeRail.module.css, sticky below 1024px) is sticky to
+   the viewport's bottom edge, and a sticky element may be pulled up over the
+   siblings before it. With two one-page files the document ends 30px above
+   where the sheet parks, so its last label was painted under Options.
+   Reserve the room: the document column is never shorter than the first
+   screen minus the app bar and the sheet, so a short merge leaves empty
+   space for the sheet to cover, never its own pages. Widened from
+   `max-width: 767px` to 1023px (2026-09-14 tablet fix) - the sheet's own
+   content and height are the same at both widths, only its edge bleed
+   differs. */
+@media (max-width: 1023px) {
   .main {
     min-height: calc(100svh - 3.5rem - 230px);
     padding-bottom: 12px;

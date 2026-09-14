@@ -244,6 +244,43 @@ test('rail acceptance at 1280x900: item order, no Options/Saves-as text, 16x16 h
   }
 });
 
+/* Review finding (2026-09-14, tablet): between 768 and 1023px the rail used
+   to fall through to the un-mediaed `.rail` rule (no `position`, no sheet),
+   so scrolling a 9-page grid to its last row at 820x1180 put the Download
+   element's rect.top at 1392px in an 1180px viewport - off-screen. The rail
+   now collapses to the same sticky bottom sheet the phone already had, from
+   768px up to (but not including) the 1024px desktop rail. */
+test('tablet (820x1180): after scrolling to the grid end, Download stays in the viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 820, height: 1180 });
+  await page.goto('/merge/');
+  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+
+  // Two files, nine pages total - a grid tall enough to need scrolling at
+  // this viewport, and two entries so the hand-off row renders too.
+  const files = await Promise.all([
+    ['first.pdf', 8],
+    ['second.pdf', 1],
+  ].map(async ([name, pageCount]) => ({
+    name,
+    mimeType: 'application/pdf',
+    buffer: await makePdfBuffer(name, pageCount),
+  })));
+  await page.locator('input[type="file"]').setInputFiles(files);
+  await expect(page.locator('li[data-key]')).toHaveCount(9);
+
+  await page.evaluate(() => {
+    document.querySelector('ul[class*="grid"]')?.scrollIntoView({ block: 'end' });
+  });
+
+  const downloadLink = page.getByRole('link', { name: /Download merged PDF/ });
+  await expect(downloadLink).toBeVisible({ timeout: 10_000 });
+  const viewport = page.viewportSize();
+  const downloadBox = await downloadLink.boundingBox();
+  if (!downloadBox || !viewport) throw new Error('Download element or viewport unavailable');
+  expect(downloadBox.y).toBeGreaterThanOrEqual(0);
+  expect(downloadBox.y + downloadBox.height).toBeLessThanOrEqual(viewport.height + 1);
+});
+
 /* A Hebrew-first-file merge: the merged_ prefix is deliberately un-translated
    (same as Sign's signed_), so a Hebrew name reads right-to-left with the
    Latin prefix ahead of it, both in the heading and in the download name. */

@@ -1,7 +1,16 @@
 /* Direction A (2026-09-13): the rail. A glance-at column of the input
    files, never the thing you scroll through - the document (PageStrip) is
-   the workspace. Sticky for the page's height at desktop widths; a plain
-   stacked block below 1024px (wave 2 owns the phone chip-row treatment). */
+   the workspace. Sticky for the page's height at desktop widths (1024px and
+   up); below that (tablet and phone alike) the phone chip-row treatment
+   (MergeDocument.module.css) carries the file list, and the rail itself
+   collapses to a sticky bottom sheet - see the shared `max-width: 1023px`
+   block below. Review finding (2026-09-14, tablet): between 768 and 1023px
+   the rail used to fall through to the bare `.rail` rule above (no
+   `position`, no sheet), so after scrolling a 9-page grid to its last row at
+   820x1180 the Download element measured rect.top 1392px in an 1180px
+   viewport - off-screen. The sheet now starts at 1024px, matching the
+   guideline's own call that this width "still stacks and should move to the
+   sheet". */
 
 .rail {
   display: flex;
@@ -53,14 +62,16 @@
   }
 }
 
-/* Below 1024px the phone chip row (MergeDocument.module.css) carries the
-   file list, Sort, Add files and Clear all instead, so `.rail-scroll` (the
-   part that held them) drops out entirely; what remains of `.rail` -
-   `.rail-pinned` alone - becomes the sticky bottom sheet: the Download
-   element and one row of Share / Compress it / Sign it, nothing else
-   competing, pinned to the bottom edge the way the editor toolbars already
-   stretch full width on mobile. */
-@media (max-width: 767px) {
+/* Below 1024px the phone chip row (MergeDocument.module.css, gated the same
+   width) carries the file list, Sort, Add files and Clear all instead, so
+   `.rail-scroll` (the part that held them) drops out entirely; what remains
+   of `.rail` - `.rail-pinned` alone - becomes the sticky bottom sheet: the
+   Download element and one row of Share / Compress it / Sign it, nothing
+   else competing, pinned to the bottom edge the way the editor toolbars
+   already stretch full width on mobile. One mechanism for tablet and phone
+   alike (2026-09-14 tablet fix); only the edge-bleed amount below differs,
+   because the two widths carry different card padding. */
+@media (max-width: 1023px) {
   .rail-scroll {
     display: none;
   }
@@ -69,19 +80,41 @@
     position: sticky;
     bottom: 0;
     z-index: 2;
-    /* Bleed to the card's edges: Merge's loaded phone card is 12px
-       (PdfTool.module.css's `[data-hide-identity][data-tool-loaded]` rule,
-       wave 3), not the other tools' 1.5rem. Vertical padding is 0.5rem
-       (wave 4, Shlomi's sheet-height measurement): the closed sheet is
-       padding-top 8px + padding-bottom 8px (+ safe-area) + the hand-off row
-       (44px) + the Download element - the Options disclosure this once made
-       room for is gone entirely (2026-09-13, see `.page-numbers-row` above),
-       replaced in the sheet by the "⋯" popover's own copy of the checkbox. */
-    margin: 0 -12px;
-    padding: 0.5rem 12px calc(0.5rem + env(safe-area-inset-bottom));
+    /* Vertical padding is 0.5rem (wave 4, Shlomi's sheet-height
+       measurement): the closed sheet is padding-top 8px + padding-bottom 8px
+       (+ safe-area) + the hand-off row (44px) + the Download element - the
+       Options disclosure this once made room for is gone entirely
+       (2026-09-13, see `.page-numbers-row` above), replaced in the sheet by
+       the "⋯" popover's own copy of the checkbox. */
+    padding-top: 0.5rem;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
     border-radius: 0;
+  }
+}
+
+/* Bleed to the phone card's edges: Merge's loaded phone card is 12px
+   (PdfTool.module.css's `[data-hide-identity][data-tool-loaded]` rule,
+   wave 3), not the other tools' 1.5rem. */
+@media (max-width: 767px) {
+  .rail {
+    margin: 0 -12px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+/* Tablet (768 to 1023px, 2026-09-14): the card keeps the default 1.5rem
+   padding here (PdfTool.module.css's phone override is scoped to
+   max-width: 767px only), so the sheet bleeds by that amount instead of the
+   phone's 12px - otherwise a 12px gap would sit between the sheet and the
+   card's real edge. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .rail {
+    margin: 0 -1.5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
 }
 

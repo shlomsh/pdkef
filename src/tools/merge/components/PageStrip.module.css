@@ -511,12 +511,41 @@
      the document while its pages scroll under it, so you always know whose
      pages you're looking at. An opaque background is needed since the grid
      itself is transparent (item 7) - it would otherwise show cells
-     scrolling through the "sticky" label. */
+     scrolling through the "sticky" label; that painted-on-top behaviour
+     (critique P0, `z-index: 1`) must stay exactly as is.
+
+     Review finding (2026-09-14): the base rule's negative bottom margin
+     (above) pulls the first row of the run up underneath the caption for
+     visual tightening; combined with `position: sticky` and this z-index
+     that overlap is also a real hit-test region, not only a paint one -
+     `elementFromPoint` in the overlap band returned the caption `<li>`,
+     swallowing taps meant for the top of the first row of any 4+ page run
+     (measured: caption bottom 404.53px vs. first-row cell top 398.14px, a
+     6.39px overlap). A blanket `pointer-events: none` on the caption would
+     fix the tap but also stop it catching pointer events over its OWN
+     label text, which critique P0's guard depends on - so instead only the
+     overlap sliver itself falls through: `.caption` disables pointer
+     events, and its `::before` restores them everywhere except that
+     sliver (`16px - 0.6rem`, the same two figures the margin above
+     subtracts - `--grid-gap` cancels out of both, so this holds at every
+     grid density without repeating it). Nothing in a caption is
+     interactive (a colour dot, a file name with only a `title` tooltip, a
+     page-range label), so the caption itself never needed to be a click
+     target beyond satisfying that guard. */
   .caption {
     position: sticky;
     top: 0;
     z-index: 1;
     background: var(--color-surface);
+    pointer-events: none;
+  }
+
+  .caption::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    bottom: calc(16px - 0.6rem);
+    pointer-events: auto;
   }
 }
 
