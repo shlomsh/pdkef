@@ -102,6 +102,13 @@ export default defineConfig({
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
+    // Astro 7's `astro preview` daemonises itself when it detects an AI agent
+    // (`am-i-vibing` sees CLAUDECODE etc.): the foreground process spawns a
+    // detached child and exits, so Playwright reports "Process from
+    // config.webServer exited early" and leaves an orphan on the port that the
+    // next run then reuses. This env var is what Astro sets on that child; set
+    // here it keeps the server in the foreground under Playwright's control.
+    env: { ...process.env, ASTRO_PREVIEW_BACKGROUND: '1' },
   },
   projects: [
     {
