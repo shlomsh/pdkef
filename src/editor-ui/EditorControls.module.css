@@ -1,5 +1,15 @@
 .popover { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg), 0 4px 20px rgba(0,0,0,.08); min-width: 240px; max-width: 320px; padding: .75rem; display: flex; flex-direction: column; gap: .75rem; z-index: 110; pointer-events: auto; }
-.element-button { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; border: none; background: transparent; color: var(--color-surface); border-radius: 4px; cursor: pointer; font-size: .8rem; font-weight: 500; padding: 0 4px; }
+.element-button { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; border: none; background: transparent; color: var(--color-surface); border-radius: 4px; cursor: pointer; font-size: .8rem; font-weight: 500; padding: 0 4px; }
+/* Redact design-review finding #2: the per-element floating toolbar (shared
+   with Sign) never widened its 28px buttons for touch, unlike the resizer
+   handles beside them (`.resizer::before` in EditorElement.module.css). Same
+   invisible-overlay technique: the 28px visual is untouched, `::before`
+   extends the hit box to 44 on every side needed (28 + 2*8 = 44). `position:
+   relative` above is what lets the pseudo anchor to the button itself rather
+   than the nearest positioned ancestor up the tree. */
+@media (pointer: coarse) {
+  .element-button::before { content: ''; position: absolute; inset: -8px; }
+}
 .element-button:hover { background: rgba(255,255,255,.15); }
 .element-button.active { background: var(--color-primary); }
 .element-button:disabled { opacity: .35; cursor: not-allowed; }
