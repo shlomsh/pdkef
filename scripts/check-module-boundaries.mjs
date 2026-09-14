@@ -47,7 +47,12 @@
 //      reaches it. Unlike rules 1-5, there is no allowlist for rule 6: it
 //      must hold with zero violations, not ratchet down from today's count.
 //
-// Anything not covered by these six rules is not checked here (test
+//   7. A `*.spec.js` under `src/tools/<t>/e2e/` may only reference that tool's
+//      own routes (plus `/`) - a route derived statically from which top-level
+//      `src/pages/<slug>.astro` imports `<t>`'s `Pdf*Tool.tsx`. A spec that
+//      also drives another tool's page belongs under `e2e/` instead (DEBT-01).
+//
+// Anything not covered by these seven rules is not checked here (test
 // infrastructure under src/test/ importing a tool gets one narrower rule of
 // its own, below, because it is not part of the target layout
 // docs/module-boundaries.md describes); this file is deliberately narrower
@@ -325,8 +330,9 @@ function main() {
   const stale = allowlist.filter((entry) => !violationKeys.has(edgeKey(entry.from, entry.to)));
 
   const testViolations = testImportViolations();
+  const specRouteIssues = toolSpecRouteViolations();
 
-  if (unallowed.length > 0 || stale.length > 0 || testViolations.length > 0) {
+  if (unallowed.length > 0 || stale.length > 0 || testViolations.length > 0 || specRouteIssues.length > 0) {
     console.error('Module boundary check failed:');
     if (unallowed.length > 0) {
       console.error('\nNew violations (not on the allowlist):');
@@ -340,6 +346,12 @@ function main() {
       console.error('\nTest files crossing a tool boundary (rule 6, no allowlist):');
       for (const v of testViolations) console.error(`  ${v.from} -> ${v.to} (${v.reason})`);
     }
+    if (specRouteIssues.length > 0) {
+      console.error("\nRule 7 violations (a tool's e2e spec referencing another tool's route):");
+      for (const v of specRouteIssues) {
+        console.error(`  ${v.file}: references '${v.route}' (owned by tool:${v.owner}) - move this spec under e2e/`);
+      }
+    }
     process.exitCode = 1;
     return;
   }
@@ -348,8 +360,131 @@ function main() {
   console.log(
     `Module boundary check passed: ${files.length} files scanned, ${edges.length} relative import edges, `
     + `${allowlist.length} allowlisted violation(s) remaining (all still real, none new); `
-    + `${testFileCount} test files scanned for rule 6, 0 violations.`,
+    + `${testFileCount} test files scanned for rule 6 and every tool e2e spec for rule 7, 0 violations.`,
   );
 }
 
+// --- rule 7: a tool's own e2e spec may only reference that tool's own routes ---
+// Separate, self-contained pass added for DEBT-01, kept at the end of the file
+// so a parallel addition (DEBT-02's rule 6, for test-file imports) merges
+// cleanly above it. Same static stance as the import scan above: string/regex
+// literals only, no evaluation, comments stripped first so a route mentioned
+// only in prose never counts.
+//
+// The tool -> routes map is derived, never hand-written: a top-level
+// src/pages/<slug>.astro that imports `../tools/<t>/Pdf*Tool` maps route
+// `/<slug>` to tool folder `<t>` (so /compress/ and /compress-image/ both
+// belong to `compress`, /unlock/ to `security`, /pdf-to-image/ to `to-image`,
+// /edit-pdf/ to `edit-pages`) - see docs/module-boundaries.md and
+// buildToolRouteMap() below.
+
+const SPEC_FILE = /\.spec\.[cm]?[jt]sx?$/;
+const PAGE_TOOL_IMPORT = /\.\.\/tools\/([^/]+)\/Pdf[A-Za-z0-9]*Tool/;
+
+// Scans top-level src/pages/*.astro only (not src/pages/[locale]/, which
+// renders several tools from one dynamic route and so cannot name "the" tool
+// for a slug the way a real, single-tool page can). Returns a Map of
+// '/<slug>' (no trailing slash) -> tool folder name.
+export function buildToolRouteMap(pagesDir = path.join(SRC, 'pages')) {
+  const routeMap = new Map();
+  if (!fs.existsSync(pagesDir)) return routeMap;
+  for (const entry of fs.readdirSync(pagesDir, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith('.astro')) continue;
+    const source = fs.readFileSync(path.join(pagesDir, entry.name), 'utf8');
+    const match = source.match(PAGE_TOOL_IMPORT);
+    if (!match) continue;
+    const slug = entry.name.slice(0, -'.astro'.length);
+    routeMap.set(`/${slug}`, match[1]);
+  }
+  return routeMap;
+}
+
+// Line and block comments stripped before scanning, so a route mentioned only
+// in prose (a header comment explaining a hand-off, say) never counts. The
+// `(^|[^:])` guard keeps a `https://` scheme intact rather than treating it as
+// a line comment.
+function stripComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+
+// Regex literals spell a route's slashes escaped (`\/redact\/`); collapsing
+// `\/` to `/` first means one pattern below finds a route whether it came
+// from a quoted string, a template literal, or a regex literal, with no need
+// to tell the three apart.
+function unescapeRegexSlashes(source) {
+  return source.replace(/\\\//g, '/');
+}
+
+// Matches `/<slug>` with an optional trailing slash and an optional
+// two-letter locale prefix (`/he/redact`), and refuses to match a longer slug
+// that merely starts the same way (`/redact` must not match `/redaction`).
+function routeMentionPattern(slug) {
+  return new RegExp(String.raw`\/(?:[a-z]{2}(?:-[A-Za-z]+)?\/)?${slug}\/?(?![\w-])`);
+}
+
+// The pure check: given one spec file's repo-relative path and source text,
+// plus the tool -> route map, return every foreign route it mentions ({route,
+// owner}, owner being the tool that actually owns that route). Returns []
+// for a spec outside src/tools/<t>/e2e/, for one that stays on its own tool's
+// routes, and for `/` (never in routeMap, so never flagged). Exported so
+// src/test/moduleBoundariesRules.test.js can drive it with a small literal
+// routeMap and no dependency on the real src/pages/.
+export function specRouteViolation(specRelPath, source, routeMap) {
+  const ownerMatch = specRelPath.match(/^src\/tools\/([^/]+)\/e2e\//);
+  if (!ownerMatch) return [];
+  const owner = ownerMatch[1];
+  const scanText = unescapeRegexSlashes(stripComments(source));
+
+  const violations = [];
+  for (const [route, tool] of routeMap) {
+    if (tool === owner) continue;
+    if (routeMentionPattern(route.slice(1)).test(scanText)) {
+      violations.push({ route, owner: tool });
+    }
+  }
+  return violations;
+}
+
+function collectToolSpecFiles(toolsDir) {
+  const out = [];
+  if (!fs.existsSync(toolsDir)) return out;
+  for (const toolEntry of fs.readdirSync(toolsDir, { withFileTypes: true })) {
+    if (!toolEntry.isDirectory()) continue;
+    const e2eDir = path.join(toolsDir, toolEntry.name, 'e2e');
+    if (!fs.existsSync(e2eDir)) continue;
+    collectSpecFilesRecursive(e2eDir, out);
+  }
+  return out;
+}
+
+function collectSpecFilesRecursive(dir, out) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) collectSpecFilesRecursive(full, out);
+    else if (SPEC_FILE.test(entry.name)) out.push(full);
+  }
+  return out;
+}
+
+// The file-walking wrapper main() calls: every `src/tools/<t>/e2e/**/*.spec.js`
+// file against the real, derived route map, flattened to one entry per
+// (file, foreign route) pair.
+export function toolSpecRouteViolations() {
+  const routeMap = buildToolRouteMap();
+  const specFiles = collectToolSpecFiles(path.join(SRC, 'tools'));
+  const violations = [];
+  for (const file of specFiles) {
+    const rel = relOf(file);
+    const source = fs.readFileSync(file, 'utf8');
+    for (const v of specRouteViolation(rel, source, routeMap)) {
+      violations.push({ file: rel, route: v.route, owner: v.owner });
+    }
+  }
+  return violations;
+}
+
+// Kept last so every helper above (including rule 7's) is defined before
+// main() can possibly run.
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

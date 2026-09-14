@@ -128,7 +128,8 @@ Create is a gesture too (click-place or drag-draw), not an exception.
 - Every control is a 44x44 CSS px touch target (`--btn-min-size`; WCAG 2.5.5 AAA and Apple HIG).
   Below 920px the row is icon-only with one explicit `flex-basis` of `--btn-min-size` per control; at
   560px and below `flex-grow: 0` and each wrapped line is centred. Guard:
-  `src/tools/sign/e2e/toolbar-touch-targets.spec.js` (jsdom has no layout).
+  `e2e/tool-toolbars/toolbar-touch-targets.spec.js` (jsdom has no layout; it drives both `/sign` and
+  `/redact`, so it lives under `e2e/`, not either tool's own `e2e/` folder).
 - Size from `.toolbar > *`, never `.toolbar .dropdown`: the row mixes `<button>`s and
   `<div class="dropdown">` wrappers, and a `.dropdown` rule outranks the child selector (dropdowns once
   rendered ~13px beside ~31px buttons under `flex-basis: 0`).
@@ -196,7 +197,9 @@ starts with `// @vitest-environment jsdom`.
 
 Playwright is for what jsdom cannot prove; keep roughly one e2e per ten unit tests under
 `src/tools/<tool>/e2e/`. `e2e/` itself now holds only the cross-tool specs and the font screening
-guards under `e2e/sign/`. `export-render-guard.spec.js` runs the real `signPdf` in-browser and rasterises the
+guards under `e2e/sign/`. A spec under `src/tools/<tool>/e2e/` may only visit that tool's own page;
+one that also visits another tool's page belongs under `e2e/` instead, enforced statically by rule 7
+in `docs/module-boundaries.md` (`npm run test:module-boundaries`). `export-render-guard.spec.js` runs the real `signPdf` in-browser and rasterises the
 PDF with pdf.js against per-case baselines: one rasteriser only (poppler vs Chromium noise measured at
 80-88%), and never "is there ink" as a pass condition, since `.notdef` often draws more ink than the
 glyph it replaced.

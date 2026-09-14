@@ -4,7 +4,7 @@
 // scan `npm run test:module-boundaries` runs. classify()/ruleViolation() are the
 // checker's own exported helpers - this file is not a reimplementation of them.
 import { describe, expect, it } from 'vitest';
-import { classify, ruleViolation, testImportViolation } from '../../scripts/check-module-boundaries.mjs';
+import { classify, ruleViolation, specRouteViolation, testImportViolation } from '../../scripts/check-module-boundaries.mjs';
 
 function check(from, to) {
   return ruleViolation(classify(from), classify(to), to);
@@ -175,5 +175,45 @@ describe('module boundaries: testImportViolation() - rule 6, test files scanned 
 
   it('allows a test directly under src/test/ importing a tool', () => {
     expect(testImportViolation('src/test/foo.test.js', 'src/tools/sign/PdfSignTool.tsx')).toBeNull();
+  });
+});
+
+describe('rule 7: a tool spec under src/tools/<t>/e2e/ may only reference its own routes', () => {
+  // A small literal map, not the real src/pages/ derivation - DEBT-01's brief
+  // is explicit that this test should not depend on src/pages/.
+  const routeMap = new Map([
+    ['/sign', 'sign'],
+    ['/redact', 'redact'],
+    ['/compress', 'compress'],
+  ]);
+
+  it('allows a spec that only visits its own tool route', () => {
+    const source = "await page.goto('/sign');";
+    expect(specRouteViolation('src/tools/sign/e2e/sign-editor.spec.js', source, routeMap)).toEqual([]);
+  });
+
+  it('allows a spec that visits "/" (never in the route map, so never a foreign route)', () => {
+    const source = "await page.goto('/');";
+    expect(specRouteViolation('src/tools/sign/e2e/sign-editor.spec.js', source, routeMap)).toEqual([]);
+  });
+
+  it('forbids another tool\'s route as a plain string literal', () => {
+    const source = "const tools = [{ path: '/sign' }, { path: '/redact' }];";
+    expect(specRouteViolation('src/tools/sign/e2e/toolbar-touch-targets.spec.js', source, routeMap))
+      .toEqual([{ route: '/redact', owner: 'redact' }]);
+  });
+
+  it('forbids another tool\'s route inside a regex literal', () => {
+    const source = 'await page.waitForURL(/\\/compress\\/?(?:\\?.*)?$/);';
+    expect(specRouteViolation('src/tools/merge/e2e/merge-handoff.spec.js', source, routeMap))
+      .toEqual([{ route: '/compress', owner: 'compress' }]);
+  });
+
+  it('ignores a route mentioned only in a comment', () => {
+    const source = [
+      '// This spec used to also drive /redact before DEBT-01 moved it out.',
+      "await page.goto('/sign');",
+    ].join('\n');
+    expect(specRouteViolation('src/tools/sign/e2e/sign-editor.spec.js', source, routeMap)).toEqual([]);
   });
 });
