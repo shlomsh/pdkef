@@ -544,7 +544,9 @@ export default function PdfSplitTool({
                     <div class={styles['frame-caption']}>
                       <span>one document</span>
                       <span class={styles['frame-caption-note']}>
-                        {selectedCount === 0 ? 'Pick at least one page' : `${pageWord(selectedCount)}, in this order`}
+                        {selectedCount === 0
+                          ? 'Pick at least one page'
+                          : `page${selectedCount === 1 ? '' : 's'} ${pageNumbersToRangeString(selectedPages)}`}
                       </span>
                     </div>
                     <div class={styles.grid} data-scale={numPages <= 8 ? 'large' : undefined}>{pages.map(renderCell)}</div>

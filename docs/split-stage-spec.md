@@ -31,7 +31,7 @@ Heading names the output, honestly counted (guideline §5):
 Groups:
 
 - **One PDF**: a single document frame (1px `--color-primary` border, `--radius`,
-  `--color-primary-soft` fill) with a caption row "one document · 3 pages, in this order", holding
+  `--color-primary-soft` fill) with a caption row "one document · pages 1-3" (which pages, never "in this order": Split does not reorder), holding
   the included pages in order.
 - **One PDF per page**: each included page in its own small frame with its own caption
   `<file base>-page-<n>.pdf`, so the person sees the files before any file exists.
