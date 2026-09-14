@@ -89,12 +89,21 @@ export default function EditorToolStatus({
 
   return (
     <div className={styles.help} role="status" dir={dir} lang={lang}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="16" x2="12" y2="12" />
-        <line x1="12" y1="8" x2="12.01" y2="8" />
-      </svg>
-      <span>{copy.action}</span>
+      {/* One flex item, not two: `.help` wraps at item boundaries, so an icon and
+          a text span sized separately can only stay side by side or split onto
+          different lines as wholes - and a span with several words of text is
+          wide enough that "fits beside the icon" fails before "fits alone on a
+          line" does, stranding the icon on its own line above the text it
+          belongs to. Grouping them keeps the icon pinned to the text it labels
+          in every wrap state. */}
+      <span className={styles['help-message']}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+        <span>{copy.action}</span>
+      </span>
       {/* aria-checked, not a second sentence: the knob says "on" to the eye and
           this says it to a screen reader, so the line does not have to spend a
           phone's scarce vertical space stating a state the control is already

@@ -88,6 +88,16 @@
 .label { display: inline; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .shapes-label { display: flex; align-items: center; gap: 2px; }
 .help { margin: 0; color: var(--color-muted); font-size: .83rem; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
+/* The info icon and the tool's action sentence, as one flex item so `.help`'s
+   own wrapping can never separate them - see the comment beside this markup in
+   EditorToolStatus.tsx for the failure this replaces. `flex-start`, not
+   `center`: the action sentence can itself wrap to two lines on a phone, and
+   centering the icon against a two-line span's full height pulls it down off
+   the first line's cap-height. The icon is a static 14px square, `min-width: 0`
+   is what lets the text beside it keep shrinking and wrapping instead of
+   forcing the whole group wider than `.help`'s own line. */
+.help-message { display: inline-flex; align-items: flex-start; gap: .35rem; min-width: 0; }
+.help-message svg { flex-shrink: 0; margin-top: .1rem; }
 /* The one control that turns "keep adding" on and off - the only way out of a
    locked tool that exists on a phone, where there is no Escape key and no
    reliable double-click (a double-tap is the browser's zoom gesture). It sits
